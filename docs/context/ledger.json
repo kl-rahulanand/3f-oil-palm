@@ -1,0 +1,17 @@
+{
+  "files": {
+    "2026-08-14-kickoff-notes-and-emails.md": {
+      "sha256": "9a8a38c7c8b9ce7f4536080390ee686be5f329bebb36d80b56c731c7bf8e99ef",
+      "added": "2026-08-14T05:07:22+00:00",
+      "status": "harvested",
+      "outputs": [
+        "docs/decisions/0001-poc-engagement-scope.md",
+        "docs/architecture/10-source-systems.md",
+        "docs/product/BRIEF.md",
+        "docs/product/DISCOVERY.md"
+      ],
+      "notes": "",
+      "marked_at": "2026-08-14T05:44:10+00:00"
+    }
+  }
+}

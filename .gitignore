@@ -1,0 +1,62 @@
+# Build outputs
+node_modules
+dist
+coverage
+.turbo
+.vite
+
+# Env files (never commit)
+.env
+.env.*
+!.env.example
+!.env.test.example
+apps/**/.env
+apps/**/.env.*
+!apps/**/.env.test.example
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode
+*.swp
+*.swo
+__pycache__/
+*.pyc
+
+# Prisma
+*.db
+*.db-journal
+
+# Test artifacts
+playwright-report
+test-results
+
+# pnpm
+.pnpm-store
+
+# Logs
+*.log
+pino-*.log
+
+# Factory runtime outputs
+.factory/tool-history.jsonl
+.factory/*.tmp.json
+# forge 0025: briefs and the delegation mirror are read from disk, never from git
+.factory/briefs/
+.factory/diagnostic-briefs/
+.factory/delegations.jsonl
+# Human plan approval is per-worktree ephemeral state (decision 0025)
+.factory/plan-approval.json
+# Session noise from the PreCompact hook — snapshot, never evidence
+.factory/scratchpad.md
+.worktrees/
+
+# forge gstack: project-local store — projects/ is committed, machine noise is not
+.gstack/*
+!.gstack/projects/
+.gstack/**/brain-cache/
+.gstack/**/timeline.jsonl
+
+# transitional: machinery moved to factory/; on-disk copy only serves already-running sessions' hooks
+.agents/
