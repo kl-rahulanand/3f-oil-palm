@@ -1,0 +1,31 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "platform-base \u2014 frontend scope for this first story?",
+      "options": [
+        "App shell + login only (per the design)",
+        "Shell + first MIS screen"
+      ],
+      "chosen": "App shell + login only (per the design)"
+    },
+    {
+      "question": "platform-base \u2014 how much of Pulse's backend do we bring?",
+      "options": [
+        "Framework + trust spine; strip MBS specifics",
+        "Vendor the whole backend as-is"
+      ],
+      "chosen": "Framework + trust spine; strip MBS specifics"
+    },
+    {
+      "question": "platform-base \u2014 what counts as 'done' (acceptance)?",
+      "options": [
+        "Boots + OTP login + green shell + Postgres query end-to-end",
+        "Add a health/status page too"
+      ],
+      "chosen": "Boots + OTP login + green shell + Postgres query end-to-end"
+    }
+  ],
+  "at": "2026-09-01T10:52:18.809428+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
