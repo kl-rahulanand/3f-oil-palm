@@ -13,8 +13,12 @@ read-only, decision `0001-poc-engagement-scope`):
   plot details, farmer lifecycle (editable), plots. Carries field sizing, crop
   sizing, nutrients, and onboarding data points. ~60,000 plots today, growing
   ~6,000–7,000 plots/year.
-- **SAP** — factory side. Fruit intake and extraction process data:
-  temperature, thrasher size, yield, etc.
+- **SAP** — factory side plus the **financial ledger (FICO)**. Fruit intake and
+  extraction process data (temperature, thrasher size, yield), and — revealed by
+  Srihari's 2026-08-20 Phase-1 delivery — the general-ledger transactions
+  (Debit/Credit by Plant + Cost Center + GL) that drive the Financial MIS. The
+  Phase-1 Financial MIS reads from SAP alone; see
+  `docs/architecture/20-financial-mis-data-model.md`.
 
 The operation has two phases that map to the two systems: (1) **before the fruit
 reaches the factory** (farmer onboarding, field/crop sizing, nutrients — Smart

@@ -12,6 +12,38 @@
       ],
       "notes": "",
       "marked_at": "2026-08-14T05:44:10+00:00"
+    },
+    "2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx": {
+      "sha256": "2fd3ce12da7664272c3ab8a4178a0ad5b876a722961a118c61b957d8e35251cd",
+      "added": "2026-08-20T06:26:34+00:00",
+      "status": "harvested",
+      "outputs": [
+        "docs/architecture/20-financial-mis-data-model.md"
+      ],
+      "notes": "",
+      "marked_at": "2026-08-20T06:28:21+00:00"
+    },
+    "2026-08-20-srihari-phase1-data/README.md": {
+      "sha256": "1f9f0876450f12b1608428fad98814c0b23ba01d4692b4fee34c1af01e28e52f",
+      "added": "2026-08-20T06:26:34+00:00",
+      "status": "harvested",
+      "outputs": [
+        "docs/decisions/0002-phase1-financial-mis.md",
+        "docs/architecture/20-financial-mis-data-model.md",
+        "docs/architecture/10-source-systems.md"
+      ],
+      "notes": "",
+      "marked_at": "2026-08-20T06:28:38+00:00"
+    },
+    "2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx": {
+      "sha256": "31a3b38236ef1081002d9177e0fbbc1e902902f9fbe10f38f8bf5ac9896a3004",
+      "added": "2026-08-20T06:26:34+00:00",
+      "status": "harvested",
+      "outputs": [
+        "docs/architecture/20-financial-mis-data-model.md"
+      ],
+      "notes": "",
+      "marked_at": "2026-08-20T06:28:21+00:00"
     }
   }
 }
