@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/tokens/colors.css">
+<link rel="stylesheet" href="_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/tokens/typography.css">
+<link rel="stylesheet" href="_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/styles.css">
+<script src="_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/_ds_bundle.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; background: var(--kl-off-white); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: var(--kl-ink-ui); }
+  a { color: var(--kl-emerald); }
+  a:hover { color: var(--kl-deep-forest); }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .num { font-variant-numeric: tabular-nums; }
+  .eyebrow { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(12,53,41,.18); border-radius: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @keyframes slidein { from { transform: translateX(24px); opacity: 0 } to { transform: none; opacity: 1 } }
+  @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+</style>
+</helmet>
+
+<div style="height:100vh;display:flex;flex-direction:row;overflow:hidden;background:var(--kl-off-white)">
+
+  <div style="width:{{ navWidth }};flex:none;background:var(--kl-deep-forest);display:flex;flex-direction:column;transition:width .2s cubic-bezier(.4,0,.2,1);overflow:hidden">
+    <div style="height:56px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px 0 14px;border-bottom:1px solid rgba(106,241,176,.14)">
+      <sc-if value="{{ navOpen }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:14px;font-weight:700;letter-spacing:-.01em;color:#fff;white-space:nowrap">3F Financial MIS</div>
+      </sc-if>
+      <button onClick="{{ toggleNav }}" title="{{ navToggleTitle }}" style="width:28px;height:28px;flex:none;border-radius:6px;border:1px solid rgba(106,241,176,.2);background:transparent;color:var(--kl-mint);font-size:12px;font-family:inherit;cursor:pointer;margin-left:auto" style-hover="background:rgba(106,241,176,.12)">{{ navToggleIcon }}</button>
+    </div>
+    <div style="flex:1;min-height:0;padding:14px 10px;display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+        <button onClick="{{ n.go }}" title="{{ n.label }}" style="display:flex;align-items:center;gap:9px;padding:9px 8px;border:0;border-radius:6px;background:{{ n.bg }};color:{{ n.fg }};font-family:inherit;font-size:12.5px;font-weight:{{ n.weight }};cursor:pointer;text-align:left;width:100%;white-space:nowrap;overflow:hidden">
+          <span style="width:3px;height:14px;border-radius:2px;background:{{ n.marker }};flex:none"></span>
+          <span style="width:18px;flex:none;text-align:center;font-size:11px;font-weight:700;opacity:.9">{{ n.initial }}</span>
+          <sc-if value="{{ navOpen }}" hint-placeholder-val="{{ true }}">
+            <span>{{ n.label }}</span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+    <div style="flex:none;padding:14px 10px;border-top:1px solid rgba(106,241,176,.14);display:flex;align-items:center;gap:9px">
+      <div style="width:26px;height:26px;flex:none;border-radius:50%;background:var(--kl-mint);color:var(--kl-deep-forest);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700">RV</div>
+      <sc-if value="{{ navOpen }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+          <div style="font-size:11.5px;color:#fff;font-weight:600;white-space:nowrap">R. Venkatesh</div>
+          <div style="font-size:10px;color:var(--kl-mint);white-space:nowrap">Finance controller</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+
+  <div style="height:56px;flex:none;background:#fff;border-bottom:1px solid var(--kl-line);display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 22px">
+    <div style="display:flex;align-items:center;gap:14px;min-width:0">
+      <div style="font-size:13.5px;font-weight:600;color:var(--kl-deep-forest)">{{ pageTitle }}</div>
+      <div style="width:300px;height:32px;border:1px solid var(--kl-line);border-radius:6px;display:flex;align-items:center;padding:0 11px;gap:8px">
+        <span style="font-size:11px;color:var(--kl-slate)">⌕</span>
+        <input placeholder="Search components, GL codes, plants" style="flex:1;min-width:0;border:0;outline:none;font-family:inherit;font-size:12px;color:var(--kl-ink-ui);background:transparent">
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="num" style="font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(28,107,73,.07);border:1px solid rgba(28,107,73,.16);color:var(--kl-emerald);font-weight:600">Data fresh: Jul 2026</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--kl-deep-forest);color:var(--kl-mint);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700">RV</div>
+    </div>
+  </div>
+
+  <sc-if value="{{ isReports }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+
+  <div style="flex:none;background:#fff;border-bottom:1px solid var(--kl-line);padding:14px 22px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:6px;width:168px">
+      <div style="font-size:11px;color:var(--kl-slate)">Department</div>
+      <select value="{{ dept }}" onChange="{{ setDept }}" style="height:34px;border:1px solid var(--kl-line);border-radius:6px;padding:0 8px;font-size:12.5px;font-family:inherit;color:var(--kl-ink-ui);background:#fff;cursor:pointer;appearance:none">
+        <option>Agriculture</option>
+        <option>Processing</option>
+        <option>Corporate</option>
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;width:150px">
+      <div style="font-size:11px;color:var(--kl-slate)">Function</div>
+      <select value="{{ fn }}" onChange="{{ setFn }}" style="height:34px;border:1px solid var(--kl-line);border-radius:6px;padding:0 8px;font-size:12.5px;font-family:inherit;color:var(--kl-ink-ui);background:#fff;cursor:pointer;appearance:none">
+        <option>Nursery</option>
+        <option>Plantation</option>
+        <option>Seed garden</option>
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;width:212px">
+      <div style="font-size:11px;color:var(--kl-slate)">Plant</div>
+      <select value="{{ plant }}" onChange="{{ setPlant }}" style="height:34px;border:1px solid var(--kl-line);border-radius:6px;padding:0 8px;font-size:12.5px;font-family:inherit;color:var(--kl-ink-ui);background:#fff;cursor:pointer;appearance:none">
+        <option>Agri – Nursery – DUB</option>
+        <option>Agri – Nursery – ELR</option>
+        <option>Agri – Nursery – ASK</option>
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;width:132px">
+      <div style="font-size:11px;color:var(--kl-slate)">Period</div>
+      <select value="{{ period }}" onChange="{{ setPeriod }}" class="num" style="height:34px;border:1px solid var(--kl-line);border-radius:6px;padding:0 8px;font-size:12.5px;font-family:inherit;color:var(--kl-ink-ui);background:#fff;cursor:pointer;appearance:none">
+        <option>Jul 2026</option>
+        <option>Jun 2026</option>
+        <option>May 2026</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-left:4px">
+      <button onClick="{{ generate }}" style="height:34px;padding:0 18px;border:1px solid var(--kl-emerald);border-radius:6px;background:var(--kl-emerald);color:#fff;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s ease" style-hover="background:var(--kl-deep-forest);border-color:var(--kl-deep-forest)">Generate</button>
+      <button onClick="{{ download }}" style="height:34px;padding:0 16px;border:1px solid var(--kl-emerald);border-radius:6px;background:#fff;color:var(--kl-emerald);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s ease" style-hover="background:rgba(28,107,73,.06)">Download Excel</button>
+      <div style="align-self:center;font-size:11.5px;color:var(--kl-emerald);min-width:150px">{{ toast }}</div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex;flex-direction:row;position:relative">
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;position:relative">
+
+      <sc-if value="{{ notGenerated }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 40px;animation:fadein .3s ease">
+          <div style="width:44px;height:44px;border:1px solid var(--kl-line);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center">
+            <div style="width:18px;height:14px;display:flex;flex-direction:column;gap:3px">
+              <div style="height:2px;background:var(--kl-emerald)"></div>
+              <div style="height:2px;background:rgba(12,53,41,.2)"></div>
+              <div style="height:2px;background:rgba(12,53,41,.2)"></div>
+              <div style="height:2px;background:rgba(12,53,41,.2)"></div>
+            </div>
+          </div>
+          <div style="font-size:19px;font-weight:600;color:var(--kl-deep-forest);letter-spacing:-.01em;text-align:center">Select Department, Function and Plant, then Generate</div>
+          <div style="font-size:13px;color:var(--kl-slate);max-width:54ch;text-align:center;line-height:1.55;text-wrap:pretty">Actuals are read from SAP for the selected period. Nothing is written back — this report is read-only.</div>
+          <button onClick="{{ generate }}" style="height:36px;padding:0 22px;border:1px solid var(--kl-emerald);border-radius:6px;background:var(--kl-emerald);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px" style-hover="background:var(--kl-deep-forest);border-color:var(--kl-deep-forest)">Generate</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ generated }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:22px 22px 0;opacity:{{ tableOpacity }};transition:opacity .25s ease">
+          <div style="flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:14px">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="font-size:21px;font-weight:700;letter-spacing:-.015em;color:var(--kl-deep-forest)">Financial MIS — Nursery (DUB)</div>
+              <div class="num" style="font-size:12.5px;color:var(--kl-ink-2)">FY 2026-27 · July 2026</div>
+              <div style="font-size:11.5px;color:var(--kl-slate)">Actuals from SAP · Budgets from plan · click any Actual to see the transactions.</div>
+            </div>
+            <div class="eyebrow num" style="color:var(--kl-slate);white-space:nowrap">Last sync 01 Sep 2026, 06:40</div>
+          </div>
+
+          <div style="flex:1;min-height:0;background:#fff;border:1px solid var(--kl-border-card);border-radius:10px;overflow:auto">
+            <table style="border-collapse:separate;border-spacing:0;width:100%;min-width:1180px;font-size:12px">
+              <thead>
+                <tr>
+                  <th colspan="5" style="position:sticky;top:0;left:0;z-index:5;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);border-right:1px solid var(--kl-line);text-align:left;padding:8px 10px;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Identity</span></th>
+                  <th colspan="3" style="position:sticky;top:0;z-index:4;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);border-right:1px solid var(--kl-line);padding:8px 10px;font-weight:400" class="eyebrow"><span style="color:var(--kl-emerald)">FY 26-27 (YTD)</span></th>
+                  <th colspan="3" style="position:sticky;top:0;z-index:4;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);padding:8px 10px;font-weight:400" class="eyebrow"><span style="color:var(--kl-emerald)">July 2026</span></th>
+                </tr>
+                <tr>
+                  <th style="position:sticky;top:31px;left:0;z-index:5;width:48px;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">S.No</th>
+                  <th style="position:sticky;top:31px;left:48px;z-index:5;width:226px;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">Budget component</th>
+                  <th style="position:sticky;top:31px;left:274px;z-index:5;width:70px;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:center;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">Rollover</th>
+                  <th style="position:sticky;top:31px;left:344px;z-index:5;width:104px;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">Payment office</th>
+                  <th style="position:sticky;top:31px;left:448px;z-index:5;width:92px;background:#fff;border-bottom:1px solid var(--kl-line);border-right:1px solid var(--kl-line);padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">GL code</th>
+                  <th style="position:sticky;top:31px;z-index:3;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">Budget</th>
+                  <th style="position:sticky;top:31px;z-index:3;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">Actual</th>
+                  <th style="position:sticky;top:31px;z-index:3;background:#fff;border-bottom:1px solid var(--kl-line);border-right:1px solid var(--kl-line);padding:8px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">%</th>
+                  <th style="position:sticky;top:31px;z-index:3;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">Budget</th>
+                  <th style="position:sticky;top:31px;z-index:3;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">Actual</th>
+                  <th style="position:sticky;top:31px;z-index:3;background:#fff;border-bottom:1px solid var(--kl-line);padding:8px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--kl-deep-forest)">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="14">
+                  <tr style="background:{{ r.bg }}">
+                    <td onClick="{{ r.toggle }}" style="position:sticky;left:0;z-index:2;background:{{ r.bg }};border-bottom:1px solid #EEF2F0;padding:0 10px;height:30px;color:var(--kl-slate);font-weight:{{ r.w }};cursor:{{ r.cursor }}" class="num">{{ r.sno }}</td>
+                    <td onClick="{{ r.toggle }}" style="position:sticky;left:48px;z-index:2;background:{{ r.bg }};border-bottom:1px solid #EEF2F0;padding-left:{{ r.indent }};padding-right:10px;color:var(--kl-ink-ui);font-weight:{{ r.w }};white-space:nowrap;cursor:{{ r.cursor }}"><span style="display:inline-block;width:12px;color:var(--kl-slate);font-size:9px">{{ r.caret }}</span>{{ r.name }}</td>
+                    <td style="position:sticky;left:274px;z-index:2;background:{{ r.bg }};border-bottom:1px solid #EEF2F0;padding:0 10px;text-align:center;color:var(--kl-slate);font-weight:{{ r.w }}">{{ r.ro }}</td>
+                    <td style="position:sticky;left:344px;z-index:2;background:{{ r.bg }};border-bottom:1px solid #EEF2F0;padding:0 10px;color:var(--kl-slate);font-weight:{{ r.w }}">{{ r.office }}</td>
+                    <td style="position:sticky;left:448px;z-index:2;background:{{ r.bg }};border-bottom:1px solid #EEF2F0;border-right:1px solid #EEF2F0;padding:0 10px;color:var(--kl-caption-ui)" class="num">{{ r.gl }}</td>
+                    <td style="border-bottom:1px solid #EEF2F0;padding:0 10px;text-align:right;font-weight:{{ r.w }}" class="num">{{ r.yb }}</td>
+                    <td style="border-bottom:1px solid #EEF2F0;padding:0 10px;text-align:right" class="num"><a href="#" onClick="{{ r.drillYtd }}" style="color:var(--kl-emerald);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;font-weight:{{ r.w }}">{{ r.ya }}</a></td>
+                    <td style="border-bottom:1px solid #EEF2F0;border-right:1px solid #EEF2F0;padding:0 6px;text-align:right"><span class="num" style="display:inline-block;padding:2px 6px;border-radius:4px;font-weight:{{ r.w }};background:{{ r.ypBg }};color:{{ r.ypFg }}">{{ r.yp }}</span></td>
+                    <td style="border-bottom:1px solid #EEF2F0;padding:0 10px;text-align:right;font-weight:{{ r.w }}" class="num">{{ r.jb }}</td>
+                    <td style="border-bottom:1px solid #EEF2F0;padding:0 10px;text-align:right" class="num"><a href="#" onClick="{{ r.drillJul }}" style="color:var(--kl-emerald);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;font-weight:{{ r.w }}">{{ r.ja }}</a></td>
+                    <td style="border-bottom:1px solid #EEF2F0;padding:0 6px;text-align:right"><span class="num" style="display:inline-block;padding:2px 6px;border-radius:4px;font-weight:{{ r.w }};background:{{ r.jpBg }};color:{{ r.jpFg }}">{{ r.jp }}</span></td>
+                  </tr>
+                </sc-for>
+                <tr>
+                  <td colspan="2" style="position:sticky;left:0;bottom:0;z-index:6;background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 10px;height:40px;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">Grand total</td>
+                  <td colspan="3" style="position:sticky;left:274px;bottom:0;z-index:6;background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);border-right:1px solid var(--kl-line)"></td>
+                  <td style="position:sticky;bottom:0;z-index:5;background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 10px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)" class="num">{{ total.yb }}</td>
+                  <td style="position:sticky;bottom:0;z-index:5;background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 10px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)" class="num">{{ total.ya }}</td>
+                  <td style="position:sticky;bottom:0;z-index:5;background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);border-right:1px solid var(--kl-line);padding:0 10px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)" class="num">{{ total.yp }}</td>
+                  <td style="position:sticky;bottom:0;z-index:5;background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 10px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)" class="num">{{ total.jb }}</td>
+                  <td style="position:sticky;bottom:0;z-index:5;background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 10px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)" class="num">{{ total.ja }}</td>
+                  <td style="position:sticky;bottom:0;z-index:5;background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 10px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)" class="num">{{ total.jp }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="flex:none;padding:9px 2px 12px;font-size:11px;color:var(--kl-caption-ui);display:flex;justify-content:space-between;gap:16px">
+            <div>Amounts in ₹. All budget components shown, including nil-actual lines.</div>
+            <div class="num">Source: SAP · cost centre DUB-NUR</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ drillOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeDrill }}" style="position:absolute;inset:0;background:rgba(12,53,41,.32);z-index:8;animation:fadein .2s ease"></div>
+      </sc-if>
+      <sc-if value="{{ drillOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:0;bottom:0;right:0;width:min(720px,86%);background:#fff;border-left:1px solid var(--kl-line);box-shadow:-8px 0 24px rgba(12,53,41,.10);z-index:9;display:flex;flex-direction:column;animation:slidein .25s cubic-bezier(.4,0,.2,1)">
+          <div style="flex:none;padding:16px 22px 14px;border-bottom:1px solid var(--kl-line);display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:9px;min-width:0">
+              <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                <div class="eyebrow" style="color:var(--kl-emerald)">Drill-down</div>
+                <div style="width:1px;height:11px;background:var(--kl-line)"></div>
+                <a href="#" onClick="{{ drill.toGroup }}" style="font-size:11.5px;color:{{ drill.crumbGroupColor }};text-decoration:{{ drill.crumbGroupUnderline }};text-underline-offset:2px;font-weight:{{ drill.crumbGroupWeight }}">{{ drill.crumbGroup }}</a>
+                <sc-if value="{{ drill.hasSub }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:7px">
+                    <span style="font-size:11px;color:var(--kl-slate)">›</span>
+                    <span style="font-size:11.5px;color:var(--kl-deep-forest);font-weight:600">{{ drill.crumbSub }}</span>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="font-size:16.5px;font-weight:700;color:var(--kl-deep-forest);letter-spacing:-.01em;text-wrap:pretty">{{ drill.title }}</div>
+              <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+                <div class="num" style="font-size:24px;font-weight:700;color:var(--kl-deep-forest);letter-spacing:-.02em">{{ drill.totalLabel }}</div>
+                <div style="font-size:12px;color:var(--kl-slate)">{{ drill.meta }}</div>
+              </div>
+            </div>
+            <button onClick="{{ closeDrill }}" style="width:28px;height:28px;flex:none;border:1px solid var(--kl-line);border-radius:6px;background:#fff;color:var(--kl-slate);font-size:13px;font-family:inherit;cursor:pointer" style-hover="border-color:var(--kl-emerald);color:var(--kl-emerald)">✕</button>
+          </div>
+          <div style="flex:none;padding:11px 22px;display:flex;align-items:center;gap:9px;border-bottom:1px solid #EEF2F0;background:var(--kl-off-white);flex-wrap:wrap">
+            <div style="font-size:11px;color:var(--kl-slate)">Sorted</div>
+            <sc-for list="{{ drill.sortChips }}" as="c" hint-placeholder-count="2">
+              <div style="font-size:11px;padding:3px 9px;border-radius:999px;background:#fff;border:1px solid var(--kl-line);color:var(--kl-ink-ui)">{{ c.label }}</div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ drill.isL1 }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:0;overflow:auto;animation:fadein .2s ease">
+              <table style="border-collapse:separate;border-spacing:0;width:100%;font-size:12px">
+                <thead>
+                  <tr>
+                    <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px 9px 22px;text-align:left;font-weight:400;width:56px" class="eyebrow"><span style="color:var(--kl-slate)">S.No</span></th>
+                    <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:left;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Sub-line</span></th>
+                    <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:left;font-weight:400;width:96px" class="eyebrow"><span style="color:var(--kl-slate)">GL code</span></th>
+                    <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:right;font-weight:400;width:120px" class="eyebrow"><span style="color:var(--kl-slate)">Budget</span></th>
+                    <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:right;font-weight:400;width:120px" class="eyebrow"><span style="color:var(--kl-slate)">Actual</span></th>
+                    <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 22px 9px 8px;text-align:right;font-weight:400;width:82px" class="eyebrow"><span style="color:var(--kl-slate)">%</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ drill.subItems }}" as="s" hint-placeholder-count="3">
+                    <tr>
+                      <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px 9px 22px;color:var(--kl-slate)">{{ s.sno }}</td>
+                      <td style="border-bottom:1px solid #F2F5F4;padding:9px 8px;color:var(--kl-ink-ui)">{{ s.name }}</td>
+                      <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;color:var(--kl-caption-ui)">{{ s.gl }}</td>
+                      <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;text-align:right">{{ s.budget }}</td>
+                      <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;text-align:right"><a href="#" onClick="{{ s.open }}" style="color:var(--kl-emerald);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px">{{ s.actual }}</a></td>
+                      <td style="border-bottom:1px solid #F2F5F4;padding:9px 22px 9px 8px;text-align:right"><span class="num" style="display:inline-block;padding:2px 6px;border-radius:4px;background:{{ s.pctBg }};color:{{ s.pctFg }}">{{ s.pct }}</span></td>
+                    </tr>
+                  </sc-for>
+                  <tr>
+                    <td colspan="2" style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 8px 0 22px;height:44px;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">Total</td>
+                    <td style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest)"></td>
+                    <td class="num" style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 8px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">{{ drill.subBudgetTotal }}</td>
+                    <td class="num" style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 8px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">{{ drill.subActualTotal }}</td>
+                    <td class="num" style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 22px 0 8px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">{{ drill.subPctTotal }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style="padding:14px 22px;font-size:11px;color:var(--kl-caption-ui)">Click any Actual to see its transactions. Budget is not drillable.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ drill.isL2 }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;min-height:0;overflow:auto;animation:fadein .2s ease">
+            <table style="border-collapse:separate;border-spacing:0;width:100%;font-size:12px">
+              <thead>
+                <tr>
+                  <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px 9px 22px;text-align:left;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Month</span></th>
+                  <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:right;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Debit</span></th>
+                  <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:right;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Credit</span></th>
+                  <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:right;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Value</span></th>
+                  <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:left;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Reference</span></th>
+                  <th style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--kl-line);padding:9px 22px 9px 8px;text-align:left;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Memo</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ drill.items }}" as="t" hint-placeholder-count="5">
+                  <tr>
+                    <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px 9px 22px;color:var(--kl-slate);white-space:nowrap">{{ t.month }}</td>
+                    <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;text-align:right;white-space:nowrap">{{ t.debit }}</td>
+                    <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;text-align:right;color:var(--kl-slate);white-space:nowrap">{{ t.credit }}</td>
+                    <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;text-align:right;font-weight:600;color:{{ t.valColor }};white-space:nowrap">{{ t.value }}</td>
+                    <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;color:var(--kl-ink-2);white-space:nowrap">{{ t.ref }}</td>
+                    <td style="border-bottom:1px solid #F2F5F4;padding:9px 22px 9px 8px;color:var(--kl-slate);font-size:11.5px;line-height:1.45;text-wrap:pretty">{{ t.memo }}</td>
+                  </tr>
+                </sc-for>
+                <tr>
+                  <td style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 8px 0 22px;height:44px;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">Total</td>
+                  <td class="num" style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 8px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">{{ drill.debitTotal }}</td>
+                  <td class="num" style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 8px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">{{ drill.creditTotal }}</td>
+                  <td class="num" style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 8px;text-align:right;font-size:12.5px;font-weight:700;color:var(--kl-deep-forest)">{{ drill.valueTotal }}</td>
+                  <td style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest)"></td>
+                  <td style="background:var(--kl-off-white);border-top:1px solid var(--kl-deep-forest);padding:0 22px 0 8px;font-size:11px;color:var(--kl-slate)">Matches the Actual in the report</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="padding:14px 22px;font-size:11px;color:var(--kl-caption-ui)">Budget is not drillable.</div>
+          </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ askClosed }}" hint-placeholder-val="{{ true }}">
+      <div onClick="{{ openAsk }}" style="width:48px;flex:none;border-left:1px solid var(--kl-line);background:#fff;display:flex;flex-direction:column;align-items:center;padding-top:22px;gap:14px;cursor:pointer;z-index:10" style-hover="background:rgba(28,107,73,.04)">
+        <div style="width:30px;height:30px;border-radius:6px;background:rgba(28,107,73,.07);display:flex;align-items:center;justify-content:center;flex:none">
+          <div style="width:15px;height:12px;border:1.5px solid var(--kl-emerald);border-radius:3px;position:relative">
+            <div style="position:absolute;left:2px;bottom:-5px;width:4px;height:4px;border-left:1.5px solid var(--kl-emerald);border-bottom:1.5px solid var(--kl-emerald);transform:rotate(-45deg);background:#fff"></div>
+          </div>
+        </div>
+        <div class="eyebrow" style="color:var(--kl-slate);writing-mode:vertical-rl">Assistant</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ askOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="width:360px;flex:none;border-left:1px solid var(--kl-line);background:#fff;display:flex;flex-direction:column;z-index:10">
+        <div style="flex:none;height:48px;border-bottom:1px solid var(--kl-line);display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="width:14px;height:11px;border:1.5px solid var(--kl-emerald);border-radius:3px;position:relative">
+              <div style="position:absolute;left:2px;bottom:-5px;width:4px;height:4px;border-left:1.5px solid var(--kl-emerald);border-bottom:1.5px solid var(--kl-emerald);transform:rotate(-45deg);background:#fff"></div>
+            </div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--kl-deep-forest)">Ask</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <button onClick="{{ goAskPage }}" title="Open in Ask" style="height:26px;padding:0 9px;border-radius:6px;border:1px solid var(--kl-line);background:#fff;color:var(--kl-emerald);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer" style-hover="border-color:var(--kl-emerald);background:rgba(28,107,73,.06)">⤢ Open in Ask</button>
+            <button onClick="{{ closeAsk }}" title="Collapse" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--kl-line);background:#fff;color:var(--kl-slate);font-size:13px;font-family:inherit;cursor:pointer" style-hover="border-color:var(--kl-emerald);color:var(--kl-emerald)">›</button>
+          </div>
+        </div>
+        <div style="flex:none;padding:14px 16px 12px;border-bottom:1px solid #F2F5F4;font-size:12px;color:var(--kl-slate);line-height:1.55;text-wrap:pretty">Ask about this report. Answers are verified against the source.</div>
+        <div style="flex:none;padding:12px 16px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #F2F5F4">
+          <div class="eyebrow" style="font-size:9.5px;color:var(--kl-caption-ui)">Suggested</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.ask }}" style="font-size:11.5px;padding:6px 11px;border-radius:999px;border:1px solid var(--kl-line);color:var(--kl-emerald);background:#fff;font-family:inherit;cursor:pointer;text-align:left" style-hover="background:rgba(28,107,73,.06);border-color:var(--kl-emerald)">{{ c.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ messages }}" as="m" hint-placeholder-count="2">
+            <div style="display:flex;flex-direction:column;gap:7px;align-items:{{ m.align }}">
+              <div style="max-width:288px;background:{{ m.bg }};border:1px solid {{ m.border }};border-radius:{{ m.radius }};padding:10px 12px;font-size:12.5px;line-height:1.55;color:var(--kl-ink-ui);text-wrap:pretty" class="num">
+                <sc-if value="{{ m.verified }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:inline-flex;align-items:center;gap:5px;padding:2px 7px;margin-bottom:7px;border-radius:999px;background:rgba(28,107,73,.08);border:1px solid rgba(28,107,73,.18);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--kl-emerald)">✓ Verified</div>
+                </sc-if>
+                <div>{{ m.text }}</div>
+              </div>
+              <sc-if value="{{ m.hasProvenance }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:7px;max-width:288px;padding-left:2px">
+                  <a href="#" onClick="{{ m.viewInReport }}" style="font-size:11.5px;color:var(--kl-emerald);text-decoration:underline;text-underline-offset:2px">View in report</a>
+                  <div style="border:1px solid var(--kl-line);border-radius:8px;overflow:hidden">
+                    <button onClick="{{ m.toggleProv }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:var(--kl-off-white);border:0;font-family:inherit;font-size:11.5px;color:var(--kl-ink-2);cursor:pointer;text-align:left">How this was calculated<span style="color:var(--kl-slate);font-size:9px">{{ m.provCaret }}</span></button>
+                    <sc-if value="{{ m.provOpen }}" hint-placeholder-val="{{ false }}">
+                      <div style="padding:10px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--kl-line)">
+                        <div style="display:flex;flex-direction:column;gap:2px">
+                          <div class="eyebrow" style="font-size:9px;color:var(--kl-caption-ui)">Measure</div>
+                          <div class="mono" style="font-size:11px;color:var(--kl-ink-ui)">Sum of (Debit − Credit)</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:2px">
+                          <div class="eyebrow" style="font-size:9px;color:var(--kl-caption-ui)">Filters</div>
+                          <div class="mono" style="font-size:11px;color:var(--kl-ink-ui);line-height:1.5">Plant = DUB · Cost centre = DUB-NUR · GL = 50001201</div>
+                        </div>
+                        <div style="font-size:10.5px;color:var(--kl-slate)">Source: SAP, July 2026</div>
+                      </div>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:none;padding:12px 14px 14px;border-top:1px solid var(--kl-line);display:flex;align-items:center;gap:9px">
+          <input value="{{ draft }}" onChange="{{ setDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="Ask about this report…" style="flex:1;min-width:0;height:38px;border:1px solid var(--kl-line);border-radius:999px;padding:0 14px;font-size:12.5px;font-family:inherit;color:var(--kl-ink-ui);background:#fff;outline:none" style-focus="border-color:var(--kl-emerald)">
+          <button onClick="{{ send }}" title="Send" style="width:38px;height:38px;flex:none;border:0;border-radius:50%;background:var(--kl-emerald);color:#fff;font-size:14px;font-family:inherit;cursor:pointer" style-hover="background:var(--kl-deep-forest)">↑</button>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;overflow:auto;padding:24px 26px 30px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="eyebrow" style="color:var(--kl-emerald)">Overview</div>
+          <div style="font-size:21px;font-weight:700;letter-spacing:-.015em;color:var(--kl-deep-forest)">Agriculture — Nursery, July 2026</div>
+          <div style="font-size:12px;color:var(--kl-slate)">Four plants · consolidated on the MIS mapping master</div>
+        </div>
+        <button onClick="{{ goReports }}" style="height:34px;padding:0 16px;border:1px solid var(--kl-emerald);border-radius:6px;background:var(--kl-emerald);color:#fff;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer" style-hover="background:var(--kl-deep-forest);border-color:var(--kl-deep-forest)">Open MIS report</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid var(--kl-border-card);border-radius:10px;padding:15px 16px;display:flex;flex-direction:column;gap:9px">
+            <div class="eyebrow" style="font-size:9.5px;color:var(--kl-caption-ui)">{{ k.label }}</div>
+            <div class="num" style="font-size:22px;font-weight:700;letter-spacing:-.02em;color:{{ k.color }};white-space:nowrap">{{ k.value }}</div>
+            <div class="num" style="font-size:11.5px;color:var(--kl-slate);line-height:1.45;text-wrap:pretty">{{ k.sub }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start">
+        <div style="background:#fff;border:1px solid var(--kl-border-card);border-radius:10px;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--kl-line);display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+            <div style="font-size:13.5px;font-weight:600;color:var(--kl-deep-forest)">Top 5 overspends this month</div>
+            <div style="font-size:11px;color:var(--kl-slate)">Actual &gt; Budget · July 2026</div>
+          </div>
+          <table style="border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-size:12px">
+            <thead>
+              <tr>
+                <th style="border-bottom:1px solid var(--kl-line);padding:8px 6px 8px 16px;text-align:left;font-weight:400;width:32%" class="eyebrow"><span style="color:var(--kl-slate)">Component</span></th>
+                <th style="border-bottom:1px solid var(--kl-line);padding:8px 6px;text-align:left;font-weight:400;width:17%" class="eyebrow"><span style="color:var(--kl-slate)">GL</span></th>
+                <th style="border-bottom:1px solid var(--kl-line);padding:8px 6px;text-align:right;font-weight:400;white-space:nowrap;width:20%" class="eyebrow"><span style="color:var(--kl-slate)">Actual</span></th>
+                <th style="border-bottom:1px solid var(--kl-line);padding:8px 6px;text-align:right;font-weight:400;white-space:nowrap;width:19%" class="eyebrow"><span style="color:var(--kl-slate)">Budget</span></th>
+                <th style="border-bottom:1px solid var(--kl-line);padding:8px 16px 8px 6px;text-align:right;font-weight:400;white-space:nowrap;width:12%" class="eyebrow"><span style="color:var(--kl-slate)">% over</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ overspends }}" as="ov" hint-placeholder-count="3">
+                <tr>
+                  <td onClick="{{ ov.open }}" style="border-bottom:1px solid #F2F5F4;padding:9px 6px 9px 16px;color:var(--kl-emerald);cursor:pointer;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ov.name }}</td>
+                  <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 6px;color:var(--kl-caption-ui);font-size:10.5px;white-space:nowrap;overflow:hidden">{{ ov.gl }}</td>
+                  <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 6px;text-align:right;font-weight:600;white-space:nowrap">{{ ov.actual }}</td>
+                  <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 6px;text-align:right;color:var(--kl-slate);white-space:nowrap">{{ ov.budget }}</td>
+                  <td style="border-bottom:1px solid #F2F5F4;padding:9px 16px 9px 6px;text-align:right;white-space:nowrap"><span class="num" style="display:inline-block;padding:2px 7px;border-radius:4px;background:rgba(168,68,46,.10);color:#A8442E;font-weight:600">{{ ov.over }}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          <div style="padding:11px 16px;font-size:11px;color:var(--kl-caption-ui)">{{ overspendNote }}</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:13.5px;font-weight:600;color:var(--kl-deep-forest)">Pinned reports</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <sc-for list="{{ pinned }}" as="p" hint-placeholder-count="3">
+                <button onClick="{{ goReports }}" style="text-align:left;background:#fff;border:1px solid var(--kl-border-card);border-left:3px solid var(--kl-emerald);border-radius:10px;padding:13px 14px;display:flex;flex-direction:column;gap:7px;font-family:inherit;cursor:pointer" style-hover="border-color:var(--kl-emerald)">
+                  <div style="font-size:12.5px;font-weight:600;color:var(--kl-deep-forest);line-height:1.35;text-wrap:pretty">{{ p.name }}</div>
+                  <div class="num" style="font-size:16px;font-weight:700;color:{{ p.color }}">{{ p.pct }}</div>
+                  <div class="num" style="font-size:11px;color:var(--kl-slate)">{{ p.meta }}</div>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--kl-border-card);border-radius:10px;overflow:hidden">
+            <div style="padding:13px 16px;border-bottom:1px solid var(--kl-line);font-size:13.5px;font-weight:600;color:var(--kl-deep-forest)">Recent activity</div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ activity }}" as="a" hint-placeholder-count="4">
+                <div style="padding:11px 16px;border-bottom:1px solid #F2F5F4;display:flex;flex-direction:column;gap:3px">
+                  <div style="font-size:12px;color:var(--kl-ink-ui);line-height:1.4;text-wrap:pretty">{{ a.text }}</div>
+                  <div class="num" style="font-size:10.5px;color:var(--kl-caption-ui)">{{ a.when }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAsk }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:row;overflow:hidden">
+      <div style="width:230px;flex:none;border-right:1px solid var(--kl-line);background:#fff;display:flex;flex-direction:column">
+        <div style="flex:none;padding:14px">
+          <button onClick="{{ newChat }}" style="width:100%;height:34px;border:1px solid var(--kl-emerald);border-radius:6px;background:var(--kl-emerald);color:#fff;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer" style-hover="background:var(--kl-deep-forest);border-color:var(--kl-deep-forest)">New chat</button>
+        </div>
+        <div style="flex:none;padding:2px 14px 8px" class="eyebrow"><span style="font-size:9.5px;color:var(--kl-caption-ui)">Conversations</span></div>
+        <div style="flex:1;min-height:0;overflow:auto;padding:0 8px 12px;display:flex;flex-direction:column;gap:2px">
+          <sc-for list="{{ conversations }}" as="c" hint-placeholder-count="3">
+            <button onClick="{{ c.open }}" style="text-align:left;padding:9px 10px;border:0;border-radius:6px;background:{{ c.bg }};font-family:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px" style-hover="background:rgba(28,107,73,.06)">
+              <div style="font-size:12px;font-weight:{{ c.weight }};color:var(--kl-ink-ui)">{{ c.name }}</div>
+              <div class="num" style="font-size:10.5px;color:var(--kl-caption-ui)">{{ c.when }}</div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:var(--kl-off-white)">
+        <div style="flex:1;min-height:0;overflow:auto;padding:22px 26px">
+          <div style="max-width:760px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:18px;font-weight:700;letter-spacing:-.015em;color:var(--kl-deep-forest)">{{ askThreadTitle }}</div>
+              <div style="font-size:12.5px;color:var(--kl-slate);line-height:1.55;text-wrap:pretty">Ask anything about your MIS data — answers are verified against the source.</div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+                <button onClick="{{ c.ask }}" style="font-size:12px;padding:7px 13px;border-radius:999px;border:1px solid var(--kl-line);color:var(--kl-emerald);background:#fff;font-family:inherit;cursor:pointer" style-hover="background:rgba(28,107,73,.06);border-color:var(--kl-emerald)">{{ c.label }}</button>
+              </sc-for>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end">
+              <div style="max-width:560px;background:rgba(28,107,73,.07);border:1px solid rgba(28,107,73,.14);border-radius:10px 10px 4px 10px;padding:11px 13px;font-size:12.5px;line-height:1.55;color:var(--kl-ink-ui)">What's the imported sprout cost this month, and how does it sit against budget?</div>
+            </div>
+
+            <div style="max-width:620px;background:#fff;border:1px solid var(--kl-border-card);border-radius:10px 10px 10px 4px;padding:15px 16px;display:flex;flex-direction:column;gap:13px">
+              <div style="display:inline-flex;align-self:flex-start;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;background:rgba(28,107,73,.08);border:1px solid rgba(28,107,73,.18);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--kl-emerald)">✓ Verified</div>
+              <div class="num" style="font-size:13px;line-height:1.6;color:var(--kl-ink-ui);text-wrap:pretty">Nursery imported-sprout cost for July 2026 is ₹83.98 lakh — 105% of the ₹80.00 lakh budget, and the largest single line this month. Across FY 2026-27 it is ₹3.26 crore against a ₹3.20 crore plan (102%).</div>
+              <div style="border:1px solid var(--kl-line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:11px">
+                <div class="eyebrow" style="font-size:9.5px;color:var(--kl-caption-ui)">Budget vs actual · ₹ lakh</div>
+                <sc-for list="{{ chart }}" as="b" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:96px 1fr 74px;align-items:center;gap:10px">
+                    <div style="font-size:11px;color:var(--kl-slate);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.label }}</div>
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <div style="height:8px;border-radius:2px;background:rgba(12,53,41,.12);width:{{ b.budgetW }}"></div>
+                      <div style="height:8px;border-radius:2px;background:{{ b.actualColor }};width:{{ b.actualW }}"></div>
+                    </div>
+                    <div class="num" style="font-size:11px;text-align:right;color:{{ b.pctColor }};font-weight:600">{{ b.pct }}</div>
+                  </div>
+                </sc-for>
+                <div style="display:flex;gap:14px;padding-top:2px">
+                  <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--kl-slate)"><span style="width:14px;height:6px;border-radius:2px;background:rgba(12,53,41,.12)"></span>Budget</div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--kl-slate)"><span style="width:14px;height:6px;border-radius:2px;background:var(--kl-emerald)"></span>Actual</div>
+                </div>
+              </div>
+              <div style="border:1px solid var(--kl-line);border-radius:8px;overflow:hidden">
+                <button onClick="{{ togglePageProv }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:var(--kl-off-white);border:0;font-family:inherit;font-size:12px;color:var(--kl-ink-2);cursor:pointer;text-align:left">How this was calculated<span style="color:var(--kl-slate);font-size:9px">{{ pageProvCaret }}</span></button>
+                <sc-if value="{{ pageProvOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--kl-line)">
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <div class="eyebrow" style="font-size:9px;color:var(--kl-caption-ui)">Measure</div>
+                      <div class="mono" style="font-size:11px;color:var(--kl-ink-ui);line-height:1.5">Sum of (Debit − Credit)</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <div class="eyebrow" style="font-size:9px;color:var(--kl-caption-ui)">Filters</div>
+                      <div class="mono" style="font-size:11px;color:var(--kl-ink-ui);line-height:1.5">Plant = DUB · Cost centre = DUB-NUR · GL = 50001201 · Period = Jul 2026</div>
+                    </div>
+                    <div style="grid-column:span 2;font-size:10.5px;color:var(--kl-slate)">Source: SAP · 5 journal entries · read-only</div>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <button onClick="{{ viewSproutInReport }}" style="height:30px;padding:0 12px;border:1px solid var(--kl-emerald);border-radius:6px;background:#fff;color:var(--kl-emerald);font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer" style-hover="background:rgba(28,107,73,.06)">View in report</button>
+                <button onClick="{{ pinToDashboard }}" style="height:30px;padding:0 12px;border:1px solid var(--kl-line);border-radius:6px;background:#fff;color:var(--kl-ink-2);font-size:11.5px;font-weight:500;font-family:inherit;cursor:pointer" style-hover="border-color:var(--kl-emerald);color:var(--kl-emerald)">Pin to dashboard</button>
+                <div style="font-size:11.5px;color:var(--kl-emerald)">{{ pinToast }}</div>
+              </div>
+            </div>
+
+            <sc-for list="{{ pageMessages }}" as="m" hint-placeholder-count="0">
+              <div style="display:flex;flex-direction:column;gap:8px;align-items:{{ m.align }}">
+                <div class="num" style="max-width:620px;background:{{ m.bg }};border:1px solid {{ m.border }};border-radius:{{ m.radius }};padding:12px 14px;font-size:12.5px;line-height:1.55;color:var(--kl-ink-ui);text-wrap:pretty">
+                  <sc-if value="{{ m.verified }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;margin-bottom:8px;border-radius:999px;background:rgba(28,107,73,.08);border:1px solid rgba(28,107,73,.18);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--kl-emerald)">✓ Verified</div>
+                  </sc-if>
+                  <div>{{ m.text }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:none;border-top:1px solid var(--kl-line);background:#fff;padding:14px 26px">
+          <div style="max-width:760px;display:flex;align-items:center;gap:10px">
+            <input value="{{ draft }}" onChange="{{ setDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="Ask about your MIS data…" style="flex:1;min-width:0;height:40px;border:1px solid var(--kl-line);border-radius:999px;padding:0 16px;font-size:12.5px;font-family:inherit;color:var(--kl-ink-ui);background:#fff;outline:none" style-focus="border-color:var(--kl-emerald)">
+            <button onClick="{{ send }}" title="Send" style="width:40px;height:40px;flex:none;border:0;border-radius:50%;background:var(--kl-emerald);color:#fff;font-size:15px;font-family:inherit;cursor:pointer" style-hover="background:var(--kl-deep-forest)">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isExplore }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;overflow:auto;padding:24px 26px 30px">
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:18px">
+        <div class="eyebrow" style="color:var(--kl-emerald)">Explore</div>
+        <div style="font-size:21px;font-weight:700;letter-spacing:-.015em;color:var(--kl-deep-forest)">Saved views</div>
+        <div style="font-size:12px;color:var(--kl-slate)">Selections you can reopen without rebuilding the filter row.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:1100px">
+        <sc-for list="{{ savedViews }}" as="v" hint-placeholder-count="4">
+          <button onClick="{{ goReports }}" style="text-align:left;background:#fff;border:1px solid var(--kl-border-card);border-radius:10px;padding:15px 16px;display:flex;flex-direction:column;gap:8px;font-family:inherit;cursor:pointer" style-hover="border-color:var(--kl-emerald)">
+            <div style="font-size:13px;font-weight:600;color:var(--kl-deep-forest)">{{ v.name }}</div>
+            <div class="num" style="font-size:11.5px;color:var(--kl-slate);line-height:1.5">{{ v.filters }}</div>
+            <div class="num" style="font-size:10.5px;color:var(--kl-caption-ui)">{{ v.when }}</div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:24px 26px 22px">
+      <div style="flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:16px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="eyebrow" style="color:var(--kl-emerald)">Admin</div>
+          <div style="font-size:21px;font-weight:700;letter-spacing:-.015em;color:var(--kl-deep-forest)">Mapping master</div>
+          <div style="font-size:12px;color:var(--kl-slate)">Plant + cost centre + GL code → budget component. Every report is built from these rows.</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button style="height:34px;padding:0 14px;border:1px solid var(--kl-line);border-radius:6px;background:#fff;color:var(--kl-ink-2);font-size:12.5px;font-weight:500;font-family:inherit;cursor:pointer" style-hover="border-color:var(--kl-emerald);color:var(--kl-emerald)">Import CSV</button>
+          <button style="height:34px;padding:0 16px;border:1px solid var(--kl-emerald);border-radius:6px;background:var(--kl-emerald);color:#fff;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer" style-hover="background:var(--kl-deep-forest);border-color:var(--kl-deep-forest)">Add mapping</button>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;background:#fff;border:1px solid var(--kl-border-card);border-radius:10px;overflow:auto">
+        <table style="border-collapse:separate;border-spacing:0;width:100%;font-size:12px">
+          <thead>
+            <tr>
+              <th style="position:sticky;top:0;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);padding:9px 8px 9px 16px;text-align:left;font-weight:400;width:150px" class="eyebrow"><span style="color:var(--kl-slate)">Plant</span></th>
+              <th style="position:sticky;top:0;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:left;font-weight:400;width:120px" class="eyebrow"><span style="color:var(--kl-slate)">Cost centre</span></th>
+              <th style="position:sticky;top:0;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:left;font-weight:400;width:110px" class="eyebrow"><span style="color:var(--kl-slate)">GL code</span></th>
+              <th style="position:sticky;top:0;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:left;font-weight:400" class="eyebrow"><span style="color:var(--kl-slate)">Budget component</span></th>
+              <th style="position:sticky;top:0;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);padding:9px 8px;text-align:center;font-weight:400;width:90px" class="eyebrow"><span style="color:var(--kl-slate)">Rollover</span></th>
+              <th style="position:sticky;top:0;background:var(--kl-off-white);border-bottom:1px solid var(--kl-line);padding:9px 16px 9px 8px;text-align:right;font-weight:400;width:120px" class="eyebrow"><span style="color:var(--kl-slate)">Updated</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ mappings }}" as="m" hint-placeholder-count="10">
+              <tr>
+                <td style="border-bottom:1px solid #F2F5F4;padding:9px 8px 9px 16px;color:var(--kl-ink-ui)">{{ m.plant }}</td>
+                <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;color:var(--kl-slate)">{{ m.cc }}</td>
+                <td class="num" style="border-bottom:1px solid #F2F5F4;padding:9px 8px;color:var(--kl-ink-2)">{{ m.gl }}</td>
+                <td style="border-bottom:1px solid #F2F5F4;padding:9px 8px;color:var(--kl-ink-ui)"><span class="num" style="color:var(--kl-caption-ui)">{{ m.sno }} </span>{{ m.name }}</td>
+                <td style="border-bottom:1px solid #F2F5F4;padding:9px 8px;text-align:center;color:var(--kl-slate)">{{ m.ro }}</td>
+                <td style="border-bottom:1px solid #F2F5F4;padding:9px 16px 9px 8px;text-align:right"><a href="#" onClick="{{ m.edit }}" style="color:var(--kl-emerald);font-size:11.5px;text-decoration:underline;text-underline-offset:2px">Edit</a><span class="num" style="color:var(--kl-caption-ui);font-size:10.5px"> · {{ m.when }}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div style="flex:none;padding-top:10px;font-size:11px;color:var(--kl-caption-ui)">{{ adminToast }}</div>
+    </div>
+  </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;tintVariance&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Report&quot;},&quot;startEmpty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Report&quot;}}">
+class Component extends DCLogic {
+  state = {
+    page: "dashboard", pageProvOpen: false, pinToast: "", adminToast: "", activeConv: "Imported sprout cost", pageMessages: [],
+    generated: null, refreshing: false, toast: "",
+    askOpen: false, collapsed: {}, drill: null, provOpen: {}, draft: "",
+    messages: [
+      { role: "user", text: "What's the imported sprout cost this month?" },
+      { role: "bot", verified: true, prov: true, text: "Nursery imported-sprout cost for July 2026 is ₹83.98 lakh — 105% of the ₹80 lakh budget, the largest line this month." }
+    ]
+  };
+
+  // [sno, name, rollover, office, gl, ytdBudget, ytdActual, julBudget, julActual, isGroup, group]
+  data() {
+    return [
+      ["1", "Imported sprouts", "Y", "HO", "", 0, 0, 0, 0, 1, "1"],
+      ["1.1", "Sprout cost", "Y", "HO", "50001201", 32000000, 32563212, 8000000, 8398339, 0, "1"],
+      ["1.2", "Clearing & forwarding", "Y", "HO", "50001202", 2000000, 1104660, 500000, 280908, 0, "1"],
+      ["1.3", "Marine insurance", "Y", "HO", "50001203", 200000, 0, 50000, 0, 0, "1"],
+      ["4", "Materials primary nursery", "N", "HOD", "", 0, 0, 1500000, 0, 1, "4"],
+      ["4.1", "Poly bags — primary", "N", "HOD", "50001601", 3120000, 3462128, 780000, 968532, 0, "4"],
+      ["4.2", "Soil & filling media", "N", "HOD", "50001602", 1200000, 620000, 300000, 140000, 0, "4"],
+      ["4.3", "Protrays", "N", "HOD", "50001603", 480000, 502750, 120000, 137500, 0, "4"],
+      ["4.5", "Fertilizers & manures", "N", "HOD", "50001605", 600000, 584220, 150000, 140879, 0, "4"],
+      ["4.6", "Pesticides & fungicides", "N", "HOD", "50001606", 600000, 112400, 150000, 0, 0, "4"],
+      ["8", "Manpower expenses", "N", "HO", "", 0, 0, 1200000, 0, 1, "8"],
+      ["8.1", "Salaries", "N", "HO", "55021000", 4341072, 3590118, 1085268, 144912, 0, "8"],
+      ["8.2", "Overtime", "N", "HO", "55021100", 298928, 176400, 74732, 0, 0, "8"],
+      ["8.3", "Staff welfare", "N", "HO", "55021200", 160000, 96000, 40000, 0, 0, "8"],
+      ["9", "Admin expenses", "N", "HO", "", 0, 0, 800000, 0, 1, "9"],
+      ["9.1", "Vehicle maintenance", "N", "HO", "55010901", 480000, 412880, 120000, 104660, 0, "9"],
+      ["9.4", "Travelling & conveyance", "N", "HO", "55010800", 2560000, 2172900, 640000, 480207, 0, "9"],
+      ["9.9", "Printing & stationery", "N", "HO", "55011200", 160000, 58400, 40000, 12880, 0, "9"]
+    ];
+  }
+
+  inr(n) {
+    if (!n) return "0";
+    const neg = n < 0; n = Math.abs(Math.round(n));
+    const s = String(n);
+    let out;
+    if (s.length <= 3) out = s;
+    else {
+      let rest = s.slice(0, -3), parts = [];
+      while (rest.length > 2) { parts.unshift(rest.slice(-2)); rest = rest.slice(0, -2); }
+      if (rest) parts.unshift(rest);
+      out = parts.join(",") + "," + s.slice(-3);
+    }
+    return neg ? "(" + out + ")" : out;
+  }
+  pct(a, b) { return b ? Math.round((a / b) * 100) + "%" : "—"; }
+  tint(a, b) {
+    if (!b || this.props.tintVariance === false) return { bg: "transparent", fg: "var(--kl-ink-ui)" };
+    const p = a / b;
+    if (p > 1.005) return { bg: "rgba(168,68,46,.10)", fg: "#A8442E" };
+    if (p < 0.995) return { bg: "rgba(28,107,73,.08)", fg: "var(--kl-emerald)" };
+    return { bg: "transparent", fg: "var(--kl-ink-ui)" };
+  }
+
+  lineItems(name, gl, total, ytd) {
+    if (!total) return [];
+    if (gl === "50001201" && !ytd) {
+      return [
+        ["Jul 2026", 4020000, 0, "V102512", "A/P invoice — sprout consignment C-47, 4,02,000 sprouts"],
+        ["Jul 2026", 2864500, 0, "V102510", "A/P invoice — sprout consignment C-44 (2,86,450 @ ₹10.00)"],
+        ["Jul 2026", 984200, 0, "SV100022", "A/P invoice — consignment C-30, balance quantity"],
+        ["Jul 2026", 462180, 0, "SV100109", "A/P invoice — consignment C-38, air freight inclusive"],
+        ["Jul 2026", 110459, 43000, "SV100111", "Consignment C-40 — germination shortfall credit adjusted"]
+      ];
+    }
+    const memos = {
+      "50001202": ["Customs clearance — consignment C-47", "CHA charges & port handling, C-44", "Inland freight to DUB nursery", "Documentation & port dues"],
+      "50001601": ["Poly bag supply — 400 gauge, primary beds", "Poly bag supply — top-up order", "Freight on poly bags", "Rate difference debit note"],
+      "50001602": ["Red soil supply & screening", "Filling media — coir pith", "Transport on filling media", "Handling charges"],
+      "50001603": ["Protray purchase — 96-cell", "Protray purchase — replacement lot", "Freight on protrays", "Rate revision debit"],
+      "50001605": ["Fertilizer supply — 19:19:19", "Micronutrient mix supply", "Organic manure supply", "Freight on fertilizers"],
+      "55021000": ["Payroll posting — nursery staff", "Payroll arrears posting", "Payroll — contract supervisors", "Payroll adjustment"],
+      "55010901": ["Vehicle service — nursery pickup", "Tyre replacement", "Fuel & lubricants", "Insurance renewal share"],
+      "55010800": ["Travel claim — nursery visits", "Conveyance claim — field staff", "Boarding & lodging — audit visit", "Local conveyance"],
+      "55011200": ["Printing — nursery registers", "Stationery supply", "Toner & consumables", "Photocopy charges"]
+    };
+    const m = memos[gl] || ["A/P invoice — " + name.toLowerCase(), "A/P invoice — " + name.toLowerCase() + ", second lot", "Freight & handling", "Adjustment entry"];
+    const seed = Number(String(gl).slice(-2)) || 7;
+    const w = [0.44 + (seed % 5) / 100, 0.28, 0.17, 0.11];
+    const months = ytd ? ["Jul 2026", "Jun 2026", "May 2026", "Apr 2026"] : ["Jul 2026", "Jul 2026", "Jul 2026", "Jun 2026"];
+    const out = [];
+    let run = 0;
+    for (let i = 0; i < 4; i++) {
+      let v = i === 3 ? total - run : Math.round(total * w[i] / 100) * 100;
+      if (v <= 0 && i < 3) v = 0;
+      run += v;
+      if (v === 0) continue;
+      const credit = i === 3 && v > 20000 ? Math.round(v * 0.06 / 100) * 100 : 0;
+      out.push([months[i], v + credit, credit, "SV1001" + (20 + i * 7 + (seed % 9)), m[i] + ", cost centre DUB-NUR"]);
+    }
+    return out;
+  }
+
+  setDrill(d) { this.setState({ drill: d }); }
+
+  buildDrill() {
+    const dr = this.state.drill;
+    if (!dr) return { items: [], subItems: [], sortChips: [] };
+    const d = this.data();
+    const groupRow = d.find(r => r[9] && r[10] === dr.group) || ["", dr.group];
+    const subs = d.filter(r => !r[9] && r[10] === dr.group);
+    const ytd = dr.scope === "ytd";
+    const bi = ytd ? 5 : 7, ai = ytd ? 6 : 8;
+    const period = ytd ? "FY 2026-27 (YTD)" : "Jul 2026";
+    const crumb = {
+      crumbGroup: groupRow[1],
+      hasSub: dr.level === 2,
+      toGroup: e => { e.preventDefault(); this.setDrill({ level: 1, group: dr.group, scope: dr.scope }); },
+      crumbGroupColor: dr.level === 2 ? "var(--kl-emerald)" : "var(--kl-deep-forest)",
+      crumbGroupUnderline: dr.level === 2 ? "underline" : "none",
+      crumbGroupWeight: dr.level === 2 ? 500 : 600
+    };
+
+    if (dr.level === 1) {
+      const items = subs.slice().sort((a, b) => b[ai] - a[ai]).map(r => {
+        const t = this.tint(r[ai], r[bi]);
+        return {
+          sno: r[0], name: r[1], gl: r[4] || "—",
+          budget: this.inr(r[bi]), actual: this.inr(r[ai]), pct: this.pct(r[ai], r[bi]),
+          pctBg: t.bg, pctFg: t.fg,
+          open: e => { e.preventDefault(); this.setDrill({ level: 2, group: dr.group, sub: r[0], scope: dr.scope }); }
+        };
+      });
+      const bt = subs.reduce((s, r) => s + r[bi], 0), at = subs.reduce((s, r) => s + r[ai], 0);
+      return Object.assign(crumb, {
+        isL1: true, isL2: false, items: [], subItems: items,
+        title: "Actuals by sub-line",
+        totalLabel: "₹" + this.inr(at),
+        meta: period + " · " + items.length + " sub-lines · cost centre DUB-NUR",
+        subBudgetTotal: this.inr(bt), subActualTotal: this.inr(at), subPctTotal: this.pct(at, bt),
+        sortChips: [{ label: "Actual ↓ largest to lowest" }]
+      });
+    }
+
+    const sub = subs.find(r => r[0] === dr.sub) || subs[0];
+    const total = sub[ai];
+    const raw = this.lineItems(sub[1], sub[4], total, ytd)
+      .map(t => ({ month: t[0], d: t[1], c: t[2], v: t[1] - t[2], ref: t[3], memo: t[4] }))
+      .sort((a, b) => b.v - a.v || this.monthKey(b.month) - this.monthKey(a.month));
+    return Object.assign(crumb, {
+      isL1: false, isL2: true, subItems: [],
+      crumbSub: sub[1],
+      title: "Actuals line items — " + sub[1] + " (GL " + sub[4] + ")",
+      totalLabel: "₹" + this.inr(total),
+      meta: period + " · " + raw.length + " entries · cost centre DUB-NUR",
+      items: raw.map(t => ({
+        month: t.month, debit: this.inr(t.d), credit: this.inr(t.c), value: this.inr(t.v),
+        valColor: t.v < 0 ? "#A8442E" : "var(--kl-deep-forest)", ref: t.ref, memo: t.memo
+      })),
+      debitTotal: this.inr(raw.reduce((s, t) => s + t.d, 0)),
+      creditTotal: this.inr(raw.reduce((s, t) => s + t.c, 0)),
+      valueTotal: this.inr(raw.reduce((s, t) => s + t.v, 0)),
+      sortChips: [{ label: "Value ↓ largest to lowest" }, { label: "Month ↓ latest to oldest" }]
+    });
+  }
+
+  monthKey(m) {
+    const order = ["Apr 2026", "May 2026", "Jun 2026", "Jul 2026"];
+    const i = order.indexOf(m);
+    return i < 0 ? 0 : i;
+  }
+
+  answer(q) {
+    const l = q.toLowerCase();
+    if (l.includes("overspend")) return "Five lines are over budget in July: Protrays 115% (₹1.38 lakh vs ₹1.20 lakh), Poly bags — primary 124% (₹9.69 lakh vs ₹7.80 lakh), Sprout cost 105% (₹83.98 lakh vs ₹80.00 lakh). Together they are ₹4.14 lakh above plan.";
+    if (l.includes("manpower")) return "Manpower is at 12% because only salaries posted in July (₹1.44 lakh of ₹10.85 lakh). Overtime and staff welfare have nil actuals — the July payroll run for DUB-NUR posted after period close.";
+    if (l.includes("compare") || l.includes("secondary")) return "Materials primary nursery is ₹13.87 lakh against a ₹15.00 lakh budget (92%). Materials secondary nursery is not budgeted for DUB in FY 2026-27, so there is nothing to compare this period.";
+    return "I can answer from the July 2026 MIS for Agri – Nursery – DUB — budgets, actuals, variance and the SAP line items behind any Actual. Try one of the suggested questions.";
+  }
+  push(q) {
+    const pair = [{ role: "user", text: q }, { role: "bot", verified: true, prov: true, text: this.answer(q) }];
+    if (this.state.page === "ask") this.setState(s => ({ draft: "", pageMessages: s.pageMessages.concat(pair) }));
+    else this.setState(s => ({ draft: "", messages: s.messages.concat(pair) }));
+  }
+
+  bubble(m) {
+    return {
+      align: m.role === "user" ? "flex-end" : "flex-start",
+      bg: m.role === "user" ? "rgba(28,107,73,.07)" : "#fff",
+      border: m.role === "user" ? "rgba(28,107,73,.14)" : "var(--kl-border-card)",
+      radius: m.role === "user" ? "10px 10px 4px 10px" : "10px 10px 10px 4px",
+      text: m.text, verified: !!m.verified
+    };
+  }
+
+  dashboard() {
+    const d = this.data().filter(r => !r[9]);
+    const jb = d.reduce((s, r) => s + r[7], 0), ja = d.reduce((s, r) => s + r[8], 0);
+    const over = d.filter(r => r[8] > r[7]).sort((a, b) => (b[8] - b[7]) - (a[8] - a[7]));
+    const biggest = d.slice().sort((a, b) => Math.abs(b[8] - b[7]) - Math.abs(a[8] - a[7]))[0];
+    const bigDelta = biggest[8] - biggest[7];
+    const kpis = [
+      { label: "Actual vs budget · Jul 2026", value: "₹" + this.inr(ja), sub: "Budget ₹" + this.inr(jb) + " · " + this.pct(ja, jb) + " of plan · ₹" + this.inr(jb - ja) + " under", color: "var(--kl-deep-forest)" },
+      { label: "Overspends", value: String(over.length), sub: "Lines where actual exceeds budget, out of " + d.length + " active lines", color: over.length ? "#A8442E" : "var(--kl-emerald)" },
+      { label: "Biggest variance line", value: (bigDelta < 0 ? "−₹" : "+₹") + this.inr(Math.abs(bigDelta)), sub: biggest[0] + " " + biggest[1] + " · " + this.pct(biggest[8], biggest[7]) + " of budget", color: bigDelta < 0 ? "var(--kl-emerald)" : "#A8442E" },
+      { label: "Data freshness", value: "Jul 2026", sub: "SAP sync 01 Sep 2026, 06:40 · all four nursery plants posted", color: "var(--kl-deep-forest)" }
+    ];
+    const overspends = over.slice(0, 5).map(r => ({
+      name: r[1], gl: r[4], actual: this.inr(r[8]), budget: this.inr(r[7]),
+      over: "+" + Math.round(((r[8] - r[7]) / r[7]) * 100) + "%",
+      open: e => { e.preventDefault(); this.setState({ page: "reports", drill: { level: 2, group: r[10], sub: r[0], scope: "jul" } }); }
+    }));
+    return {
+      kpis, overspends,
+      overspendNote: over.length < 5 ? "Only " + over.length + " lines are over budget in July — the full list is shown." : "Ranked by rupee overspend.",
+      pinned: [
+        { name: "Nursery — DUB", pct: this.pct(ja, jb), meta: "Jul 2026 · ₹" + this.inr(ja), color: "var(--kl-emerald)" },
+        { name: "Nursery — ELR", pct: "104%", meta: "Jul 2026 · ₹94,12,400", color: "#A8442E" },
+        { name: "Plantation — DUB", pct: "88%", meta: "Jul 2026 · ₹2,41,08,660", color: "var(--kl-emerald)" }
+      ],
+      activity: [
+        { text: "SAP actuals synced for July 2026 — 1,284 journal entries", when: "01 Sep 2026, 06:40" },
+        { text: "R. Venkatesh downloaded MIS_Nursery_DUB_Jul26.xlsx", when: "31 Aug 2026, 18:12" },
+        { text: "Mapping master updated — GL 50001606 moved to Materials primary nursery", when: "28 Aug 2026, 11:05" },
+        { text: "Budget revision loaded for FY 2026-27, Q2", when: "24 Aug 2026, 09:30" }
+      ],
+      savedViews: [
+        { name: "Nursery DUB — monthly", filters: "Agriculture · Nursery · DUB · Jul 2026", when: "Opened 01 Sep 2026" },
+        { name: "Nursery — all plants YTD", filters: "Agriculture · Nursery · all plants · FY 2026-27", when: "Opened 29 Aug 2026" },
+        { name: "Manpower watchlist", filters: "Group 8 only · DUB + ELR · Jul 2026", when: "Opened 27 Aug 2026" },
+        { name: "Rollover components", filters: "Rollover = Y · all functions · FY 2026-27", when: "Opened 21 Aug 2026" }
+      ]
+    };
+  }
+
+  renderVals() {
+    const d = this.data(), collapsed = this.state.collapsed;
+    const sums = {};
+    d.forEach(r => {
+      if (r[9]) return;
+      const g = sums[r[10]] || (sums[r[10]] = [0, 0, 0, 0]);
+      g[0] += r[5]; g[1] += r[6]; g[2] += r[7]; g[3] += r[8];
+    });
+    const period = this.state.generated ? "Jul 2026" : "Jul 2026";
+    const visible = d.filter(r => r[9] || !collapsed[r[10]]);
+    const rows = visible.map(r => {
+      const g = !!r[9], s = sums[r[10]] || [0, 0, 0, 0];
+      const yb = g ? s[0] : r[5], ya = g ? s[1] : r[6], jb = g ? s[2] : r[7], ja = g ? s[3] : r[8];
+      const yt = this.tint(ya, yb), jt = this.tint(ja, jb);
+      return {
+        sno: r[0], name: r[1], ro: r[2], office: r[3], gl: r[4] || "—",
+        yb: this.inr(yb), ya: this.inr(ya), yp: this.pct(ya, yb),
+        jb: this.inr(jb), ja: this.inr(ja), jp: this.pct(ja, jb),
+        ypBg: yt.bg, ypFg: yt.fg, jpBg: jt.bg, jpFg: jt.fg,
+        w: g ? 700 : 400, indent: g ? "10px" : "26px",
+        bg: g ? "#F6F9F7" : "#FFFFFF",
+        caret: g ? (collapsed[r[10]] ? "▸" : "▾") : "",
+        cursor: g ? "pointer" : "default",
+        toggle: g ? (e => { e.preventDefault(); this.setState(st => ({ collapsed: Object.assign({}, st.collapsed, { [r[10]]: !st.collapsed[r[10]] }) })); }) : (e => e.preventDefault()),
+        drillJul: e => { e.preventDefault(); this.setDrill(g ? { level: 1, group: r[10], scope: "jul" } : { level: 2, group: r[10], sub: r[0], scope: "jul" }); },
+        drillYtd: e => { e.preventDefault(); this.setDrill(g ? { level: 1, group: r[10], scope: "ytd" } : { level: 2, group: r[10], sub: r[0], scope: "ytd" }); }
+      };
+    });
+    const gen = this.state.generated === null ? this.props.startEmpty !== true : this.state.generated;
+    const tot = Object.values(sums).reduce((a, s) => [a[0] + s[0], a[1] + s[1], a[2] + s[2], a[3] + s[3]], [0, 0, 0, 0]);
+
+    const chips = ["Top 5 overspends in July", "Why is Manpower only 12% of budget?", "Compare Materials Primary vs Secondary"]
+      .map(label => ({ label, ask: () => this.push(label) }));
+
+    const messages = this.state.messages.map((m, i) => ({
+      align: m.role === "user" ? "flex-end" : "flex-start",
+      bg: m.role === "user" ? "rgba(28,107,73,.07)" : "var(--kl-off-white)",
+      border: m.role === "user" ? "rgba(28,107,73,.14)" : "var(--kl-border-card)",
+      radius: m.role === "user" ? "10px 10px 4px 10px" : "10px 10px 10px 4px",
+      text: m.text, verified: !!m.verified, hasProvenance: !!m.prov,
+      provOpen: !!this.state.provOpen[i], provCaret: this.state.provOpen[i] ? "▾" : "▸",
+      toggleProv: () => this.setState(st => ({ provOpen: Object.assign({}, st.provOpen, { [i]: !st.provOpen[i] }) })),
+      viewInReport: e => { e.preventDefault(); this.setDrill({ level: 2, group: "1", sub: "1.1", scope: "jul" }); }
+    }));
+
+    const page = this.state.page;
+    const navDefs = [["dashboard", "Dashboard"], ["reports", "MIS Reports"], ["ask", "Ask"], ["explore", "Explore / Saved"], ["admin", "Admin"]];
+    const navOpen = this.state.navOpen !== false;
+    const nav = navDefs.map(n => ({
+      label: n[1], initial: n[1].charAt(0),
+      bg: page === n[0] ? "rgba(106,241,176,.12)" : "transparent",
+      fg: page === n[0] ? "#fff" : "var(--kl-text-on-dark)",
+      weight: page === n[0] ? 600 : 400,
+      marker: page === n[0] ? "var(--kl-mint)" : "transparent",
+      go: () => this.setState({ page: n[0], drill: null })
+    }));
+    const dash = this.dashboard();
+    const chart = [["Sprout cost", 8000000, 8398339], ["Clearing & fwd", 500000, 280908], ["Poly bags — primary", 780000, 968532], ["Salaries", 1085268, 144912]].map(c => {
+      const max = 8400000;
+      const p = c[2] / c[1];
+      return {
+        label: c[0], budgetW: (c[1] / max * 100).toFixed(1) + "%", actualW: (c[2] / max * 100).toFixed(1) + "%",
+        actualColor: p > 1.005 ? "#A8442E" : "var(--kl-emerald)",
+        pct: Math.round(p * 100) + "%", pctColor: p > 1.005 ? "#A8442E" : "var(--kl-slate)"
+      };
+    });
+    const conversations = ["Imported sprout cost", "Manpower variance", "Top overspends"].map(name => ({
+      name, when: name === "Imported sprout cost" ? "Today, 09:14" : name === "Manpower variance" ? "Yesterday" : "28 Aug 2026",
+      bg: this.state.activeConv === name ? "rgba(28,107,73,.08)" : "transparent",
+      weight: this.state.activeConv === name ? 600 : 400,
+      open: () => this.setState({ activeConv: name, pageMessages: [] })
+    }));
+    const mappings = this.data().filter(r => !r[9]).map(r => ({
+      plant: "Agri – Nursery – DUB", cc: "DUB-NUR", gl: r[4], sno: r[0], name: r[1], ro: r[2],
+      when: "12 Jul 2026",
+      edit: e => { e.preventDefault(); this.setState({ adminToast: "Editing GL " + r[4] + " → " + r[1] + " (demo only — mapping master is read-only in this prototype)" }); setTimeout(() => this.setState({ adminToast: "" }), 3200); }
+    }));
+
+    return {
+      rows, chips, messages, nav, chart, conversations, mappings,
+      kpis: dash.kpis, overspends: dash.overspends, overspendNote: dash.overspendNote,
+      pinned: dash.pinned, activity: dash.activity, savedViews: dash.savedViews,
+      isDashboard: page === "dashboard", isReports: page === "reports", isAsk: page === "ask",
+      isExplore: page === "explore", isAdmin: page === "admin",
+      pageTitle: page === "dashboard" ? "Dashboard" : page === "reports" ? "MIS Reports" : page === "ask" ? "Ask" : page === "explore" ? "Explore / Saved" : "Admin · Mapping master",
+      askThreadTitle: this.state.activeConv,
+      pageMessages: this.state.pageMessages.map(m => this.bubble(m)),
+      pageProvOpen: this.state.pageProvOpen, pageProvCaret: this.state.pageProvOpen ? "▾" : "▸",
+      pinToast: this.state.pinToast, adminToast: this.state.adminToast,
+      navOpen, navWidth: navOpen ? "200px" : "62px",
+      navToggleIcon: navOpen ? "‹" : "›", navToggleTitle: navOpen ? "Collapse navigation" : "Expand navigation",
+      toggleNav: () => this.setState(s => ({ navOpen: s.navOpen === false })),
+      goReports: () => this.setState({ page: "reports", drill: null }),
+      goAskPage: () => this.setState({ page: "ask" }),
+      newChat: () => this.setState({ activeConv: "New chat", pageMessages: [] }),
+      togglePageProv: () => this.setState(s => ({ pageProvOpen: !s.pageProvOpen })),
+      pinToDashboard: () => { this.setState({ pinToast: "Pinned to dashboard" }); setTimeout(() => this.setState({ pinToast: "" }), 2400); },
+      viewSproutInReport: () => this.setState({ page: "reports", drill: { level: 2, group: "1", sub: "1.1", scope: "jul" } }),
+      total: { yb: this.inr(tot[0]), ya: this.inr(tot[1]), yp: this.pct(tot[1], tot[0]), jb: this.inr(tot[2]), ja: this.inr(tot[3]), jp: this.pct(tot[3], tot[2]) },
+      generated: gen, notGenerated: !gen,
+      tableOpacity: this.state.refreshing ? 0.35 : 1,
+      toast: this.state.toast,
+      askOpen: this.state.askOpen, askClosed: !this.state.askOpen,
+      drillOpen: !!this.state.drill, drill: this.buildDrill(),
+      draft: this.state.draft,
+      dept: "Agriculture", fn: "Nursery", plant: "Agri – Nursery – DUB", period: "Jul 2026",
+      setDept: () => {}, setFn: () => {}, setPlant: () => {}, setPeriod: () => {},
+      openAsk: () => this.setState({ askOpen: true }),
+      closeAsk: () => this.setState({ askOpen: false }),
+      closeDrill: () => this.setState({ drill: null }),
+      setDraft: e => this.setState({ draft: e.target.value }),
+      onDraftKey: e => { if (e.key === "Enter" && this.state.draft.trim()) this.push(this.state.draft.trim()); },
+      send: () => { if (this.state.draft.trim()) this.push(this.state.draft.trim()); },
+      download: () => { this.setState({ toast: "Preparing MIS_Nursery_DUB_Jul26.xlsx…" }); setTimeout(() => this.setState({ toast: "" }), 2200); },
+      generate: () => {
+        this.setState({ generated: true, refreshing: true, toast: "" });
+        setTimeout(() => this.setState({ refreshing: false, toast: "Report refreshed · 01 Sep 2026, 06:40" }), 420);
+        setTimeout(() => this.setState({ toast: "" }), 3200);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

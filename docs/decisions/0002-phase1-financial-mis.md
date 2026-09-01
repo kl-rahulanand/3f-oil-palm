@@ -1,6 +1,6 @@
 ---
-status: proposed
-confirmed_by: ""
+status: accepted
+confirmed_by: "Rahul Anand"
 date: 2026-08-20
 stories: []
 ---

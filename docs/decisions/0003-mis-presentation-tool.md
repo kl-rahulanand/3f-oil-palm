@@ -1,99 +1,71 @@
 ---
-status: proposed
-confirmed_by: ""
-date: 2026-08-20
+status: accepted
+confirmed_by: "Rahul Anand"
+date: 2026-09-01
 stories: []
 ---
 
-# MIS presentation layer — buy a BI tool, build custom, or hybrid
+# MIS presentation layer — custom report + Pulse (option 3)
 
-**This decision is OPEN.** Recorded to capture the framework, the evidence gathered
-so far, and a leading hypothesis — to take to the team (Kartik) before committing
-build effort. It does not bind until confirmed.
+**Decided: option 3.** The buy-vs-build exploration below stands as the record;
+the call is a custom MIS report plus Pulse (our own platform).
 
 ## Context
 
-Kartik challenged the "build a custom web app" default: existing BI/reporting tools
-(Metabase, Superset, Power BI, Looker) already do reporting + drill-down + DB
-connection, and warned against building "just a collection of reports" — the target
-should be a Power BI / Metabase-class analytics experience, not a static report
-generator. Rahul: explore all options; start with the report (separate from the
-chatbot); decide on evidence.
+Kartik challenged the "custom web app" default: BI tools (Metabase, Superset,
+Power BI, Looker) already do reporting + drill-down, and we should aim for a
+platform experience, not "just a collection of reports." Four factors decided it:
+MIS-format fidelity, the assistant, ownership/lock-in (3F's founding motive), and
+ad-hoc exploration.
 
-Four factors decide it for *this* product:
+Evidence gathered 2026-08-20 (hands-on Metabase spike on real July data + tool
+research; see `docs/architecture/20-financial-mis-data-model.md` and the buy-vs-build
+comparison artifact):
+- **No off-the-shelf tool renders the bespoke MIS statement.** Metabase can't
+  (native SQL isn't pivotable; the GUI pivot has no hierarchy/%/month-blocks);
+  Power BI's matrix is closest but is ruled out below.
+- **Power BI and Looker are ruled out** by ownership + India residency + lock-in —
+  the exact trap 3F hired us to escape. (Looker would also force BigQuery.)
+- **Pulse** — KnackLabs' own trustworthy NL-to-data platform — gives a governed
+  semantic layer, code-composed + validated SQL, provenance, saved reports,
+  dashboards, drill-down, and a self-hosted assistant. It directly targets 3F's
+  core pain (distrust of the numbers) and is IP we own.
 
-1. **MIS format fidelity.** The deliverable is a bespoke financial statement
-   (grouped rows, Budget/Roll-over/Actual/% column-blocks per period, zero-rows
-   shown, exact Excel/PDF). This is a *report*, not a dashboard — the weakest spot
-   for off-the-shelf BI.
-2. **Embedded chatbot.** A docked, VS-Code-style assistant over the same data (and/or
-   a separate tab). No BI tool ships this; a custom surface makes it trivial.
-3. **Ownership / anti-lock-in.** The client's founding motive is escaping a vendor
-   and owning their stack (NDA, India residency). Proprietary SaaS re-introduces
-   exactly that.
-4. **Platform ambition.** A self-serve exploration experience (many consumers) is
-   the strongest argument to buy a tool rather than rebuild it.
+## Decision
 
-## Evidence gathered (2026-08-20)
-
-**Hands-on Metabase spike** (self-hosted Metabase + Postgres, real July SAP data
-loaded — `docs/context/2026-08-20-srihari-phase1-data/`):
-- Connect + auto-discover + a grouped Budget-vs-Actual table: ~2 minutes. Good.
-- **Native SQL questions cannot be pivoted** ("Pivot tables are only supported for
-  questions built in the query builder") — so the complex MIS SQL (Σ Debit−Credit by
-  Plant+CostCenter+GL, budget join, %) can't drive the pivot viz.
-- The GUI pivot flattens components (no S.No hierarchy/subtotals), has **no % column**
-  without a custom column, no multi-period Budget|RollOver|Actual|% blocks, no
-  zero-row/format control. It **cannot reproduce the MIS statement.**
-- (Also surfaced the GL-not-unique double-count when the composite key isn't used —
-  a data-modeling point, not a tool limit.)
-
-**Tool research** (sources on file):
-- **Power BI** — best matrix rendering, but on-prem (PBIRS) strips Copilot/modern
-  features; Copilot is cloud-only and absent in embedded; capacity pricing lumpy;
-  deepest lock-in. **Ruled out** by ownership + residency + embedded-chatbot needs.
-- **Looker** — cloud-only, per-seat/opaque pricing, Google + BigQuery lock-in (would
-  also drag the engine decision). **Ruled out.**
-- **Metabase** — self-hostable; **best self-hosted AI story** (Metabot, bring-your-own
-  key, states it does not egress data — residency-safe); configurable drill-through.
-  But **cannot render the exact MIS statement** (measures-as-rows unsupported;
-  ratio/subtotal formatting limited). Viable as the *exploration + chatbot* layer.
-- **Superset** — Apache-2.0, best ownership, no feature gating; but no native chatbot
-  and no statement templating — you build both. Viable, heavier.
-- Code-first contenders worth noting: **Evidence.dev** (git-based, pixel-controlled
-  statements, total ownership), **Lightdash** (dbt-native + AI agents).
-
-## Decision (provisional — leading hypothesis)
-
-**Hybrid, custom-first, and defer the final call to a short bake-off.** Every path
-shares the same foundation — a **Postgres warehouse + governed metrics + the mapping
-master** — so build that first (needed regardless) and keep the presentation choice
-reversible.
-
-- The **exact MIS statement + its Excel/PDF export** → **custom-built** (no BI tool
-  renders it; it's our differentiation).
-- The **drill-down** (Actual → transactions, sorted Value↓/Month↓) → **custom** query,
-  full control.
-- The **ad-hoc exploration** ("not just reports" breadth Kartik wants) → a
-  **self-hosted BI tool (Metabase or Superset)** over the same warehouse.
-- The **chatbot** → self-hostable, residency-safe (self-hosted Metabot with BYO key,
-  or an MCP/LLM layer over the warehouse), embeddable in our UI.
-
-Proprietary SaaS (Power BI, Looker) is **excluded** by factor 3 regardless of features.
+1. **Presentation = a custom-built MIS report** (the exact grouped
+   Budget/Rollover/Actual/% statement, 2-level drill-down, Excel export) **plus
+   Pulse** (our platform) for the assistant, natural-language exploration, and the
+   **governed semantic layer**. Both read from **one shared warehouse + semantic
+   layer** — one source of truth.
+2. **Not adopted:** BigQuery+Looker and Power BI (ownership/residency/lock-in).
+   Metabase/Superset kept only as a possible future fallback for drag-drop
+   exploration if a power-analyst need appears.
+3. **Build approach = adapt/extend Pulse**, not greenfield — reuse its shell,
+   auth/RBAC, chat, semantic layer, exploration, and trust spine; add the MIS
+   statement renderer, the 2-level drill-down, a 3F financial semantic layer over
+   SAP, and the KnackLabs design. **Contingent on a portability assessment
+   (underway)** confirming Pulse is reusable beyond MBS.
+4. **Delivery mode = prototype (phase 0b)** for now — internal approval only;
+   client sign-off (Devanshi) recorded later before the full factory loop.
 
 ## Consequences
 
-- Not blocked and not gambling: the warehouse + metrics layer is common to every path.
-- Keeps the stack **ownable** (open-source + custom, zero proprietary lock-in) — aligned
-  with why the client hired us.
-- **What would close this decision:** (a) confirm the exploration tool (Metabase vs
-  Superset) with a second spike if needed; (b) team/Kartik review of this hybrid; (c)
-  the warehouse-engine decision (Postgres vs BigQuery) stays separate and open.
-- Remains **proposed/open** until confirmed by a human.
+- Big head start from Pulse; the **MIS statement renderer + drill-down are net-new
+  regardless** (Pulse has no bespoke-statement view).
+- **Warehouse engine (Postgres vs BigQuery) stays a separate, open decision;**
+  Pulse's warehouse seam is described as swappable — the assessment will confirm.
+- Reusing Pulse across clients is an **investment in its portability** (StarRocks
+  → Postgres, Bedrock → Claude, navy → KnackLabs design, MBS-specific config) —
+  the assessment sizes it.
+- The trust spine (verified measures, provenance, reconciliation) is the
+  differentiated value for 3F and aligns with the ownership motive.
+- Refines the presentation lean in `0001`/`0002`. Remains **proposed** until a
+  human confirms.
 
 ## Related
 
 - Build plan: `docs/architecture/30-financial-mis-build-plan.md`
 - Data model: `docs/architecture/20-financial-mis-data-model.md`
 - Decisions: `0001-poc-engagement-scope.md`, `0002-phase1-financial-mis.md`
-- Spike + research artifacts: session 2026-08-20 (Metabase spike on the July data)
+- Pulse repo (foundation to adapt): `~/Desktop/pulse`

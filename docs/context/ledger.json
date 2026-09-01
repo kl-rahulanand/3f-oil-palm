@@ -44,6 +44,18 @@
       ],
       "notes": "",
       "marked_at": "2026-08-20T06:28:21+00:00"
+    },
+    "2026-09-01-srihari-requirements-qa.md": {
+      "sha256": "bc606566b0eca7b62a3c5af99f9fca508a551545ce134794330b920e23cae27d",
+      "added": "2026-09-01T09:03:19+00:00",
+      "status": "harvested",
+      "outputs": [
+        "docs/decisions/0002-phase1-financial-mis.md",
+        "docs/decisions/0004-pulse-governed-joins.md",
+        "docs/architecture/20-financial-mis-data-model.md"
+      ],
+      "notes": "",
+      "marked_at": "2026-09-01T09:03:32+00:00"
     }
   }
 }
