@@ -1,0 +1,170 @@
+{
+  "items": [
+    {
+      "key": "platform-base",
+      "title": "Adapt Pulse into the 3F app base",
+      "epic": "platform",
+      "spec": "docs/specs/app-platform-base.md",
+      "skill": "fullstack",
+      "depends_on": [],
+      "story": "Vendor Pulse into the repo, reskin to KnackLabs green, run on Postgres, keep OTP auth \u2014 so the app boots on our stack.",
+      "acceptance_criteria": [
+        "App builds and boots on the npm workspace (backend/frontend/contract)",
+        "Login works (email+OTP) and the shell renders in KnackLabs green, branded 3F",
+        "A Postgres warehouse adapter runs a trivial query end-to-end",
+        "3oilpalm harness machinery intact (dual-runtime + vendor integrity clean)"
+      ],
+      "order": 1,
+      "status": "pending"
+    },
+    {
+      "key": "sap-ingestion",
+      "title": "Ingest SAP actuals + budgets",
+      "epic": "data-foundation",
+      "spec": "docs/specs/sap-financial-ingestion.md",
+      "skill": "backend",
+      "depends_on": [
+        "platform-base"
+      ],
+      "story": "Ingest the SAP Base Report (Excel) and the plan budgets into Postgres at monthly grain, retaining raw lines.",
+      "acceptance_criteria": [
+        "July SAP load reconciles to report totals (nursery net ~ Rs 1,15,12,712)",
+        "Budgets ingested from the MIS format as a separate object",
+        "Raw transaction lines retained for drill-down",
+        "Re-uploading a month replaces it idempotently (no duplicates)"
+      ],
+      "order": 2,
+      "status": "pending"
+    },
+    {
+      "key": "governed-joins",
+      "title": "Financial semantic layer + governed joins",
+      "epic": "data-foundation",
+      "spec": "docs/specs/governed-metrics-and-joins.md",
+      "skill": "backend",
+      "depends_on": [
+        "sap-ingestion"
+      ],
+      "story": "Define Actual/Budget/Rollover/% measures in code and compose Budget-Actual with a validated full-outer join.",
+      "acceptance_criteria": [
+        "% = Actual / Budget computes correctly across the two objects, incl. zero-filled rows",
+        "Governed-join golden fixture passes; no fan-out / double-counting",
+        "RBAC row-scope injected on both objects"
+      ],
+      "order": 3,
+      "status": "pending"
+    },
+    {
+      "key": "mis-selection",
+      "title": "Selection + mapping master",
+      "epic": "reporting",
+      "spec": "docs/specs/mis-selection-and-master.md",
+      "skill": "fullstack",
+      "depends_on": [
+        "governed-joins"
+      ],
+      "story": "Department/Function/Plant selection resolved via a provisional mapping master; composite-key validation.",
+      "acceptance_criteria": [
+        "Selecting Agriculture/Nursery/DUB returns exactly the DUB nursery slice",
+        "Output does not depend on the source file name",
+        "A selection with no mapping renders zeros + a 'no mapping configured' notice"
+      ],
+      "order": 4,
+      "status": "pending"
+    },
+    {
+      "key": "mis-statement",
+      "title": "MIS statement + Excel export",
+      "epic": "reporting",
+      "spec": "docs/specs/financial-mis-statement.md",
+      "skill": "fullstack",
+      "depends_on": [
+        "mis-selection"
+      ],
+      "story": "Render the exact grouped Budget/Actual/% statement (July + FY-YTD) with a clean structured Excel export.",
+      "acceptance_criteria": [
+        "Nursery July statement reconciles to SAP-derived totals",
+        "Zero-rows present; subtotals and grand total foot correctly",
+        "Excel export opens with the same structure"
+      ],
+      "order": 5,
+      "status": "pending"
+    },
+    {
+      "key": "drill-down",
+      "title": "Actuals drill-down to transactions",
+      "epic": "reporting",
+      "spec": "docs/specs/actuals-drill-down.md",
+      "skill": "fullstack",
+      "depends_on": [
+        "mis-statement"
+      ],
+      "story": "2-level drill (group to sub-lines to transactions), Actuals-only, RBAC-scoped and audited.",
+      "acceptance_criteria": [
+        "Line-item footer total equals the clicked Actual",
+        "Default sort Value largest-to-lowest then Month latest-to-oldest; Budget/% not clickable",
+        "User sees only transactions within their RBAC scope; each drill is audited"
+      ],
+      "order": 6,
+      "status": "pending"
+    },
+    {
+      "key": "assistant",
+      "title": "Assistant + exploration",
+      "epic": "assistant",
+      "spec": "docs/specs/assistant-and-exploration.md",
+      "skill": "fullstack",
+      "depends_on": [
+        "governed-joins"
+      ],
+      "story": "Natural-language assistant + saved reports/dashboards over the governed layer; conversational but read-only on numbers.",
+      "acceptance_criteria": [
+        "An NL data question returns a verified, provenanced answer matching the report; no fabricated numbers",
+        "General chat handled naturally; off-topic questions nudged back to the report",
+        "A saved report re-runs correctly under the user's RBAC"
+      ],
+      "order": 7,
+      "status": "pending"
+    }
+  ],
+  "epics": [
+    {
+      "id": "platform",
+      "title": "App platform base",
+      "objective": "Vendor and adapt Pulse into the 3F app on our stack (Postgres, KnackLabs green, deploy-per-client).",
+      "source_refs": [
+        "docs/decisions/0003-mis-presentation-tool.md",
+        "docs/architecture/30-financial-mis-build-plan.md"
+      ]
+    },
+    {
+      "id": "data-foundation",
+      "title": "Financial data foundation",
+      "objective": "Ingest SAP actuals + budgets and model the governed financial semantic layer with cross-object joins.",
+      "source_refs": [
+        "docs/decisions/0004-pulse-governed-joins.md",
+        "docs/architecture/20-financial-mis-data-model.md"
+      ]
+    },
+    {
+      "id": "reporting",
+      "title": "MIS reporting & drill-down",
+      "objective": "Selection + mapping master, the exact MIS statement with Excel export, and drill-down to transactions.",
+      "source_refs": [
+        "docs/architecture/20-financial-mis-data-model.md",
+        "docs/specs/financial-mis-statement.md"
+      ]
+    },
+    {
+      "id": "assistant",
+      "title": "Assistant & exploration",
+      "objective": "Trustworthy natural-language assistant and self-serve exploration over the governed layer.",
+      "source_refs": [
+        "docs/decisions/0003-mis-presentation-tool.md",
+        "docs/specs/assistant-and-exploration.md"
+      ]
+    }
+  ],
+  "generated_by": "docs-decomposer",
+  "updated_at": "2026-09-01T10:33:10+00:00"
+}

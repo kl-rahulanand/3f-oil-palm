@@ -1,0 +1,31 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Platform base \u2014 how do we bring Pulse's code in?",
+      "options": [
+        "Snapshot-copy into the repo (own it)",
+        "git subtree / submodule"
+      ],
+      "chosen": "Snapshot-copy into the repo (own it)"
+    },
+    {
+      "question": "Platform base \u2014 warehouse engine for the PoC?",
+      "options": [
+        "Postgres for the PoC",
+        "BigQuery now"
+      ],
+      "chosen": "Postgres for the PoC"
+    },
+    {
+      "question": "Platform base \u2014 auth for the PoC?",
+      "options": [
+        "Keep Pulse's email+OTP passwordless auth",
+        "Stub / simplify for the PoC"
+      ],
+      "chosen": "Keep Pulse's email+OTP passwordless auth"
+    }
+  ],
+  "at": "2026-09-01T10:31:10.045282+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}

@@ -2,50 +2,51 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Grill of assistant-and-exploration: PoC timing, LLM/residency, and the answer guardrail. Timing and guardrail resolved; LLM/residency parked as an open decision.",
+  "summary": "Grill of app-platform-base: vendor method, warehouse engine for the PoC, and auth. All resolved; production engine and LLM/residency parked as separate open decisions.",
   "questions_asked": 3,
   "gaps": [
-    "Whether the assistant is in the first PoC release or a fast-follow",
-    "LLM and data-residency choice undecided",
-    "Answer guardrail (how strict, how conversational) unspecified"
+    "How Pulse's code is brought into the repo unspecified",
+    "Warehouse engine for the PoC unspecified",
+    "Auth approach for the PoC unspecified"
   ],
   "contradictions": [],
   "resolutions": [
-    "Assistant included in the first PoC release (spec: Confirmed scope)",
-    "LLM/residency left open \u2014 decide later (spec: Confirmed scope + Open items)",
-    "Conversational for chat; numbers only from governed measures (select-only, never authors SQL, never fabricates); guides the user back when diverging (spec: Behaviour + Confirmed scope)"
+    "Snapshot-copy Pulse's app into the repo as owned code (spec: Confirmed scope)",
+    "Postgres warehouse adapter for the PoC; production engine decision stays open (spec: Confirmed scope + Open items)",
+    "Keep Pulse's email+OTP passwordless auth/RBAC/session as-is (spec: Confirmed scope)"
   ],
   "open_items": [
-    "LLM/model and data-residency decision (deferred)"
+    "Production warehouse engine (Postgres vs BigQuery) \u2014 separate open decision",
+    "LLM/model + residency \u2014 deferred (assistant spec)"
   ],
   "rounds": [
     {
-      "question": "Assistant/exploration \u2014 in the first PoC release, or a fast-follow?",
+      "question": "Platform base \u2014 how do we bring Pulse's code in?",
       "options": [
-        "Fast-follow after statement + drill-down",
-        "Include in the first PoC release"
+        "Snapshot-copy into the repo (own it)",
+        "git subtree / submodule"
       ],
-      "chosen": "Include in the first PoC release"
+      "chosen": "Snapshot-copy into the repo (own it)"
     },
     {
-      "question": "Assistant \u2014 LLM & data residency?",
+      "question": "Platform base \u2014 warehouse engine for the PoC?",
       "options": [
-        "Claude, self-hosted with our own key, no data egress",
-        "Decide later"
+        "Postgres for the PoC",
+        "BigQuery now"
       ],
-      "chosen": "Decide later"
+      "chosen": "Postgres for the PoC"
     },
     {
-      "question": "Assistant \u2014 answer guardrail?",
+      "question": "Platform base \u2014 auth for the PoC?",
       "options": [
-        "Only from governed measures; LLM selects, never authors SQL",
-        "Freeform LLM answers"
+        "Keep Pulse's email+OTP passwordless auth",
+        "Stub / simplify for the PoC"
       ],
-      "chosen": "Governed measures only for numbers (select-only, never authors SQL, never fabricates); converses naturally for chat and guides the user back to the report when diverging",
+      "chosen": "Keep Pulse's email+OTP passwordless auth",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "0178a3e1db2b60e905d48187fe8eac0f515019d51e575cbef68218d02f08fccc",
-  "recorded_at": "2026-09-01T10:15:05+00:00",
-  "commit": "5f4ac50b20475a7cccde07352de33265ddeb77d7"
+  "input_sha256": "ca4f7200db2588bad362d43cec1ba1ba8d22c742a1b5dff1c143d4840c32c3c6",
+  "recorded_at": "2026-09-01T10:31:50+00:00",
+  "commit": "91cd4ca284875989e7287c8c31c4e828e0092e86"
 }
