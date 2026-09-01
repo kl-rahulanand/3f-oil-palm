@@ -16,7 +16,8 @@
         "contract/",
         "package.json",
         "package-lock.json",
-        "tsconfig.base.json"
+        "tsconfig.base.json",
+        "tools/"
       ],
       "reviewer_focus": "Clean vendor: no MBS domain/seed references remain (operations, leadActivity, MBS grants); minimal workspace wiring; no dead code; contract types compile and are the single source of shared types.",
       "acceptance_criteria": [
@@ -40,6 +41,18 @@
           "statement": "npm install succeeds at repo root with workspaces contract/backend/frontend",
           "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
         }
+      ],
+      "required_tests": [
+        {
+          "id": "blocked columns are rejected case-insensitively by leaf column name",
+          "path": "backend/src/sql/sqlValidator.pii.test.ts",
+          "command": "node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck"
       ]
     },
     {
@@ -105,5 +118,5 @@
   ],
   "project": "3oilpalm",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "f17eb045d95fd3363760eac85a08734691ce9941"
+  "commit": "5a9165dc3b9b6b2f3a9a4caf91ac20cbc21dd6e1"
 }

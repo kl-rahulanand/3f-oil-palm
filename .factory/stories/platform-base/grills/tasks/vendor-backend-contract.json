@@ -1,0 +1,44 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "vendor-backend-contract",
+  "verdict": "pass",
+  "decision": "keep",
+  "summary": "Task grill of vendor-backend-contract: write-scope, MBS-strip, required test and verify commands reviewed; contract complete and ready to delegate.",
+  "gaps": [],
+  "contradictions": [],
+  "resolutions": [],
+  "open_items": [],
+  "inspected_refs": [
+    ".factory/stories/platform-base/task-plans/vendor-backend-contract.md",
+    "docs/specs/app-platform-base.md",
+    "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md",
+    "docs/decisions/0006-frontend-fresh-backend-vendor.md"
+  ],
+  "current_flow": "The 3oilpalm repo has the harness but no app code. Pulse holds a NestJS backend + shared contract with the trust spine (auth, RBAC, audit, semantic-layer framework, SQL builder/validator, warehouse port) plus MBS-specific domains/seeds/reports. This task snapshots backend/ + contract/ + tools/ + root workspace config into the repo, strips the MBS specifics, and makes the workspace build and typecheck.",
+  "criteria_map": {
+    "backend and contract build and typecheck in the npm workspace": "verify_commands run build:contract + build:backend + typecheck green after vendoring; required-test runs the validator PII unit test via junit-run",
+    "MBS-specific domains (operations, leadActivity) and MBS seeds/grants are removed": "operations.ts and leadActivity.ts deleted and unregistered in semanticLayer.ts; MBS seeds/grants and mbs-* reports removed; grep shows no MBS domain/seed references",
+    "npm install succeeds at repo root with workspaces contract/backend/frontend": "root package.json workspaces resolve; npm install completes; an empty frontend package stub is present so install resolves"
+  },
+  "new_abstractions": [],
+  "citations": [],
+  "rounds": [
+    {
+      "question": "Task grill \u2014 vendor-backend-contract: is the contract ready to delegate to Codex?",
+      "options": [
+        "Contract complete \u2014 delegate to Codex",
+        "Adjust the contract first"
+      ],
+      "chosen": "Contract complete \u2014 delegate to Codex",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "38a74456abfaed25643c28e247487fce17c22e85a2ce57899ba58354822fe217",
+  "task_plan_sha256": "96909ded79382c453e0d35a84ff08489d9638fbbbe5fecc1d969a352907cddb6",
+  "recorded_at": "2026-09-01T14:25:23+00:00",
+  "commit": "5a9165dc3b9b6b2f3a9a4caf91ac20cbc21dd6e1",
+  "approved_task_plan_sha256": "96909ded79382c453e0d35a84ff08489d9638fbbbe5fecc1d969a352907cddb6",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-01T14:25:36+00:00"
+}

@@ -4,7 +4,36 @@
     {
       "id": "vendor-backend-contract",
       "title": "Vendor Pulse backend + contract",
-      "status": "pending"
+      "status": "active",
+      "started_at": "2026-09-01T14:25:46+00:00",
+      "base_sha": "5a9165dc3b9b6b2f3a9a4caf91ac20cbc21dd6e1",
+      "dirty_at_start": {
+        ".factory/events/a70e3665dec0460b84091a894daa27ac.json": {
+          "digest": "17029c45153a3d0a302bde6bbcf4b79b7b885cb8a18f65faa8f8538b6e51349f",
+          "git": "? .factory/events/a70e3665dec0460b84091a894daa27ac.json\u0000\u0000\u0000"
+        },
+        ".factory/events/af405fdab26741a7a559bf3fb236d813.json": {
+          "digest": "d9532582c86bc0a076244a68c5bc05b2e28e52f498bcfeadd4bc2dd4a4b3eea3",
+          "git": "? .factory/events/af405fdab26741a7a559bf3fb236d813.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/decomposition.json": {
+          "digest": "ddd48436e0ed93e27d2ae694e0c8fbe907fcd58626dd743d01c9f2391ae07d35",
+          "git": "1 .M N... 100644 100644 100644 96a46afa59cdeb792557752a3cf68e1fa0535c8f 96a46afa59cdeb792557752a3cf68e1fa0535c8f .factory/stories/platform-base/decomposition.json\u0000\u0000100644 96a46afa59cdeb792557752a3cf68e1fa0535c8f 0\t.factory/stories/platform-base/decomposition.json\u0000\u0000H .factory/stories/platform-base/decomposition.json\u0000"
+        },
+        ".factory/stories/platform-base/grill-rounds/72db3e6f-5abe-4166-ae65-4866b68d0e95.json": {
+          "digest": "998283e1eba9d2749f8f6a10dff0cb02fb1b2f81847c9f9e8d4b28aa6f0f203c",
+          "git": "? .factory/stories/platform-base/grill-rounds/72db3e6f-5abe-4166-ae65-4866b68d0e95.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/grills/tasks/vendor-backend-contract.json": {
+          "digest": "11f7f63754882f02cfd5a30efee9394f421617f6092d55b5c3b1e78fc2cd2f52",
+          "git": "? .factory/stories/platform-base/grills/tasks/vendor-backend-contract.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/task-plans/vendor-backend-contract.md": {
+          "digest": "c567b85949e6b366132ee391940732d686b1af43e0312f2968f3db7e0d04beb4",
+          "git": "? .factory/stories/platform-base/task-plans/vendor-backend-contract.md\u0000\u0000\u0000"
+        }
+      },
+      "task_sha256": "732a8c6100baa57ddaf5b6bc345265be8a77f62ab0689f7c881febea05bc2a69"
     },
     {
       "id": "postgres-warehouse-adapter",

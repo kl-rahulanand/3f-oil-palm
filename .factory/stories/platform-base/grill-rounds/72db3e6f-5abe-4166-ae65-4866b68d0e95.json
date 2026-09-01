@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Task grill \u2014 vendor-backend-contract: is the contract ready to delegate to Codex?",
+      "options": [
+        "Contract complete \u2014 delegate to Codex",
+        "Adjust the contract first"
+      ],
+      "chosen": "Contract complete \u2014 delegate to Codex"
+    }
+  ],
+  "at": "2026-09-01T14:24:12.431162+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
