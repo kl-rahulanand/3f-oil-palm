@@ -1,0 +1,30 @@
+import { z } from "zod";
+import { CHAT_VALIDATION } from "./chat.constants";
+
+const reportGroundingTimeWindowSchema = z
+  .object({
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    column: z.string().min(1).max(64).optional(),
+  })
+  .refine((timeWindow) => timeWindow.from <= timeWindow.to, {
+    message: "from must be on or before to",
+  });
+
+export const askSchema = z.object({
+  question: z.string().min(CHAT_VALIDATION.questionMinLength),
+  conversationId: z.string().max(CHAT_VALIDATION.conversationIdMaxLength).optional(),
+  turnId: z.string().max(CHAT_VALIDATION.conversationIdMaxLength).optional(),
+  selection: z.any().optional(),
+  reportGrounding: z
+    .object({
+      reportId: z
+        .string()
+        .min(1)
+        .max(100)
+        .regex(/^[a-z0-9-]+$/, "Report id must contain only lowercase letters, numbers, and hyphens"),
+      timeWindow: reportGroundingTimeWindowSchema.optional(),
+    })
+    .strict()
+    .optional(),
+});

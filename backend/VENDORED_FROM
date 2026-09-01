@@ -1,0 +1,5 @@
+source: /Users/caw-dev-m4-5/Desktop/pulse
+repository: https://github.com/knacklabs/mbs-pulse.git
+commit: e639840b0e01371544d3f5d8f6cac1686c0176c4
+scope: backend/, contract/, tools/, package.json, tsconfig.base.json
+excluded: frontend/, generated artifacts, MBS-specific domains and fixtures

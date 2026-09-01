@@ -1,0 +1,21 @@
+{
+  "name": "3oilpalm",
+  "version": "0.0.0",
+  "private": true,
+  "description": "3F Oil Palm MIS monorepo.",
+  "workspaces": [
+    "contract",
+    "backend"
+  ],
+  "scripts": {
+    "build:contract": "npm -w @pulse/contract run build",
+    "build:backend": "npm -w @pulse/backend run build",
+    "build": "npm run build:contract && npm run build:backend",
+    "typecheck": "npm run build:contract && npm -w @pulse/backend run typecheck",
+    "dev:backend": "npm -w @pulse/backend run dev",
+    "db:migrate": "npm -w @pulse/backend run db:migrate"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
