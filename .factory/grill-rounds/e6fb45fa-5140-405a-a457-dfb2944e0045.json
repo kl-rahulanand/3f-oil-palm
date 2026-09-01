@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Where should the 3F app be built, given we're adapting Pulse?",
+      "options": [
+        "Fork Pulse into a new 3F repo (recommended)",
+        "Build in this 3oilpalm repo",
+        "Two repos"
+      ],
+      "chosen": "Build in this 3oilpalm repo"
+    }
+  ],
+  "at": "2026-09-01T09:12:27.725113+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
