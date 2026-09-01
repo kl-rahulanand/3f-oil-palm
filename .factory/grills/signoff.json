@@ -1,0 +1,33 @@
+{
+  "generated_by": "griller",
+  "gate": "signoff",
+  "verdict": "pass",
+  "summary": "Handover grill across the 7 confirmed specs, the derived roadmap (4 epics / 7 stories), and decisions 0001-0004. No blocking contradictions; all known gaps are parked as non-blocking open items with owners. This sign-off is an INTERNAL Knacklabs go-ahead to build the prototype; formal 3F (Devanshi) sign-off is deferred.",
+  "gaps": [
+    "MIS Mapping Master structure outstanding from Srihari (paste cut off)",
+    "Roll-over rule undefined",
+    "Srihari's filled month (golden reconciliation reference) not yet provided",
+    "Production warehouse engine (Postgres vs BigQuery) undecided",
+    "LLM/model + data residency undecided",
+    "2-level drill not yet confirmed by Srihari (his written spec is single-level)",
+    "Budget source for non-nursery plants unknown"
+  ],
+  "contradictions": [
+    "Decision 0003 mentions a self-hosted, own-key LLM while the assistant spec leaves the LLM open"
+  ],
+  "resolutions": [
+    "0003's LLM phrasing is illustrative, not a commitment; the LLM/model choice is explicitly open, and the residency-safe intent stands (assistant spec)"
+  ],
+  "open_items": [
+    "Master Table structure (owner: Srihari) \u2014 provisional master built now, reconcile later",
+    "Roll-over rule (owner: Srihari) \u2014 column kept, calc deferred",
+    "One filled month as golden reconciliation reference (owner: Srihari) \u2014 interim SAP totals used",
+    "Production warehouse engine Postgres vs BigQuery \u2014 separate open decision; PoC on Postgres",
+    "LLM/model + residency \u2014 deferred (assistant spec)",
+    "Confirm 2-level drill with Srihari \u2014 build 2-level, confirm async",
+    "Non-nursery plant budgets \u2014 Phase-1 is nursery only",
+    "Sign-off is internal (Knacklabs) to unlock the prototype build; formal 3F sign-off (Devanshi) deferred"
+  ],
+  "recorded_at": "2026-09-01T10:39:23+00:00",
+  "commit": "bb66169c50eb1b92054cce7180259cb07594d705"
+}

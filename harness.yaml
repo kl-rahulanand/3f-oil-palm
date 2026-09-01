@@ -12,7 +12,7 @@ version: 1
 # worktree reads the same committed line, and no later record can displace it.
 # Empty until sign-off: `python3 factory/scripts/record_signoff.py` writes it
 # after checking the record is accepted, names a human, and has a fresh grill.
-signoff_record: ""
+signoff_record: "docs/decisions/0005-client-signoff.md"
 
 # When guidance conflicts, earlier wins.
 precedence:
