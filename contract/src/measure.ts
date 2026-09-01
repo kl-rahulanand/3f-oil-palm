@@ -4,7 +4,7 @@
 
 /** A verified metric. Its SQL expression is human-signed-off once, then reused. */
 export interface MeasureSpec {
-  /** Domain-qualified id, e.g. "operations.lead_count" (never bare). */
+  /** Domain-qualified id, e.g. "domain.metric" (never bare). */
   id: string;
   /** Human label shown in chips / titles. */
   label: string;
@@ -49,7 +49,7 @@ export interface DimensionSpec {
 
 /** A domain = one pre-joined gold table + its semantic pack (eng review). */
 export interface DomainSpec {
-  /** e.g. "operations" */
+  /** Stable domain identifier. */
   name: string;
   label: string;
   goldObject: string;

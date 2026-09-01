@@ -44,7 +44,7 @@
       ],
       "required_tests": [
         {
-          "id": "blocked columns are rejected case-insensitively by leaf column name",
+          "id": "backend/src/sql/sqlValidator.pii.test.ts",
           "path": "backend/src/sql/sqlValidator.pii.test.ts",
           "command": "node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         }
@@ -123,5 +123,5 @@
   ],
   "project": "3oilpalm",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "3a5218dc701c7c7b8b1c3cd7ad3dd8ced32fab2a"
+  "commit": "51493e311e25434b7d5774397e52b3ef2d951787"
 }

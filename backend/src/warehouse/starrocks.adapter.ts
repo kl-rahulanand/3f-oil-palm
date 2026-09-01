@@ -177,18 +177,9 @@ export class StarRocksAdapter implements Warehouse {
     return new Error(`StarRocks ${operation} failed [${kind}]: ${detail}`);
   }
 
-  /** Deterministic offline mock for the sample operations question. */
+  /** Deterministic empty result when no warehouse is configured. */
   private mock(_sql: string): QueryResult {
-    return {
-      columns: [
-        { name: "serviceable_pincode", numeric: false },
-        { name: "lead_count", numeric: true },
-      ],
-      rows: [
-        { serviceable_pincode: "Serviceable", lead_count: 8421 },
-        { serviceable_pincode: "Non-serviceable", lead_count: 2765 },
-      ],
-    };
+    return { columns: [], rows: [] };
   }
 }
 
