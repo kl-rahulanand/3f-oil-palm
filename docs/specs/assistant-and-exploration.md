@@ -1,39 +1,56 @@
 ---
 slug: assistant-and-exploration
 title: Assistant & exploration
-status: draft
-saved: 2026-09-01T09:20:13+00:00
+status: confirmed
+saved: 2026-09-01T10:15:05+00:00
 ---
 
-# Capability: Assistant & exploration
+# Assistant & exploration
 
-## Summary
-A trustworthy natural-language assistant plus self-serve exploration over the same
-governed semantic layer (adapted from Pulse).
+## Why
+Beyond the fixed statement, people ask ad-hoc questions and want a natural way to
+interrogate the data. A trustworthy assistant over the same governed layer answers
+those without a developer, and reinforces the trust story (verified, provenanced).
 
 ## Users
-Finance / management asking ad-hoc questions; analysts exploring beyond the fixed MIS.
+Finance / management asking questions; analysts exploring beyond the fixed MIS.
 
 ## Behaviour
-- Ask questions in **natural language** → a **verified answer + chart**, grounded
-  in the governed measures, with **provenance** ("how this was calculated") and a
-  **"view in report"** link.
+- Natural-language questions → a **verified answer (+ chart)**, grounded in the
+  governed measures, with **provenance** and a **"view in report"** link.
 - Two surfaces: a **docked assistant** beside the report and a **standalone Ask
-  page** with conversation history.
-- **Saved queries + pinned dashboards** for self-serve exploration.
+  page**; plus **saved queries + pinned dashboards** for self-serve exploration.
+- **Converses like a normal agent** for general chat.
+- **Strict on numbers:** figures come **only from the governed measures**; the LLM
+  **selects, never authors SQL**; it **never fabricates a number**; and it is
+  **read-only (SELECT only)**.
+- If the user **diverges** from the report/data scope, it answers naturally but
+  **guides them back** to the report.
+- **Included in the first PoC release.**
+
+## Confirmed scope (grilled 2026-09-01)
+- **Timing:** in the first PoC release (not a fast-follow).
+- **LLM & residency:** **OPEN — decide later.**
+- **Guardrail:** conversational for chat; numbers only from governed measures
+  (select-only, never authors SQL, never fabricates); guide back when diverging.
 
 ## Rules
-- The LLM **selects** from the semantic layer; it never authors SQL.
-- RBAC + append-only audit apply to every answer; residency-safe (self-hosted,
-  our own model key).
+- RBAC + append-only audit on every data answer.
+- Read-only: only SELECT against the warehouse, through the governed layer.
 
 ## Out of scope (now)
-- Open-ended causal "why"; the exact docked-panel placement is a nice-to-have,
-  not a gate.
+- Open-ended causal "why"; any write-back; the exact docked-panel placement is a
+  nice-to-have, not a gate.
 
-## Acceptance signals
-- An NL question returns a verified, provenanced answer that matches the report.
+## Acceptance criteria
+- An NL data question returns a **verified, provenanced** answer matching the
+  report — **no fabricated numbers**, read-only only.
+- General chit-chat is handled naturally; off-topic questions get a helpful nudge
+  back to the report.
 - A saved report re-runs correctly under the current user's RBAC.
+
+## Open items (non-blocking)
+- **LLM/model + data-residency** decision (deferred).
 
 ## Source
 Decision 0003; Pulse README (Metabot, saved queries, pin-to-dashboard).

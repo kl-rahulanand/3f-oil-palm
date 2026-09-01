@@ -2,63 +2,50 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Grill of financial-mis-statement covering period scope, columns/roll-over, Excel fidelity, table scope, reconciliation reference, nil/number rules, FY-YTD display, export contents, and the demo-ready bar. All resolved into the spec; two non-blocking open items parked.",
-  "questions_asked": 9,
+  "summary": "Grill of assistant-and-exploration: PoC timing, LLM/residency, and the answer guardrail. Timing and guardrail resolved; LLM/residency parked as an open decision.",
+  "questions_asked": 3,
   "gaps": [
-    "Period columns undefined given only July 2026 data exists",
-    "Column set unspecified \u2014 whether Roll-over is in PoC scope",
-    "Excel export fidelity undefined (pixel replica vs structured)",
-    "Table scope unspecified (Table-2 only vs Table-3 rollup)",
-    "Reconciliation reference missing \u2014 format actuals are blank",
-    "Nil/percentage handling and number format unspecified",
-    "FY-YTD column display when only one month is loaded",
-    "Excel download contents (statement only vs + line items)",
-    "Demo acceptance threshold if golden reference is unavailable"
+    "Whether the assistant is in the first PoC release or a fast-follow",
+    "LLM and data-residency choice undecided",
+    "Answer guardrail (how strict, how conversational) unspecified"
   ],
   "contradictions": [],
   "resolutions": [
-    "PoC renders July + FY 26-27 YTD; full period set modelled underneath (spec: Confirmed scope)",
-    "Show Budget/Actual/%; Roll-over column kept but unpopulated pending rule (spec: Confirmed scope + Open items)",
-    "Clean structured Excel export, not a pixel replica (spec: Confirmed scope)",
-    "Table-2 only; Table-3 and Table-1 deferred (spec: Confirmed scope)",
-    "Reconcile to SAP-derived totals (demo-ready) and Srihari's filled month (validated) (spec: Acceptance criteria + Open items)",
-    "Nil rules and Indian-grouped rupee rounding defined (spec: Confirmed scope)",
-    "FY-YTD column shown, labelled 'FY 26-27 (YTD to Jul)', grows as months load (spec: Confirmed scope)",
-    "PoC export = statement sheet only; line-items sheet later with drill-down (spec: Confirmed scope)",
-    "Demo-ready = reconciles to SAP totals; validated = matches Srihari's filled month (spec: Acceptance criteria)"
+    "Assistant included in the first PoC release (spec: Confirmed scope)",
+    "LLM/residency left open \u2014 decide later (spec: Confirmed scope + Open items)",
+    "Conversational for chat; numbers only from governed measures (select-only, never authors SQL, never fabricates); guides the user back when diverging (spec: Behaviour + Confirmed scope)"
   ],
   "open_items": [
-    "Roll-over rule from Srihari (carry-forward of unspent budget) \u2014 column kept, calc deferred",
-    "One filled month of Srihari's Financial MIS as the golden reconciliation reference"
+    "LLM/model and data-residency decision (deferred)"
   ],
   "rounds": [
     {
-      "question": "Financial MIS statement \u2014 period columns for the PoC?",
+      "question": "Assistant/exploration \u2014 in the first PoC release, or a fast-follow?",
       "options": [
-        "July + FY 26-27 YTD",
-        "Full grid now"
+        "Fast-follow after statement + drill-down",
+        "Include in the first PoC release"
       ],
-      "chosen": "July + FY 26-27 YTD"
+      "chosen": "Include in the first PoC release"
     },
     {
-      "question": "Financial MIS statement \u2014 Excel export fidelity?",
+      "question": "Assistant \u2014 LLM & data residency?",
       "options": [
-        "Clean structured export",
-        "Pixel replica of legacy workbook"
+        "Claude, self-hosted with our own key, no data egress",
+        "Decide later"
       ],
-      "chosen": "Clean structured export"
+      "chosen": "Decide later"
     },
     {
-      "question": "Financial MIS statement \u2014 reconciliation / demo-ready bar?",
+      "question": "Assistant \u2014 answer guardrail?",
       "options": [
-        "SAP totals = demo-ready; filled month = validated",
-        "Block demo until Srihari's filled month"
+        "Only from governed measures; LLM selects, never authors SQL",
+        "Freeform LLM answers"
       ],
-      "chosen": "SAP totals = demo-ready; filled month = validated",
+      "chosen": "Governed measures only for numbers (select-only, never authors SQL, never fabricates); converses naturally for chat and guides the user back to the report when diverging",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "f2d441e7590c9f9bcbcd93eb60c1bdaf7ed3fba16999d824294fc52f78552a7a",
-  "recorded_at": "2026-09-01T09:56:21+00:00",
-  "commit": "3b17c2b0d4f1b54f4a2e0996a2d56886146fc4de"
+  "input_sha256": "0178a3e1db2b60e905d48187fe8eac0f515019d51e575cbef68218d02f08fccc",
+  "recorded_at": "2026-09-01T10:15:05+00:00",
+  "commit": "5f4ac50b20475a7cccde07352de33265ddeb77d7"
 }

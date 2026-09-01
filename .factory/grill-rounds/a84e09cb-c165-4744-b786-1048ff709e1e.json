@@ -1,0 +1,39 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Governed joins \u2014 how to handle rows in one object but not the other (Budget with no Actual, or Actual with no Budget)?",
+      "options": [
+        "Full-outer, zero-fill the missing side",
+        "Inner join (drop unmatched)"
+      ],
+      "chosen": "Full-outer, zero-fill the missing side"
+    },
+    {
+      "question": "Governed joins \u2014 where are 3F financial measures authored?",
+      "options": [
+        "In code (repo domain files)",
+        "Runtime guided builder"
+      ],
+      "chosen": "In code (repo domain files)"
+    },
+    {
+      "question": "Governed joins \u2014 RBAC on a joined query?",
+      "options": [
+        "Inject scope on both objects",
+        "Primary object only"
+      ],
+      "chosen": "Inject scope on both objects"
+    },
+    {
+      "question": "Governed joins \u2014 correctness gate?",
+      "options": [
+        "Golden-answer fixtures required",
+        "Manual verification only"
+      ],
+      "chosen": "Golden-answer fixtures required"
+    }
+  ],
+  "at": "2026-09-01T10:05:10.826894+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
