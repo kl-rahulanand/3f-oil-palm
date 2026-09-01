@@ -9,7 +9,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from factory_lib import load_json, now_iso, parse_sections, repo_root, run_state_path
+from factory_lib import (
+    evidence_path, load_json, now_iso, parse_sections, plan_digest_without_assumptions,
+    repo_root, run_state_path, task_rows,
+)
 from record_signoff import REQUIRED_BRIEF_HEADINGS
 
 from . import events
@@ -36,7 +39,8 @@ def _plan_records(base: Path, location: str) -> list[dict]:
 
 
 def _stage_summary(base: Path) -> dict:
-    data = load_json(base / ".factory" / "stages.json", default={})
+    story = load_json(run_state_path(base), default={}).get("issue_key", "")
+    data = load_json(evidence_path(base, story, "stages.json"), default={})
     items = data.get("stages", [])
     return {
         "issue": data.get("issue"),
@@ -50,25 +54,39 @@ TASK_NARRATIVE = ("objective", "acceptance_criteria", "reviewer_focus",
                   "write_scope", "verify_commands", "required_tests", "dependencies")
 
 
-def merge_task_detail(decomposition: dict, stages: list[dict]) -> list[dict]:
+def merge_task_detail(
+    decomposition: dict, stages: list[dict], derived_rows: list[dict] | None = None,
+) -> list[dict]:
     """The stage tracker knows what is DONE; the decomposition knows what the
     task was FOR. Neither alone answers "what is this task?", and the tracker
     deliberately keeps only id/title/status so the two never disagree about
     progress — so they are joined here, at read time, by task id."""
-    planned = {t.get("id"): t for t in decomposition.get("tasks", [])}
+    planned_tasks = decomposition.get("tasks", [])
+    planned = {t.get("id"): t for t in planned_tasks}
+    stage_by_id = {stage.get("id"): stage for stage in stages}
+    derived = {row.get("id"): row for row in (derived_rows or [])}
     tasks = []
-    for stage in stages:
+    sources = (
+        [stage_by_id.get(task.get("id"), {
+            "id": task.get("id"), "title": task.get("title"),
+        }) for task in planned_tasks]
+        if derived_rows is not None else stages
+    )
+    for stage in sources:
         task = {"id": stage.get("id"), "title": stage.get("title"),
                 "status": stage.get("status", "pending"),
                 "started_at": stage.get("started_at"),
                 "completed_at": stage.get("completed_at")}
         source = planned.get(stage.get("id"), {})
         task.update({field: source[field] for field in TASK_NARRATIVE if field in source})
+        task.update(derived.get(stage.get("id"), {}))
         tasks.append(task)
     return tasks
 
 
-def _plan_evidence(base: Path, plan: dict | None) -> tuple[dict | None, dict, list]:
+def _plan_evidence(
+    base: Path, plan: dict | None, derived_rows: list[dict] | None = None,
+) -> tuple[dict | None, dict, list]:
     """Stage progress, gate evidence, and the story's real task list.
 
     Tasks exist only once a story's plan is approved and decomposed, so an
@@ -77,11 +95,8 @@ def _plan_evidence(base: Path, plan: dict | None) -> tuple[dict | None, dict, li
     empty_reviews = {aspect: False for aspect in ("quality", "performance", "security")}
     if not plan:
         return None, {"verify": False, "tests": False, "reviews": empty_reviews}, []
-    if plan.get("location") == "completed":
-        root = base / ".factory" / "history" / str(plan.get("issue", ""))
-    else:
-        root = base / ".factory"
-    stages_data = load_json(root / "stages.json", default={})
+    story = str(plan.get("story") or plan.get("issue") or "")
+    stages_data = load_json(evidence_path(base, story, "stages.json"), default={})
     stages = stages_data.get("stages", [])
     progress = None
     if stages:
@@ -89,18 +104,22 @@ def _plan_evidence(base: Path, plan: dict | None) -> tuple[dict | None, dict, li
             "done": sum(1 for stage in stages if stage.get("status") == "done"),
             "total": len(stages),
         }
-    tasks = merge_task_detail(load_json(root / "decomposition.json", default={}), stages)
+    tasks = merge_task_detail(
+        load_json(evidence_path(base, story, "decomposition.json"), default={}),
+        stages, derived_rows,
+    )
     # The same predicates pr_ready gates on: a tick here must mean the gate
     # would open, not merely that a file is on disk.
-    recorded = load_json(root / "tests.json", default={})
+    recorded = load_json(evidence_path(base, story, "tests.json"), default={})
     evidence = {
-        "verify": verify_passed(load_json(root / "verify.json", default={})),
+        "verify": verify_passed(load_json(
+            evidence_path(base, story, "verify.json"), default={})),
         "tests": tests_passed(recorded.get("automated")) and (
             tests_passed(recorded.get("functional"), functional=True)
             if recorded.get("functional") else True),
         "reviews": {
-            aspect: review_passed(load_json(root / "reviews" / f"{aspect}.json",
-                                            default={}))
+            aspect: review_passed(load_json(
+                evidence_path(base, story, f"reviews/{aspect}.json"), default={}))
             for aspect in ("quality", "performance", "security")
         },
     }
@@ -255,7 +274,9 @@ def aggregate_state(base: Path) -> dict:
         for record in spec_records(base)
     ]
     spec_status = {record["path"]: record.get("status", "draft") for record in specs}
-    run = load_json(base / ".factory" / "run.json", default={})
+    run = load_json(run_state_path(base), default={})
+    active = run.get("issue_key")
+    live_task_rows = task_rows(base) if active else []
     record_origin = load_json(base / ".factory" / "record-origin.json", default=None)
     stages = _stage_summary(base)
     story_pr_links = pr_links(base)
@@ -269,7 +290,9 @@ def aggregate_state(base: Path) -> dict:
     for item in items:
         story = dict(item)
         plan = plan_by_story.get(item.get("key"))
-        progress, evidence, tasks = _plan_evidence(base, plan)
+        progress, evidence, tasks = _plan_evidence(
+            base, plan, live_task_rows if item.get("key") == active else None,
+        )
         story["ready_to_plan"] = item.get("key") in frontier
         story["plan"] = plan
         story["tasks"] = tasks
@@ -416,30 +439,24 @@ def story_detail(base: Path, key: str) -> dict | None:
     plan_body = ""
     if plan:
         _, plan_body = parse_frontmatter((base / plan["path"]).read_text(encoding="utf-8"))
-    # Live .factory/ belongs to whatever story is ACTIVE. Handing it to any
-    # other story shows one story's proof under another's name.
     active = load_json(run_state_path(base), default={}).get("issue_key")
-    if plan and plan.get("location") == "completed":
-        root = base / ".factory" / "history" / str(plan.get("issue", ""))
-    elif active == key:
-        root = base / ".factory"
-    else:
-        root = base / ".factory" / "history" / key
     evidence = {
-        name: load_json(root / f"{name}.json", default=None)
+        name: load_json(evidence_path(base, key, f"{name}.json"), default=None)
         for name in ("decomposition", "verify", "tests", "stages", "outcome")
     }
     evidence["reviews"] = {
-        aspect: load_json(root / "reviews" / f"{aspect}.json", default=None)
+        aspect: load_json(
+            evidence_path(base, key, f"reviews/{aspect}.json"), default=None)
         for aspect in ("quality", "performance", "security")
     }
+    grills = evidence_path(base, key, "grills")
     evidence["grills"] = {
         path.stem: load_json(path, default=None)
-        for path in sorted((root / "grills").glob("*.json"))
+        for path in sorted(grills.glob("*.json"))
     }
     evidence["task_grills"] = {
         path.stem: load_json(path, default=None)
-        for path in sorted((root / "grills" / "tasks").glob("*.json"))
+        for path in sorted((grills / "tasks").glob("*.json"))
     }
     spec_path = item.get("spec")
     spec = None
@@ -460,7 +477,8 @@ def story_detail(base: Path, key: str) -> dict | None:
     detail = {"key": key, "project": project_identity(base), "epic": epic,
               "story": story, "plan": plan, "plan_body": plan_body,
               "spec": spec, "evidence": evidence}
-    detail["tasks"] = task_dossiers(detail)
+    detail["task_rows"] = task_rows(base) if active == key else []
+    detail["tasks"] = task_dossiers(base, key, detail)
     detail["readiness"] = approval_readiness(base, detail)
     return detail
 
@@ -494,7 +512,33 @@ def plan_section(body: str, task_id: str) -> str:
     return ""
 
 
-def task_dossiers(detail: dict) -> list[dict]:
+def task_plan_view(base: Path, key: str, task: dict, grill: dict | None) -> dict:
+    """The per-task implementation plan, exposed to the board ONLY once its grill
+    is clean — the grill passed AND was recorded against the EXACT current plan
+    text (fresh, not stale). A saved-but-not-yet-grill-clean plan is withheld
+    entirely (never sent, so it cannot leak through the raw-json view either), so
+    a human first sees a task plan on the board only after it survives grilling,
+    at which point it is theirs to approve. plan_state is one of 'none' (no plan
+    saved yet), 'grilling' (saved, not yet grill-clean), or 'clean'."""
+    plan_path = evidence_path(base, key, f"task-plans/{task['id']}.md")
+    if not plan_path.is_file():
+        return {"plan_state": "none"}
+    if not grill or grill.get("verdict") != "pass":
+        return {"plan_state": "grilling"}
+    digest = plan_digest_without_assumptions(plan_path)
+    fresh = digest in (
+        grill.get("task_plan_sha256"), grill.get("approved_task_plan_sha256"),
+    )
+    if not fresh:
+        return {"plan_state": "grilling"}
+    return {
+        "plan_state": "clean",
+        "plan": plan_path.read_text(encoding="utf-8"),
+        "plan_path": plan_path.relative_to(base).as_posix(),
+    }
+
+
+def task_dossiers(base: Path, key: str, detail: dict) -> list[dict]:
     """Everything known about each task, assembled once for the drawer: what it
     was for (decomposition), what the plan said about it, which spec governs it,
     and the proof it produced."""
@@ -513,7 +557,7 @@ def task_dossiers(detail: dict) -> list[dict]:
             recorded_tests.extend(entry.get("tests_added_or_updated") or [])
 
     dossiers = []
-    for task in merge_task_detail(decomposition, stages):
+    for task in merge_task_detail(decomposition, stages, detail.get("task_rows")):
         required = task.get("required_tests") or []
         # A required test counts as proven only if a recorded artifact names it;
         # "tests.json exists" is not evidence that THIS task was covered. Entries
@@ -549,6 +593,7 @@ def task_dossiers(detail: dict) -> list[dict]:
         # both reads as a rendering bug rather than as two sources agreeing.
         objective = (task.get("objective") or "").strip()
         task["plan_excerpt"] = "" if excerpt.strip() == objective else excerpt
+        task.update(task_plan_view(base, key, task, task_grills.get(task["id"])))
         dossiers.append(task)
     return dossiers
 

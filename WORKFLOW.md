@@ -346,25 +346,42 @@ mutable execution twin of the re-recordable decomposition (decision 0007),
 one stage per leaf task in execution order. Decision 0032 makes the pre-work
 sequence a JIT contract loop for every pending task:
 
-1. author the next task's full contract against the approved plan and the real
-   repository state left by completed dependencies
+1. enter plan mode (decision 0029; `factory/prompts/planner.md`) and author the
+   next task's full contract against the approved plan and the real repository
+   state left by completed dependencies
 2. re-record the decomposition with that contract
 3. run `factory/prompts/griller.md` with `--gate task`, resolve its findings,
-   and record the pass for that id and current task-contract digest:
-   `record_grill_from_json.py --gate task --task <id> --task-digest <hash>`
-4. `forge stage start <id>` (strictly order-enforced; task-level `--parallel`
+   and record the pass for that id; the recorder derives the current grounding
+   digest: `record_grill_from_json.py --gate task --task <id>`
+4. save the plan-mode result at
+   `.factory/stories/<KEY>/task-plans/<id>.md`, then record the human task-plan
+   approval; editing that artifact requires approval again
+5. `forge stage start <id>` (strictly order-enforced; task-level `--parallel`
    is refused)
-5. `forge delegate <id>` composes the task brief and launches the installed
+6. `forge delegate <id>` composes the task brief and launches the installed
    companion in the foreground with write access derived from stage state;
    this is the hard gate that refuses a missing, failed, or stale task grill
-6. the orchestrator inspects the diff and rejects overbuilt code
-7. that stage's assumption rows are validated (`forge assumptions list --open`)
-8. smallest relevant checks run
-9. **local autoreview on the UNCOMMITTED diff until clean** (`autoreview
-   --mode local`, run DIRECTLY by the orchestrator with the autoreview
-   skill — never as a Codex handoff, which re-triggers the same skill one
-   indirection deeper) — a stage commits only clean
-10. commit, then `forge stage done <id>`
+7. the orchestrator inspects the diff and rejects overbuilt code
+8. that stage's assumption rows are validated (`forge assumptions list --open`)
+9. smallest relevant checks run
+10. **local autoreview on the UNCOMMITTED diff until clean** (`autoreview
+   --mode local --max-priority P2`, run DIRECTLY by the orchestrator with the
+   autoreview skill — never as a Codex handoff, which re-triggers the same skill
+   one indirection deeper). P2, not P0-only: the review enforces the structure
+   and validation the contract demanded. Keep the implementation UNCOMMITTED
+   through this fix/review loop and commit ONCE when it is clean — committing
+   product code mid-loop stales the task grill (its grounding is contract + plan
+   + product tree) and the write `forge delegate` refuses until you `git reset
+   --mixed HEAD~1`. When a review-driven fix genuinely cannot be verified inside
+   the companion sandbox (needs a database/network/Docker it lacks), the
+   orchestrator opens a bounded degraded window (`forge mode degraded start
+   --reason ...`, allowed mid-stage), makes the MINIMAL host fix, logs it with
+   `forge signal raise --kind host-exception`, verifies host-side, and resumes —
+   rather than re-delegating an unverifiable guess.
+11. commit, then `forge stage done <id>`
+
+`forge next` derives this frontier from the same readiness gate and reports
+exactly one of author contract, task grill, stage start, or delegate.
 
 Per-stage local reviews are pre-commit hygiene and record nothing; the ONE
 branch-wide autoreview at the review phase remains the only review gate and
@@ -380,10 +397,49 @@ holds across phase transitions (verify → review → functional → pr_ready).
 It stops only for an open signal, a gate refusal it cannot resolve within
 the approved plan, a human-only act, or scope the plan does not cover.
 
+### Who authors what — no ambiguity once implementation starts
+
+After task-plan sign-off, the division of labour is FIXED, so a task never
+stalls on "should I do this or hand it to Codex?":
+
+- **Every product change is Codex's, via `forge delegate`.** Not only the
+  initial implementation — EVERY fix that diff inspection, the checks, verify,
+  or autoreview demand. A one-line config tweak, a dependency bump, a test
+  rename, a "trivial" correction: each is a fresh `forge delegate` against the
+  same contract, then re-inspect / re-review. The coordinator NEVER edits a
+  product file (app code, config, tests, schema, fixtures — anything that lands
+  in the committed diff) with its own hands.
+- **The coordinator's hands do only orchestration:** author task contracts,
+  compose briefs, delegate, run the checks / `verify.py` / required tests, run
+  the branch autoreview, record evidence via the `record_*` scripts, commit,
+  and — when the story reaches a PR — review that PR.
+- **Commit is not a human gate.** A clean local autoreview plus green checks IS
+  the permission to commit (conduct §7 autonomy above); the coordinator commits
+  and moves to the next stage without pausing for a human "ok to commit?". This
+  is what lets an unattended overnight run finish instead of stalling.
+- **The one exception — a logged host-exception.** When a required product
+  change is PROVABLY impossible in the companion's environment (a sandbox with
+  no network, database, or Docker that the change or its verification needs),
+  the coordinator may make the MINIMAL change on the host and MUST record why
+  with `forge signal raise ... --kind host-exception` (resolve it once done).
+  This is bounded and always ledgered — never the default, never silent.
+
+The point: from sign-off to green tests the coordinator has full, deterministic
+visibility of what it does versus what it delegates, and only genuine
+human-only acts (decisions, sign-off) or unresolvable gate refusals pause it.
+
 ## Task Planning
-Per-task planning runs in Claude Code plan mode by default (exploration
+Per-task planning runs in Claude Code plan mode — enforced, not advisory
+(decision 0048): the task plan is authored in plan mode (the PostToolUse
+hook records its plan-mode marker), then the task grill delivers its rounds
+through AskUserQuestion until `frontier_empty`, then a human approves
+(`forge task approve --by`), then `stage start`, then `delegate`. A task
+plan without a marker, or a grill whose rounds are not in the ledger, is
+refused by the recorders. (Exploration
 delegated to Codex: `/codex:rescue --model gpt-5.6-terra --effort high` —
-read-only by default, never Claude Code itself, never raw `codex exec`); devs may instead use the
+read-only by default, never Claude Code itself, never raw `codex exec`; plan
+validation, debugging and root-cause runs use `--model gpt-5.6-sol --effort xhigh`,
+still read-only); devs may instead use the
 `planner-high` Codex agent — the contract is identical either way. The plan follows
 `factory/prompts/planner.md`, including the mandatory **Decisions** section: every choice not derivable from BRIEF,
 architecture, or existing records becomes a `docs/decisions/` record
@@ -434,12 +490,14 @@ durable record of what was decided and what was built.
 4. record client sign-off
 5. plan one roadmap story and record its ordered task list
 6. for each leaf task: author its contract, re-record the decomposition, pass
-   the `task` grill, start the stage, then delegate it; the implementer writes,
-   runs, and records the automated tests
-7. run `python3 factory/scripts/verify.py`
-8. run ONE autoreview pass (three lenses) and record the three review artifacts
+   the `task` grill, save and approve its per-task plan artifact, start the
+   stage, then delegate it; the implementer writes, runs, and records the tests
+7. after all stages are done, run ONE branch autoreview pass (three lenses)
+   and record the three review artifacts
+8. run `python3 factory/scripts/verify.py`
 9. run `functional-checker` when the decomposition has `user_facing: true`
-10. run `python3 factory/scripts/pr_ready.py`
+10. record the shipped outcome with `./forge outcome set "<what changed>"`
+11. run `python3 factory/scripts/pr_ready.py`
 
 ## PR Ready Contract
 A branch is PR-ready only when:

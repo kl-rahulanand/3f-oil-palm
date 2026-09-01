@@ -36,11 +36,11 @@ or route:
 |---|---|
 | discovery/prototype | gstack `/office-hours` for the discovery conversation; prototype freely |
 | roadmap missing | confirm captured specs, run the project-level decomposition (`factory/prompts/decomposer.md`), then `./forge roadmap derive --input <json>` |
-| planning | plan per `factory/prompts/planner.md` (Claude plan mode default, `planner-high` Codex agent alternate); exploration ONLY via `/codex:rescue --model gpt-5.6-terra --effort high` (read-only by default) — never Claude Code itself, never raw codex exec |
+| planning | plan per `factory/prompts/planner.md` (Claude plan mode default, `planner-high` Codex agent alternate); exploration ONLY via `/codex:rescue --model gpt-5.6-terra --effort high` (read-only by default); plan validation / debugging / root-cause via `/codex:rescue --model gpt-5.6-sol --effort xhigh` (read-only) — never Claude Code itself, never raw codex exec |
 | decomposing | run docs-decomposer per task, record with `record_decomposition_from_json.py` (schema incl. `user_facing`) |
-| implementing | `./forge delegate <task-id>` composes the brief, launches the companion directly, and records successful launch evidence — the implementer writes and records the tests; user-facing tasks MUST load + attest emil-design-eng + frontend-design in `skills_used` (recorder-enforced; harness.yaml `required_skills`) |
+| implementing | Follow the one frontier action printed by `./forge next`: enter plan mode and author/re-record the JIT contract; run the task griller; `forge stage start`; or `forge delegate`. The implementer writes and records the tests; user-facing tasks MUST load + attest emil-design-eng + frontend-design in `skills_used` (recorder-enforced; harness.yaml `required_skills`) |
 | verifying | `python3 factory/scripts/verify.py` |
-| reviewing | ONE autoreview run in Codex, three lenses (`factory/prompts/reviewer.md`) |
+| reviewing | Run the autoreview DIRECTLY (orchestrating session, 0011), three lenses (`factory/prompts/reviewer.md`); on findings delegate fixes to Codex, re-review — loop until every lens is clean |
 | functional-check | only shown when the task is user-facing; run `functional-checker` |
 | harvest pending | follow `factory/prompts/harvester.md` |
 | anything with a command | run the command verbatim |
@@ -58,7 +58,7 @@ or route:
 | what's left to build / show the roadmap | `./forge roadmap list` (`--pending` for what's next; grouped by epic, shows @assignee) |
 | what can run in parallel / fan out the work | `./forge roadmap parallel` — the dependency-ready frontier, one isolated `git worktree add` + intake per story. Tasks inside each story run sequentially; only separate ready story worktrees run in parallel |
 | roadmap merge conflict / duplicate items after merging branches | `./forge roadmap heal` — deterministic union (done-wins); mid-merge it rebuilds from the merge stages, then `git add plans/roadmap.json` |
-| grill the handover / stress-test before a gate | `factory/prompts/griller.md` — one question at a time vs the actual docs; resolve findings; record `record_grill_from_json.py --gate spec\|signoff\|epics\|plan`. Spec confirm, sign-off, legacy roadmap import, and plan save refuse without their required fresh pass |
+| grill the handover / stress-test before a gate | `factory/prompts/griller.md` — one question at a time vs the actual docs; resolve findings; record `record_grill_from_json.py --gate spec\|signoff\|epics\|plan\|task`. Spec confirm, sign-off, legacy roadmap import, plan save, and task start refuse without their required fresh pass |
 | grill me on this plan | `/grill-me` against the draft plan (satisfies the plan-gate contract), then record `--gate plan` — mandatory before `plan save` |
 | capture a capability spec | `./forge spec save <slug> --from <draft.md>`; confirmation requires a digest-bound spec grill, then `./forge spec confirm <slug>` |
 | here's the derived project backlog | `./forge roadmap derive --input <json>` (pre-sign-off, every story links a confirmed spec) |
@@ -85,7 +85,7 @@ or route:
 | worker hit a contradiction / is confused / blocked / scope shifted | `./forge signal raise --kind <k> --by <agent> -m "..."` then PAUSE — the orchestrator monitors `.factory/signals.jsonl`, resolves, resumes |
 | a worker signal is open (orchestrator) | `./forge signal list --open` → `./forge signal resolve <id> --notes "<answer>"` → resume the rescue. Open signals block pr_ready |
 | review / guide the assumptions (orchestrator) | `./forge assumptions list --open`, then `./forge assumptions resolve <id> --status confirmed\|fix-needed\|promoted --notes "..."` — pr_ready refuses unguided rows |
-| work the next stage / where am I in the task | `./forge stage list` → `./forge stage start <id>` → `./forge delegate <id>` → implement → LOCAL autoreview until clean → commit → `./forge stage done <id>`, which MEASURES the diff and can refuse (WORKFLOW.md Stage Loop) |
+| work the next stage / where am I in the task | Run `./forge next`, then execute its one exact frontier action: author/re-record the contract → task grill → stage start → delegate. After implementation: LOCAL autoreview until clean → commit → `./forge stage done <id>`, which MEASURES the diff and can refuse (WORKFLOW.md Stage Loop) |
 | delegate this task / hand it to Codex | `./forge delegate <task-id>` — builds `.factory/briefs/<id>.md`, derives the write flag from stage state, launches the companion without a shell, and records evidence used by `stage done`; `--print-only` is diagnostic and cannot satisfy the gate |
 | is Codex stuck? / did it actually do anything | `./forge codex status` — status, phase, write flag and age per job; flags a run that has not moved and a read-only run launched while a stage is active. Advisory, never a gate |
 | it only did part of the job | `./forge stage done <id> --incomplete "<what is missing>"` — the stage stays active and the gap enters the timeline |
@@ -146,7 +146,7 @@ instead of narrating it:
 - Implementation is delegated to Codex; planning exploration is Codex
   read-only. See `harness.yaml` for phase owners — it is the ALLOWLIST;
   recorders refuse artifacts from unpinned generators.
-- Review is ONE autoreview run — never inline, never nested reviewers.
+- Review is the orchestrating session's autoreview (0011), looped review → Codex fixes findings → re-review until clean — never a Codex review job, never nested reviewers.
 - Never set a decision to `accepted`, never flip `client_signoff`, never
   activate a proposed skill without an explicit human confirmation — the
   human decides; a clear in-chat statement lets you run the recording

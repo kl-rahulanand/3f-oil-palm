@@ -34,15 +34,16 @@ from pathlib import Path
 
 from factory_lib import (
     git_control_dir, load_json, now_iso, protected_decomposition_state_path,
-    repo_root, require_task_grill, run_state_path, safe_factory_append,
-    safe_factory_write_bytes, sha256_of, validate_payload,
+    repo_root, require_ready_task, require_task_worktree, run_state_path,
+    safe_factory_append,
+    safe_factory_write_bytes, sha256_of, task_digest, validate_payload,
 )
 
 from .common import fail
 from .decisions import decision_records
 from .events import append_event
 from .lessons import relevant_lessons
-from .stages import load_stages, task_digest
+from .stages import load_stages, review_budget
 
 SAFE_TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 # A brief is read by a model, so an inlined rule set that runs to thousands of
@@ -920,9 +921,38 @@ def _section(title: str, body: str) -> str:
     return f"\n## {title}\n\n{body.rstrip()}\n" if body.strip() else ""
 
 
+CONSTITUTION_BRIEF = (
+    "The KnackLabs Engineering Constitution in `constitution/` is BINDING — it is "
+    "law for HOW code is written, not just how you behave. Before you write a line, "
+    "open `constitution/README.md` (its index maps the work at hand to the "
+    "authoritative reference) and READ + FOLLOW every matching doc: coding "
+    "standards (`pnp-coding-standards-modular-monolith.md` — file suffixes, DTOs, "
+    "mappers, interfaces, providers, module layout), API + Swagger "
+    "(`pnp-api-standards.md`, `pnp-swagger-api-documentation-standards.md` — every "
+    "endpoint has typed request AND response DTOs), logging/observability "
+    "(`05`/`06`), exception handling (`07`), notification port (`08`), database "
+    "(`pnp-database-standards.md`), provider pattern "
+    "(`pnp-provider-pattern-for-integration.md`), modular-monolith structure "
+    "(`03`). The constitution wins over habit and over anything this brief forgot "
+    "to restate; a task never re-derives a standard the constitution already sets. "
+    "Deviate only deliberately and in writing, with a reason (\"Context is King\") "
+    "— never silently.\n\n"
+    "This is UNCONDITIONAL and ENVIRONMENT-INDEPENDENT: `constitution/` is vendored "
+    "into this repo, so it is on disk and readable even in a sandbox or worktree "
+    "with no network. If you spawn or delegate to ANY subagent, you MUST pass it "
+    "this same instruction — every agent that touches code follows the "
+    "constitution, everywhere."
+)
+
+
 def compose_brief(base: Path, task: dict, *, write: bool, user_facing: bool,
                   story: str) -> str:
     scope = task.get("write_scope") or []
+    try:
+        max_files, max_lines, _reason = review_budget(task)
+    except ValueError as exc:
+        fail(f"{task.get('id', '(unknown)')} carries an invalid review_budget "
+             f"({exc}); re-record the decomposition before delegating")
     lines = [
         f"# Brief — {task['id']}: {task.get('title', '')}",
         "",
@@ -934,8 +964,16 @@ def compose_brief(base: Path, task: dict, *, write: bool, user_facing: bool,
         "and the lessons ledger. Do not go looking for the rules elsewhere; if "
         "something needed is missing, raise a signal instead of guessing "
         "(`./forge signal raise`).",
+        "",
+        f"Review budget: {max_files} files / {max_lines} changed lines "
+        "(additions + deletions), excluding `.factory/` and `plans/`. If the "
+        "work will exceed it, stop and return incomplete so the orchestrator "
+        "can split the task before more work.",
+        "Narration budget: one line per state change, findings and refusals "
+        "always in full, process chatter never (conduct §8).",
     ]
     body = "\n".join(lines) + "\n"
+    body += _section("Constitution — coding standards (BINDING)", CONSTITUTION_BRIEF)
     body += _section("Objective", task.get("objective", ""))
     body += _section("Acceptance criteria", "\n".join(
         f"- {c}" for c in task.get("acceptance_criteria") or []))
@@ -953,7 +991,12 @@ def compose_brief(base: Path, task: dict, *, write: bool, user_facing: bool,
            if task.get("required_tests") else ""))
     body += _section("Verify commands (they will be run when the stage closes)",
                      "\n".join(f"- `{c}`" for c in task.get("verify_commands") or []))
-    body += _section("Reviewer focus", task.get("reviewer_focus", ""))
+    reviewer_focus = task.get("reviewer_focus", "")
+    if isinstance(reviewer_focus, list):
+        # The decomposition records reviewer_focus as a LIST (the stage-start
+        # gate requires it non-empty); render it like the other list sections.
+        reviewer_focus = "\n".join(f"- {item}" for item in reviewer_focus)
+    body += _section("Reviewer focus", reviewer_focus)
     decisions = [r for r in decision_records(base) if r["status"] == "accepted"]
     body += _section("Active decisions — binding", "\n".join(
         f"- {r['id']}: {r['title']}" for r in decisions))
@@ -1189,12 +1232,16 @@ def cmd_delegate(args: argparse.Namespace) -> None:
     stage = next((s for s in load_stages(base).get("stages", [])
                   if s.get("id") == args.id), {})
     scope = task.get("write_scope") or []
-    # Derived, not typed: an active stage with somewhere to write is a write
-    # run. --read-only is the explicit exception, for exploration.
-    write = bool(stage.get("status") == "active" and scope) and not args.read_only
+    # Derived, not typed: an active stage is a write run. --read-only is the
+    # explicit exception for exploration; an empty scope is an incomplete
+    # contract, not an implicit read-only downgrade.
+    active = stage.get("status") == "active"
+    if active and not args.read_only:
+        require_task_worktree(base)
+        task = require_ready_task(base, args.id)
+        scope = task.get("write_scope") or []
+    write = bool(active and scope) and not args.read_only
     task_sha256_value = task_digest(task)
-    if write:
-        require_task_grill(base, args.id, task_sha256_value)
     if write and args.background:
         fail("background write delegation cannot satisfy a measured stage: the "
              "worker could keep writing after stage close. Run it in the foreground, "
@@ -1202,7 +1249,7 @@ def cmd_delegate(args: argparse.Namespace) -> None:
     state = load_json(run_state_path(base), default={})
     story = str(state.get("story") or state.get("issue_key") or "")
     text = compose_brief(base, task, write=write,
-                         user_facing=bool(decomposition.get("user_facing")),
+                         user_facing=bool(task.get("user_facing")),
                          story=story)
     canonical_path = brief_path(base, args.id)
     path = (diagnostic_briefs_dir(base) / f"{args.id}.md"

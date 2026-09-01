@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 
 HOOK_SCRIPTS = {
+    "post_tool_use": "post_tool_use.py",
     "pre_compact": "pre_compact.py",
     "pre_tool_use": "pre_tool_use.py",
     "session_start": "session_start.py",
@@ -48,6 +49,7 @@ from forge_cli import assumptions as assumptions_mod
 from forge_cli import context as ctx
 from forge_cli import delegate as delegate_mod
 from forge_cli import deferrals as deferrals_mod
+from forge_cli import deps as deps_mod
 from forge_cli import findings as findings_mod
 from forge_cli import fix as fix_mod
 from forge_cli import lessons as lessons_mod
@@ -60,8 +62,12 @@ from forge_cli import sanitise as sanitise_mod
 from forge_cli import stages as stages_mod
 from forge_cli import gstack as gstack_mod
 from forge_cli import history as history_mod
+from forge_cli import ceremony as ceremony_mod
 from forge_cli import signal as signal_mod
-from forge_cli import decisions, doctor, phase, plans, roadmap, scaffold, specs, team, upgrade
+from forge_cli import (
+    decisions, doctor, phase, plans, roadmap, scaffold, specs,
+    story as story_mod, tasks as tasks_mod, team, upgrade,
+)
 
 
 def main() -> None:
@@ -176,6 +182,59 @@ def main() -> None:
     p_assume.add_argument("--repo")
     p_assume.set_defaults(func=plans.cmd_assume)
 
+    p_task = sub.add_parser("task", help="manage per-task plans and approval")
+    task_sub = p_task.add_subparsers(dest="task_command", required=True)
+    p_task_start = task_sub.add_parser(
+        "start", help="create a task branch and sibling worktree from origin/main",
+    )
+    p_task_start.add_argument("id", help="task id")
+    p_task_start.add_argument("--repo")
+    p_task_start.set_defaults(func=tasks_mod.cmd_task_start)
+    p_task_pr_ready = task_sub.add_parser(
+        "pr-ready", help="seal one completed task and open its PR to main",
+    )
+    p_task_pr_ready.add_argument("id", help="task id")
+    p_task_pr_ready.add_argument("--repo")
+    p_task_pr_ready.set_defaults(func=tasks_mod.cmd_task_pr_ready)
+    p_task_reopen = task_sub.add_parser(
+        "reopen",
+        help="reopen a done-but-unshipped task (move the frontier back to it)",
+    )
+    p_task_reopen.add_argument("id", help="task id")
+    p_task_reopen.add_argument("--repo")
+    p_task_reopen.set_defaults(func=tasks_mod.cmd_task_reopen)
+    p_task_plan = task_sub.add_parser("plan", help="manage a task plan")
+    task_plan_sub = p_task_plan.add_subparsers(
+        dest="task_plan_command", required=True,
+    )
+    p_task_plan_save = task_plan_sub.add_parser(
+        "save", help="save a plan-mode plan for one task",
+    )
+    p_task_plan_save.add_argument("id", help="task id")
+    p_task_plan_save.add_argument("--from", dest="source", required=True)
+    p_task_plan_save.add_argument("--repo")
+    p_task_plan_save.set_defaults(func=tasks_mod.cmd_plan_save)
+    p_task_approve = task_sub.add_parser(
+        "approve", help="record human approval of a saved task plan",
+    )
+    p_task_approve.add_argument("id", help="task id")
+    p_task_approve.add_argument("--by", required=True, help="approving human")
+    p_task_approve.add_argument("--repo")
+    p_task_approve.set_defaults(func=tasks_mod.cmd_approve)
+
+    p_story = sub.add_parser(
+        "story", help="story-level run state (resume an in-flight story pointer)",
+    )
+    story_sub = p_story.add_subparsers(dest="story_command", required=True)
+    p_story_resume = story_sub.add_parser(
+        "resume",
+        help="rebuild the git-local run pointer for an in-flight story from "
+             "committed state (non-destructive; the inverse of a resetting intake)",
+    )
+    p_story_resume.add_argument("id", help="story key, e.g. R1-FOUND-1")
+    p_story_resume.add_argument("--repo")
+    p_story_resume.set_defaults(func=story_mod.cmd_resume)
+
     p_qf = sub.add_parser("quickfix", help="bounded, ledgered planning-lock escape hatch")
     qf_sub = p_qf.add_subparsers(dest="quickfix_command", required=True)
     p_qfs = qf_sub.add_parser("start", help="open a five-file quickfix window")
@@ -188,6 +247,13 @@ def main() -> None:
     p_qfl = qf_sub.add_parser("list", help="show the active and completed quickfixes")
     p_qfl.add_argument("--repo")
     p_qfl.set_defaults(func=quickfix_mod.cmd_list)
+
+    p_deps = sub.add_parser("deps", help="bounded dependency lockfile management")
+    deps_sub = p_deps.add_subparsers(dest="deps_command", required=True)
+    p_deps_lock = deps_sub.add_parser(
+        "lock", help="refresh the lockfile only (no node_modules, no build scripts)")
+    p_deps_lock.add_argument("--repo")
+    p_deps_lock.set_defaults(func=deps_mod.cmd_lock)
 
     p_mode = sub.add_parser("mode", help="manage developer-selected workflow modes")
     mode_sub = p_mode.add_subparsers(dest="mode_command", required=True)
@@ -419,6 +485,11 @@ def main() -> None:
     p_sm.add_argument("--confirm-workspace-state", action="store_true")
     p_sm.add_argument("--repo")
     p_sm.set_defaults(func=stages_mod.cmd_migrate)
+    p_sclr = st_sub.add_parser(
+        "clear",
+        help="drop a shipped/orphaned story's git-local authority (idempotent)")
+    p_sclr.add_argument("--repo")
+    p_sclr.set_defaults(func=stages_mod.cmd_clear)
     p_cx = sub.add_parser("codex", help="delegated Codex runs (diagnostics)")
     cx_sub = p_cx.add_subparsers(dest="codex_command", required=True)
     p_cxs = cx_sub.add_parser("status", help="is the delegated run still moving?")
@@ -482,6 +553,18 @@ def main() -> None:
                                help="cluster recorded findings by class; recurring = refactor signal")
     p_fp.add_argument("--repo")
     p_fp.set_defaults(func=findings_mod.cmd_patterns)
+
+    p_cer = sub.add_parser("ceremony", help="point this session's grill rounds / plan markers at a sibling worktree")
+    cer_sub = p_cer.add_subparsers(dest="ceremony_command", required=True)
+    p_ct = cer_sub.add_parser("target", help="set/show/clear the ceremony target checkout")
+    ct_sub = p_ct.add_subparsers(dest="target_command", required=True)
+    p_cts = ct_sub.add_parser("set", help="ledger rounds/markers into this sibling factory checkout")
+    p_cts.add_argument("path", help="absolute (or cwd-relative) path to the target worktree")
+    p_cts.set_defaults(func=ceremony_mod.cmd_target)
+    p_ctw = ct_sub.add_parser("show", help="print the current ceremony target")
+    p_ctw.set_defaults(func=ceremony_mod.cmd_target)
+    p_ctc = ct_sub.add_parser("clear", help="revert to ledgering in this checkout")
+    p_ctc.set_defaults(func=ceremony_mod.cmd_target)
 
     p_sig = sub.add_parser("signal", help="worker→orchestrator event channel (.factory/signals.jsonl)")
     sig_sub = p_sig.add_subparsers(dest="signal_command", required=True)
