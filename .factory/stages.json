@@ -4,7 +4,7 @@
     {
       "id": "vendor-backend-contract",
       "title": "Vendor Pulse backend + contract",
-      "status": "active",
+      "status": "done",
       "started_at": "2026-09-01T14:25:46+00:00",
       "base_sha": "5a9165dc3b9b6b2f3a9a4caf91ac20cbc21dd6e1",
       "dirty_at_start": {
@@ -33,15 +33,21 @@
           "git": "? .factory/stories/platform-base/task-plans/vendor-backend-contract.md\u0000\u0000\u0000"
         }
       },
-      "task_sha256": "732a8c6100baa57ddaf5b6bc345265be8a77f62ab0689f7c881febea05bc2a69",
+      "task_sha256": "d1e1a777f39a90bbf3ada804eaaf990ae5aa037c6d7dbb1714bf6b1bd2a2f3fc",
       "local_review_stamp": {
         "stage_id": "vendor-backend-contract",
         "task_sha256": "d1e1a777f39a90bbf3ada804eaaf990ae5aa037c6d7dbb1714bf6b1bd2a2f3fc",
         "brief_sha256": "87100346d3f5a35e297471db8767f582f30f0b2a1d708d57361fd327b80508b5",
         "base_sha": "94eb6d31bdb43777a7a34fff233a2bb194cb3ac9",
-        "product_tree_digest": "3d44908d32b45e8ca4e12787ca9107d5dce7d1e7b11274a8ce1b039ba1ccec0f",
-        "recorded_at": "2026-09-01T15:09:19+00:00",
+        "product_tree_digest": "1d1553be1392ba29251e5679f41fe03b88d4fa75327854cc903aa029da377cfb",
+        "recorded_at": "2026-09-01T15:10:07+00:00",
         "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-01T15:10:29+00:00",
+      "contract_changed": {
+        "at": "2026-09-01T15:10:29+00:00",
+        "from": "732a8c6100baa57ddaf5b6bc345265be8a77f62ab0689f7c881febea05bc2a69",
+        "to": "d1e1a777f39a90bbf3ada804eaaf990ae5aa037c6d7dbb1714bf6b1bd2a2f3fc"
       }
     },
     {
