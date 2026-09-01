@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Sign-off gate \u2014 how do we unlock the build?",
+      "options": [
+        "Record an internal go-ahead now",
+        "Hold for real 3F sign-off (Devanshi)"
+      ],
+      "chosen": "Record an internal go-ahead now"
+    }
+  ],
+  "at": "2026-09-01T10:34:54.199556+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}

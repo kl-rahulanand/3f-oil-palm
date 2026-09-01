@@ -78,7 +78,9 @@ upstream manual-manipulation gap — is a later phase, deferral D-0001.)
 - **NDA in place** — data handling/residency/security expectations to confirm.
 - **Metric definitions must be agreed with the client** before they are canon.
 
-## Out of Scope (v1 / PoC)
+## Out of Scope
+
+For v1 / the PoC:
 
 - Budget tracking & alerting (**future enhancement**).
 - Writing back to / correcting data inside Smart Palm or SAP — **v1 is
