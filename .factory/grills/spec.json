@@ -1,0 +1,64 @@
+{
+  "generated_by": "griller",
+  "gate": "spec",
+  "verdict": "pass",
+  "summary": "Grill of financial-mis-statement covering period scope, columns/roll-over, Excel fidelity, table scope, reconciliation reference, nil/number rules, FY-YTD display, export contents, and the demo-ready bar. All resolved into the spec; two non-blocking open items parked.",
+  "questions_asked": 9,
+  "gaps": [
+    "Period columns undefined given only July 2026 data exists",
+    "Column set unspecified \u2014 whether Roll-over is in PoC scope",
+    "Excel export fidelity undefined (pixel replica vs structured)",
+    "Table scope unspecified (Table-2 only vs Table-3 rollup)",
+    "Reconciliation reference missing \u2014 format actuals are blank",
+    "Nil/percentage handling and number format unspecified",
+    "FY-YTD column display when only one month is loaded",
+    "Excel download contents (statement only vs + line items)",
+    "Demo acceptance threshold if golden reference is unavailable"
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "PoC renders July + FY 26-27 YTD; full period set modelled underneath (spec: Confirmed scope)",
+    "Show Budget/Actual/%; Roll-over column kept but unpopulated pending rule (spec: Confirmed scope + Open items)",
+    "Clean structured Excel export, not a pixel replica (spec: Confirmed scope)",
+    "Table-2 only; Table-3 and Table-1 deferred (spec: Confirmed scope)",
+    "Reconcile to SAP-derived totals (demo-ready) and Srihari's filled month (validated) (spec: Acceptance criteria + Open items)",
+    "Nil rules and Indian-grouped rupee rounding defined (spec: Confirmed scope)",
+    "FY-YTD column shown, labelled 'FY 26-27 (YTD to Jul)', grows as months load (spec: Confirmed scope)",
+    "PoC export = statement sheet only; line-items sheet later with drill-down (spec: Confirmed scope)",
+    "Demo-ready = reconciles to SAP totals; validated = matches Srihari's filled month (spec: Acceptance criteria)"
+  ],
+  "open_items": [
+    "Roll-over rule from Srihari (carry-forward of unspent budget) \u2014 column kept, calc deferred",
+    "One filled month of Srihari's Financial MIS as the golden reconciliation reference"
+  ],
+  "rounds": [
+    {
+      "question": "Financial MIS statement \u2014 period columns for the PoC?",
+      "options": [
+        "July + FY 26-27 YTD",
+        "Full grid now"
+      ],
+      "chosen": "July + FY 26-27 YTD"
+    },
+    {
+      "question": "Financial MIS statement \u2014 Excel export fidelity?",
+      "options": [
+        "Clean structured export",
+        "Pixel replica of legacy workbook"
+      ],
+      "chosen": "Clean structured export"
+    },
+    {
+      "question": "Financial MIS statement \u2014 reconciliation / demo-ready bar?",
+      "options": [
+        "SAP totals = demo-ready; filled month = validated",
+        "Block demo until Srihari's filled month"
+      ],
+      "chosen": "SAP totals = demo-ready; filled month = validated",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "f2d441e7590c9f9bcbcd93eb60c1bdaf7ed3fba16999d824294fc52f78552a7a",
+  "recorded_at": "2026-09-01T09:56:21+00:00",
+  "commit": "3b17c2b0d4f1b54f4a2e0996a2d56886146fc4de"
+}
