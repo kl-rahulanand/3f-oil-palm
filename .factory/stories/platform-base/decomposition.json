@@ -11,10 +11,35 @@
       "objective": "Vendor Pulse's backend and contract into the repo (stripping MBS specifics) and set up the npm workspace so backend and contract build and typecheck.",
       "dependencies": [],
       "user_facing": false,
+      "write_scope": [
+        "backend/",
+        "contract/",
+        "package.json",
+        "package-lock.json",
+        "tsconfig.base.json"
+      ],
+      "reviewer_focus": "Clean vendor: no MBS domain/seed references remain (operations, leadActivity, MBS grants); minimal workspace wiring; no dead code; contract types compile and are the single source of shared types.",
       "acceptance_criteria": [
         "backend and contract build and typecheck in the npm workspace",
         "MBS-specific domains (operations, leadActivity) and MBS seeds/grants are removed",
         "npm install succeeds at repo root with workspaces contract/backend/frontend"
+      ],
+      "plan_contracts": [
+        {
+          "id": "t1-c1",
+          "statement": "backend and contract build and typecheck in the npm workspace",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        },
+        {
+          "id": "t1-c2",
+          "statement": "MBS-specific domains (operations, leadActivity) and MBS seeds/grants are removed",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        },
+        {
+          "id": "t1-c3",
+          "statement": "npm install succeeds at repo root with workspaces contract/backend/frontend",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        }
       ]
     },
     {
@@ -80,5 +105,5 @@
   ],
   "project": "3oilpalm",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "2f6b19053ce80ec0bb98d19b3f03393630aa3d80"
+  "commit": "f17eb045d95fd3363760eac85a08734691ce9941"
 }
