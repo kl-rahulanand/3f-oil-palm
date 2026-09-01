@@ -1,0 +1,84 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "user_facing": true,
+  "story": "platform-base",
+  "epic": "platform",
+  "plan_file": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md",
+  "tasks": [
+    {
+      "id": "vendor-backend-contract",
+      "title": "Vendor Pulse backend + contract",
+      "objective": "Vendor Pulse's backend and contract into the repo (stripping MBS specifics) and set up the npm workspace so backend and contract build and typecheck.",
+      "dependencies": [],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "backend and contract build and typecheck in the npm workspace",
+        "MBS-specific domains (operations, leadActivity) and MBS seeds/grants are removed",
+        "npm install succeeds at repo root with workspaces contract/backend/frontend"
+      ]
+    },
+    {
+      "id": "postgres-warehouse-adapter",
+      "title": "Postgres warehouse adapter",
+      "objective": "Implement a Postgres adapter behind the Warehouse port, add a separate warehouse Postgres, and flip the SQL validator dialect to postgresql so a trivial query runs end-to-end.",
+      "dependencies": [
+        "vendor-backend-contract"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "PostgresAdapter implements the Warehouse port and is selected via warehouseDriver=postgres",
+        "the SQL validator uses the postgresql dialect",
+        "a trivial query runs end-to-end against a separate warehouse Postgres defined in docker-compose"
+      ]
+    },
+    {
+      "id": "backend-boot-otp-auth",
+      "title": "Backend boots + OTP auth on Postgres",
+      "objective": "Trim migrations to the auth+audit minimum, run them, and boot the backend so email+OTP login works with RBAC and audit intact.",
+      "dependencies": [
+        "vendor-backend-contract",
+        "postgres-warehouse-adapter"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "app-DB migrations trimmed to auth+audit run cleanly",
+        "the backend boots and email+OTP login works (mock OTP)",
+        "RBAC and append-only audit are intact; boot/login smoke tests pass"
+      ]
+    },
+    {
+      "id": "frontend-shell-login",
+      "title": "Fresh frontend shell + OTP login",
+      "objective": "Build a fresh Next.js frontend (shadcn/ui + Tailwind, themed by the KnackLabs _ds tokens) with the app shell and OTP login per the approved Claude Design, consuming the backend API.",
+      "dependencies": [
+        "backend-boot-otp-auth"
+      ],
+      "user_facing": true,
+      "acceptance_criteria": [
+        "the Next.js app builds and the app shell (top bar + left nav) renders in KnackLabs green, branded 3F",
+        "the OTP login screen works against the backend",
+        "components use shadcn/ui + Tailwind themed by the _ds tokens, faithful to the Claude Design"
+      ]
+    },
+    {
+      "id": "harness-wiring",
+      "title": "Harness build/verify wiring",
+      "objective": "Wire harness.yaml build/verify/test/lint to the workspace scripts so verify.py and the gates run against the vendored app, keeping dual-runtime and vendor integrity clean.",
+      "dependencies": [
+        "vendor-backend-contract",
+        "postgres-warehouse-adapter",
+        "backend-boot-otp-auth",
+        "frontend-shell-login"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "harness.yaml build/verify/test/lint point at the workspace scripts",
+        "verify.py runs green against the app",
+        "dual-runtime check and vendor integrity are clean"
+      ]
+    }
+  ],
+  "project": "3oilpalm",
+  "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
+  "commit": "2f6b19053ce80ec0bb98d19b3f03393630aa3d80"
+}

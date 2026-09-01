@@ -1,0 +1,30 @@
+{
+  "issue": "platform-base",
+  "stages": [
+    {
+      "id": "vendor-backend-contract",
+      "title": "Vendor Pulse backend + contract",
+      "status": "pending"
+    },
+    {
+      "id": "postgres-warehouse-adapter",
+      "title": "Postgres warehouse adapter",
+      "status": "pending"
+    },
+    {
+      "id": "backend-boot-otp-auth",
+      "title": "Backend boots + OTP auth on Postgres",
+      "status": "pending"
+    },
+    {
+      "id": "frontend-shell-login",
+      "title": "Fresh frontend shell + OTP login",
+      "status": "pending"
+    },
+    {
+      "id": "harness-wiring",
+      "title": "Harness build/verify wiring",
+      "status": "pending"
+    }
+  ]
+}
