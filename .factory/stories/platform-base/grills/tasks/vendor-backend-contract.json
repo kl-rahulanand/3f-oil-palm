@@ -19,7 +19,7 @@
   "criteria_map": {
     "backend and contract build and typecheck in the npm workspace": "verify_commands run build:contract + build:backend + typecheck green after vendoring; required-test runs the validator PII unit test via junit-run",
     "MBS-specific domains (operations, leadActivity) and MBS seeds/grants are removed": "operations.ts and leadActivity.ts deleted and unregistered in semanticLayer.ts; MBS seeds/grants and mbs-* reports removed; grep shows no MBS domain/seed references",
-    "npm install succeeds at repo root with workspaces contract/backend/frontend": "root package.json workspaces resolve; npm install completes; an empty frontend package stub is present so install resolves"
+    "npm install succeeds at repo root with workspaces contract/backend": "root package.json workspaces resolve; npm install completes; an empty frontend package stub is present so install resolves"
   },
   "new_abstractions": [],
   "citations": [],
@@ -34,11 +34,11 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "38a74456abfaed25643c28e247487fce17c22e85a2ce57899ba58354822fe217",
-  "task_plan_sha256": "96909ded79382c453e0d35a84ff08489d9638fbbbe5fecc1d969a352907cddb6",
-  "recorded_at": "2026-09-01T14:25:23+00:00",
-  "commit": "5a9165dc3b9b6b2f3a9a4caf91ac20cbc21dd6e1",
-  "approved_task_plan_sha256": "96909ded79382c453e0d35a84ff08489d9638fbbbe5fecc1d969a352907cddb6",
+  "input_sha256": "50ccea4ada16644f2f2dc85acff7fa000df997f335e36e8d9ec378c4a58b943f",
+  "task_plan_sha256": "5783117f5176efa3b214e278449cec36e7b9d423358d5b051519e690e94ad4c1",
+  "recorded_at": "2026-09-01T14:37:23+00:00",
+  "commit": "f4591e98f159283781dcc870a64e152788ee1b56",
+  "approved_task_plan_sha256": "5783117f5176efa3b214e278449cec36e7b9d423358d5b051519e690e94ad4c1",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-01T14:25:36+00:00"
+  "approved_at": "2026-09-01T14:37:32+00:00"
 }
