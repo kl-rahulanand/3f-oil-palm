@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Codex paused: vendoring 19k lines of Pulse can't be one reviewable factory task. How do we bring the backend in?",
+      "options": [
+        "Pinned snapshot-vendor (recommended)",
+        "Fork Pulse into a new repo after all",
+        "Split the vendor into many small tasks"
+      ],
+      "chosen": "Pinned snapshot-vendor (recommended)"
+    }
+  ],
+  "at": "2026-09-01T14:30:43.290615+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}

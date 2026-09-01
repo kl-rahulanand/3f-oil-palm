@@ -23,7 +23,7 @@
       "acceptance_criteria": [
         "backend and contract build and typecheck in the npm workspace",
         "MBS-specific domains (operations, leadActivity) and MBS seeds/grants are removed",
-        "npm install succeeds at repo root with workspaces contract/backend/frontend"
+        "npm install succeeds at repo root with workspaces contract/backend"
       ],
       "plan_contracts": [
         {
@@ -38,7 +38,7 @@
         },
         {
           "id": "t1-c3",
-          "statement": "npm install succeeds at repo root with workspaces contract/backend/frontend",
+          "statement": "npm install succeeds at repo root with workspaces contract/backend",
           "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
         }
       ],
@@ -53,7 +53,12 @@
         "npm run build:contract",
         "npm run build:backend",
         "npm run typecheck"
-      ]
+      ],
+      "review_budget": {
+        "max_changed_files": 220,
+        "max_changed_lines": 20000,
+        "reason": "Vendored Pulse backend+contract snapshot per decision 0008 \u2014 bulk import of our own code, reviewed as Pulse @ commit (not authored line-by-line); the MBS-strip and workspace-wiring deltas are the reviewable authored surface."
+      }
     },
     {
       "id": "postgres-warehouse-adapter",
@@ -118,5 +123,5 @@
   ],
   "project": "3oilpalm",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "5a9165dc3b9b6b2f3a9a4caf91ac20cbc21dd6e1"
+  "commit": "3a5218dc701c7c7b8b1c3cd7ad3dd8ced32fab2a"
 }
