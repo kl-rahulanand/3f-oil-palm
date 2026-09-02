@@ -20,11 +20,18 @@ export class AuthoredMeasureRegistry implements OnModuleInit {
   }
 
   async reload(): Promise<void> {
-    const rows = await this.db
-      .select({ domain: authoredMeasures.domain, measureKey: authoredMeasures.measureKey, spec: authoredMeasures.compiledSpec })
-      .from(authoredMeasures)
-      .where(eq(authoredMeasures.status, "published"))
-      .orderBy(desc(authoredMeasures.version));
+    let rows: Array<{ domain: string; measureKey: string; spec: MeasureSpec | null }>;
+    try {
+      rows = await this.db
+        .select({ domain: authoredMeasures.domain, measureKey: authoredMeasures.measureKey, spec: authoredMeasures.compiledSpec })
+        .from(authoredMeasures)
+        .where(eq(authoredMeasures.status, "published"))
+        .orderBy(desc(authoredMeasures.version));
+    } catch (error) {
+      if (!isUndefinedTableError(error)) throw error;
+      this.publishedByDomain = new Map();
+      return;
+    }
     const latest = new Map<string, { domain: string; spec: MeasureSpec }>();
     for (const row of rows) {
       if (row.spec && !latest.has(row.measureKey)) latest.set(row.measureKey, { domain: row.domain, spec: row.spec });
@@ -35,4 +42,13 @@ export class AuthoredMeasureRegistry implements OnModuleInit {
     }
     this.publishedByDomain = next;
   }
+}
+
+function isUndefinedTableError(error: unknown): boolean {
+  let current = error;
+  while (current instanceof Error) {
+    if ((current as Error & { code?: string }).code === "42P01") return true;
+    current = current.cause;
+  }
+  return false;
 }

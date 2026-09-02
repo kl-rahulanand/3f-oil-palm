@@ -135,12 +135,52 @@
     {
       "id": "backend-boot-otp-auth",
       "title": "Backend boots + OTP auth on Postgres",
-      "objective": "Trim migrations to the auth+audit minimum, run them, and boot the backend so email+OTP login works with RBAC and audit intact.",
+      "objective": "Trim the app-DB migrations to the auth+audit minimum, add a separate app-DB Postgres, run the migrations, and boot the NestJS backend so email+OTP login works (mock OTP) with RBAC and append-only audit intact.",
       "dependencies": [
         "vendor-backend-contract",
         "postgres-warehouse-adapter"
       ],
       "user_facing": false,
+      "write_scope": [
+        "backend/src/",
+        "backend/drizzle/",
+        "docker-compose.yml"
+      ],
+      "reviewer_focus": "Migration trim keeps ONLY auth (users/roles/user_roles/role_perms/user_scope/sessions/otp_codes/refresh_tokens) + audit (audit_events) tables and DROPS the feature tables (saved_queries + dashboard_pins from the MIXED 0000, pin_snapshots 0005, reconciliation_runs 0002, conversations + conversation_turns 0007, authored_measures 0010). 0000 is MIXED so it is split/squashed, not retained wholesale. audit_events retains its FINAL shape: conversation_id (added by 0007, nullable, no FK) AND the four usage columns model_id/input_tokens/output_tokens/total_tokens (added by 0009, which is audit-ONLY and creates no feature table). No orphaned FKs; every retained REFERENCES points at a retained table; the drizzle meta/_journal.json and SQL tags stay consistent for the RUNTIME migrator. SCOPE DECISION: this task trims MIGRATIONS ONLY \u2014 backend/src/db/schema.ts and the feature modules are left compiled (documented, intentional drift), so drizzle-kit generate is deliberately NOT run in this flow (it would regenerate the domain tables from schema.ts); the trimmed set is hand-authored/squashed. Boot must succeed on the trimmed DB: AuthoredMeasureRegistry.onModuleInit() queries authored_measures at startup, so make it tolerate ONLY the absent/empty table (init empty) and RE-THROW any other error (no broad-catch that masks real DB failures); no other boot-time code reads a trimmed table (pin-refresh + reconciliation schedulers default to disabled \u2014 keep disabled, unsupported on the minimum DB). The Pulse auth flow, RBAC guards, and fail-closed audit are unchanged; 'append-only audit' is application-level (no DB trigger). The app DB is a SEPARATE docker-compose service (app-db) with its own PG* creds/port(default 5432, configurable)/volume distinct from WAREHOUSE_PG_*/5433. The hermetic required test proves migration composition from files (tables auth+audit-only, audit_events columns retained, FK targets valid, journal\u2194SQL correspondence) with NO DB; migrations-run + boot + mock-OTP login (CSRF double-submit: obtain pulse_csrf then send cookie + x-csrf-token on both OTP POSTs; seeded admin@example.invalid; AUTH_OTP_MOCK=true + non-production NODE_ENV) + RBAC + audit-row-on-login + the DB-backed auth/migrate/audit tests are DEMONSTRATED EVIDENCE against the app-db container, not hermetic gates.",
+      "plan_contracts": [
+        {
+          "id": "t3-c1",
+          "statement": "app-DB migrations trimmed to auth+audit run cleanly",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        },
+        {
+          "id": "t3-c2",
+          "statement": "the backend boots and email+OTP login works (mock OTP)",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        },
+        {
+          "id": "t3-c3",
+          "statement": "RBAC and append-only audit are intact; boot/login smoke tests pass",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "trimmed app-DB migrations declare only auth and audit tables",
+          "path": "backend/src/db/migrate.trim.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck"
+      ],
+      "review_budget": {
+        "max_changed_files": 30,
+        "max_changed_lines": 2000,
+        "reason": "Migration trim deletes/squashes several drizzle SQL files and rewrites meta/_journal.json (+ stale snapshots), plus a narrow boot-tolerance change to AuthoredMeasureRegistry, the app-db docker-compose service, and a new hermetic migration-composition test. schema.ts is intentionally NOT changed (migrations-only scope; documented drift). Deletion-heavy but bounded, larger than the 8/400 default."
+      },
       "acceptance_criteria": [
         "app-DB migrations trimmed to auth+audit run cleanly",
         "the backend boots and email+OTP login works (mock OTP)",
@@ -182,5 +222,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "51ee67b463b7eaab2020c04814783214d495662b"
+  "commit": "58653bec5ab566bb9fc35991cbe3c9c1b16f5487"
 }
