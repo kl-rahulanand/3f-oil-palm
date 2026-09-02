@@ -39,7 +39,7 @@
     {
       "id": "postgres-warehouse-adapter",
       "title": "Postgres warehouse adapter",
-      "status": "active",
+      "status": "done",
       "started_at": "2026-09-02T08:38:30+00:00",
       "base_sha": "75e738705336b8a20af03abe6b8fb29050867819",
       "dirty_at_start": {
@@ -88,7 +88,22 @@
           "git": "? .factory/stories/platform-base/task-plans/postgres-warehouse-adapter.md\u0000\u0000\u0000"
         }
       },
-      "task_sha256": "d73fe7864827ee074b07df917cc86568640e98a6b68740a0afe8dc30c79e204d"
+      "task_sha256": "ce5fd1e317b2000def8ebaa6072bb679d20da27ee264df5a8ee5dc1269d8fcd7",
+      "local_review_stamp": {
+        "stage_id": "postgres-warehouse-adapter",
+        "task_sha256": "ce5fd1e317b2000def8ebaa6072bb679d20da27ee264df5a8ee5dc1269d8fcd7",
+        "brief_sha256": "6a0275bde80ec38763253c7a64784f19c8666c48eeffc79b3bd3c2f9e8ed2a9b",
+        "base_sha": "7eeff24592024309d2497262914f643e6c9ec084",
+        "product_tree_digest": "d0117b4b163a0d3620dd490c599dc0293d3ef900bffd75f383aeac43ebd65e36",
+        "recorded_at": "2026-09-02T09:49:59+00:00",
+        "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-02T09:50:11+00:00",
+      "contract_changed": {
+        "at": "2026-09-02T09:50:11+00:00",
+        "from": "d73fe7864827ee074b07df917cc86568640e98a6b68740a0afe8dc30c79e204d",
+        "to": "ce5fd1e317b2000def8ebaa6072bb679d20da27ee264df5a8ee5dc1269d8fcd7"
+      }
     },
     {
       "id": "backend-boot-otp-auth",

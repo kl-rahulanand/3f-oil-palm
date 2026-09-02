@@ -4,7 +4,7 @@
   "task_id": "postgres-warehouse-adapter",
   "verdict": "pass",
   "decision": "keep",
-  "summary": "Post-fix task grill of postgres-warehouse-adapter (implementation already complete). A false-green in the required_tests gate was found and fixed under decision 0009: required_tests now name real leaf tests and pin TS_NODE_PROJECT=backend/tsconfig.json. A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read confirmed all three required_tests are genuine (each id matches a real test(...) call; each filtered run executed one real assertion and passed) and that acceptance c1/c2/c4 are met by the implemented code (adapter implements the Warehouse port; warehouseDriver=postgres dispatches to PostgresAdapter in the core factory; typed warehouse.postgres config isolated from cfg.pg; validator postgresql at all three parse sites; pure exported pgOidIsNumeric fills columns[].numeric). Two Codex objections are environmental, not contract defects, and are resolved: (c3) the live app-path E2E cannot run in the read-only no-docker sandbox, but is host-demonstrated (pass at :5433 total=42; negative control fails at :5999 ECONNREFUSED); (write-scope) the cold-read diffed against HEAD which includes governance/ledger churn, but the product-code changes are all in scope and governance is committed separately with the stage baseline advanced past it so the measured stage diff is product-only.",
+  "summary": "Final digest-bound task grill of postgres-warehouse-adapter against the COMMITTED product tree. The prior clean grill was re-staled purely because committing the product code changes the grill's product-tree digest (content unchanged). A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read of the committed tree returned ready-to-close, 0 gaps: all three required_tests name real leaf tests and were executed from repo root (exit 0) with TS_NODE_PROJECT=backend/tsconfig.json; c1/c2/c4 met by the implemented code; the committed product diff (commit 223e2dd) is exactly the seven in-scope files; c3 live app-path E2E is host-demonstrated (pass at :5433 total=42; dead-port negative control fails) and correctly treated as demonstrated evidence, not a required-test gate.",
   "gaps": [],
   "contradictions": [],
   "resolutions": [
@@ -36,20 +36,20 @@
   "citations": [],
   "rounds": [
     {
-      "question": "Task grill (post-fix) \u2014 postgres-warehouse-adapter. Fresh Codex cold-read confirms: the corrected required_tests are genuine (all 3 name real tests, execute, pass), and c1/c2/c4 pass (adapter+port, postgresql dialect, pure OID mapping). c3 is host-demonstrated (E2E pass at :5433, negative control fails at :5999); the sandbox couldn't run docker. Write-scope is product-only once governance is committed separately + baseline advanced. Contract is stable. Close out task 2?",
+      "question": "Final digest-bound grill \u2014 postgres-warehouse-adapter, against the COMMITTED tree (the earlier grill was re-staled only because committing the code changes the product-tree digest; content unchanged). Codex verdict: ready-to-close, 0 gaps, all required tests genuinely execute, diff in-scope. Record this grill pass, re-approve, and run stage done to close task 2?",
       "options": [
-        "Approve \u2014 commit, review, stage done",
-        "Adjust the contract first"
+        "Yes \u2014 record, approve, stage done",
+        "Hold"
       ],
-      "chosen": "Approve \u2014 commit, review, stage done",
+      "chosen": "Yes \u2014 record, approve, stage done",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "987a8031c13b6016814e26e2820bf70400226a77bb85fa21eb716ec03cb68b78",
+  "input_sha256": "3f7f5a4fcbb6126ba9955aad32bc9b586ef79ebfe2355b5a393ccc1004048a4b",
   "task_plan_sha256": "1249a3a4d081eb76b4d0e217056f2038d034df8beabfd0ba3c0eb0c47a923a9d",
-  "recorded_at": "2026-09-02T09:33:17+00:00",
-  "commit": "a5b5ec4701061bb8f93a8b351fe98e47a6603377",
+  "recorded_at": "2026-09-02T09:43:53+00:00",
+  "commit": "223e2dd1112f4aaa1db1cf9064033c4879f88045",
   "approved_task_plan_sha256": "1249a3a4d081eb76b4d0e217056f2038d034df8beabfd0ba3c0eb0c47a923a9d",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-02T09:33:17+00:00"
+  "approved_at": "2026-09-02T09:43:53+00:00"
 }
