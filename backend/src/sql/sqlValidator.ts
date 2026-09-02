@@ -25,7 +25,7 @@ export class SqlValidator {
   ): ValidationResult {
     let ast: unknown;
     try {
-      ast = this.parser.astify(sql, { database: "mysql" }); // StarRocks ~ MySQL dialect
+      ast = this.parser.astify(sql, { database: "postgresql" });
     } catch (e) {
       return { ok: false, reason: `unparseable SQL: ${(e as Error).message}` };
     }
@@ -41,7 +41,7 @@ export class SqlValidator {
       return { ok: false, reason: "SELECT * is not allowed" };
 
     // Object allowlist — every referenced table must be approved.
-    const tables = this.parser.tableList(sql, { database: "mysql" }); // ["select::db::table", ...]
+    const tables = this.parser.tableList(sql, { database: "postgresql" }); // ["select::db::table", ...]
     const referenced = tables.map((t) => t.split("::").pop() ?? t);
     const approvedLeaf = allowedObjects.map((o) => o.split(".").pop());
     for (const r of referenced) {
@@ -50,7 +50,7 @@ export class SqlValidator {
 
     const blocked = new Set(blockedColumns.map((c) => c.toLowerCase()));
     if (blocked.size > 0) {
-      const columns = this.parser.columnList(sql, { database: "mysql" });
+      const columns = this.parser.columnList(sql, { database: "postgresql" });
       for (const entry of columns) {
         const column = entry.split("::").pop() ?? entry;
         if (blocked.has(column.toLowerCase())) {

@@ -10,6 +10,7 @@ import {
 import { createDb } from "../db/pool";
 import { StarRocksAdapter } from "../warehouse/starrocks.adapter";
 import { StarRocksMysqlAdapter } from "../warehouse/starrocks-mysql.adapter";
+import { PostgresAdapter } from "../warehouse/postgres.adapter";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import { MockLlmProvider } from "../llm/mock.provider";
 import { BedrockLlmProvider } from "../llm/bedrock.provider";
@@ -34,8 +35,11 @@ import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
     { provide: DRIZZLE_DB, useFactory: createDb },
     {
       provide: WAREHOUSE,
-      useFactory: (): Warehouse =>
-        loadConfig().warehouseDriver === "http" ? new StarRocksAdapter() : new StarRocksMysqlAdapter(),
+      useFactory: (): Warehouse => {
+        const driver = loadConfig().warehouseDriver;
+        if (driver === "postgres") return new PostgresAdapter();
+        return driver === "http" ? new StarRocksAdapter() : new StarRocksMysqlAdapter();
+      },
     },
     {
       provide: LLM_PROVIDER,

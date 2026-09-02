@@ -22,3 +22,14 @@ test("blocked columns are rejected case-insensitively by leaf column name", () =
   );
   assert.equal(allowed.ok, true);
 });
+
+test("PostgreSQL aggregate FILTER syntax is accepted", () => {
+  const validator = new SqlValidator();
+  const result = validator.validate(
+    "SELECT COUNT(*) FILTER (WHERE amount > 0) AS positive_count FROM WarehouseFixture LIMIT 10",
+    ["WarehouseFixture"],
+    100,
+  );
+
+  assert.equal(result.ok, true, result.reason);
+});

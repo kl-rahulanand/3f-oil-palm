@@ -48,7 +48,16 @@ export interface Config {
     catalog: string;
     database: string;
   };
-  warehouseDriver: "mysql" | "http";
+  warehouse: {
+    postgres: {
+      host: string;
+      port: number;
+      user: string;
+      password: string;
+      database: string;
+    };
+  };
+  warehouseDriver: "postgres" | "mysql" | "http";
   queryTimeoutMs: number;
   maxRows: number;
   suppressionK: number;
@@ -131,7 +140,19 @@ export function loadConfig(): Config {
       catalog: process.env.STARROCKS_CATALOG ?? "default_catalog",
       database: process.env.STARROCKS_DATABASE ?? "analytics",
     },
-    warehouseDriver: process.env.WAREHOUSE_DRIVER === "http" ? "http" : "mysql",
+    warehouse: {
+      postgres: {
+        host: process.env.WAREHOUSE_PG_HOST ?? "",
+        port: num(process.env.WAREHOUSE_PG_PORT, 5432),
+        user: process.env.WAREHOUSE_PG_USER ?? "",
+        password: process.env.WAREHOUSE_PG_PASSWORD ?? "",
+        database: process.env.WAREHOUSE_PG_DATABASE ?? "",
+      },
+    },
+    warehouseDriver:
+      process.env.WAREHOUSE_DRIVER === "http" || process.env.WAREHOUSE_DRIVER === "mysql"
+        ? process.env.WAREHOUSE_DRIVER
+        : "postgres",
     queryTimeoutMs: num(process.env.QUERY_TIMEOUT_MS, 15000),
     maxRows: num(process.env.MAX_ROWS, 1000),
     suppressionK: num(process.env.SUPPRESSION_K, 5),
