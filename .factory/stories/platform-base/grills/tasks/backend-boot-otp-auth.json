@@ -1,0 +1,61 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "backend-boot-otp-auth",
+  "verdict": "pass",
+  "decision": "keep",
+  "summary": "Task grill of backend-boot-otp-auth over fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-reads. The first pass found real gaps against the code: (1) schema.ts drift \u2014 trimming migrations while schema.ts still declares domain tables; (2) 0009 misclassified as a feature migration (it is audit-ONLY: 4 usage columns); (3) 0000 is MIXED (auth+audit AND saved_queries+dashboard_pins) so must be split; (4) migration-metadata/journal strategy unstated; (5) boot decoupling risked a broad-catch; (6) the demonstrated login omitted the global CSRF double-submit + seeded email + PG*/AUTH_OTP_MOCK/NODE_ENV env; (7) the hermetic test should also assert FK targets + journal\u2194SQL correspondence; (8) append-only is application-level. All were resolved: scope is migrations-only with schema.ts + feature modules kept as intentional documented drift (drizzle-kit generate NOT run; runtime migrator applies a hand-authored squash + rewritten journal/meta); audit_events retains conversation_id + the four usage columns; boot tolerance is absent-table-only with other errors re-thrown; a separate app-db docker service (PG* distinct from WAREHOUSE_PG_*); the demonstrated mock-OTP login specifies CSRF + seeded admin + env; the hermetic required test asserts tables + audit columns + FK validity + journal correspondence per decision 0009. A final cold-read returned ready-to-delegate, 0 gaps.",
+  "gaps": [],
+  "contradictions": [],
+  "resolutions": [
+    "schema.ts drift resolved as an explicit scope decision: trim MIGRATIONS ONLY; keep schema.ts + feature modules compiled (documented drift); do NOT run drizzle-kit generate; runtime migrator applies a hand-authored/squashed set; review_budget reason corrected to state schema.ts is not changed",
+    "0009 reclassified as audit-ONLY (keep model_id/input_tokens/output_tokens/total_tokens); 0007's audit_events.conversation_id retained while conversations/conversation_turns dropped; 0000 split (it also creates saved_queries+dashboard_pins)",
+    "migration metadata: squash + rewrite meta/_journal.json + replace stale snapshots for runtime-migrator consistency; no orphaned FKs (every retained REFERENCES targets a retained table)",
+    "boot decoupling scoped to absent-authored_measures-table suppression only, re-throwing other errors; pin-refresh + reconciliation schedulers stay disabled (unsupported on the minimum DB)",
+    "demonstrated login specifies the CSRF double-submit (pulse_csrf cookie + x-csrf-token on both OTP POSTs), the seeded admin@example.invalid, and PG*/AUTH_OTP_MOCK=true/non-production NODE_ENV env; DB-backed auth/migrate/audit tests are demonstrated evidence, not hermetic gates",
+    "hermetic required test asserts auth+audit-only tables, retained audit_events columns, valid FK targets, and journal\u2194SQL correspondence (no live DB); append-only clarified as application-level (fail-closed writes, no DB trigger)"
+  ],
+  "open_items": [],
+  "inspected_refs": [
+    ".factory/stories/platform-base/task-plans/backend-boot-otp-auth.md",
+    ".factory/stories/platform-base/decomposition.json",
+    "backend/drizzle/",
+    "backend/src/db/migrate.ts",
+    "backend/src/db/schema.ts",
+    "backend/drizzle.config.ts",
+    "backend/src/core/core.module.ts",
+    "backend/src/measures/authored-measure.registry.ts",
+    "backend/src/main.ts",
+    "backend/src/config.ts",
+    "backend/src/email/email.service.ts",
+    "backend/src/auth/csrf.guard.ts"
+  ],
+  "current_flow": "The vendored Pulse backend has 11 app-DB migrations (0000-0010) creating auth, audit, and domain/feature tables, and boots against an app DB configured via PG* (cfg.pg), separate from the warehouse's WAREHOUSE_PG_*. AuthoredMeasureRegistry.onModuleInit() queries authored_measures at startup. This task squashes the migrations to the auth+audit minimum (keeping the final audit_events shape), makes boot tolerate the absent authored_measures table, adds a separate app-db docker service, and demonstrates email+OTP (mock) login with RBAC + fail-closed audit; schema.ts and feature modules are left as documented drift.",
+  "criteria_map": {
+    "app-DB migrations trimmed to auth+audit run cleanly": "squash backend/drizzle/ to auth+audit-only with the final audit_events shape (conversation_id + 4 usage columns), rewritten journal/meta, no orphaned FKs; db:migrate runs cleanly against a fresh app-db; hermetic migrate.trim.test.ts proves the composition from files",
+    "the backend boots and email+OTP login works (mock OTP)": "AuthoredMeasureRegistry tolerates the absent authored_measures table (absent-only, else re-throw); main.ts boots on the app-db; mock-OTP login (CSRF double-submit, seeded admin, AUTH_OTP_MOCK=true) returns AuthUser and sets cookies \u2014 demonstrated evidence",
+    "RBAC and append-only audit are intact; boot/login smoke tests pass": "RBAC guards + fail-closed application-level audit unchanged; an audit_events row is written on auth.otp_verified; the DB-backed auth/migrate/audit tests pass against app-db \u2014 demonstrated evidence"
+  },
+  "new_abstractions": [
+    "A hand-authored squashed auth+audit migration set applied by the runtime migrator (drizzle-kit generate intentionally bypassed to avoid schema.ts drift)"
+  ],
+  "citations": [],
+  "rounds": [
+    {
+      "question": "Task-3 grill (backend-boot-otp-auth) converged: ready-to-delegate. Plan: trim app-DB migrations to auth+audit only (squash; keep audit_events' conversation_id + usage columns; drop feature tables), keep schema.ts + feature modules as intentional documented drift (no drizzle-kit generate), make boot tolerate the absent authored_measures table, add a separate app-db docker service, hermetic migration-composition test + demonstrated mock-OTP login. Delegate to Codex?",
+      "options": [
+        "Delegate to Codex",
+        "Adjust first"
+      ],
+      "chosen": "Delegate to Codex",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "db06c713e9da1d8627998a7010cd46e9db580311842e4b71ae5987c1866418c3",
+  "task_plan_sha256": "bea7c08d77e74345d05b7ef444a7c3ff95593133d1ef66f83671087edd5920b5",
+  "recorded_at": "2026-09-02T12:04:11+00:00",
+  "commit": "58653bec5ab566bb9fc35991cbe3c9c1b16f5487",
+  "approved_task_plan_sha256": "bea7c08d77e74345d05b7ef444a7c3ff95593133d1ef66f83671087edd5920b5",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-02T12:04:11+00:00"
+}
