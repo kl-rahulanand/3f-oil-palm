@@ -4,13 +4,13 @@
   "task_id": "vendor-backend-contract",
   "verdict": "pass",
   "decision": "keep",
-  "summary": "Re-grill of vendor-backend-contract after reopening it to re-verify evidence under decision 0009 (required_tests false-green fix). A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read found that the prior false-green gate had masked a real incomplete-strip leak: contract/test/auth-contract.test.ts still carries MBS fixtures (display_name 'MBS Analyst', domains ['operations'], measureIds ['operations.disbursals']), contradicting acceptance c2 and the VENDORED_FROM exclusion. The task plan was revised to explicitly scope neutralizing those fixtures (keeping schema assertions) with a post-fix invariant of NO operations/leadActivity/mbs/'MBS Analyst' anywhere under backend/src or contract/, and to correct the required_test to a real leaf test-name id + TS_NODE_PROJECT (decision 0009). A follow-up cold-read of the revised plan returned ready-to-delegate, 0 gaps: the plan scopes the fix within contract/, the required_test id matches a verbatim test(), and the plan stays consistent with the decision-0008 snapshot review model.",
+  "summary": "Final task grill of vendor-backend-contract against the COMMITTED, fixed tree. The reopen-to-re-verify (decision 0009) surfaced a real MBS-fixture leak the prior false-green had masked; it has now been fixed and committed (commit 5dc224c: contract/test/auth-contract.test.ts fixtures neutralized to Example Analyst / [fixture] / [fixture.measure], schema assertions unchanged). A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read of HEAD returned ready-to-close, 0 gaps: grep for mbs/leadactivity/operations/'MBS Analyst' across backend/src and contract is empty; the required PII test executes genuinely (real leaf id + TS_NODE_PROJECT) and passes; build:contract/backend + typecheck pass (zero-write tsc --noEmit clean); workspaces == [contract, backend]; the sole HEAD diff is the scoped 1-file fixture fix. The un-wired contract test (imports ../src/index.ts; excluded from build; no test script) is captured as deferral D-0002 for harness-wiring, not a blocker.",
   "gaps": [],
   "contradictions": [],
   "resolutions": [
-    "Real leak found by the re-verify (the false-green had masked it): contract/test/auth-contract.test.ts MBS fixtures \u2014 scoped for neutralization in the revised plan (Approach step 2), schema assertions preserved, fix within contract/ write_scope; delegate will apply it",
-    "required_test corrected per decision 0009: id = real leaf test name 'blocked columns are rejected case-insensitively by leaf column name'; command prepends TS_NODE_PROJECT=backend/tsconfig.json (verified passes genuinely from repo root; old id=file-path form false-greened)",
-    "Post-fix invariant added to reviewer_focus: grep for operations/leadActivity/mbs/'MBS Analyst' under backend/src and contract/ must be empty"
+    "MBS-fixture leak fixed and committed (contract/test/auth-contract.test.ts): 'MBS Analyst'->'Example Analyst', domains ['operations']->['fixture'], measureIds ['operations.disbursals']->['fixture.measure']; schema assertions intact; grep for MBS refs across backend/src and contract is now empty",
+    "required_test genuine per decision 0009: id 'blocked columns are rejected case-insensitively by leaf column name' + TS_NODE_PROJECT=backend/tsconfig.json; executes and passes from repo root",
+    "contract/test/auth-contract.test.ts not runnable in-repo (imports ../src/index.ts; excluded from build via include=src/**/*; no test script) captured as deferral D-0002 for harness-wiring (task 5) \u2014 pre-existing vendored state, out of this task's bounded scope"
   ],
   "open_items": [],
   "inspected_refs": [
@@ -32,20 +32,20 @@
   "citations": [],
   "rounds": [
     {
-      "question": "Task-1 re-grill (vendor-backend-contract) converged: ready-to-delegate. The re-verify found a real leak the old false-green masked \u2014 contract/test/auth-contract.test.ts still has MBS fixtures (\"MBS Analyst\", operations, operations.disbursals). The plan now scopes neutralizing those fixtures (schema assertions preserved) plus the corrected required-test (decision 0009). Delegate the fix to Codex?",
+      "question": "Final grill \u2014 vendor-backend-contract (committed fixed tree): ready-to-close, 0 gaps. MBS references now fully gone from backend/src and contract/; required test genuinely executes and passes; build/typecheck green; diff bounded to the 1-file fixture fix; the un-wired contract test deferred as D-0002. Close out task 1 (then re-close task 2 on top)?",
       "options": [
-        "Delegate the leak fix",
-        "Adjust first"
+        "Yes \u2014 record, approve, stage done",
+        "Hold"
       ],
-      "chosen": "Delegate the leak fix",
+      "chosen": "Yes \u2014 record, approve, stage done",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "5aa8a2a9711519d1cae88fcd082174eb92e642527d23461444b9960c36c9a1f6",
+  "input_sha256": "451c127e5d4faa1809ceca8e3462f62caafdcee50378b3e596bc184536051f67",
   "task_plan_sha256": "cad5c9e9c30ee0e75026fc3ad99b96cf088f95c04eb093b9b4d005d90a03203d",
-  "recorded_at": "2026-09-02T10:13:04+00:00",
-  "commit": "31059db7c5a267363ab57b9ec566f3b927f8d0b5",
+  "recorded_at": "2026-09-02T10:29:54+00:00",
+  "commit": "5dc224c156c00da7d39a0d5b9d88b21613370a48",
   "approved_task_plan_sha256": "cad5c9e9c30ee0e75026fc3ad99b96cf088f95c04eb093b9b4d005d90a03203d",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-02T10:13:04+00:00"
+  "approved_at": "2026-09-02T10:29:54+00:00"
 }

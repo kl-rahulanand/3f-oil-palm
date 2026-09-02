@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Final grill \u2014 vendor-backend-contract (committed fixed tree): ready-to-close, 0 gaps. MBS references now fully gone from backend/src and contract/; required test genuinely executes and passes; build/typecheck green; diff bounded to the 1-file fixture fix; the un-wired contract test deferred as D-0002. Close out task 1 (then re-close task 2 on top)?",
+      "options": [
+        "Yes \u2014 record, approve, stage done",
+        "Hold"
+      ],
+      "chosen": "Yes \u2014 record, approve, stage done"
+    }
+  ],
+  "at": "2026-09-02T10:29:31.645664+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
