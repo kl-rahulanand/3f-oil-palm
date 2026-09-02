@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Task grill \u2014 postgres-warehouse-adapter converged (Codex: ready-to-delegate, 0 gaps). The contract is: PostgresAdapter behind the Warehouse port, selected via warehouseDriver=postgres in the core factory; validator flipped to postgresql; a separate warehouse-db in a fresh docker-compose; OID\u2192numeric proven by a hermetic unit test; E2E via the app path as demonstrated evidence. recon.run.ts is intentionally out of scope. Delegate to Codex?",
+      "options": [
+        "Delegate to Codex",
+        "Adjust the contract first"
+      ],
+      "chosen": "Delegate to Codex"
+    }
+  ],
+  "at": "2026-09-02T08:36:10.196215+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}

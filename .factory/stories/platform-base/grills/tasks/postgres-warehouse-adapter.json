@@ -1,0 +1,59 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "postgres-warehouse-adapter",
+  "verdict": "pass",
+  "decision": "keep",
+  "summary": "Task grill of postgres-warehouse-adapter over three fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-reads. First pass surfaced four gaps (recon.run.ts routed postgres->StarRocks out of scope; E2E was a bare-adapter call vs the app-path acceptance; warehouse config collided conceptually with the app cfg.pg; docker/OID under-specified). Revised, re-grilled: items 1-3 resolved but the app path cannot observe the adapter OID flag (selectionExecutor reconstructs numeric from measure aliases) and the recon addition diverged from the approved plan. Revised again: recon scoped out (batch entrypoint, not the request path) with c1 qualified to the core factory; OID->numeric split into a pure mapping function proven by a hermetic unit test; E2E kept as app-path demonstrated evidence; docker-compose created fresh with an isolated warehouse-db. Final cold-read: 6/6 checks pass, 0 residual gaps, ready-to-delegate and stable.",
+  "gaps": [],
+  "contradictions": [],
+  "resolutions": [
+    "recon.run.ts (standalone main() batch entrypoint, not the app request path) removed from write_scope; c1 qualified to selection in the core warehouse factory, keeping the task consistent with the approved plan's Task 2 scope",
+    "OID->numeric decoupled from the app path (selectionExecutor.ts:135 reconstructs numeric from measure aliases and cannot observe the adapter flag): proven by a pure exported mapping function under a hermetic unit test backend/src/warehouse/postgres.adapter.oid.test.ts (id==path)",
+    "E2E via app path (validate->explain->execute) kept as demonstrated evidence requiring the live warehouse-db, not a hermetic required_test",
+    "warehouse.postgres typed config block with its own WAREHOUSE_PG_* env vars, isolated from the app DB cfg.pg pool (backend/src/db/pool.ts) so the two databases never share credentials",
+    "docker-compose.yml created fresh (absent today) with an isolated warehouse-db service (own port/creds/volume + numeric seed); app-DB compose deferred to backend-boot-otp-auth"
+  ],
+  "open_items": [],
+  "inspected_refs": [
+    ".factory/stories/platform-base/task-plans/postgres-warehouse-adapter.md",
+    ".factory/stories/platform-base/decomposition.json",
+    "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md",
+    "backend/src/warehouse/warehouse.interface.ts",
+    "backend/src/sql/sqlValidator.ts",
+    "backend/src/config.ts",
+    "backend/src/db/pool.ts",
+    "backend/src/core/core.module.ts",
+    "backend/src/recon/recon.run.ts",
+    "backend/src/chat/selectionExecutor.ts"
+  ],
+  "current_flow": "The vendored Pulse backend reaches its analytical warehouse through the Warehouse port (warehouse.interface.ts) and ships only StarRocks adapters, with the SQL validator parsing under the mysql dialect. For the 3F PoC the warehouse runs on a second, isolated Postgres reached through the same port so the assistant/semantic layer never share a database with auth/OTP/audit. This task adds a PostgresAdapter, selects it in the core warehouse factory via warehouseDriver=postgres, flips the validator to the postgresql dialect across all three parse call sites, stands up a separate warehouse-db in a fresh docker-compose, and proves a trivial SELECT runs end-to-end through the app path.",
+  "criteria_map": {
+    "PostgresAdapter implements the Warehouse port and is selected via warehouseDriver=postgres in the core warehouse factory (the app request path)": "PostgresAdapter implements explain/execute/freshness/distinctValues (warehouse.interface.ts:11); core.module.ts factory maps warehouseDriver=postgres to it; recon.run.ts intentionally out of scope",
+    "the SQL validator uses the postgresql dialect": "node-sql-parser database flipped mysql->postgresql at sqlValidator.ts:28/44/53 (astify/tableList/columnList) \u2014 confirmed the only three; PII test stays green under postgresql",
+    "a trivial SELECT runs end-to-end through the app path (validate -> explain -> execute) against a separate warehouse Postgres defined in docker-compose": "validate->explain->execute via selectionExecutor.ts:101/111 against the warehouse-db container \u2014 demonstrated evidence",
+    "pg field OIDs map to the QueryResult numeric flag via a pure mapping function, covered by a hermetic unit test (no live DB)": "pure exported pgOidIsNumeric fills QueryResult.columns[].numeric (warehouse.interface.ts:4-7); hermetic unit test postgres.adapter.oid.test.ts, no live DB"
+  },
+  "new_abstractions": [
+    "pgOidIsNumeric pure mapping function (pg field OID -> QueryResult numeric flag) as the deterministic, hermetically-testable seam at the adapter boundary"
+  ],
+  "citations": [],
+  "rounds": [
+    {
+      "question": "Task grill \u2014 postgres-warehouse-adapter converged (Codex: ready-to-delegate, 0 gaps). The contract is: PostgresAdapter behind the Warehouse port, selected via warehouseDriver=postgres in the core factory; validator flipped to postgresql; a separate warehouse-db in a fresh docker-compose; OID\u2192numeric proven by a hermetic unit test; E2E via the app path as demonstrated evidence. recon.run.ts is intentionally out of scope. Delegate to Codex?",
+      "options": [
+        "Delegate to Codex",
+        "Adjust the contract first"
+      ],
+      "chosen": "Delegate to Codex",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "ccd466202ede74d5c9272e083e8463e49ea537afbad955a15bedfc6e251c7dab",
+  "task_plan_sha256": "a3db3d89ec24707cad407339c3bae7e53233b2f7fc734201bd4ca3f6de56b4f1",
+  "recorded_at": "2026-09-02T08:37:58+00:00",
+  "commit": "75e738705336b8a20af03abe6b8fb29050867819",
+  "approved_task_plan_sha256": "a3db3d89ec24707cad407339c3bae7e53233b2f7fc734201bd4ca3f6de56b4f1",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-02T08:38:24+00:00"
+}

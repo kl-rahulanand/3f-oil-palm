@@ -34,26 +34,61 @@
         }
       },
       "task_sha256": "d1e1a777f39a90bbf3ada804eaaf990ae5aa037c6d7dbb1714bf6b1bd2a2f3fc",
-      "local_review_stamp": {
-        "stage_id": "vendor-backend-contract",
-        "task_sha256": "d1e1a777f39a90bbf3ada804eaaf990ae5aa037c6d7dbb1714bf6b1bd2a2f3fc",
-        "brief_sha256": "87100346d3f5a35e297471db8767f582f30f0b2a1d708d57361fd327b80508b5",
-        "base_sha": "94eb6d31bdb43777a7a34fff233a2bb194cb3ac9",
-        "product_tree_digest": "1d1553be1392ba29251e5679f41fe03b88d4fa75327854cc903aa029da377cfb",
-        "recorded_at": "2026-09-01T15:10:07+00:00",
-        "generated_by": "autoreview"
-      },
-      "completed_at": "2026-09-01T15:10:29+00:00",
-      "contract_changed": {
-        "at": "2026-09-01T15:10:29+00:00",
-        "from": "732a8c6100baa57ddaf5b6bc345265be8a77f62ab0689f7c881febea05bc2a69",
-        "to": "d1e1a777f39a90bbf3ada804eaaf990ae5aa037c6d7dbb1714bf6b1bd2a2f3fc"
-      }
+      "completed_at": "2026-09-01T15:10:29+00:00"
     },
     {
       "id": "postgres-warehouse-adapter",
       "title": "Postgres warehouse adapter",
-      "status": "pending"
+      "status": "active",
+      "started_at": "2026-09-02T08:38:30+00:00",
+      "base_sha": "75e738705336b8a20af03abe6b8fb29050867819",
+      "dirty_at_start": {
+        ".factory/events/2855e4dbc8fd4f7db31db563ef1be850.json": {
+          "digest": "4e61975d63a418fd2aad3e8565271d6b82e3cbfc16385c833152424d70d9697a",
+          "git": "? .factory/events/2855e4dbc8fd4f7db31db563ef1be850.json\u0000\u0000\u0000"
+        },
+        ".factory/events/815fc728a99e40c3991e490eecee2297.json": {
+          "digest": "125a711ac4f30bf1509c1c020c3454060414fff635c9a61b25c9618e46ee66e8",
+          "git": "? .factory/events/815fc728a99e40c3991e490eecee2297.json\u0000\u0000\u0000"
+        },
+        ".factory/events/8717f134eee94b688d784cc2a31efc15.json": {
+          "digest": "5af0ca873cc082f135eacf5b5cf4c9068c94982b1161055a44c55536cbc9fb19",
+          "git": "? .factory/events/8717f134eee94b688d784cc2a31efc15.json\u0000\u0000\u0000"
+        },
+        ".factory/stages.json": {
+          "digest": "61f02694db29aec32ba05e0ac524a8ea047049c35c3bd1ed9ef87e9bcc4acbfc",
+          "git": "1 .M N... 100644 100644 100644 4e359202367d00a05504a62c23baf85f05845cda 4e359202367d00a05504a62c23baf85f05845cda .factory/stages.json\u0000\u0000100644 4e359202367d00a05504a62c23baf85f05845cda 0\t.factory/stages.json\u0000\u0000H .factory/stages.json\u0000"
+        },
+        ".factory/stories/platform-base/decomposition.json": {
+          "digest": "dbf6d484a3afc894825123ec74205b0383e0d6ae6ac801fdb897981b174df556",
+          "git": "1 .M N... 100644 100644 100644 3ed1bf15e16c4acf9834cfc906f6fb3b1f34da8b 3ed1bf15e16c4acf9834cfc906f6fb3b1f34da8b .factory/stories/platform-base/decomposition.json\u0000\u0000100644 3ed1bf15e16c4acf9834cfc906f6fb3b1f34da8b 0\t.factory/stories/platform-base/decomposition.json\u0000\u0000H .factory/stories/platform-base/decomposition.json\u0000"
+        },
+        ".factory/stories/platform-base/grill-rounds/380f4f79-83f1-4004-acf1-47eaa616cc2b.json": {
+          "digest": "15e6f96a8f31b7389eda337daad7c27624fa127ce9159af3a1cb2c39bd1638fe",
+          "git": "? .factory/stories/platform-base/grill-rounds/380f4f79-83f1-4004-acf1-47eaa616cc2b.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/grills/tasks/postgres-warehouse-adapter.json": {
+          "digest": "51a1541eacb388c5d054dd672bad39651d3901f8ac78c42342d6c5580d76e605",
+          "git": "? .factory/stories/platform-base/grills/tasks/postgres-warehouse-adapter.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/plan-mode/9329ea9e-78d2-4e14-9336-52b57483fefc.json": {
+          "digest": "5a76572b3336d22114ae5536a8a9c582420810dd17e0b8cdeeb9dcd2c415bfc6",
+          "git": "? .factory/stories/platform-base/plan-mode/9329ea9e-78d2-4e14-9336-52b57483fefc.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/plan-mode/c31d8b28-ab34-4636-aa99-2082b8437207.json": {
+          "digest": "c69f67060b4bd9585da2e2d3df4873b1118366f5eb64bbe10a7586f649c5a558",
+          "git": "? .factory/stories/platform-base/plan-mode/c31d8b28-ab34-4636-aa99-2082b8437207.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/plan-mode/dfc4fa57-0d7b-44f0-9730-4ba40b780d1d.json": {
+          "digest": "a5c116926507d359cda1279dec7643b2a547736f6f016d6e06443bca61970bb3",
+          "git": "? .factory/stories/platform-base/plan-mode/dfc4fa57-0d7b-44f0-9730-4ba40b780d1d.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/task-plans/postgres-warehouse-adapter.md": {
+          "digest": "680b5d0014450ccf24e1132dd1d2c429d4afb97e179956cfe3b1afd6d7fdabf9",
+          "git": "? .factory/stories/platform-base/task-plans/postgres-warehouse-adapter.md\u0000\u0000\u0000"
+        }
+      },
+      "task_sha256": "d73fe7864827ee074b07df917cc86568640e98a6b68740a0afe8dc30c79e204d"
     },
     {
       "id": "backend-boot-otp-auth",
