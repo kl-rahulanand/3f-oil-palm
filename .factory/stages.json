@@ -24,7 +24,11 @@
     {
       "id": "backend-boot-otp-auth",
       "title": "Backend boots + OTP auth on Postgres",
-      "status": "pending"
+      "status": "active",
+      "started_at": "2026-09-02T12:04:11+00:00",
+      "base_sha": "f5243c8b59a79032cb4f19bba386e7add6dede1d",
+      "dirty_at_start": {},
+      "task_sha256": "9d6a19b424e3d4b4151cdd9f7b11800980f3506277da6f797c006c17f92b6fe2"
     },
     {
       "id": "frontend-shell-login",

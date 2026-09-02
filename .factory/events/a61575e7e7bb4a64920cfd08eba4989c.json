@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-02T12:10:45+00:00", "story": "platform-base", "detail": "S-0004-209f: Expected \u2014 same pattern as S-0002/S-0003 (resolved). The app-db migration run, backend boot, mock-OTP login/RBAC/audit smoke, and DB-backed tests are DEMONSTRATED EVIDENCE requiring a live app-db cont"}
