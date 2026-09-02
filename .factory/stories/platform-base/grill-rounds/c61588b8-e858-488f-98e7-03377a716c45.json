@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The required-tests gate was a false-green (proven above). I'll fix task 2's command either way. How should we handle task 1 (vendor-backend-contract, already 'done'), whose recorded PII-test evidence came from the same flawed command? Note: the code/tests genuinely pass when run correctly \u2014 this is evidence-integrity, not a code defect.",
+      "options": [
+        "Reopen + re-verify task 1 (recommended)",
+        "Fix-forward + record a decision",
+        "Just fix task 2 now, decide task 1 later"
+      ],
+      "chosen": "Reopen + re-verify task 1 (recommended)"
+    }
+  ],
+  "at": "2026-09-02T09:09:37.862337+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}

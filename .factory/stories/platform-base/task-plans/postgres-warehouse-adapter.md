@@ -71,8 +71,18 @@ E2E via the app path, not a bare adapter call.
 
 ## Verify
 - `npm run build:contract && npm run build:backend && npm run typecheck` all green.
-- Required tests pass (JUnit via `tools/junit-run.mjs`):
-  - `backend/src/sql/sqlValidator.pii.test.ts` (PII validator, under postgresql dialect)
-  - `backend/src/warehouse/postgres.adapter.oid.test.ts` (hermetic OID→numeric mapping)
-- Demonstrated E2E: a trivial `SELECT` runs through the app path (validate/explain/execute)
-  against the warehouse-db container and returns rows.
+- Required tests pass, run per decision 0009 (real leaf test-name as `id`,
+  `TS_NODE_PROJECT=backend/tsconfig.json` prepended so forge's repo-root run picks up
+  the backend TS project — otherwise the gate false-greens without executing assertions):
+  - `"blocked columns are rejected case-insensitively by leaf column name"`
+    (`backend/src/sql/sqlValidator.pii.test.ts`) — PII block holds under postgresql
+  - `"PostgreSQL aggregate FILTER syntax is accepted"`
+    (`backend/src/sql/sqlValidator.pii.test.ts`) — proves the postgresql dialect (c2)
+  - `"Postgres numeric field OIDs map without database access"`
+    (`backend/src/warehouse/postgres.adapter.oid.test.ts`) — hermetic OID→numeric (c4)
+  - Canonical command:
+    `TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register`
+- Demonstrated E2E (c3): the opt-in `"app selection path validates, explains, and
+  executes against Postgres"` test (`WAREHOUSE_E2E=1`) runs the app path
+  (validate/explain/execute) against the warehouse-db container and asserts total=42;
+  negative control against a dead port fails with ECONNREFUSED.

@@ -1,0 +1,12 @@
+{
+  "topic": "required_tests false-green",
+  "lesson": "A required_tests entry must name a REAL leaf test (id = the string in test(\"...\")), not the file path, and must pin TS_NODE_PROJECT=backend/tsconfig.json because forge runs it from repo root; otherwise junit-run's --test-name-pattern matches nothing and ts-node skips the workspace tsconfig, so the gate reports pass without running assertions. Always verify with a negative control (a required test whose negative control cannot fail is not proof).",
+  "source": "docs/decisions/0009-required-tests-real-name-and-tsproject.md",
+  "applies_to": [
+    "backend/**/*.test.ts",
+    ".factory/**/decomposition.json"
+  ],
+  "severity": "high",
+  "generated_by": "autoreview",
+  "added_at": "2026-09-02T09:13:44+00:00"
+}

@@ -106,14 +106,19 @@
       ],
       "required_tests": [
         {
-          "id": "backend/src/sql/sqlValidator.pii.test.ts",
+          "id": "blocked columns are rejected case-insensitively by leaf column name",
           "path": "backend/src/sql/sqlValidator.pii.test.ts",
-          "command": "node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         },
         {
-          "id": "backend/src/warehouse/postgres.adapter.oid.test.ts",
+          "id": "PostgreSQL aggregate FILTER syntax is accepted",
+          "path": "backend/src/sql/sqlValidator.pii.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "Postgres numeric field OIDs map without database access",
           "path": "backend/src/warehouse/postgres.adapter.oid.test.ts",
-          "command": "node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         }
       ],
       "verify_commands": [
@@ -171,5 +176,5 @@
   ],
   "project": "3oilpalm",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "75e738705336b8a20af03abe6b8fb29050867819"
+  "commit": "a5b5ec4701061bb8f93a8b351fe98e47a6603377"
 }

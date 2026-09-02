@@ -4,56 +4,52 @@
   "task_id": "postgres-warehouse-adapter",
   "verdict": "pass",
   "decision": "keep",
-  "summary": "Task grill of postgres-warehouse-adapter over three fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-reads. First pass surfaced four gaps (recon.run.ts routed postgres->StarRocks out of scope; E2E was a bare-adapter call vs the app-path acceptance; warehouse config collided conceptually with the app cfg.pg; docker/OID under-specified). Revised, re-grilled: items 1-3 resolved but the app path cannot observe the adapter OID flag (selectionExecutor reconstructs numeric from measure aliases) and the recon addition diverged from the approved plan. Revised again: recon scoped out (batch entrypoint, not the request path) with c1 qualified to the core factory; OID->numeric split into a pure mapping function proven by a hermetic unit test; E2E kept as app-path demonstrated evidence; docker-compose created fresh with an isolated warehouse-db. Final cold-read: 6/6 checks pass, 0 residual gaps, ready-to-delegate and stable.",
+  "summary": "Post-fix task grill of postgres-warehouse-adapter (implementation already complete). A false-green in the required_tests gate was found and fixed under decision 0009: required_tests now name real leaf tests and pin TS_NODE_PROJECT=backend/tsconfig.json. A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read confirmed all three required_tests are genuine (each id matches a real test(...) call; each filtered run executed one real assertion and passed) and that acceptance c1/c2/c4 are met by the implemented code (adapter implements the Warehouse port; warehouseDriver=postgres dispatches to PostgresAdapter in the core factory; typed warehouse.postgres config isolated from cfg.pg; validator postgresql at all three parse sites; pure exported pgOidIsNumeric fills columns[].numeric). Two Codex objections are environmental, not contract defects, and are resolved: (c3) the live app-path E2E cannot run in the read-only no-docker sandbox, but is host-demonstrated (pass at :5433 total=42; negative control fails at :5999 ECONNREFUSED); (write-scope) the cold-read diffed against HEAD which includes governance/ledger churn, but the product-code changes are all in scope and governance is committed separately with the stage baseline advanced past it so the measured stage diff is product-only.",
   "gaps": [],
   "contradictions": [],
   "resolutions": [
-    "recon.run.ts (standalone main() batch entrypoint, not the app request path) removed from write_scope; c1 qualified to selection in the core warehouse factory, keeping the task consistent with the approved plan's Task 2 scope",
-    "OID->numeric decoupled from the app path (selectionExecutor.ts:135 reconstructs numeric from measure aliases and cannot observe the adapter flag): proven by a pure exported mapping function under a hermetic unit test backend/src/warehouse/postgres.adapter.oid.test.ts (id==path)",
-    "E2E via app path (validate->explain->execute) kept as demonstrated evidence requiring the live warehouse-db, not a hermetic required_test",
-    "warehouse.postgres typed config block with its own WAREHOUSE_PG_* env vars, isolated from the app DB cfg.pg pool (backend/src/db/pool.ts) so the two databases never share credentials",
-    "docker-compose.yml created fresh (absent today) with an isolated warehouse-db service (own port/creds/volume + numeric seed); app-DB compose deferred to backend-boot-otp-auth"
+    "required_tests false-green fixed per decision 0009: id = real leaf test name (not file path) and command prepends TS_NODE_PROJECT=backend/tsconfig.json; verified with a negative control (dead-port E2E fails, live-port passes, hermetic ids pass)",
+    "c3 live app-path E2E is DEMONSTRATED EVIDENCE requiring a docker warehouse-db: host-run positive (validate->explain->execute, total=42 at 127.0.0.1:5433) and negative control (ECONNREFUSED at :5999) captured; the Codex sandbox's no-docker block is not a contract gap",
+    "write-scope: product-code changes (backend/src/warehouse/, backend/src/sql/, backend/src/config.ts, backend/src/core/core.module.ts, docker-compose.yml) are all in scope; governance/ledger (decision 0009, lessons, .factory records) is committed separately and the stage baseline is advanced past it so the stage diff measures product only"
   ],
   "open_items": [],
   "inspected_refs": [
+    "docs/decisions/0009-required-tests-real-name-and-tsproject.md",
     ".factory/stories/platform-base/task-plans/postgres-warehouse-adapter.md",
     ".factory/stories/platform-base/decomposition.json",
-    "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md",
-    "backend/src/warehouse/warehouse.interface.ts",
+    "backend/src/warehouse/postgres.adapter.ts",
+    "backend/src/warehouse/postgres.adapter.oid.test.ts",
     "backend/src/sql/sqlValidator.ts",
+    "backend/src/sql/sqlValidator.pii.test.ts",
     "backend/src/config.ts",
-    "backend/src/db/pool.ts",
     "backend/src/core/core.module.ts",
-    "backend/src/recon/recon.run.ts",
-    "backend/src/chat/selectionExecutor.ts"
+    "docker-compose.yml"
   ],
-  "current_flow": "The vendored Pulse backend reaches its analytical warehouse through the Warehouse port (warehouse.interface.ts) and ships only StarRocks adapters, with the SQL validator parsing under the mysql dialect. For the 3F PoC the warehouse runs on a second, isolated Postgres reached through the same port so the assistant/semantic layer never share a database with auth/OTP/audit. This task adds a PostgresAdapter, selects it in the core warehouse factory via warehouseDriver=postgres, flips the validator to the postgresql dialect across all three parse call sites, stands up a separate warehouse-db in a fresh docker-compose, and proves a trivial SELECT runs end-to-end through the app path.",
+  "current_flow": "The vendored Pulse backend reaches its analytical warehouse through the Warehouse port and shipped only StarRocks adapters with a mysql-dialect SQL validator. This task added a PostgresAdapter (selected by warehouseDriver=postgres in the core factory), a typed warehouse.postgres config isolated from the app DB cfg.pg, flipped the validator to the postgresql dialect at all three parse sites, and added an isolated warehouse-db docker-compose service with a numeric seed. Hermetic proofs: build/typecheck + PII-block-under-postgresql + PostgreSQL-FILTER-accepted + pure OID->numeric mapping. Demonstrated evidence: the opt-in app-path E2E against the live warehouse-db.",
   "criteria_map": {
-    "PostgresAdapter implements the Warehouse port and is selected via warehouseDriver=postgres in the core warehouse factory (the app request path)": "PostgresAdapter implements explain/execute/freshness/distinctValues (warehouse.interface.ts:11); core.module.ts factory maps warehouseDriver=postgres to it; recon.run.ts intentionally out of scope",
-    "the SQL validator uses the postgresql dialect": "node-sql-parser database flipped mysql->postgresql at sqlValidator.ts:28/44/53 (astify/tableList/columnList) \u2014 confirmed the only three; PII test stays green under postgresql",
-    "a trivial SELECT runs end-to-end through the app path (validate -> explain -> execute) against a separate warehouse Postgres defined in docker-compose": "validate->explain->execute via selectionExecutor.ts:101/111 against the warehouse-db container \u2014 demonstrated evidence",
-    "pg field OIDs map to the QueryResult numeric flag via a pure mapping function, covered by a hermetic unit test (no live DB)": "pure exported pgOidIsNumeric fills QueryResult.columns[].numeric (warehouse.interface.ts:4-7); hermetic unit test postgres.adapter.oid.test.ts, no live DB"
+    "PostgresAdapter implements the Warehouse port and is selected via warehouseDriver=postgres in the core warehouse factory (the app request path)": "postgres.adapter.ts:22 implements Warehouse; explain/execute/freshness/distinctValues at :29/:38/:55/:68; core.module.ts:37-42 dispatches warehouseDriver=postgres to PostgresAdapter; config.ts warehouse.postgres (WAREHOUSE_PG_*) separate from cfg.pg (PG*)",
+    "the SQL validator uses the postgresql dialect": "sqlValidator.ts astify:28 / tableList:44 / columnList:53 all use database postgresql; required test 'PostgreSQL aggregate FILTER syntax is accepted' passes (mysql would reject FILTER)",
+    "a trivial SELECT runs end-to-end through the app path (validate -> explain -> execute) against a separate warehouse Postgres defined in docker-compose": "host-demonstrated: opt-in E2E 'app selection path validates, explains, and executes against Postgres' passed against warehouse-db :5433 (total=42) via SelectionExecutor.run (selectionExecutor.ts:101/111); negative control at :5999 fails ECONNREFUSED; docker-compose.yml warehouse-db isolated (port 5433, own creds/volume, numeric seed)",
+    "pg field OIDs map to the QueryResult numeric flag via a pure mapping function, covered by a hermetic unit test (no live DB)": "pure exported pgOidIsNumeric (postgres.adapter.ts:8-19) fills columns[].numeric (:41-49); hermetic required test 'Postgres numeric field OIDs map without database access' passes with no DB"
   },
-  "new_abstractions": [
-    "pgOidIsNumeric pure mapping function (pg field OID -> QueryResult numeric flag) as the deterministic, hermetically-testable seam at the adapter boundary"
-  ],
+  "new_abstractions": [],
   "citations": [],
   "rounds": [
     {
-      "question": "Task grill \u2014 postgres-warehouse-adapter converged (Codex: ready-to-delegate, 0 gaps). The contract is: PostgresAdapter behind the Warehouse port, selected via warehouseDriver=postgres in the core factory; validator flipped to postgresql; a separate warehouse-db in a fresh docker-compose; OID\u2192numeric proven by a hermetic unit test; E2E via the app path as demonstrated evidence. recon.run.ts is intentionally out of scope. Delegate to Codex?",
+      "question": "Task grill (post-fix) \u2014 postgres-warehouse-adapter. Fresh Codex cold-read confirms: the corrected required_tests are genuine (all 3 name real tests, execute, pass), and c1/c2/c4 pass (adapter+port, postgresql dialect, pure OID mapping). c3 is host-demonstrated (E2E pass at :5433, negative control fails at :5999); the sandbox couldn't run docker. Write-scope is product-only once governance is committed separately + baseline advanced. Contract is stable. Close out task 2?",
       "options": [
-        "Delegate to Codex",
+        "Approve \u2014 commit, review, stage done",
         "Adjust the contract first"
       ],
-      "chosen": "Delegate to Codex",
+      "chosen": "Approve \u2014 commit, review, stage done",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "ccd466202ede74d5c9272e083e8463e49ea537afbad955a15bedfc6e251c7dab",
-  "task_plan_sha256": "a3db3d89ec24707cad407339c3bae7e53233b2f7fc734201bd4ca3f6de56b4f1",
-  "recorded_at": "2026-09-02T08:37:58+00:00",
-  "commit": "75e738705336b8a20af03abe6b8fb29050867819",
-  "approved_task_plan_sha256": "a3db3d89ec24707cad407339c3bae7e53233b2f7fc734201bd4ca3f6de56b4f1",
+  "input_sha256": "987a8031c13b6016814e26e2820bf70400226a77bb85fa21eb716ec03cb68b78",
+  "task_plan_sha256": "1249a3a4d081eb76b4d0e217056f2038d034df8beabfd0ba3c0eb0c47a923a9d",
+  "recorded_at": "2026-09-02T09:33:17+00:00",
+  "commit": "a5b5ec4701061bb8f93a8b351fe98e47a6603377",
+  "approved_task_plan_sha256": "1249a3a4d081eb76b4d0e217056f2038d034df8beabfd0ba3c0eb0c47a923a9d",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-02T08:38:24+00:00"
+  "approved_at": "2026-09-02T09:33:17+00:00"
 }
