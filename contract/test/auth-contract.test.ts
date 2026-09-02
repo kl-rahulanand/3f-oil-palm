@@ -17,12 +17,12 @@ import {
 const authUser = {
   id: "user-1",
   email: "analyst@example.com",
-  display_name: "MBS Analyst",
+  display_name: "Example Analyst",
   is_active: true,
   roles: ["analyst"],
   permissions: {
-    domains: ["operations"],
-    measureIds: ["operations.disbursals"],
+    domains: ["fixture"],
+    measureIds: ["fixture.measure"],
     dimensionIds: ["branch"],
     actions: ["save", "pin"],
   },
@@ -66,7 +66,7 @@ test("cookie-based refresh and logout schemas carry no body tokens", () => {
 test("AuthUser identity is email-based and keeps normalized RBAC fields", () => {
   const parsed = authUserSchema.parse(authUser);
   assert.equal(parsed.email, "analyst@example.com");
-  assert.equal(parsed.display_name, "MBS Analyst");
+  assert.equal(parsed.display_name, "Example Analyst");
   assert.equal(parsed.is_active, true);
   assert.deepEqual(parsed.roles, ["analyst"]);
   assert.deepEqual(parsed.permissions.actions, ["save", "pin"]);
