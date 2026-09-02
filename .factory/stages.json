@@ -4,106 +4,12 @@
     {
       "id": "vendor-backend-contract",
       "title": "Vendor Pulse backend + contract",
-      "status": "done",
-      "started_at": "2026-09-01T14:25:46+00:00",
-      "base_sha": "5a9165dc3b9b6b2f3a9a4caf91ac20cbc21dd6e1",
-      "dirty_at_start": {
-        ".factory/events/a70e3665dec0460b84091a894daa27ac.json": {
-          "digest": "17029c45153a3d0a302bde6bbcf4b79b7b885cb8a18f65faa8f8538b6e51349f",
-          "git": "? .factory/events/a70e3665dec0460b84091a894daa27ac.json\u0000\u0000\u0000"
-        },
-        ".factory/events/af405fdab26741a7a559bf3fb236d813.json": {
-          "digest": "d9532582c86bc0a076244a68c5bc05b2e28e52f498bcfeadd4bc2dd4a4b3eea3",
-          "git": "? .factory/events/af405fdab26741a7a559bf3fb236d813.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/decomposition.json": {
-          "digest": "ddd48436e0ed93e27d2ae694e0c8fbe907fcd58626dd743d01c9f2391ae07d35",
-          "git": "1 .M N... 100644 100644 100644 96a46afa59cdeb792557752a3cf68e1fa0535c8f 96a46afa59cdeb792557752a3cf68e1fa0535c8f .factory/stories/platform-base/decomposition.json\u0000\u0000100644 96a46afa59cdeb792557752a3cf68e1fa0535c8f 0\t.factory/stories/platform-base/decomposition.json\u0000\u0000H .factory/stories/platform-base/decomposition.json\u0000"
-        },
-        ".factory/stories/platform-base/grill-rounds/72db3e6f-5abe-4166-ae65-4866b68d0e95.json": {
-          "digest": "998283e1eba9d2749f8f6a10dff0cb02fb1b2f81847c9f9e8d4b28aa6f0f203c",
-          "git": "? .factory/stories/platform-base/grill-rounds/72db3e6f-5abe-4166-ae65-4866b68d0e95.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/grills/tasks/vendor-backend-contract.json": {
-          "digest": "11f7f63754882f02cfd5a30efee9394f421617f6092d55b5c3b1e78fc2cd2f52",
-          "git": "? .factory/stories/platform-base/grills/tasks/vendor-backend-contract.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/task-plans/vendor-backend-contract.md": {
-          "digest": "c567b85949e6b366132ee391940732d686b1af43e0312f2968f3db7e0d04beb4",
-          "git": "? .factory/stories/platform-base/task-plans/vendor-backend-contract.md\u0000\u0000\u0000"
-        }
-      },
-      "task_sha256": "d1e1a777f39a90bbf3ada804eaaf990ae5aa037c6d7dbb1714bf6b1bd2a2f3fc",
-      "completed_at": "2026-09-01T15:10:29+00:00"
+      "status": "pending"
     },
     {
       "id": "postgres-warehouse-adapter",
       "title": "Postgres warehouse adapter",
-      "status": "done",
-      "started_at": "2026-09-02T08:38:30+00:00",
-      "base_sha": "75e738705336b8a20af03abe6b8fb29050867819",
-      "dirty_at_start": {
-        ".factory/events/2855e4dbc8fd4f7db31db563ef1be850.json": {
-          "digest": "4e61975d63a418fd2aad3e8565271d6b82e3cbfc16385c833152424d70d9697a",
-          "git": "? .factory/events/2855e4dbc8fd4f7db31db563ef1be850.json\u0000\u0000\u0000"
-        },
-        ".factory/events/815fc728a99e40c3991e490eecee2297.json": {
-          "digest": "125a711ac4f30bf1509c1c020c3454060414fff635c9a61b25c9618e46ee66e8",
-          "git": "? .factory/events/815fc728a99e40c3991e490eecee2297.json\u0000\u0000\u0000"
-        },
-        ".factory/events/8717f134eee94b688d784cc2a31efc15.json": {
-          "digest": "5af0ca873cc082f135eacf5b5cf4c9068c94982b1161055a44c55536cbc9fb19",
-          "git": "? .factory/events/8717f134eee94b688d784cc2a31efc15.json\u0000\u0000\u0000"
-        },
-        ".factory/stages.json": {
-          "digest": "61f02694db29aec32ba05e0ac524a8ea047049c35c3bd1ed9ef87e9bcc4acbfc",
-          "git": "1 .M N... 100644 100644 100644 4e359202367d00a05504a62c23baf85f05845cda 4e359202367d00a05504a62c23baf85f05845cda .factory/stages.json\u0000\u0000100644 4e359202367d00a05504a62c23baf85f05845cda 0\t.factory/stages.json\u0000\u0000H .factory/stages.json\u0000"
-        },
-        ".factory/stories/platform-base/decomposition.json": {
-          "digest": "dbf6d484a3afc894825123ec74205b0383e0d6ae6ac801fdb897981b174df556",
-          "git": "1 .M N... 100644 100644 100644 3ed1bf15e16c4acf9834cfc906f6fb3b1f34da8b 3ed1bf15e16c4acf9834cfc906f6fb3b1f34da8b .factory/stories/platform-base/decomposition.json\u0000\u0000100644 3ed1bf15e16c4acf9834cfc906f6fb3b1f34da8b 0\t.factory/stories/platform-base/decomposition.json\u0000\u0000H .factory/stories/platform-base/decomposition.json\u0000"
-        },
-        ".factory/stories/platform-base/grill-rounds/380f4f79-83f1-4004-acf1-47eaa616cc2b.json": {
-          "digest": "15e6f96a8f31b7389eda337daad7c27624fa127ce9159af3a1cb2c39bd1638fe",
-          "git": "? .factory/stories/platform-base/grill-rounds/380f4f79-83f1-4004-acf1-47eaa616cc2b.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/grills/tasks/postgres-warehouse-adapter.json": {
-          "digest": "51a1541eacb388c5d054dd672bad39651d3901f8ac78c42342d6c5580d76e605",
-          "git": "? .factory/stories/platform-base/grills/tasks/postgres-warehouse-adapter.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/plan-mode/9329ea9e-78d2-4e14-9336-52b57483fefc.json": {
-          "digest": "5a76572b3336d22114ae5536a8a9c582420810dd17e0b8cdeeb9dcd2c415bfc6",
-          "git": "? .factory/stories/platform-base/plan-mode/9329ea9e-78d2-4e14-9336-52b57483fefc.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/plan-mode/c31d8b28-ab34-4636-aa99-2082b8437207.json": {
-          "digest": "c69f67060b4bd9585da2e2d3df4873b1118366f5eb64bbe10a7586f649c5a558",
-          "git": "? .factory/stories/platform-base/plan-mode/c31d8b28-ab34-4636-aa99-2082b8437207.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/plan-mode/dfc4fa57-0d7b-44f0-9730-4ba40b780d1d.json": {
-          "digest": "a5c116926507d359cda1279dec7643b2a547736f6f016d6e06443bca61970bb3",
-          "git": "? .factory/stories/platform-base/plan-mode/dfc4fa57-0d7b-44f0-9730-4ba40b780d1d.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/task-plans/postgres-warehouse-adapter.md": {
-          "digest": "680b5d0014450ccf24e1132dd1d2c429d4afb97e179956cfe3b1afd6d7fdabf9",
-          "git": "? .factory/stories/platform-base/task-plans/postgres-warehouse-adapter.md\u0000\u0000\u0000"
-        }
-      },
-      "task_sha256": "ce5fd1e317b2000def8ebaa6072bb679d20da27ee264df5a8ee5dc1269d8fcd7",
-      "local_review_stamp": {
-        "stage_id": "postgres-warehouse-adapter",
-        "task_sha256": "ce5fd1e317b2000def8ebaa6072bb679d20da27ee264df5a8ee5dc1269d8fcd7",
-        "brief_sha256": "6a0275bde80ec38763253c7a64784f19c8666c48eeffc79b3bd3c2f9e8ed2a9b",
-        "base_sha": "7eeff24592024309d2497262914f643e6c9ec084",
-        "product_tree_digest": "d0117b4b163a0d3620dd490c599dc0293d3ef900bffd75f383aeac43ebd65e36",
-        "recorded_at": "2026-09-02T09:49:59+00:00",
-        "generated_by": "autoreview"
-      },
-      "completed_at": "2026-09-02T09:50:11+00:00",
-      "contract_changed": {
-        "at": "2026-09-02T09:50:11+00:00",
-        "from": "d73fe7864827ee074b07df917cc86568640e98a6b68740a0afe8dc30c79e204d",
-        "to": "ce5fd1e317b2000def8ebaa6072bb679d20da27ee264df5a8ee5dc1269d8fcd7"
-      }
+      "status": "pending"
     },
     {
       "id": "backend-boot-otp-auth",

@@ -4,41 +4,48 @@
   "task_id": "vendor-backend-contract",
   "verdict": "pass",
   "decision": "keep",
-  "summary": "Task grill of vendor-backend-contract: write-scope, MBS-strip, required test and verify commands reviewed; contract complete and ready to delegate.",
+  "summary": "Re-grill of vendor-backend-contract after reopening it to re-verify evidence under decision 0009 (required_tests false-green fix). A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read found that the prior false-green gate had masked a real incomplete-strip leak: contract/test/auth-contract.test.ts still carries MBS fixtures (display_name 'MBS Analyst', domains ['operations'], measureIds ['operations.disbursals']), contradicting acceptance c2 and the VENDORED_FROM exclusion. The task plan was revised to explicitly scope neutralizing those fixtures (keeping schema assertions) with a post-fix invariant of NO operations/leadActivity/mbs/'MBS Analyst' anywhere under backend/src or contract/, and to correct the required_test to a real leaf test-name id + TS_NODE_PROJECT (decision 0009). A follow-up cold-read of the revised plan returned ready-to-delegate, 0 gaps: the plan scopes the fix within contract/, the required_test id matches a verbatim test(), and the plan stays consistent with the decision-0008 snapshot review model.",
   "gaps": [],
   "contradictions": [],
-  "resolutions": [],
+  "resolutions": [
+    "Real leak found by the re-verify (the false-green had masked it): contract/test/auth-contract.test.ts MBS fixtures \u2014 scoped for neutralization in the revised plan (Approach step 2), schema assertions preserved, fix within contract/ write_scope; delegate will apply it",
+    "required_test corrected per decision 0009: id = real leaf test name 'blocked columns are rejected case-insensitively by leaf column name'; command prepends TS_NODE_PROJECT=backend/tsconfig.json (verified passes genuinely from repo root; old id=file-path form false-greened)",
+    "Post-fix invariant added to reviewer_focus: grep for operations/leadActivity/mbs/'MBS Analyst' under backend/src and contract/ must be empty"
+  ],
   "open_items": [],
   "inspected_refs": [
     ".factory/stories/platform-base/task-plans/vendor-backend-contract.md",
-    "docs/specs/app-platform-base.md",
-    "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md",
-    "docs/decisions/0006-frontend-fresh-backend-vendor.md"
+    ".factory/stories/platform-base/decomposition.json",
+    "docs/decisions/0009-required-tests-real-name-and-tsproject.md",
+    "docs/decisions/0008-pulse-vendored-snapshot.md",
+    "contract/test/auth-contract.test.ts",
+    "backend/src/sql/sqlValidator.pii.test.ts",
+    "backend/VENDORED_FROM"
   ],
-  "current_flow": "The 3oilpalm repo has the harness but no app code. Pulse holds a NestJS backend + shared contract with the trust spine (auth, RBAC, audit, semantic-layer framework, SQL builder/validator, warehouse port) plus MBS-specific domains/seeds/reports. This task snapshots backend/ + contract/ + tools/ + root workspace config into the repo, strips the MBS specifics, and makes the workspace build and typecheck.",
+  "current_flow": "Task 1 vendored Pulse backend+contract+tools as a pinned snapshot (decision 0008) and stripped MBS specifics, but its evidence was recorded by a false-green required_tests command (decision 0009). Reopening to re-verify surfaced an incomplete strip: the contract auth-contract test still uses MBS fixtures. This re-cycle neutralizes those fixtures and re-produces genuine gate evidence (build/typecheck + the real PII validator test) over the committed snapshot.",
   "criteria_map": {
-    "backend and contract build and typecheck in the npm workspace": "verify_commands run build:contract + build:backend + typecheck green after vendoring; required-test runs the validator PII unit test via junit-run",
-    "MBS-specific domains (operations, leadActivity) and MBS seeds/grants are removed": "operations.ts and leadActivity.ts deleted and unregistered in semanticLayer.ts; MBS seeds/grants and mbs-* reports removed; grep shows no MBS domain/seed references",
-    "npm install succeeds at repo root with workspaces contract/backend": "root package.json workspaces resolve; npm install completes; an empty frontend package stub is present so install resolves"
+    "backend and contract build and typecheck in the npm workspace": "verify_commands build:contract + build:backend + typecheck (tsc) run green on the committed tree; the corrected required PII test executes for real under TS_NODE_PROJECT=backend/tsconfig.json",
+    "MBS-specific domains (operations, leadActivity) and MBS seeds/grants are removed": "operations.ts/leadActivity.ts deleted and unregistered; MBS seeds/grants/reports removed; remaining leak in contract/test/auth-contract.test.ts is scoped for neutralization by this re-cycle so the post-fix invariant (no operations/leadActivity/mbs/'MBS Analyst' under backend/src or contract/) holds",
+    "npm install succeeds at repo root with workspaces contract/backend": "package.json + package-lock.json workspaces == [contract, backend]; npm ls/install --dry-run resolves both @pulse/backend and @pulse/contract"
   },
   "new_abstractions": [],
   "citations": [],
   "rounds": [
     {
-      "question": "Task grill \u2014 vendor-backend-contract: is the contract ready to delegate to Codex?",
+      "question": "Task-1 re-grill (vendor-backend-contract) converged: ready-to-delegate. The re-verify found a real leak the old false-green masked \u2014 contract/test/auth-contract.test.ts still has MBS fixtures (\"MBS Analyst\", operations, operations.disbursals). The plan now scopes neutralizing those fixtures (schema assertions preserved) plus the corrected required-test (decision 0009). Delegate the fix to Codex?",
       "options": [
-        "Contract complete \u2014 delegate to Codex",
-        "Adjust the contract first"
+        "Delegate the leak fix",
+        "Adjust first"
       ],
-      "chosen": "Contract complete \u2014 delegate to Codex",
+      "chosen": "Delegate the leak fix",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "b3194a25ab12ab62acf50593d1c2f0fd873e5428d2b33ccb4f5c5a7fc74850bf",
-  "task_plan_sha256": "5783117f5176efa3b214e278449cec36e7b9d423358d5b051519e690e94ad4c1",
-  "recorded_at": "2026-09-01T15:02:36+00:00",
-  "commit": "51493e311e25434b7d5774397e52b3ef2d951787",
-  "approved_task_plan_sha256": "5783117f5176efa3b214e278449cec36e7b9d423358d5b051519e690e94ad4c1",
+  "input_sha256": "5aa8a2a9711519d1cae88fcd082174eb92e642527d23461444b9960c36c9a1f6",
+  "task_plan_sha256": "cad5c9e9c30ee0e75026fc3ad99b96cf088f95c04eb093b9b4d005d90a03203d",
+  "recorded_at": "2026-09-02T10:13:04+00:00",
+  "commit": "31059db7c5a267363ab57b9ec566f3b927f8d0b5",
+  "approved_task_plan_sha256": "cad5c9e9c30ee0e75026fc3ad99b96cf088f95c04eb093b9b4d005d90a03203d",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-01T15:02:36+00:00"
+  "approved_at": "2026-09-02T10:13:04+00:00"
 }

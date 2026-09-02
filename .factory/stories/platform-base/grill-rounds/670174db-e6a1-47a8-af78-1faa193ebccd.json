@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Task-1 re-grill (vendor-backend-contract) converged: ready-to-delegate. The re-verify found a real leak the old false-green masked \u2014 contract/test/auth-contract.test.ts still has MBS fixtures (\"MBS Analyst\", operations, operations.disbursals). The plan now scopes neutralizing those fixtures (schema assertions preserved) plus the corrected required-test (decision 0009). Delegate the fix to Codex?",
+      "options": [
+        "Delegate the leak fix",
+        "Adjust first"
+      ],
+      "chosen": "Delegate the leak fix"
+    }
+  ],
+  "at": "2026-09-02T10:12:15.962933+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
