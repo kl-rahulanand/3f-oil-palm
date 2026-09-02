@@ -1,0 +1,7 @@
+{
+  "task_id": "backend-boot-otp-auth",
+  "branch": "feat/platform-base-adapt-pulse-into-the-3f-app-base",
+  "base_main_sha": "58653bec5ab566bb9fc35991cbe3c9c1b16f5487",
+  "commit": "85a1522ab61deff2020b5db916358e65810ac519",
+  "sealed_at": "2026-09-02T12:56:08+00:00"
+}
