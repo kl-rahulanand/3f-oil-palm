@@ -14,7 +14,11 @@
     {
       "id": "postgres-warehouse-adapter",
       "title": "Postgres warehouse adapter",
-      "status": "pending"
+      "status": "active",
+      "started_at": "2026-09-02T10:42:59+00:00",
+      "base_sha": "51ee67b463b7eaab2020c04814783214d495662b",
+      "dirty_at_start": {},
+      "task_sha256": "ce5fd1e317b2000def8ebaa6072bb679d20da27ee264df5a8ee5dc1269d8fcd7"
     },
     {
       "id": "backend-boot-otp-auth",

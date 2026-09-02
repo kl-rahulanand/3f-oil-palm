@@ -78,9 +78,10 @@
         "backend/src/sql/",
         "backend/src/config.ts",
         "backend/src/core/core.module.ts",
-        "docker-compose.yml"
+        "docker-compose.yml",
+        "contract/test/auth-contract.test.ts"
       ],
-      "reviewer_focus": "Conformance to constitution provider/adapter standards: PostgresAdapter implements the Warehouse port (explain/execute/freshness/distinctValues); pg field OIDs map to the QueryResult numeric flag through a PURE, exported mapping function that a hermetic unit test covers directly (the app path reconstructs numeric from measure aliases in selectionExecutor and cannot observe the adapter flag, so do not prove OID mapping through the app path); the node-sql-parser dialect switch to postgresql is complete across every astify/tableList/columnList call in sqlValidator.ts; no dialect-specific SQL leaks into the builder; warehouseDriver=postgres selects PostgresAdapter in the core warehouse factory (recon.run.ts is a standalone batch entrypoint outside the PoC request path and is intentionally out of scope); the warehouse postgres config is a typed block with its own WAREHOUSE_PG_* env vars, distinct from the app DB config (cfg.pg) so the two databases never share credentials; the E2E proof runs through the app path (validate/explain/execute), not a bare adapter call.",
+      "reviewer_focus": "Conformance to constitution provider/adapter standards: PostgresAdapter implements the Warehouse port (explain/execute/freshness/distinctValues); pg field OIDs map to the QueryResult numeric flag through a PURE, exported mapping function that a hermetic unit test covers directly (the app path reconstructs numeric from measure aliases in selectionExecutor and cannot observe the adapter flag, so do not prove OID mapping through the app path); the node-sql-parser dialect switch to postgresql is complete across every astify/tableList/columnList call in sqlValidator.ts; no dialect-specific SQL leaks into the builder; warehouseDriver=postgres selects PostgresAdapter in the core warehouse factory (recon.run.ts is a standalone batch entrypoint outside the PoC request path and is intentionally out of scope); the warehouse postgres config is a typed block with its own WAREHOUSE_PG_* env vars, distinct from the app DB config (cfg.pg) so the two databases never share credentials; the E2E proof runs through the app path (validate/explain/execute), not a bare adapter call. NOTE (cumulative re-close): reopening task 1 to re-verify its evidence cascaded this task to pending; because task 1's contract-test fix (5dc224c) landed after this task's product commit (223e2dd) in history, this re-close measures the whole post-vendor delta since 223e2dd^ (7eeff24) \u2014 task 2's adapter work PLUS task 1's already-reviewed contract/test/auth-contract.test.ts fixture fix. That file is in scope here only to accommodate the interleaving; it was authored and reviewed under task 1.",
       "plan_contracts": [
         {
           "id": "t2-c1",
@@ -124,7 +125,12 @@
         "npm run build:contract",
         "npm run build:backend",
         "npm run typecheck"
-      ]
+      ],
+      "review_budget": {
+        "max_changed_files": 10,
+        "max_changed_lines": 400,
+        "reason": "Cumulative re-close after the task-1 reopen cascade: the measured delta since 223e2dd^ spans task 2's adapter (7 files) plus task 1's interleaved contract-test fixture fix (1 file) that no single baseline can isolate."
+      }
     },
     {
       "id": "backend-boot-otp-auth",
@@ -176,5 +182,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "c86d593ed5fd149dae9b74c1ea4f62428836f315"
+  "commit": "51ee67b463b7eaab2020c04814783214d495662b"
 }

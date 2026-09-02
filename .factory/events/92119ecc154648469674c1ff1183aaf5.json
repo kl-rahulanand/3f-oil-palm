@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-02T10:45:54+00:00", "story": "platform-base", "detail": "Live warehouse Postgres E2E cannot be rerun in the companion sandbox because Docker API access is denied at ~/.docker/run/docker.sock; host orchestration must run docker compose and the opt-in app-pat"}

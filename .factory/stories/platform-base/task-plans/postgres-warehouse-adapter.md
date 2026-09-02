@@ -1,56 +1,43 @@
 # Task plan — postgres-warehouse-adapter
 
 ## Context
-The vendored Pulse backend talks to its analytical warehouse through a
-`Warehouse` port (`backend/src/warehouse/warehouse.interface.ts`), and ships only
-StarRocks adapters. For the 3F PoC we run the warehouse on **Postgres** — a second,
-isolated Postgres reached through the same port — so the assistant/semantic layer
-never share a database with auth/OTP/audit. This task adds a Postgres adapter behind
-the port, wires the core warehouse factory to select it, flips the SQL validator to
-the `postgresql` dialect, stands up a separate warehouse Postgres in docker-compose,
-and proves a trivial query runs end-to-end through the real app path.
+The vendored Pulse backend reaches its analytical warehouse through a `Warehouse`
+port and shipped only StarRocks adapters. For the 3F PoC the warehouse runs on a
+second, isolated Postgres reached through the same port, so the assistant/semantic
+layer never share a database with auth/OTP/audit. This task adds a Postgres adapter,
+selects it in the core factory, flips the SQL validator to the `postgresql` dialect,
+stands up an isolated warehouse Postgres in docker-compose, and proves a trivial
+query runs end-to-end through the app path.
+
+**Cumulative re-close note:** this task's product code is already committed (223e2dd)
+and was validly closed once. Reopening task 1 to re-verify its evidence (decision 0009)
+cascaded this task back to pending. Because task 1's contract-test fix (5dc224c) landed
+after this task's commit in history, this re-close measures the whole post-vendor delta
+since 223e2dd^ — task 2's adapter work PLUS task 1's already-reviewed
+`contract/test/auth-contract.test.ts` fixture fix — which no single baseline can isolate.
 
 ## Write scope
 `backend/src/warehouse/`, `backend/src/sql/`, `backend/src/config.ts`,
-`backend/src/core/core.module.ts`, `docker-compose.yml`
+`backend/src/core/core.module.ts`, `docker-compose.yml`,
+`contract/test/auth-contract.test.ts` (only to absorb the interleaved task-1 fix in the
+cumulative measurement; that file was authored and reviewed under task 1).
 
 ## Approach
-1. **PostgresAdapter** — `backend/src/warehouse/postgres.adapter.ts`,
-   `implements Warehouse` (`warehouse.interface.ts:11`): `explain` / `execute` /
-   `freshness` / `distinctValues`, using `pg` (already a dep,
-   `backend/package.json:31`). `execute` returns `QueryResult` whose
-   `columns[].numeric` is set from the pg field OID.
-2. **OID→numeric as a PURE mapping function** — expose a pure, exported
-   `pgOidIsNumeric(oid: number): boolean` (int2/int4/int8/float4/float8/numeric →
-   true; text/varchar/bool/etc. → false) that `execute` uses to fill
-   `columns[].numeric`. This is the deterministic seam: it is covered by a hermetic
-   unit test with NO live DB. Do NOT try to prove OID mapping through the app path —
-   `selectionExecutor` reconstructs `numeric` from measure aliases
-   (`selectionExecutor.ts:129-139`) and cannot observe the adapter flag.
-3. **Driver selection in the core warehouse factory** —
-   `backend/src/core/core.module.ts`: `warehouseDriver="postgres"` → `PostgresAdapter`.
-   NOTE: `backend/src/recon/recon.run.ts` is a standalone `main()` batch entrypoint,
-   NOT the app request path; it is intentionally OUT of scope here (its postgres
-   routing is a follow-up when recon enters the PoC).
-4. **Typed warehouse config, isolated from the app DB** — add a typed
-   `warehouse.postgres` block in `config.ts` with its OWN env vars
-   (`WAREHOUSE_PG_HOST` / `_PORT` / `_DATABASE` / `_USER` / `_PASSWORD`) and a
-   "configured when host+database present" rule. It MUST NOT reuse `cfg.pg` (that is
-   the app database pool, `backend/src/db/pool.ts:9`) — the two databases never share
-   credentials. No bare string literals.
-5. **Validator dialect flip** — change node-sql-parser database from `"mysql"` to
-   `"postgresql"` at all three call sites in `backend/src/sql/sqlValidator.ts`
-   (lines 28, 44, 53 — astify/tableList/columnList). Confirmed the only three.
-6. **Separate warehouse container** — `docker-compose.yml` does not exist yet; create
-   it with a distinct `warehouse-db` Postgres service (own credentials/DB, a host port
-   distinct from the future app DB e.g. `5433:5432`, its own named volume) and a small
-   init/seed fixture (one table with a numeric column + a row) so the E2E query has
-   data. (The app DB service is added by the later backend-boot-otp-auth task.)
-7. **E2E proof via the app path** — a trivial `SELECT` runs through the real pipeline
-   (validate → explain → execute) as `selectionExecutor` does
-   (`selectionExecutor.ts:101,111`), against the warehouse Postgres. This proves the
-   query runs end-to-end; it is demonstrated evidence (needs the live warehouse-db),
-   separate from the hermetic OID unit test.
+1. **PostgresAdapter** — `backend/src/warehouse/postgres.adapter.ts` implements
+   `Warehouse` (explain/execute/freshness/distinctValues) using `pg`; `execute` fills
+   `QueryResult.columns[].numeric` from the pg field OID.
+2. **OID→numeric as a PURE mapping function** — exported `pgOidIsNumeric(oid)`, covered
+   by a hermetic unit test (no live DB); the app path can't observe the adapter flag.
+3. **Driver selection in the core factory** — `core.module.ts`: warehouseDriver=postgres
+   → PostgresAdapter. (recon.run.ts is a standalone batch entrypoint, out of scope.)
+4. **Typed warehouse config isolated from the app DB** — `config.ts` `warehouse.postgres`
+   block with its own `WAREHOUSE_PG_*` env vars, never reusing `cfg.pg`.
+5. **Validator dialect flip** — node-sql-parser `mysql`→`postgresql` at all three
+   astify/tableList/columnList sites in `sqlValidator.ts`.
+6. **Separate warehouse container** — `docker-compose.yml` isolated `warehouse-db`
+   (own port 5433/creds/volume + numeric seed).
+7. **E2E via the app path** — opt-in test runs validate→explain→execute against the
+   warehouse-db (demonstrated evidence; host-verified total=42).
 
 ## Acceptance criteria
 - PostgresAdapter implements the Warehouse port and is selected via
@@ -62,27 +49,19 @@ and proves a trivial query runs end-to-end through the real app path.
   covered by a hermetic unit test (no live DB)
 
 ## Reviewer focus
-Port conformance (explain/execute/freshness/distinctValues); OID→numeric via a pure
-exported function with a hermetic unit test (not proven through the app path);
-complete dialect switch (no MySQL parse calls left); postgres selected in the core
-factory (recon.run.ts intentionally out of scope); warehouse config typed and isolated
-from `cfg.pg` (separate WAREHOUSE_PG_* creds); no dialect-specific SQL in the builder;
-E2E via the app path, not a bare adapter call.
+Port conformance; OID→numeric via a pure function with a hermetic test; complete dialect
+switch; postgres selected in the core factory; warehouse config isolated from `cfg.pg`;
+E2E via the app path. The cumulative diff also carries task 1's contract-test fixture fix
+(already reviewed under task 1) due to the reopen interleaving.
 
 ## Verify
 - `npm run build:contract && npm run build:backend && npm run typecheck` all green.
-- Required tests pass, run per decision 0009 (real leaf test-name as `id`,
-  `TS_NODE_PROJECT=backend/tsconfig.json` prepended so forge's repo-root run picks up
-  the backend TS project — otherwise the gate false-greens without executing assertions):
-  - `"blocked columns are rejected case-insensitively by leaf column name"`
-    (`backend/src/sql/sqlValidator.pii.test.ts`) — PII block holds under postgresql
-  - `"PostgreSQL aggregate FILTER syntax is accepted"`
-    (`backend/src/sql/sqlValidator.pii.test.ts`) — proves the postgresql dialect (c2)
-  - `"Postgres numeric field OIDs map without database access"`
-    (`backend/src/warehouse/postgres.adapter.oid.test.ts`) — hermetic OID→numeric (c4)
-  - Canonical command:
-    `TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register`
-- Demonstrated E2E (c3): the opt-in `"app selection path validates, explains, and
-  executes against Postgres"` test (`WAREHOUSE_E2E=1`) runs the app path
-  (validate/explain/execute) against the warehouse-db container and asserts total=42;
-  negative control against a dead port fails with ECONNREFUSED.
+- Required tests pass per decision 0009 (real leaf test-name id +
+  `TS_NODE_PROJECT=backend/tsconfig.json`):
+  - `"blocked columns are rejected case-insensitively by leaf column name"` (PII block, postgresql)
+  - `"PostgreSQL aggregate FILTER syntax is accepted"` (proves the postgresql dialect, c2)
+  - `"Postgres numeric field OIDs map without database access"` (hermetic OID→numeric, c4)
+  - Command: `TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register`
+- Demonstrated E2E (c3): opt-in `"app selection path validates, explains, and executes
+  against Postgres"` (`WAREHOUSE_E2E=1`) against warehouse-db, total=42; dead-port
+  negative control fails with ECONNREFUSED.

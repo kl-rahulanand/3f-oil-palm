@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Adopt-close grill for postgres-warehouse-adapter: ready-to-close, 0 gaps. The cumulative measurement (baseline 223e2dd^, 8 files = task-2's 7 + task-1's interleaved contract-test fix) is verified truthful, in-scope, within budget; required tests genuine; c1-c4 hold. Finalize: record grill, approve, bind launch, set baseline, review, stage done?",
+      "options": [
+        "Yes \u2014 finalize the adopt-close",
+        "Hold"
+      ],
+      "chosen": "Yes \u2014 finalize the adopt-close"
+    }
+  ],
+  "at": "2026-09-02T11:03:38.513700+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
