@@ -2,7 +2,6 @@
   "generated_by": "claude-code:plan-mode",
   "user_facing": true,
   "story": "platform-base",
-  "epic": "platform",
   "plan_file": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md",
   "tasks": [
     {
@@ -73,6 +72,58 @@
         "the SQL validator uses the postgresql dialect",
         "a trivial SELECT runs end-to-end through the app path (validate -> explain -> execute) against a separate warehouse Postgres defined in docker-compose",
         "pg field OIDs map to the QueryResult numeric flag via a pure mapping function, covered by a hermetic unit test (no live DB)"
+      ],
+      "write_scope": [
+        "backend/src/warehouse/",
+        "backend/src/sql/",
+        "backend/src/config.ts",
+        "backend/src/core/core.module.ts",
+        "docker-compose.yml"
+      ],
+      "reviewer_focus": "Conformance to constitution provider/adapter standards: PostgresAdapter implements the Warehouse port (explain/execute/freshness/distinctValues); pg field OIDs map to the QueryResult numeric flag through a PURE, exported mapping function that a hermetic unit test covers directly (the app path reconstructs numeric from measure aliases in selectionExecutor and cannot observe the adapter flag, so do not prove OID mapping through the app path); the node-sql-parser dialect switch to postgresql is complete across every astify/tableList/columnList call in sqlValidator.ts; no dialect-specific SQL leaks into the builder; warehouseDriver=postgres selects PostgresAdapter in the core warehouse factory (recon.run.ts is a standalone batch entrypoint outside the PoC request path and is intentionally out of scope); the warehouse postgres config is a typed block with its own WAREHOUSE_PG_* env vars, distinct from the app DB config (cfg.pg) so the two databases never share credentials; the E2E proof runs through the app path (validate/explain/execute), not a bare adapter call.",
+      "plan_contracts": [
+        {
+          "id": "t2-c1",
+          "statement": "PostgresAdapter implements the Warehouse port and is selected via warehouseDriver=postgres in the core warehouse factory (the app request path)",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Technical Approach"
+        },
+        {
+          "id": "t2-c2",
+          "statement": "the SQL validator uses the postgresql dialect",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Technical Approach"
+        },
+        {
+          "id": "t2-c3",
+          "statement": "a trivial SELECT runs end-to-end through the app path (validate -> explain -> execute) against a separate warehouse Postgres defined in docker-compose",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Technical Approach"
+        },
+        {
+          "id": "t2-c4",
+          "statement": "pg field OIDs map to the QueryResult numeric flag via a pure mapping function, covered by a hermetic unit test (no live DB)",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Technical Approach"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "blocked columns are rejected case-insensitively by leaf column name",
+          "path": "backend/src/sql/sqlValidator.pii.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "PostgreSQL aggregate FILTER syntax is accepted",
+          "path": "backend/src/sql/sqlValidator.pii.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "Postgres numeric field OIDs map without database access",
+          "path": "backend/src/warehouse/postgres.adapter.oid.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck"
       ]
     },
     {
@@ -123,6 +174,7 @@
     }
   ],
   "project": "3oilpalm",
+  "epic": "platform",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "31059db7c5a267363ab57b9ec566f3b927f8d0b5"
+  "commit": "c86d593ed5fd149dae9b74c1ea4f62428836f315"
 }

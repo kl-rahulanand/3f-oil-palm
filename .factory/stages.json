@@ -9,15 +9,6 @@
       "base_sha": "247c9adb45c869ae81376540722daf3b4ef3059b",
       "dirty_at_start": {},
       "task_sha256": "1dcff396033659ec06017a1498bb6ceda283a038e95a292160f6ce54cba14a71",
-      "local_review_stamp": {
-        "stage_id": "vendor-backend-contract",
-        "task_sha256": "1dcff396033659ec06017a1498bb6ceda283a038e95a292160f6ce54cba14a71",
-        "brief_sha256": "90a94cb8879e9c02f36f8dca1c2d702b060a6f2d7079438d74c106378ace2c5f",
-        "base_sha": "4883d6a3be5f5253200fea33ef581e76f437a6d3",
-        "product_tree_digest": "ce4699d29272a2b06d43f0b93aeeedccb9b6deb6ea0fc9577703adc562b4e1b5",
-        "recorded_at": "2026-09-02T10:33:20+00:00",
-        "generated_by": "autoreview"
-      },
       "completed_at": "2026-09-02T10:33:29+00:00"
     },
     {
