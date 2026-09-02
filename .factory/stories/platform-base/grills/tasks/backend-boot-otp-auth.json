@@ -4,7 +4,7 @@
   "task_id": "backend-boot-otp-auth",
   "verdict": "pass",
   "decision": "keep",
-  "summary": "Final task grill of backend-boot-otp-auth against the COMMITTED tree. A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read returned ready-to-close, 0 gaps: migrations squashed to a single 0000_auth_audit.sql (8 auth tables + audit_events with conversation_id + the four usage columns; no feature tables; all FKs internal; old 000x-0010 deleted; single journal entry consistent with the runtime migrator); AuthoredMeasureRegistry catches ONLY pg 42P01 (via cause chain), inits empty, re-throws others; the hermetic required test (migrate.trim.test.ts) asserts auth+audit-only tables, retained audit columns, FK targets, journal correspondence and passes; app-db is an isolated compose service (PG*, port !=5433, own volume); committed diff is 17 files/545 lines within budget and write_scope, schema.ts intentionally untouched. Host-demonstrated evidence (orchestrator): db:migrate runs clean against a fresh app-db (tables = auth+audit only, seeded admin), backend boots ('Nest application successfully started', listening), mock-OTP HTTP login (CSRF double-submit) returns AuthUser with roles:[admin] + sets pulse_access/pulse_refresh, audit_events rows auth.otp_requested x2 + auth.otp_verified written, and the DB-backed tests pass against app-db (auth 15, migrate 5, audit 3).",
+  "summary": "PR-ready confirmation grill of backend-boot-otp-auth. The stage is DONE and the product tree is UNCHANGED since the prior ready-to-close grill (only governance commits advanced HEAD, re-staling the grill for the pr-ready seal). A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read re-confirmed ready-to-close, 0 gaps: 0000_auth_audit.sql is auth+audit-only with the final audit_events shape and internal FKs; single journal entry; AuthoredMeasureRegistry catches only pg 42P01 and re-throws others; the hermetic required test passes; app-db isolated; committed delta 17 files/545 lines in scope+budget with schema.ts unchanged. Host-demonstrated evidence stands (migrations clean, boot ok, mock-OTP login returns AuthUser+cookies, audit rows written, 23 DB-backed tests pass).",
   "gaps": [],
   "contradictions": [],
   "resolutions": [
@@ -43,20 +43,20 @@
   "citations": [],
   "rounds": [
     {
-      "question": "Task 3 (backend-boot-otp-auth) final grill: ready-to-close, 0 gaps. Committed tree = migrations squashed to auth+audit only, narrow boot tolerance, isolated app-db service, hermetic migration test. Host-demonstrated: migrations run clean, backend boots, mock-OTP HTTP login returns AuthUser+cookies, audit rows written, DB-backed tests (23) pass. Finalize (stage done) and open the PR to master?",
+      "question": "CI's pr-contract check needs a task PR-ready marker (produced by forge task pr-ready, which consumes a fresh grill). The confirmation grill is clean (tree unchanged since close, ready-to-close). Seal task 3 PR-ready so CI goes green on PR #1?",
       "options": [
-        "Yes \u2014 stage done + open PR",
+        "Yes \u2014 seal PR-ready",
         "Hold"
       ],
-      "chosen": "Yes \u2014 stage done + open PR",
+      "chosen": "Yes \u2014 seal PR-ready",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "680b176b5f146b4f19b53f1870b19cd004c00782940846696ad3cc03c9463e60",
+  "input_sha256": "db06c713e9da1d8627998a7010cd46e9db580311842e4b71ae5987c1866418c3",
   "task_plan_sha256": "bea7c08d77e74345d05b7ef444a7c3ff95593133d1ef66f83671087edd5920b5",
-  "recorded_at": "2026-09-02T12:28:14+00:00",
-  "commit": "cf5fa278a6974994de6b7a180b0b1668c5232811",
+  "recorded_at": "2026-09-02T12:55:55+00:00",
+  "commit": "85a1522ab61deff2020b5db916358e65810ac519",
   "approved_task_plan_sha256": "bea7c08d77e74345d05b7ef444a7c3ff95593133d1ef66f83671087edd5920b5",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-02T12:28:14+00:00"
+  "approved_at": "2026-09-02T12:56:07+00:00"
 }
