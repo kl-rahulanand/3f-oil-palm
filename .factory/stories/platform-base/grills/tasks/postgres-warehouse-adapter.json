@@ -4,7 +4,7 @@
   "task_id": "postgres-warehouse-adapter",
   "verdict": "pass",
   "decision": "keep",
-  "summary": "Final digest-bound task grill of postgres-warehouse-adapter against the COMMITTED product tree. The prior clean grill was re-staled purely because committing the product code changes the grill's product-tree digest (content unchanged). A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read of the committed tree returned ready-to-close, 0 gaps: all three required_tests name real leaf tests and were executed from repo root (exit 0) with TS_NODE_PROJECT=backend/tsconfig.json; c1/c2/c4 met by the implemented code; the committed product diff (commit 223e2dd) is exactly the seven in-scope files; c3 live app-path E2E is host-demonstrated (pass at :5433 total=42; dead-port negative control fails) and correctly treated as demonstrated evidence, not a required-test gate.",
+  "summary": "Re-close grill of postgres-warehouse-adapter after the task-1 reopen cascade reset it to pending. The product code is unchanged and already committed (223e2dd); its execution contract was re-authored identically with the decision-0009 corrected required_tests. A fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-read of the committed tree returned ready-to-close, 0 gaps: all three required tests execute (exit 0) with real leaf-name ids + TS_NODE_PROJECT; c1/c2/c4 met; docker-compose warehouse-db isolated; committed product diff is the seven in-scope files; c3 app-path E2E is host-demonstrated (total=42; dead-port negative control) as demonstrated evidence.",
   "gaps": [],
   "contradictions": [],
   "resolutions": [
@@ -36,7 +36,7 @@
   "citations": [],
   "rounds": [
     {
-      "question": "Final digest-bound grill \u2014 postgres-warehouse-adapter, against the COMMITTED tree (the earlier grill was re-staled only because committing the code changes the product-tree digest; content unchanged). Codex verdict: ready-to-close, 0 gaps, all required tests genuinely execute, diff in-scope. Record this grill pass, re-approve, and run stage done to close task 2?",
+      "question": "Task-2 re-grill (postgres-warehouse-adapter) after the cascade: ready-to-close, 0 gaps. Product code unchanged/committed (223e2dd), contract restored with the 3 corrected required tests (all execute + pass), c1-c4 confirmed. Re-close task 2 to finish the retro?",
       "options": [
         "Yes \u2014 record, approve, stage done",
         "Hold"
@@ -45,11 +45,11 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "3f7f5a4fcbb6126ba9955aad32bc9b586ef79ebfe2355b5a393ccc1004048a4b",
+  "input_sha256": "f7d9b599a75cf862aa4a375f740155fd255b70203ccbf538207b000178ebc49e",
   "task_plan_sha256": "1249a3a4d081eb76b4d0e217056f2038d034df8beabfd0ba3c0eb0c47a923a9d",
-  "recorded_at": "2026-09-02T09:43:53+00:00",
-  "commit": "223e2dd1112f4aaa1db1cf9064033c4879f88045",
+  "recorded_at": "2026-09-02T10:42:47+00:00",
+  "commit": "15814ce73db919bc4e5cbe97385ce8cefc16e1b5",
   "approved_task_plan_sha256": "1249a3a4d081eb76b4d0e217056f2038d034df8beabfd0ba3c0eb0c47a923a9d",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-02T09:43:53+00:00"
+  "approved_at": "2026-09-02T10:42:47+00:00"
 }
