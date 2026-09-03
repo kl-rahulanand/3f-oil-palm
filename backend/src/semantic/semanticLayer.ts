@@ -1,5 +1,5 @@
 import { Injectable, Optional } from "@nestjs/common";
-import type { DomainSpec, MeasureSpec, DimensionSpec, Permissions } from "@pulse/contract";
+import type { DomainSpec, MeasureSpec, DimensionSpec, Permissions } from "@3f/contract";
 import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
 
 /**

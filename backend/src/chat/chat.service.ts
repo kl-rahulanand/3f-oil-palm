@@ -13,7 +13,7 @@ import {
   type Provenance,
   type ResultTable,
   type Selection,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { LLM_PROVIDER, loadConfig } from "../config";
 import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
 import type { LlmPriorTurn, LlmProvider, LlmUsage } from "../llm/llm.interface";

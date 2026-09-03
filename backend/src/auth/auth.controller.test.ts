@@ -92,6 +92,11 @@ test("OTP request throttle is enforced per IP/email", async () => {
 });
 
 test("valid OTP verifies once, creates a session, returns AuthUser, and writes audit events", async () => {
+  assert.deepEqual(AUTH_COOKIE_NAMES, {
+    access: "3f_access",
+    refresh: "3f_refresh",
+    csrf: "3f_csrf",
+  });
   const user = await createUser({ isActive: true });
   const controller = makeController();
   await insertOtp(user.id, "123456", new Date(Date.now() + AUTH_RATE_LIMIT.otpExpiresMs));

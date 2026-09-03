@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { AuthUser, DomainSpec, Selection } from "@pulse/contract";
+import type { AuthUser, DomainSpec, Selection } from "@3f/contract";
 import { loadConfig } from "../config";
 import { SQL_BUILDER_MESSAGES } from "./sql.constants";
 

@@ -1,4 +1,4 @@
-import type { ResultTable } from "@pulse/contract";
+import type { ResultTable } from "@3f/contract";
 
 export type ChartType = "kpi" | "line" | "bar" | "pie" | "table";
 

@@ -1,4 +1,4 @@
-import type { Selection } from "@pulse/contract";
+import type { Selection } from "@3f/contract";
 
 const MONTHS: Record<string, number> = {
   jan: 1,

@@ -8,12 +8,12 @@
     "backend"
   ],
   "scripts": {
-    "build:contract": "npm -w @pulse/contract run build",
-    "build:backend": "npm -w @pulse/backend run build",
+    "build:contract": "npm -w @3f/contract run build",
+    "build:backend": "npm -w @3f/backend run build",
     "build": "npm run build:contract && npm run build:backend",
-    "typecheck": "npm run build:contract && npm -w @pulse/backend run typecheck",
-    "dev:backend": "npm -w @pulse/backend run dev",
-    "db:migrate": "npm -w @pulse/backend run db:migrate"
+    "typecheck": "npm run build:contract && npm -w @3f/backend run typecheck",
+    "dev:backend": "npm -w @3f/backend run dev",
+    "db:migrate": "npm -w @3f/backend run db:migrate"
   },
   "engines": {
     "node": ">=20"

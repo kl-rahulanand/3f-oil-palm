@@ -21,7 +21,7 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import { eq } from "drizzle-orm";
-import type { AuthUser, ScopeAttr } from "@pulse/contract";
+import type { AuthUser, ScopeAttr } from "@3f/contract";
 import { DRIZZLE_DB } from "../config";
 import { zodApiBody } from "../common/openapi";
 import type { AppDb } from "../db/pool";

@@ -1,6 +1,6 @@
 ﻿import { BadRequestException, Body, Controller, Delete, Get, HttpStatus, Param, Post, UseGuards } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { AuthUser, SaveQueryRequest, SavedQuery } from "@pulse/contract";
+import type { AuthUser, SaveQueryRequest, SavedQuery } from "@3f/contract";
 import { zodApiBody } from "../common/openapi";
 import { AuthGuard, CurrentUser, RequireAction } from "../auth/auth.guard";
 import { SavedService } from "./saved.service";

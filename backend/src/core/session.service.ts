@@ -185,8 +185,8 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
         subject: userId,
         jwtid: accessJti,
         expiresIn: ACCESS_TTL_SECONDS,
-        audience: "pulse",
-        issuer: "pulse-api",
+        audience: "3f",
+        issuer: "3f-api",
         mutatePayload: false,
       },
     );
@@ -197,8 +197,8 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
         subject: userId,
         jwtid: refreshJti,
         expiresIn: REFRESH_TTL_SECONDS,
-        audience: "pulse",
-        issuer: "pulse-api",
+        audience: "3f",
+        issuer: "3f-api",
         mutatePayload: false,
       },
     );
@@ -217,8 +217,8 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
   private verifyJwt(token: string, typ: JwtPayload["typ"], ignoreExpiration = false): JwtPayload | null {
     try {
       const decoded = jwt.verify(token, loadConfig().authJwtSecret, {
-        audience: "pulse",
-        issuer: "pulse-api",
+        audience: "3f",
+        issuer: "3f-api",
         ignoreExpiration,
       });
       if (!decoded || typeof decoded === "string") return null;

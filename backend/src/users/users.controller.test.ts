@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { ExecutionContext, HttpException } from "@nestjs/common";
-import type { AuthUser } from "@pulse/contract";
+import type { AuthUser } from "@3f/contract";
 import { count, desc, eq } from "drizzle-orm";
 import { createDb, createPool } from "../db/pool";
 import { auditEvents, users } from "../db/schema";

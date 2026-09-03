@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import type { DomainSpec, MeasureSpec } from "@pulse/contract";
+import type { DomainSpec, MeasureSpec } from "@3f/contract";
 import { ALARM_SINK, RECON_STORE, WAREHOUSE, loadConfig } from "../config";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import type { Warehouse } from "../warehouse/warehouse.interface";

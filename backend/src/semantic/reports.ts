@@ -1,4 +1,4 @@
-import type { ChartType, Selection } from "@pulse/contract";
+import type { ChartType, Selection } from "@3f/contract";
 import { loadConfig } from "../config";
 
 export interface ReportSpec {

@@ -1,7 +1,7 @@
 import type {
   MeasureAggregation,
   MeasureAuthoringDomain,
-} from "@pulse/contract";
+} from "@3f/contract";
 
 type TrustedField = MeasureAuthoringDomain["fields"][number] & { column: string };
 type TrustedDomain = Omit<MeasureAuthoringDomain, "fields"> & { fields: TrustedField[] };

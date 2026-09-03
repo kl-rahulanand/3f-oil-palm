@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards } from "@nestjs/common";
-import type { AuthUser, HelpResponse } from "@pulse/contract";
+import type { AuthUser, HelpResponse } from "@3f/contract";
 import { AuthGuard, CurrentUser } from "../auth/auth.guard";
 import { HelpService } from "./help.service";
 

@@ -4,7 +4,7 @@ export const LLM_CONTEXT_CHAR_BUDGET =
   LLM_CONTEXT_TOKEN_BUDGET * LLM_CONTEXT_CHARS_PER_TOKEN;
 
 export const LLM_MESSAGES = {
-  emitSelectionDescription: "Emit a verified Pulse semantic-layer selection. Do not include SQL.",
+  emitSelectionDescription: "Emit a verified 3F semantic-layer selection. Do not include SQL.",
   requestClarificationDescription:
     "Ask the user to clarify when multiple valid semantic selections are possible.",
   markUnsupportedDescription:
@@ -29,7 +29,7 @@ export const LLM_MESSAGES = {
   bedrockModelIdNotConfigured:
     "Bedrock select failed: BEDROCK_MODEL_ID is not configured",
   bedrockSelectFailed: (message: string): string => `Bedrock select failed: ${message}`,
-  systemPromptBank: "Pulse selects verified metrics from configured data domains.",
+  systemPromptBank: "3F selects verified metrics from configured data domains.",
   systemPromptToday: (dateIso: string): string =>
     `Today's date is ${dateIso} (UTC). Interpret relative/named dates against it.`,
   systemPromptVocabulary:

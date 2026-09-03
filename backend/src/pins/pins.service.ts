@@ -8,7 +8,7 @@ import type {
   Pin,
   PinSnapshot,
   Selection,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { DRIZZLE_DB } from "../config";
 import type { AppDb } from "../db/pool";
 import { dashboardPins, pinSnapshots } from "../db/schema";

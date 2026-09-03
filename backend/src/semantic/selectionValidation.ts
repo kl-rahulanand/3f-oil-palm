@@ -1,5 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
-import type { AuthUser, MeasureSpec, Selection } from "@pulse/contract";
+import type { AuthUser, MeasureSpec, Selection } from "@3f/contract";
 import { SemanticLayer } from "./semanticLayer";
 
 export function validateSelectionForUser(

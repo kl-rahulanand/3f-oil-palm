@@ -18,7 +18,7 @@ COPY contract ./contract
 COPY backend ./backend
 
 RUN npm run build:contract \
-  && npm -w @pulse/backend run build
+  && npm -w @3f/backend run build
 
 FROM registry.access.redhat.com/ubi9/nodejs-20 AS runtime
 

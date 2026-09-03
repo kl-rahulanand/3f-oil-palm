@@ -6,7 +6,7 @@ import type {
   ConversationSummary,
   ConversationTurnView,
   Selection,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { DRIZZLE_DB, loadConfig } from "../config";
 import type { AppDb } from "../db/pool";
 import { conversations, conversationTurns } from "../db/schema";

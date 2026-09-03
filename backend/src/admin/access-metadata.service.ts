@@ -3,7 +3,7 @@ import type {
   AccessMetadataGrantOption,
   AccessMetadataResponse,
   AccessMetadataScopeAttribute,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { DRIZZLE_DB, loadConfig } from "../config";
 import { DimensionValuesService } from "../core/dimension-values.service";
 import type { AppDb } from "../db/pool";

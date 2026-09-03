@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import type { MeasureSpec } from "@pulse/contract";
+import type { MeasureSpec } from "@3f/contract";
 
 export function computeDefinitionVersion(measures: MeasureSpec[]): string {
   const payload = measures

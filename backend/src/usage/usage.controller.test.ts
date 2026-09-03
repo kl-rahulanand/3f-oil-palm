@@ -2,7 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { ExecutionContext, HttpException } from "@nestjs/common";
-import type { AuthUser } from "@pulse/contract";
+import type { AuthUser } from "@3f/contract";
 import { eq, inArray } from "drizzle-orm";
 import { AdminGuard, type AuthedRequest } from "../auth/auth.guard";
 import { createDb, createPool } from "../db/pool";

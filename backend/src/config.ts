@@ -69,7 +69,7 @@ export interface Config {
 const num = (v: string | undefined, d: number) => (v ? Number(v) : d);
 const bool = (v: string | undefined) => v === "true" || v === "1";
 
-export const DEFAULT_SEED_USERS = "admin@example.invalid|Pulse Admin|admin";
+export const DEFAULT_SEED_USERS = "admin@example.invalid|3F Admin|admin";
 
 function parseSeedUsers(value: string | undefined): Config["seedUsers"] {
   // SEED_USERS format: email|display_name|role1+role2;email|display_name|role
@@ -101,7 +101,7 @@ export function loadConfig(): Config {
   if (nodeEnv === "production" && authOtpMock) {
     throw new Error("AUTH_OTP_MOCK must not be enabled in production");
   }
-  const authJwtSecret = process.env.AUTH_JWT_SECRET ?? "pulse-local-dev-auth-secret";
+  const authJwtSecret = process.env.AUTH_JWT_SECRET ?? "3f-local-dev-auth-secret";
   if (nodeEnv === "production" && !process.env.AUTH_JWT_SECRET) {
     throw new Error("AUTH_JWT_SECRET is required in production");
   }
@@ -115,9 +115,9 @@ export function loadConfig(): Config {
     pg: {
       host: process.env.PGHOST ?? "localhost",
       port: num(process.env.PGPORT, 5432),
-      user: process.env.PGUSER ?? "pulse",
-      password: process.env.PGPASSWORD ?? "",
-      database: process.env.PGDATABASE ?? "pulse",
+      user: process.env.PGUSER ?? "threef",
+      password: process.env.PGPASSWORD ?? "3f-local",
+      database: process.env.PGDATABASE ?? "threef",
     },
     sessionTtlHours: num(process.env.SESSION_TTL_HOURS, 12),
     sessionTurnWindow: num(process.env.SESSION_TURN_WINDOW, 5),

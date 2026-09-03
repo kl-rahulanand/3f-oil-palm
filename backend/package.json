@@ -1,5 +1,5 @@
 {
-  "name": "@pulse/backend",
+  "name": "@3f/backend",
   "version": "0.0.0",
   "private": true,
   "type": "commonjs",
@@ -19,7 +19,7 @@
     "@nestjs/core": "^10.4.4",
     "@nestjs/platform-express": "^10.4.4",
     "@nestjs/swagger": "^7.4.2",
-    "@pulse/contract": "*",
+    "@3f/contract": "*",
     "@types/jsonwebtoken": "^9.0.10",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",

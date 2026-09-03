@@ -16,7 +16,7 @@ import type {
   AuthUser,
   MeasureAuthoringMetadataResponse,
   MeasureValidationResponse,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { AuthGuard, CurrentUser, DbaGuard } from "../auth/auth.guard";
 import { authoredMeasureInputSchema } from "./measures.schemas";
 import { MeasuresService } from "./measures.service";

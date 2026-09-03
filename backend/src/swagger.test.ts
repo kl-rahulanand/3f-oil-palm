@@ -40,6 +40,7 @@ test("controller metadata contains auth, admin, and data API paths without beare
   }
 
   const swagger = buildSwaggerConfig();
+  assert.equal(swagger.info.title, "3F API");
   assert.equal(swagger.components?.securitySchemes?.bearer, undefined);
 });
 

@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import type { AuthUser, DomainSpec, ReportRunResult, ReportSummary, Selection } from "@pulse/contract";
+import type { AuthUser, DomainSpec, ReportRunResult, ReportSummary, Selection } from "@3f/contract";
 import { WAREHOUSE } from "../config";
 import { defaultTimeColumn, SelectionExecutor, validDateColumns } from "../chat/selectionExecutor";
 import { REPORTS, reportSelection, type ReportSpec } from "../semantic/reports";

@@ -2,7 +2,7 @@ import {
   authOtpRequestSchema,
   authOtpVerifyRequestSchema,
   emptyBodySchema,
-} from "@pulse/contract";
+} from "@3f/contract";
 
 export const otpRequestSchema = authOtpRequestSchema;
 export const otpVerifySchema = authOtpVerifyRequestSchema;

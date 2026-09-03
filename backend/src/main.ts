@@ -8,7 +8,7 @@ export const API_VERSION = "0.1.0";
 
 export function buildSwaggerConfig() {
   return new DocumentBuilder()
-    .setTitle("Pulse API")
+    .setTitle("3F API")
     .setDescription(
       "NL-to-data chatbot API - the backend security boundary. Protected endpoints require JWT session cookies.",
     )
@@ -30,7 +30,7 @@ async function bootstrap() {
   }
   await app.listen(cfg.port);
   // eslint-disable-next-line no-console
-  console.log(`Pulse backend listening on :${cfg.port} (LLM provider: ${cfg.llmProvider})`);
+  console.log(`3F backend listening on :${cfg.port} (LLM provider: ${cfg.llmProvider})`);
 }
 
 if (require.main === module) {

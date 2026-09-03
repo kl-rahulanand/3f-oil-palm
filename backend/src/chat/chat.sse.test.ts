@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ResponseClass, type AskResponse, type ChatStreamEvent } from "@pulse/contract";
+import { ResponseClass, type AskResponse, type ChatStreamEvent } from "@3f/contract";
 import { CHAT_STREAM_PHASES, runChatStream, serializeSseFrame } from "./chat.sse";
 
 const bufferedResponse: AskResponse = {

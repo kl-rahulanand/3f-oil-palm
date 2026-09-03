@@ -2,6 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { and, eq, isNull, sql } from "drizzle-orm";
+import jwt from "jsonwebtoken";
 import { createDb, createPool } from "../db/pool";
 import { refreshTokens, sessions, users } from "../db/schema";
 import { SessionService } from "./session.service";
@@ -26,10 +27,18 @@ test("create issues access and refresh JWTs while storing only a refresh hash", 
   const userId = await createUser();
   const tokens = await service.create(userId, { ua: "test-agent", ip: "10.0.0.1" });
   const access = await service.verifyAccess(tokens.accessToken);
+  const accessClaims = jwt.decode(tokens.accessToken);
+  const refreshClaims = jwt.decode(tokens.refreshToken);
   const stored = await db.select().from(refreshTokens).where(eq(refreshTokens.jti, tokens.refreshJti));
 
   assert.equal(access?.userId, userId);
   assert.equal(access?.sessionId, tokens.sessionId);
+  assert.ok(accessClaims && typeof accessClaims !== "string");
+  assert.equal(accessClaims.iss, "3f-api");
+  assert.equal(accessClaims.aud, "3f");
+  assert.ok(refreshClaims && typeof refreshClaims !== "string");
+  assert.equal(refreshClaims.iss, "3f-api");
+  assert.equal(refreshClaims.aud, "3f");
   assert.equal(stored.length, 1);
   assert.notEqual(stored[0].tokenHash, tokens.refreshToken);
   assert.equal(stored[0].ua, "test-agent");

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq, inArray } from "drizzle-orm";
-import type { AuthUser, Permissions, ScopeAttr } from "@pulse/contract";
+import type { AuthUser, Permissions, ScopeAttr } from "@3f/contract";
 import { DRIZZLE_DB, WAREHOUSE, loadConfig } from "../config";
 import type { AppDb } from "../db/pool";
 import { rolePerms, userRoles, userScope, users } from "../db/schema";
@@ -17,7 +17,7 @@ type DistinctValuesCacheEntry = {
 };
 
 /**
- * Resolves a user's permissions + row-level scope. Source of truth = Pulse Postgres
+ * Resolves a user's permissions + row-level scope. Source of truth = application Postgres
  * (admin-provisioned; no IdP sync in V1). Fail-closed: callers treat a throw / null
  * as "deny".
  */

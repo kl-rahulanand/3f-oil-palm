@@ -1,6 +1,6 @@
 ﻿import { BadRequestException, Body, Controller, HttpStatus, Post, Res, UseGuards } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { AskRequest, AskResponse, AuthUser } from "@pulse/contract";
+import type { AskRequest, AskResponse, AuthUser } from "@3f/contract";
 import type { Response } from "express";
 import { zodApiBody } from "../common/openapi";
 import { AuthGuard, CurrentUser, SessionId } from "../auth/auth.guard";

@@ -2,7 +2,7 @@
 // it never authors SQL. Swappable: mock (offline) | bedrock (POC) | on-prem (prod,
 // pending the residency decision). The measure-selection eval suite validates a swap.
 
-import type { DomainSpec, Selection } from "@pulse/contract";
+import type { DomainSpec, Selection } from "@3f/contract";
 
 export interface LlmPriorTurn {
   question: string;

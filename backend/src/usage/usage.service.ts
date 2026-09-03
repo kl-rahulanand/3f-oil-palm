@@ -3,7 +3,7 @@ import type {
   AdminUsageGranularity,
   AdminUsageRow,
   AdminUsageSeriesResponse,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { and, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { DRIZZLE_DB } from "../config";
