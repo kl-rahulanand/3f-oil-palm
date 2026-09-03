@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-03T10:40:55+00:00", "story": "platform-base", "detail": "S-0005-b34a: Expected \u2014 same pattern as S-0002/S-0003/S-0004 (all resolved). The live mock-OTP login / RBAC / audit re-verification with the renamed 3f_* cookies + 3f-api/3f JWT needs a live app-db container; it i"}

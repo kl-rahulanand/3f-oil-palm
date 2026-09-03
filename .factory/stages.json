@@ -34,7 +34,11 @@
     {
       "id": "rebrand-pulse-to-3f",
       "title": "Rebrand product identifiers Pulse -> 3F",
-      "status": "pending"
+      "status": "active",
+      "started_at": "2026-09-03T10:35:04+00:00",
+      "base_sha": "d053fe0224e8506728f3d71bd9710cb1ae4b9a4e",
+      "dirty_at_start": {},
+      "task_sha256": "112a500fed74f47ac70f9c2c96103120ccf2351ef0d3a2f9d960fad027e3b8fd"
     },
     {
       "id": "frontend-shell-login",

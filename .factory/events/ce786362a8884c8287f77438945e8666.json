@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-03T10:40:42+00:00", "story": "platform-base", "detail": "Live mock-OTP, RBAC, and audit evidence cannot run because this environment has no Docker daemon or local PostgreSQL client/server."}
