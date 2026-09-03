@@ -214,7 +214,7 @@
       "plan_contracts": [
         {
           "id": "t-rb-c1",
-          "statement": "no Pulse product identifier remains in backend/ or contract/ or root workspace config",
+          "statement": "no Pulse product identifier remains in backend/ or contract/ or root workspace config (package names, imports, cookie names, JWT issuer/audience, seed display name, boot log, help/glossary product strings)",
           "source": "docs/decisions/0010-rebrand-pulse-to-3f.md#Decision"
         },
         {
@@ -288,5 +288,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "3fd84e7fd77cc3cb80be2f6f1d64e291ae107bb4"
+  "commit": "bfe6b8400174c0a2286631ae33671e33f66f66e9"
 }
