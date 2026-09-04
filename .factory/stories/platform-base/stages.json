@@ -1,0 +1,69 @@
+{
+  "issue": "platform-base",
+  "stages": [
+    {
+      "id": "vendor-backend-contract",
+      "title": "Vendor Pulse backend + contract",
+      "status": "done",
+      "started_at": "2026-09-02T10:13:13+00:00",
+      "base_sha": "247c9adb45c869ae81376540722daf3b4ef3059b",
+      "dirty_at_start": {},
+      "task_sha256": "1dcff396033659ec06017a1498bb6ceda283a038e95a292160f6ce54cba14a71",
+      "completed_at": "2026-09-02T10:33:29+00:00"
+    },
+    {
+      "id": "postgres-warehouse-adapter",
+      "title": "Postgres warehouse adapter",
+      "status": "done",
+      "started_at": "2026-09-02T10:42:59+00:00",
+      "base_sha": "51ee67b463b7eaab2020c04814783214d495662b",
+      "dirty_at_start": {},
+      "task_sha256": "b58679c1d405fc7646ff4c0253a860f88ba9ee022caf13cca46eb0f797ad6136",
+      "completed_at": "2026-09-02T11:07:33+00:00"
+    },
+    {
+      "id": "backend-boot-otp-auth",
+      "title": "Backend boots + OTP auth on Postgres",
+      "status": "done",
+      "started_at": "2026-09-02T12:04:11+00:00",
+      "base_sha": "f5243c8b59a79032cb4f19bba386e7add6dede1d",
+      "dirty_at_start": {},
+      "task_sha256": "9d6a19b424e3d4b4151cdd9f7b11800980f3506277da6f797c006c17f92b6fe2",
+      "completed_at": "2026-09-02T12:32:18+00:00"
+    },
+    {
+      "id": "rebrand-pulse-to-3f",
+      "title": "Rebrand product identifiers Pulse -> 3F",
+      "status": "done",
+      "started_at": "2026-09-03T10:35:04+00:00",
+      "base_sha": "d053fe0224e8506728f3d71bd9710cb1ae4b9a4e",
+      "dirty_at_start": {},
+      "task_sha256": "8d9a965642a15b2d7acd244bbff8b794fc9921e1c93d185b74551ae09ae0572a",
+      "local_review_stamp": {
+        "stage_id": "rebrand-pulse-to-3f",
+        "task_sha256": "8d9a965642a15b2d7acd244bbff8b794fc9921e1c93d185b74551ae09ae0572a",
+        "brief_sha256": "59dafc793c6b06f9923ac18b833007408068f97a37f685c46614382c90de5c86",
+        "base_sha": "80142da9f310ad94522802d04165a9c5e552d50c",
+        "product_tree_digest": "7b75c18fbd568dd3c993b3425f76189d68d722c8757a2e92650ebe0a76f79dee",
+        "recorded_at": "2026-09-04T05:38:07+00:00",
+        "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-04T05:38:16+00:00",
+      "contract_changed": {
+        "at": "2026-09-04T05:38:16+00:00",
+        "from": "112a500fed74f47ac70f9c2c96103120ccf2351ef0d3a2f9d960fad027e3b8fd",
+        "to": "8d9a965642a15b2d7acd244bbff8b794fc9921e1c93d185b74551ae09ae0572a"
+      }
+    },
+    {
+      "id": "frontend-shell-login",
+      "title": "Fresh frontend shell + OTP login",
+      "status": "pending"
+    },
+    {
+      "id": "harness-wiring",
+      "title": "Harness build/verify wiring",
+      "status": "pending"
+    }
+  ]
+}
