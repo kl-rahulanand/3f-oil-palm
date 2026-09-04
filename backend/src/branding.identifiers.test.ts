@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 const LEGACY_PRODUCT_NAME = new RegExp(["pu", "lse"].join(""), "i");
 
-test("no Pulse product identifiers remain in backend and contract source", () => {
+test("backend and contract source declare only 3F product identifiers", () => {
   const currentFile = resolve(__filename);
   const offenders = ["backend/src", "contract/src"]
     .flatMap(typescriptFiles)
