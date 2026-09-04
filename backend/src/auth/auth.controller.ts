@@ -21,7 +21,7 @@ import type {
   AuthUser,
   Permissions,
   ScopeAttr,
-} from "@pulse/contract";
+} from "@3f/contract";
 import bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
 import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";

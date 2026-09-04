@@ -1,4 +1,4 @@
-// Gate 0 - RBAC types (five-layer model; Pulse-managed, admin-provisioned, no IdP in V1).
+// Gate 0 - RBAC types (five-layer model; app-managed, admin-provisioned, no IdP in V1).
 
 import { z } from "zod";
 

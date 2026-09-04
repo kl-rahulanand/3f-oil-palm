@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AuthUser, DomainSpec, Selection } from "@pulse/contract";
+import type { AuthUser, DomainSpec, Selection } from "@3f/contract";
 import { SelectionExecutor } from "../chat/selectionExecutor";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";

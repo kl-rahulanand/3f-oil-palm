@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ExecutionContext, HttpException } from "@nestjs/common";
-import type { AuthUser } from "@pulse/contract";
+import type { AuthUser } from "@3f/contract";
 import { DbaGuard, type AuthedRequest } from "../auth/auth.guard";
 
 test("DbaGuard permits explicit DBAs and rejects administrators without the DBA role", () => {

@@ -1,4 +1,4 @@
-import { ResponseClass, type AskResponse, type ChatStreamEvent } from "@pulse/contract";
+import { ResponseClass, type AskResponse, type ChatStreamEvent } from "@3f/contract";
 
 type EventSink = (event: ChatStreamEvent) => void;
 

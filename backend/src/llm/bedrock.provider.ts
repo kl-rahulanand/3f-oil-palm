@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { DomainSpec, Selection, SelectionFilter, TimeGrain } from "@pulse/contract";
+import type { DomainSpec, Selection, SelectionFilter, TimeGrain } from "@3f/contract";
 import { loadConfig, type Config } from "../config";
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "./llm.interface";
 import { LLM_MESSAGES } from "./llm.constants";

@@ -11,7 +11,7 @@ import type {
   AuthUser,
   MeasureAuthoringMetadataResponse,
   MeasureValidationResponse,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { and, desc, eq } from "drizzle-orm";
 import { DRIZZLE_DB } from "../config";
 import type { AppDb } from "../db/pool";

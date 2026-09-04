@@ -1,5 +1,5 @@
 {
-  "name": "@pulse/contract",
+  "name": "@3f/contract",
   "version": "0.0.0",
   "private": true,
   "main": "dist/index.js",

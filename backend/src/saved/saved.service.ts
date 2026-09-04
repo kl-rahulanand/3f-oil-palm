@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq } from "drizzle-orm";
-import type { AuthUser, SaveQueryRequest, SavedQuery, Selection } from "@pulse/contract";
+import type { AuthUser, SaveQueryRequest, SavedQuery, Selection } from "@3f/contract";
 import { DRIZZLE_DB } from "../config";
 import type { AppDb } from "../db/pool";
 import { savedQueries } from "../db/schema";

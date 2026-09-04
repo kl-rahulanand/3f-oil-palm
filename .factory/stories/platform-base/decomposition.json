@@ -188,11 +188,76 @@
       ]
     },
     {
+      "id": "rebrand-pulse-to-3f",
+      "title": "Rebrand product identifiers Pulse -> 3F",
+      "objective": "Rename every Pulse product identifier to 3F across the vendored backend + contract \u2014 npm package names (@pulse/* -> @3f/*) and all imports, the auth wire names (cookies pulse_access/refresh/csrf and the JWT issuer/audience), the seed display name, the boot log, and help/glossary product strings \u2014 leaving the provenance records that document the Pulse vendor origin unchanged.",
+      "dependencies": [
+        "vendor-backend-contract",
+        "postgres-warehouse-adapter",
+        "backend-boot-otp-auth"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "no Pulse product identifier remains in backend/ or contract/ or root workspace config (package names, imports, cookie names, JWT issuer/audience, seed display name, boot log, help/glossary product strings)",
+        "the workspace builds and typechecks and the existing hermetic tests pass under the @3f/* package names",
+        "the email+OTP login still works end-to-end with the renamed cookies/JWT (mock OTP), with RBAC and audit intact"
+      ],
+      "write_scope": [
+        "backend/",
+        "contract/",
+        "package.json",
+        "package-lock.json",
+        "docker-compose.yml",
+        "tsconfig.base.json"
+      ],
+      "reviewer_focus": "Complete + consistent rename of PRODUCT identifiers per the grill-verified map: (1) npm packages @pulse/contract->@3f/contract, @pulse/backend->@3f/backend \u2014 name fields + backend->contract dep + EVERY import specifier across backend/src (incl ~10 *.test.ts) and contract/src + backend/Dockerfile (npm -w @pulse/backend) + any tsconfig ref; npm install refreshes the lockfile. (2) Auth WIRE names set AND verify together: cookies pulse_access/pulse_refresh/pulse_csrf -> 3f_access/3f_refresh/3f_csrf (AUTH_COOKIE_NAMES map in auth/cookies.ts; readers auth.controller refresh, auth.guard access+refresh, csrf.guard); JWT in core/session.service.ts on all 3 sites (access sign, refresh sign, verify) issuer 'pulse-api'->'3f-api' AND audience 'pulse'->'3f' (audience is 'pulse', NOT 'pulse-api'). (3) Strings/infra: swagger title 'Pulse API'->'3F API' + boot log (main.ts); seed 'Pulse Admin'->'3F Admin' (config.ts); app-db identifiers pulse->threef (NOT '3f' \u2014 Postgres identifiers can't start with a digit): docker-compose app-db POSTGRES_DB/USER + password pulse-local->3f-local, mirrored in config.ts cfg.pg fallbacks; chat greeting 'I'm Pulse'->'I'm 3F' (chat/smalltalk-guard.ts); contract API field whatPulseWont->whatItWont (contract/src/api.ts + help.service.ts emit); help/glossary/LLM product strings 'Pulse'->'3F'; non-provenance source COMMENTS ('Pulse Postgres' rbac.service, 'Pulse roles' grants.controller, 'Pulse-managed' contract/rbac, and the 0000_auth_audit.sql header rationale) reworded so the no-Pulse scan is clean. (4) Tests updated: @pulse/contract->@3f/contract in every *.test.ts; migrate.test 'Pulse Admin'->'3F Admin'; auth.controller.test asserts literal 3f_* cookie names; session.service.test asserts 3f-api issuer + 3f audience on both token types; swagger.test asserts '3F API'. Behaviour-preserving (names only): RBAC/sessions/audit/OTP unchanged; wire changes applied on set AND verify so auth still works. PRESERVE provenance/history (out of write_scope): backend/VENDORED_FROM, decision 0008, and decision/plan/spec prose recording 'vendored Pulse @ e639840'. After the rename a scan of backend/src + contract/src for @pulse / pulse_ / case-insensitive 'pulse' product identifiers is empty. Hermetic required tests run from repo root (decision 0009): a no-Pulse scan test (forbidden literals built dynamically so it doesn't self-match; excludes provenance) + the PII validator test; contract @3f resolution is proven by build:backend/typecheck. The live mock-OTP login with the renamed cookies/JWT is DEMONSTRATED evidence.",
+      "plan_contracts": [
+        {
+          "id": "t-rb-c1",
+          "statement": "no Pulse product identifier remains in backend/ or contract/ or root workspace config (package names, imports, cookie names, JWT issuer/audience, seed display name, boot log, help/glossary product strings)",
+          "source": "docs/decisions/0010-rebrand-pulse-to-3f.md#Decision"
+        },
+        {
+          "id": "t-rb-c2",
+          "statement": "the workspace builds and typechecks and the existing hermetic tests pass under the @3f/* package names",
+          "source": "docs/decisions/0010-rebrand-pulse-to-3f.md#Decision"
+        },
+        {
+          "id": "t-rb-c3",
+          "statement": "the email+OTP login still works end-to-end with the renamed cookies/JWT (mock OTP), with RBAC and audit intact",
+          "source": "docs/decisions/0010-rebrand-pulse-to-3f.md#Consequences"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "backend and contract source declare only 3F product identifiers",
+          "path": "backend/src/branding.identifiers.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "blocked columns are rejected case-insensitively by leaf column name",
+          "path": "backend/src/sql/sqlValidator.pii.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck"
+      ],
+      "review_budget": {
+        "max_changed_files": 120,
+        "max_changed_lines": 3000,
+        "reason": "Cross-cutting rename of the @pulse/* packages + every import across the vendored backend, plus auth wire names (cookies/JWT), seed/log/help strings \u2014 many files, mechanical but broad (decision 0010)."
+      }
+    },
+    {
       "id": "frontend-shell-login",
       "title": "Fresh frontend shell + OTP login",
-      "objective": "Build a fresh Next.js frontend (shadcn/ui + Tailwind, themed by the KnackLabs _ds tokens) with the app shell and OTP login per the approved Claude Design, consuming the backend API.",
+      "objective": "Build a fresh Next.js (App Router) frontend \u2014 shadcn/ui + Tailwind themed by the KnackLabs _ds tokens \u2014 with the app shell (Deep Forest left nav + white top bar, branded 3F) and an email+OTP login wired to the backend auth API, faithful to the approved Claude Design.",
       "dependencies": [
-        "backend-boot-otp-auth"
+        "backend-boot-otp-auth",
+        "rebrand-pulse-to-3f"
       ],
       "user_facing": true,
       "acceptance_criteria": [
@@ -209,6 +274,7 @@
         "vendor-backend-contract",
         "postgres-warehouse-adapter",
         "backend-boot-otp-auth",
+        "rebrand-pulse-to-3f",
         "frontend-shell-login"
       ],
       "user_facing": false,
@@ -222,5 +288,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "58653bec5ab566bb9fc35991cbe3c9c1b16f5487"
+  "commit": "846b52fb93f988d8312bab340e162ab8f3812faf"
 }

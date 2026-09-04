@@ -1,4 +1,4 @@
-import type { DomainSpec, MeasureSpec } from "@pulse/contract";
+import type { DomainSpec, MeasureSpec } from "@3f/contract";
 
 export interface ClarifyPayload {
   prompt: string;

@@ -11,7 +11,7 @@
   UseGuards,
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { AuthUser } from "@pulse/contract";
+import type { AuthUser } from "@3f/contract";
 import { eq, and } from "drizzle-orm";
 import { DRIZZLE_DB } from "../config";
 import { zodApiBody } from "../common/openapi";
@@ -30,7 +30,7 @@ type GrantView = {
 };
 
 /**
- * Admin role-grant API (B1). Validates grants against Pulse roles and the semantic layer.
+ * Admin role-grant API (B1). Validates grants against application roles and the semantic layer.
  */
 @ApiTags("admin-grants")
 @Controller("api/admin/grants")

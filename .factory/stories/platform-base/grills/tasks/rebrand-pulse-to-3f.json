@@ -1,0 +1,56 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "rebrand-pulse-to-3f",
+  "verdict": "pass",
+  "decision": "keep",
+  "summary": "PR-ready confirmation grill of rebrand-pulse-to-3f. Stage is DONE; product tree UNCHANGED since the ready-to-close grill (only .factory ledger commits advanced HEAD). Fresh read-only Codex cold-read re-confirmed ready-to-close, 0 residual pulse: raw scan of backend/src+contract/src (filenames+contents) empty; guard test branding.identifiers.test.ts; both required hermetic tests pass from repo root; provenance (VENDORED_FROM, decision 0008) preserved; @3f packages + 3f_* cookies + 3f-api/3f JWT (set+verify) intact.",
+  "gaps": [],
+  "contradictions": [],
+  "resolutions": [
+    "JWT wire names corrected: issuer 'pulse-api' -> '3f-api' AND audience 'pulse' -> '3f' on all three session.service sign/verify sites (audience was 'pulse', not 'pulse-api')",
+    "Added omitted product identifiers to the map: Swagger title 'Pulse API' -> '3F API' (+swagger.test), backend/Dockerfile @pulse/backend, app-db pulse -> threef (SQL-safe, not '3f') in docker-compose + config.ts fallbacks, AUTH_JWT_SECRET fallback 'pulse-local-dev-auth-secret' -> '3f-local-dev-auth-secret', whatPulseWont -> whatItWont (contract + help.service), chat greeting 'I'm Pulse' -> 'I'm 3F', and non-provenance source comments (rbac.service, grants.controller, contract/rbac, 0000_auth_audit.sql header)",
+    "Tests to update enumerated: @pulse/contract -> @3f/contract across ~10 *.test.ts; migrate.test 'Pulse Admin' -> '3F Admin'; auth.controller.test literal 3f_* cookie assertions; session.service.test 3f-api issuer + 3f audience on both token types; swagger.test '3F API' title",
+    "no-Pulse scan test must build forbidden literals dynamically (avoid self-match) and exclude provenance; contract @3f resolution proven by build:backend/typecheck; live mock-OTP login with renamed cookies/JWT is demonstrated evidence",
+    "Final: rename the no-Pulse guard test file backend/src/branding.no-pulse.test.ts -> branding.identifiers.test.ts and its title -> 'backend and contract source declare only 3F product identifiers' so product source (names + contents) has ZERO 'pulse' literal; behaviour-identical (dynamic forbidden-literal regex + scan unchanged)"
+  ],
+  "open_items": [],
+  "inspected_refs": [
+    ".factory/stories/platform-base/task-plans/rebrand-pulse-to-3f.md",
+    ".factory/stories/platform-base/decomposition.json",
+    "docs/decisions/0010-rebrand-pulse-to-3f.md",
+    "docs/decisions/0008-pulse-vendored-snapshot.md",
+    "backend/src/core/session.service.ts",
+    "backend/src/auth/cookies.ts",
+    "backend/src/main.ts",
+    "backend/src/config.ts",
+    "contract/src/api.ts",
+    "backend/Dockerfile"
+  ],
+  "current_flow": "The backend + contract were vendored from Pulse (decision 0008) and still carry Pulse product identifiers: @pulse/* packages + imports, auth wire names (cookies pulse_*, JWT issuer 'pulse-api' + audience 'pulse'), Swagger title, seed 'Pulse Admin', app-db 'pulse' db/user, AUTH_JWT_SECRET fallback, the whatPulseWont contract field, chat/help/glossary strings, and source comments. Per decision 0010 this task renames every product identifier to 3F (behaviour-preserving) while preserving the provenance records of the Pulse vendor origin, so the fresh frontend consumes @3f/* from the start.",
+  "criteria_map": {
+    "no Pulse product identifier remains in backend/ or contract/ or root workspace config (package names, imports, cookie names, JWT issuer/audience, seed display name, boot log, help/glossary product strings)": "full grill-verified rename map (packages/imports incl Dockerfile, cookies+JWT iss/aud, swagger title, seed, app-db->threef, JWT-secret fallback, whatPulseWont->whatItWont, chat/help/glossary strings, source comments); hermetic no-Pulse scan of backend/src+contract/src asserts none remain; provenance preserved out of scope",
+    "the workspace builds and typechecks and the existing hermetic tests pass under the @3f/* package names": "npm run build:contract + build:backend + typecheck prove @3f/* + every import resolves; the PII validator test + all updated *.test.ts pass under @3f/contract",
+    "the email+OTP login still works end-to-end with the renamed cookies/JWT (mock OTP), with RBAC and audit intact": "cookies + JWT issuer/audience changed on set AND verify sides together; demonstrated host mock-OTP login sets 3f_* cookies + 3f-api/3f JWT, returns AuthUser, writes audit row"
+  },
+  "new_abstractions": [],
+  "citations": [],
+  "rounds": [
+    {
+      "question": "PR-ready confirmation for rebrand-pulse-to-3f (committed tree, unchanged): ready-to-close, zero residual pulse, required tests pass, provenance intact. Seal PR-ready and open the PR to master?",
+      "options": [
+        "Yes \u2014 seal + PR",
+        "Hold"
+      ],
+      "chosen": "Yes \u2014 seal + PR",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "c32afc288786d3244a6d22e66560c68e7016b9e56018ec08ab16aaa70a62b360",
+  "task_plan_sha256": "9e9515678dcc710757cebde4a4cc759c97ed38c8d0b66ad89b1aa15494528f24",
+  "recorded_at": "2026-09-04T05:45:36+00:00",
+  "commit": "628270d70d41d7a91e86cc525aa38e8889fcef63",
+  "approved_task_plan_sha256": "9e9515678dcc710757cebde4a4cc759c97ed38c8d0b66ad89b1aa15494528f24",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-04T05:45:37+00:00"
+}

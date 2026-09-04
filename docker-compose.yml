@@ -2,9 +2,9 @@ services:
   app-db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${PGDATABASE:-pulse}
-      POSTGRES_USER: ${PGUSER:-pulse}
-      POSTGRES_PASSWORD: ${PGPASSWORD:-pulse-local}
+      POSTGRES_DB: ${PGDATABASE:-threef}
+      POSTGRES_USER: ${PGUSER:-threef}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-3f-local}
     ports:
       - "${PGPORT:-5432}:5432"
     volumes:

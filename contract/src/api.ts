@@ -301,7 +301,7 @@ export interface HelpResponse {
     timeframes: string[];
     sampleQuestions: HelpSampleQuestion[];
   };
-  whatPulseWont: string[];
+  whatItWont: string[];
   access: {
     roles: string[];
     domains: string[];

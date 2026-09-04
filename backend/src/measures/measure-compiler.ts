@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import type { AuthoredMeasureInput, DomainSpec, MeasureSpec } from "@pulse/contract";
+import type { AuthoredMeasureInput, DomainSpec, MeasureSpec } from "@3f/contract";
 import { trustedAuthoringDomain, trustedAuthoringField } from "./measure-authoring.catalog";
 
 export function compileAuthoredMeasure(input: AuthoredMeasureInput, domain: DomainSpec): MeasureSpec {

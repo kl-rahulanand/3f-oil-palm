@@ -1,6 +1,6 @@
 import { Controller, Get, HttpStatus, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { AccessMetadataResponse } from "@pulse/contract";
+import type { AccessMetadataResponse } from "@3f/contract";
 import { AdminGuard, AuthGuard } from "../auth/auth.guard";
 import { AccessMetadataService } from "./access-metadata.service";
 

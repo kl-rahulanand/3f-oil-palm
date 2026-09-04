@@ -1,4 +1,4 @@
-import type { DomainSpec, MeasureSpec } from "@pulse/contract";
+import type { DomainSpec, MeasureSpec } from "@3f/contract";
 
 export type DefinitionKind = "measure" | "dimension" | "value" | "meta";
 
@@ -62,8 +62,8 @@ export function glossaryLookup(question: string, index: TermIndex): GlossaryLook
     return {
       definitionKind: "meta",
       term: "help",
-      title: "What Pulse can answer",
-      definition: `Pulse can answer questions about ${domains} using the metrics and fields granted to your role.`,
+      title: "What 3F can answer",
+      definition: `3F can answer questions about ${domains} using the metrics and fields granted to your role.`,
       suggestedQuestions: index.exampleQuestions.slice(0, 3),
     };
   }

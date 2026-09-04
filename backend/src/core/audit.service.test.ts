@@ -2,7 +2,7 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
-import { ResponseClass } from "@pulse/contract";
+import { ResponseClass } from "@3f/contract";
 import { inArray } from "drizzle-orm";
 import { createDb, createPool } from "../db/pool";
 import { auditEvents } from "../db/schema";

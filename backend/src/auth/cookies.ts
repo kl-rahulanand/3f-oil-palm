@@ -3,9 +3,9 @@ import type { Request, Response } from "express";
 import { loadConfig } from "../config";
 
 export const AUTH_COOKIE_NAMES = {
-  access: "pulse_access",
-  refresh: "pulse_refresh",
-  csrf: "pulse_csrf",
+  access: "3f_access",
+  refresh: "3f_refresh",
+  csrf: "3f_csrf",
 } as const;
 
 export const CSRF_HEADER = "x-csrf-token";

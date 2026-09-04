@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { AuthUser, DomainSpec, HelpResponse } from "@pulse/contract";
+import type { AuthUser, DomainSpec, HelpResponse } from "@3f/contract";
 import { loadConfig } from "../config";
 import { DimensionValuesService } from "../core/dimension-values.service";
 import { SemanticLayer } from "../semantic/semanticLayer";
@@ -36,10 +36,10 @@ export class HelpService {
         timeframes: ["last 7 days", "last 30 days", "this month", "Jan-Mar 2026"],
         sampleQuestions: buildSampleQuestions(index),
       },
-      whatPulseWont: [
-        "Pulse gives you governed totals and summaries, not unrestricted source records.",
+      whatItWont: [
+        "3F gives you governed totals and summaries, not unrestricted source records.",
         "It only answers questions about configured data domains, not general knowledge.",
-        "It won't guess. If something isn't one of your approved metrics, Pulse tells you instead of making a number up.",
+        "It won't guess. If something isn't one of your approved metrics, 3F tells you instead of making a number up.",
         "You only ever see the data your access allows.",
       ],
       access: {

@@ -5,7 +5,7 @@ import type {
   MeasureSpec,
   ResultTable,
   Selection,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { ResponseClass, Selection } from "@pulse/contract";
+import type { ResponseClass, Selection } from "@3f/contract";
 import { DRIZZLE_DB } from "../config";
 import type { AppDb } from "../db/pool";
 import { auditEvents } from "../db/schema";

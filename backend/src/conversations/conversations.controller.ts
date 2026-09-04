@@ -18,7 +18,7 @@ import type {
   ConversationSummary,
   CreateConversationRequest,
   RenameConversationRequest,
-} from "@pulse/contract";
+} from "@3f/contract";
 import { AuthGuard, CurrentUser } from "../auth/auth.guard";
 import { zodApiBody } from "../common/openapi";
 import {

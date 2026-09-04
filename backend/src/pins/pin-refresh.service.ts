@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import type { AuthUser, Pin, PinSnapshot, ResultTable, Selection } from "@pulse/contract";
+import type { AuthUser, Pin, PinSnapshot, ResultTable, Selection } from "@3f/contract";
 import { and, eq } from "drizzle-orm";
 import { DRIZZLE_DB, loadConfig } from "../config";
 import type { AppDb } from "../db/pool";

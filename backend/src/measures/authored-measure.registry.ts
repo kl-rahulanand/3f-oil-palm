@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
-import type { MeasureSpec } from "@pulse/contract";
+import type { MeasureSpec } from "@3f/contract";
 import { desc, eq } from "drizzle-orm";
 import { DRIZZLE_DB } from "../config";
 import type { AppDb } from "../db/pool";

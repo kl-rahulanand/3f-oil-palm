@@ -63,6 +63,6 @@ export function classifySmalltalk(question: string): SmalltalkInfo | null {
   if (!isGreeting && !isCapability) return null;
   const definition = isCapability
     ? "I answer questions using the metrics and dimensions configured for your access. Try one of these:"
-    : "Hi! I'm Pulse — I answer questions about your configured data domains. Try one of these:";
+    : "Hi! I'm 3F — I answer questions about your configured data domains. Try one of these:";
   return { title: isCapability ? "What you can ask" : "Hello", definitionKind: "meta", definition, suggestedQuestions: SUGGESTIONS };
 }

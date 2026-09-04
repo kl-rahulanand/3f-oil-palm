@@ -1,4 +1,4 @@
-import type { ResultTable } from "@pulse/contract";
+import type { ResultTable } from "@3f/contract";
 
 export function applyKSuppression(
   result: ResultTable,

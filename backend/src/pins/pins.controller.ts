@@ -1,6 +1,6 @@
 ﻿import { BadRequestException, Body, Controller, Delete, Get, HttpStatus, NotFoundException, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { AuthUser, CreatePinRequest, Pin, UpdatePinViewRequest } from "@pulse/contract";
+import type { AuthUser, CreatePinRequest, Pin, UpdatePinViewRequest } from "@3f/contract";
 import { zodApiBody } from "../common/openapi";
 import { AuthGuard, CurrentUser, RequireAction } from "../auth/auth.guard";
 import { PinsService } from "./pins.service";

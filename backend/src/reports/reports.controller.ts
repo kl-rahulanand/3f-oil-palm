@@ -1,6 +1,6 @@
 ﻿import { BadRequestException, Body, Controller, Get, HttpStatus, Param, Post, UseGuards } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { AuthUser, ReportRunResult, ReportSummary } from "@pulse/contract";
+import type { AuthUser, ReportRunResult, ReportSummary } from "@3f/contract";
 import { AuthGuard, CurrentUser } from "../auth/auth.guard";
 import { ReportsService } from "./reports.service";
 import { reportIdParamSchema, runReportBodySchema } from "./reports.schemas";

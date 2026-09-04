@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "rebrand-pulse-to-3f final grill (committed tree): ready-to-close. Zero 'pulse' in product source (names + contents); @3f packages, 3f_* cookies, 3f-api/3f JWT, 3F Admin, threef app-db, whatItWont; provenance preserved; required tests pass; build/typecheck green (host); auth behaviour-preserving. Finalize: record grill, approve, bind, review, stage done, then push + PR to master?",
+      "options": [
+        "Yes \u2014 close + PR",
+        "Hold"
+      ],
+      "chosen": "Yes \u2014 close + PR"
+    }
+  ],
+  "at": "2026-09-04T05:33:10.433822+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}

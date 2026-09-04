@@ -1,4 +1,4 @@
--- Context is King: preserve Pulse's existing SQL names so this migration stays
+-- Context is King: preserve the vendored SQL names so this migration stays
 -- compatible with the intentionally unchanged auth/audit runtime schema.
 CREATE TABLE "users" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,

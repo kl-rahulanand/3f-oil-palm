@@ -7,7 +7,7 @@ import {
   createParamDecorator,
 } from "@nestjs/common";
 import type { Request } from "express";
-import type { AuthUser } from "@pulse/contract";
+import type { AuthUser } from "@3f/contract";
 import { SessionService } from "../core/session.service";
 import { RbacService } from "../core/rbac.service";
 import { AUTH_MESSAGES } from "./auth.constants";

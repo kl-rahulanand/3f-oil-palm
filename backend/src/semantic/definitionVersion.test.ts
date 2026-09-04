@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { MeasureSpec } from "@pulse/contract";
+import type { MeasureSpec } from "@3f/contract";
 import { computeDefinitionVersion } from "./definitionVersion";
 
 test("computeDefinitionVersion is stable for the same measures", () => {

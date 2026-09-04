@@ -19,7 +19,7 @@ import type {
   ConversationAnswerSnapshot,
   MeasureSpec,
   Selection,
-} from "@pulse/contract";
+} from "@3f/contract";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),

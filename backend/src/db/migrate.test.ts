@@ -22,9 +22,9 @@ test("default SEED_USERS is a placeholder email-based admin", () => {
 
   try {
     const cfg = loadConfig();
-    assert.equal(DEFAULT_SEED_USERS, "admin@example.invalid|Pulse Admin|admin");
+    assert.equal(DEFAULT_SEED_USERS, "admin@example.invalid|3F Admin|admin");
     assert.deepEqual(cfg.seedUsers, [
-      { email: "admin@example.invalid", displayName: "Pulse Admin", roles: ["admin"] },
+      { email: "admin@example.invalid", displayName: "3F Admin", roles: ["admin"] },
     ]);
   } finally {
     if (original === undefined) delete process.env.SEED_USERS;

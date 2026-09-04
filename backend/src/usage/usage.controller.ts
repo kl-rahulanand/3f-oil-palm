@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { AdminUsageRow, AdminUsageSeriesResponse } from "@pulse/contract";
+import type { AdminUsageRow, AdminUsageSeriesResponse } from "@3f/contract";
 import { AuthGuard, AdminGuard } from "../auth/auth.guard";
 import { UsageService } from "./usage.service";
 import { usageQuerySchema, usageSeriesQuerySchema } from "./usage.schemas";

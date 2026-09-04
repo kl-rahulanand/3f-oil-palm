@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import type { ResultTable } from "@pulse/contract";
+import type { ResultTable } from "@3f/contract";
 import { loadConfig } from "../config";
 import { applyKSuppression } from "./suppression";
 
