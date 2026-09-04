@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "PR-ready confirmation for rebrand-pulse-to-3f (committed tree, unchanged): ready-to-close, zero residual pulse, required tests pass, provenance intact. Seal PR-ready and open the PR to master?",
+      "options": [
+        "Yes \u2014 seal + PR",
+        "Hold"
+      ],
+      "chosen": "Yes \u2014 seal + PR"
+    }
+  ],
+  "at": "2026-09-04T05:45:21.728629+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
