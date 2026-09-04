@@ -76,8 +76,8 @@ self-matching and genuinely runs from repo root (decision 0009).
 - `npm run build:contract && npm run build:backend && npm run typecheck` all green (proves the
   @3f/* rename + every import resolves).
 - Required hermetic tests pass from repo root (decision 0009 form, negative-control checked):
-  - `"no Pulse product identifiers remain in backend and contract source"`
-    (`backend/src/branding.no-pulse.test.ts`) — scans backend/src + contract/src; forbidden
+  - `"backend and contract source declare only 3F product identifiers"`
+    (`backend/src/branding.identifiers.test.ts`) — scans backend/src + contract/src; forbidden
     literals built dynamically so the test doesn't self-match; excludes provenance (VENDORED_FROM
     is not under src).
   - `"blocked columns are rejected case-insensitively by leaf column name"`

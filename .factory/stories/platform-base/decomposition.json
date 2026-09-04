@@ -230,8 +230,8 @@
       ],
       "required_tests": [
         {
-          "id": "no Pulse product identifiers remain in backend and contract source",
-          "path": "backend/src/branding.no-pulse.test.ts",
+          "id": "backend and contract source declare only 3F product identifiers",
+          "path": "backend/src/branding.identifiers.test.ts",
           "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         },
         {
@@ -288,5 +288,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "bfe6b8400174c0a2286631ae33671e33f66f66e9"
+  "commit": "846b52fb93f988d8312bab340e162ab8f3812faf"
 }
