@@ -4,14 +4,15 @@
   "task_id": "rebrand-pulse-to-3f",
   "verdict": "pass",
   "decision": "keep",
-  "summary": "Task grill of rebrand-pulse-to-3f over three fresh read-only Codex (gpt-5.6-terra @ xhigh) cold-reads (a mid-session Homebrew simdutf upgrade broke the node/codex toolchain between rounds; repaired via brew reinstall node merve node@22). The cold-reads expanded the rename map from source: found the JWT AUDIENCE is 'pulse' (not 'pulse-api'), plus omitted identifiers (Swagger title 'Pulse API', backend/Dockerfile @pulse/backend, app-db pulse db/user, whatPulseWont contract field, chat greeting, Pulse source comments incl. the 0000_auth_audit.sql header, the AUTH_JWT_SECRET dev fallback) and ~10 test-file @pulse/contract imports + assertions ('Pulse Admin', literal cookie names, JWT iss/aud, swagger title). Final sweep: no unmapped Pulse product identifier remains; provenance (VENDORED_FROM, decision 0008, vendored-origin prose) correctly preserved and out of scope. Ready to delegate.",
+  "summary": "Rebrand is complete + committed (all Pulse product identifiers -> 3F: packages/imports, cookies 3f_*, JWT issuer 3f-api + audience 3f, swagger 3F API, seed 3F Admin, app-db threef, whatItWont field, chat/help strings; provenance preserved; live login verified with 3f_* cookies). Final follow-on: eliminate the SOLE remaining 'pulse' literal in product source \u2014 the guard test's filename (branding.no-pulse.test.ts) + title. Contract updated to the pulse-free id/path (backend/src/branding.identifiers.test.ts). A fresh read-only Codex cold-read confirmed: required_test id/path agree across plan+decomposition; the rename is behaviour-identical (only filename + title() string change; the dynamic /pulse/i regex + scan logic unchanged); after the rename a raw case-insensitive scan of backend/src+contract/src filenames AND contents is empty; rename-map integrity + provenance intact.",
   "gaps": [],
   "contradictions": [],
   "resolutions": [
     "JWT wire names corrected: issuer 'pulse-api' -> '3f-api' AND audience 'pulse' -> '3f' on all three session.service sign/verify sites (audience was 'pulse', not 'pulse-api')",
     "Added omitted product identifiers to the map: Swagger title 'Pulse API' -> '3F API' (+swagger.test), backend/Dockerfile @pulse/backend, app-db pulse -> threef (SQL-safe, not '3f') in docker-compose + config.ts fallbacks, AUTH_JWT_SECRET fallback 'pulse-local-dev-auth-secret' -> '3f-local-dev-auth-secret', whatPulseWont -> whatItWont (contract + help.service), chat greeting 'I'm Pulse' -> 'I'm 3F', and non-provenance source comments (rbac.service, grants.controller, contract/rbac, 0000_auth_audit.sql header)",
     "Tests to update enumerated: @pulse/contract -> @3f/contract across ~10 *.test.ts; migrate.test 'Pulse Admin' -> '3F Admin'; auth.controller.test literal 3f_* cookie assertions; session.service.test 3f-api issuer + 3f audience on both token types; swagger.test '3F API' title",
-    "no-Pulse scan test must build forbidden literals dynamically (avoid self-match) and exclude provenance; contract @3f resolution proven by build:backend/typecheck; live mock-OTP login with renamed cookies/JWT is demonstrated evidence"
+    "no-Pulse scan test must build forbidden literals dynamically (avoid self-match) and exclude provenance; contract @3f resolution proven by build:backend/typecheck; live mock-OTP login with renamed cookies/JWT is demonstrated evidence",
+    "Final: rename the no-Pulse guard test file backend/src/branding.no-pulse.test.ts -> branding.identifiers.test.ts and its title -> 'backend and contract source declare only 3F product identifiers' so product source (names + contents) has ZERO 'pulse' literal; behaviour-identical (dynamic forbidden-literal regex + scan unchanged)"
   ],
   "open_items": [],
   "inspected_refs": [
@@ -36,20 +37,20 @@
   "citations": [],
   "rounds": [
     {
-      "question": "Rebrand grill converged (ready-to-delegate). The rename map covers: @pulse/*\u2192@3f/* packages+imports, auth cookies pulse_*\u21923f_* + JWT issuer/audience, Swagger title, seed name, app-db\u2192threef, JWT-secret fallback, whatPulseWont\u2192whatItWont contract field, chat greeting, help/glossary/comments; provenance (VENDORED_FROM, decision 0008) preserved. Delegate to Codex?",
+      "question": "The last 'pulse' in the code is the guard test's filename + title. I've updated the contract to a pulse-free name (backend/src/branding.identifiers.test.ts, test 'backend and contract source declare only 3F product identifiers'); the grill confirms the rename is behaviour-identical and will make a raw 'pulse' grep over source empty. Delegate the rename to finish?",
       "options": [
-        "Delegate to Codex",
+        "Delegate the rename + close",
         "Adjust first"
       ],
-      "chosen": "Delegate to Codex",
+      "chosen": "Delegate the rename + close",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "5be6ba39cc46cd8fa51af52df405ea3204cbe905ececaed963294a4f11ee318e",
-  "task_plan_sha256": "bb4a92c043aa57cef04986870889df4bdcb567094c5029d3cba15c2612c1b3b4",
-  "recorded_at": "2026-09-03T10:34:55+00:00",
-  "commit": "bfe6b8400174c0a2286631ae33671e33f66f66e9",
-  "approved_task_plan_sha256": "bb4a92c043aa57cef04986870889df4bdcb567094c5029d3cba15c2612c1b3b4",
+  "input_sha256": "9575cabcc930d7175ebd94ff029585df07370533bd9ba3c1094e54653e0187ae",
+  "task_plan_sha256": "9e9515678dcc710757cebde4a4cc759c97ed38c8d0b66ad89b1aa15494528f24",
+  "recorded_at": "2026-09-04T05:11:51+00:00",
+  "commit": "5625e810b2924568948f56323997773c5ff2453d",
+  "approved_task_plan_sha256": "9e9515678dcc710757cebde4a4cc759c97ed38c8d0b66ad89b1aa15494528f24",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-03T10:35:04+00:00"
+  "approved_at": "2026-09-04T05:11:51+00:00"
 }
