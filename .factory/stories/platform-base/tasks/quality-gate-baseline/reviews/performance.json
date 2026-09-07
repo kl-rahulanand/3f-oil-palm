@@ -1,7 +1,7 @@
 {
   "generated_by": "autoreview",
   "score": 10,
-  "summary": "performance lens over quality-gate-baseline (16 product path(s), 982ed20..69b6080, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff implements the pinned root-level lint and formatting topology, bounded explicit test split, ordered CI aggregate, immutable workflow dependencies, and mechanical false-green controls. No actionable P0\u2013P2 performance defect or compatibility-only leftover is demonstrated by the provided evidence.",
+  "summary": "performance lens over quality-gate-baseline (16 product path(s), 982ed20..b8e357e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance defects are demonstrated by the supplied diff. The added checks perform bounded repository-scale work, avoid query or I/O fanout on production paths, and the repeated CI phases are required by the stated gate contract. The diff also contains no compatibility wrapper, alias, retained legacy branch, or similar blocking leftover.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -25,10 +25,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "e7e2af650996b8fdd1716af074a625a93d14f0d4899db1876e8cbd9cf206f176",
-  "brief_sha256": "cc7f8143873e0236a8cf3a14aaf504b815f432fb412e6285e4ae048b3a38a4ca",
-  "branch_diff_digest": "09229c09da1b806d0e44a7ec9e00917d4261f9eb653b453199bf0d73ffa40cd9",
+  "review_run_id": "728277e660cc7d7bc6536e7deeb3cc0a32ead40321bd6208ff54006db2d10ce1",
+  "brief_sha256": "f91f696f8f838249a17b23823d6b27846e2d33df0455c7bd8e9b344ade7fa90c",
+  "branch_diff_digest": "5fc7f64478c6d8f58f0ff97acf9b58f35d72904c72613dac1c578d2cac7dd2eb",
   "residual_risks": [],
-  "recorded_at": "2026-09-07T17:35:33+00:00",
-  "commit": "69b6080f4506ed88faacb2bf408b9f0b7bcdba5d"
+  "recorded_at": "2026-09-07T17:52:16+00:00",
+  "commit": "b8e357ea5a417cf71da82ef42d7aa60fdf1257ec"
 }

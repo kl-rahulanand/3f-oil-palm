@@ -1,10 +1,16 @@
 {
   "generated_by": "autoreview",
-  "score": 10,
-  "summary": "security lens over quality-gate-baseline (16 product path(s), 982ed20..69b6080, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defects are demonstrated by the supplied diff. The new CI workflow is verification-only, grants read-only contents permission, pins third-party actions to immutable commit SHAs, and introduces no credential handling or externally callable application surface. The command guard covers effective overrides and the declared command leaves, and the diff contains no compatibility wrapper, retained alias, or other blocking leftover.",
-  "blocking_findings": [],
+  "score": 7,
+  "summary": "security lens over quality-gate-baseline (16 product path(s), 982ed20..b8e357e, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The current commands appear correctly configured and the bundle exposes no concrete credential or authorization issue. However, the durability guard omits two runnable leaves in the structural command graph, permitting CI to report success after a workspace build has been disconnected. That false-green path violates the central gate contract and should block the patch.",
+  "blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "tools",
+      "summary": "[P1] Pin the intermediate workspace build scripts (tools/quality-gate.test.mjs:48): The guard pins `build` as a wrapper and pins each workspace's `build` body, but never asserts the root `build:contract` or `build:backend` scripts that connect them."
+    }
+  ],
   "non_blocking_findings": [],
-  "recommendation": "approve",
+  "recommendation": "request-changes",
   "reviewed_scope": [
     ".envrc",
     ".github/workflows/quality.yml",
@@ -25,10 +31,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "e7e2af650996b8fdd1716af074a625a93d14f0d4899db1876e8cbd9cf206f176",
-  "brief_sha256": "cc7f8143873e0236a8cf3a14aaf504b815f432fb412e6285e4ae048b3a38a4ca",
-  "branch_diff_digest": "09229c09da1b806d0e44a7ec9e00917d4261f9eb653b453199bf0d73ffa40cd9",
+  "review_run_id": "728277e660cc7d7bc6536e7deeb3cc0a32ead40321bd6208ff54006db2d10ce1",
+  "brief_sha256": "f91f696f8f838249a17b23823d6b27846e2d33df0455c7bd8e9b344ade7fa90c",
+  "branch_diff_digest": "5fc7f64478c6d8f58f0ff97acf9b58f35d72904c72613dac1c578d2cac7dd2eb",
   "residual_risks": [],
-  "recorded_at": "2026-09-07T17:35:33+00:00",
-  "commit": "69b6080f4506ed88faacb2bf408b9f0b7bcdba5d"
+  "recorded_at": "2026-09-07T17:52:16+00:00",
+  "commit": "b8e357ea5a417cf71da82ef42d7aa60fdf1257ec"
 }
