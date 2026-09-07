@@ -1,31 +1,20 @@
 {
   "generated_by": "autoreview",
-  "score": 6,
-  "summary": "quality lens over quality-gate-baseline (16 product path(s), 982ed20..e5afac7, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The declared command topology and CI workflow are present, but the workspace ESLint invocation makes the central TypeScript quality gate ineffective, and the structural mapping guard is not fully transitive.\nVERDICT t5-c1: partial \u2014 backend/package.json:9 workspace lint uses alternate-config path semantics that do not match the root-relative TypeScript patterns\nVERDICT t5-c2: implemented \u2014 .envrc:21 declares all four exact FACTORY command mappings and tools/quality-gate.test.mjs:263 validates their effective values\nVERDICT t5-c3: partial \u2014 .github/workflows/quality.yml:3 runs the aggregate on every push, but package.json:16 reaches workspace lint commands that do not apply the TypeScript configuration",
+  "score": 7,
+  "summary": "quality lens over quality-gate-baseline (16 product path(s), 982ed20..69b6080, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The lint, formatting, command mapping, hermetic-test split, and push-only CI mechanisms are implemented, but the required debt ledger is absent.\nVERDICT t5-c1: partial \u2014 .prettierignore:4 references D-0006, but the required plans/deferrals.md ledger update is missing\nVERDICT t5-c2: implemented \u2014 .envrc:23 declares the command graph validated by tools/quality-gate.test.mjs:258\nVERDICT t5-c3: implemented \u2014 package.json:16 covers both workspaces and .github/workflows/quality.yml:3 runs the aggregate on every push\nLEFTOVERS: no compatibility wrapper, alias, re-export, or dead legacy branch is introduced.",
   "blocking_findings": [
     {
-      "category": "bug",
-      "area": "backend",
-      "summary": "Workspace lint commands leave all TypeScript outside the ESLint configuration (backend/package.json:9): npm workspace scripts run from the workspace directory, but this command supplies `../eslint.config.mjs` through `--config`."
+      "category": "maintainability",
+      "area": ".prettierignore",
+      "summary": "Add the required debt-ledger entries for the exclusions (.prettierignore:4): The change references D-0006 here and deletes the Atlas test under D-0005, but the bundle contains no plans/deferrals.md update."
     },
     {
       "category": "plan-contract-partial",
       "area": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition",
       "summary": "t5-c1: backend and contract have ESLint + Prettier config and lint / format:check scripts that run clean; the pre-existing vendored source is excluded from FORMAT checking via a .prettierignore listing those exact files and ledgered as debt (D-0006), while tools/, the config files this task itself adds, and all newly written code are format-checked (executable MJS also linted), the harness-owned .github workflows are excluded because forge upgrade re-vendors them, and .envrc is validated semantically by the guard test rather than by ESLint or Prettier"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition",
-      "summary": "t5-c3: FACTORY_QUALITY_CMD covers every workspace that exists at this point (backend + contract) and product CI runs the equivalent aggregate on every push; the frontend is added by frontend-foundation"
     }
   ],
-  "non_blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "tools",
-      "summary": "Guard omits the structural build aliases from its pinned command graph (tools/quality-gate.test.mjs:47): `expectedScripts` pins `build`, which delegates to `build:contract` and `build:backend`, but does not pin either alias."
-    }
-  ],
+  "non_blocking_findings": [],
   "recommendation": "request-changes",
   "reviewed_scope": [
     ".envrc",
@@ -50,17 +39,17 @@
     {
       "contract_id": "t5-c1",
       "verdict": "partial",
-      "evidence": "backend/package.json:9 workspace lint uses alternate-config path semantics that do not match the root-relative TypeScript patterns"
+      "evidence": ".prettierignore:4 references D-0006, but the required plans/deferrals.md ledger update is missing"
     },
     {
       "contract_id": "t5-c2",
       "verdict": "implemented",
-      "evidence": ".envrc:21 declares all four exact FACTORY command mappings and tools/quality-gate.test.mjs:263 validates their effective values"
+      "evidence": ".envrc:23 declares the command graph validated by tools/quality-gate.test.mjs:258"
     },
     {
       "contract_id": "t5-c3",
-      "verdict": "partial",
-      "evidence": ".github/workflows/quality.yml:3 runs the aggregate on every push, but package.json:16 reaches workspace lint commands that do not apply the TypeScript configuration"
+      "verdict": "implemented",
+      "evidence": "package.json:16 covers both workspaces and .github/workflows/quality.yml:3 runs the aggregate on every push"
     },
     {
       "contract_id": "t1-c1",
@@ -129,10 +118,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "c41eb7d3dc76653a2250ab452560b38cfb374617bdfee692160fbb4d3a4adfc8",
-  "brief_sha256": "5bacb17d81b398b7f711fd461afdb0d889f6eb3f5fa38e00b4819daaddda75e7",
-  "branch_diff_digest": "7edb1a167238274afa26f2d689fa63aa2dc23c273fdbce344cc776f020ed231c",
+  "review_run_id": "e7e2af650996b8fdd1716af074a625a93d14f0d4899db1876e8cbd9cf206f176",
+  "brief_sha256": "cc7f8143873e0236a8cf3a14aaf504b815f432fb412e6285e4ae048b3a38a4ca",
+  "branch_diff_digest": "09229c09da1b806d0e44a7ec9e00917d4261f9eb653b453199bf0d73ffa40cd9",
   "residual_risks": [],
-  "recorded_at": "2026-09-07T17:16:41+00:00",
-  "commit": "e5afac7eca2f7edc5ab50a8fa7f4ee0c054b0e02"
+  "recorded_at": "2026-09-07T17:35:33+00:00",
+  "commit": "69b6080f4506ed88faacb2bf408b9f0b7bcdba5d"
 }
