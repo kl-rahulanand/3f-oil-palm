@@ -25,9 +25,9 @@ import uuid
 from pathlib import Path
 
 from factory_lib import (
-    clean_git_env, evidence_path, load_json, protected_decomposition_state_path,
+    clean_git_env, load_json, protected_decomposition_state_path,
     proof_path, repo_root, run_state_path, safe_factory_write_bytes,
-    schema_path, story_uses_scoped_layout, task_evidence_path,
+    schema_path, task_evidence_path,
 )
 
 from .common import fail
@@ -479,18 +479,15 @@ def cmd_review(args: argparse.Namespace) -> None:
     if not isinstance(story, str) or not story:
         fail("review requires an active story")
     # A task's proof lives under its own directory; the recorders resolve the
-    # owning task from the run pointer and write there, so a story-scoped-only
-    # lookup never sees it and refuses every review in a story that uses the
-    # current layout. Require task-scoped proof for a scoped story, and accept
-    # the story-scoped location ONLY for a genuine legacy story that predates
-    # task scoping — never as a general fallback, or task A could pass review on
-    # a story-scoped artifact that describes task B.
-    scoped = story_uses_scoped_layout(base, story)
+    # owning task from the run pointer and write there. Require exactly that:
+    # a story-scoped fallback would let one task pass review on a verify/tests
+    # artifact that describes another (the story-scoped path is a singleton the
+    # last task overwrote), so the review gate reads only the reviewed task's
+    # own proof. The original bug was reading the story path INSTEAD of the
+    # task path; the fix is to read the task path, not to also accept the story
+    # one.
     for artifact in ("verify.json", "tests.json"):
-        candidates = [task_evidence_path(base, story, args.id, artifact)]
-        if not scoped:
-            candidates.append(evidence_path(base, story, artifact))
-        if any(candidate.is_file() for candidate in candidates):
+        if task_evidence_path(base, story, args.id, artifact).is_file():
             continue
         fail(f"{artifact} is not recorded for {story}; review runs after "
              "`python3 factory/scripts/verify.py` and "
