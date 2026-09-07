@@ -1,7 +1,7 @@
 {
   "generated_by": "autoreview",
   "score": 10,
-  "summary": "performance lens over quality-gate-baseline (16 product path(s), 982ed20..85182a8, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff implements the required command graph, hermetic/DB test split, push-only read-only CI, formatting exclusions with baseline hashes, and negative controls without introducing an actionable performance defect. The repeated guard work is bounded to the verification suite, and no compatibility wrappers, aliases, retained legacy branches, or concrete security risks are shown.",
+  "summary": "performance lens over quality-gate-baseline (16 product path(s), 982ed20..5cf6c92, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance or security defects are demonstrated by the supplied diff. The added verification work is bounded to CI, the test split is explicit, and the change contains no compatibility wrapper, retained alias, or legacy branch that violates the blocking leftovers rule.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -25,10 +25,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "d5ab976cca8819795c0599c0ef0b5cf9d85fee2646f01e56975541b278309ff4",
-  "brief_sha256": "60b92b68cfa0d8bc3d404f0d43920dbc830cc7ab91f6fa014d0df0ac945c6690",
+  "review_run_id": "3a7d09a6e7204d97f56839451b51e145d31d490d29e58b2d7e07b7392b9ca1b5",
+  "brief_sha256": "2f7b1f25f2ebf29487adde3e44c244d83480c5bb9f15e072e6de633b6d3ec91e",
   "branch_diff_digest": "336e485bdde2f9066c32899d496bbe4387a27b7be1ce7aa679bab795983510ad",
   "residual_risks": [],
-  "recorded_at": "2026-09-07T18:08:13+00:00",
-  "commit": "85182a838c4cc1f403de6702d76e5fb87d2aa799"
+  "recorded_at": "2026-09-07T18:33:12+00:00",
+  "commit": "5cf6c92cc6cb44948abcb7f7e66ed5845c068154"
 }
