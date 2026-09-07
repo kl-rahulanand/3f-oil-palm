@@ -27,7 +27,7 @@ from pathlib import Path
 from factory_lib import (
     clean_git_env, evidence_path, load_json, protected_decomposition_state_path,
     proof_path, repo_root, run_state_path, safe_factory_write_bytes,
-    schema_path, task_evidence_path,
+    schema_path, story_uses_scoped_layout, task_evidence_path,
 )
 
 from .common import fail
@@ -478,16 +478,19 @@ def cmd_review(args: argparse.Namespace) -> None:
     story = state.get("issue_key") or state.get("story")
     if not isinstance(story, str) or not story:
         fail("review requires an active story")
-    # Task-scoped proof first, story-scoped as the legacy fallback — the same
-    # order check_task_proof.evidence uses. The recorders resolve the owning
-    # task from the run pointer and write under the task's own directory, so a
-    # story-scoped-only lookup never sees this task's proof and refuses every
-    # review in a story that uses the current layout.
+    # A task's proof lives under its own directory; the recorders resolve the
+    # owning task from the run pointer and write there, so a story-scoped-only
+    # lookup never sees it and refuses every review in a story that uses the
+    # current layout. Require task-scoped proof for a scoped story, and accept
+    # the story-scoped location ONLY for a genuine legacy story that predates
+    # task scoping — never as a general fallback, or task A could pass review on
+    # a story-scoped artifact that describes task B.
+    scoped = story_uses_scoped_layout(base, story)
     for artifact in ("verify.json", "tests.json"):
-        if any(candidate.is_file() for candidate in (
-            task_evidence_path(base, story, args.id, artifact),
-            evidence_path(base, story, artifact),
-        )):
+        candidates = [task_evidence_path(base, story, args.id, artifact)]
+        if not scoped:
+            candidates.append(evidence_path(base, story, artifact))
+        if any(candidate.is_file() for candidate in candidates):
             continue
         fail(f"{artifact} is not recorded for {story}; review runs after "
              "`python3 factory/scripts/verify.py` and "

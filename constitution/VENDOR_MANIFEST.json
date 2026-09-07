@@ -1,5 +1,5 @@
 {
-  "harness_commit": "f2dcada27b3b5fcd9fb13582be73e65dd6d7bf29",
+  "harness_commit": "17981a3b4295c6501571ec27d18e113dd816b852",
   "files": {
     "factory/scripts/check_agents_hygiene.py": "63b5db9b788ebc55d3542af506566ab8d45ba7c7f588a6f93e78d3811d0003c4",
     "factory/scripts/check_board_complete.py": "75022051af7cc2928039641ba2ef1a5f31e45e6b5c1651e15c2213cca6c6a7a0",
@@ -42,7 +42,7 @@
     "factory/scripts/forge_cli/quickfix.py": "a58e468d9cc8a89d7ffb45094807a05f4f275a2dbf88add9b827d6b854c59fb4",
     "factory/scripts/forge_cli/readiness.py": "7b18cacce293cce2e760c1c5ebdb8331d4ff5ca354f58e9a01a435a71b94882d",
     "factory/scripts/forge_cli/repo_kind.py": "427043c49817f650c77eb20dbc368914822e31e028a9bd1c5042ff64cd475c97",
-    "factory/scripts/forge_cli/review.py": "279de695bc57db9e00cca61c49a18b55cf55dc6fa3492e71d762db11a182d025",
+    "factory/scripts/forge_cli/review.py": "cbebeb164360fb07444fa3e12ee420999d6fedd92df57161966d5a8e629ad625",
     "factory/scripts/forge_cli/review_brief.py": "693a64b0509c4e765a71c64b1867c3b0b303bb08cce0431f43a0c7104e03af73",
     "factory/scripts/forge_cli/roadmap.py": "a8e659d83c0e24e64f76b16075836a7cd73114f379e8478664028366deed1e4d",
     "factory/scripts/forge_cli/sanitise.py": "f8fe1115caf6ed19a63d400ca8e9688e5b267e6f284f280969edace274300d91",
