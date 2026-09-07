@@ -151,12 +151,14 @@ The development team (foundation); indirectly every end user, via the running ap
   behind a keyboard-focusable toggle that reports `aria-expanded`, closes on Escape, and
   returns focus to the toggle.
 - **Deployment:** local, single-tenant, PoC-only; production readiness deferred (0011).
-- **Vendored API compliance:** the snapshot does not meet two constitution requirements —
-  a global exception handler (`07-exception-handling.md`) and structured JSON logging with
-  a `correlationId` (`05-logging-and-observability.md` §2.1) — and its typed response DTO
-  coverage is uneven. Accepted as a **time-bounded deviation** for the PoC (decision 0012,
-  deferral D-0004). "Harness machinery intact" is **not** a claim of full constitution
-  compliance. Swagger is already compliant and excluded from the deviation.
+- **Vendored API compliance:** a **global exception handler** (`07-exception-handling.md`)
+  and **structured JSON request/error logging** with a `correlationId`
+  (`05-logging-and-observability.md` §2.1) are **built** in platform-base (api-surface-trim),
+  per **decision 0013** — no longer deferred. Still deferred (decision 0012, now deferral
+  **D-0009**): complete typed response-DTO coverage across the vendored controllers, and
+  migrating the remaining ad-hoc `console` emitters in reconciliation/migration/pin-refresh
+  code to the shared logger (0013 scopes to HTTP request/error logging). Fresh code meets
+  full compliance. Swagger is already compliant and was never part of the deviation.
 
 ## Rules
 - Harness-owned files (factory, constitution, forge, harness) stay 3oilpalm's — do
