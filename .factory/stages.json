@@ -28,11 +28,11 @@
     {
       "id": "quality-gate-baseline",
       "title": "Repo-wide quality gate baseline (backend + contract lint/format, FACTORY_* commands)",
-      "status": "active",
+      "status": "done",
       "started_at": "2026-09-07T09:15:04+00:00",
       "base_sha": "982ed20b2d8ab6bd3f18dc2210492ba3c7ac0023",
       "dirty_at_start": {},
-      "task_sha256": "a27e94b2aacaee9ffd2403e0c8e24236c5d1e65278168dd2105c59f33e6fb961",
+      "task_sha256": "3761bbc980acad7200b1035fa77e87bb71321daaa39a0d3bbbe85c85dbdbe00b",
       "local_review_stamp": {
         "stage_id": "quality-gate-baseline",
         "task_sha256": "3761bbc980acad7200b1035fa77e87bb71321daaa39a0d3bbbe85c85dbdbe00b",
@@ -41,6 +41,12 @@
         "product_tree_digest": "92a9ff1e5cc2205fa35bfbbb10c77e44ace620b179da9cf5407b1d77bc79ccc6",
         "recorded_at": "2026-09-07T18:38:26+00:00",
         "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-07T18:38:58+00:00",
+      "contract_changed": {
+        "at": "2026-09-07T18:38:58+00:00",
+        "from": "a27e94b2aacaee9ffd2403e0c8e24236c5d1e65278168dd2105c59f33e6fb961",
+        "to": "3761bbc980acad7200b1035fa77e87bb71321daaa39a0d3bbbe85c85dbdbe00b"
       }
     },
     {
