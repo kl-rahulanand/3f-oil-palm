@@ -39,8 +39,8 @@
         "task_sha256": "7124eec5e26b754251bd4e45857fe258a93988c2aabb51ceb5a7a46edaf11bdc",
         "brief_sha256": "52c9d561df4639dc877799fc6007b01ec36f29ba604a6cffb9efbbdd517b9498",
         "base_sha": "9e3da3df38321256baf8e84767f71fa48e92b7ab",
-        "product_tree_digest": "fb7f8b915580935ef1e6246535992dc748a4c6b22dd04b41ff38d928e3c5f48e",
-        "recorded_at": "2026-09-07T21:09:18+00:00",
+        "product_tree_digest": "1fe2ba56a50e90583756b84c49ab04e87fe9cccd5588a3435b994efb239aa208",
+        "recorded_at": "2026-09-07T21:12:07+00:00",
         "generated_by": "autoreview"
       }
     },
