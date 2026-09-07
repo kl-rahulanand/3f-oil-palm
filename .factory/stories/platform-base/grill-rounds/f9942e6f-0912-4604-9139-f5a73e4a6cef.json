@@ -1,0 +1,32 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The approved plan splits the frontend into `frontend-foundation` (scaffold + theme + quality gate, no screens) then `frontend-shell-login` (shell + login UI). The recorded decomposition dropped the foundation task and merged both. How do we reconcile?",
+      "options": [
+        "Restore the split (Recommended)",
+        "Keep it merged, amend the plan"
+      ],
+      "chosen": "Restore the split (Recommended)"
+    },
+    {
+      "question": "The `_ds` tokens import Inter from Google, but no font files are in the repo. How should the frontend load it?",
+      "options": [
+        "Vendor Inter WOFF2 locally (Recommended)",
+        "next/font/google"
+      ],
+      "chosen": "Vendor Inter WOFF2 locally (Recommended)"
+    },
+    {
+      "question": "The shell design has a data-freshness pill, but this story has no ingested data and no freshness API. What should it show?",
+      "options": [
+        "Show it as unavailable (Recommended)",
+        "Omit the pill for now",
+        "Show the design's static value"
+      ],
+      "chosen": "Show it as unavailable (Recommended)"
+    }
+  ],
+  "at": "2026-09-07T05:40:13.466686+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

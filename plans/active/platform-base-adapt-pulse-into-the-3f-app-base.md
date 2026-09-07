@@ -16,6 +16,7 @@ decisions_reviewed:
   - 0009-required-tests-real-name-and-tsproject
   - 0010-rebrand-pulse-to-3f
   - 0011-deployment-readiness-poc-scope
+  - 0012-vendored-api-constitution-deviation
 ---
 
 # Plan — platform-base: Adapt Pulse into the 3F app base
@@ -30,16 +31,37 @@ Claude Design. This story unblocks the other six.
 ## Scope / Non-goals
 **In:** vendor Pulse `backend` + `contract` (strip MBS specifics); a Postgres
 warehouse adapter + validator dialect; backend boots + OTP auth on Postgres; a
-fresh frontend shell + OTP login (KnackLabs green, from the design); harness
-build/verify wiring.
+repo-wide lint/format/typecheck baseline; a constrained API surface (auth, CSRF,
+health only); a fresh frontend shell + OTP login (KnackLabs green, from the
+design); harness build/verify wiring.
 **Non-goals:** SAP ingestion, semantic layer/joins, the MIS screens, drill-down,
 assistant (later stories); BigQuery; multi-tenant; hardening beyond boot.
+The non-goals are enforced, not merely stated: the vendored capability modules
+(chat, reports, saved queries, pins, measures, conversations, admin) stay
+**unregistered** until their owning stories activate them, and every not-yet-built
+navigation target in the shell renders visibly unavailable rather than as a dead
+route.
 
 ## Acceptance Criteria
 - App builds + boots on the npm workspace (backend/frontend/contract).
-- Email+OTP login works; RBAC + append-only audit intact.
-- Frontend shell renders in KnackLabs green, branded 3F, per the Claude Design.
-- A Postgres warehouse adapter runs a trivial query end-to-end via the app.
+- Email+OTP login works; RBAC intact; audit is **application-enforced and
+  fail-closed** (append-only by construction in the app layer — database-level
+  immutability is deferred with the deployment hardening, decision 0011 / D-0003),
+  proven by the observable login audit row.
+- Only **auth, CSRF and an explicit health endpoint** are reachable on the API; the
+  capability modules whose tables the trimmed migration removed are not registered,
+  so an authenticated caller cannot reach a failing or misleading route.
+- Frontend shell renders in KnackLabs green, branded 3F, per the Claude Design:
+  exactly the five nav labels (`Dashboard`, `MIS Reports`, `Ask`, `Explore / Saved`,
+  `Admin`) with **only Dashboard active**, the other four and the top-bar search
+  visibly unavailable, and the data-freshness pill reading as **explicitly
+  unavailable** until the ingestion capability owns a real value.
+- A Postgres warehouse adapter runs a trivial query end-to-end via the app path
+  (`validate → explain → execute`) returning the expected fixture result — demonstrated
+  behind `WAREHOUSE_E2E=1`, with the pg field-OID → numeric mapping proven by a
+  hermetic unit test and a negative control (decision 0009).
+- A repo-wide quality gate (ESLint + Prettier + `tsc --noEmit`) covers **all three**
+  workspaces and is enforced by `verify.py`, not merely declared.
 - Harness intact: dual-runtime + vendor integrity clean; `verify.py` green.
 
 ## Technical Approach
@@ -56,12 +78,33 @@ assistant (later stories); BigQuery; multi-tenant; hardening beyond boot.
   needed for first boot (grill decision); the rest come back with the stories that
   need them.
 - **Auth:** keep Pulse email+OTP (mock OTP until SES), JWT cookies, RBAC, audit — as-is.
+  "Append-only audit" means **application-enforced, fail-closed inserts**: the app
+  never updates or deletes an audit row, and an audit write that cannot complete
+  fails the operation rather than passing silently. Database-level immutability
+  (triggers or a permission model refusing `UPDATE`/`DELETE`) is **not** built here —
+  it is production hardening, deferred with decision 0011 (D-0003).
+- **API surface:** the vendored `AppModule` registers Pulse's full capability set,
+  but the trimmed migration removed several of those tables — so those routes are
+  reachable and broken. Register **only auth, CSRF and an explicit health endpoint**;
+  leave chat, reports, saved queries, pins, measures, conversations and admin
+  **unregistered** until their owning stories bring them back with their tables. This
+  makes the non-goals real rather than aspirational, and delivers the "health" surface
+  the plan already promises.
+- **Quality gate, front-loaded:** ESLint + Prettier reach `backend/` and `contract/`
+  (which have neither today) and the four `FACTORY_*` commands `verify.py` reads are
+  declared in `.envrc` **before** the frontend is written, so the gate constrains the
+  new code as it lands instead of auditing it afterwards. The gate widens as the
+  frontend workspace appears; only the final whole-workspace proof stays in the last
+  task.
 - **Frontend:** a new **Next.js (App Router) + React + TS** package (`frontend/`,
   decision 0007) using **shadcn/ui on Tailwind**, themed with the KnackLabs `_ds`
   tokens ported from `docs/design/3F-Financial-MIS/_ds`; build the **app shell**
   (top bar, left nav) and **OTP login** from the approved design; consume the
   backend REST API. The `.dc.html` export is a design reference, not a runtime —
-  rebuild as React components.
+  rebuild as React components. **Inter is vendored**: the licensed WOFF2 files live
+  under `frontend/` with their OFL licence and load through `next/font/local`, so the
+  build and the running app make **no external font request** — the `_ds` export's
+  Google Fonts import is a design-reference artifact, not the runtime source.
 - **Harness:** point `harness.yaml` build/verify/test/lint at the workspace scripts
   so `verify.py` and the gates run against the vendored app.
 
@@ -89,14 +132,20 @@ fast, minimal Next config (over Jest). **ESLint + Prettier +
 `tsc --noEmit`** — the lint + format + type-check gate. The frontend uses
 `eslint-config-next`, run by each frontend task's `verify_commands` (stage-done
 enforcement); **backend + contract** get a base ESLint + Prettier config in the
-harness-wiring task (they have none today) so ALL touched TypeScript is linted+formatted.
-The repo-wide gate is wired into `verify.py` via `.envrc` `FACTORY_STRUCTURAL_CMD` /
-`FACTORY_TYPECHECK_CMD` / `FACTORY_QUALITY_CMD` / `FACTORY_TEST_CMD` (exact names read by
-`verify.py`) in the harness-wiring task. **`pg` (node-postgres)** — the Postgres driver
+**quality-gate-baseline task (T5)** — front-loaded, before any new code is written, so
+the gate constrains what lands rather than auditing it afterwards — so ALL touched
+TypeScript is linted+formatted. The repo-wide gate is wired into `verify.py` via `.envrc`
+`FACTORY_STRUCTURAL_CMD` / `FACTORY_TYPECHECK_CMD` / `FACTORY_QUALITY_CMD` /
+`FACTORY_TEST_CMD` (exact names read by `verify.py`) in T5, widened to the frontend in T7,
+and proven whole-workspace in T9. **`pg` (node-postgres)** — the Postgres driver
 behind `PostgresAdapter`: the standard, well-supported client already backing the
 vendored Drizzle stack, so reusing it avoids a second Postgres client. **TanStack Query v5**
 — server-state layer (me query + OTP/logout mutations) wrapping the `api.ts` transport.
-**next/font (Inter)** — self-hosted `_ds` token face, no external fetch.
+**`next/font/local` (Inter)** — the `_ds` token face served from **licensed WOFF2 files
+vendored under `frontend/`** with their OFL licence. `next/font/google` is deliberately
+rejected: it needs network at build time and the exact files can drift between builds.
+The `_ds` export's Google Fonts `@import` is a design-reference artifact — the runtime
+makes no external font request, and an offline production build is the proof.
 
 **Deployment (decision 0011):** platform-base is a **PoC** — local, single-tenant, mock
 OTP. Production deployment readiness (real SES email, provisioning, secrets, CORS
@@ -104,14 +153,23 @@ allowlist, audit retention/encryption, residency) and the constitution's
 `/deployment/<environment>` structure are **deliberately deferred** to a post-PoC story
 (deferral D-0003) — not built or scaffolded here.
 
+**Vendored API compliance (decision 0012):** the vendored backend does not meet two
+constitution requirements — a global exception handler (`constitution/07-exception-handling.md`)
+and structured JSON logging with a `correlationId` (`constitution/05-logging-and-observability.md`
+§2.1) — and its typed response DTO coverage is uneven. These are accepted as a
+**time-bounded deviation** for the PoC and ledgered as D-0004, revisited on the same
+trigger as 0011. The deviation covers the **vendored** code only: anything written fresh
+in this repo meets the standards as written. Swagger is **not** part of it — it is already
+mounted at `api/docs` with error responses documented, and stays compliant.
+
 ## Surface Impact
 | Surface | Class | Note |
 |---|---|---|
 | Runtime behavior | Changed | New app boots (backend API + frontend shell) |
-| API | Changed | Pulse REST endpoints vendored (auth, health); MBS-specific routes removed |
+| API | Changed | Surface deliberately **constrained** to auth + CSRF + an explicit health endpoint (T6); the vendored capability modules (chat, reports, saved queries, pins, measures, conversations, admin) stay unregistered until their owning stories, so no route is reachable without its tables |
 | Data / schema | Changed | Trimmed auth+audit migrations; a separate Postgres warehouse container |
-| CLI / ops | Changed | `harness.yaml` + `.envrc` build/verify wiring incl. the frontend lint/format/typecheck gate (T7); docker-compose (app DB + warehouse) |
-| UI | Changed | Fresh KnackLabs-green Next.js app — T5 builds the `_ds` theme + shadcn/ui primitives (foundation), T6 the shell + OTP login (TanStack Query) |
+| CLI / ops | Changed | Repo-wide lint/format/typecheck baseline + the four `FACTORY_*` `.envrc` commands land in T5 (front-loaded), widen to the frontend in T7, and are wired into `harness.yaml` and proven whole-workspace in T9; docker-compose (app DB + warehouse) |
+| UI | Changed | Fresh KnackLabs-green Next.js app — T7 builds the `_ds` theme + locally vendored Inter + shadcn/ui primitives (foundation), T8 the shell + OTP login (TanStack Query), with the four inactive nav items, the search box and the freshness pill all visibly unavailable |
 | Docs | Unchanged-by-design (planning reconciliation only) | Spec + architecture build-plan were reconciled to the accepted decisions during re-planning (0006/0008/0010/0011) — completed planning governance, NOT a story task output; no task carries `docs/` in its write_scope |
 | Tests | Changed | Vendored backend tests carried; add boot/login/query smoke tests + frontend Vitest+RTL hermetic tests and the lint/format/typecheck gate |
 
@@ -134,30 +192,61 @@ allowlist, audit retention/encryption, residency) and the constitution's
    `@3f/backend`, auth wire names `3f_*` + JWT `3f-api`/`3f`, seed/strings), behaviour
    preserving; provenance history preserved (decision 0010). depends_on: 1,2,3. write_scope:
    `backend/`, `contract/`, `package.json`, `package-lock.json`, `docker-compose.yml`.
-5. **frontend-foundation** (frontend, not user-facing) — scaffold the fresh Next.js
+5. **quality-gate-baseline** (ops, not user-facing) — establish the repo-wide quality
+   gate **before** new code is written: add ESLint + Prettier config and
+   `lint`/`format:check` scripts to **backend and contract** (they have neither today),
+   and declare the commands `verify.py` reads from `.envrc` under these exact names —
+   `FACTORY_STRUCTURAL_CMD` (build + workspace/vendor integrity), `FACTORY_TYPECHECK_CMD`
+   (contract + backend), `FACTORY_QUALITY_CMD` (ESLint + Prettier across the workspaces
+   that exist), `FACTORY_TEST_CMD` (backend tests). The frontend joins each command as
+   its workspace lands (T7). depends_on: 1,4. write_scope: `.envrc`, `package.json`,
+   `backend/` + `contract/` (lint/format config + scripts only).
+6. **api-surface-trim** (backend, not user-facing) — register **only** auth, CSRF and an
+   explicit health endpoint in `AppModule`; leave the vendored capability modules (chat,
+   reports, saved queries, pins, measures, conversations, admin) unregistered until their
+   owning stories restore them with their tables. Removes the reachable-but-broken routes
+   the trimmed migration left behind and delivers the health surface the plan promises.
+   `GET /health` is fresh code, so it returns a **typed, Swagger-documented** liveness
+   response (decision 0012's deviation covers vendored code only). Also fixes two inherited
+   defaults: (a) `config.ts` defaults `frontendOrigin` to `http://localhost:5173` (Vite,
+   from Pulse), which **CORS-rejects** credentialed calls from the Next dev server on
+   `:3000` — default it to `:3000`, keeping `FRONTEND_ORIGIN` as the override; (b)
+   `main.ts` calls `app.listen(port)` with **no host**, binding every interface — bind
+   `127.0.0.1` whenever `AUTH_OTP_MOCK` is on, so a known mock code (`000000`) and a
+   deterministic dev JWT secret are not an admin login for the whole local network.
+   Proof: a route-registration test comparing the **complete** method/path allow-list, and
+   a no-enumeration test (active / inactive / unknown emails return identical status and
+   body; unknown and inactive verification fail identically and yield no session).
+   depends_on: 3,4,5. write_scope: `backend/src/app.module.ts`, `backend/src/health/`,
+   `backend/src/config.ts`, `backend/src/main.ts`, `backend/test/`.
+7. **frontend-foundation** (frontend, not user-facing) — scaffold the fresh Next.js
    (App Router) `frontend/` npm workspace and its toolchain: the `_ds`-token Tailwind
-   theme, in-tree shadcn/ui primitives, and a stack-appropriate quality gate (ESLint
-   `eslint-config-next` + Prettier + `tsc --noEmit`) run by the task's `verify_commands`
-   plus a pinned, non-downloading Vitest runner. No app screens yet — the reviewable
-   foundation the shell/login builds on. depends_on: 1,4 (consumes `@3f/contract`,
-   decision 0010). write_scope: `frontend/`, `package.json`, `package-lock.json`.
-6. **frontend-shell-login** (frontend, **user_facing: true**) — the user-facing app
+   theme, **Inter vendored as local WOFF2 loaded via `next/font/local`** (no external
+   font request at build or runtime), in-tree shadcn/ui primitives, the TanStack Query
+   provider, and a stack-appropriate quality gate (ESLint `eslint-config-next` + Prettier
+   + `tsc --noEmit`) run by the task's `verify_commands` plus a pinned, non-downloading
+   Vitest runner; widen the `FACTORY_*` commands from T5 to include the frontend. No app
+   screens yet — the reviewable foundation the shell/login builds on. depends_on: 1,4,5
+   (consumes `@3f/contract`, decision 0010). write_scope: `frontend/`, `.envrc`,
+   `package.json`, `package-lock.json`.
+8. **frontend-shell-login** (frontend, **user_facing: true**) — the user-facing app
    shell (Deep Forest left nav + white top bar, branded 3F) + net-new email+OTP login
    wired to the backend auth API, per the Claude Design; server state via TanStack
-   Query over an `api.ts` transport (credentials + per-POST `3f_csrf` re-read).
-   depends_on: 5. write_scope: `frontend/`, `package.json`, `package-lock.json`.
+   Query over an `api.ts` transport (credentials + per-POST `3f_csrf` re-read). Exactly
+   five nav labels with only Dashboard active; the other four, the top-bar search and the
+   data-freshness pill all render visibly unavailable. depends_on: 6,7. write_scope:
+   `frontend/`, `package.json`, `package-lock.json`.
    (Design skills: emil-design-eng, frontend-design.)
-7. **harness-wiring** (ops, not user-facing) — establish the **repo-wide** quality gate
-   and declare the verify commands `verify.py` reads from `.envrc` (exact names):
-   `FACTORY_STRUCTURAL_CMD` (build + workspace/vendor integrity), `FACTORY_TYPECHECK_CMD`
-   (contract + backend + frontend), `FACTORY_QUALITY_CMD` (ESLint + Prettier across **all**
-   workspaces — frontend, backend, contract), `FACTORY_TEST_CMD` (backend AND frontend
-   tests). Add ESLint + Prettier config + `lint`/`format:check` scripts to **backend and
-   contract** (they have none today) so all touched TypeScript is linted+formatted, not
-   just the frontend; run vendor integrity in the structural command or as a distinct
-   proof; dual-runtime clean. depends_on: 1,2,3,4,5,6. write_scope: `harness.yaml`,
-   `.envrc`, `package.json`, `backend/` + `contract/` (lint/format config + scripts only),
-   `.github/` (project workflows only).
+9. **harness-wiring** (ops, not user-facing) — point `harness.yaml` at the workspace
+   scripts and prove the **whole-workspace** gate: `verify.py` green across structure,
+   typecheck, quality (ESLint + Prettier over frontend AND backend AND contract) and
+   tests (backend AND frontend). `FACTORY_STRUCTURAL_CMD` must **explicitly invoke both**
+   `check_dual_runtime.py` and `check_vendor_integrity.py` — `verify.py` runs only what the
+   `FACTORY_*` variables declare, so "harness intact" is otherwise unfalsifiable — and the
+   Pulse snapshot's provenance (`backend/VENDORED_FROM` naming repo + commit, decision
+   0008) is asserted separately from harness integrity. The gate itself was established in T5 and widened
+   in T7 — this task wires and proves it, it does not invent it. depends_on: 1,2,3,4,5,6,7,8.
+   write_scope: `harness.yaml`, `.envrc`, `.github/` (project workflows only).
 
 Every task traces to the acceptance criteria; no speculative tasks.
 
@@ -165,19 +254,32 @@ Every task traces to the acceptance criteria; no speculative tasks.
 - Vendoring drags MBS coupling → T1 strips domains/seeds; T3 smoke test proves boot.
 - Trimming migrations too aggressively could break auth/audit → T3 keeps the auth+audit set and boots against it before trimming further.
 - Postgres dialect gaps in node-sql-parser → T2 validates a real query, not a stub.
-- Frontend design fidelity → shadcn/ui themed by `_ds` tokens; design review on T6.
+- Frontend design fidelity → shadcn/ui themed by `_ds` tokens; design review on T8.
 - Layout mismatch — the vendored code uses npm workspaces (backend/frontend/contract),
   not the Nx layout `constitution/01-monorepo-standard.md` recommends. Deliberate,
-  documented deviation (avoids re-tooling the vendored snapshot, decision 0008); T7
+  documented deviation (avoids re-tooling the vendored snapshot, decision 0008); T9
   wires the actual workspace scripts into harness.yaml/.envrc.
+- Unregistering the capability modules (T6) could disturb auth, which shares the module
+  graph → the task keeps a route-registration test asserting auth + CSRF + health answer
+  and the removed routes 404, and the T3 login E2E is re-run before the task closes.
+- A promise of "no external font request" is easy to state and easy to break → T7 proves
+  it with an offline production build, not by inspection.
 
 ## Verify Plan
-- **Per task:** build + typecheck + relevant tests green; T2 runs a real Postgres
-  query; T3 login E2E (mock OTP); T4 rebrand proof (source pulse-free scan + build/
-  typecheck green under `@3f/*`); T5 the frontend quality gate (ESLint + Prettier +
-  `tsc --noEmit`) + a themed-primitive test + `build:frontend` green; T6 design review +
-  the shell renders in green + OTP login E2E + the user-facing functional check; T7
-  whole-workspace `verify.py` (structure, typecheck, quality lint+format, tests for
-  frontend AND backend) + dual-runtime + vendor integrity clean.
+- **Per task:** build + typecheck + relevant tests green; T2 the app-path query proof
+  (`validate → explain → execute` returning the fixture result, demonstrated behind
+  `WAREHOUSE_E2E=1`, plus the hermetic pg-OID → numeric mapping test with a negative
+  control); T3 login E2E (mock OTP) + the observable append-only login audit row;
+  T4 rebrand proof (build/typecheck green under `@3f/*` + a **product-identifier**
+  pulse-free scan that deliberately **excludes provenance records** — `VENDORED_FROM`,
+  `VENDOR_MANIFEST.json` and commit history retain "Pulse" by design, decision 0010);
+  T5 the backend+contract lint/format gate runs and `verify.py` reads all four
+  `FACTORY_*` commands; T6 the capability routes are gone and `/health` answers, proven
+  by a route-registration test; T7 the frontend quality gate (ESLint + Prettier +
+  `tsc --noEmit`) + a themed-primitive test + an **offline** `build:frontend` green
+  (no external font fetch); T8 design review + the shell renders in green + OTP login
+  E2E (successful verify → shell, logout → login) + the mobile drawer + the user-facing
+  functional check; T9 whole-workspace `verify.py` (structure, typecheck, quality
+  lint+format, tests for frontend AND backend) + dual-runtime + vendor integrity clean.
 - **Story:** the acceptance criteria demonstrated end-to-end — boot, OTP login, green
   shell, a Postgres query through the app, and a clean harness.

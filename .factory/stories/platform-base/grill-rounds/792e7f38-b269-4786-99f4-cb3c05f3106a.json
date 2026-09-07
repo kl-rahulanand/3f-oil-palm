@@ -1,0 +1,39 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The vendored AppModule still registers chat, reports, saved queries, pins, measures, conversations and admin routes \u2014 but the trimmed migration deliberately removed tables several of them need. An authenticated user can reach endpoints that are misleading or that fail. The plan also promises a \"health\" surface, but no health controller exists. What do we do?",
+      "options": [
+        "Register only auth + CSRF + health (Recommended)",
+        "Leave as vendored, record a deferral"
+      ],
+      "chosen": "Register only auth + CSRF + health (Recommended)"
+    },
+    {
+      "question": "The repo-wide quality gate is scheduled as the last task (T7), so the frontend would be built before `verify.py` can enforce lint/format/typecheck. The `.envrc` currently declares no quality command at all.",
+      "options": [
+        "Front-load it now (Recommended)",
+        "Leave it at T7 as planned"
+      ],
+      "chosen": "Front-load it now (Recommended)"
+    },
+    {
+      "question": "\"Append-only audit\" is an acceptance criterion, but what's built is application-enforced inserts \u2014 there's no database trigger or permission model stopping a direct UPDATE or DELETE. How should the criterion read?",
+      "options": [
+        "App-enforced for the PoC (Recommended)",
+        "Add DB-level immutability now"
+      ],
+      "chosen": "App-enforced for the PoC (Recommended)"
+    },
+    {
+      "question": "The vendored API doesn't meet several constitution requirements \u2014 typed response DTOs, complete Swagger error documentation, a /docs mount, structured logging, and global exception handling. The griller says \"vendor as-is\" isn't sufficient on its own.",
+      "options": [
+        "Record a time-bounded deviation (Recommended)",
+        "Do the narrow compliance work now"
+      ],
+      "chosen": "Record a time-bounded deviation (Recommended)"
+    }
+  ],
+  "at": "2026-09-07T06:54:53.432724+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
