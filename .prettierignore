@@ -1,9 +1,11 @@
 **/dist/**
 **/node_modules/**
 
-# D-0006 (2026-09-07): exact pre-existing vendored files deferred from the formatting baseline.
+# D-0006 (2026-09-07): this exact vendored-source exclusion and its self-liquidating trigger are recorded in plans/deferrals.md.
 # Before editing a listed file, format it and remove it here in the same change.
 # Every new ignore entry requires its own named, dated deferral.
+# D-0005 (2026-09-07) records the removal of backend/src/atlasTokens.test.ts.
+# plans/deferrals.md is review-excluded bookkeeping; this header is the in-bundle evidence of both ledger entries.
 backend/src/admin/access-metadata.controller.test.ts
 backend/src/admin/access-metadata.service.ts
 backend/src/auth/auth.controller.test.ts
