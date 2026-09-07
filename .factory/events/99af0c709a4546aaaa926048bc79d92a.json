@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-07T09:28:08+00:00", "story": "platform-base", "detail": "Prettier --check flags at least 70 backend/contract source files, but source remediation is outside this task's write scope and the approved plan forbids both reformat-the-world and ignore-based false"}

@@ -25,8 +25,9 @@ import uuid
 from pathlib import Path
 
 from factory_lib import (
-    clean_git_env, evidence_path, load_json, protected_decomposition_state_path,
-    repo_root, run_state_path, safe_factory_write_bytes, schema_path,
+    clean_git_env, load_json, protected_decomposition_state_path,
+    proof_path, repo_root, run_state_path, safe_factory_write_bytes,
+    schema_path, task_evidence_path,
 )
 
 from .common import fail
@@ -477,11 +478,20 @@ def cmd_review(args: argparse.Namespace) -> None:
     story = state.get("issue_key") or state.get("story")
     if not isinstance(story, str) or not story:
         fail("review requires an active story")
+    # A task's proof lives under its own directory; the recorders resolve the
+    # owning task from the run pointer and write there. Require exactly that:
+    # a story-scoped fallback would let one task pass review on a verify/tests
+    # artifact that describes another (the story-scoped path is a singleton the
+    # last task overwrote), so the review gate reads only the reviewed task's
+    # own proof. The original bug was reading the story path INSTEAD of the
+    # task path; the fix is to read the task path, not to also accept the story
+    # one.
     for artifact in ("verify.json", "tests.json"):
-        if not evidence_path(base, story, artifact).is_file():
-            fail(f"{artifact} is not recorded for {story}; review runs after "
-                 "`python3 factory/scripts/verify.py` and "
-                 "`record_test_from_json.py --kind automated`")
+        if task_evidence_path(base, story, args.id, artifact).is_file():
+            continue
+        fail(f"{artifact} is not recorded for {story}; review runs after "
+             "`python3 factory/scripts/verify.py` and "
+             "`record_test_from_json.py --kind automated`")
 
     tip_sha = _require_git(base, "resolving HEAD", "rev-parse", "--verify", "HEAD^{commit}")
     base_sha = resolve_review_base(base, stage, state, tip_sha)
@@ -566,8 +576,13 @@ def cmd_review(args: argparse.Namespace) -> None:
         print(f"{lens:<12} score {artifact['score']:>2}  {artifact['recommendation']:<21}"
               f" blocking={len(artifact['blocking_findings'])} "
               f"non-blocking={len(artifact['non_blocking_findings'])}")
+    # Name where the recorder actually wrote, not where story-scoped proof used
+    # to live: proof_path puts a task's reviews under the task's own directory.
+    recorded_dir = proof_path(
+        base, story, "reviews", task_id=args.id, for_write=True,
+    ).relative_to(base)
     print(f"Recorded {len(outcome)} review artifact(s) for {args.id} under "
-          f".factory/stories/{story}/reviews/.")
+          f"{recorded_dir}/.")
     # These are instructions, not options. A coordinator that turns a review
     # finding into a menu for the human ("fix now / ship and defer / fix it
     # myself") is asking them to arbitrate something the harness has already

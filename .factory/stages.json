@@ -5,46 +5,49 @@
       "id": "vendor-backend-contract",
       "title": "Vendor Pulse backend + contract",
       "status": "done",
-      "started_at": "2026-09-02T10:13:13+00:00",
-      "base_sha": "247c9adb45c869ae81376540722daf3b4ef3059b",
-      "dirty_at_start": {},
-      "task_sha256": "1dcff396033659ec06017a1498bb6ceda283a038e95a292160f6ce54cba14a71",
-      "completed_at": "2026-09-02T10:33:29+00:00"
+      "task_sha256": "1dcff396033659ec06017a1498bb6ceda283a038e95a292160f6ce54cba14a71"
     },
     {
       "id": "postgres-warehouse-adapter",
       "title": "Postgres warehouse adapter",
       "status": "done",
-      "started_at": "2026-09-02T10:42:59+00:00",
-      "base_sha": "51ee67b463b7eaab2020c04814783214d495662b",
-      "dirty_at_start": {},
-      "task_sha256": "b58679c1d405fc7646ff4c0253a860f88ba9ee022caf13cca46eb0f797ad6136",
-      "completed_at": "2026-09-02T11:07:33+00:00"
+      "task_sha256": "b58679c1d405fc7646ff4c0253a860f88ba9ee022caf13cca46eb0f797ad6136"
     },
     {
       "id": "backend-boot-otp-auth",
       "title": "Backend boots + OTP auth on Postgres",
       "status": "done",
-      "started_at": "2026-09-02T12:04:11+00:00",
-      "base_sha": "f5243c8b59a79032cb4f19bba386e7add6dede1d",
-      "dirty_at_start": {},
-      "task_sha256": "9d6a19b424e3d4b4151cdd9f7b11800980f3506277da6f797c006c17f92b6fe2",
-      "completed_at": "2026-09-02T12:32:18+00:00"
+      "task_sha256": "9d6a19b424e3d4b4151cdd9f7b11800980f3506277da6f797c006c17f92b6fe2"
     },
     {
       "id": "rebrand-pulse-to-3f",
       "title": "Rebrand product identifiers Pulse -> 3F",
       "status": "done",
-      "started_at": "2026-09-03T10:35:04+00:00",
-      "base_sha": "d053fe0224e8506728f3d71bd9710cb1ae4b9a4e",
-      "dirty_at_start": {},
-      "task_sha256": "8d9a965642a15b2d7acd244bbff8b794fc9921e1c93d185b74551ae09ae0572a",
-      "completed_at": "2026-09-04T05:38:16+00:00"
+      "task_sha256": "8d9a965642a15b2d7acd244bbff8b794fc9921e1c93d185b74551ae09ae0572a"
     },
     {
       "id": "quality-gate-baseline",
       "title": "Repo-wide quality gate baseline (backend + contract lint/format, FACTORY_* commands)",
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-09-07T09:15:04+00:00",
+      "base_sha": "982ed20b2d8ab6bd3f18dc2210492ba3c7ac0023",
+      "dirty_at_start": {},
+      "task_sha256": "3761bbc980acad7200b1035fa77e87bb71321daaa39a0d3bbbe85c85dbdbe00b",
+      "local_review_stamp": {
+        "stage_id": "quality-gate-baseline",
+        "task_sha256": "3761bbc980acad7200b1035fa77e87bb71321daaa39a0d3bbbe85c85dbdbe00b",
+        "brief_sha256": "87bc73ace616648dd344f2379e5cfe2315920c50c48a5558060436d3d17185bd",
+        "base_sha": "982ed20b2d8ab6bd3f18dc2210492ba3c7ac0023",
+        "product_tree_digest": "92a9ff1e5cc2205fa35bfbbb10c77e44ace620b179da9cf5407b1d77bc79ccc6",
+        "recorded_at": "2026-09-07T18:38:26+00:00",
+        "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-07T18:38:58+00:00",
+      "contract_changed": {
+        "at": "2026-09-07T18:38:58+00:00",
+        "from": "a27e94b2aacaee9ffd2403e0c8e24236c5d1e65278168dd2105c59f33e6fb961",
+        "to": "3761bbc980acad7200b1035fa77e87bb71321daaa39a0d3bbbe85c85dbdbe00b"
+      }
     },
     {
       "id": "api-surface-trim",

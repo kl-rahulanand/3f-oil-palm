@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-07T14:41:20+00:00", "story": "platform-base", "detail": "S-0012-f90b: Decided by the human 2026-09-07, ledgered as D-0008. FACTORY_TEST_CMD runs the HERMETIC backend tests plus the guard. The 42 DB-dependent tests across 8 files are excluded from the automated gate and "}

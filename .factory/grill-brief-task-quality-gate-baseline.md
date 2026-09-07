@@ -331,6 +331,7 @@ downstream implementation inherits whatever you let through.
 The plan must design AROUND these. A plan that ignores one is not merely unlucky later — it is wrong now, and saying so is part of this read.
 
 - A required_tests entry must name a REAL leaf test (id = the string in test("...")), not the file path, and must pin TS_NODE_PROJECT=backend/tsconfig.json because forge runs it from repo root; otherwise junit-run's --test-name-pattern matches nothing and ts-node skips the workspace tsconfig, so the gate reports pass without running assertions. Always verify with a negative control (a required test whose negative control cannot fail is not proof).
+- A plan_contract clause requiring evidence in plans/, .factory/, or docs/decisions/ cannot be verified by forge review, which excludes those paths (HARNESS_PREFIXES). The quality lens flip-flopped 10/10/7 on t5-c1's 'ledgered as debt (D-0006)' clause because the deferral IS recorded in plans/deferrals.md, which the reviewer structurally cannot see. Keep bookkeeping (deferral ledgering) in the ledger, not in a code-review plan_contract; contracts assert only code behaviour visible in the diff.
 
 ## The artifact under interrogation (task plan quality-gate-baseline)
 
@@ -363,26 +364,41 @@ Scope is the baseline for the workspaces that exist **now**. `frontend-foundatio
 each command to the frontend; `harness-wiring` widens the same CI workflow and re-proves it.
 
 ## Write scope
-`.envrc`, `package.json`, `package-lock.json`, `backend/package.json`,
-`backend/eslint.config.mjs`, `contract/package.json`, `contract/eslint.config.mjs`,
-`.prettierrc.json`, `.prettierignore`, `tools/quality-gate.test.mjs`,
-`.github/workflows/quality.yml`, and deletion of `backend/src/atlasTokens.test.ts`.
+`.envrc`, `package.json`, `package-lock.json`, `eslint.config.mjs`, `.prettierrc.json`,
+`.prettierignore`, `backend/package.json`, `contract/package.json`,
+`tools/quality-gate.test.mjs`, `tools/junit-run.mjs`, `tools/junit-run.test.mjs`,
+`.github/workflows/quality.yml`, `plans/deferrals.md` (the D-0005/D-0006 ledger this task's
+contract requires), and deletion of `backend/src/atlasTokens.test.ts`.
 
 ## Decisions (tooling — conduct §9: no silent defaults)
 - **ESLint + Prettier** — one linter and one formatter for all three workspaces, so there
   is a single mental model and one set of editor integrations. Confirmed in the approved
   plan; best-fit over Biome, whose weaker Next.js rule coverage would split the toolchain
   when the frontend lands.
-- **Packages in ROOT `devDependencies`**, pinned in `package-lock.json` — one toolchain,
+- **Minimal dependency set: `eslint`, `prettier`, `typescript-eslint`** (the last is the
+  parser ESLint needs for TypeScript). `@eslint/js` was installed during the host-side
+  unblock and is now ADOPTED deliberately (human decision 2026-09-07): the config builds on
+  `js.configs.recommended` as its base — a maintained obvious-error set rather than a
+  hand-rolled list — with `typescript-eslint` layered for TypeScript parsing. The package
+  earns its place; this is settled, not left to the implementer.
+  Packages live in ROOT `devDependencies`, pinned in `package-lock.json` — one toolchain,
   not per-package copies. The lockfile is in scope; an install that leaves it unstaged is
   an incomplete change.
-- **One named root Prettier config** (`.prettierrc.json`) invoked explicitly by the
-  scripts. Prettier has no workspace `extends` convention, so the config **governs** both
-  workspaces by being the one the scripts point at — it is not inherited.
+- **One named root Prettier config** (`.prettierrc.json`) and **one root flat ESLint
+  config** (`eslint.config.mjs`), both invoked explicitly by the scripts. Prettier has no
+  workspace `extends` convention, so the config **governs** by being the one the scripts
+  point at. A single root ESLint config covers `backend/src`, `contract/src`,
+  `contract/test` and `tools/` — `tools/quality-gate.test.mjs` belongs to no workspace, so
+  per-workspace configs would leave "tools is linted" an implementer guess, and a third
+  special-case config is worse than one root config that matches the root-owned dependency
+  decision.
 - **Conservative, syntax-only ESLint** — parse/syntax correctness and obvious errors;
   stylistic and type-aware rules OFF. The vendored tree contains explicit `any` usages and
   `console` suppressions, so a "recommended TypeScript baseline" would either demand broad
   rewrites or be weakened until it reports nothing. Both defeat the purpose.
+- **`quality.yml` is a VERIFICATION workflow, not deployment.** No deploy step, no
+  credentials, no environments, no infrastructure — decision 0011 still defers deployment
+  and CD entirely. Stated so a later reader does not correctly refuse it as deferred work.
 - **CI runs a product-owned aggregate, not `verify.py`** — `npm run verify:ci` executes the
   same four command bodies directly. `verify.py` needs factory run state CI does not have,
   and neither fabricating that state nor patching harness machinery is acceptable.
@@ -401,7 +417,7 @@ flowchart TD
   F --> H["structural: build + dual-runtime + vendor integrity"]
   F --> I["typecheck: both workspaces --noEmit"]
   F --> J["quality: root lint + format:check"]
-  F --> K["tests: backend suite + this guard"]
+  F --> K["tests: HERMETIC backend subset + this guard<br/>(DB tests are host evidence, D-0008)"]
   G --> H
   H --> L["green"]
   I --> L
@@ -412,16 +428,37 @@ flowchart TD
 ```
 
 ## Approach
-1. **Lint + format config** — an ESLint flat config per workspace covering
-   `backend/src/**`, `contract/src/**` **and `contract/test/**`** (that directory ships but
+1. **Lint + format config** — ONE root flat ESLint config covering
+   `backend/src/**`, `contract/src/**`, **`contract/test/**`** and **`tools/**`** (that
+   contract directory ships but
    sits outside `src/`, so a `src`-only boundary would let "all touched TypeScript is
    linted" pass while a shipped test goes unchecked). Note: `contract/test` is outside the
    contract's `tsconfig` includes and has no runnable suite — that is D-0002's concern and
    stays deferred; this task lints and formats it, nothing more. `tools/quality-gate.test.mjs`
-   is **both linted and format-checked**.
+   is **both linted and format-checked**. So are the two pre-existing tools files,
+   `tools/junit-run.mjs` and `tools/junit-run.test.mjs` (203 lines of factory tooling we
+   own, not vendored product source): **format them** so the criterion stays literally true
+   — all `tools/` MJS is checked, no exclusion, no special case. They do **not** go on the
+   D-0006 list, which is for pre-existing backend/contract product source only. Formatting
+   is the only permitted change to them.
 2. **Scripts** — `lint` and `format:check` in each workspace manifest, plus root aggregates
-   that fan out via `npm -w` and explicitly include `tools/`. Both exit non-zero on
-   violation.
+   that fan out via `npm -w` and explicitly include `tools/` **and the config files this
+   task adds** (`eslint.config.mjs`, `.prettierrc.json`, the `package.json` files, and
+   `.github/workflows/quality.yml`) for format checking, with the executable MJS also
+   linted. **Do NOT use a blanket `.github/**/*.yml` glob:** `factory-scaffold.yml`,
+   `gardener.yml`, `harness-health.yml` and `roadmap-gate.yml` all fail Prettier today and
+   are harness-owned — `forge upgrade` replaces them wholesale, so formatting them is
+   discarded at the next upgrade and they are not ours to edit. List those four in
+   `.prettierignore` under their own header naming that reason, separate from the D-0006
+   product-source list.
+   **The D-0006 list must not become a permanent exemption.** Prettier ignores whole
+   *files*, and the list contains files `api-surface-trim` edits next (`config.ts`,
+   `main.ts`, `app.module.ts`, `warehouse/postgres.adapter.ts`), so new lines written there
+   would otherwise escape the "all new code is format-checked" claim. The `.prettierignore`
+   header states the binding precondition: **before any task edits a listed file, that task
+   formats it and removes it from the list in the same change**, and any new ignore entry
+   requires a named, dated deferral. That is what makes the list self-liquidating. Both exit
+   non-zero on violation.
 3. **Fix the typecheck guarantee** — root `typecheck` invokes both workspaces' own
    `tsc --noEmit`, never an emitting build; emitting stays in the build/structural command.
 4. **Remove `backend/src/atlasTokens.test.ts`** (D-0005). It cannot pass and its assertions
@@ -438,22 +475,45 @@ flowchart TD
    - `FACTORY_STRUCTURAL_CMD` → `npm run build` + `check_dual_runtime.py` + `check_vendor_integrity.py`
    - `FACTORY_TYPECHECK_CMD` → root `typecheck` (both workspaces, no-emit)
    - `FACTORY_QUALITY_CMD` → root `lint` + root `format:check`
-   - `FACTORY_TEST_CMD` → backend suite + this guard test
+   - `FACTORY_TEST_CMD` → the **hermetic** backend tests + this guard test. 42 tests across
+     8 files need a migrated Postgres app DB and are **excluded** — they run on the host
+     against docker-compose as demonstrated evidence (human decision, D-0008), the same
+     treatment signals S-0002..S-0005 received. Split them by an explicit naming convention
+     or declared file list, never a silent glob: a future DB-backed test must join the
+     excluded set deliberately, not by accident. Name the split in the `.envrc` comment and
+     in the guard so what CI does and does not enforce is legible.
 7. **`npm run verify:ci`** — a product-owned aggregate running those same four bodies, so
    CI proves the identical gate without factory state.
-8. **CI** (`.github/workflows/quality.yml`) — trigger on `push` (all branches), pin
-   **Node 20** and **Python 3.11**, run **`npm ci`** (ESLint/Prettier/TypeScript binaries do
+8. **CI** (`.github/workflows/quality.yml`) — **this task creates it**; `harness-wiring`
+   only widens its commands for the frontend and re-proves it. Trigger on `push` (all
+   branches) **and `push` only** — a `pull_request` trigger duplicates verification for
+   branch pushes with no stated benefit. Pin **Node 20** and **Python 3.11**, run **`npm ci`** (ESLint/Prettier/TypeScript binaries do
    not exist in a clean checkout otherwise), then `npm run verify:ci`. It must **not** set
    any `FACTORY_*` environment variable — a pre-set value silently replaces the `.envrc`
-   command.
+   command. Declare **`permissions: contents: read`** (without it the workflow inherits the
+   repository's default `GITHUB_TOKEN` scope, broader than a read-only checkout needs and at
+   odds with the verification-only claim), and pin every action to an **immutable commit
+   SHA** with the version in a trailing comment — floating tags are mutable third-party
+   dependencies in a workflow whose entire purpose is to be trustworthy.
 9. **The guard test** — `tools/quality-gate.test.mjs` asserts the four variables are
    declared and non-empty **and that each means what it claims**, by resolving the named
-   npm scripts to their bodies and checking the graph in step 6 (not a substring match —
+   npm scripts to their bodies **recursively, down to every runnable leaf** (root `lint`,
+   root `format:check`, and each workspace's own `lint`/`format:check` body). Pinning only
+   `FACTORY_QUALITY_CMD → quality → lint && format:check` is not enough: repointing root
+   `lint` at `echo lint` would leave that mapping and the guard green while ESLint never
+   runs. Pin every leaf the four claims rest on: **both** workspaces' `typecheck` bodies
+   (no-emit, not builds), the backend test body (so it cannot become a no-op), the
+   lint/format leaves, and lint `eslint.config.mjs` itself — it is executable MJS, and is
+   currently format-checked but not linted. For CI, finding a `push:` line is not enough:
+   **reject additional triggers and push branch filters**, so "every push, push only" is
+   falsifiable. It also validates `.envrc` **semantically** — `.envrc` is shell, which neither
+   ESLint nor Prettier parses, so nothing here claims they cover it. Checking the graph in
+   step 6 (not a substring match —
    `echo lint` must not pass). It also asserts `verify:ci` covers the same four bodies, and
    that no `FACTORY_*` override is set in the CI workflow.
 
 ## Acceptance criteria
-- backend and contract each have ESLint + Prettier config and lint / format:check scripts covering their src and test sources, and both run clean
+- backend and contract have ESLint + Prettier config and lint / format:check scripts that run clean; the pre-existing vendored source is excluded from FORMAT checking via a .prettierignore listing those exact files and ledgered as debt (D-0006), while tools/, the config files this task itself adds, and all newly written code are format-checked (executable MJS also linted), the harness-owned .github workflows are excluded because forge upgrade re-vendors them, and .envrc is validated semantically by the guard test rather than by ESLint or Prettier
 - the .envrc declares FACTORY_STRUCTURAL_CMD, FACTORY_TYPECHECK_CMD, FACTORY_QUALITY_CMD and FACTORY_TEST_CMD under those exact names, verify.py reads all four, and root verify.py is green
 - FACTORY_QUALITY_CMD covers every workspace that exists at this point (backend + contract) and product CI runs the equivalent aggregate on every push; the frontend is added by frontend-foundation
 
@@ -487,23 +547,32 @@ A test that cannot fail proves nothing.
 - `npm run build:contract && npm run build:backend && npm run typecheck` green, with
   `typecheck` no-emit for both workspaces.
 - `npm run lint && npm run format:check` green, each exiting non-zero on its own violation.
-- `npm test -w @3f/backend` green (it throws today on the absent frontend CSS).
+- `npm run test:hermetic` green — the hermetic backend subset plus the guard. It throws
+  today on the absent frontend CSS and on the cwd bug. The 42 DB-backed tests
+  (`test:db`) are demonstrated on the host against docker-compose, NOT in CI (D-0008).
 - `python3 factory/scripts/verify.py` green at the repo root, all four `FACTORY_*` commands
-  executed and none skipped.
+  executed and none skipped — recorded **with all four variables unset**
+  (`env -u FACTORY_STRUCTURAL_CMD -u FACTORY_TYPECHECK_CMD -u FACTORY_QUALITY_CMD -u FACTORY_TEST_CMD ...`),
+  because a pre-set value wins over `.envrc` and would produce a false local green. CI is
+  the enforced authority.
 - `npm run verify:ci` green, and observably green in CI on the task's own PR.
 - Required test passes from repo root with a matching, attributable JUnit testcase:
-  `node tools/junit-run.mjs --file tools/quality-gate.test.mjs --name "the four FACTORY commands are declared in .envrc and name scripts that exist" --report {report}`
+  `TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file tools/quality-gate.test.mjs --name "the four FACTORY commands are declared in .envrc and name scripts that exist" --report {report} --require ts-node/register`
+  (decision 0009's canonical form — a `.mjs` test does not exempt it)
   — negative-control checked against all three mapping failures.
 
 ## Manual Verification
 Steps a human runs to see it work, in order, with what they should observe:
 1. `npm run lint` → **observe** ESLint runs over backend and contract (including
    `contract/test`) and exits 0.
-2. `npm run format:check` → **observe** Prettier checks both workspaces plus
-   `tools/quality-gate.test.mjs` and exits 0.
-3. Add formatting-only drift (e.g. `const x   = 1`) to a backend source file, re-run both →
-   **observe** `format:check` fails and `lint` still passes (the ruleset is syntax-only by
-   design). Revert.
+2. `npm run format:check` → **observe** Prettier checks the configs, `tools/` and any new
+   code — and exits 0. Open `.prettierignore` → **observe** the vendored source exclusion
+   names its reason and D-0006.
+3. Add formatting-only drift (e.g. `const x   = 1`) to `tools/quality-gate.test.mjs`,
+   re-run both → **observe** `format:check` fails and `lint` still passes (the ruleset is
+   syntax-only by design). Revert. Then add the same drift to a vendored backend file →
+   **observe** `format:check` still passes, which is the ledgered exclusion working as
+   intended, not a bug.
 4. Introduce a parse error (e.g. a stray `{`), re-run both → **observe** `lint` fails.
    Revert.
 5. `npm test -w @3f/backend` → **observe** green. Before this task it throws reading
