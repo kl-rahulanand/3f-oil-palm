@@ -1,20 +1,31 @@
 {
   "generated_by": "autoreview",
-  "score": 7,
-  "summary": "quality lens over quality-gate-baseline (16 product path(s), 982ed20..4149184, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The quality gate itself is substantially implemented, but the selected change also introduces an explicitly legacy compatibility branch, which is blocking under the review contract.\nVERDICT t5-c1: partial \u2014 package.json:16 and .prettierignore:4 implement the lint/format baseline, but factory/scripts/forge_cli/review.py:490 introduces a prohibited compatibility fallback.\nVERDICT t5-c2: implemented \u2014 .envrc:20 declares the four pinned commands and tools/quality-gate.test.mjs:278 validates their effective mappings.\nVERDICT t5-c3: implemented \u2014 package.json:18 aggregates both workspaces and .github/workflows/quality.yml:4 runs the equivalent gate on every push.",
+  "score": 6,
+  "summary": "quality lens over quality-gate-baseline (16 product path(s), 982ed20..e5afac7, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The declared command topology and CI workflow are present, but the workspace ESLint invocation makes the central TypeScript quality gate ineffective, and the structural mapping guard is not fully transitive.\nVERDICT t5-c1: partial \u2014 backend/package.json:9 workspace lint uses alternate-config path semantics that do not match the root-relative TypeScript patterns\nVERDICT t5-c2: implemented \u2014 .envrc:21 declares all four exact FACTORY command mappings and tools/quality-gate.test.mjs:263 validates their effective values\nVERDICT t5-c3: partial \u2014 .github/workflows/quality.yml:3 runs the aggregate on every push, but package.json:16 reaches workspace lint commands that do not apply the TypeScript configuration",
   "blocking_findings": [
     {
-      "category": "maintainability",
-      "area": "factory/scripts/forge_cli",
-      "summary": "Remove the legacy evidence-location compatibility fallback (factory/scripts/forge_cli/review.py:490): This newly added branch deliberately retains the story-scoped evidence location for \u201clegacy\u201d stories after task-scoped proof replaced it."
+      "category": "bug",
+      "area": "backend",
+      "summary": "Workspace lint commands leave all TypeScript outside the ESLint configuration (backend/package.json:9): npm workspace scripts run from the workspace directory, but this command supplies `../eslint.config.mjs` through `--config`."
     },
     {
       "category": "plan-contract-partial",
       "area": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition",
       "summary": "t5-c1: backend and contract have ESLint + Prettier config and lint / format:check scripts that run clean; the pre-existing vendored source is excluded from FORMAT checking via a .prettierignore listing those exact files and ledgered as debt (D-0006), while tools/, the config files this task itself adds, and all newly written code are format-checked (executable MJS also linted), the harness-owned .github workflows are excluded because forge upgrade re-vendors them, and .envrc is validated semantically by the guard test rather than by ESLint or Prettier"
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition",
+      "summary": "t5-c3: FACTORY_QUALITY_CMD covers every workspace that exists at this point (backend + contract) and product CI runs the equivalent aggregate on every push; the frontend is added by frontend-foundation"
     }
   ],
-  "non_blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "tools",
+      "summary": "Guard omits the structural build aliases from its pinned command graph (tools/quality-gate.test.mjs:47): `expectedScripts` pins `build`, which delegates to `build:contract` and `build:backend`, but does not pin either alias."
+    }
+  ],
   "recommendation": "request-changes",
   "reviewed_scope": [
     ".envrc",
@@ -39,17 +50,17 @@
     {
       "contract_id": "t5-c1",
       "verdict": "partial",
-      "evidence": "package.json:16 and .prettierignore:4 implement the lint/format baseline, but factory/scripts/forge_cli/review.py:490 introduces a prohibited compatibility fallback."
+      "evidence": "backend/package.json:9 workspace lint uses alternate-config path semantics that do not match the root-relative TypeScript patterns"
     },
     {
       "contract_id": "t5-c2",
       "verdict": "implemented",
-      "evidence": ".envrc:20 declares the four pinned commands and tools/quality-gate.test.mjs:278 validates their effective mappings."
+      "evidence": ".envrc:21 declares all four exact FACTORY command mappings and tools/quality-gate.test.mjs:263 validates their effective values"
     },
     {
       "contract_id": "t5-c3",
-      "verdict": "implemented",
-      "evidence": "package.json:18 aggregates both workspaces and .github/workflows/quality.yml:4 runs the equivalent gate on every push."
+      "verdict": "partial",
+      "evidence": ".github/workflows/quality.yml:3 runs the aggregate on every push, but package.json:16 reaches workspace lint commands that do not apply the TypeScript configuration"
     },
     {
       "contract_id": "t1-c1",
@@ -118,10 +129,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "b1db57d357e29b6c72d7cfc75628da6726b81e6abcd9bbb3baa2e513f147d1ac",
+  "review_run_id": "c41eb7d3dc76653a2250ab452560b38cfb374617bdfee692160fbb4d3a4adfc8",
   "brief_sha256": "5bacb17d81b398b7f711fd461afdb0d889f6eb3f5fa38e00b4819daaddda75e7",
-  "branch_diff_digest": "6861998ea5efb688e98a9542957f2f664a8f009984104292bbffd90ecf8aa3c5",
+  "branch_diff_digest": "7edb1a167238274afa26f2d689fa63aa2dc23c273fdbce344cc776f020ed231c",
   "residual_risks": [],
-  "recorded_at": "2026-09-07T16:59:54+00:00",
-  "commit": "4149184cc6a090eeba0d7a6967d8d1a996e7eb05"
+  "recorded_at": "2026-09-07T17:16:41+00:00",
+  "commit": "e5afac7eca2f7edc5ab50a8fa7f4ee0c054b0e02"
 }

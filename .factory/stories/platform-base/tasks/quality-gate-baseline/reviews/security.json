@@ -1,12 +1,12 @@
 {
   "generated_by": "autoreview",
   "score": 7,
-  "summary": "security lens over quality-gate-baseline (16 product path(s), 982ed20..4149184, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The quality workflow has appropriately constrained permissions and immutable action pins, and the diff exposes no credentials or application-level security regression. However, it introduces a blocking compatibility fallback in the review gate, contrary to the brief's explicit no-leftovers requirement and weakening task-specific evidence binding for legacy stories.",
+  "summary": "security lens over quality-gate-baseline (16 product path(s), 982ed20..e5afac7, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The current commands and workflow are appropriately constrained, but the guard's conditional-block heuristic does not match verify.py's effective assignment semantics. A later FACTORY command override can therefore bypass the declared quality command while the guard remains green, violating the central gate contract.",
   "blocking_findings": [
     {
-      "category": "maintainability",
-      "area": "factory/scripts/forge_cli",
-      "summary": "[P1] Remove the legacy story-scoped evidence fallback (factory/scripts/forge_cli/review.py:491): When a story is classified as unscoped, this fallback accepts story-wide `verify.json` and `tests.json` in place of task-scoped evidence."
+      "category": "bug",
+      "area": "tools",
+      "summary": "Guard can ignore an effective FACTORY command override (tools/quality-gate.test.mjs:186): The parser treats any `if` line containing `VENDORED_FROM` as the inactive harness block."
     }
   ],
   "non_blocking_findings": [],
@@ -31,10 +31,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "b1db57d357e29b6c72d7cfc75628da6726b81e6abcd9bbb3baa2e513f147d1ac",
+  "review_run_id": "c41eb7d3dc76653a2250ab452560b38cfb374617bdfee692160fbb4d3a4adfc8",
   "brief_sha256": "5bacb17d81b398b7f711fd461afdb0d889f6eb3f5fa38e00b4819daaddda75e7",
-  "branch_diff_digest": "6861998ea5efb688e98a9542957f2f664a8f009984104292bbffd90ecf8aa3c5",
+  "branch_diff_digest": "7edb1a167238274afa26f2d689fa63aa2dc23c273fdbce344cc776f020ed231c",
   "residual_risks": [],
-  "recorded_at": "2026-09-07T16:59:54+00:00",
-  "commit": "4149184cc6a090eeba0d7a6967d8d1a996e7eb05"
+  "recorded_at": "2026-09-07T17:16:41+00:00",
+  "commit": "e5afac7eca2f7edc5ab50a8fa7f4ee0c054b0e02"
 }
