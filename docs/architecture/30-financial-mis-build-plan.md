@@ -83,13 +83,24 @@ generic (Dept/Function/Plant-driven) rather than a hard-coded nursery sheet.
   grouped by (plant, cost_center, gl_code, month) — one definition reused by the
   report, the drill-down, and (later) the chatbot.
 
-## Tech stack (harness baseline)
+## Tech stack (as adopted)
 
-Nx monorepo · NestJS API (`/api/v1`) · React web · Postgres + Prisma · Redis +
-BullMQ workers (ingestion) · Docker · OIDC auth (viewer vs mapping-admin). Excel
-in/out via `exceljs` in a worker. Warehouse engine stays **Postgres** for the PoC
-(BigQuery remains the deferred, evidence-based call). The generation engine is a
-NestJS module + Postgres views — no Cube, no new services.
+> This section was an early greenfield baseline. platform-base instead **adapts Pulse**
+> (decisions 0003/0006/0008), so the *as-built* stack below supersedes the original
+> baseline of "Nx · Postgres + Prisma · OIDC · `/api/v1`". Any future move to Nx, Prisma,
+> OIDC, or API versioning is a **deferred, separate decision** — not assumed here.
+
+**As adopted:** **npm workspaces** monorepo (`backend`, `contract`, fresh `frontend`;
+Nx deferred — decision 0008, `constitution/01-monorepo-standard.md` deviation) · NestJS
+API under `api/*` (e.g. `api/auth`; no `/api/v1` versioning yet) · **Next.js (App
+Router) + React** web (fresh from the Claude Design, decision 0007) · **Postgres +
+Drizzle** (not Prisma) · **email+OTP passwordless auth + RBAC** (vendored from Pulse;
+OIDC deferred) · Docker. Ingestion (Redis + BullMQ workers, Excel in/out via `exceljs`)
+arrives with the ingestion story. Warehouse engine stays **Postgres** for the PoC
+(BigQuery remains the deferred, evidence-based call). The generation engine is a NestJS
+module + Postgres views — no Cube, no new services. Production deployment readiness
+(SES, secrets/CORS, audit retention/encryption, residency, `/deployment/<env>`) is
+deferred (decision 0011).
 
 ## Milestones
 

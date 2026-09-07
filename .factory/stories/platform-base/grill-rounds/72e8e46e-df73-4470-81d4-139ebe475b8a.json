@@ -1,0 +1,32 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The fresh frontend needs a test runner plus a lint/format/type-check gate (there's none in the repo today). Conduct \u00a79 forbids silent tooling defaults \u2014 which stack for frontend/?",
+      "options": [
+        "Vitest+RTL, ESLint+Prettier",
+        "Jest+RTL, ESLint+Prettier",
+        "Vitest+RTL, Biome"
+      ],
+      "chosen": "Vitest+RTL, ESLint+Prettier"
+    },
+    {
+      "question": "Constitution 01 recommends Nx for JS/TS monorepos, but this repo uses npm workspaces (inherited from the vendored backend). How should the frontend workspace be added?",
+      "options": [
+        "Keep npm workspaces",
+        "Adopt Nx now"
+      ],
+      "chosen": "Keep npm workspaces"
+    },
+    {
+      "question": "The current single required test only checks 6-digit client validation \u2014 it can't catch wrong endpoints, stale CSRF, broken routing/logout, or an unreachable shell. How deep should the hermetic proof go?",
+      "options": [
+        "Expand hermetic coverage",
+        "Minimal hermetic + live evidence"
+      ],
+      "chosen": "Expand hermetic coverage"
+    }
+  ],
+  "at": "2026-09-04T09:47:13.289464+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}

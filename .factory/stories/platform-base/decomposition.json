@@ -254,7 +254,7 @@
     {
       "id": "frontend-shell-login",
       "title": "Fresh frontend shell + OTP login",
-      "objective": "Build a fresh Next.js (App Router) frontend \u2014 shadcn/ui + Tailwind themed by the KnackLabs _ds tokens \u2014 with the app shell (Deep Forest left nav + white top bar, branded 3F) and an email+OTP login wired to the backend auth API, faithful to the approved Claude Design.",
+      "objective": "Build a fresh Next.js (App Router) frontend \u2014 shadcn/ui + Tailwind themed by the KnackLabs _ds tokens, with TanStack Query for server state \u2014 with the app shell (Deep Forest left nav + white top bar, branded 3F) and an email+OTP login wired to the backend auth API, faithful to the approved Claude Design.",
       "dependencies": [
         "backend-boot-otp-auth",
         "rebrand-pulse-to-3f"
@@ -264,7 +264,66 @@
         "the Next.js app builds and the app shell (top bar + left nav) renders in KnackLabs green, branded 3F",
         "the OTP login screen works against the backend",
         "components use shadcn/ui + Tailwind themed by the _ds tokens, faithful to the Claude Design"
-      ]
+      ],
+      "write_scope": [
+        "frontend/",
+        "package.json",
+        "package-lock.json"
+      ],
+      "reviewer_focus": "LAW (cite, do not re-derive): constitution/09-agent-conduct.md \u2014 \u00a79 forbids silent tooling defaults, so the plan's Decisions section MUST justify every pick (Vitest + RTL + jsdom, ESLint eslint-config-next + Prettier, tsc --noEmit, next/font, TanStack Query v5, and npm-workspaces); \u00a72 forbids over-building. constitution/01-monorepo-standard.md \u2014 workspace + shared-contract structure; the npm-workspaces-vs-Nx choice is a DOCUMENTED deviation (Nx is the recommendation; the vendored backend is already an npm workspace, decision 0008), not a silent one. QUALITY GATE: a stack-appropriate lint + format + type-check gate (ESLint + Prettier + tsc --noEmit) is wired into verify_commands AND root scripts (lint:frontend, format:check:frontend, typecheck:frontend) \u2014 not merely a test runner; an absent gate fails review. FRESH Next.js App Router app (Next.js per decision 0007; built fresh from the approved Claude Design with no reuse of any vendored frontend, decision 0006); shadcn/ui owned in-tree + Tailwind themed ENTIRELY by the KnackLabs _ds tokens as CSS variables \u2014 NO hardcoded colors. SERVER STATE via TanStack Query v5 (me hydration as a query; OTP request/verify + logout as mutations) WRAPPING \u2014 not replacing \u2014 the api.ts fetch transport. Token fidelity: Deep Forest #0C3529 dark left nav; Emerald #1C6B49 on-light accent (buttons/links/focus); Mint #6AF1B0 dark-surface ONLY (never text/thin on light); Off-White #F4F7F6 canvas; White cards; Inter (56/36/26/20 / 17/14/13; 800/700/600/400); space 4..96; radius 6/10/14/999; btn 44px; container 1180. Shell matches the INTERACTIVE export (not the older artboards): Deep Forest left nav 200/62px + 3F header + user block, white 56px top bar (title, search, freshness pill, avatar), off-white canvas. Nav labels EXACTLY: Dashboard, MIS Reports, Ask, Explore / Saved, Admin ('Admin \u00b7 Mapping master' is a page title, not the nav label); only Dashboard is an active route \u2014 the other 4 render aria-disabled/non-navigable (no dead routes, no 'coming soon'), and the top-bar search is a DISABLED aria-disabled placeholder (no live-looking inert control) until a later capability owns search; later stories activate them. Login is NET-NEW but faithful to the token system (Deep Forest brand panel + Emerald two-step email->code). AuthUser is IMPORTED from @3f/contract (no duplicated shape). Auth wiring: fetch credentials:'include' to NEXT_PUBLIC_API_BASE_URL (default http://localhost:4000); routes are under /api/auth \u2014 GET /api/auth/csrf to bootstrap the 3f_csrf cookie, then on EVERY POST send Content-Type: application/json + JSON.stringify body + x-csrf-token = the CURRENT 3f_csrf cookie value read immediately before the request (the guard rotates it per mutating request \u2014 never cache); POST /api/auth/otp/request {email} -> POST /api/auth/otp/verify {email, code:/^\\d{6}$/} -> AuthUser; GET /api/auth/me hydrates; a me 401 clears auth state and redirects to /login; logout is an accessible user-block control -> POST /api/auth/logout -> /login. Uniform ack (no account enumeration) + invalid/expired-code errors handled in-voice. Accessibility: real <label>s, email autocomplete=email, code inputmode=numeric autocomplete='one-time-code' with client-side 6-digit validation, aria-live='polite' status/errors, focus moves to the code field after send; responsive (left nav -> off-canvas drawer on mobile with an accessible toggle); prefers-reduced-motion respected; button :active feedback; ease-out <=250ms. Dev/CORS: Next dev on :3000 requires backend FRONTEND_ORIGIN=http://localhost:3000; root gets build:frontend AND dev:frontend scripts + the frontend added to the npm workspace. Assistant/chatbot rail + MIS/drill-down screens OUT of scope. PROOF: the required hermetic tests must GENUINELY falsify a broken login/shell (not just 6-digit validation): the auth request sequence + per-POST 3f_csrf re-read, me-401->/login routing, and shell/nav rendering (5 exact labels, only Dashboard active) \u2014 each running from repo root against a LOCAL pinned Vitest (npm exec, never npx that could download) and emitting a JUnit <testcase> whose name matches the leaf id and whose file/classname resolve to the declared path (decision 0009 \u2014 verify with a negative control). Live login-against-backend + the functional check (user_facing) remain DEMONSTRATED EVIDENCE, not hermetic gates.",
+      "plan_contracts": [
+        {
+          "id": "t5-c1",
+          "statement": "the Next.js app builds and the app shell (top bar + left nav) renders in KnackLabs green, branded 3F",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        },
+        {
+          "id": "t5-c2",
+          "statement": "the OTP login screen works against the backend",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        },
+        {
+          "id": "t5-c3",
+          "statement": "components use shadcn/ui + Tailwind themed by the _ds tokens, faithful to the Claude Design",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "OTP login form validates a six-digit code before calling verify",
+          "path": "frontend/src/features/auth/login-form.test.tsx",
+          "command": "npm exec -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} -t {id} {path}"
+        },
+        {
+          "id": "auth client sends credentials and re-reads the 3f_csrf cookie on every mutating request",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} -t {id} {path}"
+        },
+        {
+          "id": "the app redirects to /login when the session check returns 401",
+          "path": "frontend/src/features/auth/session-guard.test.tsx",
+          "command": "npm exec -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} -t {id} {path}"
+        },
+        {
+          "id": "the app shell renders exactly the five nav labels with only Dashboard active",
+          "path": "frontend/src/components/shell/app-shell.test.tsx",
+          "command": "npm exec -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} -t {id} {path}"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run typecheck:frontend",
+        "npm run lint:frontend",
+        "npm run format:check:frontend",
+        "npm run build:frontend"
+      ],
+      "review_budget": {
+        "max_changed_files": 90,
+        "max_changed_lines": 5500,
+        "reason": "A fresh Next.js App Router frontend: npm-workspace + Tailwind/shadcn/TanStack Query/Vitest/ESLint+Prettier config, _ds token theme mapping, app-shell (nav + top bar) + net-new OTP login components, a fetch API client + query/mutation layer, and four hermetic component/client tests \u2014 a from-scratch scaffold far larger than the 8/400 default."
+      }
     },
     {
       "id": "harness-wiring",
@@ -288,5 +347,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "846b52fb93f988d8312bab340e162ab8f3812faf"
+  "commit": "a4eafb7c25d4074929cf24da3bad4d5827f4cd69"
 }

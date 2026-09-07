@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The grills flag that the spec promises production 'deploy-per-client' + real login/data-handling, but this is a PoC (decision 0001) running on mock OTP + local Postgres, with SES/provisioning/secrets/CORS/audit-retention/encryption/residency and the /deployment structure all unbuilt. How should we handle production-deployment readiness?",
+      "options": [
+        "Defer to a post-PoC decision",
+        "Address production readiness now"
+      ],
+      "chosen": "Defer to a post-PoC decision"
+    }
+  ],
+  "at": "2026-09-04T10:40:42.966809+00:00",
+  "session_id": "21c084f0-4822-4d39-844e-649dad7aaea0"
+}
