@@ -1,0 +1,142 @@
+{
+  "generated_by": "autoreview",
+  "score": 1,
+  "summary": "quality lens over quality-gate-baseline (16 product path(s), 982ed20..0da10ad, Codex via the autoreview skill at --max-priority P2): 3 blocking, 0 non-blocking. The lint, formatting, workspace aggregation, and push-only CI wiring are largely present, but the evidence guard has an effective-assignment bypass, the harness introduces a prohibited legacy proof fallback, and the required debt ledger changes are absent.\nVERDICT t5-c1: partial \u2014 .prettierignore:4 cites D-0006 without the required plans/deferrals.md ledger update\nVERDICT t5-c2: partial \u2014 tools/quality-gate.test.mjs:227 ignores later interpolated FACTORY assignments instead of modeling final effective values\nVERDICT t5-c3: implemented \u2014 .github/workflows/quality.yml:22 runs the product aggregate on the push-only workflow",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "factory/scripts/forge_cli",
+      "summary": "Remove the legacy story-scoped proof fallback (factory/scripts/forge_cli/review.py:486): When task-scoped evidence is absent, this fallback accepts story-scoped verify/tests artifacts instead."
+    },
+    {
+      "category": "bug",
+      "area": "tools",
+      "summary": "Treat every later FACTORY assignment as effective (tools/quality-gate.test.mjs:227): Assignments containing `$` are ignored rather than replacing the previously recorded value."
+    },
+    {
+      "category": "maintainability",
+      "area": ".prettierignore",
+      "summary": "Add the required debt-ledger updates (.prettierignore:4): The formatting exclusion cites D-0006, but the branch diff contains no plans/deferrals.md update for the required D-0005 and D-0006 entries or the corrected 71-file count."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition",
+      "summary": "t5-c1: backend and contract have ESLint + Prettier config and lint / format:check scripts that run clean; the pre-existing vendored source is excluded from FORMAT checking via a .prettierignore listing those exact files and ledgered as debt (D-0006), while tools/, the config files this task itself adds, and all newly written code are format-checked (executable MJS also linted), the harness-owned .github workflows are excluded because forge upgrade re-vendors them, and .envrc is validated semantically by the guard test rather than by ESLint or Prettier"
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition",
+      "summary": "t5-c2: the .envrc declares FACTORY_STRUCTURAL_CMD, FACTORY_TYPECHECK_CMD, FACTORY_QUALITY_CMD and FACTORY_TEST_CMD under those exact names, verify.py reads all four, and root verify.py is green"
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".envrc",
+    ".github/workflows/quality.yml",
+    ".prettierignore",
+    ".prettierrc.json",
+    "backend/package.json",
+    "backend/src/atlasTokens.test.ts",
+    "constitution/VENDORED_FROM",
+    "constitution/VENDOR_MANIFEST.json",
+    "contract/package.json",
+    "eslint.config.mjs",
+    "factory/scripts/forge_cli/review.py",
+    "package-lock.json",
+    "package.json",
+    "tools/junit-run.mjs",
+    "tools/junit-run.test.mjs",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t5-c1",
+      "verdict": "partial",
+      "evidence": ".prettierignore:4 cites D-0006 without the required plans/deferrals.md ledger update"
+    },
+    {
+      "contract_id": "t5-c2",
+      "verdict": "partial",
+      "evidence": "tools/quality-gate.test.mjs:227 ignores later interpolated FACTORY assignments instead of modeling final effective values"
+    },
+    {
+      "contract_id": "t5-c3",
+      "verdict": "implemented",
+      "evidence": ".github/workflows/quality.yml:22 runs the product aggregate on the push-only workflow"
+    },
+    {
+      "contract_id": "t1-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t1-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t1-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "66142d8bdbc5899807999abc966093c119ee771efe4a6db96d4f296fe468be57",
+  "brief_sha256": "78f1efa89a156409dff2a32f9f185d5bfba1942b30848e9428f2980d80b67114",
+  "branch_diff_digest": "7cb87560f1d9bb12e791bd546faa32befcb2aab0a6fb4e7a7589bfb636fd0942",
+  "residual_risks": [],
+  "recorded_at": "2026-09-07T16:26:48+00:00",
+  "commit": "0da10ad326ea9863ed4c6dc2b2e6694f05a5df72"
+}

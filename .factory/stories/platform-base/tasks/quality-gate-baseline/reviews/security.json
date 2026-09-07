@@ -1,0 +1,51 @@
+{
+  "generated_by": "autoreview",
+  "score": 6,
+  "summary": "security lens over quality-gate-baseline (16 product path(s), 982ed20..0da10ad, Codex via the autoreview skill at --max-priority P2): 1 blocking, 2 non-blocking. The patch introduces a blocking task-proof bypass through story-scoped compatibility evidence. Two guard implementation gaps also permit declared gate semantics or formatting coverage to be bypassed without failing the quality-gate test. No credentials are exposed in the supplied diff.",
+  "blocking_findings": [
+    {
+      "category": "security",
+      "area": "factory/scripts/forge_cli",
+      "summary": "[P1] Do not accept story-scoped evidence for a task review (factory/scripts/forge_cli/review.py:489): The new fallback accepts `evidence_path(base, story, artifact)` without tying the artifact to `args.id`."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "tools",
+      "summary": "[P2] Parse all valid export whitespace when checking final FACTORY values (tools/quality-gate.test.mjs:197): `readCommands` recognizes only lines beginning with the exact string `export FACTORY_`."
+    },
+    {
+      "category": "test_gap",
+      "area": "tools",
+      "summary": "[P2] Reject new ignore entries outside the pinned allowlist (tools/quality-gate.test.mjs:224): The guard hashes only ignore lines beginning with `backend/` or `contract/` and separately fixes the workflow entries, but it does not reject other exclusions."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".envrc",
+    ".github/workflows/quality.yml",
+    ".prettierignore",
+    ".prettierrc.json",
+    "backend/package.json",
+    "backend/src/atlasTokens.test.ts",
+    "constitution/VENDORED_FROM",
+    "constitution/VENDOR_MANIFEST.json",
+    "contract/package.json",
+    "eslint.config.mjs",
+    "factory/scripts/forge_cli/review.py",
+    "package-lock.json",
+    "package.json",
+    "tools/junit-run.mjs",
+    "tools/junit-run.test.mjs",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "66142d8bdbc5899807999abc966093c119ee771efe4a6db96d4f296fe468be57",
+  "brief_sha256": "78f1efa89a156409dff2a32f9f185d5bfba1942b30848e9428f2980d80b67114",
+  "branch_diff_digest": "7cb87560f1d9bb12e791bd546faa32befcb2aab0a6fb4e7a7589bfb636fd0942",
+  "residual_risks": [],
+  "recorded_at": "2026-09-07T16:26:49+00:00",
+  "commit": "0da10ad326ea9863ed4c6dc2b2e6694f05a5df72"
+}

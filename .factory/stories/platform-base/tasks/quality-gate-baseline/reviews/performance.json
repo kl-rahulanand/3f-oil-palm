@@ -1,0 +1,55 @@
+{
+  "generated_by": "autoreview",
+  "score": 0,
+  "summary": "performance lens over quality-gate-baseline (16 product path(s), 982ed20..0da10ad, Codex via the autoreview skill at --max-priority P2): 4 blocking, 0 non-blocking. The selected change establishes the intended CI graph without showing a production hot-path performance regression, but it violates the brief's explicit blocking no-compatibility-leftovers rule in three places. Its Prettier exclusion guard also has a concrete false-green path that can exempt tools or root configuration from formatting without failing the gate.",
+  "blocking_findings": [
+    {
+      "category": "maintainability",
+      "area": "factory/scripts/forge_cli",
+      "summary": "Remove the story-scoped evidence compatibility fallback (factory/scripts/forge_cli/review.py:489): The review command still accepts the obsolete story-scoped evidence location when task-scoped evidence is absent, and the added comment explicitly identifies this as a legacy fallback."
+    },
+    {
+      "category": "maintainability",
+      "area": "backend",
+      "summary": "Remove the backend `test` wrapper over `test:hermetic` (backend/package.json:15): The existing backend `test` command is retained solely as a forwarding wrapper after `test:hermetic` becomes the real runnable command used by the factory gate."
+    },
+    {
+      "category": "maintainability",
+      "area": "package.json",
+      "summary": "Remove the root `test` wrapper over `test:hermetic` (package.json:19): The root `test` script likewise only forwards to its replacement, while FACTORY_TEST_CMD and CI directly use `test:hermetic`."
+    },
+    {
+      "category": "test_gap",
+      "area": "tools",
+      "summary": "Reject ignore entries outside the two vendored workspaces (tools/quality-gate.test.mjs:223): The ignore guard validates hashes only for lines beginning with `backend/` or `contract/`, and separately checks the four workflow entries."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".envrc",
+    ".github/workflows/quality.yml",
+    ".prettierignore",
+    ".prettierrc.json",
+    "backend/package.json",
+    "backend/src/atlasTokens.test.ts",
+    "constitution/VENDORED_FROM",
+    "constitution/VENDOR_MANIFEST.json",
+    "contract/package.json",
+    "eslint.config.mjs",
+    "factory/scripts/forge_cli/review.py",
+    "package-lock.json",
+    "package.json",
+    "tools/junit-run.mjs",
+    "tools/junit-run.test.mjs",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "66142d8bdbc5899807999abc966093c119ee771efe4a6db96d4f296fe468be57",
+  "brief_sha256": "78f1efa89a156409dff2a32f9f185d5bfba1942b30848e9428f2980d80b67114",
+  "branch_diff_digest": "7cb87560f1d9bb12e791bd546faa32befcb2aab0a6fb4e7a7589bfb636fd0942",
+  "residual_risks": [],
+  "recorded_at": "2026-09-07T16:26:48+00:00",
+  "commit": "0da10ad326ea9863ed4c6dc2b2e6694f05a5df72"
+}
