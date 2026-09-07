@@ -331,6 +331,7 @@ downstream implementation inherits whatever you let through.
 The plan must design AROUND these. A plan that ignores one is not merely unlucky later — it is wrong now, and saying so is part of this read.
 
 - A required_tests entry must name a REAL leaf test (id = the string in test("...")), not the file path, and must pin TS_NODE_PROJECT=backend/tsconfig.json because forge runs it from repo root; otherwise junit-run's --test-name-pattern matches nothing and ts-node skips the workspace tsconfig, so the gate reports pass without running assertions. Always verify with a negative control (a required test whose negative control cannot fail is not proof).
+- A plan_contract clause requiring evidence in plans/, .factory/, or docs/decisions/ cannot be verified by forge review, which excludes those paths (HARNESS_PREFIXES). The quality lens flip-flopped 10/10/7 on t5-c1's 'ledgered as debt (D-0006)' clause because the deferral IS recorded in plans/deferrals.md, which the reviewer structurally cannot see. Keep bookkeeping (deferral ledgering) in the ledger, not in a code-review plan_contract; contracts assert only code behaviour visible in the diff.
 
 ## The artifact under interrogation (task plan quality-gate-baseline)
 
