@@ -1,0 +1,130 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "api-surface-trim",
+  "verdict": "pass",
+  "task_plan_sha256": "9ee4757b848a8594241102802ab7d54c88e24fb894b66d1ede4dede5be135fd7",
+  "summary": "Task grill of api-surface-trim across six ledgered Codex cold-read rounds. Rounds 1-2 corrected the contract shape (recordable criteria/contracts equality, the exact AppModule trim, PGHOST, test wiring, the D-0006 self-liquidation of config.ts). Round 3 raised a governance blocker \u2014 /health as fresh code owed \u00a707/\u00a705 compliance that 0012/D-0004 deferred; the human chose to BUILD the handler+logging, recorded as decision 0013. Rounds 4-5 worked through that decision's cascade (spec/plan/deferral reconciliation, the full \u00a707 error payload, hermetic-vs-DB test reality) until the task had sprawled; the human chose to SPLIT observability into its own backend-observability task, returning api-surface-trim to a focused scope. Round 6's remaining items (Swagger's real route set, the AuthoredMeasureRegistry DB hook in onModuleInit, a 0013 wording inconsistency) are fixed or carried as implementation guidance in reviewer_focus. Stopped after round 6: the focused contract is well-specified and the residual depth is for the implementer + three-lens review, not further cold reads.",
+  "gaps": [
+    "The exact AppModule trim was wrong: the plan claimed CoreModule provides auth/CSRF, but AuthGuard, LoginRateLimitService and the APP_GUARD CsrfGuard are declared in AppModule itself, and UsersController/GrantsController/UsageModule/HelpModule were omitted from the removal list",
+    "Acceptance criteria and plan_contracts were not in the exact equality the recorder requires",
+    "config.ts is on the .prettierignore D-0006 list, so editing it triggers the self-liquidating format-and-remove rule, which was outside the initial write scope",
+    "PGHOST also defaults to localhost and would resolve-trap; the initial contract only fixed frontendOrigin",
+    "The new tests were not wired into test:hermetic and the guard's pinned graph, so CI would never run them; the warehouse E2E command pointed at test:db, which excludes the oid test",
+    "/health is fresh code and owed constitution 07 (global exception handler) + 05 (structured logging) compliance that decisions 0012/D-0004 deferred \u2014 an impossible per-endpoint requirement without app-wide infrastructure",
+    "Bundling the handler+logging into api-surface-trim made it sprawl across governance, dependencies and testing, and forced a story re-approval",
+    "app.init() is not DB-free: AuthoredMeasureRegistry.onModuleInit queries Postgres, so route/swagger/health hermetic tests must stub it; the non-production Swagger surface is more than /api/docs + /api/docs-json; backend/test/ does not exist"
+  ],
+  "contradictions": [
+    "Decision 0012/D-0004 and the approved plan deferred the global handler+logging while the task built them \u2014 resolved by recording superseding decision 0013 (accepted), reconciling the spec, resolving D-0004 and re-deferring only DTO coverage as D-0009",
+    "Decision 0013's own Decision and Consequences named different owning tasks \u2014 made consistent on backend-observability"
+  ],
+  "resolutions": [
+    "The contract pins the exact AppModule shape (imports:[CoreModule,HealthModule], controllers:[AuthController], providers:[AuthGuard,LoginRateLimitService,APP_GUARD->CsrfGuard]) with the eleven removals enumerated",
+    "acceptance_criteria and plan_contracts are the same five strings",
+    ".prettierignore is in write scope and config.ts is formatted + removed from the D-0006 list in the same change",
+    "config.ts defaults PGHOST to 127.0.0.1 alongside frontendOrigin; main.ts binds 127.0.0.1 under AUTH_OTP_MOCK via an injectable listen seam; compose publishes both db ports to 127.0.0.1",
+    "The four DB-free hermetic tests join test:hermetic and the guard's pinned graph; the warehouse E2E is a WAREHOUSE_E2E=1-gated path in the already-hermetic oid test, not test:db",
+    "Human decision (2026-09-08): build the handler+logging \u2014 recorded as accepted decision 0013; then SPLIT them into a dedicated backend-observability task (after the frontend, before harness-wiring), returning api-surface-trim to a focused route-trim + security + warehouse + /health-success-DTO scope",
+    "Spec reconciled to 0013; approved plan left as-approved under 0013's supersession (decisions govern when plan prose drifts) to avoid a disproportionate story re-approval; D-0004 resolved and DTO coverage re-deferred as D-0009",
+    "Hermetic tests stub only AuthoredMeasureRegistry.onModuleInit before app.init(); the Swagger-absence test covers /api/docs, /api/docs/**, /api/docs-json, /api/docs-yaml; backend/test/ removed from write scope"
+  ],
+  "open_items": [
+    "NON-BLOCKING: stopped after six rounds. The focused contract is well-specified; residual round-6 depth (exact Swagger asset routes, config.ts production-secret refusal in the swagger test, the onModuleInit stub mechanics) is implementation guidance in reviewer_focus for the implementer + three-lens review, not a further cold read.",
+    "NON-BLOCKING: the approved plan's compliance note still reads 'deferred'; it is superseded by accepted decision 0013 and the reconciled spec. Re-editing the approved plan would force a story re-approval disproportionate to a note; decisions govern when plan prose drifts.",
+    "NON-BLOCKING: backend-observability is a thin appended task (10-task graph); its full contract is authored when it reaches the frontier, after the frontend."
+  ],
+  "questions_asked": 25,
+  "issue": "platform-base",
+  "inspected_refs": [
+    "backend/src/app.module.ts:24",
+    "backend/src/core/core.module.ts:32",
+    "backend/src/main.ts:31",
+    "backend/src/config.ts:114",
+    "backend/src/warehouse/postgres.adapter.oid.test.ts:57",
+    "backend/src/measures/authored-measure.registry.ts:14",
+    "backend/src/auth/auth.controller.test.ts:1",
+    ".prettierignore",
+    "backend/package.json",
+    "docs/decisions/0012-vendored-api-constitution-deviation.md",
+    "docs/decisions/0013-backend-observability-built-in-poc.md",
+    "constitution/05-logging-and-observability.md",
+    "constitution/07-exception-handling.md",
+    "docs/specs/app-platform-base.md:154"
+  ],
+  "current_flow": "Today: AppModule registers Pulse's full capability set (routes reachable but broken after the trimmed migration); main.ts binds all interfaces; config.ts defaults to Vite's origin and localhost PGHOST; the warehouse oid test hand-builds SelectionExecutor; there is no /health, no global exception handler and no structured logging.",
+  "criteria_map": {
+    "AppModule keeps exactly imports:[CoreModule, HealthModule], controllers:[AuthController], providers:[AuthGuard, LoginRateLimitService, {provide:APP_GUARD, useClass:CsrfGuard}]; every capability registration is removed \u2014 imports AdminModule/ConversationsModule/UsageModule/MeasuresModule/HelpModule, controllers UsersController/GrantsController/ChatController/SavedController/PinsController/ReportsController, providers ChatService/SavedService/PinsService/ReportsService/AdminGuard \u2014 so their routes (incl. /api/admin/users, /api/admin/grants, /api/admin/usage, /api/help) return 404, and Swagger (api/docs + api/docs-json) is unconditionally absent when NODE_ENV=production": "AppModule trimmed to imports:[CoreModule,HealthModule], controllers:[AuthController], providers:[AuthGuard,LoginRateLimitService,APP_GUARD->CsrfGuard]; the eleven capability registrations removed; proven by a route-registration test introspecting the initialized app (removed routes 404) and a production-Swagger-absence test over the full docs surface.",
+    "GET /health returns the standard response envelope {success:true, data:{status:ok}, error:null} via a decorated success DTO with an example and @ApiTags/@ApiOperation/@ApiOkResponse(typed); it keeps the spec's narrow non-versioned-health exception. The app-wide global exception handler and structured logging are NOT this task's concern (backend-observability, decision 0013)": "A HealthModule with a decorated success-envelope DTO ({success,data:{status:ok},error:null}) + example + typed @ApiOkResponse; proven by health.controller.test.ts asserting the runtime body AND generated schema. Runtime error handling is backend-observability's job (0013).",
+    "the backend mock-OTP profile is loopback-only: main.ts binds 127.0.0.1 when AUTH_OTP_MOCK is truthy via a small injectable listen seam, config.ts defaults frontendOrigin to http://127.0.0.1:3000 (FRONTEND_ORIGIN overrides) and PGHOST to 127.0.0.1, docker-compose publishes BOTH the app-db and warehouse-db ports to 127.0.0.1, and config.ts is formatted and removed from the .prettierignore D-0006 list in the same change": "main.ts binds 127.0.0.1 under AUTH_OTP_MOCK via an injectable listen seam; config.ts defaults frontendOrigin->127.0.0.1:3000 and PGHOST->127.0.0.1; compose publishes both db ports to 127.0.0.1; config.ts formatted + removed from .prettierignore (D-0006). Proven by loopback-profile.test.ts asserting the defaults + compose bindings.",
+    "the warehouse E2E resolves WAREHOUSE and SelectionExecutor from the application module's DI container and proves validate->explain->execute returns SUM(WarehouseFixture.value)=42 through a WAREHOUSE_E2E=1-gated path in the already-hermetic-listed oid test (skipped when unset, NOT added to test:db)": "The warehouse E2E resolves WAREHOUSE + SelectionExecutor from the app-module DI and returns 42 via a WAREHOUSE_E2E=1-gated path in the already-hermetic oid test (not test:db). Demonstrated host evidence.",
+    "hermetic DB-free tests (route allow-list, production-Swagger absence, loopback/CORS/PGHOST/compose defaults, /health envelope body + generated schema) are added to test:hermetic and the guard's pinned graph; login/RBAC/audit, no-enumeration and session-continuity remain DEMONSTRATED Postgres evidence via the established DB test (they cannot be hermetic \u2014 the real auth path needs a Postgres pool)": "Four DB-free hermetic tests (route, swagger-production, loopback-profile, health) join test:hermetic + the guard's pinned graph, each stubbing AuthoredMeasureRegistry.onModuleInit before app.init(); login/RBAC/audit/no-enumeration/session-continuity stay demonstrated Postgres evidence (the real auth path needs a pool)."
+  },
+  "decision": "keep",
+  "new_abstractions": [
+    "A backend-observability task (split from api-surface-trim per the human) owning the global exception handler + structured logging \u2014 justified because bundling cross-cutting infrastructure into an API-surface trim made one task sprawl across governance, deps and testing.",
+    "A configureApp(app) seam + injectable listen seam so route/swagger/health tests exercise the real wiring via app.init() without binding a socket or adding a test dependency."
+  ],
+  "citations": [
+    {
+      "finding": "The exact AppModule trim was wrong: the plan claimed CoreModule provides auth/CSRF, but AuthGuard, LoginRateLimitService and the APP_GUARD CsrfGuard are declared in AppModule itself, and UsersController/GrantsController/UsageModule/HelpModule were omitted from the removal list",
+      "source": "backend/src/app.module.ts:24 (imports/controllers/providers) and core.module.ts:32"
+    },
+    {
+      "finding": "Acceptance criteria and plan_contracts were not in the exact equality the recorder requires",
+      "source": ".factory/stories/platform-base/decomposition.json (recorder three-way equality)"
+    },
+    {
+      "finding": "config.ts is on the .prettierignore D-0006 list, so editing it triggers the self-liquidating format-and-remove rule, which was outside the initial write scope",
+      "source": ".prettierignore (config.ts on the D-0006 list)"
+    },
+    {
+      "finding": "PGHOST also defaults to localhost and would resolve-trap; the initial contract only fixed frontendOrigin",
+      "source": "backend/src/config.ts:114 (PGHOST default localhost)"
+    },
+    {
+      "finding": "The new tests were not wired into test:hermetic and the guard's pinned graph, so CI would never run them; the warehouse E2E command pointed at test:db, which excludes the oid test",
+      "source": "backend/package.json test:hermetic/test:db lists; the oid test already in hermetic"
+    },
+    {
+      "finding": "/health is fresh code and owed constitution 07 (global exception handler) + 05 (structured logging) compliance that decisions 0012/D-0004 deferred \u2014 an impossible per-endpoint requirement without app-wide infrastructure",
+      "source": "constitution/07-exception-handling.md + 05-logging-and-observability.md vs docs/decisions/0012"
+    },
+    {
+      "finding": "Bundling the handler+logging into api-surface-trim made it sprawl across governance, dependencies and testing, and forced a story re-approval",
+      "source": ".factory/stories/platform-base/task-plans/api-surface-trim.md (scope sprawl + story re-approval)"
+    },
+    {
+      "finding": "app.init() is not DB-free: AuthoredMeasureRegistry.onModuleInit queries Postgres, so route/swagger/health hermetic tests must stub it; the non-production Swagger surface is more than /api/docs + /api/docs-json; backend/test/ does not exist",
+      "source": "backend/src/measures/authored-measure.registry.ts:14 (onModuleInit DB query); @nestjs/swagger route set"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "The grill flags that /health is fresh code, and decision 0012 says its deviation 'does not extend to any code written fresh' \u2014 so strictly /health owes a global exception handler and structured JSON logging with correlationId. But those are app-wide infrastructure (you can't have a global handler for just one endpoint), and they don't exist yet. How should api-surface-trim handle this?",
+      "options": [
+        "Amend 0012: cross-cutting deferral applies app-wide (Recommended)",
+        "Build the global handler + structured logging now"
+      ],
+      "chosen": "Build the global handler + structured logging now"
+    },
+    {
+      "question": "Building the global exception handler + structured logging inside api-surface-trim has made it a large, sprawling task (5 grill rounds, and it now forces re-approving the whole story plan). How should we structure it?",
+      "options": [
+        "Split observability into its own task (Recommended)",
+        "Defer observability after all",
+        "Push through in one task"
+      ],
+      "chosen": "Split observability into its own task (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "b3b0b00af457c1e0e20cbeb72f2a76864da41026fd1e971b3d0993661c538225",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "recorded_at": "2026-09-07T20:35:37+00:00",
+  "commit": "f6b2ba39b2fa1ea00f930f6da289da3dbfdf6205",
+  "approved_task_plan_sha256": "9ee4757b848a8594241102802ab7d54c88e24fb894b66d1ede4dede5be135fd7",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-07T20:47:26+00:00"
+}

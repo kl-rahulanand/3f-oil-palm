@@ -332,13 +332,89 @@
       ],
       "user_facing": false,
       "acceptance_criteria": [
-        "only the spec's allow-list answers \u2014 GET /api/auth/csrf, POST /api/auth/otp/request, POST /api/auth/otp/verify, GET /api/auth/me, POST /api/auth/logout, POST /api/auth/refresh, GET /health \u2014 plus /api/docs and /api/docs-json outside production only; every other vendored route is absent (404)",
-        "Swagger is unconditionally absent when NODE_ENV=production (ENABLE_SWAGGER must not re-enable it there)",
-        "GET /health returns a typed, Swagger-documented 200 carrying the constitution's response envelope with status: ok in its data",
-        "in the mock-OTP profile the backend binds 127.0.0.1, docker-compose publishes both Postgres ports to 127.0.0.1, and the CORS origin defaults to http://127.0.0.1:3000 with FRONTEND_ORIGIN as the override",
-        "the warehouse E2E resolves WAREHOUSE and SelectionExecutor from the application module's DI container and proves validate -> explain -> execute returns SUM(WarehouseFixture.value) = 42 against the warehouse-seed fixture",
-        "login, RBAC and audit still work end-to-end after the module graph changes"
-      ]
+        "AppModule keeps exactly imports:[CoreModule, HealthModule], controllers:[AuthController], providers:[AuthGuard, LoginRateLimitService, {provide:APP_GUARD, useClass:CsrfGuard}]; every capability registration is removed \u2014 imports AdminModule/ConversationsModule/UsageModule/MeasuresModule/HelpModule, controllers UsersController/GrantsController/ChatController/SavedController/PinsController/ReportsController, providers ChatService/SavedService/PinsService/ReportsService/AdminGuard \u2014 so their routes (incl. /api/admin/users, /api/admin/grants, /api/admin/usage, /api/help) return 404, and Swagger (api/docs + api/docs-json) is unconditionally absent when NODE_ENV=production",
+        "GET /health returns the standard response envelope {success:true, data:{status:ok}, error:null} via a decorated success DTO with an example and @ApiTags/@ApiOperation/@ApiOkResponse(typed); it keeps the spec's narrow non-versioned-health exception. The app-wide global exception handler and structured logging are NOT this task's concern (backend-observability, decision 0013)",
+        "the backend mock-OTP profile is loopback-only: main.ts binds 127.0.0.1 when AUTH_OTP_MOCK is truthy via a small injectable listen seam, config.ts defaults frontendOrigin to http://127.0.0.1:3000 (FRONTEND_ORIGIN overrides) and PGHOST to 127.0.0.1, docker-compose publishes BOTH the app-db and warehouse-db ports to 127.0.0.1, and config.ts is formatted and removed from the .prettierignore D-0006 list in the same change",
+        "the warehouse E2E resolves WAREHOUSE and SelectionExecutor from the application module's DI container and proves validate->explain->execute returns SUM(WarehouseFixture.value)=42 through a WAREHOUSE_E2E=1-gated path in the already-hermetic-listed oid test (skipped when unset, NOT added to test:db)",
+        "hermetic DB-free tests (route allow-list, production-Swagger absence, loopback/CORS/PGHOST/compose defaults, /health envelope body + generated schema) are added to test:hermetic and the guard's pinned graph; login/RBAC/audit, no-enumeration and session-continuity remain DEMONSTRATED Postgres evidence via the established DB test (they cannot be hermetic \u2014 the real auth path needs a Postgres pool)"
+      ],
+      "write_scope": [
+        "backend/src/app.module.ts",
+        "backend/src/health/",
+        "backend/src/config.ts",
+        "backend/src/main.ts",
+        "backend/src/warehouse/",
+        "docker-compose.yml",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs",
+        ".prettierignore",
+        "backend/src/app.routes.test.ts",
+        "backend/src/swagger-production.test.ts",
+        "backend/src/loopback-profile.test.ts",
+        "backend/src/health/health.controller.test.ts"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check"
+      ],
+      "plan_contracts": [
+        {
+          "id": "t6-c1",
+          "statement": "AppModule keeps exactly imports:[CoreModule, HealthModule], controllers:[AuthController], providers:[AuthGuard, LoginRateLimitService, {provide:APP_GUARD, useClass:CsrfGuard}]; every capability registration is removed \u2014 imports AdminModule/ConversationsModule/UsageModule/MeasuresModule/HelpModule, controllers UsersController/GrantsController/ChatController/SavedController/PinsController/ReportsController, providers ChatService/SavedService/PinsService/ReportsService/AdminGuard \u2014 so their routes (incl. /api/admin/users, /api/admin/grants, /api/admin/usage, /api/help) return 404, and Swagger (api/docs + api/docs-json) is unconditionally absent when NODE_ENV=production",
+          "source": "docs/specs/app-platform-base.md"
+        },
+        {
+          "id": "t6-c2",
+          "statement": "GET /health returns the standard response envelope {success:true, data:{status:ok}, error:null} via a decorated success DTO with an example and @ApiTags/@ApiOperation/@ApiOkResponse(typed); it keeps the spec's narrow non-versioned-health exception. The app-wide global exception handler and structured logging are NOT this task's concern (backend-observability, decision 0013)",
+          "source": "docs/specs/app-platform-base.md"
+        },
+        {
+          "id": "t6-c3",
+          "statement": "the backend mock-OTP profile is loopback-only: main.ts binds 127.0.0.1 when AUTH_OTP_MOCK is truthy via a small injectable listen seam, config.ts defaults frontendOrigin to http://127.0.0.1:3000 (FRONTEND_ORIGIN overrides) and PGHOST to 127.0.0.1, docker-compose publishes BOTH the app-db and warehouse-db ports to 127.0.0.1, and config.ts is formatted and removed from the .prettierignore D-0006 list in the same change",
+          "source": "docs/specs/app-platform-base.md"
+        },
+        {
+          "id": "t6-c4",
+          "statement": "the warehouse E2E resolves WAREHOUSE and SelectionExecutor from the application module's DI container and proves validate->explain->execute returns SUM(WarehouseFixture.value)=42 through a WAREHOUSE_E2E=1-gated path in the already-hermetic-listed oid test (skipped when unset, NOT added to test:db)",
+          "source": "docs/specs/app-platform-base.md"
+        },
+        {
+          "id": "t6-c5",
+          "statement": "hermetic DB-free tests (route allow-list, production-Swagger absence, loopback/CORS/PGHOST/compose defaults, /health envelope body + generated schema) are added to test:hermetic and the guard's pinned graph; login/RBAC/audit, no-enumeration and session-continuity remain DEMONSTRATED Postgres evidence via the established DB test (they cannot be hermetic \u2014 the real auth path needs a Postgres pool)",
+          "source": "docs/specs/app-platform-base.md"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "only the sanctioned allow-list is registered and unowned capability routes are absent",
+          "path": "backend/src/app.routes.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "Swagger is not mounted when NODE_ENV is production even if ENABLE_SWAGGER is set",
+          "path": "backend/src/swagger-production.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the mock-OTP profile resolves loopback defaults for listen host CORS PGHOST and compose ports",
+          "path": "backend/src/loopback-profile.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the health endpoint returns the response envelope with status ok and a matching generated schema",
+          "path": "backend/src/health/health.controller.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "The spec is normative (docs/specs/app-platform-base.md \u00a7'Confirmed scope', \u00a7'Local runtime contract'). EXACT AppModule shape (verified): keep imports:[CoreModule, HealthModule], controllers:[AuthController], providers:[AuthGuard, LoginRateLimitService, {provide:APP_GUARD, useClass:CsrfGuard}] \u2014 these live in AppModule, NOT CoreModule; a naive 'CoreModule provides auth' trim breaks auth. Remove the eleven capability registrations. Route test compares the complete method/path list by introspecting the initialized app (configureApp()+app.init(), no socket, no new dep \u2014 use the express adapter's router); removed routes 404; Swagger absent in production regardless of ENABLE_SWAGGER. SECURITY: 127.0.0.1 bind under AUTH_OTP_MOCK via a small injectable listen seam a fake can assert + compose port publish for BOTH dbs close a LAN admin login; config.ts defaults frontendOrigin to 127.0.0.1:3000 AND PGHOST to 127.0.0.1. /health returns the envelope {success:true,data:{status:ok},error:null} via a typed success DTO + example, @ApiOkResponse typed; tested for body AND generated schema. The GLOBAL exception handler + structured logging are OUT of scope here \u2014 decision 0013 assigns them to the separate backend-observability task; /health needs only its success DTO now. WAREHOUSE E2E: resolve from app-module DI; prove =42 via a WAREHOUSE_E2E=1-gated path in the already-hermetic oid test \u2014 NOT test:db. D-0006: config.ts is on .prettierignore \u2014 format it and remove that line here. New hermetic tests join test:hermetic AND the guard's pinned graph. TESTS ARE DB-FREE ONLY: no-enumeration and session-continuity are NOT hermetic (the real auth path needs Postgres) \u2014 they stay demonstrated DB evidence via the established auth DB test, not required hermetic tests. PLAN/0013: the approved plan's compliance note still reads 'deferred'; it is SUPERSEDED by accepted decision 0013 (the constitution has decisions govern when plan prose drifts) and the spec is reconciled \u2014 the plan is left as-approved to avoid a disproportionate story re-approval; plans/deferrals.md and docs/ are not in this leaf's write_scope. ROUND-6 SPECIFICS: (Q2) Swagger exposes more than two routes \u2014 the non-production docs surface is /api/docs, /api/docs/ (UI + static assets/init scripts) and /api/docs-json AND /api/docs-yaml; the production-absence test asserts ALL of them 404 when NODE_ENV=production, and the route allow-list test does not claim the surface is exactly two paths. (Q3) app.init() is NOT DB-free as-is: AuthoredMeasureRegistry.onModuleInit() queries authored_measures, so the hermetic route/Swagger/health tests must stub ONLY AuthoredMeasureRegistry.onModuleInit before app.init() (keep the real AppModule container + routes; no runtime-lifecycle change, no new test dependency). config.ts also REFUSES a production boot without required secrets \u2014 the production-Swagger test must set them or run configureApp without the full production guard. /health ships its success-envelope DTO here; the typed ERROR response shape and its runtime producer land in backend-observability (decision 0013), so do not block /health on the global handler.",
+      "review_budget": {
+        "max_changed_files": 20,
+        "max_changed_lines": 900,
+        "reason": "Focused API-surface trim + loopback/CORS/PGHOST security + compose + a fresh /health envelope DTO + the DI-resolved warehouse E2E + four hermetic tests and the guard-graph update. Observability (global handler + logging) is split into backend-observability per decision 0013; this is larger than 8/400 but bounded."
+      }
     },
     {
       "id": "frontend-foundation",
@@ -375,6 +451,20 @@
       ]
     },
     {
+      "id": "backend-observability",
+      "title": "App-wide global exception handler + structured JSON request/error logging",
+      "objective": "Build the global exception filter (constitution 07, full errorId payload) and structured JSON HTTP request/error logging with a correlationId (constitution 05 \u00a72.1), wired app-wide in main.ts via a shared configureApp seam, per decision 0013 \u2014 the observability infrastructure split out of api-surface-trim. Fresh /health and every endpoint become fully compliant; the D-0004/0012 handler+logging deferral is closed (typed-DTO coverage + ad-hoc console migration stay deferred, D-0009).",
+      "dependencies": [
+        "api-surface-trim"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "a global exception filter (constitution 07) maps every unhandled exception and existing HttpException to the full standard error payload (errorId, type, user-facing message, sanitized details, http status, correlationId, requestId, environment, timestampUtc) and is wired app-wide via useGlobalFilters",
+        "structured JSON logging (constitution 05 \u00a72.1) emits a request record and, on error, a distinct error record, each carrying timestampUtc/level/message/context/environment/serviceName/module/correlationId/accountId/requestId; correlationId accepts a valid inbound x-correlation-id else generates a UUID at ingress",
+        "the wiring is proven through configureApp()+app.init() so a test fails if the filter/middleware is not actually installed; decision 0013's handler+logging portion of D-0004 is closed"
+      ]
+    },
+    {
       "id": "harness-wiring",
       "title": "Harness build/verify wiring",
       "objective": "Establish the repo-wide quality gate and declare the verify commands verify.py reads from .envrc, so the factory gates run against the whole app (contract + backend + frontend), keeping dual-runtime and vendor integrity clean.",
@@ -401,5 +491,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "4c7bcfacdaf47a50b15c3894df08047cb459d48c751d20ab75952e876b52b774",
-  "commit": "a164b65a85e822cf0a285e6b13d9e333561da009"
+  "commit": "f6b2ba39b2fa1ea00f930f6da289da3dbfdf6205"
 }

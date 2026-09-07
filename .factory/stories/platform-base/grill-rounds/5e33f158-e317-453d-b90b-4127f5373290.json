@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The grill flags that /health is fresh code, and decision 0012 says its deviation 'does not extend to any code written fresh' \u2014 so strictly /health owes a global exception handler and structured JSON logging with correlationId. But those are app-wide infrastructure (you can't have a global handler for just one endpoint), and they don't exist yet. How should api-surface-trim handle this?",
+      "options": [
+        "Amend 0012: cross-cutting deferral applies app-wide (Recommended)",
+        "Build the global handler + structured logging now"
+      ],
+      "chosen": "Build the global handler + structured logging now"
+    }
+  ],
+  "at": "2026-09-07T19:29:41.615513+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
