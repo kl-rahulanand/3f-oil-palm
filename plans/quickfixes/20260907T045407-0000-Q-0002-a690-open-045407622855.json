@@ -1,0 +1,12 @@
+{
+  "event": "open",
+  "id": "Q-0002-a690",
+  "profile": "lite",
+  "reason": "post-upgrade reconciliation of project-owned harness.yaml to the d3c5e984 phase contract: add the modes.grill cold-reader pin the new ledgered grill launcher requires, plus the planner validation lane, ponytail discipline note, implementation effort floor, and cyclomatic-complexity review lens. Config only, no product code; signoff_record stays 0005.",
+  "started_at": "2026-09-07T04:54:07+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "by": "Rahul Anand",
+  "base_sha": "57305dc1e1597a9b9428720b589021a4902b682d"
+}

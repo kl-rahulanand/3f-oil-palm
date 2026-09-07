@@ -1,0 +1,12 @@
+{
+  "event": "abandoned",
+  "id": "Q-0002-a690",
+  "profile": "lite",
+  "reason": "The fix landed and is committed (1129f22): harness.yaml reconciled to the d3c5e984 contract by Codex, diff-verified against the harness default and check_dual_runtime clean. The window cannot be closed with 'mode done' because harness.yaml is on the lite product-boundary exempt list (quickfix.py _lite_product_files), so _lite_manifest returns empty and done() refuses. Abandoning rather than claiming a completion the gate did not measure. Note for the harness: a config-only canon file is write-locked but unclosable in lite mode.",
+  "opened_reason": "post-upgrade reconciliation of project-owned harness.yaml to the d3c5e984 phase contract: add the modes.grill cold-reader pin the new ledgered grill launcher requires, plus the planner validation lane, ponytail discipline note, implementation effort floor, and cyclomatic-complexity review lens. Config only, no product code; signoff_record stays 0005.",
+  "started_at": "2026-09-07T04:54:07+00:00",
+  "completed_at": "2026-09-07T04:57:46+00:00",
+  "files": [],
+  "by": "Rahul Anand",
+  "base_sha": "57305dc1e1597a9b9428720b589021a4902b682d"
+}
