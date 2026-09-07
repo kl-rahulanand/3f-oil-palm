@@ -49,9 +49,9 @@ const expectedScripts = {
   structural:
     "npm run build && python3 factory/scripts/check_dual_runtime.py && python3 factory/scripts/check_vendor_integrity.py",
   typecheck: "npm -w @3f/contract run typecheck && npm -w @3f/backend run typecheck",
-  lint: 'npm -w @3f/backend run lint && npm -w @3f/contract run lint && eslint --config eslint.config.mjs eslint.config.mjs "tools/**/*.mjs"',
+  lint: 'eslint --config eslint.config.mjs "backend/src/**/*.ts" "backend/test/**/*.ts" "contract/src/**/*.ts" "contract/test/**/*.ts" eslint.config.mjs "tools/**/*.mjs" --no-error-on-unmatched-pattern',
   "format:check":
-    'npm -w @3f/backend run format:check && npm -w @3f/contract run format:check && prettier --config .prettierrc.json --ignore-path .prettierignore --check package.json backend/package.json contract/package.json .prettierrc.json eslint.config.mjs .github/workflows/quality.yml "tools/**/*.mjs"',
+    'prettier --config .prettierrc.json --ignore-path .prettierignore --check "backend/src/**/*.ts" "backend/test/**/*.ts" "contract/src/**/*.ts" "contract/test/**/*.ts" package.json backend/package.json contract/package.json .prettierrc.json eslint.config.mjs .github/workflows/quality.yml "tools/**/*.mjs" --no-error-on-unmatched-pattern',
   quality: "npm run lint && npm run format:check",
   "test:hermetic": "npm -w @3f/backend run test:hermetic && node --test tools/quality-gate.test.mjs",
   "test:db": "npm -w @3f/backend run test:db",
@@ -62,18 +62,18 @@ const expectedWorkspaceScripts = {
   backend: {
     build: "tsc -p tsconfig.json",
     typecheck: "tsc -p tsconfig.json --noEmit",
-    lint: 'eslint --config ../eslint.config.mjs "src/**/*.ts" "test/**/*.ts" --no-error-on-unmatched-pattern',
+    lint: 'cd .. && eslint --config eslint.config.mjs "backend/src/**/*.ts" "backend/test/**/*.ts" --no-error-on-unmatched-pattern',
     "format:check":
-      'prettier --config ../.prettierrc.json --ignore-path ../.prettierignore --check "src/**/*.ts" "test/**/*.ts" --no-error-on-unmatched-pattern',
+      'cd .. && prettier --config .prettierrc.json --ignore-path .prettierignore --check "backend/src/**/*.ts" "backend/test/**/*.ts" --no-error-on-unmatched-pattern',
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
   },
   contract: {
     build: "tsc -p tsconfig.json",
     typecheck: "tsc -p tsconfig.json --noEmit",
-    lint: 'eslint --config ../eslint.config.mjs "src/**/*.ts" "test/**/*.ts" --no-error-on-unmatched-pattern',
+    lint: 'cd .. && eslint --config eslint.config.mjs "contract/src/**/*.ts" "contract/test/**/*.ts" --no-error-on-unmatched-pattern',
     "format:check":
-      'prettier --config ../.prettierrc.json --ignore-path ../.prettierignore --check "src/**/*.ts" "test/**/*.ts" --no-error-on-unmatched-pattern',
+      'cd .. && prettier --config .prettierrc.json --ignore-path .prettierignore --check "contract/src/**/*.ts" "contract/test/**/*.ts" --no-error-on-unmatched-pattern',
   },
 };
 
@@ -178,20 +178,15 @@ ad391ca0c38ad2e1a35c8e8a2555da7da1cee15a1642b19b4fca71b2163a8dbd backend/src/war
     .map(([hash, path]) => [path, hash]),
 );
 
-function readCommands(envrc, vendored = true) {
+function readCommands(envrc) {
   const found = {};
-  let skipping = false;
-  for (const line of envrc.split("\n")) {
+  const harnessDefaults = `if [ ! -f constitution/VENDORED_FROM ]; then
+  export FACTORY_STRUCTURAL_CMD="python3 factory/scripts/check_dual_runtime.py"
+  export FACTORY_TYPECHECK_CMD="python3 factory/scripts/check_factory_scaffold.py"
+  export FACTORY_TEST_CMD="uv run --with pytest --with psutil python -m pytest factory/tests -q"
+fi`;
+  for (const line of envrc.replace(harnessDefaults, "").split("\n")) {
     const stripped = line.trim();
-    if (stripped.startsWith("if ") && stripped.includes("VENDORED_FROM")) {
-      skipping = vendored;
-      continue;
-    }
-    if (stripped === "fi" || stripped === "else") {
-      skipping = false;
-      continue;
-    }
-    if (skipping) continue;
     const match = stripped.match(/^export\s+(FACTORY_[^=\s]+)\s*=(.*)$/);
     if (!match) continue;
 
@@ -306,6 +301,16 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
     /four FACTORY commands/,
   );
   assert.throws(
+    () =>
+      validateGate({
+        ...gate,
+        commands: readCommands(
+          `${envrc}\nif [ -f constitution/VENDORED_FROM ]; then\n  export FACTORY_QUALITY_CMD=true\nfi\n`,
+        ),
+      }),
+    /four FACTORY commands/,
+  );
+  assert.throws(
     () => validateGate({ ...gate, rootScripts: { ...gate.rootScripts, lint: "echo lint" } }),
     /root script lint/,
   );
@@ -328,7 +333,9 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
   assert.throws(() => validateIgnoredBaseline(`${gate.ignore}\ntools/**\n`), /only the pinned/);
 
   const eslint = new ESLint({ overrideConfigFile: "eslint.config.mjs" });
-  const [eslintFailure] = await eslint.lintText("debugger;\n", { filePath: "tools/negative-control.mjs" });
+  const backendConfig = await eslint.calculateConfigForFile("backend/src/config.ts");
+  assert.ok(Object.keys(backendConfig.rules).length > 0, "backend files must receive the root ESLint ruleset");
+  const [eslintFailure] = await eslint.lintText("debugger;\n", { filePath: "backend/src/negative-control.ts" });
   assert.ok(eslintFailure.errorCount > 0, "an obvious error must fail ESLint");
   assert.equal(await prettier.check("debugger;\n", { filepath: "tools/negative-control.mjs" }), true);
 
