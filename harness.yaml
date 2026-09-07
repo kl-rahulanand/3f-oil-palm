@@ -26,6 +26,13 @@ modes:
     model: "gpt-5.6-terra"
     reasoning: "high"
     bound: 5
+  # The cold reader. griller.md requires gpt-5.6-terra at xhigh: a fresh model
+  # context independent of whoever authored the artifact. Pinned here rather
+  # than hardcoded in the launcher, beside every other model pin.
+  grill:
+    model: "gpt-5.6-terra"
+    reasoning: "xhigh"
+    bound: 0
 
 phases:
   discovery: # 0a
@@ -66,6 +73,7 @@ phases:
     owner: "claude-code:plan-mode"
     alternate: "codex:planner-high"
     exploration: "/codex:rescue --model gpt-5.6-terra --effort high (read-only by default) — NEVER Claude Code itself, NEVER raw codex exec"
+    validation: "/codex:rescue --model gpt-5.6-sol --effort xhigh (read-only) — plan validation, debugging, root-cause; the hard-thinking lane, not the default"
     contract: "factory/prompts/planner.md"
     plan_artifact: "plans/active/<issue>-<slug>.md via forge.py plan save"
     decisions: "docs/decisions/ records BEFORE decomposition is recorded"
@@ -81,7 +89,8 @@ phases:
       forge.py plan save step, same gates. When planning in Claude, delegate
       ALL codebase exploration to Codex read-only runs
       (/codex:rescue --model gpt-5.6-terra --effort high — read-only by
-      default; raw codex exec is hook-blocked, no exceptions).
+      default; gpt-5.6-sol --effort xhigh for validation/debugging — read-only;
+      raw codex exec is hook-blocked, no exceptions).
       Approval is the saved plan file, not a flag.
   decomposition:
     owner: "codex:docs-decomposer"
@@ -95,7 +104,9 @@ phases:
   implementation:
     owner: "codex:/codex:rescue"
     model: "gpt-5.6-sol"
-    reasoning: "medium (escalate effort to high for migrations/cross-domain/security-sensitive)"
+    # Floor, not a ceiling. Escalate with `./forge delegate <id> --effort high`
+    # for migrations, cross-domain work, or security-sensitive changes.
+    reasoning: "medium"
     prompts: "factory/prompts/implementer.md"
     required_skills: # ENFORCED by feature type — the decomposition's user_facing flag:
       # the recorder refuses a user-facing testing artifact unless skills_used
@@ -109,6 +120,16 @@ phases:
       - skill: "animation-vocabulary"
         when: "naming a motion effect precisely in a spec or prompt"
     notes: >-
+      Ponytail is the BINDING minimal-diff coding discipline for whoever writes
+      or edits code — held strictly, but NOT a record-time attestation gate.
+      It is enforced on BOTH ends: (1) doctor installs the skill (REQUIRED) into
+      both runtimes' skill dirs from upstream, so a re-run of `doctor --fix`
+      picks up updates — never vendor the skill files into the repo; (2) since a
+      per-machine install can be missing, `./forge delegate` ALWAYS inlines the
+      full ladder into every implementer brief as the guaranteed floor, so the
+      delegate is never without it; (3) the autoreview quality lens flags
+      ladder violations (over-engineering) at review. The recorder never demands
+      it in skills_used.
       The implementer also writes and runs the automated tests and records
       the testing artifact — there is no separate tester subagent.
       Design skills (emilkowalski/skills + Anthropic frontend-design,
@@ -140,8 +161,10 @@ phases:
       the artifact stays generated_by: autoreview.
     notes: >-
       ONE autoreview run reviews through three lenses (quality incl.
-      over-engineering, performance, security) and emits the three gate
-      artifacts. Never nest reviewers; never review inline in the
+      over-engineering AND cyclomatic complexity, performance, security) and
+      emits the three gate artifacts. The quality lens ALWAYS assesses
+      cyclomatic complexity — excessively tangled control flow is a blocking
+      `cyclomatic-complexity` finding. Never nest reviewers; never review inline in the
       coordinating session.
   ship:
     owner: "factory/scripts/pr_ready.py"
