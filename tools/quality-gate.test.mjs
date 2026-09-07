@@ -45,6 +45,8 @@ const backendTestRunner =
   "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test";
 
 const expectedScripts = {
+  "build:contract": "npm -w @3f/contract run build",
+  "build:backend": "npm -w @3f/backend run build",
   build: "npm run build:contract && npm run build:backend",
   structural:
     "npm run build && python3 factory/scripts/check_dual_runtime.py && python3 factory/scripts/check_vendor_integrity.py",
@@ -310,10 +312,23 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
       }),
     /four FACTORY commands/,
   );
-  assert.throws(
-    () => validateGate({ ...gate, rootScripts: { ...gate.rootScripts, lint: "echo lint" } }),
-    /root script lint/,
-  );
+  for (const name of Object.keys(expectedScripts)) {
+    assert.throws(
+      () => validateGate({ ...gate, rootScripts: { ...gate.rootScripts, [name]: "true" } }),
+      new RegExp(`root script ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+    );
+  }
+  for (const [workspace, scripts] of [
+    ["backend", gate.backendScripts],
+    ["contract", gate.contractScripts],
+  ]) {
+    for (const name of Object.keys(scripts)) {
+      assert.throws(
+        () => validateGate({ ...gate, [`${workspace}Scripts`]: { ...scripts, [name]: "true" } }),
+        new RegExp(`${workspace} gate leaves`),
+      );
+    }
+  }
   assert.throws(
     () => validateGate({ ...gate, workflow: gate.workflow.replace("\njobs:", "\n  pull_request:\n\njobs:") }),
     /every push only/,
