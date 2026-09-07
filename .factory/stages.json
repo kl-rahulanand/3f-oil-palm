@@ -29,7 +29,7 @@
     {
       "id": "api-surface-trim",
       "title": "Constrain the API surface, close the local-network exposure, harden the warehouse proof",
-      "status": "active",
+      "status": "done",
       "started_at": "2026-09-07T20:48:33+00:00",
       "base_sha": "9e3da3df38321256baf8e84767f71fa48e92b7ab",
       "dirty_at_start": {},
@@ -42,7 +42,8 @@
         "product_tree_digest": "1fe2ba56a50e90583756b84c49ab04e87fe9cccd5588a3435b994efb239aa208",
         "recorded_at": "2026-09-07T21:12:07+00:00",
         "generated_by": "autoreview"
-      }
+      },
+      "completed_at": "2026-09-07T21:12:25+00:00"
     },
     {
       "id": "frontend-foundation",
