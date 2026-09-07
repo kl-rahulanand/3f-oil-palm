@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 from factory_lib import (
@@ -29,7 +30,9 @@ from factory_lib import (
 )
 
 from .common import fail
-from .review_brief import VERDICT_INSTRUCTION, _task_section, cmd_review_brief
+from .review_brief import (
+    LEFTOVER_INSTRUCTION, VERDICT_INSTRUCTION, _task_section, cmd_review_brief,
+)
 # Reuse the task module's git helpers rather than adding another lossless
 # capture site: theirs is already reviewed and content-pinned for path output.
 from .tasks import _git, _require_git
@@ -131,13 +134,55 @@ def _product_dirty(base: Path) -> list[str]:
     return dirty
 
 
-def _lens_prompt(task: dict, lens: str) -> bytes:
+def _lens_prompt(task: dict, lens: str, base: Path | None = None) -> bytes:
     lines = [f"# Review brief — {task.get('id', '')} — {lens} lens", "",
-             COMMON_PREAMBLE, LENS_FOCUS[lens]]
+             COMMON_PREAMBLE, LENS_FOCUS[lens], LEFTOVER_INSTRUCTION]
     if lens == "quality":
         lines += [QUALITY_VERDICT_FORMAT, VERDICT_INSTRUCTION, ""]
-    lines += _task_section(task)
+    lines += _task_section(task, base)
     return ("\n".join(lines).rstrip() + "\n").encode()
+
+
+def resolve_review_base(base: Path, stage: dict, state: dict, tip_sha: str) -> str:
+    """The commit the task diff is measured from.
+
+    The stage records the trunk commit the task started on. When the trunk is
+    merged INTO the task branch later (a harness re-vendor, a sibling task
+    landing), everything the trunk gained since that recorded base is reachable
+    from HEAD but is not the task's work — reviewing `base...HEAD` then bundles
+    the whole trunk delta, chunks the pass, and returns findings on code the
+    task never touched (observed 2026-09-04: a per-task review scored 0 on five
+    vendored-harness findings and recorded every contract as partial because
+    the chunked reviewer never reached the verdict lines). The task's own delta
+    is `merge-base(origin/<trunk>, HEAD)...HEAD`. Use that point unless it is
+    an ancestor of the recorded base — i.e. no trunk landed in the branch since
+    the stage began (the trunk may have moved without being merged; then the
+    diff still starts where the task did). The recorded base may itself be a
+    branch commit (a story branch that carried planning commits before the
+    stage started, then merged the trunk): it is then neither ancestor nor
+    descendant of the trunk point, no single commit means "base plus trunk",
+    and the trunk point is still the right base — the branch's own commits
+    since divergence are the task under the per-task flow, and on a legacy
+    story branch they are the story's earlier planning artifacts, which the
+    harness-path filter drops."""
+    from factory_lib import default_trunk_branch
+    trunk = default_trunk_branch(base)
+    recorded = stage.get("base_sha") or state.get("base_main_sha")
+    base_sha = recorded if isinstance(recorded, str) and recorded else None
+    if base_sha is None:
+        base_sha = _require_git(base, "resolving the task base", "merge-base",
+                                f"origin/{trunk}", "HEAD")
+    if _git(base, "merge-base", "--is-ancestor", base_sha, tip_sha).returncode != 0:
+        fail(f"task base {base_sha[:12]} is not an ancestor of HEAD")
+    merged = _git(base, "merge-base", f"origin/{trunk}", tip_sha)
+    trunk_point = merged.stdout.strip() if merged.returncode == 0 else ""
+    if (trunk_point and trunk_point != base_sha
+            and _git(base, "merge-base", "--is-ancestor", trunk_point, base_sha).returncode != 0):
+        print(f"task base advanced {base_sha[:12]} -> {trunk_point[:12]}: the trunk was "
+              "merged into this branch after the stage began; only the branch's own "
+              "delta since it diverged from the trunk is reviewed")
+        return trunk_point
+    return base_sha
 
 
 def _area(path: str) -> str:
@@ -175,16 +220,40 @@ def _recommendation(blocking: int, non_blocking: int) -> str:
     return "approve-with-caveats" if non_blocking else "approve"
 
 
+_VERDICT_SEVERITY = {"implemented": 0, "partial": 1, "missing": 2}
+
+
 def _parse_verdicts(texts: list[str]) -> dict[str, tuple[str, str]]:
+    """One verdict per contract across every text; when a contract is verdicted
+    more than once (a chunked review emits one VERDICT line per pass) the WORST
+    verdict wins — missing over partial over implemented — so a pass that saw
+    a defect is never outvoted by a pass that only saw the files exist."""
     verdicts: dict[str, tuple[str, str]] = {}
     for text in texts:
         for match in VERDICT_LINE.finditer(text or ""):
-            verdicts.setdefault(
-                match.group("id").strip(),
-                (match.group("verdict").lower(),
-                 (match.group("evidence") or "").strip() or "reviewer verdict"),
-            )
+            cid = match.group("id").strip()
+            found = (match.group("verdict").lower(),
+                     (match.group("evidence") or "").strip() or "reviewer verdict")
+            current = verdicts.get(cid)
+            if current is None or (_VERDICT_SEVERITY[found[0]]
+                                   > _VERDICT_SEVERITY[current[0]]):
+                verdicts[cid] = found
     return verdicts
+
+
+def _verdict_texts(reviewed: dict) -> list[str]:
+    """The merged explanation and findings, PLUS every preserved pass report: a
+    chunked autoreview keeps the reviewer's conclusions (and its VERDICT lines)
+    per pass and replaces the top-level explanation with a summary line."""
+    texts = [reviewed.get("overall_explanation", "")]
+    texts += [f.get("body", "") for f in reviewed.get("findings", []) or []]
+    for entry in reviewed.get("pass_reports", []) or []:
+        report = entry.get("report") if isinstance(entry, dict) else None
+        if not isinstance(report, dict):
+            continue
+        texts.append(report.get("overall_explanation", ""))
+        texts += [f.get("body", "") for f in report.get("findings", []) or []]
+    return texts
 
 
 def _contract_verdicts(
@@ -194,8 +263,7 @@ def _contract_verdicts(
     tasks already done are attested as shipped at their own seal; contracts of
     tasks that have not started are not required (recorder, decision 0049)."""
     out: list[dict] = []
-    parsed = _parse_verdicts([reviewed.get("overall_explanation", "")]
-                             + [f.get("body", "") for f in reviewed.get("findings", [])])
+    parsed = _parse_verdicts(_verdict_texts(reviewed))
     for contract in task.get("plan_contracts") or []:
         cid = contract.get("id")
         if not isinstance(cid, str):
@@ -259,6 +327,102 @@ def _artifact(
     return artifact
 
 
+def product_only_tip(worktree: Path, base_sha: str) -> str:
+    """Commit a review tip in the detached worktree with every harness
+    bookkeeping path (`.factory/`, `plans/`, `docs/decisions/`, the context
+    ledger) put back to the task base, and return its sha.
+
+    The scope list already drops those paths, but the autoreview skill builds
+    its own bundle from `base..HEAD`, so a story branch carrying hundreds of
+    planning artifacts handed the reviewer a >1 MB bundle: chunked into several
+    passes, the reviewer never reached the contract VERDICT lines, every
+    contract was recorded `partial` (fail-closed -> blocking), and the task-proof
+    gate refused a task whose product review was clean (observed 2026-09-04,
+    issue #171). With the bookkeeping at the base, the bundle is the product
+    delta only. The base is untouched and stays an ancestor of the new tip."""
+    from .stages import WORKFLOW_PATHS
+    prefixes = tuple(sorted(set(HARNESS_PREFIXES) | set(WORKFLOW_PATHS)))
+    changed = [
+        p for p in _require_git(worktree, "listing the review diff", "diff",
+                                "--name-only", f"{base_sha}..HEAD").splitlines()
+        if p.strip() and p.startswith(prefixes)
+    ]
+    if not changed:
+        return _require_git(worktree, "resolving the review tip", "rev-parse", "HEAD")
+    for rel in changed:
+        at_base = _git(worktree, "cat-file", "-e", f"{base_sha}:{rel}").returncode == 0
+        if at_base:
+            _require_git(worktree, f"restoring {rel} to the task base",
+                         "checkout", base_sha, "--", rel)
+        else:
+            _require_git(worktree, f"dropping {rel} from the review tip",
+                         "rm", "-q", "--cached", "--", rel)
+            path = worktree / rel
+            if path.is_file():
+                path.unlink()
+    _require_git(worktree, "committing the review tip",
+                 "-c", "user.name=forge-review", "-c", "user.email=forge-review@local",
+                 "commit", "-q", "--no-verify", "-m",
+                 f"review tip: harness bookkeeping at task base {base_sha[:12]}")
+    print(f"review tip excludes {len(changed)} harness bookkeeping path(s); the "
+          "bundle is the product delta only")
+    return _require_git(worktree, "resolving the review tip", "rev-parse", "HEAD")
+
+
+def codex_runs_path(root: Path) -> Path:
+    """Advisory ledger of Codex releases that are not delegations.
+
+    The delegation ledger is gate authority and has a schema to match; a review
+    is neither, so it gets its own append-only file rather than smuggling rows
+    into an artifact that `stage done` reads.
+    """
+    from factory_lib import git_control_dir
+    return git_control_dir(root) / "codex_runs.jsonl"
+
+
+def _append_codex_run(root: Path, record: dict) -> None:
+    try:
+        path = codex_runs_path(root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, sort_keys=True) + "\n")
+    except (OSError, SystemExit):
+        return  # advisory: never fail a review because bookkeeping failed
+
+
+def _record_codex_run(root: Path, label: str, argv: list) -> str:
+    from factory_lib import now_iso
+    run_id = f"review-{uuid.uuid4().hex[:12]}"
+    _append_codex_run(root, {
+        "run_id": run_id, "kind": "review", "label": label,
+        "status": "starting", "at": now_iso(), "argv0": argv[0] if argv else "",
+    })
+    return run_id
+
+
+def _stamp_codex_run(root: Path, run_id: str, *, pid: int) -> None:
+    from factory_lib import now_iso
+    identity = ""
+    try:
+        from .delegate import _process_start_identity
+        identity = str(_process_start_identity(pid) or "")
+    except (Exception, SystemExit):
+        identity = ""
+    _append_codex_run(root, {
+        "run_id": run_id, "kind": "review", "status": "running",
+        "pid": pid, "pid_started": identity, "at": now_iso(),
+    })
+
+
+def _close_codex_run(root: Path, run_id: str, returncode) -> None:
+    from factory_lib import now_iso
+    _append_codex_run(root, {
+        "run_id": run_id, "kind": "review",
+        "status": "finished" if returncode in (0, 1) else "failed",
+        "exit_code": returncode, "at": now_iso(),
+    })
+
+
 def _run_skill(skill: Path, worktree: Path, base_sha: str, prompt_rel: str,
                json_out: Path, engine: str, max_priority: str) -> dict:
     argv = [
@@ -268,9 +432,24 @@ def _run_skill(skill: Path, worktree: Path, base_sha: str, prompt_rel: str,
     ]
     # Inherit stdio: the skill's heartbeat ("review still running ...") and any
     # streamed engine output are how the coordinator WATCHES this Codex release.
-    proc = subprocess.run(argv, cwd=worktree, env={**os.environ, "PYTHONUTF8": "1"})
-    if proc.returncode not in (0, 1):  # 1 == findings present, not an error
-        fail(f"autoreview exited {proc.returncode} for {prompt_rel}; see its output above")
+    #
+    # Ledger the pid before waiting. This command BLOCKS, so a crash of the
+    # review itself already surfaces as a non-zero exit -- but if this launcher
+    # is killed uncatchably (a job-object teardown, TerminateProcess, SIGKILL)
+    # no handler runs, and without a recorded pid nothing afterwards can say a
+    # review was ever in flight. A delegation is covered by its own ledger; a
+    # review was the blind spot, and it is the release the coordinator is told
+    # to watch every time.
+    started = _record_codex_run(worktree, prompt_rel, argv)
+    process = subprocess.Popen(argv, cwd=worktree,
+                               env={**os.environ, "PYTHONUTF8": "1"})
+    _stamp_codex_run(worktree, started, pid=process.pid)
+    try:
+        returncode = process.wait()
+    finally:
+        _close_codex_run(worktree, started, getattr(process, "returncode", None))
+    if returncode not in (0, 1):  # 1 == findings present, not an error
+        fail(f"autoreview exited {returncode} for {prompt_rel}; see its output above")
     if not json_out.is_file():
         fail(f"autoreview produced no JSON for {prompt_rel} (the run aborted?)")
     return json.loads(json_out.read_text(encoding="utf-8"))
@@ -305,14 +484,7 @@ def cmd_review(args: argparse.Namespace) -> None:
                  "`record_test_from_json.py --kind automated`")
 
     tip_sha = _require_git(base, "resolving HEAD", "rev-parse", "--verify", "HEAD^{commit}")
-    base_sha = stage.get("base_sha") or state.get("base_main_sha")
-    if not isinstance(base_sha, str) or not base_sha:
-        from factory_lib import default_trunk_branch
-        trunk = default_trunk_branch(base)
-        base_sha = _require_git(base, "resolving the task base", "merge-base",
-                                f"origin/{trunk}", "HEAD")
-    if _git(base, "merge-base", "--is-ancestor", base_sha, tip_sha).returncode != 0:
-        fail(f"task base {base_sha[:12]} is not an ancestor of HEAD")
+    base_sha = resolve_review_base(base, stage, state, tip_sha)
     scope = sorted(
         p for p in _require_git(base, "listing the task diff", "diff",
                                 "--name-only", f"{base_sha}...HEAD").splitlines()
@@ -337,7 +509,7 @@ def cmd_review(args: argparse.Namespace) -> None:
     prompts: dict[str, tuple[str, bytes]] = {}
     for lens in lenses:
         rel = f"review-briefs/{args.id}.{lens}.md"
-        body = _lens_prompt(task, lens)
+        body = _lens_prompt(task, lens, base)
         if not safe_factory_write_bytes(base, rel, body):
             fail(f"could not write .factory/{rel}")
         prompts[lens] = (f".factory/{rel}", body)
@@ -352,6 +524,7 @@ def cmd_review(args: argparse.Namespace) -> None:
         # scoped to the committed task diff.
         _require_git(base, "creating the review worktree", "worktree", "add",
                      "--detach", str(worktree), tip_sha)
+        review_tip = product_only_tip(worktree, base_sha)
         for lens in lenses:
             rel, body = prompts[lens]
             target = worktree / rel
@@ -359,8 +532,8 @@ def cmd_review(args: argparse.Namespace) -> None:
             target.write_bytes(body)
         for lens in lenses:
             print(f"== {lens} lens: releasing Codex over {len(scope)} path(s) "
-                  f"({base_sha[:7]}..{tip_sha[:7]}) — watch the heartbeat below ==",
-                  flush=True)
+                  f"({base_sha[:7]}..{review_tip[:7]}, task tip {tip_sha[:7]}) — "
+                  "watch the heartbeat below ==", flush=True)
             reports[lens] = _run_skill(
                 skill, worktree, base_sha, prompts[lens][0], tmp / f"{lens}.json",
                 args.engine, args.max_priority,

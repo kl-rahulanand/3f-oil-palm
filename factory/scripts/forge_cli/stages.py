@@ -179,10 +179,15 @@ def write_skeleton(base: Path, issue: str, tasks: list[dict]) -> None:
         stage = {"id": task["id"], "title": task["title"], "status": "pending"}
         old = previous.get(task["id"])
         if old:
+            # Every seal token survives a re-record: the NEXT task's contract is
+            # recorded while this one is done-but-unshipped, and dropping the
+            # stage-local review stamp here left `task pr-ready` unable to seal
+            # a task whose stage had closed clean (symphony-forge #171).
             stage.update({k: v for k, v in old.items()
                           if k in ("status", "started_at", "completed_at",
                                    "base_sha", "dirty_at_start", "task_sha256",
-                                   "incomplete")})
+                                   "incomplete", "local_review_stamp",
+                                   "contract_changed", "reopen_base_sha")})
             stage["title"] = task["title"]
         stages.append(stage)
     write_stages(base, {"issue": issue, "stages": stages})
@@ -853,14 +858,21 @@ def _find(data: dict, stage_id: str) -> dict:
 
 
 def _cmd_start_locked(args: argparse.Namespace, base: Path) -> None:
+    # Argument validity first: `--parallel` is wrong about the request itself,
+    # so it must not be reported as a missing `task start`. A refusal that
+    # names the wrong problem sends the reader to fix something that was never
+    # broken.
+    if args.parallel:
+        fail("task stages are sequential inside one story worktree; parallelism "
+             "belongs between dependency-ready stories in separate worktrees")
+    from factory_lib import require_task_start_recorded
+    trunk = bool(getattr(args, "trunk", False))
+    require_task_start_recorded(base, args.id, trunk=trunk)
     require_task_worktree(base)
     data = load_stages(base)
     if not data:
         fail("no .factory/stages.json — record the decomposition first "
              "(record_decomposition_from_json.py creates the stage tracker)")
-    if args.parallel:
-        fail("task stages are sequential inside one story worktree; parallelism "
-             "belongs between dependency-ready stories in separate worktrees")
     stage = _find(data, args.id)
     if stage.get("status") == "done":
         fail(f"{args.id} is already done — stages don't reopen; a follow-up is a "
@@ -905,7 +917,30 @@ def _cmd_start_locked(args: argparse.Namespace, base: Path) -> None:
     # rewritten by the next `stage start`, which is how re-recording a contract
     # once destroyed the delta it was supposed to protect. A ref is written
     # once per stage and survives commits, rebases and worktree switches.
-    stage["base_sha"] = write_stage_ref(base, args.id) or ""
+    # A REOPENED task keeps the base its work started from: measuring a
+    # reopened stage from today's HEAD reports an empty diff for work that is
+    # already on the branch, and the stage can then neither close nor seal
+    # (symphony-forge #171). `task reopen` records that base; it must still be
+    # an ancestor of HEAD, else the ref pins HEAD as for a fresh stage.
+    reopen_base = stage.pop("reopen_base_sha", None)
+    pinned = ""
+    if isinstance(reopen_base, str) and reopen_base:
+        # stages' `_git` returns stdout (empty on failure); an ancestor check is
+        # a return code, so ask subprocess directly, as the done path does.
+        ancestor = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", reopen_base, "HEAD"],
+            cwd=base, capture_output=True, text=True, encoding="utf-8",
+            env=clean_git_env(),
+        ).returncode == 0
+        if ancestor:
+            _git(base, "update-ref", stage_ref(args.id), reopen_base)
+            pinned = reopen_base
+            print(f"Stage baseline restored to {reopen_base[:12]} (reopened task): "
+                  "the diff is measured from where the task's work started")
+        else:
+            print(f"WARNING: reopened base {reopen_base[:12]} is not an ancestor of "
+                  "HEAD; measuring from HEAD instead")
+    stage["base_sha"] = pinned or write_stage_ref(base, args.id) or ""
     stage["dirty_at_start"] = dirty_digests(base)
     stage["task_sha256"] = task_digest(current_task)
     append_event(base, "stage-start", actor="implementer", story=data.get("issue", ""),

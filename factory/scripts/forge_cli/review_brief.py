@@ -19,6 +19,18 @@ VERDICT_INSTRUCTION = (
     "replace the quality/performance/security lenses."
 )
 
+# Every lens hunts for code the diff kept only for compatibility: the owner's
+# standing ruling is "we don't need legacy code", and a leftover that survives
+# review ships. Rendered beside the lens focus in every brief.
+LEFTOVER_INSTRUCTION = (
+    "LEFTOVERS (blocking): the diff must carry no code kept only for "
+    "compatibility — no wrapper or shim over its replacement, no re-export or "
+    "alias kept 'for callers', no renamed-but-retained symbol, no dead branch "
+    "behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or "
+    "comment. Report each as a BLOCKING finding with file:line and verdict the "
+    "contract it belongs to as partial; a clean diff says so in one line."
+)
+
 
 def declared_contracts(decomposition: dict) -> list[dict]:
     """Return the validated decomposition-wide contract union in task order."""
@@ -36,7 +48,77 @@ def declared_contracts(decomposition: dict) -> list[dict]:
     return contracts
 
 
-def _task_section(task: dict) -> list[str]:
+def _lessons_section(base: Path, task: dict) -> list[str]:
+    """Lessons whose `applies_to` globs hit the task's write scope — the
+    reviewer must not re-raise a finding the ledger already settled (the
+    2026-09-04 case: a per-task review re-flagged as P1 the exact behaviour a
+    recorded lesson pins as deliberate, because the brief never carried it)."""
+    from .lessons import relevant_lessons
+    scope = [p for p in task.get("write_scope", []) if isinstance(p, str)]
+    if not scope:
+        return []
+    try:
+        hits = relevant_lessons(base, scope)
+    except SystemExit:
+        return []
+    if not hits:
+        return []
+    lines = ["### Lessons in force", "",
+             "Recorded lessons that apply to this task's paths. A finding that "
+             "contradicts one is not a defect unless it shows the lesson itself "
+             "is wrong; say so explicitly instead of re-raising it.", ""]
+    for lesson in hits:
+        topic = str(lesson.get("topic", "")).strip()
+        body = str(lesson.get("lesson", "")).strip()
+        severity = str(lesson.get("severity", "")).strip()
+        lines.append(f"- [{severity}] {topic}: {body}")
+    lines.append("")
+    return lines
+
+
+def _evidence_section(base: Path) -> list[str]:
+    """The story's recorded verification evidence, summarised for the reviewer.
+
+    The review bundle is the product delta only (bookkeeping paths sit at the
+    task base), so the reviewer no longer sees `verify.json` / `tests.json`
+    in the diff — and a contract like "suites pass; tsc and architecture
+    green" was recorded `partial` for lack of execution evidence (issue #171).
+    The brief carries the summary instead: what verify ran and whether it was
+    green, and what the automated-test record says."""
+    from factory_lib import evidence_path
+    state = load_json(run_state_path(base), default={})
+    story = state.get("issue_key") or state.get("story")
+    if not isinstance(story, str) or not story:
+        return []
+    lines: list[str] = []
+    verify = load_json(evidence_path(base, story, "verify.json"), default={})
+    if verify:
+        ok = "ok" if verify.get("ok") is True else "FAILED"
+        commit = str(verify.get("commit", ""))[:12]
+        lines.append(f"- verify.py: {ok}" + (f" at {commit}" if commit else ""))
+        for result in verify.get("results") or []:
+            if isinstance(result, dict) and result.get("command"):
+                code = result.get("exit_code")
+                lines.append(f"  - `{result['command']}` -> exit {code}")
+    tests = load_json(evidence_path(base, story, "tests.json"), default={})
+    automated = (tests or {}).get("automated")
+    if isinstance(automated, dict):
+        lines.append(f"- automated tests: {automated.get('status', 'unknown')}")
+        summary = str(automated.get("summary", "")).strip()
+        if summary:
+            lines.append(f"  - {summary}")
+        commands = automated.get("commands_run") or []
+        if commands:
+            lines.append(f"  - {len(commands)} command(s) recorded, e.g. `{commands[0]}`")
+    if not lines:
+        return []
+    return ["### Recorded evidence", "",
+            "Recorded by the harness for this story (not in the diff). Use it to "
+            "verdict verification contracts; do not mark them partial for lack "
+            "of execution evidence in the bundle.", "", *lines, ""]
+
+
+def _task_section(task: dict, base: Path | None = None) -> list[str]:
     task_id = task.get("id", "")
     lines = [f"## Task {task_id}", "", "### Plan contracts", ""]
     contracts = task.get("plan_contracts", [])
@@ -59,6 +141,9 @@ def _task_section(task: dict) -> list[str]:
         reviewer_focus,
         "",
     ])
+    if base is not None:
+        lines.extend(_lessons_section(base, task))
+        lines.extend(_evidence_section(base))
     return lines
 
 
@@ -86,7 +171,7 @@ def cmd_review_brief(args: argparse.Namespace) -> None:
 
     lines = [title, "", VERDICT_INSTRUCTION, ""]
     for task in selected:
-        lines.extend(_task_section(task))
+        lines.extend(_task_section(task, base))
     relative = f"review-briefs/{filename}"
     body = ("\n".join(lines).rstrip() + "\n").encode()
     if not safe_factory_write_bytes(base, relative, body):
