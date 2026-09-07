@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AuthUser, DomainSpec, Selection } from "@3f/contract";
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "../app.module";
 import { SelectionExecutor } from "../chat/selectionExecutor";
-import { SqlBuilder } from "../sql/sqlBuilder";
-import { SqlValidator } from "../sql/sqlValidator";
+import { WAREHOUSE } from "../config";
+import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
 import { pgOidIsNumeric, PostgresAdapter } from "./postgres.adapter";
+import type { Warehouse } from "./warehouse.interface";
 
 test("Postgres numeric field OIDs map without database access", () => {
   for (const oid of [20, 21, 23, 700, 701, 1700]) {
@@ -54,11 +57,21 @@ test(
       filters: [],
       limit: 10,
     };
-    const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), new PostgresAdapter());
+    const originalInit = AuthoredMeasureRegistry.prototype.onModuleInit;
+    AuthoredMeasureRegistry.prototype.onModuleInit = async () => {};
+    const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
+    try {
+      const warehouse = app.get<Warehouse>(WAREHOUSE);
+      const executor = app.get(SelectionExecutor);
+      assert.ok(warehouse instanceof PostgresAdapter);
 
-    const result = await executor.run(user, domain, selection);
+      const result = await executor.run(user, domain, selection);
 
-    assert.equal(Number(result.result.rows[0]?.total), 42);
-    assert.match(result.sql, /FROM WarehouseFixture/);
+      assert.equal(Number(result.result.rows[0]?.total), 42);
+      assert.match(result.sql, /FROM WarehouseFixture/);
+    } finally {
+      AuthoredMeasureRegistry.prototype.onModuleInit = originalInit;
+      await app.close();
+    }
   },
 );

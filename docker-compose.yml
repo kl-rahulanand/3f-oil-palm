@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${PGUSER:-threef}
       POSTGRES_PASSWORD: ${PGPASSWORD:-3f-local}
     ports:
-      - "${PGPORT:-5432}:5432"
+      - "127.0.0.1:${PGPORT:-5432}:5432"
     volumes:
       - app-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: warehouse
       POSTGRES_PASSWORD: warehouse-local
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - warehouse-data:/var/lib/postgresql/data
     healthcheck:

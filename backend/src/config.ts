@@ -111,9 +111,9 @@ export function loadConfig(): Config {
     nodeEnv,
     authOtpMock,
     authJwtSecret,
-    frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://localhost:5173",
+    frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://127.0.0.1:3000",
     pg: {
-      host: process.env.PGHOST ?? "localhost",
+      host: process.env.PGHOST ?? "127.0.0.1",
       port: num(process.env.PGPORT, 5432),
       user: process.env.PGUSER ?? "threef",
       password: process.env.PGPASSWORD ?? "3f-local",
@@ -161,8 +161,7 @@ export function loadConfig(): Config {
       region: process.env.AWS_REGION ?? "ap-south-1",
       modelId: process.env.BEDROCK_MODEL_ID ?? "",
     },
-    swaggerEnabled:
-      process.env.NODE_ENV !== "production" || process.env.ENABLE_SWAGGER === "true",
+    swaggerEnabled: nodeEnv !== "production",
   };
 }
 

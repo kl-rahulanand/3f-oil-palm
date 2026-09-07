@@ -25,7 +25,6 @@ backend/src/chat/smalltalk-guard.ts
 backend/src/chat/suppression.ts
 backend/src/chat/timeWindowParse.ts
 backend/src/common/openapi.ts
-backend/src/config.ts
 backend/src/conversations/conversations.controller.ts
 backend/src/conversations/conversations.service.ts
 backend/src/core/audit.service.ts

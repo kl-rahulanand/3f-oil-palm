@@ -13,6 +13,7 @@ const expectedCommands = {
 };
 
 const hermeticTests = [
+  "backend/src/app.routes.test.ts",
   "backend/src/branding.identifiers.test.ts",
   "backend/src/chat/chat.sse.test.ts",
   "backend/src/chat/reconciliation-guard.test.ts",
@@ -21,11 +22,14 @@ const hermeticTests = [
   "backend/src/chat/timeWindowParse.test.ts",
   "backend/src/core/dimension-values.service.test.ts",
   "backend/src/db/migrate.trim.test.ts",
+  "backend/src/health/health.controller.test.ts",
+  "backend/src/loopback-profile.test.ts",
   "backend/src/measures/authored-measure.registry.test.ts",
   "backend/src/measures/measures.guard.test.ts",
   "backend/src/pins/pins.schemas.test.ts",
   "backend/src/semantic/definitionVersion.test.ts",
   "backend/src/sql/sqlValidator.pii.test.ts",
+  "backend/src/swagger-production.test.ts",
   "backend/src/swagger.test.ts",
   "backend/src/warehouse/postgres.adapter.oid.test.ts",
 ];
@@ -123,7 +127,6 @@ b6133d425e36598cd312eb730e5ff7ff32d18040109e222539238645d36b7b8b backend/src/cha
 d87c8800569af74975ce67dbdb408de2ebbc1c11cbf00a5eb51f42190e1aefe9 backend/src/chat/suppression.ts
 a91b8489592d28d7e418290e34799dcfb58238c54bb1050fba339280d11ed646 backend/src/chat/timeWindowParse.ts
 c401ca278a38b619644004834a832197cd3e21ea4394dff874611ba000adb90d backend/src/common/openapi.ts
-736001739e39167ebb9d5dfb4a52fea36a70b1b59f8a209bc7c4665c8dcf79a8 backend/src/config.ts
 5cdcc416d806108b06f887f81fded9bce2288cfeb36d825546a401d619f6ed8b backend/src/conversations/conversations.controller.ts
 ea49b24dd229a78110685297c646190e971c1526ac096c7003df75c675c20998 backend/src/conversations/conversations.service.ts
 9b2bd594219c886c6e6601ac2d3b607110691115f8ef6ebf4a65f63de303a0b6 backend/src/core/audit.service.ts
@@ -341,7 +344,7 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
   assert.throws(
     () =>
       validateIgnoredBaseline(gate.ignore, (path) =>
-        path === "backend/src/config.ts" ? Buffer.from("changed") : readFileSync(path),
+        path === "backend/src/auth/auth.controller.ts" ? Buffer.from("changed") : readFileSync(path),
       ),
     /changed while still excluded/,
   );
