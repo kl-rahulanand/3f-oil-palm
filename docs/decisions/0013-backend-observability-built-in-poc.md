@@ -44,9 +44,10 @@ above. Fresh code — `/health` and anything written from here — meets full co
 that the app-wide handler and request logging exist.
 
 ## Consequences
-- `api-surface-trim` grows: beyond the API-surface trim and security hardening it now
-  implements the global exception filter and the structured logger, wired app-wide in
-  `main.ts`. Its review budget is raised accordingly.
+- The observability work is its own task (`backend-observability`, after the frontend,
+  before harness-wiring): the global exception filter + structured logger wired app-wide in
+  `main.ts`. `api-surface-trim` stays focused (route trim, security, warehouse, a simple
+  `/health` envelope DTO).
 - The PoC gains real operability: an unexpected exception surfaces in one governed error
   shape, and every request is traceable by `correlationId` — precisely what makes a demo
   or a later incident diagnosable.
