@@ -52,7 +52,8 @@ that the app-wide handler and request logging exist.
   shape, and every request is traceable by `correlationId` — precisely what makes a demo
   or a later incident diagnosable.
 - D-0004 is updated to drop the handler+logging items and keep only the typed-DTO
-  coverage; `docs/specs/app-platform-base.md` and the active plan's vendored-API-compliance
-  note are reconciled to say the handler and logging are built, not deferred.
+  coverage; `docs/specs/app-platform-base.md` is reconciled to say the handler and logging are built
+  in `backend-observability`; the approved plan's note is superseded by this decision
+  (decisions govern when plan prose drifts) rather than re-edited, to avoid a story re-approval.
 - The remaining DTO-coverage debt is small and bounded, and still travels on the same
   production-pilot trigger as the rest of D-0004 / decision 0011.
