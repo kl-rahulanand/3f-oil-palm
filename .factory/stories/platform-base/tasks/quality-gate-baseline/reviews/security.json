@@ -1,16 +1,10 @@
 {
   "generated_by": "autoreview",
-  "score": 7,
-  "summary": "security lens over quality-gate-baseline (16 product path(s), 982ed20..b8e357e, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The current commands appear correctly configured and the bundle exposes no concrete credential or authorization issue. However, the durability guard omits two runnable leaves in the structural command graph, permitting CI to report success after a workspace build has been disconnected. That false-green path violates the central gate contract and should block the patch.",
-  "blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "tools",
-      "summary": "[P1] Pin the intermediate workspace build scripts (tools/quality-gate.test.mjs:48): The guard pins `build` as a wrapper and pins each workspace's `build` body, but never asserts the root `build:contract` or `build:backend` scripts that connect them."
-    }
-  ],
+  "score": 10,
+  "summary": "security lens over quality-gate-baseline (16 product path(s), 982ed20..85182a8, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 security or correctness defect. The workflow is push-only, uses read-only repository permissions, pins actions to immutable SHAs, and runs the intended aggregate. The quality guard pins the effective FACTORY command mappings, recursively checks the relevant script bodies, validates test classification and workflow triggers, and protects the explicit Prettier debt exclusions with baseline hashes. No real credentials, new authorization surfaces, injection paths, or compatibility-only leftovers are present in the shown change.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     ".envrc",
     ".github/workflows/quality.yml",
@@ -31,10 +25,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "728277e660cc7d7bc6536e7deeb3cc0a32ead40321bd6208ff54006db2d10ce1",
-  "brief_sha256": "f91f696f8f838249a17b23823d6b27846e2d33df0455c7bd8e9b344ade7fa90c",
-  "branch_diff_digest": "5fc7f64478c6d8f58f0ff97acf9b58f35d72904c72613dac1c578d2cac7dd2eb",
+  "review_run_id": "d5ab976cca8819795c0599c0ef0b5cf9d85fee2646f01e56975541b278309ff4",
+  "brief_sha256": "60b92b68cfa0d8bc3d404f0d43920dbc830cc7ab91f6fa014d0df0ac945c6690",
+  "branch_diff_digest": "336e485bdde2f9066c32899d496bbe4387a27b7be1ce7aa679bab795983510ad",
   "residual_risks": [],
-  "recorded_at": "2026-09-07T17:52:16+00:00",
-  "commit": "b8e357ea5a417cf71da82ef42d7aa60fdf1257ec"
+  "recorded_at": "2026-09-07T18:08:13+00:00",
+  "commit": "85182a838c4cc1f403de6702d76e5fb87d2aa799"
 }

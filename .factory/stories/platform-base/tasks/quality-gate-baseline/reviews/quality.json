@@ -1,10 +1,21 @@
 {
   "generated_by": "autoreview",
-  "score": 10,
-  "summary": "quality lens over quality-gate-baseline (16 product path(s), 982ed20..b8e357e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t5-c1: implemented \u2014 package.json:16 and .prettierignore:4 evidence\nVERDICT t5-c2: implemented \u2014 .envrc:19 and tools/quality-gate.test.mjs:9 evidence\nVERDICT t5-c3: implemented \u2014 .github/workflows/quality.yml:3 and package.json:21 evidence\nThe bundle demonstrates the required lint, formatting, command-mapping, guard, and push-only CI topology without an actionable P0\u2013P2 defect.",
-  "blocking_findings": [],
+  "score": 7,
+  "summary": "quality lens over quality-gate-baseline (16 product path(s), 982ed20..85182a8, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The executable lint, format, command-mapping, test-split, and push-only CI machinery is present, but the required debt inventory is not. No compatibility wrapper or retained replacement is introduced by the shown task code.\nVERDICT t5-c1: partial \u2014 .prettierignore:7 substitutes an in-file assertion for the required plans/deferrals.md ledger entries\nVERDICT t5-c2: implemented \u2014 .envrc:22 declares the pinned four-command mapping validated by tools/quality-gate.test.mjs:287\nVERDICT t5-c3: implemented \u2014 package.json:17 defines the aggregate quality command and .github/workflows/quality.yml:3 runs the verified aggregate on every push",
+  "blocking_findings": [
+    {
+      "category": "maintainability",
+      "area": ".prettierignore",
+      "summary": "[P1] Add the required debt-ledger entries (.prettierignore:7): This header claims that D-0005 and D-0006 are recorded in `plans/deferrals.md`, but that required ledger change is absent from the bundle."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition",
+      "summary": "t5-c1: backend and contract have ESLint + Prettier config and lint / format:check scripts that run clean; the pre-existing vendored source is excluded from FORMAT checking via a .prettierignore listing those exact files and ledgered as debt (D-0006), while tools/, the config files this task itself adds, and all newly written code are format-checked (executable MJS also linted), the harness-owned .github workflows are excluded because forge upgrade re-vendors them, and .envrc is validated semantically by the guard test rather than by ESLint or Prettier"
+    }
+  ],
   "non_blocking_findings": [],
-  "recommendation": "approve",
+  "recommendation": "request-changes",
   "reviewed_scope": [
     ".envrc",
     ".github/workflows/quality.yml",
@@ -27,18 +38,18 @@
   "contract_verdicts": [
     {
       "contract_id": "t5-c1",
-      "verdict": "implemented",
-      "evidence": "package.json:16 and .prettierignore:4 evidence"
+      "verdict": "partial",
+      "evidence": ".prettierignore:7 substitutes an in-file assertion for the required plans/deferrals.md ledger entries"
     },
     {
       "contract_id": "t5-c2",
       "verdict": "implemented",
-      "evidence": ".envrc:19 and tools/quality-gate.test.mjs:9 evidence"
+      "evidence": ".envrc:22 declares the pinned four-command mapping validated by tools/quality-gate.test.mjs:287"
     },
     {
       "contract_id": "t5-c3",
       "verdict": "implemented",
-      "evidence": ".github/workflows/quality.yml:3 and package.json:21 evidence"
+      "evidence": "package.json:17 defines the aggregate quality command and .github/workflows/quality.yml:3 runs the verified aggregate on every push"
     },
     {
       "contract_id": "t1-c1",
@@ -107,10 +118,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "728277e660cc7d7bc6536e7deeb3cc0a32ead40321bd6208ff54006db2d10ce1",
-  "brief_sha256": "f91f696f8f838249a17b23823d6b27846e2d33df0455c7bd8e9b344ade7fa90c",
-  "branch_diff_digest": "5fc7f64478c6d8f58f0ff97acf9b58f35d72904c72613dac1c578d2cac7dd2eb",
+  "review_run_id": "d5ab976cca8819795c0599c0ef0b5cf9d85fee2646f01e56975541b278309ff4",
+  "brief_sha256": "60b92b68cfa0d8bc3d404f0d43920dbc830cc7ab91f6fa014d0df0ac945c6690",
+  "branch_diff_digest": "336e485bdde2f9066c32899d496bbe4387a27b7be1ce7aa679bab795983510ad",
   "residual_risks": [],
-  "recorded_at": "2026-09-07T17:52:16+00:00",
-  "commit": "b8e357ea5a417cf71da82ef42d7aa60fdf1257ec"
+  "recorded_at": "2026-09-07T18:08:13+00:00",
+  "commit": "85182a838c4cc1f403de6702d76e5fb87d2aa799"
 }
