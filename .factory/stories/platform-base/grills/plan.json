@@ -2,48 +2,84 @@
   "generated_by": "griller",
   "gate": "plan",
   "verdict": "pass",
-  "summary": "Plan grill of platform-base: warehouse DB topology, migration trimming, and _ds design integration. All three resolved into the plan.",
+  "summary": "Plan grill of platform-base across two ledgered Codex cold-read rounds (gpt-5.6-terra @ xhigh). Round 1 raised six decisions (frontend split, quality-gate ordering, freshness-pill truthfulness, Inter font source, API surface, audit definition) plus five factual plan gaps; round 2, run after the spec was tightened, found the plan lagging the spec's new precision. All resolved by plan edits, decision 0012, and a rebuilt nine-task decomposition. Rounds 1 and 3-5 in the ledger belong to the requirements gate run in the same session.",
   "gaps": [
-    "Warehouse DB topology for the PoC unspecified",
-    "Whether to run or trim Pulse's app-DB migrations",
-    "How the frontend consumes the _ds design"
+    "The plan's task graph and the canonical decomposition disagreed: the plan named nine tasks while the recorded decomposition had six, omitting quality-gate-baseline, api-surface-trim and frontend-foundation, so implementation would have started the frontend before its planned dependencies",
+    "frontend-foundation had been dropped from the decomposition, merging toolchain, token theme, primitives, shell, login, state layer and tests into one unbounded user-facing task",
+    "The repo-wide quality gate was scheduled last, so the frontend would be written before verify.py could enforce lint, format or typecheck",
+    "The data-freshness pill had no truthful value available: the story excludes ingestion and any freshness API",
+    "Inter was promised as self-hosted with no external fetch, but no font binaries exist in the repo and the _ds export imports Google Fonts",
+    "harness-wiring's decomposition entry had no write scope, tests, verify commands or reviewer focus, so it was not delegable",
+    "The plan omitted the confirmed placeholder Dashboard-only behaviour, the falsifiable warehouse proof, and the provenance carve-out for the Pulse-free scan",
+    "The plan said only 'auth, CSRF and health' where the spec carries an exact method/path/environment allow-list, leaving T6's complete-allow-list test with no complete list to assert",
+    "The plan directed localhost:3000 while the spec requires the literal 127.0.0.1 throughout the mock-OTP profile, and assigned no owner for warehouse-seed, the fixture total, or the DI-resolved E2E",
+    "The plan required only 'an OTP login per the Claude Design' where the spec makes the login layout, copy, input semantics, focus, live regions, motion and both viewports acceptance-critical",
+    "T9 mentioned .github/ without committing to CI running root verification on every push"
   ],
-  "contradictions": [],
+  "contradictions": [
+    "The plan's Task Decomposition had been rewritten from five to seven tasks after the human approved it, so the live plan no longer matched its approval digest and no decomposition could be recorded against it",
+    "The plan's allow-list omitted POST /api/auth/refresh while also retaining the vendored session stack 'as-is', which would silently reduce sessions to the 15-minute access-token lifetime",
+    "The recorded plan grill attested a stale input digest (1c8c...) against a plan that had since changed (428d...), so the existing approval could not be treated as valid"
+  ],
   "resolutions": [
-    "Separate Postgres container for the warehouse (plan: Technical Approach + T2)",
-    "Trim Pulse's migrations to the auth+audit minimum for first boot (plan: Technical Approach + T3)",
-    "Port _ds tokens/CSS and rebuild the shell/login as React shadcn/ui components (plan: Technical Approach + T4)"
+    "The decomposition is rebuilt to nine tasks matching the plan's graph exactly, with tasks 1-4 left byte-identical so the shipped stages' contract hashes do not move",
+    "frontend-foundation is restored as its own not-user-facing predecessor owning scaffold, token theme, vendored Inter, shadcn primitives, the TanStack Query provider and the frontend quality gate; frontend-shell-login depends on it and owns only shell, login and auth UI",
+    "quality-gate-baseline is inserted ahead of all new code: ESLint + Prettier for backend and contract, and the four FACTORY_* commands in .envrc; the gate widens in frontend-foundation and is proven whole-workspace in harness-wiring",
+    "The freshness pill renders explicitly unavailable until the ingestion capability owns a real value, consistent with the four inactive nav items and the disabled search",
+    "Inter is vendored as licensed WOFF2 under frontend/ loaded via next/font/local, with an offline production build as the proof; next/font/google is explicitly rejected",
+    "harness-wiring gains write scope, acceptance criteria, verify commands, plan contracts and reviewer focus, and is reduced to wiring and proving the gate rather than inventing it",
+    "The plan gains the Dashboard-only shell behaviour, the falsifiable warehouse criterion, and a Pulse-free scan scoped to product identifiers that explicitly excludes VENDORED_FROM and provenance history per decision 0010",
+    "T6 is bound to the spec's allow-list and local runtime contract as normative, including refresh, the non-production-only Swagger document routes, the production prohibition, and the typed enveloped health response",
+    "The literal 127.0.0.1 profile is made binding, and warehouse-seed, the fixture total of 42 and the DI-resolved WAREHOUSE/SelectionExecutor proof are all assigned to api-surface-trim",
+    "T8 is bound to the spec's normative Login screen contract and to functional checks at 1440x900 and 390x844, with the mobile drawer closing on Escape and restoring focus",
+    "T9 explicitly adds or adjusts the product CI workflow so root verification runs on every push",
+    "Decision 0012 records the time-bounded vendored-API deviation; the audit criterion is restated as application-enforced and fail-closed with DB-level immutability deferred to decision 0011 / D-0003"
   ],
-  "open_items": [],
+  "open_items": [
+    "NON-BLOCKING: the plan is re-saved and goes to the board for a fresh human approval; the prior approval (2f6b190) is explicitly NOT carried forward, since the plan was rewritten after it.",
+    "NON-BLOCKING: the requirements loop that fed this plan was stopped by human decision after four rounds rather than run to a clean round (see the requirements grill's open_items).",
+    "NON-BLOCKING: each of the two frontend task plans still faces its own gate-task grill before any code is written."
+  ],
+  "questions_asked": 25,
+  "issue": "platform-base",
   "rounds": [
     {
-      "question": "platform-base plan \u2014 warehouse DB for the PoC?",
+      "question": "The approved plan splits the frontend into `frontend-foundation` (scaffold + theme + quality gate, no screens) then `frontend-shell-login` (shell + login UI). The recorded decomposition dropped the foundation task and merged both. How do we reconcile?",
       "options": [
-        "Same Postgres instance, separate schema",
-        "Separate Postgres container"
+        "Restore the split (Recommended)",
+        "Keep it merged, amend the plan"
       ],
-      "chosen": "Separate Postgres container"
+      "chosen": "Restore the split (Recommended)"
     },
     {
-      "question": "platform-base plan \u2014 Pulse's app-DB migrations?",
+      "question": "The `_ds` tokens import Inter from Google, but no font files are in the repo. How should the frontend load it?",
       "options": [
-        "Run Pulse's Drizzle migrations as-is",
-        "Trim to auth+audit minimum now"
+        "Vendor Inter WOFF2 locally (Recommended)",
+        "next/font/google"
       ],
-      "chosen": "Trim to auth+audit minimum now"
+      "chosen": "Vendor Inter WOFF2 locally (Recommended)"
     },
     {
-      "question": "platform-base plan \u2014 how does the frontend use the `_ds` design?",
+      "question": "The shell design has a data-freshness pill, but this story has no ingested data and no freshness API. What should it show?",
       "options": [
-        "Port `_ds` tokens/CSS, rebuild shell in React",
-        "Embed the design-canvas bundle"
+        "Show it as unavailable (Recommended)",
+        "Omit the pill for now",
+        "Show the design's static value"
       ],
-      "chosen": "Port `_ds` tokens/CSS, rebuild shell in React",
+      "chosen": "Show it as unavailable (Recommended)"
+    },
+    {
+      "question": "Separately \u2014 the frontend is now three tasks out (quality-gate-baseline, api-surface-trim, then frontend-foundation). Does that sequencing still work for you?",
+      "options": [
+        "Keep the order as planned",
+        "Frontend first, backend fixes after",
+        "Just close the security issue first"
+      ],
+      "chosen": "Keep the order as planned",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "1c8c086e2fb8b584836769719bec80076ac3aa8a230be46ff4170717f3d2528b",
-  "issue": "platform-base",
-  "recorded_at": "2026-09-01T11:16:55+00:00",
-  "commit": "ab56fbb31ad5246d59f3bc7da3bdb6f23c4965bf"
+  "input_sha256": "a469ceddca41952e0b007bb9cbffbd961a1d405bc4885a3f55562ac230cdaabe",
+  "recorded_at": "2026-09-07T08:25:46+00:00",
+  "commit": "f78318d6bacb7c65a1afa461888d195006e8869a"
 }

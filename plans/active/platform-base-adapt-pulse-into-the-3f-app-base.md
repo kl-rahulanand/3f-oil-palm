@@ -214,11 +214,27 @@ mounted at `api/docs` with error responses documented, and stays compliant.
    `main.ts` calls `app.listen(port)` with **no host**, binding every interface — bind
    `127.0.0.1` whenever `AUTH_OTP_MOCK` is on, so a known mock code (`000000`) and a
    deterministic dev JWT secret are not an admin login for the whole local network.
-   Proof: a route-registration test comparing the **complete** method/path allow-list, and
-   a no-enumeration test (active / inactive / unknown emails return identical status and
-   body; unknown and inactive verification fail identically and yield no session).
+   **The spec's API allow-list and local runtime contract are normative for this task** —
+   `docs/specs/app-platform-base.md` §"Confirmed scope" and §"Local runtime contract" carry
+   the exact method/path/environment list (including `POST /api/auth/refresh`, `/api/docs`
+   + `/api/docs-json` non-production only, Swagger unconditionally absent when
+   `NODE_ENV=production`, and the typed **enveloped** health response). Implement that list,
+   do not re-derive it.
+   Also **hardens the warehouse E2E proof** (same class of work: shipped backend claims
+   that don't match reality): the current test hand-constructs `new SelectionExecutor(new
+   SqlBuilder(), new SqlValidator(), new PostgresAdapter())`, so it passes even if the
+   runtime provider resolves a different adapter. Resolve `WAREHOUSE` and
+   `SelectionExecutor` from the application module's DI container and prove
+   `validate → explain → execute` returns `SUM(WarehouseFixture.value) = 42` against the
+   `warehouse-seed` fixture.
+   Proof: a route-registration test comparing the **complete** method/path allow-list; a
+   no-enumeration test (active / inactive / unknown emails return identical status and
+   body; unknown and inactive verification fail identically and yield no session); a
+   session-continuity test (refresh rotates cookies, a subsequent `/me` succeeds); and the
+   DI-resolved warehouse E2E.
    depends_on: 3,4,5. write_scope: `backend/src/app.module.ts`, `backend/src/health/`,
-   `backend/src/config.ts`, `backend/src/main.ts`, `backend/test/`.
+   `backend/src/config.ts`, `backend/src/main.ts`, `backend/src/warehouse/`,
+   `docker-compose.yml`, `backend/test/`.
 7. **frontend-foundation** (frontend, not user-facing) — scaffold the fresh Next.js
    (App Router) `frontend/` npm workspace and its toolchain: the `_ds`-token Tailwind
    theme, **Inter vendored as local WOFF2 loaded via `next/font/local`** (no external
@@ -232,9 +248,17 @@ mounted at `api/docs` with error responses documented, and stays compliant.
 8. **frontend-shell-login** (frontend, **user_facing: true**) — the user-facing app
    shell (Deep Forest left nav + white top bar, branded 3F) + net-new email+OTP login
    wired to the backend auth API, per the Claude Design; server state via TanStack
-   Query over an `api.ts` transport (credentials + per-POST `3f_csrf` re-read). Exactly
-   five nav labels with only Dashboard active; the other four, the top-bar search and the
-   data-freshness pill all render visibly unavailable. depends_on: 6,7. write_scope:
+   Query over an `api.ts` transport (credentials + per-POST `3f_csrf` re-read), retrying
+   **once** through `refresh` on an access-token 401. Exactly five nav labels with only
+   Dashboard active; the other four, the top-bar search and the data-freshness pill all
+   render visibly unavailable.
+   **Bound to `docs/specs/app-platform-base.md` §"Login screen contract" (normative)** —
+   layout, exact copy, input semantics, focus transfer, `aria-live` regions, ≤200ms
+   reduced-motion-aware transitions — plus the mobile drawer closing on Escape and
+   restoring focus to its toggle. "Per the Claude Design" is *not* sufficient authority
+   here: the approved export contains no login state. Functional check at **1440×900** and
+   **390×844**. The API base and CORS origin use the literal `127.0.0.1`, per the spec's
+   local runtime contract. depends_on: 6,7. write_scope:
    `frontend/`, `package.json`, `package-lock.json`.
    (Design skills: emil-design-eng, frontend-design.)
 9. **harness-wiring** (ops, not user-facing) — point `harness.yaml` at the workspace
@@ -244,7 +268,9 @@ mounted at `api/docs` with error responses documented, and stays compliant.
    `check_dual_runtime.py` and `check_vendor_integrity.py` — `verify.py` runs only what the
    `FACTORY_*` variables declare, so "harness intact" is otherwise unfalsifiable — and the
    Pulse snapshot's provenance (`backend/VENDORED_FROM` naming repo + commit, decision
-   0008) is asserted separately from harness integrity. The gate itself was established in T5 and widened
+   0008) is asserted separately from harness integrity. Also **add or adjust the product CI
+   workflow so root verification runs on every push** — a gate that only ever runs when
+   someone remembers to run it locally is not enforced. The gate itself was established in T5 and widened
    in T7 — this task wires and proves it, it does not invent it. depends_on: 1,2,3,4,5,6,7,8.
    write_scope: `harness.yaml`, `.envrc`, `.github/` (project workflows only).
 
