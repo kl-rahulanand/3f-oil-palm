@@ -53,7 +53,6 @@ const expectedScripts = {
   "format:check":
     'npm -w @3f/backend run format:check && npm -w @3f/contract run format:check && prettier --config .prettierrc.json --ignore-path .prettierignore --check package.json backend/package.json contract/package.json .prettierrc.json eslint.config.mjs .github/workflows/quality.yml "tools/**/*.mjs"',
   quality: "npm run lint && npm run format:check",
-  test: "npm run test:hermetic",
   "test:hermetic": "npm -w @3f/backend run test:hermetic && node --test tools/quality-gate.test.mjs",
   "test:db": "npm -w @3f/backend run test:db",
   "verify:ci": "npm run structural && npm run typecheck && npm run quality && npm run test:hermetic",
@@ -66,7 +65,6 @@ const expectedWorkspaceScripts = {
     lint: 'eslint --config ../eslint.config.mjs "src/**/*.ts" "test/**/*.ts" --no-error-on-unmatched-pattern',
     "format:check":
       'prettier --config ../.prettierrc.json --ignore-path ../.prettierignore --check "src/**/*.ts" "test/**/*.ts" --no-error-on-unmatched-pattern',
-    test: "npm run test:hermetic",
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
   },
@@ -193,14 +191,14 @@ function readCommands(envrc, vendored = true) {
       skipping = false;
       continue;
     }
-    if (skipping || !stripped.startsWith("export FACTORY_")) continue;
+    if (skipping) continue;
+    const match = stripped.match(/^export\s+(FACTORY_[^=\s]+)\s*=(.*)$/);
+    if (!match) continue;
 
-    const assignment = stripped.slice("export ".length);
-    const separator = assignment.indexOf("=");
-    const name = (separator === -1 ? assignment : assignment.slice(0, separator)).trim();
-    let value = (separator === -1 ? "" : assignment.slice(separator + 1)).trim();
+    const [, name, rawValue] = match;
+    let value = rawValue.trim();
     if (value.length >= 2 && value[0] === value.at(-1) && ['"', "'"].includes(value[0])) value = value.slice(1, -1);
-    if (name.endsWith("_CMD") && !value.includes("$")) found[name] = value;
+    if (name.endsWith("_CMD")) found[name] = value;
   }
   return found;
 }
@@ -219,17 +217,23 @@ function validateIgnoredBaseline(ignore, readPath = readFileSync) {
   assert.match(ignore, /# Harness-owned workflows are re-vendored by forge upgrade;/);
   assert.doesNotMatch(ignore, /^(?:backend|contract)\/(?:\*{1,2})/m, "vendored exclusions must name files");
 
-  const lines = ignore.split("\n");
-  const ignoredPaths = lines.filter((line) => /^(?:backend|contract)\//.test(line));
+  const ignoredPaths = [...ignoredBaselineHashes.keys()];
   assert.deepEqual(
-    lines.filter((line) => line.startsWith(".github/workflows/")),
+    ignore
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#"))
+      .sort(),
     [
+      "**/dist/**",
+      "**/node_modules/**",
+      ...ignoredPaths,
       ".github/workflows/factory-scaffold.yml",
       ".github/workflows/gardener.yml",
       ".github/workflows/harness-health.yml",
       ".github/workflows/roadmap-gate.yml",
-    ],
-    "only the four harness-owned workflows may be excluded",
+    ].sort(),
+    "the Prettier ignore list must contain only the pinned build, debt, and harness paths",
   );
   for (const path of ignoredPaths) {
     assert.ok(ignoredBaselineHashes.has(path), `${path} has no pinned D-0006 baseline hash`);
@@ -294,6 +298,14 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
     /four FACTORY commands/,
   );
   assert.throws(
+    () => validateGate({ ...gate, commands: readCommands(`${envrc}\nexport  FACTORY_QUALITY_CMD=x\n`) }),
+    /four FACTORY commands/,
+  );
+  assert.throws(
+    () => validateGate({ ...gate, commands: readCommands(`${envrc}\nexport FACTORY_QUALITY_CMD=$(echo true)\n`) }),
+    /four FACTORY commands/,
+  );
+  assert.throws(
     () => validateGate({ ...gate, rootScripts: { ...gate.rootScripts, lint: "echo lint" } }),
     /root script lint/,
   );
@@ -313,6 +325,7 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
       ),
     /changed while still excluded/,
   );
+  assert.throws(() => validateIgnoredBaseline(`${gate.ignore}\ntools/**\n`), /only the pinned/);
 
   const eslint = new ESLint({ overrideConfigFile: "eslint.config.mjs" });
   const [eslintFailure] = await eslint.lintText("debugger;\n", { filePath: "tools/negative-control.mjs" });
