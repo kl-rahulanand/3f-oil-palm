@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-07T09:46:01+00:00", "story": "platform-base", "detail": "S-0009-f958: You were right all three times, and the fault was mine. The contract in THIS worktree was stale: .factory was mirrored at task start, before I updated the decomposition and task plan in the main repo,"}

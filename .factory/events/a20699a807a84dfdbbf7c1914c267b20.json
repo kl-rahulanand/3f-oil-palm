@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-07T09:38:45+00:00", "story": "platform-base", "detail": "S-0008-b555: The scope was already settled in S-0007-8b73 \u2014 the missing piece was HOW, so here it is precisely. Your .prettierignore only lists dist and node_modules, which is why format:check still fails; it need"}

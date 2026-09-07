@@ -6,6 +6,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint --config ../eslint.config.mjs \"src/**/*.ts\" \"test/**/*.ts\" --no-error-on-unmatched-pattern",
+    "format:check": "prettier --config ../.prettierrc.json --ignore-path ../.prettierignore --check \"src/**/*.ts\" \"test/**/*.ts\" --no-error-on-unmatched-pattern"
   }
 }

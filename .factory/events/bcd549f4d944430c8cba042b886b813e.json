@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-07T09:31:22+00:00", "story": "platform-base", "detail": "S-0007-8b73: Scope decided by the human 2026-09-07. Prettier flags 92 of 118 vendored TypeScript files. Reformatting them inside this task was REJECTED as the reformat-the-world commit the plan forbids. Resolution"}

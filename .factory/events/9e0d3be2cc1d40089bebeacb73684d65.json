@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-07T11:55:11+00:00", "story": "platform-base", "detail": "Formatting all tools/**/*.mjs is required, but tools/junit-run.mjs and tools/junit-run.test.mjs currently fail Prettier and are outside the task write scope; add those two files or narrow the acceptan"}

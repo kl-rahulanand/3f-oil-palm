@@ -1,0 +1,1 @@
+{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-07T09:44:12+00:00", "story": "platform-base", "detail": "quality-gate-baseline requires backend+contract format:check to run clean, but Prettier 3.9.6 reports 70 existing vendored source files while the contract forbids broad vendored-source remediation and"}
