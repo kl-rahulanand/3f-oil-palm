@@ -17,7 +17,6 @@ decisions_reviewed:
   - 0010-rebrand-pulse-to-3f
   - 0011-deployment-readiness-poc-scope
   - 0012-vendored-api-constitution-deviation
-  - 0013-backend-observability-built-in-poc
 ---
 
 # Plan — platform-base: Adapt Pulse into the 3F app base
@@ -154,15 +153,14 @@ allowlist, audit retention/encryption, residency) and the constitution's
 `/deployment/<environment>` structure are **deliberately deferred** to a post-PoC story
 (deferral D-0003) — not built or scaffolded here.
 
-**Vendored API compliance (decisions 0012 + 0013):** a global exception handler
-(`constitution/07-exception-handling.md`) and structured JSON request/error logging with a
-`correlationId` (`constitution/05-logging-and-observability.md` §2.1) are **built** in
-api-surface-trim per **decision 0013** — no longer deferred. Still deferred (0012, now
-**D-0009**): complete typed response-DTO coverage across the vendored controllers, and
-migrating the remaining ad-hoc `console` emitters (reconciliation/migration/pin-refresh) to
-the shared logger — 0013 scopes to HTTP request/error logging. Fresh code meets the
-standards as written. Swagger was never part of the deviation (mounted at `api/docs` with
-documented error responses).
+**Vendored API compliance (decision 0012):** the vendored backend does not meet two
+constitution requirements — a global exception handler (`constitution/07-exception-handling.md`)
+and structured JSON logging with a `correlationId` (`constitution/05-logging-and-observability.md`
+§2.1) — and its typed response DTO coverage is uneven. These are accepted as a
+**time-bounded deviation** for the PoC and ledgered as D-0004, revisited on the same
+trigger as 0011. The deviation covers the **vendored** code only: anything written fresh
+in this repo meets the standards as written. Swagger is **not** part of it — it is already
+mounted at `api/docs` with error responses documented, and stays compliant.
 
 ## Surface Impact
 | Surface | Class | Note |
@@ -172,7 +170,7 @@ documented error responses).
 | Data / schema | Changed | Trimmed auth+audit migrations; a separate Postgres warehouse container |
 | CLI / ops | Changed | Repo-wide lint/format/typecheck baseline + the four `FACTORY_*` `.envrc` commands land in T5 (front-loaded), widen to the frontend in T7, and are wired into `harness.yaml` and proven whole-workspace in T9; docker-compose (app DB + warehouse) |
 | UI | Changed | Fresh KnackLabs-green Next.js app — T7 builds the `_ds` theme + locally vendored Inter + shadcn/ui primitives (foundation), T8 the shell + OTP login (TanStack Query), with the four inactive nav items, the search box and the freshness pill all visibly unavailable |
-| Docs | Changed (planning governance only) | Spec + plan reconciled to the accepted decisions during planning (0006/0008/0010/0011/0012/0013) — the 0013 observability reconciliation and decision records are orchestrator planning governance, NOT a story task output; no task carries `docs/` in its write_scope |
+| Docs | Unchanged-by-design (planning reconciliation only) | Spec + architecture build-plan were reconciled to the accepted decisions during re-planning (0006/0008/0010/0011) — completed planning governance, NOT a story task output; no task carries `docs/` in its write_scope |
 | Tests | Changed | Vendored backend tests carried; add boot/login/query smoke tests + frontend Vitest+RTL hermetic tests and the lint/format/typecheck gate |
 
 ## Task Decomposition
