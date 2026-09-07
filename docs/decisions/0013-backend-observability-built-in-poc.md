@@ -3,7 +3,6 @@ status: accepted
 confirmed_by: "Rahul Anand"
 date: 2026-09-08
 stories: [platform-base]
-supersedes: []
 ---
 
 # Build the global exception handler and structured logging in the PoC (supersedes that part of 0012/D-0004)
