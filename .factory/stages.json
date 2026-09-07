@@ -42,6 +42,21 @@
       "completed_at": "2026-09-04T05:38:16+00:00"
     },
     {
+      "id": "quality-gate-baseline",
+      "title": "Repo-wide quality gate baseline (backend + contract lint/format, FACTORY_* commands)",
+      "status": "pending"
+    },
+    {
+      "id": "api-surface-trim",
+      "title": "Constrain the API surface, close the local-network exposure, harden the warehouse proof",
+      "status": "pending"
+    },
+    {
+      "id": "frontend-foundation",
+      "title": "Fresh frontend foundation (Next.js workspace, _ds theme, quality gate)",
+      "status": "pending"
+    },
+    {
       "id": "frontend-shell-login",
       "title": "Fresh frontend shell + OTP login",
       "status": "pending"

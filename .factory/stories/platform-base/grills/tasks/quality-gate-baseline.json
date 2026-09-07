@@ -1,0 +1,147 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "quality-gate-baseline",
+  "verdict": "pass",
+  "summary": "Task grill of quality-gate-baseline across four ledgered Codex cold-read rounds (gpt-5.6-terra @ xhigh). Every finding was stall-class or falsification-class: a contract the recorder would refuse, a test that cannot pass, a gate that would have been decorative, and a CI criterion that was impossible to execute. All resolved in the contract and task plan. Stopped at four rounds by the same human direction that stopped the requirements loop; residual refinements are parked below. Decision: KEEP as one task \u2014 the work is one coherent gate (config, scripts, the four commands, the CI aggregate and its guard) whose parts are not independently shippable; the one thing that would have justified a split, remediating pre-existing vendored source, is explicitly excluded with a stop-and-replan boundary.",
+  "task_plan_sha256": "5bdd310a9c911246829ac2fbbee32def75b820a0b527e4abc502036818e33ecc",
+  "gaps": [
+    "The recorded task had three acceptance criteria but only two differently-worded plan_contracts; the recorder requires exact three-way equality and would have refused the contract before delegation",
+    "package-lock.json was outside the write scope, so installing ESLint and Prettier would have exceeded the delegated scope",
+    "Root typecheck runs build:contract, which EMITS rather than checking, so FACTORY_TYPECHECK_CMD could satisfy its name without giving the no-emit guarantee",
+    "Lint scoped to src/ would have skipped contract/test/**, which ships, and tools/quality-gate.test.mjs, which belongs to no workspace",
+    "The guard test proved only that a referenced npm script exists, so FACTORY_QUALITY_CMD=\"npm run build\" would satisfy it and make verify.py green while linting nothing",
+    "The gate was not self-protecting before harness-wiring: the guard was outside FACTORY_TEST_CMD and no CI ran root verification, so a later edit could repoint or delete the quality command and still pass everything",
+    "The remediation boundary was undefined: 'resolve whatever the gate reports' contradicted 'configuration and scripts only', and the vendored tree's explicit any usages and console suppressions meant an unspecified ruleset could either demand broad rewrites or be weakened until it reported nothing",
+    "Prettier has no workspace extends convention, so 'one root config both workspaces extend' was unimplementable as written, and no configuration owned the root-level tools/ test",
+    "The required-test command omitted decision 0009's mandatory canonical form (TS_NODE_PROJECT and --require ts-node/register); a .mjs test does not exempt it",
+    "CI as specified omitted npm ci and explicit Node/Python setup, so ESLint, Prettier and TypeScript binaries would not exist in a clean Actions checkout",
+    "Write scope named four whole directories (backend/, contract/, tools/, .github/) while the plan forbade source remediation and unrelated workflow changes \u2014 broad enough to permit exactly what it prohibited"
+  ],
+  "contradictions": [
+    "BLOCKER: backend/src/atlasTokens.test.ts reads frontend/app/globals.css at import time and throws, because decision 0006 excluded the vendored Pulse frontend and no frontend/ exists \u2014 so FACTORY_TEST_CMD could never have been green, and the task's own acceptance criterion was unreachable",
+    "BLOCKER: the CI acceptance criterion was impossible as written \u2014 verify.py requires an approved plan from the git-local .git/forge/run.json, which a fresh CI checkout does not have, and the only ways through (fabricating factory state, or patching verify.py) are forbidden by vendor integrity",
+    "verify.py PREFERS a pre-set FACTORY_* environment variable over .envrc, so a CI override would silently bypass the declared gate while everything reported green \u2014 the plan's guard did not account for this",
+    "The manual verification claimed bad spacing would fail both lint and format-check, contradicting the plan's own syntax-only ESLint policy under which spacing is a Prettier concern alone",
+    "Reviewer focus accumulated across rounds until it simultaneously required CI to run verify.py and to run the product aggregate instead"
+  ],
+  "resolutions": [
+    "acceptance_criteria and plan_contracts[].statement are now the same three exact strings",
+    "package-lock.json is in write scope and the ESLint/Prettier packages live in root devDependencies",
+    "FACTORY_TYPECHECK_CMD invokes both workspaces' own tsc --noEmit; emitting stays in the structural/build command",
+    "One root flat eslint.config.mjs covers backend/src, contract/src, contract/test and tools/; tools/quality-gate.test.mjs is both linted and format-checked; contract/test remains outside the tsconfig includes and unrunnable, which stays deferred under D-0002",
+    "The guard resolves the named npm scripts to their BODIES and asserts the pinned graph (structural = build + both integrity checks; typecheck = both workspaces no-emit; quality = root lint + format:check; tests = backend suite + the guard), so a substring dodge like `echo lint` fails",
+    "The guard is inside FACTORY_TEST_CMD, and this task creates .github/workflows/quality.yml running the aggregate on every push; harness-wiring only widens that same workflow for the frontend and re-proves it",
+    "The ESLint ruleset is pinned conservative and syntax-only, with an explicit hard stop: anything beyond trivial mechanical fixes to pre-existing source becomes a separately planned task rather than hiding inside a baseline",
+    "One named root .prettierrc.json GOVERNS both workspaces by being what the scripts point at, rather than by a non-existent extends mechanism",
+    "The required-test command uses decision 0009's canonical form verbatim",
+    "CI pins Node 20 and Python 3.11, runs npm ci, then npm run verify:ci, and sets no FACTORY_* variable",
+    "Write scope narrowed from four directories to eleven named files plus the one ledgered deletion",
+    "backend/src/atlasTokens.test.ts is REMOVED \u2014 not skipped and not glob-excluded, since a temporarily-excluded known failure is the exact false green this gate exists to prevent \u2014 ledgered as D-0005, with frontend-foundation owning equivalent 3F token coverage",
+    "CI runs the product-owned npm run verify:ci aggregate over the same four command bodies, needing no factory state and touching no harness machinery",
+    "CI sets no FACTORY_* variable and the guard asserts that, closing the env-override bypass",
+    "Negative controls are now one per tool and distinct: a parse/obvious-error violation fails ESLint but not Prettier; formatting-only drift fails Prettier but not the syntax-only ESLint policy; and all three mapping failures fail the guard",
+    "reviewer_focus was rewritten from scratch rather than appended to again, removing the verify.py/aggregate contradiction"
+  ],
+  "open_items": [
+    "NON-BLOCKING: the approved story plan's T9 says harness-wiring will 'add or adjust' product CI, while this task creates the workflow. 'Adjust' covers the real division of labour (T5 creates, T9 widens for the frontend and re-proves), so the story plan was NOT reopened for a wording nuance \u2014 reopening it would invalidate the human's approval and every downstream digest. Recorded here instead.",
+    "NON-BLOCKING: stopped at four rounds under the same human direction that stopped the requirements loop. Each round here was stall- or falsification-class rather than refinement, but the loop was not run to a clean round.",
+    "NON-BLOCKING: verify.py's preference for pre-set FACTORY_* environment variables is a general bypass affecting every task's local verification, not just this one. Closed for CI here; worth an upstream harness note.",
+    "NON-BLOCKING: the cancelled round-5 requirements Codex job still shows as a dead entry in the launch ledger. `forge codex` exposes only `status`, no stop, so `forge next` will keep advising a re-run that is deliberately not happening."
+  ],
+  "questions_asked": 25,
+  "issue": "platform-base",
+  "inspected_refs": [
+    "backend/src/atlasTokens.test.ts:6",
+    "factory/scripts/verify.py:79",
+    "factory/scripts/verify.py:96",
+    "factory/scripts/factory_lib.py:1196",
+    "package.json:14",
+    "backend/package.json:13",
+    "contract/tsconfig.json:7",
+    "contract/test/auth-contract.test.ts:1",
+    ".github/workflows/factory-scaffold.yml:29",
+    "docs/decisions/0009-required-tests-real-name-and-tsproject.md:41",
+    "docs/decisions/0006-frontend-fresh-backend-vendor.md:12",
+    "docs/decisions/0008-pulse-vendored-snapshot.md:18",
+    "factory/scripts/check_vendor_integrity.py:23",
+    ".factory/stories/platform-base/decomposition.json:255",
+    "plans/deferrals.md:10"
+  ],
+  "current_flow": "Today: .envrc declares no FACTORY_* command, so verify.py silently skips the quality gate; backend and contract have no ESLint or Prettier config; root typecheck emits rather than checking; the backend suite throws at import on an absent frontend CSS file; and no CI runs verification on push.",
+  "criteria_map": {
+    "backend and contract each have ESLint + Prettier config and lint / format:check scripts covering their src and test sources, and both run clean": "One root eslint.config.mjs covering backend/src, contract/src, contract/test and tools/, plus one root .prettierrc.json the scripts point at. Proven by `npm run lint` and `npm run format:check` green, each exiting non-zero on its own distinct negative control (parse error fails ESLint not Prettier; formatting drift fails Prettier not the syntax-only ESLint policy).",
+    "the .envrc declares FACTORY_STRUCTURAL_CMD, FACTORY_TYPECHECK_CMD, FACTORY_QUALITY_CMD and FACTORY_TEST_CMD under those exact names, verify.py reads all four, and root verify.py is green": "The four variables declared with the pinned script graph, and tools/quality-gate.test.mjs resolving each named script to its body to assert that graph (so `echo lint` or `npm run build` fails). Proven by `python3 factory/scripts/verify.py` green with four commands executed and none skipped, plus the guard's three mapping negative controls. Depends on removing backend/src/atlasTokens.test.ts (D-0005), without which FACTORY_TEST_CMD can never be green.",
+    "FACTORY_QUALITY_CMD covers every workspace that exists at this point (backend + contract) and product CI runs the equivalent aggregate on every push; the frontend is added by frontend-foundation": "npm run verify:ci runs the same four command bodies without factory state, and .github/workflows/quality.yml (created by this task) pins Node 20 + Python 3.11, runs npm ci, then the aggregate on every push, setting no FACTORY_* variable. Proven green on this task's own PR."
+  },
+  "decision": "keep",
+  "new_abstractions": [
+    "npm run verify:ci \u2014 a product-owned aggregate over the same four FACTORY_* command bodies, so CI can prove the identical gate without the factory run state verify.py requires. Justified because the alternatives (fabricating .git/forge/run.json in CI, or patching verify.py) both violate vendor integrity.",
+    "tools/quality-gate.test.mjs \u2014 a guard asserting the SEMANTICS of the four commands rather than their names, because the name alone is satisfiable by any script and would make the gate decorative."
+  ],
+  "citations": [
+    {
+      "finding": "The recorded task had three acceptance criteria but only two differently-worded plan_contracts; the recorder requires exact three-way equality and would have refused the contract before delegation",
+      "source": ".factory/stories/platform-base/decomposition.json \u2014 the recorder requires exact three-way equality between acceptance_criteria and plan_contracts[].statement"
+    },
+    {
+      "finding": "package-lock.json was outside the write scope, so installing ESLint and Prettier would have exceeded the delegated scope",
+      "source": "package-lock.json (tracked) \u2014 installing ESLint/Prettier necessarily changes it, so it must be in write_scope"
+    },
+    {
+      "finding": "Root typecheck runs build:contract, which EMITS rather than checking, so FACTORY_TYPECHECK_CMD could satisfy its name without giving the no-emit guarantee",
+      "source": "package.json:14 \u2014 root `typecheck` runs `build:contract`, which emits rather than checking"
+    },
+    {
+      "finding": "Lint scoped to src/ would have skipped contract/test/**, which ships, and tools/quality-gate.test.mjs, which belongs to no workspace",
+      "source": "contract/tsconfig.json:7 and contract/test/auth-contract.test.ts:1 \u2014 that directory ships but sits outside src/; tools/quality-gate.test.mjs belongs to no workspace"
+    },
+    {
+      "finding": "The guard test proved only that a referenced npm script exists, so FACTORY_QUALITY_CMD=\"npm run build\" would satisfy it and make verify.py green while linting nothing",
+      "source": "factory/scripts/verify.py:96 \u2014 verify.py runs whatever the variable names, so a guard checking only script existence cannot distinguish a lint command from a build"
+    },
+    {
+      "finding": "The gate was not self-protecting before harness-wiring: the guard was outside FACTORY_TEST_CMD and no CI ran root verification, so a later edit could repoint or delete the quality command and still pass everything",
+      "source": ".github/workflows/factory-scaffold.yml:29 \u2014 no existing workflow installs Node or runs root verification"
+    },
+    {
+      "finding": "The remediation boundary was undefined: 'resolve whatever the gate reports' contradicted 'configuration and scripts only', and the vendored tree's explicit any usages and console suppressions meant an unspecified ruleset could either demand broad rewrites or be weakened until it reported nothing",
+      "source": "constitution/09-agent-conduct.md \u00a72 and docs/decisions/0008-pulse-vendored-snapshot.md \u2014 the vendored tree contains explicit `any` usages and console suppressions, and is reviewed as 'Pulse @ commit'"
+    },
+    {
+      "finding": "Prettier has no workspace extends convention, so 'one root config both workspaces extend' was unimplementable as written, and no configuration owned the root-level tools/ test",
+      "source": "Prettier documentation \u2014 there is no workspace `extends` convention; a config governs by being the one the scripts invoke"
+    },
+    {
+      "finding": "The required-test command omitted decision 0009's mandatory canonical form (TS_NODE_PROJECT and --require ts-node/register); a .mjs test does not exempt it",
+      "source": "docs/decisions/0009-required-tests-real-name-and-tsproject.md:41 \u2014 the canonical command form is mandatory"
+    },
+    {
+      "finding": "CI as specified omitted npm ci and explicit Node/Python setup, so ESLint, Prettier and TypeScript binaries would not exist in a clean Actions checkout",
+      "source": ".github/workflows/factory-scaffold.yml:29 \u2014 a clean Actions checkout has no node_modules, so npm ci and explicit Node/Python setup are required"
+    },
+    {
+      "finding": "Write scope named four whole directories (backend/, contract/, tools/, .github/) while the plan forbade source remediation and unrelated workflow changes \u2014 broad enough to permit exactly what it prohibited",
+      "source": ".factory/stories/platform-base/decomposition.json \u2014 a write_scope naming whole directories permits precisely the source remediation the plan prohibits"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "The quality gate needs CI to be enforced, but the plan you approved assigns product CI to the last task (harness-wiring). Who creates the workflow?",
+      "options": [
+        "quality-gate-baseline creates it (Recommended)",
+        "Leave all CI to harness-wiring"
+      ],
+      "chosen": "quality-gate-baseline creates it (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "277b70c16df94b26d927d9cc10b0989fa7581e756a0d83f43e2c004614490900",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "recorded_at": "2026-09-07T09:09:19+00:00",
+  "commit": "ebdabc8ebb5fd8eb67802eff2283a6ea9957c32f",
+  "approved_task_plan_sha256": "5bdd310a9c911246829ac2fbbee32def75b820a0b527e4abc502036818e33ecc",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-07T09:12:11+00:00"
+}

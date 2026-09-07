@@ -2,7 +2,7 @@
 issue: platform-base
 title: Adapt Pulse into the 3F app base
 status: approved
-saved: 2026-09-01T11:17:14+00:00
+saved: 2026-09-07T08:30:09+00:00
 story: platform-base
 decisions_reviewed:
   - 0001-poc-engagement-scope

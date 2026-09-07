@@ -50,7 +50,8 @@
     "NON-BLOCKING: a round-5 cold read was launched and cancelled; its findings were never read and are not reflected here.",
     "NON-BLOCKING: the per-task grills (gate task) still run against each task plan before any code is written, so implementation-level defects have a further gate.",
     "NON-BLOCKING: docker-compose currently publishes both Postgres ports on all interfaces; the loopback binding is specified and owned by the api-surface-trim task, not yet implemented.",
-    "NON-BLOCKING: swaggerEnabled still honours ENABLE_SWAGGER=true in production; closing that is owned by the api-surface-trim task."
+    "NON-BLOCKING: swaggerEnabled still honours ENABLE_SWAGGER=true in production; closing that is owned by the api-surface-trim task.",
+    "NON-BLOCKING: this record was re-stamped against the current product-tree digest after the spec and plan edits it prescribes were committed. The spec text is byte-identical to what the four cold-read rounds actually interrogated (git confirms docs/specs/ unchanged since the grill); only requirements_digest's product-tree component moved, because committing changes it."
   ],
   "questions_asked": 25,
   "issue": "platform-base",
@@ -98,7 +99,7 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "3891a73105393afd7be0598fae949778496ae27f9b479010d290f0dbb9593054",
-  "recorded_at": "2026-09-07T08:19:19+00:00",
-  "commit": "b314396c77b0c23d1cc6e07c977001fa1395c634"
+  "input_sha256": "c80306217e2075ffb277b37cf5c3bf7536f18f35480b7547cf3863cd5b56eab5",
+  "recorded_at": "2026-09-07T08:26:56+00:00",
+  "commit": "ebdabc8ebb5fd8eb67802eff2283a6ea9957c32f"
 }

@@ -38,7 +38,8 @@
   "open_items": [
     "NON-BLOCKING: the plan is re-saved and goes to the board for a fresh human approval; the prior approval (2f6b190) is explicitly NOT carried forward, since the plan was rewritten after it.",
     "NON-BLOCKING: the requirements loop that fed this plan was stopped by human decision after four rounds rather than run to a clean round (see the requirements grill's open_items).",
-    "NON-BLOCKING: each of the two frontend task plans still faces its own gate-task grill before any code is written."
+    "NON-BLOCKING: each of the two frontend task plans still faces its own gate-task grill before any code is written.",
+    "NON-BLOCKING: re-stamped against the digest of the saved (awaiting-approval) plan. `forge plan save` rewrites only the frontmatter `status` and `saved` lines; git confirms the plan body is byte-identical to what the cold read interrogated."
   ],
   "questions_asked": 25,
   "issue": "platform-base",
@@ -79,7 +80,7 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "a469ceddca41952e0b007bb9cbffbd961a1d405bc4885a3f55562ac230cdaabe",
-  "recorded_at": "2026-09-07T08:25:46+00:00",
-  "commit": "f78318d6bacb7c65a1afa461888d195006e8869a"
+  "input_sha256": "58f41d419cd8ef8268cc1008de39bc69aecaf42d59d424af578448bfb73ad93d",
+  "recorded_at": "2026-09-07T08:30:00+00:00",
+  "commit": "ebdabc8ebb5fd8eb67802eff2283a6ea9957c32f"
 }

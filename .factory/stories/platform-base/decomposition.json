@@ -252,100 +252,146 @@
       }
     },
     {
-      "id": "frontend-shell-login",
-      "title": "Fresh frontend shell + OTP login",
-      "objective": "Build a fresh Next.js (App Router) frontend \u2014 shadcn/ui + Tailwind themed by the KnackLabs _ds tokens, with TanStack Query for server state \u2014 with the app shell (Deep Forest left nav + white top bar, branded 3F) and an email+OTP login wired to the backend auth API, faithful to the approved Claude Design.",
+      "id": "quality-gate-baseline",
+      "title": "Repo-wide quality gate baseline (backend + contract lint/format, FACTORY_* commands)",
+      "objective": "Establish the repo-wide quality gate BEFORE new code is written: ESLint + Prettier config and lint/format:check scripts for backend and contract (which have neither), and the four FACTORY_* commands verify.py reads from .envrc. The frontend joins each command when its workspace lands.",
       "dependencies": [
-        "backend-boot-otp-auth",
+        "vendor-backend-contract",
         "rebrand-pulse-to-3f"
       ],
-      "user_facing": true,
-      "acceptance_criteria": [
-        "the Next.js app builds and the app shell (top bar + left nav) renders in KnackLabs green, branded 3F",
-        "the OTP login screen works against the backend",
-        "components use shadcn/ui + Tailwind themed by the _ds tokens, faithful to the Claude Design"
-      ],
+      "user_facing": false,
       "write_scope": [
-        "frontend/",
+        ".envrc",
         "package.json",
-        "package-lock.json"
+        "package-lock.json",
+        ".prettierrc.json",
+        ".prettierignore",
+        "eslint.config.mjs",
+        "backend/package.json",
+        "backend/src/atlasTokens.test.ts",
+        "contract/package.json",
+        "tools/quality-gate.test.mjs",
+        ".github/workflows/quality.yml"
       ],
-      "reviewer_focus": "LAW (cite, do not re-derive): constitution/09-agent-conduct.md \u2014 \u00a79 forbids silent tooling defaults, so the plan's Decisions section MUST justify every pick (Vitest + RTL + jsdom, ESLint eslint-config-next + Prettier, tsc --noEmit, next/font, TanStack Query v5, and npm-workspaces); \u00a72 forbids over-building. constitution/01-monorepo-standard.md \u2014 workspace + shared-contract structure; the npm-workspaces-vs-Nx choice is a DOCUMENTED deviation (Nx is the recommendation; the vendored backend is already an npm workspace, decision 0008), not a silent one. QUALITY GATE: a stack-appropriate lint + format + type-check gate (ESLint + Prettier + tsc --noEmit) is wired into verify_commands AND root scripts (lint:frontend, format:check:frontend, typecheck:frontend) \u2014 not merely a test runner; an absent gate fails review. FRESH Next.js App Router app (Next.js per decision 0007; built fresh from the approved Claude Design with no reuse of any vendored frontend, decision 0006); shadcn/ui owned in-tree + Tailwind themed ENTIRELY by the KnackLabs _ds tokens as CSS variables \u2014 NO hardcoded colors. SERVER STATE via TanStack Query v5 (me hydration as a query; OTP request/verify + logout as mutations) WRAPPING \u2014 not replacing \u2014 the api.ts fetch transport. Token fidelity: Deep Forest #0C3529 dark left nav; Emerald #1C6B49 on-light accent (buttons/links/focus); Mint #6AF1B0 dark-surface ONLY (never text/thin on light); Off-White #F4F7F6 canvas; White cards; Inter (56/36/26/20 / 17/14/13; 800/700/600/400); space 4..96; radius 6/10/14/999; btn 44px; container 1180. Shell matches the INTERACTIVE export (not the older artboards): Deep Forest left nav 200/62px + 3F header + user block, white 56px top bar (title, search, freshness pill, avatar), off-white canvas. Nav labels EXACTLY: Dashboard, MIS Reports, Ask, Explore / Saved, Admin ('Admin \u00b7 Mapping master' is a page title, not the nav label); only Dashboard is an active route \u2014 the other 4 render aria-disabled/non-navigable (no dead routes, no 'coming soon'), and the top-bar search is a DISABLED aria-disabled placeholder (no live-looking inert control) until a later capability owns search; later stories activate them. Login is NET-NEW but faithful to the token system (Deep Forest brand panel + Emerald two-step email->code). AuthUser is IMPORTED from @3f/contract (no duplicated shape). Auth wiring: fetch credentials:'include' to NEXT_PUBLIC_API_BASE_URL (default http://localhost:4000); routes are under /api/auth \u2014 GET /api/auth/csrf to bootstrap the 3f_csrf cookie, then on EVERY POST send Content-Type: application/json + JSON.stringify body + x-csrf-token = the CURRENT 3f_csrf cookie value read immediately before the request (the guard rotates it per mutating request \u2014 never cache); POST /api/auth/otp/request {email} -> POST /api/auth/otp/verify {email, code:/^\\d{6}$/} -> AuthUser; GET /api/auth/me hydrates; a me 401 clears auth state and redirects to /login; logout is an accessible user-block control -> POST /api/auth/logout -> /login. Uniform ack (no account enumeration) + invalid/expired-code errors handled in-voice. Accessibility: real <label>s, email autocomplete=email, code inputmode=numeric autocomplete='one-time-code' with client-side 6-digit validation, aria-live='polite' status/errors, focus moves to the code field after send; responsive (left nav -> off-canvas drawer on mobile with an accessible toggle); prefers-reduced-motion respected; button :active feedback; ease-out <=250ms. Dev/CORS: Next dev on :3000 requires backend FRONTEND_ORIGIN=http://localhost:3000; root gets build:frontend AND dev:frontend scripts + the frontend added to the npm workspace. Assistant/chatbot rail + MIS/drill-down screens OUT of scope. PROOF: the required hermetic tests must GENUINELY falsify a broken login/shell (not just 6-digit validation): the auth request sequence + per-POST 3f_csrf re-read, me-401->/login routing, and shell/nav rendering (5 exact labels, only Dashboard active) \u2014 each running from repo root against a LOCAL pinned Vitest (npm exec, never npx that could download) and emitting a JUnit <testcase> whose name matches the leaf id and whose file/classname resolve to the declared path (decision 0009 \u2014 verify with a negative control). Live login-against-backend + the functional check (user_facing) remain DEMONSTRATED EVIDENCE, not hermetic gates.",
-      "plan_contracts": [
-        {
-          "id": "t5-c1",
-          "statement": "the Next.js app builds and the app shell (top bar + left nav) renders in KnackLabs green, branded 3F",
-          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
-        },
-        {
-          "id": "t5-c2",
-          "statement": "the OTP login screen works against the backend",
-          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
-        },
-        {
-          "id": "t5-c3",
-          "statement": "components use shadcn/ui + Tailwind themed by the _ds tokens, faithful to the Claude Design",
-          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
-        }
-      ],
-      "required_tests": [
-        {
-          "id": "OTP login form validates a six-digit code before calling verify",
-          "path": "frontend/src/features/auth/login-form.test.tsx",
-          "command": "npm exec -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} -t {id} {path}"
-        },
-        {
-          "id": "auth client sends credentials and re-reads the 3f_csrf cookie on every mutating request",
-          "path": "frontend/src/lib/api.test.ts",
-          "command": "npm exec -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} -t {id} {path}"
-        },
-        {
-          "id": "the app redirects to /login when the session check returns 401",
-          "path": "frontend/src/features/auth/session-guard.test.tsx",
-          "command": "npm exec -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} -t {id} {path}"
-        },
-        {
-          "id": "the app shell renders exactly the five nav labels with only Dashboard active",
-          "path": "frontend/src/components/shell/app-shell.test.tsx",
-          "command": "npm exec -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} -t {id} {path}"
-        }
+      "acceptance_criteria": [
+        "backend and contract each have ESLint + Prettier config and lint / format:check scripts covering their src and test sources, and both run clean",
+        "the .envrc declares FACTORY_STRUCTURAL_CMD, FACTORY_TYPECHECK_CMD, FACTORY_QUALITY_CMD and FACTORY_TEST_CMD under those exact names, verify.py reads all four, and root verify.py is green",
+        "FACTORY_QUALITY_CMD covers every workspace that exists at this point (backend + contract) and product CI runs the equivalent aggregate on every push; the frontend is added by frontend-foundation"
       ],
       "verify_commands": [
         "npm run build:contract",
         "npm run build:backend",
         "npm run typecheck",
-        "npm run typecheck:frontend",
-        "npm run lint:frontend",
-        "npm run format:check:frontend",
-        "npm run build:frontend"
+        "npm run lint",
+        "npm run format:check",
+        "npm run verify:ci",
+        "python3 factory/scripts/verify.py"
       ],
-      "review_budget": {
-        "max_changed_files": 90,
-        "max_changed_lines": 5500,
-        "reason": "A fresh Next.js App Router frontend: npm-workspace + Tailwind/shadcn/TanStack Query/Vitest/ESLint+Prettier config, _ds token theme mapping, app-shell (nav + top bar) + net-new OTP login components, a fetch API client + query/mutation layer, and four hermetic component/client tests \u2014 a from-scratch scaffold far larger than the 8/400 default."
-      }
+      "reviewer_focus": "LAW (cite, do not re-derive): constitution/09-agent-conduct.md \u00a79 \u2014 every tool pick must be justified in the plan's Decisions section, not defaulted; \u00a72 \u2014 this is a gate, not a style overhaul. PROOF FORM: decision 0009's canonical required-test command is mandatory and a .mjs test does not exempt it \u2014 TS_NODE_PROJECT=backend/tsconfig.json ... --require ts-node/register, id = the real leaf test name, path carrying the file. THE MAPPING IS THE CONTRACT, NOT THE NAME: a guard proving only that some npm script exists is worthless \u2014 FACTORY_QUALITY_CMD=\"npm run build\" would satisfy it and make verify.py green while linting nothing. The guard must resolve the named scripts to their BODIES and assert the pinned graph (structural = build + both integrity checks; typecheck = both workspaces no-emit; quality = root lint + format:check; tests = backend suite + this guard), and a substring dodge like `echo lint` must fail. ENV OVERRIDE: verify.py PREFERS a pre-set FACTORY_* variable over .envrc, so CI must set none \u2014 otherwise the declared gate is bypassed while everything looks green. CI MUST BE EXECUTABLE: verify.py requires an approved plan from the git-local .git/forge/run.json, which a fresh checkout does NOT have, so CI runs the product-owned `npm run verify:ci` aggregate over the same four command bodies \u2014 NOT verify.py. Reject any attempt to fabricate factory state in CI or to patch verify.py; vendor integrity forbids modifying frozen harness machinery. CI pins Node 20 + Python 3.11 and runs `npm ci`, or the binaries are absent. This task CREATES .github/workflows/quality.yml; harness-wiring only widens it for the frontend and re-proves it. LINT TOPOLOGY: ONE root flat eslint.config.mjs covers backend/src, contract/src, contract/test AND tools/ \u2014 tools/quality-gate.test.mjs belongs to no workspace, so per-workspace configs would leave 'tools is linted' an implementer guess. It is both linted and format-checked. One named root .prettierrc.json GOVERNS both workspaces by being what the scripts point at (Prettier has no workspace extends convention). BLOCKER THIS TASK CLEARS: backend/src/atlasTokens.test.ts reads frontend/app/globals.css at import time and throws, because decision 0006 excluded the vendored Pulse frontend and no frontend/ exists \u2014 FACTORY_TEST_CMD cannot be green until it is REMOVED (D-0005; frontend-foundation owns 3F token coverage). Not skipped, not glob-excluded: a temporarily-excluded known failure is the exact false green this gate exists to stop. TYPECHECK: root `typecheck` currently runs build:contract, which EMITS \u2014 it satisfies the name without the guarantee; make it invoke both workspaces' own tsc --noEmit and leave emitting to the structural command. SCOPE: the named manifests, configs, one workflow, the guard test, and that one ledgered deletion. No behaviour change to vendored source; no reformat-the-world commit that would bury later diffs and break the 'Pulse @ commit' review model (decision 0008). Reject BOTH a ruleset weakened until it reports nothing AND a broad vendored-source remediation smuggled in under a baseline task \u2014 the latter is a stop-and-replan. NEGATIVE CONTROLS (decision 0009), one per tool and distinct: a parse/obvious-error violation fails ESLint but not Prettier; formatting-only drift fails Prettier but not the syntax-only ESLint policy; and all three mapping failures (missing variable, misspelled script, command repointed at a non-linting command) fail the guard. A test that cannot fail proves nothing. NOTE: contract/test is outside the contract tsconfig includes and has no runnable suite \u2014 that stays deferred (D-0002); this task lints and formats it, nothing more.",
+      "plan_contracts": [
+        {
+          "id": "t5-c1",
+          "statement": "backend and contract each have ESLint + Prettier config and lint / format:check scripts covering their src and test sources, and both run clean",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        },
+        {
+          "id": "t5-c2",
+          "statement": "the .envrc declares FACTORY_STRUCTURAL_CMD, FACTORY_TYPECHECK_CMD, FACTORY_QUALITY_CMD and FACTORY_TEST_CMD under those exact names, verify.py reads all four, and root verify.py is green",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        },
+        {
+          "id": "t5-c3",
+          "statement": "FACTORY_QUALITY_CMD covers every workspace that exists at this point (backend + contract) and product CI runs the equivalent aggregate on every push; the frontend is added by frontend-foundation",
+          "source": "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md#Task Decomposition"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "the four FACTORY commands are declared in .envrc and name scripts that exist",
+          "path": "tools/quality-gate.test.mjs",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ]
+    },
+    {
+      "id": "api-surface-trim",
+      "title": "Constrain the API surface, close the local-network exposure, harden the warehouse proof",
+      "objective": "Register only the sanctioned allow-list (auth, CSRF, health) and unregister the vendored capability modules whose tables the trimmed migration removed; close two inherited defaults that make the shipped backend unsafe or unusable (CORS origin defaulting to Vite's :5173, and app.listen binding every interface while the mock OTP code and dev JWT secret are constants); and replace the hand-constructed warehouse E2E with one that resolves the runtime DI binding.",
+      "dependencies": [
+        "backend-boot-otp-auth",
+        "rebrand-pulse-to-3f",
+        "quality-gate-baseline"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "only the spec's allow-list answers \u2014 GET /api/auth/csrf, POST /api/auth/otp/request, POST /api/auth/otp/verify, GET /api/auth/me, POST /api/auth/logout, POST /api/auth/refresh, GET /health \u2014 plus /api/docs and /api/docs-json outside production only; every other vendored route is absent (404)",
+        "Swagger is unconditionally absent when NODE_ENV=production (ENABLE_SWAGGER must not re-enable it there)",
+        "GET /health returns a typed, Swagger-documented 200 carrying the constitution's response envelope with status: ok in its data",
+        "in the mock-OTP profile the backend binds 127.0.0.1, docker-compose publishes both Postgres ports to 127.0.0.1, and the CORS origin defaults to http://127.0.0.1:3000 with FRONTEND_ORIGIN as the override",
+        "the warehouse E2E resolves WAREHOUSE and SelectionExecutor from the application module's DI container and proves validate -> explain -> execute returns SUM(WarehouseFixture.value) = 42 against the warehouse-seed fixture",
+        "login, RBAC and audit still work end-to-end after the module graph changes"
+      ]
+    },
+    {
+      "id": "frontend-foundation",
+      "title": "Fresh frontend foundation (Next.js workspace, _ds theme, quality gate)",
+      "objective": "Scaffold the fresh Next.js (App Router) `frontend/` npm workspace and its toolchain: the _ds-token Tailwind theme, locally vendored Inter via next/font/local, in-tree shadcn/ui primitives, TanStack Query provider wiring, and a stack-appropriate quality gate (ESLint eslint-config-next + Prettier + tsc --noEmit) plus a pinned, non-downloading Vitest runner. No app screens \u2014 the reviewable foundation the shell/login builds on.",
+      "dependencies": [
+        "vendor-backend-contract",
+        "rebrand-pulse-to-3f",
+        "quality-gate-baseline"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "frontend is a third npm workspace with its own tsconfig; the Next.js app builds and `npm install` succeeds at repo root",
+        "the Tailwind theme is driven entirely by the _ds token CSS variables (no hardcoded colors) and Inter loads from locally vendored WOFF2 via next/font/local with no network font request",
+        "root scripts build:frontend, dev:frontend, lint:frontend, format:check:frontend and typecheck:frontend exist and the ESLint + Prettier + tsc --noEmit gate runs green",
+        "a pinned, local (non-downloading) Vitest + RTL + jsdom runner executes from repo root and emits an attributable JUnit testcase",
+        "the FACTORY_* commands from quality-gate-baseline are widened to include the frontend workspace"
+      ]
+    },
+    {
+      "id": "frontend-shell-login",
+      "title": "Fresh frontend shell + OTP login",
+      "objective": "Build the user-facing app shell (Deep Forest left nav + white top bar, branded 3F) and a net-new email+OTP login wired to the backend auth API, faithful to the approved Claude Design, on top of the frontend-foundation scaffold. Server state via TanStack Query over the api.ts transport (credentials:'include' + per-POST 3f_csrf re-read).",
+      "dependencies": [
+        "api-surface-trim",
+        "frontend-foundation"
+      ],
+      "user_facing": true,
+      "acceptance_criteria": [
+        "the app shell (top bar + left nav) renders in KnackLabs green, branded 3F, faithful to the bound design export",
+        "email+OTP login works end-to-end under the spec's local runtime contract: successful verification lands in the shell, logout returns to /login, and an access-token 401 retries once through refresh",
+        "the login screen implements the spec's normative Login screen contract (layout, copy, input semantics, focus, aria-live, reduced-motion), checked at 1440x900 and 390x844",
+        "exactly five nav labels with only Dashboard active; the other four, the top-bar search and the freshness pill render visibly unavailable and make no feature API calls"
+      ]
     },
     {
       "id": "harness-wiring",
       "title": "Harness build/verify wiring",
-      "objective": "Wire harness.yaml build/verify/test/lint to the workspace scripts so verify.py and the gates run against the vendored app, keeping dual-runtime and vendor integrity clean.",
+      "objective": "Establish the repo-wide quality gate and declare the verify commands verify.py reads from .envrc, so the factory gates run against the whole app (contract + backend + frontend), keeping dual-runtime and vendor integrity clean.",
       "dependencies": [
         "vendor-backend-contract",
         "postgres-warehouse-adapter",
         "backend-boot-otp-auth",
         "rebrand-pulse-to-3f",
+        "quality-gate-baseline",
+        "api-surface-trim",
+        "frontend-foundation",
         "frontend-shell-login"
       ],
       "user_facing": false,
       "acceptance_criteria": [
         "harness.yaml build/verify/test/lint point at the workspace scripts",
-        "verify.py runs green against the app",
-        "dual-runtime check and vendor integrity are clean"
+        "FACTORY_STRUCTURAL_CMD explicitly invokes both check_dual_runtime.py and check_vendor_integrity.py, and FACTORY_QUALITY_CMD / FACTORY_TEST_CMD cover all three workspaces",
+        "verify.py runs green at the repo root across structure, typecheck, quality and tests",
+        "backend/VENDORED_FROM provenance (source repo + exact commit, decision 0008) is asserted separately from harness integrity",
+        "the product CI workflow runs root verification on every push"
       ]
     }
   ],
   "project": "3oilpalm",
   "epic": "platform",
-  "plan_sha256": "036b468bb2496ed30ea61ec859a86b120ae07326a7dddb519f75b1605220133d",
-  "commit": "a4eafb7c25d4074929cf24da3bad4d5827f4cd69"
+  "plan_sha256": "4c7bcfacdaf47a50b15c3894df08047cb459d48c751d20ab75952e876b52b774",
+  "commit": "ebdabc8ebb5fd8eb67802eff2283a6ea9957c32f"
 }
