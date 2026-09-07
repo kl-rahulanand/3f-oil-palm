@@ -1,8 +1,8 @@
 {
-  "commit": "476b8a803acc29e9bfe49569bd3530bfaaf26641",
+  "commit": "7affaf050a9d2060b52854cc8bdc2ee4a616fa9a",
   "automated": {
     "generated_by": "implementer",
-    "status": "pass",
+    "status": "passed",
     "summary": "The repo-wide quality baseline verifies green with all four FACTORY_* overrides unset, which is the precondition that makes a local green trustworthy: verify.py prefers a pre-set environment variable over .envrc, so FACTORY_QUALITY_CMD=true would otherwise produce a false pass. verify.py reports Verification passed across structural (build + dual-runtime + vendor integrity), typecheck (both workspaces, no-emit), quality (ESLint + Prettier) and test (hermetic backend + the quality-gate guard). The required guard test emits a matching, attributable JUnit testcase.",
     "blocking_findings": [],
     "commands_run": [
@@ -43,8 +43,8 @@
     "non_blocking_findings": [],
     "residual_risks": [],
     "manual_validation_steps": [],
-    "recorded_at": "2026-09-07T15:34:08+00:00",
-    "commit": "476b8a803acc29e9bfe49569bd3530bfaaf26641"
+    "recorded_at": "2026-09-07T18:48:13+00:00",
+    "commit": "7affaf050a9d2060b52854cc8bdc2ee4a616fa9a"
   },
-  "updated_at": "2026-09-07T15:34:08+00:00"
+  "updated_at": "2026-09-07T18:48:13+00:00"
 }
