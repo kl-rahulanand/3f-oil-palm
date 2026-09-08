@@ -153,7 +153,7 @@ The development team (foundation); indirectly every end user, via the running ap
 - **Deployment:** local, single-tenant, PoC-only; production readiness deferred (0011).
 - **Vendored API compliance:** a **global exception handler** (`07-exception-handling.md`)
   and **structured JSON request/error logging** with a `correlationId`
-  (`05-logging-and-observability.md` §2.1) are **built** in platform-base (api-surface-trim),
+  (`05-logging-and-observability.md` §2.1) are **built** in platform-base (backend-observability),
   per **decision 0013** — no longer deferred. Still deferred (decision 0012, now deferral
   **D-0009**): complete typed response-DTO coverage across the vendored controllers, and
   migrating the remaining ad-hoc `console` emitters in reconciliation/migration/pin-refresh

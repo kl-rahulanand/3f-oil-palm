@@ -16,6 +16,34 @@ export enum ResponseClass {
   BackendError = "backend_error",
 }
 
+export type Environment = "Local" | "Development" | "QA" | "UAT" | "Staging" | "Production";
+
+export interface ErrorFieldDetail {
+  field: string;
+  reason: string;
+}
+
+export interface ErrorPayload {
+  errorId: string;
+  code: string;
+  type: string;
+  message: string;
+  userMessage: string;
+  details: { fieldErrors?: ErrorFieldDetail[] };
+  statusCode: number;
+  correlationId: string;
+  requestId: string | null;
+  environment: Environment;
+  timestampUtc: string;
+  stack?: string;
+}
+
+export interface ErrorEnvelope {
+  success: false;
+  data: null;
+  error: ErrorPayload;
+}
+
 export const emptyBodySchema = z.object({}).strict();
 
 /** POST /api/auth/otp/request */

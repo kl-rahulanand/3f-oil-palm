@@ -3,7 +3,10 @@ import type { INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
-import { type Config, loadConfig } from "./config";
+import { GlobalExceptionFilter } from "./common/global-exception.filter";
+import { requestLogging } from "./common/request-logging.middleware";
+import { sanitizedStack, StructuredLogger } from "./common/structured.logger";
+import { type Config, loadConfig, mapEnvironment } from "./config";
 
 export const API_VERSION = "0.1.0";
 
@@ -17,13 +20,22 @@ export function buildSwaggerConfig() {
     .build();
 }
 
-export function configureApp(app: INestApplication, cfg: Config = loadConfig()): void {
+export function configureApp(
+  app: INestApplication,
+  cfg: Config = loadConfig(),
+  logger: StructuredLogger = new StructuredLogger(cfg),
+): void {
   app.enableCors({ origin: cfg.frontendOrigin, credentials: true });
+  app.use(requestLogging(logger));
+  app.useGlobalFilters(new GlobalExceptionFilter(cfg, logger));
   if (!cfg.swaggerEnabled) return;
 
   const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
   SwaggerModule.setup("api/docs", app, document);
-  console.log("Swagger docs at /api/docs");
+  logger.log("info", "Swagger documentation enabled", {
+    module: "Bootstrap",
+    context: { path: "/api/docs" },
+  });
 }
 
 type AppListener = (app: INestApplication, port: number, host?: string) => Promise<unknown>;
@@ -38,17 +50,27 @@ export async function listenForRequests(
 
 async function bootstrap() {
   const cfg = loadConfig();
+  const logger = new StructuredLogger(cfg);
   const app = await NestFactory.create(AppModule, { logger: ["log", "error", "warn"] });
-  configureApp(app, cfg);
+  configureApp(app, cfg, logger);
   // Request validation is done per-route with zod (see controllers), so no global
   // class-validator ValidationPipe is needed.
   await listenForRequests(app, cfg);
-  console.log(`3F backend listening on :${cfg.port} (LLM provider: ${cfg.llmProvider})`);
+  logger.log("info", "Backend listening", {
+    module: "Bootstrap",
+    context: { port: cfg.port, llmProvider: cfg.llmProvider },
+  });
 }
 
 if (require.main === module) {
   bootstrap().catch((err) => {
-    console.error("Failed to start backend:", err);
+    new StructuredLogger({
+      environment: mapEnvironment(process.env.ENVIRONMENT ?? process.env.NODE_ENV),
+      serviceName: process.env.SERVICE_NAME?.trim() || "3f-backend",
+    }).log("fatal", "Backend startup failed", {
+      module: "Bootstrap",
+      context: { stack: sanitizedStack(err) },
+    });
     process.exit(1);
   });
 }

@@ -20,6 +20,8 @@ const hermeticTests = [
   "backend/src/chat/smalltalk-guard.test.ts",
   "backend/src/chat/suppression.test.ts",
   "backend/src/chat/timeWindowParse.test.ts",
+  "backend/src/common/error-envelope.wiring.test.ts",
+  "backend/src/common/request-logging.test.ts",
   "backend/src/core/dimension-values.service.test.ts",
   "backend/src/db/migrate.trim.test.ts",
   "backend/src/health/health.controller.test.ts",
