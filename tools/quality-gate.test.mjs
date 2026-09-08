@@ -51,15 +51,24 @@ const backendTestRunner =
 const expectedScripts = {
   "build:contract": "npm -w @3f/contract run build",
   "build:backend": "npm -w @3f/backend run build",
-  build: "npm run build:contract && npm run build:backend",
+  "build:frontend": "npm run build:contract && npm -w @3f/frontend run build",
+  build: "npm run build:contract && npm run build:backend && npm run build:frontend",
   structural:
     "npm run build && python3 factory/scripts/check_dual_runtime.py && python3 factory/scripts/check_vendor_integrity.py",
-  typecheck: "npm -w @3f/contract run typecheck && npm -w @3f/backend run typecheck",
-  lint: 'eslint --config eslint.config.mjs "backend/src/**/*.ts" "backend/test/**/*.ts" "contract/src/**/*.ts" "contract/test/**/*.ts" eslint.config.mjs "tools/**/*.mjs" --no-error-on-unmatched-pattern',
+  "dev:frontend": "npm -w @3f/frontend run dev",
+  "typecheck:frontend": "npm -w @3f/frontend run typecheck",
+  typecheck: "npm -w @3f/contract run typecheck && npm -w @3f/backend run typecheck && npm run typecheck:frontend",
+  "lint:frontend":
+    'eslint --config eslint.config.mjs "frontend/app/**/*.{ts,tsx}" "frontend/src/**/*.{ts,tsx}" frontend/next.config.ts frontend/postcss.config.mjs frontend/tailwind.config.ts frontend/vitest.config.ts --no-error-on-unmatched-pattern',
+  lint: 'eslint --config eslint.config.mjs "backend/src/**/*.ts" "backend/test/**/*.ts" "contract/src/**/*.ts" "contract/test/**/*.ts" eslint.config.mjs "tools/**/*.mjs" --no-error-on-unmatched-pattern && npm run lint:frontend',
+  "format:check:frontend":
+    'prettier --config .prettierrc.json --check "frontend/app/**/*.{ts,tsx,css,md}" "frontend/src/**/*.{ts,tsx,css}" frontend/package.json frontend/tsconfig.json frontend/next.config.ts frontend/postcss.config.mjs frontend/tailwind.config.ts frontend/vitest.config.ts --no-error-on-unmatched-pattern',
   "format:check":
-    'prettier --config .prettierrc.json --ignore-path .prettierignore --check "backend/src/**/*.ts" "backend/test/**/*.ts" "contract/src/**/*.ts" "contract/test/**/*.ts" package.json backend/package.json contract/package.json .prettierrc.json eslint.config.mjs .github/workflows/quality.yml "tools/**/*.mjs" --no-error-on-unmatched-pattern',
+    'prettier --config .prettierrc.json --ignore-path .prettierignore --check "backend/src/**/*.ts" "backend/test/**/*.ts" "contract/src/**/*.ts" "contract/test/**/*.ts" package.json backend/package.json contract/package.json .prettierrc.json eslint.config.mjs .github/workflows/quality.yml "tools/**/*.mjs" --no-error-on-unmatched-pattern && npm run format:check:frontend',
   quality: "npm run lint && npm run format:check",
-  "test:hermetic": "npm -w @3f/backend run test:hermetic && node --test tools/quality-gate.test.mjs",
+  "test:frontend": "npm -w @3f/frontend run test",
+  "test:hermetic":
+    "npm -w @3f/backend run test:hermetic && npm run test:frontend && node --test tools/quality-gate.test.mjs",
   "test:db": "npm -w @3f/backend run test:db",
   "verify:ci": "npm run structural && npm run typecheck && npm run quality && npm run test:hermetic",
 };
@@ -80,6 +89,12 @@ const expectedWorkspaceScripts = {
     lint: 'cd .. && eslint --config eslint.config.mjs "contract/src/**/*.ts" "contract/test/**/*.ts" --no-error-on-unmatched-pattern',
     "format:check":
       'cd .. && prettier --config .prettierrc.json --ignore-path .prettierignore --check "contract/src/**/*.ts" "contract/test/**/*.ts" --no-error-on-unmatched-pattern',
+  },
+  frontend: {
+    build: "NEXT_TELEMETRY_DISABLED=1 next build",
+    dev: "next dev -H 127.0.0.1 -p 3000",
+    typecheck: "tsc --noEmit",
+    test: "cd .. && npm exec --no -- vitest run --config frontend/vitest.config.ts",
   },
 };
 
@@ -249,13 +264,42 @@ function selectScripts(scripts, expected) {
   return Object.fromEntries(Object.keys(expected).map((name) => [name, scripts[name]]));
 }
 
-function validateGate({ commands, rootScripts, backendScripts, contractScripts, workflow, ignore, testFiles }) {
+function validateGate({
+  commands,
+  workspaces,
+  rootScripts,
+  backendScripts,
+  contractScripts,
+  frontendScripts,
+  frontendPackage,
+  frontendIgnore,
+  frontendTsconfig,
+  workflow,
+  ignore,
+  testFiles,
+}) {
   assert.deepEqual(commands, expectedCommands, "the four FACTORY commands must match the pinned graph");
+  assert.deepEqual(workspaces, ["contract", "backend", "frontend"], "the workspace graph must include frontend");
   for (const [name, body] of Object.entries(expectedScripts)) {
     assert.equal(rootScripts[name], body, `root script ${name} must retain its pinned body`);
   }
   assert.deepEqual(backendScripts, expectedWorkspaceScripts.backend, "backend gate leaves must retain their bodies");
   assert.deepEqual(contractScripts, expectedWorkspaceScripts.contract, "contract gate leaves must retain their bodies");
+  assert.deepEqual(frontendScripts, expectedWorkspaceScripts.frontend, "frontend gate leaves must retain their bodies");
+  for (const [name, version] of Object.entries({
+    ...frontendPackage.dependencies,
+    ...frontendPackage.devDependencies,
+  })) {
+    assert.match(version, /^\d+\.\d+\.\d+$/, `${name} must be exact-pinned`);
+  }
+  assert.equal(frontendPackage.dependencies["@3f/contract"], "0.0.0");
+  assert.deepEqual(
+    frontendIgnore.split("\n").filter(Boolean),
+    [".next/", "next-env.d.ts", "*.tsbuildinfo"],
+    "frontend generated build files must remain ignored",
+  );
+  assert.ok(frontendTsconfig.compilerOptions.plugins.some(({ name }) => name === "next"));
+  assert.ok(frontendTsconfig.include.includes(".next/types/**/*.ts"));
   assert.deepEqual(
     testFiles,
     [...dbTests, ...hermeticTests].sort(),
@@ -269,12 +313,18 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
   const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
   const backendPackage = JSON.parse(readFileSync("backend/package.json", "utf8"));
   const contractPackage = JSON.parse(readFileSync("contract/package.json", "utf8"));
+  const frontendPackage = JSON.parse(readFileSync("frontend/package.json", "utf8"));
   const envrc = readFileSync(".envrc", "utf8");
   const gate = {
     commands: readCommands(envrc),
+    workspaces: packageJson.workspaces,
     rootScripts: packageJson.scripts,
     backendScripts: selectScripts(backendPackage.scripts, expectedWorkspaceScripts.backend),
     contractScripts: selectScripts(contractPackage.scripts, expectedWorkspaceScripts.contract),
+    frontendScripts: selectScripts(frontendPackage.scripts, expectedWorkspaceScripts.frontend),
+    frontendPackage,
+    frontendIgnore: readFileSync("frontend/.gitignore", "utf8"),
+    frontendTsconfig: JSON.parse(readFileSync("frontend/tsconfig.json", "utf8")),
     workflow: readFileSync(".github/workflows/quality.yml", "utf8"),
     ignore: readFileSync(".prettierignore", "utf8"),
     testFiles: backendTests(),
@@ -324,6 +374,7 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
   for (const [workspace, scripts] of [
     ["backend", gate.backendScripts],
     ["contract", gate.contractScripts],
+    ["frontend", gate.frontendScripts],
   ]) {
     for (const name of Object.keys(scripts)) {
       assert.throws(
@@ -355,6 +406,15 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
   assert.ok(Object.keys(backendConfig.rules).length > 0, "backend files must receive the root ESLint ruleset");
   const [eslintFailure] = await eslint.lintText("debugger;\n", { filePath: "backend/src/negative-control.ts" });
   assert.ok(eslintFailure.errorCount > 0, "an obvious error must fail ESLint");
+  const frontendConfig = await eslint.calculateConfigForFile("frontend/src/negative-control.tsx");
+  assert.ok(frontendConfig.rules["@next/next/no-img-element"], "frontend files must receive Next rules");
+  const [frontendFailure] = await eslint.lintText('export const Fixture = () => <img src="/x" />;\n', {
+    filePath: "frontend/src/negative-control.tsx",
+  });
+  assert.ok(
+    frontendFailure.messages.some(({ ruleId }) => ruleId === "@next/next/no-img-element"),
+    "a known frontend violation must be reported",
+  );
   assert.equal(await prettier.check("debugger;\n", { filepath: "tools/negative-control.mjs" }), true);
 
   const formattingDrift = "export default {answer:42}\n";

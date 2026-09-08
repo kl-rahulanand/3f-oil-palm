@@ -1,0 +1,10 @@
+{
+  "event": "done",
+  "id": "Q-0008-23a8",
+  "profile": "degraded",
+  "kind": "degraded",
+  "reason": "Re-bind the sanctioned host write-path for frontend-foundation after a stage reopen. The task's real writes are host-only by nature \u2014 the frontend dependency tree and the Inter WOFF2 were host-seeded because Codex's sandbox has no network (windows Q-0004..Q-0007), and the Next.js CVE upgrade was a host registry install. The work is fully committed, verified, and three-lens reviewed clean. Reopening the stage to refresh the stale stage-local stamp reset the write-launch binding to the new started_at; this ledgered window re-establishes that host write-path so the stage can close on the already-shipped, host-provisioned tree.",
+  "started_at": "2026-09-08T09:06:01+00:00",
+  "completed_at": "2026-09-08T09:06:50+00:00",
+  "files": []
+}

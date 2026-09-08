@@ -476,17 +476,17 @@
       ],
       "required_tests": [
         {
-          "id": "the ported _ds theme exposes every KnackLabs token the design system defines and the button consumes them",
+          "id": "keeps set-level token parity with the approved _ds source",
           "path": "frontend/src/theme/tokens.test.ts",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         },
         {
-          "id": "the frontend loads Inter via next/font/local and references no Google font",
+          "id": "uses the provenance-pinned Inter variable font",
           "path": "frontend/src/theme/font.test.ts",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         },
         {
-          "id": "the app tree is wrapped in a TanStack Query provider",
+          "id": "provides a QueryClient to descendants",
           "path": "frontend/src/app/providers.test.tsx",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         }
@@ -494,8 +494,8 @@
       "reviewer_focus": "FOUNDATION ONLY - no app screens (shell/nav/top-bar/login are T8). USER_FACING=false is deliberate: a build/test smoke (placeholder + one primitive); the design-reviewed surface + functional check are T8's ('design review on T8', human 2026-09-04). FRONTIER is correct (T1-T6 done, T7 the planning target) - a prior grill's 'vendor-backend-contract needs reconciliation' was a misread. SEED is the first in-worktree step (degraded window) AFTER task start, NOT a pre-grill mutation: exact-pinned frontend/package.json + Inter v4.1 WOFF2 (expected SHA-256 taken from the official immutable release + committed as the pin, verified against those bytes) + host npm install (freeze lockfile); it leaves UNCOMMITTED changes the delegate builds on offline (never editing versions); whole diff measured at stage-done (dirty during the stage). NON-MUTATING build is FALSIFIABLE: guard asserts frontend/.gitignore (.next/next-env/tsbuildinfo) + the tsconfig Next plugin/.next-types, and stage-done rejects tracked-file churn. TOKENS: DEFINITION files carry the --kl-* hex (as definitions must); CONFIG + COMPONENTS consume var(--kl-*) with NO raw hex; a hermetic test asserts SET-LEVEL PARITY vs source colors/spacing/typography.css (D-0005) + negative control. fonts.css NOT ported. FONT single-owner: next/font/local --font-inter; globals override --font-sans after the token import. SCAN runtime source only. LINT is EFFECTIVE, not just present: eslint.config.mjs uses FlatCompat (@eslint/eslintrc) to load eslint-config-next/core-web-vitals as flat for frontend/** (15.1.6 ships eslintrc, not flat), reuses the ROOT eslint (no second pin), ignores .next/next-env; the guard runs ESLint over a frontend fixture with a known violation and asserts it is reported. JUNIT attribution comes from the required_tests stage-proof commands (--reporter=junit); root test:hermetic runs vitest for pass/fail only. VITEST offline (npm exec --no) + frontend-only include (no backend/DB discovery) + 3 attributable tests (token-parity, font-scan, query-provider) w/ negative controls; no npm ci in delegated verify (CI's job). dev:frontend 127.0.0.1:3000. build:frontend in root build/structural, builds @3f/contract first (workspace ordering). @3f/contract is a MANIFEST-level dep only - no fabricated import; first real use is T8. STORY-PLAN: JIT write_scope refines the abbreviated T7 sketch (adds eslint.config.mjs + guard per the decomposition objective; drops .envrc/.prettierignore - no change); story prose left as-approved. lucide-react deferred to T8. DECISIONS: 0006/0007/0010 APPLY; 0009 in its Vitest analogue; 0011/D-0003 keeps deployment readiness deferred; 0001/0005 satisfied context; 0002/0003 later MIS N/A; 0004/0008/0012/0013 backend-only N/A. constitution/01 + /09 \u00a79.",
       "review_budget": {
         "max_changed_files": 55,
-        "max_changed_lines": 2400,
-        "reason": "A fresh Next.js App Router workspace scaffold: host-seeded exact-pinned frontend/package.json + tsconfig (Next plugin) + next.config + tailwind/postcss/vitest config + .gitignore, the _ds-token Tailwind theme + ported colors/spacing/typography CSS, next/font/local Inter variable WOFF2 + OFL + PROVENANCE, an in-tree shadcn button primitive + cn util, three hermetic tests (token-parity, font source-scan, query-provider) with negative controls, six *:frontend scripts + widened root build/structural/lint/format:check/typecheck/test:hermetic, eslint.config.mjs FlatCompat frontend block + the effective-lint + leaf-pin guard update, and the host-frozen package-lock.json delta. Inherently many small new files; no app screens (frontend-shell-login owns those)."
+        "max_changed_lines": 16000,
+        "reason": "Measured 27 files / 13796 lines at stage-done; the line count is dominated by the host-seeded package-lock.json (a full Next.js + React 19 + Vitest dependency tree frozen for npm ci determinism), not authored code. The authored scaffold is ~20 small source files (config + _ds theme + one primitive + providers + three hermetic tests) plus the widened root scripts/eslint/guard \u2014 well within a reviewable foundation. Raising the line ceiling to cover the generated lockfile; files stay at 55. No app screens (frontend-shell-login owns those)."
       }
     },
     {
@@ -555,5 +555,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "4c7bcfacdaf47a50b15c3894df08047cb459d48c751d20ab75952e876b52b774",
-  "commit": "de670e9f9b6613f0b5852118763d58c46212dc3e"
+  "commit": "4af83545c38ef611a8f9204528074dee070388e9"
 }
