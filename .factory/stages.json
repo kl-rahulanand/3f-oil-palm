@@ -61,7 +61,16 @@
           "git": "? .factory/stories/platform-base/task-plans/backend-observability.md\u0000\u0000\u0000"
         }
       },
-      "task_sha256": "91f984bf262cf4103e6620ee77ac37fc35a35967a58545e5fa55f0599dcb8025"
+      "task_sha256": "91f984bf262cf4103e6620ee77ac37fc35a35967a58545e5fa55f0599dcb8025",
+      "local_review_stamp": {
+        "stage_id": "backend-observability",
+        "task_sha256": "91f984bf262cf4103e6620ee77ac37fc35a35967a58545e5fa55f0599dcb8025",
+        "brief_sha256": "670e9adc1d5a9a627a7b428866fbfd3dc9804c2222c30d002e8905b56408d50d",
+        "base_sha": "a40b7a1a413d57ead85dde1faeec82097a8eea4a",
+        "product_tree_digest": "d279dcbe5c3135e214f2f62752f4c587827212ecff28ed6d0cdb8f28a26ca00e",
+        "recorded_at": "2026-09-08T16:54:54+00:00",
+        "generated_by": "autoreview"
+      }
     },
     {
       "id": "harness-wiring",
