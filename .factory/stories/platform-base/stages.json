@@ -40,25 +40,32 @@
     {
       "id": "frontend-foundation",
       "title": "Fresh frontend foundation (Next.js workspace, _ds theme, quality gate)",
-      "status": "done",
-      "started_at": "2026-09-08T06:19:03+00:00",
+      "status": "active",
+      "started_at": "2026-09-08T09:02:19+00:00",
       "base_sha": "a2e00dff8146cc93ae6205d79fb6d434633dab5c",
-      "dirty_at_start": {},
+      "dirty_at_start": {
+        ".factory/stages.json": {
+          "digest": "c7931cbe2f187ce5523ad8dd2d07493c0b014d297630422a17021a1990cc07f3",
+          "git": "1 .M N... 100644 100644 100644 7fe4032004e31e1e9c8edbdd30c6775b780790da 7fe4032004e31e1e9c8edbdd30c6775b780790da .factory/stages.json\u0000\u0000100644 7fe4032004e31e1e9c8edbdd30c6775b780790da 0\t.factory/stages.json\u0000\u0000H .factory/stages.json\u0000"
+        },
+        ".factory/stories/platform-base/grills/tasks/frontend-foundation.json": {
+          "digest": "4fd9fa4cdfb95e2ed8e7fff0dd559f479f3627c900f7ddfbdf6008ff96b0b36a",
+          "git": "1 .M N... 100644 100644 100644 4825389f4d5c6c769cb5f4be452b51c4df25994c 4825389f4d5c6c769cb5f4be452b51c4df25994c .factory/stories/platform-base/grills/tasks/frontend-foundation.json\u0000\u0000100644 4825389f4d5c6c769cb5f4be452b51c4df25994c 0\t.factory/stories/platform-base/grills/tasks/frontend-foundation.json\u0000\u0000H .factory/stories/platform-base/grills/tasks/frontend-foundation.json\u0000"
+        },
+        ".factory/stories/platform-base/stages.json": {
+          "digest": "c7931cbe2f187ce5523ad8dd2d07493c0b014d297630422a17021a1990cc07f3",
+          "git": "1 .M N... 100644 100644 100644 7fe4032004e31e1e9c8edbdd30c6775b780790da 7fe4032004e31e1e9c8edbdd30c6775b780790da .factory/stories/platform-base/stages.json\u0000\u0000100644 7fe4032004e31e1e9c8edbdd30c6775b780790da 0\t.factory/stories/platform-base/stages.json\u0000\u0000H .factory/stories/platform-base/stages.json\u0000"
+        }
+      },
       "task_sha256": "98d86be9542ad6ae3ef909d3697c8786165514ca10d07da26715caf06027044f",
       "local_review_stamp": {
         "stage_id": "frontend-foundation",
         "task_sha256": "98d86be9542ad6ae3ef909d3697c8786165514ca10d07da26715caf06027044f",
         "brief_sha256": "",
         "base_sha": "a2e00dff8146cc93ae6205d79fb6d434633dab5c",
-        "product_tree_digest": "dbf7d3e58fefa590912d6e3398b889f1577e26e40480c76adc75bda894926f00",
-        "recorded_at": "2026-09-08T07:08:41+00:00",
+        "product_tree_digest": "a891dc723748e81d842c9d9db19fd58a261764dacf55d4e88add8403fc6112ac",
+        "recorded_at": "2026-09-08T09:02:30+00:00",
         "generated_by": "autoreview"
-      },
-      "completed_at": "2026-09-08T07:09:06+00:00",
-      "contract_changed": {
-        "at": "2026-09-08T07:09:06+00:00",
-        "from": "d044e91101d94bddf3d21c25fbbdaa2d20e81b63f6bb01929e0e8a64604725f4",
-        "to": "98d86be9542ad6ae3ef909d3697c8786165514ca10d07da26715caf06027044f"
       }
     },
     {

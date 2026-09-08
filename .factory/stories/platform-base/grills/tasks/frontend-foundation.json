@@ -157,13 +157,13 @@
     }
   ],
   "summary": "Six cold reads hardened the contract; every repository-answerable finding is resolved in the recorded v5 contract, and the one genuine judgment call (T7 user_facing classification) was escalated and decided by the human (foundation; design review at T8). The five-read cap correctly stopped further re-grilling. Contract is coherent and implementable; decision keep, verdict pass.",
-  "input_sha256": "f5282f4607a170fd9c4e2d2209d41350b787711e609e52ec9cce8048da440f26",
-  "grounding_basis": "stage-baseline",
-  "grounding_treeish": "a2e00dff8146cc93ae6205d79fb6d434633dab5c",
+  "input_sha256": "83200708b09346fdae27f7a5b389a2326e7cd17160229acc75769f59361b5cbe",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
   "task_plan_sha256": "c26fa11632426236b84301dce277badd72daadeb630eca97f35c1b866dbee9ea",
-  "recorded_at": "2026-09-08T08:10:34+00:00",
-  "commit": "46f285d876398b2e2fce42155a38ab2f8ee2f2ef",
+  "recorded_at": "2026-09-08T09:01:27+00:00",
+  "commit": "00feec157f161ee78b91943e96a6a28c278ef0c7",
   "approved_task_plan_sha256": "c26fa11632426236b84301dce277badd72daadeb630eca97f35c1b866dbee9ea",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-08T08:57:13+00:00"
+  "approved_at": "2026-09-08T09:01:37+00:00"
 }
