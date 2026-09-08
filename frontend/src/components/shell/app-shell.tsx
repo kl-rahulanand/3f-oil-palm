@@ -103,12 +103,12 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
             {navItems.map(({ label, icon: Icon, active }) => (
               <li key={label}>
                 {active ? (
-                  <Link className="nav-item" href="/dashboard" prefetch={false} aria-current="page">
+                  <Link className="nav-item" href="/dashboard" prefetch={false} aria-current="page" aria-label={label}>
                     <Icon size={17} />
                     {navOpen && <span>{label}</span>}
                   </Link>
                 ) : (
-                  <span className="nav-item" aria-disabled="true">
+                  <span className="nav-item" aria-disabled="true" aria-label={label}>
                     <Icon size={17} />
                     {navOpen && <span>{label}</span>}
                   </span>

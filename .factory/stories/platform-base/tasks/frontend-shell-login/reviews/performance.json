@@ -1,13 +1,13 @@
 {
   "generated_by": "autoreview",
   "score": 9,
-  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..71ef447, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The authentication behavior is otherwise bounded and the refresh retry occurs only once, but all mutations incur an unnecessary sequential CSRF bootstrap request. This creates concrete request and latency amplification across the login flow. No compatibility leftovers are present in the supplied diff.",
+  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..9bd7d8e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The authentication flow introduces a concrete I/O amplification: the session value primed by successful OTP verification is immediately refetched on dashboard mount. This adds latency and can turn an otherwise successful login into an error state if that unnecessary request fails. No blocking compatibility leftovers are present in the shown diff.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "frontend/src/lib",
-      "summary": "[P2] Avoid serially bootstrapping CSRF before every POST (frontend/src/lib/api.ts:27): Every call through `post()` first awaits `GET /api/auth/csrf`, even when the current `3f_csrf` cookie already exists."
+      "area": "frontend/src/features/auth",
+      "summary": "[P2] Treat the freshly primed session query as fresh (frontend/src/features/auth/session-guard.tsx:12): This query uses TanStack Query's defaults, where cached data is immediately stale and a stale query refetches when mounted."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -39,10 +39,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "2b200b6e9b2af80b82ae27d453b20f9f31d65a74b4e1e43c733c981ddae01fac",
+  "review_run_id": "b0f4a034f1ec6febbcef481d999fbea4d90fd2673c85935f5b62de7c4234a021",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "60bc1a55dc5c72f496c634a6f2cc834dbc5fdba1bfa4ed47172ee8c27bb5db48",
+  "branch_diff_digest": "6de3c99246384ce7155468e835ca491b02ef5072cab755c26c1a9598d00b2695",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:38:39+00:00",
-  "commit": "71ef447d5ea019dffecb477a4c63e19012017f32"
+  "recorded_at": "2026-09-08T11:51:05+00:00",
+  "commit": "9bd7d8efd59b09810c3f993f2854d1261dc82320"
 }

@@ -1,8 +1,28 @@
 {
   "generated_by": "autoreview",
-  "score": 8,
-  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..71ef447, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. VERDICT t8-c1: implemented \u2014 frontend/src/components/shell/app-shell.tsx:31 and frontend/app/globals.css:15 implement the reachable token-based shell and responsive drawer.\nVERDICT t8-c2: implemented \u2014 frontend/src/lib/api.ts:28 implements credentialed CSRF-protected requests and refresh-once behavior, consumed by the guarded app layout.\nVERDICT t8-c3: partial \u2014 frontend/src/features/auth/login-form.tsx:43 does not reliably announce the initial acknowledgement, and line 14 differs from the normative copy.\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:12 defines exactly the required five items, with only Dashboard navigable and the remaining controls visibly unavailable.\nLEFTOVERS: none observed.\nThe shell and core authentication flow are reachable and substantially implemented, but the login contract still has two accessibility/copy violations and misclassifies infrastructure failures as invalid OTPs.",
+  "score": 3,
+  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..9bd7d8e, Codex via the autoreview skill at --max-priority P2): 2 blocking, 1 non-blocking. VERDICT t8-c1: partial \u2014 frontend/src/components/shell/app-shell.tsx:102 removes the active route's accessible label in the supported collapsed shell\nVERDICT t8-c2: partial \u2014 frontend/src/features/auth/login-form.test.tsx:19 mocks the API instead of providing the required live authentication, audit, and no-enumeration evidence\nVERDICT t8-c3: partial \u2014 frontend/src/components/shell/nav-drawer.test.tsx:20 changes a jsdom viewport but does not provide the required 1440x900 and 390x844 browser-level functional verification\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:13 defines exactly the five required entries, with only Dashboard active and the remaining controls rendered unavailable\nLEFTOVERS: clean \u2014 the supplied diff contains no compatibility wrappers, aliases, deprecated branches, or legacy exports.\n\nThe core shell, login flow, token correction, CSRF handling, and one-refresh retry are implemented and reachable. The patch remains incorrect because two acceptance-critical verification deliverables are absent and the collapsed primary route loses its accessible name.",
   "blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "frontend/src/features/auth",
+      "summary": "[P1] Add the required live authentication and no-enumeration verification (frontend/src/features/auth/login-form.test.tsx:19): The authentication tests replace the API with mocks, so they cannot demonstrate the contract's required end-to-end email/OTP flow, real refresh/logout integration, audit row, or uniform behavior for an unauthorized email against the Postgres-backed runtime."
+    },
+    {
+      "category": "test_gap",
+      "area": "frontend/src/components/shell",
+      "summary": "[P1] Provide the required browser-level responsive fidelity check (frontend/src/components/shell/nav-drawer.test.tsx:20): The mobile test only changes `window.innerWidth` in jsdom; jsdom does not apply CSS layout, media queries, dimensions, or visual styling."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/app-platform-base.md",
+      "summary": "t8-c1: the app shell (top bar + left nav) renders in KnackLabs green, branded 3F, faithful to the bound design export docs/design/3F-Financial-MIS/3F Financial MIS.dc.html - Deep Forest (#0C3529) left nav (200px expanded / 62px collapsed, 3F header, user block) + white 56px top bar + Off-White (#F4F7F6) canvas, built ONLY from the _ds --kl-* tokens (no raw hex in components); on mobile (390x844) the left nav collapses to an off-canvas drawer behind a keyboard-focusable toggle that reports aria-expanded, closes on Escape, and returns focus to the toggle. Consumes the frontend-foundation scaffold (theme, next/font/local Inter, TanStack Query provider, shadcn primitives); the D-0012 --text-body/ink token collision is resolved as the theme is applied to real screens (Tailwind ink maps to --kl-ink)"
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/app-platform-base.md",
+      "summary": "t8-c2: email+OTP login works end-to-end under the spec's local runtime contract: a successful verification lands in the shell, logout returns to /login, and an access-token 401 retries once through POST /api/auth/refresh before falling back to /login. The client (frontend/src/lib/api.ts) uses credentials:'include' against the auth allow-list (GET /api/auth/csrf bootstrap, POST otp/request, POST otp/verify, GET me, POST refresh, POST logout) and sends x-csrf-token re-read from the current 3f_csrf cookie immediately before EVERY mutating request (never cached); server state is TanStack Query (me as a query the route guard reads, otp/logout as mutations that prime/invalidate it)"
+    },
     {
       "category": "plan-contract-partial",
       "area": "docs/specs/app-platform-base.md",
@@ -12,21 +32,11 @@
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "frontend/src/features/auth",
-      "summary": "[P2] Do not report every verification failure as an invalid OTP (frontend/src/features/auth/login-form.tsx:68): This catch also handles network errors, 5xx responses, CSRF-bootstrap failures, and malformed success responses, but always tells the user that the code did not match."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/src/features/auth",
-      "summary": "[P2] Keep the acknowledgement live region mounted before updating it (frontend/src/features/auth/login-form.tsx:43): On the initial Send code success, the acknowledgement is set while the email form is replaced by the code form."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/src/features/auth",
-      "summary": "[P2] Use the normative invalid-code copy verbatim (frontend/src/features/auth/login-form.tsx:14): The acceptance contract requires `That code didn't match - check it or resend.`, but this constant substitutes an em dash for the required spaced hyphen."
+      "area": "frontend/src/components/shell",
+      "summary": "[P2] Preserve an accessible name for the collapsed Dashboard link (frontend/src/components/shell/app-shell.tsx:102): When the navigation is collapsed, this condition removes the only text naming the Dashboard link."
     }
   ],
-  "recommendation": "approve-with-caveats",
+  "recommendation": "request-changes",
   "reviewed_scope": [
     "frontend/app/(app)/dashboard/page.tsx",
     "frontend/app/(app)/layout.tsx",
@@ -57,23 +67,23 @@
   "contract_verdicts": [
     {
       "contract_id": "t8-c1",
-      "verdict": "implemented",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:31 and frontend/app/globals.css:15 implement the reachable token-based shell and responsive drawer."
+      "verdict": "partial",
+      "evidence": "frontend/src/components/shell/app-shell.tsx:102 removes the active route's accessible label in the supported collapsed shell"
     },
     {
       "contract_id": "t8-c2",
-      "verdict": "implemented",
-      "evidence": "frontend/src/lib/api.ts:28 implements credentialed CSRF-protected requests and refresh-once behavior, consumed by the guarded app layout."
+      "verdict": "partial",
+      "evidence": "frontend/src/features/auth/login-form.test.tsx:19 mocks the API instead of providing the required live authentication, audit, and no-enumeration evidence"
     },
     {
       "contract_id": "t8-c3",
       "verdict": "partial",
-      "evidence": "frontend/src/features/auth/login-form.tsx:43 does not reliably announce the initial acknowledgement, and line 14 differs from the normative copy."
+      "evidence": "frontend/src/components/shell/nav-drawer.test.tsx:20 changes a jsdom viewport but does not provide the required 1440x900 and 390x844 browser-level functional verification"
     },
     {
       "contract_id": "t8-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:12 defines exactly the required five items, with only Dashboard navigable and the remaining controls visibly unavailable."
+      "evidence": "frontend/src/components/shell/app-shell.tsx:13 defines exactly the five required entries, with only Dashboard active and the remaining controls rendered unavailable"
     },
     {
       "contract_id": "t1-c1",
@@ -207,10 +217,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "2b200b6e9b2af80b82ae27d453b20f9f31d65a74b4e1e43c733c981ddae01fac",
+  "review_run_id": "b0f4a034f1ec6febbcef481d999fbea4d90fd2673c85935f5b62de7c4234a021",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "60bc1a55dc5c72f496c634a6f2cc834dbc5fdba1bfa4ed47172ee8c27bb5db48",
+  "branch_diff_digest": "6de3c99246384ce7155468e835ca491b02ef5072cab755c26c1a9598d00b2695",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:38:39+00:00",
-  "commit": "71ef447d5ea019dffecb477a4c63e19012017f32"
+  "recorded_at": "2026-09-08T11:51:05+00:00",
+  "commit": "9bd7d8efd59b09810c3f993f2854d1261dc82320"
 }
