@@ -1,0 +1,11 @@
+{
+  "event": "open",
+  "id": "Q-0018-3204",
+  "profile": "degraded",
+  "reason": "Re-seal frontend-shell-login for pr-ready: the stage-local review stamp went stale (product_tree_digest) because the branch-review-phase host-fixes (Q-0016 collapsed-nav a11y, Q-0017 live-E2E + functional-check evidence \u2014 each itself a ledgered degraded window) moved the product tree after the stage's local-autoreview seal. The work at HEAD is branch-reviewed CLEAN (round-5: quality 9 / performance 9 / security 10, all blocking=0) and functional-checked (pass, score 9, emil-design-eng + frontend-design, live stack, 1440x900 + 390x844). forge delegate cannot run the local-autoreview seal (Codex sandbox has no network; the fixes were host-applied and delegate does not convey findings). Refresh the stage-local stamp to the reviewed HEAD via the sanctioned path so pr-ready can seal.",
+  "started_at": "2026-09-08T13:49:57+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "kind": "degraded"
+}

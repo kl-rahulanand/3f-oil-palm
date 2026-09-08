@@ -40,20 +40,7 @@
       "id": "frontend-shell-login",
       "title": "Fresh frontend shell + OTP login",
       "status": "done",
-      "started_at": "2026-09-08T09:58:43+00:00",
-      "base_sha": "b0b62bc562242433c6fa014864204e3ac56ab142",
-      "dirty_at_start": {},
-      "task_sha256": "233665d0f3de5beacd02bf9d1adc8d9be77872ec25b4c23c4f9bab2cea5fbce7",
-      "local_review_stamp": {
-        "stage_id": "frontend-shell-login",
-        "task_sha256": "233665d0f3de5beacd02bf9d1adc8d9be77872ec25b4c23c4f9bab2cea5fbce7",
-        "brief_sha256": "96bbf212c972686cc248b2f6ed93c07e43f58292020c4c6891d72adffaeaf757",
-        "base_sha": "b0b62bc562242433c6fa014864204e3ac56ab142",
-        "product_tree_digest": "93373b247a5b07f40bee482611c18f8e698cd731c3ad31e91f540a8559c450f5",
-        "recorded_at": "2026-09-08T10:35:51+00:00",
-        "generated_by": "autoreview"
-      },
-      "completed_at": "2026-09-08T10:36:23+00:00"
+      "task_sha256": "233665d0f3de5beacd02bf9d1adc8d9be77872ec25b4c23c4f9bab2cea5fbce7"
     },
     {
       "id": "backend-observability",

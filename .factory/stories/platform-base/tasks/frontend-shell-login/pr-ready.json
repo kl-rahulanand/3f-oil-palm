@@ -1,0 +1,8 @@
+{
+  "task_id": "frontend-shell-login",
+  "branch": "feat/platform-base-frontend-shell-login",
+  "base_main_sha": "b0b62bc562242433c6fa014864204e3ac56ab142",
+  "commit": "0c87283e7115d56791d915f5cd7977be711e38e2",
+  "sealed_at": "2026-09-08T14:03:52+00:00",
+  "reconciled": true
+}
