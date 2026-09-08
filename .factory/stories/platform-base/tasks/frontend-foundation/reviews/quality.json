@@ -1,36 +1,10 @@
 {
   "generated_by": "autoreview",
-  "score": 7,
-  "summary": "quality lens over frontend-foundation (26 product path(s), 7d9ab81..a9f23d7, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. Review passes returned. chunk 1/2: 1 finding(s), chunk 2/2: 0 finding(s). See preserved pass reports for provider conclusions.",
-  "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/app",
-      "summary": "Vendored Inter font is missing, so the frontend cannot build (frontend/app/layout.tsx:7): `localFont` references `./fonts/InterVariable.woff2`, but that file is absent from the complete changed-file list; only `OFL.txt` and `PROVENANCE.md` were added under the fonts directory."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/app-platform-base.md",
-      "summary": "t7-c1: frontend is a third npm workspace (root workspaces adds \"frontend\") with a pre-authored tsconfig (Next TS plugin + .next/types include) and a frontend/.gitignore for .next/, next-env.d.ts and *.tsbuildinfo, so `next build` is NON-MUTATING - made falsifiable by the guard (it asserts those .gitignore entries and the tsconfig plugin/include) and by stage-done, which rejects any tracked-file change from verification. The root *:frontend scripts that need the app context (build, dev, typecheck via tsc --noEmit, test via vitest) WRAP the @3f/frontend workspace scripts; build:frontend runs build:contract first (= npm run build:contract && npm -w @3f/frontend run build) as workspace dependency-ordering hygiene and is added to root `build` so `structural`/FACTORY_STRUCTURAL_CMD compiles all three workspaces. @3f/contract is declared as a MANIFEST-level workspace dependency (pinned 0.0.0) - this foundation adds no runtime import (the first genuine consumption is frontend-shell-login's api.ts transport). A minimal root layout (fonts + providers) + a placeholder page exist so the build succeeds; NO Dashboard/shell/nav/top-bar/login screens (frontend-shell-login owns those)"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/app-platform-base.md",
-      "summary": "t7-c2: the Tailwind theme is driven entirely by the _ds token variables ported from docs/design/3F-Financial-MIS/_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/tokens/colors.css, spacing.css and typography.css: the ported token DEFINITION files carry the --kl-* definitions (with the source hex, as a definition must), while the Tailwind config and ALL components CONSUME them via var(--kl-*)/theme tokens with NO raw hex; a hermetic test asserts SET-LEVEL PARITY - every --kl-* variable the source colors/spacing/typography.css defines is present in the ported theme (the D-0005 replacement coverage), with a negative control. fonts.css is NOT ported (its Google @import is design-reference only). The runtime font is a locally vendored Inter VARIABLE WOFF2 from the official immutable rsms/inter release v4.1 (InterVariable.woff2 + OFL.txt); its expected SHA-256 is taken from that official release and committed as the pin in frontend/app/fonts/PROVENANCE.md, and the host seed verifies the downloaded bytes against that PRE-DECLARED expected digest (not a self-computed one). It loads via next/font/local exposing --font-inter; globals set --font-sans: var(--font-inter), <fallbacks> AFTER the token import so the local font is the SINGLE owner. next/font/google is never imported and a hermetic test scans ONLY runtime frontend/ source (app/, src/, config) for next/font/google and fonts.googleapis.com/fonts.gstatic.com. NEXT_TELEMETRY_DISABLED=1 is set in the workspace build script (disabling Next telemetry, not claimed as full network proof); dev:frontend binds loopback 127.0.0.1:3000"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/app-platform-base.md",
-      "summary": "t7-c4: a pinned, local, OFFLINE Vitest + React Testing Library + jsdom runner (invoked via `npm exec --no`, never npx) executes from repo root; frontend/vitest.config.ts sets root to the repo root and scopes test.include to frontend/**/*.test.{ts,tsx} so it never discovers the backend suite. The ATTRIBUTABLE JUnit testcases come from the task's required_tests stage-proof commands (which force --reporter=junit) - the token-parity, local-font/no-google-font source-scan and TanStack-Query-provider tests, each with a negative control (decision 0009); root test:hermetic runs the frontend vitest suite for pass/fail gating (not a JUnit claim), and test:hermetic is one of this task's verify_commands. Delegated verification runs against the host-seeded node_modules (no network, so no `npm ci`); clean-install determinism via `npm ci` against the frozen package-lock.json is CI's networked job"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/app-platform-base.md",
-      "summary": "t7-c5: the repo-wide quality gate is widened to the frontend, pinned to every runnable leaf, and its EFFECTIVENESS is proven: the quality-gate guard (tools/quality-gate.test.mjs) runs ESLint over a frontend/** fixture carrying a known violation and asserts it is reported (so a silently-empty frontend config fails), pins the six *:frontend bodies (the real build:frontend with build:contract + NEXT_TELEMETRY_DISABLED and the real vitest test:frontend, not just names) and the widened root build/structural/lint/format:check/typecheck/test:hermetic, and asserts the non-mutating-build .gitignore + tsconfig entries; eslint.config.mjs covers frontend/** and ignores generated output; NO .prettierignore change is made (source-scoped format globs) so D-0006 is untouched; frontend dependencies (including @3f/contract 0.0.0) are exact-pinned (no ^/~) and frozen by package-lock.json (CI uses npm ci); the D-0006 baseline and CI trigger pins stay intact"
-    }
-  ],
+  "score": 10,
+  "summary": "quality lens over frontend-foundation (26 product path(s), 7d9ab81..ac4f1d6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. Review passes returned. chunk 1/2: 0 finding(s), chunk 2/2: 0 finding(s). See preserved pass reports for provider conclusions.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "eslint.config.mjs",
     "frontend/.gitignore",
@@ -63,28 +37,28 @@
   "contract_verdicts": [
     {
       "contract_id": "t7-c1",
-      "verdict": "partial",
-      "evidence": "frontend/app/layout.tsx:7 references an absent build-time asset"
+      "verdict": "implemented",
+      "evidence": "package-lock.json:9 evidence adds the frontend workspace; frontend/tsconfig.json:16 provides the Next plugin and generated-types include"
     },
     {
       "contract_id": "t7-c2",
-      "verdict": "partial",
-      "evidence": "frontend/app/layout.tsx:7 configures local Inter without the required WOFF2 file"
+      "verdict": "implemented",
+      "evidence": "frontend/app/layout.tsx:13 loads the vendored local font; frontend/src/theme/tokens.test.ts:18 checks token parity"
     },
     {
       "contract_id": "t7-c3",
       "verdict": "implemented",
-      "evidence": "frontend/package.json:5 and eslint.config.mjs:9 define the workspace commands and frontend lint configuration"
+      "evidence": "eslint.config.mjs:10 applies the Next configuration to frontend files; frontend/package.json:5 defines workspace command bodies"
     },
     {
       "contract_id": "t7-c4",
-      "verdict": "partial",
-      "evidence": "frontend/src/theme/font.test.ts:33 attempts to read the absent font, so the Vitest suite fails"
+      "verdict": "implemented",
+      "evidence": "frontend/vitest.config.ts:6 configures the repository-root, frontend-scoped runner; frontend/src/app/providers.test.tsx:14 supplies an attributable provider test with a negative control"
     },
     {
       "contract_id": "t7-c5",
-      "verdict": "partial",
-      "evidence": "frontend/src/theme/font.test.ts:33 prevents the widened test gate from passing"
+      "verdict": "implemented",
+      "evidence": "eslint.config.mjs:9 excludes generated frontend artifacts; frontend/package.json:12 shows exact-pinned frontend dependencies"
     },
     {
       "contract_id": "t1-c1",
@@ -193,10 +167,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "8026fb8fd0e58254ed80ef93b0804f758177d53bf25dfa61adfd43ee3a8a3cea",
+  "review_run_id": "c7c65ca9cd24246027376fb7e376d05acb7c4fe414bd12b69351fc377118dde0",
   "brief_sha256": "a8989ca1f400345929d67ebc4e33f4995d7e420e359dbaf3024bd2304f3ca9c5",
-  "branch_diff_digest": "57ff26976607964fcb5ae8710e26416a51f84f165487b4990068181a4f526331",
+  "branch_diff_digest": "2ea6d2b1f549d7b5ba016de2ed0abb833d12c5fabb26a995ab6d8f6e7ed55f37",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T07:55:13+00:00",
-  "commit": "a9f23d7048292d928936e9d676d89300fc29af01"
+  "recorded_at": "2026-09-08T08:07:07+00:00",
+  "commit": "ac4f1d6bd98d2b355923db85134a70d4046d2da1"
 }
