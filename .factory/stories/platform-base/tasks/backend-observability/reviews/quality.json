@@ -1,8 +1,13 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "quality lens over backend-observability (11 product path(s), a40b7a1..6072e0d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. VERDICT t9-c1: partial \u2014 backend/src/common/global-exception.filter.ts:83 recognizes only a class-validator-shaped message array despite the application using Zod validation\nVERDICT t9-c2: partial \u2014 backend/src/common/request-logging.middleware.ts:51 permits arbitrary non-email/non-ID path segments into structured log context\nVERDICT t9-c3: implemented \u2014 backend/src/common/error-envelope.wiring.test.ts:27 exercises configureApp()+app.init(), and both tests are registered in backend/package.json:15 and tools/quality-gate.test.mjs:23\n\nThe filter and middleware are reachable before the Swagger early return, structured request/error records share correlation data, and the main console calls were migrated. However, validation errors are not reliably mapped to the required contract and client-controlled path data is insufficiently masked, so the patch is not ready as submitted.",
+  "score": 6,
+  "summary": "quality lens over backend-observability (11 product path(s), a40b7a1..10ed46d, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. VERDICT t9-c1: partial \u2014 backend/src/common/global-exception.filter.ts:20 only classifies raw ZodError objects as validation failures\nVERDICT t9-c2: partial \u2014 backend/src/common/structured.logger.ts:58 does not reliably sanitize frame-shaped exception message content\nVERDICT t9-c3: implemented \u2014 backend/src/common/error-envelope.wiring.test.ts:18 exercises configureApp()+app.init() and proves middleware/filter wiring\nLEFTOVERS: none visible in the diff.\nThe core observability wiring is present and tested, but validation errors can violate the standard envelope and the stack sanitizer can leak exception message content.",
   "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/common",
+      "summary": "Validation HttpExceptions are emitted as generic HTTP_400 errors (backend/src/common/global-exception.filter.ts:20): The filter recognizes validation only when the thrown value itself looks like a ZodError."
+    },
     {
       "category": "plan-contract-partial",
       "area": "constitution/07-exception-handling.md",
@@ -16,17 +21,12 @@
   ],
   "non_blocking_findings": [
     {
-      "category": "bug",
-      "area": "backend/src/common",
-      "summary": "[P2] Recognize the application's Zod validation failures (backend/src/common/global-exception.filter.ts:83): `validationDetails` only classifies a 400 as validation when `HttpException.getResponse().message` is a `string[]`, which the comment identifies as the class-validator shape."
-    },
-    {
       "category": "security",
       "area": "backend/src/common",
-      "summary": "[P2] Do not log arbitrary unmatched path segments (backend/src/common/request-logging.middleware.ts:51): The masking predicate only redacts emails containing a literal `@`, UUIDs, decimal IDs, and long hexadecimal strings."
+      "summary": "Stack sanitization accepts message text disguised as a frame (backend/src/common/structured.logger.ts:58): Filtering stack lines by the `at ...:line:column` shape does not ensure they are genuine frames."
     }
   ],
-  "recommendation": "approve-with-caveats",
+  "recommendation": "request-changes",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/common/error-envelope.wiring.test.ts",
@@ -45,17 +45,17 @@
     {
       "contract_id": "t9-c1",
       "verdict": "partial",
-      "evidence": "backend/src/common/global-exception.filter.ts:83 recognizes only a class-validator-shaped message array despite the application using Zod validation"
+      "evidence": "backend/src/common/global-exception.filter.ts:20 only classifies raw ZodError objects as validation failures"
     },
     {
       "contract_id": "t9-c2",
       "verdict": "partial",
-      "evidence": "backend/src/common/request-logging.middleware.ts:51 permits arbitrary non-email/non-ID path segments into structured log context"
+      "evidence": "backend/src/common/structured.logger.ts:58 does not reliably sanitize frame-shaped exception message content"
     },
     {
       "contract_id": "t9-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/common/error-envelope.wiring.test.ts:27 exercises configureApp()+app.init(), and both tests are registered in backend/package.json:15 and tools/quality-gate.test.mjs:23"
+      "evidence": "backend/src/common/error-envelope.wiring.test.ts:18 exercises configureApp()+app.init() and proves middleware/filter wiring"
     },
     {
       "contract_id": "t1-c1",
@@ -209,10 +209,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "34c5b1d16be10781d33ae83634d2b624698fdbf5a5f45dc62fe471662d1242f6",
+  "review_run_id": "18ead7727ee47f7707e38883a17469057325c751fd6a663dc9347c5dfb28f158",
   "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
-  "branch_diff_digest": "88ab14373c821fec0b0a141512ecb5454f49c3eb949aa3015b0f6122ac922eca",
+  "branch_diff_digest": "127bced2cc1d077a43eb6b2078de5d0da8d0237fc9fa04b3e959a4f0d4f41490",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T16:30:59+00:00",
-  "commit": "6072e0d239afb50d4dc8a0eb5b3aae40700b95ca"
+  "recorded_at": "2026-09-08T16:44:41+00:00",
+  "commit": "10ed46dc05b1ca1af70b589bc9fdaaa7508a81a8"
 }

@@ -1,23 +1,13 @@
 {
   "generated_by": "autoreview",
-  "score": 8,
-  "summary": "security lens over backend-observability (11 product path(s), a40b7a1..6072e0d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The observability wiring and static error messages are generally sound, and the diff contains no compatibility leftovers. However, three sanitization boundaries remain bypassable: encoded or non-hex sensitive path data is logged, multiline exception messages can pass as stack frames, and arbitrary 400 message arrays can be reflected as validation fields. These are concrete P2 data-exposure risks.",
+  "score": 9,
+  "summary": "security lens over backend-observability (11 product path(s), a40b7a1..10ed46d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The observability wiring generally applies safe static error messages, validated correlation IDs, masked paths, and fail-closed environment mapping. However, the stack sanitization boundary is bypassable by newline-delimited exception-message content that resembles a V8 frame, allowing sensitive raw error text into logs and Local responses.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "security",
       "area": "backend/src/common",
-      "summary": "Encoded PII and common token formats bypass path masking (backend/src/common/request-logging.middleware.ts:55): `req.path` can contain percent-encoded segments, but `maskPath` checks the raw segment only for a literal `@`, numeric values, UUIDs, or long hexadecimal strings."
-    },
-    {
-      "category": "security",
-      "area": "backend/src/common",
-      "summary": "Stack sanitization accepts injected message lines as trusted frames (backend/src/common/structured.logger.ts:55): Filtering `Error.stack` solely for lines matching whitespace plus `at` does not reliably remove the exception message."
-    },
-    {
-      "category": "security",
-      "area": "backend/src/common",
-      "summary": "Arbitrary 400 response messages can be exposed as validation fields (backend/src/common/global-exception.filter.ts:87): An array-valued `HttpException.getResponse().message` is not proof that the exception came from validation; application or provider-facing `BadRequestException` responses can use the same shape."
+      "summary": "[P2] Stack sanitizer accepts forged frames from exception messages (backend/src/common/structured.logger.ts:55): V8 preserves embedded newlines from an Error message in `error.stack`."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -36,10 +26,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "34c5b1d16be10781d33ae83634d2b624698fdbf5a5f45dc62fe471662d1242f6",
+  "review_run_id": "18ead7727ee47f7707e38883a17469057325c751fd6a663dc9347c5dfb28f158",
   "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
-  "branch_diff_digest": "88ab14373c821fec0b0a141512ecb5454f49c3eb949aa3015b0f6122ac922eca",
+  "branch_diff_digest": "127bced2cc1d077a43eb6b2078de5d0da8d0237fc9fa04b3e959a4f0d4f41490",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T16:30:59+00:00",
-  "commit": "6072e0d239afb50d4dc8a0eb5b3aae40700b95ca"
+  "recorded_at": "2026-09-08T16:44:42+00:00",
+  "commit": "10ed46dc05b1ca1af70b589bc9fdaaa7508a81a8"
 }

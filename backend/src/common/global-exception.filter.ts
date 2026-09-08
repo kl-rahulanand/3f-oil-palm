@@ -25,7 +25,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         : HttpStatus.INTERNAL_SERVER_ERROR;
     const errorId = randomUUID();
     const stack = sanitizedStack(exception);
-    const validation = zodError ? zodValidationDetails(zodError) : undefined;
+    // A 400 is a validation failure (Zod safeParse -> BadRequestException, or a raw ZodError).
+    // Surface VALIDATION_ERROR with sanitized field names; never the client-supplied values.
+    const validation =
+      statusCode === HttpStatus.BAD_REQUEST
+        ? zodError
+          ? zodValidationDetails(zodError)
+          : httpValidationDetails(exception)
+        : undefined;
     const message = statusCode >= 500 ? "Unhandled server error" : "HTTP exception";
     const correlationId = request.correlationId ?? randomUUID();
     const requestId = request.requestId ?? null;
@@ -100,6 +107,23 @@ function asZodError(exception: unknown): ZodLikeError | undefined {
     return exception as ZodLikeError;
   }
   return undefined;
+}
+
+function httpValidationDetails(exception: unknown): ErrorFieldDetail[] {
+  // A NestJS validation-style 400 may carry a string[] `message`; map only the field NAMES.
+  // Any other 400 still counts as a validation failure with a generic field marker.
+  const response = exception instanceof HttpException ? exception.getResponse() : undefined;
+  const messages =
+    typeof response === "object" && response !== null && "message" in response && Array.isArray(response.message)
+      ? (response.message as unknown[])
+      : [];
+  const fieldErrors = messages
+    .filter((message): message is string => typeof message === "string")
+    .map((message) => ({
+      field: message.match(/^([a-zA-Z][\w.-]{0,63})\s/)?.[1] ?? "request",
+      reason: "invalid",
+    }));
+  return fieldErrors.length ? fieldErrors : [{ field: "request", reason: "invalid" }];
 }
 
 function zodValidationDetails(error: ZodLikeError): ErrorFieldDetail[] {

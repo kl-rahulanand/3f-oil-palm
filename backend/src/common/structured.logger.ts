@@ -49,11 +49,14 @@ export class StructuredLogger {
 
 export function sanitizedStack(error: unknown): string | undefined {
   if (!(error instanceof Error) || !error.stack) return undefined;
-  // Keep ONLY the trusted call-site frames ("    at ..."). Message lines can carry
-  // provider output, credentials, or PII, so they are dropped rather than merely
-  // skipping the first line.
-  // Real V8 frames end in ":line:col" (optionally ")"). Requiring that shape stops a
-  // multiline error message from masquerading as a frame and leaking through.
-  const frames = error.stack.split("\n").filter((line) => /^\s+at\s.+:\d+:\d+\)?\s*$/.test(line));
+  // error.stack is "<name>: <message>\n    at ...". The message may be multiline and
+  // attacker/provider-influenced, so strip exactly that header before keeping call-site frames;
+  // if the header cannot be identified, omit the stack rather than risk leaking message content.
+  const header = `${error.name}: ${error.message}`;
+  if (!error.stack.startsWith(header)) return undefined;
+  const frames = error.stack
+    .slice(header.length)
+    .split("\n")
+    .filter((line) => /^\s+at\s.+:\d+:\d+\)?\s*$/.test(line));
   return frames.length ? frames.join("\n") : undefined;
 }
