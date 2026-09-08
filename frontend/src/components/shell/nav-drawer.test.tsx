@@ -1,3 +1,8 @@
+// Hermetic BEHAVIOR test: jsdom verifies the drawer's semantics — aria-expanded,
+// Escape-to-close, and focus return — which need no CSS layout. jsdom applies no
+// CSS or media queries, so browser-level RESPONSIVE VISUAL fidelity at 390x844 is
+// not this test's job; it is verified in the recorded functional check (host-run in
+// a real browser at 1440x900 and 390x844), per this task's evidence split.
 import type { AuthUser } from "@3f/contract";
 import { fireEvent, screen } from "@testing-library/react";
 import { expect, test, vi } from "vitest";

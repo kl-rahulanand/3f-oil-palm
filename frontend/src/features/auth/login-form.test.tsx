@@ -1,3 +1,10 @@
+// Hermetic falsifiers (decision 0009): the api transport is mocked so these run
+// offline and deterministically, including in the Codex sandbox (which has no
+// network). They deliberately do NOT stand in for the contract's LIVE evidence.
+// The real Postgres-backed email/OTP flow, refresh/logout integration, the audit
+// row, and uniform no-enumeration behavior are verified end-to-end by the recorded
+// functional check (test-functional, status pass) — host-run against the live
+// backend at 127.0.0.1:4000 because the sandbox cannot reach it.
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LoginForm } from "./login-form";
