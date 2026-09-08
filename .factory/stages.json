@@ -66,7 +66,16 @@
           "git": "? .factory/stories/platform-base/task-plans/harness-wiring.md\u0000\u0000\u0000"
         }
       },
-      "task_sha256": "373813e22e8b89471062313fca4b6268ee2e6c4d2fa42ef2bcfce4e0183e4ab6"
+      "task_sha256": "373813e22e8b89471062313fca4b6268ee2e6c4d2fa42ef2bcfce4e0183e4ab6",
+      "local_review_stamp": {
+        "stage_id": "harness-wiring",
+        "task_sha256": "373813e22e8b89471062313fca4b6268ee2e6c4d2fa42ef2bcfce4e0183e4ab6",
+        "brief_sha256": "a2377d86e45060753f1b32996c2ca3c1d66e9cd4e1548057e7db16f20e9dd9db",
+        "base_sha": "13e26927e083df757b0c9dbda47c3fc9c38dbc2b",
+        "product_tree_digest": "f3f075089d65511a1622034167a00282723085cd7ad21ca031f50036c700966b",
+        "recorded_at": "2026-09-08T17:29:57+00:00",
+        "generated_by": "autoreview"
+      }
     }
   ]
 }
