@@ -1,7 +1,7 @@
 {
   "generated_by": "implementer",
-  "outcome": "The fresh Next.js (App Router) frontend workspace is scaffolded: a developer can now run the 3F frontend (npm run dev:frontend on 127.0.0.1:3000) and build it (npm run build:frontend), themed entirely by the KnackLabs _ds tokens with locally vendored Inter (no external font requests), a TanStack Query provider, an in-tree shadcn button primitive, and a placeholder page \u2014 and the repo-wide quality gate (build + lint + format + typecheck + hermetic tests) now covers all three workspaces with the guard proving the frontend lint is effective. The user-facing shell + OTP login builds on this in frontend-shell-login.",
+  "outcome": "A 3F user can now sign in and reach the app: the login screen (split-screen, two-step work-email -> 6-digit OTP, exact uniform copy, a11y) authenticates end-to-end against the live auth API (csrf bootstrap, otp/request, otp/verify, me, refresh-once-then-retry, logout) and lands in the Deep Forest app shell built only from the _ds --kl-* design tokens, faithful to the imported 3F Financial MIS design: a collapsible left nav with exactly five labels (only Dashboard active, disabled items make no feature calls), a white top bar, and a mobile off-canvas drawer (keyboard toggle, aria-expanded, Escape-to-close, focus return). Verified by 12 hermetic tests plus a passing live functional check at 1440x900 and 390x844.",
   "issue": "platform-base",
-  "commit": "ac4f1d6bd98d2b355923db85134a70d4046d2da1",
-  "recorded_at": "2026-09-08T08:09:27+00:00"
+  "commit": "7f2d76a1f8a5395692e22aab5ff1ad3d8cb29dc5",
+  "recorded_at": "2026-09-08T13:38:43+00:00"
 }

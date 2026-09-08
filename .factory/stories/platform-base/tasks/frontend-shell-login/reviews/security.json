@@ -1,7 +1,7 @@
 {
   "generated_by": "autoreview",
   "score": 10,
-  "summary": "security lens over frontend-shell-login (22 product path(s), b0b62bc..9bd7d8e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the specified authentication trust boundaries without exposing credentials or adding evident injection, authorization-bypass, or account-enumeration paths. Auth requests include credentials, mutating requests bootstrap and re-read the current CSRF cookie, access-token 401s receive a single refresh attempt, OTP verification 401s are excluded from refresh, and protected shell rendering is gated on the session query. No compatibility leftovers or other actionable P0\u2013P2 defects are demonstrated by the supplied change bundle.",
+  "summary": "security lens over frontend-shell-login (22 product path(s), b0b62bc..7f2d76a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The reviewed diff shows no actionable P0\u2013P2 security defect. Authentication requests include credentials, mutating requests bootstrap and re-read the current CSRF cookie, OTP verification is excluded from refresh handling, and protected session checks perform only one refresh-and-retry cycle. User-controlled values are rendered through React rather than unsafe HTML, no credentials are present, and no compatibility leftovers are introduced. Server-side rate limiting and authorization enforcement cannot be verified from this frontend-only bundle, but their omission from the supplied evidence is not itself evidence of a defect.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -33,10 +33,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "b0f4a034f1ec6febbcef481d999fbea4d90fd2673c85935f5b62de7c4234a021",
+  "review_run_id": "4f5eaff86885242088a134949cd5adb44b8e29d959087a97fd7bbd16c474fad6",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "6de3c99246384ce7155468e835ca491b02ef5072cab755c26c1a9598d00b2695",
+  "branch_diff_digest": "569080402e475536a4b34467764dfe47a3e065bec932cb3368377913c5527ce9",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:51:05+00:00",
-  "commit": "9bd7d8efd59b09810c3f993f2854d1261dc82320"
+  "recorded_at": "2026-09-08T13:38:12+00:00",
+  "commit": "7f2d76a1f8a5395692e22aab5ff1ad3d8cb29dc5"
 }

@@ -1,42 +1,22 @@
 {
   "generated_by": "autoreview",
-  "score": 3,
-  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..9bd7d8e, Codex via the autoreview skill at --max-priority P2): 2 blocking, 1 non-blocking. VERDICT t8-c1: partial \u2014 frontend/src/components/shell/app-shell.tsx:102 removes the active route's accessible label in the supported collapsed shell\nVERDICT t8-c2: partial \u2014 frontend/src/features/auth/login-form.test.tsx:19 mocks the API instead of providing the required live authentication, audit, and no-enumeration evidence\nVERDICT t8-c3: partial \u2014 frontend/src/components/shell/nav-drawer.test.tsx:20 changes a jsdom viewport but does not provide the required 1440x900 and 390x844 browser-level functional verification\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:13 defines exactly the five required entries, with only Dashboard active and the remaining controls rendered unavailable\nLEFTOVERS: clean \u2014 the supplied diff contains no compatibility wrappers, aliases, deprecated branches, or legacy exports.\n\nThe core shell, login flow, token correction, CSRF handling, and one-refresh retry are implemented and reachable. The patch remains incorrect because two acceptance-critical verification deliverables are absent and the collapsed primary route loses its accessible name.",
+  "score": 9,
+  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..7f2d76a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The shell, login flow, and intentionally disabled navigation are reachable, but the unconditional root redirect leaves the authentication-routing contract incomplete.\nVERDICT t8-c1: implemented \u2014 frontend/src/components/shell/app-shell.tsx:78 renders the responsive shell and drawer\nVERDICT t8-c2: partial \u2014 frontend/app/page.tsx:4 routes signed-out root visits through `/dashboard` instead of directly to `/login`\nVERDICT t8-c3: implemented \u2014 frontend/src/features/auth/login-form.tsx:85 renders the specified two-step accessible login flow\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:13 defines the five-item navigation with only Dashboard active",
   "blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "frontend/src/features/auth",
-      "summary": "[P1] Add the required live authentication and no-enumeration verification (frontend/src/features/auth/login-form.test.tsx:19): The authentication tests replace the API with mocks, so they cannot demonstrate the contract's required end-to-end email/OTP flow, real refresh/logout integration, audit row, or uniform behavior for an unauthorized email against the Postgres-backed runtime."
-    },
-    {
-      "category": "test_gap",
-      "area": "frontend/src/components/shell",
-      "summary": "[P1] Provide the required browser-level responsive fidelity check (frontend/src/components/shell/nav-drawer.test.tsx:20): The mobile test only changes `window.innerWidth` in jsdom; jsdom does not apply CSS layout, media queries, dimensions, or visual styling."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/app-platform-base.md",
-      "summary": "t8-c1: the app shell (top bar + left nav) renders in KnackLabs green, branded 3F, faithful to the bound design export docs/design/3F-Financial-MIS/3F Financial MIS.dc.html - Deep Forest (#0C3529) left nav (200px expanded / 62px collapsed, 3F header, user block) + white 56px top bar + Off-White (#F4F7F6) canvas, built ONLY from the _ds --kl-* tokens (no raw hex in components); on mobile (390x844) the left nav collapses to an off-canvas drawer behind a keyboard-focusable toggle that reports aria-expanded, closes on Escape, and returns focus to the toggle. Consumes the frontend-foundation scaffold (theme, next/font/local Inter, TanStack Query provider, shadcn primitives); the D-0012 --text-body/ink token collision is resolved as the theme is applied to real screens (Tailwind ink maps to --kl-ink)"
-    },
     {
       "category": "plan-contract-partial",
       "area": "docs/specs/app-platform-base.md",
       "summary": "t8-c2: email+OTP login works end-to-end under the spec's local runtime contract: a successful verification lands in the shell, logout returns to /login, and an access-token 401 retries once through POST /api/auth/refresh before falling back to /login. The client (frontend/src/lib/api.ts) uses credentials:'include' against the auth allow-list (GET /api/auth/csrf bootstrap, POST otp/request, POST otp/verify, GET me, POST refresh, POST logout) and sends x-csrf-token re-read from the current 3f_csrf cookie immediately before EVERY mutating request (never cached); server state is TanStack Query (me as a query the route guard reads, otp/logout as mutations that prime/invalidate it)"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/app-platform-base.md",
-      "summary": "t8-c3: the login screen implements the spec's normative Login screen contract (docs/specs/app-platform-base.md \u00a7Login screen contract): a split screen from _ds tokens (left Deep Forest #0C3529 brand panel with the '3F Financial MIS' wordmark + one value line, Mint #6AF1B0 as a thin on-dark accent only; right a white card on the Off-White canvas; brand panel stacks above the card at 390x844), the two-step flow (email type=email autocomplete=email + Emerald #1C6B49 'Send code' 44px at radius-md; then a 6-digit field inputmode=numeric autocomplete=one-time-code client-validated /^\\d{6}$/ with Emerald 'Verify', a 'Use a different email' back link and 'Resend code'), the load-bearing uniform copy ('If that email has access, a code is on its way.' / 'That code didn't match - check it or resend.'), and the accessibility (real <label>s, aria-live=polite acks/errors, focus to the code field after Send and to the first error on failure, :active feedback, ease-out <=200ms entry transitions, prefers-reduced-motion respected), verified by the user-facing functional check at 1440x900 and 390x844"
     }
   ],
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "frontend/src/components/shell",
-      "summary": "[P2] Preserve an accessible name for the collapsed Dashboard link (frontend/src/components/shell/app-shell.tsx:102): When the navigation is collapsed, this condition removes the only text naming the Dashboard link."
+      "area": "frontend/app",
+      "summary": "[P2] Route signed-out root visits directly to login (frontend/app/page.tsx:4): `/` unconditionally redirects to `/dashboard`, regardless of authentication state."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "frontend/app/(app)/dashboard/page.tsx",
     "frontend/app/(app)/layout.tsx",
@@ -67,23 +47,23 @@
   "contract_verdicts": [
     {
       "contract_id": "t8-c1",
-      "verdict": "partial",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:102 removes the active route's accessible label in the supported collapsed shell"
+      "verdict": "implemented",
+      "evidence": "frontend/src/components/shell/app-shell.tsx:78 renders the responsive shell and drawer"
     },
     {
       "contract_id": "t8-c2",
       "verdict": "partial",
-      "evidence": "frontend/src/features/auth/login-form.test.tsx:19 mocks the API instead of providing the required live authentication, audit, and no-enumeration evidence"
+      "evidence": "frontend/app/page.tsx:4 routes signed-out root visits through `/dashboard` instead of directly to `/login`"
     },
     {
       "contract_id": "t8-c3",
-      "verdict": "partial",
-      "evidence": "frontend/src/components/shell/nav-drawer.test.tsx:20 changes a jsdom viewport but does not provide the required 1440x900 and 390x844 browser-level functional verification"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/auth/login-form.tsx:85 renders the specified two-step accessible login flow"
     },
     {
       "contract_id": "t8-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:13 defines exactly the five required entries, with only Dashboard active and the remaining controls rendered unavailable"
+      "evidence": "frontend/src/components/shell/app-shell.tsx:13 defines the five-item navigation with only Dashboard active"
     },
     {
       "contract_id": "t1-c1",
@@ -217,10 +197,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "b0f4a034f1ec6febbcef481d999fbea4d90fd2673c85935f5b62de7c4234a021",
+  "review_run_id": "4f5eaff86885242088a134949cd5adb44b8e29d959087a97fd7bbd16c474fad6",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "6de3c99246384ce7155468e835ca491b02ef5072cab755c26c1a9598d00b2695",
+  "branch_diff_digest": "569080402e475536a4b34467764dfe47a3e065bec932cb3368377913c5527ce9",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:51:05+00:00",
-  "commit": "9bd7d8efd59b09810c3f993f2854d1261dc82320"
+  "recorded_at": "2026-09-08T13:38:11+00:00",
+  "commit": "7f2d76a1f8a5395692e22aab5ff1ad3d8cb29dc5"
 }
