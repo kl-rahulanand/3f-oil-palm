@@ -1,0 +1,12 @@
+{
+  "event": "done",
+  "id": "Q-0010-e51d",
+  "profile": "degraded",
+  "kind": "degraded",
+  "reason": "Host-seed frontend-shell-login: the task worktree is a fresh checkout with no node_modules, and T8 adds lucide-react (the shadcn-standard nav icon set) which the Codex sandbox has no network to install. Add lucide-react to frontend/package.json and run npm install to populate node_modules from the frozen lockfile and re-freeze it, so the implementer builds/tests offline. Same host-only provisioning pattern as the T7 foundation seed.",
+  "started_at": "2026-09-08T09:59:19+00:00",
+  "completed_at": "2026-09-08T10:00:07+00:00",
+  "files": [
+    "frontend/package.json"
+  ]
+}
