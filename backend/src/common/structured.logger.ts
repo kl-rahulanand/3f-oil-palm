@@ -49,5 +49,9 @@ export class StructuredLogger {
 
 export function sanitizedStack(error: unknown): string | undefined {
   if (!(error instanceof Error) || !error.stack) return undefined;
-  return error.stack.split("\n").slice(1).join("\n").trim() || undefined;
+  // Keep ONLY the trusted call-site frames ("    at ..."). Message lines can carry
+  // provider output, credentials, or PII, so they are dropped rather than merely
+  // skipping the first line.
+  const frames = error.stack.split("\n").filter((line) => /^\s+at\s/.test(line));
+  return frames.length ? frames.join("\n") : undefined;
 }

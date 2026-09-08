@@ -1,0 +1,35 @@
+{
+  "generated_by": "autoreview",
+  "score": 9,
+  "summary": "security lens over backend-observability (11 product path(s), a40b7a1..14ca9d6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The observability wiring introduces an unsafe environment fallback that can expose stack traces outside an intentionally configured local deployment. No real credentials or compatibility leftovers are visible in the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src",
+      "summary": "[P2] Fail closed for unrecognized deployment environments (backend/src/config.ts:85): `mapEnvironment` maps every unknown or empty value to `Local`."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/common/error-envelope.wiring.test.ts",
+    "backend/src/common/global-exception.filter.ts",
+    "backend/src/common/request-logging.middleware.ts",
+    "backend/src/common/request-logging.test.ts",
+    "backend/src/common/structured.logger.ts",
+    "backend/src/config.ts",
+    "backend/src/main.ts",
+    "contract/src/api.ts",
+    "docs/specs/app-platform-base.md",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "f4291384ad20f5c7523df6097b1983eb34c2beb40fef86695139fc169439a8ef",
+  "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
+  "branch_diff_digest": "674a8438b8317e67b23a5acda830612a5d9c6a5c1416c1b75a1845df7db5755e",
+  "residual_risks": [],
+  "recorded_at": "2026-09-08T16:05:21+00:00",
+  "commit": "14ca9d6974e3b513cdda60398bcdde3b5aab4ecc"
+}

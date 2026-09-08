@@ -25,8 +25,11 @@ export function configureApp(
   cfg: Config = loadConfig(),
   logger: StructuredLogger = new StructuredLogger(cfg),
 ): void {
-  app.enableCors({ origin: cfg.frontendOrigin, credentials: true });
+  // requestLogging BEFORE enableCors: a CORS preflight is answered by the CORS middleware and
+  // short-circuits, so logging must run first for every request (preflight included) to be
+  // correlated and recorded.
   app.use(requestLogging(logger));
+  app.enableCors({ origin: cfg.frontendOrigin, credentials: true });
   app.useGlobalFilters(new GlobalExceptionFilter(cfg, logger));
   if (!cfg.swaggerEnabled) return;
 

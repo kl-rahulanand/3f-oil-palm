@@ -73,17 +73,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 function validationDetails(exception: unknown, statusCode: number): ErrorFieldDetail[] | undefined {
   if (!(exception instanceof HttpException) || statusCode !== HttpStatus.BAD_REQUEST) return undefined;
   const response = exception.getResponse();
+  // class-validator failures carry a string[] `message`; a plain BadRequestException carries a
+  // string. Only the array form is a field-validation failure — any other 400 is a normal HTTP 400
+  // (code HTTP_400), not VALIDATION_ERROR.
   const messages =
-    typeof response === "object" && response !== null && "message" in response
-      ? Array.isArray(response.message)
-        ? response.message
-        : [response.message]
-      : [];
+    typeof response === "object" && response !== null && "message" in response && Array.isArray(response.message)
+      ? response.message
+      : null;
+  if (!messages) return undefined;
   const fieldErrors = messages
     .filter((message): message is string => typeof message === "string")
     .map((message) => ({
       field: message.match(/^([a-zA-Z][\w.-]{0,63})\s/)?.[1] ?? "request",
       reason: "invalid",
     }));
-  return fieldErrors.length ? fieldErrors : [{ field: "request", reason: "invalid" }];
+  return fieldErrors.length ? fieldErrors : undefined;
 }

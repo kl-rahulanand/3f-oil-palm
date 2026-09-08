@@ -28,7 +28,7 @@ export function requestLogging(logger: StructuredLogger): RequestHandler {
         requestId: req.requestId,
         context: {
           method: req.method,
-          path: req.path,
+          path: maskPath(req.path),
           statusCode: res.statusCode,
           durationMs: Date.now() - startedAt,
         },
@@ -41,4 +41,19 @@ export function requestLogging(logger: StructuredLogger): RequestHandler {
 
 function firstHeader(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Path segments are client-controlled and can carry account ids, emails, or tokens (constitution
+// 05 requires context values be PII-masked). Redact id-shaped segments while keeping the structure.
+function maskPath(path: string): string {
+  return path
+    .split("/")
+    .map((seg) =>
+      seg && (seg.includes("@") || UUID_SEGMENT.test(seg) || /^\d+$/.test(seg) || /^[0-9a-f]{16,}$/i.test(seg))
+        ? ":masked"
+        : seg,
+    )
+    .join("/");
 }

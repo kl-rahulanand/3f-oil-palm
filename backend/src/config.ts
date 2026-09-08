@@ -82,7 +82,7 @@ const ENVIRONMENTS: Record<string, Environment> = {
 };
 
 export function mapEnvironment(value: string | undefined): Environment {
-  return ENVIRONMENTS[value?.trim().toLowerCase() ?? ""] ?? "Local";
+  return ENVIRONMENTS[value?.trim().toLowerCase() ?? ""] ?? "Production";
 }
 
 export const DEFAULT_SEED_USERS = "admin@example.invalid|3F Admin|admin";
@@ -125,7 +125,7 @@ export function loadConfig(): Config {
   return {
     port: num(process.env.PORT, 4000),
     nodeEnv,
-    environment: mapEnvironment(process.env.ENVIRONMENT ?? nodeEnv),
+    environment: mapEnvironment(process.env.ENVIRONMENT || nodeEnv),
     serviceName: process.env.SERVICE_NAME?.trim() || "3f-backend",
     authOtpMock,
     authJwtSecret,

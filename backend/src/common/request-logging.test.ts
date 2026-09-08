@@ -25,7 +25,8 @@ test("the request and error log records share the request correlationId and requ
 
   try {
     assert.equal(mapEnvironment("production"), "Production");
-    assert.equal(mapEnvironment("unknown"), "Local");
+    // Fail closed: an unknown/typo environment must NOT map to Local (which would leak stacks).
+    assert.equal(mapEnvironment("unknown"), "Production");
     app = await NestFactory.create(AppModule, { logger: false });
     configureApp(app, config, logger);
     await app.init();
