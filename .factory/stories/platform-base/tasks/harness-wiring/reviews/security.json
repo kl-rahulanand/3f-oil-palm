@@ -1,0 +1,23 @@
+{
+  "generated_by": "autoreview",
+  "score": 10,
+  "summary": "security lens over harness-wiring (5 product path(s), 13e2692..992f1d2, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the requested harness wiring: contract tests are added to the root hermetic test sequence, the TypeScript test import is extension-clean, the specification now points to .envrc, and the quality-gate test independently asserts both the aggregate workspace command and backend provenance fields. No actionable P0\u2013P2 security defect or prohibited compatibility leftover is visible in the supplied change bundle.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "contract/package.json",
+    "contract/test/auth-contract.test.ts",
+    "docs/specs/app-platform-base.md",
+    "package.json",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "f48f650645c24b2810bfd859678f902ddf7da138244ad246927055efc6ea5bed",
+  "brief_sha256": "4b14ac62a3488d2c692f159fdb798c459b9dc0daa985c6da3520ee000e5ffec5",
+  "branch_diff_digest": "1cf30b0ed576c8980f402ca0d0ab1749e19ace116e806b50846edce2ea43ba12",
+  "residual_risks": [],
+  "recorded_at": "2026-09-08T17:29:39+00:00",
+  "commit": "992f1d2e5b7db5c6afeb022fc118920af79ba708"
+}

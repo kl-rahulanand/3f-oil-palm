@@ -12,7 +12,7 @@ import {
   authRefreshRequestSchema,
   authRefreshResponseSchema,
   authUserSchema,
-} from "../src/index.ts";
+} from "../src/index";
 
 const authUser = {
   id: "user-1",

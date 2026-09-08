@@ -163,7 +163,7 @@ The development team (foundation); indirectly every end user, via the running ap
 ## Rules
 - Harness-owned files (factory, constitution, forge, harness) stay 3oilpalm's — do
   not overwrite them with Pulse's harness.
-- `harness.yaml` is updated so build/verify/test know the vendored app.
+- `.envrc` declares the four `FACTORY_*` workspace commands that `verify.py` runs.
 
 ## Out of scope (now)
 - BigQuery; multi-tenant hosting; any capability feature (statement, ingestion,

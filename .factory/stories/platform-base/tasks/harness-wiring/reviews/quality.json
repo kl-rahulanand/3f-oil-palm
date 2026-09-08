@@ -1,0 +1,215 @@
+{
+  "generated_by": "autoreview",
+  "score": 10,
+  "summary": "quality lens over harness-wiring (5 product path(s), 13e2692..992f1d2, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t10-c1: implemented \u2014 docs/specs/app-platform-base.md:167 documents the existing .envrc FACTORY_* command graph\nVERDICT t10-c2: implemented \u2014 package.json:26 adds the contract workspace to the existing backend, frontend, and guard test sequence; the supplied review context confirms both structural checks already exist\nVERDICT t10-c3: implemented \u2014 package.json:28 runs structure, typecheck, quality, and the expanded hermetic test suite through verify:ci\nVERDICT t10-c4: implemented \u2014 tools/quality-gate.test.mjs:439 independently asserts the provenance repository and exact commit\nVERDICT t10-c5: implemented \u2014 package.json:28 defines the root verification command invoked on push by the pre-existing CI workflow identified in the supplied review context\nThe requested gaps are addressed with a minimal, reachable change. No blocking compatibility leftovers or P0\u2013P2 defects are visible in the provided diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "contract/package.json",
+    "contract/test/auth-contract.test.ts",
+    "docs/specs/app-platform-base.md",
+    "package.json",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t10-c1",
+      "verdict": "implemented",
+      "evidence": "docs/specs/app-platform-base.md:167 documents the existing .envrc FACTORY_* command graph"
+    },
+    {
+      "contract_id": "t10-c2",
+      "verdict": "implemented",
+      "evidence": "package.json:26 adds the contract workspace to the existing backend, frontend, and guard test sequence; the supplied review context confirms both structural checks already exist"
+    },
+    {
+      "contract_id": "t10-c3",
+      "verdict": "implemented",
+      "evidence": "package.json:28 runs structure, typecheck, quality, and the expanded hermetic test suite through verify:ci"
+    },
+    {
+      "contract_id": "t10-c4",
+      "verdict": "implemented",
+      "evidence": "tools/quality-gate.test.mjs:439 independently asserts the provenance repository and exact commit"
+    },
+    {
+      "contract_id": "t10-c5",
+      "verdict": "implemented",
+      "evidence": "package.json:28 defines the root verification command invoked on push by the pre-existing CI workflow identified in the supplied review context"
+    },
+    {
+      "contract_id": "t1-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t1-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t1-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t5-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under quality-gate-baseline at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t5-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under quality-gate-baseline at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t5-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under quality-gate-baseline at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t8-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-shell-login at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t8-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-shell-login at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t8-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-shell-login at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t8-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-shell-login at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t9-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-observability at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t9-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-observability at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t9-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-observability at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "f48f650645c24b2810bfd859678f902ddf7da138244ad246927055efc6ea5bed",
+  "brief_sha256": "4b14ac62a3488d2c692f159fdb798c459b9dc0daa985c6da3520ee000e5ffec5",
+  "branch_diff_digest": "1cf30b0ed576c8980f402ca0d0ab1749e19ace116e806b50846edce2ea43ba12",
+  "residual_risks": [],
+  "recorded_at": "2026-09-08T17:29:38+00:00",
+  "commit": "992f1d2e5b7db5c6afeb022fc118920af79ba708"
+}
