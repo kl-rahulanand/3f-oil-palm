@@ -1,0 +1,169 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "frontend-foundation",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "frontend-foundation scaffolds the fresh Next.js (App Router) frontend/ npm workspace and its toolchain (the _ds-token Tailwind theme, locally vendored Inter via next/font/local, in-tree shadcn primitives, a TanStack Query provider) and widens the repo-wide quality gate (build/lint/format/typecheck/test) to the frontend. Input: root workspaces=[contract,backend] + the approved plan + the _ds design tokens. Output: a building, linted, type-checked, hermetically-tested three-workspace repo with a minimal root layout + placeholder page (no app screens). It starts at the workspace/toolchain and stops before any user-facing screen; the shell + OTP login is frontend-shell-login (T8).",
+  "inspected_refs": [
+    "package.json",
+    "eslint.config.mjs",
+    "tools/quality-gate.test.mjs",
+    "contract/package.json",
+    "docs/specs/app-platform-base.md",
+    "plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md",
+    "docs/design/3F-Financial-MIS/_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/tokens",
+    ".factory/stories/platform-base/decomposition.json",
+    ".factory/stories/platform-base/task-plans/frontend-foundation.md",
+    ".factory/stories/platform-base/stages.json"
+  ],
+  "new_abstractions": [
+    "the @3f/frontend npm workspace (third workspace)",
+    "the _ds-token Tailwind theme (--kl-* variables, no raw hex in config)",
+    "the next/font/local Inter variable wiring (--font-inter single owner)",
+    "the three-workspace quality-gate guard (effective-lint + every-leaf pinning)",
+    "the frontend Vitest + RTL + jsdom hermetic runner (offline, frontend-only include)",
+    "the orchestrator host-seed provisioning step (exact-pinned deps + provenance-checked font, degraded window)"
+  ],
+  "criteria_map": {
+    "frontend is a third npm workspace (root workspaces adds \"frontend\") with a pre-authored tsconfig (Next TS plugin + .next/types include) and a frontend/.gitignore for .next/, next-env.d.ts and *.tsbuildinfo, so `next build` is NON-MUTATING - made falsifiable by the guard (it asserts those .gitignore entries and the tsconfig plugin/include) and by stage-done, which rejects any tracked-file change from verification. The root *:frontend scripts that need the app context (build, dev, typecheck via tsc --noEmit, test via vitest) WRAP the @3f/frontend workspace scripts; build:frontend runs build:contract first (= npm run build:contract && npm -w @3f/frontend run build) as workspace dependency-ordering hygiene and is added to root `build` so `structural`/FACTORY_STRUCTURAL_CMD compiles all three workspaces. @3f/contract is declared as a MANIFEST-level workspace dependency (pinned 0.0.0) - this foundation adds no runtime import (the first genuine consumption is frontend-shell-login's api.ts transport). A minimal root layout (fonts + providers) + a placeholder page exist so the build succeeds; NO Dashboard/shell/nav/top-bar/login screens (frontend-shell-login owns those)": "KEEP. Workspace + wrapped root scripts + build:contract-first + build:frontend in root build/structural + non-mutating build (frontend/.gitignore + pre-authored tsconfig, guard-asserted, stage-done rejects churn) are all specified; verified against package.json, tools/quality-gate.test.mjs.",
+    "the Tailwind theme is driven entirely by the _ds token variables ported from docs/design/3F-Financial-MIS/_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/tokens/colors.css, spacing.css and typography.css: the ported token DEFINITION files carry the --kl-* definitions (with the source hex, as a definition must), while the Tailwind config and ALL components CONSUME them via var(--kl-*)/theme tokens with NO raw hex; a hermetic test asserts SET-LEVEL PARITY - every --kl-* variable the source colors/spacing/typography.css defines is present in the ported theme (the D-0005 replacement coverage), with a negative control. fonts.css is NOT ported (its Google @import is design-reference only). The runtime font is a locally vendored Inter VARIABLE WOFF2 from the official immutable rsms/inter release v4.1 (InterVariable.woff2 + OFL.txt); its expected SHA-256 is taken from that official release and committed as the pin in frontend/app/fonts/PROVENANCE.md, and the host seed verifies the downloaded bytes against that PRE-DECLARED expected digest (not a self-computed one). It loads via next/font/local exposing --font-inter; globals set --font-sans: var(--font-inter), <fallbacks> AFTER the token import so the local font is the SINGLE owner. next/font/google is never imported and a hermetic test scans ONLY runtime frontend/ source (app/, src/, config) for next/font/google and fonts.googleapis.com/fonts.gstatic.com. NEXT_TELEMETRY_DISABLED=1 is set in the workspace build script (disabling Next telemetry, not claimed as full network proof); dev:frontend binds loopback 127.0.0.1:3000": "KEEP. Token def-vs-consumer split with set-level --kl-* parity (D-0005), fonts.css excluded, Inter variable WOFF2 from rsms/inter v4.1 with a pre-declared expected SHA-256, single-owner --font-sans, source-only google-font scan, telemetry-off-in-build, dev:frontend 127.0.0.1:3000; verified against docs/design/.../tokens and the spec local-runtime contract.",
+    "root scripts build:frontend, dev:frontend, lint:frontend, format:check:frontend, typecheck:frontend and test:frontend exist and name real bodies; build/dev/typecheck/test wrap the @3f/frontend workspace scripts, while lint and format run from repo root over frontend SOURCE globs (frontend/app, frontend/src and named config, excluding generated files so NO .prettierignore change is needed) using the root eslint.config.mjs and root Prettier; eslint.config.mjs gains a frontend/** block that translates eslint-config-next/core-web-vitals into flat config via FlatCompat (@eslint/eslintrc) - so the frontend actually receives the Next + TypeScript rules rather than a silently-empty config - and ignores frontend/.next/ + next-env.d.ts, reusing the root ESLint (no second eslint pinned); the ESLint + Prettier + tsc --noEmit gate runs green from repo root with root lint, format:check and typecheck widened to include the frontend": "KEEP. Six *:frontend scripts (build/dev/typecheck/test wrap the workspace; lint/format run root ESLint/Prettier over frontend source globs); FlatCompat bridges eslint-config-next (eslintrc) into the flat root config; verified against eslint.config.mjs and package.json.",
+    "a pinned, local, OFFLINE Vitest + React Testing Library + jsdom runner (invoked via `npm exec --no`, never npx) executes from repo root; frontend/vitest.config.ts sets root to the repo root and scopes test.include to frontend/**/*.test.{ts,tsx} so it never discovers the backend suite. The ATTRIBUTABLE JUnit testcases come from the task's required_tests stage-proof commands (which force --reporter=junit) - the token-parity, local-font/no-google-font source-scan and TanStack-Query-provider tests, each with a negative control (decision 0009); root test:hermetic runs the frontend vitest suite for pass/fail gating (not a JUnit claim), and test:hermetic is one of this task's verify_commands. Delegated verification runs against the host-seeded node_modules (no network, so no `npm ci`); clean-install determinism via `npm ci` against the frozen package-lock.json is CI's networked job": "KEEP. Offline Vitest via npm exec --no, frontend-only test.include (no backend/DB discovery), three attributable JUnit tests with negative controls (0009); JUnit attribution from the required_tests stage-proof commands; test:hermetic in verify_commands; no npm ci in delegated verify.",
+    "the repo-wide quality gate is widened to the frontend, pinned to every runnable leaf, and its EFFECTIVENESS is proven: the quality-gate guard (tools/quality-gate.test.mjs) runs ESLint over a frontend/** fixture carrying a known violation and asserts it is reported (so a silently-empty frontend config fails), pins the six *:frontend bodies (the real build:frontend with build:contract + NEXT_TELEMETRY_DISABLED and the real vitest test:frontend, not just names) and the widened root build/structural/lint/format:check/typecheck/test:hermetic, and asserts the non-mutating-build .gitignore + tsconfig entries; eslint.config.mjs covers frontend/** and ignores generated output; NO .prettierignore change is made (source-scoped format globs) so D-0006 is untouched; frontend dependencies (including @3f/contract 0.0.0) are exact-pinned (no ^/~) and frozen by package-lock.json (CI uses npm ci); the D-0006 baseline and CI trigger pins stay intact": "KEEP. Guard proves the frontend lint is EFFECTIVE (fixture with a known violation), pins every runnable leaf incl. the real build/test bodies, asserts the non-mutating .gitignore/tsconfig; no .prettierignore change (source-scoped globs) so D-0006 is untouched; exact-pinned deps frozen by the lockfile, CI npm ci."
+  },
+  "gaps": [
+    "acceptance_criteria strings were abbreviated vs plan_contracts (task-gate needs exact three-way match)",
+    "Vitest command path/cwd was invalid and could discover the backend suite; test:hermetic was not in verify_commands",
+    "root build/structural compiled only contract+backend, so CI could green without compiling the frontend",
+    "the frontend lint/build/test leaves were not pinned to real bodies (false-green risk)",
+    "host provisioning was circular and versions were only major ranges; npm ci needs a network the sandbox lacks",
+    "dev:frontend loopback bind (spec local-runtime contract) was omitted; NEXT_TELEMETRY only in .envrc which Actions does not source",
+    "build:frontend had no @3f/contract-build prerequisite (gitignored dist/)",
+    "the first next build could mutate tracked files (.next/next-env), which stage-done rejects",
+    "eslint-config-next 15.1.6 ships eslintrc, not flat, so a flat block is not implementable without a bridge",
+    "the widened gate could false-green: no proof a frontend file receives effective rules",
+    "'non-mutating build' was only a manual git-status observation, not falsifiable",
+    "font provenance was self-attesting (verify against a self-computed hash)",
+    "token fidelity was unbounded: 'no hex' vs a source token file that defines hex; no set-level parity",
+    "@3f/contract 'consumption' was ambiguous (fake import vs manifest-only)",
+    "lucide-react was seeded although its first consumer is T8"
+  ],
+  "contradictions": [
+    "a prior cold read claimed 'vendor-backend-contract still needs reconciliation' \u2014 a misread of the frontier (T1-T6 are done; T7 is the planning target)",
+    "the _ds fonts.css defines the runtime font via a Google-Fonts @import while the contract forbids external font requests"
+  ],
+  "resolutions": [
+    "acceptance_criteria set identical to the five plan_contract statements verbatim (criteria==contracts verified at record).",
+    "required_tests run from repo root via `npm exec --no -- vitest` (offline, no npx fetch); vitest.config.ts root=repo root with frontend-only test.include; test:hermetic added to verify_commands.",
+    "build:frontend added to root `build` so `structural`/FACTORY_STRUCTURAL_CMD compiles all three workspaces; pinned in the guard.",
+    "guard pins the six *:frontend bodies (real build w/ build:contract + NEXT_TELEMETRY_DISABLED, real vitest test) and the widened root build/structural/lint/format:check/typecheck/test:hermetic.",
+    "orchestrator SEEDS an exact-pinned frontend/package.json + Inter WOFF2 in a degraded window BEFORE delegate and freezes package-lock.json; delegated verify uses the seeded node_modules (no npm ci); npm ci is CI's networked job.",
+    "dev:frontend binds 127.0.0.1:3000; NEXT_TELEMETRY_DISABLED=1 set inside the workspace build script (guard-pinned).",
+    "build:frontend = `npm run build:contract && npm -w @3f/frontend run build` (workspace dependency-ordering).",
+    "frontend/.gitignore ignores .next/next-env.d.ts/*.tsbuildinfo and tsconfig is pre-authored with the Next plugin + .next/types include; the guard asserts these and stage-done rejects tracked-file churn.",
+    "eslint.config.mjs wraps eslint-config-next/core-web-vitals into flat config via FlatCompat (@eslint/eslintrc); the frontend reuses the root ESLint (no second pin).",
+    "the guard runs ESLint over a frontend/** fixture carrying a known violation and asserts it is reported (proving effective rules).",
+    "made falsifiable by the guard (.gitignore + tsconfig assertions) and by stage-done, which rejects any tracked-file change from verification.",
+    "the expected SHA-256 is taken from the official immutable rsms/inter v4.1 release and committed as the pin; the seed verifies the downloaded bytes against that pre-declared digest.",
+    "definition files legitimately carry the --kl-* hex; the Tailwind config + components consume var(--kl-*) with no hex; a hermetic test asserts set-level parity vs source colors/spacing/typography.css (D-0005) + a negative control.",
+    "@3f/contract declared as a MANIFEST-level workspace dependency only (no fabricated import; first real use is frontend-shell-login's api.ts).",
+    "lucide-react removed from the seed set; deferred to frontend-shell-login (its first consumer).",
+    "verified against .factory/stories/platform-base/stages.json: T1-T6 status done; the frontier is frontend-foundation. No action; noted so it is not re-raised.",
+    "fonts.css is a design-reference artifact and is explicitly NOT ported; the runtime font is next/font/local Inter; the hermetic scan targets runtime frontend/ source only, not docs/design."
+  ],
+  "open_items": [
+    "ACTION (not a design gap): the Inter WOFF2 host download is a permissioned fetch to be performed at seed time before delegate; the user already chose to vendor Inter locally. Non-blocking for the contract."
+  ],
+  "rounds": [
+    {
+      "question": "frontend-foundation (T7) renders a placeholder page + one themed primitive as a build/test smoke \u2014 no shell, nav, or login. Should it carry the frontend design-review + functional-check gate now, or stay a non-user-facing foundation with that gate at T8 (shell + login), as the approved plan says?",
+      "options": [
+        "Foundation, review at T8",
+        "User-facing now"
+      ],
+      "chosen": "Foundation, review at T8"
+    },
+    {
+      "question": "How should I proceed with the hardened contract now that the harness has capped re-grilling?",
+      "options": [
+        "Record pass & send to board",
+        "Hold \u2014 I want changes"
+      ],
+      "chosen": "Record pass & send to board",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "acceptance_criteria strings were abbreviated vs plan_contracts (task-gate needs exact three-way match)",
+      "source": ".factory/stories/platform-base/decomposition.json"
+    },
+    {
+      "finding": "Vitest command path/cwd was invalid and could discover the backend suite; test:hermetic was not in verify_commands",
+      "source": ".factory/stories/platform-base/task-plans/frontend-foundation.md"
+    },
+    {
+      "finding": "root build/structural compiled only contract+backend, so CI could green without compiling the frontend",
+      "source": "package.json"
+    },
+    {
+      "finding": "the frontend lint/build/test leaves were not pinned to real bodies (false-green risk)",
+      "source": "tools/quality-gate.test.mjs"
+    },
+    {
+      "finding": "host provisioning was circular and versions were only major ranges; npm ci needs a network the sandbox lacks",
+      "source": "docs/degraded-mode.md"
+    },
+    {
+      "finding": "dev:frontend loopback bind (spec local-runtime contract) was omitted; NEXT_TELEMETRY only in .envrc which Actions does not source",
+      "source": "docs/specs/app-platform-base.md"
+    },
+    {
+      "finding": "build:frontend had no @3f/contract-build prerequisite (gitignored dist/)",
+      "source": "contract/package.json"
+    },
+    {
+      "finding": "the first next build could mutate tracked files (.next/next-env), which stage-done rejects",
+      "source": ".factory/stories/platform-base/task-plans/frontend-foundation.md"
+    },
+    {
+      "finding": "eslint-config-next 15.1.6 ships eslintrc, not flat, so a flat block is not implementable without a bridge",
+      "source": "eslint.config.mjs"
+    },
+    {
+      "finding": "the widened gate could false-green: no proof a frontend file receives effective rules",
+      "source": "tools/quality-gate.test.mjs"
+    },
+    {
+      "finding": "'non-mutating build' was only a manual git-status observation, not falsifiable",
+      "source": ".factory/stories/platform-base/task-plans/frontend-foundation.md"
+    },
+    {
+      "finding": "font provenance was self-attesting (verify against a self-computed hash)",
+      "source": ".factory/stories/platform-base/task-plans/frontend-foundation.md"
+    },
+    {
+      "finding": "token fidelity was unbounded: 'no hex' vs a source token file that defines hex; no set-level parity",
+      "source": "docs/design/3F-Financial-MIS/_ds/knacklabs-design-system-63be358e-2e64-4441-bcd0-253b9c903a8b/tokens/colors.css"
+    },
+    {
+      "finding": "@3f/contract 'consumption' was ambiguous (fake import vs manifest-only)",
+      "source": "contract/package.json"
+    },
+    {
+      "finding": "lucide-react was seeded although its first consumer is T8",
+      "source": ".factory/stories/platform-base/task-plans/frontend-foundation.md"
+    }
+  ],
+  "summary": "Six cold reads hardened the contract; every repository-answerable finding is resolved in the recorded v5 contract, and the one genuine judgment call (T7 user_facing classification) was escalated and decided by the human (foundation; design review at T8). The five-read cap correctly stopped further re-grilling. Contract is coherent and implementable; decision keep, verdict pass.",
+  "input_sha256": "86f14aaed2f98b4c5433e827d4b808b356fc4ed38be536a1f1a20c9abc71c736",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "c26fa11632426236b84301dce277badd72daadeb630eca97f35c1b866dbee9ea",
+  "recorded_at": "2026-09-08T06:16:21+00:00",
+  "commit": "ee41bb605311f3e34c43599c5de564b322fbf51b",
+  "approved_task_plan_sha256": "c26fa11632426236b84301dce277badd72daadeb630eca97f35c1b866dbee9ea",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-08T06:17:58+00:00"
+}

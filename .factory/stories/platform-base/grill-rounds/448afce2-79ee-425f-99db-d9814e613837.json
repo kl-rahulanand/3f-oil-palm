@@ -1,0 +1,23 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "frontend-foundation (T7) renders a placeholder page + one themed primitive as a build/test smoke \u2014 no shell, nav, or login. Should it carry the frontend design-review + functional-check gate now, or stay a non-user-facing foundation with that gate at T8 (shell + login), as the approved plan says?",
+      "options": [
+        "Foundation, review at T8",
+        "User-facing now"
+      ],
+      "chosen": "Foundation, review at T8"
+    },
+    {
+      "question": "How should I proceed with the hardened contract now that the harness has capped re-grilling?",
+      "options": [
+        "Record pass & send to board",
+        "Hold \u2014 I want changes"
+      ],
+      "chosen": "Record pass & send to board"
+    }
+  ],
+  "at": "2026-09-08T06:12:34.307089+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
