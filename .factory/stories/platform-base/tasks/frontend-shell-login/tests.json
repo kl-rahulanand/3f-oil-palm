@@ -1,0 +1,41 @@
+{
+  "commit": "a882640adb7d4aac5fe33e558271bc558a82afe6",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Deterministic verify is green across all three workspaces with the shell + login built. verify.py reports Verification passed across structural (build incl. next build, dual-runtime, vendor integrity), typecheck, quality (ESLint incl. eslint-config-next + Prettier) and test (backend hermetic + the ten frontend Vitest files + the guard). The seven task-required RTL/jsdom tests are DB-free with negative controls: 6-digit validation, per-POST 3f_csrf re-read, refresh-once-then-retry (and no-refresh on otp/verify 401), redirect-only-after-retry-fails, five-nav/only-Dashboard/disabled-items-make-no-API-calls, resend+use-different-email, and the mobile drawer aria-expanded/Escape/focus. The login was rendered on the dev server and reviewed faithful at 1440x900 and 390x844.",
+    "blocking_findings": [],
+    "commands_run": [
+      "python3 factory/scripts/verify.py  # Verification passed",
+      "npm -w @3f/frontend run test  # 10 files, 10 tests passed (7 required + 3 foundation)",
+      "npm run test:hermetic  # backend 0 fail; frontend 10/10; guard 1 pass"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/auth/login-form.test.tsx - validates a six-digit code before calling verify",
+      "frontend/src/lib/api.test.ts - re-reads the 3f_csrf cookie on every mutating request",
+      "frontend/src/lib/api.refresh.test.ts - refreshes once then retries on an access-token 401 but never on an otp verify 401",
+      "frontend/src/features/auth/session-guard.test.tsx - redirects to login only after the refresh retry also fails",
+      "frontend/src/components/shell/app-shell.test.tsx - five nav labels, only Dashboard active, disabled items make no feature API calls",
+      "frontend/src/features/auth/login-secondary.test.tsx - resend re-requests with the uniform ack; use-a-different-email returns to the email step",
+      "frontend/src/components/shell/nav-drawer.test.tsx - mobile drawer toggles aria-expanded, Escape closes and restores focus"
+    ],
+    "pass_fail_summary": "verify.py: Verification passed. Frontend Vitest: 10 passed (10 files). Backend hermetic: 0 failed. Guard: 1 passed. The DB-backed auth/RBAC/audit tests stay host-only demonstrated evidence (D-0008).",
+    "remaining_gaps": [
+      "Live login E2E (verify creates session cookies, /api/auth/me resolves role, logout clears, audit row appended, no-enumeration, refresh rotation) stays demonstrated Postgres evidence + the functional check - the real auth path needs a migrated app-db pool.",
+      "D-0011 (breaking-major dev-tooling upgrades) and D-0009 (vendored DTO coverage) remain deferred."
+    ],
+    "reviewed_scope": [
+      "frontend/app/",
+      "frontend/src/",
+      "frontend/tailwind.config.ts",
+      "package.json",
+      "package-lock.json"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-08T10:36:46+00:00",
+    "commit": "a882640adb7d4aac5fe33e558271bc558a82afe6"
+  },
+  "updated_at": "2026-09-08T10:36:46+00:00"
+}
