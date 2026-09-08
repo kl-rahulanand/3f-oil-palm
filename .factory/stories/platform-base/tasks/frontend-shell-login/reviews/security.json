@@ -1,16 +1,10 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "security lens over frontend-shell-login (22 product path(s), b0b62bc..f84dc7f, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The authentication transport shown in the diff includes credentials, current-cookie CSRF handling, and a bounded refresh retry without an evident concrete security defect. However, the login flow violates an explicit acceptance requirement by changing the mandated invalid-code copy, so the patch is not fully correct.",
+  "score": 10,
+  "summary": "security lens over frontend-shell-login (22 product path(s), b0b62bc..3b424e6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The provided diff shows no actionable P0\u2013P2 security defect. Authentication requests include credentials, mutating requests re-read the CSRF cookie, access-token 401 handling refreshes and retries once while excluding OTP verification, and no credentials or compatibility leftovers are present. Security properties of the omitted backend cannot be judged from this frontend-only bundle.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/auth",
-      "summary": "[P2] Use the required invalid-code message verbatim (frontend/src/features/auth/login-form.tsx:12): The normative login contract requires the load-bearing copy `That code didn't match - check it or resend.`, but this constant substitutes an em dash."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/(app)/dashboard/page.tsx",
     "frontend/app/(app)/layout.tsx",
@@ -39,10 +33,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "81313265cfb5592e1dc580057988a22aaa339b7bc933e476f2483667ff5bd028",
+  "review_run_id": "dbc8b18edcda99a1686ff86ac5ba167bdfbccfb188422aeae231d39424e30de8",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "685fd168a506a41e1aedfe196e68e01b5ec0cfe2faddc84a05283fa64c60dc13",
+  "branch_diff_digest": "0143d60e24feefbb7992a17ca010ca6a23b2c032c3b4a5b4e3c77c257d939477",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:15:45+00:00",
-  "commit": "f84dc7fd2026a73cd0b272c75f416c6b3f82a081"
+  "recorded_at": "2026-09-08T11:26:09+00:00",
+  "commit": "3b424e62c87d212c97a32cd731f538f3159b3fe7"
 }

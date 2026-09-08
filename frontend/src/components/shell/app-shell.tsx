@@ -3,6 +3,7 @@
 import type { AuthUser } from "@3f/contract";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart3, Bot, ChevronLeft, Compass, LayoutDashboard, LogOut, Menu, Search, Shield } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { sessionQueryKey } from "@/src/features/auth/session";
@@ -102,10 +103,10 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
             {navItems.map(({ label, icon: Icon, active }) => (
               <li key={label}>
                 {active ? (
-                  <a className="nav-item" href="/dashboard" aria-current="page">
+                  <Link className="nav-item" href="/dashboard" prefetch={false} aria-current="page">
                     <Icon size={17} />
                     {navOpen && <span>{label}</span>}
-                  </a>
+                  </Link>
                 ) : (
                   <span className="nav-item" aria-disabled="true">
                     <Icon size={17} />

@@ -1,13 +1,23 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..f84dc7f, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The patch has a concrete I/O-amplification defect in the resend path: it permits overlapping OTP mutations while the initial submit path explicitly guards against them. No blocking compatibility leftovers are visible in the provided diff.",
+  "score": 8,
+  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..3b424e6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The shell/login implementation contains two concrete request-amplification paths and treats all session-query failures as authentication failures. In particular, unauthenticated root visits unnecessarily load the protected application and execute the refresh path before reaching login, while the Dashboard anchor repeats application and session initialization. No compatibility-only wrapper, alias, legacy branch, or deprecated leftover is visible in the supplied diff.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
+      "area": "frontend/app",
+      "summary": "[P2] Do not send every root visit through the authenticated dashboard (frontend/app/page.tsx:4): `/` redirects unconditionally to `/dashboard`, including for unauthenticated visitors."
+    },
+    {
+      "category": "bug",
       "area": "frontend/src/features/auth",
-      "summary": "[P2] Prevent concurrent resend requests (frontend/src/features/auth/login-form.tsx:137): The resend control remains enabled while `requestCode` is pending, unlike the initial \u201cSend code\u201d button."
+      "summary": "[P2] Redirect to login only for authentication failures (frontend/src/features/auth/session-guard.tsx:15): The guard redirects whenever the session query errors, although `api.me` can also reject for a 5xx response, a network failure, malformed response data, or a failed CSRF bootstrap."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/components/shell",
+      "summary": "[P2] Avoid a full document reload for the Dashboard navigation item (frontend/src/components/shell/app-shell.tsx:105): The only enabled navigation item uses a plain `<a>` rather than App Router navigation."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -39,10 +49,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "81313265cfb5592e1dc580057988a22aaa339b7bc933e476f2483667ff5bd028",
+  "review_run_id": "dbc8b18edcda99a1686ff86ac5ba167bdfbccfb188422aeae231d39424e30de8",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "685fd168a506a41e1aedfe196e68e01b5ec0cfe2faddc84a05283fa64c60dc13",
+  "branch_diff_digest": "0143d60e24feefbb7992a17ca010ca6a23b2c032c3b4a5b4e3c77c257d939477",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:15:45+00:00",
-  "commit": "f84dc7fd2026a73cd0b272c75f416c6b3f82a081"
+  "recorded_at": "2026-09-08T11:26:09+00:00",
+  "commit": "3b424e62c87d212c97a32cd731f538f3159b3fe7"
 }
