@@ -1,0 +1,40 @@
+{
+  "commit": "186adcdf277d0513a7deb56d377367a9b5f0fd0f",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Deterministic verify is green across all three workspaces and the frontend hermetic suite passes. verify.py reports Verification passed across structural (build of contract+backend+frontend via next build, dual-runtime, vendor integrity), typecheck (all three, incl. the frontend tsc --noEmit), quality (ESLint incl. the FlatCompat-bridged eslint-config-next/core-web-vitals for frontend/**, + Prettier) and test (backend hermetic + the three frontend Vitest tests + the quality-gate guard). The frontend runner is offline (npm exec --no) with a frontend-only test.include, and the three tests carry negative controls (decision 0009): token set-level parity (D-0005), the runtime-source-only Google-font scan with a recomputed provenance SHA-256, and the TanStack Query provider.",
+    "blocking_findings": [],
+    "commands_run": [
+      "python3 factory/scripts/verify.py  # Verification passed",
+      "npm -w @3f/frontend run test  # 3 files, 3 tests passed",
+      "npm run test:hermetic  # backend 37 pass / 1 opt-in skip (WAREHOUSE_E2E) / 0 fail; frontend 3/3; guard 1 pass"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/theme/tokens.test.ts \u2014 NEW: set-level --kl-* token parity between the ported theme and the _ds source colors/spacing/typography.css (D-0005), + a negative control; asserts the button consumes tokens with no raw hex",
+      "frontend/src/theme/font.test.ts \u2014 NEW: layout uses next/font/local (not google), --font-sans set after the token import (single owner), PROVENANCE SHA-256 recomputed from the vendored woff2, runtime-source-only google-font scan + a negative control",
+      "frontend/src/app/providers.test.tsx \u2014 NEW: the app tree is wrapped in a TanStack Query provider (a descendant reads the QueryClient)",
+      "tools/quality-gate.test.mjs \u2014 UPDATED: widened to the three-workspace graph; proves the frontend lint is effective (lints an <img> fixture, asserts the next rule fires); pins the six *:frontend bodies + widened root graph + the workspace list + @3f/contract 0.0.0 + the frontend .gitignore/tsconfig",
+      "frontend workspace test script \u2014 `cd .. && npm exec --no -- vitest run --config frontend/vitest.config.ts` (the recorded workspace-vitest-cwd lesson: repo-relative paths need repo-root cwd)"
+    ],
+    "pass_fail_summary": "verify.py: Verification passed. Frontend Vitest: 3 passed (3 files). Backend hermetic: 37 passed, 1 opt-in skipped (WAREHOUSE_E2E), 0 failed. Guard: 1 passed. The 8 DB-backed backend files remain host-only demonstrated evidence per D-0008.",
+    "remaining_gaps": [
+      "No app screens: this is the foundation (build/test smoke). The user-facing shell + OTP login + design review + functional check are frontend-shell-login (T8, user_facing:true).",
+      "D-0010: the no-console intent-signal in backend/src/main.ts is still deferred to backend-observability.",
+      "npm ci clean-install determinism is CI's networked job; delegated verify ran against the host-seeded node_modules (the sandbox has no network)."
+    ],
+    "reviewed_scope": [
+      "frontend/",
+      "package.json",
+      "package-lock.json",
+      "eslint.config.mjs",
+      "tools/quality-gate.test.mjs"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-08T07:10:15+00:00",
+    "commit": "186adcdf277d0513a7deb56d377367a9b5f0fd0f"
+  },
+  "updated_at": "2026-09-08T07:10:15+00:00"
+}
