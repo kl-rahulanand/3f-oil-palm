@@ -47,7 +47,7 @@ const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 // Path segments are client-controlled and can carry account ids, emails, or tokens (constitution
 // 05 requires context values be PII-masked). Redact id-shaped segments while keeping the structure.
-function maskPath(path: string): string {
+export function maskPath(path: string): string {
   return path
     .split("/")
     .map((seg) =>

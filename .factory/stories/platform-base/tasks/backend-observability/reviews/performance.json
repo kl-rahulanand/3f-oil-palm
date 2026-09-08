@@ -1,16 +1,10 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "performance lens over backend-observability (11 product path(s), a40b7a1..14ca9d6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The observability wiring and payloads shown in the diff generally satisfy the stated contracts, and the diff contains no compatibility leftovers. However, the new default transport introduces an unbounded logging-backpressure failure on a per-request hot path, which is an actionable production performance defect.",
+  "score": 10,
+  "summary": "performance lens over backend-observability (11 product path(s), a40b7a1..c4d00fc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance defect is demonstrated by the diff. The added request-path processing and structured-record construction are bounded per request, with no query fanout, repeated external I/O, unbounded collection growth, or compatibility-only leftovers shown.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/common",
-      "summary": "[P2] Bound or respect backpressure in the default log transport (backend/src/common/structured.logger.ts:31): The default transport writes once for every completed request (and again for errors) but discards `process.stdout.write()`'s backpressure signal."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/common/error-envelope.wiring.test.ts",
@@ -26,10 +20,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "f4291384ad20f5c7523df6097b1983eb34c2beb40fef86695139fc169439a8ef",
+  "review_run_id": "f40aa2cb8c651b45f65ab3f158d4a29f591d2e976b4ae50147fb31ff61eaa6d0",
   "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
-  "branch_diff_digest": "674a8438b8317e67b23a5acda830612a5d9c6a5c1416c1b75a1845df7db5755e",
+  "branch_diff_digest": "1cd138d7c7f4c12b575ce0dc6ca9040dba2e6fad646ba6e09d1a89e7af5f4f3c",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T16:05:21+00:00",
-  "commit": "14ca9d6974e3b513cdda60398bcdde3b5aab4ecc"
+  "recorded_at": "2026-09-08T16:17:48+00:00",
+  "commit": "c4d00fc2831760f90b57a49c95ce34a2a7bcfc5e"
 }

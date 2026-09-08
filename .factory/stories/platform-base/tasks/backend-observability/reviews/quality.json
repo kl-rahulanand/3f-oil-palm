@@ -1,13 +1,8 @@
 {
   "generated_by": "autoreview",
-  "score": 7,
-  "summary": "quality lens over backend-observability (11 product path(s), a40b7a1..14ca9d6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 5 non-blocking. VERDICT t9-c1: partial \u2014 backend/src/common/global-exception.filter.ts:74 misclassifies every HTTP 400 as validation, and stack sanitization is incomplete\nVERDICT t9-c2: partial \u2014 backend/src/main.ts:26 places request logging after short-circuiting CORS handling, while backend/src/common/request-logging.middleware.ts:31 logs unmasked paths\nVERDICT t9-c3: implemented \u2014 backend/src/common/error-envelope.wiring.test.ts:27 invokes configureApp before app.init at line 28\nThe filter and logging components are present and wired through the intended seam, and the wiring tests are allow-listed. However, the missing preflight coverage, incorrect 400 classification, and concrete stack/PII disclosure paths leave the observability contracts only partially implemented.",
+  "score": 9,
+  "summary": "quality lens over backend-observability (11 product path(s), a40b7a1..c4d00fc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. VERDICT t9-c1: implemented \u2014 backend/src/common/global-exception.filter.ts:17 installs the catch-all envelope mapping\nVERDICT t9-c2: partial \u2014 backend/src/common/global-exception.filter.ts:38 emits a client-controlled path without PII masking\nVERDICT t9-c3: implemented \u2014 backend/src/common/error-envelope.wiring.test.ts:28 exercises configureApp followed by app.init\nThe filter and middleware are reachable and their integration tests are registered, but the error-log path disclosure violates the structured-logging contract. No compatibility leftovers are present in the supplied diff.",
   "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "constitution/07-exception-handling.md",
-      "summary": "t9-c1: a global exception filter (constitution 07) maps every unhandled exception and existing HttpException to the full standard error payload (errorId, type, user-facing message, sanitized details, http status, correlationId, requestId, environment, timestampUtc) and is wired app-wide via useGlobalFilters"
-    },
     {
       "category": "plan-contract-partial",
       "area": "constitution/05-logging-and-observability.md",
@@ -17,28 +12,8 @@
   "non_blocking_findings": [
     {
       "category": "security",
-      "area": "backend/src",
-      "summary": "Blank ENVIRONMENT values expose Local-only stack traces (backend/src/config.ts:128): The required fallback is `ENVIRONMENT || nodeEnv`, but `??` treats an empty `ENVIRONMENT` as configured."
-    },
-    {
-      "category": "bug",
-      "area": "backend/src",
-      "summary": "Install request logging before the CORS middleware (backend/src/main.ts:26): `enableCors()` installs the CORS middleware before `requestLogging`."
-    },
-    {
-      "category": "security",
       "area": "backend/src/common",
-      "summary": "Do not log unmasked client-controlled request paths (backend/src/common/request-logging.middleware.ts:31): The request record copies `req.path` directly into structured context."
-    },
-    {
-      "category": "bug",
-      "area": "backend/src/common",
-      "summary": "Distinguish validation failures from other HTTP 400 exceptions (backend/src/common/global-exception.filter.ts:74): `validationDetails` classifies every 400 `HttpException` as validation and always returns a fallback field error."
-    },
-    {
-      "category": "security",
-      "area": "backend/src/common",
-      "summary": "Actually sanitize stack content before logging or returning it (backend/src/common/structured.logger.ts:51): `sanitizedStack` only removes the first line and returns everything else verbatim."
+      "summary": "Mask the request path in error log records (backend/src/common/global-exception.filter.ts:38): The distinct error record writes `request.path` directly, bypassing the masking applied to the request-completion record."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -59,18 +34,18 @@
   "contract_verdicts": [
     {
       "contract_id": "t9-c1",
-      "verdict": "partial",
-      "evidence": "backend/src/common/global-exception.filter.ts:74 misclassifies every HTTP 400 as validation, and stack sanitization is incomplete"
+      "verdict": "implemented",
+      "evidence": "backend/src/common/global-exception.filter.ts:17 installs the catch-all envelope mapping"
     },
     {
       "contract_id": "t9-c2",
       "verdict": "partial",
-      "evidence": "backend/src/main.ts:26 places request logging after short-circuiting CORS handling, while backend/src/common/request-logging.middleware.ts:31 logs unmasked paths"
+      "evidence": "backend/src/common/global-exception.filter.ts:38 emits a client-controlled path without PII masking"
     },
     {
       "contract_id": "t9-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/common/error-envelope.wiring.test.ts:27 invokes configureApp before app.init at line 28"
+      "evidence": "backend/src/common/error-envelope.wiring.test.ts:28 exercises configureApp followed by app.init"
     },
     {
       "contract_id": "t1-c1",
@@ -224,10 +199,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "f4291384ad20f5c7523df6097b1983eb34c2beb40fef86695139fc169439a8ef",
+  "review_run_id": "f40aa2cb8c651b45f65ab3f158d4a29f591d2e976b4ae50147fb31ff61eaa6d0",
   "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
-  "branch_diff_digest": "674a8438b8317e67b23a5acda830612a5d9c6a5c1416c1b75a1845df7db5755e",
+  "branch_diff_digest": "1cd138d7c7f4c12b575ce0dc6ca9040dba2e6fad646ba6e09d1a89e7af5f4f3c",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T16:05:20+00:00",
-  "commit": "14ca9d6974e3b513cdda60398bcdde3b5aab4ecc"
+  "recorded_at": "2026-09-08T16:17:48+00:00",
+  "commit": "c4d00fc2831760f90b57a49c95ce34a2a7bcfc5e"
 }

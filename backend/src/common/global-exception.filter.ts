@@ -3,7 +3,7 @@ import { ArgumentsHost, Catch, HttpException, HttpStatus, type ExceptionFilter }
 import type { ErrorEnvelope, ErrorFieldDetail } from "@3f/contract";
 import type { Response } from "express";
 import type { Config } from "../config";
-import type { ObservableRequest } from "./request-logging.middleware";
+import { maskPath, type ObservableRequest } from "./request-logging.middleware";
 import { sanitizedStack, StructuredLogger } from "./structured.logger";
 
 @Catch()
@@ -33,7 +33,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       context: {
         errorId,
         method: request.method,
-        path: request.path,
+        path: maskPath(request.path),
         statusCode,
         ...(stack ? { stack } : {}),
       },
