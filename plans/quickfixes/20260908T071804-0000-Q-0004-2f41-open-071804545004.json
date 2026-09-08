@@ -1,0 +1,11 @@
+{
+  "event": "open",
+  "id": "Q-0004-2f41",
+  "profile": "degraded",
+  "reason": "Land the vendored Inter variable WOFF2 (rsms/inter v4.1, sha256 693b77d4...) on the trunk as a vendored binary asset. The per-task autoreview refuses binaries it cannot inspect; the font's integrity is proven by frontend/app/fonts/PROVENANCE.md + the font.test.ts SHA check, not by code review. Binary assets belong on the trunk (like the Pulse snapshot); landing it here lets the frontend-foundation review base advance past it so the review can run on the reviewable text diff.",
+  "started_at": "2026-09-08T07:18:04+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "kind": "degraded"
+}

@@ -1,0 +1,108 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "frontend-shell-login",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "frontend-shell-login builds the user-facing app shell (Deep Forest left nav + white top bar, branded 3F, faithful to the imported Claude Design export) and a net-new email+OTP login on top of the frontend-foundation scaffold. Input: the foundation (frontend/app router, _ds theme, next/font/local Inter, TanStack Query provider, shadcn button) + the six-route auth allow-list + the spec's normative Login screen contract + the design export. Output: routes under frontend/app/ (app)-group shell + login/, an api.ts transport (credentials, per-POST csrf re-read, refresh-once-then-retry), TanStack Query wiring, a themed shell with exactly five nav labels (only Dashboard active), and seven hermetic tests. It starts at the shell/login surface and stops before any capability feature.",
+  "inspected_refs": [
+    "docs/specs/app-platform-base.md",
+    "docs/design/3F-Financial-MIS",
+    "backend/src/auth/auth.controller.ts",
+    "frontend/app/layout.tsx",
+    "frontend/app/globals.css",
+    "frontend/tailwind.config.ts",
+    ".factory/stories/platform-base/task-plans/frontend-shell-login.md",
+    ".factory/stories/platform-base/decomposition.json"
+  ],
+  "new_abstractions": [
+    "the app-router (app) route group shell (LeftNav + TopBar + off-canvas drawer)",
+    "the net-new two-step email/OTP login surface (login-form + secondary controls)",
+    "the api.ts auth transport (credentials + per-POST 3f_csrf re-read + refresh-once-then-retry)",
+    "the TanStack Query auth wiring (me query + otp/logout mutations + route guard)",
+    "the _ds-themed shadcn primitives the screens need beyond the foundation's button"
+  ],
+  "criteria_map": {
+    "the app shell (top bar + left nav) renders in KnackLabs green, branded 3F, faithful to the bound design export docs/design/3F-Financial-MIS/3F Financial MIS.dc.html - Deep Forest (#0C3529) left nav (200px expanded / 62px collapsed, 3F header, user block) + white 56px top bar + Off-White (#F4F7F6) canvas, built ONLY from the _ds --kl-* tokens (no raw hex in components); on mobile (390x844) the left nav collapses to an off-canvas drawer behind a keyboard-focusable toggle that reports aria-expanded, closes on Escape, and returns focus to the toggle. Consumes the frontend-foundation scaffold (theme, next/font/local Inter, TanStack Query provider, shadcn primitives); the D-0012 --text-body/ink token collision is resolved as the theme is applied to real screens (Tailwind ink maps to --kl-ink)": "KEEP. Shell faithful to the bound export, Deep Forest/Off-White from --kl-* tokens only; mobile off-canvas drawer (aria-expanded/Escape/focus). Router topology corrected to frontend/app/ (finding 1); D-0012 fixed in Tailwind + globals.css (finding 5).",
+    "email+OTP login works end-to-end under the spec's local runtime contract: a successful verification lands in the shell, logout returns to /login, and an access-token 401 retries once through POST /api/auth/refresh before falling back to /login. The client (frontend/src/lib/api.ts) uses credentials:'include' against the auth allow-list (GET /api/auth/csrf bootstrap, POST otp/request, POST otp/verify, GET me, POST refresh, POST logout) and sends x-csrf-token re-read from the current 3f_csrf cookie immediately before EVERY mutating request (never cached); server state is TanStack Query (me as a query the route guard reads, otp/logout as mutations that prime/invalidate it)": "KEEP. End-to-end email/OTP via api.ts on the six-route allow-list; 127.0.0.1:4000 loopback (finding 2); an access-token 401 refreshes ONCE then retries, excluding otp/verify 401s (finding 3); TanStack Query me/otp/logout.",
+    "the login screen implements the spec's normative Login screen contract (docs/specs/app-platform-base.md \u00a7Login screen contract): a split screen from _ds tokens (left Deep Forest #0C3529 brand panel with the '3F Financial MIS' wordmark + one value line, Mint #6AF1B0 as a thin on-dark accent only; right a white card on the Off-White canvas; brand panel stacks above the card at 390x844), the two-step flow (email type=email autocomplete=email + Emerald #1C6B49 'Send code' 44px at radius-md; then a 6-digit field inputmode=numeric autocomplete=one-time-code client-validated /^\\d{6}$/ with Emerald 'Verify', a 'Use a different email' back link and 'Resend code'), the load-bearing uniform copy ('If that email has access, a code is on its way.' / 'That code didn't match - check it or resend.'), and the accessibility (real <label>s, aria-live=polite acks/errors, focus to the code field after Send and to the first error on failure, :active feedback, ease-out <=200ms entry transitions, prefers-reduced-motion respected), verified by the user-facing functional check at 1440x900 and 390x844": "KEEP. Login implements the spec's normative Login screen contract (split screen, two-step, exact copy, input semantics, a11y); secondary controls Resend + Use-different-email specified (finding 6); functional check at 1440x900 + 390x844.",
+    "exactly five nav labels (Dashboard, MIS Reports, Ask, Explore / Saved, Admin) render with only Dashboard active (a real route); the other four, the top-bar global search and the data-freshness pill render visibly unavailable (aria-disabled / non-navigable, no dead routes, no 'coming soon' copy, the freshness pill reads as explicitly unavailable) and make NO feature API calls - these are the spec's intentional, enumerated divergences from the active design export, not fidelity failures": "KEEP. Exactly five nav labels, only Dashboard active; disabled items + search + freshness pill unavailable and make no feature API calls - proven by the app-shell required test (finding 4)."
+  },
+  "gaps": [
+    "Router topology: the plan directed routes to frontend/src/app/(app) and /login, but the foundation's Next router is frontend/app/ with an existing app/page.tsx (conflicting roots / orphaned / page)",
+    "The prescribed runtime used http://localhost:4000 and localhost in manual verification, violating the spec's authoritative 127.0.0.1 loopback profile; manual steps also omitted warehouse-seed + WAREHOUSE_PG_*",
+    "Refresh continuity was absent: me-401 went straight to /login and the endpoint list/api test omitted POST /api/auth/refresh; otp/verify's intentional 401 was not excluded",
+    "The required tests did not falsify most accepted behaviour (refresh-once/retry/no-loop, verify redirect, logout, resend/back, mobile drawer Escape/focus, unavailable freshness pill, no-feature-API-calls)",
+    "D-0012 was only half resolved: mapping Tailwind ink to --kl-ink did not fix globals.css's color: var(--text-body), which typography overrides to a 17px size (invalid as a colour)",
+    "The login's required secondary controls (Resend code, Use a different email) had no specified state transition, API, focus or error behaviour",
+    "lucide-react was added in write scope/approach but not justified in the Decisions section (constitution \u00a79 no silent tooling)",
+    "Proof instructions disagreed: the plan said `npm exec -- vitest` (should be --no) and used longer test names than the required-test leaf ids (decision 0009 false-green risk)"
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "Plan + contract corrected to the foundation's frontend/app/ router: shell in app/(app)/, login in app/login/, the placeholder app/page.tsx REPLACED (/ redirects to shell when authed else /login); non-route code stays under frontend/src/.",
+    "api.ts defaults the API base to http://127.0.0.1:4000 (NEXT_PUBLIC_API_BASE_URL overrides); Manual Verification uses 127.0.0.1 throughout and brings up warehouse-seed + WAREHOUSE_PG_*.",
+    "api.ts on an access-token 401 performs exactly one POST /api/auth/refresh then retries; only a failed retry clears auth and routes to /login; otp/verify 401s are excluded (no loop). refresh added to the endpoint list + the api.refresh required test.",
+    "required_tests expanded to seven, covering refresh-once-then-retry (+ no-refresh-on-otp-401), redirect-only-after-retry-fails, five-nav/only-Dashboard/disabled-items-make-no-API-calls, resend+use-different-email, and the mobile drawer aria-expanded/Escape/focus; live E2E + no-enumeration stay demonstrated evidence + the functional check.",
+    "The D-0012 fix now covers BOTH places: Tailwind ink -> var(--kl-ink) AND globals.css's color rule -> the ink token, so --text-body stays the 17px size only.",
+    "Secondary controls specified: Resend re-calls POST otp/request for the same email and re-announces the uniform ack (focus stays on the code field); Use-a-different-email returns to step 1 and refocuses the email; covered by the login-secondary required test.",
+    "lucide-react justified in Decisions (and reviewer_focus): the shadcn/ui-standard, tree-shakeable, MIT icon set - the best-fit nav icon source, host-seeded (Codex sandbox has no network).",
+    "The plan uses `npm exec --no -- vitest` everywhere and its test names EQUAL the required_tests leaf ids."
+  ],
+  "open_items": [],
+  "rounds": [
+    {
+      "question": "The single cold-read grill found 8 blocking contradictions in the frontend-shell-login plan; I resolved all of them in the contract + plan (they were spec-precision fixes, no design changes): routes on the foundation's frontend/app/ with the placeholder replaced; API base 127.0.0.1:4000 (not localhost); an access-token 401 refreshes once then retries, excluding otp/verify's 401s; seven hermetic tests covering the load-bearing behaviours; D-0012 fixed in both the Tailwind map and globals.css; Resend + Use-different-email behaviours specified; lucide-react justified as the shadcn-standard icon set; and the exact `npm exec --no -- vitest` proof command. Any remaining gap before this goes to the board for approval?",
+      "options": [
+        "No \u2014 record & send to board",
+        "Yes \u2014 I want a change"
+      ],
+      "chosen": "No \u2014 record & send to board",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "Router topology: the plan directed routes to frontend/src/app/(app) and /login, but the foundation's Next router is frontend/app/ with an existing app/page.tsx (conflicting roots / orphaned / page)",
+      "source": ".factory/stories/platform-base/task-plans/frontend-shell-login.md"
+    },
+    {
+      "finding": "The prescribed runtime used http://localhost:4000 and localhost in manual verification, violating the spec's authoritative 127.0.0.1 loopback profile; manual steps also omitted warehouse-seed + WAREHOUSE_PG_*",
+      "source": "docs/specs/app-platform-base.md"
+    },
+    {
+      "finding": "Refresh continuity was absent: me-401 went straight to /login and the endpoint list/api test omitted POST /api/auth/refresh; otp/verify's intentional 401 was not excluded",
+      "source": "backend/src/auth/auth.controller.ts"
+    },
+    {
+      "finding": "The required tests did not falsify most accepted behaviour (refresh-once/retry/no-loop, verify redirect, logout, resend/back, mobile drawer Escape/focus, unavailable freshness pill, no-feature-API-calls)",
+      "source": ".factory/stories/platform-base/decomposition.json"
+    },
+    {
+      "finding": "D-0012 was only half resolved: mapping Tailwind ink to --kl-ink did not fix globals.css's color: var(--text-body), which typography overrides to a 17px size (invalid as a colour)",
+      "source": "frontend/app/globals.css"
+    },
+    {
+      "finding": "The login's required secondary controls (Resend code, Use a different email) had no specified state transition, API, focus or error behaviour",
+      "source": ".factory/stories/platform-base/task-plans/frontend-shell-login.md"
+    },
+    {
+      "finding": "lucide-react was added in write scope/approach but not justified in the Decisions section (constitution \u00a79 no silent tooling)",
+      "source": ".factory/stories/platform-base/task-plans/frontend-shell-login.md"
+    },
+    {
+      "finding": "Proof instructions disagreed: the plan said `npm exec -- vitest` (should be --no) and used longer test names than the required-test leaf ids (decision 0009 false-green risk)",
+      "source": ".factory/stories/platform-base/decomposition.json"
+    }
+  ],
+  "summary": "One cold read returned eight blocking contradictions - all repository-answerable spec-precision fixes, each resolved in the amended contract + plan (router topology, 127.0.0.1 loopback, refresh-once-excluding-otp-verify, seven falsifying tests, D-0012 in both places, secondary controls, lucide-react justified, exact npm exec --no proof). The human confirmed no remaining gap. Decision keep, verdict pass.",
+  "input_sha256": "baeb0f1d67e3d00fcc9ee776f9b79b6bc37815ac9297ec46797bcf5cb74f0664",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "6427c397c1d088bfad869af3f218a55a67794fd6eafb86888ea10cbff8bde707",
+  "recorded_at": "2026-09-08T09:55:35+00:00",
+  "commit": "36b9d7c973e0d349bc95284de88fb393b1482a8c",
+  "approved_task_plan_sha256": "6427c397c1d088bfad869af3f218a55a67794fd6eafb86888ea10cbff8bde707",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-08T09:56:59+00:00"
+}

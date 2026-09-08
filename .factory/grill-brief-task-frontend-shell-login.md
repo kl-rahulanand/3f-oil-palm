@@ -66,10 +66,15 @@ defending it.
 
 RELEASE IT THROUGH THE HARNESS. `./forge grill run --gate <gate>` composes the cold-read brief (this contract plus the artifact) and releases Codex through the SAME ledgered launcher a delegation uses: the pid is recorded before the wait, so a grill whose launcher is killed still shows up in `forge codex status` instead of vanishing. It is read-only, so it takes no delegation lock and can never satisfy `stage done`. Recording the gate stays yours — the cold read only returns findings.
 
-The read-only Codex cold-reader LOADS and RUNS the `grill-me` skill (Matt
-Pocock's, installed into `~/.codex/skills/grill-me` by `./forge doctor --fix`)
-to structure its interrogation; this contract is the harness-side floor, the
-skill is the technique. In Claude, the `/grill-me` skill satisfies the same.
+The technique is Matt Pocock's `grilling` skill — the design tree, the
+frontier, numbered questions with recommended answers. `doctor --fix` installs
+it into BOTH runtimes, and `./forge grill run` also inlines it into the brief,
+so a reader reaches it whether or not its runtime resolves skills. This
+contract is the harness-side floor; `grilling` is the technique.
+
+`grill-me` is the HUMAN entry point — you type `/grill-me` and it redirects to
+`grilling`. It carries `disable-model-invocation: true`, so no model invokes it
+and none should be told to.
 
 WHICH RUNTIME CAN RECORD WHICH GATE — get this wrong and you will chase a
 refusal you cannot satisfy. ALL SIX gates match the AskUserQuestion ledger and
@@ -98,22 +103,61 @@ authored the plan, the independent cold-read pass is MANDATORY, not optional: on
 EVERY round release a fresh READ-ONLY Codex pass with
 `./forge grill run --gate <gate> [--task <id>]` that reads the plan/contract
 cold and returns findings — never a
-Claude sub-agent, never grill your own work inline — then carry ONLY those
+Claude sub-agent, never grill your own work inline — then carry ALL of those
 findings into your own AskUserQuestion rounds (the recorder rejects rounds not in
-the ledger, so the top-level session must still ask). Loop Codex grill → your
-AskUserQuestion rounds → answers → Codex grill again, until a round is clean AND
-the plan is stable; only then, approve exactly once. Read cold, as an adversary
-who did not write it. (EVERY gate is ledger-matched — signoff and epics no
+the ledger, so the top-level session must still ask). Read cold, as an adversary
+who did not write it.
+
+ONE COLD READ PER GATE — put every question to the human INSIDE it. The old
+shape was Codex grill → your rounds → amend → Codex grill AGAIN, looping until
+clean. That loop cannot converge: a fresh reader has no memory of what the last
+one found, so it returns a DIFFERENT frontier rather than a shorter one, and the
+artifact you amended to close round one becomes round two's input. Stories
+reached eleven, twenty-six and forty rounds that way; the last cost six hours.
+`forge grill run` now REFUSES a second unconstrained read on a gate that has
+already been read since its last recorded pass.
+
+So the WHOLE grill is:
+
+1. `./forge grill run --gate <gate>` — one cold read. WATCH it.
+2. Clean? Record the pass and approve. Nothing else happens.
+3. Otherwise resolve every finding the REPOSITORY answers yourself — open the
+   file and settle it. Take to the human only what the repository cannot
+   answer: a decision nobody has made, a priority, a tradeoff between two
+   workable shapes. Put those through AskUserQuestion with your recommended
+   answer first, all of them, now. There is no later round to save the hard
+   ones for, and a finding is not a menu.
+4. Amend the artifact ONCE, to what they decided.
+5. Record the pass against the AMENDED version, then approve exactly once.
+
+The price is stated plainly, twice over: nothing independent re-reads the
+amended version, and a gap this reader misses is not caught by a second reader
+at this gate. Both surface at the next gate, or in review. That is the trade
+for ending a loop that was costing whole days.
+
+If the human's answers changed the artifact's SHAPE — a component dropped, a
+different approach chosen — the amended artifact is not the one that was read
+in any useful sense. Say so and read again: `./forge grill run --gate <gate>
+--reread "<what changed shape>"`. It is a choice with a recorded reason, not a
+way around the rule, and the five-read cap still backstops it. (EVERY gate is ledger-matched — signoff and epics no
 longer excepted — so no gate can be recorded by a read-only Codex grill alone:
 the top-level session asks the round and records it.)
 
-FRESH CONTEXT, NOT FRESH READING. Every round is a NEW read-only Codex session —
-that independence is the whole point, and it is why the reader has no memory of
-what it already blessed. It does NOT mean re-deriving the plan from scratch every
-round: after the FIRST round, hand the fresh reader the plan AND what changed
-since the last round (the resolutions you just folded in, and which sections they
-touched), and tell it to concentrate there while still refusing anything it can
-see is wrong elsewhere. Same cold judgement, a fraction of the tokens.
+FRESH CONTEXT, AND THE ANSWERS SO FAR. Every round is a NEW read-only Codex
+session — that independence is the whole point. But a reader that knows nothing
+of the earlier rounds does not re-find the same gaps, it finds DIFFERENT ones,
+so the rounds never shrink and the grill has no natural end. `./forge grill run`
+therefore carries every question already put to the human and the answer they
+chose, read from the ledger the recorder validates against.
+
+That gives the reader two obligations: do not re-raise settled questions, and
+CHECK EACH ANSWER — that the artifact honours it, and that it contradicts no
+other answer, accepted decision or constitution rule. An answer can be wrong, or
+right and never applied; saying so is part of the read.
+
+Do NOT tell the reader where to concentrate. A cold read is worth having because
+it is unconstrained, and steering it toward the diff is how the thing nobody
+looked at survives every round. More information, no direction.
 
 END EVERY ROUND WITH AN EXPLICIT CONVERGENCE VERDICT, on its own line, so the
 coordinator never has to guess whether to grill again or approve:
@@ -122,10 +166,10 @@ coordinator never has to guess whether to grill again or approve:
 - `NOT CONVERGED — <the specific reason: open gaps, a contradiction, or the plan
   changed after the last clean round>`
 
-Converged means BOTH: this round is clean AND the plan did not change after the
-round that made it clean. A clean round on a plan you have just edited is not
-convergence — it is an unreviewed edit. Only `CONVERGED` authorises asking the
-human for approval, and approval happens exactly once.
+`CONVERGED` on the cold read means there is nothing to amend: record and
+approve. `NOT CONVERGED` does NOT mean read again — it means resolve what the
+repository answers, put the rest to the human, amend once, and record the pass
+against the amended version. Approval happens exactly once.
 
 Five gates, five scopes:
 
@@ -327,6 +371,164 @@ downstream implementation inherits whatever you let through.
 
 
 
+## Already answered on this story — verify, do not re-ask
+
+These questions were put to the human and answered. Two obligations:
+
+1. Do NOT raise them again as open questions. They are settled.
+2. DO check each answer still holds — that the artifact actually honours it, and that it does not contradict another answer, an accepted decision, or the constitution. An answer can be wrong, or right and never applied. Saying so is part of this read.
+
+- Q: Where should the 3F app be built, given we're adapting Pulse?
+  A: Build in this 3oilpalm repo
+- Q: Financial MIS statement — period columns for the PoC?
+  A: July + FY 26-27 YTD
+- Q: Financial MIS statement — Excel export fidelity?
+  A: Clean structured export
+- Q: Financial MIS statement — reconciliation / demo-ready bar?
+  A: SAP totals = demo-ready; filled month = validated
+- Q: SAP ingestion — how does data get in for the PoC?
+  A: Excel upload now (SAP export/API later)
+- Q: SAP ingestion — how are budgets brought in?
+  A: Ingest budgets from the MIS format, as a separate object
+- Q: SAP ingestion — grain & raw retention?
+  A: Monthly gold + retain raw transaction lines
+- Q: SAP ingestion — re-loading a period?
+  A: Idempotent replace per period
+- Q: Governed joins — how to handle rows in one object but not the other (Budget with no Actual, or Actual with no Budget)?
+  A: Full-outer, zero-fill the missing side
+- Q: Governed joins — where are 3F financial measures authored?
+  A: In code (repo domain files)
+- Q: Governed joins — RBAC on a joined query?
+  A: Inject scope on both objects
+- Q: Governed joins — correctness gate?
+  A: Golden-answer fixtures required
+- Q: Mapping master — Srihari's Master Table definition is still outstanding. How do we proceed?
+  A: Build a provisional master now, reconcile later
+- Q: Mapping master — how is it edited in the PoC?
+  A: Seed / config file for the PoC (admin UI later)
+- Q: Mapping master — selection with no mapping entries?
+  A: Empty statement (zeros) + 'no mapping configured' notice
+- Q: Drill-down — levels for the PoC?
+  A: 2-level now (group → sub-lines → transactions), confirm with Srihari
+- Q: Drill-down — showing individual transactions vs Pulse's aggregate suppression?
+  A: Show individual lines within the user's RBAC scope, audited
+- Q: Drill-down — line-item columns?
+  A: Month, Debit, Credit, Value + reference, memo, posting date
+- Q: Assistant/exploration — in the first PoC release, or a fast-follow?
+  A: Include in the first PoC release
+- Q: Assistant — LLM & data residency?
+  A: Decide later
+- Q: Platform base — how do we bring Pulse's code in?
+  A: Snapshot-copy into the repo (own it)
+- Q: Platform base — warehouse engine for the PoC?
+  A: Postgres for the PoC
+- Q: Platform base — auth for the PoC?
+  A: Keep Pulse's email+OTP passwordless auth
+- Q: Sign-off gate — how do we unlock the build?
+  A: Record an internal go-ahead now
+- Q: platform-base — frontend scope for this first story?
+  A: App shell + login only (per the design)
+- Q: platform-base — how much of Pulse's backend do we bring?
+  A: Framework + trust spine; strip MBS specifics
+- Q: platform-base — what counts as 'done' (acceptance)?
+  A: Boots + OTP login + green shell + Postgres query end-to-end
+- Q: platform-base plan — warehouse DB for the PoC?
+  A: Separate Postgres container
+- Q: platform-base plan — Pulse's app-DB migrations?
+  A: Trim to auth+audit minimum now
+- Q: platform-base plan — how does the frontend use the `_ds` design?
+  A: Port `_ds` tokens/CSS, rebuild shell in React
+- Q: Task grill — vendor-backend-contract: is the contract ready to delegate to Codex?
+  A: Contract complete — delegate to Codex
+- Q: Codex paused: vendoring 19k lines of Pulse can't be one reviewable factory task. How do we bring the backend in?
+  A: Pinned snapshot-vendor (recommended)
+- Q: Task grill — postgres-warehouse-adapter converged (Codex: ready-to-delegate, 0 gaps). The contract is: PostgresAdapter behind the Warehouse port, selected via warehouseDriver=postgres in the core factory; validator flipped to postgresql; a separate warehouse-db in a fresh docker-compose; OID→numeric proven by a hermetic unit test; E2E via the app path as demonstrated evidence. recon.run.ts is intentionally out of scope. Delegate to Codex?
+  A: Delegate to Codex
+- Q: The required-tests gate was a false-green (proven above). I'll fix task 2's command either way. How should we handle task 1 (vendor-backend-contract, already 'done'), whose recorded PII-test evidence came from the same flawed command? Note: the code/tests genuinely pass when run correctly — this is evidence-integrity, not a code defect.
+  A: Reopen + re-verify task 1 (recommended)
+- Q: Task grill (post-fix) — postgres-warehouse-adapter. Fresh Codex cold-read confirms: the corrected required_tests are genuine (all 3 name real tests, execute, pass), and c1/c2/c4 pass (adapter+port, postgresql dialect, pure OID mapping). c3 is host-demonstrated (E2E pass at :5433, negative control fails at :5999); the sandbox couldn't run docker. Write-scope is product-only once governance is committed separately + baseline advanced. Contract is stable. Close out task 2?
+  A: Approve — commit, review, stage done
+- Q: Final digest-bound grill — postgres-warehouse-adapter, against the COMMITTED tree (the earlier grill was re-staled only because committing the code changes the product-tree digest; content unchanged). Codex verdict: ready-to-close, 0 gaps, all required tests genuinely execute, diff in-scope. Record this grill pass, re-approve, and run stage done to close task 2?
+  A: Yes — record, approve, stage done
+- Q: Task-1 re-grill (vendor-backend-contract) converged: ready-to-delegate. The re-verify found a real leak the old false-green masked — contract/test/auth-contract.test.ts still has MBS fixtures ("MBS Analyst", operations, operations.disbursals). The plan now scopes neutralizing those fixtures (schema assertions preserved) plus the corrected required-test (decision 0009). Delegate the fix to Codex?
+  A: Delegate the leak fix
+- Q: Final grill — vendor-backend-contract (committed fixed tree): ready-to-close, 0 gaps. MBS references now fully gone from backend/src and contract/; required test genuinely executes and passes; build/typecheck green; diff bounded to the 1-file fixture fix; the un-wired contract test deferred as D-0002. Close out task 1 (then re-close task 2 on top)?
+  A: Yes — record, approve, stage done
+- Q: Task-2 re-grill (postgres-warehouse-adapter) after the cascade: ready-to-close, 0 gaps. Product code unchanged/committed (223e2dd), contract restored with the 3 corrected required tests (all execute + pass), c1-c4 confirmed. Re-close task 2 to finish the retro?
+  A: Yes — record, approve, stage done
+- Q: Task 2's work + evidence were already genuine (fixed before its first close at 31059db); the task-1 reopen only cascaded its status. Re-closing now hits an empty/interleaved diff the harness can't cleanly measure. How should I record task 2 as done so we can proceed to task 3?
+  A: Adopt via cumulative measurement (recommended)
+- Q: Adopt-close grill for postgres-warehouse-adapter: ready-to-close, 0 gaps. The cumulative measurement (baseline 223e2dd^, 8 files = task-2's 7 + task-1's interleaved contract-test fix) is verified truthful, in-scope, within budget; required tests genuine; c1-c4 hold. Finalize: record grill, approve, bind launch, set baseline, review, stage done?
+  A: Yes — finalize the adopt-close
+- Q: Task-3 grill (backend-boot-otp-auth) converged: ready-to-delegate. Plan: trim app-DB migrations to auth+audit only (squash; keep audit_events' conversation_id + usage columns; drop feature tables), keep schema.ts + feature modules as intentional documented drift (no drizzle-kit generate), make boot tolerate the absent authored_measures table, add a separate app-db docker service, hermetic migration-composition test + demonstrated mock-OTP login. Delegate to Codex?
+  A: Delegate to Codex
+- Q: Task 3 (backend-boot-otp-auth) final grill: ready-to-close, 0 gaps. Committed tree = migrations squashed to auth+audit only, narrow boot tolerance, isolated app-db service, hermetic migration test. Host-demonstrated: migrations run clean, backend boots, mock-OTP HTTP login returns AuthUser+cookies, audit rows written, DB-backed tests (23) pass. Finalize (stage done) and open the PR to master?
+  A: Yes — stage done + open PR
+- Q: CI's pr-contract check needs a task PR-ready marker (produced by forge task pr-ready, which consumes a fresh grill). The confirmation grill is clean (tree unchanged since close, ready-to-close). Seal task 3 PR-ready so CI goes green on PR #1?
+  A: Yes — seal PR-ready
+- Q: Renaming Pulse→ 3F in the product code is a cross-cutting change to the already-merged backend + contract (packages, imports, and the auth WIRE names: cookies pulse_access/refresh/csrf + JWT issuer). How should I handle it?
+  A: Dedicated rebrand task first (recommended)
+- Q: A Homebrew simdutf upgrade (mid-session) orphaned node/node@22/merve → the whole Node toolchain + Codex CLI are down (dyld: libsimdutf.34.dylib missing). This blocks all builds, tests, grills, and delegation. The fix is to rebuild the affected formulae. Run it now?
+  A: I run brew reinstall now
+- Q: Rebrand grill converged (ready-to-delegate). The rename map covers: @pulse/*→@3f/* packages+imports, auth cookies pulse_*→3f_* + JWT issuer/audience, Swagger title, seed name, app-db→threef, JWT-secret fallback, whatPulseWont→whatItWont contract field, chat greeting, help/glossary/comments; provenance (VENDORED_FROM, decision 0008) preserved. Delegate to Codex?
+  A: Delegate to Codex
+- Q: The last 'pulse' in the code is the guard test's filename + title. I've updated the contract to a pulse-free name (backend/src/branding.identifiers.test.ts, test 'backend and contract source declare only 3F product identifiers'); the grill confirms the rename is behaviour-identical and will make a raw 'pulse' grep over source empty. Delegate the rename to finish?
+  A: Delegate the rename + close
+- Q: rebrand-pulse-to-3f final grill (committed tree): ready-to-close. Zero 'pulse' in product source (names + contents); @3f packages, 3f_* cookies, 3f-api/3f JWT, 3F Admin, threef app-db, whatItWont; provenance preserved; required tests pass; build/typecheck green (host); auth behaviour-preserving. Finalize: record grill, approve, bind, review, stage done, then push + PR to master?
+  A: Yes — close + PR
+- Q: PR-ready confirmation for rebrand-pulse-to-3f (committed tree, unchanged): ready-to-close, zero residual pulse, required tests pass, provenance intact. Seal PR-ready and open the PR to master?
+  A: Yes — seal + PR
+- Q: The fresh frontend needs a test runner plus a lint/format/type-check gate (there's none in the repo today). Conduct §9 forbids silent tooling defaults — which stack for frontend/?
+  A: Vitest+RTL, ESLint+Prettier
+- Q: Constitution 01 recommends Nx for JS/TS monorepos, but this repo uses npm workspaces (inherited from the vendored backend). How should the frontend workspace be added?
+  A: Keep npm workspaces
+- Q: The current single required test only checks 6-digit client validation — it can't catch wrong endpoints, stale CSRF, broken routing/logout, or an unreachable shell. How deep should the hermetic proof go?
+  A: Expand hermetic coverage
+- Q: The cold-read grill (twice) + constitution §2 flag frontend-shell-login as too large for one bounded task — it spans workspace/toolchain, lint/format/test config, the _ds theme, shadcn primitives, the app shell, the OTP login, TanStack Query, and tests (~90 files). Split it?
+  A: Split into two tasks
+- Q: The approved story plan's Decisions section says “no new decisions beyond 0007,” but the frontend task now relies on 0008/0009/0010 (all accepted mid-story). This contradiction blocks the grill. How to reconcile?
+  A: Update + re-approve story plan
+- Q: The grills flag that the spec promises production 'deploy-per-client' + real login/data-handling, but this is a PoC (decision 0001) running on mock OTP + local Postgres, with SES/provisioning/secrets/CORS/audit-retention/encryption/residency and the /deployment structure all unbuilt. How should we handle production-deployment readiness?
+  A: Defer to a post-PoC decision
+- Q: harness.yaml needs the modes.grill pin before the frontend grill can run. How should I get that canon write through?
+  A: Approve the lite window
+- Q: The approved plan splits the frontend into `frontend-foundation` (scaffold + theme + quality gate, no screens) then `frontend-shell-login` (shell + login UI). The recorded decomposition dropped the foundation task and merged both. How do we reconcile?
+  A: Restore the split (Recommended)
+- Q: The `_ds` tokens import Inter from Google, but no font files are in the repo. How should the frontend load it?
+  A: Vendor Inter WOFF2 locally (Recommended)
+- Q: The shell design has a data-freshness pill, but this story has no ingested data and no freshness API. What should it show?
+  A: Show it as unavailable (Recommended)
+- Q: The vendored AppModule still registers chat, reports, saved queries, pins, measures, conversations and admin routes — but the trimmed migration deliberately removed tables several of them need. An authenticated user can reach endpoints that are misleading or that fail. The plan also promises a "health" surface, but no health controller exists. What do we do?
+  A: Register only auth + CSRF + health (Recommended)
+- Q: The repo-wide quality gate is scheduled as the last task (T7), so the frontend would be built before `verify.py` can enforce lint/format/typecheck. The `.envrc` currently declares no quality command at all.
+  A: Front-load it now (Recommended)
+- Q: "Append-only audit" is an acceptance criterion, but what's built is application-enforced inserts — there's no database trigger or permission model stopping a direct UPDATE or DELETE. How should the criterion read?
+  A: App-enforced for the PoC (Recommended)
+- Q: The vendored API doesn't meet several constitution requirements — typed response DTOs, complete Swagger error documentation, a /docs mount, structured logging, and global exception handling. The griller says "vendor as-is" isn't sufficient on its own.
+  A: Record a time-bounded deviation (Recommended)
+- Q: The requirements grill isn't converging (4 → 7 → 8 → 6 findings across rounds), and about half of each round's findings are contradictions my own previous round introduced. How should I proceed?
+  A: Stop the requirements loop now
+- Q: Separately — the frontend is now three tasks out (quality-gate-baseline, api-surface-trim, then frontend-foundation). Does that sequencing still work for you?
+  A: Keep the order as planned
+- Q: The quality gate needs CI to be enforced, but the plan you approved assigns product CI to the last task (harness-wiring). Who creates the workflow?
+  A: quality-gate-baseline creates it (Recommended)
+- Q: Local master is 5 commits ahead of origin/master, and the task worktree branched from the stale remote trunk. How should I get the task onto the right base?
+  A: Push master, recreate the worktree (Recommended)
+- Q: During the host-side unblock I installed `@eslint/js`, but the worker's ESLint config doesn't use it. Conduct §9 says an unused dependency has to be justified or dropped. Which way?
+  A: Adopt it as the base ruleset (Recommended)
+- Q: The grill flags that /health is fresh code, and decision 0012 says its deviation 'does not extend to any code written fresh' — so strictly /health owes a global exception handler and structured JSON logging with correlationId. But those are app-wide infrastructure (you can't have a global handler for just one endpoint), and they don't exist yet. How should api-surface-trim handle this?
+  A: Build the global handler + structured logging now
+- Q: Building the global exception handler + structured logging inside api-surface-trim has made it a large, sprawling task (5 grill rounds, and it now forces re-approving the whole story plan). How should we structure it?
+  A: Split observability into its own task (Recommended)
+- Q: frontend-foundation (T7) renders a placeholder page + one themed primitive as a build/test smoke — no shell, nav, or login. Should it carry the frontend design-review + functional-check gate now, or stay a non-user-facing foundation with that gate at T8 (shell + login), as the approved plan says?
+  A: Foundation, review at T8
+- Q: How should I proceed with the hardened contract now that the harness has capped re-grilling?
+  A: Record pass & send to board
+- Q: You raised Desktop clutter twice. Task worktrees land as siblings of the repo, so they appear on your Desktop while a task runs. Want me to move the whole project off the Desktop before starting T8? (Moving mid-task would disrupt an active worktree, so now — between tasks — is the clean moment.)
+  A: Move to ~/code/3oilpalm
+- Q: How do you want to proceed with frontend-shell-login (T8) — the user-facing Deep Forest shell + email/OTP login? It's user_facing:true, so it carries the frontend design skills + a functional (screenshot) check.
+  A: Start T8 now
+
 ## The artifact under interrogation (task plan frontend-shell-login)
 
 # Task plan — frontend-shell-login
@@ -336,14 +538,20 @@ platform-base tasks 1-4 delivered the backend (vendored NestJS + contract, Postg
 warehouse adapter, auth+audit boot with email+OTP login) and rebranded every product
 identifier Pulse → 3F (decision 0010 — packages are now `@3f/contract` / `@3f/backend`,
 auth cookies `3f_access` / `3f_refresh` / `3f_csrf`, JWT issuer `3f-api` / audience `3f`).
-This task builds the **fresh frontend** (decisions 0006/0007): a Next.js App Router app —
-shadcn/ui + Tailwind themed by the **KnackLabs `_ds` tokens** — with the **app shell**
-(Deep Forest left nav + white top bar, branded 3F) and an **email+OTP login** wired to the
-backend auth API, faithful to the approved Claude Design. Scope is **shell + login only**;
-MIS/drill-down/assistant screens and the chatbot rail are later stories.
+platform-base tasks 5-7 then delivered the repo-wide quality gate, the API-surface trim +
+loopback hardening, and the **frontend-foundation** scaffold (the fresh Next.js App Router
+`@3f/frontend` workspace, the `_ds`-token Tailwind theme, locally vendored Inter via
+`next/font/local`, a TanStack Query provider, an in-tree shadcn `button`, and the widened
+three-workspace quality gate). This task **consumes that foundation** (it does NOT recreate
+the workspace) to build the **user-facing app shell** (Deep Forest left nav + white top bar,
+branded 3F) and a net-new **email+OTP login**, both **faithful to the imported Claude Design
+export** (`docs/design/3F-Financial-MIS/3F Financial MIS.dc.html`) and its `_ds` colour scheme.
+Scope is **shell + login only**; MIS/drill-down/assistant screens are later stories.
 
 ## Write scope
-`frontend/`, `package.json`, `package-lock.json` (add `frontend` as a third **npm workspace**)
+`frontend/`, `package.json`, `package-lock.json`. The frontend workspace already exists (T7);
+this task adds the shell + login source under `frontend/` and seeds `lucide-react` (host install)
+for the nav icons. It does NOT re-scaffold the workspace or re-touch the root gate/eslint/guard.
 
 ## Decisions (tooling — conduct §9: no silent defaults)
 Every tool below is a deliberate best-fit pick for THIS fresh TypeScript frontend, not an
@@ -428,24 +636,18 @@ and sends it as `x-csrf-token` (the guard rotates it per request), with
 `credentials:'include'` and JSON body.
 
 ## Approach
-1. **Scaffold** `frontend/` — Next.js App Router + React + TypeScript, its OWN tsconfig
-   (not the backend CommonJS `tsconfig.base.json`). Add `frontend` to root `package.json`
-   workspaces + root scripts **`build:frontend`, `dev:frontend`, `lint:frontend`,
-   `format:check:frontend`, `typecheck:frontend`** (each `npm -w frontend run …`); depend on
-   `@3f/contract` for shared types. `npm install`.
-2. **Quality gate** — configure ESLint (`eslint-config-next`) + Prettier in `frontend/`, plus a
-   `typecheck` script (`tsc --noEmit`). Pin **Vitest** as a frontend devDependency (hoisted to
-   the root `node_modules`) so the required-test command runs the LOCAL binary and never
-   downloads a runner (`npm exec -- vitest …`, not `npx vitest`).
-3. **Theme** — Tailwind so the `_ds` tokens ARE the theme: token CSS variables mapped into
-   `tailwind.config` (colors/space/radius/font). Inter via `next/font`. No hardcoded colors.
-4. **shadcn/ui in-tree** — Button, Input, Label, Field, Card, Avatar + nav/topbar primitives
-   under `frontend/src/components/ui`, restyled to the tokens.
-4a. **Server state** — a `QueryClientProvider` (TanStack Query v5) at the app root
-   (`frontend/src/app/providers.tsx`). `me` hydration is a `useQuery(['auth','me'])` that the
-   route guard reads; OTP request/verify and logout are `useMutation`s that call `api.ts` and,
-   on success, invalidate/prime the `me` query. Loading/error state comes from the query/
-   mutation objects (no hand-rolled `useEffect` fetch flags).
+0. **Consume the foundation** — frontend-foundation already shipped the `@3f/frontend` Next.js
+   App Router workspace, the `_ds`-token Tailwind theme (Deep Forest/Emerald/Mint/Off-White via
+   `--kl-*`), `next/font/local` Inter, the TanStack Query provider seam, an in-tree shadcn
+   `button` + `cn()`, the Vitest+RTL+jsdom runner, and the widened three-workspace quality gate.
+   Do NOT recreate any of that. Seed **`lucide-react`** (deferred from T7) on the host for the nav
+   icons, and resolve the **D-0012** `--text-body`/`ink` token collision (map Tailwind `ink` to
+   `var(--kl-ink)`) now that the theme is applied to real screens.
+1. **Design fidelity first** — the shell mirrors the bound export `3F Financial MIS.dc.html`
+   (the interactive one), the login is net-new per the spec's normative Login screen contract;
+   both use ONLY the `_ds` `--kl-*` tokens (no raw hex in components). Apply the frontend design
+   skills (emil-design-eng + frontend-design); the functional check verifies fidelity at
+   1440x900 and 390x844.
 5. **App shell** — `frontend/src/app/(app)/layout.tsx` + `frontend/src/components/shell/`:
    Deep Forest `LeftNav` (collapsible 200/62, 3F header, the 5 nav items, user block) + white
    `TopBar` (title, search, freshness pill, avatar) + off-white canvas + a placeholder
@@ -490,9 +692,10 @@ and sends it as `x-csrf-token` (the guard rotates it per request), with
    0009): each command must FAIL when its assertion is broken and PASS otherwise.
 
 ## Acceptance criteria
-- the Next.js app builds and the app shell (top bar + left nav) renders in KnackLabs green, branded 3F
-- the OTP login screen works against the backend
-- components use shadcn/ui + Tailwind themed by the _ds tokens, faithful to the Claude Design
+- the app shell (top bar + left nav) renders in KnackLabs green, branded 3F, faithful to the bound design export docs/design/3F-Financial-MIS/3F Financial MIS.dc.html - Deep Forest (#0C3529) left nav (200px expanded / 62px collapsed, 3F header, user block) + white 56px top bar + Off-White (#F4F7F6) canvas, built ONLY from the _ds --kl-* tokens (no raw hex in components); on mobile (390x844) the left nav collapses to an off-canvas drawer behind a keyboard-focusable toggle that reports aria-expanded, closes on Escape, and returns focus to the toggle. Consumes the frontend-foundation scaffold (theme, next/font/local Inter, TanStack Query provider, shadcn primitives); the D-0012 --text-body/ink token collision is resolved as the theme is applied to real screens (Tailwind ink maps to --kl-ink)
+- email+OTP login works end-to-end under the spec's local runtime contract: a successful verification lands in the shell, logout returns to /login, and an access-token 401 retries once through POST /api/auth/refresh before falling back to /login. The client (frontend/src/lib/api.ts) uses credentials:'include' against the auth allow-list (GET /api/auth/csrf bootstrap, POST otp/request, POST otp/verify, GET me, POST refresh, POST logout) and sends x-csrf-token re-read from the current 3f_csrf cookie immediately before EVERY mutating request (never cached); server state is TanStack Query (me as a query the route guard reads, otp/logout as mutations that prime/invalidate it)
+- the login screen implements the spec's normative Login screen contract (docs/specs/app-platform-base.md §Login screen contract): a split screen from _ds tokens (left Deep Forest #0C3529 brand panel with the '3F Financial MIS' wordmark + one value line, Mint #6AF1B0 as a thin on-dark accent only; right a white card on the Off-White canvas; brand panel stacks above the card at 390x844), the two-step flow (email type=email autocomplete=email + Emerald #1C6B49 'Send code' 44px at radius-md; then a 6-digit field inputmode=numeric autocomplete=one-time-code client-validated /^\d{6}$/ with Emerald 'Verify', a 'Use a different email' back link and 'Resend code'), the load-bearing uniform copy ('If that email has access, a code is on its way.' / 'That code didn't match - check it or resend.'), and the accessibility (real <label>s, aria-live=polite acks/errors, focus to the code field after Send and to the first error on failure, :active feedback, ease-out <=200ms entry transitions, prefers-reduced-motion respected), verified by the user-facing functional check at 1440x900 and 390x844
+- exactly five nav labels (Dashboard, MIS Reports, Ask, Explore / Saved, Admin) render with only Dashboard active (a real route); the other four, the top-bar global search and the data-freshness pill render visibly unavailable (aria-disabled / non-navigable, no dead routes, no 'coming soon' copy, the freshness pill reads as explicitly unavailable) and make NO feature API calls - these are the spec's intentional, enumerated divergences from the active design export, not fidelity failures
 
 ## Reviewer focus
 Load-bearing constitution refs: `constitution/09-agent-conduct.md` (§9 no silent tooling
