@@ -17,10 +17,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const request = http.getRequest<ObservableRequest>();
     const response = http.getResponse<Response>();
-    const statusCode = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const zodError = asZodError(exception);
+    const statusCode = zodError
+      ? HttpStatus.BAD_REQUEST
+      : exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
     const errorId = randomUUID();
     const stack = sanitizedStack(exception);
-    const validation = validationDetails(exception, statusCode);
+    const validation = zodError ? zodValidationDetails(zodError) : undefined;
     const message = statusCode >= 500 ? "Unhandled server error" : "HTTP exception";
     const correlationId = request.correlationId ?? randomUUID();
     const requestId = request.requestId ?? null;
@@ -33,7 +38,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       context: {
         errorId,
         method: request.method,
-        path: maskPath(request.path),
+        path: maskPath(request),
         statusCode,
         ...(stack ? { stack } : {}),
       },
@@ -49,7 +54,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           : exception instanceof HttpException
             ? `HTTP_${statusCode}`
             : "INTERNAL_ERROR",
-        type: exception instanceof HttpException ? exception.constructor.name : "InternalError",
+        type: zodError
+          ? "ValidationError"
+          : exception instanceof HttpException
+            ? exception.constructor.name
+            : "InternalError",
         message,
         userMessage: validation
           ? "The request contains invalid fields"
@@ -70,22 +79,33 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 }
 
-function validationDetails(exception: unknown, statusCode: number): ErrorFieldDetail[] | undefined {
-  if (!(exception instanceof HttpException) || statusCode !== HttpStatus.BAD_REQUEST) return undefined;
-  const response = exception.getResponse();
-  // class-validator failures carry a string[] `message`; a plain BadRequestException carries a
-  // string. Only the array form is a field-validation failure — any other 400 is a normal HTTP 400
-  // (code HTTP_400), not VALIDATION_ERROR.
-  const messages =
-    typeof response === "object" && response !== null && "message" in response && Array.isArray(response.message)
-      ? response.message
-      : null;
-  if (!messages) return undefined;
-  const fieldErrors = messages
-    .filter((message): message is string => typeof message === "string")
-    .map((message) => ({
-      field: message.match(/^([a-zA-Z][\w.-]{0,63})\s/)?.[1] ?? "request",
-      reason: "invalid",
-    }));
-  return fieldErrors.length ? fieldErrors : undefined;
+interface ZodLikeIssue {
+  path?: Array<string | number>;
+}
+interface ZodLikeError {
+  name: string;
+  issues: ZodLikeIssue[];
+}
+
+// The app validates with Zod (safeParse), not class-validator. A ZodError reaching the filter is a
+// validation failure; map its issues to sanitized field errors. Only issue PATHS (field names) are
+// surfaced — never the client-supplied values or messages.
+function asZodError(exception: unknown): ZodLikeError | undefined {
+  if (
+    typeof exception === "object" &&
+    exception !== null &&
+    (exception as { name?: unknown }).name === "ZodError" &&
+    Array.isArray((exception as { issues?: unknown }).issues)
+  ) {
+    return exception as ZodLikeError;
+  }
+  return undefined;
+}
+
+function zodValidationDetails(error: ZodLikeError): ErrorFieldDetail[] {
+  const fieldErrors = error.issues.map((issue) => ({
+    field: Array.isArray(issue.path) && issue.path.length ? issue.path.join(".") : "request",
+    reason: "invalid",
+  }));
+  return fieldErrors.length ? fieldErrors : [{ field: "request", reason: "invalid" }];
 }

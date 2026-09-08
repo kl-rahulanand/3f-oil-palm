@@ -68,12 +68,14 @@ async function bootstrap() {
 if (require.main === module) {
   bootstrap().catch((err) => {
     new StructuredLogger({
-      environment: mapEnvironment(process.env.ENVIRONMENT ?? process.env.NODE_ENV),
+      environment: mapEnvironment(process.env.ENVIRONMENT || process.env.NODE_ENV),
       serviceName: process.env.SERVICE_NAME?.trim() || "3f-backend",
     }).log("fatal", "Backend startup failed", {
       module: "Bootstrap",
       context: { stack: sanitizedStack(err) },
     });
-    process.exit(1);
+    // Set exitCode instead of process.exit so the fatal record flushes to a piped stdout before the
+    // process ends (a failed bootstrap keeps nothing alive, so the event loop drains and exits).
+    process.exitCode = 1;
   });
 }

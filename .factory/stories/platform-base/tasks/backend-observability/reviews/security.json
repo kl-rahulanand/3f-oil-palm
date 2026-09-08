@@ -1,13 +1,23 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "security lens over backend-observability (11 product path(s), a40b7a1..c4d00fc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The exception response itself is sanitized, but the accompanying error log records an unmasked client-controlled path, creating a concrete sensitive-data exposure through the logging boundary.",
+  "score": 8,
+  "summary": "security lens over backend-observability (11 product path(s), a40b7a1..6072e0d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The observability wiring and static error messages are generally sound, and the diff contains no compatibility leftovers. However, three sanitization boundaries remain bypassable: encoded or non-hex sensitive path data is logged, multiline exception messages can pass as stack frames, and arbitrary 400 message arrays can be reflected as validation fields. These are concrete P2 data-exposure risks.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "security",
       "area": "backend/src/common",
-      "summary": "[P2] Mask the request path in error log records (backend/src/common/global-exception.filter.ts:35): Every HTTP exception writes `request.path` directly into the error record, bypassing the masking applied by the request logger."
+      "summary": "Encoded PII and common token formats bypass path masking (backend/src/common/request-logging.middleware.ts:55): `req.path` can contain percent-encoded segments, but `maskPath` checks the raw segment only for a literal `@`, numeric values, UUIDs, or long hexadecimal strings."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/common",
+      "summary": "Stack sanitization accepts injected message lines as trusted frames (backend/src/common/structured.logger.ts:55): Filtering `Error.stack` solely for lines matching whitespace plus `at` does not reliably remove the exception message."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/common",
+      "summary": "Arbitrary 400 response messages can be exposed as validation fields (backend/src/common/global-exception.filter.ts:87): An array-valued `HttpException.getResponse().message` is not proof that the exception came from validation; application or provider-facing `BadRequestException` responses can use the same shape."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -26,10 +36,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "f40aa2cb8c651b45f65ab3f158d4a29f591d2e976b4ae50147fb31ff61eaa6d0",
+  "review_run_id": "34c5b1d16be10781d33ae83634d2b624698fdbf5a5f45dc62fe471662d1242f6",
   "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
-  "branch_diff_digest": "1cd138d7c7f4c12b575ce0dc6ca9040dba2e6fad646ba6e09d1a89e7af5f4f3c",
+  "branch_diff_digest": "88ab14373c821fec0b0a141512ecb5454f49c3eb949aa3015b0f6122ac922eca",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T16:17:48+00:00",
-  "commit": "c4d00fc2831760f90b57a49c95ce34a2a7bcfc5e"
+  "recorded_at": "2026-09-08T16:30:59+00:00",
+  "commit": "6072e0d239afb50d4dc8a0eb5b3aae40700b95ca"
 }

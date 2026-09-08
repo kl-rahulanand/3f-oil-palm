@@ -1,10 +1,26 @@
 {
   "generated_by": "autoreview",
-  "score": 10,
-  "summary": "performance lens over backend-observability (11 product path(s), a40b7a1..c4d00fc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance defect is demonstrated by the diff. The added request-path processing and structured-record construction are bounded per request, with no query fanout, repeated external I/O, unbounded collection growth, or compatibility-only leftovers shown.",
+  "score": 8,
+  "summary": "performance lens over backend-observability (11 product path(s), a40b7a1..6072e0d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The requested observability wiring is broadly present and no compatibility leftovers are visible, but the new hot-path transport can accumulate unbounded buffered output, the fatal startup log can be discarded, and the path masker allows common secret formats into logs. These are actionable P2 defects.",
   "blocking_findings": [],
-  "non_blocking_findings": [],
-  "recommendation": "approve",
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src/common",
+      "summary": "Sensitive path segments can pass through the masking allowlist (backend/src/common/request-logging.middleware.ts:54): `maskPath` only recognizes emails containing a literal `@`, UUIDs, decimal IDs, and long hexadecimal strings."
+    },
+    {
+      "category": "bug",
+      "area": "backend/src/common",
+      "summary": "Honor stdout backpressure in the per-request logging transport (backend/src/common/structured.logger.ts:31): The default transport discards the boolean result of `process.stdout.write`."
+    },
+    {
+      "category": "bug",
+      "area": "backend/src",
+      "summary": "Flush the fatal startup record before terminating (backend/src/main.ts:77): The startup failure handler writes its sole diagnostic record to stdout and immediately calls `process.exit(1)`."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/common/error-envelope.wiring.test.ts",
@@ -20,10 +36,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "f40aa2cb8c651b45f65ab3f158d4a29f591d2e976b4ae50147fb31ff61eaa6d0",
+  "review_run_id": "34c5b1d16be10781d33ae83634d2b624698fdbf5a5f45dc62fe471662d1242f6",
   "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
-  "branch_diff_digest": "1cd138d7c7f4c12b575ce0dc6ca9040dba2e6fad646ba6e09d1a89e7af5f4f3c",
+  "branch_diff_digest": "88ab14373c821fec0b0a141512ecb5454f49c3eb949aa3015b0f6122ac922eca",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T16:17:48+00:00",
-  "commit": "c4d00fc2831760f90b57a49c95ce34a2a7bcfc5e"
+  "recorded_at": "2026-09-08T16:30:59+00:00",
+  "commit": "6072e0d239afb50d4dc8a0eb5b3aae40700b95ca"
 }

@@ -1,8 +1,13 @@
 {
   "generated_by": "autoreview",
   "score": 9,
-  "summary": "quality lens over backend-observability (11 product path(s), a40b7a1..c4d00fc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. VERDICT t9-c1: implemented \u2014 backend/src/common/global-exception.filter.ts:17 installs the catch-all envelope mapping\nVERDICT t9-c2: partial \u2014 backend/src/common/global-exception.filter.ts:38 emits a client-controlled path without PII masking\nVERDICT t9-c3: implemented \u2014 backend/src/common/error-envelope.wiring.test.ts:28 exercises configureApp followed by app.init\nThe filter and middleware are reachable and their integration tests are registered, but the error-log path disclosure violates the structured-logging contract. No compatibility leftovers are present in the supplied diff.",
+  "summary": "quality lens over backend-observability (11 product path(s), a40b7a1..6072e0d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. VERDICT t9-c1: partial \u2014 backend/src/common/global-exception.filter.ts:83 recognizes only a class-validator-shaped message array despite the application using Zod validation\nVERDICT t9-c2: partial \u2014 backend/src/common/request-logging.middleware.ts:51 permits arbitrary non-email/non-ID path segments into structured log context\nVERDICT t9-c3: implemented \u2014 backend/src/common/error-envelope.wiring.test.ts:27 exercises configureApp()+app.init(), and both tests are registered in backend/package.json:15 and tools/quality-gate.test.mjs:23\n\nThe filter and middleware are reachable before the Swagger early return, structured request/error records share correlation data, and the main console calls were migrated. However, validation errors are not reliably mapped to the required contract and client-controlled path data is insufficiently masked, so the patch is not ready as submitted.",
   "blocking_findings": [
+    {
+      "category": "plan-contract-partial",
+      "area": "constitution/07-exception-handling.md",
+      "summary": "t9-c1: a global exception filter (constitution 07) maps every unhandled exception and existing HttpException to the full standard error payload (errorId, type, user-facing message, sanitized details, http status, correlationId, requestId, environment, timestampUtc) and is wired app-wide via useGlobalFilters"
+    },
     {
       "category": "plan-contract-partial",
       "area": "constitution/05-logging-and-observability.md",
@@ -11,9 +16,14 @@
   ],
   "non_blocking_findings": [
     {
+      "category": "bug",
+      "area": "backend/src/common",
+      "summary": "[P2] Recognize the application's Zod validation failures (backend/src/common/global-exception.filter.ts:83): `validationDetails` only classifies a 400 as validation when `HttpException.getResponse().message` is a `string[]`, which the comment identifies as the class-validator shape."
+    },
+    {
       "category": "security",
       "area": "backend/src/common",
-      "summary": "Mask the request path in error log records (backend/src/common/global-exception.filter.ts:38): The distinct error record writes `request.path` directly, bypassing the masking applied to the request-completion record."
+      "summary": "[P2] Do not log arbitrary unmatched path segments (backend/src/common/request-logging.middleware.ts:51): The masking predicate only redacts emails containing a literal `@`, UUIDs, decimal IDs, and long hexadecimal strings."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -34,18 +44,18 @@
   "contract_verdicts": [
     {
       "contract_id": "t9-c1",
-      "verdict": "implemented",
-      "evidence": "backend/src/common/global-exception.filter.ts:17 installs the catch-all envelope mapping"
+      "verdict": "partial",
+      "evidence": "backend/src/common/global-exception.filter.ts:83 recognizes only a class-validator-shaped message array despite the application using Zod validation"
     },
     {
       "contract_id": "t9-c2",
       "verdict": "partial",
-      "evidence": "backend/src/common/global-exception.filter.ts:38 emits a client-controlled path without PII masking"
+      "evidence": "backend/src/common/request-logging.middleware.ts:51 permits arbitrary non-email/non-ID path segments into structured log context"
     },
     {
       "contract_id": "t9-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/common/error-envelope.wiring.test.ts:28 exercises configureApp followed by app.init"
+      "evidence": "backend/src/common/error-envelope.wiring.test.ts:27 exercises configureApp()+app.init(), and both tests are registered in backend/package.json:15 and tools/quality-gate.test.mjs:23"
     },
     {
       "contract_id": "t1-c1",
@@ -199,10 +209,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "f40aa2cb8c651b45f65ab3f158d4a29f591d2e976b4ae50147fb31ff61eaa6d0",
+  "review_run_id": "34c5b1d16be10781d33ae83634d2b624698fdbf5a5f45dc62fe471662d1242f6",
   "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
-  "branch_diff_digest": "1cd138d7c7f4c12b575ce0dc6ca9040dba2e6fad646ba6e09d1a89e7af5f4f3c",
+  "branch_diff_digest": "88ab14373c821fec0b0a141512ecb5454f49c3eb949aa3015b0f6122ac922eca",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T16:17:48+00:00",
-  "commit": "c4d00fc2831760f90b57a49c95ce34a2a7bcfc5e"
+  "recorded_at": "2026-09-08T16:30:59+00:00",
+  "commit": "6072e0d239afb50d4dc8a0eb5b3aae40700b95ca"
 }

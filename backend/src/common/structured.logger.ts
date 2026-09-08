@@ -52,6 +52,8 @@ export function sanitizedStack(error: unknown): string | undefined {
   // Keep ONLY the trusted call-site frames ("    at ..."). Message lines can carry
   // provider output, credentials, or PII, so they are dropped rather than merely
   // skipping the first line.
-  const frames = error.stack.split("\n").filter((line) => /^\s+at\s/.test(line));
+  // Real V8 frames end in ":line:col" (optionally ")"). Requiring that shape stops a
+  // multiline error message from masquerading as a frame and leaking through.
+  const frames = error.stack.split("\n").filter((line) => /^\s+at\s.+:\d+:\d+\)?\s*$/.test(line));
   return frames.length ? frames.join("\n") : undefined;
 }
