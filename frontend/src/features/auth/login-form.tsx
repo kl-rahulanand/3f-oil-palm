@@ -40,6 +40,9 @@ export function LoginForm() {
       await requestCode.mutateAsync(email);
       setMessage(ACK);
       setStep("code");
+      // Restore focus to the code field on every send, including Resend where
+      // the step does not change so the step-transition focus effect never fires.
+      requestAnimationFrame(() => codeRef.current?.focus());
     } catch {
       setMessage("We couldn't send a code. Try again.");
       setError(true);

@@ -34,7 +34,10 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
   const [navOpen, setNavOpen] = useState(false);
   const logout = useMutation({
     mutationFn: api.logout,
-    onSettled: async () => {
+    // Only treat the user as signed out once the server has confirmed it: clear
+    // the cached session and route to /login on success. A failed logout leaves
+    // the session intact (the button can be retried) rather than pretending.
+    onSuccess: async () => {
       queryClient.removeQueries({ queryKey: sessionQueryKey });
       router.replace("/login");
     },

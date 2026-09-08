@@ -1,0 +1,221 @@
+{
+  "generated_by": "autoreview",
+  "score": 8,
+  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..10f7be4, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The shell and core authentication flow are substantially implemented, but logout can leave a valid hidden session and two normative login requirements are violated.\nVERDICT t8-c1: implemented \u2014 frontend/app/globals.css:154 and frontend/tailwind.config.ts:14 implement the token-based responsive shell and ink mapping.\nVERDICT t8-c2: partial \u2014 frontend/src/components/shell/app-shell.tsx:37 redirects after failed logout without confirming session invalidation.\nVERDICT t8-c3: partial \u2014 frontend/src/features/auth/login-form.tsx:12 has incorrect required copy, and frontend/src/features/auth/login-form.tsx:133 does not restore OTP-field focus after resend.\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:11 defines exactly five items, with only Dashboard active and the remaining controls rendered unavailable.",
+  "blocking_findings": [
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/app-platform-base.md",
+      "summary": "t8-c2: email+OTP login works end-to-end under the spec's local runtime contract: a successful verification lands in the shell, logout returns to /login, and an access-token 401 retries once through POST /api/auth/refresh before falling back to /login. The client (frontend/src/lib/api.ts) uses credentials:'include' against the auth allow-list (GET /api/auth/csrf bootstrap, POST otp/request, POST otp/verify, GET me, POST refresh, POST logout) and sends x-csrf-token re-read from the current 3f_csrf cookie immediately before EVERY mutating request (never cached); server state is TanStack Query (me as a query the route guard reads, otp/logout as mutations that prime/invalidate it)"
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/app-platform-base.md",
+      "summary": "t8-c3: the login screen implements the spec's normative Login screen contract (docs/specs/app-platform-base.md \u00a7Login screen contract): a split screen from _ds tokens (left Deep Forest #0C3529 brand panel with the '3F Financial MIS' wordmark + one value line, Mint #6AF1B0 as a thin on-dark accent only; right a white card on the Off-White canvas; brand panel stacks above the card at 390x844), the two-step flow (email type=email autocomplete=email + Emerald #1C6B49 'Send code' 44px at radius-md; then a 6-digit field inputmode=numeric autocomplete=one-time-code client-validated /^\\d{6}$/ with Emerald 'Verify', a 'Use a different email' back link and 'Resend code'), the load-bearing uniform copy ('If that email has access, a code is on its way.' / 'That code didn't match - check it or resend.'), and the accessibility (real <label>s, aria-live=polite acks/errors, focus to the code field after Send and to the first error on failure, :active feedback, ease-out <=200ms entry transitions, prefers-reduced-motion respected), verified by the user-facing functional check at 1440x900 and 390x844"
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "frontend/src/components/shell",
+      "summary": "Do not report logout complete when the server request fails (frontend/src/components/shell/app-shell.tsx:37): The `onSettled` callback removes the local session and redirects even when `api.logout` rejects, including when the request never reaches the server."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/auth",
+      "summary": "Restore focus to the OTP field after resending (frontend/src/features/auth/login-form.tsx:133): The resend handler calls `sendCode` while the component is already on the `code` step."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/auth",
+      "summary": "Use the required invalid-code text verbatim (frontend/src/features/auth/login-form.tsx:12): The normative, acceptance-critical message is `That code didn't match - check it or resend.`, but this constant substitutes an em dash."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "frontend/app/(app)/dashboard/page.tsx",
+    "frontend/app/(app)/layout.tsx",
+    "frontend/app/globals.css",
+    "frontend/app/login/page.tsx",
+    "frontend/app/page.tsx",
+    "frontend/package.json",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/components/shell/nav-drawer.test.tsx",
+    "frontend/src/features/auth/login-form.test.tsx",
+    "frontend/src/features/auth/login-form.tsx",
+    "frontend/src/features/auth/login-secondary.test.tsx",
+    "frontend/src/features/auth/session-guard.test.tsx",
+    "frontend/src/features/auth/session-guard.tsx",
+    "frontend/src/features/auth/session.ts",
+    "frontend/src/lib/api.refresh.test.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts",
+    "frontend/src/test/render.tsx",
+    "frontend/tailwind.config.ts",
+    "frontend/tsconfig.json",
+    "package-lock.json"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t8-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/app/globals.css:154 and frontend/tailwind.config.ts:14 implement the token-based responsive shell and ink mapping."
+    },
+    {
+      "contract_id": "t8-c2",
+      "verdict": "partial",
+      "evidence": "frontend/src/components/shell/app-shell.tsx:37 redirects after failed logout without confirming session invalidation."
+    },
+    {
+      "contract_id": "t8-c3",
+      "verdict": "partial",
+      "evidence": "frontend/src/features/auth/login-form.tsx:12 has incorrect required copy, and frontend/src/features/auth/login-form.tsx:133 does not restore OTP-field focus after resend."
+    },
+    {
+      "contract_id": "t8-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/components/shell/app-shell.tsx:11 defines exactly five items, with only Dashboard active and the remaining controls rendered unavailable."
+    },
+    {
+      "contract_id": "t1-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t1-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t1-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under vendor-backend-contract at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t2-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under postgres-warehouse-adapter at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t3-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under backend-boot-otp-auth at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rb-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under rebrand-pulse-to-3f at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t5-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under quality-gate-baseline at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t5-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under quality-gate-baseline at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t5-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under quality-gate-baseline at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t6-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under api-surface-trim at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t7-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under frontend-foundation at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "79b42c03cb3886b420781be0fb6a1a26a6bf59549dca5d6f5b901f23e37f70d7",
+  "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
+  "branch_diff_digest": "8b381346c7e2eec2d45b6093786357ec9c3b26646892fa87de8bee049c827b3d",
+  "residual_risks": [],
+  "recorded_at": "2026-09-08T10:45:27+00:00",
+  "commit": "10f7be47a4b3c3e1ac950361ebbfd947c0d6cdc5"
+}

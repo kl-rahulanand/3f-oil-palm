@@ -1,0 +1,11 @@
+{
+  "event": "open",
+  "id": "Q-0011-9e4a",
+  "profile": "degraded",
+  "reason": "Apply the two blocking quality-review fixes for frontend-shell-login. forge delegate composes its brief from the task contract and does NOT convey the autoreview's specific findings to Codex, so the fix-delegate re-verified and made no code change - these defects cannot be fixed through the normal delegate route. Host-apply the precise fixes: (t8-c2) app-shell.tsx logout redirect+clear moves from onSettled to onSuccess so it only lands on /login after the server confirms session invalidation; (t8-c3) login-form.tsx sendCode restores focus to the 6-digit code field on Resend (the focus effect only fires on step change, so resend left focus unmoved).",
+  "started_at": "2026-09-08T10:52:58+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "kind": "degraded"
+}

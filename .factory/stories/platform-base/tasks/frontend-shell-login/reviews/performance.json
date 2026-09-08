@@ -1,0 +1,53 @@
+{
+  "generated_by": "autoreview",
+  "score": 9,
+  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..10f7be4, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The change introduces two user-visible performance defects: anonymous root navigation is serialized through the protected-route refresh flow, and every desktop shell mount shifts the layout after hydration. No compatibility wrappers, aliases, deprecated branches, or other blocking leftovers are shown in the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/app",
+      "summary": "Anonymous root visits take a needless protected-route round trip (frontend/app/page.tsx:4): `/` always redirects to `/dashboard` instead of deciding between the shell and `/login`."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/components/shell",
+      "summary": "Desktop navigation always causes a post-mount layout shift (frontend/src/components/shell/app-shell.tsx:35): `navOpen` initializes to `false` for every render, while the viewport effect changes it to `true` after mount on desktop."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "frontend/app/(app)/dashboard/page.tsx",
+    "frontend/app/(app)/layout.tsx",
+    "frontend/app/globals.css",
+    "frontend/app/login/page.tsx",
+    "frontend/app/page.tsx",
+    "frontend/package.json",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/components/shell/nav-drawer.test.tsx",
+    "frontend/src/features/auth/login-form.test.tsx",
+    "frontend/src/features/auth/login-form.tsx",
+    "frontend/src/features/auth/login-secondary.test.tsx",
+    "frontend/src/features/auth/session-guard.test.tsx",
+    "frontend/src/features/auth/session-guard.tsx",
+    "frontend/src/features/auth/session.ts",
+    "frontend/src/lib/api.refresh.test.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts",
+    "frontend/src/test/render.tsx",
+    "frontend/tailwind.config.ts",
+    "frontend/tsconfig.json",
+    "package-lock.json"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "79b42c03cb3886b420781be0fb6a1a26a6bf59549dca5d6f5b901f23e37f70d7",
+  "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
+  "branch_diff_digest": "8b381346c7e2eec2d45b6093786357ec9c3b26646892fa87de8bee049c827b3d",
+  "residual_risks": [],
+  "recorded_at": "2026-09-08T10:45:27+00:00",
+  "commit": "10f7be47a4b3c3e1ac950361ebbfd947c0d6cdc5"
+}
