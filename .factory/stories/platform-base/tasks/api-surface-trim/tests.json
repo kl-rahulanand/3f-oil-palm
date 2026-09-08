@@ -1,0 +1,53 @@
+{
+  "commit": "937b8a7946ed5130a7766d80c030a72bfe7462f7",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Deterministic verify is green and the hermetic backend suite passes with the four new DB-free tests in the gate. verify.py reports Verification passed across structural (build + dual-runtime + vendor integrity), typecheck (both workspaces, no-emit), quality (ESLint + Prettier, including the now-un-ignored config.ts) and test (hermetic backend + the quality-gate guard). The route allow-list, production-Swagger absence, loopback/CORS/PGHOST/compose defaults and the /health envelope-plus-generated-schema are asserted hermetically against the real AppModule container (AuthoredMeasureRegistry.onModuleInit stubbed, no DB, no socket, no new dep). The warehouse E2E was demonstrated live on the host: with the seeded warehouse DB up, the WAREHOUSE_E2E=1-gated path in the already-hermetic oid test resolves WAREHOUSE + SelectionExecutor from AppModule DI and returns SUM(WarehouseFixture.value)=42; the compose port publishes to 127.0.0.1:5433 (loopback confirmed).",
+    "blocking_findings": [],
+    "commands_run": [
+      "python3 factory/scripts/verify.py  # Verification passed",
+      "npm run test:hermetic  # 38 tests, 37 pass, 1 opt-in skip (WAREHOUSE_E2E), 0 fail; guard 1 pass",
+      "docker compose up -d warehouse-db warehouse-seed  # warehouse-db Healthy, seed ran",
+      "docker compose port warehouse-db 5432  # -> 127.0.0.1:5433 (loopback publish confirmed)",
+      "WAREHOUSE_E2E=1 WAREHOUSE_DRIVER=postgres WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 ... node --require ts-node/register --test backend/src/warehouse/postgres.adapter.oid.test.ts  # 2 pass, 0 fail; DI-resolved SUM=42"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/app.routes.test.ts \u2014 NEW: builds the real AppModule (onModuleInit stubbed), asserts the exact registered route allow-list is auth + /health only (admin/users/grants/usage/help/chat/saved/pins/reports absent), /api/docs excluded",
+      "backend/src/swagger-production.test.ts \u2014 NEW: asserts config.swaggerEnabled is false when NODE_ENV=production even with ENABLE_SWAGGER=true, and none of /api/docs, /api/docs/, swagger-ui-init.js, /api/docs-json, /api/docs-yaml are mounted",
+      "backend/src/loopback-profile.test.ts \u2014 NEW: under AUTH_OTP_MOCK the injectable listen seam receives [4000, '127.0.0.1'], config defaults frontendOrigin to http://127.0.0.1:3000 and PGHOST to 127.0.0.1 (FRONTEND_ORIGIN override respected as a negative control), compose publishes both db ports to 127.0.0.1",
+      "backend/src/health/health.controller.test.ts \u2014 NEW: /health returns {success:true,data:{status:ok},error:null} and the generated OpenAPI schema references HealthResponseDto with the DTO examples/nullable ($ref, example values) matching",
+      "backend/src/warehouse/postgres.adapter.oid.test.ts \u2014 UPDATED: the E2E now resolves WAREHOUSE + SelectionExecutor from AppModule DI (createApplicationContext) and asserts warehouse instanceof PostgresAdapter before proving SUM=42; still WAREHOUSE_E2E-gated and skipped in the hermetic run",
+      "tools/quality-gate.test.mjs \u2014 UPDATED: the four DB-free tests added to the pinned hermetic graph; config.ts removed from the D-0006 content-hash baseline and the negative-control repinned to a still-ignored file"
+    ],
+    "pass_fail_summary": "verify.py: Verification passed. Hermetic backend suite: 37 passed, 1 opt-in skipped (WAREHOUSE_E2E), 0 failed; guard: 1 passed. Live host demonstration: warehouse-db published to 127.0.0.1:5433, DI-resolved warehouse E2E returned 42 (2 passed, 0 failed). The DB-backed auth/RBAC/audit tests remain host-only demonstrated evidence per D-0008 and are not part of this automated gate.",
+    "remaining_gaps": [
+      "Login/RBAC/audit, no-enumeration and session-continuity stay demonstrated Postgres evidence (D-0008): the real auth path needs a migrated app-db pool, so they cannot be DB-free hermetic tests and are not enforced by CI.",
+      "D-0009: complete typed response-DTO coverage across the vendored controllers and the ad-hoc console-emitter migration remain deferred to the production pilot; /health and other fresh code meet full compliance.",
+      "The live backend loopback socket bind and NODE_ENV=production /api/docs 404 are proven deterministically by the hermetic loopback-profile and swagger-production tests (the injectable listen seam exists to assert the 127.0.0.1 bind without a socket) rather than by a live curl in this run."
+    ],
+    "reviewed_scope": [
+      "backend/src/app.module.ts",
+      "backend/src/health/health.module.ts",
+      "backend/src/health/health.controller.ts",
+      "backend/src/health/health-response.dto.ts",
+      "backend/src/health/health.controller.test.ts",
+      "backend/src/config.ts",
+      "backend/src/main.ts",
+      "backend/src/app.routes.test.ts",
+      "backend/src/loopback-profile.test.ts",
+      "backend/src/swagger-production.test.ts",
+      "backend/src/warehouse/postgres.adapter.oid.test.ts",
+      "docker-compose.yml",
+      "backend/package.json",
+      "tools/quality-gate.test.mjs",
+      ".prettierignore"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-07T21:15:58+00:00",
+    "commit": "937b8a7946ed5130a7766d80c030a72bfe7462f7"
+  },
+  "updated_at": "2026-09-07T21:15:58+00:00"
+}

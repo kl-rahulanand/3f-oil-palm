@@ -4,37 +4,46 @@
     {
       "id": "vendor-backend-contract",
       "title": "Vendor Pulse backend + contract",
-      "status": "done",
-      "task_sha256": "1dcff396033659ec06017a1498bb6ceda283a038e95a292160f6ce54cba14a71"
+      "status": "done"
     },
     {
       "id": "postgres-warehouse-adapter",
       "title": "Postgres warehouse adapter",
-      "status": "done",
-      "task_sha256": "b58679c1d405fc7646ff4c0253a860f88ba9ee022caf13cca46eb0f797ad6136"
+      "status": "done"
     },
     {
       "id": "backend-boot-otp-auth",
       "title": "Backend boots + OTP auth on Postgres",
-      "status": "done",
-      "task_sha256": "9d6a19b424e3d4b4151cdd9f7b11800980f3506277da6f797c006c17f92b6fe2"
+      "status": "done"
     },
     {
       "id": "rebrand-pulse-to-3f",
       "title": "Rebrand product identifiers Pulse -> 3F",
-      "status": "done",
-      "task_sha256": "8d9a965642a15b2d7acd244bbff8b794fc9921e1c93d185b74551ae09ae0572a"
+      "status": "done"
     },
     {
       "id": "quality-gate-baseline",
       "title": "Repo-wide quality gate baseline (backend + contract lint/format, FACTORY_* commands)",
-      "status": "done",
-      "task_sha256": "3761bbc980acad7200b1035fa77e87bb71321daaa39a0d3bbbe85c85dbdbe00b"
+      "status": "done"
     },
     {
       "id": "api-surface-trim",
       "title": "Constrain the API surface, close the local-network exposure, harden the warehouse proof",
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-09-07T20:48:33+00:00",
+      "base_sha": "9e3da3df38321256baf8e84767f71fa48e92b7ab",
+      "dirty_at_start": {},
+      "task_sha256": "7124eec5e26b754251bd4e45857fe258a93988c2aabb51ceb5a7a46edaf11bdc",
+      "local_review_stamp": {
+        "stage_id": "api-surface-trim",
+        "task_sha256": "7124eec5e26b754251bd4e45857fe258a93988c2aabb51ceb5a7a46edaf11bdc",
+        "brief_sha256": "52c9d561df4639dc877799fc6007b01ec36f29ba604a6cffb9efbbdd517b9498",
+        "base_sha": "9e3da3df38321256baf8e84767f71fa48e92b7ab",
+        "product_tree_digest": "1fe2ba56a50e90583756b84c49ab04e87fe9cccd5588a3435b994efb239aa208",
+        "recorded_at": "2026-09-07T21:12:07+00:00",
+        "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-07T21:12:25+00:00"
     },
     {
       "id": "frontend-foundation",
