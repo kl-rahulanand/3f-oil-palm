@@ -1,0 +1,26 @@
+:root {
+  --font-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --text-display: 56px;
+  --text-h1: 36px;
+  --text-h2: 26px;
+  --text-h3: 20px;
+  --text-lead: 19px;
+  --text-body: 17px;
+  --text-body-sm: 14px;
+  --text-caption: 13px;
+  --text-eyebrow: 13px;
+  --text-mono-label: 11px;
+  --lh-display: 1.08;
+  --lh-heading: 1.15;
+  --lh-body: 1.55;
+  --tracking-display: -0.03em;
+  --tracking-heading: -0.02em;
+  --tracking-eyebrow: 0.22em;
+  --tracking-caps: 0.12em;
+  --weight-display: 800;
+  --weight-h1: 700;
+  --weight-h2: 600;
+  --weight-body: 400;
+  --measure-max: 75ch;
+}

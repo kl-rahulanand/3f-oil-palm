@@ -1,0 +1,17 @@
+@import "../src/theme/colors.css";
+@import "../src/theme/spacing.css";
+@import "../src/theme/typography.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: var(--font-inter), -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-page);
+  color: var(--text-body);
+}

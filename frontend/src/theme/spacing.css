@@ -1,0 +1,23 @@
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 80px;
+  --space-10: 96px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(12, 53, 41, 0.05);
+  --shadow-float: 0 14px 40px rgba(10, 44, 34, 0.2);
+  --border-hairline: 1px solid var(--kl-line);
+  --border-card: 1px solid var(--kl-border-card);
+  --container-max: 1180px;
+  --btn-height: 44px;
+  --btn-height-sm: 36px;
+}

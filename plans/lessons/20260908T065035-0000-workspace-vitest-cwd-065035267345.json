@@ -1,0 +1,11 @@
+{
+  "topic": "workspace-vitest-cwd",
+  "lesson": "A workspace npm script keeps the workspace as process.cwd() even when Vitest config.root points at the repo; cd to the repo root before running repo-relative hermetic tests.",
+  "source": "frontend-foundation implementation",
+  "applies_to": [
+    "frontend/**/*.test.{ts,tsx}"
+  ],
+  "severity": "medium",
+  "generated_by": "implementer",
+  "added_at": "2026-09-08T06:50:35+00:00"
+}
