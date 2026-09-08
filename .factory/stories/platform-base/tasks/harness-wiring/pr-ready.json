@@ -1,0 +1,7 @@
+{
+  "task_id": "harness-wiring",
+  "branch": "feat/platform-base-harness-wiring",
+  "base_main_sha": "13e26927e083df757b0c9dbda47c3fc9c38dbc2b",
+  "commit": "4f344a92db790ed3a6e8479438ea6ef6eafac7b8",
+  "sealed_at": "2026-09-08T17:30:56+00:00"
+}
