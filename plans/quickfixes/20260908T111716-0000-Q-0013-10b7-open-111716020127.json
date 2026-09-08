@@ -1,0 +1,11 @@
+{
+  "event": "open",
+  "id": "Q-0013-10b7",
+  "profile": "degraded",
+  "reason": "Apply the re-review's genuine P2 fix and document the two false positives for frontend-shell-login (delegate does not convey autoreview findings to Codex, so a fix-delegate makes no change): (perf/P2) disable the Resend control while requestCode.isPending so double-clicks cannot start concurrent CSRF+OTP mutations, matching the initial Send-code guard; and add a provenance comment on INVALID_CODE citing docs/specs/app-platform-base.md:195 \u2014 the spec copy authoritatively uses an em dash and the constant is byte-identical, so the quality+security 'use an ASCII hyphen' findings are reviewer false positives (fixing them would VIOLATE the spec). 1 file: frontend/src/features/auth/login-form.tsx.",
+  "started_at": "2026-09-08T11:17:16+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "kind": "degraded"
+}

@@ -1,0 +1,11 @@
+{
+  "event": "open",
+  "id": "Q-0012-86fa",
+  "profile": "degraded",
+  "reason": "Apply the re-review's blocking quality fixes (delegate cannot convey autoreview findings to Codex): (t8-c2/P1) app-shell logout adds an onError that also clears session state and routes to /login when the logout is UNAUTHORIZED (ApiError status 401 after the refresh retry - the session is already gone), while non-401 failures keep the user on the page; (t8-c3) globals.css focus outline on light-surface controls switches from Mint (--kl-mint, forbidden on light) to Emerald (--kl-emerald, the on-light accent). The invalid-code copy is byte-identical to the spec (verified) so it is left unchanged.",
+  "started_at": "2026-09-08T11:04:10+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "kind": "degraded"
+}

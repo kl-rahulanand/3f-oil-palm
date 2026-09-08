@@ -4,49 +4,56 @@
     {
       "id": "vendor-backend-contract",
       "title": "Vendor Pulse backend + contract",
-      "status": "done",
-      "task_sha256": "1dcff396033659ec06017a1498bb6ceda283a038e95a292160f6ce54cba14a71"
+      "status": "done"
     },
     {
       "id": "postgres-warehouse-adapter",
       "title": "Postgres warehouse adapter",
-      "status": "done",
-      "task_sha256": "b58679c1d405fc7646ff4c0253a860f88ba9ee022caf13cca46eb0f797ad6136"
+      "status": "done"
     },
     {
       "id": "backend-boot-otp-auth",
       "title": "Backend boots + OTP auth on Postgres",
-      "status": "done",
-      "task_sha256": "9d6a19b424e3d4b4151cdd9f7b11800980f3506277da6f797c006c17f92b6fe2"
+      "status": "done"
     },
     {
       "id": "rebrand-pulse-to-3f",
       "title": "Rebrand product identifiers Pulse -> 3F",
-      "status": "done",
-      "task_sha256": "8d9a965642a15b2d7acd244bbff8b794fc9921e1c93d185b74551ae09ae0572a"
+      "status": "done"
     },
     {
       "id": "quality-gate-baseline",
       "title": "Repo-wide quality gate baseline (backend + contract lint/format, FACTORY_* commands)",
-      "status": "done",
-      "task_sha256": "3761bbc980acad7200b1035fa77e87bb71321daaa39a0d3bbbe85c85dbdbe00b"
+      "status": "done"
     },
     {
       "id": "api-surface-trim",
       "title": "Constrain the API surface, close the local-network exposure, harden the warehouse proof",
-      "status": "done",
-      "task_sha256": "7124eec5e26b754251bd4e45857fe258a93988c2aabb51ceb5a7a46edaf11bdc"
+      "status": "done"
     },
     {
       "id": "frontend-foundation",
       "title": "Fresh frontend foundation (Next.js workspace, _ds theme, quality gate)",
-      "status": "done",
-      "task_sha256": "98d86be9542ad6ae3ef909d3697c8786165514ca10d07da26715caf06027044f"
+      "status": "done"
     },
     {
       "id": "frontend-shell-login",
       "title": "Fresh frontend shell + OTP login",
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-09-08T09:58:43+00:00",
+      "base_sha": "b0b62bc562242433c6fa014864204e3ac56ab142",
+      "dirty_at_start": {},
+      "task_sha256": "233665d0f3de5beacd02bf9d1adc8d9be77872ec25b4c23c4f9bab2cea5fbce7",
+      "local_review_stamp": {
+        "stage_id": "frontend-shell-login",
+        "task_sha256": "233665d0f3de5beacd02bf9d1adc8d9be77872ec25b4c23c4f9bab2cea5fbce7",
+        "brief_sha256": "96bbf212c972686cc248b2f6ed93c07e43f58292020c4c6891d72adffaeaf757",
+        "base_sha": "b0b62bc562242433c6fa014864204e3ac56ab142",
+        "product_tree_digest": "93373b247a5b07f40bee482611c18f8e698cd731c3ad31e91f540a8559c450f5",
+        "recorded_at": "2026-09-08T10:35:51+00:00",
+        "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-08T10:36:23+00:00"
     },
     {
       "id": "backend-observability",

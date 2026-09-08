@@ -11,7 +11,7 @@ export default {
         white: "var(--kl-white)",
         page: "var(--surface-page)",
         card: "var(--surface-card)",
-        ink: "var(--text-body)",
+        ink: "var(--kl-ink)",
         secondary: "var(--text-secondary)",
         line: "var(--kl-line)",
       },

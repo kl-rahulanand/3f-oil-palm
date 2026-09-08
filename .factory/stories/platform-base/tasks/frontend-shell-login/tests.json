@@ -1,0 +1,90 @@
+{
+  "commit": "d84db4624b6d50e47ba68ecaea04d79028f3e6b6",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Deterministic verify is green across all three workspaces with the shell + login built. verify.py reports Verification passed across structural (build incl. next build, dual-runtime, vendor integrity), typecheck, quality (ESLint incl. eslint-config-next + Prettier) and test (backend hermetic + the ten frontend Vitest files + the guard). The seven task-required RTL/jsdom tests are DB-free with negative controls: 6-digit validation, per-POST 3f_csrf re-read, refresh-once-then-retry (and no-refresh on otp/verify 401), redirect-only-after-retry-fails, five-nav/only-Dashboard/disabled-items-make-no-API-calls, resend+use-different-email, and the mobile drawer aria-expanded/Escape/focus. The login was rendered on the dev server and reviewed faithful at 1440x900 and 390x844.",
+    "blocking_findings": [],
+    "commands_run": [
+      "python3 factory/scripts/verify.py  # Verification passed",
+      "npm -w @3f/frontend run test  # 10 files, 10 tests passed (7 required + 3 foundation)",
+      "npm run test:hermetic  # backend 0 fail; frontend 10/10; guard 1 pass"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/auth/login-form.test.tsx - validates a six-digit code before calling verify",
+      "frontend/src/lib/api.test.ts - re-reads the 3f_csrf cookie on every mutating request",
+      "frontend/src/lib/api.refresh.test.ts - refreshes once then retries on an access-token 401 but never on an otp verify 401",
+      "frontend/src/features/auth/session-guard.test.tsx - redirects to login only after the refresh retry also fails",
+      "frontend/src/components/shell/app-shell.test.tsx - five nav labels, only Dashboard active, disabled items make no feature API calls",
+      "frontend/src/features/auth/login-secondary.test.tsx - resend re-requests with the uniform ack; use-a-different-email returns to the email step",
+      "frontend/src/components/shell/nav-drawer.test.tsx - mobile drawer toggles aria-expanded, Escape closes and restores focus"
+    ],
+    "pass_fail_summary": "verify.py: Verification passed. Frontend Vitest: 10 passed (10 files). Backend hermetic: 0 failed. Guard: 1 passed. The DB-backed auth/RBAC/audit tests stay host-only demonstrated evidence (D-0008).",
+    "remaining_gaps": [
+      "Live login E2E (verify creates session cookies, /api/auth/me resolves role, logout clears, audit row appended, no-enumeration, refresh rotation) stays demonstrated Postgres evidence + the functional check - the real auth path needs a migrated app-db pool.",
+      "D-0011 (breaking-major dev-tooling upgrades) and D-0009 (vendored DTO coverage) remain deferred."
+    ],
+    "reviewed_scope": [
+      "frontend/app/",
+      "frontend/src/",
+      "frontend/tailwind.config.ts",
+      "package.json",
+      "package-lock.json"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-08T10:36:46+00:00",
+    "commit": "a882640adb7d4aac5fe33e558271bc558a82afe6"
+  },
+  "updated_at": "2026-09-08T12:53:44+00:00",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "pass",
+    "score": 9,
+    "summary": "Host-run functional check of frontend-shell-login against the LIVE local stack (NestJS backend on 127.0.0.1:4000 with mock OTP transport + Postgres app-db via docker-compose, Next.js frontend on 127.0.0.1:3000), driven in a real browser at 1440x900 and 390x844 and corroborated by direct API calls. Run on the host because the Codex sandbox has no network or browser. All four acceptance criteria verified user-visible and end-to-end; design faithful to the bound Claude Design export (Deep Forest #0C3529 nav, Off-White #F4F7F6 canvas, Emerald #1C6B49 actions, Mint #6AF1B0 only as a thin on-dark accent). 0 blocking findings. This directly substantiates the review's two live-evidence asks: the end-to-end Postgres-backed auth + audit + no-enumeration flow, and browser-level responsive fidelity at 390x844 \u2014 neither of which hermetic jsdom/mocked unit tests can demonstrate.",
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "Ack aria-live region announcement on the email->code step transition is a deferred a11y polish (D-0016); the ack text renders correctly and the code field receives focus, verified live.",
+      "Anonymous root '/' still loads the protected shell before bouncing to /login (D-0014); user-visible behavior is correct (lands on /login), only the extra load is deferred."
+    ],
+    "manual_validation_steps": [
+      "docker compose up -d app-db warehouse-db; npm run db:migrate (seeds admin@example.invalid / '3F Admin').",
+      "Backend up with AUTH_OTP_MOCK=true (fixed OTP 000000); all six allow-list routes mapped (csrf, otp/request, otp/verify, me, refresh, logout).",
+      "Desktop 1440x900 /login: split screen \u2014 Deep Forest brand panel ('3F Financial MIS' wordmark + 'Financial MIS, straight from SAP' value line + thin vertical Mint accent) left, white card on Off-White right. Eyebrow 'SECURE ACCESS', 'Sign in to 3F', intro copy, Email label+field, Emerald 'Send code'.",
+      "Send code -> step 2: 'CHECK YOUR EMAIL' / 'Enter your code' / 'We sent a one-time code to admin@example.invalid.', 6-digit field focused with Emerald focus ring, Emerald 'Verify', uniform ack 'If that email has access, a code is on its way.', secondary controls 'Use a different email' + 'Resend code'.",
+      "Enter 000000 -> Verify: landed in the authenticated shell at /dashboard. Deep Forest left nav (3F brand, five labels: Dashboard active with accent bar, MIS Reports/Ask/Explore / Saved/Admin muted, user block '3F Admin / admin' + avatar + logout). White top bar (Dashboard title, disabled search 'Search components, GL codes, plants', 'Freshness unavailable' pill, avatar). Off-White canvas with the Dashboard placeholder card.",
+      "Click Log out -> returned to /login (email step, field focused).",
+      "API corroboration (cookie jar, re-reading the rotating 3f_csrf per POST): GET csrf 200; otp/request for admin@example.invalid AND for an unknown ghost address BOTH return an identical {ok:true} (no account enumeration); otp/verify admin+000000 -> 201 returns the 3F Admin user; GET me -> 200 same user; 3f_access + 3f_refresh cookies set; a wrong code -> 401 'invalid or expired code'.",
+      "Audit rows written to Postgres audit_events: auth.otp_requested (x3), auth.otp_verified, auth.otp_failed.",
+      "Mobile 390x844 /login: brand panel stacks ABOVE the white card, thin Mint accent preserved; full two-step form renders and is usable.",
+      "Mobile 390x844 shell (logged in): nav starts off-canvas \u2014 side-nav data-open=false, inert=true, mobile-toggle aria-expanded=false. Toggle -> data-open=true, aria-expanded=true, inert removed, all five nav labels present (aria-labelled so they survive the collapsed rail). Escape -> data-open=false, aria-expanded=false, and focus returns to the toggle."
+    ],
+    "reviewed_scope": [
+      "frontend/app/login/page.tsx",
+      "frontend/app/(app)/layout.tsx",
+      "frontend/app/(app)/dashboard/page.tsx",
+      "frontend/app/page.tsx",
+      "frontend/src/features/auth/login-form.tsx",
+      "frontend/src/features/auth/session-guard.tsx",
+      "frontend/src/components/shell/app-shell.tsx",
+      "frontend/src/lib/api.ts",
+      "frontend/app/globals.css",
+      "backend auth allow-list (live) + Postgres audit_events + app-db"
+    ],
+    "residual_risks": [
+      "Warehouse/MIS data is out of scope for the shell+login task; the dashboard shows the 'reporting data unavailable' placeholder by design.",
+      "D-0016 (ack live-region announcement) and D-0014 (anonymous root pre-load) are ledgered non-blocking follow-ups."
+    ],
+    "recommendation": "Ship. Shell + login are faithful to the design export and verified end-to-end against the live Postgres-backed backend at both viewports; the two review live-evidence asks are satisfied here.",
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-08T12:53:44+00:00",
+    "commit": "d84db4624b6d50e47ba68ecaea04d79028f3e6b6"
+  }
+}
