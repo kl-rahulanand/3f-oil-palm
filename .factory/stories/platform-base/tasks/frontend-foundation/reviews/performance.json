@@ -1,19 +1,19 @@
 {
   "generated_by": "autoreview",
   "score": 6,
-  "summary": "performance lens over frontend-foundation (26 product path(s), 7d9ab81..3e88424, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. Review passes returned. chunk 1/2: 1 finding(s), chunk 2/2: 1 finding(s). See preserved pass reports for provider conclusions.",
+  "summary": "performance lens over frontend-foundation (26 product path(s), 7d9ab81..a9f23d7, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. Review passes returned. chunk 1/2: 1 finding(s), chunk 2/2: 1 finding(s). See preserved pass reports for provider conclusions.",
   "blocking_findings": [
     {
-      "category": "security",
-      "area": "frontend",
-      "summary": "[P0] Do not ship the App Router on vulnerable Next.js 15.1.6 (frontend/package.json:17): This newly pinned version is affected by CVE-2025-66478."
+      "category": "bug",
+      "area": "frontend/app",
+      "summary": "The referenced Inter font asset is absent from the change (frontend/app/layout.tsx:7): `localFont` requires `app/fonts/InterVariable.woff2`, but the complete changed-file list includes only `OFL.txt` and `PROVENANCE.md` under this directory."
     }
   ],
   "non_blocking_findings": [
     {
       "category": "maintainability",
       "area": "package.json",
-      "summary": "[P2] Avoid compiling the contract twice in every root build (package.json:15): The root `build` runs `build:contract` directly and then invokes `build:frontend`, whose body also starts with `npm run build:contract`."
+      "summary": "[P2] Avoid compiling the contract workspace twice in the aggregate build (package.json:15): `build` first invokes `build:contract` directly and later invokes `build:frontend`, whose body invokes `build:contract` again."
     }
   ],
   "recommendation": "request-changes",
@@ -47,10 +47,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "4c9056df5589118f14dd536b1875beaae8a5a53ea9c01c1503756dfc085c1158",
+  "review_run_id": "8026fb8fd0e58254ed80ef93b0804f758177d53bf25dfa61adfd43ee3a8a3cea",
   "brief_sha256": "a8989ca1f400345929d67ebc4e33f4995d7e420e359dbaf3024bd2304f3ca9c5",
-  "branch_diff_digest": "c744bbd0e1d91991cbad84f3792f8c7288f7f21610051270c997d9843d6f4ed0",
+  "branch_diff_digest": "57ff26976607964fcb5ae8710e26416a51f84f165487b4990068181a4f526331",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T07:30:22+00:00",
-  "commit": "3e88424836129f8f30b53f9c19e9ea5681013794"
+  "recorded_at": "2026-09-08T07:55:13+00:00",
+  "commit": "a9f23d7048292d928936e9d676d89300fc29af01"
 }
