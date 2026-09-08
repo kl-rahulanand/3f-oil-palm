@@ -603,6 +603,58 @@
         "a global exception filter (constitution 07) maps every unhandled exception and existing HttpException to the full standard error payload (errorId, type, user-facing message, sanitized details, http status, correlationId, requestId, environment, timestampUtc) and is wired app-wide via useGlobalFilters",
         "structured JSON logging (constitution 05 \u00a72.1) emits a request record and, on error, a distinct error record, each carrying timestampUtc/level/message/context/environment/serviceName/module/correlationId/accountId/requestId; correlationId accepts a valid inbound x-correlation-id else generates a UUID at ingress",
         "the wiring is proven through configureApp()+app.init() so a test fails if the filter/middleware is not actually installed; decision 0013's handler+logging portion of D-0004 is closed"
+      ],
+      "plan_contracts": [
+        {
+          "id": "t9-c1",
+          "statement": "a global exception filter (constitution 07) maps every unhandled exception and existing HttpException to the full standard error payload (errorId, type, user-facing message, sanitized details, http status, correlationId, requestId, environment, timestampUtc) and is wired app-wide via useGlobalFilters",
+          "source": "constitution/07-exception-handling.md"
+        },
+        {
+          "id": "t9-c2",
+          "statement": "structured JSON logging (constitution 05 \u00a72.1) emits a request record and, on error, a distinct error record, each carrying timestampUtc/level/message/context/environment/serviceName/module/correlationId/accountId/requestId; correlationId accepts a valid inbound x-correlation-id else generates a UUID at ingress",
+          "source": "constitution/05-logging-and-observability.md"
+        },
+        {
+          "id": "t9-c3",
+          "statement": "the wiring is proven through configureApp()+app.init() so a test fails if the filter/middleware is not actually installed; decision 0013's handler+logging portion of D-0004 is closed",
+          "source": "docs/decisions/0013-backend-observability-built-in-poc.md"
+        }
+      ],
+      "write_scope": [
+        "backend/src/common/",
+        "backend/src/main.ts",
+        "backend/src/config.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs",
+        "contract/src/api.ts",
+        "contract/src/index.ts",
+        "docs/specs/app-platform-base.md"
+      ],
+      "required_tests": [
+        {
+          "id": "an unhandled 500 and a guarded 4xx both return the constitution-07 error envelope with every field populated and a generated correlationId, no stack outside Local, proving the filter and middleware are installed via configureApp and app.init",
+          "path": "backend/src/common/error-envelope.wiring.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the request and error log records share the request correlationId and requestId and carry every required field, honoring a valid inbound x-correlation-id and generating a UUID for an absent or invalid one",
+          "path": "backend/src/common/request-logging.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "Normative sources (READ them): constitution/07-exception-handling.md, constitution/05-logging-and-observability.md \u00a72.1-2.2, constitution/06-logger-and-log-transports.md, constitution/03-modular-monolith-structure.md, decision 0013 (docs/decisions/0013-backend-observability-built-in-poc.md), and deferrals D-0010/D-0018/D-0019/D-0020. Nothing observability-related exists yet - build under backend/src/common/ (constitution 03 puts cross-cutting logging/middleware/error handling in common, NOT a new top-level dir). WIRING SEAM: main.ts configureApp(app, cfg) (main.ts:20-27) is the single seam that both bootstrap() and the tests (configureApp+app.init) exercise; register the request-logging middleware and app.useGlobalFilters(new <Filter>(cfg,logger)) BEFORE the `if (!cfg.swaggerEnabled) return;` early-return (main.ts:22) or production is uncovered. MIGRATE main.ts's three console.* calls (bootstrap/listen/fatal, ~main.ts:26) onto the structured logger - that is D-0010's assignment; the recon/pins/migrate console.* stay deferred (D-0009). ERROR ENVELOPE (const 07): { success:false, data:null, error:{ errorId (uuid-v4, LOGGED and returned), code (stable machine code: HttpException->status-derived, validation->VALIDATION_ERROR, unknown->INTERNAL_ERROR), type (exception category), message (STATIC), userMessage (safe static; NEVER a raw 500 message), details (sanitized - only validation fieldErrors; NEVER provider errors/stacks/PII), statusCode (HttpException.getStatus() else 500), correlationId, requestId, environment, timestampUtc } }. Log levels: 4xx (incl. validation 400s) at debug/info, 5xx at error; the sanitized stack goes in the LOG record only, and the response carries a stack ONLY when environment=Local. requestId from req.headers['x-request-id']||null. Align the shape with the health { success, data, error } envelope and contract/src/api.ts ResponseClass. LOG RECORDS (const 05): structured JSON; a request record AND a DISTINCT error record, each with timestampUtc, level, message (static), context (dynamic PII-masked KVs), environment (enum Local|Development|QA|UAT|Staging|Production), serviceName, module, correlationId, accountId (nullable), requestId. Emit the request record on response finish so accountId is populated after AuthGuard sets req.authUser; correlationId = a valid inbound x-correlation-id else a UUID generated at ingress and shared across the response header and BOTH log records. Console/stdout transport is correct for Local (const 06); expose a transport seam - non-Local centralized transport is D-0019, error metrics are D-0018, decorated Swagger error DTOs are D-0020. CONFIG: add environment (mapped to the const-05 enum from ENVIRONMENT||nodeEnv, defined unknown-value behavior) and serviceName (SERVICE_NAME || '3f-backend') to config.ts loadConfig. SHARED TYPES in contract/src/api.ts (barrel index.ts) consumed by the BACKEND filter; the shipped frontend is not required to consume them here. TESTS: mirror backend/src/app.routes.test.ts:10-33 (stub AuthoredMeasureRegistry.prototype.onModuleInit; NestFactory.create(AppModule,{logger:false}); configureApp(app); await app.init(); close in finally); reach Express via app.getHttpAdapter().getInstance(); capture the injected logger. REGISTER both new tests in the backend allow-list: backend/package.json test:hermetic AND tools/quality-gate.test.mjs hermeticTests (else the quality-gate guard fails or the tests never run under verify.py). Test files are transpile-only (D-0007). PROVENANCE: fix docs/specs/app-platform-base.md (~line 154) so observability is attributed to backend-observability, not api-surface-trim (decision 0013 mandated this reconciliation).",
+      "review_budget": {
+        "max_changed_files": 22,
+        "max_changed_lines": 1300,
+        "reason": "Bounded PoC observability slice (decision 0013): global exception filter + structured request/error logging + correlationId under backend/src/common/, the configureApp wiring, main.ts's 3 console.* migrated (D-0010), config environment/serviceName, shared contract types, two hermetic tests registered in the backend allow-list, and the spec provenance fix. Metrics/non-Local transport/Swagger error-DTO are deferred (D-0018/19/20)."
+      },
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check"
       ]
     },
     {
@@ -632,5 +684,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "4c7bcfacdaf47a50b15c3894df08047cb459d48c751d20ab75952e876b52b774",
-  "commit": "36b9d7c973e0d349bc95284de88fb393b1482a8c"
+  "commit": "8c5b8c992390b1b37c075b2af29e9e02e7956900"
 }

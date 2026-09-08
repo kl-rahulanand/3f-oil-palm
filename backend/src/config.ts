@@ -1,6 +1,7 @@
 import { existsSync } from "fs";
 import { resolve } from "path";
 import { config as loadDotenv } from "dotenv";
+import type { Environment } from "@3f/contract";
 
 // Central config, read once from env. No secrets hardcoded.
 for (const path of [
@@ -17,6 +18,8 @@ for (const path of [
 export interface Config {
   port: number;
   nodeEnv: string;
+  environment: Environment;
+  serviceName: string;
   authOtpMock: boolean;
   authJwtSecret: string;
   frontendOrigin: string;
@@ -69,6 +72,19 @@ export interface Config {
 const num = (v: string | undefined, d: number) => (v ? Number(v) : d);
 const bool = (v: string | undefined) => v === "true" || v === "1";
 
+const ENVIRONMENTS: Record<string, Environment> = {
+  local: "Local",
+  development: "Development",
+  qa: "QA",
+  uat: "UAT",
+  staging: "Staging",
+  production: "Production",
+};
+
+export function mapEnvironment(value: string | undefined): Environment {
+  return ENVIRONMENTS[value?.trim().toLowerCase() ?? ""] ?? "Production";
+}
+
 export const DEFAULT_SEED_USERS = "admin@example.invalid|3F Admin|admin";
 
 function parseSeedUsers(value: string | undefined): Config["seedUsers"] {
@@ -109,6 +125,8 @@ export function loadConfig(): Config {
   return {
     port: num(process.env.PORT, 4000),
     nodeEnv,
+    environment: mapEnvironment(process.env.ENVIRONMENT || nodeEnv),
+    serviceName: process.env.SERVICE_NAME?.trim() || "3f-backend",
     authOtpMock,
     authJwtSecret,
     frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://127.0.0.1:3000",

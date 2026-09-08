@@ -1,0 +1,11 @@
+{
+  "event": "open",
+  "id": "Q-0020-62b7",
+  "profile": "degraded",
+  "reason": "Host-apply the T9 re-review's single remaining finding (both quality+security, delegate cannot convey findings): the global-exception filter's error log record writes request.path UNMASKED, bypassing the masking added to the middleware's request record - so a client-controlled path (email/account-id/token, incl. on a 404) persists in structured logs, leaving t9-c2 partial. Export the maskPath helper from request-logging.middleware and reuse it for the filter's error-record path so both records mask identically.",
+  "started_at": "2026-09-08T16:18:14+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "kind": "degraded"
+}
