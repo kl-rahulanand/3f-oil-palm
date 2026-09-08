@@ -1,7 +1,7 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..3b424e6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. VERDICT t8-c1: implemented \u2014 frontend/src/components/shell/app-shell.tsx:28 evidence\nVERDICT t8-c2: implemented \u2014 frontend/src/lib/api.ts:27 evidence\nVERDICT t8-c3: partial \u2014 frontend/src/features/auth/login-form.tsx:13 evidence\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:12 evidence\nLEFTOVERS: clean \u2014 no compatibility-only code is present in the supplied diff.\nThe shell, authentication flow, refresh-once behavior, responsive navigation, and intentionally disabled controls are implemented and reachable in the supplied change. The patch remains incorrect because the normative invalid-code copy is not reproduced exactly.",
+  "score": 8,
+  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..71ef447, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. VERDICT t8-c1: implemented \u2014 frontend/src/components/shell/app-shell.tsx:31 and frontend/app/globals.css:15 implement the reachable token-based shell and responsive drawer.\nVERDICT t8-c2: implemented \u2014 frontend/src/lib/api.ts:28 implements credentialed CSRF-protected requests and refresh-once behavior, consumed by the guarded app layout.\nVERDICT t8-c3: partial \u2014 frontend/src/features/auth/login-form.tsx:43 does not reliably announce the initial acknowledgement, and line 14 differs from the normative copy.\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:12 defines exactly the required five items, with only Dashboard navigable and the remaining controls visibly unavailable.\nLEFTOVERS: none observed.\nThe shell and core authentication flow are reachable and substantially implemented, but the login contract still has two accessibility/copy violations and misclassifies infrastructure failures as invalid OTPs.",
   "blocking_findings": [
     {
       "category": "plan-contract-partial",
@@ -13,7 +13,17 @@
     {
       "category": "bug",
       "area": "frontend/src/features/auth",
-      "summary": "[P2] Use the contractually required invalid-code copy (frontend/src/features/auth/login-form.tsx:13): The normative login contract requires the exact text `That code didn't match - check it or resend.`, but this constant substitutes an em dash."
+      "summary": "[P2] Do not report every verification failure as an invalid OTP (frontend/src/features/auth/login-form.tsx:68): This catch also handles network errors, 5xx responses, CSRF-bootstrap failures, and malformed success responses, but always tells the user that the code did not match."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/auth",
+      "summary": "[P2] Keep the acknowledgement live region mounted before updating it (frontend/src/features/auth/login-form.tsx:43): On the initial Send code success, the acknowledgement is set while the email form is replaced by the code form."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/auth",
+      "summary": "[P2] Use the normative invalid-code copy verbatim (frontend/src/features/auth/login-form.tsx:14): The acceptance contract requires `That code didn't match - check it or resend.`, but this constant substitutes an em dash for the required spaced hyphen."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -48,22 +58,22 @@
     {
       "contract_id": "t8-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:28 evidence"
+      "evidence": "frontend/src/components/shell/app-shell.tsx:31 and frontend/app/globals.css:15 implement the reachable token-based shell and responsive drawer."
     },
     {
       "contract_id": "t8-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/lib/api.ts:27 evidence"
+      "evidence": "frontend/src/lib/api.ts:28 implements credentialed CSRF-protected requests and refresh-once behavior, consumed by the guarded app layout."
     },
     {
       "contract_id": "t8-c3",
       "verdict": "partial",
-      "evidence": "frontend/src/features/auth/login-form.tsx:13 evidence"
+      "evidence": "frontend/src/features/auth/login-form.tsx:43 does not reliably announce the initial acknowledgement, and line 14 differs from the normative copy."
     },
     {
       "contract_id": "t8-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:12 evidence"
+      "evidence": "frontend/src/components/shell/app-shell.tsx:12 defines exactly the required five items, with only Dashboard navigable and the remaining controls visibly unavailable."
     },
     {
       "contract_id": "t1-c1",
@@ -197,10 +207,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "dbc8b18edcda99a1686ff86ac5ba167bdfbccfb188422aeae231d39424e30de8",
+  "review_run_id": "2b200b6e9b2af80b82ae27d453b20f9f31d65a74b4e1e43c733c981ddae01fac",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "0143d60e24feefbb7992a17ca010ca6a23b2c032c3b4a5b4e3c77c257d939477",
+  "branch_diff_digest": "60bc1a55dc5c72f496c634a6f2cc834dbc5fdba1bfa4ed47172ee8c27bb5db48",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:26:09+00:00",
-  "commit": "3b424e62c87d212c97a32cd731f538f3159b3fe7"
+  "recorded_at": "2026-09-08T11:38:39+00:00",
+  "commit": "71ef447d5ea019dffecb477a4c63e19012017f32"
 }

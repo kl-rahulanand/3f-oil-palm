@@ -5,13 +5,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/src/components/ui/button";
-import { api } from "@/src/lib/api";
+import { ApiError, api } from "@/src/lib/api";
 import { sessionQueryKey } from "./session";
 
 const ACK = "If that email has access, a code is on its way.";
 // Load-bearing login copy, verbatim from docs/specs/app-platform-base.md:195.
 // The spec uses an em dash (U+2014); this constant is byte-identical to it.
 const INVALID_CODE = "That code didn't match — check it or resend.";
+const VERIFY_ERROR = "We couldn't verify the code. Try again.";
 
 export function LoginForm() {
   const router = useRouter();
@@ -65,8 +66,11 @@ export function LoginForm() {
       const user = await verifyCode.mutateAsync({ email, code });
       queryClient.setQueryData<AuthUser>(sessionQueryKey, user);
       router.replace("/dashboard");
-    } catch {
-      setMessage(INVALID_CODE);
+    } catch (err) {
+      // otp/verify is not on the refresh path, so a 401 is a genuine bad/expired
+      // code — show the invalid-code copy. Any other failure (5xx, network,
+      // malformed body) is a transport problem, not a wrong code.
+      setMessage(err instanceof ApiError && err.status === 401 ? INVALID_CODE : VERIFY_ERROR);
       setError(true);
       requestAnimationFrame(() => messageRef.current?.focus());
     }
