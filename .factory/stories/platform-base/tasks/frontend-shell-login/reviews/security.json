@@ -1,16 +1,10 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "security lens over frontend-shell-login (22 product path(s), b0b62bc..10f7be4, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The authentication flow generally follows the stated CSRF and refresh contracts, and the bundle contains no apparent credentials or compatibility leftovers. However, logout failures are presented as successful without invalidating the server session, creating a concrete session-persistence risk.",
+  "score": 10,
+  "summary": "security lens over frontend-shell-login (22 product path(s), b0b62bc..528688a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defects are demonstrated by the supplied diff. Protected shell content is gated by the session query, credentialed auth requests use the specified allow-listed endpoints, mutating requests bootstrap and re-read the current CSRF cookie, OTP verification is excluded from refresh handling, and access-token failures perform only one refresh attempt before surfacing failure. No real credentials or compatibility leftovers are present.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "security",
-      "area": "frontend/src/components/shell",
-      "summary": "[P2] Do not treat a failed logout request as successful (frontend/src/components/shell/app-shell.tsx:37): The `onSettled` callback clears the local session and redirects even when `api.logout` fails."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/(app)/dashboard/page.tsx",
     "frontend/app/(app)/layout.tsx",
@@ -39,10 +33,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "79b42c03cb3886b420781be0fb6a1a26a6bf59549dca5d6f5b901f23e37f70d7",
+  "review_run_id": "75e546467a57a4394ee0eb3216609d5189f221a525069a92387a7d7679b59d61",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "8b381346c7e2eec2d45b6093786357ec9c3b26646892fa87de8bee049c827b3d",
+  "branch_diff_digest": "19fb6a1c79095608e5f67779c1dc0f14cfb3b5c680bd84fc8dfb10e982f1dda8",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T10:45:27+00:00",
-  "commit": "10f7be47a4b3c3e1ac950361ebbfd947c0d6cdc5"
+  "recorded_at": "2026-09-08T11:02:29+00:00",
+  "commit": "528688aa9bcd3d0cb6f0218b0789eafb00bb07a2"
 }

@@ -1,18 +1,28 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..10f7be4, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The change introduces two user-visible performance defects: anonymous root navigation is serialized through the protected-route refresh flow, and every desktop shell mount shifts the layout after hydration. No compatibility wrappers, aliases, deprecated branches, or other blocking leftovers are shown in the supplied diff.",
+  "score": 8,
+  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..528688a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 4 non-blocking. The diff introduces concrete request and rendering amplification on core login and shell paths: all mutations gain an extra serial request, unauthenticated root visits detour through the protected dashboard, Resend can fan out concurrent OTP requests, and Dashboard navigation reloads the application. No compatibility leftovers are present in the supplied diff.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
+      "area": "frontend/src/lib",
+      "summary": "Every mutation is delayed by an unconditional CSRF bootstrap request (frontend/src/lib/api.ts:28): Every call to `post()` first awaits `GET /api/auth/csrf`, even when the CSRF cookie already exists."
+    },
+    {
+      "category": "bug",
       "area": "frontend/app",
-      "summary": "Anonymous root visits take a needless protected-route round trip (frontend/app/page.tsx:4): `/` always redirects to `/dashboard` instead of deciding between the shell and `/login`."
+      "summary": "Signed-out root visits unnecessarily load the protected dashboard first (frontend/app/page.tsx:4): The root route unconditionally redirects to `/dashboard`; only after the dashboard client bundle hydrates does `SessionGuard` call `/api/auth/me`, potentially attempt refresh, and redirect an unauthenticated user to `/login`."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/auth",
+      "summary": "Resend permits overlapping OTP request fanout (frontend/src/features/auth/login-form.tsx:137): Unlike the primary submit buttons, the Resend control remains enabled while `requestCode` is pending."
     },
     {
       "category": "bug",
       "area": "frontend/src/components/shell",
-      "summary": "Desktop navigation always causes a post-mount layout shift (frontend/src/components/shell/app-shell.tsx:35): `navOpen` initializes to `false` for every render, while the viewport effect changes it to `true` after mount on desktop."
+      "summary": "Dashboard navigation forces a full application reload (frontend/src/components/shell/app-shell.tsx:97): The active route uses a plain `<a href>` instead of Next's client navigation."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -44,10 +54,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "79b42c03cb3886b420781be0fb6a1a26a6bf59549dca5d6f5b901f23e37f70d7",
+  "review_run_id": "75e546467a57a4394ee0eb3216609d5189f221a525069a92387a7d7679b59d61",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "8b381346c7e2eec2d45b6093786357ec9c3b26646892fa87de8bee049c827b3d",
+  "branch_diff_digest": "19fb6a1c79095608e5f67779c1dc0f14cfb3b5c680bd84fc8dfb10e982f1dda8",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T10:45:27+00:00",
-  "commit": "10f7be47a4b3c3e1ac950361ebbfd947c0d6cdc5"
+  "recorded_at": "2026-09-08T11:02:29+00:00",
+  "commit": "528688aa9bcd3d0cb6f0218b0789eafb00bb07a2"
 }

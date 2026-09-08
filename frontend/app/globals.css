@@ -169,9 +169,14 @@ button {
     color 160ms ease,
     transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-.text-action:focus-visible,
+.text-action:focus-visible {
+  /* Light login card: Emerald is the on-light accent (Mint is forbidden on light). */
+  outline: 2px solid var(--kl-emerald);
+  outline-offset: 2px;
+}
 .nav-toggle:focus-visible,
 .logout-button:focus-visible {
+  /* Deep Forest side-nav (dark): Mint is the on-dark accent with the needed contrast. */
   outline: 2px solid var(--kl-mint);
   outline-offset: 2px;
 }

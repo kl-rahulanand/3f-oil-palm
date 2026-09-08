@@ -1,8 +1,13 @@
 {
   "generated_by": "autoreview",
-  "score": 8,
-  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..10f7be4, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The shell and core authentication flow are substantially implemented, but logout can leave a valid hidden session and two normative login requirements are violated.\nVERDICT t8-c1: implemented \u2014 frontend/app/globals.css:154 and frontend/tailwind.config.ts:14 implement the token-based responsive shell and ink mapping.\nVERDICT t8-c2: partial \u2014 frontend/src/components/shell/app-shell.tsx:37 redirects after failed logout without confirming session invalidation.\nVERDICT t8-c3: partial \u2014 frontend/src/features/auth/login-form.tsx:12 has incorrect required copy, and frontend/src/features/auth/login-form.tsx:133 does not restore OTP-field focus after resend.\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:11 defines exactly five items, with only Dashboard active and the remaining controls rendered unavailable.",
+  "score": 6,
+  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..528688a, Codex via the autoreview skill at --max-priority P2): 1 blocking, 2 non-blocking. The main shell and login flow are reachable, but the expired-session logout path does not perform the required login fallback, and two acceptance-critical login details diverge from the normative contract.\nVERDICT t8-c1: implemented \u2014 frontend/app/(app)/layout.tsx:8 mounts the guarded AppShell on the authenticated route group\nVERDICT t8-c2: partial \u2014 frontend/src/components/shell/app-shell.tsx:40 redirects and clears session state only after successful logout\nVERDICT t8-c3: partial \u2014 frontend/src/features/auth/login-form.tsx:12 differs from the required invalid-code copy, and frontend/app/globals.css:175 uses Mint on a light surface\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:11 defines exactly the five required navigation entries with only Dashboard active\nNo compatibility wrappers, aliases, deprecated branches, or other blocking leftovers are present in the supplied diff.",
   "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/components/shell",
+      "summary": "[P1] Fall back to login when logout remains unauthorized (frontend/src/components/shell/app-shell.tsx:40): Navigation and session-cache clearing occur only in `onSuccess`."
+    },
     {
       "category": "plan-contract-partial",
       "area": "docs/specs/app-platform-base.md",
@@ -16,22 +21,17 @@
   ],
   "non_blocking_findings": [
     {
-      "category": "security",
-      "area": "frontend/src/components/shell",
-      "summary": "Do not report logout complete when the server request fails (frontend/src/components/shell/app-shell.tsx:37): The `onSettled` callback removes the local session and redirects even when `api.logout` rejects, including when the request never reaches the server."
+      "category": "bug",
+      "area": "frontend/src/features/auth",
+      "summary": "[P2] Use the contract's exact invalid-code message (frontend/src/features/auth/login-form.tsx:12): The required load-bearing copy is `That code didn't match - check it or resend.`, but this constant substitutes an em dash."
     },
     {
       "category": "bug",
-      "area": "frontend/src/features/auth",
-      "summary": "Restore focus to the OTP field after resending (frontend/src/features/auth/login-form.tsx:133): The resend handler calls `sendCode` while the component is already on the `code` step."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/src/features/auth",
-      "summary": "Use the required invalid-code text verbatim (frontend/src/features/auth/login-form.tsx:12): The normative, acceptance-critical message is `That code didn't match - check it or resend.`, but this constant substitutes an em dash."
+      "area": "frontend/app",
+      "summary": "[P2] Do not use the Mint focus ring on the white login card (frontend/app/globals.css:175): This shared rule applies `--kl-mint` to `.text-action:focus-visible`, although those controls render on the white login card."
     }
   ],
-  "recommendation": "approve-with-caveats",
+  "recommendation": "request-changes",
   "reviewed_scope": [
     "frontend/app/(app)/dashboard/page.tsx",
     "frontend/app/(app)/layout.tsx",
@@ -63,22 +63,22 @@
     {
       "contract_id": "t8-c1",
       "verdict": "implemented",
-      "evidence": "frontend/app/globals.css:154 and frontend/tailwind.config.ts:14 implement the token-based responsive shell and ink mapping."
+      "evidence": "frontend/app/(app)/layout.tsx:8 mounts the guarded AppShell on the authenticated route group"
     },
     {
       "contract_id": "t8-c2",
       "verdict": "partial",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:37 redirects after failed logout without confirming session invalidation."
+      "evidence": "frontend/src/components/shell/app-shell.tsx:40 redirects and clears session state only after successful logout"
     },
     {
       "contract_id": "t8-c3",
       "verdict": "partial",
-      "evidence": "frontend/src/features/auth/login-form.tsx:12 has incorrect required copy, and frontend/src/features/auth/login-form.tsx:133 does not restore OTP-field focus after resend."
+      "evidence": "frontend/src/features/auth/login-form.tsx:12 differs from the required invalid-code copy, and frontend/app/globals.css:175 uses Mint on a light surface"
     },
     {
       "contract_id": "t8-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:11 defines exactly five items, with only Dashboard active and the remaining controls rendered unavailable."
+      "evidence": "frontend/src/components/shell/app-shell.tsx:11 defines exactly the five required navigation entries with only Dashboard active"
     },
     {
       "contract_id": "t1-c1",
@@ -212,10 +212,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "79b42c03cb3886b420781be0fb6a1a26a6bf59549dca5d6f5b901f23e37f70d7",
+  "review_run_id": "75e546467a57a4394ee0eb3216609d5189f221a525069a92387a7d7679b59d61",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "8b381346c7e2eec2d45b6093786357ec9c3b26646892fa87de8bee049c827b3d",
+  "branch_diff_digest": "19fb6a1c79095608e5f67779c1dc0f14cfb3b5c680bd84fc8dfb10e982f1dda8",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T10:45:27+00:00",
-  "commit": "10f7be47a4b3c3e1ac950361ebbfd947c0d6cdc5"
+  "recorded_at": "2026-09-08T11:02:29+00:00",
+  "commit": "528688aa9bcd3d0cb6f0218b0789eafb00bb07a2"
 }

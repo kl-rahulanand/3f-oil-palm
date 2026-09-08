@@ -6,7 +6,7 @@ import { BarChart3, Bot, ChevronLeft, Compass, LayoutDashboard, LogOut, Menu, Se
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { sessionQueryKey } from "@/src/features/auth/session";
-import { api } from "@/src/lib/api";
+import { ApiError, api } from "@/src/lib/api";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, active: true },
@@ -34,14 +34,20 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
   const [navOpen, setNavOpen] = useState(false);
   const logout = useMutation({
     mutationFn: api.logout,
-    // Only treat the user as signed out once the server has confirmed it: clear
-    // the cached session and route to /login on success. A failed logout leaves
-    // the session intact (the button can be retried) rather than pretending.
-    onSuccess: async () => {
-      queryClient.removeQueries({ queryKey: sessionQueryKey });
-      router.replace("/login");
+    // Land on /login only once the session is actually gone: on a confirmed
+    // logout, or on a 401 that survived the one refresh retry (the session is
+    // already invalid, so the user IS signed out). A non-401 failure leaves the
+    // session intact and the user on the page to retry rather than pretending.
+    onSuccess: () => endSession(),
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 401) endSession();
     },
   });
+
+  function endSession() {
+    queryClient.removeQueries({ queryKey: sessionQueryKey });
+    router.replace("/login");
+  }
 
   useEffect(() => {
     function closeOnEscape(event: KeyboardEvent) {
