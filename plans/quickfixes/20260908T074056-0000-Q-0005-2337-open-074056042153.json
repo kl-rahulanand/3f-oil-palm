@@ -1,0 +1,11 @@
+{
+  "event": "open",
+  "id": "Q-0005-2337",
+  "profile": "degraded",
+  "reason": "Host-fix the review's P0/P1 finding: Next.js 15.1.6 carries multiple critical CVEs (dev-server origin bypass, RSC RCE, cache poisoning, SSRF). Upgrade next + eslint-config-next to the patched 15.5.25 (npm audit fixAvailable, not a semver major, React-19 compatible) and re-freeze package-lock.json. The upgrade needs a registry install the Codex sandbox has no network for \u2014 same host-only pattern as the original seed.",
+  "started_at": "2026-09-08T07:40:56+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "kind": "degraded"
+}
