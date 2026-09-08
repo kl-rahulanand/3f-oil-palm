@@ -669,20 +669,82 @@
         "quality-gate-baseline",
         "api-surface-trim",
         "frontend-foundation",
-        "frontend-shell-login"
+        "frontend-shell-login",
+        "backend-observability"
       ],
       "user_facing": false,
       "acceptance_criteria": [
-        "harness.yaml build/verify/test/lint point at the workspace scripts",
+        ".envrc build/verify/test/lint commands (the FACTORY_STRUCTURAL/TYPECHECK/QUALITY/TEST variables verify.py reads) point at the workspace scripts",
         "FACTORY_STRUCTURAL_CMD explicitly invokes both check_dual_runtime.py and check_vendor_integrity.py, and FACTORY_QUALITY_CMD / FACTORY_TEST_CMD cover all three workspaces",
         "verify.py runs green at the repo root across structure, typecheck, quality and tests",
         "backend/VENDORED_FROM provenance (source repo + exact commit, decision 0008) is asserted separately from harness integrity",
         "the product CI workflow runs root verification on every push"
-      ]
+      ],
+      "plan_contracts": [
+        {
+          "id": "t10-c1",
+          "statement": ".envrc build/verify/test/lint commands (the FACTORY_STRUCTURAL/TYPECHECK/QUALITY/TEST variables verify.py reads) point at the workspace scripts",
+          "source": "docs/specs/app-platform-base.md"
+        },
+        {
+          "id": "t10-c2",
+          "statement": "FACTORY_STRUCTURAL_CMD explicitly invokes both check_dual_runtime.py and check_vendor_integrity.py, and FACTORY_QUALITY_CMD / FACTORY_TEST_CMD cover all three workspaces",
+          "source": "docs/specs/app-platform-base.md"
+        },
+        {
+          "id": "t10-c3",
+          "statement": "verify.py runs green at the repo root across structure, typecheck, quality and tests",
+          "source": "docs/specs/app-platform-base.md"
+        },
+        {
+          "id": "t10-c4",
+          "statement": "backend/VENDORED_FROM provenance (source repo + exact commit, decision 0008) is asserted separately from harness integrity",
+          "source": "docs/specs/app-platform-base.md"
+        },
+        {
+          "id": "t10-c5",
+          "statement": "the product CI workflow runs root verification on every push",
+          "source": "docs/specs/app-platform-base.md"
+        }
+      ],
+      "write_scope": [
+        "contract/package.json",
+        "contract/test/auth-contract.test.ts",
+        "package.json",
+        "tools/quality-gate.test.mjs",
+        "plans/deferrals.md",
+        "docs/specs/app-platform-base.md"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "the quality gate runs all three workspaces and independently pins backend VENDORED_FROM",
+          "path": "tools/quality-gate.test.mjs",
+          "command": "node tools/junit-run.mjs --file {path} --name {id} --report {report}"
+        },
+        {
+          "id": "AuthUser identity is email-based and keeps normalized RBAC fields",
+          "path": "contract/test/auth-contract.test.ts",
+          "command": "TS_NODE_PROJECT=contract/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "The repo-wide gate is already built (quality-gate-baseline created the .envrc FACTORY_* commands + the tools/quality-gate.test.mjs drift guard; frontend-foundation added the frontend workspace; structural already invokes BOTH check_dual_runtime.py and check_vendor_integrity.py; backend/VENDORED_FROM exists; CI quality.yml runs verify:ci on push). This task closes the two real gaps and NOTHING else. (A) FACTORY_TEST_CMD (root test:hermetic) does not run the CONTRACT workspace's tests - add a transpile-only contract `test` script (TS_NODE_PROJECT=contract/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test contract/test/auth-contract.test.ts; test files stay OUT of the build include per D-0007; use the root-hoisted ts-node like the backend does), make the auth-contract import extension-clean (../src/index, not ../src/index.ts), and prepend `npm -w @3f/contract run test` to root test:hermetic (resolve D-0002). (B) NO test asserts criterion 4 - ADD a test to tools/quality-gate.test.mjs named EXACTLY 'the quality gate runs all three workspaces and independently pins backend VENDORED_FROM' that (i) pins the new test:hermetic body covering contract+backend+frontend+guard, and (ii) reads backend/VENDORED_FROM and asserts its repository + commit fields independently of check_vendor_integrity (criterion 4). Criterion 1 refers to .envrc (NOT harness.yaml, which carries no such graph) - reconcile the docs/specs/app-platform-base.md wording to match. verify_commands now run test:hermetic so stage-done proves the aggregate; verify.py must stay green at root with FACTORY_* UNSET so an inherited override cannot false-green. Do NOT touch structural, typecheck/lint/format, or the CI workflow. Keep it minimal - the last task.",
+      "review_budget": {
+        "max_changed_files": 8,
+        "max_changed_lines": 320,
+        "reason": "Minimal final wiring: contract test script + extension-clean import + root test:hermetic inclusion + a guard test that pins the 3-workspace test graph AND validates backend/VENDORED_FROM independently + resolve D-0002 + reconcile the criterion-1 spec wording to .envrc. The rest of the gate was already built incrementally and is unchanged."
+      }
     }
   ],
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "4c7bcfacdaf47a50b15c3894df08047cb459d48c751d20ab75952e876b52b774",
-  "commit": "8c5b8c992390b1b37c075b2af29e9e02e7956900"
+  "commit": "31ca4bee4f04ad5a6a485a1d58e7703ec0465a1e"
 }

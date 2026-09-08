@@ -44,38 +44,29 @@
     {
       "id": "backend-observability",
       "title": "App-wide global exception handler + structured JSON request/error logging",
-      "status": "active",
-      "started_at": "2026-09-08T15:15:26+00:00",
-      "base_sha": "a40b7a1a413d57ead85dde1faeec82097a8eea4a",
-      "dirty_at_start": {
-        ".factory/stories/platform-base/decomposition.json": {
-          "digest": "98716cfb2fc561e9dda6117ae6e2efe46d4148cba70c1fb186277369e8689441",
-          "git": "1 .M N... 100644 100644 100644 c56b36e98d2b651be269cc5c0b767c5016176b9d c56b36e98d2b651be269cc5c0b767c5016176b9d .factory/stories/platform-base/decomposition.json\u0000\u0000100644 c56b36e98d2b651be269cc5c0b767c5016176b9d 0\t.factory/stories/platform-base/decomposition.json\u0000\u0000H .factory/stories/platform-base/decomposition.json\u0000"
-        },
-        ".factory/stories/platform-base/grills/tasks/backend-observability.json": {
-          "digest": "8ff50f20079175f350ba1f24e8d0eeb708eba7849b5c34a82c4616edae2bd5f2",
-          "git": "? .factory/stories/platform-base/grills/tasks/backend-observability.json\u0000\u0000\u0000"
-        },
-        ".factory/stories/platform-base/task-plans/backend-observability.md": {
-          "digest": "a989d89840f8ac250b58722cab61f48e753ee50d13242e3b7cb0eb223a29575b",
-          "git": "? .factory/stories/platform-base/task-plans/backend-observability.md\u0000\u0000\u0000"
-        }
-      },
-      "task_sha256": "91f984bf262cf4103e6620ee77ac37fc35a35967a58545e5fa55f0599dcb8025",
-      "local_review_stamp": {
-        "stage_id": "backend-observability",
-        "task_sha256": "91f984bf262cf4103e6620ee77ac37fc35a35967a58545e5fa55f0599dcb8025",
-        "brief_sha256": "670e9adc1d5a9a627a7b428866fbfd3dc9804c2222c30d002e8905b56408d50d",
-        "base_sha": "a40b7a1a413d57ead85dde1faeec82097a8eea4a",
-        "product_tree_digest": "d279dcbe5c3135e214f2f62752f4c587827212ecff28ed6d0cdb8f28a26ca00e",
-        "recorded_at": "2026-09-08T16:54:54+00:00",
-        "generated_by": "autoreview"
-      }
+      "status": "done"
     },
     {
       "id": "harness-wiring",
       "title": "Harness build/verify wiring",
-      "status": "pending"
+      "status": "active",
+      "started_at": "2026-09-08T17:21:22+00:00",
+      "base_sha": "13e26927e083df757b0c9dbda47c3fc9c38dbc2b",
+      "dirty_at_start": {
+        ".factory/stories/platform-base/decomposition.json": {
+          "digest": "f94e1fc6fdd16aaf5eb83af74b01505c46d5fc9102c25a3ad06b6e5f8e6b7b7e",
+          "git": "1 .M N... 100644 100644 100644 19dcfae1c61812931ba2eafda8f1dca54d04d288 19dcfae1c61812931ba2eafda8f1dca54d04d288 .factory/stories/platform-base/decomposition.json\u0000\u0000100644 19dcfae1c61812931ba2eafda8f1dca54d04d288 0\t.factory/stories/platform-base/decomposition.json\u0000\u0000H .factory/stories/platform-base/decomposition.json\u0000"
+        },
+        ".factory/stories/platform-base/grills/tasks/harness-wiring.json": {
+          "digest": "b1801c624efc4db0d345239b160ff66c959cda53b40436eda4a3f767b9db1e7e",
+          "git": "? .factory/stories/platform-base/grills/tasks/harness-wiring.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/platform-base/task-plans/harness-wiring.md": {
+          "digest": "b1e540b673ed9149a2f10585ecbe7048c6f1c0cbf7882e5efd3ccd22230f9968",
+          "git": "? .factory/stories/platform-base/task-plans/harness-wiring.md\u0000\u0000\u0000"
+        }
+      },
+      "task_sha256": "373813e22e8b89471062313fca4b6268ee2e6c4d2fa42ef2bcfce4e0183e4ab6"
     }
   ]
 }

@@ -70,7 +70,7 @@ const expectedScripts = {
   quality: "npm run lint && npm run format:check",
   "test:frontend": "npm -w @3f/frontend run test",
   "test:hermetic":
-    "npm -w @3f/backend run test:hermetic && npm run test:frontend && node --test tools/quality-gate.test.mjs",
+    "npm -w @3f/contract run test && npm -w @3f/backend run test:hermetic && npm run test:frontend && node --test tools/quality-gate.test.mjs",
   "test:db": "npm -w @3f/backend run test:db",
   "verify:ci": "npm run structural && npm run typecheck && npm run quality && npm run test:hermetic",
 };
@@ -91,6 +91,7 @@ const expectedWorkspaceScripts = {
     lint: 'cd .. && eslint --config eslint.config.mjs "contract/src/**/*.ts" "contract/test/**/*.ts" --no-error-on-unmatched-pattern',
     "format:check":
       'cd .. && prettier --config .prettierrc.json --ignore-path .prettierignore --check "contract/src/**/*.ts" "contract/test/**/*.ts" --no-error-on-unmatched-pattern',
+    test: "cd .. && TS_NODE_PROJECT=contract/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test contract/test/auth-contract.test.ts",
   },
   frontend: {
     build: "NEXT_TELEMETRY_DISABLED=1 next build",
@@ -423,4 +424,20 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
   const [eslintSuccess] = await eslint.lintText(formattingDrift, { filePath: "tools/negative-control.mjs" });
   assert.equal(eslintSuccess.errorCount, 0, "formatting-only drift must pass ESLint");
   assert.equal(await prettier.check(formattingDrift, { filepath: "tools/negative-control.mjs" }), false);
+});
+
+test("the quality gate runs all three workspaces and independently pins backend VENDORED_FROM", () => {
+  const rootScripts = JSON.parse(readFileSync("package.json", "utf8")).scripts;
+  const contractScripts = JSON.parse(readFileSync("contract/package.json", "utf8")).scripts;
+  const provenance = Object.fromEntries(
+    readFileSync("backend/VENDORED_FROM", "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => line.split(/:\s+/, 2)),
+  );
+
+  assert.equal(rootScripts["test:hermetic"], expectedScripts["test:hermetic"]);
+  assert.equal(contractScripts.test, expectedWorkspaceScripts.contract.test);
+  assert.equal(provenance.repository, "https://github.com/knacklabs/mbs-pulse.git");
+  assert.equal(provenance.commit, "e639840b0e01371544d3f5d8f6cac1686c0176c4");
 });
