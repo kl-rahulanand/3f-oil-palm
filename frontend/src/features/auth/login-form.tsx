@@ -9,6 +9,8 @@ import { api } from "@/src/lib/api";
 import { sessionQueryKey } from "./session";
 
 const ACK = "If that email has access, a code is on its way.";
+// Load-bearing login copy, verbatim from docs/specs/app-platform-base.md:195.
+// The spec uses an em dash (U+2014); this constant is byte-identical to it.
 const INVALID_CODE = "That code didn't match — check it or resend.";
 
 export function LoginForm() {
@@ -134,7 +136,12 @@ export function LoginForm() {
             <button className="text-action" type="button" onClick={useDifferentEmail}>
               Use a different email
             </button>
-            <button className="text-action" type="button" onClick={() => void sendCode()}>
+            <button
+              className="text-action"
+              type="button"
+              disabled={requestCode.isPending}
+              onClick={() => void sendCode()}
+            >
               Resend code
             </button>
           </div>

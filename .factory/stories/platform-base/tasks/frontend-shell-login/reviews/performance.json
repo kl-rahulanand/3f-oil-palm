@@ -1,28 +1,13 @@
 {
   "generated_by": "autoreview",
-  "score": 8,
-  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..528688a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 4 non-blocking. The diff introduces concrete request and rendering amplification on core login and shell paths: all mutations gain an extra serial request, unauthenticated root visits detour through the protected dashboard, Resend can fan out concurrent OTP requests, and Dashboard navigation reloads the application. No compatibility leftovers are present in the supplied diff.",
+  "score": 9,
+  "summary": "performance lens over frontend-shell-login (22 product path(s), b0b62bc..f84dc7f, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The patch has a concrete I/O-amplification defect in the resend path: it permits overlapping OTP mutations while the initial submit path explicitly guards against them. No blocking compatibility leftovers are visible in the provided diff.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "frontend/src/lib",
-      "summary": "Every mutation is delayed by an unconditional CSRF bootstrap request (frontend/src/lib/api.ts:28): Every call to `post()` first awaits `GET /api/auth/csrf`, even when the CSRF cookie already exists."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/app",
-      "summary": "Signed-out root visits unnecessarily load the protected dashboard first (frontend/app/page.tsx:4): The root route unconditionally redirects to `/dashboard`; only after the dashboard client bundle hydrates does `SessionGuard` call `/api/auth/me`, potentially attempt refresh, and redirect an unauthenticated user to `/login`."
-    },
-    {
-      "category": "bug",
       "area": "frontend/src/features/auth",
-      "summary": "Resend permits overlapping OTP request fanout (frontend/src/features/auth/login-form.tsx:137): Unlike the primary submit buttons, the Resend control remains enabled while `requestCode` is pending."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/src/components/shell",
-      "summary": "Dashboard navigation forces a full application reload (frontend/src/components/shell/app-shell.tsx:97): The active route uses a plain `<a href>` instead of Next's client navigation."
+      "summary": "[P2] Prevent concurrent resend requests (frontend/src/features/auth/login-form.tsx:137): The resend control remains enabled while `requestCode` is pending, unlike the initial \u201cSend code\u201d button."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -54,10 +39,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "75e546467a57a4394ee0eb3216609d5189f221a525069a92387a7d7679b59d61",
+  "review_run_id": "81313265cfb5592e1dc580057988a22aaa339b7bc933e476f2483667ff5bd028",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "19fb6a1c79095608e5f67779c1dc0f14cfb3b5c680bd84fc8dfb10e982f1dda8",
+  "branch_diff_digest": "685fd168a506a41e1aedfe196e68e01b5ec0cfe2faddc84a05283fa64c60dc13",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:02:29+00:00",
-  "commit": "528688aa9bcd3d0cb6f0218b0789eafb00bb07a2"
+  "recorded_at": "2026-09-08T11:15:45+00:00",
+  "commit": "f84dc7fd2026a73cd0b272c75f416c6b3f82a081"
 }

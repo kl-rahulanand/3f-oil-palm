@@ -1,18 +1,8 @@
 {
   "generated_by": "autoreview",
-  "score": 6,
-  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..528688a, Codex via the autoreview skill at --max-priority P2): 1 blocking, 2 non-blocking. The main shell and login flow are reachable, but the expired-session logout path does not perform the required login fallback, and two acceptance-critical login details diverge from the normative contract.\nVERDICT t8-c1: implemented \u2014 frontend/app/(app)/layout.tsx:8 mounts the guarded AppShell on the authenticated route group\nVERDICT t8-c2: partial \u2014 frontend/src/components/shell/app-shell.tsx:40 redirects and clears session state only after successful logout\nVERDICT t8-c3: partial \u2014 frontend/src/features/auth/login-form.tsx:12 differs from the required invalid-code copy, and frontend/app/globals.css:175 uses Mint on a light surface\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:11 defines exactly the five required navigation entries with only Dashboard active\nNo compatibility wrappers, aliases, deprecated branches, or other blocking leftovers are present in the supplied diff.",
+  "score": 9,
+  "summary": "quality lens over frontend-shell-login (22 product path(s), b0b62bc..f84dc7f, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The shell, authentication flow, and intentionally unavailable navigation are implemented, but the acceptance-critical login copy does not exactly match the normative contract.\nVERDICT t8-c1: implemented \u2014 frontend/src/components/shell/app-shell.tsx:31 evidence\nVERDICT t8-c2: implemented \u2014 frontend/src/lib/api.ts:27 evidence\nVERDICT t8-c3: partial \u2014 frontend/src/features/auth/login-form.tsx:12 evidence\nVERDICT t8-c4: implemented \u2014 frontend/src/components/shell/app-shell.tsx:12 evidence",
   "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/components/shell",
-      "summary": "[P1] Fall back to login when logout remains unauthorized (frontend/src/components/shell/app-shell.tsx:40): Navigation and session-cache clearing occur only in `onSuccess`."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/app-platform-base.md",
-      "summary": "t8-c2: email+OTP login works end-to-end under the spec's local runtime contract: a successful verification lands in the shell, logout returns to /login, and an access-token 401 retries once through POST /api/auth/refresh before falling back to /login. The client (frontend/src/lib/api.ts) uses credentials:'include' against the auth allow-list (GET /api/auth/csrf bootstrap, POST otp/request, POST otp/verify, GET me, POST refresh, POST logout) and sends x-csrf-token re-read from the current 3f_csrf cookie immediately before EVERY mutating request (never cached); server state is TanStack Query (me as a query the route guard reads, otp/logout as mutations that prime/invalidate it)"
-    },
     {
       "category": "plan-contract-partial",
       "area": "docs/specs/app-platform-base.md",
@@ -23,15 +13,10 @@
     {
       "category": "bug",
       "area": "frontend/src/features/auth",
-      "summary": "[P2] Use the contract's exact invalid-code message (frontend/src/features/auth/login-form.tsx:12): The required load-bearing copy is `That code didn't match - check it or resend.`, but this constant substitutes an em dash."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/app",
-      "summary": "[P2] Do not use the Mint focus ring on the white login card (frontend/app/globals.css:175): This shared rule applies `--kl-mint` to `.text-action:focus-visible`, although those controls render on the white login card."
+      "summary": "[P2] Use the required invalid-code copy verbatim (frontend/src/features/auth/login-form.tsx:12): The invalid OTP message uses an em dash, but the normative login contract requires the exact load-bearing string \u201cThat code didn't match - check it or resend.\u201d Tests or acceptance checks matching the specified copy will fail, and the login contract is only partially implemented until this constant uses the required text verbatim."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "frontend/app/(app)/dashboard/page.tsx",
     "frontend/app/(app)/layout.tsx",
@@ -63,22 +48,22 @@
     {
       "contract_id": "t8-c1",
       "verdict": "implemented",
-      "evidence": "frontend/app/(app)/layout.tsx:8 mounts the guarded AppShell on the authenticated route group"
+      "evidence": "frontend/src/components/shell/app-shell.tsx:31 evidence"
     },
     {
       "contract_id": "t8-c2",
-      "verdict": "partial",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:40 redirects and clears session state only after successful logout"
+      "verdict": "implemented",
+      "evidence": "frontend/src/lib/api.ts:27 evidence"
     },
     {
       "contract_id": "t8-c3",
       "verdict": "partial",
-      "evidence": "frontend/src/features/auth/login-form.tsx:12 differs from the required invalid-code copy, and frontend/app/globals.css:175 uses Mint on a light surface"
+      "evidence": "frontend/src/features/auth/login-form.tsx:12 evidence"
     },
     {
       "contract_id": "t8-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:11 defines exactly the five required navigation entries with only Dashboard active"
+      "evidence": "frontend/src/components/shell/app-shell.tsx:12 evidence"
     },
     {
       "contract_id": "t1-c1",
@@ -212,10 +197,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "75e546467a57a4394ee0eb3216609d5189f221a525069a92387a7d7679b59d61",
+  "review_run_id": "81313265cfb5592e1dc580057988a22aaa339b7bc933e476f2483667ff5bd028",
   "brief_sha256": "53755baef7c4bbbffcbeabcb627995f45cd1580b3b5a5ac71c6914211f3bd6eb",
-  "branch_diff_digest": "19fb6a1c79095608e5f67779c1dc0f14cfb3b5c680bd84fc8dfb10e982f1dda8",
+  "branch_diff_digest": "685fd168a506a41e1aedfe196e68e01b5ec0cfe2faddc84a05283fa64c60dc13",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T11:02:29+00:00",
-  "commit": "528688aa9bcd3d0cb6f0218b0789eafb00bb07a2"
+  "recorded_at": "2026-09-08T11:15:44+00:00",
+  "commit": "f84dc7fd2026a73cd0b272c75f416c6b3f82a081"
 }
