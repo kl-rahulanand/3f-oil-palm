@@ -1,32 +1,22 @@
 {
   "generated_by": "autoreview",
-  "score": 6,
-  "summary": "quality lens over backend-observability (11 product path(s), a40b7a1..10ed46d, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. VERDICT t9-c1: partial \u2014 backend/src/common/global-exception.filter.ts:20 only classifies raw ZodError objects as validation failures\nVERDICT t9-c2: partial \u2014 backend/src/common/structured.logger.ts:58 does not reliably sanitize frame-shaped exception message content\nVERDICT t9-c3: implemented \u2014 backend/src/common/error-envelope.wiring.test.ts:18 exercises configureApp()+app.init() and proves middleware/filter wiring\nLEFTOVERS: none visible in the diff.\nThe core observability wiring is present and tested, but validation errors can violate the standard envelope and the stack sanitizer can leak exception message content.",
+  "score": 9,
+  "summary": "quality lens over backend-observability (11 product path(s), a40b7a1..5867dac, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The observability wiring and integration coverage are present, but the global filter violates the error-code contract for every non-validation HTTP 400 response.\nVERDICT t9-c1: partial \u2014 backend/src/common/global-exception.filter.ts:31 maps all HTTP 400 exceptions to validation failures\nVERDICT t9-c2: implemented \u2014 backend/src/common/request-logging.middleware.ts:14 installs correlated request logging, paired with the error logging in the global filter\nVERDICT t9-c3: implemented \u2014 backend/src/common/error-envelope.wiring.test.ts:25 exercises configureApp() followed by app.init()\nLEFTOVERS: none detected.",
   "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/common",
-      "summary": "Validation HttpExceptions are emitted as generic HTTP_400 errors (backend/src/common/global-exception.filter.ts:20): The filter recognizes validation only when the thrown value itself looks like a ZodError."
-    },
     {
       "category": "plan-contract-partial",
       "area": "constitution/07-exception-handling.md",
       "summary": "t9-c1: a global exception filter (constitution 07) maps every unhandled exception and existing HttpException to the full standard error payload (errorId, type, user-facing message, sanitized details, http status, correlationId, requestId, environment, timestampUtc) and is wired app-wide via useGlobalFilters"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "constitution/05-logging-and-observability.md",
-      "summary": "t9-c2: structured JSON logging (constitution 05 \u00a72.1) emits a request record and, on error, a distinct error record, each carrying timestampUtc/level/message/context/environment/serviceName/module/correlationId/accountId/requestId; correlationId accepts a valid inbound x-correlation-id else generates a UUID at ingress"
     }
   ],
   "non_blocking_findings": [
     {
-      "category": "security",
+      "category": "bug",
       "area": "backend/src/common",
-      "summary": "Stack sanitization accepts message text disguised as a frame (backend/src/common/structured.logger.ts:58): Filtering stack lines by the `at ...:line:column` shape does not ensure they are genuine frames."
+      "summary": "[P2] Do not classify every 400 HttpException as validation (backend/src/common/global-exception.filter.ts:31): Every status-400 `HttpException` enters this validation branch, so ordinary domain-level `BadRequestException`s receive `VALIDATION_ERROR`, fabricated field details, and the validation user message."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/common/error-envelope.wiring.test.ts",
@@ -45,17 +35,17 @@
     {
       "contract_id": "t9-c1",
       "verdict": "partial",
-      "evidence": "backend/src/common/global-exception.filter.ts:20 only classifies raw ZodError objects as validation failures"
+      "evidence": "backend/src/common/global-exception.filter.ts:31 maps all HTTP 400 exceptions to validation failures"
     },
     {
       "contract_id": "t9-c2",
-      "verdict": "partial",
-      "evidence": "backend/src/common/structured.logger.ts:58 does not reliably sanitize frame-shaped exception message content"
+      "verdict": "implemented",
+      "evidence": "backend/src/common/request-logging.middleware.ts:14 installs correlated request logging, paired with the error logging in the global filter"
     },
     {
       "contract_id": "t9-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/common/error-envelope.wiring.test.ts:18 exercises configureApp()+app.init() and proves middleware/filter wiring"
+      "evidence": "backend/src/common/error-envelope.wiring.test.ts:25 exercises configureApp() followed by app.init()"
     },
     {
       "contract_id": "t1-c1",
@@ -209,10 +199,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "18ead7727ee47f7707e38883a17469057325c751fd6a663dc9347c5dfb28f158",
+  "review_run_id": "6e66d8cb99ace34fee617cac291a1df0e469b9d8475c69ff946ca52c1046094f",
   "brief_sha256": "70e9d18e7d1edc2db8a6a770defb0ba794db490418804572921783eb81b33d56",
-  "branch_diff_digest": "127bced2cc1d077a43eb6b2078de5d0da8d0237fc9fa04b3e959a4f0d4f41490",
+  "branch_diff_digest": "2ec31f0d7dad32a28174499e4b3223279b2a450927e10ea66d7e240486c79024",
   "residual_risks": [],
-  "recorded_at": "2026-09-08T16:44:41+00:00",
-  "commit": "10ed46dc05b1ca1af70b589bc9fdaaa7508a81a8"
+  "recorded_at": "2026-09-08T16:53:00+00:00",
+  "commit": "5867dac2567361cdf7f8ffbc22f94a7e97395231"
 }
