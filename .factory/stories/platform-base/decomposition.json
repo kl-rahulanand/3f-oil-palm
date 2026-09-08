@@ -476,17 +476,17 @@
       ],
       "required_tests": [
         {
-          "id": "the ported _ds theme exposes every KnackLabs token the design system defines and the button consumes them",
+          "id": "keeps set-level token parity with the approved _ds source",
           "path": "frontend/src/theme/tokens.test.ts",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         },
         {
-          "id": "the frontend loads Inter via next/font/local and references no Google font",
+          "id": "uses the provenance-pinned Inter variable font",
           "path": "frontend/src/theme/font.test.ts",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         },
         {
-          "id": "the app tree is wrapped in a TanStack Query provider",
+          "id": "provides a QueryClient to descendants",
           "path": "frontend/src/app/providers.test.tsx",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         }
@@ -555,5 +555,5 @@
   "project": "3oilpalm",
   "epic": "platform",
   "plan_sha256": "4c7bcfacdaf47a50b15c3894df08047cb459d48c751d20ab75952e876b52b774",
-  "commit": "e631e501a7b0f59dc97d1546bcb4d5778f7f0ebf"
+  "commit": "4af83545c38ef611a8f9204528074dee070388e9"
 }

@@ -47,11 +47,11 @@
       "task_sha256": "d044e91101d94bddf3d21c25fbbdaa2d20e81b63f6bb01929e0e8a64604725f4",
       "local_review_stamp": {
         "stage_id": "frontend-foundation",
-        "task_sha256": "d044e91101d94bddf3d21c25fbbdaa2d20e81b63f6bb01929e0e8a64604725f4",
-        "brief_sha256": "656307f22b9f4b02cfa9f9ac48d75685c7e40fa5ed0dca5d5de6494c9e066b7d",
+        "task_sha256": "98d86be9542ad6ae3ef909d3697c8786165514ca10d07da26715caf06027044f",
+        "brief_sha256": "",
         "base_sha": "a2e00dff8146cc93ae6205d79fb6d434633dab5c",
         "product_tree_digest": "dbf7d3e58fefa590912d6e3398b889f1577e26e40480c76adc75bda894926f00",
-        "recorded_at": "2026-09-08T07:06:27+00:00",
+        "recorded_at": "2026-09-08T07:08:41+00:00",
         "generated_by": "autoreview"
       }
     },
