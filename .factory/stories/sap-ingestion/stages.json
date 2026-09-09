@@ -4,7 +4,38 @@
     {
       "id": "warehouse-schema",
       "title": "Warehouse schema + write path + gold view",
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-09-09T05:41:52+00:00",
+      "base_sha": "8402960df6992693900a72d30ab638a97a92fdc9",
+      "dirty_at_start": {
+        ".factory/events/41c54ee1652c4b3394943331599a1a3f.json": {
+          "digest": "7fe3815a9dbfceb4d9449214d38a6d60f7d81e575bcb97fd2a15ffafe689deda",
+          "git": "? .factory/events/41c54ee1652c4b3394943331599a1a3f.json\u0000\u0000\u0000"
+        },
+        ".factory/stories/sap-ingestion/decomposition.json": {
+          "digest": "a35d9730f3958bf10c488a5f281f91f9e6358cd3b71106f816759f3188959cde",
+          "git": "1 .M N... 100644 100644 100644 d9ecec13f5de229acfb4318b2ea92dc417aefb04 d9ecec13f5de229acfb4318b2ea92dc417aefb04 .factory/stories/sap-ingestion/decomposition.json\u0000\u0000100644 d9ecec13f5de229acfb4318b2ea92dc417aefb04 0\t.factory/stories/sap-ingestion/decomposition.json\u0000\u0000H .factory/stories/sap-ingestion/decomposition.json\u0000"
+        },
+        ".factory/stories/sap-ingestion/grills/tasks/warehouse-schema.json": {
+          "digest": "2b64666bd2b8646165d8ffa75b133bf6669a37cb7277004002a7c301277f1055",
+          "git": "1 .M N... 100644 100644 100644 09cf7b9fab3ed0de97951534ebb4b6f57b9af0f3 09cf7b9fab3ed0de97951534ebb4b6f57b9af0f3 .factory/stories/sap-ingestion/grills/tasks/warehouse-schema.json\u0000\u0000100644 09cf7b9fab3ed0de97951534ebb4b6f57b9af0f3 0\t.factory/stories/sap-ingestion/grills/tasks/warehouse-schema.json\u0000\u0000H .factory/stories/sap-ingestion/grills/tasks/warehouse-schema.json\u0000"
+        },
+        "plans/roadmap.json": {
+          "digest": "7ad84ed712bbc4ff99651fa21cea6d9ea155078365e8e20861e750a63749ec6a",
+          "git": "1 .M N... 100644 100644 100644 bf6dcd89c09b78d9fffe17e318eb032038af46ec bf6dcd89c09b78d9fffe17e318eb032038af46ec plans/roadmap.json\u0000\u0000100644 bf6dcd89c09b78d9fffe17e318eb032038af46ec 0\tplans/roadmap.json\u0000\u0000H plans/roadmap.json\u0000"
+        }
+      },
+      "task_sha256": "b6c2d957e521e36ef3a5d49b2dc2ce4bec159c71a8167aad0772876234387b1c",
+      "local_review_stamp": {
+        "stage_id": "warehouse-schema",
+        "task_sha256": "b6c2d957e521e36ef3a5d49b2dc2ce4bec159c71a8167aad0772876234387b1c",
+        "brief_sha256": "4342ee42afd4b441b6862f0f454532aa34e4df938ee0a15f2bf9eb0b6ae31882",
+        "base_sha": "8402960df6992693900a72d30ab638a97a92fdc9",
+        "product_tree_digest": "8014a3e3d2f98243746b8e120a316a0bb7c3dbdc5f1f5f6eea66fce92b098063",
+        "recorded_at": "2026-09-09T08:31:33+00:00",
+        "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-09T08:32:03+00:00"
     },
     {
       "id": "actuals-loader",

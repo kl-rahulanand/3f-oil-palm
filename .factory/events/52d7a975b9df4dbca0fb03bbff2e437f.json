@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-09T07:17:23+00:00", "story": "sap-ingestion", "detail": "The required committed DB-backed warehouse proof needs backend/src/warehouse/warehouse-proof.db.test.ts because quality-gate enforces each test file belongs to exactly one suite, but that mechanically"}

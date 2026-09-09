@@ -1,0 +1,36 @@
+{
+  "generated_by": "autoreview",
+  "score": 9,
+  "summary": "performance lens over warehouse-schema (12 product path(s), 8402960..21a92e4, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The schema and repository satisfy the visible atomic-switch and indexing contracts, and no compatibility leftovers are present. However, both period-integrity triggers turn each whole-file load into an avoidable per-row lookup workload, creating production-scale query amplification on the primary ingestion path.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/drizzle-warehouse",
+      "summary": "[P2] Validate batch periods once per chunk instead of once per row (backend/drizzle-warehouse/0000_solid_ken_ellis.sql:89): This `FOR EACH ROW` trigger executes the `SELECT period FROM ingest_batch` in `enforce_sap_transaction_batch_period()` separately for every transaction inserted; the budget trigger repeats the same pattern."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse.config.ts",
+    "backend/drizzle-warehouse/0000_solid_ken_ellis.sql",
+    "backend/drizzle-warehouse/meta/0000_snapshot.json",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/drizzle-warehouse/seed-proof.sql",
+    "backend/package.json",
+    "backend/src/config.ts",
+    "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/warehouse-migrate.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "8722cef0443b0f490a94311181cf3403f7b237362fa45d04093dc16836dd3c56",
+  "brief_sha256": "7f126bfec9881fb5fc591701c7b1ca4a6758717bb2c73684def09248e62f11b9",
+  "branch_diff_digest": "42c5d5d088025ca37a5bee60fd906687cff441de030b88b0875cfe2451e52e0d",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T08:28:54+00:00",
+  "commit": "21a92e4d35b5b90bdc76d499ef9098ddfa16669d"
+}

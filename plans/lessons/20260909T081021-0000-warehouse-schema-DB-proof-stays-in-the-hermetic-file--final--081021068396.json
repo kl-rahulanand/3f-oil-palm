@@ -1,0 +1,13 @@
+{
+  "topic": "warehouse-schema DB proof stays in the hermetic file (final)",
+  "lesson": "SUPERSEDES the separate-file guidance for warehouse-schema: its write_scope does NOT include warehouse-proof.db.test.ts, so do NOT create that file. Keep the DB proof test INSIDE backend/src/warehouse/warehouse-schema.test.ts gated by WAREHOUSE_DB_TEST=1 (skips under plain test:hermetic, runs the migrate + IngestionRepository proof when the env + WAREHOUSE_PG_* are set), registered ONLY in test:hermetic. REMOVE warehouse-schema.test.ts from the test:db script and the db-list in tools/quality-gate.test.mjs, and drop the WAREHOUSE_DB_TEST env added to test:db \u2014 quality-gate requires each test file in exactly ONE suite and fails verify otherwise. This is the ONLY remaining fix.",
+  "source": ".factory/stories/sap-ingestion/tasks/warehouse-schema/reviews/quality.json",
+  "applies_to": [
+    "backend/src/warehouse/**",
+    "backend/package.json",
+    "tools/quality-gate.test.mjs"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-09T08:10:21+00:00"
+}

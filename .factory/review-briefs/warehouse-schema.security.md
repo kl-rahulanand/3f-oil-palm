@@ -1,7 +1,19 @@
-# Branch-wide plan-contract review brief
+# Review brief — warehouse-schema — security lens
 
-For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
 
+LENS: SECURITY. OWASP-style trust boundaries, authentication and authorization
+(every new route/handler: who may call it, with what scope), secrets and
+credential handling, injection (SQL/command/template), data exposure and
+over-broad responses, unsafe defaults, privilege escalation, and abuse paths.
+Use category `security` for these findings.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
 ## Task warehouse-schema
 
 ### Plan contracts
@@ -34,33 +46,3 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] warehouse D-0008 proof must be a recorded test: The D-0008 live warehouse proof must be a COMMITTED, reviewer-visible DB-backed test (e.g. backend/src/warehouse/warehouse-proof.db.test.ts calling proveWarehouse, registered in the backend package.json test:db script) so the required execution is provable from the diff itself — a tests.json narrative alone is invisible to the cold-diff reviewer and reads as an absent D-0008 record.
 - [high] warehouse D-0008 proof test must be a separate DB-only file: Put the DB-backed warehouse proof in its OWN file backend/src/warehouse/warehouse-proof.db.test.ts registered ONLY in test:db (and the db list of tools/quality-gate.test.mjs); keep warehouse-schema.test.ts hermetic-only. NEVER register one test file in both test:hermetic and test:db — tools/quality-gate.test.mjs asserts exactly one suite per file and fails the whole verify if a file appears twice.
 - [high] warehouse-schema DB proof stays in the hermetic file (final): SUPERSEDES the separate-file guidance for warehouse-schema: its write_scope does NOT include warehouse-proof.db.test.ts, so do NOT create that file. Keep the DB proof test INSIDE backend/src/warehouse/warehouse-schema.test.ts gated by WAREHOUSE_DB_TEST=1 (skips under plain test:hermetic, runs the migrate + IngestionRepository proof when the env + WAREHOUSE_PG_* are set), registered ONLY in test:hermetic. REMOVE warehouse-schema.test.ts from the test:db script and the db-list in tools/quality-gate.test.mjs, and drop the WAREHOUSE_DB_TEST env added to test:db — quality-gate requires each test file in exactly ONE suite and fails verify otherwise. This is the ONLY remaining fix.
-
-## Task actuals-loader
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-## Task budget-loader
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-## Task reconciliation-proof
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.

@@ -1,0 +1,39 @@
+{
+  "commit": "288b19af0073135bce0baad1d709e254de6b5e35",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Warehouse schema + write path + gold view, after the three-lens review fix loop (all 5 blocking + 1 non-blocking resolved). Hermetic test (warehouse-schema.test.ts, no DB) asserts the schema/repository/migration/guard shape. The DB-backed D-0008 proof lives IN the same file gated by WAREHOUSE_DB_TEST=1 (skips under plain test:hermetic; runs the real migrate + IngestionRepository.replaceActualsBatch atomic-flip proof when the env + WAREHOUSE_PG_* are set), registered in ONE suite (test:hermetic) so quality-gate's one-suite invariant holds. Config guard is now async DNS-resolution based: resolveHost() looks up both the warehouse host and the app pg host and rejects when their resolved IP sets intersect at the same port (normalizing ::ffff:/IPv6/loopback), closing DNS-alias and IPv6-mapped bypasses string matching missed. DB triggers enforce sap_transaction.month = ingest_batch.period and mis_budget.period = batch period (no cross-period double-count). Whole-file inserts chunk at 1000/insert inside the atomic transaction. DEMONSTRATED host evidence (D-0008) against docker warehouse-db (127.0.0.1:5433): npm warehouse:proof exit 0 (repository-exercised 110.25 then 999.00 replacement, rolled back, no leftover state); the gated test passes host-side with WAREHOUSE_DB_TEST=1. Negative control: warehouse:migrate with an app-endpoint alias is rejected. verify.py green; quality-gate 2/0.",
+    "pass_fail_summary": "hermetic: pass; gated DB proof (WAREHOUSE_DB_TEST=1): pass; npm warehouse:proof: exit 0; guard alias negative control: rejected; verify.py: passed; quality-gate: pass",
+    "blocking_findings": [],
+    "remaining_gaps": [],
+    "tests_added_or_updated": [
+      "backend/src/warehouse/warehouse-schema.test.ts (hermetic schema/guard/trigger assertions + WAREHOUSE_DB_TEST=1-gated DB proof exercising IngestionRepository; test:hermetic only)",
+      "backend/drizzle-warehouse/0000_solid_ken_ellis.sql (period-guard + immutability triggers)",
+      "backend/src/warehouse/warehouse-migrate.ts (proveWarehouse + warehouse:proof)"
+    ],
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "node --test tools/quality-gate.test.mjs -> pass 2 fail 0",
+      "WAREHOUSE_PG_* npm --prefix backend run warehouse:proof -> Warehouse proof complete (exit 0)",
+      "WAREHOUSE_PG_* WAREHOUSE_DB_TEST=1 node --test backend/src/warehouse/warehouse-schema.test.ts -> pass 1 fail 0",
+      "negative control: app-endpoint alias -> warehouse:migrate REJECTED (must be separate)"
+    ],
+    "reviewed_scope": [
+      "backend/src/warehouse/warehouse-schema.ts",
+      "backend/src/warehouse/ingestion.repository.ts",
+      "backend/src/warehouse/warehouse-migrate.ts",
+      "backend/drizzle-warehouse/0000_solid_ken_ellis.sql",
+      "backend/src/warehouse/warehouse-schema.test.ts",
+      "backend/src/config.ts",
+      "backend/package.json",
+      "tools/quality-gate.test.mjs"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-09T08:33:49+00:00",
+    "commit": "288b19af0073135bce0baad1d709e254de6b5e35"
+  },
+  "updated_at": "2026-09-09T08:33:49+00:00"
+}
