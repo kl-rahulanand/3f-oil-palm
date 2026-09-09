@@ -193,6 +193,7 @@
         "backend/src/ingest/ingest.schemas.ts",
         "backend/src/ingest/workbook-guard.ts",
         "backend/src/ingest/sap-actuals.parser.ts",
+        "backend/src/ingest/sap-actuals.parser.test.ts",
         "backend/src/ingest/mis-budget.parser.ts",
         "backend/src/ingest/mis-budget.parser.test.ts",
         "backend/src/ingest/ingest.controller.test.ts",
@@ -249,5 +250,5 @@
     }
   ],
   "plan_sha256": "da8019faf7fbec0b73239f154080e4a3dd324b5a502cdb712bd3c6ba3d076417",
-  "commit": "19f3297fdf037ee6f14dd5a6afba3546382e95fb"
+  "commit": "f2f8bee16ab80e5ea786d0789a97435d52d85e24"
 }

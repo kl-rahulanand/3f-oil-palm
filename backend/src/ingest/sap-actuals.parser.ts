@@ -2,14 +2,7 @@ import { Workbook, type Cell, type CellValue, type Row, type Worksheet } from "e
 import { z } from "zod";
 import { MAX_ACTUALS_ROWS } from "./ingest.schemas";
 import { canonicalPlant } from "./plant-mapping";
-import {
-  assertWorkbookArchiveWithinLimits,
-  WorkbookArchiveLimitError as SapActualsArchiveLimitError,
-  WorkbookRowLimitError as SapActualsRowLimitError,
-} from "./workbook-guard";
-
-export { WorkbookArchiveLimitError as SapActualsArchiveLimitError } from "./workbook-guard";
-export { WorkbookRowLimitError as SapActualsRowLimitError } from "./workbook-guard";
+import { assertWorkbookArchiveWithinLimits, WorkbookArchiveLimitError, WorkbookRowLimitError } from "./workbook-guard";
 
 export const SAP_ACTUALS_REQUIRED_HEADERS = [
   "Transaction Number",
@@ -63,7 +56,7 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
     await assertWorkbookArchiveWithinLimits(buffer, rowLimit);
     await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
   } catch (error) {
-    if (error instanceof SapActualsArchiveLimitError || error instanceof SapActualsRowLimitError) throw error;
+    if (error instanceof WorkbookArchiveLimitError || error instanceof WorkbookRowLimitError) throw error;
     throw validationError([issue(["file"], "Workbook is not a readable .xlsx file")]);
   }
 
@@ -88,7 +81,7 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
     if (Object.values(raw).every((value) => value === "")) continue;
     dataRowCount += 1;
     if (dataRowCount > rowLimit) {
-      throw new SapActualsRowLimitError(rowLimit);
+      throw new WorkbookRowLimitError(rowLimit);
     }
 
     const rowIssues: z.ZodIssue[] = [];
@@ -192,7 +185,7 @@ function findHeader(worksheets: Worksheet[]): LocatedHeader | undefined {
         const name = cellText(cell);
         if (!name) return;
         if (rawColumns.length === MAX_RAW_COLUMNS) {
-          throw new SapActualsArchiveLimitError(`Workbook exceeds ${MAX_RAW_COLUMNS} source columns`);
+          throw new WorkbookArchiveLimitError(`Workbook exceeds ${MAX_RAW_COLUMNS} source columns`);
         }
         if (!columns.has(name)) columns.set(name, column);
         const count = (counts.get(name) ?? 0) + 1;

@@ -15,7 +15,8 @@ import { migrateWarehouse } from "../warehouse/warehouse-migrate";
 import { MAX_ACTUALS_UPLOAD_BYTES } from "./ingest.schemas";
 import { IngestService, type UploadedWorkbook } from "./ingest.service";
 import type { ParsedMisBudget } from "./mis-budget.parser";
-import { type ParsedSapActuals, SapActualsArchiveLimitError, SapActualsRowLimitError } from "./sap-actuals.parser";
+import type { ParsedSapActuals } from "./sap-actuals.parser";
+import { WorkbookArchiveLimitError, WorkbookRowLimitError } from "./workbook-guard";
 
 const HEADERS = [
   "#",
@@ -322,13 +323,13 @@ class RecordingIngestService extends IngestService {
 
 class RowLimitIngestService extends RecordingIngestService {
   protected override parseWorkbook(): Promise<ParsedSapActuals> {
-    return Promise.reject(new SapActualsRowLimitError(25_000));
+    return Promise.reject(new WorkbookRowLimitError(25_000));
   }
 }
 
 class ArchiveLimitIngestService extends RecordingIngestService {
   protected override parseWorkbook(): Promise<ParsedSapActuals> {
-    return Promise.reject(new SapActualsArchiveLimitError("archive limit"));
+    return Promise.reject(new WorkbookArchiveLimitError("archive limit"));
   }
 }
 

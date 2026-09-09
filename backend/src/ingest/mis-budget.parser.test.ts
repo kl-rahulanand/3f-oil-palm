@@ -3,6 +3,7 @@ import test from "node:test";
 import { Workbook, type CellValue, type Worksheet } from "exceljs";
 import { z } from "zod";
 import { parseMisBudgetWorkbook } from "./mis-budget.parser";
+import { WorkbookRowLimitError } from "./workbook-guard";
 
 test("the MIS budget parser identifies Table-2 by its required header set, extracts the Budget and Roll Over Budget columns of every first-of-month date block present for GL line rows, skips component group rows and the YTD and FY blocks, accepts a formula cell's cached numeric result and rejects one with no cache, stores amounts as paise and every field as provided, and rejects duplicate grain, a GL row missing its S.No or component, and a workbook with no GL rows before any write", async () => {
   const parsed = await parseMisBudgetWorkbook(
@@ -23,8 +24,8 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
         glCode: "50001202",
         aprilBudget: -1,
         aprilRollover: { formula: "A1", result: 0.125 },
-        mayBudget: 3,
-        mayRollover: 4,
+        mayBudget: 1.005,
+        mayRollover: { formula: "A1", result: -0.125 },
       });
     }),
   );
@@ -76,8 +77,8 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
             lineId: "1.2",
             glCode: "50001202",
             costCenter: "Land Levelling",
-            budgetAmount: "3.00",
-            rolloverAmount: "4.00",
+            budgetAmount: "1.01",
+            rolloverAmount: "-0.13",
           },
         ],
       },
@@ -123,6 +124,25 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
       addBudgetTable(sheet);
     }),
     ["rows"],
+  );
+
+  await assert.rejects(
+    parseMisBudgetWorkbook(
+      await workbookBuffer((sheet) => {
+        addBudgetTable(sheet);
+        addGlRow(sheet, 6, {
+          lineId: "1.1",
+          component: "Imported Sprouts",
+          glCode: "50001201",
+          aprilBudget: 1,
+          aprilRollover: 0,
+          mayBudget: 1,
+          mayRollover: 0,
+        });
+      }),
+      1,
+    ),
+    (error: unknown) => error instanceof WorkbookRowLimitError && error.limit === 1,
   );
 });
 

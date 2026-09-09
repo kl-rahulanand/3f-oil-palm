@@ -57,7 +57,7 @@
   "open_items": [],
   "rounds": [
     {
-      "question": "Criterion 3 promises a budget upload replaces only its (format / period / canonical plant), but the shipped batch key is (source_kind, period) \u2014 format and plant aren't part of the active-batch switch. For this PoC (one nursery MIS format, one plant DUB) how should isolation work?",
+      "question": "Re-confirming the budget-loader isolation decision (needed to re-record the grill after extending write_scope to fix the review's alias-leftover finding). For this PoC (one nursery MIS format, one plant DUB), how should budget isolation work?",
       "options": [
         "PoC-scope it: (budget, period) key (Rec.)",
         "Extend the key now"
@@ -109,13 +109,13 @@
     }
   ],
   "summary": "One cold read returned ten findings. Nine are repository/decision-answerable and resolved in the amended contract + plan (the real 'Roll Over Budget' header, every present month block rather than exactly twelve, cached-formula semantics that never silently zero an uncached cell, an explicit one-outer-transaction mechanism with a rollback test, preflight rejections, a pinned D-0008 host command, the jszip guard extracted to a shared workbook-guard.ts, an explicit per-period response, and a wording fix). The one genuine product decision - that criterion 3's (format/period/plant) isolation exceeds the shipped (source_kind, period) key - went to the human, who PoC-scoped it to (budget, period) and deferred multi-plant isolation. Verdict pass.",
-  "input_sha256": "6b7fb646624efda9ef1b8099ad765c47b51643105d406897a51219a3f55dc922",
+  "input_sha256": "f80a68f8add4648dc64a95558c85972935d532282a4ff11e7ff3c28e67e0bd7c",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "ae2dfaaafd8133ec734af429b5c6745754307e88ede009b5f09d5bc9d3c14019",
-  "recorded_at": "2026-09-09T15:34:53+00:00",
-  "commit": "19f3297fdf037ee6f14dd5a6afba3546382e95fb",
+  "recorded_at": "2026-09-09T16:48:44+00:00",
+  "commit": "f2f8bee16ab80e5ea786d0789a97435d52d85e24",
   "approved_task_plan_sha256": "ae2dfaaafd8133ec734af429b5c6745754307e88ede009b5f09d5bc9d3c14019",
-  "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-09T15:36:21+00:00"
+  "approved_by": "kl-rahulanand",
+  "approved_at": "2026-09-09T16:57:50+00:00"
 }

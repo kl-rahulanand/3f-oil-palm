@@ -64,7 +64,7 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
     const glCode = cellText(row.getCell(requiredColumn(table, "GL Codes")));
     if (!glCode) continue;
     glRowCount += 1;
-    if (glRowCount > rowLimit) throw new WorkbookRowLimitError(rowLimit);
+    if (glRowCount * periods.length > rowLimit) throw new WorkbookRowLimitError(rowLimit);
 
     const lineId = cellText(row.getCell(requiredColumn(table, "S. No.")));
     const costCenter = cellText(row.getCell(requiredColumn(table, "Budget Components")));
@@ -189,12 +189,13 @@ function parseMoney(cell: Cell, row: number, column: string, issues: z.ZodIssue[
 }
 
 function numericPaise(value: number, row: number, column: string, issues: z.ZodIssue[]): bigint | undefined {
-  const rounded = Math.round(value * 100);
+  const scaled = Math.abs(value) * 100;
+  const rounded = Math.round(scaled + Math.min(Number.EPSILON * scaled, 1e-7));
   if (!Number.isFinite(value) || !Number.isSafeInteger(rounded)) {
     issues.push(issue(["rows", row, column], `${column} must be numeric`));
     return undefined;
   }
-  return boundedPaise(BigInt(rounded), row, column, issues);
+  return boundedPaise(BigInt(value < 0 ? -rounded : rounded), row, column, issues);
 }
 
 function boundedPaise(value: bigint, row: number, column: string, issues: z.ZodIssue[]): bigint | undefined {
