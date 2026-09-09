@@ -1,11 +1,23 @@
 {
   "generated_by": "autoreview",
   "task_id": "reconciliation-proof",
-  "score": 10,
-  "summary": "security lens over reconciliation-proof (5 product path(s), 512c6d4..648e7a9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0-P2 security defect is demonstrated by the diff. The reconciliation helper is read-only, uses an injected pool and parameterized SQL, introduces no route or authorization boundary, and exposes no credentials. The fixture loader is used only with repository/test-controlled paths in the shown change. No compatibility wrappers, aliases, deprecated branches, or other blocking leftovers are present.",
-  "blocking_findings": [],
-  "non_blocking_findings": [],
-  "recommendation": "approve",
+  "score": 6,
+  "summary": "security lens over reconciliation-proof (5 product path(s), 512c6d4..4e95e33, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The reconciliation query is parameterized and read-only, and the diff contains no compatibility leftovers or exposed credentials. However, the proof can destructively reset an arbitrary configured warehouse without enforcing the required disposable-local target, and the quality-gate change weakens an explicit suite-registration invariant.",
+  "blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src/warehouse",
+      "summary": "[P1] Guard the destructive warehouse reset against non-local databases (backend/src/warehouse/reconciliation.repository.test.ts:110): The proof unconditionally truncates `ingest_batch` and `sap_transaction` (with `CASCADE`, potentially clearing dependent warehouse data such as budgets) immediately after opening whichever database the caller supplies through `WAREHOUSE_PG_*`."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "regression",
+      "area": "tools",
+      "summary": "[P2] Preserve the quality gate's exactly-one-suite check (tools/quality-gate.test.mjs:315): Converting the expected test list to a `Set` removes duplicate registrations before comparison."
+    }
+  ],
+  "recommendation": "request-changes",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
@@ -15,10 +27,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "fec47d2a3fa8a42bfed0d3727eadf6bf8308bc4e2a8ff1c862875992c9373b60",
-  "brief_sha256": "5a7321743dae839146e2abd1e85c09b4777806f138f0f737b38631d94064e04e",
+  "review_run_id": "f944f4f8d2246b7e84d5eb02f598b9738372c51adf5f8bd97a1d71bae7691f09",
+  "brief_sha256": "180ac68a790d8427972202387751319a25f1b6ebf0438e0599c1d56a2bacafae",
   "branch_diff_digest": "d8e09efc2c80431909741be812a4caaab75d8ed2a5ec4e7689b624db5c4e5cee",
   "residual_risks": [],
-  "recorded_at": "2026-09-09T19:22:23+00:00",
-  "commit": "648e7a9ab00b28ae79b4abd4ef14cd620089bfd6"
+  "recorded_at": "2026-09-09T19:37:20+00:00",
+  "commit": "4e95e33b9a94cd123961d309c7169da829eff56c"
 }

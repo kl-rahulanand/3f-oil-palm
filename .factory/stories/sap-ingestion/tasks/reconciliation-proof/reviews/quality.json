@@ -2,13 +2,13 @@
   "generated_by": "autoreview",
   "task_id": "reconciliation-proof",
   "score": 9,
-  "summary": "quality lens over reconciliation-proof (5 product path(s), 512c6d4..648e7a9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The reconciliation implementation and its registered executable proof satisfy both plan contracts, but the unrelated weakening of the quality gate is an actionable regression.\nVERDICT t-rp-c1: implemented \u2014 backend/src/warehouse/reconciliation.repository.test.ts:122 evidence\nVERDICT t-rp-c2: implemented \u2014 backend/src/warehouse/reconciliation.repository.test.ts:124 evidence\nNo compatibility leftovers are visible in the supplied diff.",
+  "summary": "quality lens over reconciliation-proof (5 product path(s), 512c6d4..4e95e33, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The reconciliation repository, frozen fixture, hermetic coverage, and executable DB-backed proof implement the requested behavior, but the unrelated quality-gate change removes enforcement that every backend test belongs to exactly one primary suite. No compatibility leftovers are present.\nVERDICT t-rp-c1: implemented \u2014 backend/src/warehouse/reconciliation.repository.test.ts:122 demonstrates the raw/gold reconciliation against the frozen expectation\nVERDICT t-rp-c2: implemented \u2014 backend/src/warehouse/reconciliation.repository.test.ts:126 performs the replacement ingest before verifying retained and active batches",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "regression",
       "area": "tools",
-      "summary": "[P2] Preserve detection of tests registered in multiple suites (tools/quality-gate.test.mjs:315): Wrapping the declared test lists in `new Set` removes the gate's existing ability to detect a file listed in both `dbTests` and `hermeticTests`: the filesystem list is unique, so the previous array comparison deliberately failed on duplicate registrations."
+      "summary": "[P2] Preserve duplicate suite detection in the quality gate (tools/quality-gate.test.mjs:316): Converting the expected test list to a `Set` removes the gate's existing exactly-one-suite check."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -24,12 +24,12 @@
     {
       "contract_id": "t-rp-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:122 evidence"
+      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:122 demonstrates the raw/gold reconciliation against the frozen expectation"
     },
     {
       "contract_id": "t-rp-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:124 evidence"
+      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:126 performs the replacement ingest before verifying retained and active batches"
     },
     {
       "contract_id": "t-ws-c1",
@@ -101,6 +101,6 @@
   "brief_sha256": "180ac68a790d8427972202387751319a25f1b6ebf0438e0599c1d56a2bacafae",
   "branch_diff_digest": "d8e09efc2c80431909741be812a4caaab75d8ed2a5ec4e7689b624db5c4e5cee",
   "residual_risks": [],
-  "recorded_at": "2026-09-09T19:31:06+00:00",
-  "commit": "648e7a9ab00b28ae79b4abd4ef14cd620089bfd6"
+  "recorded_at": "2026-09-09T19:37:20+00:00",
+  "commit": "4e95e33b9a94cd123961d309c7169da829eff56c"
 }

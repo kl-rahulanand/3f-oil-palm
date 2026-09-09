@@ -100,10 +100,15 @@ test("the frozen july-dub-reconciliation fixture pins plant DUB, period 2026-07-
   }
 });
 
+test("the destructive warehouse proof refuses a non-local warehouse host", () => {
+  assert.throws(() => assertLocalWarehouseHost("warehouse.shared.example"), /refuses a non-local warehouse/);
+});
+
 test(
   "WAREHOUSE_DB_TEST reconciles the frozen July DUB workbook and proves whole-upload idempotent replacement",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async () => {
+    assertLocalWarehouseHost(process.env.WAREHOUSE_PG_HOST);
     await migrateWarehouse();
     const pool = await createWarehouseWritePool();
     try {
@@ -153,6 +158,13 @@ test(
     }
   },
 );
+
+function assertLocalWarehouseHost(host: string | undefined): void {
+  assert.ok(
+    host === "127.0.0.1" || host === "::1" || host === "localhost",
+    "WAREHOUSE_DB_TEST refuses a non-local warehouse before destructive reconciliation setup",
+  );
+}
 
 function syntheticWarehouse(batches: SyntheticBatch[], transactions: SyntheticTransaction[]): Pick<Pool, "query"> {
   return {
