@@ -1,7 +1,7 @@
 {
   "id": "budget-loader",
   "title": "MIS budget loader (separate object, as-provided)",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-09T15:36:58+00:00",
   "base_sha": "19f3297fdf037ee6f14dd5a6afba3546382e95fb",
   "dirty_at_start": {
@@ -18,7 +18,7 @@
       "git": "? .factory/stories/sap-ingestion/task-plans/budget-loader.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "6cc99adacfac5b1470bd8e2a471e827a45cb72d6401ab2f7912cc1a24b3d61c0",
+  "task_sha256": "6ecfea8e8c112924e75944bd5b1bc388c0fab3d91049b4ba3a59f3091fe87458",
   "local_review_stamp": {
     "stage_id": "budget-loader",
     "task_sha256": "6ecfea8e8c112924e75944bd5b1bc388c0fab3d91049b4ba3a59f3091fe87458",
@@ -32,5 +32,21 @@
       "performance",
       "security"
     ]
+  },
+  "completed_at": "2026-09-09T17:44:43+00:00",
+  "measured": {
+    "strays": [],
+    "files": 14,
+    "lines": 1246,
+    "budget": {
+      "files": 16,
+      "lines": 1300
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-09T17:44:43+00:00",
+    "from": "6cc99adacfac5b1470bd8e2a471e827a45cb72d6401ab2f7912cc1a24b3d61c0",
+    "to": "6ecfea8e8c112924e75944bd5b1bc388c0fab3d91049b4ba3a59f3091fe87458"
   }
 }
