@@ -15,7 +15,10 @@
         "3oilpalm harness machinery intact (dual-runtime + vendor integrity clean)"
       ],
       "order": 1,
-      "status": "active"
+      "status": "done",
+      "completed_at": "2026-09-09T02:19:19+00:00",
+      "history": ".factory/stories/platform-base/",
+      "outcome": "The 3F platform base is shipped end-to-end (all 10 platform-base tasks merged to master, CI green): a vendored NestJS backend on a separate Postgres warehouse with cookie-based email/OTP auth, a trimmed loopback-hardened API allow-list, app-wide observability (a governed constitution-07 error envelope + structured JSON request/error logging correlated by correlationId), a Next.js App Router frontend shell + two-step email/OTP login faithful to the imported 3F design and _ds tokens, and a repo-wide quality gate across all three workspaces (contract+backend+frontend) with dual-runtime + vendor-integrity checks and CI verify on every push. A user can sign in to the shell; the factory can build, verify, and ship the next epic on a green, guarded foundation."
     },
     {
       "key": "sap-ingestion",
@@ -166,5 +169,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-08T15:43:51+00:00"
+  "updated_at": "2026-09-09T02:19:19+00:00"
 }
