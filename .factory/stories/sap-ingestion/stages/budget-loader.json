@@ -18,5 +18,19 @@
       "git": "? .factory/stories/sap-ingestion/task-plans/budget-loader.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "6cc99adacfac5b1470bd8e2a471e827a45cb72d6401ab2f7912cc1a24b3d61c0"
+  "task_sha256": "6cc99adacfac5b1470bd8e2a471e827a45cb72d6401ab2f7912cc1a24b3d61c0",
+  "local_review_stamp": {
+    "stage_id": "budget-loader",
+    "task_sha256": "6ecfea8e8c112924e75944bd5b1bc388c0fab3d91049b4ba3a59f3091fe87458",
+    "brief_sha256": "63b5dc97d285d7b7dd1fa4d470be84309e3ba24db2c2fb6f34ed0743c76e37b8",
+    "base_sha": "19f3297fdf037ee6f14dd5a6afba3546382e95fb",
+    "product_tree_digest": "7de94a44a64a1c1aeb56a99a5ca72911362a6d5ef6fb0b4957de0b7458b0028d",
+    "recorded_at": "2026-09-09T17:44:01+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  }
 }
