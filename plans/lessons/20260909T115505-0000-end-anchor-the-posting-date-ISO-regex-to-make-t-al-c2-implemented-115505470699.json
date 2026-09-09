@@ -1,0 +1,11 @@
+{
+  "topic": "end-anchor the posting-date ISO regex to make t-al-c2 implemented",
+  "lesson": "In sap-actuals.parser.ts END-ANCHOR the posting-date ISO validation regex (add a trailing $) so a string cell like '2026-07-15garbage' is REJECTED with a rows.<n>.<column> diagnostic, not silently normalized to 2026-07-15. An unanchored /^\\d{4}-\\d{2}-\\d{2}/ accepts trailing junk - that is exactly what the review marks as t-al-c2 'partial'. A criterion verdict must be 'implemented', never 'partial', to ship (task-proof 0049).",
+  "source": ".factory/stories/sap-ingestion/tasks/actuals-loader/reviews/quality.json",
+  "applies_to": [
+    "backend/src/ingest/sap-actuals.parser.ts"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-09T11:55:05+00:00"
+}

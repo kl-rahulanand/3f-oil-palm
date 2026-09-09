@@ -389,7 +389,7 @@ function parsePostingDate(cell: Cell): string | undefined {
   }
   if (typeof value !== "string") return undefined;
 
-  const iso = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const iso = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) return validParts(Number(iso[1]), Number(iso[2]), Number(iso[3]));
   const dmy = value.trim().match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   return dmy ? validParts(Number(dmy[3]), Number(dmy[2]), Number(dmy[1])) : undefined;
