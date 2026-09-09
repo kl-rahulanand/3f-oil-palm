@@ -219,6 +219,13 @@ def main() -> None:
              "base); `stage start` pins the reopened stage to it so the diff is the "
              "task's real delta, not an empty diff from today's HEAD",
     )
+    p_task_reopen.add_argument(
+        "--review-fix", action="store_true",
+        help="reopen a done stage for review fixes only: it goes back to active "
+             "with its base, contract and plan approval intact and only the "
+             "stage-local review stamp dropped — delegate the fixes, restamp, "
+             "`stage done`, `review` again",
+    )
     p_task_reopen.add_argument("--repo")
     p_task_reopen.set_defaults(func=tasks_mod.cmd_task_reopen)
     p_task_reconcile = task_sub.add_parser(
@@ -520,10 +527,10 @@ def main() -> None:
 
     p_st = sub.add_parser("stage", help="per-task execution tracker (.factory/stages.json)")
     st_sub = p_st.add_subparsers(dest="stage_command", required=True)
-    p_ss = st_sub.add_parser("start", help="begin a stage (order-enforced)")
+    p_ss = st_sub.add_parser(
+        "start", help="begin a stage (dependencies done; a second active stage "
+                      "is allowed when the write scopes are disjoint)")
     p_ss.add_argument("id", help="stage id from the recorded decomposition")
-    p_ss.add_argument("--parallel", action="store_true",
-                      help="unsupported: tasks are sequential inside one story worktree")
     p_ss.add_argument(
         "--trunk", action="store_true",
         help="run this stage on the trunk's tree instead of a task worktree; "
@@ -602,6 +609,16 @@ def main() -> None:
     p_review.add_argument(
         "--skill", help="path to the autoreview helper (default: $AUTOREVIEW "
                         "or ~/.codex/skills/autoreview/scripts/autoreview)")
+    p_review.add_argument(
+        "--reject", metavar="MATCH",
+        help="do not run: move the one recorded blocking finding of --lens whose "
+             "text contains MATCH into rejected_findings because it contradicts an "
+             "accepted contract (--reason, --cite required); ledgers the contract "
+             "as a lesson and stamps the stage when no lens blocks any more")
+    p_review.add_argument("--reason", help="with --reject: why it is not a defect")
+    p_review.add_argument(
+        "--cite", help="with --reject: the decision, plan line or sealed contract")
+    p_review.add_argument("--by", help="with --reject: the recording agent")
     p_review.add_argument("--repo")
     p_review.set_defaults(func=review_mod.cmd_review)
 
