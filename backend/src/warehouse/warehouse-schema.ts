@@ -66,6 +66,7 @@ export const sapTransaction = pgTable(
     credit: numeric("credit", { precision: 18, scale: 2 }).notNull(),
     memo: text("memo"),
     reference: text("reference"),
+    raw: jsonb("raw").$type<Record<string, string>>().notNull().default({}),
     createdAtUtc: timestamp("created_at_utc", { withTimezone: true }).notNull().defaultNow(),
     updatedAtUtc: timestamp("updated_at_utc", { withTimezone: true }).notNull().defaultNow(),
   },

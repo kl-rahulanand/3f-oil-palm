@@ -44,6 +44,13 @@ export interface ErrorEnvelope {
   error: ErrorPayload;
 }
 
+/** POST /api/ingest/actuals */
+export interface IngestActualsResponse {
+  batchId: string;
+  period: string;
+  rowCount: number;
+}
+
 export const emptyBodySchema = z.object({}).strict();
 
 /** POST /api/auth/otp/request */

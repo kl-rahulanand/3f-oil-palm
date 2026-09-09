@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-09T09:15:04+00:00", "story": "sap-ingestion", "detail": "The required constitution-07 error envelope must carry sanitized {row,column,message} diagnostics, but backend/src/common/global-exception.filter.ts rewrites every 400 into generic {field,reason} entr"}

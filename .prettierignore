@@ -35,7 +35,6 @@ backend/src/core/session.service.test.ts
 backend/src/core/session.service.ts
 backend/src/db/migrate.test.ts
 backend/src/db/migrate.trim.test.ts
-backend/src/db/migrate.ts
 backend/src/db/schema.ts
 backend/src/email/email.service.ts
 backend/src/grants/grants.controller.ts

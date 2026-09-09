@@ -25,6 +25,7 @@ test("only the sanctioned allow-list is registered and unowned capability routes
       "POST /api/auth/otp/request",
       "POST /api/auth/otp/verify",
       "POST /api/auth/refresh",
+      "POST /api/ingest/actuals",
     ]);
   } finally {
     AuthoredMeasureRegistry.prototype.onModuleInit = originalInit;

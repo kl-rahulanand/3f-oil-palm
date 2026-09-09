@@ -1,0 +1,147 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "actuals-loader",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "actuals-loader adds POST /api/ingest/actuals (a new backend/src/ingest module, guarded by AuthGuard + a new 'ingest' grant seeded to admin, in the route allow-list): a multipart .xlsx is parsed by header set from the SAP Report sheet, every row validated before any write (single period from Posting Date), Actual netted as Debit-Credit at paise, DUB-NUR normalized to DUB (plant + plant_src kept), line_id = Line_Id || the '#' row number, and the whole source row stored in a new raw jsonb column; the ingest service then calls the REUSED IngestionRepository.replaceActualsBatch once with full uploader metadata, making a new active ingest_batch and retaining the prior. One additive warehouse migration (the raw column); no read-port change, no budget join, no allocation (0004/0014).",
+  "inspected_refs": [
+    "docs/context/2026-08-20-srihari-phase1-data/README.md",
+    "docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/grants/grants.constants.ts",
+    "backend/src/auth/auth.guard.ts",
+    "backend/src/saved/saved.controller.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/package.json",
+    "package-lock.json",
+    "plans/active/sap-ingestion-ingest-sap-actuals-budgets.md",
+    "docs/decisions/0014-sap-ingestion-poc-no-master.md"
+  ],
+  "new_abstractions": [
+    "the backend/src/ingest module (guarded multipart controller + service)",
+    "the SAP actuals header-identified parser (paise netting, single-period, Line_Id||# identity)",
+    "the DUB-NUR->DUB plant-mapping constant",
+    "the 'ingest' RBAC action grant seeded to admin",
+    "the additive raw jsonb column + migration on sap_transaction"
+  ],
+  "criteria_map": {
+    "POST /api/ingest/actuals is guarded by AuthGuard + a new 'ingest' RBAC action grant and is added to the strict route allow-list, with a typed multipart DTO, Swagger success/error/auth docs, and CSRF/forbidden tests": "KEEP. POST /api/ingest/actuals guarded by AuthGuard + a NEW 'ingest' grant (added to GRANT_ACTIONS AND seeded to admin in db/migrate.ts baseRolePerms so it is obtainable), added to the app.routes.test.ts allow-list, typed multipart DTO (field 'file', 15MB/25k-row caps, 413), raw typed response matching saved/pins, CSRF + forbidden tests (findings 6,8,9).",
+    "the loader identifies the sheet by its required HEADER set (not file/sheet name), requires a single posting month, validates ALL rows before any write, and rejects invalid/mixed-period files with row-level diagnostics and NO change to the active batch": "KEEP (amended). Sheet identified by its required HEADER set (dup 'Comments' + blank leads tolerated); the single period is derived from Posting Date (the 'Month' cell is only 'Jul' - display only); ALL rows validated before ANY write; invalid/mixed-period -> row-level diagnostics {row,column,message}[] with NO write (findings 3,8).",
+    "each row nets Actual = Debit - Credit at paise and applies the DUB-NUR->DUB normalization from the provided SAP Entries Mapping.xlsx; raw lines + original AND canonical keys are retained linked to a new ingest_batch": "KEEP (amended). Actual = Debit - Credit at paise numeric(18,2) strings; DUB-NUR->DUB documented constant (accept all other plants, no allow-list per 0014); plant + plant_src both retained; line_id = Line_Id || the '#' row number (298 blank-Line_Id rows); the FULL raw row retained in a new 'raw' jsonb column (additive migration) - all source+drill fields kept (findings 1,2,4,5).",
+    "a re-upload of a period is idempotent: a new ingest_batch becomes active and the prior batch is retained (not erased), with no duplicate rows": "KEEP. A re-upload makes a NEW active ingest_batch and RETAINS the prior; replaceActualsBatch is called once with full metadata (uploadedBy/validationResult/reconciliationResult) + pool lifecycle; 'no duplicate rows' = unique within a batch via UNIQUE(batch_id,txn_no,line_id) (findings 7,12)."
+  },
+  "gaps": [
+    "The SAP Report has 298 blank Line_Id values (incl. 6 DUB-NUR) while sap_transaction.line_id is NOT NULL and part of the per-batch unique key - the full July load cannot be represented",
+    "The story requires all source + drill fields retained (ShortName, both Comments, Origin, Loc.) but sap_transaction has nowhere to persist them",
+    "Period validation was underspecified: the Month cell is only 'Jul' yet the period must be 2026-07-01; mixed years could be accepted",
+    "'Known plant' validation conflicts with no-master/full-batch: 31 plants, only DUB-NUR has a rule, and there is no catalogue to validate against",
+    "The mapping was claimed to come from Sheet1 but the plan implements a hard-coded constant with no read/validate mechanism",
+    "Changing only GRANT_ACTIONS seeds no role the 'ingest' grant (db/migrate.ts baseRolePerms), so the grant is unobtainable after a normal migrate",
+    "The writer contract was incomplete: replaceActualsBatch also needs uploadedBy/validationResult/reconciliationResult and the createWarehouseDb(pool)/pool lifecycle",
+    "The multipart contract omitted the form-field name, file count, byte/row caps, limit-error status, and a safe row-diagnostic shape",
+    "The planned raw success body contradicted the codebase's response convention and the diagnostics were disconnected from the global error envelope",
+    "The evidence plan did not prove the service boundary (validate-all-before-write, uploader metadata, exactly one repository call) and left the gated DB test unnamed",
+    "Adding exceljs changes root package-lock.json, which was absent from write_scope, so npm ci would not install it",
+    "'No duplicate rows' had no scope - re-upload intentionally retains the prior batch so rows repeat across batches"
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "HUMAN-decided: line_id = SAP Line_Id when present, else the SAP '#' row number (a unique immutable source identity) - keeps NOT NULL + UNIQUE and lets the full 4,113-line July load succeed; no nullable schema change.",
+    "HUMAN-decided: add a 'raw' jsonb column to sap_transaction via a NEW additive migration (backend/drizzle-warehouse/0001_*.sql) storing the whole source row; warehouse-schema.ts + its hermetic test extended; read-only port untouched.",
+    "Period = first-of-month derived from Posting Date; every row must match the single period; the 'Month' token is validated for consistency but never parsed for the period.",
+    "Accept every nonblank source plant unchanged EXCEPT DUB-NUR -> DUB; no catalogue/allow-list (0014 no-master).",
+    "DUB-NUR -> DUB is a single documented constant in plant-mapping.ts (the only nursery rule); the full Sheet1 mapping belongs to governed-joins, out of scope here.",
+    "Seed { role: 'admin', action: 'ingest' } in db/migrate.ts baseRolePerms (write_scope +) so the grant is obtainable after a normal migrate.",
+    "Specified full CandidateBatchMetadata (period, uploadedBy = authenticated app-user id, validationResult = the row/period validation summary, reconciliationResult = {}) and the createWarehouseWritePool -> createWarehouseDb -> IngestionRepository -> pool.end lifecycle.",
+    "Specified: field name 'file', exactly one .xlsx, 15MB byte cap + 25,000 row cap, 413 on exceed, and sanitized {row, column, message}[] diagnostics carried by the global constitution-07 error envelope.",
+    "Return a raw typed IngestActualsResponse (matches saved/pins - there is NO success-envelope wrapper here); diagnostics flow through the existing global error envelope.",
+    "Added ingest.service.test.ts (validate every row before any write, NO repository call on invalid, exactly ONE replaceActualsBatch with uploader metadata - repository mocked) and named the WAREHOUSE_DB_TEST=1-gated DB proof (ingest.service.test.ts, one suite, host command).",
+    "Added package-lock.json to write_scope so the exceljs dependency reproduces under npm ci.",
+    "'No duplicate rows' scoped to unique WITHIN a batch (UNIQUE(batch_id,txn_no,line_id) + whole-file-per-period grain); across batches rows intentionally repeat (retention)."
+  ],
+  "open_items": [],
+  "rounds": [
+    {
+      "question": "The story requires ALL source + drill fields retained, but the shipped sap_transaction schema has no columns for ShortName / Comments / Origin / Loc. How should actuals-loader retain them?",
+      "options": [
+        "Add a raw jsonb column (Rec.)",
+        "Core fields now, defer the rest"
+      ],
+      "chosen": "Add a raw jsonb column (Rec.)",
+      "frontier_empty": false
+    },
+    {
+      "question": "298 SAP rows (incl. 6 nursery/DUB-NUR) have a blank Line_Id but a unique SAP row number (`#`). The schema's key is UNIQUE(batch_id, txn_no, line_id) NOT NULL. How to identify these rows?",
+      "options": [
+        "Use the `#` row number (Rec.)",
+        "Reject blank-Line_Id rows"
+      ],
+      "chosen": "Use the `#` row number (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The SAP Report has 298 blank Line_Id values (incl. 6 DUB-NUR) while sap_transaction.line_id is NOT NULL and part of the per-batch unique key - the full July load cannot be represented",
+      "source": "backend/src/warehouse/warehouse-schema.ts:56; docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx"
+    },
+    {
+      "finding": "The story requires all source + drill fields retained (ShortName, both Comments, Origin, Loc.) but sap_transaction has nowhere to persist them",
+      "source": "plans/active/sap-ingestion-ingest-sap-actuals-budgets.md:51; backend/src/warehouse/warehouse-schema.ts:48"
+    },
+    {
+      "finding": "Period validation was underspecified: the Month cell is only 'Jul' yet the period must be 2026-07-01; mixed years could be accepted",
+      "source": ".factory/stories/sap-ingestion/task-plans/actuals-loader.md; docs/context/2026-08-20-srihari-phase1-data/README.md"
+    },
+    {
+      "finding": "'Known plant' validation conflicts with no-master/full-batch: 31 plants, only DUB-NUR has a rule, and there is no catalogue to validate against",
+      "source": "docs/context/2026-08-20-srihari-phase1-data/README.md; docs/decisions/0014-sap-ingestion-poc-no-master.md"
+    },
+    {
+      "finding": "The mapping was claimed to come from Sheet1 but the plan implements a hard-coded constant with no read/validate mechanism",
+      "source": ".factory/stories/sap-ingestion/task-plans/actuals-loader.md"
+    },
+    {
+      "finding": "Changing only GRANT_ACTIONS seeds no role the 'ingest' grant (db/migrate.ts baseRolePerms), so the grant is unobtainable after a normal migrate",
+      "source": "backend/src/db/migrate.ts:18; plans/active/sap-ingestion-ingest-sap-actuals-budgets.md:120"
+    },
+    {
+      "finding": "The writer contract was incomplete: replaceActualsBatch also needs uploadedBy/validationResult/reconciliationResult and the createWarehouseDb(pool)/pool lifecycle",
+      "source": "backend/src/warehouse/ingestion.repository.ts:38"
+    },
+    {
+      "finding": "The multipart contract omitted the form-field name, file count, byte/row caps, limit-error status, and a safe row-diagnostic shape",
+      "source": ".factory/stories/sap-ingestion/task-plans/actuals-loader.md"
+    },
+    {
+      "finding": "The planned raw success body contradicted the codebase's response convention and the diagnostics were disconnected from the global error envelope",
+      "source": "backend/src/saved/saved.controller.ts; constitution/07-exception-handling.md"
+    },
+    {
+      "finding": "The evidence plan did not prove the service boundary (validate-all-before-write, uploader metadata, exactly one repository call) and left the gated DB test unnamed",
+      "source": "backend/src/warehouse/warehouse-schema.test.ts:171"
+    },
+    {
+      "finding": "Adding exceljs changes root package-lock.json, which was absent from write_scope, so npm ci would not install it",
+      "source": "package-lock.json"
+    },
+    {
+      "finding": "'No duplicate rows' had no scope - re-upload intentionally retains the prior batch so rows repeat across batches",
+      "source": "backend/src/warehouse/warehouse-schema.ts:74"
+    }
+  ],
+  "summary": "One cold read returned twelve findings. Ten are repository/story-answerable and resolved in the amended contract + plan (period from Posting Date, accept-all-plants with a DUB-NUR->DUB constant, seed the 'ingest' grant to admin, full writer metadata + pool lifecycle, concrete multipart limits + 413, raw typed response matching saved/pins, an added service test + a named gated DB proof, package-lock.json in scope, and unique-within-a-batch dedup). The two genuine product decisions went to the human, who chose to add a raw jsonb column for full-fidelity retention and to use the SAP '#' row number as the source identity for the 298 blank-Line_Id rows. Verdict pass.",
+  "input_sha256": "9d4a35009b4d6322b532a7a19df73e5ed2ff27f2e78bab0afd6cdcd11f07e9a9",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "5ff4375511e4e1e07b2ab0cb3c5ca922cbacd0d70c30ddbec214dbcee0fb7889",
+  "recorded_at": "2026-09-09T09:07:02+00:00",
+  "commit": "66cc8b83589aaa2a265b98d0c4e09e11755746c9",
+  "approved_task_plan_sha256": "5ff4375511e4e1e07b2ab0cb3c5ca922cbacd0d70c30ddbec214dbcee0fb7889",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-09T09:08:39+00:00"
+}

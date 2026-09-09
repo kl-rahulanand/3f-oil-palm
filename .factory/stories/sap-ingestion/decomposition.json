@@ -81,7 +81,81 @@
         "the loader identifies the sheet by its required HEADER set (not file/sheet name), requires a single posting month, validates ALL rows before any write, and rejects invalid/mixed-period files with row-level diagnostics and NO change to the active batch",
         "each row nets Actual = Debit - Credit at paise and applies the DUB-NUR->DUB normalization from the provided SAP Entries Mapping.xlsx; raw lines + original AND canonical keys are retained linked to a new ingest_batch",
         "a re-upload of a period is idempotent: a new ingest_batch becomes active and the prior batch is retained (not erased), with no duplicate rows"
-      ]
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-al-c1",
+          "statement": "POST /api/ingest/actuals is guarded by AuthGuard + a new 'ingest' RBAC action grant and is added to the strict route allow-list, with a typed multipart DTO, Swagger success/error/auth docs, and CSRF/forbidden tests",
+          "source": "docs/architecture/30-financial-mis-build-plan.md"
+        },
+        {
+          "id": "t-al-c2",
+          "statement": "the loader identifies the sheet by its required HEADER set (not file/sheet name), requires a single posting month, validates ALL rows before any write, and rejects invalid/mixed-period files with row-level diagnostics and NO change to the active batch",
+          "source": "docs/specs/sap-financial-ingestion.md"
+        },
+        {
+          "id": "t-al-c3",
+          "statement": "each row nets Actual = Debit - Credit at paise and applies the DUB-NUR->DUB normalization from the provided SAP Entries Mapping.xlsx; raw lines + original AND canonical keys are retained linked to a new ingest_batch",
+          "source": "docs/context/2026-08-20-srihari-phase1-data/README.md"
+        },
+        {
+          "id": "t-al-c4",
+          "statement": "a re-upload of a period is idempotent: a new ingest_batch becomes active and the prior batch is retained (not erased), with no duplicate rows",
+          "source": "docs/architecture/30-financial-mis-build-plan.md"
+        }
+      ],
+      "write_scope": [
+        "backend/src/ingest/ingest.module.ts",
+        "backend/src/ingest/ingest.controller.ts",
+        "backend/src/ingest/ingest.service.ts",
+        "backend/src/ingest/ingest.schemas.ts",
+        "backend/src/ingest/sap-actuals.parser.ts",
+        "backend/src/ingest/plant-mapping.ts",
+        "backend/src/ingest/ingest.controller.test.ts",
+        "backend/src/ingest/ingest.service.test.ts",
+        "backend/src/ingest/sap-actuals.parser.test.ts",
+        "backend/src/warehouse/warehouse-schema.ts",
+        "backend/drizzle-warehouse/",
+        "backend/src/db/migrate.ts",
+        "backend/src/app.module.ts",
+        "backend/src/app.routes.test.ts",
+        "backend/src/grants/grants.constants.ts",
+        "backend/package.json",
+        "package-lock.json",
+        "tools/quality-gate.test.mjs",
+        "contract/src/api.ts"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "POST /api/ingest/actuals is guarded by AuthGuard plus the ingest action grant, appears in the strict route allow-list, rejects a CSRF-less or forbidden request, and documents its multipart DTO",
+          "path": "backend/src/ingest/ingest.controller.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the SAP actuals parser identifies the sheet by its required header set, tolerates blank lead rows and the duplicate Comments column, derives a single period from Posting Date, validates every row before any write, nets Actual as Debit minus Credit at paise, uses the row number as the source identity when Line_Id is blank, and normalizes DUB-NUR to DUB keeping original and canonical keys plus the full raw row",
+          "path": "backend/src/ingest/sap-actuals.parser.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the ingest service validates every parsed row before any write, rejects an invalid or mixed-period file with row-level diagnostics and makes no repository call, and on success calls replaceActualsBatch exactly once with the authenticated uploader metadata",
+          "path": "backend/src/ingest/ingest.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "SAP actuals Excel loader consuming the warehouse write path from warehouse-schema (REUSE IngestionRepository.replaceActualsBatch + createWarehouseWritePool + createWarehouseDb; do NOT re-implement the pool or the atomic candidate-load-then-flip, and do NOT modify the read-only postgres.adapter.ts / warehouse.interface.ts). Grounding: docs/context/2026-08-20-srihari-phase1-data/README.md (SAP Base Report = the 'SAP Report' sheet inside SAP Entries Mapping.xlsx; 4,113 July-2026 lines; header row = row 3 after two blank rows; raw nursery Plant is 'DUB-NUR', 88 lines, no 'DUB' in raw), the approved story plan's raw-retention criterion, decisions 0004/0013/0014/0015. RAW RETENTION (human-decided): add a NEW additive warehouse migration (backend/drizzle-warehouse/0001_*.sql, generate-once/apply-only via warehouse:migrate) + a 'raw' jsonb column on sap_transaction in warehouse-schema.ts, storing the FULL source row (incl. ShortName, both Comments, Origin, Loc.) so all source+drill fields are retained for later drill-down; update the hermetic warehouse-schema.test.ts assertion for the new column. This is the ONLY warehouse change; the read-only port stays untouched. SOURCE IDENTITY (human-decided): sap_transaction.line_id = the SAP Line_Id when present, else the SAP row number ('#' column) - 298 rows (incl. 6 nursery) have blank Line_Id but a unique '#'; this keeps line_id NOT NULL + UNIQUE(batch_id,txn_no,line_id) and lets the full July load succeed. ENDPOINT: new backend/src/ingest module (IngestModule in app.module.ts) POST /api/ingest/actuals guarded @UseGuards(AuthGuard)+@UseGuards(RequireAction('ingest')); ADD 'ingest' to GRANT_ACTIONS AND seed it to the admin role in db/migrate.ts baseRolePerms (existing roles admin/analyst/dba/manager) so the grant is obtainable after a normal migrate. multipart/form-data via FileInterceptor (field name 'file', exactly one .xlsx, a numeric byte cap and row cap, 413 on exceed); typed IngestActualsResponse in contract/src/api.ts returned RAW (match saved/pins - there is NO success-envelope wrapper here) with zod validation in ingest.schemas.ts; @ApiTags/@ApiOperation/@ApiConsumes('multipart/form-data')/@ApiBody/@ApiResponse for 201+400+401+403+413; structured logging (05/06); the global constitution-07 error envelope carries sanitized row-level diagnostics ({row, column, message}[]). ADD 'POST /api/ingest/actuals' to app.routes.test.ts allow-list. PARSER: identify the sheet by its REQUIRED HEADER SET (Transaction Number, Line_Id, Posting Date, Month, Plant, Cost Center, MIS GL Code, AcctName, Debit, Credit, ContraAct) not file/sheet name; tolerate blank lead rows + the duplicate 'Comments' header; PERIOD is the first-of-month derived from Posting Date (the 'Month' cell is only 'Jul' - display token, validate consistency but do NOT parse the period from it); require every row's period to match; VALIDATE ALL rows before ANY write. MONEY: Actual = Debit - Credit at PAISE as numeric(18,2) STRINGS (never float); exceljs number cells must be read without float drift. PLANTS: accept every nonblank source plant unchanged EXCEPT DUB-NUR -> DUB (a documented constant in plant-mapping.ts - the only nursery rule; NO catalogue/allow-list per 0014-no-master; the full Sheet1 mapping belongs to governed-joins, not here); keep plant (canonical) + plant_src (original). WRITER: replaceActualsBatch needs metadata{period, uploadedBy (the authenticated app-user id), validationResult (the row/period validation summary), reconciliationResult ({})}; own the pool lifecycle (createWarehouseWritePool -> createWarehouseDb -> IngestionRepository -> pool.end in finally). IDEMPOTENCY: a re-upload makes a NEW active ingest_batch, RETAINS the prior; 'no duplicate rows' means unique within a batch (UNIQUE(batch_id,txn_no,line_id) + whole-file-per-period grain) - across batches, rows intentionally repeat. PROOF: hermetic controller/parser/service tests use small FIXTURES (no DB, NOT the 639KB workbook - never bundle it); the live idempotent-replace + paise-net against docker warehouse-db is a WAREHOUSE_DB_TEST=1-gated test in ONE suite (name its file, suite, leaf, host command; per the warehouse-schema one-suite lesson) recorded as D-0008 demonstrated host evidence in tests.json.",
+      "review_budget": {
+        "max_changed_files": 26,
+        "max_changed_lines": 3000,
+        "reason": "Net-new ingest module (guarded multipart controller + service + header-identified parser + DUB-NUR mapping + zod/contract DTOs), the 'ingest' grant seeded in db/migrate, app.module + route allow-list wiring, exceljs dep + lockfile, a small additive raw-jsonb warehouse migration + schema edit, and hermetic controller/parser/service tests + a gated DB idempotency proof. Reuses the warehouse write path; no read-port change. Budget raised 1700->3000: the three-lens review APPROVED the finished diff (blocking=0, not overbuilt) - the parser hardening (jszip zip-bomb guard, raw-string comma-grouping, complete Month-token, mapped-column iteration), the additive raw jsonb column, and the comprehensive controller/parser/service + gated DB tests legitimately exceeded the estimate."
+      }
     },
     {
       "id": "budget-loader",
@@ -112,5 +186,5 @@
     }
   ],
   "plan_sha256": "744f6f4e7fbea32cb804dfb16556ababd9caa995a696461cd89848713576bd63",
-  "commit": "8402960df6992693900a72d30ab638a97a92fdc9"
+  "commit": "b6ca6afec45fa21839caedc3796fb0762838a29b"
 }

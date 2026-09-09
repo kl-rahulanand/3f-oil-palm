@@ -19,6 +19,7 @@ export const baseRolePerms = [
   { role: "admin", grantType: "action", grantId: "admin" },
   { role: "admin", grantType: "action", grantId: "save" },
   { role: "admin", grantType: "action", grantId: "pin" },
+  { role: "admin", grantType: "action", grantId: "ingest" },
   { role: "analyst", grantType: "action", grantId: "save" },
   { role: "analyst", grantType: "action", grantId: "pin" },
   { role: "dba", grantType: "action", grantId: "save" },
@@ -32,11 +33,7 @@ export async function seedConfiguredUsers(
 ): Promise<number> {
   for (const seedUser of seedUsers) {
     const email = seedUser.email.trim().toLowerCase();
-    const existing = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
 
     const userId =
       existing[0]?.id ??
@@ -52,10 +49,7 @@ export async function seedConfiguredUsers(
       )[0].id;
 
     if (existing[0]) {
-      await db
-        .update(users)
-        .set({ displayName: seedUser.displayName, isActive: true })
-        .where(eq(users.id, userId));
+      await db.update(users).set({ displayName: seedUser.displayName, isActive: true }).where(eq(users.id, userId));
     }
 
     for (const role of seedUser.roles) {

@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T09:56:28+00:00", "story": "sap-ingestion", "detail": "S-0007-c9e1: SETTLED by decision/deferral D-0006 (plans/deferrals.md): its revisit trigger explicitly mandates 'before a task edits any listed file, format that file and remove it from .prettierignore in the same "}

@@ -1,0 +1,12 @@
+{
+  "event": "done",
+  "id": "Q-0025-b1f9",
+  "profile": "degraded",
+  "kind": "degraded",
+  "reason": "End-anchor the posting-date ISO regex in sap-actuals.parser.ts (t-al-c2 partial). Delegation deadlocked: reopening the sealed task re-stales the board-view-less approval; user authorized this bounded one-line host fix.",
+  "started_at": "2026-09-09T12:06:53+00:00",
+  "completed_at": "2026-09-09T12:07:42+00:00",
+  "files": [
+    "backend/src/ingest/sap-actuals.parser.ts"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "topic": "removing a prettierignore entry also updates the quality-gate baseline map",
+  "lesson": "tools/quality-gate.test.mjs validateIgnoredBaseline asserts .prettierignore's non-comment lines deep-equal the keys of its ignoredBaselineHashes map. So when D-0006 requires removing a file (e.g. backend/src/db/migrate.ts) from .prettierignore, you MUST also remove that path's entry from the ignoredBaselineHashes map in tools/quality-gate.test.mjs (both in write_scope) in the SAME change, and ensure the now-unignored file is prettier-formatted so format:check passes. Keep .prettierignore and ignoredBaselineHashes in sync.",
+  "source": "docs/decisions/0006-frontend-fresh-backend-vendor.md; tools/quality-gate.test.mjs",
+  "applies_to": [
+    ".prettierignore",
+    "tools/quality-gate.test.mjs",
+    "backend/src/db/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-09T10:09:36+00:00"
+}
