@@ -1,0 +1,33 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "budget-loader",
+  "score": 10,
+  "summary": "security lens over budget-loader (14 product path(s), 19f3297..36dee50, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the budget endpoint with the existing authentication and ingest-action authorization pattern, CSRF documentation, bounded multipart upload, pre-materialization XLSX archive limits, validation before writes, and a single outer transaction for all period replacements. Formula results and monetary strings are validated without exposing workbook values, SAP actuals are not accessed, and no credentials or prohibited compatibility leftovers are present.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/app.routes.test.ts",
+    "backend/src/ingest/ingest.controller.test.ts",
+    "backend/src/ingest/ingest.controller.ts",
+    "backend/src/ingest/ingest.schemas.ts",
+    "backend/src/ingest/ingest.service.test.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/ingest/mis-budget.parser.test.ts",
+    "backend/src/ingest/mis-budget.parser.ts",
+    "backend/src/ingest/sap-actuals.parser.test.ts",
+    "backend/src/ingest/sap-actuals.parser.ts",
+    "backend/src/ingest/workbook-guard.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "afaa3d20e3d67e3d7ef69a6d3509d18e3e9c4066159ebcf3866c84c52c10a9d4",
+  "brief_sha256": "bd81b4c8bae2caa58a41fe68caca441c5b256073f60f648c79ddadb5c44806f1",
+  "branch_diff_digest": "1684de8fd1e248f1f91b17ab5bdd2cf562bec4e6bac56b465e1af75b8741d96b",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T17:44:01+00:00",
+  "commit": "36dee5078d8be9103c1483ec87abff6e48ccc7f0"
+}

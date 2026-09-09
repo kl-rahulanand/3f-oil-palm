@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T16:35:18+00:00", "story": "sap-ingestion", "detail": "S-0012-f382: AUTHORIZED (mechanically implied): update backend/src/ingest/sap-actuals.parser.test.ts to import WorkbookArchiveLimitError / WorkbookRowLimitError from ./workbook-guard and drop the SapActuals* alias"}

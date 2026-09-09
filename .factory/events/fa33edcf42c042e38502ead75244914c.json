@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T16:40:33+00:00", "story": "sap-ingestion", "detail": "S-0013-759a: Resolved: backend/src/ingest/sap-actuals.parser.test.ts is now in the budget-loader write_scope (extended for exactly this). Remove the SapActualsArchiveLimitError/SapActualsRowLimitError aliases from"}

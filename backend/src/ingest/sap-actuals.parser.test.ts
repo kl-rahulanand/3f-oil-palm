@@ -3,7 +3,8 @@ import test from "node:test";
 import { Workbook, type CellValue } from "exceljs";
 import JSZip from "jszip";
 import { z } from "zod";
-import { parseSapActualsWorkbook, SapActualsArchiveLimitError, SapActualsRowLimitError } from "./sap-actuals.parser";
+import { parseSapActualsWorkbook } from "./sap-actuals.parser";
+import { WorkbookArchiveLimitError, WorkbookRowLimitError } from "./workbook-guard";
 
 const HEADERS = [
   "#",
@@ -143,7 +144,7 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
       ]),
       1,
     ),
-    (error: unknown) => error instanceof SapActualsRowLimitError && error.limit === 1,
+    (error: unknown) => error instanceof WorkbookRowLimitError && error.limit === 1,
   );
 
   const entryBomb = await JSZip.loadAsync(
@@ -152,7 +153,7 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
   for (let index = 0; index < 257; index += 1) entryBomb.file(`extra-${index}`, "");
   await assert.rejects(
     parseSapActualsWorkbook(await entryBomb.generateAsync({ type: "nodebuffer" })),
-    (error: unknown) => error instanceof SapActualsArchiveLimitError,
+    (error: unknown) => error instanceof WorkbookArchiveLimitError,
   );
 
   await assert.rejects(
@@ -162,7 +163,7 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
         [...HEADERS, ...Array.from({ length: 257 - HEADERS.length }, (_, index) => `Extra ${index}`)],
       ),
     ),
-    (error: unknown) => error instanceof SapActualsArchiveLimitError,
+    (error: unknown) => error instanceof WorkbookArchiveLimitError,
   );
 
   const rowBomb = new Workbook();
@@ -171,7 +172,7 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
   for (let row = 4; row <= 260; row += 1) rowBombSheet.getRow(row).getCell(20).value = "ignored";
   await assert.rejects(
     parseSapActualsWorkbook(Buffer.from(await rowBomb.xlsx.writeBuffer()), 1),
-    (error: unknown) => error instanceof SapActualsRowLimitError,
+    (error: unknown) => error instanceof WorkbookRowLimitError,
   );
 
   await assert.rejects(

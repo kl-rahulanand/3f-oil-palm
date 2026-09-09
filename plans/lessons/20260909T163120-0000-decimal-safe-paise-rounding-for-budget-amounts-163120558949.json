@@ -1,0 +1,11 @@
+{
+  "topic": "decimal-safe paise rounding for budget amounts",
+  "lesson": "In mis-budget.parser.ts round monetary values to paise with decimal-safe, symmetric semantics - Math.round(value*100) rounds half-up and mishandles negative half-paise and binary float drift. Use a decimal-safe rounder (round-half-away-from-zero on the scaled value with an epsilon, matching the actuals numeric path) so budget/rollover amounts are exact at paise.",
+  "source": ".factory/stories/sap-ingestion/tasks/budget-loader/reviews/security.json",
+  "applies_to": [
+    "backend/src/ingest/mis-budget.parser.ts"
+  ],
+  "severity": "medium",
+  "generated_by": "implementer",
+  "added_at": "2026-09-09T16:31:20+00:00"
+}

@@ -1,0 +1,52 @@
+{
+  "id": "budget-loader",
+  "title": "MIS budget loader (separate object, as-provided)",
+  "status": "done",
+  "started_at": "2026-09-09T15:36:58+00:00",
+  "base_sha": "19f3297fdf037ee6f14dd5a6afba3546382e95fb",
+  "dirty_at_start": {
+    ".factory/stories/sap-ingestion/decomposition.json": {
+      "digest": "4b4246798f428d2c67dc1d42d4baa9d470a7db2e3a5fef08361e3d760eeb92ef",
+      "git": "1 .M N... 100644 100644 100644 503e0791ba8602a62d475ad210bb097cba73aa72 503e0791ba8602a62d475ad210bb097cba73aa72 .factory/stories/sap-ingestion/decomposition.json\u0000\u0000100644 503e0791ba8602a62d475ad210bb097cba73aa72 0\t.factory/stories/sap-ingestion/decomposition.json\u0000\u0000H .factory/stories/sap-ingestion/decomposition.json\u0000"
+    },
+    ".factory/stories/sap-ingestion/grills/tasks/budget-loader.json": {
+      "digest": "9656bec767e0448c29507f7bf7ca62e834af313ca8c347a21b36147467ff2241",
+      "git": "? .factory/stories/sap-ingestion/grills/tasks/budget-loader.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/sap-ingestion/task-plans/budget-loader.md": {
+      "digest": "8cdad3ff0721607bbbc6b48cea909a1f96fe074f76f93d3626afd780e993c6cc",
+      "git": "? .factory/stories/sap-ingestion/task-plans/budget-loader.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "6ecfea8e8c112924e75944bd5b1bc388c0fab3d91049b4ba3a59f3091fe87458",
+  "local_review_stamp": {
+    "stage_id": "budget-loader",
+    "task_sha256": "6ecfea8e8c112924e75944bd5b1bc388c0fab3d91049b4ba3a59f3091fe87458",
+    "brief_sha256": "63b5dc97d285d7b7dd1fa4d470be84309e3ba24db2c2fb6f34ed0743c76e37b8",
+    "base_sha": "19f3297fdf037ee6f14dd5a6afba3546382e95fb",
+    "product_tree_digest": "7de94a44a64a1c1aeb56a99a5ca72911362a6d5ef6fb0b4957de0b7458b0028d",
+    "recorded_at": "2026-09-09T17:44:01+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-09T17:44:43+00:00",
+  "measured": {
+    "strays": [],
+    "files": 14,
+    "lines": 1246,
+    "budget": {
+      "files": 16,
+      "lines": 1300
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-09T17:44:43+00:00",
+    "from": "6cc99adacfac5b1470bd8e2a471e827a45cb72d6401ab2f7912cc1a24b3d61c0",
+    "to": "6ecfea8e8c112924e75944bd5b1bc388c0fab3d91049b4ba3a59f3091fe87458"
+  }
+}

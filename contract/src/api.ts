@@ -51,6 +51,14 @@ export interface IngestActualsResponse {
   rowCount: number;
 }
 
+/** POST /api/ingest/budget */
+export interface IngestBudgetResponse {
+  formatId: string;
+  plant: string;
+  periods: Array<{ period: string; batchId: string; rowCount: number }>;
+  totalRowCount: number;
+}
+
 export const emptyBodySchema = z.object({}).strict();
 
 /** POST /api/auth/otp/request */

@@ -767,7 +767,11 @@ def cmd_review(args: argparse.Namespace) -> None:
     if not isinstance(story, str) or not story:
         fail("review requires an active story")
     for artifact in ("verify.json", "tests.json"):
-        if not evidence_path(base, story, artifact).is_file():
+        # Read at the SAME scope the evidence is written and later read: a task
+        # run (forge task start stamps task_id) records verify.json/tests.json
+        # task-scoped via proof_path, so a story-scoped evidence_path pre-flight
+        # could never see its own tests.json and refused a fully-recorded task.
+        if not proof_path(base, story, artifact, task_id=args.id).is_file():
             fail(f"{artifact} is not recorded for {story}; review runs after "
                  "`python3 factory/scripts/verify.py` and "
                  "`record_test_from_json.py --kind automated`")

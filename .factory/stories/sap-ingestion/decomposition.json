@@ -169,7 +169,71 @@
         "POST /api/ingest/budget uses the same AuthGuard + 'ingest' grant + allow-list + typed DTO/Swagger/CSRF pattern as the actuals endpoint",
         "the MIS format workbook loads into mis_budget as a SEPARATE object, stored as-provided with NO derived allocation and NO mutation of SAP actuals (decision 0004)",
         "a budget upload replaces only its (format/period/canonical plant) atomically via a new active budget ingest_batch; the prior budget batch is retained"
-      ]
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-bl-c1",
+          "statement": "POST /api/ingest/budget uses the same AuthGuard + 'ingest' grant + allow-list + typed DTO/Swagger/CSRF pattern as the actuals endpoint",
+          "source": "docs/architecture/30-financial-mis-build-plan.md"
+        },
+        {
+          "id": "t-bl-c2",
+          "statement": "the MIS format workbook loads into mis_budget as a SEPARATE object, stored as-provided with NO derived allocation and NO mutation of SAP actuals (decision 0004)",
+          "source": "docs/decisions/0004-pulse-governed-joins.md"
+        },
+        {
+          "id": "t-bl-c3",
+          "statement": "a budget upload replaces only its (format/period/canonical plant) atomically via a new active budget ingest_batch; the prior budget batch is retained",
+          "source": "docs/architecture/30-financial-mis-build-plan.md"
+        }
+      ],
+      "write_scope": [
+        "backend/src/ingest/ingest.controller.ts",
+        "backend/src/ingest/ingest.service.ts",
+        "backend/src/ingest/ingest.schemas.ts",
+        "backend/src/ingest/workbook-guard.ts",
+        "backend/src/ingest/sap-actuals.parser.ts",
+        "backend/src/ingest/sap-actuals.parser.test.ts",
+        "backend/src/ingest/mis-budget.parser.ts",
+        "backend/src/ingest/mis-budget.parser.test.ts",
+        "backend/src/ingest/ingest.controller.test.ts",
+        "backend/src/ingest/ingest.service.test.ts",
+        "backend/src/app.routes.test.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs",
+        "contract/src/api.ts"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "POST /api/ingest/budget is guarded by AuthGuard plus the ingest action grant, appears in the strict route allow-list, rejects a CSRF-less or forbidden request, and documents its multipart DTO",
+          "path": "backend/src/ingest/ingest.controller.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the MIS budget parser identifies Table-2 by its required header set, extracts the Budget and Roll Over Budget columns of every first-of-month date block present for GL line rows, skips component group rows and the YTD and FY blocks, accepts a formula cell's cached numeric result and rejects one with no cache, stores amounts as paise and every field as provided, and rejects duplicate grain, a GL row missing its S.No or component, and a workbook with no GL rows before any write",
+          "path": "backend/src/ingest/mis-budget.parser.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the ingest service validates the whole budget workbook before any write, makes no repository call on an invalid workbook, and on success replaces every present period through replaceBudgetBatch inside one outer all-or-nothing transaction so a failure on a later period rolls back every earlier one, without touching sap_transaction",
+          "path": "backend/src/ingest/ingest.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "MIS budget loader EXTENDING the existing backend/src/ingest module built in actuals-loader (same IngestModule, IngestController, IngestService) - do NOT create a new module, grant, migration, or warehouse change; REUSE the existing 'ingest' grant (in GRANT_ACTIONS, seeded to admin), the multipart FileInterceptor pattern (field 'file', one .xlsx, 15 MB compressed cap, 25,000-row cap, 413 on exceed), the zod + contract DTO pattern, and IngestionRepository.replaceBudgetBatch (implemented in backend/src/warehouse/ingestion.repository.ts). Grounding: docs/context/2026-08-20-srihari-phase1-data/README.md (Nursery MIS Format.xlsx, sheet 'MIs Format', Table-2 Financial MIS rows 479-588, TWO-ROW header: row 479 = 'S. No.', 'Budget Components', 'Rollover (Y/N)', 'Payment Office', col F 'GL Codes' + period-group labels; row 480 = sub-columns), decisions 0004 (no pre-join, no derived allocation), 0014 (PoC no master), 0015. SHARED GUARD: EXTRACT the jszip pre-materialization guard (256 ZIP entries / 256 MB uncompressed, rejecting BEFORE exceljs loads) out of sap-actuals.parser.ts into a NEW backend/src/ingest/workbook-guard.ts and make BOTH parsers import it - one implementation of the security logic, no duplication; sap-actuals.parser.ts changes ONLY to import the shared guard. ENDPOINT: POST /api/ingest/budget on the existing IngestController, @UseGuards(AuthGuard)+@UseGuards(RequireAction('ingest')), typed IngestBudgetResponse in contract/src/api.ts returned RAW (no success envelope): { formatId, plant, periods: Array<{ period, batchId, rowCount }>, totalRowCount } - an explicit per-period association, never parallel arrays; @ApiTags/@ApiOperation/@ApiConsumes('multipart/form-data')/@ApiBody/@ApiResponse for 201+400+401+403+413; structured logging; the global constitution-07 envelope carries sanitized rows.<n>.<column> diagnostics as zod issue paths. ADD 'POST /api/ingest/budget' to the app.routes.test.ts allow-list. PARSER (mis-budget.parser.ts): identify Table-2 by its REQUIRED HEADER SET ('S. No.', 'Budget Components', 'GL Codes' on the row-479 header, NOT by sheet name/row number); the period columns are the month blocks whose row-479 header is a first-of-month DATE, each spanning four row-480 sub-columns EXACTLY named 'Budget', 'Roll Over Budget', 'Actual', '%' (whitespace-normalized) - handle EVERY date-headed block present (the real workbook has twelve, a fixture may have two; never assume a count); SKIP the YTD/FY blocks (annual) and IGNORE 'Actual' and '%' (actuals come from SAP, % is derived - 0004). A GL LINE row has a nonblank GL code in col F; component GROUP rows (no GL) are skipped. Per GL line row x month block emit ONE mis_budget row: format_id = the documented constant 'nursery-mis-financial-v1', period = the block's date, line_id = the S.No text, gl_code = col F text, cost_center = the 'Budget Components' text AS PROVIDED (an opaque MIS label - no mapping to a SAP cost centre; that is governed-joins scope), budget_amount = 'Budget', rollover_amount = 'Roll Over Budget', both at PAISE as numeric(18,2) strings (never float). CELL SEMANTICS: a numeric cell is read directly; a FORMULA cell (the rollover cells are formulas like =X482) is accepted ONLY via its cached numeric result (cell.value.result) rounded to paise - a formula with NO cached result or an error result is a row DIAGNOSTIC, never treated as blank/0.00 (silent financial corruption); a genuinely blank cell is '0.00'; a non-numeric string is validated on the RAW grouped-decimal form before stripping commas; iterate only resolved header column indices, never row.cellCount. PREFLIGHT (all before ANY write, each a rows.<n>.<column> 400): duplicate (format_id, period, line_id, gl_code, cost_center) grain within the upload; a GL line row missing its S.No or Budget Components; a workbook with ZERO GL line rows; any non-numeric or uncached amount. BATCHES + ISOLATION (human-decided, PoC-scoped): the active key is (source_kind='budget', period) - one nursery MIS format + one plant (DUB), so that IS the effective isolation for this PoC; format_id and plant are ROW/metadata attributes (plant recorded in validation_result), NOT part of the switch; multi-format/multi-plant isolation is deferred with a revisit trigger. The period trigger forces mis_budget.period = ingest_batch.period, so one upload = one budget batch PER PRESENT month block. ATOMICITY: the service opens ONE outer warehouse transaction (db.transaction), constructs new IngestionRepository(transaction) - the repository accepts a transaction as its db exactly as proveWarehouse does in warehouse-migrate.ts - and calls replaceBudgetBatch once per period INSIDE it (nested savepoints), so a failure on any later period rolls back every earlier one and leaves every period's prior active batch untouched; each period's prior budget batch is RETAINED. NEVER read, write, or join sap_transaction / actual_by_key_month (0004). PROOF: hermetic mis-budget.parser.test.ts + controller + service tests use small FIXTURES (never bundle the 397KB workbook); the service test proves validate-before-write, zero repo calls on invalid, and the outer-transaction rollback (repository mocked, a later period made to fail). The live multi-period replace + prior-batch retention + rollback-on-later-failure + no-actuals-mutation proof against docker warehouse-db is a WAREHOUSE_DB_TEST=1-gated leaf inside ingest.service.test.ts (ONE suite, test:hermetic only) with a PINNED executable host command recorded in tests.json and the plan: WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_PASSWORD=warehouse-local WAREHOUSE_PG_DATABASE=warehouse PGHOST=127.0.0.1 PGPORT=5432 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test backend/src/ingest/ingest.service.test.ts (D-0008 demonstrated host evidence, run by the orchestrator).",
+      "review_budget": {
+        "max_changed_files": 16,
+        "max_changed_lines": 1300,
+        "reason": "Extends the existing ingest module: a second guarded multipart endpoint + service method, the MIS Table-2 header-identified parser (date-headed month blocks, GL line rows, formula cached results, as-provided fields, preflight rejections), the jszip guard extracted to a shared workbook-guard.ts used by both parsers, zod/contract DTO, allow-list + test wiring, and hermetic parser/controller/service tests + a gated DB proof. No new module, grant, migration, dependency, or warehouse change."
+      }
     },
     {
       "id": "reconciliation-proof",
@@ -185,6 +249,6 @@
       ]
     }
   ],
-  "plan_sha256": "744f6f4e7fbea32cb804dfb16556ababd9caa995a696461cd89848713576bd63",
-  "commit": "b6ca6afec45fa21839caedc3796fb0762838a29b"
+  "plan_sha256": "da8019faf7fbec0b73239f154080e4a3dd324b5a502cdb712bd3c6ba3d076417",
+  "commit": "f2f8bee16ab80e5ea786d0789a97435d52d85e24"
 }

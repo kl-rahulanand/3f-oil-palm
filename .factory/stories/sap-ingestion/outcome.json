@@ -1,0 +1,7 @@
+{
+  "generated_by": "implementer",
+  "outcome": "MIS nursery budget workbooks can now be ingested: POST /api/ingest/budget (guarded by the existing 'ingest' grant) parses the Financial MIS Table-2 by its header set, loads every first-of-month date block present into mis_budget as a separate object at paise, and atomically replaces each period's active batch inside one warehouse transaction (prior batches retained, later-period failure rolls back all), never touching SAP actuals. Malformed inputs (mid-month date headers, uncached formulas, duplicate grain, over-cap expansion) are rejected before any write.",
+  "issue": "sap-ingestion",
+  "commit": "67b54e83af64c9126bee325cbb9cc29514cfb84f",
+  "recorded_at": "2026-09-09T17:44:57+00:00"
+}
