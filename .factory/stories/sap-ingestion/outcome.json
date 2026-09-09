@@ -1,7 +1,7 @@
 {
   "generated_by": "implementer",
-  "outcome": "MIS nursery budget workbooks can now be ingested: POST /api/ingest/budget (guarded by the existing 'ingest' grant) parses the Financial MIS Table-2 by its header set, loads every first-of-month date block present into mis_budget as a separate object at paise, and atomically replaces each period's active batch inside one warehouse transaction (prior batches retained, later-period failure rolls back all), never touching SAP actuals. Malformed inputs (mid-month date headers, uncached formulas, duplicate grain, over-cap expansion) are rejected before any write.",
+  "outcome": "The ingested SAP actuals are now proven correct to source: a demonstrated warehouse-DB test grounds the July 2026 DUB net to EXACTLY Rs 11,512,712.07 (paise) across both the raw sap_transaction rows and the actual_by_key_month gold view, against a frozen in-repo fixture, and proves re-uploading the same month is idempotent (one new active batch, prior retained, no double-counting). This closes sap-ingestion: SAP actuals + MIS budgets ingest into the warehouse and the headline figure a Financial MIS will display is reconciled, paise-exact, and stable under re-upload.",
   "issue": "sap-ingestion",
-  "commit": "67b54e83af64c9126bee325cbb9cc29514cfb84f",
-  "recorded_at": "2026-09-09T17:44:57+00:00"
+  "commit": "98eacbe227d40f064bc0c8d645a05ae27501bf4a",
+  "recorded_at": "2026-09-09T19:47:06+00:00"
 }
