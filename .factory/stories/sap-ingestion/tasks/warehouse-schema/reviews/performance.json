@@ -1,16 +1,16 @@
 {
   "generated_by": "autoreview",
-  "score": 7,
-  "summary": "performance lens over warehouse-schema (12 product path(s), 8402960..fb89934, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. No P0\u2013P2 production performance defect or compatibility leftover is demonstrated by the supplied diff. However, the warehouse separation guard remains bypassable through a valid loopback alias, violating the fail-fast database-boundary requirement and making the patch unsafe to ship.",
-  "blocking_findings": [
+  "score": 9,
+  "summary": "performance lens over warehouse-schema (12 product path(s), 8402960..21a92e4, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The schema and repository satisfy the visible atomic-switch and indexing contracts, and no compatibility leftovers are present. However, both period-integrity triggers turn each whole-file load into an avoidable per-row lookup workload, creating production-scale query amplification on the primary ingestion path.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "backend/src",
-      "summary": "Reject IPv6-mapped aliases of the application host (backend/src/config.ts:207): The normalization only strips `::ffff:` when the remainder is dotted IPv4."
+      "area": "backend/drizzle-warehouse",
+      "summary": "[P2] Validate batch periods once per chunk instead of once per row (backend/drizzle-warehouse/0000_solid_ken_ellis.sql:89): This `FOR EACH ROW` trigger executes the `SELECT period FROM ingest_batch` in `enforce_sap_transaction_batch_period()` separately for every transaction inserted; the budget trigger repeats the same pattern."
     }
   ],
-  "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "backend/drizzle-warehouse.config.ts",
     "backend/drizzle-warehouse/0000_solid_ken_ellis.sql",
@@ -27,10 +27,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "81b25099c55741e07ebb5b5db8f55f80b772ed34c581e59431a3e31cbfccc0b1",
-  "brief_sha256": "105ade781a11c8f5cab12d3d8e791a39a9b47968e4b880434665ff52207535f7",
-  "branch_diff_digest": "dc8f85a55366aeafd28ddd260574775b27621ce819d9b822bafac04b60b29582",
+  "review_run_id": "8722cef0443b0f490a94311181cf3403f7b237362fa45d04093dc16836dd3c56",
+  "brief_sha256": "7f126bfec9881fb5fc591701c7b1ca4a6758717bb2c73684def09248e62f11b9",
+  "branch_diff_digest": "42c5d5d088025ca37a5bee60fd906687cff441de030b88b0875cfe2451e52e0d",
   "residual_risks": [],
-  "recorded_at": "2026-09-09T07:07:33+00:00",
-  "commit": "fb8993472772bfd52fe97cda9a448846326bcf4f"
+  "recorded_at": "2026-09-09T08:28:54+00:00",
+  "commit": "21a92e4d35b5b90bdc76d499ef9098ddfa16669d"
 }
