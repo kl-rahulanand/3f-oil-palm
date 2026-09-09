@@ -1,0 +1,66 @@
+{
+  "generated_by": "docs-decomposer",
+  "user_facing": false,
+  "story": "sap-ingestion",
+  "plan_file": "plans/active/sap-ingestion-ingest-sap-actuals-budgets.md",
+  "project": "3oilpalm",
+  "epic": "data-foundation",
+  "commit": "5c299769231018cc6f0cf0fc6b819c6fc0d79390",
+  "tasks": [
+    {
+      "id": "warehouse-schema",
+      "title": "Warehouse schema + write path + gold view",
+      "objective": "Establish a warehouse write pool + ingestion repository (distinct from the read-only query port) and a reproducible warehouse:migrate; create the ingest_batch registry, sap_transaction, mis_budget, and the actual_by_key_month gold view.",
+      "dependencies": [],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "a reproducible warehouse:migrate creates ingest_batch, sap_transaction, mis_budget on the SEPARATE warehouse Postgres via a dedicated write pool/ingestion repository that does NOT alter the read-only Warehouse query port",
+        "ingest_batch enforces exactly one active batch per (source_kind, period, canonical_plant) with immutable batch metadata; sap_transaction stores money as numeric(18,2) paise with indexes on (month,plant,cost_center,gl_code) and batch_id",
+        "actual_by_key_month is a plain view over the ACTIVE actuals batch returning Sum(debit-credit) at paise grouped by (plant,cost_center,gl_code,month), proven over seeded rows"
+      ]
+    },
+    {
+      "id": "actuals-loader",
+      "title": "SAP actuals Excel loader + idempotent per-period replace",
+      "objective": "Add exceljs and POST /api/ingest/actuals to parse the SAP Base Report, net Debit-Credit at paise, apply DUB-NUR->DUB from the provided mapping workbook, retain raw + keys, and replace idempotently per period via a new active ingest_batch.",
+      "dependencies": [
+        "warehouse-schema"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "POST /api/ingest/actuals is guarded by AuthGuard + a new 'ingest' RBAC action grant and is added to the strict route allow-list, with a typed multipart DTO, Swagger success/error/auth docs, and CSRF/forbidden tests",
+        "the loader identifies the sheet by its required HEADER set (not file/sheet name), requires a single posting month, validates ALL rows before any write, and rejects invalid/mixed-period files with row-level diagnostics and NO change to the active batch",
+        "each row nets Actual = Debit - Credit at paise and applies the DUB-NUR->DUB normalization from the provided SAP Entries Mapping.xlsx; raw lines + original AND canonical keys are retained linked to a new ingest_batch",
+        "a re-upload of a period is idempotent: a new ingest_batch becomes active and the prior batch is retained (not erased), with no duplicate rows"
+      ]
+    },
+    {
+      "id": "budget-loader",
+      "title": "MIS budget loader (separate object, as-provided)",
+      "objective": "Add POST /api/ingest/budget to load the Nursery MIS Format workbook into mis_budget as a SEPARATE object (no pre-join, no derived allocation, no mutation of actuals), with atomic per-period batch replace.",
+      "dependencies": [
+        "actuals-loader"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "POST /api/ingest/budget uses the same AuthGuard + 'ingest' grant + allow-list + typed DTO/Swagger/CSRF pattern as the actuals endpoint",
+        "the MIS format workbook loads into mis_budget as a SEPARATE object, stored as-provided with NO derived allocation and NO mutation of SAP actuals (decision 0004)",
+        "a budget upload replaces only its (format/period/canonical plant) atomically via a new active budget ingest_batch; the prior budget batch is retained"
+      ]
+    },
+    {
+      "id": "reconciliation-proof",
+      "title": "July DUB reconciliation + idempotency proof",
+      "objective": "Prove the July DUB load reconciles exactly to the report total across raw + gold against a frozen fixture, and that re-upload replaces the month with no duplicates.",
+      "dependencies": [
+        "budget-loader"
+      ],
+      "user_facing": false,
+      "acceptance_criteria": [
+        "a demonstrated warehouse-DB test grounds the July DUB net to EXACTLY Rs 11,512,712.07 (paise) across the accepted raw sap_transaction rows AND the actual_by_key_month gold view, against a frozen in-repo reconciliation fixture",
+        "re-uploading the July DUB actuals replaces that month with no duplicate rows and no double-counting in the gold view (idempotency), with the prior batch retained"
+      ]
+    }
+  ],
+  "plan_sha256": "d3840c3e25ce2f84f474e237730ca0077e6611e7876a75fce1531b1ffc90a5f2"
+}

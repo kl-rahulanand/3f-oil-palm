@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md
+# Cold-read grill — gate: plan — plan draft sap-plan.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -66,10 +66,15 @@ defending it.
 
 RELEASE IT THROUGH THE HARNESS. `./forge grill run --gate <gate>` composes the cold-read brief (this contract plus the artifact) and releases Codex through the SAME ledgered launcher a delegation uses: the pid is recorded before the wait, so a grill whose launcher is killed still shows up in `forge codex status` instead of vanishing. It is read-only, so it takes no delegation lock and can never satisfy `stage done`. Recording the gate stays yours — the cold read only returns findings.
 
-The read-only Codex cold-reader LOADS and RUNS the `grill-me` skill (Matt
-Pocock's, installed into `~/.codex/skills/grill-me` by `./forge doctor --fix`)
-to structure its interrogation; this contract is the harness-side floor, the
-skill is the technique. In Claude, the `/grill-me` skill satisfies the same.
+The technique is Matt Pocock's `grilling` skill — the design tree, the
+frontier, numbered questions with recommended answers. `doctor --fix` installs
+it into BOTH runtimes, and `./forge grill run` also inlines it into the brief,
+so a reader reaches it whether or not its runtime resolves skills. This
+contract is the harness-side floor; `grilling` is the technique.
+
+`grill-me` is the HUMAN entry point — you type `/grill-me` and it redirects to
+`grilling`. It carries `disable-model-invocation: true`, so no model invokes it
+and none should be told to.
 
 WHICH RUNTIME CAN RECORD WHICH GATE — get this wrong and you will chase a
 refusal you cannot satisfy. ALL SIX gates match the AskUserQuestion ledger and
@@ -98,22 +103,61 @@ authored the plan, the independent cold-read pass is MANDATORY, not optional: on
 EVERY round release a fresh READ-ONLY Codex pass with
 `./forge grill run --gate <gate> [--task <id>]` that reads the plan/contract
 cold and returns findings — never a
-Claude sub-agent, never grill your own work inline — then carry ONLY those
+Claude sub-agent, never grill your own work inline — then carry ALL of those
 findings into your own AskUserQuestion rounds (the recorder rejects rounds not in
-the ledger, so the top-level session must still ask). Loop Codex grill → your
-AskUserQuestion rounds → answers → Codex grill again, until a round is clean AND
-the plan is stable; only then, approve exactly once. Read cold, as an adversary
-who did not write it. (EVERY gate is ledger-matched — signoff and epics no
+the ledger, so the top-level session must still ask). Read cold, as an adversary
+who did not write it.
+
+ONE COLD READ PER GATE — put every question to the human INSIDE it. The old
+shape was Codex grill → your rounds → amend → Codex grill AGAIN, looping until
+clean. That loop cannot converge: a fresh reader has no memory of what the last
+one found, so it returns a DIFFERENT frontier rather than a shorter one, and the
+artifact you amended to close round one becomes round two's input. Stories
+reached eleven, twenty-six and forty rounds that way; the last cost six hours.
+`forge grill run` now REFUSES a second unconstrained read on a gate that has
+already been read since its last recorded pass.
+
+So the WHOLE grill is:
+
+1. `./forge grill run --gate <gate>` — one cold read. WATCH it.
+2. Clean? Record the pass and approve. Nothing else happens.
+3. Otherwise resolve every finding the REPOSITORY answers yourself — open the
+   file and settle it. Take to the human only what the repository cannot
+   answer: a decision nobody has made, a priority, a tradeoff between two
+   workable shapes. Put those through AskUserQuestion with your recommended
+   answer first, all of them, now. There is no later round to save the hard
+   ones for, and a finding is not a menu.
+4. Amend the artifact ONCE, to what they decided.
+5. Record the pass against the AMENDED version, then approve exactly once.
+
+The price is stated plainly, twice over: nothing independent re-reads the
+amended version, and a gap this reader misses is not caught by a second reader
+at this gate. Both surface at the next gate, or in review. That is the trade
+for ending a loop that was costing whole days.
+
+If the human's answers changed the artifact's SHAPE — a component dropped, a
+different approach chosen — the amended artifact is not the one that was read
+in any useful sense. Say so and read again: `./forge grill run --gate <gate>
+--reread "<what changed shape>"`. It is a choice with a recorded reason, not a
+way around the rule, and the five-read cap still backstops it. (EVERY gate is ledger-matched — signoff and epics no
 longer excepted — so no gate can be recorded by a read-only Codex grill alone:
 the top-level session asks the round and records it.)
 
-FRESH CONTEXT, NOT FRESH READING. Every round is a NEW read-only Codex session —
-that independence is the whole point, and it is why the reader has no memory of
-what it already blessed. It does NOT mean re-deriving the plan from scratch every
-round: after the FIRST round, hand the fresh reader the plan AND what changed
-since the last round (the resolutions you just folded in, and which sections they
-touched), and tell it to concentrate there while still refusing anything it can
-see is wrong elsewhere. Same cold judgement, a fraction of the tokens.
+FRESH CONTEXT, AND THE ANSWERS SO FAR. Every round is a NEW read-only Codex
+session — that independence is the whole point. But a reader that knows nothing
+of the earlier rounds does not re-find the same gaps, it finds DIFFERENT ones,
+so the rounds never shrink and the grill has no natural end. `./forge grill run`
+therefore carries every question already put to the human and the answer they
+chose, read from the ledger the recorder validates against.
+
+That gives the reader two obligations: do not re-raise settled questions, and
+CHECK EACH ANSWER — that the artifact honours it, and that it contradicts no
+other answer, accepted decision or constitution rule. An answer can be wrong, or
+right and never applied; saying so is part of the read.
+
+Do NOT tell the reader where to concentrate. A cold read is worth having because
+it is unconstrained, and steering it toward the diff is how the thing nobody
+looked at survives every round. More information, no direction.
 
 END EVERY ROUND WITH AN EXPLICIT CONVERGENCE VERDICT, on its own line, so the
 coordinator never has to guess whether to grill again or approve:
@@ -122,10 +166,10 @@ coordinator never has to guess whether to grill again or approve:
 - `NOT CONVERGED — <the specific reason: open gaps, a contradiction, or the plan
   changed after the last clean round>`
 
-Converged means BOTH: this round is clean AND the plan did not change after the
-round that made it clean. A clean round on a plan you have just edited is not
-convergence — it is an unreviewed edit. Only `CONVERGED` authorises asking the
-human for approval, and approval happens exactly once.
+`CONVERGED` on the cold read means there is nothing to amend: record and
+approve. `NOT CONVERGED` does NOT mean read again — it means resolve what the
+repository answers, put the rest to the human, amend once, and record the pass
+against the amended version. Approval happens exactly once.
 
 Five gates, five scopes:
 
@@ -327,293 +371,164 @@ downstream implementation inherits whatever you let through.
 
 
 
-## The artifact under interrogation (plan plans/active/platform-base-adapt-pulse-into-the-3f-app-base.md)
+## Already answered on this story — verify, do not re-ask
 
----
-issue: platform-base
-title: Adapt Pulse into the 3F app base
-status: approved
-saved: 2026-09-01T11:17:14+00:00
-story: platform-base
-decisions_reviewed:
-  - 0001-poc-engagement-scope
-  - 0002-phase1-financial-mis
-  - 0003-mis-presentation-tool
-  - 0004-pulse-governed-joins
-  - 0005-client-signoff
-  - 0006-frontend-fresh-backend-vendor
-  - 0007-frontend-framework-nextjs
-  - 0008-pulse-vendored-snapshot
-  - 0009-required-tests-real-name-and-tsproject
-  - 0010-rebrand-pulse-to-3f
-  - 0011-deployment-readiness-poc-scope
-  - 0012-vendored-api-constitution-deviation
----
+These questions were put to the human and answered. Two obligations:
 
-# Plan — platform-base: Adapt Pulse into the 3F app base
+1. Do NOT raise them again as open questions. They are settled.
+2. DO check each answer still holds — that the artifact actually honours it, and that it does not contradict another answer, an accepted decision, or the constitution. An answer can be wrong, or right and never applied. Saying so is part of this read.
 
-## Problem
-Before any capability (ingestion, metrics, reporting, assistant) can be built, the
-app must exist in this repo, run on our stack, authenticate, talk to a Postgres
-warehouse, and wear the 3F identity. We adapt Pulse (decisions 0003/0004/0006):
-vendor its backend trust spine, and build a fresh frontend from the approved
-Claude Design. This story unblocks the other six.
+- Q: Where should the 3F app be built, given we're adapting Pulse?
+  A: Build in this 3oilpalm repo
+- Q: Financial MIS statement — period columns for the PoC?
+  A: July + FY 26-27 YTD
+- Q: Financial MIS statement — Excel export fidelity?
+  A: Clean structured export
+- Q: Financial MIS statement — reconciliation / demo-ready bar?
+  A: SAP totals = demo-ready; filled month = validated
+- Q: SAP ingestion — how does data get in for the PoC?
+  A: Excel upload now (SAP export/API later)
+- Q: SAP ingestion — how are budgets brought in?
+  A: Ingest budgets from the MIS format, as a separate object
+- Q: SAP ingestion — grain & raw retention?
+  A: Monthly gold + retain raw transaction lines
+- Q: SAP ingestion — re-loading a period?
+  A: Idempotent replace per period
+- Q: Governed joins — how to handle rows in one object but not the other (Budget with no Actual, or Actual with no Budget)?
+  A: Full-outer, zero-fill the missing side
+- Q: Governed joins — where are 3F financial measures authored?
+  A: In code (repo domain files)
+- Q: Governed joins — RBAC on a joined query?
+  A: Inject scope on both objects
+- Q: Governed joins — correctness gate?
+  A: Golden-answer fixtures required
+- Q: Mapping master — Srihari's Master Table definition is still outstanding. How do we proceed?
+  A: Build a provisional master now, reconcile later
+- Q: Mapping master — how is it edited in the PoC?
+  A: Seed / config file for the PoC (admin UI later)
+- Q: Mapping master — selection with no mapping entries?
+  A: Empty statement (zeros) + 'no mapping configured' notice
+- Q: Drill-down — levels for the PoC?
+  A: 2-level now (group → sub-lines → transactions), confirm with Srihari
+- Q: Drill-down — showing individual transactions vs Pulse's aggregate suppression?
+  A: Show individual lines within the user's RBAC scope, audited
+- Q: Drill-down — line-item columns?
+  A: Month, Debit, Credit, Value + reference, memo, posting date
+- Q: Assistant/exploration — in the first PoC release, or a fast-follow?
+  A: Include in the first PoC release
+- Q: Assistant — LLM & data residency?
+  A: Decide later
+- Q: Platform base — how do we bring Pulse's code in?
+  A: Snapshot-copy into the repo (own it)
+- Q: Platform base — warehouse engine for the PoC?
+  A: Postgres for the PoC
+- Q: Platform base — auth for the PoC?
+  A: Keep Pulse's email+OTP passwordless auth
+- Q: Sign-off gate — how do we unlock the build?
+  A: Record an internal go-ahead now
+- Q: The SAP workbook is company-wide (31 plants), but the PoC is Nursery/DUB for July. What should ingestion persist and reconcile?
+  A: Full July batch; only DUB reportable (Rec.)
+- Q: When a current-scope DUB SAP row lacks a mapping (the 7 missing GLs / contradictory cost-centers), what happens?
+  A: Reject period as unreconciled; never drop (Rec.)
+- Q: Budget is MIS-format-line based but must join Actuals on (Plant,CostCenter,GL,month). How to handle the grain + revisions?
+  A: Balanced allocation; atomic budget replace (Rec.)
+- Q: 'Retain raw transaction lines' — what identity + replacement semantics for auditability?
+  A: Full fields + immutable batch; replace = new batch (Rec.)
+- Q: The acceptance criterion uses '≈ ₹1,15,12,712'. What exactly must reconcile, and how exactly?
+  A: Exact ₹11,512,712 across raw+gold+statement (Rec.)
+- Q: The spec says 'Excel upload' with no format/failure contract. How strict should ingestion be?
+  A: Header-identified, single-month, validate-before-write (Rec.)
+- Q: Who may upload/replace financial periods? The spec only says 'operator'.
+  A: Restricted role + full audit (Rec.)
 
-## Scope / Non-goals
-**In:** vendor Pulse `backend` + `contract` (strip MBS specifics); a Postgres
-warehouse adapter + validator dialect; backend boots + OTP auth on Postgres; a
-repo-wide lint/format/typecheck baseline; a constrained API surface (auth, CSRF,
-health only); a fresh frontend shell + OTP login (KnackLabs green, from the
-design); harness build/verify wiring.
-**Non-goals:** SAP ingestion, semantic layer/joins, the MIS screens, drill-down,
-assistant (later stories); BigQuery; multi-tenant; hardening beyond boot.
-The non-goals are enforced, not merely stated: the vendored capability modules
-(chat, reports, saved queries, pins, measures, conversations, admin) stay
-**unregistered** until their owning stories activate them, and every not-yet-built
-navigation target in the shell renders visibly unavailable rather than as a dead
-route.
+## The artifact under interrogation (plan draft sap-plan.md)
 
-## Acceptance Criteria
-- App builds + boots on the npm workspace (backend/frontend/contract).
-- Email+OTP login works; RBAC intact; audit is **application-enforced and
-  fail-closed** (append-only by construction in the app layer — database-level
-  immutability is deferred with the deployment hardening, decision 0011 / D-0003),
-  proven by the observable login audit row.
-- Only **auth, CSRF and an explicit health endpoint** are reachable on the API; the
-  capability modules whose tables the trimmed migration removed are not registered,
-  so an authenticated caller cannot reach a failing or misleading route.
-- Frontend shell renders in KnackLabs green, branded 3F, per the Claude Design:
-  exactly the five nav labels (`Dashboard`, `MIS Reports`, `Ask`, `Explore / Saved`,
-  `Admin`) with **only Dashboard active**, the other four and the top-bar search
-  visibly unavailable, and the data-freshness pill reading as **explicitly
-  unavailable** until the ingestion capability owns a real value.
-- A Postgres warehouse adapter runs a trivial query end-to-end via the app path
-  (`validate → explain → execute`) returning the expected fixture result — demonstrated
-  behind `WAREHOUSE_E2E=1`, with the pg field-OID → numeric mapping proven by a
-  hermetic unit test and a negative control (decision 0009).
-- A repo-wide quality gate (ESLint + Prettier + `tsc --noEmit`) covers **all three**
-  workspaces and is enforced by `verify.py`, not merely declared.
-- Harness intact: dual-runtime + vendor integrity clean; `verify.py` green.
+# Story plan — sap-ingestion (Ingest SAP actuals + budgets)
 
-## Technical Approach
-- **Vendor** `backend/` + `contract/` from the Pulse repo as owned code (snapshot,
-  decision 0006). Strip MBS-specific domains (`operations`, `leadActivity`) and MBS
-  seeds/grants; keep the framework: auth, RBAC, session, audit, semantic-layer
-  framework, SQL builder/validator, warehouse port. npm workspace at repo root
-  (`workspaces: [contract, backend, frontend]`).
-- **Warehouse:** a **separate Postgres container** (docker-compose), distinct from
-  the app DB (grill decision). Implement `PostgresAdapter implements Warehouse`
-  using `pg`; select it via `warehouseDriver=postgres`; flip the `sqlValidator`
-  node-sql-parser dialect to `postgresql`.
-- **Migrations:** **trim Pulse's Drizzle migrations to the auth + audit minimum**
-  needed for first boot (grill decision); the rest come back with the stories that
-  need them.
-- **Auth:** keep Pulse email+OTP (mock OTP until SES), JWT cookies, RBAC, audit — as-is.
-  "Append-only audit" means **application-enforced, fail-closed inserts**: the app
-  never updates or deletes an audit row, and an audit write that cannot complete
-  fails the operation rather than passing silently. Database-level immutability
-  (triggers or a permission model refusing `UPDATE`/`DELETE`) is **not** built here —
-  it is production hardening, deferred with decision 0011 (D-0003).
-- **API surface:** the vendored `AppModule` registers Pulse's full capability set,
-  but the trimmed migration removed several of those tables — so those routes are
-  reachable and broken. Register **only auth, CSRF and an explicit health endpoint**;
-  leave chat, reports, saved queries, pins, measures, conversations and admin
-  **unregistered** until their owning stories bring them back with their tables. This
-  makes the non-goals real rather than aspirational, and delivers the "health" surface
-  the plan already promises.
-- **Quality gate, front-loaded:** ESLint + Prettier reach `backend/` and `contract/`
-  (which have neither today) and the four `FACTORY_*` commands `verify.py` reads are
-  declared in `.envrc` **before** the frontend is written, so the gate constrains the
-  new code as it lands instead of auditing it afterwards. The gate widens as the
-  frontend workspace appears; only the final whole-workspace proof stays in the last
-  task.
-- **Frontend:** a new **Next.js (App Router) + React + TS** package (`frontend/`,
-  decision 0007) using **shadcn/ui on Tailwind**, themed with the KnackLabs `_ds`
-  tokens ported from `docs/design/3F-Financial-MIS/_ds`; build the **app shell**
-  (top bar, left nav) and **OTP login** from the approved design; consume the
-  backend REST API. The `.dc.html` export is a design reference, not a runtime —
-  rebuild as React components. **Inter is vendored**: the licensed WOFF2 files live
-  under `frontend/` with their OFL licence and load through `next/font/local`, so the
-  build and the running app make **no external font request** — the `_ds` export's
-  Google Fonts import is a design-reference artifact, not the runtime source.
-- **Harness:** point `harness.yaml` build/verify/test/lint at the workspace scripts
-  so `verify.py` and the gates run against the vendored app.
+## Context
+Bring SAP GL actuals and the MIS budget plan into the **separate warehouse Postgres**
+(`WAREHOUSE_PG_*`) so the later statement, drill-down, and metrics stories can query them. Today the
+warehouse adapter (`backend/src/warehouse/postgres.adapter.ts`) is **read-only/EXPLAIN-guarded** —
+there is no ingest path, no SAP tables, no Excel parsing, and no mapping master. This story builds
+them for the PoC pilot (Nursery/`DUB`, July 2026). Backend-only; no user-facing UI.
 
-## Decisions
-Reviewed at planning time: 0003 (custom + Pulse), 0004 (governed joins — framework
-carried, joins built later), 0006 (frontend fresh / backend-only vendor), 0007
-(frontend framework = Next.js/React + shadcn/ui + Tailwind, `_ds`-themed). Warehouse
-= Postgres for the PoC is settled by the `app-platform-base` spec; the production
-engine (Postgres vs BigQuery) stays a separate open decision.
+Grounded in: `docs/architecture/{20-financial-mis-data-model,30-financial-mis-build-plan}.md`,
+decisions **0002** (MIS from SAP alone; Actual = Σ(Debit−Credit); budgets from planning input) and
+**0004** (Budget and Actual stay SEPARATE, joined at query time — NO pre-join in ingestion).
 
-**Accepted during implementation** (they govern their respective tasks and supersede
-the original "no new decisions" scope note): **0008** (Pulse `backend`+`contract`
-vendored as a pinned snapshot — provenance preserved), **0009** (required_tests must
-name a real leaf test and pin the runner project, closing a false-green gate — applies
-to every task's proof), and **0010** (rebrand every Pulse product identifier → 3F;
-provenance history preserved). **0011** (deployment readiness deferred; PoC acceptance
-is local + mock-OTP). The frontend tasks consume `@3f/contract` and the 3F auth wire
-names per 0010, and prove themselves per 0009.
+## Requirements decisions (from the recorded requirements grill — these BIND the tasks)
+1. **Upload scope:** accept + retain the FULL July source batch (all 31 plants); only canonical
+   Nursery `DUB` (`DUB-NUR` in SAP) is reportable/reconcilable in the PoC; other plants
+   retained-but-unconfigured.
+2. **Unmapped rows:** retain the raw row + original keys, but REJECT the DUB period as *unreconciled*
+   if any in-scope DUB transaction lacks a single provisional mapping (surface count + value); never
+   silently drop or zero it.
+3. **Budget grain/lifecycle:** the provisional mapping master holds an explicit **balanced
+   allocation** from each MIS budget line to its `(plant,cost_center,gl,month)` join keys (each
+   allocation totals back to its source line); budget uploads replace only their
+   `(format, canonical plant, period)` atomically and never mutate Actuals; rollover retained but not
+   published until its rule is confirmed.
+4. **Raw-line identity/replacement:** retain all source + drill fields + original AND canonical keys +
+   txn-no/line-id identity + immutable batch metadata; a re-upload creates a NEW batch and switches
+   the active batch for the period — never erases the prior load record.
+5. **Reconciliation bar:** demo-ready = EXACT `₹11,512,712` for July 2026 DUB across accepted raw
+   rows, the monthly gold rollup, AND the scoped total; Srihari's later filled July MIS is a separate,
+   later validation comparator.
+6. **Excel acceptance:** identify the input sheet by its required HEADER set (not its file/sheet
+   name); require a single posting month per batch; validate ALL rows before writing; reject
+   invalid/mixed-period files with row-level diagnostics and NO change to the active batch.
+7. **Upload authorization/audit:** restrict uploads + period replacement to a configured
+   data-owner/ingestion-operator role (a new RBAC action grant); audit uploader, time, source batch,
+   validation result, reconciliation result, and the replaced active batch.
 
-**Frontend tooling (conduct §9, confirmed with the client 2026-09-04 — best-fit, not
-defaults):** **npm workspaces** (not Nx) — the vendored backend is already one; adding
-`frontend` avoids re-tooling vendored code (`constitution/01-monorepo-standard.md`
-deviation, decision 0008). **Vitest + React Testing Library + jsdom** — ESM/TS-native,
-fast, minimal Next config (over Jest). **ESLint + Prettier +
-`tsc --noEmit`** — the lint + format + type-check gate. The frontend uses
-`eslint-config-next`, run by each frontend task's `verify_commands` (stage-done
-enforcement); **backend + contract** get a base ESLint + Prettier config in the
-**quality-gate-baseline task (T5)** — front-loaded, before any new code is written, so
-the gate constrains what lands rather than auditing it afterwards — so ALL touched
-TypeScript is linted+formatted. The repo-wide gate is wired into `verify.py` via `.envrc`
-`FACTORY_STRUCTURAL_CMD` / `FACTORY_TYPECHECK_CMD` / `FACTORY_QUALITY_CMD` /
-`FACTORY_TEST_CMD` (exact names read by `verify.py`) in T5, widened to the frontend in T7,
-and proven whole-workspace in T9. **`pg` (node-postgres)** — the Postgres driver
-behind `PostgresAdapter`: the standard, well-supported client already backing the
-vendored Drizzle stack, so reusing it avoids a second Postgres client. **TanStack Query v5**
-— server-state layer (me query + OTP/logout mutations) wrapping the `api.ts` transport.
-**`next/font/local` (Inter)** — the `_ds` token face served from **licensed WOFF2 files
-vendored under `frontend/`** with their OFL licence. `next/font/google` is deliberately
-rejected: it needs network at build time and the exact files can drift between builds.
-The `_ds` export's Google Fonts `@import` is a design-reference artifact — the runtime
-makes no external font request, and an offline production build is the proof.
+## Target warehouse schema (per architecture 30-...:70-84)
+- `sap_transaction` — raw lines: `txn_no, line_id, posting_date, month, plant (canonical), plant_src,
+  cost_center, gl_code, acct_name, debit, credit, memo, reference, source_batch` (+ batch metadata).
+- `actual_by_key_month` — gold view/matview: `Σ(debit − credit)` grouped by
+  `(plant, cost_center, gl_code, month)`; one definition reused downstream.
+- `mis_mapping_master` — `(plant, cost_center, gl_code) → budget_component, department, function,
+  format_id, …` + the balanced budget-line→key allocation.
+- `mis_format` / `mis_format_line` / `mis_budget` — the budget object, SEPARATE from actuals.
+- `ingest_batch` — immutable batch registry (id, period, canonical plant, uploader, uploaded_at,
+  validation + reconciliation result, active flag).
 
-**Deployment (decision 0011):** platform-base is a **PoC** — local, single-tenant, mock
-OTP. Production deployment readiness (real SES email, provisioning, secrets, CORS
-allowlist, audit retention/encryption, residency) and the constitution's
-`/deployment/<environment>` structure are **deliberately deferred** to a post-PoC story
-(deferral D-0003) — not built or scaffolded here.
+## Decomposition (5 bounded tasks; sequential unless noted)
+1. **warehouse-schema** — a migration/DDL path for the warehouse Postgres (separate from the Drizzle
+   app-DB migrations); create `sap_transaction`, `ingest_batch`, `mis_mapping_master`, the budget
+   tables, and the `actual_by_key_month` gold view; register the gold object in the semantic layer
+   (`backend/src/semantic/semanticLayer.ts`, baseDomains=[] today). Proof: migration runs on the
+   warehouse DB; the gold view returns Σ(debit−credit) by key/month on seeded rows.
+2. **actuals-loader** — add `exceljs`; `POST /api/ingest/actuals` (AuthGuard + a new ingest action
+   grant + ADD to the strict route allow-list `backend/src/app.routes.test.ts`); header-identified
+   single-month parse; net Debit−Credit; retain raw + original/canonical keys; idempotent replace via
+   a new `ingest_batch` (switch active, don't erase); validate-before-write with row diagnostics.
+   Decisions 5,6,7 land here.
+3. **mapping-master** — load `mis_mapping_master` from the real fixture
+   `docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx` incl. the 7 missing GLs +
+   the `DUB-NUR → DUB` normalization; enforce decision 2 (reject the period as unreconciled on any
+   unmapped in-scope DUB row). NOTE: the `DUB-NUR→DUB` normalization + the 7 GLs are flagged
+   *undecided* in decision 0002 / arch 20-...:67-84 — this task's grill must put them to the human.
+4. **budget-loader** — load `mis_format`/`mis_budget` from the MIS format as a SEPARATE object
+   (decision 0004 — no pre-join); the balanced allocation (decision 3); atomic per-(format,plant,
+   period) replace; rollover retained-not-published.
+5. **reconciliation-proof** — a test grounding July `DUB` net to EXACTLY `₹11,512,712` across raw +
+   gold + scoped total against the in-repo fixture; re-upload July replaces the month with no
+   duplicates (idempotency proof).
 
-**Vendored API compliance (decision 0012):** the vendored backend does not meet two
-constitution requirements — a global exception handler (`constitution/07-exception-handling.md`)
-and structured JSON logging with a `correlationId` (`constitution/05-logging-and-observability.md`
-§2.1) — and its typed response DTO coverage is uneven. These are accepted as a
-**time-bounded deviation** for the PoC and ledgered as D-0004, revisited on the same
-trigger as 0011. The deviation covers the **vendored** code only: anything written fresh
-in this repo meets the standards as written. Swagger is **not** part of it — it is already
-mounted at `api/docs` with error responses documented, and stays compliant.
+## Scope boundary (decision 0004)
+OUT of this story: the query-time **budget⋈actual join** (→ governed-joins) and the **drill-down UI**
+(→ drill-down). Ingestion must NOT build a wide pre-joined table.
 
-## Surface Impact
-| Surface | Class | Note |
-|---|---|---|
-| Runtime behavior | Changed | New app boots (backend API + frontend shell) |
-| API | Changed | Surface deliberately **constrained** to auth + CSRF + an explicit health endpoint (T6); the vendored capability modules (chat, reports, saved queries, pins, measures, conversations, admin) stay unregistered until their owning stories, so no route is reachable without its tables |
-| Data / schema | Changed | Trimmed auth+audit migrations; a separate Postgres warehouse container |
-| CLI / ops | Changed | Repo-wide lint/format/typecheck baseline + the four `FACTORY_*` `.envrc` commands land in T5 (front-loaded), widen to the frontend in T7, and are wired into `harness.yaml` and proven whole-workspace in T9; docker-compose (app DB + warehouse) |
-| UI | Changed | Fresh KnackLabs-green Next.js app — T7 builds the `_ds` theme + locally vendored Inter + shadcn/ui primitives (foundation), T8 the shell + OTP login (TanStack Query), with the four inactive nav items, the search box and the freshness pill all visibly unavailable |
-| Docs | Unchanged-by-design (planning reconciliation only) | Spec + architecture build-plan were reconciled to the accepted decisions during re-planning (0006/0008/0010/0011) — completed planning governance, NOT a story task output; no task carries `docs/` in its write_scope |
-| Tests | Changed | Vendored backend tests carried; add boot/login/query smoke tests + frontend Vitest+RTL hermetic tests and the lint/format/typecheck gate |
+## Verify approach
+Each task: `verify.py` green; hermetic tests where possible; the live warehouse-DB proofs run as
+demonstrated evidence (Postgres warehouse via docker, `WAREHOUSE_PG_*`), gated like the platform-base
+warehouse E2E. The reconciliation-proof task carries the ₹11,512,712 assertion.
 
-## Task Decomposition
-1. **vendor-backend-contract** (backend, not user-facing) — snapshot `backend/` +
-   `contract/`; strip MBS domains/seeds; set up the npm workspace; `npm install`;
-   backend + contract build and typecheck. write_scope: `backend/`, `contract/`,
-   `package.json`, `package-lock.json`, `tsconfig.base.json`.
-2. **postgres-warehouse-adapter** (backend, not user-facing) — `PostgresAdapter`
-   over the Warehouse port; validator dialect `postgresql`; warehouse config +
-   a separate warehouse Postgres in docker-compose; a trivial query runs E2E.
-   depends_on: 1. write_scope: `backend/src/warehouse/`, `backend/src/sql/`,
-   `backend/src/config.ts`, `backend/src/core/core.module.ts`, `docker-compose.yml`.
-3. **backend-boot-otp-auth** (backend, not user-facing) — trim migrations to
-   auth+audit; app-DB migrations run; backend boots; email+OTP login works;
-   RBAC/audit intact; boot/login smoke tests. depends_on: 1,2. write_scope:
-   `backend/src/`, `backend/drizzle/`, `docker-compose.yml`.
-4. **rebrand-pulse-to-3f** (backend, not user-facing) — rename every Pulse product
-   identifier to 3F across the vendored backend + contract (packages `@3f/contract`/
-   `@3f/backend`, auth wire names `3f_*` + JWT `3f-api`/`3f`, seed/strings), behaviour
-   preserving; provenance history preserved (decision 0010). depends_on: 1,2,3. write_scope:
-   `backend/`, `contract/`, `package.json`, `package-lock.json`, `docker-compose.yml`.
-5. **quality-gate-baseline** (ops, not user-facing) — establish the repo-wide quality
-   gate **before** new code is written: add ESLint + Prettier config and
-   `lint`/`format:check` scripts to **backend and contract** (they have neither today),
-   and declare the commands `verify.py` reads from `.envrc` under these exact names —
-   `FACTORY_STRUCTURAL_CMD` (build + workspace/vendor integrity), `FACTORY_TYPECHECK_CMD`
-   (contract + backend), `FACTORY_QUALITY_CMD` (ESLint + Prettier across the workspaces
-   that exist), `FACTORY_TEST_CMD` (backend tests). The frontend joins each command as
-   its workspace lands (T7). depends_on: 1,4. write_scope: `.envrc`, `package.json`,
-   `backend/` + `contract/` (lint/format config + scripts only).
-6. **api-surface-trim** (backend, not user-facing) — register **only** auth, CSRF and an
-   explicit health endpoint in `AppModule`; leave the vendored capability modules (chat,
-   reports, saved queries, pins, measures, conversations, admin) unregistered until their
-   owning stories restore them with their tables. Removes the reachable-but-broken routes
-   the trimmed migration left behind and delivers the health surface the plan promises.
-   `GET /health` is fresh code, so it returns a **typed, Swagger-documented** liveness
-   response (decision 0012's deviation covers vendored code only). Also fixes two inherited
-   defaults: (a) `config.ts` defaults `frontendOrigin` to `http://localhost:5173` (Vite,
-   from Pulse), which **CORS-rejects** credentialed calls from the Next dev server on
-   `:3000` — default it to `:3000`, keeping `FRONTEND_ORIGIN` as the override; (b)
-   `main.ts` calls `app.listen(port)` with **no host**, binding every interface — bind
-   `127.0.0.1` whenever `AUTH_OTP_MOCK` is on, so a known mock code (`000000`) and a
-   deterministic dev JWT secret are not an admin login for the whole local network.
-   Proof: a route-registration test comparing the **complete** method/path allow-list, and
-   a no-enumeration test (active / inactive / unknown emails return identical status and
-   body; unknown and inactive verification fail identically and yield no session).
-   depends_on: 3,4,5. write_scope: `backend/src/app.module.ts`, `backend/src/health/`,
-   `backend/src/config.ts`, `backend/src/main.ts`, `backend/test/`.
-7. **frontend-foundation** (frontend, not user-facing) — scaffold the fresh Next.js
-   (App Router) `frontend/` npm workspace and its toolchain: the `_ds`-token Tailwind
-   theme, **Inter vendored as local WOFF2 loaded via `next/font/local`** (no external
-   font request at build or runtime), in-tree shadcn/ui primitives, the TanStack Query
-   provider, and a stack-appropriate quality gate (ESLint `eslint-config-next` + Prettier
-   + `tsc --noEmit`) run by the task's `verify_commands` plus a pinned, non-downloading
-   Vitest runner; widen the `FACTORY_*` commands from T5 to include the frontend. No app
-   screens yet — the reviewable foundation the shell/login builds on. depends_on: 1,4,5
-   (consumes `@3f/contract`, decision 0010). write_scope: `frontend/`, `.envrc`,
-   `package.json`, `package-lock.json`.
-8. **frontend-shell-login** (frontend, **user_facing: true**) — the user-facing app
-   shell (Deep Forest left nav + white top bar, branded 3F) + net-new email+OTP login
-   wired to the backend auth API, per the Claude Design; server state via TanStack
-   Query over an `api.ts` transport (credentials + per-POST `3f_csrf` re-read). Exactly
-   five nav labels with only Dashboard active; the other four, the top-bar search and the
-   data-freshness pill all render visibly unavailable. depends_on: 6,7. write_scope:
-   `frontend/`, `package.json`, `package-lock.json`.
-   (Design skills: emil-design-eng, frontend-design.)
-9. **harness-wiring** (ops, not user-facing) — point `harness.yaml` at the workspace
-   scripts and prove the **whole-workspace** gate: `verify.py` green across structure,
-   typecheck, quality (ESLint + Prettier over frontend AND backend AND contract) and
-   tests (backend AND frontend). `FACTORY_STRUCTURAL_CMD` must **explicitly invoke both**
-   `check_dual_runtime.py` and `check_vendor_integrity.py` — `verify.py` runs only what the
-   `FACTORY_*` variables declare, so "harness intact" is otherwise unfalsifiable — and the
-   Pulse snapshot's provenance (`backend/VENDORED_FROM` naming repo + commit, decision
-   0008) is asserted separately from harness integrity. The gate itself was established in T5 and widened
-   in T7 — this task wires and proves it, it does not invent it. depends_on: 1,2,3,4,5,6,7,8.
-   write_scope: `harness.yaml`, `.envrc`, `.github/` (project workflows only).
-
-Every task traces to the acceptance criteria; no speculative tasks.
-
-## Risks
-- Vendoring drags MBS coupling → T1 strips domains/seeds; T3 smoke test proves boot.
-- Trimming migrations too aggressively could break auth/audit → T3 keeps the auth+audit set and boots against it before trimming further.
-- Postgres dialect gaps in node-sql-parser → T2 validates a real query, not a stub.
-- Frontend design fidelity → shadcn/ui themed by `_ds` tokens; design review on T8.
-- Layout mismatch — the vendored code uses npm workspaces (backend/frontend/contract),
-  not the Nx layout `constitution/01-monorepo-standard.md` recommends. Deliberate,
-  documented deviation (avoids re-tooling the vendored snapshot, decision 0008); T9
-  wires the actual workspace scripts into harness.yaml/.envrc.
-- Unregistering the capability modules (T6) could disturb auth, which shares the module
-  graph → the task keeps a route-registration test asserting auth + CSRF + health answer
-  and the removed routes 404, and the T3 login E2E is re-run before the task closes.
-- A promise of "no external font request" is easy to state and easy to break → T7 proves
-  it with an offline production build, not by inspection.
-
-## Verify Plan
-- **Per task:** build + typecheck + relevant tests green; T2 the app-path query proof
-  (`validate → explain → execute` returning the fixture result, demonstrated behind
-  `WAREHOUSE_E2E=1`, plus the hermetic pg-OID → numeric mapping test with a negative
-  control); T3 login E2E (mock OTP) + the observable append-only login audit row;
-  T4 rebrand proof (build/typecheck green under `@3f/*` + a **product-identifier**
-  pulse-free scan that deliberately **excludes provenance records** — `VENDORED_FROM`,
-  `VENDOR_MANIFEST.json` and commit history retain "Pulse" by design, decision 0010);
-  T5 the backend+contract lint/format gate runs and `verify.py` reads all four
-  `FACTORY_*` commands; T6 the capability routes are gone and `/health` answers, proven
-  by a route-registration test; T7 the frontend quality gate (ESLint + Prettier +
-  `tsc --noEmit`) + a themed-primitive test + an **offline** `build:frontend` green
-  (no external font fetch); T8 design review + the shell renders in green + OTP login
-  E2E (successful verify → shell, logout → login) + the mobile drawer + the user-facing
-  functional check; T9 whole-workspace `verify.py` (structure, typecheck, quality
-  lint+format, tests for frontend AND backend) + dual-runtime + vendor integrity clean.
-- **Story:** the acceptance criteria demonstrated end-to-end — boot, OTP login, green
-  shell, a Postgres query through the app, and a clean harness.
+## New decisions to record as we go
+- The `DUB-NUR → DUB` normalization + the 7 missing GLs resolution (decision new; surfaced in the
+  mapping-master task grill).
+- The ingest batch/replacement model + the unmapped-row rejection policy, if not sufficiently covered
+  by the requirements grill record.
 
 
 ## What to return

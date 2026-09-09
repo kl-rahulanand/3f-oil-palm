@@ -37,7 +37,7 @@
         "Re-uploading a month replaces it idempotently (no duplicates)"
       ],
       "order": 2,
-      "status": "pending"
+      "status": "active"
     },
     {
       "key": "governed-joins",
@@ -169,5 +169,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-09T02:19:19+00:00"
+  "updated_at": "2026-09-09T02:22:21+00:00"
 }
