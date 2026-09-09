@@ -1,0 +1,7 @@
+{
+  "plant": "DUB",
+  "period": "2026-07-01",
+  "source": "SAP Entries Mapping.xlsx#SAP Report",
+  "lineCount": 88,
+  "expectedNetPaise": "11512712.07"
+}
