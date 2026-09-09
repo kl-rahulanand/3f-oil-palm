@@ -27,6 +27,7 @@ const hermeticTests = [
   "backend/src/health/health.controller.test.ts",
   "backend/src/ingest/ingest.controller.test.ts",
   "backend/src/ingest/ingest.service.test.ts",
+  "backend/src/ingest/mis-budget.parser.test.ts",
   "backend/src/ingest/sap-actuals.parser.test.ts",
   "backend/src/loopback-profile.test.ts",
   "backend/src/measures/authored-measure.registry.test.ts",

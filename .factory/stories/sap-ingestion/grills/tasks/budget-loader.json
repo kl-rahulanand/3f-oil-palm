@@ -1,0 +1,121 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "budget-loader",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "budget-loader adds POST /api/ingest/budget as a second method on the existing IngestController/IngestService (same 'ingest' grant, allow-list, multipart pattern, and a jszip guard extracted to a shared workbook-guard.ts): the MIS Table-2 sheet is found by its required header set, every date-headed month block present is read (exact 'Budget' / 'Roll Over Budget' sub-columns; YTD/FY and Actual/% ignored), GL line rows become mis_budget rows with every field as provided at paise (formula cells only via cached results), the whole workbook is preflight-validated, and the service replaces each present period through the REUSED IngestionRepository.replaceBudgetBatch inside ONE outer transaction with proven rollback, retaining each period's prior batch. Isolation is PoC-scoped to (budget, period). sap_transaction is never touched (0004). No new module, grant, migration, dependency, or warehouse change.",
+  "inspected_refs": [
+    "docs/context/2026-08-20-srihari-phase1-data/README.md",
+    "docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/warehouse-migrate.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/ingest/sap-actuals.parser.ts",
+    "backend/src/ingest/ingest.service.test.ts",
+    "backend/src/app.routes.test.ts",
+    "docs/decisions/0004-pulse-governed-joins.md",
+    "docs/decisions/0014-sap-ingestion-poc-no-master.md"
+  ],
+  "new_abstractions": [
+    "the shared workbook-guard.ts (jszip pre-materialization guard used by both parsers)",
+    "the MIS Table-2 header-identified budget parser (date-headed month blocks, cached-formula semantics, preflight)",
+    "the ingestBudget service method (one outer transaction wrapping per-period replaceBudgetBatch)",
+    "IngestBudgetResponse with an explicit per-period association"
+  ],
+  "criteria_map": {
+    "POST /api/ingest/budget uses the same AuthGuard + 'ingest' grant + allow-list + typed DTO/Swagger/CSRF pattern as the actuals endpoint": "KEEP. POST /api/ingest/budget is a second method on the EXISTING IngestController/IngestService reusing AuthGuard + the existing 'ingest' grant, the route allow-list, the multipart FileInterceptor + shared jszip workbook-guard, zod + a typed IngestBudgetResponse ({formatId, plant, periods[{period,batchId,rowCount}], totalRowCount}), Swagger 201/400/401/403/413 and CSRF/forbidden tests (findings 8, 9).",
+    "the MIS format workbook loads into mis_budget as a SEPARATE object, stored as-provided with NO derived allocation and NO mutation of SAP actuals (decision 0004)": "KEEP (amended). mis_budget rows are emitted per GL line row x each DATE-headed month block present, every field as provided (format_id constant, line_id = S.No, gl_code, cost_center = the MIS Budget Components label, budget = 'Budget', rollover = the real 'Roll Over Budget' column) at paise; formula cells accepted only via cached numeric results (uncached = diagnostic, never 0.00); YTD/FY blocks and Actual/% ignored; sap_transaction never read, written or joined (0004) (findings 2, 3, 4, 10).",
+    "a budget upload replaces only its (format/period/canonical plant) atomically via a new active budget ingest_batch; the prior budget batch is retained": "KEEP (amended, human-decided). Isolation is PoC-scoped to the shipped active key (source_kind='budget', period) - one nursery format + one plant DUB make that the effective key; format_id/plant are row/metadata attributes; multi-format/multi-plant isolation is deferred with a revisit trigger. A re-upload replaces each present period atomically inside ONE outer transaction (new IngestionRepository(transaction), the proveWarehouse pattern) with a proven rollback on a later-period failure; each period's prior batch is retained; whole-workbook preflight (dup grain, missing S.No/component, zero GL rows, uncached amounts) rejects before any write; the D-0008 host command is pinned (findings 1, 5, 6, 7)."
+  },
+  "gaps": [
+    "The replacement key promised by criterion 3 (format/period/canonical plant) is impossible in scope: ingest_batch and replaceBatch key only on (source_kind, period); neither format nor plant is durable or used in the active-batch switch, so a second plant/format would replace the first",
+    "The source header disagrees with the parser contract: the workbook's monthly rollover column is 'Roll Over Budget' while the task required 'Roll Over', so exact matching would omit or reject rollover values",
+    "Workbook cardinality was contradictory: the parser/service promised exactly twelve month blocks and twelve replacements while manual verification required a successful two-month fixture",
+    "Formula semantics were unspecified: the rollover cells are formulas with cached results, and reusing the actuals helper would turn a missing formula cache into null, which the money parser treats as blank/0.00 - silent financial corruption",
+    "Cross-period atomicity was asserted, not designed or proved: each replaceBudgetBatch opens its own transaction and the plan did not state how all periods are wrapped or how rollback on a later failure is proven",
+    "Validation missed malformed-but-writeable inputs: no preflight rejection for duplicate budget grain, a GL row missing its S.No/component, or a workbook with no GL rows, which could raise a DB constraint error or activate empty batches",
+    "D-0008 had no runnable proof command: verify commands stop at hermetic tests and the DB test skips without WAREHOUSE_DB_TEST=1, so 'host-run' was narration rather than an executable pinned command",
+    "The 'shared jszip guard' had no sharing seam: the only guard is private inside sap-actuals.parser.ts, which was outside this task's write scope, forcing duplication or an undeclared edit",
+    "The response shape {batchIds, periods, rowCount} was ambiguous: no batch-to-period association, ordering, or per-period counts",
+    "Handover drift: the plan said replaceBudgetBatch comes from warehouse-schema; it is implemented in backend/src/warehouse/ingestion.repository.ts"
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "HUMAN-decided: PoC-scope isolation to the shipped active key (source_kind='budget', period) - one nursery MIS format + one plant (DUB) make that the effective key; format_id and plant are row/metadata attributes (plant recorded in validation_result), not part of the switch; multi-format/multi-plant isolation (a schema-key change) is deferred with a revisit trigger.",
+    "Match the sub-columns EXACTLY as the workbook names them, whitespace-normalized: 'Budget', 'Roll Over Budget', 'Actual', '%'.",
+    "Handle EVERY date-headed month block present (twelve in the real workbook, two in a fixture) - never assume a count; one budget batch per present period.",
+    "Specified cell semantics: numeric cells read directly; a FORMULA cell is accepted ONLY via its cached numeric result (cell.value.result) rounded to paise; a formula with no cached result or an error result is a rows.<n>.<column> diagnostic, never blank/0.00; a genuinely blank cell is '0.00'.",
+    "Specified the mechanism: the service opens ONE outer db.transaction, constructs new IngestionRepository(transaction) (the repository accepts a transaction as its db exactly as proveWarehouse does), and calls replaceBudgetBatch once per period inside it (nested savepoints); the service test proves a later-period failure rolls back earlier ones with a mocked repository, and the gated DB leaf proves it live.",
+    "Added preflight rejections before ANY write, each a rows.<n>.<column> 400: duplicate (format_id, period, line_id, gl_code, cost_center) grain within the upload; a GL line row missing its S.No or Budget Components; a workbook with zero GL line rows; any non-numeric or uncached amount.",
+    "Pinned the exact executable D-0008 host command in the contract, the plan and tests.json (WAREHOUSE_PG_* + PGHOST/PGPORT + WAREHOUSE_DB_TEST=1 node --test backend/src/ingest/ingest.service.test.ts) for the gated leaf, run by the orchestrator.",
+    "Extracted the jszip pre-materialization guard into a NEW backend/src/ingest/workbook-guard.ts (write_scope +) used by BOTH parsers; sap-actuals.parser.ts added to write_scope ONLY to import the shared guard - one implementation, no duplicated security logic.",
+    "Made the response explicit: IngestBudgetResponse = { formatId, plant, periods: Array<{ period, batchId, rowCount }>, totalRowCount } - a per-period association, never parallel arrays.",
+    "Corrected the plan: replaceBudgetBatch is implemented in backend/src/warehouse/ingestion.repository.ts (warehouse-schema is the task that built it)."
+  ],
+  "open_items": [],
+  "rounds": [
+    {
+      "question": "Criterion 3 promises a budget upload replaces only its (format / period / canonical plant), but the shipped batch key is (source_kind, period) \u2014 format and plant aren't part of the active-batch switch. For this PoC (one nursery MIS format, one plant DUB) how should isolation work?",
+      "options": [
+        "PoC-scope it: (budget, period) key (Rec.)",
+        "Extend the key now"
+      ],
+      "chosen": "PoC-scope it: (budget, period) key (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The replacement key promised by criterion 3 (format/period/canonical plant) is impossible in scope: ingest_batch and replaceBatch key only on (source_kind, period); neither format nor plant is durable or used in the active-batch switch, so a second plant/format would replace the first",
+      "source": ".factory/stories/sap-ingestion/decomposition.json; backend/src/warehouse/warehouse-schema.ts:23; backend/src/warehouse/ingestion.repository.ts:77"
+    },
+    {
+      "finding": "The source header disagrees with the parser contract: the workbook's monthly rollover column is 'Roll Over Budget' while the task required 'Roll Over', so exact matching would omit or reject rollover values",
+      "source": "docs/context/2026-08-20-srihari-phase1-data/README.md:44; docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx"
+    },
+    {
+      "finding": "Workbook cardinality was contradictory: the parser/service promised exactly twelve month blocks and twelve replacements while manual verification required a successful two-month fixture",
+      "source": ".factory/stories/sap-ingestion/task-plans/budget-loader.md"
+    },
+    {
+      "finding": "Formula semantics were unspecified: the rollover cells are formulas with cached results, and reusing the actuals helper would turn a missing formula cache into null, which the money parser treats as blank/0.00 - silent financial corruption",
+      "source": "backend/src/ingest/sap-actuals.parser.ts:378; docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx"
+    },
+    {
+      "finding": "Cross-period atomicity was asserted, not designed or proved: each replaceBudgetBatch opens its own transaction and the plan did not state how all periods are wrapped or how rollback on a later failure is proven",
+      "source": "backend/src/warehouse/ingestion.repository.ts:69; backend/src/warehouse/warehouse-migrate.ts:44"
+    },
+    {
+      "finding": "Validation missed malformed-but-writeable inputs: no preflight rejection for duplicate budget grain, a GL row missing its S.No/component, or a workbook with no GL rows, which could raise a DB constraint error or activate empty batches",
+      "source": "backend/src/warehouse/warehouse-schema.ts:103"
+    },
+    {
+      "finding": "D-0008 had no runnable proof command: verify commands stop at hermetic tests and the DB test skips without WAREHOUSE_DB_TEST=1, so 'host-run' was narration rather than an executable pinned command",
+      "source": ".factory/stories/sap-ingestion/decomposition.json; backend/src/ingest/ingest.service.test.ts:115"
+    },
+    {
+      "finding": "The 'shared jszip guard' had no sharing seam: the only guard is private inside sap-actuals.parser.ts, which was outside this task's write scope, forcing duplication or an undeclared edit",
+      "source": "backend/src/ingest/sap-actuals.parser.ts:194"
+    },
+    {
+      "finding": "The response shape {batchIds, periods, rowCount} was ambiguous: no batch-to-period association, ordering, or per-period counts",
+      "source": ".factory/stories/sap-ingestion/task-plans/budget-loader.md"
+    },
+    {
+      "finding": "Handover drift: the plan said replaceBudgetBatch comes from warehouse-schema; it is implemented in backend/src/warehouse/ingestion.repository.ts",
+      "source": "backend/src/warehouse/ingestion.repository.ts:58"
+    }
+  ],
+  "summary": "One cold read returned ten findings. Nine are repository/decision-answerable and resolved in the amended contract + plan (the real 'Roll Over Budget' header, every present month block rather than exactly twelve, cached-formula semantics that never silently zero an uncached cell, an explicit one-outer-transaction mechanism with a rollback test, preflight rejections, a pinned D-0008 host command, the jszip guard extracted to a shared workbook-guard.ts, an explicit per-period response, and a wording fix). The one genuine product decision - that criterion 3's (format/period/plant) isolation exceeds the shipped (source_kind, period) key - went to the human, who PoC-scoped it to (budget, period) and deferred multi-plant isolation. Verdict pass.",
+  "input_sha256": "6b7fb646624efda9ef1b8099ad765c47b51643105d406897a51219a3f55dc922",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "ae2dfaaafd8133ec734af429b5c6745754307e88ede009b5f09d5bc9d3c14019",
+  "recorded_at": "2026-09-09T15:34:53+00:00",
+  "commit": "19f3297fdf037ee6f14dd5a6afba3546382e95fb",
+  "approved_task_plan_sha256": "ae2dfaaafd8133ec734af429b5c6745754307e88ede009b5f09d5bc9d3c14019",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-09T15:36:21+00:00"
+}

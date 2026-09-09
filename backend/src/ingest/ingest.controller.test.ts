@@ -64,6 +64,48 @@ test("POST /api/ingest/actuals is guarded by AuthGuard plus the ingest action gr
   }
 });
 
+test("POST /api/ingest/budget is guarded by AuthGuard plus the ingest action grant, appears in the strict route allow-list, rejects a CSRF-less or forbidden request, and documents its multipart DTO", async () => {
+  const controllerGuards = Reflect.getMetadata(GUARDS_METADATA, IngestController) as Function[];
+  assert.ok(controllerGuards.includes(AuthGuard));
+
+  const [ActionGuard] = Reflect.getMetadata(GUARDS_METADATA, IngestController.prototype.budget) as Array<
+    new () => { canActivate(context: ExecutionContext): boolean }
+  >;
+  assert.throws(
+    () => new ActionGuard().canActivate(context(requestWithActions([]))),
+    (error: unknown) => error instanceof HttpException && error.getStatus() === 403,
+  );
+  assert.equal(new ActionGuard().canActivate(context(requestWithActions(["ingest"]))), true);
+  assert.throws(
+    () => new CsrfGuard().canActivate(context({ method: "POST", headers: {} } as AuthedRequest)),
+    (error: unknown) => error instanceof HttpException && error.getStatus() === 403,
+  );
+
+  const originalInit = AuthoredMeasureRegistry.prototype.onModuleInit;
+  AuthoredMeasureRegistry.prototype.onModuleInit = async () => {};
+  let app: INestApplication | undefined;
+  try {
+    app = await NestFactory.create(AppModule, { logger: false });
+    configureApp(app);
+    await app.init();
+    assert.ok(registeredRoutes(app).includes("POST /api/ingest/budget"));
+
+    const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
+    const operation = document.paths["/api/ingest/budget"]?.post;
+    const requestBody = operation?.requestBody as {
+      content?: { "multipart/form-data"?: { schema?: { $ref?: string } } };
+    };
+    assert.equal(
+      requestBody.content?.["multipart/form-data"]?.schema?.$ref,
+      "#/components/schemas/IngestBudgetMultipartDto",
+    );
+    assert.deepEqual(Object.keys(operation?.responses ?? {}).sort(), ["201", "400", "401", "403", "413"]);
+  } finally {
+    AuthoredMeasureRegistry.prototype.onModuleInit = originalInit;
+    await app?.close();
+  }
+});
+
 function requestWithActions(actions: string[]): AuthedRequest {
   return {
     method: "POST",

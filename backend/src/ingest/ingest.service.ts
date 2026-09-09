@@ -1,5 +1,5 @@
 import { Injectable, PayloadTooLargeException } from "@nestjs/common";
-import type { IngestActualsResponse } from "@3f/contract";
+import type { IngestActualsResponse, IngestBudgetResponse } from "@3f/contract";
 import { z } from "zod";
 import { StructuredLogger } from "../common/structured.logger";
 import { loadConfig } from "../config";
@@ -8,15 +8,13 @@ import {
   createWarehouseWritePool,
   IngestionRepository,
   type CandidateBatchMetadata,
+  type IIngestionRepository,
   type SapTransactionInput,
 } from "../warehouse/ingestion.repository";
-import { ingestActualsResponseSchema, MAX_ACTUALS_UPLOAD_BYTES } from "./ingest.schemas";
-import {
-  parseSapActualsWorkbook,
-  type ParsedSapActuals,
-  SapActualsArchiveLimitError,
-  SapActualsRowLimitError,
-} from "./sap-actuals.parser";
+import { ingestActualsResponseSchema, ingestBudgetResponseSchema, MAX_ACTUALS_UPLOAD_BYTES } from "./ingest.schemas";
+import { parseMisBudgetWorkbook, type ParsedMisBudget } from "./mis-budget.parser";
+import { parseSapActualsWorkbook, type ParsedSapActuals } from "./sap-actuals.parser";
+import { WorkbookArchiveLimitError, WorkbookRowLimitError } from "./workbook-guard";
 
 export interface UploadedWorkbook {
   originalname: string;
@@ -31,12 +29,7 @@ export class IngestService {
 
   async ingestActuals(file: UploadedWorkbook | undefined, uploadedBy: string): Promise<IngestActualsResponse> {
     validateFile(file);
-    const parsed = await this.parseWorkbook(file.buffer).catch((error: unknown) => {
-      if (error instanceof SapActualsRowLimitError || error instanceof SapActualsArchiveLimitError) {
-        throw new PayloadTooLargeException(error.message);
-      }
-      throw error;
-    });
+    const parsed = await withUploadLimitErrors(this.parseWorkbook(file.buffer));
     const metadata: CandidateBatchMetadata = {
       period: parsed.period,
       uploadedBy,
@@ -59,8 +52,55 @@ export class IngestService {
     return response;
   }
 
+  async ingestBudget(file: UploadedWorkbook | undefined, uploadedBy: string): Promise<IngestBudgetResponse> {
+    validateFile(file);
+    const parsed = await withUploadLimitErrors(this.parseBudgetWorkbook(file.buffer));
+    const periods = await this.withBudgetRepository(async (repository) => {
+      const results: IngestBudgetResponse["periods"] = [];
+      for (const current of parsed.periods) {
+        const batchId = await repository.replaceBudgetBatch(
+          {
+            period: current.period,
+            uploadedBy,
+            validationResult: {
+              ...parsed.validationResult,
+              period: current.period,
+              periodRowCount: current.rows.length,
+            },
+            reconciliationResult: {},
+          },
+          current.rows,
+        );
+        results.push({ period: current.period, batchId, rowCount: current.rows.length });
+      }
+      return results;
+    });
+    const response = ingestBudgetResponseSchema.parse({
+      formatId: parsed.formatId,
+      plant: parsed.plant,
+      periods,
+      totalRowCount: parsed.totalRowCount,
+    });
+
+    this.logger.log("info", "MIS budget batches ingested", {
+      module: "Ingest",
+      accountId: uploadedBy,
+      context: {
+        formatId: parsed.formatId,
+        plant: parsed.plant,
+        periodCount: periods.length,
+        rowCount: parsed.totalRowCount,
+      },
+    });
+    return response;
+  }
+
   protected parseWorkbook(buffer: Buffer): Promise<ParsedSapActuals> {
     return parseSapActualsWorkbook(buffer);
+  }
+
+  protected parseBudgetWorkbook(buffer: Buffer): Promise<ParsedMisBudget> {
+    return parseMisBudgetWorkbook(buffer);
   }
 
   protected async replaceActualsBatch(metadata: CandidateBatchMetadata, rows: SapTransactionInput[]): Promise<string> {
@@ -70,6 +110,26 @@ export class IngestService {
     } finally {
       await pool.end();
     }
+  }
+
+  protected async withBudgetRepository<T>(run: (repository: IIngestionRepository) => Promise<T>): Promise<T> {
+    const pool = await createWarehouseWritePool();
+    try {
+      return await createWarehouseDb(pool).transaction((transaction) => run(new IngestionRepository(transaction)));
+    } finally {
+      await pool.end();
+    }
+  }
+}
+
+async function withUploadLimitErrors<T>(work: Promise<T>): Promise<T> {
+  try {
+    return await work;
+  } catch (error) {
+    if (error instanceof WorkbookRowLimitError || error instanceof WorkbookArchiveLimitError) {
+      throw new PayloadTooLargeException(error.message);
+    }
+    throw error;
   }
 }
 

@@ -1,0 +1,22 @@
+{
+  "id": "budget-loader",
+  "title": "MIS budget loader (separate object, as-provided)",
+  "status": "active",
+  "started_at": "2026-09-09T15:36:58+00:00",
+  "base_sha": "19f3297fdf037ee6f14dd5a6afba3546382e95fb",
+  "dirty_at_start": {
+    ".factory/stories/sap-ingestion/decomposition.json": {
+      "digest": "4b4246798f428d2c67dc1d42d4baa9d470a7db2e3a5fef08361e3d760eeb92ef",
+      "git": "1 .M N... 100644 100644 100644 503e0791ba8602a62d475ad210bb097cba73aa72 503e0791ba8602a62d475ad210bb097cba73aa72 .factory/stories/sap-ingestion/decomposition.json\u0000\u0000100644 503e0791ba8602a62d475ad210bb097cba73aa72 0\t.factory/stories/sap-ingestion/decomposition.json\u0000\u0000H .factory/stories/sap-ingestion/decomposition.json\u0000"
+    },
+    ".factory/stories/sap-ingestion/grills/tasks/budget-loader.json": {
+      "digest": "9656bec767e0448c29507f7bf7ca62e834af313ca8c347a21b36147467ff2241",
+      "git": "? .factory/stories/sap-ingestion/grills/tasks/budget-loader.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/sap-ingestion/task-plans/budget-loader.md": {
+      "digest": "8cdad3ff0721607bbbc6b48cea909a1f96fe074f76f93d3626afd780e993c6cc",
+      "git": "? .factory/stories/sap-ingestion/task-plans/budget-loader.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "6cc99adacfac5b1470bd8e2a471e827a45cb72d6401ab2f7912cc1a24b3d61c0"
+}
