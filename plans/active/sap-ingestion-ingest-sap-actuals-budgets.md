@@ -2,7 +2,7 @@
 issue: sap-ingestion
 title: Ingest SAP actuals + budgets
 status: approved
-saved: 2026-09-09T04:52:27+00:00
+saved: 2026-09-09T05:22:47+00:00
 story: sap-ingestion
 decisions_reviewed:
   - 0001-poc-engagement-scope
@@ -18,6 +18,8 @@ decisions_reviewed:
   - 0011-deployment-readiness-poc-scope
   - 0012-vendored-api-constitution-deviation
   - 0013-backend-observability-built-in-poc
+  - 0014-sap-ingestion-poc-no-master
+  - 0015-warehouse-snake-case-deviation
 ---
 
 # Story plan — sap-ingestion (Ingest SAP actuals + budgets)

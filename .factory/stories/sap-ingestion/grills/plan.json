@@ -112,8 +112,8 @@
     }
   ],
   "summary": "One cold read of the drafted plan against the real fixtures returned eleven findings, six blocking. The two hardest (an incomplete mapping master and a non-derivable budget allocation) are dissolved by the client's decision to use the provided Excel workbooks directly with NO governed master for the PoC. A factual precision correction (\u20b911,512,712.07 paise), the statement\u2192frozen-fixture proof scope, the missing warehouse write path + migrate, the batch/active-pointer model, the ingest API (typed DTO + Swagger + CSRF + a new 'ingest' grant), the falsifiable input contract, the schema conventions, and the ## Decisions/## Surface Impact handover are all resolved in the revised plan. Decomposition narrowed to four tasks. Verdict pass.",
-  "input_sha256": "880ea69e94603ee519c0048a7efc36352fd3490fb7e468636048c7e41f451116",
+  "input_sha256": "968d7a57c990c24b6d18c2fd93aa53c50289b261b8ec4deef8fcd7a5f7350d32",
   "issue": "sap-ingestion",
-  "recorded_at": "2026-09-09T04:52:26+00:00",
-  "commit": "5c299769231018cc6f0cf0fc6b819c6fc0d79390"
+  "recorded_at": "2026-09-09T05:22:46+00:00",
+  "commit": "945a67891884b2b94381db921dce36e26913e9ed"
 }
