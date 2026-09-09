@@ -51,7 +51,6 @@ const dbTests = [
   "backend/src/usage/usage.controller.test.ts",
   "backend/src/usage/usage.service.test.ts",
   "backend/src/users/users.controller.test.ts",
-  "backend/src/warehouse/reconciliation.repository.test.ts",
 ];
 
 const backendTestRunner =
@@ -91,6 +90,8 @@ const expectedWorkspaceScripts = {
       'cd .. && prettier --config .prettierrc.json --ignore-path .prettierignore --check "backend/src/**/*.ts" "backend/test/**/*.ts" --no-error-on-unmatched-pattern',
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
+    "test:warehouse-proof":
+      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test backend/src/warehouse/reconciliation.repository.test.ts",
   },
   contract: {
     build: "tsc -p tsconfig.json",
