@@ -128,7 +128,7 @@
   ],
   "summary": "One cold read of the confirmed spec against repo reality surfaced seven genuine requirements decisions (not repo-answerable): upload vs pilot scope, unmapped-row policy, budget allocation + revision lifecycle, raw-line identity/replacement, the exact reconciliation bar, Excel acceptance/atomic-failure, and upload authorization/audit. All seven went to the human, who accepted the recommended resolution for each. These decisions now bind the decomposition. Verdict pass.",
   "issue": "sap-ingestion",
-  "input_sha256": "8990ea7813096182d91dcb1eac30f4a458e6be51526463ede341bc2c232667c3",
-  "recorded_at": "2026-09-09T02:33:22+00:00",
-  "commit": "5c299769231018cc6f0cf0fc6b819c6fc0d79390"
+  "input_sha256": "8c42aeded1d4df35ddfa607a8b8793423389d7a92575538ef4d80a4e672d0d5f",
+  "recorded_at": "2026-09-09T05:21:24+00:00",
+  "commit": "945a67891884b2b94381db921dce36e26913e9ed"
 }
