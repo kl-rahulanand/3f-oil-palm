@@ -1,13 +1,23 @@
 {
   "generated_by": "autoreview",
-  "score": 9,
-  "summary": "security lens over actuals-loader (22 product path(s), 66cc8b8..1344bc9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. Authentication, ingest-specific RBAC, CSRF enforcement, response minimization, and upload byte/row limits are present, and no compatibility leftovers or credentials are shown. However, the XLSX is fully decompressed before the row limit applies, leaving a concrete resource-exhaustion path for callers with the ingest grant.",
+  "score": 8,
+  "summary": "security lens over actuals-loader (22 product path(s), 66cc8b8..2208b0a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The authentication, ingest grant, CSRF integration, response shape, and archive byte ceiling are present, and the diff exposes no credentials or compatibility leftovers. However, three limits intended to make the privileged upload boundary safe are applied too late or can be amplified by sparse worksheets, leaving concrete CPU/heap denial-of-service paths.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "security",
       "area": "backend/src/ingest",
-      "summary": "[P2] Bound XLSX decompression before loading the workbook (backend/src/ingest/sap-actuals.parser.ts:54): The 15 MB request limit only constrains the compressed ZIP, while `workbook.xlsx.load` expands and parses the entire attacker-controlled archive before the 25,000-row check runs."
+      "summary": "[P2] Bound raw-column expansion before constructing every row (backend/src/ingest/sap-actuals.parser.ts:213): `rawColumns` contains every nonempty header in the worksheet, and this map creates a property for each one on every data row."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/ingest",
+      "summary": "[P2] Reject ZIP entry bombs before JSZip materializes them (backend/src/ingest/sap-actuals.parser.ts:178): The 256-entry limit is checked only after `JSZip.loadAsync` has parsed the complete central directory and created an object for every entry."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/ingest",
+      "summary": "[P2] Enforce the row limit before loading the workbook object graph (backend/src/ingest/sap-actuals.parser.ts:65): `Workbook.xlsx.load` materializes all worksheets, rows, and cells before the 25,000-row check in the later loop."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -37,10 +47,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "35ef91670cfec8f12a73e41acc133878a38c8aa6861b534912a78a9c5be3d423",
-  "brief_sha256": "3fa5214abf063e3c60d43fe3dfc61567aca31bb7dbaf87b83bd8a5d6b90389e9",
-  "branch_diff_digest": "ffb1bff0cd673d4cc438e1968237b6d0c8305fa3674b17d836cab68341e4f68e",
+  "review_run_id": "1044c8be4be27b6c020eaeb7178d167f493421beac7d6d57acd32d41dad96b9f",
+  "brief_sha256": "6660df6fa03e01f143dc29fe5dca22665dee3da99f99f807d76342d8ec0c52f8",
+  "branch_diff_digest": "fee950f7ef9a5dc5c34175e9d1252316d03944c8c69dcab90474ecdada2f5470",
   "residual_risks": [],
-  "recorded_at": "2026-09-09T10:35:11+00:00",
-  "commit": "1344bc9409f92ba67828146696784922e27ae1ed"
+  "recorded_at": "2026-09-09T11:10:14+00:00",
+  "commit": "2208b0af6c6fddcc4834c7110be2ae23b82a0e06"
 }

@@ -124,6 +124,17 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
     );
   }
 
+  for (const malformed of ["JulXYZ", "Jul 2027"]) {
+    await assert.rejects(
+      parseSapActualsWorkbook(
+        await workbookBuffer([
+          sapRow({ rowNumber: 111, transactionNumber: `TXN-${malformed}`, lineId: "11", month: malformed }),
+        ]),
+      ),
+      (error: unknown) => error instanceof z.ZodError && error.issues[0]?.path.join(".") === "rows.4.month",
+    );
+  }
+
   await assert.rejects(
     parseSapActualsWorkbook(
       await workbookBuffer([
@@ -146,6 +157,25 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
 
   await assert.rejects(
     parseSapActualsWorkbook(
+      await workbookBuffer(
+        [sapRow({ rowNumber: 112, transactionNumber: "TXN-WIDE", lineId: "12" })],
+        [...HEADERS, ...Array.from({ length: 257 - HEADERS.length }, (_, index) => `Extra ${index}`)],
+      ),
+    ),
+    (error: unknown) => error instanceof SapActualsArchiveLimitError,
+  );
+
+  const rowBomb = new Workbook();
+  const rowBombSheet = rowBomb.addWorksheet("Rows");
+  rowBombSheet.getRow(3).values = HEADERS;
+  for (let row = 4; row <= 260; row += 1) rowBombSheet.getRow(row).getCell(20).value = "ignored";
+  await assert.rejects(
+    parseSapActualsWorkbook(Buffer.from(await rowBomb.xlsx.writeBuffer()), 1),
+    (error: unknown) => error instanceof SapActualsRowLimitError,
+  );
+
+  await assert.rejects(
+    parseSapActualsWorkbook(
       await workbookBuffer([
         sapRow({ rowNumber: 107, transactionNumber: "TXN-DUP", lineId: "7" }),
         sapRow({ rowNumber: 108, transactionNumber: "TXN-DUP", lineId: "7" }),
@@ -155,11 +185,11 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
   );
 });
 
-async function workbookBuffer(rows: CellValue[][]): Promise<Buffer> {
+async function workbookBuffer(rows: CellValue[][], headers: string[] = HEADERS): Promise<Buffer> {
   const workbook = new Workbook();
   workbook.addWorksheet("Not the expected sheet name");
   const worksheet = workbook.addWorksheet("Arbitrary sheet");
-  worksheet.getRow(3).values = HEADERS;
+  worksheet.getRow(3).values = headers;
   rows.forEach((row, index) => {
     worksheet.getRow(index + 4).values = row;
   });

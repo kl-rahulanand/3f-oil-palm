@@ -132,3 +132,4 @@ demonstrated host evidence (docker warehouse, `WAREHOUSE_PG_*`) per D-0008. Surf
 
 <!-- Made during implementation, NOT part of the approved plan. Dev: review these before merge; promote any that matter to docs/decisions/. -->
 - 2026-09-09: Use ExcelJS's existing JSZip dependency as a direct backend dependency to stream-check XLSX entry count and decompressed bytes before ExcelJS materializes the workbook.
+- 2026-09-09: The pre-materialization XLSX guard rejects ZIP64 archives, caps raw header columns at 256, and allows at most 256 serialized non-data worksheet rows beyond the 25,000-row data limit; the supplied SAP workbook is far below each bound.

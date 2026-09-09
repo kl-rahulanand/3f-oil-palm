@@ -1,39 +1,24 @@
 {
   "generated_by": "autoreview",
-  "score": 3,
-  "summary": "quality lens over actuals-loader (22 product path(s), 66cc8b8..1344bc9, Codex via the autoreview skill at --max-priority P2): 2 blocking, 2 non-blocking. VERDICT t-al-c1: implemented \u2014 backend/src/ingest/ingest.controller.ts:17 registers the authenticated, ingest-granted multipart endpoint and its documented responses.\nVERDICT t-al-c2: partial \u2014 backend/src/ingest/sap-actuals.parser.ts:277 permits malformed monetary rows instead of rejecting every invalid row.\nVERDICT t-al-c3: partial \u2014 backend/src/ingest/sap-actuals.parser.ts:276 does not satisfy the required drift-free handling of Excel numeric cells.\nVERDICT t-al-c4: implemented \u2014 backend/src/ingest/ingest.service.ts:42 delegates replacement to the existing atomic `replaceActualsBatch` path.\nLEFTOVERS: none shown.\nThe endpoint and warehouse integration are reachable, but monetary validation can either corrupt malformed values or reject valid numeric cells, decompression occurs before resource enforcement, and the mandatory live-proof record is absent.",
+  "score": 6,
+  "summary": "quality lens over actuals-loader (22 product path(s), 66cc8b8..2208b0a, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The endpoint, warehouse writer integration, raw retention, and replacement behavior are present, but Month validation accepts malformed input and the mandatory executed warehouse proof is not recorded.\nVERDICT t-al-c1: implemented \u2014 backend/src/ingest/ingest.controller.ts:17 registers the guarded, documented multipart endpoint\nVERDICT t-al-c2: partial \u2014 backend/src/ingest/sap-actuals.parser.ts:112 validates only the first three Month characters\nVERDICT t-al-c3: implemented \u2014 backend/src/ingest/sap-actuals.parser.ts:133 emits canonical/original plants, paise amounts, and raw rows\nVERDICT t-al-c4: implemented \u2014 backend/src/ingest/ingest.service.ts:68 delegates replacement to IngestionRepository.replaceActualsBatch\nLEFTOVERS: none observed in the supplied diff.",
   "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/ingest",
-      "summary": "Validate comma grouping before parsing monetary values (backend/src/ingest/sap-actuals.parser.ts:277): The parser removes every comma before validating the amount, so malformed inputs such as `1,00` or `1,2,3` are silently accepted as `100.00` and `123.00`."
-    },
     {
       "category": "test_gap",
       "area": "backend/src/ingest",
-      "summary": "Record the required D-0008 live database proof (backend/src/ingest/ingest.service.test.ts:114): The added database test is explicitly skipped unless `WAREHOUSE_DB_TEST=1`, but the change bundle contains no `tests.json` update recording the required host command and demonstrated execution."
+      "summary": "[P1] Record an executed D-0008 warehouse proof (backend/src/ingest/ingest.service.test.ts:111): This DB-backed leaf is skipped by the normal `test:hermetic` command because that script does not set `WAREHOUSE_DB_TEST=1`, and it is absent from `test:db`."
     },
     {
       "category": "plan-contract-partial",
       "area": "docs/specs/sap-financial-ingestion.md",
       "summary": "t-al-c2: the loader identifies the sheet by its required HEADER set (not file/sheet name), requires a single posting month, validates ALL rows before any write, and rejects invalid/mixed-period files with row-level diagnostics and NO change to the active batch"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/context/2026-08-20-srihari-phase1-data/README.md",
-      "summary": "t-al-c3: each row nets Actual = Debit - Credit at paise and applies the DUB-NUR->DUB normalization from the provided SAP Entries Mapping.xlsx; raw lines + original AND canonical keys are retained linked to a new ingest_batch"
     }
   ],
   "non_blocking_findings": [
     {
-      "category": "security",
-      "area": "backend/src/ingest",
-      "summary": "Enforce resource limits while decompressing the workbook (backend/src/ingest/sap-actuals.parser.ts:61): `workbook.xlsx.load` decompresses and materializes the entire ZIP archive before the 25,000-row check runs."
-    },
-    {
       "category": "bug",
       "area": "backend/src/ingest",
-      "summary": "Do not validate Excel number cells through their floating-point string (backend/src/ingest/sap-actuals.parser.ts:276): For numeric Excel cells, `String(value)` exposes the JavaScript floating-point representation and the following regex rejects anything with more than two decimal digits."
+      "summary": "[P2] Validate the complete Month token (backend/src/ingest/sap-actuals.parser.ts:112): Taking only the first three characters means malformed cells such as `Julgarbage` or `July-invalid` are accepted whenever Posting Date is in July."
     }
   ],
   "recommendation": "request-changes",
@@ -66,22 +51,22 @@
     {
       "contract_id": "t-al-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/ingest/ingest.controller.ts:17 registers the authenticated, ingest-granted multipart endpoint and its documented responses."
+      "evidence": "backend/src/ingest/ingest.controller.ts:17 registers the guarded, documented multipart endpoint"
     },
     {
       "contract_id": "t-al-c2",
       "verdict": "partial",
-      "evidence": "backend/src/ingest/sap-actuals.parser.ts:277 permits malformed monetary rows instead of rejecting every invalid row."
+      "evidence": "backend/src/ingest/sap-actuals.parser.ts:112 validates only the first three Month characters"
     },
     {
       "contract_id": "t-al-c3",
-      "verdict": "partial",
-      "evidence": "backend/src/ingest/sap-actuals.parser.ts:276 does not satisfy the required drift-free handling of Excel numeric cells."
+      "verdict": "implemented",
+      "evidence": "backend/src/ingest/sap-actuals.parser.ts:133 emits canonical/original plants, paise amounts, and raw rows"
     },
     {
       "contract_id": "t-al-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/ingest/ingest.service.ts:42 delegates replacement to the existing atomic `replaceActualsBatch` path."
+      "evidence": "backend/src/ingest/ingest.service.ts:68 delegates replacement to IngestionRepository.replaceActualsBatch"
     },
     {
       "contract_id": "t-ws-c1",
@@ -100,10 +85,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "35ef91670cfec8f12a73e41acc133878a38c8aa6861b534912a78a9c5be3d423",
-  "brief_sha256": "3fa5214abf063e3c60d43fe3dfc61567aca31bb7dbaf87b83bd8a5d6b90389e9",
-  "branch_diff_digest": "ffb1bff0cd673d4cc438e1968237b6d0c8305fa3674b17d836cab68341e4f68e",
+  "review_run_id": "1044c8be4be27b6c020eaeb7178d167f493421beac7d6d57acd32d41dad96b9f",
+  "brief_sha256": "6660df6fa03e01f143dc29fe5dca22665dee3da99f99f807d76342d8ec0c52f8",
+  "branch_diff_digest": "fee950f7ef9a5dc5c34175e9d1252316d03944c8c69dcab90474ecdada2f5470",
   "residual_risks": [],
-  "recorded_at": "2026-09-09T10:35:10+00:00",
-  "commit": "1344bc9409f92ba67828146696784922e27ae1ed"
+  "recorded_at": "2026-09-09T11:10:14+00:00",
+  "commit": "2208b0af6c6fddcc4834c7110be2ae23b82a0e06"
 }
