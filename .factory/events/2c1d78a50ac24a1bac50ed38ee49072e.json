@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T09:25:57+00:00", "story": "sap-ingestion", "detail": "S-0006-b04e: Installed exceljs@4.4.0 host-side (npm install exceljs -w backend): it is now in backend/package.json dependencies, node_modules, and the root package-lock.json (all in write_scope), and require('exce"}

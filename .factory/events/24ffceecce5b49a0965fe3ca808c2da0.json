@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T09:13:50+00:00", "story": "sap-ingestion", "detail": "S-0004-f149: WAIVED: do NOT modify backend/src/warehouse/warehouse-schema.test.ts (out of write_scope). The raw jsonb column is ADDITIVE via a new 0001 migration; the existing hermetic warehouse-schema.test.ts ass"}

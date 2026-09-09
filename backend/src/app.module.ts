@@ -6,9 +6,10 @@ import { CsrfGuard } from "./auth/csrf.guard";
 import { LoginRateLimitService } from "./auth/rate-limit.service";
 import { CoreModule } from "./core/core.module";
 import { HealthModule } from "./health/health.module";
+import { IngestModule } from "./ingest/ingest.module";
 
 @Module({
-  imports: [CoreModule, HealthModule],
+  imports: [CoreModule, HealthModule, IngestModule],
   controllers: [AuthController],
   providers: [AuthGuard, LoginRateLimitService, { provide: APP_GUARD, useClass: CsrfGuard }],
 })

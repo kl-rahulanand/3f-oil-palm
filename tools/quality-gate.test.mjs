@@ -25,6 +25,9 @@ const hermeticTests = [
   "backend/src/core/dimension-values.service.test.ts",
   "backend/src/db/migrate.trim.test.ts",
   "backend/src/health/health.controller.test.ts",
+  "backend/src/ingest/ingest.controller.test.ts",
+  "backend/src/ingest/ingest.service.test.ts",
+  "backend/src/ingest/sap-actuals.parser.test.ts",
   "backend/src/loopback-profile.test.ts",
   "backend/src/measures/authored-measure.registry.test.ts",
   "backend/src/measures/measures.guard.test.ts",
@@ -156,7 +159,6 @@ ceaa15512931da9c7b4874e9f73b45e2f1143fa11c36b2f52a6ebfb0821dd75b backend/src/cor
 819c28a31a0c36a411c3e655939c797ce2c40ac2f57384a1f27b9d9723bcbbf2 backend/src/core/session.service.ts
 2958182ab271b91ccfd3196e001a8c41998c7e41176a92d87cc8613b8c8ee2e9 backend/src/db/migrate.test.ts
 7a9fb83c1ad4b0c8a989540df1d2a4e18e603ca19696905cda43b8db009a0b69 backend/src/db/migrate.trim.test.ts
-e4cec1da34b958521c8ee3f05c6b6832e7919ac305e50ee73e52167b01222458 backend/src/db/migrate.ts
 5414f861e89f339709c595131720b7dad8d3891181b2fb1b243d948f8fd78605 backend/src/db/schema.ts
 fdd5b42a8c71a4ae157087975610d937c371c2e9ed32399478f3f61fb8db6d69 backend/src/email/email.service.ts
 96b9245a12b5beba3a4a566481760658363ba82bc02f7bfe037a8e6b8848bd60 backend/src/grants/grants.controller.ts

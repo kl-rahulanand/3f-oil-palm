@@ -1,0 +1,12 @@
+{
+  "topic": "editing a prettierignored vendored file requires removing its entry D-0006",
+  "lesson": "Per decision/deferral D-0006 (plans/deferrals.md), before a task edits any .prettierignore-listed vendored file (e.g. backend/src/db/migrate.ts) it MUST, in the SAME change, run prettier on that file AND remove its line from .prettierignore. This is an authorized, decision-mandated edit - .prettierignore is a mechanically-required in-scope file for such an edit, NOT a scope violation; do not raise a scope signal for it (stage-done amend-scope records it).",
+  "source": "docs/decisions/0006-frontend-fresh-backend-vendor.md; plans/deferrals.md",
+  "applies_to": [
+    "backend/src/db/**",
+    ".prettierignore"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-09T09:56:28+00:00"
+}
