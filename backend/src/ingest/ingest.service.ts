@@ -11,7 +11,12 @@ import {
   type SapTransactionInput,
 } from "../warehouse/ingestion.repository";
 import { ingestActualsResponseSchema, MAX_ACTUALS_UPLOAD_BYTES } from "./ingest.schemas";
-import { parseSapActualsWorkbook, type ParsedSapActuals, SapActualsRowLimitError } from "./sap-actuals.parser";
+import {
+  parseSapActualsWorkbook,
+  type ParsedSapActuals,
+  SapActualsArchiveLimitError,
+  SapActualsRowLimitError,
+} from "./sap-actuals.parser";
 
 export interface UploadedWorkbook {
   originalname: string;
@@ -27,7 +32,7 @@ export class IngestService {
   async ingestActuals(file: UploadedWorkbook | undefined, uploadedBy: string): Promise<IngestActualsResponse> {
     validateFile(file);
     const parsed = await this.parseWorkbook(file.buffer).catch((error: unknown) => {
-      if (error instanceof SapActualsRowLimitError) {
+      if (error instanceof SapActualsRowLimitError || error instanceof SapActualsArchiveLimitError) {
         throw new PayloadTooLargeException(error.message);
       }
       throw error;

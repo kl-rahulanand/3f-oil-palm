@@ -127,3 +127,8 @@ demonstrated host evidence (docker warehouse, `WAREHOUSE_PG_*`) per D-0008. Surf
 (`/api/ingest/actuals`, `/api/ingest/budget` + `ingest` grant + allow-list), data (`ingest_batch`,
 `sap_transaction`, `mis_budget`, `actual_by_key_month`, warehouse migration), ops (`warehouse:migrate`,
 `exceljs`), docs/tests (allow-list, typed DTO + Swagger, hermetic + demonstrated proofs).
+
+## Implementation Assumptions
+
+<!-- Made during implementation, NOT part of the approved plan. Dev: review these before merge; promote any that matter to docs/decisions/. -->
+- 2026-09-09: Use ExcelJS's existing JSZip dependency as a direct backend dependency to stream-check XLSX entry count and decompressed bytes before ExcelJS materializes the workbook.

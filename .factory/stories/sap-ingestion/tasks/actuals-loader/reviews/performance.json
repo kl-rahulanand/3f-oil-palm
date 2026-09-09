@@ -1,0 +1,51 @@
+{
+  "generated_by": "autoreview",
+  "score": 4,
+  "summary": "performance lens over actuals-loader (22 product path(s), 66cc8b8..1344bc9, Codex via the autoreview skill at --max-priority P2): 2 blocking, 0 non-blocking. The endpoint's compressed-byte and row limits do not bound the actual memory or CPU consumed while parsing. XLSX decompression is unbounded before row validation, and sparse wide rows can amplify a modest workbook into hundreds of millions of cell operations. Either condition can take down the application process. No compatibility wrapper, shim, retained alias, or other blocking leftover is present in the supplied diff.",
+  "blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src/ingest",
+      "summary": "[P1] Bound decompressed workbook size before loading it into memory (backend/src/ingest/sap-actuals.parser.ts:62): The 15 MB upload limit applies only to the compressed XLSX buffer, but `Workbook.xlsx.load` expands and parses the ZIP before the 25,000-row limit is checked."
+    },
+    {
+      "category": "bug",
+      "area": "backend/src/ingest",
+      "summary": "[P1] Do not expand sparse rows across their entire worksheet width (backend/src/ingest/sap-actuals.parser.ts:203): `row.cellCount` reflects the highest populated column, so one value or stale formatting in Excel's last column makes this function iterate through all 16,384 columns and call `getCell` for every gap."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/drizzle-warehouse/0001_add_sap_transaction_raw.sql",
+    "backend/drizzle-warehouse/meta/0001_snapshot.json",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/grants/grants.constants.ts",
+    "backend/src/ingest/ingest.controller.test.ts",
+    "backend/src/ingest/ingest.controller.ts",
+    "backend/src/ingest/ingest.module.ts",
+    "backend/src/ingest/ingest.schemas.ts",
+    "backend/src/ingest/ingest.service.test.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/ingest/plant-mapping.ts",
+    "backend/src/ingest/sap-actuals.parser.test.ts",
+    "backend/src/ingest/sap-actuals.parser.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "contract/src/api.ts",
+    "package-lock.json",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "35ef91670cfec8f12a73e41acc133878a38c8aa6861b534912a78a9c5be3d423",
+  "brief_sha256": "3fa5214abf063e3c60d43fe3dfc61567aca31bb7dbaf87b83bd8a5d6b90389e9",
+  "branch_diff_digest": "ffb1bff0cd673d4cc438e1968237b6d0c8305fa3674b17d836cab68341e4f68e",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T10:35:10+00:00",
+  "commit": "1344bc9409f92ba67828146696784922e27ae1ed"
+}

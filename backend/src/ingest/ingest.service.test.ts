@@ -12,7 +12,7 @@ import {
 import { migrateWarehouse } from "../warehouse/warehouse-migrate";
 import { MAX_ACTUALS_UPLOAD_BYTES } from "./ingest.schemas";
 import { IngestService, type UploadedWorkbook } from "./ingest.service";
-import { type ParsedSapActuals, SapActualsRowLimitError } from "./sap-actuals.parser";
+import { type ParsedSapActuals, SapActualsArchiveLimitError, SapActualsRowLimitError } from "./sap-actuals.parser";
 
 const HEADERS = [
   "#",
@@ -49,6 +49,10 @@ test("the ingest service validates every parsed row before any write, rejects an
   );
   await assert.rejects(
     new RowLimitIngestService().ingestActuals(asUpload(validBuffer), "user-1"),
+    (error: unknown) => error instanceof HttpException && error.getStatus() === 413,
+  );
+  await assert.rejects(
+    new ArchiveLimitIngestService().ingestActuals(asUpload(validBuffer), "user-1"),
     (error: unknown) => error instanceof HttpException && error.getStatus() === 413,
   );
   assert.equal(service.calls.length, 0);
@@ -194,6 +198,12 @@ class RecordingIngestService extends IngestService {
 class RowLimitIngestService extends RecordingIngestService {
   protected override parseWorkbook(): Promise<ParsedSapActuals> {
     return Promise.reject(new SapActualsRowLimitError(25_000));
+  }
+}
+
+class ArchiveLimitIngestService extends RecordingIngestService {
+  protected override parseWorkbook(): Promise<ParsedSapActuals> {
+    return Promise.reject(new SapActualsArchiveLimitError("archive limit"));
   }
 }
 

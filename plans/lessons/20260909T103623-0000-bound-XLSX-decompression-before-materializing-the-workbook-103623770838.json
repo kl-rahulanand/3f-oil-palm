@@ -1,0 +1,11 @@
+{
+  "topic": "bound XLSX decompression before materializing the workbook",
+  "lesson": "The 15MB upload cap only limits the COMPRESSED xlsx; exceljs Workbook.xlsx.load decompresses + parses the whole ZIP into memory BEFORE the 25,000-row check, a zip-bomb/DoS vector. Bound the DECOMPRESSED size (cap total uncompressed bytes / entry count while reading, or stream with a hard ceiling) and enforce the row cap as early as possible - fail fast before full materialization.",
+  "source": ".factory/stories/sap-ingestion/tasks/actuals-loader/reviews/performance.json",
+  "applies_to": [
+    "backend/src/ingest/sap-actuals.parser.ts"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-09T10:36:23+00:00"
+}

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Workbook, type CellValue } from "exceljs";
+import JSZip from "jszip";
 import { z } from "zod";
-import { parseSapActualsWorkbook, SapActualsRowLimitError } from "./sap-actuals.parser";
+import { parseSapActualsWorkbook, SapActualsArchiveLimitError, SapActualsRowLimitError } from "./sap-actuals.parser";
 
 const HEADERS = [
   "#",
@@ -30,7 +31,15 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
   const parsed = await parseSapActualsWorkbook(
     await workbookBuffer([
       sapRow({ rowNumber: 101, transactionNumber: "TXN-1", lineId: "", debit: 10.1, credit: 0.03 }),
-      sapRow({ rowNumber: 102, transactionNumber: "TXN-2", lineId: "2", plant: "PLANT-X", debit: 0, credit: 1.25 }),
+      sapRow({
+        rowNumber: 102,
+        transactionNumber: "TXN-2",
+        lineId: "2",
+        plant: "PLANT-X",
+        debit: "+1,000.00",
+        credit: 1.25,
+        farRight: "ignored",
+      }),
     ]),
   );
 
@@ -47,7 +56,14 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
     })),
     [
       { lineId: "101", plant: "DUB", plantSrc: "DUB-NUR", debit: "10.10", credit: "0.03", actual: "10.07" },
-      { lineId: "2", plant: "PLANT-X", plantSrc: "PLANT-X", debit: "0.00", credit: "1.25", actual: "-1.25" },
+      {
+        lineId: "2",
+        plant: "PLANT-X",
+        plantSrc: "PLANT-X",
+        debit: "1000.00",
+        credit: "1.25",
+        actual: "998.75",
+      },
     ],
   );
   assert.deepEqual(
@@ -69,6 +85,7 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
   );
   assert.equal(parsed.rows[0].memo, "Line memo");
   assert.equal(parsed.rows[0].reference, "REF-1");
+  assert.equal(Object.values(parsed.rows[1].raw).includes("ignored"), false);
 
   await assert.rejects(
     parseSapActualsWorkbook(
@@ -96,6 +113,17 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
     },
   );
 
+  for (const malformed of ["1,00", "1,2,3", "1.001"]) {
+    await assert.rejects(
+      parseSapActualsWorkbook(
+        await workbookBuffer([
+          sapRow({ rowNumber: 109, transactionNumber: `TXN-${malformed}`, lineId: "9", debit: malformed }),
+        ]),
+      ),
+      (error: unknown) => error instanceof z.ZodError && error.issues[0]?.path.join(".") === "rows.4.debit",
+    );
+  }
+
   await assert.rejects(
     parseSapActualsWorkbook(
       await workbookBuffer([
@@ -105,6 +133,15 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
       1,
     ),
     (error: unknown) => error instanceof SapActualsRowLimitError && error.limit === 1,
+  );
+
+  const entryBomb = await JSZip.loadAsync(
+    await workbookBuffer([sapRow({ rowNumber: 110, transactionNumber: "TXN-ZIP", lineId: "10" })]),
+  );
+  for (let index = 0; index < 257; index += 1) entryBomb.file(`extra-${index}`, "");
+  await assert.rejects(
+    parseSapActualsWorkbook(await entryBomb.generateAsync({ type: "nodebuffer" })),
+    (error: unknown) => error instanceof SapActualsArchiveLimitError,
   );
 
   await assert.rejects(
@@ -138,6 +175,7 @@ function sapRow({
   plant = "DUB-NUR",
   debit = 100,
   credit = 25,
+  farRight,
 }: {
   rowNumber: number;
   transactionNumber: string;
@@ -147,8 +185,9 @@ function sapRow({
   plant?: string;
   debit?: string | number;
   credit?: string | number;
+  farRight?: string;
 }): CellValue[] {
-  return [
+  const row: CellValue[] = [
     rowNumber,
     transactionNumber,
     lineId,
@@ -169,4 +208,6 @@ function sapRow({
     "REF-1",
     "Nursery",
   ];
+  if (farRight) row[16_383] = farRight;
+  return row;
 }

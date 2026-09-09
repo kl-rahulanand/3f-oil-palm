@@ -1,4 +1,5 @@
 import { Workbook, type Cell, type CellValue, type Row, type Worksheet } from "exceljs";
+import JSZip, { type JSZipObject } from "jszip";
 import { z } from "zod";
 import { MAX_ACTUALS_ROWS } from "./ingest.schemas";
 import { canonicalPlant } from "./plant-mapping";
@@ -49,18 +50,27 @@ export class SapActualsRowLimitError extends Error {
   }
 }
 
+export class SapActualsArchiveLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SapActualsArchiveLimitError";
+  }
+}
+
 interface LocatedHeader {
   worksheet: Worksheet;
   rowNumber: number;
   columns: Map<string, number>;
-  rawKeys: string[];
+  rawColumns: Array<[key: string, column: number]>;
 }
 
 export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACTUALS_ROWS): Promise<ParsedSapActuals> {
   const workbook = new Workbook();
   try {
+    await assertArchiveWithinLimits(buffer);
     await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
-  } catch {
+  } catch (error) {
+    if (error instanceof SapActualsArchiveLimitError) throw error;
     throw validationError([issue(["file"], "Workbook is not a readable .xlsx file")]);
   }
 
@@ -77,7 +87,7 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
 
   for (let rowNumber = header.rowNumber + 1; rowNumber <= header.worksheet.rowCount; rowNumber += 1) {
     const row = header.worksheet.getRow(rowNumber);
-    const raw = rawRow(row, header.rawKeys);
+    const raw = rawRow(row, header.rawColumns);
     if (Object.values(raw).every((value) => value === "")) continue;
     dataRowCount += 1;
     if (dataRowCount > rowLimit) {
@@ -171,42 +181,68 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const MAX_NUMERIC_PAISE = 999_999_999_999_999_999n;
+const MAX_XLSX_ENTRIES = 256;
+const MAX_XLSX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024;
+
+async function assertArchiveWithinLimits(buffer: Buffer): Promise<void> {
+  const archive = await JSZip.loadAsync(buffer);
+  const entries = Object.values(archive.files);
+  if (entries.length > MAX_XLSX_ENTRIES) {
+    throw new SapActualsArchiveLimitError(`Workbook exceeds ${MAX_XLSX_ENTRIES} ZIP entries`);
+  }
+
+  let uncompressedBytes = 0;
+  for (const entry of entries) {
+    if (entry.dir) continue;
+    uncompressedBytes = await countEntryBytes(entry, uncompressedBytes);
+  }
+}
+
+function countEntryBytes(entry: JSZipObject, initialBytes: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const stream = entry.nodeStream();
+    let bytes = initialBytes;
+    let settled = false;
+    stream.on("data", (chunk: Buffer) => {
+      bytes += chunk.length;
+      if (bytes <= MAX_XLSX_UNCOMPRESSED_BYTES || settled) return;
+      settled = true;
+      (stream as NodeJS.ReadableStream & { destroy(): void }).destroy();
+      reject(new SapActualsArchiveLimitError(`Workbook exceeds ${MAX_XLSX_UNCOMPRESSED_BYTES} uncompressed bytes`));
+    });
+    stream.on("error", (error) => {
+      if (!settled) reject(error);
+    });
+    stream.on("end", () => {
+      if (!settled) resolve(bytes);
+    });
+  });
+}
 
 function findHeader(worksheets: Worksheet[]): LocatedHeader | undefined {
   for (const worksheet of worksheets) {
     for (let rowNumber = 1; rowNumber <= worksheet.rowCount; rowNumber += 1) {
       const row = worksheet.getRow(rowNumber);
-      const names = Array.from({ length: row.cellCount }, (_, index) => cellText(row.getCell(index + 1)));
-      if (!SAP_ACTUALS_REQUIRED_HEADERS.every((required) => names.includes(required))) continue;
-
       const columns = new Map<string, number>();
-      names.forEach((name, index) => {
-        if (name && !columns.has(name)) columns.set(name, index + 1);
+      const rawColumns: LocatedHeader["rawColumns"] = [];
+      const counts = new Map<string, number>();
+      row.eachCell((cell, column) => {
+        const name = cellText(cell);
+        if (!name) return;
+        if (!columns.has(name)) columns.set(name, column);
+        const count = (counts.get(name) ?? 0) + 1;
+        counts.set(name, count);
+        rawColumns.push([count === 1 ? name : `${name}_${count}`, column]);
       });
-      return { worksheet, rowNumber, columns, rawKeys: uniqueRawKeys(names) };
+      if (!SAP_ACTUALS_REQUIRED_HEADERS.every((required) => columns.has(required))) continue;
+      return { worksheet, rowNumber, columns, rawColumns };
     }
   }
   return undefined;
 }
 
-function uniqueRawKeys(names: string[]): string[] {
-  const counts = new Map<string, number>();
-  return names.map((name, index) => {
-    const base = name || `Column_${index + 1}`;
-    const count = (counts.get(base) ?? 0) + 1;
-    counts.set(base, count);
-    return count === 1 ? base : `${base}_${count}`;
-  });
-}
-
-function rawRow(row: Row, headerKeys: string[]): Record<string, string> {
-  const columnCount = Math.max(headerKeys.length, row.cellCount);
-  return Object.fromEntries(
-    Array.from({ length: columnCount }, (_, index) => [
-      headerKeys[index] ?? `Column_${index + 1}`,
-      cellText(row.getCell(index + 1)),
-    ]),
-  );
+function rawRow(row: Row, columns: LocatedHeader["rawColumns"]): Record<string, string> {
+  return Object.fromEntries(columns.map(([key, column]) => [key, cellText(row.getCell(column))]));
 }
 
 function requiredColumn(header: LocatedHeader, name: string): number {
@@ -274,15 +310,24 @@ function formatDate(date: Date): string {
 
 function parseMoney(cell: Cell, row: number, column: string, issues: z.ZodIssue[]): bigint | undefined {
   const value = formulaResult(cell.value);
+  if (typeof value === "number") {
+    const scaled = value * 100;
+    const rounded = Math.round(scaled);
+    if (!Number.isFinite(value) || !Number.isSafeInteger(rounded) || Math.abs(scaled - rounded) > 1e-7) {
+      issues.push(issue(["rows", row, column], `${column} must have at most two decimal places`));
+      return undefined;
+    }
+    return BigInt(rounded);
+  }
+
   const input = value === null || value === undefined || value === "" ? "0" : String(value).trim();
-  const normalized = input.replaceAll(",", "");
-  const match = normalized.match(/^(-?)(\d+)(?:\.(\d{1,2}))?$/);
-  if (!match) {
+  if (!/^[+-]?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(input)) {
     issues.push(issue(["rows", row, column], `${column} must have at most two decimal places`));
     return undefined;
   }
+  const match = input.replaceAll(",", "").match(/^([+-]?)(\d+)(?:\.(\d{1,2}))?$/)!;
   const paise = BigInt(match[2]) * 100n + BigInt((match[3] ?? "").padEnd(2, "0"));
-  const signed = match[1] ? -paise : paise;
+  const signed = match[1] === "-" ? -paise : paise;
   if (absolute(signed) > MAX_NUMERIC_PAISE) {
     issues.push(issue(["rows", row, column], `${column} exceeds numeric(18,2)`));
     return undefined;
