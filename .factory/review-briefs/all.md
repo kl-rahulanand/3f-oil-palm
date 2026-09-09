@@ -37,6 +37,16 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] actuals-loader raw column is additive dont touch schema test: The sap_transaction 'raw' jsonb column is ADDITIVE - add it to warehouse-schema.ts + a NEW backend/drizzle-warehouse/0001_*.sql migration (generate-once, apply-only via warehouse:migrate). Do NOT modify backend/src/warehouse/warehouse-schema.test.ts (out of write_scope); its column/constraint assertions use .includes and are non-exhaustive and the 0000 migration is unchanged, so it stays green untouched. Assert the raw column IN-SCOPE: sap-actuals.parser.test.ts (parser emits the full raw row) and the WAREHOUSE_DB_TEST=1-gated ingest.service.test.ts (raw persists).
 - [high] removing a prettierignore entry also updates the quality-gate baseline map: tools/quality-gate.test.mjs validateIgnoredBaseline asserts .prettierignore's non-comment lines deep-equal the keys of its ignoredBaselineHashes map. So when D-0006 requires removing a file (e.g. backend/src/db/migrate.ts) from .prettierignore, you MUST also remove that path's entry from the ignoredBaselineHashes map in tools/quality-gate.test.mjs (both in write_scope) in the SAME change, and ensure the now-unignored file is prettier-formatted so format:check passes. Keep .prettierignore and ignoredBaselineHashes in sync.
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: ok at b9000b8a7d57
+  - `npm run structural` -> exit 0
+  - `npm run typecheck` -> exit 0
+  - `npm run quality` -> exit 0
+  - `npm run test:hermetic` -> exit 0
+
 ## Task actuals-loader
 
 ### Plan contracts
@@ -80,6 +90,17 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [medium] XLSX decompression guard numeric ceilings: For the pre-materialization XLSX guard in sap-actuals.parser.ts use: total uncompressed bytes <= 256 MB and ZIP entry count <= 256, enforced WHILE reading the archive (reject before full materialization). These are generous for a legitimate SAP Base Report (639KB compressed, ~4k rows, single sheet -> a few MB uncompressed and ~15 entries) yet block zip-bombs (which target GB-scale expansion) and entry-count bombs. Combine with the existing 15 MB compressed cap and 25,000-row cap.
 - [high] comma-grouping must be validated on the RAW string not after stripping: For STRING amount cells in sap-actuals.parser.ts, validate the RAW input (WITH commas) against a strict grouped-decimal regex BEFORE removing commas - e.g. /^[+-]?\d{1,3}(,\d{3})*(\.\d{1,2})?$/ OR the no-comma form /^[+-]?\d+(\.\d{1,2})?$/. A strip-commas-then-match approach (replaceAll(',','') then /\d+/) STILL accepts malformed '1,00' or '1,2,3' as 100/123 - that is the exact bug. Only after the raw format passes may you strip commas and convert to paise. (Numeric Excel cells are read as numbers directly - that path is already correct.)
 - [high] validate the complete Month token not just the first three chars: In sap-actuals.parser.ts the period/Month validation must check the COMPLETE Month cell, not just its first three characters - taking substring(0,3) accepts malformed cells like 'JulXYZ' or 'Jul 2027' as 'Jul'. Match the whole trimmed token against the allowed set of month tokens (exact, case-insensitive) and reject anything else with a rows.<n>.<column> diagnostic; the authoritative period still comes from Posting Date (the Month token is only cross-checked for consistency).
+- [high] end-anchor the posting-date ISO regex to make t-al-c2 implemented: In sap-actuals.parser.ts END-ANCHOR the posting-date ISO validation regex (add a trailing $) so a string cell like '2026-07-15garbage' is REJECTED with a rows.<n>.<column> diagnostic, not silently normalized to 2026-07-15. An unanchored /^\d{4}-\d{2}-\d{2}/ accepts trailing junk - that is exactly what the review marks as t-al-c2 'partial'. A criterion verdict must be 'implemented', never 'partial', to ship (task-proof 0049).
+
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: ok at b9000b8a7d57
+  - `npm run structural` -> exit 0
+  - `npm run typecheck` -> exit 0
+  - `npm run quality` -> exit 0
+  - `npm run test:hermetic` -> exit 0
 
 ## Task budget-loader
 
@@ -91,6 +112,16 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 No task-specific reviewer focus declared.
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: ok at b9000b8a7d57
+  - `npm run structural` -> exit 0
+  - `npm run typecheck` -> exit 0
+  - `npm run quality` -> exit 0
+  - `npm run test:hermetic` -> exit 0
+
 ## Task reconciliation-proof
 
 ### Plan contracts
@@ -100,3 +131,13 @@ No task-specific reviewer focus declared.
 ### Reviewer focus
 
 No task-specific reviewer focus declared.
+
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: ok at b9000b8a7d57
+  - `npm run structural` -> exit 0
+  - `npm run typecheck` -> exit 0
+  - `npm run quality` -> exit 0
+  - `npm run test:hermetic` -> exit 0
