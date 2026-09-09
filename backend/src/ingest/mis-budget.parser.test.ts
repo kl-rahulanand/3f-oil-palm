@@ -126,6 +126,23 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
     ["rows"],
   );
 
+  await rejectsWithPaths(
+    workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      sheet.getCell(3, 15).value = new Date("2026-05-15T00:00:00Z");
+      addGlRow(sheet, 6, {
+        lineId: "1.1",
+        component: "Imported Sprouts",
+        glCode: "50001201",
+        aprilBudget: 1,
+        aprilRollover: 0,
+        mayBudget: 1,
+        mayRollover: 0,
+      });
+    }),
+    ["file.headers.2026-05-15"],
+  );
+
   await assert.rejects(
     parseMisBudgetWorkbook(
       await workbookBuffer((sheet) => {

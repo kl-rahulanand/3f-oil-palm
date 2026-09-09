@@ -1,0 +1,33 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "budget-loader",
+  "score": 10,
+  "summary": "security lens over budget-loader (14 product path(s), 19f3297..08da9ad, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the budget endpoint with the existing authentication and ingest authorization boundary, multipart size limits, sanitized validation paths, bounded XLSX decompression, expanded-row limits, validate-before-write behavior, and an outer transaction spanning all period replacements. It keeps budget data separate from SAP actuals, retains prior batches through the repository contract, removes the old parser-specific limit-error aliases, and contains no apparent credentials or compatibility leftovers. No actionable P0\u2013P2 defect is demonstrated by the supplied evidence.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/app.routes.test.ts",
+    "backend/src/ingest/ingest.controller.test.ts",
+    "backend/src/ingest/ingest.controller.ts",
+    "backend/src/ingest/ingest.schemas.ts",
+    "backend/src/ingest/ingest.service.test.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/ingest/mis-budget.parser.test.ts",
+    "backend/src/ingest/mis-budget.parser.ts",
+    "backend/src/ingest/sap-actuals.parser.test.ts",
+    "backend/src/ingest/sap-actuals.parser.ts",
+    "backend/src/ingest/workbook-guard.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "d94a59fc91e195bcbb04e337a8a1dc94ce492e638b2160b6c05038dc6535c156",
+  "brief_sha256": "ebd677ccedbb6ea5d289d3aaa233b980483f2ccdc694a3945694ab5c3b7e3c2b",
+  "branch_diff_digest": "206f904c0f82ba1dc49c4d914a85c9dbc7ae752937145fd77390d060625d583e",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T17:29:15+00:00",
+  "commit": "08da9ad110ef2a4d30457f683da17d83bf0121db"
+}

@@ -141,8 +141,14 @@ function findPeriodColumns(table: LocatedTable, issues: z.ZodIssue[]): PeriodCol
   const periods: PeriodColumns[] = [];
   header.eachCell((cell, column) => {
     if (cell.isMerged && cell.master.address !== cell.address) return;
-    const period = firstOfMonth(cell.value);
-    if (!period) return;
+    const value = formulaResult(cell.value);
+    if (!(value instanceof Date)) return;
+    const period = firstOfMonth(value);
+    if (!period) {
+      const label = Number.isFinite(value.getTime()) ? value.toISOString().slice(0, 10) : cell.address;
+      issues.push(issue(["file", "headers", label], "Monthly block date must be the first of the month"));
+      return;
+    }
     const names = PERIOD_SUBHEADERS.map((_, offset) => normalizeHeader(cellText(subheader.getCell(column + offset))));
     if (!PERIOD_SUBHEADERS.every((name, index) => names[index] === name)) {
       issues.push(issue(["file", "headers", period], "Monthly block headers are invalid"));

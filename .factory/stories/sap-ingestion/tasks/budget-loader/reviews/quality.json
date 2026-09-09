@@ -1,0 +1,91 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "budget-loader",
+  "score": 7,
+  "summary": "quality lens over budget-loader (14 product path(s), 19f3297..08da9ad, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The main endpoint, separate budget storage, and transactional replacement are implemented, but malformed date-headed month blocks can be silently omitted from an otherwise successful financial ingestion.\nLEFTOVERS: none found.\nVERDICT t-bl-c1: implemented \u2014 backend/src/ingest/ingest.controller.ts:62 guarded multipart budget route with typed Swagger responses\nVERDICT t-bl-c2: implemented \u2014 backend/src/ingest/ingest.service.ts:61 writes parsed budget rows only through replaceBudgetBatch\nVERDICT t-bl-c3: implemented \u2014 backend/src/ingest/ingest.service.ts:122 wraps all per-period replacements in one warehouse transaction",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/ingest",
+      "summary": "[P1] Reject malformed date-headed blocks instead of silently omitting them (backend/src/ingest/mis-budget.parser.ts:146): `findPeriodColumns` silently skips every header for which `firstOfMonth` returns undefined."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/app.routes.test.ts",
+    "backend/src/ingest/ingest.controller.test.ts",
+    "backend/src/ingest/ingest.controller.ts",
+    "backend/src/ingest/ingest.schemas.ts",
+    "backend/src/ingest/ingest.service.test.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/ingest/mis-budget.parser.test.ts",
+    "backend/src/ingest/mis-budget.parser.ts",
+    "backend/src/ingest/sap-actuals.parser.test.ts",
+    "backend/src/ingest/sap-actuals.parser.ts",
+    "backend/src/ingest/workbook-guard.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-bl-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/ingest/ingest.controller.ts:62 guarded multipart budget route with typed Swagger responses"
+    },
+    {
+      "contract_id": "t-bl-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/ingest/ingest.service.ts:61 writes parsed budget rows only through replaceBudgetBatch"
+    },
+    {
+      "contract_id": "t-bl-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/ingest/ingest.service.ts:122 wraps all per-period replacements in one warehouse transaction"
+    },
+    {
+      "contract_id": "t-ws-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under warehouse-schema at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-ws-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under warehouse-schema at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-ws-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under warehouse-schema at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-al-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under actuals-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-al-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under actuals-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-al-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under actuals-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-al-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under actuals-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "d94a59fc91e195bcbb04e337a8a1dc94ce492e638b2160b6c05038dc6535c156",
+  "brief_sha256": "ebd677ccedbb6ea5d289d3aaa233b980483f2ccdc694a3945694ab5c3b7e3c2b",
+  "branch_diff_digest": "206f904c0f82ba1dc49c4d914a85c9dbc7ae752937145fd77390d060625d583e",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T17:29:15+00:00",
+  "commit": "08da9ad110ef2a4d30457f683da17d83bf0121db"
+}
