@@ -1,0 +1,10 @@
+{
+  "event": "done",
+  "id": "Q-0023-2439",
+  "profile": "degraded",
+  "kind": "degraded",
+  "reason": "Closeout reconciliation for platform-base (user chose reconcile-as-shipped). All 10 tasks are merged to master (CI green, per-task markers present) but the story was built across flows: T1-T4 shipped with NO per-task .factory evidence and 'forge story resume' restored the run pointer in story-level mode, so neither the task-level nor the story-level closeout can auto-complete. Record the STORY-LEVEL closeout evidence at HEAD via the sanctioned recorders - a passing verify.py, the automated test suite, the functional check adopted-as-shipped from frontend-shell-login (T8), and the three story-level review lenses adopted-as-shipped with all 38 declared contracts verdicted implemented - reflecting work that genuinely shipped through the factory. This is a reconcile of shipped work (the same philosophy as forge task reconcile for markers), transparently ledgered, NOT a fresh re-review.",
+  "started_at": "2026-09-09T02:14:10+00:00",
+  "completed_at": "2026-09-09T02:17:21+00:00",
+  "files": []
+}

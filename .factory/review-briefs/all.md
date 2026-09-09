@@ -20,6 +20,13 @@ For each contract, emit a verdict — implemented | partial | missing — with f
 
 Clean vendor: no MBS domain/seed references remain (operations, leadActivity, MBS grants); minimal workspace wiring; no dead code; contract types compile and are the single source of shared types.
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
+
 ## Task postgres-warehouse-adapter
 
 ### Plan contracts
@@ -41,6 +48,13 @@ Clean vendor: no MBS domain/seed references remain (operations, leadActivity, MB
 
 Conformance to constitution provider/adapter standards: PostgresAdapter implements the Warehouse port (explain/execute/freshness/distinctValues); pg field OIDs map to the QueryResult numeric flag through a PURE, exported mapping function that a hermetic unit test covers directly (the app path reconstructs numeric from measure aliases in selectionExecutor and cannot observe the adapter flag, so do not prove OID mapping through the app path); the node-sql-parser dialect switch to postgresql is complete across every astify/tableList/columnList call in sqlValidator.ts; no dialect-specific SQL leaks into the builder; warehouseDriver=postgres selects PostgresAdapter in the core warehouse factory (recon.run.ts is a standalone batch entrypoint outside the PoC request path and is intentionally out of scope); the warehouse postgres config is a typed block with its own WAREHOUSE_PG_* env vars, distinct from the app DB config (cfg.pg) so the two databases never share credentials; the E2E proof runs through the app path (validate/explain/execute), not a bare adapter call. NOTE (cumulative re-close): reopening task 1 to re-verify its evidence cascaded this task to pending; because task 1's contract-test fix (5dc224c) landed after this task's product commit (223e2dd) in history, this re-close measures the whole post-vendor delta since 223e2dd^ (7eeff24) — task 2's adapter work PLUS task 1's already-reviewed contract/test/auth-contract.test.ts fixture fix. That file is in scope here only to accommodate the interleaving; it was authored and reviewed under task 1.
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
+
 ## Task backend-boot-otp-auth
 
 ### Plan contracts
@@ -59,6 +73,13 @@ Conformance to constitution provider/adapter standards: PostgresAdapter implemen
 
 Migration trim keeps ONLY auth (users/roles/user_roles/role_perms/user_scope/sessions/otp_codes/refresh_tokens) + audit (audit_events) tables and DROPS the feature tables (saved_queries + dashboard_pins from the MIXED 0000, pin_snapshots 0005, reconciliation_runs 0002, conversations + conversation_turns 0007, authored_measures 0010). 0000 is MIXED so it is split/squashed, not retained wholesale. audit_events retains its FINAL shape: conversation_id (added by 0007, nullable, no FK) AND the four usage columns model_id/input_tokens/output_tokens/total_tokens (added by 0009, which is audit-ONLY and creates no feature table). No orphaned FKs; every retained REFERENCES points at a retained table; the drizzle meta/_journal.json and SQL tags stay consistent for the RUNTIME migrator. SCOPE DECISION: this task trims MIGRATIONS ONLY — backend/src/db/schema.ts and the feature modules are left compiled (documented, intentional drift), so drizzle-kit generate is deliberately NOT run in this flow (it would regenerate the domain tables from schema.ts); the trimmed set is hand-authored/squashed. Boot must succeed on the trimmed DB: AuthoredMeasureRegistry.onModuleInit() queries authored_measures at startup, so make it tolerate ONLY the absent/empty table (init empty) and RE-THROW any other error (no broad-catch that masks real DB failures); no other boot-time code reads a trimmed table (pin-refresh + reconciliation schedulers default to disabled — keep disabled, unsupported on the minimum DB). The Pulse auth flow, RBAC guards, and fail-closed audit are unchanged; 'append-only audit' is application-level (no DB trigger). The app DB is a SEPARATE docker-compose service (app-db) with its own PG* creds/port(default 5432, configurable)/volume distinct from WAREHOUSE_PG_*/5433. The hermetic required test proves migration composition from files (tables auth+audit-only, audit_events columns retained, FK targets valid, journal↔SQL correspondence) with NO DB; migrations-run + boot + mock-OTP login (CSRF double-submit: obtain pulse_csrf then send cookie + x-csrf-token on both OTP POSTs; seeded admin@example.invalid; AUTH_OTP_MOCK=true + non-production NODE_ENV) + RBAC + audit-row-on-login + the DB-backed auth/migrate/audit tests are DEMONSTRATED EVIDENCE against the app-db container, not hermetic gates.
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
+
 ## Task rebrand-pulse-to-3f
 
 ### Plan contracts
@@ -76,6 +97,13 @@ Migration trim keeps ONLY auth (users/roles/user_roles/role_perms/user_scope/ses
 ### Reviewer focus
 
 Complete + consistent rename of PRODUCT identifiers per the grill-verified map: (1) npm packages @pulse/contract->@3f/contract, @pulse/backend->@3f/backend — name fields + backend->contract dep + EVERY import specifier across backend/src (incl ~10 *.test.ts) and contract/src + backend/Dockerfile (npm -w @pulse/backend) + any tsconfig ref; npm install refreshes the lockfile. (2) Auth WIRE names set AND verify together: cookies pulse_access/pulse_refresh/pulse_csrf -> 3f_access/3f_refresh/3f_csrf (AUTH_COOKIE_NAMES map in auth/cookies.ts; readers auth.controller refresh, auth.guard access+refresh, csrf.guard); JWT in core/session.service.ts on all 3 sites (access sign, refresh sign, verify) issuer 'pulse-api'->'3f-api' AND audience 'pulse'->'3f' (audience is 'pulse', NOT 'pulse-api'). (3) Strings/infra: swagger title 'Pulse API'->'3F API' + boot log (main.ts); seed 'Pulse Admin'->'3F Admin' (config.ts); app-db identifiers pulse->threef (NOT '3f' — Postgres identifiers can't start with a digit): docker-compose app-db POSTGRES_DB/USER + password pulse-local->3f-local, mirrored in config.ts cfg.pg fallbacks; chat greeting 'I'm Pulse'->'I'm 3F' (chat/smalltalk-guard.ts); contract API field whatPulseWont->whatItWont (contract/src/api.ts + help.service.ts emit); help/glossary/LLM product strings 'Pulse'->'3F'; non-provenance source COMMENTS ('Pulse Postgres' rbac.service, 'Pulse roles' grants.controller, 'Pulse-managed' contract/rbac, and the 0000_auth_audit.sql header rationale) reworded so the no-Pulse scan is clean. (4) Tests updated: @pulse/contract->@3f/contract in every *.test.ts; migrate.test 'Pulse Admin'->'3F Admin'; auth.controller.test asserts literal 3f_* cookie names; session.service.test asserts 3f-api issuer + 3f audience on both token types; swagger.test asserts '3F API'. Behaviour-preserving (names only): RBAC/sessions/audit/OTP unchanged; wire changes applied on set AND verify so auth still works. PRESERVE provenance/history (out of write_scope): backend/VENDORED_FROM, decision 0008, and decision/plan/spec prose recording 'vendored Pulse @ e639840'. After the rename a scan of backend/src + contract/src for @pulse / pulse_ / case-insensitive 'pulse' product identifiers is empty. Hermetic required tests run from repo root (decision 0009): a no-Pulse scan test (forbidden literals built dynamically so it doesn't self-match; excludes provenance) + the PII validator test; contract @3f resolution is proven by build:backend/typecheck. The live mock-OTP login with the renamed cookies/JWT is DEMONSTRATED evidence.
+
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
 
 ## Task quality-gate-baseline
 
@@ -101,6 +129,13 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 - [high] required_tests false-green: A required_tests entry must name a REAL leaf test (id = the string in test("...")), not the file path, and must pin TS_NODE_PROJECT=backend/tsconfig.json because forge runs it from repo root; otherwise junit-run's --test-name-pattern matches nothing and ts-node skips the workspace tsconfig, so the gate reports pass without running assertions. Always verify with a negative control (a required test whose negative control cannot fail is not proof).
 - [medium] plan contracts must not require review-verification of review-excluded paths: A plan_contract clause requiring evidence in plans/, .factory/, or docs/decisions/ cannot be verified by forge review, which excludes those paths (HARNESS_PREFIXES). The quality lens flip-flopped 10/10/7 on t5-c1's 'ledgered as debt (D-0006)' clause because the deferral IS recorded in plans/deferrals.md, which the reviewer structurally cannot see. Keep bookkeeping (deferral ledgering) in the ledger, not in a code-review plan_contract; contracts assert only code behaviour visible in the diff.
+
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
 
 ## Task api-surface-trim
 
@@ -132,6 +167,13 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 - [high] required_tests false-green: A required_tests entry must name a REAL leaf test (id = the string in test("...")), not the file path, and must pin TS_NODE_PROJECT=backend/tsconfig.json because forge runs it from repo root; otherwise junit-run's --test-name-pattern matches nothing and ts-node skips the workspace tsconfig, so the gate reports pass without running assertions. Always verify with a negative control (a required test whose negative control cannot fail is not proof).
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
+
 ## Task frontend-foundation
 
 ### Plan contracts
@@ -156,6 +198,13 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 FOUNDATION ONLY - no app screens (shell/nav/top-bar/login are T8). USER_FACING=false is deliberate: a build/test smoke (placeholder + one primitive); the design-reviewed surface + functional check are T8's ('design review on T8', human 2026-09-04). FRONTIER is correct (T1-T6 done, T7 the planning target) - a prior grill's 'vendor-backend-contract needs reconciliation' was a misread. SEED is the first in-worktree step (degraded window) AFTER task start, NOT a pre-grill mutation: exact-pinned frontend/package.json + Inter v4.1 WOFF2 (expected SHA-256 taken from the official immutable release + committed as the pin, verified against those bytes) + host npm install (freeze lockfile); it leaves UNCOMMITTED changes the delegate builds on offline (never editing versions); whole diff measured at stage-done (dirty during the stage). NON-MUTATING build is FALSIFIABLE: guard asserts frontend/.gitignore (.next/next-env/tsbuildinfo) + the tsconfig Next plugin/.next-types, and stage-done rejects tracked-file churn. TOKENS: DEFINITION files carry the --kl-* hex (as definitions must); CONFIG + COMPONENTS consume var(--kl-*) with NO raw hex; a hermetic test asserts SET-LEVEL PARITY vs source colors/spacing/typography.css (D-0005) + negative control. fonts.css NOT ported. FONT single-owner: next/font/local --font-inter; globals override --font-sans after the token import. SCAN runtime source only. LINT is EFFECTIVE, not just present: eslint.config.mjs uses FlatCompat (@eslint/eslintrc) to load eslint-config-next/core-web-vitals as flat for frontend/** (15.1.6 ships eslintrc, not flat), reuses the ROOT eslint (no second pin), ignores .next/next-env; the guard runs ESLint over a frontend fixture with a known violation and asserts it is reported. JUNIT attribution comes from the required_tests stage-proof commands (--reporter=junit); root test:hermetic runs vitest for pass/fail only. VITEST offline (npm exec --no) + frontend-only include (no backend/DB discovery) + 3 attributable tests (token-parity, font-scan, query-provider) w/ negative controls; no npm ci in delegated verify (CI's job). dev:frontend 127.0.0.1:3000. build:frontend in root build/structural, builds @3f/contract first (workspace ordering). @3f/contract is a MANIFEST-level dep only - no fabricated import; first real use is T8. STORY-PLAN: JIT write_scope refines the abbreviated T7 sketch (adds eslint.config.mjs + guard per the decomposition objective; drops .envrc/.prettierignore - no change); story prose left as-approved. lucide-react deferred to T8. DECISIONS: 0006/0007/0010 APPLY; 0009 in its Vitest analogue; 0011/D-0003 keeps deployment readiness deferred; 0001/0005 satisfied context; 0002/0003 later MIS N/A; 0004/0008/0012/0013 backend-only N/A. constitution/01 + /09 §9.
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
+
 ## Task frontend-shell-login
 
 ### Plan contracts
@@ -177,6 +226,13 @@ FOUNDATION ONLY - no app screens (shell/nav/top-bar/login are T8). USER_FACING=f
 
 USER-FACING - design fidelity is acceptance-critical (the human reiterated: follow the imported Claude Design and its colour scheme). SHELL is faithful to the bound export docs/design/3F-Financial-MIS/'3F Financial MIS.dc.html' (the interactive one, not the v1 artboards): Deep Forest #0C3529 left nav (200/62px, 3F header, user block), white 56px top bar (title, search, freshness pill, avatar), Off-White #F4F7F6 canvas - built ONLY from the _ds --kl-* tokens (Deep Forest, Emerald #1C6B49, Mint #6AF1B0 on-dark only, Off-White), NO raw hex in components. The disabled nav (4 of 5), disabled search and unavailable freshness pill are the spec's INTENTIONAL enumerated divergences, not fidelity failures. LOGIN is net-new per the spec's normative Login screen contract (split screen, two-step email/OTP, exact copy, input semantics, focus order, aria-live, :active, ease-out <=200ms, prefers-reduced-motion) - the export has no login state, so the contract governs. NO-ENUMERATION is load-bearing: the uniform ack copy must not leak account existence. AUTH: api.ts credentials:'include', x-csrf-token re-read from the CURRENT 3f_csrf cookie before EVERY mutating POST (never cached; the guard rotates it), the six-route allow-list, AuthUser from @3f/contract (no duplicated shape); a 401 retries ONCE through refresh then falls back to /login; server state via TanStack Query (me query + otp/logout mutations). A11y + MOBILE: 390x844 off-canvas drawer (aria-expanded, Escape, focus return); real labels; keyboard reachable. TOKENS: resolve the D-0012 --text-body/ink collision (map Tailwind ink to --kl-ink) as the theme is applied. CONSUMES frontend-foundation (theme, next/font/local Inter, Query provider, shadcn button) - does NOT recreate the workspace; lucide-react (deferred from T7) is seeded here for nav icons (host-installed - Codex sandbox has no network). HERMETIC TESTS are DB-free RTL/jsdom (mocked fetch/cookie) with negative controls (0009); the live login E2E + audit row + no-enumeration are DEMONSTRATED evidence (real auth needs a Postgres pool) and the functional check screenshots at 1440x900 + 390x844 verify shell + login fidelity. DESIGN SKILLS (emil-design-eng + frontend-design) are MANDATORY for this user_facing task. Canon: 0006/0007 (fresh Next), 0010 (@3f/contract), 0011/D-0003 (deployment readiness deferred - local mock-OTP PoC), 0009 (tests). GRILL AMENDMENTS (all repo-answerable, resolved here): (1) ROUTER TOPOLOGY is the foundation's frontend/app/ (App Router) - the shell lives in an app/(app)/ route group and login in app/login/, and the foundation's placeholder frontend/app/page.tsx is REPLACED (/ redirects to the shell when authed, else /login) - NOT frontend/src/app. (2) LOOPBACK per the spec runtime contract: api.ts defaults the API base to http://127.0.0.1:4000 (NOT localhost; NEXT_PUBLIC_API_BASE_URL overrides), and the manual verification uses 127.0.0.1 throughout and brings up warehouse-seed + the WAREHOUSE_PG_* config. (3) REFRESH-ONCE: on an access-token 401 api.ts performs exactly ONE CSRF-protected POST /api/auth/refresh then RETRIES the original request; only if that retry also fails does it clear auth and route to /login - and otp/verify's intentional 401 (invalid/expired code) is EXCLUDED from refresh (no refresh loop, no stale-session misread). POST /api/auth/refresh is in the endpoint list. (4) D-0012 is fixed in BOTH places: Tailwind ink -> var(--kl-ink) AND globals.css's `color: var(--text-body)` -> the ink token (--text-body is a 17px size in typography.css, invalid as a colour). (5) SECONDARY CONTROLS: 'Resend code' re-calls POST otp/request for the same email and re-announces the uniform ack (focus stays on the code field); 'Use a different email' returns to step 1 and refocuses the email field. (6) lucide-react is the shadcn/ui-standard, tree-shakeable, MIT icon set - the best-fit nav icon source (constitution §9 justified, not a silent default). (7) EXACT proof: `npm exec --no -- vitest` (never bare `npm exec --`/npx) and the plan's test names EQUAL the required_tests leaf ids (decision 0009, no false green). The seven required_tests falsify the load-bearing behaviours; the live login E2E + audit row + no-enumeration stay demonstrated Postgres evidence and the functional check (1440x900 + 390x844) verifies shell + login fidelity.
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
+
 ## Task backend-observability
 
 ### Plan contracts
@@ -194,6 +250,13 @@ USER-FACING - design fidelity is acceptance-critical (the human reiterated: foll
 ### Reviewer focus
 
 Normative sources (READ them): constitution/07-exception-handling.md, constitution/05-logging-and-observability.md §2.1-2.2, constitution/06-logger-and-log-transports.md, constitution/03-modular-monolith-structure.md, decision 0013 (docs/decisions/0013-backend-observability-built-in-poc.md), and deferrals D-0010/D-0018/D-0019/D-0020. Nothing observability-related exists yet - build under backend/src/common/ (constitution 03 puts cross-cutting logging/middleware/error handling in common, NOT a new top-level dir). WIRING SEAM: main.ts configureApp(app, cfg) (main.ts:20-27) is the single seam that both bootstrap() and the tests (configureApp+app.init) exercise; register the request-logging middleware and app.useGlobalFilters(new <Filter>(cfg,logger)) BEFORE the `if (!cfg.swaggerEnabled) return;` early-return (main.ts:22) or production is uncovered. MIGRATE main.ts's three console.* calls (bootstrap/listen/fatal, ~main.ts:26) onto the structured logger - that is D-0010's assignment; the recon/pins/migrate console.* stay deferred (D-0009). ERROR ENVELOPE (const 07): { success:false, data:null, error:{ errorId (uuid-v4, LOGGED and returned), code (stable machine code: HttpException->status-derived, validation->VALIDATION_ERROR, unknown->INTERNAL_ERROR), type (exception category), message (STATIC), userMessage (safe static; NEVER a raw 500 message), details (sanitized - only validation fieldErrors; NEVER provider errors/stacks/PII), statusCode (HttpException.getStatus() else 500), correlationId, requestId, environment, timestampUtc } }. Log levels: 4xx (incl. validation 400s) at debug/info, 5xx at error; the sanitized stack goes in the LOG record only, and the response carries a stack ONLY when environment=Local. requestId from req.headers['x-request-id']||null. Align the shape with the health { success, data, error } envelope and contract/src/api.ts ResponseClass. LOG RECORDS (const 05): structured JSON; a request record AND a DISTINCT error record, each with timestampUtc, level, message (static), context (dynamic PII-masked KVs), environment (enum Local|Development|QA|UAT|Staging|Production), serviceName, module, correlationId, accountId (nullable), requestId. Emit the request record on response finish so accountId is populated after AuthGuard sets req.authUser; correlationId = a valid inbound x-correlation-id else a UUID generated at ingress and shared across the response header and BOTH log records. Console/stdout transport is correct for Local (const 06); expose a transport seam - non-Local centralized transport is D-0019, error metrics are D-0018, decorated Swagger error DTOs are D-0020. CONFIG: add environment (mapped to the const-05 enum from ENVIRONMENT||nodeEnv, defined unknown-value behavior) and serviceName (SERVICE_NAME || '3f-backend') to config.ts loadConfig. SHARED TYPES in contract/src/api.ts (barrel index.ts) consumed by the BACKEND filter; the shipped frontend is not required to consume them here. TESTS: mirror backend/src/app.routes.test.ts:10-33 (stub AuthoredMeasureRegistry.prototype.onModuleInit; NestFactory.create(AppModule,{logger:false}); configureApp(app); await app.init(); close in finally); reach Express via app.getHttpAdapter().getInstance(); capture the injected logger. REGISTER both new tests in the backend allow-list: backend/package.json test:hermetic AND tools/quality-gate.test.mjs hermeticTests (else the quality-gate guard fails or the tests never run under verify.py). Test files are transpile-only (D-0007). PROVENANCE: fix docs/specs/app-platform-base.md (~line 154) so observability is attributed to backend-observability, not api-surface-trim (decision 0013 mandated this reconciliation).
+
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
 
 ## Task harness-wiring
 
@@ -224,3 +287,10 @@ The repo-wide gate is already built (quality-gate-baseline created the .envrc FA
 Recorded lessons that apply to this task's paths. A finding that contradicts one is not a defect unless it shows the lesson itself is wrong; say so explicitly instead of re-raising it.
 
 - [medium] plan contracts must not require review-verification of review-excluded paths: A plan_contract clause requiring evidence in plans/, .factory/, or docs/decisions/ cannot be verified by forge review, which excludes those paths (HARNESS_PREFIXES). The quality lens flip-flopped 10/10/7 on t5-c1's 'ledgered as debt (D-0006)' clause because the deferral IS recorded in plans/deferrals.md, which the reviewer structurally cannot see. Keep bookkeeping (deferral ledgering) in the ledger, not in a code-review plan_contract; contracts assert only code behaviour visible in the diff.
+
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: FAILED at cf3735424854
+  - `npm run structural` -> exit 127
