@@ -116,10 +116,13 @@
     }
   ],
   "summary": "One cold read returned eleven findings. Ten are repository-answerable and resolved in the amended contract + plan (drizzle-warehouse config, narrowed scope off the read-only port, generate-once/apply-only migrate, test:hermetic in verify_commands, a deterministic seed fixture, the \u22641-active partial-unique + atomic flip, whole-file batch grain per the client's Q1, contra_account + UNIQUE source-line identity + mis_budget grain + named view columns, uploaded_by as a TEXT id + a fail-fast WAREHOUSE_PG_* guard, and the 0014/0015 attestation). The one genuine decision \u2014 the warehouse naming convention \u2014 went to the human, who chose snake_case, now recorded as accepted decision 0015. Verdict pass.",
-  "input_sha256": "c2e1b1bb280bfbee7418073eb745763e4ab5fe104a762c2999e4be312ab1bba4",
+  "input_sha256": "faccf68df8dc57a93c655791246d87500a6ec99643074d2a079375fd98af41c1",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "3004edd73d824da695b5c0c539d54cea6e97b11880bf812f0cde9873e9d436de",
-  "recorded_at": "2026-09-09T05:11:51+00:00",
-  "commit": "5a3b3499c3d38a5ed4591a01cd02e1a62e515e50"
+  "recorded_at": "2026-09-09T05:16:13+00:00",
+  "commit": "8a1ff93ccbb45c1e49cd22dcfb0fae6447a3f99b",
+  "approved_task_plan_sha256": "3004edd73d824da695b5c0c539d54cea6e97b11880bf812f0cde9873e9d436de",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-09T05:16:13+00:00"
 }
