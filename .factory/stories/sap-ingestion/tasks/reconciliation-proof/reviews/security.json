@@ -1,11 +1,17 @@
 {
   "generated_by": "autoreview",
   "task_id": "reconciliation-proof",
-  "score": 10,
-  "summary": "security lens over reconciliation-proof (5 product path(s), 512c6d4..6d57463, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff adds only a read-only, parameterized reconciliation query and test/fixture wiring; it introduces no route, authorization boundary, credential, dynamic SQL, dependency, or warehouse write path. The fixture loader's file path is supplied by trusted internal test code, and the expected monetary value is validated as a paise-exact decimal string. Within the provided evidence, no actionable P0-P2 security or correctness defect is demonstrated.",
-  "blocking_findings": [],
+  "score": 7,
+  "summary": "security lens over reconciliation-proof (5 product path(s), 512c6d4..3bf2448, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The implementation and hermetic checks appear reasonable, but the authoritative database-backed proof is never entered by the recorded or newly registered commands. Since producing demonstrated warehouse evidence is the task's primary contract, this is blocking.",
+  "blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "backend",
+      "summary": "The registered DB suite still self-skips the authoritative proof (backend/package.json:18): The added `test:db` command does not set `WAREHOUSE_DB_TEST=1`, so this file's database-backed leaf skips under the command as committed."
+    }
+  ],
   "non_blocking_findings": [],
-  "recommendation": "approve",
+  "recommendation": "request-changes",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
@@ -15,10 +21,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "1e0b18c55cc709a4e27c1a37b3752b3009ef67c2734c10e7ecf035a8ceb41b65",
-  "brief_sha256": "3ab6cca190e79226430704c976b715a210a2635e308970e8016923148a9c1841",
-  "branch_diff_digest": "ced74810c1e3eaef2bb5e16c3f822f6b08131ae19ab5d68868db034ad8ef9b5a",
+  "review_run_id": "029c9d505caf3cc31c606009188c36b0f9432ebc86ce396d52d03edfbd950ea5",
+  "brief_sha256": "0238ea943520ed1d139bda1640f049a93972075aaa363cc4316c74cc91231572",
+  "branch_diff_digest": "baddb402e1ecbbfeec76f459cd931dc033c495714a9e8d641960f40a665ee3e1",
   "residual_risks": [],
-  "recorded_at": "2026-09-09T18:54:32+00:00",
-  "commit": "6d57463f149891a18588894c1e57889680fa73c5"
+  "recorded_at": "2026-09-09T19:07:47+00:00",
+  "commit": "3bf24482a1e1421191bd87acdf2ea816af9daccd"
 }
