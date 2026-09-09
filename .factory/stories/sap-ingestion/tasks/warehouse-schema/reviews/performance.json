@@ -1,0 +1,36 @@
+{
+  "generated_by": "autoreview",
+  "score": 7,
+  "summary": "performance lens over warehouse-schema (12 product path(s), 8402960..fb89934, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. No P0\u2013P2 production performance defect or compatibility leftover is demonstrated by the supplied diff. However, the warehouse separation guard remains bypassable through a valid loopback alias, violating the fail-fast database-boundary requirement and making the patch unsafe to ship.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src",
+      "summary": "Reject IPv6-mapped aliases of the application host (backend/src/config.ts:207): The normalization only strips `::ffff:` when the remainder is dotted IPv4."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse.config.ts",
+    "backend/drizzle-warehouse/0000_solid_ken_ellis.sql",
+    "backend/drizzle-warehouse/meta/0000_snapshot.json",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/drizzle-warehouse/seed-proof.sql",
+    "backend/package.json",
+    "backend/src/config.ts",
+    "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/warehouse-migrate.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "81b25099c55741e07ebb5b5db8f55f80b772ed34c581e59431a3e31cbfccc0b1",
+  "brief_sha256": "105ade781a11c8f5cab12d3d8e791a39a9b47968e4b880434665ff52207535f7",
+  "branch_diff_digest": "dc8f85a55366aeafd28ddd260574775b27621ce819d9b822bafac04b60b29582",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T07:07:33+00:00",
+  "commit": "fb8993472772bfd52fe97cda9a448846326bcf4f"
+}

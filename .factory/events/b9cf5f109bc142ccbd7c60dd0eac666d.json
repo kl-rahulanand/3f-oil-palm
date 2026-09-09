@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T07:33:10+00:00", "story": "sap-ingestion", "detail": "S-0003-3deb: RESOLUTION (overrides the separate-file lessons for THIS write_scope): do NOT create warehouse-proof.db.test.ts. Keep the DB-backed proof test INSIDE the in-scope backend/src/warehouse/warehouse-schem"}

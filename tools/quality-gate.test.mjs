@@ -34,6 +34,7 @@ const hermeticTests = [
   "backend/src/swagger-production.test.ts",
   "backend/src/swagger.test.ts",
   "backend/src/warehouse/postgres.adapter.oid.test.ts",
+  "backend/src/warehouse/warehouse-schema.test.ts",
 ];
 
 const dbTests = [

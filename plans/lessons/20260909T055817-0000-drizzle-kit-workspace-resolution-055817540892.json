@@ -1,0 +1,11 @@
+{
+  "topic": "drizzle-kit-workspace-resolution",
+  "lesson": "In this npm workspace, the hoisted drizzle-kit CLI cannot resolve backend-local drizzle-orm during generate; invoke the CLI with NODE_PATH pointed at backend/node_modules or repair workspace hoisting before retrying.",
+  "source": "warehouse-schema implementation",
+  "applies_to": [
+    "backend/drizzle*.config.ts"
+  ],
+  "severity": "medium",
+  "generated_by": "implementer",
+  "added_at": "2026-09-09T05:58:17+00:00"
+}

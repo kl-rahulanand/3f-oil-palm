@@ -1,0 +1,511 @@
+{
+  "id": "5564a94f-b5c7-4284-ac87-6a7a6300b007",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.ingest_batch": {
+      "name": "ingest_batch",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "source_kind": {
+          "name": "source_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period": {
+          "name": "period",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploaded_by": {
+          "name": "uploaded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploaded_at_utc": {
+          "name": "uploaded_at_utc",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "row_count": {
+          "name": "row_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "validation_result": {
+          "name": "validation_result",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reconciliation_result": {
+          "name": "reconciliation_result",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at_utc": {
+          "name": "created_at_utc",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at_utc": {
+          "name": "updated_at_utc",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ingest_batch_active_source_period_unique": {
+          "name": "ingest_batch_active_source_period_unique",
+          "columns": [
+            {
+              "expression": "source_kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "period",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"ingest_batch\".\"is_active\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ingest_batch_source_kind_check": {
+          "name": "ingest_batch_source_kind_check",
+          "value": "\"ingest_batch\".\"source_kind\" IN ('actuals', 'budget')"
+        },
+        "ingest_batch_period_month_check": {
+          "name": "ingest_batch_period_month_check",
+          "value": "\"ingest_batch\".\"period\" = date_trunc('month', \"ingest_batch\".\"period\")::date"
+        },
+        "ingest_batch_row_count_check": {
+          "name": "ingest_batch_row_count_check",
+          "value": "\"ingest_batch\".\"row_count\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.mis_budget": {
+      "name": "mis_budget",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "batch_id": {
+          "name": "batch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "format_id": {
+          "name": "format_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period": {
+          "name": "period",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "line_id": {
+          "name": "line_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gl_code": {
+          "name": "gl_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cost_center": {
+          "name": "cost_center",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_amount": {
+          "name": "budget_amount",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rollover_amount": {
+          "name": "rollover_amount",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at_utc": {
+          "name": "created_at_utc",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at_utc": {
+          "name": "updated_at_utc",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_mis_budget_batch_id": {
+          "name": "idx_mis_budget_batch_id",
+          "columns": [
+            {
+              "expression": "batch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mis_budget_batch_id_ingest_batch_id_fk": {
+          "name": "mis_budget_batch_id_ingest_batch_id_fk",
+          "tableFrom": "mis_budget",
+          "tableTo": "ingest_batch",
+          "columnsFrom": [
+            "batch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mis_budget_batch_grain_unique": {
+          "name": "mis_budget_batch_grain_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "batch_id",
+            "format_id",
+            "period",
+            "line_id",
+            "gl_code",
+            "cost_center"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "mis_budget_period_month_check": {
+          "name": "mis_budget_period_month_check",
+          "value": "\"mis_budget\".\"period\" = date_trunc('month', \"mis_budget\".\"period\")::date"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.sap_transaction": {
+      "name": "sap_transaction",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "batch_id": {
+          "name": "batch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "txn_no": {
+          "name": "txn_no",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "line_id": {
+          "name": "line_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "posting_date": {
+          "name": "posting_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "month": {
+          "name": "month",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plant": {
+          "name": "plant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plant_src": {
+          "name": "plant_src",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cost_center": {
+          "name": "cost_center",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gl_code": {
+          "name": "gl_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acct_name": {
+          "name": "acct_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contra_account": {
+          "name": "contra_account",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "debit": {
+          "name": "debit",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credit": {
+          "name": "credit",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "memo": {
+          "name": "memo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reference": {
+          "name": "reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at_utc": {
+          "name": "created_at_utc",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at_utc": {
+          "name": "updated_at_utc",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_sap_transaction_batch_id": {
+          "name": "idx_sap_transaction_batch_id",
+          "columns": [
+            {
+              "expression": "batch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_sap_transaction_month_plant_cost_center_gl_code": {
+          "name": "idx_sap_transaction_month_plant_cost_center_gl_code",
+          "columns": [
+            {
+              "expression": "month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "plant",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cost_center",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "gl_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sap_transaction_batch_id_ingest_batch_id_fk": {
+          "name": "sap_transaction_batch_id_ingest_batch_id_fk",
+          "tableFrom": "sap_transaction",
+          "tableTo": "ingest_batch",
+          "columnsFrom": [
+            "batch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sap_transaction_batch_source_line_unique": {
+          "name": "sap_transaction_batch_source_line_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "batch_id",
+            "txn_no",
+            "line_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "sap_transaction_month_check": {
+          "name": "sap_transaction_month_check",
+          "value": "\"sap_transaction\".\"month\" = date_trunc('month', \"sap_transaction\".\"month\")::date"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {
+    "public.actual_by_key_month": {
+      "columns": {
+        "plant": {
+          "name": "plant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cost_center": {
+          "name": "cost_center",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gl_code": {
+          "name": "gl_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "month": {
+          "name": "month",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actual_net": {
+          "name": "actual_net",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "definition": "\n  SELECT\n    txn.plant,\n    txn.cost_center,\n    txn.gl_code,\n    txn.month,\n    SUM(txn.debit - txn.credit)::numeric(18, 2) AS actual_net\n  FROM sap_transaction AS txn\n  INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id\n  WHERE batch.source_kind = 'actuals' AND batch.is_active\n  GROUP BY txn.plant, txn.cost_center, txn.gl_code, txn.month\n",
+      "name": "actual_by_key_month",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    }
+  },
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

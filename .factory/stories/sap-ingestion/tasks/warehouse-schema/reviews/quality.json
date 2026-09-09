@@ -1,0 +1,68 @@
+{
+  "generated_by": "autoreview",
+  "score": 4,
+  "summary": "quality lens over warehouse-schema (12 product path(s), 8402960..fb89934, Codex via the autoreview skill at --max-priority P2): 2 blocking, 0 non-blocking. VERDICT t-ws-c1: partial \u2014 backend/src/config.ts:217 host separation can be bypassed with resolver-equivalent aliases\nVERDICT t-ws-c2: implemented \u2014 backend/src/warehouse/ingestion.repository.ts:79 and backend/src/warehouse/warehouse-schema.ts:24 provide the atomic switch, constraints, indexes, and money types\nVERDICT t-ws-c3: partial \u2014 backend/package.json:15 exposes the live proof, but the required tests.json D-0008 execution record is absent\nLEFTOVERS: none observed.\n\nThe schema and repository largely implement the requested warehouse behavior, but the database-separation guard is incomplete and the mandatory demonstrated host evidence was not delivered.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src",
+      "summary": "[P1] Canonicalize resolver-valid loopback aliases before comparing hosts (backend/src/config.ts:217): The separation guard recognizes only strict IP literals via `isIP()`."
+    },
+    {
+      "category": "test_gap",
+      "area": "backend",
+      "summary": "[P1] Record the required live warehouse proof execution (backend/package.json:15): This adds a runnable `warehouse:proof` command, but the selected change contains no `tests.json` update recording the required D-0008 host execution."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/sap-financial-ingestion.md",
+      "summary": "t-ws-c1: a reproducible warehouse:migrate creates ingest_batch, sap_transaction, mis_budget on the SEPARATE warehouse Postgres via a dedicated write pool/ingestion repository that does NOT alter the read-only Warehouse query port"
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/architecture/30-financial-mis-build-plan.md",
+      "summary": "t-ws-c3: actual_by_key_month is a plain view over the ACTIVE actuals batch returning Sum(debit-credit) at paise grouped by (plant,cost_center,gl_code,month), proven over seeded rows"
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse.config.ts",
+    "backend/drizzle-warehouse/0000_solid_ken_ellis.sql",
+    "backend/drizzle-warehouse/meta/0000_snapshot.json",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/drizzle-warehouse/seed-proof.sql",
+    "backend/package.json",
+    "backend/src/config.ts",
+    "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/warehouse-migrate.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-ws-c1",
+      "verdict": "partial",
+      "evidence": "backend/src/config.ts:217 host separation can be bypassed with resolver-equivalent aliases"
+    },
+    {
+      "contract_id": "t-ws-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/ingestion.repository.ts:79 and backend/src/warehouse/warehouse-schema.ts:24 provide the atomic switch, constraints, indexes, and money types"
+    },
+    {
+      "contract_id": "t-ws-c3",
+      "verdict": "partial",
+      "evidence": "backend/package.json:15 exposes the live proof, but the required tests.json D-0008 execution record is absent"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "81b25099c55741e07ebb5b5db8f55f80b772ed34c581e59431a3e31cbfccc0b1",
+  "brief_sha256": "105ade781a11c8f5cab12d3d8e791a39a9b47968e4b880434665ff52207535f7",
+  "branch_diff_digest": "dc8f85a55366aeafd28ddd260574775b27621ce819d9b822bafac04b60b29582",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T07:07:32+00:00",
+  "commit": "fb8993472772bfd52fe97cda9a448846326bcf4f"
+}

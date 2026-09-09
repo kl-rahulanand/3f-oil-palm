@@ -1,4 +1,36 @@
-# Branch-wide plan-contract review brief
+# Review brief — warehouse-schema — quality lens
+
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
+
+LENS: QUALITY. Correctness, regressions, gaps in the implementer's tests,
+API/contract drift, and maintainability. Check approved-deliverable presence and
+reachability FIRST: every deliverable a plan contract, acceptance criterion, or
+the reviewer focus names must be genuinely implemented AND reachable (registered,
+invoked — not merely defined in a file nothing imports); an absent or unreachable
+deliverable is a blocking finding even when the rest is clean. Flag
+single-responsibility violations and incoherent file/folder organisation against
+the reviewer focus (never a mandated layout). Structure-for-growth in shared
+infrastructure is NOT over-engineering; reserve that finding for speculative
+abstraction. Enforce the minimal-diff discipline (a new dependency where the
+stdlib suffices, reimplementing an existing helper, sprawl where a surgical
+change would do) — but a diff that drops validation, error handling, security, or
+accessibility to look smaller is the OPPOSITE finding. The constitution's coding
+standards are law: flag deviations you can see in the diff. Assess cyclomatic
+complexity of every changed function; genuinely knotted control flow (roughly
+>10 independent paths) is blocking and must name its decomposition.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
+CONTRACT VERDICTS (mandatory, machine-parsed). In overall_explanation, emit ONE
+line per plan contract listed under "Plan contracts" below, exactly in this form:
+
+VERDICT <contract-id>: implemented|partial|missing — <file:line evidence>
+
+Every listed contract must get a line. Do not rename contract ids.
 
 For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
 
@@ -30,33 +62,3 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] warehouse DB separation guard: The WAREHOUSE_PG_* separation guard must REJECT when the normalized host AND port match the app DB, regardless of database name (canonicalize localhost/127.0.0.1/::1 and equivalent aliases) — otherwise warehouse DDL can be applied to the application Postgres server under a different db name.
 - [medium] warehouse whole-file inserts must chunk: Bulk-insert ingest rows in bounded chunks INSIDE the atomic transaction; a single parameterized INSERT of a whole-file batch exceeds Postgres's ~65535 bind-parameter ceiling (~12 params/row -> ~5.4k rows) and fails before the active-batch switch.
 - [high] warehouse proof must execute not grep: The demonstrated warehouse proof must RUN migrate + the fixture against the warehouse DB via a committed, re-runnable warehouse:proof script that EXERCISES IngestionRepository's atomic candidate-load-then-flip; a hermetic test that only greps seed-proof.sql text is false-green. Do NOT build a controller/API here (that is the actuals-loader task) — exercise the repository directly.
-
-## Task actuals-loader
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-## Task budget-loader
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-## Task reconciliation-proof
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.

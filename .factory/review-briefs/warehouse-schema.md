@@ -1,4 +1,4 @@
-# Branch-wide plan-contract review brief
+# Plan-contract review brief — warehouse-schema
 
 For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
 
@@ -26,37 +26,3 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 - [high] required_tests false-green: A required_tests entry must name a REAL leaf test (id = the string in test("...")), not the file path, and must pin TS_NODE_PROJECT=backend/tsconfig.json because forge runs it from repo root; otherwise junit-run's --test-name-pattern matches nothing and ts-node skips the workspace tsconfig, so the gate reports pass without running assertions. Always verify with a negative control (a required test whose negative control cannot fail is not proof).
 - [medium] drizzle-kit-workspace-resolution: In this npm workspace, the hoisted drizzle-kit CLI cannot resolve backend-local drizzle-orm during generate; invoke the CLI with NODE_PATH pointed at backend/node_modules or repair workspace hoisting before retrying.
-- [high] warehouse row period equals batch period: Enforce at the DB level (a trigger, like the immutability trigger) that sap_transaction.month equals its ingest_batch.period and mis_budget.period equals its batch period; otherwise a mis-periodized row double-counts in actual_by_key_month, which groups by ROW month while active-uniqueness is keyed on BATCH period.
-- [high] warehouse DB separation guard: The WAREHOUSE_PG_* separation guard must REJECT when the normalized host AND port match the app DB, regardless of database name (canonicalize localhost/127.0.0.1/::1 and equivalent aliases) — otherwise warehouse DDL can be applied to the application Postgres server under a different db name.
-- [medium] warehouse whole-file inserts must chunk: Bulk-insert ingest rows in bounded chunks INSIDE the atomic transaction; a single parameterized INSERT of a whole-file batch exceeds Postgres's ~65535 bind-parameter ceiling (~12 params/row -> ~5.4k rows) and fails before the active-batch switch.
-- [high] warehouse proof must execute not grep: The demonstrated warehouse proof must RUN migrate + the fixture against the warehouse DB via a committed, re-runnable warehouse:proof script that EXERCISES IngestionRepository's atomic candidate-load-then-flip; a hermetic test that only greps seed-proof.sql text is false-green. Do NOT build a controller/API here (that is the actuals-loader task) — exercise the repository directly.
-
-## Task actuals-loader
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-## Task budget-loader
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-## Task reconciliation-proof
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.

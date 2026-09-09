@@ -1,4 +1,5 @@
 import { existsSync } from "fs";
+import { promises as dns } from "node:dns";
 import { resolve } from "path";
 import { config as loadDotenv } from "dotenv";
 import type { Environment } from "@3f/contract";
@@ -181,6 +182,55 @@ export function loadConfig(): Config {
     },
     swaggerEnabled: nodeEnv !== "production",
   };
+}
+
+type HostLookup = (hostname: string, options: { all: true }) => Promise<Array<{ address: string; family: number }>>;
+
+function normalizeAddress(address: string): string {
+  const normalized = address.toLowerCase();
+  const ipv4 = normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+  return ipv4 === "::1" || ipv4 === "0:0:0:0:0:0:0:1" || ipv4.startsWith("127.") ? "loopback" : ipv4;
+}
+
+async function resolveHost(host: string, lookup: HostLookup): Promise<Set<string>> {
+  const hostname = host
+    .trim()
+    .toLowerCase()
+    .replace(/^\[(.*)\]$/, "$1")
+    .replace(/\.$/, "");
+  return new Set((await lookup(hostname, { all: true })).map(({ address }) => normalizeAddress(address)));
+}
+
+export async function loadWarehousePostgresConfig(
+  lookup: HostLookup = dns.lookup,
+): Promise<Config["warehouse"]["postgres"]> {
+  const required = [
+    "WAREHOUSE_PG_HOST",
+    "WAREHOUSE_PG_PORT",
+    "WAREHOUSE_PG_USER",
+    "WAREHOUSE_PG_PASSWORD",
+    "WAREHOUSE_PG_DATABASE",
+  ] as const;
+  const missing = required.filter((name) => !process.env[name]?.trim());
+  if (missing.length) throw new Error(`Warehouse Postgres is not configured: missing ${missing.join(", ")}`);
+
+  const config = loadConfig();
+  const postgres = config.warehouse.postgres;
+  if (!Number.isInteger(postgres.port) || postgres.port < 1 || postgres.port > 65535) {
+    throw new Error("WAREHOUSE_PG_PORT must be an integer between 1 and 65535");
+  }
+
+  if (postgres.port === config.pg.port) {
+    const [warehouseAddresses, appAddresses] = await Promise.all([
+      resolveHost(postgres.host, lookup),
+      resolveHost(config.pg.host, lookup),
+    ]);
+    if ([...warehouseAddresses].some((address) => appAddresses.has(address))) {
+      throw new Error("Warehouse Postgres must be separate from the application database");
+    }
+  }
+
+  return postgres;
 }
 
 export const DRIZZLE_DB = "DRIZZLE_DB";

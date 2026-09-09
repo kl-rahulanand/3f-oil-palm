@@ -1,0 +1,1 @@
+{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-09T07:31:40+00:00", "story": "sap-ingestion", "detail": "The binding D-0008 lesson requires backend/src/warehouse/warehouse-proof.db.test.ts as a separate DB-only committed test, but the task write_scope explicitly excludes that path while stating nothing o"}
