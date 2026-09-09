@@ -1,27 +1,17 @@
 {
   "generated_by": "autoreview",
   "task_id": "reconciliation-proof",
-  "score": 7,
-  "summary": "quality lens over reconciliation-proof (5 product path(s), 512c6d4..3bf2448, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. VERDICT t-rp-c1: partial \u2014 backend/package.json:18 registers the gated file but provides no command or committed execution record that enables its real-workbook DB proof\nVERDICT t-rp-c2: partial \u2014 backend/src/warehouse/reconciliation.repository.test.ts:107 defines the idempotency proof, but the recorded hermetic run skips it and no required demonstrated execution is included\nThe query helper, fixture, and proof assertions are present, but this proof task is incomplete because its authoritative DB-backed leaf has no committed evidence of execution and its declared command skips by default.",
-  "blocking_findings": [
+  "score": 9,
+  "summary": "quality lens over reconciliation-proof (5 product path(s), 512c6d4..648e7a9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The reconciliation implementation and its registered executable proof satisfy both plan contracts, but the unrelated weakening of the quality gate is an actionable regression.\nVERDICT t-rp-c1: implemented \u2014 backend/src/warehouse/reconciliation.repository.test.ts:122 evidence\nVERDICT t-rp-c2: implemented \u2014 backend/src/warehouse/reconciliation.repository.test.ts:124 evidence\nNo compatibility leftovers are visible in the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
     {
-      "category": "test_gap",
-      "area": "backend",
-      "summary": "[P1] The registered DB command still skips the authoritative proof (backend/package.json:18): The new test is gated by `WAREHOUSE_DB_TEST === \"1\"`, but this `test:db` command neither sets that variable nor supplies the required pinned warehouse connection command."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0014-sap-ingestion-poc-no-master.md",
-      "summary": "t-rp-c1: a demonstrated warehouse-DB test grounds the July DUB net to EXACTLY Rs 11,512,712.07 (paise) across the accepted raw sap_transaction rows AND the actual_by_key_month gold view, against a frozen in-repo reconciliation fixture"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/sap-ingestion-ingest-sap-actuals-budgets.md",
-      "summary": "t-rp-c2: re-uploading the July DUB actuals replaces that month with no duplicate rows and no double-counting in the gold view (idempotency), with the prior batch retained"
+      "category": "regression",
+      "area": "tools",
+      "summary": "[P2] Preserve detection of tests registered in multiple suites (tools/quality-gate.test.mjs:315): Wrapping the declared test lists in `new Set` removes the gate's existing ability to detect a file listed in both `dbTests` and `hermeticTests`: the filesystem list is unique, so the previous array comparison deliberately failed on duplicate registrations."
     }
   ],
-  "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
@@ -33,13 +23,13 @@
   "contract_verdicts": [
     {
       "contract_id": "t-rp-c1",
-      "verdict": "partial",
-      "evidence": "backend/package.json:18 registers the gated file but provides no command or committed execution record that enables its real-workbook DB proof"
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:122 evidence"
     },
     {
       "contract_id": "t-rp-c2",
-      "verdict": "partial",
-      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:107 defines the idempotency proof, but the recorded hermetic run skips it and no required demonstrated execution is included"
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:124 evidence"
     },
     {
       "contract_id": "t-ws-c1",
@@ -92,11 +82,25 @@
       "evidence": "shipped under budget-loader at its own per-task seal (stage done); unchanged by this task's diff"
     }
   ],
+  "rejected_findings": [
+    {
+      "finding": {
+        "category": "test_gap",
+        "area": "backend/src/warehouse",
+        "summary": "[P1] Record an execution of the gated warehouse proof (backend/src/warehouse/reconciliation.repository.test.ts:107): The only recorded execution is `npm run test:hermetic`, where this authoritative leaf skips unless `WAREHOUSE_DB_TEST=1`; the supplied evidence contains no invocation of the newly added `test:warehouse-proof` command."
+      },
+      "reason": "Factually incorrect and contradicts the settled D-0008 model. (1) The claim that the supplied evidence contains no invocation of test:warehouse-proof is false: the committed tests.json commands_run records 'npm --prefix backend run test:warehouse-proof -> tests 4 / pass 4 / fail 0 / skipped 0' (the gated warehouse leaf EXECUTES because the script sets WAREHOUSE_DB_TEST=1) plus a dead-port negative control (fail 1, ECONNREFUSED). Performance and security accepted this same evidence and approved this round. (2) The warehouse proof is committed, reviewer-visible and runnable via the registered test:warehouse-proof script. (3) The story plan Decisions section settles that DB-backed warehouse proofs run as DEMONSTRATED HOST EVIDENCE (docker warehouse, WAREHOUSE_PG_*) per D-0008, NOT inside the enforced hermetic path; demanding a non-skipped enforced execution is CI-enforcement the plan defers.",
+      "cite": "Decisions",
+      "rejected_at": "2026-09-09T19:27:09+00:00",
+      "rejected_by": "orchestrator",
+      "task_id": "reconciliation-proof"
+    }
+  ],
   "aspect": "quality",
-  "review_run_id": "029c9d505caf3cc31c606009188c36b0f9432ebc86ce396d52d03edfbd950ea5",
-  "brief_sha256": "0238ea943520ed1d139bda1640f049a93972075aaa363cc4316c74cc91231572",
-  "branch_diff_digest": "baddb402e1ecbbfeec76f459cd931dc033c495714a9e8d641960f40a665ee3e1",
+  "review_run_id": "f944f4f8d2246b7e84d5eb02f598b9738372c51adf5f8bd97a1d71bae7691f09",
+  "brief_sha256": "180ac68a790d8427972202387751319a25f1b6ebf0438e0599c1d56a2bacafae",
+  "branch_diff_digest": "d8e09efc2c80431909741be812a4caaab75d8ed2a5ec4e7689b624db5c4e5cee",
   "residual_risks": [],
-  "recorded_at": "2026-09-09T19:07:47+00:00",
-  "commit": "3bf24482a1e1421191bd87acdf2ea816af9daccd"
+  "recorded_at": "2026-09-09T19:31:06+00:00",
+  "commit": "648e7a9ab00b28ae79b4abd4ef14cd620089bfd6"
 }
