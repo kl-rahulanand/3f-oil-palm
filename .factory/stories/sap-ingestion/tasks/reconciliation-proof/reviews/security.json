@@ -1,0 +1,24 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "reconciliation-proof",
+  "score": 10,
+  "summary": "security lens over reconciliation-proof (5 product path(s), 512c6d4..98eacbe, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff introduces no actionable P0\u2013P2 defect. The reconciliation query is read-only and parameterized, preserves monetary values as decimal strings, and filters to active actuals batches. The destructive gated proof checks for an explicitly local warehouse host before migration or truncation. No endpoint, authorization surface, credential, dependency, schema change, injection path, data exposure, or compatibility leftover is introduced.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
+    "backend/src/warehouse/reconciliation.repository.test.ts",
+    "backend/src/warehouse/reconciliation.repository.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "f4975e14f20d88d43989ab0c8e80e45de01687dc98287c062903f116aaaf3111",
+  "brief_sha256": "f14e2b50cffaeac6eda54d2b6017e2c23d2d580213f561794bd9a4c2d6c460b8",
+  "branch_diff_digest": "6b7bedccbbcec808b1f50c57c6a5cfb9f0a74a5502177271e4f80494fbe4264c",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T19:46:17+00:00",
+  "commit": "98eacbe227d40f064bc0c8d645a05ae27501bf4a"
+}

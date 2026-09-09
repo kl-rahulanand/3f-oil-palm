@@ -246,9 +246,59 @@
       "acceptance_criteria": [
         "a demonstrated warehouse-DB test grounds the July DUB net to EXACTLY Rs 11,512,712.07 (paise) across the accepted raw sap_transaction rows AND the actual_by_key_month gold view, against a frozen in-repo reconciliation fixture",
         "re-uploading the July DUB actuals replaces that month with no duplicate rows and no double-counting in the gold view (idempotency), with the prior batch retained"
-      ]
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-rp-c1",
+          "statement": "a demonstrated warehouse-DB test grounds the July DUB net to EXACTLY Rs 11,512,712.07 (paise) across the accepted raw sap_transaction rows AND the actual_by_key_month gold view, against a frozen in-repo reconciliation fixture",
+          "source": "docs/decisions/0014-sap-ingestion-poc-no-master.md"
+        },
+        {
+          "id": "t-rp-c2",
+          "statement": "re-uploading the July DUB actuals replaces that month with no duplicate rows and no double-counting in the gold view (idempotency), with the prior batch retained",
+          "source": "plans/active/sap-ingestion-ingest-sap-actuals-budgets.md"
+        }
+      ],
+      "write_scope": [
+        "backend/src/warehouse/reconciliation.repository.ts",
+        "backend/src/warehouse/reconciliation.repository.test.ts",
+        "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "the reconciliation query computes a plant+period net two independent ways from the warehouse - SUM(debit-credit) over the active actuals batch's raw sap_transaction rows AND SUM(actual_net) over the actual_by_key_month gold view - and returns both as paise-exact numeric(18,2) strings with the contributing line count equal, proving criterion t-rp-c1's logic on a synthetic hermetic fixture",
+          "path": "backend/src/warehouse/reconciliation.repository.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the reconciliation counts ONLY the active actuals batch - an inactive prior actuals batch for the same plant+period and a budget batch are both excluded from rawNet, goldNet and lineCount - so after a replace only the new active batch is reflected and the total is unchanged, proving criterion t-rp-c2's idempotency invariant at the read layer on a synthetic hermetic fixture",
+          "path": "backend/src/warehouse/reconciliation.repository.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the frozen july-dub-reconciliation fixture pins plant DUB, period 2026-07-01, the DUB line count 88, and the expected net 11512712.07, and the reconciliation module's expectation loader reads it and rejects a fixture whose expected net is not a paise-exact numeric(18,2) decimal string",
+          "path": "backend/src/warehouse/reconciliation.repository.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "FINAL sap-ingestion task: a PROOF task that grounds the July DUB actuals to EXACTLY Rs 11,512,712.07 (paise) and proves idempotent per-period replace - NO new endpoint, grant, migration, warehouse schema change, or dependency. It REUSES the shipped stack: warehouse-schema (sap_transaction numeric(18,2) debit/credit, the ingest_batch active-pointer, the actual_by_key_month gold view SUM(debit-credit)::numeric(18,2) over active actuals batches), actuals-loader (parseSapActualsWorkbook, IngestService.ingestActuals, IngestionRepository.replaceActualsBatch), and the warehouse-migrate.ts / createWarehouseWritePool test harness. GROUNDING: docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx (sheet 'SAP Report', header row 3, 4,113 July-2026 lines; the nursery DUB-NUR is 88 lines that map to canonical plant DUB and net Rs 11,512,712.07 for 2026-07); decisions 0004 (no pre-join), 0014 (PoC no master; asserts July DUB = Rs 11,512,712.07). The exact .07 paise figure is currently asserted ONLY in prose (0014 + the plan) - THIS task computes it from the real workbook and FREEZES it. RECONCILIATION MODULE (backend/src/warehouse/reconciliation.repository.ts, the role-suffixed repository module per constitution pnp-coding-standards): a small READ-ONLY query helper over an injected pg pool (the createWarehouseWritePool / TransactionHost pattern - NEVER a new pool of its own, NEVER a write). Export reconcileActualsByKeyMonth(db, { plant, period }) that returns { plant, period, rawNet, goldNet, lineCount } where rawNet = SUM(debit-credit) over sap_transaction JOIN ingest_batch (source_kind='actuals' AND is_active) WHERE plant=$1 AND month=$2, goldNet = SUM(actual_net) over actual_by_key_month WHERE plant=$1 AND month=$2, both returned as paise-exact numeric(18,2) STRINGS (never float - cast/serialize in SQL, do NOT parse into JS number), lineCount = COUNT(*) of the contributing active raw rows. Also export a frozen-fixture loader that reads __fixtures__/july-dub-reconciliation.json and validates its expected net is a strict /^-?\\d+\\.\\d{2}$/ string. FROZEN FIXTURE (backend/src/warehouse/__fixtures__/july-dub-reconciliation.json): { plant:'DUB', period:'2026-07-01', source:'SAP Entries Mapping.xlsx#SAP Report', lineCount:88, expectedNetPaise:'11512712.07' } - the pinned expectation the gated proof asserts against; the number is the REAL computed net, not a guess (if the real workbook nets a different paise value the fixture MUST carry the real value and the discrepancy is a finding, not something to force to .07). HERMETIC TEST (reconciliation.repository.test.ts, in test:hermetic): build a tiny synthetic in-memory warehouse case (or a mocked pool) proving reconcileActualsByKeyMonth returns rawNet == goldNet == the constructed total as paise strings with the right lineCount, that only ACTIVE actuals rows count (an inactive prior batch and a budget batch are excluded), and that the fixture loader rejects a non-paise expected string. NO real workbook in the hermetic path (never bundle the 639KB xlsx into a hermetic test). D-0008 GATED PROOF (a WAREHOUSE_DB_TEST=1 leaf INSIDE reconciliation.repository.test.ts, ONE suite, { skip: process.env.WAREHOUSE_DB_TEST !== '1' } - mirror ingest.service.test.ts's gated leaf EXACTLY): migrateWarehouse(), then read the REAL docs/context SAP Entries Mapping.xlsx host-side, parseSapActualsWorkbook it, ingest via IngestService.ingestActuals (the shipped path), open a raw pool via createWarehouseWritePool, and assert: reconcileActualsByKeyMonth(pool,{plant:'DUB',period:'2026-07-01'}) has rawNet === goldNet === fixture.expectedNetPaise ('11512712.07') AND lineCount === fixture.lineCount (88). THEN idempotency: ingest the SAME July file again and assert exactly one NEW active batch for (actuals, 2026-07), the prior batch RETAINED (is_active=false, rows still present), NO duplicate active rows, and the gold total UNCHANGED (still 11512712.07 - no double-count). ISOLATION (host, disposable dev DB): the gated leaf must be DETERMINISTIC and self-isolating - migrateWarehouse() only APPLIES migrations, it does NOT clear rows and the docker warehouse-data volume persists, so at the START of the leaf TRUNCATE ingest_batch and sap_transaction (CASCADE) to a clean slate before the first ingest; the warehouse-db on 127.0.0.1:5433 is the disposable local dev DB used only for these host proofs. Never assert on pre-existing state; assert on the batches THIS leaf creates (by the returned batch ids) against the clean slate. WHOLE-UPLOAD INTEGRITY (not just the 88 DUB rows): the upload is all 4,113 July rows, so ALSO assert the active actuals batch's TOTAL sap_transaction row count equals the parsed row count AND the settled source-identity uniqueness (txn_no, line_id) holds across the whole active batch (no duplicate or dropped row anywhere in the upload, not only within DUB) - the DUB total + line count alone can mask a defect outside DUB. AUTHORITATIVE PROOF (D-0008 reconciliation): this gated reconciliation.repository.test.ts leaf IS the authoritative demonstrated July-DUB reconciliation evidence, recorded in tests.json with the pinned command below and committed reviewer-visible (per decision 0009 + D-0008); it does NOT replace and is distinct from `npm run warehouse:proof`, which stays warehouse-schema's synthetic structural seed proof - do NOT edit warehouse-migrate.ts or warehouse:proof. Pin the executable host command in tests.json and the plan: TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_PASSWORD=warehouse-local WAREHOUSE_PG_DATABASE=warehouse PGHOST=127.0.0.1 PGPORT=5432 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test backend/src/warehouse/reconciliation.repository.test.ts (the prefix is MANDATORY - without TS_NODE_PROJECT+TS_NODE_TRANSPILE_ONLY node loads the .ts as one empty false-passing testcase; verify with a dead-port negative control that the gated leaf FAILS). WIRING: register reconciliation.repository.test.ts in backend/package.json test:hermetic (the gated leaf self-skips there) and in tools/quality-gate.test.mjs if it enumerates the suite. ACTIVE DECISIONS reconciled (verified against ./forge decision list --active): 0004-pulse-governed-joins (no pre-join / no derived allocation - reconciliation is ACTUALS-ONLY, NEVER read/write/join mis_budget), 0009-required-tests-real-name-and-tsproject (required_tests name a real leaf and the gated command pins TS_NODE_PROJECT - the false-green guard), 0014-sap-ingestion-poc-no-master (the Rs 11,512,712.07 target), 0015-warehouse-snake-case-deviation (warehouse snake_case). D-0008 is DEMONSTRATED host evidence, not verify.py. NEVER add a schema/migration/endpoint/grant/dependency.",
+      "review_budget": {
+        "max_changed_files": 8,
+        "max_changed_lines": 800,
+        "reason": "A proof task: a small read-only reconciliation query helper, a frozen expectation fixture, a hermetic unit test, and a WAREHOUSE_DB_TEST=1 gated leaf that ingests the real July DUB workbook and asserts the paise-exact 11,512,712.07 net across raw rows and the gold view plus idempotent replace. No new schema, migration, endpoint, grant, or dependency."
+      }
     }
   ],
   "plan_sha256": "da8019faf7fbec0b73239f154080e4a3dd324b5a502cdb712bd3c6ba3d076417",
-  "commit": "f2f8bee16ab80e5ea786d0789a97435d52d85e24"
+  "commit": "512c6d4d48186fe11c5068022a4246b6b2bbd179"
 }
