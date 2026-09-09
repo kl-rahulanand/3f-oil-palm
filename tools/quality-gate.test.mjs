@@ -51,6 +51,7 @@ const dbTests = [
   "backend/src/usage/usage.controller.test.ts",
   "backend/src/usage/usage.service.test.ts",
   "backend/src/users/users.controller.test.ts",
+  "backend/src/warehouse/reconciliation.repository.test.ts",
 ];
 
 const backendTestRunner =
@@ -310,7 +311,7 @@ function validateGate({
   assert.ok(frontendTsconfig.include.includes(".next/types/**/*.ts"));
   assert.deepEqual(
     testFiles,
-    [...dbTests, ...hermeticTests].sort(),
+    [...new Set([...dbTests, ...hermeticTests])].sort(),
     "every backend test must be declared hermetic or DB-backed",
   );
   assert.equal(workflow, expectedWorkflow, "quality CI must be immutable, read-only, and run on every push only");

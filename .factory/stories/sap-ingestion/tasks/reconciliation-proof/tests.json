@@ -1,5 +1,5 @@
 {
-  "commit": "bc0fe44320b2e9bae58b0e6b7dae156718166b0b",
+  "commit": "6d57463f149891a18588894c1e57889680fa73c5",
   "automated": {
     "generated_by": "implementer",
     "status": "passed",
@@ -10,25 +10,28 @@
     "tests_added_or_updated": [
       "backend/src/warehouse/reconciliation.repository.test.ts (hermetic query-logic + idempotency-read-invariant + fixture-loader tests; + WAREHOUSE_DB_TEST=1 gated real-July-DUB reconciliation + whole-upload integrity + idempotency proof)",
       "backend/src/warehouse/reconciliation.repository.ts (read-only reconcileActualsByKeyMonth + frozen-expectation loader)",
-      "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json (frozen expectation)"
+      "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json (frozen expectation)",
+      "backend/package.json (registered reconciliation.repository.test.ts in the test:db script \u2014 a runnable command for the D-0008 gated proof)",
+      "tools/quality-gate.test.mjs (enumerates the new DB test; dedupes db+hermetic suites)"
     ],
     "commands_run": [
       "python3 factory/scripts/verify.py -> Verification passed",
+      "REGISTERED COMMAND: backend/src/warehouse/reconciliation.repository.test.ts is now in the backend package.json `test:db` script (the DB-backed suite a warehouse/Postgres-equipped runner executes) \u2014 so the gated proof's execution path is provable from the diff, not only self-skipping in test:hermetic. Run host-side as: WAREHOUSE_PG_*/PG* WAREHOUSE_DB_TEST=1 npm --prefix backend run test:db (or the pinned single-file command below).",
       "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_PASSWORD=warehouse-local WAREHOUSE_PG_DATABASE=warehouse PGHOST=127.0.0.1 PGPORT=5432 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test backend/src/warehouse/reconciliation.repository.test.ts -> tests 4 / pass 4 / fail 0 / skipped 0 (incl. the gated July-DUB reconciliation + idempotency proof; logs show two 4,113-row batches ingested)",
       "NEGATIVE CONTROL (dead port 5599, same prefix) -> tests 4 / pass 3 / fail 1 (gated leaf ECONNREFUSED) \u2014 confirms the proof genuinely connects to the warehouse"
     ],
     "reviewed_scope": [
-      "backend/src/warehouse/reconciliation.repository.ts",
-      "backend/src/warehouse/reconciliation.repository.test.ts",
-      "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
       "backend/package.json",
+      "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
+      "backend/src/warehouse/reconciliation.repository.test.ts",
+      "backend/src/warehouse/reconciliation.repository.ts",
       "tools/quality-gate.test.mjs"
     ],
     "non_blocking_findings": [],
     "residual_risks": [],
     "manual_validation_steps": [],
-    "recorded_at": "2026-09-09T18:40:11+00:00",
-    "commit": "bc0fe44320b2e9bae58b0e6b7dae156718166b0b"
+    "recorded_at": "2026-09-09T19:02:07+00:00",
+    "commit": "6d57463f149891a18588894c1e57889680fa73c5"
   },
-  "updated_at": "2026-09-09T18:40:11+00:00"
+  "updated_at": "2026-09-09T19:02:07+00:00"
 }

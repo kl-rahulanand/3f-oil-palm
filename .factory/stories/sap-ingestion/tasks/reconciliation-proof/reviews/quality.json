@@ -1,0 +1,102 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "reconciliation-proof",
+  "score": 7,
+  "summary": "quality lens over reconciliation-proof (5 product path(s), 512c6d4..6d57463, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. VERDICT t-rp-c1: partial \u2014 backend/src/warehouse/reconciliation.repository.test.ts:105 DB proof is skipped by the only recorded test execution\nVERDICT t-rp-c2: partial \u2014 backend/src/warehouse/reconciliation.repository.test.ts:105 idempotent replacement is asserted only inside the undemonstrated gated leaf",
+  "blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "backend/src/warehouse",
+      "summary": "The DB-backed reconciliation proof has not been demonstrated (backend/src/warehouse/reconciliation.repository.test.ts:105): The only recorded execution is `npm run test:hermetic`, but this leaf explicitly skips unless `WAREHOUSE_DB_TEST=1`."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/decisions/0014-sap-ingestion-poc-no-master.md",
+      "summary": "t-rp-c1: a demonstrated warehouse-DB test grounds the July DUB net to EXACTLY Rs 11,512,712.07 (paise) across the accepted raw sap_transaction rows AND the actual_by_key_month gold view, against a frozen in-repo reconciliation fixture"
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/sap-ingestion-ingest-sap-actuals-budgets.md",
+      "summary": "t-rp-c2: re-uploading the July DUB actuals replaces that month with no duplicate rows and no double-counting in the gold view (idempotency), with the prior batch retained"
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
+    "backend/src/warehouse/reconciliation.repository.test.ts",
+    "backend/src/warehouse/reconciliation.repository.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-rp-c1",
+      "verdict": "partial",
+      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:105 DB proof is skipped by the only recorded test execution"
+    },
+    {
+      "contract_id": "t-rp-c2",
+      "verdict": "partial",
+      "evidence": "backend/src/warehouse/reconciliation.repository.test.ts:105 idempotent replacement is asserted only inside the undemonstrated gated leaf"
+    },
+    {
+      "contract_id": "t-ws-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under warehouse-schema at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-ws-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under warehouse-schema at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-ws-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under warehouse-schema at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-al-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under actuals-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-al-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under actuals-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-al-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under actuals-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-al-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under actuals-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-bl-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under budget-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-bl-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under budget-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-bl-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under budget-loader at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "1e0b18c55cc709a4e27c1a37b3752b3009ef67c2734c10e7ecf035a8ceb41b65",
+  "brief_sha256": "3ab6cca190e79226430704c976b715a210a2635e308970e8016923148a9c1841",
+  "branch_diff_digest": "ced74810c1e3eaef2bb5e16c3f822f6b08131ae19ab5d68868db034ad8ef9b5a",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T18:54:32+00:00",
+  "commit": "6d57463f149891a18588894c1e57889680fa73c5"
+}

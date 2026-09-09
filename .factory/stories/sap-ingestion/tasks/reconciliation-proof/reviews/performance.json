@@ -1,0 +1,30 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "reconciliation-proof",
+  "score": 7,
+  "summary": "performance lens over reconciliation-proof (5 product path(s), 512c6d4..6d57463, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The reconciliation query and its performance characteristics are appropriate for this proof-only helper, and the diff contains no compatibility leftovers. However, the core DB proof is only added as an environment-gated test in the hermetic suite and is not registered with the mandatory executable host command. Consequently, the recorded successful hermetic run skips the authoritative proof, so the principal task contract is not demonstrated.",
+  "blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "backend/src/warehouse",
+      "summary": "[P1] Register an executable command for the gated reconciliation proof (backend/src/warehouse/reconciliation.repository.test.ts:103): This DB-backed leaf is skipped during the only newly registered path, `test:hermetic`, unless `WAREHOUSE_DB_TEST=1`; however, the change does not add the mandated `tests.json` entry or plan command that sets `TS_NODE_PROJECT`, `TS_NODE_TRANSPILE_ONLY`, the warehouse connection variables, and `WAREHOUSE_DB_TEST=1`."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/warehouse/__fixtures__/july-dub-reconciliation.json",
+    "backend/src/warehouse/reconciliation.repository.test.ts",
+    "backend/src/warehouse/reconciliation.repository.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "1e0b18c55cc709a4e27c1a37b3752b3009ef67c2734c10e7ecf035a8ceb41b65",
+  "brief_sha256": "3ab6cca190e79226430704c976b715a210a2635e308970e8016923148a9c1841",
+  "branch_diff_digest": "ced74810c1e3eaef2bb5e16c3f822f6b08131ae19ab5d68868db034ad8ef9b5a",
+  "residual_risks": [],
+  "recorded_at": "2026-09-09T18:54:32+00:00",
+  "commit": "6d57463f149891a18588894c1e57889680fa73c5"
+}
