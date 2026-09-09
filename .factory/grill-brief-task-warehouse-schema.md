@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft sap-plan.md
+# Cold-read grill — gate: task — task plan warehouse-schema
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -440,95 +440,98 @@ These questions were put to the human and answered. Two obligations:
   A: Header-identified, single-month, validate-before-write (Rec.)
 - Q: Who may upload/replace financial periods? The spec only says 'operator'.
   A: Restricted role + full audit (Rec.)
+- Q: Confirm the re-scoped sap-ingestion PoC plan: ingest directly from the two provided Excel workbooks with NO governed mapping master or derived budget allocation, narrowed to 4 tasks (warehouse-schema → actuals-loader → budget-loader → reconciliation-proof), reconciling July DUB to ₹11,512,712.07 (paise-exact). Proceed on this basis?
+  A: Yes — no master, use the Excel files (Rec.)
 
-## The artifact under interrogation (plan draft sap-plan.md)
+## The artifact under interrogation (task plan warehouse-schema)
 
-# Story plan — sap-ingestion (Ingest SAP actuals + budgets)
+# Task plan — warehouse-schema
 
 ## Context
-Bring SAP GL actuals and the MIS budget plan into the **separate warehouse Postgres**
-(`WAREHOUSE_PG_*`) so the later statement, drill-down, and metrics stories can query them. Today the
-warehouse adapter (`backend/src/warehouse/postgres.adapter.ts`) is **read-only/EXPLAIN-guarded** —
-there is no ingest path, no SAP tables, no Excel parsing, and no mapping master. This story builds
-them for the PoC pilot (Nursery/`DUB`, July 2026). Backend-only; no user-facing UI.
+Build the ingest/DDL layer on the SEPARATE warehouse Postgres (`config.ts warehouse{}` from
+`WAREHOUSE_PG_*`; docker `warehouse-db` on `127.0.0.1:5433`, db `warehouse`). Today
+`backend/src/warehouse/postgres.adapter.ts` + `warehouse.interface.ts` are a **read-only** query port
+(EXPLAIN/SELECT); there is no write pool, no `warehouse:migrate`, and no SAP tables. This task adds a
+separate write path + the schema the loaders (actuals-loader, budget-loader) and the reconciliation
+will use. Backend-only. Grounded in `docs/architecture/30-financial-mis-build-plan.md:70-84`,
+`constitution/pnp-database-standards.md`, decisions 0004 (no pre-join) and 0014 (PoC, no master).
 
-Grounded in: `docs/architecture/{20-financial-mis-data-model,30-financial-mis-build-plan}.md`,
-decisions **0002** (MIS from SAP alone; Actual = Σ(Debit−Credit); budgets from planning input) and
-**0004** (Budget and Actual stay SEPARATE, joined at query time — NO pre-join in ingestion).
+## Write scope
+- `backend/src/warehouse/` — a warehouse **write pool** + an **ingestion repository** (distinct from
+  the read-only query port), the Drizzle **warehouse schema** module, and the hermetic schema test.
+- `backend/drizzle-warehouse/` — the generated warehouse migration(s).
+- `backend/package.json` — a `warehouse:migrate` script (+ drizzle-kit warehouse config wiring).
+- `backend/src/config.ts` — only if a warehouse-migration connection helper is needed.
+- `tools/quality-gate.test.mjs` — pin the new hermetic test into `test:hermetic`.
+- `docker-compose.yml` — only if the `warehouse-seed` step needs the new migration.
 
-## Requirements decisions (from the recorded requirements grill — these BIND the tasks)
-1. **Upload scope:** accept + retain the FULL July source batch (all 31 plants); only canonical
-   Nursery `DUB` (`DUB-NUR` in SAP) is reportable/reconcilable in the PoC; other plants
-   retained-but-unconfigured.
-2. **Unmapped rows:** retain the raw row + original keys, but REJECT the DUB period as *unreconciled*
-   if any in-scope DUB transaction lacks a single provisional mapping (surface count + value); never
-   silently drop or zero it.
-3. **Budget grain/lifecycle:** the provisional mapping master holds an explicit **balanced
-   allocation** from each MIS budget line to its `(plant,cost_center,gl,month)` join keys (each
-   allocation totals back to its source line); budget uploads replace only their
-   `(format, canonical plant, period)` atomically and never mutate Actuals; rollover retained but not
-   published until its rule is confirmed.
-4. **Raw-line identity/replacement:** retain all source + drill fields + original AND canonical keys +
-   txn-no/line-id identity + immutable batch metadata; a re-upload creates a NEW batch and switches
-   the active batch for the period — never erases the prior load record.
-5. **Reconciliation bar:** demo-ready = EXACT `₹11,512,712` for July 2026 DUB across accepted raw
-   rows, the monthly gold rollup, AND the scoped total; Srihari's later filled July MIS is a separate,
-   later validation comparator.
-6. **Excel acceptance:** identify the input sheet by its required HEADER set (not its file/sheet
-   name); require a single posting month per batch; validate ALL rows before writing; reject
-   invalid/mixed-period files with row-level diagnostics and NO change to the active batch.
-7. **Upload authorization/audit:** restrict uploads + period replacement to a configured
-   data-owner/ingestion-operator role (a new RBAC action grant); audit uploader, time, source batch,
-   validation result, reconciliation result, and the replaced active batch.
+## Decisions (tooling — conduct §9: no silent defaults)
+- **Migration tool:** reuse **Drizzle** (already a dep: drizzle-orm/drizzle-kit) for the warehouse
+  schema — a separate Drizzle schema + a `warehouse:migrate` runner mirroring the app-DB
+  `db:migrate` (`src/db/migrate.ts`) but bound to the warehouse pool. No new migration dependency.
+- **Write pool:** a dedicated `pg.Pool` to the warehouse for ingestion, SEPARATE from the read-only
+  adapter's pool — the query port stays EXPLAIN/SELECT-guarded and untouched.
+- **Gold object:** `actual_by_key_month` is a **plain SQL view** (not a materialized view) so the
+  active batch is always reflected with no refresh step (PoC correctness).
+- **Money:** `numeric(18,2)` (paise) everywhere — never float or integer-rupees.
 
-## Target warehouse schema (per architecture 30-...:70-84)
-- `sap_transaction` — raw lines: `txn_no, line_id, posting_date, month, plant (canonical), plant_src,
-  cost_center, gl_code, acct_name, debit, credit, memo, reference, source_batch` (+ batch metadata).
-- `actual_by_key_month` — gold view/matview: `Σ(debit − credit)` grouped by
-  `(plant, cost_center, gl_code, month)`; one definition reused downstream.
-- `mis_mapping_master` — `(plant, cost_center, gl_code) → budget_component, department, function,
-  format_id, …` + the balanced budget-line→key allocation.
-- `mis_format` / `mis_format_line` / `mis_budget` — the budget object, SEPARATE from actuals.
-- `ingest_batch` — immutable batch registry (id, period, canonical plant, uploader, uploaded_at,
-  validation + reconciliation result, active flag).
+## Workflow
+```mermaid
+flowchart LR
+  A[warehouse:migrate<br/>Drizzle runner + warehouse pool] --> B[(ingest_batch<br/>one active per<br/>source_kind+period+plant)]
+  A --> C[(sap_transaction<br/>raw lines, numeric 18,2,<br/>FK batch_id, indexed)]
+  A --> D[(mis_budget<br/>FK batch_id, as-provided)]
+  C --> E[actual_by_key_month<br/>VIEW: Σ debit−credit by<br/>plant,cost_center,gl,month<br/>over the ACTIVE batch]
+  F[ingestion repository<br/>separate write pool] -. writes .-> B & C & D
+  G[read-only Warehouse port<br/>EXPLAIN/SELECT — UNCHANGED] -. reads .-> E
+```
 
-## Decomposition (5 bounded tasks; sequential unless noted)
-1. **warehouse-schema** — a migration/DDL path for the warehouse Postgres (separate from the Drizzle
-   app-DB migrations); create `sap_transaction`, `ingest_batch`, `mis_mapping_master`, the budget
-   tables, and the `actual_by_key_month` gold view; register the gold object in the semantic layer
-   (`backend/src/semantic/semanticLayer.ts`, baseDomains=[] today). Proof: migration runs on the
-   warehouse DB; the gold view returns Σ(debit−credit) by key/month on seeded rows.
-2. **actuals-loader** — add `exceljs`; `POST /api/ingest/actuals` (AuthGuard + a new ingest action
-   grant + ADD to the strict route allow-list `backend/src/app.routes.test.ts`); header-identified
-   single-month parse; net Debit−Credit; retain raw + original/canonical keys; idempotent replace via
-   a new `ingest_batch` (switch active, don't erase); validate-before-write with row diagnostics.
-   Decisions 5,6,7 land here.
-3. **mapping-master** — load `mis_mapping_master` from the real fixture
-   `docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx` incl. the 7 missing GLs +
-   the `DUB-NUR → DUB` normalization; enforce decision 2 (reject the period as unreconciled on any
-   unmapped in-scope DUB row). NOTE: the `DUB-NUR→DUB` normalization + the 7 GLs are flagged
-   *undecided* in decision 0002 / arch 20-...:67-84 — this task's grill must put them to the human.
-4. **budget-loader** — load `mis_format`/`mis_budget` from the MIS format as a SEPARATE object
-   (decision 0004 — no pre-join); the balanced allocation (decision 3); atomic per-(format,plant,
-   period) replace; rollover retained-not-published.
-5. **reconciliation-proof** — a test grounding July `DUB` net to EXACTLY `₹11,512,712` across raw +
-   gold + scoped total against the in-repo fixture; re-upload July replaces the month with no
-   duplicates (idempotency proof).
+## Approach
+1. **Drizzle warehouse schema** (`backend/src/warehouse/schema.ts` or similar): `ingest_batch`
+   (`id, source_kind, period, canonical_plant, uploaded_by, uploaded_at, row_count,
+   validation_result, reconciliation_result, is_active`) with a **partial unique index** enforcing one
+   `is_active` per `(source_kind, period, canonical_plant)`; `sap_transaction` (`batch_id` FK + the
+   raw + drill fields; `debit`/`credit` `numeric(18,2)`; indexes on `(month,plant,cost_center,gl_code)`
+   and `batch_id`); `mis_budget` (`batch_id` FK + format/period/line fields, as-provided).
+2. **`actual_by_key_month` view** — created by the migration: `SUM(debit − credit)` (numeric) grouped
+   by `(plant,cost_center,gl_code,month)` over `sap_transaction` joined to the ACTIVE actuals batch.
+3. **Write pool + ingestion repository** (`backend/src/warehouse/ingestion.repository.ts`): a
+   dedicated warehouse `pg.Pool` + methods the loaders will use (create batch, bulk-insert rows, switch
+   active) — importable, does not touch the read-only adapter.
+4. **`warehouse:migrate`** — a `backend/package.json` script (drizzle-kit generate + a `ts-node`
+   apply runner against the warehouse pool), mirroring `db:migrate`.
+5. **Hermetic test** (`backend/src/warehouse/warehouse-schema.test.ts`) — import the schema module and
+   assert the three tables (columns, `numeric` money, the one-active constraint, the indexes) and the
+   gold view definition, with NO DB; register it in `test:hermetic` + `tools/quality-gate.test.mjs`.
 
-## Scope boundary (decision 0004)
-OUT of this story: the query-time **budget⋈actual join** (→ governed-joins) and the **drill-down UI**
-(→ drill-down). Ingestion must NOT build a wide pre-joined table.
+## Acceptance criteria
+1. a reproducible warehouse:migrate creates ingest_batch, sap_transaction, mis_budget on the SEPARATE warehouse Postgres via a dedicated write pool/ingestion repository that does NOT alter the read-only Warehouse query port
+2. ingest_batch enforces exactly one active batch per (source_kind, period, canonical_plant) with immutable batch metadata; sap_transaction stores money as numeric(18,2) paise with indexes on (month,plant,cost_center,gl_code) and batch_id
+3. actual_by_key_month is a plain view over the ACTIVE actuals batch returning Sum(debit-credit) at paise grouped by (plant,cost_center,gl_code,month), proven over seeded rows
 
-## Verify approach
-Each task: `verify.py` green; hermetic tests where possible; the live warehouse-DB proofs run as
-demonstrated evidence (Postgres warehouse via docker, `WAREHOUSE_PG_*`), gated like the platform-base
-warehouse E2E. The reconciliation-proof task carries the ₹11,512,712 assertion.
+## Reviewer focus
+Do NOT alter the read-only Warehouse query port/PostgresAdapter — add a SEPARATE write pool +
+ingestion repository. `warehouse:migrate` reproducible (Drizzle + warehouse pool). `numeric(18,2)`
+paise; `actual_by_key_month` a PLAIN VIEW over the active batch; one-active-per-(source_kind,period,
+canonical_plant); the required indexes. No semantic-domain/gold-object registration here (governed-
+joins owns it). No loader/API yet.
 
-## New decisions to record as we go
-- The `DUB-NUR → DUB` normalization + the 7 missing GLs resolution (decision new; surfaced in the
-  mapping-master task grill).
-- The ingest batch/replacement model + the unmapped-row rejection policy, if not sufficiently covered
-  by the requirements grill record.
+## Verify
+- `python3 factory/scripts/verify.py` green (structure incl. build+dual-runtime+vendor-integrity,
+  typecheck, quality, tests).
+- `required_tests`: `backend/src/warehouse/warehouse-schema.test.ts` — the schema shape (tables,
+  numeric money, one-active constraint, indexes, gold view), hermetic (no DB).
+- Demonstrated evidence (D-0008): `warehouse:migrate` against docker `warehouse-db`, then the
+  `actual_by_key_month` view returns `Σ(debit−credit)` at paise over seeded rows.
+
+## Manual Verification
+1. `docker compose up -d warehouse-db` (127.0.0.1:5433).
+2. `WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse
+   WAREHOUSE_PG_PASSWORD=warehouse-local WAREHOUSE_PG_DATABASE=warehouse npm --prefix backend run
+   warehouse:migrate` — creates ingest_batch, sap_transaction, mis_budget, and the view.
+3. Insert two seeded rows into one active batch, then
+   `SELECT * FROM actual_by_key_month;` → one row per key/month with `Σ(debit−credit)` at paise.
+4. `python3 factory/scripts/verify.py` → Verification passed.
 
 
 ## What to return

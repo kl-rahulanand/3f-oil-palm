@@ -1,0 +1,134 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "task_id": "sap-ingestion",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "sap-ingestion ingests the SAP Base Report (Excel upload) and the MIS budget plan into the separate warehouse Postgres: raw transaction lines retained for drill-down + a monthly gold rollup (\u03a3(debit\u2212credit) by plant+cost_center+gl+month), budget kept as a separate object joined at query time (decision 0004), idempotent per-period reloads, July DUB reconciling to \u20b911,512,712. This requirements grill resolves the spec's seven open ambiguities before decomposition.",
+  "inspected_refs": [
+    "docs/specs/sap-financial-ingestion.md",
+    "docs/architecture/20-financial-mis-data-model.md",
+    "docs/architecture/30-financial-mis-build-plan.md",
+    "docs/decisions/0002-phase1-financial-mis.md",
+    "docs/decisions/0004-pulse-governed-joins.md",
+    "docs/specs/mis-selection-and-master.md",
+    "docs/specs/actuals-drill-down.md",
+    "docs/specs/financial-mis-statement.md",
+    "backend/src/warehouse/postgres.adapter.ts"
+  ],
+  "new_abstractions": [],
+  "gaps": [
+    "Upload scope vs pilot scope: the workbook is company-wide (31 plants) but the PoC is DUB/July; the spec doesn't say whether ingestion persists the whole workbook or just the pilot slice",
+    "Unmapped/ambiguous DUB transaction policy: the 7 missing GLs + contradictory cost-centers mean a straight join silently drops spend; the spec only says keys are normalized 'per the mapping master'",
+    "Budget join grain + revision lifecycle: budget is format-line based but must join on (plant,cc,gl,month); no allocation/bridge is defined to prevent fan-out, nor the budget-replace-without-touching-actuals rule",
+    "Raw-line identity + replacement provenance: 'retain raw lines' doesn't state the retained fields, stable identity, or whether replacement destroys prior evidence",
+    "Reconciliation definition: '\u2248 \u20b91,15,12,712' with no stated comparator leaves the acceptance test non-falsifiable",
+    "Excel acceptance + atomic-failure contract: no required headers, posting-date\u2192period rule, malformed handling, or validate-before-replace guarantee; sheet-name vs header-set authority is unstated",
+    "Upload authorization + audit: the spec names an 'operator' but not who may load/replace financial periods, despite drill-down requiring RBAC + audit on raw financial lines"
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "Accept and retain the FULL July source batch (all plants); only canonical Nursery DUB (DUB-NUR in SAP) is reportable/reconcilable in the PoC; other plants retained-but-unconfigured.",
+    "Retain the raw row + original keys, but REJECT the DUB period as unreconciled when any DUB transaction lacks a single provisional mapping (surface count + value); never silently drop or zero it.",
+    "The provisional mapping master holds an explicit BALANCED allocation from each MIS budget line to its join keys (each allocation totals back to its source line); budget uploads replace only their (format, canonical plant, period) atomically and never mutate Actuals; rollover retained but not published until its rule is confirmed.",
+    "Retain all source + drill fields + original AND canonical keys + transaction-number/line-ID identity + immutable batch metadata; a replacement creates a NEW batch and switches the active batch for the period, never erasing the earlier load record.",
+    "Demo-ready reconciliation = exact rupee equality (\u20b911,512,712) for July 2026 DUB across accepted raw rows, the monthly gold rollup, AND the scoped statement; Srihari's later filled July MIS is a separate, later validation comparator.",
+    "Identify the input sheet by its required HEADER set (not its name); require a single posting month per batch; validate ALL rows before writing; reject invalid/mixed-period files with row-level diagnostics and NO change to the active batch.",
+    "Restrict uploads and period replacement to a configured data-owner/ingestion-operator role (a new RBAC action grant) and audit uploader, time, source batch, validation result, reconciliation result, and the replaced active batch."
+  ],
+  "open_items": [],
+  "rounds": [
+    {
+      "question": "The SAP workbook is company-wide (31 plants), but the PoC is Nursery/DUB for July. What should ingestion persist and reconcile?",
+      "options": [
+        "Full July batch; only DUB reportable (Rec.)",
+        "Pilot slice only (DUB/Nursery)"
+      ],
+      "chosen": "Full July batch; only DUB reportable (Rec.)"
+    },
+    {
+      "question": "When a current-scope DUB SAP row lacks a mapping (the 7 missing GLs / contradictory cost-centers), what happens?",
+      "options": [
+        "Reject period as unreconciled; never drop (Rec.)",
+        "Load with an explicit 'unmapped' bucket"
+      ],
+      "chosen": "Reject period as unreconciled; never drop (Rec.)"
+    },
+    {
+      "question": "Budget is MIS-format-line based but must join Actuals on (Plant,CostCenter,GL,month). How to handle the grain + revisions?",
+      "options": [
+        "Balanced allocation; atomic budget replace (Rec.)",
+        "Defer allocation to governed-joins"
+      ],
+      "chosen": "Balanced allocation; atomic budget replace (Rec.)"
+    },
+    {
+      "question": "'Retain raw transaction lines' \u2014 what identity + replacement semantics for auditability?",
+      "options": [
+        "Full fields + immutable batch; replace = new batch (Rec.)",
+        "Hard replace (delete + reload)"
+      ],
+      "chosen": "Full fields + immutable batch; replace = new batch (Rec.)"
+    },
+    {
+      "question": "The acceptance criterion uses '\u2248 \u20b91,15,12,712'. What exactly must reconcile, and how exactly?",
+      "options": [
+        "Exact \u20b911,512,712 across raw+gold+statement (Rec.)",
+        "Approximate tolerance vs SAP report"
+      ],
+      "chosen": "Exact \u20b911,512,712 across raw+gold+statement (Rec.)"
+    },
+    {
+      "question": "The spec says 'Excel upload' with no format/failure contract. How strict should ingestion be?",
+      "options": [
+        "Header-identified, single-month, validate-before-write (Rec.)",
+        "Lenient parse, best-effort load"
+      ],
+      "chosen": "Header-identified, single-month, validate-before-write (Rec.)"
+    },
+    {
+      "question": "Who may upload/replace financial periods? The spec only says 'operator'.",
+      "options": [
+        "Restricted role + full audit (Rec.)",
+        "Any authenticated user"
+      ],
+      "chosen": "Restricted role + full audit (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "Upload scope vs pilot scope: the workbook is company-wide (31 plants) but the PoC is DUB/July; the spec doesn't say whether ingestion persists the whole workbook or just the pilot slice",
+      "source": "docs/specs/sap-financial-ingestion.md:36; docs/architecture/20-financial-mis-data-model.md:19"
+    },
+    {
+      "finding": "Unmapped/ambiguous DUB transaction policy: the 7 missing GLs + contradictory cost-centers mean a straight join silently drops spend; the spec only says keys are normalized 'per the mapping master'",
+      "source": "docs/architecture/20-financial-mis-data-model.md:67; docs/specs/mis-selection-and-master.md:30"
+    },
+    {
+      "finding": "Budget join grain + revision lifecycle: budget is format-line based but must join on (plant,cc,gl,month); no allocation/bridge is defined to prevent fan-out, nor the budget-replace-without-touching-actuals rule",
+      "source": "docs/specs/governed-metrics-and-joins.md:20; docs/architecture/30-financial-mis-build-plan.md:75"
+    },
+    {
+      "finding": "Raw-line identity + replacement provenance: 'retain raw lines' doesn't state the retained fields, stable identity, or whether replacement destroys prior evidence",
+      "source": "docs/specs/sap-financial-ingestion.md:22; docs/specs/actuals-drill-down.md:18; docs/architecture/30-financial-mis-build-plan.md:70"
+    },
+    {
+      "finding": "Reconciliation definition: '\u2248 \u20b91,15,12,712' with no stated comparator leaves the acceptance test non-falsifiable",
+      "source": "docs/specs/sap-financial-ingestion.md:39; docs/specs/financial-mis-statement.md:53"
+    },
+    {
+      "finding": "Excel acceptance + atomic-failure contract: no required headers, posting-date\u2192period rule, malformed handling, or validate-before-replace guarantee; sheet-name vs header-set authority is unstated",
+      "source": "docs/architecture/20-financial-mis-data-model.md:17; docs/specs/mis-selection-and-master.md:26"
+    },
+    {
+      "finding": "Upload authorization + audit: the spec names an 'operator' but not who may load/replace financial periods, despite drill-down requiring RBAC + audit on raw financial lines",
+      "source": "docs/specs/sap-financial-ingestion.md:15; docs/specs/actuals-drill-down.md:30"
+    }
+  ],
+  "summary": "One cold read of the confirmed spec against repo reality surfaced seven genuine requirements decisions (not repo-answerable): upload vs pilot scope, unmapped-row policy, budget allocation + revision lifecycle, raw-line identity/replacement, the exact reconciliation bar, Excel acceptance/atomic-failure, and upload authorization/audit. All seven went to the human, who accepted the recommended resolution for each. These decisions now bind the decomposition. Verdict pass.",
+  "issue": "sap-ingestion",
+  "input_sha256": "8990ea7813096182d91dcb1eac30f4a458e6be51526463ede341bc2c232667c3",
+  "recorded_at": "2026-09-09T02:33:22+00:00",
+  "commit": "5c299769231018cc6f0cf0fc6b819c6fc0d79390"
+}

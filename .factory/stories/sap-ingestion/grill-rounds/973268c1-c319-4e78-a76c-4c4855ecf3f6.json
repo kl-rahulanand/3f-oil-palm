@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Confirm the re-scoped sap-ingestion PoC plan: ingest directly from the two provided Excel workbooks with NO governed mapping master or derived budget allocation, narrowed to 4 tasks (warehouse-schema \u2192 actuals-loader \u2192 budget-loader \u2192 reconciliation-proof), reconciling July DUB to \u20b911,512,712.07 (paise-exact). Proceed on this basis?",
+      "options": [
+        "Yes \u2014 no master, use the Excel files (Rec.)",
+        "Reconsider the scope"
+      ],
+      "chosen": "Yes \u2014 no master, use the Excel files (Rec.)"
+    }
+  ],
+  "at": "2026-09-09T04:46:58.718313+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

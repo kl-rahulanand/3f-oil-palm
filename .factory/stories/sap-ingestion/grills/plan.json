@@ -1,0 +1,119 @@
+{
+  "generated_by": "griller",
+  "gate": "plan",
+  "task_id": "sap-ingestion",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "sap-ingestion ingests the SAP Base Report (Excel) and the MIS budget into the separate warehouse Postgres: raw sap_transaction lines + a paise-precise actual_by_key_month gold view + a separate mis_budget object + an immutable ingest_batch registry, idempotent per-period, July DUB reconciling to \u20b911,512,712.07. Per the client, the PoC uses the provided Excel workbooks directly with NO governed mapping master or derived allocation. Four tasks: warehouse-schema \u2192 actuals-loader \u2192 budget-loader \u2192 reconciliation-proof; the query-time join and drill-down stay out (0004).",
+  "inspected_refs": [
+    "docs/specs/sap-financial-ingestion.md",
+    "docs/architecture/20-financial-mis-data-model.md",
+    "docs/architecture/30-financial-mis-build-plan.md",
+    "docs/decisions/0002-phase1-financial-mis.md",
+    "docs/decisions/0004-pulse-governed-joins.md",
+    "backend/src/warehouse/postgres.adapter.ts",
+    "backend/src/warehouse/warehouse.interface.ts",
+    "backend/src/grants/grants.constants.ts",
+    "constitution/pnp-database-standards.md",
+    "docker-compose.yml",
+    "docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx",
+    "docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx"
+  ],
+  "new_abstractions": [
+    "the warehouse write pool + ingestion repository (distinct from the read-only query port)",
+    "the ingest_batch immutable registry with a one-active-per-(kind,period,plant) pointer",
+    "sap_transaction raw lines + the actual_by_key_month paise gold view",
+    "the mis_budget separate object (as-provided, no allocation)",
+    "the POST /api/ingest/* endpoints + the new 'ingest' RBAC grant"
+  ],
+  "gaps": [
+    "The reconciliation target is factually impossible as an integer: the DUB raw rows total \u20b911,512,712.07 (paise); integer equality across raw and gold cannot hold",
+    "The mapping task promises data that does not exist: Sheet1 has none of the 7 'missing' GLs, and even adding them leaves 11 DUB rows unmapped (50001902/50001903 cost-center conflict), so under reject-on-unmapped the July DUB batch cannot become a mapped/reportable active batch",
+    "A balanced budget allocation cannot be derived from either workbook (no MIS line id/period/amount/weight; repeated GLs, no cost centers) \u2014 inferring it would invent financial meaning and fan out the budget",
+    "The batch model cannot meet the settled replacement semantics: a 31-plant file vs ingest_batch(period,plant), no batch/version/active relation on budget, undefined active-pointer cardinality / locking / rejected-batch retention",
+    "There is no valid write path to the warehouse: the Warehouse port + PostgresAdapter are read-only (EXPLAIN/SELECT); Compose only creates a fixture; there is no warehouse migration command",
+    "The plan silently changed the settled statement proof to 'scoped total'; no statement exists until the later mis-statement story",
+    "Task order/ownership muddled: actuals-loader precedes the mapping needed to accept a period, and it registers a semantic domain (governed-joins' concern) serving no ingestion criterion; a governed mapping master belongs to a later story",
+    "The upload API is under-specified/non-compliant: verb-first route, no budget-ingest mechanism, no typed multipart DTOs, no Swagger success/error/auth, no CSRF/forbidden tests, no structured logging, and no 'ingest' grant (existing grants are admin/save/pin only)",
+    "The input contract is not falsifiable: exact SAP headers/aliases, duplicate 'Comments' header, date/amount parsing, blank/invalid rules, .xlsx/size/row caps, and row-diagnostic privacy are unspecified",
+    "The target schema conflicts with the database standard unless justified: missing audit fields, explicit indexes/constraints, a money-precision policy, and an ambiguous view-vs-matview choice for actual_by_key_month",
+    "The plan is missing mandatory handover structure: no ## Decisions (reconciling active decisions) and no ## Surface Impact, and it leaves exceljs / sync-vs-worker / migration runner / API versioning / role model as silent defaults"
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "PRECISION corrected: preserve paise in raw + gold (numeric 18,2), reconcile the EXACT \u20b911,512,712.07, and round only a displayed aggregate.",
+    "CLIENT SCOPE 'no master for the PoC': ingest the mapping DIRECTLY from the provided SAP Entries Mapping.xlsx (DUB-NUR\u2192DUB) with coverage as-is \u2014 no governed mapping master. The raw+gold reconciliation is mapping-independent (\u03a3 over raw DUB rows); unmapped rows are retained raw, and mapped/reportable status is deferred to the mis-selection/governed-joins stories.",
+    "CLIENT SCOPE: load the MIS budget as-provided as a SEPARATE object (mis_budget), with NO derived allocation for the PoC; the balanced allocation is deferred to governed-joins.",
+    "BATCH model defined: ingest_batch(source_kind, period, canonical_plant, is_active, \u2026) with exactly one active batch per (source_kind, period, canonical_plant); immutable raw/budget rows linked to a batch; replace = new batch switched active, prior retained.",
+    "WRITE path: warehouse-schema adds a warehouse write pool + ingestion repository (distinct from the read-only Warehouse query port) and a reproducible warehouse:migrate; the read seam is untouched.",
+    "STATEMENT proof: prove raw + gold + a FROZEN reconciliation fixture in this story; the later mis-statement story proves the same fixture at display level. This story asserts no statement total.",
+    "TASK order/ownership: 4 tasks warehouse-schema \u2192 actuals-loader \u2192 budget-loader \u2192 reconciliation-proof; no separate mapping-master task (folded into the loaders per the client); the semantic-domain registration is removed (governed-joins owns it).",
+    "API: POST /api/ingest/actuals and /budget with AuthGuard + a NEW 'ingest' RequireAction grant (added to grants.constants.ts + db/migrate seed + the route allow-list), typed multipart DTO + Swagger + CSRF/forbidden tests + structured logging; fresh endpoints owe full DTO compliance.",
+    "INPUT contract specified in actuals-loader: exact required headers (+ aliases, duplicate 'Comments' handling), single posting month per batch, date/amount parsing, blank/invalid rules with row diagnostics, .xlsx + size/row caps, and no-PII diagnostics; validate-all-before-write.",
+    "SCHEMA: fresh snake_case with created_at audit + explicit indexes/constraints + numeric(18,2) paise money precision; actual_by_key_month is a PLAIN VIEW over the active batch (no matview refresh) for PoC correctness.",
+    "HANDOVER: added ## Decisions (0002/0004/0008 + the PoC-no-master decision) and ## Surface Impact (API/data/ops/auth/docs/tests); named exceljs (the pre-committed ingestion lib), synchronous upload for the PoC (workers deferred), the warehouse:migrate runner, and the D-0008 demonstrated-evidence model."
+  ],
+  "open_items": [],
+  "rounds": [
+    {
+      "question": "Confirm the re-scoped sap-ingestion PoC plan: ingest directly from the two provided Excel workbooks with NO governed mapping master or derived budget allocation, narrowed to 4 tasks (warehouse-schema \u2192 actuals-loader \u2192 budget-loader \u2192 reconciliation-proof), reconciling July DUB to \u20b911,512,712.07 (paise-exact). Proceed on this basis?",
+      "options": [
+        "Yes \u2014 no master, use the Excel files (Rec.)",
+        "Reconsider the scope"
+      ],
+      "chosen": "Yes \u2014 no master, use the Excel files (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The reconciliation target is factually impossible as an integer: the DUB raw rows total \u20b911,512,712.07 (paise); integer equality across raw and gold cannot hold",
+      "source": "docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx"
+    },
+    {
+      "finding": "The mapping task promises data that does not exist: Sheet1 has none of the 7 'missing' GLs, and even adding them leaves 11 DUB rows unmapped (50001902/50001903 cost-center conflict), so under reject-on-unmapped the July DUB batch cannot become a mapped/reportable active batch",
+      "source": "docs/architecture/20-financial-mis-data-model.md:67; docs/specs/mis-selection-and-master.md:30"
+    },
+    {
+      "finding": "A balanced budget allocation cannot be derived from either workbook (no MIS line id/period/amount/weight; repeated GLs, no cost centers) \u2014 inferring it would invent financial meaning and fan out the budget",
+      "source": "docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx"
+    },
+    {
+      "finding": "The batch model cannot meet the settled replacement semantics: a 31-plant file vs ingest_batch(period,plant), no batch/version/active relation on budget, undefined active-pointer cardinality / locking / rejected-batch retention",
+      "source": "docs/architecture/30-financial-mis-build-plan.md:70"
+    },
+    {
+      "finding": "There is no valid write path to the warehouse: the Warehouse port + PostgresAdapter are read-only (EXPLAIN/SELECT); Compose only creates a fixture; there is no warehouse migration command",
+      "source": "backend/src/warehouse/warehouse.interface.ts; backend/src/warehouse/postgres.adapter.ts; docker-compose.yml"
+    },
+    {
+      "finding": "The plan silently changed the settled statement proof to 'scoped total'; no statement exists until the later mis-statement story",
+      "source": ".factory/stories/sap-ingestion/grills/requirements.json; docs/specs/financial-mis-statement.md:53"
+    },
+    {
+      "finding": "Task order/ownership muddled: actuals-loader precedes the mapping needed to accept a period, and it registers a semantic domain (governed-joins' concern) serving no ingestion criterion; a governed mapping master belongs to a later story",
+      "source": "docs/specs/mis-selection-and-master.md; docs/specs/governed-metrics-and-joins.md"
+    },
+    {
+      "finding": "The upload API is under-specified/non-compliant: verb-first route, no budget-ingest mechanism, no typed multipart DTOs, no Swagger success/error/auth, no CSRF/forbidden tests, no structured logging, and no 'ingest' grant (existing grants are admin/save/pin only)",
+      "source": "backend/src/grants/grants.constants.ts; backend/src/pins/pins.controller.ts"
+    },
+    {
+      "finding": "The input contract is not falsifiable: exact SAP headers/aliases, duplicate 'Comments' header, date/amount parsing, blank/invalid rules, .xlsx/size/row caps, and row-diagnostic privacy are unspecified",
+      "source": "docs/architecture/20-financial-mis-data-model.md:17"
+    },
+    {
+      "finding": "The target schema conflicts with the database standard unless justified: missing audit fields, explicit indexes/constraints, a money-precision policy, and an ambiguous view-vs-matview choice for actual_by_key_month",
+      "source": "constitution/pnp-database-standards.md:18"
+    },
+    {
+      "finding": "The plan is missing mandatory handover structure: no ## Decisions (reconciling active decisions) and no ## Surface Impact, and it leaves exceljs / sync-vs-worker / migration runner / API versioning / role model as silent defaults",
+      "source": "factory/prompts/planner.md; plans/deferrals.md (D-0008)"
+    }
+  ],
+  "summary": "One cold read of the drafted plan against the real fixtures returned eleven findings, six blocking. The two hardest (an incomplete mapping master and a non-derivable budget allocation) are dissolved by the client's decision to use the provided Excel workbooks directly with NO governed master for the PoC. A factual precision correction (\u20b911,512,712.07 paise), the statement\u2192frozen-fixture proof scope, the missing warehouse write path + migrate, the batch/active-pointer model, the ingest API (typed DTO + Swagger + CSRF + a new 'ingest' grant), the falsifiable input contract, the schema conventions, and the ## Decisions/## Surface Impact handover are all resolved in the revised plan. Decomposition narrowed to four tasks. Verdict pass.",
+  "input_sha256": "880ea69e94603ee519c0048a7efc36352fd3490fb7e468636048c7e41f451116",
+  "issue": "sap-ingestion",
+  "recorded_at": "2026-09-09T04:52:26+00:00",
+  "commit": "5c299769231018cc6f0cf0fc6b819c6fc0d79390"
+}
