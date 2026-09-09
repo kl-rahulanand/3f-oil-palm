@@ -1,0 +1,10 @@
+{
+  "event": "open",
+  "id": "Q-0025-26d3",
+  "profile": "quickfix",
+  "reason": "re-vendor the harness machinery from knacklabs/symphony-forge 221ab027 (incremental delta review + review-scope + stage reseal); harness-owned paths + doc contracts + manifest only, client content preserved",
+  "started_at": "2026-09-09T09:53:02+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false
+}
