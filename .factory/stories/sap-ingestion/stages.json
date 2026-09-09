@@ -4,12 +4,13 @@
     {
       "id": "warehouse-schema",
       "title": "Warehouse schema + write path + gold view",
-      "status": "done"
+      "status": "done",
+      "task_sha256": "b6c2d957e521e36ef3a5d49b2dc2ce4bec159c71a8167aad0772876234387b1c"
     },
     {
       "id": "actuals-loader",
       "title": "SAP actuals Excel loader + idempotent per-period replace",
-      "status": "active",
+      "status": "done",
       "started_at": "2026-09-09T09:09:38+00:00",
       "base_sha": "66cc8b83589aaa2a265b98d0c4e09e11755746c9",
       "dirty_at_start": {
@@ -26,7 +27,17 @@
           "git": "? .factory/stories/sap-ingestion/task-plans/actuals-loader.md\u0000\u0000\u0000"
         }
       },
-      "task_sha256": "29001f82c4989a0e296de4ac1fb5fb2734f05241ee05eb6d66148f5f486b6ce0"
+      "task_sha256": "29001f82c4989a0e296de4ac1fb5fb2734f05241ee05eb6d66148f5f486b6ce0",
+      "local_review_stamp": {
+        "stage_id": "actuals-loader",
+        "task_sha256": "29001f82c4989a0e296de4ac1fb5fb2734f05241ee05eb6d66148f5f486b6ce0",
+        "brief_sha256": "15659777f34b677feda8207ca57ea43bcd07c8a71100c9c8a732508a386d2227",
+        "base_sha": "66cc8b83589aaa2a265b98d0c4e09e11755746c9",
+        "product_tree_digest": "b9ecf3b79ba9a1bbde519917b38c50934a8d540ae7a7d17f62916e8edb9993b6",
+        "recorded_at": "2026-09-09T11:47:40+00:00",
+        "generated_by": "autoreview"
+      },
+      "completed_at": "2026-09-09T11:48:03+00:00"
     },
     {
       "id": "budget-loader",

@@ -1,13 +1,8 @@
 {
   "generated_by": "autoreview",
-  "score": 6,
-  "summary": "quality lens over actuals-loader (22 product path(s), 66cc8b8..2208b0a, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The endpoint, warehouse writer integration, raw retention, and replacement behavior are present, but Month validation accepts malformed input and the mandatory executed warehouse proof is not recorded.\nVERDICT t-al-c1: implemented \u2014 backend/src/ingest/ingest.controller.ts:17 registers the guarded, documented multipart endpoint\nVERDICT t-al-c2: partial \u2014 backend/src/ingest/sap-actuals.parser.ts:112 validates only the first three Month characters\nVERDICT t-al-c3: implemented \u2014 backend/src/ingest/sap-actuals.parser.ts:133 emits canonical/original plants, paise amounts, and raw rows\nVERDICT t-al-c4: implemented \u2014 backend/src/ingest/ingest.service.ts:68 delegates replacement to IngestionRepository.replaceActualsBatch\nLEFTOVERS: none observed in the supplied diff.",
+  "score": 9,
+  "summary": "quality lens over actuals-loader (22 product path(s), 66cc8b8..b6ca6af, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The endpoint, authorization, write path, raw retention, and replacement semantics are implemented and reachable, but posting-date validation admits malformed values, leaving the all-row validation contract partial. No compatibility leftovers are present in the supplied diff.\nVERDICT t-al-c1: implemented \u2014 backend/src/ingest/ingest.controller.ts:17 endpoint registration and guards\nVERDICT t-al-c2: partial \u2014 backend/src/ingest/sap-actuals.parser.ts:397 accepts invalid ISO date suffixes\nVERDICT t-al-c3: implemented \u2014 backend/src/ingest/sap-actuals.parser.ts:152 retains normalized and source values with raw data\nVERDICT t-al-c4: implemented \u2014 backend/src/ingest/ingest.service.ts:65 delegates replacement to replaceActualsBatch",
   "blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "backend/src/ingest",
-      "summary": "[P1] Record an executed D-0008 warehouse proof (backend/src/ingest/ingest.service.test.ts:111): This DB-backed leaf is skipped by the normal `test:hermetic` command because that script does not set `WAREHOUSE_DB_TEST=1`, and it is absent from `test:db`."
-    },
     {
       "category": "plan-contract-partial",
       "area": "docs/specs/sap-financial-ingestion.md",
@@ -18,10 +13,10 @@
     {
       "category": "bug",
       "area": "backend/src/ingest",
-      "summary": "[P2] Validate the complete Month token (backend/src/ingest/sap-actuals.parser.ts:112): Taking only the first three characters means malformed cells such as `Julgarbage` or `July-invalid` are accepted whenever Posting Date is in July."
+      "summary": "Accepting trailing junk in posting dates lets invalid workbooks activate (backend/src/ingest/sap-actuals.parser.ts:397): The ISO date regex is anchored only at the start, so a value such as `2026-07-15garbage` is accepted and normalized to `2026-07-15`."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     ".prettierignore",
     "backend/drizzle-warehouse/0001_add_sap_transaction_raw.sql",
@@ -51,22 +46,22 @@
     {
       "contract_id": "t-al-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/ingest/ingest.controller.ts:17 registers the guarded, documented multipart endpoint"
+      "evidence": "backend/src/ingest/ingest.controller.ts:17 endpoint registration and guards"
     },
     {
       "contract_id": "t-al-c2",
       "verdict": "partial",
-      "evidence": "backend/src/ingest/sap-actuals.parser.ts:112 validates only the first three Month characters"
+      "evidence": "backend/src/ingest/sap-actuals.parser.ts:397 accepts invalid ISO date suffixes"
     },
     {
       "contract_id": "t-al-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/ingest/sap-actuals.parser.ts:133 emits canonical/original plants, paise amounts, and raw rows"
+      "evidence": "backend/src/ingest/sap-actuals.parser.ts:152 retains normalized and source values with raw data"
     },
     {
       "contract_id": "t-al-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/ingest/ingest.service.ts:68 delegates replacement to IngestionRepository.replaceActualsBatch"
+      "evidence": "backend/src/ingest/ingest.service.ts:65 delegates replacement to replaceActualsBatch"
     },
     {
       "contract_id": "t-ws-c1",
@@ -85,10 +80,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "1044c8be4be27b6c020eaeb7178d167f493421beac7d6d57acd32d41dad96b9f",
-  "brief_sha256": "6660df6fa03e01f143dc29fe5dca22665dee3da99f99f807d76342d8ec0c52f8",
-  "branch_diff_digest": "fee950f7ef9a5dc5c34175e9d1252316d03944c8c69dcab90474ecdada2f5470",
+  "review_run_id": "5671aa26a93ca1e2f0b5ae4d77151346fa208278223a7aae898cbd8d0722f0ef",
+  "brief_sha256": "178eefe4cfe02feb6f8689a08cb99736794074b32dc2678b0407a819f9b59c4a",
+  "branch_diff_digest": "1baac61550c7cb18c2b16550c951ae813d3a206fc517c399ee89ef160ea0c4f4",
   "residual_risks": [],
-  "recorded_at": "2026-09-09T11:10:14+00:00",
-  "commit": "2208b0af6c6fddcc4834c7110be2ae23b82a0e06"
+  "recorded_at": "2026-09-09T11:41:59+00:00",
+  "commit": "b6ca6afec45fa21839caedc3796fb0762838a29b"
 }
