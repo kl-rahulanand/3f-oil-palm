@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "golden-provenance",
   "score": 10,
-  "summary": "performance lens over golden-provenance (14 product path(s), 0cca24b..5418b03, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance defect is demonstrated by the supplied diff. Provenance is aggregated without forcing month into coarser GROUP BY grains, query-level sets are deduplicated deterministically in the executor, and the secondary totals query disables provenance projection. The diff also contains no compatibility wrapper, shim, retained alias, deprecated branch, or other blocking leftover.",
+  "summary": "performance lens over golden-provenance (14 product path(s), 0cca24b..51cfd75, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows no actionable P0\u2013P2 performance defect or concrete security risk. Provenance is aggregated in the composed query without forcing the natural month grain, one-sided rows exclude non-contributing batch IDs, JSON parsing avoids comma-splitting ambiguity, and result-row payloads omit provenance columns. The diff also contains no compatibility wrappers, aliases, legacy branches, or retained deprecated symbols prohibited by the leftovers rule.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -24,10 +24,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "ab5ec148a55adf4fd4e16d351f556881cb1b17a8bef81f031f876a6f0dcf02ee",
-  "brief_sha256": "6c2365d4252d60983a6e90e50450d7c4176ac888567c371b5e6a886d2b82a686",
-  "branch_diff_digest": "2cc7a491b3212a3147704c181ac2862c08ad8bc8a99fcb2d4904f0d5eae5cc80",
+  "review_run_id": "0e4d26739d56839c0afaab9d2f3aac39acf6f07372fe1b30724a5296f93eaa9e",
+  "brief_sha256": "b74d4808767e62b3a2c95345b9790e15278ab02cb31a90c0a50c94873e672af6",
+  "branch_diff_digest": "1680c1b1103d48e86cb6dcb024d9608e637842fee9bebebf00b360e2be35c37d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T11:53:52+00:00",
-  "commit": "5418b03da37e68aec73d8b96eef5957e0648c3ab"
+  "recorded_at": "2026-09-10T12:09:12+00:00",
+  "commit": "51cfd75142f2616bb970339dec51aa423addf3c9"
 }
