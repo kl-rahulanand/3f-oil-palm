@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "composed-relation",
   "score": 10,
-  "summary": "quality lens over composed-relation (13 product path(s), e5ae835..a66404d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-cr-c1: implemented \u2014 backend/src/sql/sqlBuilder.ts:95 builds the closed full-outer-joined relation with zero-fill and complete validator objects.\nVERDICT t-cr-c2: implemented \u2014 backend/src/chat/selectionExecutor.ts:87 enforces all grants, while backend/src/sql/sqlBuilder.ts:116 places scope inside the Actual CTE.\nVERDICT t-cr-c3: implemented \u2014 backend/src/warehouse/composed-relation.db.test.ts:48 verifies exact matched, one-sided, and multi-cost-centre results.\nNo compatibility leftovers are present in the diff.",
+  "summary": "quality lens over composed-relation (13 product path(s), e5ae835..fa26791, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-cr-c1: implemented \u2014 backend/src/sql/sqlBuilder.ts:96 composes the scoped source CTEs, full outer join, typed zero-fill, and complete validator allow-list.\nVERDICT t-cr-c2: implemented \u2014 backend/src/chat/selectionExecutor.ts:87 enforces the action, domain, measure, and dimension grants; backend/src/sql/sqlBuilder.ts:118 applies source-level scope predicates.\nVERDICT t-cr-c3: implemented \u2014 backend/src/warehouse/composed-relation.db.test.ts:18 provides the gated database proof for matched, one-sided, and multi-cost-centre inputs.\nNo blocking compatibility leftovers or actionable P0\u2013P2 defects are visible in the supplied diff.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -26,17 +26,17 @@
     {
       "contract_id": "t-cr-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/sql/sqlBuilder.ts:95 builds the closed full-outer-joined relation with zero-fill and complete validator objects."
+      "evidence": "backend/src/sql/sqlBuilder.ts:96 composes the scoped source CTEs, full outer join, typed zero-fill, and complete validator allow-list."
     },
     {
       "contract_id": "t-cr-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/selectionExecutor.ts:87 enforces all grants, while backend/src/sql/sqlBuilder.ts:116 places scope inside the Actual CTE."
+      "evidence": "backend/src/chat/selectionExecutor.ts:87 enforces the action, domain, measure, and dimension grants; backend/src/sql/sqlBuilder.ts:118 applies source-level scope predicates."
     },
     {
       "contract_id": "t-cr-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/composed-relation.db.test.ts:48 verifies exact matched, one-sided, and multi-cost-centre results."
+      "evidence": "backend/src/warehouse/composed-relation.db.test.ts:18 provides the gated database proof for matched, one-sided, and multi-cost-centre inputs."
     },
     {
       "contract_id": "t-glm-c1",
@@ -55,10 +55,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "6c9325f79e168f8080a3d9e4409770f6615b86f46a9af19bb80ee82047c624b1",
-  "brief_sha256": "46e667cb45c7a5ccd00c51813bde955cddb28555313fd4f71c4943cdd21693bd",
-  "branch_diff_digest": "02e12550b217c22ac22555c1cc40647693bc9a795ae1510835e0f60b3eb52d36",
+  "review_run_id": "5a4ae6d0889a5fb8cdebc7fd7dd87091006ab9766ec7bc21fed5322651bfbf47",
+  "brief_sha256": "93de5dd4d8dea1f5937d091d17e20a7e30ec50693fe9ccb218e36c5f9136b4fa",
+  "branch_diff_digest": "c5bcba6942108f1a36fa25f4e838cb876db9ddb22b8896fcabb5ab2349e03a89",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T06:24:48+00:00",
-  "commit": "a66404d03b87c77a8732d93c5318411f69d2a31c"
+  "recorded_at": "2026-09-10T06:46:49+00:00",
+  "commit": "fa267915949bbaec16faa667a87566f4c266c877"
 }
