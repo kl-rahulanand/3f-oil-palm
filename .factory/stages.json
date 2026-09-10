@@ -10,7 +10,8 @@
     {
       "id": "selection-resolution",
       "title": "Master-driven resolution, governed narrowing, and the first governed-query routes",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "ca08660f0f7f8cac368cb7c3b8df80755626bafb3ff9ee68117257e365802b01"
     },
     {
       "id": "selection-ui",

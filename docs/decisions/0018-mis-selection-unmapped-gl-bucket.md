@@ -56,10 +56,23 @@ Confirmed by the human on 2026-09-10, settling D-0027.
 - When Srihari returns the authoritative Master Table, resolving those rows is a **data
   change only** — rows move from `unmapped-GL` to their real line with no schema or code
   change. The bucket is expected to shrink to empty; it is not permanent design.
-- `mis-statement` must render the bucket **visibly** (its own labelled line), never hide
-  or silently merge it — a total that reconciles only because spend was quietly bucketed
-  would be worse than an obvious gap. That rendering belongs to `mis-statement`; this
-  story owns only the resolution that produces the bucket.
+- The bucket must be rendered **visibly**, never hidden or silently merged — a total that
+  reconciles only because spend was quietly bucketed would be worse than an obvious gap.
+
+> **Amended 2026-09-10 (selection-ui grill P0).** This record originally assigned ALL
+> visible bucket rendering to `mis-statement`, saying mis-selection "owns only the
+> resolution that produces the bucket". That is **superseded** by the human's later
+> delivery-boundary decision (recorded in the mis-selection requirements grill round):
+> **`mis-selection` renders the bucket as a reviewable LIST** — its rows with their
+> amounts — because that list is the artifact put in front of Srihari to elicit the
+> authoritative mapping, and deferring it would leave this story with nothing to show him.
+> `mis-statement` still owns rendering the bucket as a **line within the statement**, so
+> the statement's totals stay honest. Both renderings are required; they are different
+> surfaces, not duplicates.
+>
+> Each bucket row carries **both its Actual and its Budget amount** for the selected period
+> (human-decided, selection-ui grill), with `costCentre` null for Budget-only rows — so the
+> gap is legible on each side and reconcilable against the slice totals.
 - The two conflicting-cost-centre GLs (`50001902`, `50001903`) go to the bucket **as a
   conflict**, not by silently picking one of the workbook's two `Cost Center` columns.
 - Deferral **D-0027** is resolved by this record. The reconciliation against Srihari's
