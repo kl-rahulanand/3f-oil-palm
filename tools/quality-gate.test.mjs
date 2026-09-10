@@ -17,6 +17,7 @@ const hermeticTests = [
   "backend/src/branding.identifiers.test.ts",
   "backend/src/chat/chat.sse.test.ts",
   "backend/src/chat/reconciliation-guard.test.ts",
+  "backend/src/chat/selectionExecutor.composed.test.ts",
   "backend/src/chat/smalltalk-guard.test.ts",
   "backend/src/chat/suppression.test.ts",
   "backend/src/chat/timeWindowParse.test.ts",
@@ -34,9 +35,12 @@ const hermeticTests = [
   "backend/src/measures/measures.guard.test.ts",
   "backend/src/pins/pins.schemas.test.ts",
   "backend/src/semantic/definitionVersion.test.ts",
+  "backend/src/sql/sqlBuilder.composed.test.ts",
+  "backend/src/sql/sqlValidator.composed.test.ts",
   "backend/src/sql/sqlValidator.pii.test.ts",
   "backend/src/swagger-production.test.ts",
   "backend/src/swagger.test.ts",
+  "backend/src/warehouse/composed-relation.db.test.ts",
   "backend/src/warehouse/gl-month-rollups.db.test.ts",
   "backend/src/warehouse/postgres.adapter.oid.test.ts",
   "backend/src/warehouse/reconciliation.repository.test.ts",
@@ -92,7 +96,7 @@ const expectedWorkspaceScripts = {
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts",
+      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts",
   },
   contract: {
     build: "tsc -p tsconfig.json",
@@ -149,7 +153,6 @@ a5cc8e0c0d5f7574f211fd9c9c5aed03fd7b918a05a6f00e3bb32c44928b9db5 backend/src/cha
 7284caaa9df96b14d312fd3957fbd6c3b9d2080d4bcda4dabb7ca07eee562621 backend/src/chat/chat.service.ts
 b6133d425e36598cd312eb730e5ff7ff32d18040109e222539238645d36b7b8b backend/src/chat/chat.sse.test.ts
 8f23925eb1ac1c01f4938f30f8838820a84b512092772b6781e3229f6964b84e backend/src/chat/chat.sse.ts
-8ac69466cc87c50d99bbbadccc19810c239d5c4f9ea46f75fc2d69e7e4ab29d8 backend/src/chat/selectionExecutor.ts
 6586b1f8acfb5b09a2b01a0503e04edc4e0cb65d83c2e041a71a06d4303653f3 backend/src/chat/smalltalk-guard.ts
 d87c8800569af74975ce67dbdb408de2ebbc1c11cbf00a5eb51f42190e1aefe9 backend/src/chat/suppression.ts
 a91b8489592d28d7e418290e34799dcfb58238c54bb1050fba339280d11ed646 backend/src/chat/timeWindowParse.ts
@@ -162,7 +165,6 @@ ea49b24dd229a78110685297c646190e971c1526ac096c7003df75c675c20998 backend/src/con
 b218baa747af4070dc3bd9ef6b7188f6f1c79e8e1f92c94330087cbbecc8fd76 backend/src/core/rbac.service.ts
 ceaa15512931da9c7b4874e9f73b45e2f1143fa11c36b2f52a6ebfb0821dd75b backend/src/core/session.service.test.ts
 819c28a31a0c36a411c3e655939c797ce2c40ac2f57384a1f27b9d9723bcbbf2 backend/src/core/session.service.ts
-2958182ab271b91ccfd3196e001a8c41998c7e41176a92d87cc8613b8c8ee2e9 backend/src/db/migrate.test.ts
 7a9fb83c1ad4b0c8a989540df1d2a4e18e603ca19696905cda43b8db009a0b69 backend/src/db/migrate.trim.test.ts
 5414f861e89f339709c595131720b7dad8d3891181b2fb1b243d948f8fd78605 backend/src/db/schema.ts
 fdd5b42a8c71a4ae157087975610d937c371c2e9ed32399478f3f61fb8db6d69 backend/src/email/email.service.ts
@@ -191,7 +193,6 @@ e48dbf50d844bec63200a3983d087e25499ff0a6902472fbb6dd7fccf64e0ab6 backend/src/sav
 430a16cf27377aad3c3f64136659755773322fd3189d436ca39b38c0e8edc9ba backend/src/semantic/definitionVersion.test.ts
 6ad8d170c0e6053c6d992094ba2a7c098ed2460871e8fe7c871e98a690feae7a backend/src/semantic/selectionValidation.ts
 8d4180354a45af0dd7a53c37e7124df29fc5fa0f76c54a8a007186d1bc94d5d1 backend/src/sql/sql.constants.ts
-044e4abec58773a5cc4da9f10c1c43fc5000b7f9f7ff061c956b31dd5c219146 backend/src/sql/sqlBuilder.ts
 bf87de09ae5d480823d3f7cc3d45f625e2903594afeaf7eaa13a866321c811d6 backend/src/sql/sqlValidator.ts
 2e736292f4b2732ede4917855dbd30ffa6f0388106c7976560179ddfe7d2e4a0 backend/src/usage/usage.controller.test.ts
 3bab2da5c4017c7785f9bde9c5dff0dc450909034c5807cb1800909cca51b778 backend/src/usage/usage.controller.ts
@@ -202,8 +203,7 @@ bf87de09ae5d480823d3f7cc3d45f625e2903594afeaf7eaa13a866321c811d6 backend/src/sql
 570020b0c167290b0da56180c6edb9250e29d4bcfe9bb67cdfc4a093709a98e6 backend/src/users/users.controller.ts
 ad391ca0c38ad2e1a35c8e8a2555da7da1cee15a1642b19b4fca71b2163a8dbd backend/src/warehouse/postgres.adapter.ts
 421bc6e5fd0d27a8461b7915d0a62c83c8b59c3c026f0388263275722413eded backend/src/warehouse/starrocks-mysql.adapter.ts
-00636557c707ef81f7ce24efa1e82f3ef653c41810ada48a6435f4e475c4b89b backend/src/warehouse/starrocks.adapter.ts
-89631d2aca012f04ae46d7767412c4365397c6271ec81a94dd3a117906f4037f contract/src/measure.ts`
+00636557c707ef81f7ce24efa1e82f3ef653c41810ada48a6435f4e475c4b89b backend/src/warehouse/starrocks.adapter.ts`
     .split("\n")
     .map((line) => line.split(" "))
     .map(([hash, path]) => [path, hash]),

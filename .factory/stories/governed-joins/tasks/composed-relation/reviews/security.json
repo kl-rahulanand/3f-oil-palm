@@ -1,0 +1,32 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "composed-relation",
+  "score": 10,
+  "summary": "security lens over composed-relation (13 product path(s), e5ae835..fa26791, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The change implements the composed relation with source-local scope predicates, including the trusted DUB constraint for the structurally single-plant Budget source, and enforces the action, domain, measure, and dimension grants at the shared execution boundary before SQL construction or execution. The fixed CTE aliases and underlying view leaves are represented in the validator allow-list, no credentials or compatibility leftovers are present, and the destructive database proof is guarded against non-local hosts. No actionable P0\u2013P2 defect is demonstrated by the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/selectionExecutor.composed.test.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/db/migrate.test.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/grants/grants.constants.ts",
+    "backend/src/sql/sqlBuilder.composed.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/sql/sqlValidator.composed.test.ts",
+    "backend/src/warehouse/composed-relation.db.test.ts",
+    "contract/src/measure.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "5a4ae6d0889a5fb8cdebc7fd7dd87091006ab9766ec7bc21fed5322651bfbf47",
+  "brief_sha256": "93de5dd4d8dea1f5937d091d17e20a7e30ec50693fe9ccb218e36c5f9136b4fa",
+  "branch_diff_digest": "c5bcba6942108f1a36fa25f4e838cb876db9ddb22b8896fcabb5ab2349e03a89",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T06:46:50+00:00",
+  "commit": "fa267915949bbaec16faa667a87566f4c266c877"
+}

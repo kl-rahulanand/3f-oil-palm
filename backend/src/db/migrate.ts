@@ -20,6 +20,7 @@ export const baseRolePerms = [
   { role: "admin", grantType: "action", grantId: "save" },
   { role: "admin", grantType: "action", grantId: "pin" },
   { role: "admin", grantType: "action", grantId: "ingest" },
+  { role: "admin", grantType: "action", grantId: "report" },
   { role: "analyst", grantType: "action", grantId: "save" },
   { role: "analyst", grantType: "action", grantId: "pin" },
   { role: "dba", grantType: "action", grantId: "save" },

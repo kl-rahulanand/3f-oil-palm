@@ -20,7 +20,6 @@ backend/src/chat/chat.controller.ts
 backend/src/chat/chat.service.ts
 backend/src/chat/chat.sse.test.ts
 backend/src/chat/chat.sse.ts
-backend/src/chat/selectionExecutor.ts
 backend/src/chat/smalltalk-guard.ts
 backend/src/chat/suppression.ts
 backend/src/chat/timeWindowParse.ts
@@ -33,7 +32,6 @@ backend/src/core/dimension-values.service.test.ts
 backend/src/core/rbac.service.ts
 backend/src/core/session.service.test.ts
 backend/src/core/session.service.ts
-backend/src/db/migrate.test.ts
 backend/src/db/migrate.trim.test.ts
 backend/src/db/schema.ts
 backend/src/email/email.service.ts
@@ -62,7 +60,6 @@ backend/src/saved/saved.service.ts
 backend/src/semantic/definitionVersion.test.ts
 backend/src/semantic/selectionValidation.ts
 backend/src/sql/sql.constants.ts
-backend/src/sql/sqlBuilder.ts
 backend/src/sql/sqlValidator.ts
 backend/src/usage/usage.controller.test.ts
 backend/src/usage/usage.controller.ts
@@ -74,7 +71,6 @@ backend/src/users/users.controller.ts
 backend/src/warehouse/postgres.adapter.ts
 backend/src/warehouse/starrocks-mysql.adapter.ts
 backend/src/warehouse/starrocks.adapter.ts
-contract/src/measure.ts
 
 # Harness-owned workflows are re-vendored by forge upgrade; only product quality.yml is checked here.
 .github/workflows/factory-scaffold.yml

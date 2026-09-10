@@ -1,11 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type {
-  AuthUser,
-  DomainSpec,
-  MeasureSpec,
-  ResultTable,
-  Selection,
-} from "@3f/contract";
+import type { AuthUser, DomainSpec, MeasureSpec, ResultTable, Selection } from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
@@ -45,7 +39,9 @@ export class SelectionExecutor {
     user: AuthUser,
     domain: DomainSpec,
     selection: Selection,
-    opts: { beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void> } = {},
+    opts: {
+      beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>;
+    } = {},
   ): Promise<SelectionExecutionResult> {
     const appliedTimeWindow = resolveTimeWindow(
       selection.timeWindow,
@@ -67,9 +63,7 @@ export class SelectionExecutor {
 
     const primary = await this.executeResolved(user, domain, resolvedSelection, opts.beforeExecute);
     const totals =
-      resolvedSelection.dimensionIds.length > 0
-        ? await this.totalsFor(user, domain, resolvedSelection)
-        : undefined;
+      resolvedSelection.dimensionIds.length > 0 ? await this.totalsFor(user, domain, resolvedSelection) : undefined;
 
     return {
       result: primary.result,
@@ -90,6 +84,15 @@ export class SelectionExecutor {
     resolvedSelection: Selection,
     beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>,
   ): Promise<{ result: ResultTable; sql: string; objectsTouched: string[] }> {
+    if (
+      domain.composed &&
+      (!user.permissions.actions.includes("report") ||
+        !user.permissions.domains.includes(domain.name) ||
+        !resolvedSelection.measureIds.every((id) => user.permissions.measureIds.includes(id)) ||
+        !resolvedSelection.dimensionIds.every((id) => user.permissions.dimensionIds.includes(id)))
+    ) {
+      throw new SelectionExecutionBlockedError("governed financial selection is not authorized");
+    }
     const cfg = loadConfig();
     const built = this.builder.build(domain, resolvedSelection, user);
     await beforeExecute?.({
@@ -215,9 +218,7 @@ export function resolveTimeWindow(
 
   const requestedColumn = timeWindow.column;
   const column =
-    requestedColumn && (!validColumns || validColumns.has(requestedColumn))
-      ? requestedColumn
-      : defaultColumn;
+    requestedColumn && (!validColumns || validColumns.has(requestedColumn)) ? requestedColumn : defaultColumn;
 
   if (timeWindow.from && timeWindow.to) {
     return { from: timeWindow.from, to: timeWindow.to, column };
@@ -246,9 +247,7 @@ export function defaultTimeColumn(domain: DomainSpec, selection: Selection): str
 
 export function validDateColumns(domain: DomainSpec): ReadonlySet<string> {
   const measureTimeColumns = new Set(
-    domain.measures
-      .map((measure) => measure.timeColumn)
-      .filter((column): column is string => Boolean(column)),
+    domain.measures.map((measure) => measure.timeColumn).filter((column): column is string => Boolean(column)),
   );
   return new Set(
     domain.dimensions

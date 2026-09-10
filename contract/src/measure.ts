@@ -53,6 +53,11 @@ export interface DomainSpec {
   name: string;
   label: string;
   goldObject: string;
+  /** Builder-only marker for the governed Actual/Budget relation. */
+  composed?: {
+    sources: [actual: string, budget: string];
+    joinKeys: ["gl_code", "month"];
+  };
   /** Column used to compute the gold object's data freshness watermark. */
   freshnessColumn?: string;
   /** Deterministic routing hints (V1 uses no embeddings). */
@@ -67,13 +72,7 @@ export interface DomainSpec {
 
 export type TimeGrain = "day" | "week" | "month";
 
-export type MeasureAggregation =
-  | "count"
-  | "count_distinct"
-  | "sum"
-  | "average"
-  | "minimum"
-  | "maximum";
+export type MeasureAggregation = "count" | "count_distinct" | "sum" | "average" | "minimum" | "maximum";
 
 export type MeasureFilterOperator = "eq" | "neq" | "in" | "is_not_null";
 export type AuthoredMeasureStatus = "draft" | "validated" | "published";

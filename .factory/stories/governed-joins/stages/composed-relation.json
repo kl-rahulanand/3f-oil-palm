@@ -1,5 +1,54 @@
 {
   "id": "composed-relation",
   "title": "Closed, typed, code-composed Budget\u22c8Actual relation with two-sided scope",
-  "status": "pending"
+  "status": "done",
+  "started_at": "2026-09-10T05:21:42+00:00",
+  "base_sha": "e5ae83563c9c263af2a29ecc3b9cb194313bb4ef",
+  "dirty_at_start": {
+    ".factory/stories/governed-joins/decomposition.json": {
+      "digest": "5155a636d7e65fde6bc582baad3e3c616bf12266f7772ce39888c26a2b662a9a",
+      "git": "1 .M N... 100644 100644 100644 fda01cbb411a2a3ad8a1823f4ec91f4cd25de593 fda01cbb411a2a3ad8a1823f4ec91f4cd25de593 .factory/stories/governed-joins/decomposition.json\u0000\u0000100644 fda01cbb411a2a3ad8a1823f4ec91f4cd25de593 0\t.factory/stories/governed-joins/decomposition.json\u0000\u0000H .factory/stories/governed-joins/decomposition.json\u0000"
+    },
+    ".factory/stories/governed-joins/grills/tasks/composed-relation.json": {
+      "digest": "8aa6107b9fb4ea1a7609417e780127e351f21cebd499ddc47ed778572f9653ab",
+      "git": "? .factory/stories/governed-joins/grills/tasks/composed-relation.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/governed-joins/task-plans/composed-relation.md": {
+      "digest": "b70fc8701c22eed0d47c58ae205c2748eabd9e1a5844a06483a33d53c8e2949a",
+      "git": "? .factory/stories/governed-joins/task-plans/composed-relation.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "717ac5830e6ac63215d2e3cef987abd540f6e21f40b49cc413b1175c56ecbd54",
+  "local_review_stamp": {
+    "stage_id": "composed-relation",
+    "task_sha256": "717ac5830e6ac63215d2e3cef987abd540f6e21f40b49cc413b1175c56ecbd54",
+    "brief_sha256": "3626e2afdda1d8c8795e5c0eb14e17c9e08e52cc3bda8d2ab9e13306a6290499",
+    "base_sha": "e5ae83563c9c263af2a29ecc3b9cb194313bb4ef",
+    "product_tree_digest": "9c5ae9a07dc2605cc7ebbeff450008a1a549ae4bb38c4dcb968577626989063e",
+    "recorded_at": "2026-09-10T06:46:50+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-10T06:47:58+00:00",
+  "measured": {
+    "strays": [
+      ".prettierignore"
+    ],
+    "files": 13,
+    "lines": 659,
+    "budget": {
+      "files": 13,
+      "lines": 1500
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-10T06:47:58+00:00",
+    "from": "aa1f3ba2e008dbcfe695d3fd8784e06eb3cc95009ce428680fba491a51405089",
+    "to": "717ac5830e6ac63215d2e3cef987abd540f6e21f40b49cc413b1175c56ecbd54"
+  }
 }
