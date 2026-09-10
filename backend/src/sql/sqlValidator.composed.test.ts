@@ -27,6 +27,13 @@ test("the composed WITH full-outer-join query passes sqlValidator when the two s
     "financial_relation",
   ]);
   assert.deepEqual(validator.validate(sql, objectsTouched, 1000), { ok: true });
+  const selected = new SqlBuilder().build(composedDomain, composedSelection, scopedUser, true, {
+    triples: [{ plant: "DUB", costCenter: "Primary", glCode: "5000" }],
+    glCodes: ["5000"],
+    masterGlCodes: ["5000"],
+  });
+  assert.ok(selected.objectsTouched.includes("actual_by_key_month"));
+  assert.deepEqual(validator.validate(selected.sql, selected.objectsTouched, 1000), { ok: true });
   assert.deepEqual(
     validator.validate(
       sql,

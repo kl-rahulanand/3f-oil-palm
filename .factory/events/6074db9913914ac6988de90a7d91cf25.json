@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T15:43:23+00:00", "story": "mis-selection", "detail": "S-0015-8b77: AUTHORIZED as mechanically-implied files: backend/src/mapping/selection-resolver.interface.ts and backend/src/mis/mis-selection.interface.ts are in-scope for this task. The task contract itself requir"}

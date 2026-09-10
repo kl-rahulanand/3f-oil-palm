@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-10T16:01:00+00:00", "story": "mis-selection", "detail": "The registered test:warehouse-proof cannot access the loopback warehouse from this sandbox: all six DB leaves fail at connect with EPERM 127.0.0.1:5433 before migration; host-side execution and the re"}

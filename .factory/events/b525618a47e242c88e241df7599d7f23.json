@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T15:37:34+00:00", "story": "mis-selection", "detail": "S-0014-a882: Expected: the WAREHOUSE_DB_TEST=1 proof runs host-side by the orchestrator (D-0008); the Codex sandbox denies Docker/loopback. Hermetic + verify pass. Host runs test:warehouse-proof + dead-port contro"}

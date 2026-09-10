@@ -1,34 +1,71 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AuthUser, DomainSpec, Selection } from "@3f/contract";
+import { SelectionResolverService } from "../mapping/selection-resolver.service";
+import { MisSelectionService } from "../mis/mis-selection.service";
+import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import { SelectionExecutionBlockedError, SelectionExecutor } from "./selectionExecutor";
 
-test("the selection executor enforces authorization at the shared executeResolved boundary for a governed financial domain: it throws a fail-closed error when the user lacks the governed financial read action, OR lacks the domain grant, OR lacks a grant for any selected measure or dimension, and allows a user holding the read action plus the domain and all selected measure and dimension grants", async () => {
-  const warehouse = new FakeWarehouse();
-  const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), warehouse);
+test("the resolved scope reaches BOTH executions so the ungrouped totals query is filtered by exactly the same triples and GL set as the grouped rows, and the full semantic authorization of the action the domain every measure and every dimension is enforced before any master metadata or unresolvable outcome is returned", async () => {
+  const warehouse = new GovernedMisWarehouse();
+  const builder = new RecordingSqlBuilder();
+  const executor = new SelectionExecutor(builder, new SqlValidator(), warehouse);
+  const service = new MisSelectionService(new SelectionResolverService(warehouse), new SemanticLayer(), executor);
+  const governedMeasures = ["governed-financial.actual", "governed-financial.budget", "governed-financial.percentage"];
   const granted = user({
     actions: ["report"],
-    domains: [domain.name],
-    measureIds: selection.measureIds,
-    dimensionIds: selection.dimensionIds,
+    domains: ["governed-financial"],
+    measureIds: governedMeasures,
+    dimensionIds: ["gl_code", "month"],
   });
 
   for (const denied of [
     user({ ...granted.permissions, actions: [] }),
     user({ ...granted.permissions, domains: [] }),
-    user({ ...granted.permissions, measureIds: [selection.measureIds[0]] }),
-    user({ ...granted.permissions, dimensionIds: [] }),
+    user({ ...granted.permissions, measureIds: governedMeasures.slice(0, 2) }),
+    user({ ...granted.permissions, dimensionIds: ["gl_code"] }),
   ]) {
-    await assert.rejects(executor.run(denied, domain, selection), SelectionExecutionBlockedError);
+    await assert.rejects(async () => service.options(denied), SelectionExecutionBlockedError);
+    await assert.rejects(
+      service.run(denied, { department: "Unknown", function: "Unknown", plant: "Unknown", period: "2026-07-01" }),
+      SelectionExecutionBlockedError,
+    );
   }
-  assert.equal(warehouse.executions, 0);
+  assert.equal(warehouse.metadataExecutions, 0);
+  assert.equal(warehouse.queryExecutions, 0);
 
-  const result = await executor.run(granted, domain, selection);
-  assert.deepEqual(result.result.rows, [{ gl_code: "5000", actual: "125.00", budget: "200.00" }]);
-  assert.equal(warehouse.executions, 2);
+  const outOfScope = user({ ...granted.permissions });
+  outOfScope.scope = [{ attribute: "plant", value: "LON" }];
+  assert.deepEqual(await service.options(outOfScope), { departments: [], functions: [], plants: [], periods: [] });
+  await assert.rejects(
+    service.run(outOfScope, {
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+    }),
+    SelectionExecutionBlockedError,
+  );
+  assert.equal(warehouse.metadataExecutions, 0);
+  assert.equal(warehouse.queryExecutions, 0);
+
+  const result = await service.run(granted, {
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB-NUR",
+    period: "2026-07-01",
+  });
+  assert.equal(result.outcome, "resolved");
+  assert.equal(warehouse.metadataExecutions, 1);
+  assert.equal(warehouse.queryExecutions, 2);
+  assert.equal(builder.resolvedScopes.length, 2);
+  assert.deepEqual(builder.resolvedScopes[0], builder.resolvedScopes[1]);
+  assert.ok(builder.sql.every((sql) => sql.includes("actual_by_key_month") && sql.includes("cost_center")));
+  assert.match(builder.sql[0], /GROUP BY gl_code, month/);
+  assert.doesNotMatch(builder.sql[1], /GROUP BY gl_code, month\nORDER BY/);
 });
 
 test("the selection executor surfaces composed provenance on the result the row aligned source presence on every row and on the provenance object the deterministic Budget Components label set together with the active source batch ids as source period batch id tuples gathered across the query rows", async () => {
@@ -109,20 +146,63 @@ function user(permissions: AuthUser["permissions"]): AuthUser {
   };
 }
 
-class FakeWarehouse implements Warehouse {
-  executions = 0;
+class RecordingSqlBuilder extends SqlBuilder {
+  readonly resolvedScopes: unknown[] = [];
+  readonly sql: string[] = [];
+
+  override build(...args: Parameters<SqlBuilder["build"]>) {
+    this.resolvedScopes.push(args[4]);
+    const built = super.build(...args);
+    this.sql.push(built.sql);
+    return built;
+  }
+}
+
+class GovernedMisWarehouse implements Warehouse {
+  metadataExecutions = 0;
+  queryExecutions = 0;
 
   async explain(): Promise<void> {}
 
-  async execute() {
-    this.executions += 1;
+  async execute(sql: string) {
+    if (sql.startsWith("SELECT DISTINCT period")) {
+      this.metadataExecutions += 1;
+      return { columns: [{ name: "period", numeric: false }], rows: [{ period: "2026-07-01" }] };
+    }
+    this.queryExecutions += 1;
+    if (!sql.includes("SELECT gl_code AS gl_code")) {
+      return {
+        columns: [
+          { name: "actual", numeric: true },
+          { name: "budget", numeric: true },
+          { name: "percentage", numeric: true },
+        ],
+        rows: [{ actual: "125.00", budget: "200.00", percentage: "0.625" }],
+      };
+    }
     return {
       columns: [
         { name: "gl_code", numeric: false },
+        { name: "month", numeric: false },
         { name: "actual", numeric: true },
         { name: "budget", numeric: true },
+        { name: "percentage", numeric: true },
+        { name: "source_presence", numeric: false },
+        { name: "budget_component_labels", numeric: false },
+        { name: "active_batch_ids", numeric: false },
       ],
-      rows: [{ gl_code: "5000", actual: "125.00", budget: "200.00" }],
+      rows: [
+        {
+          gl_code: "50001701",
+          month: "2026-07-01",
+          actual: "125.00",
+          budget: "200.00",
+          percentage: "0.625",
+          source_presence: '["matched"]',
+          budget_component_labels: '[["Materials"]]',
+          active_batch_ids: "[]",
+        },
+      ],
     };
   }
 

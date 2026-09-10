@@ -185,6 +185,72 @@ export interface ReportRunResult {
   defaultDateColumn: string | null;
 }
 
+/** POST /api/mis/run */
+export interface MisSelectionRunRequest {
+  department: string;
+  function: string;
+  plant: string;
+  period: string;
+}
+
+export interface MisSelectionPeriodOption {
+  value: string;
+  label: string;
+  from: string;
+  to: string;
+}
+
+/** GET /api/mis/options */
+export interface MisSelectionOptionsResponse {
+  departments: string[];
+  functions: string[];
+  plants: Array<{ value: string; label: string; aliases: string[] }>;
+  periods: MisSelectionPeriodOption[];
+}
+
+export interface MisSelectionScopeReadout {
+  department: string;
+  function: string;
+  plant: string;
+  period: string;
+  costCentres: string[];
+  glCodes: string[];
+  misFormat: string;
+}
+
+export interface MisSelectionBucketRow {
+  plant: string;
+  costCentre: string | null;
+  glCode: string;
+  misLine: string;
+  provisional: boolean;
+  reason: string;
+}
+
+export interface MisSelectionTotals {
+  actual: number;
+  budget: number;
+  percentage: number | null;
+}
+
+export interface MisSelectionResolvedResponse {
+  outcome: "resolved";
+  scope: MisSelectionScopeReadout;
+  result: ResultTable;
+  totals: MisSelectionTotals;
+  bucketRows: MisSelectionBucketRow[];
+}
+
+export interface MisSelectionUnresolvableResponse {
+  outcome: "unresolvable";
+  notice: "No mapping configured";
+  result: ResultTable;
+  totals: MisSelectionTotals;
+  bucketRows: [];
+}
+
+export type MisSelectionRunResponse = MisSelectionResolvedResponse | MisSelectionUnresolvableResponse;
+
 export interface PinSnapshot {
   status: "ok" | "error" | "access_revoked";
   result?: ResultTable;
