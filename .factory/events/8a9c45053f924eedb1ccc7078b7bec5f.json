@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T15:37:35+00:00", "story": "mis-selection", "detail": "The constitution requires each new service interface in a .interface.ts file, but the selection-resolution write scope includes only selection-resolver.service.ts and mis-selection.service.ts; the cur"}

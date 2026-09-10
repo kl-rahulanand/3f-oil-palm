@@ -33,13 +33,16 @@ const hermeticTests = [
   "backend/src/loopback-profile.test.ts",
   "backend/src/mapping/mapping-master.db.test.ts",
   "backend/src/mapping/mapping-master.test.ts",
+  "backend/src/mapping/selection-resolver.service.test.ts",
   "backend/src/measures/authored-measure.registry.test.ts",
   "backend/src/measures/measures.guard.test.ts",
+  "backend/src/mis/mis-selection.controller.test.ts",
   "backend/src/pins/pins.schemas.test.ts",
   "backend/src/semantic/definitionVersion.test.ts",
   "backend/src/semantic/semanticLayer.financial.test.ts",
   "backend/src/sql/sqlBuilder.composed.test.ts",
   "backend/src/sql/sqlBuilder.provenance.test.ts",
+  "backend/src/sql/sqlBuilder.selection.test.ts",
   "backend/src/sql/sqlValidator.composed.test.ts",
   "backend/src/sql/sqlValidator.pii.test.ts",
   "backend/src/swagger-production.test.ts",
@@ -49,6 +52,7 @@ const hermeticTests = [
   "backend/src/warehouse/golden-financial.db.test.ts",
   "backend/src/warehouse/postgres.adapter.oid.test.ts",
   "backend/src/warehouse/reconciliation.repository.test.ts",
+  "backend/src/warehouse/selection-slice.db.test.ts",
   "backend/src/warehouse/warehouse-schema.test.ts",
 ];
 
@@ -101,7 +105,7 @@ const expectedWorkspaceScripts = {
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts",
+      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/selection-slice.db.test.ts",
   },
   contract: {
     build: "tsc -p tsconfig.json",

@@ -2,7 +2,7 @@
 issue: mis-selection
 title: Selection + mapping master
 status: approved
-saved: 2026-09-10T13:36:38+00:00
+saved: 2026-09-10T15:13:01+00:00
 story: mis-selection
 decisions_reviewed:
   - 0001-poc-engagement-scope
@@ -23,6 +23,7 @@ decisions_reviewed:
   - 0016-governed-joins-poc-scope
   - 0017-mis-selection-composite-key-seam
   - 0018-mis-selection-unmapped-gl-bucket
+  - 0019-fresh-routes-follow-vendored-house-style
 ---
 
 # mis-selection — Selection + mapping master
@@ -60,6 +61,11 @@ All 18 active decisions were reviewed. Load-bearing here:
 - **0018 (unmapped-GL bucket)** — **governs the bucket question** and settled D-0027 the
   same day. Where 0017's stale text and 0018 disagreed, **0018 wins**; 0017 has been
   amended accordingly and the ledger records D-0027 as done. Planning is not blocked.
+- **0019 (fresh routes follow the vendored house style)** — human-decided during the
+  selection-resolution grill: the new MIS routes are unversioned `api/mis/...` returning raw
+  typed bodies, and the `mis` module may import `mapping` directly, matching the vendored
+  surface. DTOs, documented Swagger errors, cookie auth and strict unknown-field rejection
+  are **not** relaxed. Revisit at the production pilot (0011 / D-0003).
 - **0004 / 0015 / 0009** — one governed definition (LLM selects, never authors SQL);
   warehouse snake_case; required_tests use real leaf names + `TS_NODE_PROJECT`.
 - **0012 (vendored-API deviation)** applies only to the *vendored* controllers. The routes
@@ -278,22 +284,25 @@ readout, both zero states and the bucket list.
 beyond DUB; the balanced budget allocation (0014/0016, still deferred).
 
 ## Task Decomposition
+**Three tasks** (the count is the human's call; recorded 2026-09-10 after this plan was
+approved — merging the endpoint into resolution saves a full plan/grill/approval/review/PR
+cycle, and the routes are inseparable from the resolution they exist to serve).
+
 1. **mapping-master** (`user_facing: false`) — the versioned repo-owned master (selection +
    entry records) + strict loader + the `unmapped-GL` bucket entries for the nine triples,
    with the completeness fixture proving every DUB raw triple resolves exactly once
    (66 + 22 = 88, no drop, no fan-out). Folds the hard-coded plant alias into master-owned
-   alias authority.
+   alias authority. **[shipped, PR #25]**
 2. **selection-resolution** (`user_facing: false`) — resolve `(department, function, plant,
    period)` → scope (cost centres, GL set, format, bucket) or the unresolvable outcome,
-   including the `fy26-27-ytd` derivation; and narrow the governed path per 0017 + grill Q2
+   including the `fy26-27-ytd` derivation; narrow the governed path per 0017 + grill Q2
    (selection-aware `actual_src`, restricted `budget_src`, `objectsTouched`, the
-   resolved-scope carrier, moved assertions), with the gated D-0008 no-fan-out proof.
-3. **selection-endpoint** (`user_facing: false`) — the first governed-query HTTP routes:
-   **options** + **run**, on the `reports.controller` template, `AuthGuard` +
-   `RequireAction("report")`, named DTOs + documented Swagger errors, zod-validated, the run
-   request accepting **only** the four selectors; registered in `app.module.ts` and the
-   `app.routes.test.ts` allowlist.
-4. **selection-ui** (`user_facing: true`) — the authenticated MIS Reports page: four native
+   resolved-scope carrier, moved assertions), with the gated D-0008 no-fan-out proof; **and**
+   the first governed-query HTTP routes — **options** + **run** on the `reports.controller`
+   template, `AuthGuard` + `RequireAction("report")`, named DTOs + documented Swagger errors,
+   the run request accepting **only** the four selectors, registered in `app.module.ts` and
+   the `app.routes.test.ts` allow-list. Route/module shape follows decision **0019**.
+3. **selection-ui** (`user_facing: true`) — the authenticated MIS Reports page: four native
    selects (loaded months + `fy26-27-ytd`), Generate, the resolved-scope readout, both zero
    states, and the unmapped-GL bucket list; enable the AppShell nav item + page title; the
    first data methods in `lib/api.ts`. Design specialists and the functional check are

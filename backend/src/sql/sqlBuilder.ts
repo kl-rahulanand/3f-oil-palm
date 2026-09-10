@@ -8,6 +8,12 @@ export interface BuiltQuery {
   objectsTouched: string[];
 }
 
+export interface GovernedSelectionScope {
+  triples: Array<{ plant: string; costCenter: string; glCode: string }>;
+  glCodes: string[];
+  masterGlCodes: string[];
+}
+
 /**
  * The ONE SQL-construction path (eng review C1). Composes SQL from a VALIDATED selection
  * using each measure's verified expr, and injects the RBAC row predicate from trusted
@@ -18,7 +24,13 @@ export interface BuiltQuery {
  */
 @Injectable()
 export class SqlBuilder {
-  build(domain: DomainSpec, selection: Selection, user: AuthUser, includeProvenance = true): BuiltQuery {
+  build(
+    domain: DomainSpec,
+    selection: Selection,
+    user: AuthUser,
+    includeProvenance = true,
+    resolvedScope?: GovernedSelectionScope,
+  ): BuiltQuery {
     const measures = selection.measureIds.map((id) => {
       const m = domain.measures.find((x) => x.id === id);
       if (!m) throw new Error(`unknown measure ${id}`);
@@ -102,7 +114,7 @@ export class SqlBuilder {
     const whereSql = where.length ? `\nWHERE ${where.join("\n  AND ")}` : "";
 
     const composedCtes = domain.composed
-      ? this.composedCtes(domain.composed.sources, scopePredicate, scopeValues)
+      ? this.composedCtes(domain.composed.sources, scopePredicate, scopeValues, resolvedScope)
       : undefined;
     const sql =
       (composedCtes ? `${composedCtes}\n` : "") +
@@ -116,7 +128,14 @@ export class SqlBuilder {
     return {
       sql,
       objectsTouched: domain.composed
-        ? [...domain.composed.sources, "ingest_batch", "actual_src", "budget_src", "financial_relation"]
+        ? [
+            ...domain.composed.sources,
+            ...(resolvedScope ? ["actual_by_key_month"] : []),
+            "ingest_batch",
+            "actual_src",
+            "budget_src",
+            "financial_relation",
+          ]
         : [goldObject],
     };
   }
@@ -125,16 +144,30 @@ export class SqlBuilder {
     [actualSource, budgetSource]: [string, string],
     scopePredicate: string | undefined,
     scopeValues: string[],
+    resolvedScope?: GovernedSelectionScope,
   ): string {
     if (!scopePredicate) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
+    const actualRelation = resolvedScope ? "actual_by_key_month" : actualSource;
+    const actualProjection = resolvedScope
+      ? "gl_code, month, SUM(actual_net)::numeric(18,2) AS actual_net"
+      : "gl_code, month, actual_net";
+    const triplePredicate = resolvedScope
+      ? `\n    AND (plant, cost_center, gl_code) IN (${resolvedScope.triples
+          .map(({ plant, costCenter, glCode }) => `(${this.lit(plant)}, ${this.lit(costCenter)}, ${this.lit(glCode)})`)
+          .join(", ")})`
+      : "";
+    const actualGroupBy = resolvedScope ? "\n  GROUP BY gl_code, month" : "";
+    const budgetPredicate = resolvedScope
+      ? `\n    AND (gl_code IN (${resolvedScope.glCodes.map((value) => this.lit(value)).join(", ")}) OR gl_code NOT IN (${resolvedScope.masterGlCodes.map((value) => this.lit(value)).join(", ")}))`
+      : "";
     return `WITH actual_src AS (
-  SELECT gl_code, month, actual_net
-  FROM ${actualSource}
-  WHERE ${scopePredicate}
+  SELECT ${actualProjection}
+  FROM ${actualRelation}
+  WHERE ${scopePredicate}${triplePredicate}${actualGroupBy}
 ), budget_src AS (
   SELECT gl_code, month, budget_net, rollover_net, budget_component_labels
   FROM ${budgetSource}
-  WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
+  WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})${budgetPredicate}
 ), financial_relation AS (
   SELECT COALESCE(actual_src.gl_code, budget_src.gl_code) AS gl_code,
     COALESCE(actual_src.month, budget_src.month) AS month,
