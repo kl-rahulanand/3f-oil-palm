@@ -214,11 +214,8 @@ function assertGoldenRow(
       actual: row.actual,
       budget: row.budget,
       percentage: row.percentage,
-      sourcePresence: row.source_presence,
-      budgetComponentLabels:
-        typeof row.budget_component_labels === "string" && row.budget_component_labels
-          ? row.budget_component_labels.split(",")
-          : [],
+      sourcePresence: parseJsonValues(row.source_presence)[0],
+      budgetComponentLabels: parseJsonValues(row.budget_component_labels).filter(isString),
     },
     {
       actual: expected.actual,
@@ -228,18 +225,14 @@ function assertGoldenRow(
       budgetComponentLabels: expected.budgetComponentLabels,
     },
   );
-  assert.equal(row.actual_batch_id, actualBatchId);
-  assert.equal(row.budget_batch_id, budgetBatchId);
-  assert.equal(row.provenance_period, PERIOD);
+  assertBatchIds(row.active_batch_ids, actualBatchId, budgetBatchId);
 }
 
 interface RawGoldenRow {
   gl_code: string;
-  source_presence: SourcePresence;
-  budget_component_labels: string[] | null;
-  actual_batch_id: string;
-  budget_batch_id: string;
-  provenance_period: string;
+  source_presence: string;
+  budget_component_labels: string | null;
+  active_batch_ids: string;
 }
 
 function assertRawProvenance(
@@ -261,11 +254,30 @@ function assertRawProvenance(
 function assertRawRow(rows: RawGoldenRow[], expected: GoldenRow, actualBatchId: string, budgetBatchId: string): void {
   const row = rows.find((candidate) => candidate.gl_code === expected.glCode);
   assert.ok(row, `missing raw ${expected.glCode}`);
-  assert.deepEqual(row.budget_component_labels ?? [], expected.budgetComponentLabels);
-  assert.equal(row.source_presence, expected.sourcePresence);
-  assert.equal(row.actual_batch_id, actualBatchId);
-  assert.equal(row.budget_batch_id, budgetBatchId);
-  assert.equal(row.provenance_period, PERIOD);
+  assert.deepEqual(parseJsonValues(row.budget_component_labels).filter(isString), expected.budgetComponentLabels);
+  assert.equal(parseJsonValues(row.source_presence)[0], expected.sourcePresence);
+  assertBatchIds(row.active_batch_ids, actualBatchId, budgetBatchId);
+}
+
+function assertBatchIds(value: string | number | null, actualBatchId: string, budgetBatchId: string): void {
+  assert.deepEqual(parseJsonValues(value), [
+    { source: "actuals", period: PERIOD, batchId: actualBatchId },
+    { source: "budget", period: PERIOD, batchId: budgetBatchId },
+  ]);
+}
+
+function parseJsonValues(value: string | number | null): unknown[] {
+  if (typeof value !== "string") return [];
+  const parsed: unknown = JSON.parse(value);
+  return flatten(parsed);
+}
+
+function flatten(value: unknown): unknown[] {
+  return Array.isArray(value) ? value.flatMap(flatten) : [value];
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
 }
 
 function metadata(fixture: string) {

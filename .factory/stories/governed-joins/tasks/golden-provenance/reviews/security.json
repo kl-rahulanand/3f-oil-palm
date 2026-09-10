@@ -1,0 +1,33 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "golden-provenance",
+  "score": 10,
+  "summary": "security lens over golden-provenance (14 product path(s), 0cca24b..8585d35, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 security defect. Provenance is added within the governed composed query, remains behind the existing selection authorization boundary, and the destructive warehouse proof is guarded against non-local hosts before migration or truncation. No credentials or blocking compatibility leftovers are present.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/selectionExecutor.composed.test.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/sql/sqlBuilder.composed.test.ts",
+    "backend/src/sql/sqlBuilder.provenance.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/sql/sqlValidator.composed.test.ts",
+    "backend/src/warehouse/__fixtures__/governed-financial-golden.json",
+    "backend/src/warehouse/composed-relation.db.test.ts",
+    "backend/src/warehouse/golden-financial.db.test.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "0fbee99f689f346c7e80ee3c5f4d56a85fc5592d93193aa71cb9dfcdf08c0fa0",
+  "brief_sha256": "73eb038684ea477c2d13965c85df659a7f366b26416a1d2497b44d4941a5fb6d",
+  "branch_diff_digest": "3392d3374d1cc7bd47ff88624dd5967f84fd10a5fd7198deab31c0572931a564",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T09:54:11+00:00",
+  "commit": "8585d3578b063ae5374726ed354ba2c185a9334e"
+}

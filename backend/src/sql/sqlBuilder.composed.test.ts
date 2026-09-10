@@ -53,7 +53,7 @@ test("the SQL builder composes a governed financial relation as WITH aliased act
   ]);
   assert.match(
     built.sql,
-    /SELECT gl_code AS gl_code, month AS month, SUM\(actual_net\) AS actual, SUM\(budget_net\) AS budget, source_presence, budget_component_labels, actual_batch_id, budget_batch_id, month::text AS provenance_period/,
+    /SELECT gl_code AS gl_code, month AS month, SUM\(actual_net\) AS actual, SUM\(budget_net\) AS budget, jsonb_agg\(DISTINCT\(source_presence\)\)::text AS source_presence/,
   );
   assert.match(built.sql, /WITH actual_src AS \([\s\S]*FROM actual_by_gl_month/);
   assert.match(built.sql, /budget_src AS \([\s\S]*FROM budget_by_gl_month/);

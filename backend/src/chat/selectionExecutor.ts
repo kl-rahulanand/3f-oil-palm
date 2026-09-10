@@ -1,5 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { AuthUser, DomainSpec, MeasureSpec, ProvenanceBatch, ResultTable, Selection } from "@3f/contract";
+import type {
+  AuthUser,
+  DomainSpec,
+  MeasureSpec,
+  ProvenanceBatch,
+  ResultTable,
+  Selection,
+  SourcePresence,
+} from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
@@ -126,12 +134,7 @@ export class SelectionExecutor {
     const raw = await withTimeout(this.warehouse.execute(built.sql), cfg.queryTimeoutMs);
     const activeBatchIds = collectActiveBatchIds(raw.rows);
     const budgetComponentLabels = collectBudgetComponentLabels(raw.rows);
-    const hiddenProvenanceKeys = new Set([
-      "budget_component_labels",
-      "actual_batch_id",
-      "budget_batch_id",
-      "provenance_period",
-    ]);
+    const hiddenProvenanceKeys = new Set(["budget_component_labels", "active_batch_ids"]);
 
     // `numeric` means "measure output" for rendering, not raw warehouse type.
     const measureOutputKeys = new Set(resolvedSelection.measureIds.map((id) => id.split(".").pop()!));
@@ -160,9 +163,10 @@ export class SelectionExecutor {
             ...(format ? { format } : {}),
           };
         }),
-      rows: raw.rows.map((row) =>
-        Object.fromEntries(Object.entries(row).filter(([key]) => !hiddenProvenanceKeys.has(key))),
-      ),
+      rows: raw.rows.map((row) => ({
+        ...Object.fromEntries(Object.entries(row).filter(([key]) => !hiddenProvenanceKeys.has(key))),
+        ...(row.source_presence ? { source_presence: parseSourcePresence(row.source_presence) } : {}),
+      })) as ResultTable["rows"],
     };
 
     const piiMeasureKeys = resolvedSelection.measureIds
@@ -220,15 +224,9 @@ export class SelectionExecutor {
 function collectActiveBatchIds(rows: Array<Record<string, string | number | null>>): ProvenanceBatch[] {
   const tuples = new Map<string, ProvenanceBatch>();
   for (const row of rows) {
-    if (typeof row.provenance_period !== "string") continue;
-    for (const [source, key] of [
-      ["actuals", "actual_batch_id"],
-      ["budget", "budget_batch_id"],
-    ] as const) {
-      const batchId = row[key];
-      if (typeof batchId !== "string" || !batchId) continue;
-      const tuple = { source, period: row.provenance_period, batchId };
-      tuples.set(`${source}\0${row.provenance_period}\0${batchId}`, tuple);
+    for (const value of parseJsonValues(row.active_batch_ids)) {
+      if (!isProvenanceBatch(value)) continue;
+      tuples.set(`${value.source}\0${value.period}\0${value.batchId}`, value);
     }
   }
   return [...tuples.values()].sort((a, b) =>
@@ -237,18 +235,47 @@ function collectActiveBatchIds(rows: Array<Record<string, string | number | null
 }
 
 function collectBudgetComponentLabels(rows: Array<Record<string, string | number | null>>): string[] {
-  return [
-    ...new Set(
-      rows.flatMap((row) =>
-        typeof row.budget_component_labels === "string"
-          ? row.budget_component_labels
-              .split(",")
-              .map((label) => label.trim())
-              .filter(Boolean)
-          : [],
-      ),
-    ),
-  ].sort();
+  return [...new Set(rows.flatMap((row) => parseJsonValues(row.budget_component_labels).filter(isString)))].sort();
+}
+
+function parseSourcePresence(value: string | number | null): SourcePresence | SourcePresence[] {
+  const presences = [...new Set(parseJsonValues(value).filter(isSourcePresence))].sort();
+  return presences.length === 1 ? presences[0] : presences;
+}
+
+function parseJsonValues(value: string | number | null): unknown[] {
+  if (typeof value !== "string") return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return flatten(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function flatten(value: unknown): unknown[] {
+  return Array.isArray(value) ? value.flatMap(flatten) : [value];
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+function isProvenanceBatch(value: unknown): value is ProvenanceBatch {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "source" in value &&
+    "period" in value &&
+    "batchId" in value &&
+    (value.source === "actuals" || value.source === "budget") &&
+    typeof value.period === "string" &&
+    typeof value.batchId === "string"
+  );
+}
+
+function isSourcePresence(value: unknown): value is SourcePresence {
+  return value === "matched" || value === "budget-only" || value === "actual-only";
 }
 
 export function resolveSelectionTimeWindow(

@@ -41,11 +41,9 @@ export class SqlBuilder {
     ];
     if (domain.composed && includeProvenance) {
       selectCols.push(
-        "source_presence",
-        "budget_component_labels",
-        "actual_batch_id",
-        "budget_batch_id",
-        "month::text AS provenance_period",
+        "jsonb_agg(DISTINCT(source_presence))::text AS source_presence",
+        "COALESCE(to_jsonb(array_agg(DISTINCT(to_jsonb(budget_component_labels))) FILTER (WHERE budget_component_labels IS NOT NULL)), '[]'::jsonb)::text AS budget_component_labels",
+        "(COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object('source', 'actuals', 'period', month::text, 'batchId', actual_batch_id))) FILTER (WHERE actual_batch_id IS NOT NULL)), '[]'::jsonb) || COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object('source', 'budget', 'period', month::text, 'batchId', budget_batch_id))) FILTER (WHERE budget_batch_id IS NOT NULL)), '[]'::jsonb))::text AS active_batch_ids",
       );
     }
     if (measures.some((m) => m.piiSensitive)) {
@@ -90,9 +88,6 @@ export class SqlBuilder {
 
     const limit = Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows);
     const groupColumns = dims.map((d) => d.column);
-    if (domain.composed && includeProvenance) {
-      groupColumns.push("source_presence", "budget_component_labels", "actual_batch_id", "budget_batch_id", "month");
-    }
     const groupBy = groupColumns.length ? `\nGROUP BY ${[...new Set(groupColumns)].join(", ")}` : "";
     // Deterministic ordering so results (and pinned tiles that re-run) are stable across runs:
     // a date breakdown reads chronologically; any other breakdown reads largest-first by the
@@ -152,17 +147,19 @@ export class SqlBuilder {
       WHEN budget_src.gl_code IS NULL THEN 'actual-only'
       ELSE 'matched'
     END AS source_presence,
-    (SELECT id FROM ingest_batch
-      WHERE source_kind = 'actuals'
-        AND period = COALESCE(actual_src.month, budget_src.month)
-        AND is_active) AS actual_batch_id,
-    (SELECT id FROM ingest_batch
-      WHERE source_kind = 'budget'
-        AND period = COALESCE(actual_src.month, budget_src.month)
-        AND is_active) AS budget_batch_id
+    actual_batch.id AS actual_batch_id,
+    budget_batch.id AS budget_batch_id
   FROM actual_src
   FULL OUTER JOIN budget_src
     ON actual_src.gl_code = budget_src.gl_code AND actual_src.month = budget_src.month
+  LEFT JOIN ingest_batch actual_batch
+    ON actual_batch.source_kind = 'actuals'
+      AND actual_batch.period = COALESCE(actual_src.month, budget_src.month)
+      AND actual_batch.is_active
+  LEFT JOIN ingest_batch budget_batch
+    ON budget_batch.source_kind = 'budget'
+      AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
+      AND budget_batch.is_active
 )`;
   }
 

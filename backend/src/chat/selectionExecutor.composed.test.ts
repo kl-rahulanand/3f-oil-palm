@@ -46,13 +46,20 @@ test("the selection executor surfaces composed provenance on the result the row 
 
   assert.deepEqual(result.result.rows, [
     { gl_code: "5000", actual: "125.00", budget: "200.00", source_presence: "matched" },
-    { gl_code: "6000", actual: "0.00", budget: "50.00", source_presence: "budget-only" },
+    {
+      gl_code: "6000",
+      actual: "0.00",
+      budget: "50.00",
+      source_presence: ["actual-only", "budget-only"],
+    },
   ]);
   assert.deepEqual(result.activeBatchIds, [
     { source: "actuals", period: "2099-09-01", batchId: "actual-batch" },
+    { source: "actuals", period: "2099-10-01", batchId: "actual-batch-2" },
     { source: "budget", period: "2099-09-01", batchId: "budget-batch" },
+    { source: "budget", period: "2099-10-01", batchId: "budget-batch-2" },
   ]);
-  assert.deepEqual(result.budgetComponentLabels, ["Admin", "Labour"]);
+  assert.deepEqual(result.budgetComponentLabels, ["Admin, East", "Labour"]);
 });
 
 const domain: DomainSpec = {
@@ -146,30 +153,26 @@ class ProvenanceWarehouse implements Warehouse {
         { name: "budget", numeric: true },
         { name: "source_presence", numeric: false },
         { name: "budget_component_labels", numeric: false },
-        { name: "actual_batch_id", numeric: false },
-        { name: "budget_batch_id", numeric: false },
-        { name: "provenance_period", numeric: false },
+        { name: "active_batch_ids", numeric: false },
       ],
       rows: [
         {
           gl_code: "5000",
           actual: "125.00",
           budget: "200.00",
-          source_presence: "matched",
-          budget_component_labels: "Labour,Admin",
-          actual_batch_id: "actual-batch",
-          budget_batch_id: "budget-batch",
-          provenance_period: "2099-09-01",
+          source_presence: '["matched"]',
+          budget_component_labels: '[["Labour","Admin, East"]]',
+          active_batch_ids:
+            '[{"source":"actuals","period":"2099-09-01","batchId":"actual-batch"},{"source":"budget","period":"2099-09-01","batchId":"budget-batch"}]',
         },
         {
           gl_code: "6000",
           actual: "0.00",
           budget: "50.00",
-          source_presence: "budget-only",
-          budget_component_labels: "Admin",
-          actual_batch_id: "actual-batch",
-          budget_batch_id: "budget-batch",
-          provenance_period: "2099-09-01",
+          source_presence: '["actual-only","budget-only"]',
+          budget_component_labels: '[["Admin, East"]]',
+          active_batch_ids:
+            '[[{"source":"actuals","period":"2099-10-01","batchId":"actual-batch-2"}],[{"source":"budget","period":"2099-10-01","batchId":"budget-batch-2"}]]',
         },
       ],
     };

@@ -1,0 +1,11 @@
+{
+  "topic": "jsonb_agg over a FULL OUTER JOIN's missing side yields [null], not [] \u2014 FILTER out NULLs and COALESCE to an empty array",
+  "lesson": "In the composed provenance aggregation (backend/src/sql/sqlBuilder.ts), jsonb_agg(DISTINCT(budget_component_labels)) over an Actual-only key (the budget side of the FULL OUTER JOIN is NULL) returns [null] (jsonb_agg includes the SQL NULL as a JSON null), but the correct provenance for a one-sided key is an EMPTY set []. This broke composed-relation.db.test.ts for the ACTUAL-ONLY case (actual [null] vs expected []). FIX: guard every provenance jsonb_agg against the missing FULL-OUTER-JOIN side with FILTER + COALESCE, e.g. COALESCE(jsonb_agg(DISTINCT x) FILTER (WHERE x IS NOT NULL), '[]'::jsonb)::text. Apply the same to budget_component_labels AND to the active-batch-id tuple aggregates (a Budget-only key has NULL actual_batch_id, an Actual-only key may have NULL budget_batch_id per gl_code) so one-sided keys never carry a null-filled tuple or label. Re-run the composed-relation.db + golden D-0008 proofs.",
+  "source": "golden-provenance D-0008 host proof 2026-09-10 (composed-relation.db ACTUAL-ONLY: budget_component_labels [null] vs [])",
+  "applies_to": [
+    "backend/src/sql/sqlBuilder.ts"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-10T10:49:53+00:00"
+}

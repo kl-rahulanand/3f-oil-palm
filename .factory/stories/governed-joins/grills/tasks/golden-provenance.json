@@ -89,13 +89,13 @@
     }
   ],
   "summary": "One cold read returned six repository-backed gaps. Five are repository/decision-answerable and resolved in the amended contract + plan: the objectsTouched change pulls the two task-2 composed hermetic tests into write_scope; the query boundary is specified (provenance on the outer projection, captured at the (gl_code, month) grain, gathered into (source,period,batchId) tuples + label sets, per-row presence); the reload case is redefined as the 0016 CHANGED-answer attribution proof; the fixture-state model packs cases per period and compares batch ids to repository-returned ids (never frozen UUIDs); and the loader validates money vs the % union by field. One was a genuine surface-ownership decision put to the human: WIRE the API Provenance surface here (extend the type + chat.service + executor), honouring the approved story plan so C2 has an owning consumer, with only the trust-strip rendering left to the reporting epic. Verdict pass.",
-  "input_sha256": "a99c0479f0012258fdda007f94e3f457109362023c0d5f45f3eb0f8ad7a5f63e",
+  "input_sha256": "5e233aa6302fee5a2091d6776e65cef0835fb990e12ff9d0fec1385f02422edb",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "2d03e70a7b9e59fda6d2671d52e10c1bffa1a66e1fe480311878503dad57b3b4",
-  "recorded_at": "2026-09-10T09:15:33+00:00",
-  "commit": "0cca24b2930b13615299cd0e94047d2803ea457b",
+  "recorded_at": "2026-09-10T11:04:05+00:00",
+  "commit": "8585d3578b063ae5374726ed354ba2c185a9334e",
   "approved_task_plan_sha256": "2d03e70a7b9e59fda6d2671d52e10c1bffa1a66e1fe480311878503dad57b3b4",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-10T09:16:11+00:00"
+  "approved_at": "2026-09-10T11:04:11+00:00"
 }

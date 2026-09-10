@@ -11,17 +11,33 @@ test("the composed relation projects row aligned provenance a source presence ma
     built.sql,
     /WHEN actual_src\.gl_code IS NULL THEN 'budget-only'[\s\S]*WHEN budget_src\.gl_code IS NULL THEN 'actual-only'[\s\S]*ELSE 'matched'/,
   );
+  assert.match(built.sql, /jsonb_agg\(DISTINCT\(source_presence\)\)::text AS source_presence/);
   assert.match(
     built.sql,
-    /budget_component_labels, actual_batch_id, budget_batch_id, month::text AS provenance_period/,
+    /COALESCE\(to_jsonb\(array_agg\(DISTINCT\(to_jsonb\(budget_component_labels\)\)\) FILTER \(WHERE budget_component_labels IS NOT NULL\)\), '\[\]'::jsonb\)::text AS budget_component_labels/,
   );
   assert.match(
     built.sql,
-    /SELECT id FROM ingest_batch[\s\S]*source_kind = 'actuals'[\s\S]*period = COALESCE\(actual_src\.month, budget_src\.month\)[\s\S]*is_active/,
+    /jsonb_build_object\('source', 'actuals', 'period', month::text, 'batchId', actual_batch_id\)/,
   );
-  assert.match(built.sql, /SELECT id FROM ingest_batch[\s\S]*source_kind = 'budget'/);
+  assert.match(
+    built.sql,
+    /jsonb_build_object\('source', 'budget', 'period', month::text, 'batchId', budget_batch_id\)/,
+  );
+  assert.match(built.sql, /FILTER \(WHERE actual_batch_id IS NOT NULL\)\), '\[\]'::jsonb/);
+  assert.match(built.sql, /FILTER \(WHERE budget_batch_id IS NOT NULL\)\), '\[\]'::jsonb/);
+  assert.match(
+    built.sql,
+    /LEFT JOIN ingest_batch actual_batch[\s\S]*actual_batch\.source_kind = 'actuals'[\s\S]*LEFT JOIN ingest_batch budget_batch[\s\S]*budget_batch\.source_kind = 'budget'/,
+  );
+  assert.match(built.sql, /GROUP BY gl_code, month/);
+
+  const coarser = new SqlBuilder().build(domain, { ...selection, dimensionIds: ["gl_code"] }, user);
+  assert.match(coarser.sql, /GROUP BY gl_code\n/);
+  assert.doesNotMatch(coarser.sql, /GROUP BY [^\n]*month/);
   assert.ok(built.objectsTouched.includes("ingest_batch"));
   assert.deepEqual(new SqlValidator().validate(built.sql, built.objectsTouched, 1000), { ok: true });
+  assert.deepEqual(new SqlValidator().validate(coarser.sql, coarser.objectsTouched, 1000), { ok: true });
 });
 
 const domain: DomainSpec = {

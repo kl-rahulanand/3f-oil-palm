@@ -1,0 +1,102 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "golden-provenance",
+  "score": 6,
+  "summary": "quality lens over golden-provenance (14 product path(s), 0cca24b..8585d35, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. VERDICT t-gp-c1: implemented \u2014 backend/src/warehouse/golden-financial.db.test.ts:65 demonstrates the registered six-case frozen-fixture proof and strict loader paths.\nVERDICT t-gp-c2: partial \u2014 backend/src/sql/sqlBuilder.ts:95 projects and threads provenance, but grouping by hidden row-level metadata breaks aggregate result grain, and backend/src/chat/selectionExecutor.ts:242 cannot preserve labels containing commas.",
+  "blocking_findings": [
+    {
+      "category": "regression",
+      "area": "backend/src/sql",
+      "summary": "[P1] Preserve the requested aggregation grain when adding provenance (backend/src/sql/sqlBuilder.ts:95): Adding `source_presence`, component labels, batch IDs, and `month` to `GROUP BY` changes the result grain whenever the caller omits `gl_code` or `month`."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "contract/src/api.ts",
+      "summary": "t-gp-c2: provenance for every governed number carries the measure definition + composed SQL PLUS active source batch ids keyed by (source, period), row-aligned source-presence (matched / budget-only / actual-only, or a set for aggregate rows), and a deterministic set of Budget-Components labels, all captured within the same composed query"
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "[P2] Do not parse component labels with an ambiguous comma delimiter (backend/src/chat/selectionExecutor.ts:242): The adapter's comma-joined array representation is split on every comma, so a valid label such as `Admin, East` is surfaced as two labels (`Admin` and `East`)."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/selectionExecutor.composed.test.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/sql/sqlBuilder.composed.test.ts",
+    "backend/src/sql/sqlBuilder.provenance.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/sql/sqlValidator.composed.test.ts",
+    "backend/src/warehouse/__fixtures__/governed-financial-golden.json",
+    "backend/src/warehouse/composed-relation.db.test.ts",
+    "backend/src/warehouse/golden-financial.db.test.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-gp-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/golden-financial.db.test.ts:65 demonstrates the registered six-case frozen-fixture proof and strict loader paths."
+    },
+    {
+      "contract_id": "t-gp-c2",
+      "verdict": "partial",
+      "evidence": "backend/src/sql/sqlBuilder.ts:95 projects and threads provenance, but grouping by hidden row-level metadata breaks aggregate result grain, and backend/src/chat/selectionExecutor.ts:242 cannot preserve labels containing commas."
+    },
+    {
+      "contract_id": "t-glm-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under gl-month-rollups at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-glm-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under gl-month-rollups at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-glm-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under gl-month-rollups at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-cr-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under composed-relation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-cr-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under composed-relation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-cr-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under composed-relation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-dm-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under governed-domain-measures at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-dm-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under governed-domain-measures at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "0fbee99f689f346c7e80ee3c5f4d56a85fc5592d93193aa71cb9dfcdf08c0fa0",
+  "brief_sha256": "73eb038684ea477c2d13965c85df659a7f366b26416a1d2497b44d4941a5fb6d",
+  "branch_diff_digest": "3392d3374d1cc7bd47ff88624dd5967f84fd10a5fd7198deab31c0572931a564",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T09:54:11+00:00",
+  "commit": "8585d3578b063ae5374726ed354ba2c185a9334e"
+}
