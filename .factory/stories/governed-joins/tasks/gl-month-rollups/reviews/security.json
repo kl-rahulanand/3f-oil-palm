@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "gl-month-rollups",
   "score": 10,
-  "summary": "security lens over gl-month-rollups (7 product path(s), 194d441..f9c6b1d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements read-only rollup views with fixed SQL, applies the intended active-batch and DUB scoping, introduces no endpoint, grant, dependency, dynamic SQL, or credential material, and guards the destructive database proof before migration or truncation. No compatibility wrappers, aliases, deprecated branches, or other prohibited leftovers are present. The provided change evidence shows no actionable P0\u2013P2 security defect.",
+  "summary": "security lens over gl-month-rollups (7 product path(s), 194d441..c881489, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defects are demonstrated by the supplied diff. The change adds no endpoint, grant, credential, or cross-object join; the views constrain data to active batches as required, and the destructive database proof checks for an explicitly local warehouse host before migration or TRUNCATE. No compatibility wrappers, aliases, deprecated branches, or other blocking leftovers are present.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -17,10 +17,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "6e12ac0a0cb3cfa0e3084a5e5449be6f89ae14b52a183b9db51fa1f3f97f2232",
-  "brief_sha256": "af279edd829dc22d55efec00b20d79ba66938f0095790946813a6d8613652acb",
+  "review_run_id": "3bef3e69b10d358b05e17c63d57df9d2be4412cc48a2f16290e2d60e3011598a",
+  "brief_sha256": "03c64d0852be77de38b7603ffdf1a5987ffff60fd36dda924c15b8daff40dc99",
   "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T04:43:35+00:00",
-  "commit": "f9c6b1d5456d07ab8e49109b7f5c86cd09fb0909"
+  "recorded_at": "2026-09-10T04:50:09+00:00",
+  "commit": "c881489a2cb720eb9bb0ac18a1ce6c4e051d80ea"
 }

@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "gl-month-rollups",
   "score": 10,
-  "summary": "quality lens over gl-month-rollups (7 product path(s), 194d441..727b0b9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-glm-c1: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:135 defines the DUB actual rollup and active-budget GL/month rollup\nVERDICT t-glm-c2: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:164 preserves ordered distinct component labels and aggregates rollover_amount without adding a measure\nVERDICT t-glm-c3: implemented \u2014 backend/src/warehouse/gl-month-rollups.db.test.ts:20 proves replacement-batch isolation and that budget reloads leave actuals unchanged\nNo compatibility leftovers are present in the diff. Both views are registered in the schema and migration journal, their SQL shape is covered hermetically, and the DB-backed proof is reachable through the serialized warehouse-proof command.",
+  "summary": "quality lens over gl-month-rollups (7 product path(s), 194d441..c881489, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-glm-c1: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:135 defines the DUB actual rollup, and line 152 defines the active-budget rollup.\nVERDICT t-glm-c2: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:163 deterministically aggregates informational cost-center labels and line 162 carries rollover totals without introducing a measure.\nVERDICT t-glm-c3: implemented \u2014 backend/src/warehouse/gl-month-rollups.db.test.ts:19 exercises prior and replacement batches through IngestionRepository and verifies budget reload isolation from actuals.\nThe views, migration journal entry, hermetic SQL-shape coverage, gated database proof, and serialized proof command are present and reachable. No compatibility leftovers are introduced.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -20,17 +20,17 @@
     {
       "contract_id": "t-glm-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/warehouse-schema.ts:135 defines the DUB actual rollup and active-budget GL/month rollup"
+      "evidence": "backend/src/warehouse/warehouse-schema.ts:135 defines the DUB actual rollup, and line 152 defines the active-budget rollup."
     },
     {
       "contract_id": "t-glm-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/warehouse-schema.ts:164 preserves ordered distinct component labels and aggregates rollover_amount without adding a measure"
+      "evidence": "backend/src/warehouse/warehouse-schema.ts:163 deterministically aggregates informational cost-center labels and line 162 carries rollover totals without introducing a measure."
     },
     {
       "contract_id": "t-glm-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/gl-month-rollups.db.test.ts:20 proves replacement-batch isolation and that budget reloads leave actuals unchanged"
+      "evidence": "backend/src/warehouse/gl-month-rollups.db.test.ts:19 exercises prior and replacement batches through IngestionRepository and verifies budget reload isolation from actuals."
     }
   ],
   "rejected_findings": [
@@ -52,6 +52,6 @@
   "brief_sha256": "03c64d0852be77de38b7603ffdf1a5987ffff60fd36dda924c15b8daff40dc99",
   "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T04:47:04+00:00",
-  "commit": "727b0b9fdd0f67eec604d723152cb4048a1ffb0e"
+  "recorded_at": "2026-09-10T04:50:08+00:00",
+  "commit": "c881489a2cb720eb9bb0ac18a1ce6c4e051d80ea"
 }

@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "gl-month-rollups",
   "score": 10,
-  "summary": "performance lens over gl-month-rollups (7 product path(s), 194d441..f9c6b1d, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The rollup SQL has the required aggregation grain, active-batch filtering, deterministic label set, serialization, and no compatibility leftovers or evident performance defect. However, the explicitly required committed D-0008 execution record and dead-port negative-control evidence are absent, so the proof contract is not complete.",
+  "summary": "performance lens over gl-month-rollups (7 product path(s), 194d441..c881489, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 defect is demonstrated by the bundle. Both views aggregate to the required GL/month grain, restrict processing to active batches, and avoid cross-object fanout. The deterministic label aggregation is required by contract, the migration is journaled, and the destructive database proofs are serialized and locally guarded. No compatibility leftovers are present.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -16,13 +16,6 @@
     "tools/quality-gate.test.mjs"
   ],
   "skills_used": [],
-  "aspect": "performance",
-  "review_run_id": "6e12ac0a0cb3cfa0e3084a5e5449be6f89ae14b52a183b9db51fa1f3f97f2232",
-  "brief_sha256": "af279edd829dc22d55efec00b20d79ba66938f0095790946813a6d8613652acb",
-  "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
-  "residual_risks": [],
-  "recorded_at": "2026-09-10T04:43:35+00:00",
-  "commit": "f9c6b1d5456d07ab8e49109b7f5c86cd09fb0909",
   "rejected_findings": [
     {
       "finding": {
@@ -36,5 +29,12 @@
       "rejected_by": "orchestrator",
       "task_id": "gl-month-rollups"
     }
-  ]
+  ],
+  "aspect": "performance",
+  "review_run_id": "3bef3e69b10d358b05e17c63d57df9d2be4412cc48a2f16290e2d60e3011598a",
+  "brief_sha256": "03c64d0852be77de38b7603ffdf1a5987ffff60fd36dda924c15b8daff40dc99",
+  "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T04:50:08+00:00",
+  "commit": "c881489a2cb720eb9bb0ac18a1ce6c4e051d80ea"
 }
