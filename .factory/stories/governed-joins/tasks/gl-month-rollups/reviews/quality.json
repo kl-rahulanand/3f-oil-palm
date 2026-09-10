@@ -1,0 +1,63 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "gl-month-rollups",
+  "score": 7,
+  "summary": "quality lens over gl-month-rollups (7 product path(s), 194d441..f9c6b1d, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The view definitions, migration, journal registration, deterministic budget labels, rollover aggregation, and serialized DB proof implementation match the requested SQL and test structure. However, the mandatory committed execution record is absent, so the DB-backed proof has not been demonstrated in the submitted change.\nVERDICT t-glm-c1: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:135\nVERDICT t-glm-c2: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:156\nVERDICT t-glm-c3: partial \u2014 backend/src/warehouse/gl-month-rollups.db.test.ts:19",
+  "blocking_findings": [
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/decisions/0004-pulse-governed-joins.md",
+      "summary": "t-glm-c3: a demonstrated warehouse-DB test proves each rollup reflects only the active batch: a retained prior actuals/budget batch does not change the rollup, and a budget reload swaps the active batch without altering actuals"
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse/0002_gl_month_rollups.sql",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/warehouse/gl-month-rollups.db.test.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-glm-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/warehouse-schema.ts:135"
+    },
+    {
+      "contract_id": "t-glm-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/warehouse-schema.ts:156"
+    },
+    {
+      "contract_id": "t-glm-c3",
+      "verdict": "partial",
+      "evidence": "backend/src/warehouse/gl-month-rollups.db.test.ts:19"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "6e12ac0a0cb3cfa0e3084a5e5449be6f89ae14b52a183b9db51fa1f3f97f2232",
+  "brief_sha256": "af279edd829dc22d55efec00b20d79ba66938f0095790946813a6d8613652acb",
+  "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T04:43:35+00:00",
+  "commit": "f9c6b1d5456d07ab8e49109b7f5c86cd09fb0909",
+  "rejected_findings": [
+    {
+      "finding": {
+        "category": "test_gap",
+        "area": "backend",
+        "summary": "[P1] Commit the required host-execution evidence for the new proof (backend/package.json:19): The new `test:warehouse-proof` command is registered, but the change bundle contains no updated `tests.json`."
+      },
+      "reason": "Factually incorrect and contradicts the settled D-0008 model. (1) tests.json IS committed at f9c6b1d with the full host-execution record: 'npm --prefix backend run test:warehouse-proof -> tests 7 / pass 7 / fail 0 / skipped 0' plus a dead-port negative control (fail 2, ECONNREFUSED). The reviewer cannot see it only because the review bundle deliberately excludes .factory bookkeeping ('review tip excludes 9 harness bookkeeping paths; the bundle is the product delta only') - not because it is absent. (2) The runnable command that executes the proof (test:warehouse-proof, serialized) IS in the product delta at backend/package.json, and the gated test is committed and reviewer-visible. (3) The security lens accepted this identical evidence and approved. (4) The story plan Decisions section settles that the DB-backed warehouse proof is DEMONSTRATED HOST EVIDENCE (D-0008), not CI-enforced execution.",
+      "cite": "Decisions",
+      "rejected_at": "2026-09-10T04:45:36+00:00",
+      "rejected_by": "orchestrator",
+      "task_id": "gl-month-rollups"
+    }
+  ]
+}

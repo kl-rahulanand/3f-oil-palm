@@ -1,7 +1,20 @@
-# Branch-wide plan-contract review brief
+# Review brief — gl-month-rollups — performance lens
 
-For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
 
+LENS: PERFORMANCE. Hot paths, algorithmic complexity, query fanout (N+1),
+I/O amplification, memory churn, concurrency bottlenecks, missing pagination or
+bounds, work repeated per request that could be done once. Distinguish measured
+evidence from inference and say which each finding is. Use category `bug` for a
+performance defect that will bite in production and `maintainability` for a cost
+worth reducing.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
 ## Task gl-month-rollups
 
 ### Plan contracts
@@ -53,75 +66,3 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] The D-0008 proof needs a dedicated flag-SETTING script (test:warehouse-proof), not just membership in a suite that leaves WAREHOUSE_DB_TEST unset: Registering the gated reconciliation test in test:db is NOT enough: test:db does not set WAREHOUSE_DB_TEST=1, so the leaf still self-skips there and autoreview reads it as an unrunnable proof. FIX: add a dedicated backend package.json script 'test:warehouse-proof' that itself sets WAREHOUSE_DB_TEST=1 and runs backend/src/warehouse/reconciliation.repository.test.ts (the WAREHOUSE_PG_*/PGHOST/PGPORT connection env is still supplied by the host/operator, NOT hardcoded), and REMOVE the file from test:db (it is a warehouse-DB test, not an app-DB test). Then the registered command actually EXECUTES the proof when run against a warehouse; the pinned host command in tests.json becomes 'WAREHOUSE_PG_*... npm --prefix backend run test:warehouse-proof'. Keep it in test:hermetic too (self-skips there). Still demonstrated-host-evidence (decision 0009/D-0008), NOT CI-enforced.
 - [medium] rejected-review-finding-quality: Not a defect (Decisions): Factually incorrect and contradicts the settled D-0008 model. (1) The claim that the supplied evidence contains no invocation of test:warehouse-proof is false: the committed tests.json commands_run records 'npm --prefix backend run test:warehouse-proof -> tests 4 / pass 4 / fail 0 / skipped 0' (the gated warehouse leaf EXECUTES because the script sets WAREHOUSE_DB_TEST=1) plus a dead-port negative control (fail 1, ECONNREFUSED). Performance and security accepted this same evidence and approved this round. (2) The warehouse proof is committed, reviewer-visible and runnable via the registered test:warehouse-proof script. (3) The story plan Decisions section settles that DB-backed warehouse proofs run as DEMONSTRATED HOST EVIDENCE (docker warehouse, WAREHOUSE_PG_*) per D-0008, NOT inside the enforced hermetic path; demanding a non-skipped enforced execution is CI-enforcement the plan defers. — raised as "[P1] Record an execution of the gated warehouse proof (backend/src/warehouse/reconciliation.repository.test.ts:107): The only recorded execution is `npm run tes"
 - [high] A destructive TRUNCATE in a gated warehouse test must be guarded to loopback-only hosts: The reconciliation D-0008 gated leaf TRUNCATEs ingest_batch + sap_transaction CASCADE on whatever DB WAREHOUSE_PG_* points at. Guard it: BEFORE truncating, assert the warehouse host (WAREHOUSE_PG_HOST) is loopback/local (127.0.0.1, ::1, or localhost) and THROW a clear error refusing to run against a non-local warehouse — so a misconfigured WAREHOUSE_PG_* can never wipe a shared/production warehouse. Also fix the P2: tools/quality-gate.test.mjs wrapping the declared test lists in new Set removes the gate's exactly-one-suite detection (a file registered in two suites is silently deduped) — compare with duplicate detection preserved (e.g. detect duplicates before dedup, or assert no file appears in more than one suite) instead of Set-then-compare.
-
-## Task composed-relation
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-0002 (Financial MIS; Actual = Σ(Debit−Credit)), 0004 (governed joins: correct
-semantics, RBAC across both objects, validator support, golden fixtures, one
-shared definition), 0009 (required_tests name real leaves + pin `TS_NODE_PROJECT`),
-0014 (no mapping master), 0015 (warehouse snake_case), 0016 (governed-joins PoC
-scope: `gl_code+month` within DUB, informational Budget-Components label, deferred
-mapping master + roll-over measure + row-scoping, role-based RBAC, %-nil rule).
-D-0008: the golden-fixture warehouse proof is demonstrated host evidence.
-
-## Task governed-domain-measures
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-0002 (Financial MIS; Actual = Σ(Debit−Credit)), 0004 (governed joins: correct
-semantics, RBAC across both objects, validator support, golden fixtures, one
-shared definition), 0009 (required_tests name real leaves + pin `TS_NODE_PROJECT`),
-0014 (no mapping master), 0015 (warehouse snake_case), 0016 (governed-joins PoC
-scope: `gl_code+month` within DUB, informational Budget-Components label, deferred
-mapping master + roll-over measure + row-scoping, role-based RBAC, %-nil rule).
-D-0008: the golden-fixture warehouse proof is demonstrated host evidence.
-
-## Task golden-provenance
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-0002 (Financial MIS; Actual = Σ(Debit−Credit)), 0004 (governed joins: correct
-semantics, RBAC across both objects, validator support, golden fixtures, one
-shared definition), 0009 (required_tests name real leaves + pin `TS_NODE_PROJECT`),
-0014 (no mapping master), 0015 (warehouse snake_case), 0016 (governed-joins PoC
-scope: `gl_code+month` within DUB, informational Budget-Components label, deferred
-mapping master + roll-over measure + row-scoping, role-based RBAC, %-nil rule).
-D-0008: the golden-fixture warehouse proof is demonstrated host evidence.

@@ -1,0 +1,40 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "gl-month-rollups",
+  "score": 10,
+  "summary": "performance lens over gl-month-rollups (7 product path(s), 194d441..f9c6b1d, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The rollup SQL has the required aggregation grain, active-batch filtering, deterministic label set, serialization, and no compatibility leftovers or evident performance defect. However, the explicitly required committed D-0008 execution record and dead-port negative-control evidence are absent, so the proof contract is not complete.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse/0002_gl_month_rollups.sql",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/warehouse/gl-month-rollups.db.test.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "6e12ac0a0cb3cfa0e3084a5e5449be6f89ae14b52a183b9db51fa1f3f97f2232",
+  "brief_sha256": "af279edd829dc22d55efec00b20d79ba66938f0095790946813a6d8613652acb",
+  "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T04:43:35+00:00",
+  "commit": "f9c6b1d5456d07ab8e49109b7f5c86cd09fb0909",
+  "rejected_findings": [
+    {
+      "finding": {
+        "category": "test_gap",
+        "area": "backend/src/warehouse",
+        "summary": "[P1] Commit the required warehouse-proof execution evidence (backend/src/warehouse/gl-month-rollups.db.test.ts:22): This DB-backed proof is skipped unless WAREHOUSE_DB_TEST=1, but the change bundle contains no committed tests.json update recording the required pinned host execution of test:warehouse-proof or its dead-port negative control."
+      },
+      "reason": "Factually incorrect and contradicts the settled D-0008 model, same as the quality lens. tests.json IS committed at f9c6b1d with the host-execution record (test:warehouse-proof -> tests 7 / pass 7; dead-port negative control fail 2, ECONNREFUSED); the reviewer cannot see it only because the review bundle excludes .factory bookkeeping ('the bundle is the product delta only'). The runnable serialized test:warehouse-proof command IS in the product delta (backend/package.json) and the gated test is committed reviewer-visible; the security lens approved this identical evidence. The story plan Decisions section settles the warehouse proof as demonstrated host evidence (D-0008), not CI-enforced.",
+      "cite": "Decisions",
+      "rejected_at": "2026-09-10T04:45:47+00:00",
+      "rejected_by": "orchestrator",
+      "task_id": "gl-month-rollups"
+    }
+  ]
+}

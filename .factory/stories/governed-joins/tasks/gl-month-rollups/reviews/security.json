@@ -1,0 +1,26 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "gl-month-rollups",
+  "score": 10,
+  "summary": "security lens over gl-month-rollups (7 product path(s), 194d441..f9c6b1d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements read-only rollup views with fixed SQL, applies the intended active-batch and DUB scoping, introduces no endpoint, grant, dependency, dynamic SQL, or credential material, and guards the destructive database proof before migration or truncation. No compatibility wrappers, aliases, deprecated branches, or other prohibited leftovers are present. The provided change evidence shows no actionable P0\u2013P2 security defect.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse/0002_gl_month_rollups.sql",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/warehouse/gl-month-rollups.db.test.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "6e12ac0a0cb3cfa0e3084a5e5449be6f89ae14b52a183b9db51fa1f3f97f2232",
+  "brief_sha256": "af279edd829dc22d55efec00b20d79ba66938f0095790946813a6d8613652acb",
+  "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T04:43:35+00:00",
+  "commit": "f9c6b1d5456d07ab8e49109b7f5c86cd09fb0909"
+}
