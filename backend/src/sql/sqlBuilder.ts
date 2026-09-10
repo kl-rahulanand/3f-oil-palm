@@ -153,11 +153,13 @@ export class SqlBuilder {
   FULL OUTER JOIN budget_src
     ON actual_src.gl_code = budget_src.gl_code AND actual_src.month = budget_src.month
   LEFT JOIN ingest_batch actual_batch
-    ON actual_batch.source_kind = 'actuals'
+    ON actual_src.gl_code IS NOT NULL
+      AND actual_batch.source_kind = 'actuals'
       AND actual_batch.period = COALESCE(actual_src.month, budget_src.month)
       AND actual_batch.is_active
   LEFT JOIN ingest_batch budget_batch
-    ON budget_batch.source_kind = 'budget'
+    ON budget_src.gl_code IS NOT NULL
+      AND budget_batch.source_kind = 'budget'
       AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
       AND budget_batch.is_active
 )`;

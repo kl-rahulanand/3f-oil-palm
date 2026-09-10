@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "golden-provenance",
   "score": 10,
-  "summary": "performance lens over golden-provenance (14 product path(s), 0cca24b..9e2845b, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No P0\u2013P2 performance defect is demonstrated by the supplied diff. Provenance is gathered within the composed query without changing aggregate grain, totals explicitly skip provenance generation, and executor-side collection remains bounded by the query result. The diff also contains no compatibility wrapper, shim, retained alias, deprecated branch, or other blocking leftover.",
+  "summary": "performance lens over golden-provenance (14 product path(s), 0cca24b..5418b03, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance defect is demonstrated by the supplied diff. Provenance is aggregated without forcing month into coarser GROUP BY grains, query-level sets are deduplicated deterministically in the executor, and the secondary totals query disables provenance projection. The diff also contains no compatibility wrapper, shim, retained alias, deprecated branch, or other blocking leftover.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -24,10 +24,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "5a8d1ff7623ce5d249087a3a2a8b8e89374d0eb7e79300754539874f496f1f49",
-  "brief_sha256": "ff4856c715463f906f793433e0c17a0d28b699dc954d0f01b16411c48c96a7b0",
-  "branch_diff_digest": "a6412fceb466ab48e45385fadc44a2c8ad438da61c78e9ab299be77bd936c42d",
+  "review_run_id": "ab5ec148a55adf4fd4e16d351f556881cb1b17a8bef81f031f876a6f0dcf02ee",
+  "brief_sha256": "6c2365d4252d60983a6e90e50450d7c4176ac888567c371b5e6a886d2b82a686",
+  "branch_diff_digest": "2cc7a491b3212a3147704c181ac2862c08ad8bc8a99fcb2d4904f0d5eae5cc80",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T11:36:29+00:00",
-  "commit": "9e2845b0a03caac7fb50f4b6aaa5333b1e696d4e"
+  "recorded_at": "2026-09-10T11:53:52+00:00",
+  "commit": "5418b03da37e68aec73d8b96eef5957e0648c3ab"
 }

@@ -33,6 +33,7 @@ interface GoldenRow {
   percentage: string | null;
   sourcePresence: SourcePresence;
   budgetComponentLabels: string[];
+  activeBatchSources: Array<"actuals" | "budget">;
 }
 
 interface GoldenExpectation {
@@ -59,6 +60,7 @@ test("the golden financial expectation loader rejects malformed money percentage
     { ...valid, matched: { ...valid.matched, actual: "1.2" } },
     { ...valid, matched: { ...valid.matched, percentage: "125%" } },
     { ...valid, matched: { ...valid.matched, budgetComponentLabels: ["Labour", "Admin"] } },
+    { ...valid, matched: { ...valid.matched, activeBatchSources: ["actuals"] } },
     Object.fromEntries(Object.entries(valid).filter(([key]) => key !== "percentageEdges")),
   ]) {
     assert.throws(() => parseGoldenExpectation(JSON.stringify(invalid)), /Invalid golden financial fixture/);
@@ -144,10 +146,12 @@ function assertGoldenFixtureRow(value: unknown): asserts value is GoldenRow {
       "percentage",
       "sourcePresence",
       "budgetComponentLabels",
+      "activeBatchSources",
     ])
   )
     invalidFixture();
   const labels = value.budgetComponentLabels;
+  const sources = value.activeBatchSources;
   if (
     typeof value.glCode !== "string" ||
     !money(value.actual) ||
@@ -156,7 +160,18 @@ function assertGoldenFixtureRow(value: unknown): asserts value is GoldenRow {
     !["matched", "budget-only", "actual-only"].includes(String(value.sourcePresence)) ||
     !Array.isArray(labels) ||
     !labels.every((label) => typeof label === "string") ||
-    !sameStrings(labels, [...new Set(labels)].sort())
+    !sameStrings(labels, [...new Set(labels)].sort()) ||
+    !Array.isArray(sources) ||
+    !sources.every((source) => source === "actuals" || source === "budget") ||
+    !sameStrings(sources, [...new Set(sources)].sort()) ||
+    !sameStrings(
+      sources,
+      value.sourcePresence === "matched"
+        ? ["actuals", "budget"]
+        : value.sourcePresence === "budget-only"
+          ? ["budget"]
+          : ["actuals"],
+    )
   )
     invalidFixture();
 }
@@ -225,7 +240,7 @@ function assertGoldenRow(
       budgetComponentLabels: expected.budgetComponentLabels,
     },
   );
-  assertBatchIds(row.active_batch_ids, actualBatchId, budgetBatchId);
+  assertBatchIds(row.active_batch_ids, expected.activeBatchSources, actualBatchId, budgetBatchId);
 }
 
 interface RawGoldenRow {
@@ -256,14 +271,20 @@ function assertRawRow(rows: RawGoldenRow[], expected: GoldenRow, actualBatchId: 
   assert.ok(row, `missing raw ${expected.glCode}`);
   assert.deepEqual(parseJsonValues(row.budget_component_labels).filter(isString), expected.budgetComponentLabels);
   assert.equal(parseJsonValues(row.source_presence)[0], expected.sourcePresence);
-  assertBatchIds(row.active_batch_ids, actualBatchId, budgetBatchId);
+  assertBatchIds(row.active_batch_ids, expected.activeBatchSources, actualBatchId, budgetBatchId);
 }
 
-function assertBatchIds(value: string | number | null, actualBatchId: string, budgetBatchId: string): void {
-  assert.deepEqual(parseJsonValues(value), [
-    { source: "actuals", period: PERIOD, batchId: actualBatchId },
-    { source: "budget", period: PERIOD, batchId: budgetBatchId },
-  ]);
+function assertBatchIds(
+  value: string | number | null,
+  sources: GoldenRow["activeBatchSources"],
+  actualBatchId: string,
+  budgetBatchId: string,
+): void {
+  const ids = { actuals: actualBatchId, budget: budgetBatchId };
+  assert.deepEqual(
+    parseJsonValues(value),
+    sources.map((source) => ({ source, period: PERIOD, batchId: ids[source] })),
+  );
 }
 
 function parseJsonValues(value: string | number | null): unknown[] {

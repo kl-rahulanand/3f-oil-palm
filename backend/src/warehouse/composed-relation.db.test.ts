@@ -62,10 +62,7 @@ test(
         budget: "300.00",
         source_presence: "budget-only",
         budget_component_labels: ["BUDGET-ONLY"],
-        active_batch_ids: [
-          { source: "actuals", period: PERIOD, batchId: actualBatchId },
-          { source: "budget", period: PERIOD, batchId: budgetBatchId },
-        ],
+        active_batch_ids: [{ source: "budget", period: PERIOD, batchId: budgetBatchId }],
       });
       assert.deepEqual(byGl.get("ACTUAL-ONLY"), {
         gl_code: "ACTUAL-ONLY",
@@ -74,10 +71,7 @@ test(
         budget: "0.00",
         source_presence: "actual-only",
         budget_component_labels: [],
-        active_batch_ids: [
-          { source: "actuals", period: PERIOD, batchId: actualBatchId },
-          { source: "budget", period: PERIOD, batchId: budgetBatchId },
-        ],
+        active_batch_ids: [{ source: "actuals", period: PERIOD, batchId: actualBatchId }],
       });
     } finally {
       await pool.end();

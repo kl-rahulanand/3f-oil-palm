@@ -1,18 +1,13 @@
 {
   "generated_by": "autoreview",
   "task_id": "golden-provenance",
-  "score": 3,
-  "summary": "quality lens over golden-provenance (14 product path(s), 0cca24b..9e2845b, Codex via the autoreview skill at --max-priority P2): 2 blocking, 1 non-blocking. The golden fixture and gated warehouse proof implement the required reconciliation cases. The provenance SQL and executor gathering are substantially present, but C2 remains partial because source presence is accidentally registered as a rendered column, authored-measure sample persistence is not insulated from the new row metadata, and the exported row type cannot represent aggregate presence arrays. No compatibility wrapper, alias, deprecated branch, or other blocking leftover is shown.\nVERDICT t-gp-c1: implemented \u2014 backend/src/warehouse/golden-financial.db.test.ts:70\nVERDICT t-gp-c2: partial \u2014 backend/src/chat/selectionExecutor.ts:137",
+  "score": 7,
+  "summary": "quality lens over golden-provenance (14 product path(s), 0cca24b..5418b03, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. VERDICT t-gp-c1: implemented \u2014 backend/src/warehouse/golden-financial.db.test.ts:68 evidence\nVERDICT t-gp-c2: partial \u2014 backend/src/sql/sqlBuilder.ts:157 evidence\nThe golden fixture and registered proof cover the required cases, but the composed provenance misattributes batches on one-sided rows. No compatibility leftovers are present in the supplied diff.",
   "blocking_findings": [
     {
-      "category": "regression",
-      "area": "backend/src/chat",
-      "summary": "[P1] Keep source presence out of the rendered column list (backend/src/chat/selectionExecutor.ts:137): The composed query returns `source_presence` in `raw.columns`, but the filter hides only `budget_component_labels` and `active_batch_ids`."
-    },
-    {
-      "category": "regression",
-      "area": "backend/src/chat",
-      "summary": "[P1] Strip row provenance before persisting authored-measure samples (backend/src/chat/selectionExecutor.ts:165): This mapping adds `source_presence` to every composed `execution.result.rows` record."
+      "category": "bug",
+      "area": "backend/src/sql",
+      "summary": "[P1] Omit batch IDs for the absent side of one-sided rows (backend/src/sql/sqlBuilder.ts:157): Both batch joins are keyed only by source kind and the coalesced month, so whenever active Actual and Budget batches exist for a period, every row receives both IDs."
     },
     {
       "category": "plan-contract-partial",
@@ -20,13 +15,7 @@
       "summary": "t-gp-c2: provenance for every governed number carries the measure definition + composed SQL PLUS active source batch ids keyed by (source, period), row-aligned source-presence (matched / budget-only / actual-only, or a set for aggregate rows), and a deterministic set of Budget-Components labels, all captured within the same composed query"
     }
   ],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "contract/src",
-      "summary": "[P2] Make aggregate source-presence rows representable by the API type (contract/src/api.ts:148): Intersecting `Record<string, string | number | null>` with a property that may be `SourcePresence[]` is unsound: the string index signature also applies to `source_presence`, so an array-valued aggregate presence is not assignable to this declared row type."
-    }
-  ],
+  "non_blocking_findings": [],
   "recommendation": "request-changes",
   "reviewed_scope": [
     ".prettierignore",
@@ -49,12 +38,12 @@
     {
       "contract_id": "t-gp-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/golden-financial.db.test.ts:70"
+      "evidence": "backend/src/warehouse/golden-financial.db.test.ts:68 evidence"
     },
     {
       "contract_id": "t-gp-c2",
       "verdict": "partial",
-      "evidence": "backend/src/chat/selectionExecutor.ts:137"
+      "evidence": "backend/src/sql/sqlBuilder.ts:157 evidence"
     },
     {
       "contract_id": "t-glm-c1",
@@ -98,10 +87,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "5a8d1ff7623ce5d249087a3a2a8b8e89374d0eb7e79300754539874f496f1f49",
-  "brief_sha256": "ff4856c715463f906f793433e0c17a0d28b699dc954d0f01b16411c48c96a7b0",
-  "branch_diff_digest": "a6412fceb466ab48e45385fadc44a2c8ad438da61c78e9ab299be77bd936c42d",
+  "review_run_id": "ab5ec148a55adf4fd4e16d351f556881cb1b17a8bef81f031f876a6f0dcf02ee",
+  "brief_sha256": "6c2365d4252d60983a6e90e50450d7c4176ac888567c371b5e6a886d2b82a686",
+  "branch_diff_digest": "2cc7a491b3212a3147704c181ac2862c08ad8bc8a99fcb2d4904f0d5eae5cc80",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T11:36:29+00:00",
-  "commit": "9e2845b0a03caac7fb50f4b6aaa5333b1e696d4e"
+  "recorded_at": "2026-09-10T11:53:52+00:00",
+  "commit": "5418b03da37e68aec73d8b96eef5957e0648c3ab"
 }

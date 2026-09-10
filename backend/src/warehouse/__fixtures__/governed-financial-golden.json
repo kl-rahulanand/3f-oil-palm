@@ -5,7 +5,8 @@
     "budget": "200.00",
     "percentage": "0.62500000000000000000",
     "sourcePresence": "matched",
-    "budgetComponentLabels": ["Admin", "Labour"]
+    "budgetComponentLabels": ["Admin", "Labour"],
+    "activeBatchSources": ["actuals", "budget"]
   },
   "budgetOnly": {
     "glCode": "BUDGET-ONLY",
@@ -13,7 +14,8 @@
     "budget": "300.00",
     "percentage": "0.00000000000000000000",
     "sourcePresence": "budget-only",
-    "budgetComponentLabels": ["Budget"]
+    "budgetComponentLabels": ["Budget"],
+    "activeBatchSources": ["budget"]
   },
   "actualOnly": {
     "glCode": "ACTUAL-ONLY",
@@ -21,7 +23,8 @@
     "budget": "0.00",
     "percentage": "over-budget",
     "sourcePresence": "actual-only",
-    "budgetComponentLabels": []
+    "budgetComponentLabels": [],
+    "activeBatchSources": ["actuals"]
   },
   "duplicateNoFanOut": {
     "glCode": "MULTI-COST-CENTRE",
@@ -29,7 +32,8 @@
     "budget": "250.00",
     "percentage": "0.50000000000000000000",
     "sourcePresence": "matched",
-    "budgetComponentLabels": ["Field", "Workshop"]
+    "budgetComponentLabels": ["Field", "Workshop"],
+    "activeBatchSources": ["actuals", "budget"]
   },
   "reloadActiveSwap": {
     "before": {
@@ -38,7 +42,8 @@
       "budget": "200.00",
       "percentage": "0.62500000000000000000",
       "sourcePresence": "matched",
-      "budgetComponentLabels": ["Admin", "Labour"]
+      "budgetComponentLabels": ["Admin", "Labour"],
+      "activeBatchSources": ["actuals", "budget"]
     },
     "after": {
       "glCode": "MATCHED",
@@ -46,7 +51,8 @@
       "budget": "250.00",
       "percentage": "0.50000000000000000000",
       "sourcePresence": "matched",
-      "budgetComponentLabels": ["Admin", "Labour"]
+      "budgetComponentLabels": ["Admin", "Labour"],
+      "activeBatchSources": ["actuals", "budget"]
     }
   },
   "percentageEdges": {
@@ -56,7 +62,8 @@
       "budget": "0.00",
       "percentage": null,
       "sourcePresence": "matched",
-      "budgetComponentLabels": ["Zero"]
+      "budgetComponentLabels": ["Zero"],
+      "activeBatchSources": ["actuals", "budget"]
     },
     "positiveOverBudget": {
       "glCode": "PCT-POSITIVE",
@@ -64,7 +71,8 @@
       "budget": "0.00",
       "percentage": "over-budget",
       "sourcePresence": "actual-only",
-      "budgetComponentLabels": []
+      "budgetComponentLabels": [],
+      "activeBatchSources": ["actuals"]
     },
     "negativeActual": {
       "glCode": "PCT-NEGATIVE",
@@ -72,7 +80,8 @@
       "budget": "0.00",
       "percentage": "credit / negative actual",
       "sourcePresence": "actual-only",
-      "budgetComponentLabels": []
+      "budgetComponentLabels": [],
+      "activeBatchSources": ["actuals"]
     }
   }
 }

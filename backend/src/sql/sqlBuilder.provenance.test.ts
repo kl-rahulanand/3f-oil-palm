@@ -28,7 +28,7 @@ test("the composed relation projects row aligned provenance a source presence ma
   assert.match(built.sql, /FILTER \(WHERE budget_batch_id IS NOT NULL\)\), '\[\]'::jsonb/);
   assert.match(
     built.sql,
-    /LEFT JOIN ingest_batch actual_batch[\s\S]*actual_batch\.source_kind = 'actuals'[\s\S]*LEFT JOIN ingest_batch budget_batch[\s\S]*budget_batch\.source_kind = 'budget'/,
+    /LEFT JOIN ingest_batch actual_batch[\s\S]*actual_src\.gl_code IS NOT NULL[\s\S]*actual_batch\.source_kind = 'actuals'[\s\S]*LEFT JOIN ingest_batch budget_batch[\s\S]*budget_src\.gl_code IS NOT NULL[\s\S]*budget_batch\.source_kind = 'budget'/,
   );
   assert.match(built.sql, /GROUP BY gl_code, month/);
 
