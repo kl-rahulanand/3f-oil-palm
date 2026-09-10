@@ -1,7 +1,5 @@
-export const PLANT_NORMALIZATION: Readonly<Record<string, string>> = {
-  "DUB-NUR": "DUB",
-};
+import { canonicalPlantFromMaster } from "../mapping/mapping-master";
 
 export function canonicalPlant(plant: string): string {
-  return PLANT_NORMALIZATION[plant] ?? plant;
+  return canonicalPlantFromMaster(plant) ?? plant;
 }
