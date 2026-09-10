@@ -79,7 +79,7 @@
         "A selection with no mapping renders zeros + a 'no mapping configured' notice"
       ],
       "order": 4,
-      "status": "pending"
+      "status": "active"
     },
     {
       "key": "mis-statement",
@@ -175,5 +175,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-10T12:21:49+00:00"
+  "updated_at": "2026-09-10T12:38:12+00:00"
 }

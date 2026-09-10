@@ -1,4 +1,4 @@
-# Cold-read grill — gate: requirements — requirements for governed-joins (docs/specs/governed-metrics-and-joins.md)
+# Cold-read grill — gate: requirements — requirements for mis-selection (docs/specs/mis-selection-and-master.md)
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,63 +431,64 @@ These questions were put to the human and answered. Two obligations:
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
 
-## The artifact under interrogation (requirements for governed-joins (docs/specs/governed-metrics-and-joins.md))
+## The artifact under interrogation (requirements for mis-selection (docs/specs/mis-selection-and-master.md))
 
 ---
-slug: governed-metrics-and-joins
-title: Governed metrics & cross-object joins
+slug: mis-selection-and-master
+title: MIS selection & mapping master
 status: confirmed
-saved: 2026-09-01T10:05:46+00:00
+saved: 2026-09-01T10:08:34+00:00
 ---
 
-# Governed metrics & cross-object joins
+# MIS selection & mapping master
 
 ## Why
-3F needs `% = Actual ÷ Budget` where Actual (SAP) and Budget (plan) are separate
-sources, and budgets are revised independently. One governed semantic layer that
-composes measures across those objects (decision 0004) keeps the report,
-drill-down, and assistant on one source of truth with Pulse's trust guarantees.
+Srihari's requirement is a parameterized generator: pick Department → Function →
+Plant and get the right report, driven by a centralized master — never by the
+source file name. The master is the config that resolves which cost centers, GL
+codes, and format apply.
 
 ## Users
-The report, the drill-down, and the assistant — all read through this one layer.
+Any user generating an MIS; (later) an admin who maintains the mapping.
 
 ## Behaviour
-- Define measures **Actual, Budget, Roll-over, %** over the ingested objects,
-  authored **in code** (repo domain files) — the runtime guided builder can't
-  express two-column `SUM(Debit − Credit)`.
-- **Cross-object composition** (Budget ⋈ Actual on Plant + Cost Center + GL +
-  month) is **code-composed and validated**; the LLM only *selects* measures — it
-  never authors SQL and there is no free-form join path.
-- The join is **full-outer, zero-filling the missing side**, so a budget with no
-  actual (and an actual with no budget) both appear.
-- Every number carries **provenance** (measure definition + composed SQL).
+- User selects **Department, Function, Plant, period** (e.g. Agriculture →
+  Nursery → Agri–Nursery–DUB).
+- A centralized **Mapping Master** resolves, for that selection: the applicable
+  **Cost Centers + GL codes** and **which MIS format** to use.
+- Transactions are validated by the composite key **Plant + Cost Center + GL**
+  (the same GL spans Primary/Secondary — Srihari §4).
+- Only the relevant slice is extracted and rendered in that format; combinations
+  with no data still render (zero).
+- Selection **never** depends on the Excel sheet or file name.
 
 ## Confirmed scope (grilled 2026-09-01)
-- **Join type:** full-outer, zero-fill unmatched rows.
-- **Measures authored in code** (not the runtime builder).
-- **RBAC:** the row-scope predicate is injected on **both** objects.
-- **Correctness gate:** golden-answer fixtures required before the capability is
-  "done" (no fan-out / double-counting).
+- **Master table:** build a **provisional** master now, seeded from the SAP
+  Entries Mapping sheet (+ the 7 missing GLs `50001701–706`, `50001905`);
+  reconcile when Srihari sends his definition.
+- **Editing:** maintained as **seed / config** for the PoC; an in-app admin editor
+  is a later phase.
+- **No mapping for a selection:** render an **empty statement (zeros) with a
+  'no mapping configured' notice** (consistent with zero-rows).
 
 ## Rules
-- Decision 0004 (governed joins): correct join semantics, RBAC across both
-  objects, validator support for joins, golden fixtures.
-- One governed definition shared by report + drill-down + assistant (no split-brain).
+- Composite key Plant + Cost Center + GL is mandatory.
+- The Mapping Master is the single source of selection/validation config.
 
 ## Out of scope (now)
-- Arbitrary user- or LLM-authored joins.
+- In-app authoring of the master or of brand-new MIS formats; non-nursery budgets.
 
 ## Acceptance criteria
-- `% = Actual ÷ Budget` computes correctly across the two objects, including
-  zero-filled rows.
-- The governed-join golden fixture passes; no double-counting.
-- RBAC scoping holds on joined queries (both sides scoped).
+- Selecting Agriculture/Nursery/DUB returns exactly the DUB nursery slice.
+- Renaming the source file does not change the output.
+- A selection with no mapping renders zeros + the notice (no crash).
 
 ## Open items (non-blocking)
-- Roll-over measure definition (pending Srihari's roll-over rule).
+- Srihari's authoritative **Master Table** structure — reconcile the provisional
+  master against it (`docs/context/2026-09-01-srihari-requirements-qa.md` §6).
 
 ## Source
-Decision 0004; Pulse `backend/src/sql/*`, `core/rbac.service.ts`.
+Decisions 0002, 0003; `docs/context/2026-09-01-srihari-requirements-qa.md` (§4–6).
 
 
 ## What to return

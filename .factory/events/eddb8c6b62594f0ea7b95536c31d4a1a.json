@@ -1,0 +1,1 @@
+{"event": "signal-escalated", "generated_by": "orchestrator", "at": "2026-09-10T12:52:25+00:00", "story": "mis-selection", "detail": "mis-selection: how composite-key (Plant + Cost Center + GL) selection feeds the governed (gl_code, month) roll-up shipped in governed-joins \u2014 nobody has decided whether the composed relation's Actual "}
