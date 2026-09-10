@@ -1,0 +1,104 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "mapping-master",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "mapping-master authors the versioned Mapping Master as a COMPILED TypeScript const: one selection record (Agriculture/Nursery/DUB) owning the SAP and display aliases, the Financial-MIS format id and the Budget GL coverage set, plus entry records mapping (cost_center, gl_code) to a mis_line taken verbatim from Sheet1's 'Revised GL name'. The nine unresolved DUB triples get explicit unmapped-GL entries with reasons, so 66 mapped + 22 bucketed = 88. A strict validator rejects malformed masters, duplicate selection keys, duplicate entries within a selection, aliases reused across selections and reason-less provisional entries; the module exports the one normalized-triple lookup that both canonicalPlant() and the gated proof call. Ingestion's hard-coded alias table is derived from the master instead. Proven by three hermetic tests (validation + bucket/cardinality + source-mutation independence) and a gated D-0008 proof that ingests the real SAP workbook and asserts every DUB triple resolves exactly once.",
+  "inspected_refs": [
+    "docs/specs/mis-selection-and-master.md",
+    "docs/specs/financial-mis-statement.md",
+    "docs/decisions/0016-governed-joins-poc-scope.md",
+    "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
+    "backend/src/ingest/plant-mapping.ts",
+    "backend/src/ingest/sap-actuals.parser.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/semantic/semanticLayer.ts",
+    "backend/src/warehouse/reconciliation.repository.ts",
+    "backend/src/warehouse/golden-financial.db.test.ts",
+    "backend/package.json",
+    "constitution/03-modular-monolith-structure.md",
+    "constitution/pnp-coding-standards-modular-monolith.md",
+    "docs/context/2026-08-20-srihari-phase1-data/README.md"
+  ],
+  "new_abstractions": [
+    "a compiled TypeScript Mapping Master const with selection records (aliases + format + Budget GL set) and entry records (cost_center+gl -> mis_line, provisional + reason)",
+    "a strict validator whose rejections (duplicate selection key, duplicate entry, alias reuse, reason-less provisional) are what make 'exactly once / no fan-out' true",
+    "one exported normalized-triple lookup shared by canonicalPlant() and the gated completeness proof",
+    "a GL-only Budget coverage set so the bucket mirrors onto Budget without inventing a cost-centre key"
+  ],
+  "criteria_map": {
+    "a versioned repo-owned Mapping Master holds selection records keyed by department, function and canonical plant that own the plant aliases and the MIS format, plus entry records mapping cost centre and GL code to an MIS line with a provisional flag and a reason, and a strict loader rejects a malformed master or a duplicate selection key so resolution is deterministic; the Excel workbooks are seed evidence recorded as a source provenance string and are never runtime input, so renaming a source file cannot change the output": "KEEP (amended). The master is a COMPILED TypeScript const (not runtime-loaded JSON), with selection records keyed by department+function+canonical plant owning the aliases, mis_format and the Budget GL coverage set, and entry records mapping cost_center+gl_code to a mis_line with provisional and reason. The validator rejects a duplicate selection key, a duplicate entry within a selection, an alias reused across selections, and a reason-less provisional entry, and filename independence is falsified by a source-mutation test.",
+    "the nine unresolved DUB composite-key triples map to the reserved unmapped-GL line flagged provisional with a reason, and a fixture proves every DUB raw plant cost-centre GL triple resolves exactly once with 66 mapped plus 22 bucketed equal to the full 88 rows and no fan-out": "KEEP (amended). The nine unresolved triples map to the reserved unmapped-GL line with a reason; the exact triple->line mapping is FROZEN so cardinality alone cannot pass; and the D-0008 proof CALLS the module's exported lookup (never reimplementing resolution) to assert every ingested DUB triple resolves exactly once, 66 + 22 = 88.",
+    "plant alias authority lives in the master so the canonical plant, the SAP alias and the display alias all resolve from it and no hard-coded alias table remains in ingestion": "KEEP. canonicalPlant() keeps its export and ingest call site but derives its table from the master, so there is exactly one alias authority and the dependent migrate/gated-db tests keep working unchanged."
+  },
+  "gaps": [
+    "Deterministic resolution was not fully specified: the loader rejected only duplicate selection keys, not a duplicate cost-centre/GL entry within a selection nor an alias reused across selections, either of which yields two matching entries or two canonical plants and violates 'exactly once / no fan-out'; and the contract never named the internal normalized-triple lookup the DB proof must call, inviting the test to reimplement resolution.",
+    "The actual provisional master data remained guesswork: Department, Function, mis_format and mis_line were only called 'authored', with no pinned values and no frozen triple-to-line mapping, so a fixture could satisfy the 28-triple cardinality test while assigning valid triples to wrong or identical MIS lines and breaking the future statement.",
+    "The approved 'mirror the bucket for Budget' decision had no model or task owner: this task modelled only (cost_center, gl_code) entries and proved only SAP Actual triples, but Budget has neither SAP plant nor SAP cost centre - its cost_center is an informational Budget-Components label - so task 2 could not derive the rule safely while keeping the master the single authority.",
+    "Production loading of the master was unspecified: the plan directed a JSON.parse fixture-style loader under backend/src while production starts node dist/main.js, so a ts-node-only implementation could pass every planned check and fail at app boot.",
+    "C1's filename independence was never falsified: neither required leaf proved that changing only the provenance source leaves resolution unchanged, so an implementation that consulted the workbook name could still pass.",
+    "reviewer_focus failed the JIT handoff contract: it gave detailed bespoke instructions but cited no load-bearing constitution references for a NEW backend module."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "The validator now rejects a malformed master, a duplicate selection key, a duplicate (cost_center, gl_code) within one selection, an alias reused across selections, and a provisional entry with no reason. The module EXPORTS the canonical normalized-triple lookup and the D-0008 proof CALLS that export rather than reimplementing resolution.",
+    "Pinned: one selection - Department=Agriculture, Function=Nursery, plant_canonical=DUB, aliases SAP 'DUB-NUR' + display 'Agri - Nursery - DUB', mis_format = the Financial-MIS (Table-2) identifier. HUMAN-decided (round): each resolved triple's mis_line is Sheet1's 'Revised GL name' copied VERBATIM and frozen - the only line-like label the source provides, so nothing is invented. Nursery MIS Format.xlsx is explicitly NOT a source for lines: its format sheet is Table-1 (Operational MIS), which the statement spec puts out of scope. The whole master is provisional; the exact triple->line mapping is frozen and asserted so cardinality alone cannot pass.",
+    "Modelled HERE as a GL-ONLY Budget coverage set on the SELECTION record: the master declares the resolved Budget GL set and a budget GL outside it resolves to the unmapped-GL bucket. Cost centre is never part of the Budget key (0016: mis_budget.cost_center is an informational Budget-Components label). Task 2 APPLIES the rule; the master remains the single authority.",
+    "The master is authored as a COMPILED TypeScript const (backend/src/mapping/mis-mapping-master.ts) - the established runtime precedent (migrate.ts baseRolePerms, semanticLayer.ts baseDomains) - so it compiles into dist with zero runtime file IO and no asset copying. The frozen-JSON + loader shape is retained only for TEST expectations, and manual verification loads the master from the COMPILED output.",
+    "Added a third required test: mutating the source provenance string leaves every triple resolving to the same MIS line and the same bucket outcome (and it also covers the duplicate-entry and alias-reuse rejections).",
+    "reviewer_focus now opens with the load-bearing standards - constitution/03-modular-monolith-structure.md and pnp-coding-standards-modular-monolith.md for the new backend/src/mapping module, and 07-exception-handling.md for the validator's one-clear-typed-error failure mode - then states only the mapping-specific seams."
+  ],
+  "open_items": [
+    "Reconciling the provisional master against Srihari's authoritative Master Table remains the spec's open item; the bucket contents are the artifact that drives it.",
+    "Applying the Budget GL coverage rule and the FY-YTD derivation belong to task 2; the MIS Reports page to task 3."
+  ],
+  "rounds": [
+    {
+      "question": "mapping-master grill (blocker): the master must give each resolved triple an MIS line, but nothing states it mechanically. Sheet1 has only Plant, Cost Center, GL code and 'Revised GL name' \u2014 no S.No or line id \u2014 and Nursery MIS Format.xlsx's format sheet turns out to be Table-1 (Operational MIS), which the statement spec puts out of scope (Table-2 Financial MIS only). Without pinning this, a fixture could satisfy the 28-triple count while assigning triples to wrong or identical lines, breaking the future statement. What identifies an MIS line for the 66 resolved triples?",
+      "options": [
+        "Sheet1's 'Revised GL name' verbatim (Rec.)",
+        "Budget Components label",
+        "Defer line identity to mis-statement"
+      ],
+      "chosen": "Sheet1's 'Revised GL name' verbatim (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "Deterministic resolution was not fully specified: the loader rejected only duplicate selection keys, not a duplicate cost-centre/GL entry within a selection nor an alias reused across selections, either of which yields two matching entries or two canonical plants and violates 'exactly once / no fan-out'; and the contract never named the internal normalized-triple lookup the DB proof must call, inviting the test to reimplement resolution.",
+      "source": ".factory/stories/mis-selection/task-plans/mapping-master.md"
+    },
+    {
+      "finding": "The actual provisional master data remained guesswork: Department, Function, mis_format and mis_line were only called 'authored', with no pinned values and no frozen triple-to-line mapping, so a fixture could satisfy the 28-triple cardinality test while assigning valid triples to wrong or identical MIS lines and breaking the future statement.",
+      "source": "docs/specs/mis-selection-and-master.md:20; docs/specs/financial-mis-statement.md"
+    },
+    {
+      "finding": "The approved 'mirror the bucket for Budget' decision had no model or task owner: this task modelled only (cost_center, gl_code) entries and proved only SAP Actual triples, but Budget has neither SAP plant nor SAP cost centre - its cost_center is an informational Budget-Components label - so task 2 could not derive the rule safely while keeping the master the single authority.",
+      "source": "docs/decisions/0016-governed-joins-poc-scope.md:13"
+    },
+    {
+      "finding": "Production loading of the master was unspecified: the plan directed a JSON.parse fixture-style loader under backend/src while production starts node dist/main.js, so a ts-node-only implementation could pass every planned check and fail at app boot.",
+      "source": "backend/package.json:7; backend/src/db/migrate.ts:18"
+    },
+    {
+      "finding": "C1's filename independence was never falsified: neither required leaf proved that changing only the provenance source leaves resolution unchanged, so an implementation that consulted the workbook name could still pass.",
+      "source": ".factory/stories/mis-selection/decomposition.json"
+    },
+    {
+      "finding": "reviewer_focus failed the JIT handoff contract: it gave detailed bespoke instructions but cited no load-bearing constitution references for a NEW backend module.",
+      "source": "factory/prompts/decomposer.md:128; constitution/03-modular-monolith-structure.md"
+    }
+  ],
+  "summary": "One cold read returned six gaps - three blocking. Five are repository/decision-answerable and resolved in the amended contract + plan: the validator now also rejects duplicate entries within a selection and aliases reused across selections, and the module exports the single normalized-triple lookup the D-0008 proof must call so the proof cannot be circular; the Budget half of the approved bucket decision is modelled here as a GL-only coverage set on the selection record, since Budget has no SAP cost centre (0016); the master becomes a COMPILED TypeScript const rather than a runtime-parsed JSON file, removing a real fail-at-boot risk; a third required test falsifies filename independence by mutating the source provenance; and reviewer_focus now cites the modular-monolith and exception-handling standards for the new module. One was a genuine content decision put to the human: each resolved triple's MIS line is Sheet1's 'Revised GL name' verbatim and frozen - the only line-like label the source provides - because Nursery MIS Format.xlsx's format sheet is Table-1 (Operational MIS), which the statement spec puts out of scope. Verdict pass.",
+  "input_sha256": "39d656348f30836dcfefcb55f5032da67a9e1f6083b24d32fb5854485522ac89",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "e14ffa1180a544d6cc3d1d517429c3f70667eb3b2d500fc67e605bec5b6cdc81",
+  "recorded_at": "2026-09-10T14:02:00+00:00",
+  "commit": "70a770ee72165f26727ca97d93d8bd07159fdcf3",
+  "approved_task_plan_sha256": "e14ffa1180a544d6cc3d1d517429c3f70667eb3b2d500fc67e605bec5b6cdc81",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-10T14:07:14+00:00"
+}
