@@ -1,0 +1,65 @@
+{
+  "issue": "governed-joins",
+  "story": "governed-joins",
+  "tasks": [
+    {
+      "id": "gl-month-rollups",
+      "title": "GL+month active rollups for Actual (DUB) and Budget",
+      "objective": "Reduce both sides to one active row per (gl_code, month) BEFORE any join, so the later cross-object composition cannot fan out.",
+      "acceptance_criteria": [
+        "a reproducible warehouse rollup reduces DUB actuals to (gl_code, month) as SUM(actual_net) over cost centres (WHERE plant='DUB'), and an active-budget rollup reduces the ACTIVE budget batch to (gl_code, month) as SUM(budget_amount)::numeric(18,2) with period aliased to month, each reflecting ONLY the active batch",
+        "the budget rollup preserves the set of cost_center (Budget Components) labels per (gl_code, month) key as informational (never a join key), and carries raw rollover_amount untouched with no measure",
+        "a demonstrated warehouse-DB test proves each rollup reflects only the active batch: a retained prior actuals/budget batch does not change the rollup, and a budget reload swaps the active batch without altering actuals"
+      ],
+      "dependencies": [],
+      "user_facing": false
+    },
+    {
+      "id": "composed-relation",
+      "title": "Closed, typed, code-composed Budget\u22c8Actual relation with two-sided scope",
+      "objective": "Provide ONE governed financial gold relation that full-outer-joins the two GL+month rollups with zero-fill, serves every gold-object consumer, and enforces role-based access with the scope predicate inside both source CTEs.",
+      "acceptance_criteria": [
+        "a single closed, typed code-composed financial relation full-outer-joins the two GL+month rollups on (gl_code, month) with COALESCE zero-fill (a Budget-only key and an Actual-only key both appear), replacing the SQL builder's multi-gold-object rejection; it lists every physical object in objectsTouched for the validator allow-list and provides relation semantics to freshness, dimension enumeration, RBAC scope validation and reconciliation",
+        "a governed-financial read action is required at the shared SelectionExecutor execution boundary together with the domain and Actual/Budget/% grants, and the row-scope predicate is injected INSIDE each source CTE before the join (Actual by plant, Budget by its trusted derived constant DUB); a denial case and a predicate-placement test are included",
+        "a demonstrated warehouse-DB test proves the composed relation zero-fills correctly and does NOT fan out: a GL with multiple actual cost centres does not repeat Budget, and totals are exact"
+      ],
+      "dependencies": [
+        "gl-month-rollups"
+      ],
+      "user_facing": false
+    },
+    {
+      "id": "governed-domain-measures",
+      "title": "Code-authored Actual / Budget / % measures over the composed relation",
+      "objective": "Author the governed financial domain and its measures in code so report, drill-down and assistant share one definition; the LLM only selects measures.",
+      "acceptance_criteria": [
+        "a code-authored financial DomainSpec and Actual (SUM(Debit-Credit)), Budget (SUM(budget_amount)) and % MeasureSpecs are registered in semanticLayer baseDomains over the composed relation; two-column expressions are code-authored (not the runtime builder), and the LLM/runtime never authors the SQL",
+        "% follows the full nil rule: 0/0 -> NA/blank; Actual>0,Budget=0 -> over-budget (no %); Actual<0,Budget=0 -> credit / negative actual (no %); i.e. no percentage for any non-zero Actual against zero Budget, with the positive/negative labels distinguished"
+      ],
+      "dependencies": [
+        "composed-relation"
+      ],
+      "user_facing": false
+    },
+    {
+      "id": "golden-provenance",
+      "title": "Golden-answer fixtures (no fan-out) + provenance lineage",
+      "objective": "Gate correctness with exact golden fixtures and make every governed number reproducible and explainable.",
+      "acceptance_criteria": [
+        "a golden-answer reconciliation fixture asserts EXACT expected values for matched, Budget-only (zero-filled), Actual-only (zero-filled), duplicate/multi-cost-centre (no fan-out), reload/active-swap (answer unchanged, actuals untouched), and %-edge (0/0 NA, positive over-budget, negative credit/negative-actual) cases, as demonstrated host evidence (D-0008)",
+        "provenance for every governed number carries the measure definition + composed SQL PLUS active source batch ids keyed by (source, period), row-aligned source-presence (matched / budget-only / actual-only, or a set for aggregate rows), and a deterministic set of Budget-Components labels, all captured within the same composed query"
+      ],
+      "dependencies": [
+        "governed-domain-measures"
+      ],
+      "user_facing": false
+    }
+  ],
+  "generated_by": "docs-decomposer",
+  "user_facing": false,
+  "project": "3oilpalm",
+  "epic": "data-foundation",
+  "plan_file": "plans/active/governed-joins-financial-semantic-layer-governed-joins.md",
+  "plan_sha256": "d2e0e7cce72ad535214615da07715538e2cf545e049ba758a1067287856b49d6",
+  "commit": "f88297d428efbac42a34ed5a9aefe6975138d204"
+}

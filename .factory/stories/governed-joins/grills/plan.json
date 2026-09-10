@@ -104,7 +104,7 @@
     }
   ],
   "summary": "One cold read returned nine blocking plan gaps. Eight are repository/decision/spec-answerable and resolved in the amended plan: the fan-out fix (reduce DUB actuals to gl_code+month before the join); a single closed typed code-composed financial relation registry serving every gold-object consumer; a governed-financial read action with the scope predicate injected inside both source CTEs; provenance keyed by (source,period) with row-aligned source-presence + label sets captured in-query; explicit Roll-over-measure deferral with the raw column kept; preserved Budget-Components labels; a falsifiable one-task D-0008 proof (flag-setting runnable script + loopback/dead-port control + registry updates); and the save-blocking structure (decisions_reviewed, classified Surface Impact, per-task user_facing, corrected executor path). One was a genuine spec-uncovered display decision put to the human: a negative Actual against zero Budget shows no percentage and is labelled 'credit / negative actual'. Verdict pass.",
-  "input_sha256": "4704ff66f1148cbb2a74711611002b995eec40511563c108b269f01eba676b13",
-  "recorded_at": "2026-09-10T02:50:40+00:00",
-  "commit": "886e7a2bec3298ea41eb011b69ae63836a07e2f6"
+  "input_sha256": "d2e0e7cce72ad535214615da07715538e2cf545e049ba758a1067287856b49d6",
+  "recorded_at": "2026-09-10T02:52:27+00:00",
+  "commit": "f88297d428efbac42a34ed5a9aefe6975138d204"
 }

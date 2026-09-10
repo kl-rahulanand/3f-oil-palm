@@ -89,7 +89,7 @@
     }
   ],
   "summary": "One cold read returned six blocking requirement gaps. Four are repository/decision/spec-answerable and resolved: an active-budget rollup so retained batches never double-count; roll-over deferred per the spec's open item and the %-divide-by-zero rule adopted from the statement spec; a falsifiable golden-fixture set (matched, one-sided, duplicate-no-fan-out, reload, %-edges); and provenance carrying both active batch ids + per-row source-presence. Two were genuine product/policy decisions put to the human: the join key/mapping bridge (PoC-join on gl_code + month within DUB, the Budget-Components label kept informational, the mapping master deferred per 0014) and the read-RBAC model (role-based all-or-nothing, predicate still on both sides, row-scoping deferred). Verdict pass.",
-  "input_sha256": "73579705b8633588be4ece48bfcef567af528a9059c1d670c4f6b27a88be2427",
-  "recorded_at": "2026-09-10T02:28:05+00:00",
-  "commit": "886e7a2bec3298ea41eb011b69ae63836a07e2f6"
+  "input_sha256": "52fd1774fd8bd27b3ecc378ef98a92b01ff471c64451ada1ab5ba9822eca8037",
+  "recorded_at": "2026-09-10T02:52:10+00:00",
+  "commit": "f88297d428efbac42a34ed5a9aefe6975138d204"
 }
