@@ -2,50 +2,5 @@
   "id": "mapping-master",
   "title": "Versioned Mapping Master + unmapped-GL bucket",
   "status": "done",
-  "started_at": "2026-09-10T14:07:37+00:00",
-  "base_sha": "2f420bd94750e37359c9c74b73f2548ce0da82f1",
-  "dirty_at_start": {
-    ".factory/stories/mis-selection/decomposition.json": {
-      "digest": "08fc20731a300dccdf9645348e54ba77b1918c8ca69b8518cc92ae8ddd2e3c95",
-      "git": "? .factory/stories/mis-selection/decomposition.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/mis-selection/grills/tasks/mapping-master.json": {
-      "digest": "750ebee47ce311baa337a7e3ecb089625b1060add2bde76822e4f51a4ff45812",
-      "git": "? .factory/stories/mis-selection/grills/tasks/mapping-master.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/mis-selection/task-plans/mapping-master.md": {
-      "digest": "7e59c4dccbf0558ae475817f551c33f9cf9164dcc791499d9a5c585b84381735",
-      "git": "? .factory/stories/mis-selection/task-plans/mapping-master.md\u0000\u0000\u0000"
-    },
-    "plans/active/mis-selection-selection-mapping-master.md": {
-      "digest": "00e978fca161147a9d9a020fe015c953e329a996827ca90552978d964b81970b",
-      "git": "? plans/active/mis-selection-selection-mapping-master.md\u0000\u0000\u0000"
-    }
-  },
-  "task_sha256": "9e0832069ce89f870b41528d5f492d8602949a1154dc8c5854e2816e8c3798be",
-  "local_review_stamp": {
-    "stage_id": "mapping-master",
-    "task_sha256": "9e0832069ce89f870b41528d5f492d8602949a1154dc8c5854e2816e8c3798be",
-    "brief_sha256": "a2ce9b8b9744627dc25d97159befb75452ad0ea9b3675fc004bcd15fd8dfd6e1",
-    "base_sha": "2f420bd94750e37359c9c74b73f2548ce0da82f1",
-    "product_tree_digest": "2522fa4a2248dd07036382da29f4b0d6bafac113383639c5adcc1f3bdcfa14d4",
-    "recorded_at": "2026-09-10T14:37:05+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-10T14:37:53+00:00",
-  "measured": {
-    "strays": [],
-    "files": 7,
-    "lines": 478,
-    "budget": {
-      "files": 9,
-      "lines": 1100
-    },
-    "test_id_misses": []
-  }
+  "task_sha256": "9e0832069ce89f870b41528d5f492d8602949a1154dc8c5854e2816e8c3798be"
 }

@@ -4,7 +4,8 @@
     {
       "id": "mapping-master",
       "title": "Versioned Mapping Master + unmapped-GL bucket",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "9e0832069ce89f870b41528d5f492d8602949a1154dc8c5854e2816e8c3798be"
     },
     {
       "id": "selection-resolution",
