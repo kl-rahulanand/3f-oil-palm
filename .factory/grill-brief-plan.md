@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft sap-plan.md
+# Cold-read grill — gate: plan — plan draft gj-plan.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -254,8 +254,12 @@ Five gates, five scopes:
   is the hard refusal point. Interrogate the next leaf task's just-authored
   contract in the re-recorded decomposition against the approved story plan,
   active decisions, and the actual repository state left by completed prior
-  stages. Hunt: assumed files or APIs that prior work did not produce, stale
-  or over-broad `write_scope`, acceptance criteria not served by the proposed
+  stages. Hunt: assumed files or APIs that prior work did not produce, a
+  `write_scope` whose AREAS miss where the work must land or reach into areas
+  the task has no business in (scope is directory prefixes plus named new
+  files — a missing existing file under a declared prefix, a drifted line
+  number or a renamed module is a NON-BLOCKING note, never a blocking finding;
+  `stage done` measures the exact paths), acceptance criteria not served by the proposed
   work, a task that OWNS a plan `## Surface Impact` surface but whose
   `write_scope`/`required_tests` do not actually PRODUCE it (owns the API row but
   builds only domain services with no HTTP controllers/DTOs/routes; owns the UI
@@ -426,109 +430,163 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: The SAP workbook is company-wide (31 plants), but the PoC is Nursery/DUB for July. What should ingestion persist and reconcile?
-  A: Full July batch; only DUB reportable (Rec.)
-- Q: When a current-scope DUB SAP row lacks a mapping (the 7 missing GLs / contradictory cost-centers), what happens?
-  A: Reject period as unreconciled; never drop (Rec.)
-- Q: Budget is MIS-format-line based but must join Actuals on (Plant,CostCenter,GL,month). How to handle the grain + revisions?
-  A: Balanced allocation; atomic budget replace (Rec.)
-- Q: 'Retain raw transaction lines' — what identity + replacement semantics for auditability?
-  A: Full fields + immutable batch; replace = new batch (Rec.)
-- Q: The acceptance criterion uses '≈ ₹1,15,12,712'. What exactly must reconcile, and how exactly?
-  A: Exact ₹11,512,712 across raw+gold+statement (Rec.)
-- Q: The spec says 'Excel upload' with no format/failure contract. How strict should ingestion be?
-  A: Header-identified, single-month, validate-before-write (Rec.)
-- Q: Who may upload/replace financial periods? The spec only says 'operator'.
-  A: Restricted role + full audit (Rec.)
+- Q: governed-joins requirements grill (Finding 1 — the foundational one): mis_budget has NO plant and its cost_center is the MIS 'Budget Components' label, not a SAP cost center, so it can't join Actuals on Plant+CostCenter+GL+month. Decision 0014 deferred the Budget-label→cost-center mapping master to THIS story. How should the Budget⋈Actual join key be defined for the PoC?
+  A: PoC-join on GL + month, single plant DUB (Rec.)
+- Q: governed-joins RBAC (Finding 4): the spec says inject the row-scope predicate on BOTH objects for the full-outer join. For this PoC, what is the read-side RBAC model — which determines whether asymmetric one-sided visibility (user can see Actual but not Budget for a key) can even occur and needs a concrete zero-fill-vs-conceal policy + denial fixtures?
+  A: Role-based all-or-nothing (Rec.)
 
-## The artifact under interrogation (plan draft sap-plan.md)
+## The artifact under interrogation (plan draft gj-plan.md)
 
-# Story plan — sap-ingestion (Ingest SAP actuals + budgets)
+# Story plan — governed-joins: Financial semantic layer + governed joins
 
-## Context
-Bring SAP GL actuals and the MIS budget plan into the **separate warehouse Postgres**
-(`WAREHOUSE_PG_*`) so the later statement, drill-down, and metrics stories can query them. Today the
-warehouse adapter (`backend/src/warehouse/postgres.adapter.ts`) is **read-only/EXPLAIN-guarded** —
-there is no ingest path, no SAP tables, no Excel parsing, and no mapping master. This story builds
-them for the PoC pilot (Nursery/`DUB`, July 2026). Backend-only; no user-facing UI.
+Story: governed-joins · Epic: data-foundation · user_facing: false (a backend
+capability the report / drill-down / assistant stories consume)
 
-Grounded in: `docs/architecture/{20-financial-mis-data-model,30-financial-mis-build-plan}.md`,
-decisions **0002** (MIS from SAP alone; Actual = Σ(Debit−Credit); budgets from planning input) and
-**0004** (Budget and Actual stay SEPARATE, joined at query time — NO pre-join in ingestion).
+## Problem
+3F needs `% = Actual ÷ Budget` where Actual (SAP) and Budget (MIS plan) are
+separate, independently-revised objects. Decision 0004 requires ONE governed
+semantic layer that composes measures across those objects so the report,
+drill-down, and assistant read one source of truth with Pulse's trust guarantees.
+Today none of that machinery is populated: the code-authored measure domains are
+empty (`backend/src/semantic/semanticLayer.ts:11` `baseDomains = []`), and the SQL
+builder explicitly **rejects** cross-object composition
+(`backend/src/sql/sqlBuilder.ts:29-32` throws "cross-object composition not
+implemented in scaffold"). sap-ingestion landed the two objects
+(`actual_by_key_month`, `mis_budget`) but deferred the Budget↔Actual bridge here.
 
-## Requirements decisions (from the recorded requirements grill — these BIND the tasks)
-1. **Upload scope:** accept + retain the FULL July source batch (all 31 plants); only canonical
-   Nursery `DUB` (`DUB-NUR` in SAP) is reportable/reconcilable in the PoC; other plants
-   retained-but-unconfigured.
-2. **Unmapped rows:** retain the raw row + original keys, but REJECT the DUB period as *unreconciled*
-   if any in-scope DUB transaction lacks a single provisional mapping (surface count + value); never
-   silently drop or zero it.
-3. **Budget grain/lifecycle:** the provisional mapping master holds an explicit **balanced
-   allocation** from each MIS budget line to its `(plant,cost_center,gl,month)` join keys (each
-   allocation totals back to its source line); budget uploads replace only their
-   `(format, canonical plant, period)` atomically and never mutate Actuals; rollover retained but not
-   published until its rule is confirmed.
-4. **Raw-line identity/replacement:** retain all source + drill fields + original AND canonical keys +
-   txn-no/line-id identity + immutable batch metadata; a re-upload creates a NEW batch and switches
-   the active batch for the period — never erases the prior load record.
-5. **Reconciliation bar:** demo-ready = EXACT `₹11,512,712` for July 2026 DUB across accepted raw
-   rows, the monthly gold rollup, AND the scoped total; Srihari's later filled July MIS is a separate,
-   later validation comparator.
-6. **Excel acceptance:** identify the input sheet by its required HEADER set (not its file/sheet
-   name); require a single posting month per batch; validate ALL rows before writing; reject
-   invalid/mixed-period files with row-level diagnostics and NO change to the active batch.
-7. **Upload authorization/audit:** restrict uploads + period replacement to a configured
-   data-owner/ingestion-operator role (a new RBAC action grant); audit uploader, time, source batch,
-   validation result, reconciliation result, and the replaced active batch.
+## Scope / Non-goals
+**In scope:** a code-authored governed financial domain with **Actual, Budget, %**
+measures; an **active-budget rollup** so retained batches never double-count; a
+**code-composed, validated full-outer, zero-filled Budget⋈Actual join** on
+`(gl_code, month)` within the single plant DUB; **role-based** RBAC with the scope
+predicate injected on both objects; **golden-answer fixtures** proving no fan-out;
+and **provenance** that carries both active source batch ids + per-row
+source-presence. One governed definition, shared by all three consumers.
 
-## Target warehouse schema (per architecture 30-...:70-84)
-- `sap_transaction` — raw lines: `txn_no, line_id, posting_date, month, plant (canonical), plant_src,
-  cost_center, gl_code, acct_name, debit, credit, memo, reference, source_batch` (+ batch metadata).
-- `actual_by_key_month` — gold view/matview: `Σ(debit − credit)` grouped by
-  `(plant, cost_center, gl_code, month)`; one definition reused downstream.
-- `mis_mapping_master` — `(plant, cost_center, gl_code) → budget_component, department, function,
-  format_id, …` + the balanced budget-line→key allocation.
-- `mis_format` / `mis_format_line` / `mis_budget` — the budget object, SEPARATE from actuals.
-- `ingest_batch` — immutable batch registry (id, period, canonical plant, uploader, uploaded_at,
-  validation + reconciliation result, active flag).
+**Non-goals (deferred, per decision 0016 / 0014):** the Budget-label → SAP
+cost-centre + plant **mapping master** and balanced allocation; the **Roll-over**
+measure (pending Srihari's rule); multi-plant / cost-centre-grain reporting;
+any **LLM- or user-authored joins** (the LLM only *selects* measures); and the
+report / drill-down / assistant **UI** (their own stories consume this layer).
 
-## Decomposition (5 bounded tasks; sequential unless noted)
-1. **warehouse-schema** — a migration/DDL path for the warehouse Postgres (separate from the Drizzle
-   app-DB migrations); create `sap_transaction`, `ingest_batch`, `mis_mapping_master`, the budget
-   tables, and the `actual_by_key_month` gold view; register the gold object in the semantic layer
-   (`backend/src/semantic/semanticLayer.ts`, baseDomains=[] today). Proof: migration runs on the
-   warehouse DB; the gold view returns Σ(debit−credit) by key/month on seeded rows.
-2. **actuals-loader** — add `exceljs`; `POST /api/ingest/actuals` (AuthGuard + a new ingest action
-   grant + ADD to the strict route allow-list `backend/src/app.routes.test.ts`); header-identified
-   single-month parse; net Debit−Credit; retain raw + original/canonical keys; idempotent replace via
-   a new `ingest_batch` (switch active, don't erase); validate-before-write with row diagnostics.
-   Decisions 5,6,7 land here.
-3. **mapping-master** — load `mis_mapping_master` from the real fixture
-   `docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx` incl. the 7 missing GLs +
-   the `DUB-NUR → DUB` normalization; enforce decision 2 (reject the period as unreconciled on any
-   unmapped in-scope DUB row). NOTE: the `DUB-NUR→DUB` normalization + the 7 GLs are flagged
-   *undecided* in decision 0002 / arch 20-...:67-84 — this task's grill must put them to the human.
-4. **budget-loader** — load `mis_format`/`mis_budget` from the MIS format as a SEPARATE object
-   (decision 0004 — no pre-join); the balanced allocation (decision 3); atomic per-(format,plant,
-   period) replace; rollover retained-not-published.
-5. **reconciliation-proof** — a test grounding July `DUB` net to EXACTLY `₹11,512,712` across raw +
-   gold + scoped total against the in-repo fixture; re-upload July replaces the month with no
-   duplicates (idempotency proof).
+## Acceptance Criteria
+1. A code-authored governed financial domain exposes **Actual**, **Budget**, and
+   **%** measures over the ingested objects; Actual = `SUM(Debit − Credit)` and
+   Budget = `SUM(budget_amount)`, each read from its **active** batch only, and
+   `%` follows the settled nil rule (`0/0` → NA/blank; `Actual>0, Budget=0` →
+   over-budget, no percentage). The LLM/runtime never authors the SQL.
+2. Budget⋈Actual composes as a **code-composed, validated full-outer join** on
+   `(gl_code, month)` within DUB that **zero-fills the missing side** (a
+   budget-only key and an actual-only key both appear), with **no fan-out /
+   double-counting**, proven by a golden-answer fixture whose cases (matched,
+   Budget-only, Actual-only, duplicate/multi-line, reload/active-swap, %-edges)
+   each assert **exact** expected values.
+3. **RBAC** is role-based all-or-nothing (a domain/measure/action grant check),
+   with the row-scope predicate injected on **both** objects of the join; no
+   cross-object leak, and a denial case is covered.
+4. **Provenance** for every governed number carries the measure definition + the
+   composed SQL **plus** the two active source batch ids (actuals + budget) and the
+   per-row source-presence (matched / budget-only / actual-only), so a reload's
+   changed answer is attributable to a batch swap, not silent drift.
 
-## Scope boundary (decision 0004)
-OUT of this story: the query-time **budget⋈actual join** (→ governed-joins) and the **drill-down UI**
-(→ drill-down). Ingestion must NOT build a wide pre-joined table.
+## Technical Approach
+- **Active-budget rollup** (mirrors `actual_by_key_month`,
+  `warehouse-schema.ts:117-134`): a `budget_by_key_month` view —
+  `SUM(budget_amount)::numeric(18,2) AS budget_net` (and rollover carried but
+  unpopulated) `FROM mis_budget b JOIN ingest_batch bt ON bt.id=b.batch_id WHERE
+  bt.source_kind='budget' AND bt.is_active GROUP BY b.gl_code, b.period` — the
+  budget month column is `period`, aliased to `month` to conform to Actual's key;
+  plant `DUB` is a constant literal (mis_budget has no plant column).
+- **Governed domain + measures** authored **in code** in
+  `semanticLayer.ts` `baseDomains` as a `DomainSpec` whose `goldObject` is the
+  composed join (below): `MeasureSpec`s Actual (`expr: SUM(actual_net)` /
+  `SUM(debit-credit)`), Budget (`SUM(budget_net)`), and `%` (`format: "percent"`,
+  a code-authored ratio expression guarding divide-by-zero per the nil rule) —
+  two-column expressions are expressible on the code-authored path (the
+  DB-authored compiler cannot do `SUM(a−b)`, so this must be code-authored).
+- **Code-composed join**: extend the builder (or add a composed-object provider)
+  so a governed financial `goldObject` resolves to a **full-outer join** of
+  `actual_by_key_month` (filtered `plant='DUB'`) and `budget_by_key_month` on
+  `(gl_code, month)`, `COALESCE`-zero-filling each side. The join is emitted by
+  code (never the LLM), and `sqlValidator` (join-agnostic) allows it because both
+  tables are allow-listed in `objectsTouched`.
+- **RBAC**: role-based grant check via `SemanticLayer.allowedFor(perms)` +
+  `RequireAction`; the scope predicate (`sqlBuilder.ts:52-59`) is injected on both
+  sides of the composed join for defense-in-depth (plant scope enforced on the
+  Actual side / at the join layer, since `mis_budget` has no plant).
+- **Provenance**: extend the `Provenance` contract (`contract/src/api.ts:251-261`)
+  and its construction (`chat.service.ts:377-394`) with `activeBatchIds`
+  (actuals + budget) and per-row `sourcePresence`.
+- **Golden fixtures**: a `WAREHOUSE_DB_TEST=1` gated test seeds known active
+  actual + budget batches and asserts the composed % / zero-fill / no-fan-out /
+  reload-swap / %-edges against exact values — **demonstrated host evidence
+  (D-0008)** run via a dedicated flag-setting script, committed reviewer-visible.
 
-## Verify approach
-Each task: `verify.py` green; hermetic tests where possible; the live warehouse-DB proofs run as
-demonstrated evidence (Postgres warehouse via docker, `WAREHOUSE_PG_*`), gated like the platform-base
-warehouse E2E. The reconciliation-proof task carries the ₹11,512,712 assertion.
+## Decisions
+- **0002** — Financial MIS; Actual = `Σ(Debit − Credit)` per key per period.
+- **0004** — governed joins: correct join semantics, RBAC across both objects,
+  validator support, golden fixtures, one shared definition (no split-brain).
+- **0009** — required_tests name real leaves + pin `TS_NODE_PROJECT`.
+- **0014** — sap-ingestion PoC: no mapping master (the deferral this story owns).
+- **0015** — warehouse snake_case (the new rollup view conforms).
+- **0016** — governed-joins PoC scope: join on `gl_code + month` within DUB;
+  Budget-Components label informational; mapping master + roll-over + row-scoping
+  deferred; role-based RBAC; the settled %-nil rule.
+- **D-0008** — the golden-fixture warehouse proof is demonstrated host evidence.
 
-## New decisions to record as we go
-- The `DUB-NUR → DUB` normalization + the 7 missing GLs resolution (decision new; surfaced in the
-  mapping-master task grill).
-- The ingest batch/replacement model + the unmapped-row rejection policy, if not sufficiently covered
-  by the requirements grill record.
+## Task Decomposition (capability-driven; sequential unless noted)
+1. **budget-rollup** — the active-budget gold rollup `budget_by_key_month` in the
+   warehouse (view + migration, mirrors `actual_by_key_month`); hermetic schema
+   test + a gated D-0008 proof that it reflects only the active budget batch.
+2. **governed-domain** — the code-authored financial `DomainSpec` + Actual /
+   Budget / % `MeasureSpec`s in `baseDomains`, with the %-nil semantics and
+   allow-list/validator wiring; hermetic semantic-layer tests.
+3. **composed-join** — the code-composed, validated full-outer zero-filled
+   Budget⋈Actual join on `(gl_code, month)` in the builder/executor, RBAC injected
+   on both sides; hermetic builder/validator tests + a gated D-0008 proof of
+   correct zero-fill and no fan-out.
+4. **golden-provenance** — the golden-answer reconciliation fixtures (matched /
+   Budget-only / Actual-only / duplicate-no-fan-out / reload / %-edges, exact
+   values, gated D-0008) **and** the provenance lineage (both active batch ids +
+   per-row source-presence) that makes each number reproducible.
+
+## Risks
+- The composed join is **new SQL-builder surface** (today it throws); the primary
+  risk is fan-out / double-counting if a key is not 1:1 — mitigated by joining the
+  two **active rollups** (each already one row per key) and the golden fixtures.
+- `%` divide-by-zero must match the statement spec **exactly** or report and
+  assistant disagree; covered by %-edge golden cases.
+- Provenance reproducibility across a budget reload (active-batch swap) — covered
+  by the reload golden case + committed active batch ids.
+
+## Surface Impact
+- **Data:** a new `budget_by_key_month` **view** + its migration (warehouse; a
+  read-only rollup, no new base table). No change to `sap_transaction` /
+  `mis_budget` / actuals.
+- **API/backend:** `semanticLayer.ts` (baseDomains), `sqlBuilder.ts` /
+  `selectionExecutor.ts` (composed join), `sqlValidator` allow-list, `rbac` /
+  auth guard wiring, `contract/src/api.ts` + `chat.service.ts` (provenance). No
+  new endpoint (the report / drill-down / assistant stories add their routes).
+- **Ops/docs/tests:** golden-fixture gated D-0008 proof + hermetic suites; decision
+  0016; this plan.
+
+## Verify Plan
+Hermetic: `build:contract`, `build:backend`, `typecheck`, `lint`, `format:check`,
+`test:hermetic`. Demonstrated host evidence (D-0008) against docker `warehouse-db`
+(127.0.0.1:5433, `WAREHOUSE_PG_*`): the active-budget rollup proof and the
+golden-answer join/zero-fill/no-fan-out/reload/%-edge proof, each via a dedicated
+`WAREHOUSE_DB_TEST=1` flag-setting runnable script, loopback-host guarded,
+committed reviewer-visible with a dead-port negative control (per the
+sap-ingestion D-0008 lessons).
+
+## Implementation Assumptions
+- The governed financial domain's `goldObject` is the code-composed join result
+  (not a persisted view); if a persisted joined view proves cleaner, that is a
+  task-level call recorded in the task plan.
+- Roll-over columns are carried through the rollup/measures but left unpopulated
+  (deferred); the `%` measure and Actual/Budget are the shipped set.
+- The report/drill-down/assistant consume this layer; their selection surfaces and
+  any k-suppression tuning are their stories, not this one.
 
 
 ## What to return

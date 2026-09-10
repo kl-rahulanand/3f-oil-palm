@@ -58,7 +58,7 @@
         "RBAC row-scope injected on both objects"
       ],
       "order": 3,
-      "status": "pending"
+      "status": "active"
     },
     {
       "key": "mis-selection",
@@ -172,5 +172,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-10T01:55:56+00:00"
+  "updated_at": "2026-09-10T01:58:20+00:00"
 }

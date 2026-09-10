@@ -1,4 +1,4 @@
-# Cold-read grill — gate: requirements — requirements for sap-ingestion (docs/specs/sap-financial-ingestion.md)
+# Cold-read grill — gate: requirements — requirements for governed-joins (docs/specs/governed-metrics-and-joins.md)
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -254,8 +254,12 @@ Five gates, five scopes:
   is the hard refusal point. Interrogate the next leaf task's just-authored
   contract in the re-recorded decomposition against the approved story plan,
   active decisions, and the actual repository state left by completed prior
-  stages. Hunt: assumed files or APIs that prior work did not produce, stale
-  or over-broad `write_scope`, acceptance criteria not served by the proposed
+  stages. Hunt: assumed files or APIs that prior work did not produce, a
+  `write_scope` whose AREAS miss where the work must land or reach into areas
+  the task has no business in (scope is directory prefixes plus named new
+  files — a missing existing file under a declared prefix, a drifted line
+  number or a renamed module is a NON-BLOCKING note, never a blocking finding;
+  `stage done` measures the exact paths), acceptance criteria not served by the proposed
   work, a task that OWNS a plan `## Surface Impact` surface but whose
   `write_scope`/`required_tests` do not actually PRODUCE it (owns the API row but
   builds only domain services with no HTTP controllers/DTOs/routes; owns the UI
@@ -427,57 +431,63 @@ These questions were put to the human and answered. Two obligations:
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
 
-## The artifact under interrogation (requirements for sap-ingestion (docs/specs/sap-financial-ingestion.md))
+## The artifact under interrogation (requirements for governed-joins (docs/specs/governed-metrics-and-joins.md))
 
 ---
-slug: sap-financial-ingestion
-title: SAP financial ingestion
+slug: governed-metrics-and-joins
+title: Governed metrics & cross-object joins
 status: confirmed
-saved: 2026-09-01T10:03:06+00:00
+saved: 2026-09-01T10:05:46+00:00
 ---
 
-# SAP financial ingestion
+# Governed metrics & cross-object joins
 
 ## Why
-The statement, drill-down, and metrics all need SAP GL data (and the plan
-budgets) in the warehouse. Today the actuals live in SAP and the budgets in an
-Excel plan; this brings both in reliably and repeatably.
+3F needs `% = Actual ÷ Budget` where Actual (SAP) and Budget (plan) are separate
+sources, and budgets are revised independently. One governed semantic layer that
+composes measures across those objects (decision 0004) keeps the report,
+drill-down, and assistant on one source of truth with Pulse's trust guarantees.
 
 ## Users
-The system / an operator loading a period's data; later, an automated sync.
+The report, the drill-down, and the assistant — all read through this one layer.
 
 ## Behaviour
-- Ingest the **SAP Base Report** via **Excel upload** now; SAP export/API later.
-- Ingest the **budget plan** from the MIS format, as a **separate object** from
-  Actuals (joined at query time — decision 0004).
-- Store aggregated to **Plant + Cost Center + GL + month** (gold) **and retain the
-  raw transaction lines** so the drill-down can reach them.
-- Re-loads are **idempotent per period** (re-uploading a month replaces it).
+- Define measures **Actual, Budget, Roll-over, %** over the ingested objects,
+  authored **in code** (repo domain files) — the runtime guided builder can't
+  express two-column `SUM(Debit − Credit)`.
+- **Cross-object composition** (Budget ⋈ Actual on Plant + Cost Center + GL +
+  month) is **code-composed and validated**; the LLM only *selects* measures — it
+  never authors SQL and there is no free-form join path.
+- The join is **full-outer, zero-filling the missing side**, so a budget with no
+  actual (and an actual with no budget) both appear.
+- Every number carries **provenance** (measure definition + composed SQL).
 
 ## Confirmed scope (grilled 2026-09-01)
-- **Input:** Excel upload now; SAP export/API is a later phase.
-- **Budget:** ingested from the MIS format as a separate object.
-- **Grain:** monthly gold + raw transaction lines retained.
-- **Re-load:** idempotent replace per period.
+- **Join type:** full-outer, zero-fill unmatched rows.
+- **Measures authored in code** (not the runtime builder).
+- **RBAC:** the row-scope predicate is injected on **both** objects.
+- **Correctness gate:** golden-answer fixtures required before the capability is
+  "done" (no fan-out / double-counting).
 
 ## Rules
-- Actual net = **Debit − Credit** (stored or directly derivable).
-- Keys normalized (e.g. plant `DUB-NUR` ↔ `DUB`) per the mapping master.
+- Decision 0004 (governed joins): correct join semantics, RBAC across both
+  objects, validator support for joins, golden fixtures.
+- One governed definition shared by report + drill-down + assistant (no split-brain).
 
 ## Out of scope (now)
-- Live / real-time sync; the full 10-year backfill (PoC = recent slice, July).
+- Arbitrary user- or LLM-authored joins.
 
 ## Acceptance criteria
-- The July SAP load reconciles to the report totals (nursery net ≈ ₹1,15,12,712).
-- Budgets from the MIS format are present as a separate object.
-- Raw transaction lines are available to the drill-down; re-uploading July
-  replaces that month with no duplicates.
+- `% = Actual ÷ Budget` computes correctly across the two objects, including
+  zero-filled rows.
+- The governed-join golden fixture passes; no double-counting.
+- RBAC scoping holds on joined queries (both sides scoped).
 
 ## Open items (non-blocking)
-- Scoping the full backfill and live SAP sync (later phase).
+- Roll-over measure definition (pending Srihari's roll-over rule).
 
 ## Source
-Decisions 0002, 0004; `docs/architecture/{10-source-systems,20-financial-mis-data-model}.md`.
+Decision 0004; Pulse `backend/src/sql/*`, `core/rbac.service.ts`.
 
 
 ## What to return

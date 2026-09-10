@@ -1,0 +1,95 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "issue": "governed-joins",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "governed-joins builds a CODE-authored governed semantic layer that composes measures (Actual, Budget, %) across the ingested sap_transaction and mis_budget objects and exposes ONE governed definition to the report, drill-down and assistant. For the PoC the Budget\u22c8Actual join is full-outer, zero-filling the missing side, keyed on gl_code + month within the single plant DUB (the 'Budget Components' label is informational, not a join key); each side is first reduced to its ACTIVE batch (actual_by_key_month + a new active-budget rollup) so retained prior batches never double-count. % = Actual/Budget with 0/0 = NA and Actual>0,Budget=0 = over-budget. RBAC is role-based all-or-nothing with the scope predicate injected on both sides. Roll-over is deferred (pending Srihari's rule) and the label\u2192cost-center mapping master is deferred (decision 0014). Golden-answer fixtures (matched / budget-only / actual-only / duplicate-no-fan-out / reload / %-edges) gate the capability done; provenance carries both active batch ids + per-row source-presence.",
+  "inspected_refs": [
+    "docs/specs/governed-metrics-and-joins.md",
+    "docs/specs/financial-mis-statement.md",
+    "docs/decisions/0004-pulse-governed-joins.md",
+    "docs/decisions/0014-sap-ingestion-poc-no-master.md",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/ingest/mis-budget.parser.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/core/rbac.service.ts",
+    "backend/src/chat/chat.service.ts"
+  ],
+  "new_abstractions": [
+    "an ACTIVE-budget rollup over mis_budget (mirrors actual_by_key_month) keyed gl_code+month for plant DUB",
+    "a code-composed, validated full-outer Budget\u22c8Actual join (gl_code+month) with zero-fill + the governed % measure",
+    "governed measures (Actual, Budget, %) authored in code with divide-by-zero semantics and both-batch provenance",
+    "a golden-answer reconciliation fixture proving no fan-out across matched/one-sided/duplicate/reload/%-edge cases"
+  ],
+  "gaps": [
+    "The claimed join grain does not exist for Budget: actual_by_key_month keys on Plant+CostCenter+GL+month, but mis_budget has NO plant and its cost_center is the spreadsheet's 'Budget Components' LABEL (not a SAP cost center). Decision 0014 deferred the governed mapping master + balanced allocation to this story, yet the spec never owns or defines that bridge - a direct join would miss rows, join unrelated values, or invent meaning.",
+    "'Budgets are revised independently' has no active-version rule: the requirement must reduce each source to ONE active, unique row per canonical join key BEFORE the full outer join, and a budget reload must neither duplicate nor alter Actuals - otherwise a retained prior batch can double Budget or make a historical answer irreproducible (mis_budget has batch-only uniqueness, not an active-only rollup like actuals).",
+    "The measure contract contradicts settled scope: it requires a Roll-over measure now while roll-over's definition is explicitly pending (spec open item), and it omits the already-settled %-divide-by-zero behaviour (0/0 = NA/blank; Actual>0, Budget=0 = over-budget, no percentage), permitting report and assistant to disagree.",
+    "'Scope both objects' is not a complete authorization rule for a full outer join: it does not define what happens when a user may see only one side of a matching key, nor whether zero-fill conceals or reveals the other side's existence; the current builder/semantic contract models only one scoped gold object.",
+    "The golden-fixture acceptance criterion is not falsifiable enough to prove 'no fan-out': it must require matched, Budget-only, Actual-only, duplicate/allocation, reload/version, and (per the RBAC decision) role-denial cases with EXACT expected values - a happy-path fixture could pass while the production join duplicates money.",
+    "Provenance is insufficient for a revised, mapped join: definition + SQL does not identify the two active source batches, the source-presence state per row, or (when it lands) the mapping/allocation version, so re-running the same SQL after a reload can return a different number with no explanation."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "HUMAN-decided (round 1): PoC-join Budget joins Actual on GL code + month within the single plant DUB; the 'Budget Components' label is INFORMATIONAL (carried for display/provenance, NEVER a join key). % = Actual / Budget is computed at (gl_code, month) grain for DUB. The governed Budget-label -> SAP-cost-center + plant mapping master (and any balanced allocation) is DEFERRED with a revisit trigger: the client supplies the mapping, OR multi-cost-center / multi-plant governed reporting is required. Honors decision 0014 (no master, single plant DUB).",
+    "Reduce each source to ONE active row per canonical join key BEFORE the join: Actuals via the existing actual_by_key_month (active actuals batch only); ADD an equivalent ACTIVE-budget rollup over mis_budget's active batch keyed (gl_code, month) [+ constant plant DUB] so a retained prior budget batch never double-counts. The governed join composes over the two ACTIVE rollups; a budget reload swaps the active batch and never reads or writes actuals (0004).",
+    "Roll-over measure is DEFERRED per the spec's own open item (pending Srihari's roll-over rule) - ship Actual, Budget, and % now. Adopt the settled %-divide-by-zero rule from docs/specs/financial-mis-statement.md: 0/0 = NA/blank and Actual>0 with Budget=0 = over-budget (no percentage). ONE governed definition shared by report + drill-down + assistant (no split-brain).",
+    "HUMAN-decided (round 2): read RBAC is ROLE-BASED all-or-nothing for the PoC - a user sees the whole governed layer or none. The row-scope predicate is STILL injected on BOTH objects (correctness + defense-in-depth), but asymmetric per-key visibility cannot arise, so no partial-disclosure zero-fill-vs-conceal policy is needed now. Genuine row-level scoping (per plant/region) + asymmetric-RBAC denial fixtures are DEFERRED with a trigger.",
+    "The governed-join golden-answer fixture MUST cover, with EXACT expected values: a matched (both-sides) row, a Budget-only row (zero-filled actual), an Actual-only row (zero-filled budget), a duplicate/multi-line case proving NO fan-out / double-counting, a reload/version case (reload budget -> active swap, actuals unchanged, same answer reproducible), and the %-edge cases (0/0 = NA, Actual>0 Budget=0 = over-budget). Golden fixtures gate the capability 'done' per decision 0004.",
+    "Provenance carries, beyond the measure definition + composed SQL: the TWO active source batch ids (actuals + budget), the per-row source-presence state (matched / budget-only / actual-only), and - when the mapping master lands - the mapping/allocation version. A number is thus reproducible and a reload's changed answer is attributable to a batch swap, not silent drift."
+  ],
+  "open_items": [
+    "Roll-over measure definition is deferred pending Srihari's roll-over rule (spec open item).",
+    "The governed Budget-label -> SAP-cost-center + plant mapping master (and balanced allocation) is deferred with a revisit trigger (client supplies the mapping, or multi-cost-center/multi-plant governed reporting is required)."
+  ],
+  "rounds": [
+    {
+      "question": "governed-joins requirements grill (Finding 1 \u2014 the foundational one): mis_budget has NO plant and its cost_center is the MIS 'Budget Components' label, not a SAP cost center, so it can't join Actuals on Plant+CostCenter+GL+month. Decision 0014 deferred the Budget-label\u2192cost-center mapping master to THIS story. How should the Budget\u22c8Actual join key be defined for the PoC?",
+      "options": [
+        "PoC-join on GL + month, single plant DUB (Rec.)",
+        "Build the governed mapping master now"
+      ],
+      "chosen": "PoC-join on GL + month, single plant DUB (Rec.)"
+    },
+    {
+      "question": "governed-joins RBAC (Finding 4): the spec says inject the row-scope predicate on BOTH objects for the full-outer join. For this PoC, what is the read-side RBAC model \u2014 which determines whether asymmetric one-sided visibility (user can see Actual but not Budget for a key) can even occur and needs a concrete zero-fill-vs-conceal policy + denial fixtures?",
+      "options": [
+        "Role-based all-or-nothing (Rec.)",
+        "Row-scoped per plant/region now"
+      ],
+      "chosen": "Role-based all-or-nothing (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The claimed join grain does not exist for Budget: actual_by_key_month keys on Plant+CostCenter+GL+month, but mis_budget has NO plant and its cost_center is the spreadsheet's 'Budget Components' LABEL (not a SAP cost center). Decision 0014 deferred the governed mapping master + balanced allocation to this story, yet the spec never owns or defines that bridge - a direct join would miss rows, join unrelated values, or invent meaning.",
+      "source": "docs/specs/governed-metrics-and-joins.md:23; docs/decisions/0014-sap-ingestion-poc-no-master.md:26; backend/src/warehouse/warehouse-schema.ts:86; backend/src/ingest/mis-budget.parser.ts:69"
+    },
+    {
+      "finding": "'Budgets are revised independently' has no active-version rule: the requirement must reduce each source to ONE active, unique row per canonical join key BEFORE the full outer join, and a budget reload must neither duplicate nor alter Actuals - otherwise a retained prior batch can double Budget or make a historical answer irreproducible (mis_budget has batch-only uniqueness, not an active-only rollup like actuals).",
+      "source": "docs/specs/governed-metrics-and-joins.md:11; backend/src/warehouse/warehouse-schema.ts:117; backend/src/warehouse/warehouse-schema.ts:103"
+    },
+    {
+      "finding": "The measure contract contradicts settled scope: it requires a Roll-over measure now while roll-over's definition is explicitly pending (spec open item), and it omits the already-settled %-divide-by-zero behaviour (0/0 = NA/blank; Actual>0, Budget=0 = over-budget, no percentage), permitting report and assistant to disagree.",
+      "source": "docs/specs/governed-metrics-and-joins.md:20; docs/specs/financial-mis-statement.md:32"
+    },
+    {
+      "finding": "'Scope both objects' is not a complete authorization rule for a full outer join: it does not define what happens when a user may see only one side of a matching key, nor whether zero-fill conceals or reveals the other side's existence; the current builder/semantic contract models only one scoped gold object.",
+      "source": "docs/specs/governed-metrics-and-joins.md:33; backend/src/sql/sqlBuilder.ts:17"
+    },
+    {
+      "finding": "The golden-fixture acceptance criterion is not falsifiable enough to prove 'no fan-out': it must require matched, Budget-only, Actual-only, duplicate/allocation, reload/version, and (per the RBAC decision) role-denial cases with EXACT expected values - a happy-path fixture could pass while the production join duplicates money.",
+      "source": "docs/specs/governed-metrics-and-joins.md:45"
+    },
+    {
+      "finding": "Provenance is insufficient for a revised, mapped join: definition + SQL does not identify the two active source batches, the source-presence state per row, or (when it lands) the mapping/allocation version, so re-running the same SQL after a reload can return a different number with no explanation.",
+      "source": "docs/specs/governed-metrics-and-joins.md:28; backend/src/chat/chat.service.ts:373"
+    }
+  ],
+  "summary": "One cold read returned six blocking requirement gaps. Four are repository/decision/spec-answerable and resolved: an active-budget rollup so retained batches never double-count; roll-over deferred per the spec's open item and the %-divide-by-zero rule adopted from the statement spec; a falsifiable golden-fixture set (matched, one-sided, duplicate-no-fan-out, reload, %-edges); and provenance carrying both active batch ids + per-row source-presence. Two were genuine product/policy decisions put to the human: the join key/mapping bridge (PoC-join on gl_code + month within DUB, the Budget-Components label kept informational, the mapping master deferred per 0014) and the read-RBAC model (role-based all-or-nothing, predicate still on both sides, row-scoping deferred). Verdict pass.",
+  "input_sha256": "73579705b8633588be4ece48bfcef567af528a9059c1d670c4f6b27a88be2427",
+  "recorded_at": "2026-09-10T02:28:05+00:00",
+  "commit": "886e7a2bec3298ea41eb011b69ae63836a07e2f6"
+}
