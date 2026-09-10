@@ -31,6 +31,33 @@ test("the selection executor enforces authorization at the shared executeResolve
   assert.equal(warehouse.executions, 2);
 });
 
+test("the selection executor surfaces composed provenance on the result the row aligned source presence on every row and on the provenance object the deterministic Budget Components label set together with the active source batch ids as source period batch id tuples gathered across the query rows", async () => {
+  const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), new ProvenanceWarehouse());
+  const result = await executor.run(
+    user({
+      actions: ["report"],
+      domains: [domain.name],
+      measureIds: selection.measureIds,
+      dimensionIds: selection.dimensionIds,
+    }),
+    domain,
+    selection,
+  );
+
+  assert.deepEqual(result.result.rows, [
+    { gl_code: "5000", actual: "125.00", budget: "200.00" },
+    { gl_code: "6000", actual: "0.00", budget: "50.00" },
+  ]);
+  assert.deepEqual(result.rowSourcePresence, ["matched", ["actual-only", "budget-only"]]);
+  assert.deepEqual(result.activeBatchIds, [
+    { source: "actuals", period: "2099-09-01", batchId: "actual-batch" },
+    { source: "actuals", period: "2099-10-01", batchId: "actual-batch-2" },
+    { source: "budget", period: "2099-09-01", batchId: "budget-batch" },
+    { source: "budget", period: "2099-10-01", batchId: "budget-batch-2" },
+  ]);
+  assert.deepEqual(result.budgetComponentLabels, ["Admin, East", "Labour"]);
+});
+
 const domain: DomainSpec = {
   name: "governed-financial",
   label: "Governed financial",
@@ -96,6 +123,54 @@ class FakeWarehouse implements Warehouse {
         { name: "budget", numeric: true },
       ],
       rows: [{ gl_code: "5000", actual: "125.00", budget: "200.00" }],
+    };
+  }
+
+  async freshness(): Promise<string | null> {
+    return null;
+  }
+
+  async distinctValues(): Promise<string[]> {
+    return [];
+  }
+}
+
+class ProvenanceWarehouse implements Warehouse {
+  async explain(): Promise<void> {}
+
+  async execute(sql: string) {
+    if (!sql.includes("source_presence")) {
+      return { columns: [{ name: "actual", numeric: true }], rows: [{ actual: "125.00" }] };
+    }
+    return {
+      columns: [
+        { name: "gl_code", numeric: false },
+        { name: "actual", numeric: true },
+        { name: "budget", numeric: true },
+        { name: "source_presence", numeric: false },
+        { name: "budget_component_labels", numeric: false },
+        { name: "active_batch_ids", numeric: false },
+      ],
+      rows: [
+        {
+          gl_code: "5000",
+          actual: "125.00",
+          budget: "200.00",
+          source_presence: '["matched"]',
+          budget_component_labels: '[["Labour","Admin, East"]]',
+          active_batch_ids:
+            '[{"source":"actuals","period":"2099-09-01","batchId":"actual-batch"},{"source":"budget","period":"2099-09-01","batchId":"budget-batch"}]',
+        },
+        {
+          gl_code: "6000",
+          actual: "0.00",
+          budget: "50.00",
+          source_presence: '["actual-only","budget-only"]',
+          budget_component_labels: '[["Admin, East"]]',
+          active_batch_ids:
+            '[[{"source":"actuals","period":"2099-10-01","batchId":"actual-batch-2"}],[{"source":"budget","period":"2099-10-01","batchId":"budget-batch-2"}]]',
+        },
+      ],
     };
   }
 

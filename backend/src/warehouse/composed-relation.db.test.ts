@@ -22,23 +22,24 @@ test(
     try {
       await pool.query("TRUNCATE sap_transaction, mis_budget, ingest_batch CASCADE");
       const repository = new IngestionRepository(createWarehouseDb(pool));
-      await repository.replaceActualsBatch(metadata("actuals"), [
+      const actualBatchId = await repository.replaceActualsBatch(metadata("actuals"), [
         actualRow("M1", "CC-1", "100.00"),
         actualRow("M2", "CC-2", "25.00"),
         actualRow("A1", "CC-3", "50.00", "0.00", "ACTUAL-ONLY"),
       ]);
-      await repository.replaceBudgetBatch(metadata("budget"), [
+      const budgetBatchId = await repository.replaceBudgetBatch(metadata("budget"), [
         budgetRow("M1", "MATCHED", "200.00"),
         budgetRow("B1", "BUDGET-ONLY", "300.00", "BUDGET-ONLY"),
       ]);
 
       const built = new SqlBuilder().build(domain, selection, user);
-      const rows = (await new PostgresAdapter().execute(built.sql)).rows.map(
-        (row): Record<string, string | number | null> => ({
-          ...row,
-          month: dateOnly(row.month),
-        }),
-      );
+      const rows: Array<Record<string, unknown>> = (await new PostgresAdapter().execute(built.sql)).rows.map((row) => ({
+        ...row,
+        month: dateOnly(row.month),
+        source_presence: parseJson(row.source_presence)[0],
+        budget_component_labels: parseJson(row.budget_component_labels).flat(),
+        active_batch_ids: parseJson(row.active_batch_ids),
+      }));
       const byGl = new Map(rows.map((row) => [row.gl_code, row]));
 
       assert.equal(rows.length, 3);
@@ -47,18 +48,30 @@ test(
         month: PERIOD,
         actual: "125.00",
         budget: "200.00",
+        source_presence: "matched",
+        budget_component_labels: ["MATCHED"],
+        active_batch_ids: [
+          { source: "actuals", period: PERIOD, batchId: actualBatchId },
+          { source: "budget", period: PERIOD, batchId: budgetBatchId },
+        ],
       });
       assert.deepEqual(byGl.get("BUDGET-ONLY"), {
         gl_code: "BUDGET-ONLY",
         month: PERIOD,
         actual: "0.00",
         budget: "300.00",
+        source_presence: "budget-only",
+        budget_component_labels: ["BUDGET-ONLY"],
+        active_batch_ids: [{ source: "budget", period: PERIOD, batchId: budgetBatchId }],
       });
       assert.deepEqual(byGl.get("ACTUAL-ONLY"), {
         gl_code: "ACTUAL-ONLY",
         month: PERIOD,
         actual: "50.00",
         budget: "0.00",
+        source_presence: "actual-only",
+        budget_component_labels: [],
+        active_batch_ids: [{ source: "actuals", period: PERIOD, batchId: actualBatchId }],
       });
     } finally {
       await pool.end();
@@ -168,4 +181,8 @@ function dateOnly(value: string | number | null | Date): string | number | null 
   return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
     .map((part, index) => String(part).padStart(index ? 2 : 4, "0"))
     .join("-");
+}
+
+function parseJson(value: string | number | null): unknown[] {
+  return typeof value === "string" ? JSON.parse(value) : [];
 }

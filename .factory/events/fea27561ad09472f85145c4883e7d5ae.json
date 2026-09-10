@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-10T12:01:45+00:00", "story": "governed-joins", "detail": "The post-review one-sided batch-attribution fix passes all hermetic checks, but this sandbox refuses the required D-0008 warehouse rerun with EPERM connecting to 127.0.0.1:5433; rerun test:warehouse-p"}

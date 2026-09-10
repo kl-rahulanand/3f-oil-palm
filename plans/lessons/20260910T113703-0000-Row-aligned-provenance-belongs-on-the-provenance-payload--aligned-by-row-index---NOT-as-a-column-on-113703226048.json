@@ -1,0 +1,12 @@
+{
+  "topic": "Row-aligned provenance belongs on the provenance payload (aligned by row index), NOT as a column on ResultTable rows",
+  "lesson": "Putting source_presence on ResultTable rows caused three defects at once: (1) it leaked into the RENDERED column list (selectionExecutor.ts:137 filtered only budget_component_labels + active_batch_ids), showing a provenance column to users; (2) it rode into every composed execution.result.rows record and so into authored-measure SAMPLE persistence (selectionExecutor.ts:165) \u2014 the same pressure that kept dragging measures.service.ts into scope; (3) it made the API type UNSOUND (contract/src/api.ts:148): intersecting Record<string, string|number|null> with a possibly-array source_presence is invalid because the string index signature already declares every value scalar. FIX: do NOT put per-row provenance on ResultTable rows at all. Filter ALL provenance columns (source_presence, budget_component_labels, active_batch_ids) out of raw.columns AND out of the result rows, and carry per-row source-presence on the PROVENANCE payload instead, ROW-ALIGNED BY INDEX (e.g. provenance.rowSourcePresence: SourcePresence[] parallel to result.rows), alongside the query-level (source,period,batchId) tuple set + label set. This keeps ResultTable's row type exactly Record<string,string|number|null> (sound, no index-signature conflict), keeps provenance out of rendered columns and out of authored-measure sample persistence, and still satisfies C2's row-aligned source-presence.",
+  "source": "golden-provenance 3-lens review round 2 (quality P1 x2 at selectionExecutor.ts:137,165; quality+security P2 on contract/src/api.ts:148 unsound intersection)",
+  "applies_to": [
+    "backend/src/chat/selectionExecutor.ts",
+    "contract/src/api.ts"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-10T11:37:03+00:00"
+}

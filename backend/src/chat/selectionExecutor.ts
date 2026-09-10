@@ -1,5 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { AuthUser, DomainSpec, MeasureSpec, ResultTable, Selection } from "@3f/contract";
+import type {
+  AuthUser,
+  DomainSpec,
+  MeasureSpec,
+  ProvenanceBatch,
+  ResultTable,
+  Selection,
+  SourcePresence,
+} from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
@@ -18,6 +26,9 @@ export interface SelectionExecutionResult {
   appliedTimeWindow?: AppliedTimeWindow;
   sql: string;
   objectsTouched: string[];
+  activeBatchIds: ProvenanceBatch[];
+  budgetComponentLabels: string[];
+  rowSourcePresence: Array<SourcePresence | SourcePresence[]>;
 }
 
 export class SelectionExecutionBlockedError extends Error {
@@ -71,6 +82,9 @@ export class SelectionExecutor {
       appliedTimeWindow,
       sql: primary.sql,
       objectsTouched: primary.objectsTouched,
+      activeBatchIds: primary.activeBatchIds,
+      budgetComponentLabels: primary.budgetComponentLabels,
+      rowSourcePresence: primary.rowSourcePresence,
     };
   }
 
@@ -83,7 +97,15 @@ export class SelectionExecutor {
     domain: DomainSpec,
     resolvedSelection: Selection,
     beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>,
-  ): Promise<{ result: ResultTable; sql: string; objectsTouched: string[] }> {
+    includeProvenance = true,
+  ): Promise<{
+    result: ResultTable;
+    sql: string;
+    objectsTouched: string[];
+    activeBatchIds: ProvenanceBatch[];
+    budgetComponentLabels: string[];
+    rowSourcePresence: Array<SourcePresence | SourcePresence[]>;
+  }> {
     if (
       domain.composed &&
       (!user.permissions.actions.includes("report") ||
@@ -94,7 +116,7 @@ export class SelectionExecutor {
       throw new SelectionExecutionBlockedError("governed financial selection is not authorized");
     }
     const cfg = loadConfig();
-    const built = this.builder.build(domain, resolvedSelection, user);
+    const built = this.builder.build(domain, resolvedSelection, user, includeProvenance);
     await beforeExecute?.({
       sql: built.sql,
       objectsTouched: built.objectsTouched,
@@ -113,6 +135,11 @@ export class SelectionExecutor {
 
     await this.warehouse.explain(built.sql);
     const raw = await withTimeout(this.warehouse.execute(built.sql), cfg.queryTimeoutMs);
+    const activeBatchIds = collectActiveBatchIds(raw.rows);
+    const budgetComponentLabels = collectBudgetComponentLabels(raw.rows);
+    const rowSourcePresence =
+      domain.composed && includeProvenance ? raw.rows.map((row) => parseSourcePresence(row.source_presence)) : [];
+    const hiddenProvenanceKeys = new Set(["source_presence", "budget_component_labels", "active_batch_ids"]);
 
     // `numeric` means "measure output" for rendering, not raw warehouse type.
     const measureOutputKeys = new Set(resolvedSelection.measureIds.map((id) => id.split(".").pop()!));
@@ -130,16 +157,20 @@ export class SelectionExecutor {
       if (dimension) labelByKey.set(dimension.id, dimension.label);
     }
     let result: ResultTable = {
-      columns: raw.columns.map((column) => {
-        const format = formatByKey.get(column.name);
-        return {
-          key: column.name,
-          label: labelByKey.get(column.name) ?? column.name,
-          numeric: measureOutputKeys.has(column.name),
-          ...(format ? { format } : {}),
-        };
-      }),
-      rows: raw.rows,
+      columns: raw.columns
+        .filter((column) => !hiddenProvenanceKeys.has(column.name))
+        .map((column) => {
+          const format = formatByKey.get(column.name);
+          return {
+            key: column.name,
+            label: labelByKey.get(column.name) ?? column.name,
+            numeric: measureOutputKeys.has(column.name),
+            ...(format ? { format } : {}),
+          };
+        }),
+      rows: raw.rows.map((row) =>
+        Object.fromEntries(Object.entries(row).filter(([key]) => !hiddenProvenanceKeys.has(key))),
+      ),
     };
 
     const piiMeasureKeys = resolvedSelection.measureIds
@@ -154,7 +185,14 @@ export class SelectionExecutor {
       });
     }
 
-    return { result, sql: built.sql, objectsTouched: built.objectsTouched };
+    return {
+      result,
+      sql: built.sql,
+      objectsTouched: built.objectsTouched,
+      activeBatchIds,
+      budgetComponentLabels,
+      rowSourcePresence,
+    };
   }
 
   private async totalsFor(
@@ -162,10 +200,16 @@ export class SelectionExecutor {
     domain: DomainSpec,
     resolvedSelection: Selection,
   ): Promise<Record<string, number> | undefined> {
-    const ungrouped = await this.executeResolved(user, domain, {
-      ...resolvedSelection,
-      dimensionIds: [],
-    });
+    const ungrouped = await this.executeResolved(
+      user,
+      domain,
+      {
+        ...resolvedSelection,
+        dimensionIds: [],
+      },
+      undefined,
+      false,
+    );
     const row = ungrouped.result.rows[0];
     if (!row) return undefined;
 
@@ -180,6 +224,63 @@ export class SelectionExecutor {
 
     return Object.keys(totals).length > 0 ? totals : undefined;
   }
+}
+
+function collectActiveBatchIds(rows: Array<Record<string, string | number | null>>): ProvenanceBatch[] {
+  const tuples = new Map<string, ProvenanceBatch>();
+  for (const row of rows) {
+    for (const value of parseJsonValues(row.active_batch_ids)) {
+      if (!isProvenanceBatch(value)) continue;
+      tuples.set(`${value.source}\0${value.period}\0${value.batchId}`, value);
+    }
+  }
+  return [...tuples.values()].sort((a, b) =>
+    `${a.source}\0${a.period}\0${a.batchId}`.localeCompare(`${b.source}\0${b.period}\0${b.batchId}`),
+  );
+}
+
+function collectBudgetComponentLabels(rows: Array<Record<string, string | number | null>>): string[] {
+  return [...new Set(rows.flatMap((row) => parseJsonValues(row.budget_component_labels).filter(isString)))].sort();
+}
+
+function parseSourcePresence(value: string | number | null): SourcePresence | SourcePresence[] {
+  const presences = [...new Set(parseJsonValues(value).filter(isSourcePresence))].sort();
+  return presences.length === 1 ? presences[0] : presences;
+}
+
+function parseJsonValues(value: string | number | null): unknown[] {
+  if (typeof value !== "string") return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return flatten(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function flatten(value: unknown): unknown[] {
+  return Array.isArray(value) ? value.flatMap(flatten) : [value];
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+function isProvenanceBatch(value: unknown): value is ProvenanceBatch {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "source" in value &&
+    "period" in value &&
+    "batchId" in value &&
+    (value.source === "actuals" || value.source === "budget") &&
+    typeof value.period === "string" &&
+    typeof value.batchId === "string"
+  );
+}
+
+function isSourcePresence(value: unknown): value is SourcePresence {
+  return value === "matched" || value === "budget-only" || value === "actual-only";
 }
 
 export function resolveSelectionTimeWindow(

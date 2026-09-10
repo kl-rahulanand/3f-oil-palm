@@ -16,10 +16,12 @@ test("the composed WITH full-outer-join query passes sqlValidator when the two s
     "budget_by_gl_month",
     "budget_src",
     "financial_relation",
+    "ingest_batch",
   ]);
   assert.deepEqual(objectsTouched, [
     "actual_by_gl_month",
     "budget_by_gl_month",
+    "ingest_batch",
     "actual_src",
     "budget_src",
     "financial_relation",

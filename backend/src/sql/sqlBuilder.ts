@@ -18,7 +18,7 @@ export interface BuiltQuery {
  */
 @Injectable()
 export class SqlBuilder {
-  build(domain: DomainSpec, selection: Selection, user: AuthUser): BuiltQuery {
+  build(domain: DomainSpec, selection: Selection, user: AuthUser, includeProvenance = true): BuiltQuery {
     const measures = selection.measureIds.map((id) => {
       const m = domain.measures.find((x) => x.id === id);
       if (!m) throw new Error(`unknown measure ${id}`);
@@ -39,6 +39,13 @@ export class SqlBuilder {
       ...dims.map((d) => `${d.column} AS ${d.id}`),
       ...measures.map((m) => `${m.expr} AS ${m.id.split(".").pop()}`),
     ];
+    if (domain.composed && includeProvenance) {
+      selectCols.push(
+        "jsonb_agg(DISTINCT(source_presence))::text AS source_presence",
+        "COALESCE(to_jsonb(array_agg(DISTINCT(to_jsonb(budget_component_labels))) FILTER (WHERE budget_component_labels IS NOT NULL)), '[]'::jsonb)::text AS budget_component_labels",
+        "(COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object('source', 'actuals', 'period', month::text, 'batchId', actual_batch_id))) FILTER (WHERE actual_batch_id IS NOT NULL)), '[]'::jsonb) || COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object('source', 'budget', 'period', month::text, 'batchId', budget_batch_id))) FILTER (WHERE budget_batch_id IS NOT NULL)), '[]'::jsonb))::text AS active_batch_ids",
+      );
+    }
     if (measures.some((m) => m.piiSensitive)) {
       // Helper for k-suppression; stripped before user-facing results are returned.
       selectCols.push("COUNT(*) AS __group_count");
@@ -80,7 +87,8 @@ export class SqlBuilder {
     }
 
     const limit = Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows);
-    const groupBy = dims.length ? `\nGROUP BY ${dims.map((d) => d.column).join(", ")}` : "";
+    const groupColumns = dims.map((d) => d.column);
+    const groupBy = groupColumns.length ? `\nGROUP BY ${[...new Set(groupColumns)].join(", ")}` : "";
     // Deterministic ordering so results (and pinned tiles that re-run) are stable across runs:
     // a date breakdown reads chronologically; any other breakdown reads largest-first by the
     // first measure (the warehouse otherwise returns an arbitrary, run-to-run-varying order).
@@ -108,7 +116,7 @@ export class SqlBuilder {
     return {
       sql,
       objectsTouched: domain.composed
-        ? [...domain.composed.sources, "actual_src", "budget_src", "financial_relation"]
+        ? [...domain.composed.sources, "ingest_batch", "actual_src", "budget_src", "financial_relation"]
         : [goldObject],
     };
   }
@@ -133,10 +141,27 @@ export class SqlBuilder {
     COALESCE(actual_src.actual_net, 0)::numeric(18,2) AS actual_net,
     COALESCE(budget_src.budget_net, 0)::numeric(18,2) AS budget_net,
     COALESCE(budget_src.rollover_net, 0)::numeric(18,2) AS rollover_net,
-    budget_src.budget_component_labels
+    budget_src.budget_component_labels,
+    CASE
+      WHEN actual_src.gl_code IS NULL THEN 'budget-only'
+      WHEN budget_src.gl_code IS NULL THEN 'actual-only'
+      ELSE 'matched'
+    END AS source_presence,
+    actual_batch.id AS actual_batch_id,
+    budget_batch.id AS budget_batch_id
   FROM actual_src
   FULL OUTER JOIN budget_src
     ON actual_src.gl_code = budget_src.gl_code AND actual_src.month = budget_src.month
+  LEFT JOIN ingest_batch actual_batch
+    ON actual_src.gl_code IS NOT NULL
+      AND actual_batch.source_kind = 'actuals'
+      AND actual_batch.period = COALESCE(actual_src.month, budget_src.month)
+      AND actual_batch.is_active
+  LEFT JOIN ingest_batch budget_batch
+    ON budget_src.gl_code IS NOT NULL
+      AND budget_batch.source_kind = 'budget'
+      AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
+      AND budget_batch.is_active
 )`;
   }
 

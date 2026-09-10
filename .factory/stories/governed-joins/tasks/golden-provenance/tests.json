@@ -1,0 +1,53 @@
+{
+  "commit": "8585d3578b063ae5374726ed354ba2c185a9334e",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "golden-provenance (governed-joins task 4, the capstone): the correctness GATE + in-query provenance lineage for the composed financial relation. C1 GOLDEN FIXTURES: a new gated backend/src/warehouse/golden-financial.db.test.ts clones the composed-relation.db.test.ts harness (WAREHOUSE_DB_TEST=1 gate, loopback-only TRUNCATE guard, migrateWarehouse(), seed via IngestionRepository.replace{Actuals,Budget}Batch, query via SqlBuilder+PostgresAdapter, plus raw pool.query for array-typed provenance columns) and asserts EXACT numeric(18,2) values + the % text output against a frozen backend/src/warehouse/__fixtures__/governed-financial-golden.json across all six decision-0016 cases: matched, Budget-only (actual 0.00), Actual-only (budget 0.00), duplicate/multi-cost-centre (no Budget fan-out), reload/active-swap (a second replaceBudgetBatch with a distinct value: the Budget/% output CHANGES, prior budget batch inactive, actuals untouched, new budget batch id returned in-query - the 0016 changed-answer attribution proof), and %-edges (0/0 -> NULL/NA, +Actual/0 -> over-budget, -Actual/0 -> credit / negative actual). A strict by-field expectation loader (money paise-exact ^-?\\d+\\.\\d{2}$, the % a union of decimal-string|null|label, a complete six-case set) rejects malformed/incomplete fixtures, tested hermetically. C2 PROVENANCE captured IN the same composed query and surfaced on the API: composedCtes now project, row-aligned on the outer query, source_presence (CASE on the FULL OUTER JOIN side: matched/budget-only/actual-only), the deterministic budget_component_labels set, and the active actuals/budget batch ids per month via ingest_batch correlated subqueries (ingest_batch added to objectsTouched; sqlValidator re-allow-listed); SelectionExecutor gathers these into a (source, period, batchId) tuple set + label set on the extended Provenance type and carries per-row source_presence on ResultTable rows, populated at chat.service.ts. Updated the task-2 hermetic tests (sqlBuilder.composed, sqlValidator.composed, composed-relation.db) for the objectsTouched + row-shape change. D-0006: de-ignored backend/src/chat/chat.service.ts (removed from .prettierignore + its ignoredBaselineHashes entry). verify.py green; quality-gate green. REVIEW-FIX ROUND: the provenance columns are AGGREGATE expressions in the outer SELECT (never GROUP BY keys), so the caller's requested grain is preserved (the blocking quality+performance P1); they are emitted as jsonb_agg(...)::text JSON strings (adapter-safe, no text[] comma ambiguity - the P2), each guarded by FILTER (WHERE ... IS NOT NULL) + COALESCE to '[]' so a one-sided FULL OUTER JOIN key yields [] not [null]; the ResultTable row value union is unchanged so backend/src/measures/measures.service.ts needed NO edit.",
+    "pass_fail_summary": "hermetic contract+backend+frontend+quality-gate: pass; verify.py: passed; D-0008 gated golden + provenance leaf via the registered `npm run test:warehouse-proof` (sets WAREHOUSE_DB_TEST=1, serialized --test-concurrency=1 across reconciliation + gl-month-rollups + composed-relation + golden-financial): tests 13 / pass 13 / fail 0 / skipped 0; negative control (dead port 5599): pass 9 / fail 4 (all four gated DB leaves incl. the golden leaf ECONNREFUSED) - proof genuinely connects. Both required_tests executed individually via tools/junit-run.mjs (verbatim leaves matched, D-0024-safe): RT1 the composed SQL projects the provenance columns + ingest_batch in objectsTouched + still passes the validator -> pass; RT2 the executor surfaces per-row source-presence + the Provenance (source,period,batchId) tuple set + label set -> pass.",
+    "blocking_findings": [],
+    "non_blocking_findings": [],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "tests_added_or_updated": [
+      "backend/src/warehouse/golden-financial.db.test.ts (NEW: hermetic loader accept/reject + loopback guard tests; WAREHOUSE_DB_TEST=1 gated leaf proving the six golden cases EXACT + in-query provenance, arrays via raw pool.query)",
+      "backend/src/warehouse/__fixtures__/governed-financial-golden.json (NEW: frozen exact expectations for the six cases, source-presence + label sets, no UUIDs)",
+      "backend/src/sql/sqlBuilder.ts (composedCtes: outer-projected source_presence CASE + budget_component_labels + active actuals/budget batch-id ingest_batch subqueries; ingest_batch added to objectsTouched; group-by for the provenance columns)",
+      "backend/src/sql/sqlBuilder.provenance.test.ts (NEW hermetic: the composed SQL projects the provenance columns + lists ingest_batch in objectsTouched + still passes the validator)",
+      "backend/src/sql/sqlBuilder.composed.test.ts (updated objectsTouched + selectCols assertions for ingest_batch + provenance columns)",
+      "backend/src/sql/sqlValidator.composed.test.ts (updated: composed query with the ingest_batch reference passes when ingest_batch is allow-listed)",
+      "backend/src/chat/selectionExecutor.ts (gather the (source,period,batchId) tuple set + label set + per-row source-presence from the composed result onto the Provenance payload)",
+      "backend/src/chat/selectionExecutor.composed.test.ts (extended: the result carries row-aligned source-presence and the Provenance object carries the label set + the (source,period,batchId) tuple set)",
+      "backend/src/chat/chat.service.ts (populate the extended Provenance from the execution result; D-0006 de-ignored)",
+      "contract/src/api.ts (extend Provenance with the (source,period,batchId) tuple set + label set; ResultTable rows carry source_presence)",
+      "backend/src/warehouse/composed-relation.db.test.ts (updated for the new provenance row shape)",
+      "backend/package.json (add golden-financial.db.test.ts to test:warehouse-proof serialized list + its guard tests to test:hermetic)",
+      "tools/quality-gate.test.mjs (enumerate golden-financial.db.test.ts in exactly one hermetic suite; removed the chat.service.ts D-0006 ignoredBaselineHashes entry)",
+      ".prettierignore + tools/quality-gate.test.mjs (D-0006: de-ignored backend/src/chat/chat.service.ts on editing it)"
+    ],
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "REGISTERED RUNNABLE COMMAND (sets WAREHOUSE_DB_TEST=1): WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_PASSWORD=warehouse-local WAREHOUSE_PG_DATABASE=warehouse npm --prefix backend run test:warehouse-proof -> tests 13 / pass 13 / fail 0 / skipped 0 (the golden-financial gated leaf EXECUTES and proves the six cases EXACT + in-query provenance)",
+      "NEGATIVE CONTROL (same command, dead port 5599) -> tests 13 / pass 9 / fail 4 (all four gated DB leaves incl. golden ECONNREFUSED) - confirms the proof genuinely connects"
+    ],
+    "manual_validation_steps": [],
+    "reviewed_scope": [
+      "backend/src/sql/sqlBuilder.ts",
+      "backend/src/sql/sqlBuilder.provenance.test.ts",
+      "backend/src/sql/sqlBuilder.composed.test.ts",
+      "backend/src/sql/sqlValidator.composed.test.ts",
+      "backend/src/chat/selectionExecutor.ts",
+      "backend/src/chat/selectionExecutor.composed.test.ts",
+      "backend/src/chat/chat.service.ts",
+      "contract/src/api.ts",
+      "backend/src/warehouse/composed-relation.db.test.ts",
+      "backend/src/warehouse/golden-financial.db.test.ts",
+      "backend/src/warehouse/__fixtures__/governed-financial-golden.json",
+      "backend/package.json",
+      "tools/quality-gate.test.mjs"
+    ],
+    "recorded_at": "2026-09-10T11:25:20+00:00",
+    "commit": "8585d3578b063ae5374726ed354ba2c185a9334e"
+  },
+  "updated_at": "2026-09-10T11:25:20+00:00"
+}

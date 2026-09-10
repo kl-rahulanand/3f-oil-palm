@@ -138,11 +138,7 @@ export class ChatService {
     let priorTurns: LlmPriorTurn[] = [];
     if (!groundedReport && conversationId && isDurableConversationId(conversationId)) {
       try {
-        const storedTurns = await this.conversations.getRecentTurns(
-          user.id,
-          conversationId,
-          cfg.sessionTurnWindow,
-        );
+        const storedTurns = await this.conversations.getRecentTurns(user.id, conversationId, cfg.sessionTurnWindow);
         conversationOwned = true;
         priorSelection = storedTurns.at(-1)?.selection;
         priorTurns = trimPriorTurnsToTokenBudget(
@@ -168,10 +164,7 @@ export class ChatService {
       const llmAllowedDomains = groundedReport
         ? [domainScopedToReport(groundedReport.domain, groundedReport.selection)]
         : allowed;
-      const dimensionValues = await this.dimensionValuesForAllowedDomains(
-        llmAllowedDomains,
-        cfg.dimensionEnumMax,
-      );
+      const dimensionValues = await this.dimensionValuesForAllowedDomains(llmAllowedDomains, cfg.dimensionEnumMax);
       const sel = await this.llm.select({
         question,
         allowedDomains: llmAllowedDomains,
@@ -259,22 +252,14 @@ export class ChatService {
         });
     }
 
-    const normalizedSelection = await this.normalizeFilterValues(
-      selection,
-      domain,
-      cfg.dimensionEnumMax,
-    );
+    const normalizedSelection = await this.normalizeFilterValues(selection, domain, cfg.dimensionEnumMax);
     if (normalizedSelection.kind === "clarify")
       return done({
         responseClass: ResponseClass.ClarificationNeeded,
         clarify: normalizedSelection.clarify,
       });
     selection = normalizedSelection.selection;
-    if (
-      selection.timeWindow?.from &&
-      selection.timeWindow.to &&
-      selection.timeWindow.from > selection.timeWindow.to
-    )
+    if (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.from > selection.timeWindow.to)
       return done({
         responseClass: ResponseClass.NotSupported,
         message: CHAT_MESSAGES.invalidDateRange,
@@ -282,11 +267,7 @@ export class ChatService {
     // Follow-up inheritance: if this turn is a follow-up in the same conversation whose
     // prior selection had a time window, and the current time-bound selection did not,
     // carry the previous window forward instead of re-asking for it.
-    if (
-      !selection.timeWindow &&
-      priorSelection?.timeWindow &&
-      priorSelection.domain === selection.domain
-    ) {
+    if (!selection.timeWindow && priorSelection?.timeWindow && priorSelection.domain === selection.domain) {
       const usesTimeBoundMeasure = selection.measureIds
         .map((id) => this.semantic.measure(selection.domain, id))
         .some((measure) => measure?.requiresTimeWindow === true);
@@ -323,6 +304,9 @@ export class ChatService {
     let sql: string;
     let result: ResultTable;
     let totals: Record<string, number> | undefined;
+    let activeBatchIds: NonNullable<Provenance["activeBatchIds"]> = [];
+    let budgetComponentLabels: string[] = [];
+    let rowSourcePresence: NonNullable<Provenance["rowSourcePresence"]> = [];
     let auditFailed = false;
 
     onEvent?.({ type: "phase", phase: "querying" });
@@ -348,6 +332,9 @@ export class ChatService {
       result = execution.result;
       totals = execution.totals;
       sql = execution.sql;
+      activeBatchIds = execution.activeBatchIds;
+      budgetComponentLabels = execution.budgetComponentLabels;
+      rowSourcePresence = execution.rowSourcePresence;
       // `numeric` means "value/measure column" for rendering (chart axis, headline,
       // alignment) — NOT the raw SQL type. An integer DIMENSION (e.g. activity_hour
       // 0-23) is categorical here, so classify columns by measure-role, not warehouse type.
@@ -375,9 +362,7 @@ export class ChatService {
     const impliedFilters = selectedMeasures.flatMap((measure) => measure.impliedFilters);
     const scope = user.scope.map((s) => `${s.attribute}=${s.value}`).join(", ") || "all permitted";
     const provenance: Provenance = {
-      verified: isVerifiedSelection(selection, (domainName, measureId) =>
-        this.semantic.measure(domainName, measureId),
-      ),
+      verified: isVerifiedSelection(selection, (domainName, measureId) => this.semantic.measure(domainName, measureId)),
       measureIds: selection.measureIds,
       measures: selectedMeasures.map((measure) => ({
         id: measure.id,
@@ -391,6 +376,9 @@ export class ChatService {
       readback: buildReadback(domain, selection, selectedMeasures, appliedTimeWindow, scope),
       dataAsOf: await this.selectionExecutor.freshness(domain).catch(() => null),
       sql,
+      activeBatchIds,
+      budgetComponentLabels,
+      rowSourcePresence,
     };
     const resultColumnKeys = new Set(result.columns.map((column) => column.key));
     const timeKeys = domain.dimensions
@@ -437,14 +425,7 @@ export class ChatService {
       try {
         const persistedTurn =
           usesEditedSelection && turnId && isDurableConversationId(turnId)
-            ? await this.conversations.replaceTurn(
-                user.id,
-                conversationId,
-                turnId,
-                question,
-                selection,
-                answer,
-              )
+            ? await this.conversations.replaceTurn(user.id, conversationId, turnId, question, selection, answer)
             : !usesEditedSelection
               ? await this.conversations.appendTurn(user.id, conversationId, {
                   question,
@@ -467,7 +448,11 @@ export class ChatService {
     const chips: Chip[] = sel.measureIds.map((id) => ({ kind: "measure", id, label: id.split(".").pop()! }));
     for (const d of sel.dimensionIds) chips.push({ kind: "dimension", id: d, label: d });
     if (sel.timeWindow)
-      chips.push({ kind: "timeWindow", id: "time", label: `last ${sel.timeWindow.last ?? ""} ${sel.timeWindow.grain}` });
+      chips.push({
+        kind: "timeWindow",
+        id: "time",
+        label: `last ${sel.timeWindow.last ?? ""} ${sel.timeWindow.grain}`,
+      });
     return chips;
   }
 
@@ -560,7 +545,6 @@ export class ChatService {
 
     return { kind: "selection", selection: { ...selection, filters } };
   }
-
 }
 
 function cloneSelection(selection: Selection): Selection {
@@ -583,10 +567,7 @@ function domainScopedToReport(domain: DomainSpec, selection: Selection): DomainS
   };
 }
 
-function applyReportGroundingToSelection(
-  selection: Selection,
-  reportSelection: Selection,
-): Selection | undefined {
+function applyReportGroundingToSelection(selection: Selection, reportSelection: Selection): Selection | undefined {
   if (selection.domain !== reportSelection.domain) return undefined;
 
   const reportMeasureIds = new Set(reportSelection.measureIds);

@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-10T10:47:52+00:00", "story": "governed-joins", "detail": "The aggregate-provenance review fix passes all hermetic checks, but this sandbox denies Docker access and loopback PostgreSQL connections (EPERM 127.0.0.1:5433), so the updated WAREHOUSE_DB_TEST=1 gol"}
