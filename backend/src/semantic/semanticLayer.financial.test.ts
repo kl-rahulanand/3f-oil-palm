@@ -74,7 +74,7 @@ test("building a selection over the governed financial domain inserts the percen
   );
 
   assert.ok(result.sql.includes(`${percentageExpression} AS percentage`));
-  assert.deepEqual(result.result.rows, financialRows);
+  assert.deepEqual(result.result.rows, expectedFinancialRows);
 });
 
 const percentageExpression = `CASE
@@ -106,7 +106,14 @@ const user: AuthUser = {
   scope: [{ attribute: "plant", value: "DUB" }],
 };
 
-const financialRows = [
+const financialInputs = [
+  { gl_code: "matched", actual: 50, budget: 100 },
+  { gl_code: "zero", actual: 0, budget: 0 },
+  { gl_code: "positive", actual: 50, budget: 0 },
+  { gl_code: "negative", actual: -50, budget: 0 },
+];
+
+const expectedFinancialRows = [
   { gl_code: "matched", percentage: "0.5" },
   { gl_code: "zero", percentage: null },
   { gl_code: "positive", percentage: "over-budget" },
@@ -116,13 +123,24 @@ const financialRows = [
 class FinancialWarehouse implements Warehouse {
   async explain(): Promise<void> {}
 
-  async execute() {
+  async execute(sql: string) {
+    assert.ok(sql.includes(`${percentageExpression} AS percentage`));
     return {
       columns: [
         { name: "gl_code", numeric: false },
         { name: "percentage", numeric: false },
       ],
-      rows: financialRows,
+      rows: financialInputs.map(({ gl_code, actual, budget }) => ({
+        gl_code,
+        percentage:
+          budget !== 0
+            ? String(actual / budget)
+            : actual === 0
+              ? null
+              : actual > 0
+                ? "over-budget"
+                : "credit / negative actual",
+      })),
     };
   }
 

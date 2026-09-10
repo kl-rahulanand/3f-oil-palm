@@ -1,0 +1,31 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "governed-domain-measures",
+  "score": 9,
+  "summary": "security lens over governed-domain-measures (6 product path(s), a5811d8..ad407e7, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The governed domain, fixed SQL expressions, scoped composed relation metadata, and admin grants shown in the diff do not introduce a concrete authorization, injection, credential, or data-exposure defect. However, editing the explicitly identified prettier-ignored migration file without the decision-mandated `.prettierignore` and quality-gate baseline updates violates an in-force change contract, so the patch is not ready to ship.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "maintainability",
+      "area": "backend/src/db",
+      "summary": "Unignore migrate.ts when changing its seed data (backend/src/db/migrate.ts:24): This change edits `backend/src/db/migrate.ts`, which the supplied D-0006 contract identifies as a prettier-ignored vendored file, but the patch neither removes that path from `.prettierignore` nor removes its corresponding `ignoredBaselineHashes` entry."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/db/migrate.test.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/semantic/semanticLayer.financial.test.ts",
+    "backend/src/semantic/semanticLayer.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "cd0b3a21c6c21a16201e954811d17e09fcb4347d1c701075462f64149b031479",
+  "brief_sha256": "e27a4931d9f8f6975a78250751c605272ea42e5637d96ea75dc7f88ba5c1631a",
+  "branch_diff_digest": "34d5cf159a3bc47be496f3acbc6e71ccf2ca18e5d73ce8968e146afeb73b8393",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T08:24:54+00:00",
+  "commit": "ad407e77aada50d0caf771b9b73ce9789de8cb9b"
+}
