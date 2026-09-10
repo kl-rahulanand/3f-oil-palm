@@ -1,0 +1,7 @@
+{
+  "task_id": "governed-domain-measures",
+  "branch": "feat/governed-joins-governed-domain-measures",
+  "base_main_sha": "a5811d8757d773172a75ec1b3665b10b4d4ebcf8",
+  "commit": "5677754db6ce8fb9b8100c3d69c3d7446ae3a829",
+  "sealed_at": "2026-09-10T08:44:14+00:00"
+}
