@@ -145,7 +145,7 @@ export type SourcePresence = "matched" | "budget-only" | "actual-only";
 
 export interface ResultTable {
   columns: { key: string; label: string; numeric: boolean; format?: "percent" }[];
-  rows: Array<Record<string, string | number | null> & { source_presence?: SourcePresence | SourcePresence[] }>;
+  rows: Array<Record<string, string | number | null>>;
   /** Cells blanked by k-anonymity suppression; corresponding row values are null. */
   suppressedCells?: Array<{ row: number; key: string }>;
 }
@@ -268,6 +268,7 @@ export interface Provenance {
   sql: string;
   activeBatchIds?: ProvenanceBatch[];
   budgetComponentLabels?: string[];
+  rowSourcePresence?: Array<SourcePresence | SourcePresence[]>;
 }
 
 export interface AskResponse {

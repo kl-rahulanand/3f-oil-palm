@@ -45,14 +45,10 @@ test("the selection executor surfaces composed provenance on the result the row 
   );
 
   assert.deepEqual(result.result.rows, [
-    { gl_code: "5000", actual: "125.00", budget: "200.00", source_presence: "matched" },
-    {
-      gl_code: "6000",
-      actual: "0.00",
-      budget: "50.00",
-      source_presence: ["actual-only", "budget-only"],
-    },
+    { gl_code: "5000", actual: "125.00", budget: "200.00" },
+    { gl_code: "6000", actual: "0.00", budget: "50.00" },
   ]);
+  assert.deepEqual(result.rowSourcePresence, ["matched", ["actual-only", "budget-only"]]);
   assert.deepEqual(result.activeBatchIds, [
     { source: "actuals", period: "2099-09-01", batchId: "actual-batch" },
     { source: "actuals", period: "2099-10-01", batchId: "actual-batch-2" },

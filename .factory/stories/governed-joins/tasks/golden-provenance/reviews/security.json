@@ -1,11 +1,17 @@
 {
   "generated_by": "autoreview",
   "task_id": "golden-provenance",
-  "score": 10,
-  "summary": "security lens over golden-provenance (14 product path(s), 0cca24b..8585d35, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 security defect. Provenance is added within the governed composed query, remains behind the existing selection authorization boundary, and the destructive warehouse proof is guarded against non-local hosts before migration or truncation. No credentials or blocking compatibility leftovers are present.",
+  "score": 9,
+  "summary": "security lens over golden-provenance (14 product path(s), 0cca24b..9e2845b, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. No concrete authentication, authorization, credential, injection, or compatibility-leftover defect is visible in the supplied diff. However, the new aggregate provenance value is represented unsafely in the public ResultTable contract and is allowed to flow to scalar-row consumers without the required guard, so the patch has an actionable P2 integration defect.",
   "blocking_findings": [],
-  "non_blocking_findings": [],
-  "recommendation": "approve",
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "contract/src",
+      "summary": "ResultTable's index signature excludes aggregate source-presence arrays (contract/src/api.ts:148): Coarser composed queries intentionally return `source_presence` as an array, as the new executor test demonstrates, but intersecting that property with `Record<string, string | number | null>` still declares every row value to be scalar."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     ".prettierignore",
     "backend/package.json",
@@ -24,10 +30,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "0fbee99f689f346c7e80ee3c5f4d56a85fc5592d93193aa71cb9dfcdf08c0fa0",
-  "brief_sha256": "73eb038684ea477c2d13965c85df659a7f366b26416a1d2497b44d4941a5fb6d",
-  "branch_diff_digest": "3392d3374d1cc7bd47ff88624dd5967f84fd10a5fd7198deab31c0572931a564",
+  "review_run_id": "5a8d1ff7623ce5d249087a3a2a8b8e89374d0eb7e79300754539874f496f1f49",
+  "brief_sha256": "ff4856c715463f906f793433e0c17a0d28b699dc954d0f01b16411c48c96a7b0",
+  "branch_diff_digest": "a6412fceb466ab48e45385fadc44a2c8ad438da61c78e9ab299be77bd936c42d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T09:54:11+00:00",
-  "commit": "8585d3578b063ae5374726ed354ba2c185a9334e"
+  "recorded_at": "2026-09-10T11:36:29+00:00",
+  "commit": "9e2845b0a03caac7fb50f4b6aaa5333b1e696d4e"
 }

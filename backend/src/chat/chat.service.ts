@@ -306,6 +306,7 @@ export class ChatService {
     let totals: Record<string, number> | undefined;
     let activeBatchIds: NonNullable<Provenance["activeBatchIds"]> = [];
     let budgetComponentLabels: string[] = [];
+    let rowSourcePresence: NonNullable<Provenance["rowSourcePresence"]> = [];
     let auditFailed = false;
 
     onEvent?.({ type: "phase", phase: "querying" });
@@ -333,6 +334,7 @@ export class ChatService {
       sql = execution.sql;
       activeBatchIds = execution.activeBatchIds;
       budgetComponentLabels = execution.budgetComponentLabels;
+      rowSourcePresence = execution.rowSourcePresence;
       // `numeric` means "value/measure column" for rendering (chart axis, headline,
       // alignment) — NOT the raw SQL type. An integer DIMENSION (e.g. activity_hour
       // 0-23) is categorical here, so classify columns by measure-role, not warehouse type.
@@ -376,6 +378,7 @@ export class ChatService {
       sql,
       activeBatchIds,
       budgetComponentLabels,
+      rowSourcePresence,
     };
     const resultColumnKeys = new Set(result.columns.map((column) => column.key));
     const timeKeys = domain.dimensions

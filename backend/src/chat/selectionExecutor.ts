@@ -28,6 +28,7 @@ export interface SelectionExecutionResult {
   objectsTouched: string[];
   activeBatchIds: ProvenanceBatch[];
   budgetComponentLabels: string[];
+  rowSourcePresence: Array<SourcePresence | SourcePresence[]>;
 }
 
 export class SelectionExecutionBlockedError extends Error {
@@ -83,6 +84,7 @@ export class SelectionExecutor {
       objectsTouched: primary.objectsTouched,
       activeBatchIds: primary.activeBatchIds,
       budgetComponentLabels: primary.budgetComponentLabels,
+      rowSourcePresence: primary.rowSourcePresence,
     };
   }
 
@@ -102,6 +104,7 @@ export class SelectionExecutor {
     objectsTouched: string[];
     activeBatchIds: ProvenanceBatch[];
     budgetComponentLabels: string[];
+    rowSourcePresence: Array<SourcePresence | SourcePresence[]>;
   }> {
     if (
       domain.composed &&
@@ -134,7 +137,9 @@ export class SelectionExecutor {
     const raw = await withTimeout(this.warehouse.execute(built.sql), cfg.queryTimeoutMs);
     const activeBatchIds = collectActiveBatchIds(raw.rows);
     const budgetComponentLabels = collectBudgetComponentLabels(raw.rows);
-    const hiddenProvenanceKeys = new Set(["budget_component_labels", "active_batch_ids"]);
+    const rowSourcePresence =
+      domain.composed && includeProvenance ? raw.rows.map((row) => parseSourcePresence(row.source_presence)) : [];
+    const hiddenProvenanceKeys = new Set(["source_presence", "budget_component_labels", "active_batch_ids"]);
 
     // `numeric` means "measure output" for rendering, not raw warehouse type.
     const measureOutputKeys = new Set(resolvedSelection.measureIds.map((id) => id.split(".").pop()!));
@@ -163,10 +168,9 @@ export class SelectionExecutor {
             ...(format ? { format } : {}),
           };
         }),
-      rows: raw.rows.map((row) => ({
-        ...Object.fromEntries(Object.entries(row).filter(([key]) => !hiddenProvenanceKeys.has(key))),
-        ...(row.source_presence ? { source_presence: parseSourcePresence(row.source_presence) } : {}),
-      })) as ResultTable["rows"],
+      rows: raw.rows.map((row) =>
+        Object.fromEntries(Object.entries(row).filter(([key]) => !hiddenProvenanceKeys.has(key))),
+      ),
     };
 
     const piiMeasureKeys = resolvedSelection.measureIds
@@ -187,6 +191,7 @@ export class SelectionExecutor {
       objectsTouched: built.objectsTouched,
       activeBatchIds,
       budgetComponentLabels,
+      rowSourcePresence,
     };
   }
 

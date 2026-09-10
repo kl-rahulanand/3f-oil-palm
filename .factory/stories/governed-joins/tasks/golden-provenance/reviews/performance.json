@@ -1,28 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "golden-provenance",
-  "score": 6,
-  "summary": "performance lens over golden-provenance (14 product path(s), 0cca24b..8585d35, Codex via the autoreview skill at --max-priority P2): 1 blocking, 2 non-blocking. The patch introduces a user-visible aggregation regression for valid composed selections below the natural grain, can corrupt valid component-label provenance, and adds avoidable per-row warehouse lookup amplification. No compatibility wrappers, aliases, or other prohibited leftovers are visible in the supplied diff.",
-  "blocking_findings": [
-    {
-      "category": "regression",
-      "area": "backend/src/sql",
-      "summary": "[P1] Do not force hidden provenance fields into the requested aggregation grain (backend/src/sql/sqlBuilder.ts:94): Adding `month` and the provenance values to every composed query's `GROUP BY` changes existing measure semantics whenever the caller requests less than the full `(gl_code, month)` grain."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/chat",
-      "summary": "[P2] Preserve array element boundaries when collecting component labels (backend/src/chat/selectionExecutor.ts:242): The adapter's text-array representation is comma-joined, and splitting that value on every comma cannot reconstruct valid labels that themselves contain commas; trimming also changes labels with significant surrounding whitespace."
-    },
-    {
-      "category": "bug",
-      "area": "backend/src/sql",
-      "summary": "[P2] Avoid two correlated ingest-batch lookups per financial row (backend/src/sql/sqlBuilder.ts:155): Performance inference from the generated SQL: both active-batch IDs are fetched through correlated scalar subqueries keyed by the current row's month."
-    }
-  ],
-  "recommendation": "request-changes",
+  "score": 10,
+  "summary": "performance lens over golden-provenance (14 product path(s), 0cca24b..9e2845b, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No P0\u2013P2 performance defect is demonstrated by the supplied diff. Provenance is gathered within the composed query without changing aggregate grain, totals explicitly skip provenance generation, and executor-side collection remains bounded by the query result. The diff also contains no compatibility wrapper, shim, retained alias, deprecated branch, or other blocking leftover.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     ".prettierignore",
     "backend/package.json",
@@ -41,10 +24,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "0fbee99f689f346c7e80ee3c5f4d56a85fc5592d93193aa71cb9dfcdf08c0fa0",
-  "brief_sha256": "73eb038684ea477c2d13965c85df659a7f366b26416a1d2497b44d4941a5fb6d",
-  "branch_diff_digest": "3392d3374d1cc7bd47ff88624dd5967f84fd10a5fd7198deab31c0572931a564",
+  "review_run_id": "5a8d1ff7623ce5d249087a3a2a8b8e89374d0eb7e79300754539874f496f1f49",
+  "brief_sha256": "ff4856c715463f906f793433e0c17a0d28b699dc954d0f01b16411c48c96a7b0",
+  "branch_diff_digest": "a6412fceb466ab48e45385fadc44a2c8ad438da61c78e9ab299be77bd936c42d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T09:54:11+00:00",
-  "commit": "8585d3578b063ae5374726ed354ba2c185a9334e"
+  "recorded_at": "2026-09-10T11:36:29+00:00",
+  "commit": "9e2845b0a03caac7fb50f4b6aaa5333b1e696d4e"
 }

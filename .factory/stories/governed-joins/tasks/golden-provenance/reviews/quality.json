@@ -1,13 +1,18 @@
 {
   "generated_by": "autoreview",
   "task_id": "golden-provenance",
-  "score": 6,
-  "summary": "quality lens over golden-provenance (14 product path(s), 0cca24b..8585d35, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. VERDICT t-gp-c1: implemented \u2014 backend/src/warehouse/golden-financial.db.test.ts:65 demonstrates the registered six-case frozen-fixture proof and strict loader paths.\nVERDICT t-gp-c2: partial \u2014 backend/src/sql/sqlBuilder.ts:95 projects and threads provenance, but grouping by hidden row-level metadata breaks aggregate result grain, and backend/src/chat/selectionExecutor.ts:242 cannot preserve labels containing commas.",
+  "score": 3,
+  "summary": "quality lens over golden-provenance (14 product path(s), 0cca24b..9e2845b, Codex via the autoreview skill at --max-priority P2): 2 blocking, 1 non-blocking. The golden fixture and gated warehouse proof implement the required reconciliation cases. The provenance SQL and executor gathering are substantially present, but C2 remains partial because source presence is accidentally registered as a rendered column, authored-measure sample persistence is not insulated from the new row metadata, and the exported row type cannot represent aggregate presence arrays. No compatibility wrapper, alias, deprecated branch, or other blocking leftover is shown.\nVERDICT t-gp-c1: implemented \u2014 backend/src/warehouse/golden-financial.db.test.ts:70\nVERDICT t-gp-c2: partial \u2014 backend/src/chat/selectionExecutor.ts:137",
   "blocking_findings": [
     {
       "category": "regression",
-      "area": "backend/src/sql",
-      "summary": "[P1] Preserve the requested aggregation grain when adding provenance (backend/src/sql/sqlBuilder.ts:95): Adding `source_presence`, component labels, batch IDs, and `month` to `GROUP BY` changes the result grain whenever the caller omits `gl_code` or `month`."
+      "area": "backend/src/chat",
+      "summary": "[P1] Keep source presence out of the rendered column list (backend/src/chat/selectionExecutor.ts:137): The composed query returns `source_presence` in `raw.columns`, but the filter hides only `budget_component_labels` and `active_batch_ids`."
+    },
+    {
+      "category": "regression",
+      "area": "backend/src/chat",
+      "summary": "[P1] Strip row provenance before persisting authored-measure samples (backend/src/chat/selectionExecutor.ts:165): This mapping adds `source_presence` to every composed `execution.result.rows` record."
     },
     {
       "category": "plan-contract-partial",
@@ -18,8 +23,8 @@
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "backend/src/chat",
-      "summary": "[P2] Do not parse component labels with an ambiguous comma delimiter (backend/src/chat/selectionExecutor.ts:242): The adapter's comma-joined array representation is split on every comma, so a valid label such as `Admin, East` is surfaced as two labels (`Admin` and `East`)."
+      "area": "contract/src",
+      "summary": "[P2] Make aggregate source-presence rows representable by the API type (contract/src/api.ts:148): Intersecting `Record<string, string | number | null>` with a property that may be `SourcePresence[]` is unsound: the string index signature also applies to `source_presence`, so an array-valued aggregate presence is not assignable to this declared row type."
     }
   ],
   "recommendation": "request-changes",
@@ -44,12 +49,12 @@
     {
       "contract_id": "t-gp-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/golden-financial.db.test.ts:65 demonstrates the registered six-case frozen-fixture proof and strict loader paths."
+      "evidence": "backend/src/warehouse/golden-financial.db.test.ts:70"
     },
     {
       "contract_id": "t-gp-c2",
       "verdict": "partial",
-      "evidence": "backend/src/sql/sqlBuilder.ts:95 projects and threads provenance, but grouping by hidden row-level metadata breaks aggregate result grain, and backend/src/chat/selectionExecutor.ts:242 cannot preserve labels containing commas."
+      "evidence": "backend/src/chat/selectionExecutor.ts:137"
     },
     {
       "contract_id": "t-glm-c1",
@@ -93,10 +98,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "0fbee99f689f346c7e80ee3c5f4d56a85fc5592d93193aa71cb9dfcdf08c0fa0",
-  "brief_sha256": "73eb038684ea477c2d13965c85df659a7f366b26416a1d2497b44d4941a5fb6d",
-  "branch_diff_digest": "3392d3374d1cc7bd47ff88624dd5967f84fd10a5fd7198deab31c0572931a564",
+  "review_run_id": "5a8d1ff7623ce5d249087a3a2a8b8e89374d0eb7e79300754539874f496f1f49",
+  "brief_sha256": "ff4856c715463f906f793433e0c17a0d28b699dc954d0f01b16411c48c96a7b0",
+  "branch_diff_digest": "a6412fceb466ab48e45385fadc44a2c8ad438da61c78e9ab299be77bd936c42d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T09:54:11+00:00",
-  "commit": "8585d3578b063ae5374726ed354ba2c185a9334e"
+  "recorded_at": "2026-09-10T11:36:29+00:00",
+  "commit": "9e2845b0a03caac7fb50f4b6aaa5333b1e696d4e"
 }
