@@ -86,16 +86,16 @@ export class SqlBuilder {
         where.push(`${dim.column} ${f.op === "neq" ? "<>" : "="} ${this.lit(f.value)}`);
       }
     }
+    let timePredicate: string | undefined;
     if (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.column) {
       const column = selection.timeWindow.column;
       if (!domain.dimensions.some((dimension) => dimension.column === column)) {
         throw new Error(SQL_BUILDER_MESSAGES.invalidTimeWindowColumn(column));
       }
-      where.push(
-        `${column} >= ${this.lit(selection.timeWindow.from)} AND ${column} < ${this.lit(
-          this.nextIsoDate(selection.timeWindow.to),
-        )}`,
-      );
+      timePredicate = `${column} >= ${this.lit(selection.timeWindow.from)} AND ${column} < ${this.lit(
+        this.nextIsoDate(selection.timeWindow.to),
+      )}`;
+      where.push(timePredicate);
     }
 
     const limit = Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows);
@@ -114,7 +114,7 @@ export class SqlBuilder {
     const whereSql = where.length ? `\nWHERE ${where.join("\n  AND ")}` : "";
 
     const composedCtes = domain.composed
-      ? this.composedCtes(domain.composed.sources, scopePredicate, scopeValues, resolvedScope)
+      ? this.composedCtes(domain.composed.sources, scopePredicate, scopeValues, timePredicate, resolvedScope)
       : undefined;
     const sql =
       (composedCtes ? `${composedCtes}\n` : "") +
@@ -144,6 +144,7 @@ export class SqlBuilder {
     [actualSource, budgetSource]: [string, string],
     scopePredicate: string | undefined,
     scopeValues: string[],
+    timePredicate?: string,
     resolvedScope?: GovernedSelectionScope,
   ): string {
     if (!scopePredicate) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
@@ -163,11 +164,11 @@ export class SqlBuilder {
     return `WITH actual_src AS (
   SELECT ${actualProjection}
   FROM ${actualRelation}
-  WHERE ${scopePredicate}${triplePredicate}${actualGroupBy}
+  WHERE ${scopePredicate}${timePredicate ? `\n    AND ${timePredicate}` : ""}${triplePredicate}${actualGroupBy}
 ), budget_src AS (
   SELECT gl_code, month, budget_net, rollover_net, budget_component_labels
   FROM ${budgetSource}
-  WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})${budgetPredicate}
+  WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})${timePredicate ? `\n    AND ${timePredicate}` : ""}${budgetPredicate}
 ), financial_relation AS (
   SELECT COALESCE(actual_src.gl_code, budget_src.gl_code) AS gl_code,
     COALESCE(actual_src.month, budget_src.month) AS month,

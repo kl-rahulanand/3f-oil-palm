@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import type { MisSelectionOptionsResponse, MisSelectionPeriodOption, MisSelectionRunRequest } from "@3f/contract";
 import { WAREHOUSE } from "../config";
 import type { Warehouse } from "../warehouse/warehouse.interface";
@@ -8,6 +8,7 @@ import {
   canonicalPlantFromMaster,
   resolveMappingTriple,
   type MappingEntry,
+  type MappingMaster,
   type MappingSelection,
 } from "./mapping-master";
 import type { ISelectionResolverService, MasterSelectionResolution } from "./selection-resolver.interface";
@@ -26,14 +27,21 @@ export class SelectionPeriodUnavailableError extends Error {
 
 @Injectable()
 export class SelectionResolverService implements ISelectionResolverService {
-  constructor(@Inject(WAREHOUSE) private readonly warehouse: Warehouse) {}
+  constructor(
+    @Inject(WAREHOUSE) private readonly warehouse: Warehouse,
+    @Optional() private readonly master: MappingMaster = MAPPING_MASTER,
+  ) {}
 
-  async options(): Promise<MisSelectionOptionsResponse> {
+  async options(allowedPlants?: string[]): Promise<MisSelectionOptionsResponse> {
+    const selections = allowedPlants
+      ? this.master.selections.filter(({ plant_canonical }) => allowedPlants.includes(plant_canonical))
+      : this.master.selections;
+    if (selections.length === 0) return { departments: [], functions: [], plants: [], periods: [] };
     const periods = periodOptions(await this.loadedActualMonths());
     return {
-      departments: unique(MAPPING_MASTER.selections.map(({ department }) => department)),
-      functions: unique(MAPPING_MASTER.selections.map((selection) => selection.function)),
-      plants: MAPPING_MASTER.selections.map((selection) => ({
+      departments: unique(selections.map(({ department }) => department)),
+      functions: unique(selections.map((selection) => selection.function)),
+      plants: selections.map((selection) => ({
         value: selection.plant_canonical,
         label: selection.plant_aliases.display[0] ?? selection.plant_canonical,
         aliases: [selection.plant_canonical, ...selection.plant_aliases.sap, ...selection.plant_aliases.display],
@@ -42,9 +50,13 @@ export class SelectionResolverService implements ISelectionResolverService {
     };
   }
 
+  canonicalPlant(plant: string): string | undefined {
+    return canonicalPlantFromMaster(plant, this.master);
+  }
+
   async resolve(request: MisSelectionRunRequest): Promise<MasterSelectionResolution> {
-    const canonicalPlant = canonicalPlantFromMaster(request.plant);
-    const selection = MAPPING_MASTER.selections.find(
+    const canonicalPlant = this.canonicalPlant(request.plant);
+    const selection = this.master.selections.find(
       (candidate) =>
         candidate.department === request.department &&
         candidate.function === request.function &&
@@ -55,7 +67,7 @@ export class SelectionResolverService implements ISelectionResolverService {
     const period = periodOptions(await this.loadedActualMonths()).find(({ value }) => value === request.period);
     if (!period) throw new SelectionPeriodUnavailableError();
 
-    const entries = resolveEntries(selection);
+    const entries = resolveEntries(selection, this.master);
     return {
       outcome: "resolved",
       department: selection.department,
@@ -71,7 +83,7 @@ export class SelectionResolverService implements ISelectionResolverService {
         glCode: gl_code,
       })),
       masterGlCodes: unique(
-        MAPPING_MASTER.selections.flatMap((candidate) => [
+        this.master.selections.flatMap((candidate) => [
           ...candidate.entries.map(({ gl_code }) => gl_code),
           ...candidate.budget_gl_codes,
         ]),
@@ -90,13 +102,16 @@ export class SelectionResolverService implements ISelectionResolverService {
   }
 }
 
-function resolveEntries(selection: MappingSelection): MappingEntry[] {
+function resolveEntries(selection: MappingSelection, master: MappingMaster): MappingEntry[] {
   return selection.entries.map((entry) => {
-    const resolved = resolveMappingTriple({
-      plant: selection.plant_canonical,
-      cost_center: entry.cost_center,
-      gl_code: entry.gl_code,
-    });
+    const resolved = resolveMappingTriple(
+      {
+        plant: selection.plant_canonical,
+        cost_center: entry.cost_center,
+        gl_code: entry.gl_code,
+      },
+      master,
+    );
     if (!resolved) throw new Error("Mapping master selection entry did not resolve");
     return resolved;
   });

@@ -9,7 +9,7 @@ import type {
   ResultTable,
   Selection,
 } from "@3f/contract";
-import { SelectionExecutor } from "../chat/selectionExecutor";
+import { SelectionExecutionBlockedError, SelectionExecutor } from "../chat/selectionExecutor";
 import { SelectionPeriodUnavailableError, SelectionResolverService } from "../mapping/selection-resolver.service";
 import type { ISelectionResolverService, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { UNMAPPED_GL_LINE } from "../mapping/mapping-master";
@@ -41,12 +41,16 @@ export class MisSelectionService implements IMisSelectionService {
   options(user: AuthUser): Promise<MisSelectionOptionsResponse> {
     const { domain, selection } = this.authorizedSelection(user);
     this.executor.authorize(user, domain, selection);
-    return this.resolver.options();
+    return this.resolver.options(plantScope(user));
   }
 
   async run(user: AuthUser, request: MisSelectionRunRequest): Promise<MisSelectionRunResponse> {
     const { domain, selection } = this.authorizedSelection(user);
     this.executor.authorize(user, domain, selection);
+    const canonicalPlant = this.resolver.canonicalPlant(request.plant);
+    if (!canonicalPlant || !plantScope(user).includes(canonicalPlant)) {
+      throw new SelectionExecutionBlockedError("governed financial plant scope is not authorized");
+    }
 
     let resolution;
     try {
@@ -109,6 +113,10 @@ export class MisSelectionService implements IMisSelectionService {
     if (!domain) throw new Error("Governed financial domain is not configured");
     return { domain, selection };
   }
+}
+
+function plantScope(user: AuthUser): string[] {
+  return user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
 }
 
 function totals(values: Record<string, number> | undefined): MisSelectionTotals {

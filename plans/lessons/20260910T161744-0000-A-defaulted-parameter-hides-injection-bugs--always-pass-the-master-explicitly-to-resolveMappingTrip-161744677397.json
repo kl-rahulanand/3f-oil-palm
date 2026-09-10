@@ -1,0 +1,13 @@
+{
+  "topic": "A defaulted parameter hides injection bugs: always pass the master explicitly to resolveMappingTriple, and check user.scope before exposing master metadata",
+  "lesson": "Three fixes from the selection-resolution review. (1) BLOCKING: resolveMappingTriple(triple, master = MAPPING_MASTER) has a DEFAULTED second parameter, so calling it with only the triple compiles and silently resolves against the module-level default rather than the master the service was given. Always pass the master explicitly (selection-resolver.service.ts:95) \u2014 otherwise an injected/alternate master is ignored and the tests prove nothing about it. (2) SECURITY: the mis service authorizes the action, domain, measures and dimensions but never checks user.scope before returning mapping-master metadata (mis-selection.service.ts:45), so a user scoped away from DUB can still read DUB selector options and the resolved scope readout. Enforce the validated plant scope BEFORE exposing master metadata or a resolved scope \u2014 this is the same disclosure class as the composed-relation Budget-scope bug fixed in governed-joins. (3) PERFORMANCE: the selection's month range is applied to the JOINED relation while actual_src is filtered only by scope+triples and budget_src only by GL membership; push the period predicate INTO both source CTEs so each side filters before the full outer join, consistent with decision 0017's filter-before-the-rollup principle.",
+  "source": "selection-resolution 3-lens review 2026-09-10 (quality P1 + security/performance P2s)",
+  "applies_to": [
+    "backend/src/mapping/selection-resolver.service.ts",
+    "backend/src/mis/mis-selection.service.ts",
+    "backend/src/sql/sqlBuilder.ts"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-10T16:17:44+00:00"
+}

@@ -37,6 +37,21 @@ test("the resolved scope reaches BOTH executions so the ungrouped totals query i
   assert.equal(warehouse.metadataExecutions, 0);
   assert.equal(warehouse.queryExecutions, 0);
 
+  const outOfScope = user({ ...granted.permissions });
+  outOfScope.scope = [{ attribute: "plant", value: "LON" }];
+  assert.deepEqual(await service.options(outOfScope), { departments: [], functions: [], plants: [], periods: [] });
+  await assert.rejects(
+    service.run(outOfScope, {
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+    }),
+    SelectionExecutionBlockedError,
+  );
+  assert.equal(warehouse.metadataExecutions, 0);
+  assert.equal(warehouse.queryExecutions, 0);
+
   const result = await service.run(granted, {
     department: "Agriculture",
     function: "Nursery",

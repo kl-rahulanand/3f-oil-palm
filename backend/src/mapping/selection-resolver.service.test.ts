@@ -5,6 +5,7 @@ import type { SelectionExecutor } from "../chat/selectionExecutor";
 import { MisSelectionService } from "../mis/mis-selection.service";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import type { QueryResult, Warehouse } from "../warehouse/warehouse.interface";
+import { MAPPING_MASTER, type MappingMaster } from "./mapping-master";
 import { SelectionResolverService } from "./selection-resolver.service";
 
 test("resolving a department function plant and period through the mapping master returns the cost centres the GL set the MIS format and the bucket rows, returns an unresolvable outcome for a selection the master does not cover so the no mapping configured notice never depends on whether the query returned rows, and derives the financial year to date period from the latest active loaded month rather than the wall clock", async () => {
@@ -47,6 +48,25 @@ test("resolving a department function plant and period through the mapping maste
     (await new SelectionResolverService(new PeriodWarehouse(["2026-07-01", "2028-01-01"])).options()).periods.at(-1),
     { value: "fy26-27-ytd", label: "FY 26-27 YTD", from: "2026-04-01", to: "2027-03-31" },
   );
+
+  const alternateMaster: MappingMaster = {
+    ...MAPPING_MASTER,
+    selections: [
+      {
+        ...MAPPING_MASTER.selections[0],
+        plant_canonical: "ALT",
+        plant_aliases: { sap: ["ALT-SAP"], display: ["Alternate plant"] },
+      },
+    ],
+  };
+  const alternate = await new SelectionResolverService(new PeriodWarehouse(["2026-07-01"]), alternateMaster).resolve({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "ALT",
+    period: "2026-07-01",
+  });
+  assert.equal(alternate.outcome, "resolved");
+  if (alternate.outcome === "resolved") assert.ok(alternate.triples.every(({ plant }) => plant === "ALT"));
 
   const executor = new EmptyExecutor();
   const service = new MisSelectionService(resolver, new SemanticLayer(), executor as unknown as SelectionExecutor);

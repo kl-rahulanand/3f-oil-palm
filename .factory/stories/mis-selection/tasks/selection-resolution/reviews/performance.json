@@ -1,0 +1,45 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "selection-resolution",
+  "score": 9,
+  "summary": "performance lens over selection-resolution (20 product path(s), 97764ad..17f3fd2, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The selection behavior appears functionally aligned with the stated contracts, and the diff contains no compatibility wrappers, aliases, deprecated branches, or other blocking leftovers. However, the new request path does not push its bounded period into the source CTEs, causing avoidable full-history processing twice per run; this is an actionable production performance defect.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/sql",
+      "summary": "[P2] Apply the requested period inside the source CTEs (backend/src/sql/sqlBuilder.ts:168): Inference from the generated SQL shape (no EXPLAIN measurement): `actual_src` is filtered only by authorization scope and resolved triples, while `budget_src` is filtered only by GL membership; the selection's month range is applied later to the joined relation."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/chat/selectionExecutor.composed.test.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/mapping/selection-resolver.interface.ts",
+    "backend/src/mapping/selection-resolver.service.test.ts",
+    "backend/src/mapping/selection-resolver.service.ts",
+    "backend/src/mis/mis-selection.controller.test.ts",
+    "backend/src/mis/mis-selection.controller.ts",
+    "backend/src/mis/mis-selection.dto.ts",
+    "backend/src/mis/mis-selection.interface.ts",
+    "backend/src/mis/mis-selection.module.ts",
+    "backend/src/mis/mis-selection.service.ts",
+    "backend/src/sql/sqlBuilder.selection.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/sql/sqlValidator.composed.test.ts",
+    "backend/src/warehouse/selection-slice.db.test.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "f7c94a56281bc21277baea1dfe633c73c981ebe402f9a8d575c66e3583b97909",
+  "brief_sha256": "6b76b87f4ac1d5c777544e6e16332bcd79620770a129b9f4617c1be745aab7f1",
+  "branch_diff_digest": "49cb75be598d8cdc3dfc8ee5a5989de54e7a470d105573c9a6a802a171bd0537",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T16:17:04+00:00",
+  "commit": "17f3fd288c36cb07da83de37dcdf8264954502dd"
+}

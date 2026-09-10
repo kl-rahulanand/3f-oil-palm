@@ -28,6 +28,7 @@ export interface MasterUnresolvableSelection {
 export type MasterSelectionResolution = MasterResolvedSelection | MasterUnresolvableSelection;
 
 export interface ISelectionResolverService {
-  options(): Promise<MisSelectionOptionsResponse>;
+  options(allowedPlants?: string[]): Promise<MisSelectionOptionsResponse>;
+  canonicalPlant(plant: string): string | undefined;
   resolve(request: MisSelectionRunRequest): Promise<MasterSelectionResolution>;
 }
