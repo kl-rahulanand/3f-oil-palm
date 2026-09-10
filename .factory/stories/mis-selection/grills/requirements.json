@@ -1,0 +1,90 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "issue_key": "mis-selection",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "mis-selection makes a Department -> Function -> Plant -> period selection resolve, through a versioned repo-owned provisional Mapping Master, to the applicable cost centres + GL codes + MIS format \u2014 never through the Excel sheet or file name. The resolved (plant, cost_center, gl) triples then NARROW the single governed query path shipped in governed-joins: the composed relation's Actual side filters by those triples before aggregating to (gl_code, month) (decision 0017), so grants, two-sided scope, zero-fill, the %-nil rule and in-query provenance all continue to apply. Every DUB raw triple resolves exactly once because the nine unresolved ones map to an explicit unmapped-GL bucket (decision 0018) rather than being inferred or dropped. The story ships the selector, the resolution API, a resolved-scope readout, both zero states, and the bucket as a reviewable list; the finished statement and Excel export belong to mis-statement.",
+  "inspected_refs": [
+    "docs/specs/mis-selection-and-master.md",
+    "docs/specs/financial-mis-statement.md",
+    "docs/context/2026-09-01-srihari-requirements-qa.md",
+    "docs/context/2026-08-20-srihari-phase1-data/README.md",
+    "docs/decisions/0016-governed-joins-poc-scope.md",
+    "docs/decisions/0017-mis-selection-composite-key-seam.md",
+    "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/semantic/semanticLayer.ts",
+    "plans/roadmap.json"
+  ],
+  "new_abstractions": [
+    "a versioned repo-owned provisional Mapping Master (selector identity + canonical plant + aliases + cost centre + GL + target format/line + provisional flag) as the single runtime selection/validation authority",
+    "the reserved unmapped-GL bucket that keeps the DUB slice complete without inventing financial classification",
+    "selection-aware narrowing of the existing governed query path (Actual side filtered by resolved triples before the GL roll-up)"
+  ],
+  "gaps": [
+    "The seed workbooks cannot supply the master contract the spec promises: they carry no Department, Function, format id, or selector-to-canonical-plant relationship, and the mapping workbook has TWO 'Cost Center' columns with different values \u2014 a reader would have to invent the master's authoritative fields.",
+    "The 'seven missing GLs' do not complete the master: after normalizing plant aliases only 66 of 88 DUB rows resolve \u2014 7 GLs (50001701-706, 50001905) carry no stated MIS-line assignment (11 rows) and 2 GLs (50001902, 50001903) have conflicting cost centres (11 rows), so a literal composite-key match leaves 22 of 88 DUB rows unmapped.",
+    "The current governed layer is deliberately DUB-only at (gl_code, month) with cost-centre reporting deferred, but this spec makes the composite key mandatory; without a stated seam an implementer could build a parallel, contradictory query path that bypasses the governed grants and provenance.",
+    "The settled July + FY26-27 YTD scope is absent from this spec: it exposes a generic 'period' selector while the prototype offers June and May despite no Actual data existing for them.",
+    "The delivery boundary against mis-statement is unstated: this spec says a selection 'renders' a format and an unmapped selection 'renders an empty statement', but mis-statement is the next dependent story and owns the finished grouped statement and Excel export \u2014 both stories could build incompatible report surfaces.",
+    "The prototype's Admin screen offers 'Import CSV', 'Add mapping' and 'Edit' while the settled PoC answer is seed/config only, so the spec must make that prototype screen explicitly non-binding for this story."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "The runtime master is a VERSIONED, REPO-OWNED seed/config artifact (the spec already settles 'maintained as seed / config for the PoC'). Each row explicitly carries the selector identity (Department, Function), the canonical plant DUB plus its source aliases, the source cost centre, the GL, the target MIS format/line, and a provisional flag. The Excel workbooks are SEED EVIDENCE, never the runtime authority \u2014 which is what makes 'the master is the single source of selection/validation config' true and kills the hard-coded DUB-NUR->DUB normalization.",
+    "HUMAN-decided, accepted decision 0018-mis-selection-unmapped-gl-bucket: all nine unresolved triples map to an explicit reserved 'unmapped-GL' bucket \u2014 never inferred, never dropped \u2014 so every DUB raw triple resolves EXACTLY ONCE and the slice reconciles to the full DUB actuals total. The two conflicting-cost-centre GLs go to the bucket AS A CONFLICT rather than silently picking one workbook column. The bucket is the artifact shown to Srihari to elicit the authoritative assignment; resolving it later is a data change only.",
+    "HUMAN-decided, accepted decision 0017-mis-selection-composite-key-seam: filter BEFORE the roll-up, ONE governed path. The composed relation's Actual side filters by the master's resolved (plant, cost_center, gl) triples before aggregating to (gl_code, month), sourcing the existing cost-centre-grain actual_by_key_month view. Selection narrows the governed path and never forks it; Budget is not re-grained, so it still cannot fan out.",
+    "Only ACTIVE, LOADED Actual months are selectable \u2014 July 2026 today \u2014 with FY26-27 YTD derived from that selection (this does not reopen the settled output columns in financial-mis-statement.md; it settles the interaction gap). The 'no mapping configured' notice is determined SOLELY by master resolution, never by whether the query returned rows, so 'mapped but no transactions' renders a configured zero statement and only an unresolvable selection gets the notice \u2014 both cases carry acceptance tests.",
+    "HUMAN-decided (round): this story ships the authenticated Department/Function/Plant/period selector, the master-resolution API, a RESOLVED-SCOPE readout (which cost centres, GLs and format a selection resolved to), both zero states, and the unmapped-GL bucket rendered as a reviewable list of its nine triples with amounts \u2014 enough to put in front of Srihari. The finished hierarchical statement and Excel export stay with mis-statement. The selection path uses the EXISTING governed read authorization; it does not bypass it.",
+    "The prototype Admin screen (Import CSV / Add mapping / Edit) is explicitly NON-BINDING for this story: in-app authoring of the master is out of scope per the spec, which settles editing as seed/config for the PoC."
+  ],
+  "open_items": [
+    "Reconciling the provisional master against Srihari's authoritative Master Table remains the spec's open item; the unmapped-GL bucket contents (9 triples, 22 rows, with amounts) are the concrete artifact that drives it.",
+    "The finished hierarchical statement, its rendering of the unmapped-GL line, and the Excel export belong to mis-statement; actuals drill-down to transactions belongs to drill-down."
+  ],
+  "rounds": [
+    {
+      "question": "mis-selection delivery boundary: mis-statement (story 5) owns the finished hierarchical statement + Excel export, so this story must stop short of that or the two build conflicting report surfaces. But you want to put this in front of Srihari to get the unmapped-GL assignments back. How much should mis-selection visibly deliver?",
+      "options": [
+        "Selector + resolved scope + bucket list (Rec.)",
+        "Selector + resolution API only",
+        "Pull the statement forward into this story"
+      ],
+      "chosen": "Selector + resolved scope + bucket list (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The seed workbooks cannot supply the master contract the spec promises: they carry no Department, Function, format id, or selector-to-canonical-plant relationship, and the mapping workbook has TWO 'Cost Center' columns with different values \u2014 a reader would have to invent the master's authoritative fields.",
+      "source": "docs/specs/mis-selection-and-master.md:20; docs/context/2026-08-20-srihari-phase1-data/README.md:55"
+    },
+    {
+      "finding": "The 'seven missing GLs' do not complete the master: after normalizing plant aliases only 66 of 88 DUB rows resolve \u2014 7 GLs (50001701-706, 50001905) carry no stated MIS-line assignment (11 rows) and 2 GLs (50001902, 50001903) have conflicting cost centres (11 rows), so a literal composite-key match leaves 22 of 88 DUB rows unmapped.",
+      "source": "docs/specs/mis-selection-and-master.md:32; docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+    },
+    {
+      "finding": "The current governed layer is deliberately DUB-only at (gl_code, month) with cost-centre reporting deferred, but this spec makes the composite key mandatory; without a stated seam an implementer could build a parallel, contradictory query path that bypasses the governed grants and provenance.",
+      "source": "docs/decisions/0016-governed-joins-poc-scope.md:23; docs/decisions/0017-mis-selection-composite-key-seam.md"
+    },
+    {
+      "finding": "The settled July + FY26-27 YTD scope is absent from this spec: it exposes a generic 'period' selector while the prototype offers June and May despite no Actual data existing for them.",
+      "source": "docs/specs/financial-mis-statement.md:27"
+    },
+    {
+      "finding": "The delivery boundary against mis-statement is unstated: this spec says a selection 'renders' a format and an unmapped selection 'renders an empty statement', but mis-statement is the next dependent story and owns the finished grouped statement and Excel export \u2014 both stories could build incompatible report surfaces.",
+      "source": "plans/roadmap.json"
+    },
+    {
+      "finding": "The prototype's Admin screen offers 'Import CSV', 'Add mapping' and 'Edit' while the settled PoC answer is seed/config only, so the spec must make that prototype screen explicitly non-binding for this story.",
+      "source": "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html:599"
+    }
+  ],
+  "summary": "One cold read of the confirmed spec against current repo reality returned six gaps. Four are repository/spec-answerable and resolved: the runtime master is a versioned repo-owned seed/config with the workbooks as seed evidence only; only loaded Actual months are selectable with FY26-27 YTD derived, and the 'no mapping configured' notice comes from master resolution rather than row count; and the prototype's Admin authoring screen is non-binding. Two were genuine decisions put to the human and recorded as accepted decision records: 0017 settles the composite-key seam (filter the Actual side before the GL roll-up, keeping ONE governed path \u2014 D-0028), and 0018 settles the nine unresolved triples (an explicit unmapped-GL bucket, never inferred and never dropped, shown to Srihari to elicit the real assignment \u2014 D-0027). A third human round fixed the delivery boundary against mis-statement: selector + resolution API + resolved-scope readout + both zero states + the bucket list, with the statement and Excel export left to mis-statement. Verdict pass.",
+  "issue": "mis-selection",
+  "input_sha256": "72f08a6203421964c5157541484a533fc8900af7e306c33fde61fe337a30053c",
+  "recorded_at": "2026-09-10T13:05:54+00:00",
+  "commit": "d0f0c59645d97390c0c4c5194c36d730d005058a"
+}
