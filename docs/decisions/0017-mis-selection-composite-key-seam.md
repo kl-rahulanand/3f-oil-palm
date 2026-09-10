@@ -61,7 +61,12 @@ Confirmed by the human on 2026-09-10, settling D-0028.
 - This partially reopens 0016's deferral of cost-centre-level reporting: cost centres now
   act as a **selection filter**, but are still never a join key, a Budget grain, or an
   output dimension.
-- Deferral **D-0028** is resolved by this record. **D-0027** (the MIS-line assignment for
-  the 9 unresolved DUB composite-key triples) stays **open** — it is financial meaning
-  awaiting Srihari's authoritative Master Table, and `mis-selection` planning cannot fully
-  converge until it is settled.
+- Deferral **D-0028** is resolved by this record.
+
+> **Amended 2026-09-10 (plan grill Q6).** This record originally closed by saying D-0027
+> stayed open and that `mis-selection` planning could not converge until it was settled.
+> That consequence is **superseded**: decision **0018-mis-selection-unmapped-gl-bucket**
+> settled D-0027 the same day (the nine unresolved triples map to an explicit
+> `unmapped-GL` bucket), and the deferral ledger records D-0027 as done. **0018 governs
+> the bucket question**; this record governs only the composite-key seam. Planning is not
+> blocked.
