@@ -1,0 +1,75 @@
+{
+  "generated_by": "autoreview",
+  "aspect": "quality",
+  "score": 10,
+  "summary": "Story-level closeout roll-up: all 10 governed-joins plan contracts across the 4 shipped tasks (gl-month-rollups #20, composed-relation #21, governed-domain-measures #22, golden-provenance #23) were verdicted implemented by their own clean per-task three-lens reviews and merged; no code changed at the closeout HEAD. Story-level verify.py passed and the aggregate D-0008 host proof (npm run test:warehouse-proof) is 13/13 with a dead-port negative control failing all four gated leaves. Aggregate verdict: all implemented. Quality: one governed financial definition (Actual / Budget / %) is code-authored in the semantic layer over a single composed relation; the %-nil rule and its over-budget / credit labels live in one verbatim SQL CASE, so report, drill-down and the assistant cannot drift apart.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/src/warehouse/",
+    "backend/src/sql/",
+    "backend/src/chat/",
+    "backend/src/semantic/",
+    "contract/src/api.ts",
+    "contract/src/measure.ts"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-glm-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under gl-month-rollups (PR #20) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-glm-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under gl-month-rollups (PR #20) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-glm-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under gl-month-rollups (PR #20) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-cr-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under composed-relation (PR #21) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-cr-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under composed-relation (PR #21) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-cr-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under composed-relation (PR #21) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-dm-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under governed-domain-measures (PR #22) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-dm-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under governed-domain-measures (PR #22) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-gp-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under golden-provenance (PR #23) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    },
+    {
+      "contract_id": "t-gp-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under golden-provenance (PR #23) - clean three-lens task review (all contracts implemented, zero blocking) + green CI; merged to master, unchanged at the story closeout HEAD"
+    }
+  ],
+  "review_run_id": "8168279aa794d199a053f75b51c3b008671e664604b8154fbae017354f9f5b9c",
+  "brief_sha256": "9148a08331108b04edda04def7cbd2aec2b706bec60ed98fabf6c2e19acbbe52",
+  "branch_diff_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T12:21:08+00:00",
+  "commit": "9c6ad530f978cb8bcf1eed8ba6b2b18d1d6d9ff9"
+}

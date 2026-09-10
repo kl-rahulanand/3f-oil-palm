@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "composed-relation grill (findings 2 & 6): the criterion promises the composed relation provides 'relation semantics to freshness, dimension enumeration, RBAC scope-validation, and reconciliation.' Those Pulse consumers each read one physical goldObject and issue 'FROM <goldObject>'. Making ALL of them genuinely composed-aware (querying the joined relation) is a materially larger task. For this PoC (single plant DUB; goal = % = Actual\u00f7Budget), how should the composed relation's NON-query surfaces be scoped?",
+      "options": [
+        "Narrow: composed JOIN for queries; defer the rest (Rec.)",
+        "Broad: make all consumers composed-aware now"
+      ],
+      "chosen": "Narrow: composed JOIN for queries; defer the rest (Rec.)"
+    }
+  ],
+  "at": "2026-09-10T05:13:56.666628+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
