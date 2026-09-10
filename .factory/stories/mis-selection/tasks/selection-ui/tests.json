@@ -1,8 +1,8 @@
 {
-  "commit": "23ed18e41271c13304f5a3cfbeff5b78d2945349",
+  "commit": "06a7c38130a333e88106d4b1bc42178f6aa01bf8",
   "automated": {
     "generated_by": "implementer",
-    "status": "pass",
+    "status": "passed",
     "summary": "All four required vitest leaves for selection-ui execute and pass, each proven with an executed-count check rather than a bare exit code: every required id runs exactly ONE leaf (tests=4, skipped=3, failures=0), while a nonexistent id runs NONE (tests=4, skipped=4) - so the ids name real, executing leaves and the reported green is not the runner's no-match false pass. python3 factory/scripts/verify.py passed after each delegated round (structural, typecheck, quality, test), and npm run build:frontend is part of the task's verify commands.",
     "commands_run": [
       "npm exec --no -- vitest run --config frontend/vitest.config.ts frontend/src/features/mis/mis-report-view.test.tsx -t \"<each required id>\" --reporter=junit --outputFile=<report>",
@@ -28,10 +28,10 @@
     "residual_risks": [],
     "manual_validation_steps": [],
     "reviewed_scope": [],
-    "recorded_at": "2026-09-10T18:46:39+00:00",
-    "commit": "23ed18e41271c13304f5a3cfbeff5b78d2945349"
+    "recorded_at": "2026-09-10T19:24:33+00:00",
+    "commit": "06a7c38130a333e88106d4b1bc42178f6aa01bf8"
   },
-  "updated_at": "2026-09-10T18:46:39+00:00",
+  "updated_at": "2026-09-10T19:24:33+00:00",
   "functional": {
     "generated_by": "functional-checker",
     "status": "pass",
