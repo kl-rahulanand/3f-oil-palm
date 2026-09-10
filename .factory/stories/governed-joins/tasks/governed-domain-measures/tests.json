@@ -1,0 +1,38 @@
+{
+  "commit": "a5811d8757d773172a75ec1b3665b10b4d4ebcf8",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "governed-domain-measures (governed-joins task 3): registers ONE code-authored governed-financial DomainSpec in semanticLayer baseDomains (previously []) over task 2's composed financial_relation. Actual measure expr SUM(actual_net), Budget measure expr SUM(budget_net) (both omit format = numeric, timeColumn 'month'), and a % measure (id governed-financial.percentage) whose verbatim-inserted SQL CASE realises the FULL nil rule in one TEXT column: NULL for Budget=0 & Actual=0 (NA/blank), 'over-budget' for Budget=0 & Actual>0, 'credit / negative actual' for Budget=0 & Actual<0, else (SUM(actual_net) / SUM(budget_net))::text \u2014 the text branches force the CASE result type to text so the % omits format:'percent', matching the MIS spec's mixed '%' column (financial-mis-statement.md:40-42; decision 0016 Q4 for the negative-actual='credit' label). The domain sets composed marker + scopeColumn 'plant' (fires task 2's composed builder path + governed-read enforcement) and timeColumn 'month' so period windows bind (selectionExecutor validDateColumns honours measure timeColumns). The domain/measure/dimension grants task 2's grill deferred here are seeded to role admin in migrate.ts (governed-financial domain + .actual/.budget/.percentage measures + gl_code/month dimensions), and migrate.test.ts:33 is flipped to assert those grants now exist. Proven HERMETICALLY (no DB) in test:hermetic; the new test is registered in BOTH backend/package.json test:hermetic and the quality-gate hermeticTests registry. NO endpoint, warehouse object, contract change, or builder/validator/executor edit; golden EXACT-value fixtures + provenance + the statement rendering are task 4 / the reporting epic.",
+    "pass_fail_summary": "hermetic contract+backend+frontend+quality-gate: pass; verify.py: passed. Both required_tests executed individually via tools/junit-run.mjs (--name matched the verbatim test leaves, D-0024-safe): RT1 domain+measures registration incl. the % CASE, timeColumn 'month', allowedDimensions gl_code+month -> pass; RT2 the selection builds the % CASE verbatim as its aliased column and against a fake warehouse a matched key returns the ratio, a zero-budget zero-actual key returns NULL (NA), a zero-budget positive-actual key returns 'over-budget', a zero-budget negative-actual key returns 'credit / negative actual' -> pass. migrate.test.ts (test:db, app-Postgres) is D-0008-deferred (not CI-enforced, not host-run per task, per the task-2 precedent): the grant-seed assertion flip is a baseRolePerms constant change verified by typecheck/build via verify.",
+    "blocking_findings": [],
+    "non_blocking_findings": [],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "tests_added_or_updated": [
+      "backend/src/semantic/semanticLayer.financial.test.ts (NEW, hermetic: domain + Actual/Budget/% registration with exact exprs incl. the % CASE, %-format omitted, timeColumn 'month', allowedDimensions gl_code+month; and the built selection emitting the % CASE verbatim with the full nil rule proven against a fake warehouse across matched / zero-budget zero-actual / zero-budget positive-actual / zero-budget negative-actual keys)",
+      "backend/src/semantic/semanticLayer.ts (register the governed-financial DomainSpec + Actual/Budget/% MeasureSpecs + gl_code/month dimensions in baseDomains)",
+      "backend/src/db/migrate.ts (seed the governed-financial domain + 3 measure + 2 dimension grants to role admin, mirroring the report action seed)",
+      "backend/src/db/migrate.test.ts (flip the base-roles assertion: admin now carries the governed-financial domain/measure/dimension grants)",
+      "backend/package.json (add semanticLayer.financial.test.ts to the test:hermetic node --test list)",
+      "tools/quality-gate.test.mjs (enumerate semanticLayer.financial.test.ts in exactly one hermetic suite)"
+    ],
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed (build:contract, build:backend, typecheck, lint, format:check, test:hermetic)",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/semantic/semanticLayer.financial.test.ts --name <RT1 registration leaf> -> pass (exit 0, verbatim leaf matched)",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/semantic/semanticLayer.financial.test.ts --name <RT2 nil-rule leaf> -> pass (exit 0, verbatim leaf matched)"
+    ],
+    "manual_validation_steps": [],
+    "reviewed_scope": [
+      "backend/src/semantic/semanticLayer.ts",
+      "backend/src/semantic/semanticLayer.financial.test.ts",
+      "backend/src/db/migrate.ts",
+      "backend/src/db/migrate.test.ts",
+      "backend/package.json",
+      "tools/quality-gate.test.mjs"
+    ],
+    "recorded_at": "2026-09-10T08:19:53+00:00",
+    "commit": "a5811d8757d773172a75ec1b3665b10b4d4ebcf8"
+  },
+  "updated_at": "2026-09-10T08:19:53+00:00"
+}

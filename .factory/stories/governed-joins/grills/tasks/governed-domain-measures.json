@@ -1,0 +1,93 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "governed-domain-measures",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "governed-domain-measures registers ONE code-authored governed-financial DomainSpec in semanticLayer baseDomains (today []) over task 2's composed financial_relation: an Actual measure SUM(actual_net), a Budget measure SUM(budget_net) (both format-omitted/numeric, timeColumn='month'), and a % measure whose verbatim-inserted SQL CASE realises the full nil rule in one text column - NULL/NA for 0/0, 'over-budget' for +Actual/0, 'credit / negative actual' for -Actual/0, else the Actual/Budget ratio cast ::text (no format:'percent', matching the spec's mixed '%' column). scopeColumn='plant' + the composed marker fire task 2's composed builder path and governed-read enforcement. The domain/measure/dimension grants task 2 deferred are seeded to admin in migrate.ts (migrate.test.ts:33 flipped). Proven hermetically (registration + the CASE nil rule against a fake warehouse) in test:hermetic; the new test is registered in both backend/package.json and quality-gate. No endpoint, warehouse object, contract change, or builder/validator/executor edit; golden EXACT-value fixtures + provenance + the statement rendering are task 4 / the reporting epic.",
+  "inspected_refs": [
+    "backend/src/semantic/semanticLayer.ts",
+    "contract/src/measure.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/db/migrate.test.ts",
+    "backend/package.json",
+    "tools/quality-gate.test.mjs",
+    "docs/specs/financial-mis-statement.md",
+    "docs/decisions/0016-governed-joins-poc-scope.md",
+    "backend/src/semantic/definitionVersion.test.ts"
+  ],
+  "new_abstractions": [
+    "a code-authored governed-financial DomainSpec (composed marker, scopeColumn=plant, timeColumn=month) in baseDomains",
+    "Actual / Budget / % MeasureSpecs where the % is a verbatim SQL CASE realising the nil rule + over-budget/credit labels in one text column",
+    "the governed-financial domain/measure/dimension grant seeds to admin (the piece task 2 deferred)"
+  ],
+  "criteria_map": {
+    "a code-authored financial DomainSpec and Actual (SUM(Debit-Credit)), Budget (SUM(budget_amount)) and % MeasureSpecs are registered in semanticLayer baseDomains over the composed relation; two-column expressions are code-authored (not the runtime builder), and the LLM/runtime never authors the SQL": "KEEP. A code-authored governed-financial DomainSpec with Actual (SUM(actual_net)), Budget (SUM(budget_net)) and a % MeasureSpec is registered in semanticLayer baseDomains over task 2's composed financial_relation; the ratio/CASE expressions are code-authored and inserted verbatim by the builder - the LLM/runtime never authors SQL.",
+    "% follows the full nil rule: 0/0 -> NA/blank; Actual>0,Budget=0 -> over-budget (no %); Actual<0,Budget=0 -> credit / negative actual (no %); i.e. no percentage for any non-zero Actual against zero Budget, with the positive/negative labels distinguished": "KEEP (realised in-measure, human-decided). The % measure's expr is a SQL CASE that returns the full nil rule: NULL/NA for 0/0, 'over-budget' for Actual>0 & Budget=0, 'credit / negative actual' for Actual<0 & Budget=0, else the Actual/Budget ratio - a text column (no format:'percent'), the positive/negative labels distinguished HERE."
+  },
+  "gaps": [
+    "C2 was contradicted, not narrowed: the digest-bound criterion requires the positive/negative labels distinguished, but the draft plan deferred every label and tested only NULL - which could never satisfy C2 or its criteria_map.",
+    "Period queries would be unbounded: the draft defined only a 'month' dimension and no measure timeColumn, and the executor recognises date-like dimensions only, so 'month' is not matched, resolveTimeWindow returns undefined, and a July/YTD selection could read all months.",
+    "The required hermetic test could not be registered within write_scope: both backend/package.json (the test:hermetic node --test list) and tools/quality-gate.test.mjs keep explicit test lists, but only the latter was in scope - the former would be an unowned stray.",
+    "'format: number' is not a valid MeasureSpec value: the contract permits only format:'percent', so Actual and Budget must OMIT format to mean numeric; as drafted a literal implementation would fail type-checking.",
+    "The Manual Verification named a nonexistent command ('npm run verify'): the root scripts provide verify:ci / python3 factory/scripts/verify.py, so the stated final check could not run."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "HUMAN-decided (round): realise the nil rule + labels IN the % measure as a SQL CASE (NULL/NA for 0/0, 'over-budget' for +Actual/0, 'credit / negative actual' for -Actual/0, else the Actual/Budget ratio cast ::text) - a single text column matching the spec's mixed '%' column (financial-mis-statement.md:40-42; 0016 Q4). The labels are distinguished in-task, so C2 is satisfied by the implementation, not deferred.",
+    "Set timeColumn:'month' (+ defaultTimeGrain:'month') on the measures: the executor's validDateColumns honours a measure's timeColumn (selectionExecutor.ts:248-259), so 'month' becomes a recognised date column and a period timeWindow binds instead of reading all months. Mandatory-window (requiresTimeWindow) is deferred to reporting.",
+    "Added backend/package.json to write_scope: the new semanticLayer.financial.test.ts is registered in BOTH the backend test:hermetic list AND the quality-gate hermeticTests registry (exactly one suite per file).",
+    "Actual and Budget OMIT format (numeric by omission); the % measure is a text CASE and also omits format - no format:'number' anywhere. Type-checks against contract/src/measure.ts:27.",
+    "Manual Verification now runs `python3 factory/scripts/verify.py` (the harness verify), plus test:hermetic + typecheck/build:backend."
+  ],
+  "open_items": [
+    "The mis-statement rendering (layout, exact %-ratio display/rounding, mandatory time-window enforcement) is the reporting epic.",
+    "Golden EXACT-value fixtures + provenance + the end-to-end D-0008 proof are task 4 (golden-provenance)."
+  ],
+  "rounds": [
+    {
+      "question": "Task-3 grill (governed-domain-measures): C2 requires the % nil rule with over-budget (Actual>0) vs 'credit / negative actual' (Actual<0) distinguished for zero-Budget keys. But the repo has NO server-side row/label layer \u2014 the measure expr is inserted verbatim into SQL and rows return untouched. The MIS spec itself describes the '%' column as MIXED (a % ratio, or 'NA'/blank, or an over-budget flag). How should the % measure realize the nil rule + label distinction in THIS task?",
+      "options": [
+        "CASE in the % measure (Rec.)",
+        "Numeric % + separate label measure",
+        "Numeric %, defer label to reporting"
+      ],
+      "chosen": "CASE in the % measure (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "C2 was contradicted, not narrowed: the digest-bound criterion requires the positive/negative labels distinguished, but the draft plan deferred every label and tested only NULL - which could never satisfy C2 or its criteria_map.",
+      "source": ".factory/stories/governed-joins/decomposition.json; docs/specs/financial-mis-statement.md:40"
+    },
+    {
+      "finding": "Period queries would be unbounded: the draft defined only a 'month' dimension and no measure timeColumn, and the executor recognises date-like dimensions only, so 'month' is not matched, resolveTimeWindow returns undefined, and a July/YTD selection could read all months.",
+      "source": "backend/src/chat/selectionExecutor.ts:211; backend/src/chat/selectionExecutor.ts:248"
+    },
+    {
+      "finding": "The required hermetic test could not be registered within write_scope: both backend/package.json (the test:hermetic node --test list) and tools/quality-gate.test.mjs keep explicit test lists, but only the latter was in scope - the former would be an unowned stray.",
+      "source": "backend/package.json:17; tools/quality-gate.test.mjs:314"
+    },
+    {
+      "finding": "'format: number' is not a valid MeasureSpec value: the contract permits only format:'percent', so Actual and Budget must OMIT format to mean numeric; as drafted a literal implementation would fail type-checking.",
+      "source": "contract/src/measure.ts:27"
+    },
+    {
+      "finding": "The Manual Verification named a nonexistent command ('npm run verify'): the root scripts provide verify:ci / python3 factory/scripts/verify.py, so the stated final check could not run.",
+      "source": "package.json:28; factory/scripts/verify.py"
+    }
+  ],
+  "summary": "One cold read returned five blocking handover gaps. Four are repository/decision-answerable and resolved in the amended contract + plan: bounded periods via timeColumn='month' (the executor honours measure timeColumns); the new hermetic test registered in BOTH backend/package.json and quality-gate (backend/package.json added to write_scope); Actual/Budget omit the invalid format:'number'; and the Manual Verification runs the real verify.py. One was the genuine design decision put to the human: because there is NO server-side label layer, the % nil rule + over-budget/credit labels are realised IN the % measure as a verbatim SQL CASE (a text column matching the spec's mixed '%' column), distinguishing the labels in-task rather than deferring them. Verdict pass.",
+  "input_sha256": "6558eaaed314b0051b18e55b39daa466c2bb38729dbee6d79867cca4ed6c2492",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "d262d0baff0539263970eaf724553bd4746b4bcdbe2cd877c096e455f51f5568",
+  "recorded_at": "2026-09-10T08:03:13+00:00",
+  "commit": "a5811d8757d773172a75ec1b3665b10b4d4ebcf8",
+  "approved_task_plan_sha256": "d262d0baff0539263970eaf724553bd4746b4bcdbe2cd877c096e455f51f5568",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-10T08:05:49+00:00"
+}

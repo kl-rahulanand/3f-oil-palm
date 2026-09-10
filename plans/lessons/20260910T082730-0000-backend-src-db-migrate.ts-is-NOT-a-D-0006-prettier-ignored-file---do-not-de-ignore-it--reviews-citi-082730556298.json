@@ -1,0 +1,13 @@
+{
+  "topic": "backend/src/db/migrate.ts is NOT a D-0006 prettier-ignored file \u2014 do not de-ignore it; reviews citing D-0006 for it are false",
+  "lesson": "A review may flag editing backend/src/db/migrate.ts as needing the D-0006 de-ignore ritual (remove from .prettierignore + drop its ignoredBaselineHashes entry). This is FALSE for migrate.ts: it is NOT listed in .prettierignore (only migrate.trim.test.ts is), it is NOT a key in tools/quality-gate.test.mjs ignoredBaselineHashes, and Checking formatting...\nAll matched files use Prettier code style! passes clean. Task 2 (composed-relation, merged PR #21) edited migrate.ts to seed the 'report' action WITHOUT any D-0006 de-ignore and merged green. So editing migrate.ts requires NO .prettierignore or quality-gate baseline change \u2014 do NOT add/remove it there. The stale D-0006 deferral text lists ~71 historically-drifting files; migrate.ts has since been de-ignored, so a finding treating it as still-ignored contradicts the actual repo state and is not a defect.",
+  "source": "governed-domain-measures 3-lens review 2026-09-10 (quality+performance P1 false D-0006 finding on migrate.ts); verified .prettierignore + ignoredBaselineHashes + prettier --check",
+  "applies_to": [
+    "backend/src/db/migrate.ts",
+    ".prettierignore",
+    "tools/quality-gate.test.mjs"
+  ],
+  "severity": "medium",
+  "generated_by": "implementer",
+  "added_at": "2026-09-10T08:27:30+00:00"
+}

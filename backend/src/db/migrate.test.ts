@@ -30,21 +30,19 @@ test("default SEED_USERS is a placeholder email-based admin", () => {
   }
 });
 
-test("base roles contain framework actions but no domain grants", () => {
+test("base roles grant admins the governed financial domain, measures, and dimensions", () => {
   const adminGrants = baseRolePerms.filter((grant) => grant.role === "admin");
 
-  assert.equal(
-    baseRolePerms.some((grant) => grant.grantType === "domain"),
-    false,
-  );
-  assert.equal(
-    baseRolePerms.some((grant) => grant.grantType === "measure"),
-    false,
-  );
-  assert.equal(
-    baseRolePerms.some((grant) => grant.grantType === "dimension"),
-    false,
-  );
+  for (const [grantType, grantId] of [
+    ["domain", "governed-financial"],
+    ["measure", "governed-financial.actual"],
+    ["measure", "governed-financial.budget"],
+    ["measure", "governed-financial.percentage"],
+    ["dimension", "gl_code"],
+    ["dimension", "month"],
+  ]) {
+    assert.ok(adminGrants.some((grant) => grant.grantType === grantType && grant.grantId === grantId));
+  }
   assert.ok(adminGrants.some((grant) => grant.grantType === "action" && grant.grantId === "save"));
   assert.ok(adminGrants.some((grant) => grant.grantType === "action" && grant.grantId === "pin"));
   assert.ok(adminGrants.some((grant) => grant.grantType === "action" && grant.grantId === "report"));
