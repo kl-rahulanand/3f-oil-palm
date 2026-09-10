@@ -154,14 +154,16 @@ function bucketRows(resolution: MasterResolvedSelection, result: ResultTable) {
     amount.budget += Number(row.budget) || 0;
     amounts.set(row.gl_code, amount);
   }
-  const configured = resolution.bucketRows.map((row) => ({
+  const grouped = new Map<string, typeof resolution.bucketRows>();
+  for (const row of resolution.bucketRows) grouped.set(row.gl_code, [...(grouped.get(row.gl_code) ?? []), row]);
+  const configured = [...grouped.entries()].map(([glCode, rows]) => ({
     plant: resolution.plant,
-    costCentre: row.cost_center,
-    glCode: row.gl_code,
-    misLine: row.mis_line,
-    provisional: row.provisional,
-    reason: row.reason ?? "Mapping review required",
-    ...(amounts.get(row.gl_code) ?? { actual: 0, budget: 0 }),
+    costCentre: rows.length === 1 ? rows[0].cost_center : null,
+    glCode,
+    misLine: rows[0].mis_line,
+    provisional: rows.some(({ provisional }) => provisional),
+    reason: rows.map(({ cost_center, reason }) => `${cost_center}: ${reason ?? "Mapping review required"}`).join("; "),
+    ...(amounts.get(glCode) ?? { actual: 0, budget: 0 }),
   }));
   const configuredCodes = new Set(configured.map(({ glCode }) => glCode));
   const masterCodes = new Set(resolution.masterGlCodes);

@@ -1,0 +1,44 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "selection-ui",
+  "score": 7,
+  "summary": "performance lens over selection-ui (17 product path(s), 23ed18e..00347bf, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The UI and API additions otherwise follow the supplied contracts, and the diff contains no compatibility wrapper or retained legacy symbol. However, the backend derives bucket-row amounts from GL-level result rows and repeats those aggregates for every matching cost-centre triple, so the core reviewable bucket can display materially incorrect and duplicated values.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/mis",
+      "summary": "[P1] Do not assign GL-level totals to every bucket triple (backend/src/mis/mis-selection.service.ts:164): `amounts` is keyed only by `gl_code`, while `configured` can contain multiple cost-centre triples for the same GL."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".next/trace",
+    "backend/src/db/migrate.test.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/mis/mis-selection.controller.test.ts",
+    "backend/src/mis/mis-selection.dto.ts",
+    "backend/src/mis/mis-selection.service.ts",
+    "contract/src/api.ts",
+    "frontend/app/(app)/mis-reports/page.tsx",
+    "frontend/app/globals.css",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/components/shell/nav-drawer.test.tsx",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/features/mis/use-mis-selection.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "1b0f80396756fc52158016c602288589dd70ebc928adb09b9e7062e33e6afaad",
+  "brief_sha256": "77dead8b2097813815622519cb558000bf8c94bfcf3b9502a2e4242bd2d612d6",
+  "branch_diff_digest": "77421604e4ce384cf8eb1d6798f80b8a254a76e01cc2a1d40ae751c2f0685a16",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T18:50:27+00:00",
+  "commit": "00347bf767adb79962adb9ee556b79b311b2fd87"
+}

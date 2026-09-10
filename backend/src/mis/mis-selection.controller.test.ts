@@ -69,13 +69,13 @@ test("the run route accepts only department function plant and period and reject
   }
 });
 
-test("the resolved bucket exposes actual and budget amounts for configured triples and budget only GLs", async () => {
+test("the resolved bucket folds repeated GL entries and assigns actual and budget amounts once", async () => {
   const resolution: MasterResolvedSelection = {
     outcome: "resolved",
     department: "Agriculture",
     function: "Nursery",
     plant: "DUB",
-    costCentres: ["Primary"],
+    costCentres: ["Primary", "Secondary"],
     glCodes: ["50001701"],
     misFormat: "nursery-mis-financial-v1",
     bucketRows: [
@@ -86,8 +86,18 @@ test("the resolved bucket exposes actual and budget amounts for configured tripl
         provisional: true,
         reason: "GL absent from Sheet1",
       },
+      {
+        cost_center: "Secondary",
+        gl_code: "50001701",
+        mis_line: "unmapped-GL",
+        provisional: false,
+        reason: "GL absent from Sheet2",
+      },
     ],
-    triples: [{ plant: "DUB", costCenter: "Primary", glCode: "50001701" }],
+    triples: [
+      { plant: "DUB", costCenter: "Primary", glCode: "50001701" },
+      { plant: "DUB", costCenter: "Secondary", glCode: "50001701" },
+    ],
     masterGlCodes: ["50001701"],
     period: { value: "fy26-27-ytd", from: "2026-04-01", to: "2026-07-01" },
   };
@@ -126,10 +136,31 @@ test("the resolved bucket exposes actual and budget amounts for configured tripl
   if (response.outcome !== "resolved") return;
   assert.equal(response.result.rows[0].month, "2026-07-01");
   assert.deepEqual(
-    response.bucketRows.map(({ costCentre, glCode, actual, budget }) => ({ costCentre, glCode, actual, budget })),
+    response.bucketRows.map(({ costCentre, glCode, provisional, reason, actual, budget }) => ({
+      costCentre,
+      glCode,
+      provisional,
+      reason,
+      actual,
+      budget,
+    })),
     [
-      { costCentre: "Primary", glCode: "50001701", actual: 15, budget: 24 },
-      { costCentre: null, glCode: "99999999", actual: 0, budget: 7 },
+      {
+        costCentre: null,
+        glCode: "50001701",
+        provisional: true,
+        reason: "Primary: GL absent from Sheet1; Secondary: GL absent from Sheet2",
+        actual: 15,
+        budget: 24,
+      },
+      {
+        costCentre: null,
+        glCode: "99999999",
+        provisional: true,
+        reason: "GL absent from Mapping Master",
+        actual: 0,
+        budget: 7,
+      },
     ],
   );
 });

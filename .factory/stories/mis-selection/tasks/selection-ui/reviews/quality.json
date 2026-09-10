@@ -1,0 +1,102 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "selection-ui",
+  "score": 6,
+  "summary": "quality lens over selection-ui (17 product path(s), 23ed18e..00347bf, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The page and response-shape branching are reachable, but the bucket accounting cannot satisfy its per-triple financial contract because it reconstructs amounts from GL-level aggregates. The change also includes a generated trace artifact. No compatibility wrappers, aliases, or deprecated branches were introduced.\nVERDICT t-ui-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:55 evidence\nVERDICT t-ui-c2: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:126 evidence\nVERDICT t-ui-c3: partial \u2014 backend/src/mis/mis-selection.service.ts:150 evidence",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/mis",
+      "summary": "[P1] Do not derive per-triple bucket amounts from GL-level results (backend/src/mis/mis-selection.service.ts:150): The result has already been re-aggregated to GL/month, but this map keys amounts only by `gl_code` and then assigns that total to every configured bucket triple for that GL."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
+      "summary": "t-ui-c3: the unmapped-GL bucket is rendered as a reviewable list of its triples with amounts so the mapping gap is visible rather than absorbed, and the MIS Reports navigation item and page title are enabled in the application shell"
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "maintainability",
+      "area": ".next",
+      "summary": "[P2] Remove the generated Next.js trace from the change (.next/trace:1): `.next/trace` is volatile development-build output containing run-specific timestamps and a trace identifier."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".next/trace",
+    "backend/src/db/migrate.test.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/mis/mis-selection.controller.test.ts",
+    "backend/src/mis/mis-selection.dto.ts",
+    "backend/src/mis/mis-selection.service.ts",
+    "contract/src/api.ts",
+    "frontend/app/(app)/mis-reports/page.tsx",
+    "frontend/app/globals.css",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/components/shell/nav-drawer.test.tsx",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/features/mis/use-mis-selection.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-ui-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:55 evidence"
+    },
+    {
+      "contract_id": "t-ui-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:126 evidence"
+    },
+    {
+      "contract_id": "t-ui-c3",
+      "verdict": "partial",
+      "evidence": "backend/src/mis/mis-selection.service.ts:150 evidence"
+    },
+    {
+      "contract_id": "t-mm-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under mapping-master at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-mm-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under mapping-master at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-mm-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under mapping-master at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sr-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under selection-resolution at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sr-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under selection-resolution at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sr-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under selection-resolution at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "1b0f80396756fc52158016c602288589dd70ebc928adb09b9e7062e33e6afaad",
+  "brief_sha256": "77dead8b2097813815622519cb558000bf8c94bfcf3b9502a2e4242bd2d612d6",
+  "branch_diff_digest": "77421604e4ce384cf8eb1d6798f80b8a254a76e01cc2a1d40ae751c2f0685a16",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T18:50:27+00:00",
+  "commit": "00347bf767adb79962adb9ee556b79b311b2fd87"
+}
