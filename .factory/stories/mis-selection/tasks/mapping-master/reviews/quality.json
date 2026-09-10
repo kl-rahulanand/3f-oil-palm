@@ -1,0 +1,43 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "mapping-master",
+  "score": 10,
+  "summary": "quality lens over mapping-master (7 product path(s), 2f420bd..e055636, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 defects are demonstrated by the provided diff. The master is compiled and validated at module load, the required lookup and proofs are registered, and ingestion now derives plant normalization from the master.\nVERDICT t-mm-c1: implemented \u2014 backend/src/mapping/mis-mapping-master.ts:7 and backend/src/mapping/mapping-master.ts:75\nVERDICT t-mm-c2: implemented \u2014 backend/src/mapping/mis-mapping-master.ts:60 and backend/src/mapping/mapping-master.db.test.ts:23\nVERDICT t-mm-c3: implemented \u2014 backend/src/ingest/plant-mapping.ts:1",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/ingest/plant-mapping.ts",
+    "backend/src/mapping/mapping-master.db.test.ts",
+    "backend/src/mapping/mapping-master.test.ts",
+    "backend/src/mapping/mapping-master.ts",
+    "backend/src/mapping/mis-mapping-master.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-mm-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/mapping/mis-mapping-master.ts:7 and backend/src/mapping/mapping-master.ts:75"
+    },
+    {
+      "contract_id": "t-mm-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/mapping/mis-mapping-master.ts:60 and backend/src/mapping/mapping-master.db.test.ts:23"
+    },
+    {
+      "contract_id": "t-mm-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/ingest/plant-mapping.ts:1"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "e1ea7a4effc584136fd966ebdea61915587354b0faba645579c4a733c22ccb45",
+  "brief_sha256": "3ac6e53a85979ace6effa497582eac869979f8a90e56c1b2239a4dbf91f4061b",
+  "branch_diff_digest": "b8472cfcc286b9f9a3d02bdf7ec24f60465898921f2ce87956f45adc43f6cdac",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T14:37:05+00:00",
+  "commit": "e055636c58eaaacbe77873b6b4e80e7728a44d8a"
+}

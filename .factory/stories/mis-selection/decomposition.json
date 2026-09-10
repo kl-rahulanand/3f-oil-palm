@@ -1,0 +1,111 @@
+{
+  "issue": "mis-selection",
+  "story": "mis-selection",
+  "project": "3oilpalm",
+  "epic": "reporting",
+  "generated_by": "docs-decomposer",
+  "user_facing": true,
+  "plan_file": "plans/active/mis-selection-selection-mapping-master.md",
+  "tasks": [
+    {
+      "id": "mapping-master",
+      "title": "Versioned Mapping Master + unmapped-GL bucket",
+      "objective": "Build the versioned repo-owned Mapping Master as the single runtime authority for selection and validation, with the unmapped-GL bucket keeping the DUB slice complete without inventing financial meaning.",
+      "user_facing": false,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "a versioned repo-owned Mapping Master holds selection records keyed by department, function and canonical plant that own the plant aliases and the MIS format, plus entry records mapping cost centre and GL code to an MIS line with a provisional flag and a reason, and a strict loader rejects a malformed master or a duplicate selection key so resolution is deterministic; the Excel workbooks are seed evidence recorded as a source provenance string and are never runtime input, so renaming a source file cannot change the output",
+        "the nine unresolved DUB composite-key triples map to the reserved unmapped-GL line flagged provisional with a reason, and a fixture proves every DUB raw plant cost-centre GL triple resolves exactly once with 66 mapped plus 22 bucketed equal to the full 88 rows and no fan-out",
+        "plant alias authority lives in the master so the canonical plant, the SAP alias and the display alias all resolve from it and no hard-coded alias table remains in ingestion"
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-mm-c1",
+          "statement": "a versioned repo-owned Mapping Master holds selection records keyed by department, function and canonical plant that own the plant aliases and the MIS format, plus entry records mapping cost centre and GL code to an MIS line with a provisional flag and a reason, and a strict loader rejects a malformed master or a duplicate selection key so resolution is deterministic; the Excel workbooks are seed evidence recorded as a source provenance string and are never runtime input, so renaming a source file cannot change the output",
+          "source": "docs/specs/mis-selection-and-master.md"
+        },
+        {
+          "id": "t-mm-c2",
+          "statement": "the nine unresolved DUB composite-key triples map to the reserved unmapped-GL line flagged provisional with a reason, and a fixture proves every DUB raw plant cost-centre GL triple resolves exactly once with 66 mapped plus 22 bucketed equal to the full 88 rows and no fan-out",
+          "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+        },
+        {
+          "id": "t-mm-c3",
+          "statement": "plant alias authority lives in the master so the canonical plant, the SAP alias and the display alias all resolve from it and no hard-coded alias table remains in ingestion",
+          "source": "backend/src/ingest/plant-mapping.ts"
+        }
+      ],
+      "write_scope": [
+        "backend/src/mapping/mapping-master.ts",
+        "backend/src/mapping/mapping-master.test.ts",
+        "backend/src/mapping/mapping-master.db.test.ts",
+        "backend/src/mapping/mis-mapping-master.ts",
+        "backend/src/ingest/plant-mapping.ts",
+        "backend/src/ingest/sap-actuals.parser.test.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "the mapping master loader accepts the versioned master and rejects a malformed master a duplicate selection key and a provisional entry that carries no reason, and the master is the single authority for the canonical plant the SAP alias and the display alias",
+          "path": "backend/src/mapping/mapping-master.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the mapping master maps each of the nine unresolved DUB triples to the reserved unmapped GL line with a reason and its mapped plus bucketed triples are exactly the twenty eight distinct DUB triples so nothing is inferred and nothing is dropped",
+          "path": "backend/src/mapping/mapping-master.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "resolution is independent of the seed provenance so mutating the source workbook name on the master leaves every triple resolving to the same MIS line and the same bucket outcome, and the loader rejects a duplicate cost centre and GL entry within one selection and an alias reused across two selections",
+          "path": "backend/src/mapping/mapping-master.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "FIRST task of mis-selection (user_facing:false): build the versioned repo-owned Mapping Master that becomes the SINGLE runtime authority for selection and validation. NO resolution API, NO HTTP route, NO governed-builder change, NO UI (tasks 2 and 3). STANDARDS (load-bearing for a NEW backend module): constitution/03-modular-monolith-structure.md and constitution/pnp-coding-standards-modular-monolith.md govern module layout, boundaries and naming - the new backend/src/mapping module follows them; constitution/07-exception-handling.md governs the loader's failure mode (one clear typed error, never a silent fallback). The mapping-specific seams follow. THE ARTIFACT - a COMPILED TypeScript module, not a runtime-loaded JSON file (grill MAJOR: production runs node dist/main.js, so a ts-node-only JSON.parse under backend/src would pass every test and fail at app boot). Author the master as backend/src/mapping/mis-mapping-master.ts exporting a typed const - the ESTABLISHED runtime precedent is exactly this (backend/src/db/migrate.ts baseRolePerms, backend/src/semantic/semanticLayer.ts baseDomains). The frozen-JSON+loader shape stays where it belongs: TEST expectations. The strict validator runs over the typed const at module load. SHAPE (normalized, two record kinds, so resolution is deterministic): (a) SELECTION records keyed by (department, function, plant_canonical) OWNING the plant aliases, the mis_format, and the Budget GL coverage set; (b) ENTRY records under a selection mapping (cost_center, gl_code) -> mis_line with `provisional` and `reason`. A flat per-triple row is WRONG: repeating department/function/aliases/format per triple lets a conflicting alias or format make resolution non-deterministic with no principled winner. PINNED DATA (grill BLOCKER: the master must not be guesswork). The one selection is Department=Agriculture, Function=Nursery, plant_canonical=DUB, aliases = SAP `DUB-NUR` + display `Agri - Nursery - DUB`, mis_format = the pinned Financial-MIS (Table-2) identifier. HUMAN-decided (grill round): each resolved triple's `mis_line` is Sheet1's `Revised GL name` for that GL, copied VERBATIM and frozen - it is the only line-like label the source provides, so nothing is invented. Do NOT source lines from Nursery MIS Format.xlsx: its format sheet is Table-1 (Operational MIS), which docs/specs/financial-mis-statement.md puts OUT of scope (Table-2 only). The whole master is provisional (the spec calls for a provisional master); bucket entries additionally carry a `reason`. Freeze the exact triple->line mapping and assert it, so a fixture cannot satisfy the 28-triple count while assigning triples to wrong or identical lines. DETERMINISM (grill BLOCKER): the loader MUST reject - a malformed master; a DUPLICATE selection key (department+function+plant_canonical); a DUPLICATE (cost_center, gl_code) entry WITHIN one selection; an alias REUSED ACROSS selections (two canonical plants for one alias); and a provisional entry with no reason. Each of the last three would otherwise produce two matching entries or an ambiguous canonical plant, directly violating 'exactly once / no fan-out'. The module MUST EXPORT the canonical normalized-triple lookup (e.g. resolve a (plant, cost_center, gl_code) triple to its entry-or-bucket outcome); the D-0008 proof CALLS that export and must NOT reimplement resolution, or the proof is circular. BUDGET BUCKET (grill BLOCKER - the approved 'mirror the bucket for Budget' had no model): Budget has NO SAP plant and NO SAP cost centre - mis_budget's cost_center is an informational Budget-Components LABEL (decision 0016), so a (cost_center, gl_code) key CANNOT express a Budget rule. Model it here as a GL-ONLY Budget coverage set on the SELECTION record: the master declares the resolved Budget GL set, and a budget GL outside it resolves to the unmapped-GL bucket. Task 2 APPLIES this rule; the master stays the single authority. Cost centre is never part of the Budget key. SEED EVIDENCE (verified against the workbook - do NOT re-derive at runtime): SAP Entries Mapping.xlsx Sheet1 header is `Plant | Cost Center | GL code | Revised GL name | Cost Center` - TWO Cost Center columns, 94 rows where B != E, and only column E (Primary/secondary/Tertiary) matches what SAP actually books, so column E is AUTHORITATIVE. Every Sheet1 Plant is the literal `DUB`. In SAP Report the only DUB-family plant is `DUB-NUR` (88 rows, 28 distinct triples). GL alone is NOT unique - 50001605 appears three times under Primary/secondary/Tertiary - so the key is the TRIPLE. Carry a `source` provenance string naming the seed workbook (as july-dub-reconciliation.json does): the workbooks are SEED EVIDENCE, never runtime input. FILENAME INDEPENDENCE (grill MAJOR - C1 was not falsified): a required test must MUTATE the `source` provenance string and prove every triple still resolves to the same MIS line and the same bucket outcome, so nothing can consult the workbook name at runtime. THE UNMAPPED-GL BUCKET (decision 0018 - never infer, never drop): the NINE unresolved triples get EXPLICIT entries targeting the reserved unmapped-GL line, each provisional with a reason - GLs 50001701, 50001702, 50001703, 50001704, 50001705, 50001706 and 50001905 are ABSENT from Sheet1 (11 rows), and 50001902 + 50001903 are a CONFLICT (Sheet1 says Tertiary, SAP books Primary - 11 rows). 66 resolved + 22 bucketed = 88. Record the conflict pair AS A CONFLICT; do NOT silently pick one of the two Cost Center columns. ALIAS AUTHORITY (C3): backend/src/ingest/plant-mapping.ts:1-7 hard-codes PLANT_NORMALIZATION = {'DUB-NUR':'DUB'}; canonicalPlant() runs at INGEST (sap-actuals.parser.ts:142, import :4) writing canonical plant + raw plant_src. KEEP the canonicalPlant() export and its call site but DERIVE its table from the master so there is exactly one alias authority - that keeps warehouse-migrate.ts:59,72 and the three gated db tests (golden-financial.db.test.ts:350, gl-month-rollups.db.test.ts:86, composed-relation.db.test.ts:150) working unchanged. If July's DUB reconciliation total moves, the change is wrong. TESTS: the three required_tests are HERMETIC in backend/src/mapping/mapping-master.test.ts. Additionally a NEW gated backend/src/mapping/mapping-master.db.test.ts (`{ skip: process.env.WAREHOUSE_DB_TEST !== '1' }`, loopback-only TRUNCATE guard, migrateWarehouse()) is the D-0008 host proof against REALLY INGESTED data: ingest the real SAP workbook the way reconciliation.repository.test.ts does, then call the module's exported lookup and assert EVERY ingested DUB triple resolves EXACTLY ONCE - 66 mapped + 22 bucketed = 88 rows, none unresolved, none matching two entries. REGISTRATION: add the gated file to backend/package.json test:warehouse-proof (serialized --test-concurrency=1, RETAINING the four existing proofs) and the hermetic file to test:hermetic, plus the quality-gate hermeticTests registry (exactly one suite per file). Keep required_test ids regex-metacharacter-free and name each leaf VERBATIM (D-0024). Commit tests.json with the pinned host command + pass counts + a dead-port negative control BEFORE review (D-0008).",
+      "review_budget": {
+        "max_changed_files": 9,
+        "max_changed_lines": 1100,
+        "reason": "The story's foundation artifact: a versioned repo-owned Mapping Master with two normalized record kinds (selection records owning aliases + format, entry records mapping cost_center+gl to a mis_line with provisional/reason), a strict loader rejecting malformed masters, duplicate selection keys and reason-less provisional entries, the nine unmapped-GL bucket entries that keep the DUB slice complete (66 + 22 = 88), plant-alias authority folded out of the hard-coded ingest table into the master, and a gated D-0008 completeness proof against really-ingested data plus its registration. No resolution API, HTTP route, governed-builder change or UI."
+      }
+    },
+    {
+      "id": "selection-resolution",
+      "title": "Master-driven resolution, governed narrowing, and the first governed-query routes",
+      "objective": "Resolve a selection through the master and narrow the single governed query path to it, exposed by the first governed-query HTTP routes so a client can never widen a report.",
+      "user_facing": false,
+      "dependencies": [
+        "mapping-master"
+      ],
+      "acceptance_criteria": [
+        "resolving department, function, plant and period returns the applicable cost centres, GL set, MIS format and bucket rows, or an unresolvable outcome; the no mapping configured notice is decided by master resolution and never by whether the query returned rows, so a resolved selection with no transactions renders a configured zero result instead; the period options are the loaded actual months plus a derived FY 26-27 YTD that the server resolves from the latest active loaded month and never from the wall clock",
+        "the governed path is narrowed and never forked: the composed Actual side filters the resolved triples on actual_by_key_month and re-aggregates to gl code and month before the full outer join, the Budget side is restricted to the resolved GL set at its unchanged grain so no budget row outside the selection appears, the newly referenced warehouse object is listed in the objects touched so the validator still passes, and a demonstrated warehouse test proves a cost-centre-filtered selection yields one row per gl code and month with no fan-out and exact values",
+        "two authenticated routes expose it: an options route serving master-derived selector choices, and a run route that accepts only department, function, plant and period and never triples, GL codes, format ids or scope, both carrying named request and response types with documented error responses, registered in the application module and the route allow-list, and reusing the existing fail-closed governed authorization rather than bypassing it"
+      ]
+    },
+    {
+      "id": "selection-ui",
+      "title": "Authenticated MIS Reports selection page",
+      "objective": "Give a user the authenticated MIS Reports page that produces the DUB nursery slice, distinguishes both zero states, and makes the mapping gap visible.",
+      "user_facing": true,
+      "dependencies": [
+        "selection-resolution"
+      ],
+      "acceptance_criteria": [
+        "an authenticated MIS Reports page presents Department, Function, Plant and period as native select controls populated from the options route, offering only the loaded actual months plus FY 26-27 YTD, and Generate runs the selection through the run route so that selecting Agriculture, Nursery and DUB returns exactly the DUB nursery slice",
+        "the page shows a resolved-scope readout naming the cost centres, GL codes and MIS format the selection resolved to, and renders the two zero states distinctly: a no mapping configured notice with zeros for an unresolvable selection, and a configured zero result without that notice for a resolved selection that has no transactions",
+        "the unmapped-GL bucket is rendered as a reviewable list of its triples with amounts so the mapping gap is visible rather than absorbed, and the MIS Reports navigation item and page title are enabled in the application shell"
+      ]
+    }
+  ],
+  "plan_sha256": "e09d9d7e3b7ffef8ce622b854e77b5d85a76b6e0c694af481572c667257d9c53",
+  "commit": "70a770ee72165f26727ca97d93d8bd07159fdcf3"
+}
