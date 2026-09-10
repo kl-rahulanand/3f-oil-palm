@@ -132,3 +132,38 @@ export const actualByKeyMonth = pgView("actual_by_key_month", {
   WHERE batch.source_kind = 'actuals' AND batch.is_active
   GROUP BY txn.plant, txn.cost_center, txn.gl_code, txn.month
 `);
+
+export const actualByGlMonth = pgView("actual_by_gl_month", {
+  plant: text("plant").notNull(),
+  glCode: text("gl_code").notNull(),
+  month: date("month").notNull(),
+  actualNet: numeric("actual_net", { precision: 18, scale: 2 }).notNull(),
+}).as(sql`
+  SELECT
+    'DUB'::text AS plant,
+    gl_code,
+    month,
+    SUM(actual_net)::numeric(18, 2) AS actual_net
+  FROM actual_by_key_month
+  WHERE plant = 'DUB'
+  GROUP BY gl_code, month
+`);
+
+export const budgetByGlMonth = pgView("budget_by_gl_month", {
+  glCode: text("gl_code").notNull(),
+  month: date("month").notNull(),
+  budgetNet: numeric("budget_net", { precision: 18, scale: 2 }).notNull(),
+  rolloverNet: numeric("rollover_net", { precision: 18, scale: 2 }).notNull(),
+  budgetComponentLabels: text("budget_component_labels").array().notNull(),
+}).as(sql`
+  SELECT
+    b.gl_code,
+    b.period AS month,
+    SUM(b.budget_amount)::numeric(18, 2) AS budget_net,
+    SUM(b.rollover_amount)::numeric(18, 2) AS rollover_net,
+    array_agg(DISTINCT b.cost_center ORDER BY b.cost_center) AS budget_component_labels
+  FROM mis_budget AS b
+  INNER JOIN ingest_batch AS bt ON bt.id = b.batch_id
+  WHERE bt.source_kind = 'budget' AND bt.is_active
+  GROUP BY b.gl_code, b.period
+`);
