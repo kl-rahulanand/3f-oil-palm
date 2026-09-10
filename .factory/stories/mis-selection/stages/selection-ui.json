@@ -1,7 +1,7 @@
 {
   "id": "selection-ui",
   "title": "Authenticated MIS Reports selection page",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-10T17:38:40+00:00",
   "base_sha": "23ed18e41271c13304f5a3cfbeff5b78d2945349",
   "dirty_at_start": {
@@ -18,5 +18,35 @@
       "git": "? .factory/stories/mis-selection/task-plans/selection-ui.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "5a81dcc35856658f2f8aadc4d53520aca88c6166e2bd2c2c215d68f03eefba16"
+  "task_sha256": "5a81dcc35856658f2f8aadc4d53520aca88c6166e2bd2c2c215d68f03eefba16",
+  "local_review_stamp": {
+    "stage_id": "selection-ui",
+    "task_sha256": "5a81dcc35856658f2f8aadc4d53520aca88c6166e2bd2c2c215d68f03eefba16",
+    "brief_sha256": "f41d43c15a42fe542bca51b78963e31d2baa8dbbd9b08ef6540c375beee0c5b4",
+    "base_sha": "23ed18e41271c13304f5a3cfbeff5b78d2945349",
+    "product_tree_digest": "b22e8001653c4509d34ac84f280f168ef732dee7ae84d17423ebf1681810d15a",
+    "recorded_at": "2026-09-10T19:18:59+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-10T19:19:50+00:00",
+  "measured": {
+    "strays": [
+      ".gitignore",
+      ".next/trace",
+      "backend/src/mis/mis-selection.dto.ts",
+      "frontend/src/components/shell/nav-drawer.test.tsx"
+    ],
+    "files": 18,
+    "lines": 1119,
+    "budget": {
+      "files": 15,
+      "lines": 1600
+    },
+    "test_id_misses": []
+  }
 }

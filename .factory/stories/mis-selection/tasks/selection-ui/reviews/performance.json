@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "selection-ui",
-  "score": 7,
-  "summary": "performance lens over selection-ui (17 product path(s), 23ed18e..3e7d39a, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The main UI and API additions follow the stated contracts, and the diff contains no compatibility wrappers, aliases, or legacy leftovers. However, unknown GLs are still emitted at result-row/month grain after their amounts have been aggregated at GL grain, so multi-month selections duplicate both the review rows and their full totals. That is a blocking correctness regression in the required bucket surface.",
-  "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "[P1] De-duplicate unconfigured bucket rows before attaching aggregated amounts (backend/src/mis/mis-selection.service.ts:181): The unconfigured portion of `bucketRows` is still produced by mapping matching `result.rows`, while `amounts.get(glCode)` now contains the total aggregated across every month for that GL."
-    }
-  ],
+  "score": 10,
+  "summary": "performance lens over selection-ui (17 product path(s), 23ed18e..99220ed, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance, correctness, or concrete security defect is demonstrated by the supplied diff. The added work is bounded by the resolved selection\u2019s result and bucket rows, avoids repeated per-row master scans by grouping and accumulating in maps, and introduces no compatibility wrapper, retained alias, deprecated path, or other blocking leftover.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     ".gitignore",
     "backend/src/db/migrate.test.ts",
@@ -35,10 +29,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "5acdf13db250bdd74076ac6629694b10137496ffe8808e6dbd2d2d18ba923aa3",
-  "brief_sha256": "9f3334dd28a9ee7621bc1871725568c026a6fde765e6d51c0b577f2caf91f648",
-  "branch_diff_digest": "3f9e4d4eb7e7cad6a33043088b2bfe58450cd2d1d472b4d700566b5ecaaccf6d",
+  "review_run_id": "5163da54b9a884874142e521d659a85a5237dd25afd0e254058e22969280603a",
+  "brief_sha256": "aca22bcb399cd9d855f53c412f61ad7e612cc1d64b0023c72b4e099ef030f924",
+  "branch_diff_digest": "04ee2ac2af50e5a0fbcf5a8f4d6e7e1519970351461566d617360e9dc6ff5f8d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T19:06:54+00:00",
-  "commit": "3e7d39a845a8b4de755caf0e441df7fb0fc88a3f"
+  "recorded_at": "2026-09-10T19:18:59+00:00",
+  "commit": "99220edb356fda54a68df792c46922778242ef7e"
 }

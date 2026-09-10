@@ -1,23 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "selection-ui",
-  "score": 9,
-  "summary": "quality lens over selection-ui (17 product path(s), 23ed18e..3e7d39a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The core selection, resolved/unresolvable rendering, governed numbers, bucket amounts, and shell navigation are implemented, but the bucket UI incorrectly describes multi-cost-centre Actual rows as Budget-only.\nVERDICT t-ui-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:41 renders the four option-backed native selectors and submits the selection through the run mutation\nVERDICT t-ui-c2: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:130 branches on the response outcome and separately renders resolved scope, configured-zero, and unresolvable states\nVERDICT t-ui-c3: partial \u2014 frontend/src/features/mis/mis-report-view.tsx:231 renders the bucket list but falsely labels every null-cost-centre row as Budget only",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
-      "summary": "t-ui-c3: the unmapped-GL bucket is rendered as a reviewable list of its triples with amounts so the mapping gap is visible rather than absorbed, and the MIS Reports navigation item and page title are enabled in the application shell"
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/mis",
-      "summary": "[P2] Do not label every cost-centre-less bucket row as budget-only (frontend/src/features/mis/mis-report-view.tsx:231): The backend deliberately sets `costCentre` to null both for Budget-only GLs and for GLs folded across multiple cost centres; the added backend test even produces such a row with Actual 15."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "score": 10,
+  "summary": "quality lens over selection-ui (17 product path(s), 23ed18e..99220ed, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-ui-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:41 and frontend/src/lib/api.ts:61 show the native selector form and its options/run API integration.\nVERDICT t-ui-c2: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:135 branches on the response outcome and renders the resolved scope and distinct zero states.\nVERDICT t-ui-c3: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:217 and frontend/src/components/shell/app-shell.tsx:11 show the reviewable bucket list and enabled MIS Reports navigation.\nNo P0\u2013P2 defects or compatibility leftovers are demonstrated by the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     ".gitignore",
     "backend/src/db/migrate.test.ts",
@@ -44,17 +32,17 @@
     {
       "contract_id": "t-ui-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:41 renders the four option-backed native selectors and submits the selection through the run mutation"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:41 and frontend/src/lib/api.ts:61 show the native selector form and its options/run API integration."
     },
     {
       "contract_id": "t-ui-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:130 branches on the response outcome and separately renders resolved scope, configured-zero, and unresolvable states"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:135 branches on the response outcome and renders the resolved scope and distinct zero states."
     },
     {
       "contract_id": "t-ui-c3",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:231 renders the bucket list but falsely labels every null-cost-centre row as Budget only"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:217 and frontend/src/components/shell/app-shell.tsx:11 show the reviewable bucket list and enabled MIS Reports navigation."
     },
     {
       "contract_id": "t-mm-c1",
@@ -88,10 +76,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "5acdf13db250bdd74076ac6629694b10137496ffe8808e6dbd2d2d18ba923aa3",
-  "brief_sha256": "9f3334dd28a9ee7621bc1871725568c026a6fde765e6d51c0b577f2caf91f648",
-  "branch_diff_digest": "3f9e4d4eb7e7cad6a33043088b2bfe58450cd2d1d472b4d700566b5ecaaccf6d",
+  "review_run_id": "5163da54b9a884874142e521d659a85a5237dd25afd0e254058e22969280603a",
+  "brief_sha256": "aca22bcb399cd9d855f53c412f61ad7e612cc1d64b0023c72b4e099ef030f924",
+  "branch_diff_digest": "04ee2ac2af50e5a0fbcf5a8f4d6e7e1519970351461566d617360e9dc6ff5f8d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T19:06:54+00:00",
-  "commit": "3e7d39a845a8b4de755caf0e441df7fb0fc88a3f"
+  "recorded_at": "2026-09-10T19:18:59+00:00",
+  "commit": "99220edb356fda54a68df792c46922778242ef7e"
 }

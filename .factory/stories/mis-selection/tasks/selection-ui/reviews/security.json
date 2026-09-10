@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "selection-ui",
-  "score": 9,
-  "summary": "security lens over selection-ui (17 product path(s), 23ed18e..3e7d39a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The main selection flow and security boundaries shown in the bundle appear sound, with no exposed credentials or concrete authentication bypass. However, the bucket review UI misclassifies the explicitly supported multi-cost-centre GL case as Budget-only, making the user-facing mapping artifact materially inaccurate.",
+  "score": 10,
+  "summary": "security lens over selection-ui (17 product path(s), 23ed18e..99220ed, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The selected diff introduces no actionable P0\u2013P2 security defect. The new page inherits the existing authenticated application layout, reuses the established cookie/CSRF/refresh-aware API client, submits only the four permitted selectors, and renders server-provided content through React text nodes without an evident injection path. The DUB scope grant is limited to configured admin users as required, and the diff contains no credentials or compatibility leftovers.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/mis",
-      "summary": "[P2] Do not label every null cost centre as budget-only (frontend/src/features/mis/mis-report-view.tsx:233): The backend deliberately sets `costCentre` to null both for a genuinely Budget-only GL and when one GL has bucket entries across multiple cost centres; the new controller test demonstrates the latter with nonzero Actual spend."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     ".gitignore",
     "backend/src/db/migrate.test.ts",
@@ -35,10 +29,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "5acdf13db250bdd74076ac6629694b10137496ffe8808e6dbd2d2d18ba923aa3",
-  "brief_sha256": "9f3334dd28a9ee7621bc1871725568c026a6fde765e6d51c0b577f2caf91f648",
-  "branch_diff_digest": "3f9e4d4eb7e7cad6a33043088b2bfe58450cd2d1d472b4d700566b5ecaaccf6d",
+  "review_run_id": "5163da54b9a884874142e521d659a85a5237dd25afd0e254058e22969280603a",
+  "brief_sha256": "aca22bcb399cd9d855f53c412f61ad7e612cc1d64b0023c72b4e099ef030f924",
+  "branch_diff_digest": "04ee2ac2af50e5a0fbcf5a8f4d6e7e1519970351461566d617360e9dc6ff5f8d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T19:06:54+00:00",
-  "commit": "3e7d39a845a8b4de755caf0e441df7fb0fc88a3f"
+  "recorded_at": "2026-09-10T19:18:59+00:00",
+  "commit": "99220edb356fda54a68df792c46922778242ef7e"
 }
