@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "gl-month-rollups",
-  "score": 7,
-  "summary": "quality lens over gl-month-rollups (7 product path(s), 194d441..f9c6b1d, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The view definitions, migration, journal registration, deterministic budget labels, rollover aggregation, and serialized DB proof implementation match the requested SQL and test structure. However, the mandatory committed execution record is absent, so the DB-backed proof has not been demonstrated in the submitted change.\nVERDICT t-glm-c1: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:135\nVERDICT t-glm-c2: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:156\nVERDICT t-glm-c3: partial \u2014 backend/src/warehouse/gl-month-rollups.db.test.ts:19",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0004-pulse-governed-joins.md",
-      "summary": "t-glm-c3: a demonstrated warehouse-DB test proves each rollup reflects only the active batch: a retained prior actuals/budget batch does not change the rollup, and a budget reload swaps the active batch without altering actuals"
-    }
-  ],
+  "score": 10,
+  "summary": "quality lens over gl-month-rollups (7 product path(s), 194d441..727b0b9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-glm-c1: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:135 defines the DUB actual rollup and active-budget GL/month rollup\nVERDICT t-glm-c2: implemented \u2014 backend/src/warehouse/warehouse-schema.ts:164 preserves ordered distinct component labels and aggregates rollover_amount without adding a measure\nVERDICT t-glm-c3: implemented \u2014 backend/src/warehouse/gl-month-rollups.db.test.ts:20 proves replacement-batch isolation and that budget reloads leave actuals unchanged\nNo compatibility leftovers are present in the diff. Both views are registered in the schema and migration journal, their SQL shape is covered hermetically, and the DB-backed proof is reachable through the serialized warehouse-proof command.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/drizzle-warehouse/0002_gl_month_rollups.sql",
     "backend/drizzle-warehouse/meta/_journal.json",
@@ -26,26 +20,19 @@
     {
       "contract_id": "t-glm-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/warehouse-schema.ts:135"
+      "evidence": "backend/src/warehouse/warehouse-schema.ts:135 defines the DUB actual rollup and active-budget GL/month rollup"
     },
     {
       "contract_id": "t-glm-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/warehouse-schema.ts:156"
+      "evidence": "backend/src/warehouse/warehouse-schema.ts:164 preserves ordered distinct component labels and aggregates rollover_amount without adding a measure"
     },
     {
       "contract_id": "t-glm-c3",
-      "verdict": "partial",
-      "evidence": "backend/src/warehouse/gl-month-rollups.db.test.ts:19"
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/gl-month-rollups.db.test.ts:20 proves replacement-batch isolation and that budget reloads leave actuals unchanged"
     }
   ],
-  "aspect": "quality",
-  "review_run_id": "6e12ac0a0cb3cfa0e3084a5e5449be6f89ae14b52a183b9db51fa1f3f97f2232",
-  "brief_sha256": "af279edd829dc22d55efec00b20d79ba66938f0095790946813a6d8613652acb",
-  "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
-  "residual_risks": [],
-  "recorded_at": "2026-09-10T04:43:35+00:00",
-  "commit": "f9c6b1d5456d07ab8e49109b7f5c86cd09fb0909",
   "rejected_findings": [
     {
       "finding": {
@@ -59,5 +46,12 @@
       "rejected_by": "orchestrator",
       "task_id": "gl-month-rollups"
     }
-  ]
+  ],
+  "aspect": "quality",
+  "review_run_id": "3bef3e69b10d358b05e17c63d57df9d2be4412cc48a2f16290e2d60e3011598a",
+  "brief_sha256": "03c64d0852be77de38b7603ffdf1a5987ffff60fd36dda924c15b8daff40dc99",
+  "branch_diff_digest": "a0d5009b81bb84d64bc927aa491b3762ff2891599f67c4566dc6e8b55d93dced",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T04:47:04+00:00",
+  "commit": "727b0b9fdd0f67eec604d723152cb4048a1ffb0e"
 }
