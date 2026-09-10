@@ -1,0 +1,38 @@
+{
+  "commit": "fd30afa50b1c8a40c2aa1e6c5a97965ef7e748ae",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "gl-month-rollups (governed-joins task 1). Hermetic tests (no DB, in test:hermetic): warehouse-schema.test.ts asserts the SQL shape of both new views \u2014 actual_by_gl_month reduces DUB actuals to gl_code+month (SUM(actual_net), WHERE plant='DUB', constant plant column, active-batch filter inherited via actual_by_key_month, no direct ingest_batch predicate), and budget_by_gl_month rolls the active budget batch to gl_code+month via its own ingest_batch join (SUM(budget_amount), period aliased to month, array_agg DISTINCT cost_center ORDER BY cost_center for a deterministic Budget-Components label set, rollover carried, exposed by no measure). DEMONSTRATED host evidence (D-0008) against docker warehouse-db (127.0.0.1:5433): the WAREHOUSE_DB_TEST=1 gated leaf uses IngestionRepository (prior-then-replacement for BOTH actuals and budget) to prove each rollup retains prior batches but reflects ONLY the active replacement, and a budget reload leaves actuals unchanged; loopback-host guarded, run serialized with the reconciliation proof. verify.py green; quality-gate green.",
+    "pass_fail_summary": "hermetic contract+backend+frontend+quality-gate: pass; verify.py: passed; D-0008 gated warehouse proof (npm --prefix backend run test:warehouse-proof, serialized): tests 7 / pass 7 / fail 0 / skipped 0 (reconciliation + gl-month-rollups leaves); negative control (dead port 5599): fail 2 (both gated DB leaves ECONNREFUSED; loopback guards pass) \u2014 proof genuinely connects",
+    "blocking_findings": [],
+    "remaining_gaps": [],
+    "tests_added_or_updated": [
+      "backend/src/warehouse/warehouse-schema.test.ts (hermetic SQL-shape assertions for actual_by_gl_month + budget_by_gl_month)",
+      "backend/src/warehouse/gl-month-rollups.db.test.ts (WAREHOUSE_DB_TEST=1 gated proof: prior-then-replacement via IngestionRepository, active-batch-only, reload leaves actuals unchanged, loopback guard)",
+      "backend/drizzle-warehouse/0002_gl_month_rollups.sql + meta/_journal.json (migration + journal)",
+      "backend/package.json (test:warehouse-proof extended to run reconciliation + gl-month-rollups serialized --test-concurrency=1)",
+      "tools/quality-gate.test.mjs (enumerate the new gated test file)"
+    ],
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_PASSWORD=warehouse-local WAREHOUSE_PG_DATABASE=warehouse PGHOST=127.0.0.1 PGPORT=5432 npm --prefix backend run warehouse:migrate -> Warehouse migration complete (0002 rollup views applied)",
+      "WAREHOUSE_PG_... WAREHOUSE_DB_TEST=1 npm --prefix backend run test:warehouse-proof -> tests 7 / pass 7 / fail 0 / skipped 0 (serialized reconciliation + gl-month-rollups gated leaves)",
+      "NEGATIVE CONTROL (dead port 5599, same command) -> tests 7 / pass 5 / fail 2 (both gated DB leaves ECONNREFUSED; loopback guards pass) \u2014 confirms the proof genuinely connects"
+    ],
+    "reviewed_scope": [
+      "backend/src/warehouse/warehouse-schema.ts",
+      "backend/src/warehouse/warehouse-schema.test.ts",
+      "backend/src/warehouse/gl-month-rollups.db.test.ts",
+      "backend/drizzle-warehouse/0002_gl_month_rollups.sql",
+      "backend/package.json",
+      "tools/quality-gate.test.mjs"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-10T04:39:35+00:00",
+    "commit": "fd30afa50b1c8a40c2aa1e6c5a97965ef7e748ae"
+  },
+  "updated_at": "2026-09-10T04:39:35+00:00"
+}
