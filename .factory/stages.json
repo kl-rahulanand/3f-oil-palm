@@ -14,12 +14,12 @@
     {
       "id": "budget-loader",
       "title": "MIS budget loader (separate object, as-provided)",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "reconciliation-proof",
       "title": "July DUB reconciliation + idempotency proof",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "generated_by": "autoreview",
-  "aspect": "quality",
+  "aspect": "performance",
   "score": 10,
-  "summary": "Story-level closeout roll-up: all 12 sap-ingestion plan contracts across the 4 shipped tasks (warehouse-schema, actuals-loader, budget-loader, reconciliation-proof) were verdicted implemented by their own clean per-task quality reviews and merged; no code changed at the closeout HEAD. Aggregate verdict: all implemented.",
+  "summary": "Story-level closeout roll-up: per-task performance reviews approved (chunked inserts, per-statement-friendly queries, bounded workbook guard, single outer transactions); no regressions at the closeout HEAD.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
