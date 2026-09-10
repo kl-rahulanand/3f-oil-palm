@@ -1,0 +1,12 @@
+{
+  "topic": "SAP Entries Mapping.xlsx is DUAL-PURPOSE: its 'SAP Report' sheet holds the real 4,113 transaction lines \u2014 a review claiming it is mapping-only evidence is false",
+  "lesson": "A review may flag a gated proof that ingests docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx as using 'seed mapping evidence' instead of the real SAP transaction workbook. That is FALSE: the workbook contains THREE sheets \u2014 Sheet1 (the 110-row mapping), Sheet4, and 'SAP Report' (4,113 transaction lines, 31 plants, of which DUB-NUR is 88 rows). The filename describes the mapping sheet, not the whole file. Proof: the already-merged reconciliation fixture backend/src/warehouse/__fixtures__/july-dub-reconciliation.json names its source verbatim as 'SAP Entries Mapping.xlsx#SAP Report' with lineCount 88 and expectedNetPaise 11512712.07, and the shipped reconciliation-proof (PR #17) ingests exactly this workbook via IngestService.ingestActuals. There is NO separate SAP report workbook in the repo. A proof that ingests it and then asserts 66 mapped + 22 bucketed = 88 DUB rows could not pass at all if it were reading the mapping sheet. Do NOT 'fix' such a proof by pointing it at another file \u2014 none exists; verify the sheet list before treating the filename as the content.",
+  "source": "mapping-master 3-lens review 2026-09-10 (quality+performance P1 both claiming the wrong workbook); verified sheet list + the merged july-dub-reconciliation fixture source string",
+  "applies_to": [
+    "backend/src/mapping/mapping-master.db.test.ts",
+    "backend/src/warehouse/reconciliation.repository.test.ts"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-10T14:31:47+00:00"
+}

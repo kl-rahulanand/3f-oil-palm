@@ -1,7 +1,19 @@
-# Branch-wide plan-contract review brief
+# Review brief — mapping-master — security lens
 
-For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
 
+LENS: SECURITY. OWASP-style trust boundaries, authentication and authorization
+(every new route/handler: who may call it, with what scope), secrets and
+credential handling, injection (SQL/command/template), data exposure and
+over-broad responses, unsafe defaults, privilege escalation, and abuse paths.
+Use category `security` for these findings.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
 ## Task mapping-master
 
 ### Plan contracts
@@ -70,79 +82,3 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 All matched files use Prettier code style! passes clean. Task 2 (composed-relation, merged PR #21) edited migrate.ts to seed the 'report' action WITHOUT any D-0006 de-ignore and merged green. So editing migrate.ts requires NO .prettierignore or quality-gate baseline change — do NOT add/remove it there. The stale D-0006 deferral text lists ~71 historically-drifting files; migrate.ts has since been de-ignored, so a finding treating it as still-ignored contradicts the actual repo state and is not a defect.
 - [high] backend/src/chat/chat.service.ts IS a D-0006 prettier-ignored file — editing it REQUIRES the de-ignore (remove from .prettierignore + drop its ignoredBaselineHashes entry): Unlike migrate.ts (which is NOT ignored), backend/src/chat/chat.service.ts IS a D-0006 vendored file: it is listed in .prettierignore AND is a key in tools/quality-gate.test.mjs ignoredBaselineHashes with a pinned baseline hash. The quality-gate test 'the four FACTORY commands ... / D-0006' fails with 'chat.service.ts changed while still excluded by D-0006' whenever its content changes but it stays ignored. FIX per the D-0006 protocol: (1) ensure the file is prettier-clean (npx prettier --write if needed), (2) REMOVE the 'backend/src/chat/chat.service.ts' line from .prettierignore, (3) REMOVE its '<hash> backend/src/chat/chat.service.ts' entry from the ignoredBaselineHashes map in tools/quality-gate.test.mjs — all in the same change. Do this for ANY D-0006-ignored file a task edits; check membership with  and . (.prettierignore is editable by the worker and is recorded via stage amend-scope at stage done.)
 - [high] SAP Entries Mapping.xlsx is DUAL-PURPOSE: its 'SAP Report' sheet holds the real 4,113 transaction lines — a review claiming it is mapping-only evidence is false: A review may flag a gated proof that ingests docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx as using 'seed mapping evidence' instead of the real SAP transaction workbook. That is FALSE: the workbook contains THREE sheets — Sheet1 (the 110-row mapping), Sheet4, and 'SAP Report' (4,113 transaction lines, 31 plants, of which DUB-NUR is 88 rows). The filename describes the mapping sheet, not the whole file. Proof: the already-merged reconciliation fixture backend/src/warehouse/__fixtures__/july-dub-reconciliation.json names its source verbatim as 'SAP Entries Mapping.xlsx#SAP Report' with lineCount 88 and expectedNetPaise 11512712.07, and the shipped reconciliation-proof (PR #17) ingests exactly this workbook via IngestService.ingestActuals. There is NO separate SAP report workbook in the repo. A proof that ingests it and then asserts 66 mapped + 22 bucketed = 88 DUB rows could not pass at all if it were reading the mapping sheet. Do NOT 'fix' such a proof by pointing it at another file — none exists; verify the sheet list before treating the filename as the content.
-
-## Task selection-resolution
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-All 18 active decisions were reviewed. Load-bearing here:
-
-- **0014 (sap-ingestion, no master)** — not contradicted: its Consequences *defer* the
-  governed mapping master to this story. Ingestion keeps ingesting the workbooks directly
-  and retaining unmapped rows raw; the master governs **selection**, not ingest coverage.
-  0014's deferred **balanced budget allocation stays deferred** — 0017 keeps Budget at
-  `(gl_code, month)`, so nothing here needs it.
-- **0016 (governed-joins PoC scope)** — partially revisited by 0017: cost centres become a
-  **selection filter**, still never a join key, a Budget grain, or an output dimension.
-- **0017 (composite-key seam)** — governs how selection reaches the governed layer.
-  **Amended 2026-09-10 (grill Q6)**: its original closing consequence claimed D-0027 stayed
-  open and blocked planning; that is superseded — see below.
-- **0018 (unmapped-GL bucket)** — **governs the bucket question** and settled D-0027 the
-  same day. Where 0017's stale text and 0018 disagreed, **0018 wins**; 0017 has been
-  amended accordingly and the ledger records D-0027 as done. Planning is not blocked.
-- **0004 / 0015 / 0009** — one governed definition (LLM selects, never authors SQL);
-  warehouse snake_case; required_tests use real leaf names + `TS_NODE_PROJECT`.
-- **0012 (vendored-API deviation)** applies only to the *vendored* controllers. The routes
-  this story adds are **fresh code**, so the constitution's typed request/response DTOs and
-  documented Swagger error responses are **required**, not deferred (D-0020 covers vendored
-  surfaces only).
-
-## Task selection-ui
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-All 18 active decisions were reviewed. Load-bearing here:
-
-- **0014 (sap-ingestion, no master)** — not contradicted: its Consequences *defer* the
-  governed mapping master to this story. Ingestion keeps ingesting the workbooks directly
-  and retaining unmapped rows raw; the master governs **selection**, not ingest coverage.
-  0014's deferred **balanced budget allocation stays deferred** — 0017 keeps Budget at
-  `(gl_code, month)`, so nothing here needs it.
-- **0016 (governed-joins PoC scope)** — partially revisited by 0017: cost centres become a
-  **selection filter**, still never a join key, a Budget grain, or an output dimension.
-- **0017 (composite-key seam)** — governs how selection reaches the governed layer.
-  **Amended 2026-09-10 (grill Q6)**: its original closing consequence claimed D-0027 stayed
-  open and blocked planning; that is superseded — see below.
-- **0018 (unmapped-GL bucket)** — **governs the bucket question** and settled D-0027 the
-  same day. Where 0017's stale text and 0018 disagreed, **0018 wins**; 0017 has been
-  amended accordingly and the ledger records D-0027 as done. Planning is not blocked.
-- **0004 / 0015 / 0009** — one governed definition (LLM selects, never authors SQL);
-  warehouse snake_case; required_tests use real leaf names + `TS_NODE_PROJECT`.
-- **0012 (vendored-API deviation)** applies only to the *vendored* controllers. The routes
-  this story adds are **fresh code**, so the constitution's typed request/response DTOs and
-  documented Swagger error responses are **required**, not deferred (D-0020 covers vendored
-  surfaces only).

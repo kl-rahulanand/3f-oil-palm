@@ -1,7 +1,7 @@
 {
   "id": "mapping-master",
   "title": "Versioned Mapping Master + unmapped-GL bucket",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-10T14:07:37+00:00",
   "base_sha": "2f420bd94750e37359c9c74b73f2548ce0da82f1",
   "dirty_at_start": {
@@ -22,5 +22,30 @@
       "git": "? plans/active/mis-selection-selection-mapping-master.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "9e0832069ce89f870b41528d5f492d8602949a1154dc8c5854e2816e8c3798be"
+  "task_sha256": "9e0832069ce89f870b41528d5f492d8602949a1154dc8c5854e2816e8c3798be",
+  "local_review_stamp": {
+    "stage_id": "mapping-master",
+    "task_sha256": "9e0832069ce89f870b41528d5f492d8602949a1154dc8c5854e2816e8c3798be",
+    "brief_sha256": "a2ce9b8b9744627dc25d97159befb75452ad0ea9b3675fc004bcd15fd8dfd6e1",
+    "base_sha": "2f420bd94750e37359c9c74b73f2548ce0da82f1",
+    "product_tree_digest": "2522fa4a2248dd07036382da29f4b0d6bafac113383639c5adcc1f3bdcfa14d4",
+    "recorded_at": "2026-09-10T14:37:05+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-10T14:37:53+00:00",
+  "measured": {
+    "strays": [],
+    "files": 7,
+    "lines": 478,
+    "budget": {
+      "files": 9,
+      "lines": 1100
+    },
+    "test_id_misses": []
+  }
 }
