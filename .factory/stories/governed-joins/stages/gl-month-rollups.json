@@ -1,5 +1,39 @@
 {
   "id": "gl-month-rollups",
   "title": "GL+month active rollups for Actual (DUB) and Budget",
-  "status": "pending"
+  "status": "done",
+  "started_at": "2026-09-10T04:28:24+00:00",
+  "base_sha": "194d4419e72c8d130531f2edbfcd35bf850de048",
+  "dirty_at_start": {
+    ".factory/stories/governed-joins/grills/tasks/gl-month-rollups.json": {
+      "digest": "20fbe52feebce0a552906a74958d8424329f6993766818ff829334b6c5bc4f03",
+      "git": "1 .M N... 100644 100644 100644 e46159fa31e318c30abf392f7cfb576b2e6b6628 e46159fa31e318c30abf392f7cfb576b2e6b6628 .factory/stories/governed-joins/grills/tasks/gl-month-rollups.json\u0000\u0000100644 e46159fa31e318c30abf392f7cfb576b2e6b6628 0\t.factory/stories/governed-joins/grills/tasks/gl-month-rollups.json\u0000\u0000H .factory/stories/governed-joins/grills/tasks/gl-month-rollups.json\u0000"
+    }
+  },
+  "task_sha256": "5c01767bf8064b8acdff9eb47abf02fece7afd2131c2e49fff83c4e2df1465d0",
+  "local_review_stamp": {
+    "stage_id": "gl-month-rollups",
+    "task_sha256": "5c01767bf8064b8acdff9eb47abf02fece7afd2131c2e49fff83c4e2df1465d0",
+    "brief_sha256": "2674aea8b783acc856fb63811c32b7a09f014aaa7e358a5918eb4746d0aadcca",
+    "base_sha": "194d4419e72c8d130531f2edbfcd35bf850de048",
+    "product_tree_digest": "9fd35e7102a68b9a3ae5a05b8f8fecf3812096112f3b98de92e9b11a65782882",
+    "recorded_at": "2026-09-10T04:50:09+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-10T04:50:45+00:00",
+  "measured": {
+    "strays": [],
+    "files": 7,
+    "lines": 279,
+    "budget": {
+      "files": 8,
+      "lines": 700
+    },
+    "test_id_misses": []
+  }
 }

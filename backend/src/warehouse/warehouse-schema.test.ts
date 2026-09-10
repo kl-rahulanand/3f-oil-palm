@@ -4,7 +4,14 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { PgDialect, getTableConfig, getViewConfig, isPgMaterializedView } from "drizzle-orm/pg-core";
 import { loadWarehousePostgresConfig } from "../config";
-import { actualByKeyMonth, ingestBatch, misBudget, sapTransaction } from "./warehouse-schema";
+import {
+  actualByGlMonth,
+  actualByKeyMonth,
+  budgetByGlMonth,
+  ingestBatch,
+  misBudget,
+  sapTransaction,
+} from "./warehouse-schema";
 
 const dialect = new PgDialect();
 
@@ -176,3 +183,58 @@ test(
     await proveWarehouse();
   },
 );
+
+test("the actual_by_gl_month view reduces DUB actuals to gl_code and month as SUM of actual_net over cost centres, filtered to plant DUB and inheriting the active-batch filter through actual_by_key_month with no direct ingest_batch predicate, and exposes a constant plant DUB column; the budget_by_gl_month view rolls the active budget batch up to gl_code and month via its own direct join to ingest_batch on source_kind budget and is_active as SUM of budget_amount with period aliased to month, each asserted by SQL shape including the numeric 18 2 cast and the group-by key", () => {
+  assert.equal(isPgMaterializedView(actualByGlMonth), false);
+  const actual = getViewConfig(actualByGlMonth);
+  assert.equal(actual.name, "actual_by_gl_month");
+  assert.deepEqual(columnNames(Object.values(actual.selectedFields) as Array<{ name: string }>), [
+    "plant",
+    "gl_code",
+    "month",
+    "actual_net",
+  ]);
+  assert.ok(actual.query);
+  const actualSql = dialect.sqlToQuery(actual.query).sql.replaceAll(/\s+/g, " ").toLowerCase();
+  assert.match(actualSql, /select 'dub'::text as plant, gl_code, month/);
+  assert.match(actualSql, /sum\(actual_net\)::numeric\(18, 2\) as actual_net/);
+  assert.match(actualSql, /from actual_by_key_month where plant = 'dub'/);
+  assert.match(actualSql, /group by gl_code, month/);
+  assert.doesNotMatch(actualSql, /ingest_batch|source_kind|is_active/);
+
+  assert.equal(isPgMaterializedView(budgetByGlMonth), false);
+  const budget = getViewConfig(budgetByGlMonth);
+  assert.equal(budget.name, "budget_by_gl_month");
+  assert.deepEqual(columnNames(Object.values(budget.selectedFields) as Array<{ name: string }>), [
+    "gl_code",
+    "month",
+    "budget_net",
+    "rollover_net",
+    "budget_component_labels",
+  ]);
+  assert.ok(budget.query);
+  const budgetSql = dialect.sqlToQuery(budget.query).sql.replaceAll(/\s+/g, " ").toLowerCase();
+  assert.match(budgetSql, /b\.period as month/);
+  assert.match(budgetSql, /sum\(b\.budget_amount\)::numeric\(18, 2\) as budget_net/);
+  assert.match(budgetSql, /inner join ingest_batch as bt on bt\.id = b\.batch_id/);
+  assert.match(budgetSql, /bt\.source_kind = 'budget' and bt\.is_active/);
+  assert.match(budgetSql, /group by b\.gl_code, b\.period/);
+
+  const migration = readFileSync(resolve(__dirname, "../../drizzle-warehouse/0002_gl_month_rollups.sql"), "utf8");
+  assert.match(migration, /CREATE VIEW "public"\."actual_by_gl_month"/);
+  assert.match(migration, /CREATE VIEW "public"\."budget_by_gl_month"/);
+  const journal = JSON.parse(
+    readFileSync(resolve(__dirname, "../../drizzle-warehouse/meta/_journal.json"), "utf8"),
+  ) as { entries: Array<{ tag: string }> };
+  assert.equal(journal.entries.at(-1)?.tag, "0002_gl_month_rollups");
+});
+
+test("budget_by_gl_month preserves the deterministic set of cost_center Budget Components labels per gl_code and month key via array_agg distinct cost_center order by cost_center as an informational aggregate never a grouping or join key and carries raw rollover_amount summed but exposed by no measure, asserted by SQL shape including the order by inside the aggregate", () => {
+  const view = getViewConfig(budgetByGlMonth);
+  assert.ok(view.query);
+  const viewSql = dialect.sqlToQuery(view.query).sql.replaceAll(/\s+/g, " ").toLowerCase();
+  assert.match(viewSql, /array_agg\(distinct b\.cost_center order by b\.cost_center\) as budget_component_labels/);
+  assert.match(viewSql, /sum\(b\.rollover_amount\)::numeric\(18, 2\) as rollover_net/);
+  assert.match(viewSql, /group by b\.gl_code, b\.period/);
+  assert.doesNotMatch(viewSql, /group by[^;]*cost_center/);
+});

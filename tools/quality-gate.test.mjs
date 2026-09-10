@@ -37,6 +37,7 @@ const hermeticTests = [
   "backend/src/sql/sqlValidator.pii.test.ts",
   "backend/src/swagger-production.test.ts",
   "backend/src/swagger.test.ts",
+  "backend/src/warehouse/gl-month-rollups.db.test.ts",
   "backend/src/warehouse/postgres.adapter.oid.test.ts",
   "backend/src/warehouse/reconciliation.repository.test.ts",
   "backend/src/warehouse/warehouse-schema.test.ts",
@@ -91,7 +92,7 @@ const expectedWorkspaceScripts = {
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test backend/src/warehouse/reconciliation.repository.test.ts",
+      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts",
   },
   contract: {
     build: "tsc -p tsconfig.json",

@@ -1,7 +1,19 @@
-# Branch-wide plan-contract review brief
+# Review brief — gl-month-rollups — security lens
 
-For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
 
+LENS: SECURITY. OWASP-style trust boundaries, authentication and authorization
+(every new route/handler: who may call it, with what scope), secrets and
+credential handling, injection (SQL/command/template), data exposure and
+over-broad responses, unsafe defaults, privilege escalation, and abuse paths.
+Use category `security` for these findings.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
 ## Task gl-month-rollups
 
 ### Plan contracts
@@ -55,75 +67,3 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] A destructive TRUNCATE in a gated warehouse test must be guarded to loopback-only hosts: The reconciliation D-0008 gated leaf TRUNCATEs ingest_batch + sap_transaction CASCADE on whatever DB WAREHOUSE_PG_* points at. Guard it: BEFORE truncating, assert the warehouse host (WAREHOUSE_PG_HOST) is loopback/local (127.0.0.1, ::1, or localhost) and THROW a clear error refusing to run against a non-local warehouse — so a misconfigured WAREHOUSE_PG_* can never wipe a shared/production warehouse. Also fix the P2: tools/quality-gate.test.mjs wrapping the declared test lists in new Set removes the gate's exactly-one-suite detection (a file registered in two suites is silently deduped) — compare with duplicate detection preserved (e.g. detect duplicates before dedup, or assert no file appears in more than one suite) instead of Set-then-compare.
 - [medium] rejected-review-finding-quality: Not a defect (Decisions): Factually incorrect and contradicts the settled D-0008 model. (1) tests.json IS committed at f9c6b1d with the full host-execution record: 'npm --prefix backend run test:warehouse-proof -> tests 7 / pass 7 / fail 0 / skipped 0' plus a dead-port negative control (fail 2, ECONNREFUSED). The reviewer cannot see it only because the review bundle deliberately excludes .factory bookkeeping ('review tip excludes 9 harness bookkeeping paths; the bundle is the product delta only') - not because it is absent. (2) The runnable command that executes the proof (test:warehouse-proof, serialized) IS in the product delta at backend/package.json, and the gated test is committed and reviewer-visible. (3) The security lens accepted this identical evidence and approved. (4) The story plan Decisions section settles that the DB-backed warehouse proof is DEMONSTRATED HOST EVIDENCE (D-0008), not CI-enforced execution. — raised as "[P1] Commit the required host-execution evidence for the new proof (backend/package.json:19): The new `test:warehouse-proof` command is registered, but the chan"
 - [medium] rejected-review-finding-performance: Not a defect (Decisions): Factually incorrect and contradicts the settled D-0008 model, same as the quality lens. tests.json IS committed at f9c6b1d with the host-execution record (test:warehouse-proof -> tests 7 / pass 7; dead-port negative control fail 2, ECONNREFUSED); the reviewer cannot see it only because the review bundle excludes .factory bookkeeping ('the bundle is the product delta only'). The runnable serialized test:warehouse-proof command IS in the product delta (backend/package.json) and the gated test is committed reviewer-visible; the security lens approved this identical evidence. The story plan Decisions section settles the warehouse proof as demonstrated host evidence (D-0008), not CI-enforced. — raised as "[P1] Commit the required warehouse-proof execution evidence (backend/src/warehouse/gl-month-rollups.db.test.ts:22): This DB-backed proof is skipped unless WAREH"
-
-## Task composed-relation
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-0002 (Financial MIS; Actual = Σ(Debit−Credit)), 0004 (governed joins: correct
-semantics, RBAC across both objects, validator support, golden fixtures, one
-shared definition), 0009 (required_tests name real leaves + pin `TS_NODE_PROJECT`),
-0014 (no mapping master), 0015 (warehouse snake_case), 0016 (governed-joins PoC
-scope: `gl_code+month` within DUB, informational Budget-Components label, deferred
-mapping master + roll-over measure + row-scoping, role-based RBAC, %-nil rule).
-D-0008: the golden-fixture warehouse proof is demonstrated host evidence.
-
-## Task governed-domain-measures
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-0002 (Financial MIS; Actual = Σ(Debit−Credit)), 0004 (governed joins: correct
-semantics, RBAC across both objects, validator support, golden fixtures, one
-shared definition), 0009 (required_tests name real leaves + pin `TS_NODE_PROJECT`),
-0014 (no mapping master), 0015 (warehouse snake_case), 0016 (governed-joins PoC
-scope: `gl_code+month` within DUB, informational Budget-Components label, deferred
-mapping master + roll-over measure + row-scoping, role-based RBAC, %-nil rule).
-D-0008: the golden-fixture warehouse proof is demonstrated host evidence.
-
-## Task golden-provenance
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-0002 (Financial MIS; Actual = Σ(Debit−Credit)), 0004 (governed joins: correct
-semantics, RBAC across both objects, validator support, golden fixtures, one
-shared definition), 0009 (required_tests name real leaves + pin `TS_NODE_PROJECT`),
-0014 (no mapping master), 0015 (warehouse snake_case), 0016 (governed-joins PoC
-scope: `gl_code+month` within DUB, informational Budget-Components label, deferred
-mapping master + roll-over measure + row-scoping, role-based RBAC, %-nil rule).
-D-0008: the golden-fixture warehouse proof is demonstrated host evidence.

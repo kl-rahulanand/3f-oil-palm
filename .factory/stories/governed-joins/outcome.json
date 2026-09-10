@@ -1,0 +1,7 @@
+{
+  "generated_by": "implementer",
+  "outcome": "The two ingested objects are now reduced to a joinable grain: actual_by_gl_month rolls DUB actuals up to (gl_code, month) summing across cost centres (with a constant plant='DUB' column for downstream scoping and the active-batch filter inherited from actual_by_key_month), and budget_by_gl_month rolls the active budget batch up to (gl_code, month) preserving a deterministic Budget-Components label set. Each reflects only its active batch (a retained prior batch never changes it; a budget reload leaves actuals untouched), proven against the warehouse DB. This is the fan-out-safe foundation for the task-2 cross-object Budget-Actual join.",
+  "issue": "governed-joins",
+  "commit": "727b0b9fdd0f67eec604d723152cb4048a1ffb0e",
+  "recorded_at": "2026-09-10T04:47:29+00:00"
+}

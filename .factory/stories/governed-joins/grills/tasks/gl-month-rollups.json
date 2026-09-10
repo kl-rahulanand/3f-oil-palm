@@ -89,13 +89,13 @@
     }
   ],
   "summary": "One cold read returned seven gaps. Six are repository/decision-answerable and resolved in the amended contract + plan: backend-prefixed host commands (0009), the owned migration journal entry, a repository-driven prior-then-replacement proof for BOTH sides (candidate-load-then-flip), exactly-one-suite registration + a serialized test:warehouse-proof retaining the reconciliation proof, a deterministic array_agg ORDER BY label set, and the inherited-vs-direct active-batch test lineage. One was the genuine cross-task RBAC seam put to the human: expose a constant plant='DUB' column in the Actual rollup so task 2 can inject/verify its scope predicate against it. Verdict pass.",
-  "input_sha256": "46fbec0f2221202e9f0cec324a8da1a945d788514a0f03ffe6e1edc937fc3b71",
+  "input_sha256": "53cb8687c76287320971fcbcd449f2f5f4d84b0ca119b353cfddac1be8c71998",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "d93a2cd083c6be3b707df5036547b1cb20ab64d9cfe95df5ac54fe12c035e812",
-  "recorded_at": "2026-09-10T03:46:48+00:00",
-  "commit": "68151bedefd19503223756456caf2bf197aa4779",
+  "recorded_at": "2026-09-10T04:24:39+00:00",
+  "commit": "194d4419e72c8d130531f2edbfcd35bf850de048",
   "approved_task_plan_sha256": "d93a2cd083c6be3b707df5036547b1cb20ab64d9cfe95df5ac54fe12c035e812",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-10T03:56:47+00:00"
+  "approved_at": "2026-09-10T04:24:49+00:00"
 }
