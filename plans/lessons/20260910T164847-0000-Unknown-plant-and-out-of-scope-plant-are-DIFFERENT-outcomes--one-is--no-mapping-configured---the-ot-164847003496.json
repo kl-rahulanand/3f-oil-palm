@@ -1,0 +1,11 @@
+{
+  "topic": "Unknown-plant and out-of-scope-plant are DIFFERENT outcomes: one is 'no mapping configured', the other is 403",
+  "lesson": "The plant-scope guard in MisSelectionService.run() combined two distinct cases into one 403: . A plant the mapping master does not cover yields canonicalPlant === undefined, which is NOT an authorization failure \u2014 it is precisely the UNRESOLVABLE outcome the story requires ('A selection with no mapping renders zeros + a no mapping configured notice, no crash' \u2014 spec acceptance criterion 3, and the resolved/unresolvable union task 3 consumes). Throwing 403 there breaks that criterion and hides the notice the UI must show. SPLIT the branches: canonicalPlant undefined -> return the explicit unresolvable outcome; canonicalPlant known but NOT in plantScope(user) -> throw the authorization error. Keep the authorization check strictly about scope, never about coverage.",
+  "source": "selection-resolution review round 3 (performance P2 at mis-selection.service.ts:54)",
+  "applies_to": [
+    "backend/src/mis/mis-selection.service.ts"
+  ],
+  "severity": "medium",
+  "generated_by": "implementer",
+  "added_at": "2026-09-10T16:48:47+00:00"
+}

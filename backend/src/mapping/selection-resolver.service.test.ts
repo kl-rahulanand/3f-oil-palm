@@ -102,6 +102,14 @@ test("resolving a department function plant and period through the mapping maste
     totals: { actual: 0, budget: 0, percentage: null },
     bucketRows: [],
   });
+
+  const unknownPlant = await service.run(grantedUser, {
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "UNKNOWN",
+    period: "2026-07-01",
+  });
+  assert.equal(unknownPlant.outcome, "unresolvable");
   assert.equal(executor.runCalls, 1);
 });
 

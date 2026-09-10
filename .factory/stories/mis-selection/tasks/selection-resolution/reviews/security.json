@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "selection-resolution",
-  "score": 7,
-  "summary": "security lens over selection-resolution (20 product path(s), 97764ad..2b4d615, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The production changes shown are otherwise consistent with the requested authorization and narrowing model, and no credential or compatibility-leftover issue is evident. However, the newly registered mandatory warehouse proof has a definite runtime failure caused by its incomplete resolver stub, so the required selection-slice behavior is not demonstrated and the warehouse-proof command cannot pass.",
-  "blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "backend/src/warehouse",
-      "summary": "The registered warehouse proof crashes before exercising the selection query (backend/src/warehouse/selection-slice.db.test.ts:50): This resolver stub only implements `resolve`, but `MisSelectionService.run()` first calls `this.resolver.canonicalPlant(request.plant)`."
-    }
-  ],
+  "score": 10,
+  "summary": "security lens over selection-resolution (20 product path(s), 97764ad..5d97dfe, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 defect is demonstrated by the supplied diff. Both routes require authentication and report action authorization; the service independently enforces domain, measure, dimension, and canonical plant scope before exposing mapping metadata or unresolvable outcomes. The run payload is strictly parsed, resolved scope propagates to grouped and totals queries, SQL literals are constructed through the existing escaping path, and no credentials or compatibility leftovers are present.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/app.module.ts",
@@ -36,10 +30,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "7badb8b1ec59477c46f2751b77e417890d8698b9f017e9c4d6f3412f8d9dcaeb",
-  "brief_sha256": "43243ddc92ae39807a19e4ffc75c4133bc055fcc996e2dbd78824bc9edea7284",
-  "branch_diff_digest": "5f4bd594b83172b5fe221a069d0315f44a409adef6af833334985673de43256f",
+  "review_run_id": "f0cd3c082f5ed3404089d8d04c726b060ab42d1a34e3645450ba69df0fc5b361",
+  "brief_sha256": "8b78efc66bcdd7fc77bb5b06f91af10084dbca186317fa39fccb5fc4423eeef3",
+  "branch_diff_digest": "79535a85b4fd54aeedbf02fd9e546f1efc4bf9ae8c017b7fd9f4b04e60649a0a",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T16:35:57+00:00",
-  "commit": "2b4d615f9a94d7b762d9c215570cde72d9545e70"
+  "recorded_at": "2026-09-10T16:48:12+00:00",
+  "commit": "5d97dfe9f4a88c2dfdcf77246aa5ff80844e88cf"
 }

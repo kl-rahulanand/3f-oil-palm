@@ -22,5 +22,19 @@
       "git": "1 .M N... 100644 100644 100644 b981698a623b375c337a920d90684680960e30a5 b981698a623b375c337a920d90684680960e30a5 plans/active/mis-selection-selection-mapping-master.md\u0000\u0000100644 b981698a623b375c337a920d90684680960e30a5 0\tplans/active/mis-selection-selection-mapping-master.md\u0000\u0000H plans/active/mis-selection-selection-mapping-master.md\u0000"
     }
   },
-  "task_sha256": "ca08660f0f7f8cac368cb7c3b8df80755626bafb3ff9ee68117257e365802b01"
+  "task_sha256": "ca08660f0f7f8cac368cb7c3b8df80755626bafb3ff9ee68117257e365802b01",
+  "local_review_stamp": {
+    "stage_id": "selection-resolution",
+    "task_sha256": "ca08660f0f7f8cac368cb7c3b8df80755626bafb3ff9ee68117257e365802b01",
+    "brief_sha256": "33fdeeb1510266b509b84b64bc3c18e719bdef99d37bc36094f72dbea64af8ed",
+    "base_sha": "97764ad9bb15512c2d17de67353e61b6a64a65e5",
+    "product_tree_digest": "41274b6c3c323b3fb176bfa128412e9c24b583fca6d573db70de1b2ba14fe3ab",
+    "recorded_at": "2026-09-10T16:48:12+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  }
 }

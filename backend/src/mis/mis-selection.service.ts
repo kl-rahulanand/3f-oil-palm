@@ -48,7 +48,7 @@ export class MisSelectionService implements IMisSelectionService {
     const { domain, selection } = this.authorizedSelection(user);
     this.executor.authorize(user, domain, selection);
     const canonicalPlant = this.resolver.canonicalPlant(request.plant);
-    if (!canonicalPlant || !plantScope(user).includes(canonicalPlant)) {
+    if (canonicalPlant && !plantScope(user).includes(canonicalPlant)) {
       throw new SelectionExecutionBlockedError("governed financial plant scope is not authorized");
     }
 

@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "selection-resolution",
   "score": 10,
-  "summary": "quality lens over selection-resolution (20 product path(s), 97764ad..2b4d615, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sr-c1: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:59 and contract/src/api.ts:188\nVERDICT t-sr-c2: implemented \u2014 backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:22\nVERDICT t-sr-c3: implemented \u2014 backend/src/mis/mis-selection.controller.ts:27 and backend/src/app.module.ts:12\nNo blocking compatibility leftovers are present in the supplied diff. The selected scope is resolved through the mapping master, propagated to both grouped and totals queries, exposed through registered authenticated routes, and covered by hermetic and gated warehouse tests.",
+  "summary": "quality lens over selection-resolution (20 product path(s), 97764ad..5d97dfe, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sr-c1: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:62 and backend/src/mis/mis-selection.service.ts:57 implement master-based resolution, loaded-period handling, and distinct resolved/unresolvable outcomes\nVERDICT t-sr-c2: implemented \u2014 backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:22 implement and prove governed narrowing without fan-out\nVERDICT t-sr-c3: implemented \u2014 backend/src/mis/mis-selection.controller.ts:25 and backend/src/app.module.ts:12 expose, authenticate, document, and register the two typed routes\nLEFTOVERS: none visible in the supplied diff.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -33,17 +33,17 @@
     {
       "contract_id": "t-sr-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/mapping/selection-resolver.service.ts:59 and contract/src/api.ts:188"
+      "evidence": "backend/src/mapping/selection-resolver.service.ts:62 and backend/src/mis/mis-selection.service.ts:57 implement master-based resolution, loaded-period handling, and distinct resolved/unresolvable outcomes"
     },
     {
       "contract_id": "t-sr-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:22"
+      "evidence": "backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:22 implement and prove governed narrowing without fan-out"
     },
     {
       "contract_id": "t-sr-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-selection.controller.ts:27 and backend/src/app.module.ts:12"
+      "evidence": "backend/src/mis/mis-selection.controller.ts:25 and backend/src/app.module.ts:12 expose, authenticate, document, and register the two typed routes"
     },
     {
       "contract_id": "t-mm-c1",
@@ -62,10 +62,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "7badb8b1ec59477c46f2751b77e417890d8698b9f017e9c4d6f3412f8d9dcaeb",
-  "brief_sha256": "43243ddc92ae39807a19e4ffc75c4133bc055fcc996e2dbd78824bc9edea7284",
-  "branch_diff_digest": "5f4bd594b83172b5fe221a069d0315f44a409adef6af833334985673de43256f",
+  "review_run_id": "f0cd3c082f5ed3404089d8d04c726b060ab42d1a34e3645450ba69df0fc5b361",
+  "brief_sha256": "8b78efc66bcdd7fc77bb5b06f91af10084dbca186317fa39fccb5fc4423eeef3",
+  "branch_diff_digest": "79535a85b4fd54aeedbf02fd9e546f1efc4bf9ae8c017b7fd9f4b04e60649a0a",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T16:35:57+00:00",
-  "commit": "2b4d615f9a94d7b762d9c215570cde72d9545e70"
+  "recorded_at": "2026-09-10T16:48:12+00:00",
+  "commit": "5d97dfe9f4a88c2dfdcf77246aa5ff80844e88cf"
 }
