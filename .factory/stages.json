@@ -4,22 +4,22 @@
     {
       "id": "gl-month-rollups",
       "title": "GL+month active rollups for Actual (DUB) and Budget",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "composed-relation",
       "title": "Closed, typed, code-composed Budget\u22c8Actual relation with two-sided scope",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "governed-domain-measures",
       "title": "Code-authored Actual / Budget / % measures over the composed relation",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "golden-provenance",
       "title": "Golden-answer fixtures (no fan-out) + provenance lineage",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

@@ -1,47 +1,5 @@
 {
   "id": "governed-domain-measures",
   "title": "Code-authored Actual / Budget / % measures over the composed relation",
-  "status": "done",
-  "started_at": "2026-09-10T08:06:21+00:00",
-  "base_sha": "a5811d8757d773172a75ec1b3665b10b4d4ebcf8",
-  "dirty_at_start": {
-    ".factory/stories/governed-joins/decomposition.json": {
-      "digest": "b41252aebb25c792f965e996971a995ee02c5bdd4e4707fb3034d00bcfb889a7",
-      "git": "1 .M N... 100644 100644 100644 0e1019e085b36ae46c15857acba6e4ab299be245 0e1019e085b36ae46c15857acba6e4ab299be245 .factory/stories/governed-joins/decomposition.json\u0000\u0000100644 0e1019e085b36ae46c15857acba6e4ab299be245 0\t.factory/stories/governed-joins/decomposition.json\u0000\u0000H .factory/stories/governed-joins/decomposition.json\u0000"
-    },
-    ".factory/stories/governed-joins/grills/tasks/governed-domain-measures.json": {
-      "digest": "36961e4e05bcacbe72d06a8122223f92e307106625d219d00f22465cdc9b65f8",
-      "git": "? .factory/stories/governed-joins/grills/tasks/governed-domain-measures.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/governed-joins/task-plans/governed-domain-measures.md": {
-      "digest": "a0a1a26ea00b4b5c04bf182a5ddb3c4fcc114e94f20079fe53cdce236da6dfbe",
-      "git": "? .factory/stories/governed-joins/task-plans/governed-domain-measures.md\u0000\u0000\u0000"
-    }
-  },
-  "task_sha256": "757cbcf5e1dcb921f99ca65880dd207072c644fb695af370ca88e751ce486bcd",
-  "local_review_stamp": {
-    "stage_id": "governed-domain-measures",
-    "task_sha256": "757cbcf5e1dcb921f99ca65880dd207072c644fb695af370ca88e751ce486bcd",
-    "brief_sha256": "56ce09e20516f1fe5da627778155af7c57ac5b0ecb247f9716b5c9cd8cbdc89d",
-    "base_sha": "a5811d8757d773172a75ec1b3665b10b4d4ebcf8",
-    "product_tree_digest": "f805952c318b694a579bf4bbb044285a13ffabf0e0d44f95b7edd225de60c6b7",
-    "recorded_at": "2026-09-10T08:42:42+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-10T08:43:50+00:00",
-  "measured": {
-    "strays": [],
-    "files": 6,
-    "lines": 248,
-    "budget": {
-      "files": 7,
-      "lines": 800
-    },
-    "test_id_misses": []
-  }
+  "status": "done"
 }

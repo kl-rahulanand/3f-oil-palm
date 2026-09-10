@@ -1,54 +1,5 @@
 {
   "id": "golden-provenance",
   "title": "Golden-answer fixtures (no fan-out) + provenance lineage",
-  "status": "done",
-  "started_at": "2026-09-10T09:16:41+00:00",
-  "base_sha": "0cca24b2930b13615299cd0e94047d2803ea457b",
-  "dirty_at_start": {
-    ".factory/stories/governed-joins/decomposition.json": {
-      "digest": "9f811ba807dcc138aa5e6ac14874b6287a646a8d3cdd4fc02da44e340bdd79fd",
-      "git": "1 .M N... 100644 100644 100644 3fcad62aff1ab2e59b594c4bc1f025b028d0c716 3fcad62aff1ab2e59b594c4bc1f025b028d0c716 .factory/stories/governed-joins/decomposition.json\u0000\u0000100644 3fcad62aff1ab2e59b594c4bc1f025b028d0c716 0\t.factory/stories/governed-joins/decomposition.json\u0000\u0000H .factory/stories/governed-joins/decomposition.json\u0000"
-    },
-    ".factory/stories/governed-joins/grills/tasks/golden-provenance.json": {
-      "digest": "aa224938b9c14b60521ebc78ca777ed4438e27f698a78783ec0104d0496a4cd5",
-      "git": "? .factory/stories/governed-joins/grills/tasks/golden-provenance.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/governed-joins/task-plans/golden-provenance.md": {
-      "digest": "6aa45d08525b200c18b57f92beab8eba2f051dda7999cfa9696baf4aa15ca1c0",
-      "git": "? .factory/stories/governed-joins/task-plans/golden-provenance.md\u0000\u0000\u0000"
-    }
-  },
-  "task_sha256": "4713d9a3bc90c717bfef3bf7f95b44b386dc14bd3bf5ea6f009219c23161de92",
-  "local_review_stamp": {
-    "stage_id": "golden-provenance",
-    "task_sha256": "4713d9a3bc90c717bfef3bf7f95b44b386dc14bd3bf5ea6f009219c23161de92",
-    "brief_sha256": "0488419a91636033fb73d01261749a7677200de221ffe97141d61d8925fb548b",
-    "base_sha": "0cca24b2930b13615299cd0e94047d2803ea457b",
-    "product_tree_digest": "4e2ff5fac535dd91e7732bed68d8a2f7dbd3ad084447059c36c9095283b8b3ed",
-    "recorded_at": "2026-09-10T12:09:12+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-10T12:10:23+00:00",
-  "measured": {
-    "strays": [
-      ".prettierignore"
-    ],
-    "files": 14,
-    "lines": 939,
-    "budget": {
-      "files": 15,
-      "lines": 2300
-    },
-    "test_id_misses": []
-  },
-  "contract_changed": {
-    "at": "2026-09-10T12:10:23+00:00",
-    "from": "13faf37cb04125ae6af883ce70b695e200f511906e21eec77693b6b3bdda31b9",
-    "to": "4713d9a3bc90c717bfef3bf7f95b44b386dc14bd3bf5ea6f009219c23161de92"
-  }
+  "status": "done"
 }
