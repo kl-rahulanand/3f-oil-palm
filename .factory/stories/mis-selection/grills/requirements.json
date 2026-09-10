@@ -84,7 +84,7 @@
   ],
   "summary": "One cold read of the confirmed spec against current repo reality returned six gaps. Four are repository/spec-answerable and resolved: the runtime master is a versioned repo-owned seed/config with the workbooks as seed evidence only; only loaded Actual months are selectable with FY26-27 YTD derived, and the 'no mapping configured' notice comes from master resolution rather than row count; and the prototype's Admin authoring screen is non-binding. Two were genuine decisions put to the human and recorded as accepted decision records: 0017 settles the composite-key seam (filter the Actual side before the GL roll-up, keeping ONE governed path \u2014 D-0028), and 0018 settles the nine unresolved triples (an explicit unmapped-GL bucket, never inferred and never dropped, shown to Srihari to elicit the real assignment \u2014 D-0027). A third human round fixed the delivery boundary against mis-statement: selector + resolution API + resolved-scope readout + both zero states + the bucket list, with the statement and Excel export left to mis-statement. Verdict pass.",
   "issue": "mis-selection",
-  "input_sha256": "4551e8957b1def724eb4fbd484204f8f36ddec9c3ebe136ad1b8ccfb4bd440f5",
-  "recorded_at": "2026-09-10T15:12:17+00:00",
-  "commit": "ce9ef4f3f820f53a6caf7cf62c05065e34998768"
+  "input_sha256": "48e3a52e748e7fff648b0c1e55d464f01424e80a5b12423e6f1790c602040ee7",
+  "recorded_at": "2026-09-10T15:12:30+00:00",
+  "commit": "d60e5427fd4331ebe53175564b5800dfd294480b"
 }

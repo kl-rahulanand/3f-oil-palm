@@ -118,6 +118,6 @@
   "summary": "One cold read of the plan draft returned ten gaps. One was FALSE (the requirements grill is recorded \u2014 verified: verdict pass, 6 gaps, 1 bound round). Eight are repository/decision-answerable and resolved in the amended plan: a Decisions section reconciling all 18 actives (0014 is fulfilled, not contradicted; 0012's vendored deviation does not excuse fresh routes from DTOs/Swagger); expanded Surface Impact with test/config and unchanged-by-design rows; a Verify Plan of exact falsifying commands including the pinned D-0008 host proof and dead-port control; a server-owned options/run boundary whose run request cannot carry scope, closing an escalation seam; a normalized two-record master making alias authority singular and resolution deterministic; loaded months plus a server-derived fy26-27-ytd; native selects instead of a premature component API; and an in-place amendment to 0017 removing its stale D-0027 consequence so 0018 governs the bucket. One was a genuine product decision put to the human: restricting Budget to the resolved GL set fixes a real acceptance-criterion-1 defect, and unmapped Budget GLs now MIRROR into the unmapped-GL bucket so neither side is silently truncated. Verdict pass.",
   "input_sha256": "b2eb1e9b382835254b9ed9f2f20de15261d59861769f361b34c1b5aa1ddc2f63",
   "issue": "mis-selection",
-  "recorded_at": "2026-09-10T15:12:17+00:00",
-  "commit": "ce9ef4f3f820f53a6caf7cf62c05065e34998768"
+  "recorded_at": "2026-09-10T15:12:30+00:00",
+  "commit": "d60e5427fd4331ebe53175564b5800dfd294480b"
 }

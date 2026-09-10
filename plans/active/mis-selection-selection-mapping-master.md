@@ -23,6 +23,7 @@ decisions_reviewed:
   - 0016-governed-joins-poc-scope
   - 0017-mis-selection-composite-key-seam
   - 0018-mis-selection-unmapped-gl-bucket
+  - 0019-fresh-routes-follow-vendored-house-style
 ---
 
 # mis-selection — Selection + mapping master
@@ -60,6 +61,11 @@ All 18 active decisions were reviewed. Load-bearing here:
 - **0018 (unmapped-GL bucket)** — **governs the bucket question** and settled D-0027 the
   same day. Where 0017's stale text and 0018 disagreed, **0018 wins**; 0017 has been
   amended accordingly and the ledger records D-0027 as done. Planning is not blocked.
+- **0019 (fresh routes follow the vendored house style)** — human-decided during the
+  selection-resolution grill: the new MIS routes are unversioned `api/mis/...` returning raw
+  typed bodies, and the `mis` module may import `mapping` directly, matching the vendored
+  surface. DTOs, documented Swagger errors, cookie auth and strict unknown-field rejection
+  are **not** relaxed. Revisit at the production pilot (0011 / D-0003).
 - **0004 / 0015 / 0009** — one governed definition (LLM selects, never authors SQL);
   warehouse snake_case; required_tests use real leaf names + `TS_NODE_PROJECT`.
 - **0012 (vendored-API deviation)** applies only to the *vendored* controllers. The routes
