@@ -1,23 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "governed-domain-measures",
-  "score": 6,
-  "summary": "quality lens over governed-domain-measures (6 product path(s), a5811d8..ad407e7, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. VERDICT t-dm-c1: implemented \u2014 backend/src/semantic/semanticLayer.ts:11 registers the governed composed domain and its three code-authored measures.\nVERDICT t-dm-c2: implemented \u2014 backend/src/semantic/semanticLayer.ts:53 implements the full zero-budget nil and label rules in the percentage CASE.\nThe production definition and grants implement both contracts, but the change violates the binding D-0006 prettierignore migration requirement and its behavioral test merely returns precomputed expected rows instead of exercising the percentage semantics.",
-  "blocking_findings": [
-    {
-      "category": "maintainability",
-      "area": "backend/src/db",
-      "summary": "[P1] Complete the mandated prettierignore migration for migrate.ts (backend/src/db/migrate.ts:24): This change edits `backend/src/db/migrate.ts`, which the supplied D-0006 rule identifies as a prettierignored vendored file."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "backend/src/semantic",
-      "summary": "[P2] Make the financial behavior test evaluate its inputs (backend/src/semantic/semanticLayer.financial.test.ts:126): `FinancialWarehouse.execute()` ignores the generated SQL and returns `financialRows`, which is the same constant asserted by the test."
-    }
-  ],
-  "recommendation": "request-changes",
+  "score": 10,
+  "summary": "quality lens over governed-domain-measures (6 product path(s), a5811d8..5677754, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-dm-c1: implemented \u2014 backend/src/semantic/semanticLayer.ts:11 registers the composed governed-financial domain, its dimensions, and all three code-authored measures.\nVERDICT t-dm-c2: implemented \u2014 backend/src/semantic/semanticLayer.ts:51 implements all zero-budget outcomes in the percentage CASE expression.\nLEFTOVERS: none visible in the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/db/migrate.test.ts",
@@ -31,12 +19,12 @@
     {
       "contract_id": "t-dm-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/semantic/semanticLayer.ts:11 registers the governed composed domain and its three code-authored measures."
+      "evidence": "backend/src/semantic/semanticLayer.ts:11 registers the composed governed-financial domain, its dimensions, and all three code-authored measures."
     },
     {
       "contract_id": "t-dm-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/semantic/semanticLayer.ts:53 implements the full zero-budget nil and label rules in the percentage CASE."
+      "evidence": "backend/src/semantic/semanticLayer.ts:51 implements all zero-budget outcomes in the percentage CASE expression."
     },
     {
       "contract_id": "t-glm-c1",
@@ -70,10 +58,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "cd0b3a21c6c21a16201e954811d17e09fcb4347d1c701075462f64149b031479",
-  "brief_sha256": "e27a4931d9f8f6975a78250751c605272ea42e5637d96ea75dc7f88ba5c1631a",
-  "branch_diff_digest": "34d5cf159a3bc47be496f3acbc6e71ccf2ca18e5d73ce8968e146afeb73b8393",
+  "review_run_id": "c0c1cc4df21c9efae409b3945976cfda3c87dbbd7b8857045f4410e76dcbae85",
+  "brief_sha256": "cb904793eef9b0c17f3c02948c2342089a84bc9407a5d09769ba5a960dfc9efb",
+  "branch_diff_digest": "a64141b21e51f8c468bbe6561718415269f89289e0e72203aa486a2b867a2b20",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T08:24:54+00:00",
-  "commit": "ad407e77aada50d0caf771b9b73ce9789de8cb9b"
+  "recorded_at": "2026-09-10T08:42:42+00:00",
+  "commit": "5677754db6ce8fb9b8100c3d69c3d7446ae3a829"
 }
