@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "selection-resolution",
   "score": 10,
-  "summary": "quality lens over selection-resolution (20 product path(s), 97764ad..5d97dfe, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sr-c1: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:62 and backend/src/mis/mis-selection.service.ts:57 implement master-based resolution, loaded-period handling, and distinct resolved/unresolvable outcomes\nVERDICT t-sr-c2: implemented \u2014 backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:22 implement and prove governed narrowing without fan-out\nVERDICT t-sr-c3: implemented \u2014 backend/src/mis/mis-selection.controller.ts:25 and backend/src/app.module.ts:12 expose, authenticate, document, and register the two typed routes\nLEFTOVERS: none visible in the supplied diff.",
+  "summary": "quality lens over selection-resolution (20 product path(s), 97764ad..f1ec214, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sr-c1: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:59 and backend/src/mis/mis-selection.service.ts:67 resolve master selections and preserve resolved zero versus unresolvable outcomes.\nVERDICT t-sr-c2: implemented \u2014 backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:21 implement and prove governed narrowing, unmapped-budget handling, and no fan-out.\nVERDICT t-sr-c3: implemented \u2014 backend/src/mis/mis-selection.controller.ts:27 and backend/src/app.module.ts:11 expose, protect, type, validate, and register both routes.\nNo blocking compatibility leftovers are visible in the supplied diff. The selected change implements the three contracts with focused hermetic and gated warehouse coverage, and no actionable P0\u2013P2 defect is demonstrated by the bundle.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -33,17 +33,17 @@
     {
       "contract_id": "t-sr-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/mapping/selection-resolver.service.ts:62 and backend/src/mis/mis-selection.service.ts:57 implement master-based resolution, loaded-period handling, and distinct resolved/unresolvable outcomes"
+      "evidence": "backend/src/mapping/selection-resolver.service.ts:59 and backend/src/mis/mis-selection.service.ts:67 resolve master selections and preserve resolved zero versus unresolvable outcomes."
     },
     {
       "contract_id": "t-sr-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:22 implement and prove governed narrowing without fan-out"
+      "evidence": "backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:21 implement and prove governed narrowing, unmapped-budget handling, and no fan-out."
     },
     {
       "contract_id": "t-sr-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-selection.controller.ts:25 and backend/src/app.module.ts:12 expose, authenticate, document, and register the two typed routes"
+      "evidence": "backend/src/mis/mis-selection.controller.ts:27 and backend/src/app.module.ts:11 expose, protect, type, validate, and register both routes."
     },
     {
       "contract_id": "t-mm-c1",
@@ -62,10 +62,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "f0cd3c082f5ed3404089d8d04c726b060ab42d1a34e3645450ba69df0fc5b361",
-  "brief_sha256": "8b78efc66bcdd7fc77bb5b06f91af10084dbca186317fa39fccb5fc4423eeef3",
-  "branch_diff_digest": "79535a85b4fd54aeedbf02fd9e546f1efc4bf9ae8c017b7fd9f4b04e60649a0a",
+  "review_run_id": "045fecfe6d31416da66312e6fc1c27969411c5b996aa2ccdf7a484d56a9c45dd",
+  "brief_sha256": "847096ea261923a2752b633e6e8fba6056df7e00692504ddf15b0f0838e58938",
+  "branch_diff_digest": "ddb5c8ccaa974065c9b48afe1e098ab9598ca7f571d8f341c747027a1c40a83f",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T16:48:12+00:00",
-  "commit": "5d97dfe9f4a88c2dfdcf77246aa5ff80844e88cf"
+  "recorded_at": "2026-09-10T17:12:32+00:00",
+  "commit": "f1ec214aa2b24c70216d35eb5a16268710571110"
 }

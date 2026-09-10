@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "selection-resolution",
   "score": 10,
-  "summary": "security lens over selection-resolution (20 product path(s), 97764ad..5d97dfe, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 defect is demonstrated by the supplied diff. Both routes require authentication and report action authorization; the service independently enforces domain, measure, dimension, and canonical plant scope before exposing mapping metadata or unresolvable outcomes. The run payload is strictly parsed, resolved scope propagates to grouped and totals queries, SQL literals are constructed through the existing escaping path, and no credentials or compatibility leftovers are present.",
+  "summary": "security lens over selection-resolution (20 product path(s), 97764ad..f1ec214, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defect is demonstrated by the supplied diff. The new routes require cookie authentication and the report action, the service enforces domain/measure/dimension authorization before exposing options or unresolvable results, plant-scoped metadata and execution are fail-closed, unknown request fields are strictly rejected, resolved SQL scope remains server-owned, and SQL values are passed through the builder's literal escaping. No credentials or compatibility leftovers are present.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -30,10 +30,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "f0cd3c082f5ed3404089d8d04c726b060ab42d1a34e3645450ba69df0fc5b361",
-  "brief_sha256": "8b78efc66bcdd7fc77bb5b06f91af10084dbca186317fa39fccb5fc4423eeef3",
-  "branch_diff_digest": "79535a85b4fd54aeedbf02fd9e546f1efc4bf9ae8c017b7fd9f4b04e60649a0a",
+  "review_run_id": "045fecfe6d31416da66312e6fc1c27969411c5b996aa2ccdf7a484d56a9c45dd",
+  "brief_sha256": "847096ea261923a2752b633e6e8fba6056df7e00692504ddf15b0f0838e58938",
+  "branch_diff_digest": "ddb5c8ccaa974065c9b48afe1e098ab9598ca7f571d8f341c747027a1c40a83f",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T16:48:12+00:00",
-  "commit": "5d97dfe9f4a88c2dfdcf77246aa5ff80844e88cf"
+  "recorded_at": "2026-09-10T17:12:33+00:00",
+  "commit": "f1ec214aa2b24c70216d35eb5a16268710571110"
 }

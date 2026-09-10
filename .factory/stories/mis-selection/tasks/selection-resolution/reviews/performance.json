@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "selection-resolution",
-  "score": 9,
-  "summary": "performance lens over selection-resolution (20 product path(s), 97764ad..5d97dfe, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The query narrowing is pushed into both source CTEs, propagated to the totals query, and introduces no demonstrated P0\u2013P2 performance regression or compatibility leftover. However, the run service violates the required response contract for unknown plants by returning 403 instead of the explicit unresolvable outcome.",
+  "score": 10,
+  "summary": "performance lens over selection-resolution (20 product path(s), 97764ad..f1ec214, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows the resolved scope and period predicates being pushed into both composed source CTEs before the full outer join, with actuals re-aggregated at the required grain and the same scope propagated to the totals query. The added queries are bounded by the repository-owned mapping master and existing result limits. No P0\u2013P2 performance defect, concrete security issue, or compatibility-only leftover is demonstrated by the supplied evidence.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "[P2] Return the unresolvable outcome for an unknown plant (backend/src/mis/mis-selection.service.ts:54): The combined check treats a plant that is absent from the mapping master (`canonicalPlant` is undefined) as an authorization failure and throws 403 before the resolver can return its explicit `unresolvable` result."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/app.module.ts",
@@ -36,10 +30,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "f0cd3c082f5ed3404089d8d04c726b060ab42d1a34e3645450ba69df0fc5b361",
-  "brief_sha256": "8b78efc66bcdd7fc77bb5b06f91af10084dbca186317fa39fccb5fc4423eeef3",
-  "branch_diff_digest": "79535a85b4fd54aeedbf02fd9e546f1efc4bf9ae8c017b7fd9f4b04e60649a0a",
+  "review_run_id": "045fecfe6d31416da66312e6fc1c27969411c5b996aa2ccdf7a484d56a9c45dd",
+  "brief_sha256": "847096ea261923a2752b633e6e8fba6056df7e00692504ddf15b0f0838e58938",
+  "branch_diff_digest": "ddb5c8ccaa974065c9b48afe1e098ab9598ca7f571d8f341c747027a1c40a83f",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T16:48:12+00:00",
-  "commit": "5d97dfe9f4a88c2dfdcf77246aa5ff80844e88cf"
+  "recorded_at": "2026-09-10T17:12:32+00:00",
+  "commit": "f1ec214aa2b24c70216d35eb5a16268710571110"
 }

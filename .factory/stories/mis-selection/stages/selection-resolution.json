@@ -1,7 +1,7 @@
 {
   "id": "selection-resolution",
   "title": "Master-driven resolution, governed narrowing, and the first governed-query routes",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-10T15:16:04+00:00",
   "base_sha": "97764ad9bb15512c2d17de67353e61b6a64a65e5",
   "dirty_at_start": {
@@ -26,15 +26,29 @@
   "local_review_stamp": {
     "stage_id": "selection-resolution",
     "task_sha256": "ca08660f0f7f8cac368cb7c3b8df80755626bafb3ff9ee68117257e365802b01",
-    "brief_sha256": "33fdeeb1510266b509b84b64bc3c18e719bdef99d37bc36094f72dbea64af8ed",
+    "brief_sha256": "45664a3fc731837b9816539d7687b895c2aca00806566007fee731a5982cae63",
     "base_sha": "97764ad9bb15512c2d17de67353e61b6a64a65e5",
-    "product_tree_digest": "41274b6c3c323b3fb176bfa128412e9c24b583fca6d573db70de1b2ba14fe3ab",
-    "recorded_at": "2026-09-10T16:48:12+00:00",
+    "product_tree_digest": "a76f5079294aaa08caa2badc95e90a7b1614f59be7dbe83bb8bfac24b63cc926",
+    "recorded_at": "2026-09-10T17:12:33+00:00",
     "generated_by": "autoreview",
     "lenses": [
       "quality",
       "performance",
       "security"
     ]
+  },
+  "completed_at": "2026-09-10T17:13:40+00:00",
+  "measured": {
+    "strays": [
+      "backend/src/mapping/selection-resolver.interface.ts",
+      "backend/src/mis/mis-selection.interface.ts"
+    ],
+    "files": 20,
+    "lines": 1509,
+    "budget": {
+      "files": 20,
+      "lines": 2400
+    },
+    "test_id_misses": []
   }
 }
