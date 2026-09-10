@@ -49,11 +49,12 @@ export class SqlBuilder {
     for (const m of measures) where.push(...m.impliedFilters);
     // RBAC row predicate: inject the user's scope on the domain's scope column.
     let scopePredicate: string | undefined;
+    let scopeValues: string[] = [];
     if (domain.scopeColumn) {
-      const vals = user.scope.filter((s) => s.attribute === domain.scopeColumn).map((s) => s.value);
-      if (vals.length === 0) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
+      scopeValues = user.scope.filter((s) => s.attribute === domain.scopeColumn).map((s) => s.value);
+      if (scopeValues.length === 0) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
       // TODO(B2: multi-column scope): DomainSpec currently supports one scope column only.
-      scopePredicate = `${domain.scopeColumn} IN (${vals.map((v) => this.lit(v)).join(", ")})`;
+      scopePredicate = `${domain.scopeColumn} IN (${scopeValues.map((v) => this.lit(v)).join(", ")})`;
       if (!domain.composed) where.push(scopePredicate);
     }
     // User-selected filters.
@@ -92,7 +93,9 @@ export class SqlBuilder {
         : "";
     const whereSql = where.length ? `\nWHERE ${where.join("\n  AND ")}` : "";
 
-    const composedCtes = domain.composed ? this.composedCtes(domain.composed.sources, scopePredicate) : undefined;
+    const composedCtes = domain.composed
+      ? this.composedCtes(domain.composed.sources, scopePredicate, scopeValues)
+      : undefined;
     const sql =
       (composedCtes ? `${composedCtes}\n` : "") +
       `SELECT ${selectCols.join(", ")}` +
@@ -110,7 +113,11 @@ export class SqlBuilder {
     };
   }
 
-  private composedCtes([actualSource, budgetSource]: [string, string], scopePredicate?: string): string {
+  private composedCtes(
+    [actualSource, budgetSource]: [string, string],
+    scopePredicate: string | undefined,
+    scopeValues: string[],
+  ): string {
     if (!scopePredicate) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
     return `WITH actual_src AS (
   SELECT gl_code, month, actual_net
@@ -119,6 +126,7 @@ export class SqlBuilder {
 ), budget_src AS (
   SELECT gl_code, month, budget_net, rollover_net, budget_component_labels
   FROM ${budgetSource}
+  WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
 ), financial_relation AS (
   SELECT COALESCE(actual_src.gl_code, budget_src.gl_code) AS gl_code,
     COALESCE(actual_src.month, budget_src.month) AS month,

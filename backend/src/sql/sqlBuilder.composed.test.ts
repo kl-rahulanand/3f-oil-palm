@@ -70,10 +70,14 @@ test("the row-scope constraint is applied INSIDE each source CTE and not on the 
   const outerQuery = sql.slice(sql.indexOf("\nFROM financial_relation"));
 
   assert.match(actualCte, /FROM actual_by_gl_month\n {2}WHERE plant IN \('DUB'\)/);
-  assert.match(budgetCte, /FROM budget_by_gl_month/);
-  assert.doesNotMatch(budgetCte, /\bplant\b|\bWHERE\b/);
+  assert.match(budgetCte, /FROM budget_by_gl_month\n {2}WHERE 'DUB' IN \('DUB'\)/);
+  assert.doesNotMatch(budgetCte, /\bplant\b/);
   assert.doesNotMatch(outerQuery, /\bplant\b|\bWHERE\b/);
   assert.doesNotMatch(sql, /actual_by_gl_month AS \(|budget_by_gl_month AS \(/);
+
+  const nonDubUser = { ...user, scope: [{ attribute: "plant", value: "LON" }] };
+  const nonDubSql = new SqlBuilder().build(domain, selection, nonDubUser).sql;
+  assert.match(nonDubSql, /budget_by_gl_month\n {2}WHERE 'DUB' IN \('LON'\)/);
 });
 
 function measure(id: string, goldObject: string, expr: string) {

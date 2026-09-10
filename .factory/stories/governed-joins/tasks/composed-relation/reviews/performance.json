@@ -1,0 +1,32 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "composed-relation",
+  "score": 10,
+  "summary": "performance lens over composed-relation (13 product path(s), e5ae835..a66404d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 defects are demonstrated by the supplied diff. The composed query joins pre-aggregated one-row-per-key views, preserves outer LIMIT bounding, avoids per-row query fanout, and has a DB-backed no-fan-out proof. No compatibility wrappers, aliases, deprecated paths, or other blocking leftovers are present.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/selectionExecutor.composed.test.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/db/migrate.test.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/grants/grants.constants.ts",
+    "backend/src/sql/sqlBuilder.composed.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/sql/sqlValidator.composed.test.ts",
+    "backend/src/warehouse/composed-relation.db.test.ts",
+    "contract/src/measure.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "6c9325f79e168f8080a3d9e4409770f6615b86f46a9af19bb80ee82047c624b1",
+  "brief_sha256": "46e667cb45c7a5ccd00c51813bde955cddb28555313fd4f71c4943cdd21693bd",
+  "branch_diff_digest": "02e12550b217c22ac22555c1cc40647693bc9a795ae1510835e0f60b3eb52d36",
+  "residual_risks": [],
+  "recorded_at": "2026-09-10T06:24:48+00:00",
+  "commit": "a66404d03b87c77a8732d93c5318411f69d2a31c"
+}
