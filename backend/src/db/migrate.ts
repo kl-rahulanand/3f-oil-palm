@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import type { AppDb } from "./pool";
 import { createDb, createPool } from "./pool";
-import { rolePerms, roles, userRoles, users } from "./schema";
+import { rolePerms, roles, userRoles, users, userScope } from "./schema";
 import { loadConfig } from "../config";
 
 const baseRoles = [
@@ -61,6 +61,9 @@ export async function seedConfiguredUsers(
 
     for (const role of seedUser.roles) {
       await db.insert(userRoles).values({ userId, role }).onConflictDoNothing();
+    }
+    if (seedUser.roles.includes("admin")) {
+      await db.insert(userScope).values({ userId, attribute: "plant", value: "DUB" }).onConflictDoNothing();
     }
   }
 

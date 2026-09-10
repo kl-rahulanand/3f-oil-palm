@@ -138,6 +138,12 @@ class MisSelectionBucketRowDto implements MisSelectionBucketRow {
 
   @ApiProperty({ example: "GL absent from Sheet1" })
   reason!: string;
+
+  @ApiProperty({ example: 125 })
+  actual!: number;
+
+  @ApiProperty({ example: 200 })
+  budget!: number;
 }
 
 export class MisSelectionResolvedResponseDto implements MisSelectionResolvedResponse {

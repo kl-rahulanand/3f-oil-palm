@@ -1,0 +1,22 @@
+{
+  "id": "selection-ui",
+  "title": "Authenticated MIS Reports selection page",
+  "status": "active",
+  "started_at": "2026-09-10T17:38:40+00:00",
+  "base_sha": "23ed18e41271c13304f5a3cfbeff5b78d2945349",
+  "dirty_at_start": {
+    ".factory/stories/mis-selection/decomposition.json": {
+      "digest": "103bc34fda2a73cd158cd78737c51c8d2a84e7b250b2caaa351b605f3a662e39",
+      "git": "1 .M N... 100644 100644 100644 4bca2775fa812d2cf0447594dc98aaa8331386b2 4bca2775fa812d2cf0447594dc98aaa8331386b2 .factory/stories/mis-selection/decomposition.json\u0000\u0000100644 4bca2775fa812d2cf0447594dc98aaa8331386b2 0\t.factory/stories/mis-selection/decomposition.json\u0000\u0000H .factory/stories/mis-selection/decomposition.json\u0000"
+    },
+    ".factory/stories/mis-selection/grills/tasks/selection-ui.json": {
+      "digest": "a858a0a917532b6ab7803a8c4b37782194eaea5c027635567ff87a007c2a749b",
+      "git": "? .factory/stories/mis-selection/grills/tasks/selection-ui.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/mis-selection/task-plans/selection-ui.md": {
+      "digest": "8e3664c129157b6bc4f05a9f21934a487cf884e4c4f0df11be90292887fc4ea7",
+      "git": "? .factory/stories/mis-selection/task-plans/selection-ui.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "5a81dcc35856658f2f8aadc4d53520aca88c6166e2bd2c2c215d68f03eefba16"
+}

@@ -225,6 +225,8 @@ export interface MisSelectionBucketRow {
   misLine: string;
   provisional: boolean;
   reason: string;
+  actual: number;
+  budget: number;
 }
 
 export interface MisSelectionTotals {

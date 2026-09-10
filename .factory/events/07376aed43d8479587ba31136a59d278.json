@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T18:42:16+00:00", "story": "mis-selection", "detail": "S-0020-5d09: Confirmed and correct: 'npm exec --no -- vitest run --config frontend/vitest.config.ts frontend/src/features/mis/mis-report-view.test.tsx -t <bogus>' exits 0 with junit tests=4 skipped=4 failures=0, s"}

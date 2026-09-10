@@ -1,0 +1,13 @@
+{
+  "topic": "invert pg DATE parsing with process-local parts, never a fixed timezone",
+  "lesson": "node-postgres parses a DATE column into a JS Date at LOCAL midnight of the process timezone, so the exact inverse is to read back the PROCESS-LOCAL date parts (getFullYear/getMonth/getDate). Formatting with a hardcoded timeZone such as Asia/Kolkata only happens to work on hosts at or west of that offset and silently returns the previous day on hosts east of it (e.g. Asia/Tokyo), so a date-only normalizer must never pin a timezone.",
+  "source": ".factory/stories/mis-selection/tests.json functional selection-ui, second fix round",
+  "applies_to": [
+    "backend/src/mis/**",
+    "backend/src/sql/**",
+    "backend/src/ingest/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-10T18:22:48+00:00"
+}

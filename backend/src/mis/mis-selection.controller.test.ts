@@ -8,14 +8,17 @@ import { SwaggerModule } from "@nestjs/swagger";
 import type { AuthUser, MisSelectionRunRequest } from "@3f/contract";
 import { AppModule } from "../app.module";
 import { AuthGuard, type AuthedRequest } from "../auth/auth.guard";
+import type { SelectionExecutor } from "../chat/selectionExecutor";
+import type { ISelectionResolverService, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
 import { buildSwaggerConfig } from "../main";
+import { SemanticLayer } from "../semantic/semanticLayer";
 import { MisSelectionController } from "./mis-selection.controller";
-import type { MisSelectionService } from "./mis-selection.service";
+import { MisSelectionService } from "./mis-selection.service";
 
 test("the run route accepts only department function plant and period and rejects any attempt to supply cost centre triples GL codes a format id or a scope, and both routes require the authenticated governed read action so an unauthorised caller is refused before any query is built", async () => {
   const service = new FakeMisSelectionService();
-  const controller = new MisSelectionController(service as unknown as MisSelectionService);
+  const controller = new MisSelectionController(service);
   const request = { department: "Agriculture", function: "Nursery", plant: "DUB", period: "2026-07-01" };
 
   for (const forged of [{ triples: [] }, { glCodes: ["5000"] }, { formatId: "forged" }, { scope: { plant: "*" } }]) {
@@ -66,8 +69,77 @@ test("the run route accepts only department function plant and period and reject
   }
 });
 
+test("the resolved bucket exposes actual and budget amounts for configured triples and budget only GLs", async () => {
+  const resolution: MasterResolvedSelection = {
+    outcome: "resolved",
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    costCentres: ["Primary"],
+    glCodes: ["50001701"],
+    misFormat: "nursery-mis-financial-v1",
+    bucketRows: [
+      {
+        cost_center: "Primary",
+        gl_code: "50001701",
+        mis_line: "unmapped-GL",
+        provisional: true,
+        reason: "GL absent from Sheet1",
+      },
+    ],
+    triples: [{ plant: "DUB", costCenter: "Primary", glCode: "50001701" }],
+    masterGlCodes: ["50001701"],
+    period: { value: "fy26-27-ytd", from: "2026-04-01", to: "2026-07-01" },
+  };
+  const resolver: ISelectionResolverService = {
+    options: async () => ({ departments: [], functions: [], plants: [], periods: [] }),
+    canonicalPlant: () => "DUB",
+    resolve: async () => resolution,
+  };
+  const result = {
+    columns: [],
+    rows: [
+      {
+        gl_code: "50001701",
+        month: new Date(2026, 6, 1),
+        actual: "10.00",
+        budget: "20.00",
+      },
+      { gl_code: "50001701", month: "2026-07-01", actual: "5.00", budget: "4.00" },
+      { gl_code: "99999999", month: "2026-07-01", actual: "0.00", budget: "7.00" },
+    ],
+  };
+  const executor = {
+    authorize: () => undefined,
+    run: async () => ({ result, totals: { actual: 15, budget: 31, percentage: 15 / 31 } }),
+  };
+  const service = new MisSelectionService(resolver, new SemanticLayer(), executor as unknown as SelectionExecutor);
+
+  const response = await service.run(user(["report"]), {
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "fy26-27-ytd",
+  });
+
+  assert.equal(response.outcome, "resolved");
+  if (response.outcome !== "resolved") return;
+  assert.equal(response.result.rows[0].month, "2026-07-01");
+  assert.deepEqual(
+    response.bucketRows.map(({ costCentre, glCode, actual, budget }) => ({ costCentre, glCode, actual, budget })),
+    [
+      { costCentre: "Primary", glCode: "50001701", actual: 15, budget: 24 },
+      { costCentre: null, glCode: "99999999", actual: 0, budget: 7 },
+    ],
+  );
+});
+
 class FakeMisSelectionService {
   runCalls = 0;
+
+  async options() {
+    return { departments: [], functions: [], plants: [], periods: [] };
+  }
 
   async run(_user: AuthUser, _request: MisSelectionRunRequest) {
     this.runCalls += 1;
