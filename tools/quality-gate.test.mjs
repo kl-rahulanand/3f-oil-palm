@@ -37,12 +37,14 @@ const hermeticTests = [
   "backend/src/semantic/definitionVersion.test.ts",
   "backend/src/semantic/semanticLayer.financial.test.ts",
   "backend/src/sql/sqlBuilder.composed.test.ts",
+  "backend/src/sql/sqlBuilder.provenance.test.ts",
   "backend/src/sql/sqlValidator.composed.test.ts",
   "backend/src/sql/sqlValidator.pii.test.ts",
   "backend/src/swagger-production.test.ts",
   "backend/src/swagger.test.ts",
   "backend/src/warehouse/composed-relation.db.test.ts",
   "backend/src/warehouse/gl-month-rollups.db.test.ts",
+  "backend/src/warehouse/golden-financial.db.test.ts",
   "backend/src/warehouse/postgres.adapter.oid.test.ts",
   "backend/src/warehouse/reconciliation.repository.test.ts",
   "backend/src/warehouse/warehouse-schema.test.ts",
@@ -97,7 +99,7 @@ const expectedWorkspaceScripts = {
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts",
+      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts",
   },
   contract: {
     build: "tsc -p tsconfig.json",
@@ -151,7 +153,6 @@ c96d9a455bdc15fa5143d51ac482c014a203218d3fbca9601b7a111b0d2bf6e0 backend/src/aut
 e85528150c0ebdfc7e199915a28487acc28ccb6011ea649ca4cf89c61e17753c backend/src/chat/ambiguity.ts
 2e62afac708fe9c84f43018d442cdd333925cec3e01405638eaf5ffa305c6389 backend/src/chat/chat.constants.ts
 a5cc8e0c0d5f7574f211fd9c9c5aed03fd7b918a05a6f00e3bb32c44928b9db5 backend/src/chat/chat.controller.ts
-7284caaa9df96b14d312fd3957fbd6c3b9d2080d4bcda4dabb7ca07eee562621 backend/src/chat/chat.service.ts
 b6133d425e36598cd312eb730e5ff7ff32d18040109e222539238645d36b7b8b backend/src/chat/chat.sse.test.ts
 8f23925eb1ac1c01f4938f30f8838820a84b512092772b6781e3229f6964b84e backend/src/chat/chat.sse.ts
 6586b1f8acfb5b09a2b01a0503e04edc4e0cb65d83c2e041a71a06d4303653f3 backend/src/chat/smalltalk-guard.ts

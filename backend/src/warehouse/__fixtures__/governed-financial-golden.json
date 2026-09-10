@@ -1,0 +1,78 @@
+{
+  "matched": {
+    "glCode": "MATCHED",
+    "actual": "125.00",
+    "budget": "200.00",
+    "percentage": "0.62500000000000000000",
+    "sourcePresence": "matched",
+    "budgetComponentLabels": ["Admin", "Labour"]
+  },
+  "budgetOnly": {
+    "glCode": "BUDGET-ONLY",
+    "actual": "0.00",
+    "budget": "300.00",
+    "percentage": "0.00000000000000000000",
+    "sourcePresence": "budget-only",
+    "budgetComponentLabels": ["Budget"]
+  },
+  "actualOnly": {
+    "glCode": "ACTUAL-ONLY",
+    "actual": "50.00",
+    "budget": "0.00",
+    "percentage": "over-budget",
+    "sourcePresence": "actual-only",
+    "budgetComponentLabels": []
+  },
+  "duplicateNoFanOut": {
+    "glCode": "MULTI-COST-CENTRE",
+    "actual": "125.00",
+    "budget": "250.00",
+    "percentage": "0.50000000000000000000",
+    "sourcePresence": "matched",
+    "budgetComponentLabels": ["Field", "Workshop"]
+  },
+  "reloadActiveSwap": {
+    "before": {
+      "glCode": "MATCHED",
+      "actual": "125.00",
+      "budget": "200.00",
+      "percentage": "0.62500000000000000000",
+      "sourcePresence": "matched",
+      "budgetComponentLabels": ["Admin", "Labour"]
+    },
+    "after": {
+      "glCode": "MATCHED",
+      "actual": "125.00",
+      "budget": "250.00",
+      "percentage": "0.50000000000000000000",
+      "sourcePresence": "matched",
+      "budgetComponentLabels": ["Admin", "Labour"]
+    }
+  },
+  "percentageEdges": {
+    "zeroOverZero": {
+      "glCode": "PCT-ZERO",
+      "actual": "0.00",
+      "budget": "0.00",
+      "percentage": null,
+      "sourcePresence": "matched",
+      "budgetComponentLabels": ["Zero"]
+    },
+    "positiveOverBudget": {
+      "glCode": "PCT-POSITIVE",
+      "actual": "50.00",
+      "budget": "0.00",
+      "percentage": "over-budget",
+      "sourcePresence": "actual-only",
+      "budgetComponentLabels": []
+    },
+    "negativeActual": {
+      "glCode": "PCT-NEGATIVE",
+      "actual": "-50.00",
+      "budget": "0.00",
+      "percentage": "credit / negative actual",
+      "sourcePresence": "actual-only",
+      "budgetComponentLabels": []
+    }
+  }
+}

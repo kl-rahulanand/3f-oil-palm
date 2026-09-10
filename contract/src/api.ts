@@ -141,9 +141,11 @@ export interface Chip {
 }
 
 /** A rendered answer column + rows (chart/table both read from this). */
+export type SourcePresence = "matched" | "budget-only" | "actual-only";
+
 export interface ResultTable {
   columns: { key: string; label: string; numeric: boolean; format?: "percent" }[];
-  rows: Array<Record<string, string | number | null>>;
+  rows: Array<Record<string, string | number | null> & { source_presence?: SourcePresence }>;
   /** Cells blanked by k-anonymity suppression; corresponding row values are null. */
   suppressedCells?: Array<{ row: number; key: string }>;
 }
@@ -248,6 +250,12 @@ export interface ProvenanceMeasure {
   impliedFilters: string[];
 }
 
+export interface ProvenanceBatch {
+  source: "actuals" | "budget";
+  period: string;
+  batchId: string;
+}
+
 export interface Provenance {
   verified: boolean;
   measureIds: string[];
@@ -258,6 +266,8 @@ export interface Provenance {
   /** Data freshness (gold watermark), distinct from query time. */
   dataAsOf: string | null;
   sql: string;
+  activeBatchIds?: ProvenanceBatch[];
+  budgetComponentLabels?: string[];
 }
 
 export interface AskResponse {

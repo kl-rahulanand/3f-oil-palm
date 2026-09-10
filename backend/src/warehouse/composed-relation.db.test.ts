@@ -22,12 +22,12 @@ test(
     try {
       await pool.query("TRUNCATE sap_transaction, mis_budget, ingest_batch CASCADE");
       const repository = new IngestionRepository(createWarehouseDb(pool));
-      await repository.replaceActualsBatch(metadata("actuals"), [
+      const actualBatchId = await repository.replaceActualsBatch(metadata("actuals"), [
         actualRow("M1", "CC-1", "100.00"),
         actualRow("M2", "CC-2", "25.00"),
         actualRow("A1", "CC-3", "50.00", "0.00", "ACTUAL-ONLY"),
       ]);
-      await repository.replaceBudgetBatch(metadata("budget"), [
+      const budgetBatchId = await repository.replaceBudgetBatch(metadata("budget"), [
         budgetRow("M1", "MATCHED", "200.00"),
         budgetRow("B1", "BUDGET-ONLY", "300.00", "BUDGET-ONLY"),
       ]);
@@ -47,18 +47,33 @@ test(
         month: PERIOD,
         actual: "125.00",
         budget: "200.00",
+        source_presence: "matched",
+        budget_component_labels: "MATCHED",
+        actual_batch_id: actualBatchId,
+        budget_batch_id: budgetBatchId,
+        provenance_period: PERIOD,
       });
       assert.deepEqual(byGl.get("BUDGET-ONLY"), {
         gl_code: "BUDGET-ONLY",
         month: PERIOD,
         actual: "0.00",
         budget: "300.00",
+        source_presence: "budget-only",
+        budget_component_labels: "BUDGET-ONLY",
+        actual_batch_id: actualBatchId,
+        budget_batch_id: budgetBatchId,
+        provenance_period: PERIOD,
       });
       assert.deepEqual(byGl.get("ACTUAL-ONLY"), {
         gl_code: "ACTUAL-ONLY",
         month: PERIOD,
         actual: "50.00",
         budget: "0.00",
+        source_presence: "actual-only",
+        budget_component_labels: null,
+        actual_batch_id: actualBatchId,
+        budget_batch_id: budgetBatchId,
+        provenance_period: PERIOD,
       });
     } finally {
       await pool.end();

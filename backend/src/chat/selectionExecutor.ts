@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { AuthUser, DomainSpec, MeasureSpec, ResultTable, Selection } from "@3f/contract";
+import type { AuthUser, DomainSpec, MeasureSpec, ProvenanceBatch, ResultTable, Selection } from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
@@ -18,6 +18,8 @@ export interface SelectionExecutionResult {
   appliedTimeWindow?: AppliedTimeWindow;
   sql: string;
   objectsTouched: string[];
+  activeBatchIds: ProvenanceBatch[];
+  budgetComponentLabels: string[];
 }
 
 export class SelectionExecutionBlockedError extends Error {
@@ -71,6 +73,8 @@ export class SelectionExecutor {
       appliedTimeWindow,
       sql: primary.sql,
       objectsTouched: primary.objectsTouched,
+      activeBatchIds: primary.activeBatchIds,
+      budgetComponentLabels: primary.budgetComponentLabels,
     };
   }
 
@@ -83,7 +87,14 @@ export class SelectionExecutor {
     domain: DomainSpec,
     resolvedSelection: Selection,
     beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>,
-  ): Promise<{ result: ResultTable; sql: string; objectsTouched: string[] }> {
+    includeProvenance = true,
+  ): Promise<{
+    result: ResultTable;
+    sql: string;
+    objectsTouched: string[];
+    activeBatchIds: ProvenanceBatch[];
+    budgetComponentLabels: string[];
+  }> {
     if (
       domain.composed &&
       (!user.permissions.actions.includes("report") ||
@@ -94,7 +105,7 @@ export class SelectionExecutor {
       throw new SelectionExecutionBlockedError("governed financial selection is not authorized");
     }
     const cfg = loadConfig();
-    const built = this.builder.build(domain, resolvedSelection, user);
+    const built = this.builder.build(domain, resolvedSelection, user, includeProvenance);
     await beforeExecute?.({
       sql: built.sql,
       objectsTouched: built.objectsTouched,
@@ -113,6 +124,14 @@ export class SelectionExecutor {
 
     await this.warehouse.explain(built.sql);
     const raw = await withTimeout(this.warehouse.execute(built.sql), cfg.queryTimeoutMs);
+    const activeBatchIds = collectActiveBatchIds(raw.rows);
+    const budgetComponentLabels = collectBudgetComponentLabels(raw.rows);
+    const hiddenProvenanceKeys = new Set([
+      "budget_component_labels",
+      "actual_batch_id",
+      "budget_batch_id",
+      "provenance_period",
+    ]);
 
     // `numeric` means "measure output" for rendering, not raw warehouse type.
     const measureOutputKeys = new Set(resolvedSelection.measureIds.map((id) => id.split(".").pop()!));
@@ -130,16 +149,20 @@ export class SelectionExecutor {
       if (dimension) labelByKey.set(dimension.id, dimension.label);
     }
     let result: ResultTable = {
-      columns: raw.columns.map((column) => {
-        const format = formatByKey.get(column.name);
-        return {
-          key: column.name,
-          label: labelByKey.get(column.name) ?? column.name,
-          numeric: measureOutputKeys.has(column.name),
-          ...(format ? { format } : {}),
-        };
-      }),
-      rows: raw.rows,
+      columns: raw.columns
+        .filter((column) => !hiddenProvenanceKeys.has(column.name))
+        .map((column) => {
+          const format = formatByKey.get(column.name);
+          return {
+            key: column.name,
+            label: labelByKey.get(column.name) ?? column.name,
+            numeric: measureOutputKeys.has(column.name),
+            ...(format ? { format } : {}),
+          };
+        }),
+      rows: raw.rows.map((row) =>
+        Object.fromEntries(Object.entries(row).filter(([key]) => !hiddenProvenanceKeys.has(key))),
+      ),
     };
 
     const piiMeasureKeys = resolvedSelection.measureIds
@@ -154,7 +177,13 @@ export class SelectionExecutor {
       });
     }
 
-    return { result, sql: built.sql, objectsTouched: built.objectsTouched };
+    return {
+      result,
+      sql: built.sql,
+      objectsTouched: built.objectsTouched,
+      activeBatchIds,
+      budgetComponentLabels,
+    };
   }
 
   private async totalsFor(
@@ -162,10 +191,16 @@ export class SelectionExecutor {
     domain: DomainSpec,
     resolvedSelection: Selection,
   ): Promise<Record<string, number> | undefined> {
-    const ungrouped = await this.executeResolved(user, domain, {
-      ...resolvedSelection,
-      dimensionIds: [],
-    });
+    const ungrouped = await this.executeResolved(
+      user,
+      domain,
+      {
+        ...resolvedSelection,
+        dimensionIds: [],
+      },
+      undefined,
+      false,
+    );
     const row = ungrouped.result.rows[0];
     if (!row) return undefined;
 
@@ -180,6 +215,40 @@ export class SelectionExecutor {
 
     return Object.keys(totals).length > 0 ? totals : undefined;
   }
+}
+
+function collectActiveBatchIds(rows: Array<Record<string, string | number | null>>): ProvenanceBatch[] {
+  const tuples = new Map<string, ProvenanceBatch>();
+  for (const row of rows) {
+    if (typeof row.provenance_period !== "string") continue;
+    for (const [source, key] of [
+      ["actuals", "actual_batch_id"],
+      ["budget", "budget_batch_id"],
+    ] as const) {
+      const batchId = row[key];
+      if (typeof batchId !== "string" || !batchId) continue;
+      const tuple = { source, period: row.provenance_period, batchId };
+      tuples.set(`${source}\0${row.provenance_period}\0${batchId}`, tuple);
+    }
+  }
+  return [...tuples.values()].sort((a, b) =>
+    `${a.source}\0${a.period}\0${a.batchId}`.localeCompare(`${b.source}\0${b.period}\0${b.batchId}`),
+  );
+}
+
+function collectBudgetComponentLabels(rows: Array<Record<string, string | number | null>>): string[] {
+  return [
+    ...new Set(
+      rows.flatMap((row) =>
+        typeof row.budget_component_labels === "string"
+          ? row.budget_component_labels
+              .split(",")
+              .map((label) => label.trim())
+              .filter(Boolean)
+          : [],
+      ),
+    ),
+  ].sort();
 }
 
 export function resolveSelectionTimeWindow(
