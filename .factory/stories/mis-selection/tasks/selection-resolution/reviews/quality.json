@@ -1,27 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "selection-resolution",
-  "score": 7,
-  "summary": "quality lens over selection-resolution (20 product path(s), 97764ad..17f3fd2, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. VERDICT t-sr-c1: partial \u2014 backend/src/mapping/selection-resolver.service.ts:95 omits the required master argument at the core resolution call.\nVERDICT t-sr-c2: implemented \u2014 backend/src/sql/sqlBuilder.ts:151 narrows Actual before aggregation/join and applies the resolved Budget GL predicate.\nVERDICT t-sr-c3: partial \u2014 backend/src/app.module.ts:13 registers the routes, but their resolver dependency cannot build or execute because of backend/src/mapping/selection-resolver.service.ts:95.\nLEFTOVERS: none found.",
-  "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/mapping",
-      "summary": "[P1] Pass the mapping master to the resolution helper (backend/src/mapping/selection-resolver.service.ts:95): The existing helper contract is `resolveMappingTriple(triple, master)`, but this call supplies only the triple."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/mis-selection-and-master.md",
-      "summary": "t-sr-c1: resolving department, function, plant and period returns the applicable cost centres, GL set, MIS format and bucket rows, or an unresolvable outcome; the no mapping configured notice is decided by master resolution and never by whether the query returned rows, so a resolved selection with no transactions renders a configured zero result instead; the period options are the loaded actual months plus a derived FY 26-27 YTD that the server resolves from the latest active loaded month and never from the wall clock"
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "constitution/pnp-api-standards.md",
-      "summary": "t-sr-c3: two authenticated routes expose it: an options route serving master-derived selector choices, and a run route that accepts only department, function, plant and period and never triples, GL codes, format ids or scope, both carrying named request and response types with documented error responses, registered in the application module and the route allow-list, and reusing the existing fail-closed governed authorization rather than bypassing it"
-    }
-  ],
+  "score": 10,
+  "summary": "quality lens over selection-resolution (20 product path(s), 97764ad..2b4d615, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sr-c1: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:59 and contract/src/api.ts:188\nVERDICT t-sr-c2: implemented \u2014 backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:22\nVERDICT t-sr-c3: implemented \u2014 backend/src/mis/mis-selection.controller.ts:27 and backend/src/app.module.ts:12\nNo blocking compatibility leftovers are present in the supplied diff. The selected scope is resolved through the mapping master, propagated to both grouped and totals queries, exposed through registered authenticated routes, and covered by hermetic and gated warehouse tests.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/app.module.ts",
@@ -48,18 +32,18 @@
   "contract_verdicts": [
     {
       "contract_id": "t-sr-c1",
-      "verdict": "partial",
-      "evidence": "backend/src/mapping/selection-resolver.service.ts:95 omits the required master argument at the core resolution call."
+      "verdict": "implemented",
+      "evidence": "backend/src/mapping/selection-resolver.service.ts:59 and contract/src/api.ts:188"
     },
     {
       "contract_id": "t-sr-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/sql/sqlBuilder.ts:151 narrows Actual before aggregation/join and applies the resolved Budget GL predicate."
+      "evidence": "backend/src/sql/sqlBuilder.ts:144 and backend/src/warehouse/selection-slice.db.test.ts:22"
     },
     {
       "contract_id": "t-sr-c3",
-      "verdict": "partial",
-      "evidence": "backend/src/app.module.ts:13 registers the routes, but their resolver dependency cannot build or execute because of backend/src/mapping/selection-resolver.service.ts:95."
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-selection.controller.ts:27 and backend/src/app.module.ts:12"
     },
     {
       "contract_id": "t-mm-c1",
@@ -78,10 +62,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "f7c94a56281bc21277baea1dfe633c73c981ebe402f9a8d575c66e3583b97909",
-  "brief_sha256": "6b76b87f4ac1d5c777544e6e16332bcd79620770a129b9f4617c1be745aab7f1",
-  "branch_diff_digest": "49cb75be598d8cdc3dfc8ee5a5989de54e7a470d105573c9a6a802a171bd0537",
+  "review_run_id": "7badb8b1ec59477c46f2751b77e417890d8698b9f017e9c4d6f3412f8d9dcaeb",
+  "brief_sha256": "43243ddc92ae39807a19e4ffc75c4133bc055fcc996e2dbd78824bc9edea7284",
+  "branch_diff_digest": "5f4bd594b83172b5fe221a069d0315f44a409adef6af833334985673de43256f",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T16:17:04+00:00",
-  "commit": "17f3fd288c36cb07da83de37dcdf8264954502dd"
+  "recorded_at": "2026-09-10T16:35:57+00:00",
+  "commit": "2b4d615f9a94d7b762d9c215570cde72d9545e70"
 }

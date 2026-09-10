@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AuthUser } from "@3f/contract";
 import { SelectionExecutor } from "../chat/selectionExecutor";
-import { MAPPING_MASTER, UNMAPPED_GL_LINE } from "../mapping/mapping-master";
-import type { SelectionResolverService } from "../mapping/selection-resolver.service";
+import { canonicalPlantFromMaster, MAPPING_MASTER, UNMAPPED_GL_LINE } from "../mapping/mapping-master";
+import type { ISelectionResolverService } from "../mapping/selection-resolver.interface";
 import { MisSelectionService } from "../mis/mis-selection.service";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
@@ -46,7 +46,9 @@ test(
           ]),
         ),
       ];
-      const resolver = {
+      const resolver: ISelectionResolverService = {
+        options: async () => ({ departments: [], functions: [], plants: [], periods: [] }),
+        canonicalPlant: (plant) => canonicalPlantFromMaster(plant, MAPPING_MASTER),
         resolve: async () => ({
           outcome: "resolved" as const,
           department: "Agriculture",
@@ -60,7 +62,7 @@ test(
           masterGlCodes,
           period: { value: PERIOD, from: PERIOD, to: PERIOD },
         }),
-      } as unknown as SelectionResolverService;
+      };
       const service = new MisSelectionService(
         resolver,
         new SemanticLayer(),
