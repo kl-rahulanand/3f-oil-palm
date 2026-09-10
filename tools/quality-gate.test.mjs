@@ -35,6 +35,7 @@ const hermeticTests = [
   "backend/src/measures/measures.guard.test.ts",
   "backend/src/pins/pins.schemas.test.ts",
   "backend/src/semantic/definitionVersion.test.ts",
+  "backend/src/semantic/semanticLayer.financial.test.ts",
   "backend/src/sql/sqlBuilder.composed.test.ts",
   "backend/src/sql/sqlValidator.composed.test.ts",
   "backend/src/sql/sqlValidator.pii.test.ts",

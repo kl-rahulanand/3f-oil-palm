@@ -158,7 +158,53 @@
       "dependencies": [
         "composed-relation"
       ],
-      "user_facing": false
+      "user_facing": false,
+      "plan_contracts": [
+        {
+          "id": "t-dm-c1",
+          "statement": "a code-authored financial DomainSpec and Actual (SUM(Debit-Credit)), Budget (SUM(budget_amount)) and % MeasureSpecs are registered in semanticLayer baseDomains over the composed relation; two-column expressions are code-authored (not the runtime builder), and the LLM/runtime never authors the SQL",
+          "source": "backend/src/semantic/semanticLayer.ts"
+        },
+        {
+          "id": "t-dm-c2",
+          "statement": "% follows the full nil rule: 0/0 -> NA/blank; Actual>0,Budget=0 -> over-budget (no %); Actual<0,Budget=0 -> credit / negative actual (no %); i.e. no percentage for any non-zero Actual against zero Budget, with the positive/negative labels distinguished",
+          "source": "docs/specs/financial-mis-statement.md"
+        }
+      ],
+      "write_scope": [
+        "backend/src/semantic/semanticLayer.ts",
+        "backend/src/semantic/semanticLayer.financial.test.ts",
+        "backend/src/db/migrate.ts",
+        "backend/src/db/migrate.test.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "the governed financial domain registers over the composed actual and budget rollups with an Actual measure summing actual net a Budget measure summing budget net and a percentage measure whose CASE returns the actual over budget ratio when budget is non zero and the month time column bound so period windows apply every measure allowing only the gl code and month dimensions",
+          "path": "backend/src/semantic/semanticLayer.financial.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "building a selection over the governed financial domain inserts the percentage measure CASE expression verbatim as its aliased column and against a fake warehouse a matched key returns the ratio a zero budget zero actual key returns null as NA a zero budget positive actual key returns the over budget label and a zero budget negative actual key returns the credit label satisfying the full nil rule",
+          "path": "backend/src/semantic/semanticLayer.financial.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "THIRD task of governed-joins (user_facing:false): register ONE code-authored governed-financial DomainSpec with Actual / Budget / % MeasureSpecs in backend/src/semantic/semanticLayer.ts baseDomains (today []), OVER the code-composed financial_relation that task 2 built (composed marker \u2192 sqlBuilder emits the WITH actual_src \u22c8 budget_src FULL OUTER JOIN exposing zero-filled numeric(18,2) actual_net, budget_net + gl_code, month). NO new endpoint, NO warehouse object, NO builder/validator/executor edit (task 2 owns those). GROUNDING (file:line): the measure expr is inserted VERBATIM into selectCols \u2014 sqlBuilder.ts:38-41 `${m.expr} AS ${m.id.split('.').pop()}` \u2014 so the measures live ENTIRELY in their expr strings (a division / NULLIF is written in full inside expr); dims \u2192 GROUP BY d.column (sqlBuilder.ts:83). The composed relation exposes exactly gl_code, month, actual_net, budget_net, rollover_net, budget_component_labels (sqlBuilder.ts:131-136) \u2014 measure exprs MUST reference actual_net/budget_net, never the source-view columns. MeasureSpec (contract/src/measure.ts:6-41): id (domain-qualified; alias = last dot-segment), label, goldObject, expr, grain, impliedFilters:[], allowedDimensions, format?:'percent' (a DISPLAY HINT only \u2014 selectionExecutor.ts:120-139 attaches it to the column; the server NEVER numerically formats, the client renders the 0..1 ratio as a %), piiSensitive:false. DomainSpec (measure.ts:51-71): name (MUST match the domain grant + selectionExecutor.ts:88-95 governed-read enforcement), label, goldObject='actual_by_gl_month', composed:{sources:['actual_by_gl_month','budget_by_gl_month'], joinKeys:['gl_code','month']} (the builder-path + governed-read trigger), scopeColumn:'plant' (REQUIRED \u2014 composedCtes throws missingScopeForScopedDomain without it, sqlBuilder.ts:121), routingHints:[...] (non-optional deterministic phrases), measures, dimensions:[{id:'gl_code',label,column:'gl_code'},{id:'month',label,column:'month'}]. MEASURES: Actual expr `SUM(actual_net)` and Budget expr `SUM(budget_net)` \u2014 each OMITS `format` (\"number\" is NOT a valid MeasureSpec.format; only 'percent' is permitted, contract/src/measure.ts:27, so numeric = omit) and sets `timeColumn:'month'` + `defaultTimeGrain:'month'`. The % measure (HUMAN-DECIDED grill round: the CASE in the % measure): its `expr` is a SQL CASE over the composed relation that realises the FULL nil rule IN-MEASURE \u2014 WHEN SUM(budget_net)=0 AND SUM(actual_net)=0 THEN NULL (NA/blank); WHEN SUM(budget_net)=0 AND SUM(actual_net)>0 THEN 'over-budget'; WHEN SUM(budget_net)=0 AND SUM(actual_net)<0 THEN 'credit / negative actual'; ELSE (SUM(actual_net) / SUM(budget_net))::text \u2014 a single TEXT column (the text branches force the CASE result type to text, so the ratio ELSE is cast ::text) and it OMITS `format` (do NOT set 'percent' \u2014 this IS the spec's MIXED '%' column: a ratio, or 'NA'/blank, or an over-budget flag, financial-mis-statement.md:40-42; the negative-actual='credit / negative actual' vs positive='over-budget' distinction is decision 0016 Q4). There is NO server-side row/label layer anywhere in the repo (selectionExecutor returns raw.rows verbatim, no cell rewrite), so the labels MUST live in this CASE \u2014 that is why the % is text, not a numeric/format:'percent' column; exact ratio display/rounding is task 4's golden fixtures, not here. TIME BOUND (grill finding): setting `timeColumn:'month'` makes the executor recognise `month` as a valid date column (validDateColumns honours measureTimeColumns, selectionExecutor.ts:248-259) so period windows bind instead of reading all months; mandatory-window enforcement (requiresTimeWindow) is deferred to the reporting epic. GRANT SEEDS (the piece task 2's grill deferred to task 3, since the domain is registered here): in migrate.ts baseRolePerms seed to role 'admin' \u2014 the governed-financial DOMAIN grant + a MEASURE grant per measure id + a DIMENSION grant per dimension id (mirror the existing 'report' action seed, onConflictDoNothing); UPDATE migrate.test.ts:33 whose three assertions currently require baseRolePerms to have NO domain/measure/dimension grants \u2192 assert the governed-financial grants now EXIST for admin (keep the save/pin/report action assertions). TESTS: HERMETIC (semanticLayer.financial.test.ts, added to backend test:hermetic \u2014 this is the C1/C2 proof, no DB): assert the domain + 3 measures register (exact exprs incl. the NULLIF ratio, %-format, allowedDimensions gl_code+month), and that building a selection emits the % division expr VERBATIM as its aliased column and against a fake warehouse a matched key returns the ratio while a zero-budget key returns NULL % for BOTH a positive and a negative actual (the nil rule). migrate.test.ts lives in test:db (app-Postgres, D-0008-deferred \u2014 the 42 app-DB tests are NOT enforced by CI and NOT host-run per task); its grant-seed assertion flip is a baseRolePerms CONSTANT change verified by type-check/build via verify + review, EXACTLY mirroring how task 2's 'report'-action migrate.test change was handled (type-checked, not host-run) \u2014 do NOT add a per-task app-DB proof here; task 4 owns the end-to-end golden D-0008 proof that actually exercises the grants + warehouse. This task ships NO D-0008 host proof: the C1/C2 acceptance is proven purely hermetically in test:hermetic (real CI). NO golden EXACT-value fixtures or provenance here (task 4). REGISTRATION (grill finding \u2014 every backend *.test.ts is enumerated in EXACTLY ONE suite in BOTH places): add semanticLayer.financial.test.ts to the backend/package.json `test:hermetic` node --test file list AND to the hermeticTests registry in tools/quality-gate.test.mjs \u2014 both maintain explicit lists; adding only one leaves an unowned stray or a quality-gate mismatch (backend/package.json is in write_scope for exactly this).",
+      "review_budget": {
+        "max_changed_files": 7,
+        "max_changed_lines": 800,
+        "reason": "One code-authored governed-financial DomainSpec + Actual/Budget/% MeasureSpecs registered in the semantic layer over task 2's composed relation. The % measure is a SQL CASE (human-decided) realising the full nil rule in-measure \u2014 ratio when Budget!=0, NULL/NA for 0/0, 'over-budget' for +Actual/0, 'credit / negative actual' for -Actual/0 \u2014 a text column (no format:'percent') matching the spec's mixed '%' column; measures carry timeColumn='month' so period windows bind. Plus the domain/measure/dimension grant seeds task 2 deferred here (+ the migrate.test assertion flip, a baseRolePerms constant change type-checked via verify per the task-2 precedent / D-0008 app-DB deferral \u2014 no per-task host run), a hermetic registration/nil-rule test (the C1/C2 proof; golden EXACT-value D-0008 is task 4), and its registration in both the backend test:hermetic list and the quality-gate registry. No endpoint, warehouse object, or builder/validator/executor edit."
+      }
     },
     {
       "id": "golden-provenance",
@@ -180,5 +226,5 @@
   "epic": "data-foundation",
   "plan_file": "plans/active/governed-joins-financial-semantic-layer-governed-joins.md",
   "plan_sha256": "d2e0e7cce72ad535214615da07715538e2cf545e049ba758a1067287856b49d6",
-  "commit": "e5ae83563c9c263af2a29ecc3b9cb194313bb4ef"
+  "commit": "a5811d8757d773172a75ec1b3665b10b4d4ebcf8"
 }

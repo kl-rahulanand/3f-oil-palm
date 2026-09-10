@@ -8,7 +8,66 @@ import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
  */
 @Injectable()
 export class SemanticLayer {
-  private readonly baseDomains: DomainSpec[] = [];
+  private readonly baseDomains: DomainSpec[] = [
+    {
+      name: "governed-financial",
+      label: "Governed financial",
+      goldObject: "actual_by_gl_month",
+      composed: {
+        sources: ["actual_by_gl_month", "budget_by_gl_month"],
+        joinKeys: ["gl_code", "month"],
+      },
+      scopeColumn: "plant",
+      routingHints: ["actual versus budget", "financial performance", "budget percentage"],
+      measures: [
+        {
+          id: "governed-financial.actual",
+          label: "Actual",
+          goldObject: "actual_by_gl_month",
+          expr: "SUM(actual_net)",
+          grain: "gl_code and month",
+          impliedFilters: [],
+          allowedDimensions: ["gl_code", "month"],
+          timeColumn: "month",
+          defaultTimeGrain: "month",
+          piiSensitive: false,
+        },
+        {
+          id: "governed-financial.budget",
+          label: "Budget",
+          goldObject: "budget_by_gl_month",
+          expr: "SUM(budget_net)",
+          grain: "gl_code and month",
+          impliedFilters: [],
+          allowedDimensions: ["gl_code", "month"],
+          timeColumn: "month",
+          defaultTimeGrain: "month",
+          piiSensitive: false,
+        },
+        {
+          id: "governed-financial.percentage",
+          label: "%",
+          goldObject: "actual_by_gl_month",
+          expr: `CASE
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) = 0 THEN NULL
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) > 0 THEN 'over-budget'
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) < 0 THEN 'credit / negative actual'
+  ELSE (SUM(actual_net) / SUM(budget_net))::text
+END`,
+          grain: "gl_code and month",
+          impliedFilters: [],
+          allowedDimensions: ["gl_code", "month"],
+          timeColumn: "month",
+          defaultTimeGrain: "month",
+          piiSensitive: false,
+        },
+      ],
+      dimensions: [
+        { id: "gl_code", label: "GL code", column: "gl_code" },
+        { id: "month", label: "Month", column: "month" },
+      ],
+    },
+  ];
 
   constructor(@Optional() private readonly authored?: AuthoredMeasureRegistry) {}
 
