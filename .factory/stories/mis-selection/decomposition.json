@@ -1,0 +1,53 @@
+{
+  "issue": "mis-selection",
+  "story": "mis-selection",
+  "project": "3oilpalm",
+  "epic": "reporting",
+  "generated_by": "docs-decomposer",
+  "user_facing": true,
+  "plan_file": "plans/active/mis-selection-selection-mapping-master.md",
+  "tasks": [
+    {
+      "id": "mapping-master",
+      "title": "Versioned Mapping Master + unmapped-GL bucket",
+      "objective": "Build the versioned repo-owned Mapping Master as the single runtime authority for selection and validation, with the unmapped-GL bucket keeping the DUB slice complete without inventing financial meaning.",
+      "user_facing": false,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "a versioned repo-owned Mapping Master holds selection records keyed by department, function and canonical plant that own the plant aliases and the MIS format, plus entry records mapping cost centre and GL code to an MIS line with a provisional flag and a reason, and a strict loader rejects a malformed master or a duplicate selection key so resolution is deterministic; the Excel workbooks are seed evidence recorded as a source provenance string and are never runtime input, so renaming a source file cannot change the output",
+        "the nine unresolved DUB composite-key triples map to the reserved unmapped-GL line flagged provisional with a reason, and a fixture proves every DUB raw plant cost-centre GL triple resolves exactly once with 66 mapped plus 22 bucketed equal to the full 88 rows and no fan-out",
+        "plant alias authority lives in the master so the canonical plant, the SAP alias and the display alias all resolve from it and no hard-coded alias table remains in ingestion"
+      ]
+    },
+    {
+      "id": "selection-resolution",
+      "title": "Master-driven resolution, governed narrowing, and the first governed-query routes",
+      "objective": "Resolve a selection through the master and narrow the single governed query path to it, exposed by the first governed-query HTTP routes so a client can never widen a report.",
+      "user_facing": false,
+      "dependencies": [
+        "mapping-master"
+      ],
+      "acceptance_criteria": [
+        "resolving department, function, plant and period returns the applicable cost centres, GL set, MIS format and bucket rows, or an unresolvable outcome; the no mapping configured notice is decided by master resolution and never by whether the query returned rows, so a resolved selection with no transactions renders a configured zero result instead; the period options are the loaded actual months plus a derived FY 26-27 YTD that the server resolves from the latest active loaded month and never from the wall clock",
+        "the governed path is narrowed and never forked: the composed Actual side filters the resolved triples on actual_by_key_month and re-aggregates to gl code and month before the full outer join, the Budget side is restricted to the resolved GL set at its unchanged grain so no budget row outside the selection appears, the newly referenced warehouse object is listed in the objects touched so the validator still passes, and a demonstrated warehouse test proves a cost-centre-filtered selection yields one row per gl code and month with no fan-out and exact values",
+        "two authenticated routes expose it: an options route serving master-derived selector choices, and a run route that accepts only department, function, plant and period and never triples, GL codes, format ids or scope, both carrying named request and response types with documented error responses, registered in the application module and the route allow-list, and reusing the existing fail-closed governed authorization rather than bypassing it"
+      ]
+    },
+    {
+      "id": "selection-ui",
+      "title": "Authenticated MIS Reports selection page",
+      "objective": "Give a user the authenticated MIS Reports page that produces the DUB nursery slice, distinguishes both zero states, and makes the mapping gap visible.",
+      "user_facing": true,
+      "dependencies": [
+        "selection-resolution"
+      ],
+      "acceptance_criteria": [
+        "an authenticated MIS Reports page presents Department, Function, Plant and period as native select controls populated from the options route, offering only the loaded actual months plus FY 26-27 YTD, and Generate runs the selection through the run route so that selecting Agriculture, Nursery and DUB returns exactly the DUB nursery slice",
+        "the page shows a resolved-scope readout naming the cost centres, GL codes and MIS format the selection resolved to, and renders the two zero states distinctly: a no mapping configured notice with zeros for an unresolvable selection, and a configured zero result without that notice for a resolved selection that has no transactions",
+        "the unmapped-GL bucket is rendered as a reviewable list of its triples with amounts so the mapping gap is visible rather than absorbed, and the MIS Reports navigation item and page title are enabled in the application shell"
+      ]
+    }
+  ],
+  "plan_sha256": "e09d9d7e3b7ffef8ce622b854e77b5d85a76b6e0c694af481572c667257d9c53",
+  "commit": "2d7aef9411536734a31fb1362d3f3dfe0b2f5a22"
+}

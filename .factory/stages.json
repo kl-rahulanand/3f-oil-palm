@@ -1,0 +1,20 @@
+{
+  "issue": "mis-selection",
+  "stages": [
+    {
+      "id": "mapping-master",
+      "title": "Versioned Mapping Master + unmapped-GL bucket",
+      "status": "pending"
+    },
+    {
+      "id": "selection-resolution",
+      "title": "Master-driven resolution, governed narrowing, and the first governed-query routes",
+      "status": "pending"
+    },
+    {
+      "id": "selection-ui",
+      "title": "Authenticated MIS Reports selection page",
+      "status": "pending"
+    }
+  ]
+}
