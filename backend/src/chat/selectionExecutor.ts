@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { ForbiddenException, Inject, Injectable } from "@nestjs/common";
 import type {
   AuthUser,
   DomainSpec,
@@ -9,7 +9,7 @@ import type {
   SourcePresence,
 } from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
-import { SqlBuilder } from "../sql/sqlBuilder";
+import { SqlBuilder, type GovernedSelectionScope } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import { applyKSuppression } from "./suppression";
@@ -31,7 +31,7 @@ export interface SelectionExecutionResult {
   rowSourcePresence: Array<SourcePresence | SourcePresence[]>;
 }
 
-export class SelectionExecutionBlockedError extends Error {
+export class SelectionExecutionBlockedError extends ForbiddenException {
   constructor(message: string) {
     super(message);
     this.name = "SelectionExecutionBlockedError";
@@ -52,6 +52,7 @@ export class SelectionExecutor {
     selection: Selection,
     opts: {
       beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>;
+      resolvedScope?: GovernedSelectionScope;
     } = {},
   ): Promise<SelectionExecutionResult> {
     const appliedTimeWindow = resolveTimeWindow(
@@ -72,9 +73,18 @@ export class SelectionExecutor {
         }
       : selection;
 
-    const primary = await this.executeResolved(user, domain, resolvedSelection, opts.beforeExecute);
+    const primary = await this.executeResolved(
+      user,
+      domain,
+      resolvedSelection,
+      opts.beforeExecute,
+      true,
+      opts.resolvedScope,
+    );
     const totals =
-      resolvedSelection.dimensionIds.length > 0 ? await this.totalsFor(user, domain, resolvedSelection) : undefined;
+      resolvedSelection.dimensionIds.length > 0
+        ? await this.totalsFor(user, domain, resolvedSelection, opts.beforeExecute, opts.resolvedScope)
+        : undefined;
 
     return {
       result: primary.result,
@@ -92,12 +102,25 @@ export class SelectionExecutor {
     return this.warehouse.freshness(domain.goldObject, domain.freshnessColumn);
   }
 
+  authorize(user: AuthUser, domain: DomainSpec, selection: Selection): void {
+    if (
+      domain.composed &&
+      (!user.permissions.actions.includes("report") ||
+        !user.permissions.domains.includes(domain.name) ||
+        !selection.measureIds.every((id) => user.permissions.measureIds.includes(id)) ||
+        !selection.dimensionIds.every((id) => user.permissions.dimensionIds.includes(id)))
+    ) {
+      throw new SelectionExecutionBlockedError("governed financial selection is not authorized");
+    }
+  }
+
   private async executeResolved(
     user: AuthUser,
     domain: DomainSpec,
     resolvedSelection: Selection,
     beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>,
     includeProvenance = true,
+    resolvedScope?: GovernedSelectionScope,
   ): Promise<{
     result: ResultTable;
     sql: string;
@@ -106,17 +129,9 @@ export class SelectionExecutor {
     budgetComponentLabels: string[];
     rowSourcePresence: Array<SourcePresence | SourcePresence[]>;
   }> {
-    if (
-      domain.composed &&
-      (!user.permissions.actions.includes("report") ||
-        !user.permissions.domains.includes(domain.name) ||
-        !resolvedSelection.measureIds.every((id) => user.permissions.measureIds.includes(id)) ||
-        !resolvedSelection.dimensionIds.every((id) => user.permissions.dimensionIds.includes(id)))
-    ) {
-      throw new SelectionExecutionBlockedError("governed financial selection is not authorized");
-    }
+    this.authorize(user, domain, resolvedSelection);
     const cfg = loadConfig();
-    const built = this.builder.build(domain, resolvedSelection, user, includeProvenance);
+    const built = this.builder.build(domain, resolvedSelection, user, includeProvenance, resolvedScope);
     await beforeExecute?.({
       sql: built.sql,
       objectsTouched: built.objectsTouched,
@@ -199,6 +214,8 @@ export class SelectionExecutor {
     user: AuthUser,
     domain: DomainSpec,
     resolvedSelection: Selection,
+    beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>,
+    resolvedScope?: GovernedSelectionScope,
   ): Promise<Record<string, number> | undefined> {
     const ungrouped = await this.executeResolved(
       user,
@@ -207,8 +224,9 @@ export class SelectionExecutor {
         ...resolvedSelection,
         dimensionIds: [],
       },
-      undefined,
+      beforeExecute,
       false,
+      resolvedScope,
     );
     const row = ungrouped.result.rows[0];
     if (!row) return undefined;

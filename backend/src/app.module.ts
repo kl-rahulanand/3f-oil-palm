@@ -7,9 +7,10 @@ import { LoginRateLimitService } from "./auth/rate-limit.service";
 import { CoreModule } from "./core/core.module";
 import { HealthModule } from "./health/health.module";
 import { IngestModule } from "./ingest/ingest.module";
+import { MisSelectionModule } from "./mis/mis-selection.module";
 
 @Module({
-  imports: [CoreModule, HealthModule, IngestModule],
+  imports: [CoreModule, HealthModule, IngestModule, MisSelectionModule],
   controllers: [AuthController],
   providers: [AuthGuard, LoginRateLimitService, { provide: APP_GUARD, useClass: CsrfGuard }],
 })

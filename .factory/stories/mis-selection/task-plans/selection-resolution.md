@@ -2,6 +2,9 @@
 
 Story: mis-selection · Task 2 of 3 · user_facing: false
 
+(The approved story plan's Task Decomposition has been reconciled to the recorded 3-task
+split, so this task owns the routes — there is no separate `selection-endpoint` task.)
+
 ## Objective
 Make a selection **resolve through the Mapping Master** and **narrow the single governed
 query path** to it, exposed by the **first governed-query HTTP routes** — so a client can
@@ -9,12 +12,15 @@ never widen a report. This is the story's core: task 1 built the authority, task
 it; this task turns a selection into governed numbers.
 
 ## Standards
-`constitution/03-modular-monolith-structure.md` + `pnp-coding-standards-modular-monolith.md`
-(the new `backend/src/mis` module and the `mapping` module it consumes);
-`constitution/pnp-api-standards.md` + `pnp-swagger-api-documentation-standards.md` — these
-are **fresh** routes, so named request/response DTOs and documented error responses are
-**required** (the 0012 vendored-API deviation covers only the vendored controllers);
-`constitution/07-exception-handling.md`.
+Decision **0019** (human-decided this grill) settles the shape: fresh routes follow the
+**vendored house style** — unversioned `api/mis/...`, **raw typed bodies** (no
+`{success,data,error}` envelope), and `mis` **may** import `mapping` directly, matching the
+existing surface. What 0019 does **not** relax, and is still required: **named typed
+request/response DTOs**, **documented Swagger responses including typed 400/401/403**,
+cookie auth via the existing guards, **strict rejection of unknown request fields**, and
+`constitution/07-exception-handling.md`'s failure model. New service files take a role
+suffix (`selection-resolver.service.ts`) and an explicit interface per
+`constitution/pnp-coding-standards-modular-monolith.md` naming rules.
 
 ## Acceptance criteria (plan_contracts)
 - **t-sr-c1** — resolving `(department, function, plant, period)` returns cost centres, GL
@@ -66,14 +72,23 @@ set, `mis_format`, and the bucket rows. The `plant` argument may arrive as **any
 alias (canonical `DUB`, SAP `DUB-NUR`, display `Agri - Nursery - DUB`) and resolves via
 `canonicalPlantFromMaster` — never a local table.
 
+**The response is a discriminated union** — a FULL OUTER JOIN over two empty sources
+returns **no rows**, and `ResultTable` alone cannot distinguish that from an unresolvable
+selection. So the contract carries an explicit *resolved* outcome (scope readout + result +
+bucket) versus an *unresolvable* outcome (the "no mapping configured" notice + a zero
+payload). Task 3 consumes exactly that union.
+
 **Two zero states, decided by resolution — never by row count:**
-- unresolvable → zeros + the "no mapping configured" notice;
-- resolved but no transactions → a configured **zero** result with **no** notice.
+- unresolvable → the unresolvable outcome: zeros + the notice;
+- resolved but no transactions → the **resolved** outcome with zeros and **no** notice.
 
 **Period.** Options are the **loaded** actual months (from the active ingest batches — July
 2026 today) **plus one derived `fy26-27-ytd`**. The server resolves FY-YTD as
-`2026-04-01 → the latest active loaded month`, **never `Date.now()`** — otherwise the answer
-changes with the calendar.
+`2026-04-01 → the latest active loaded month`, **never `Date.now()`**. Both edges are
+defined: with **no active actuals batch** there are no month options and `fy26-27-ytd` is
+**not offered**; if the latest active month falls **outside FY 26-27** the window clamps to
+the FY's own end, and if no active month falls inside FY 26-27 at all the option is **not
+offered**.
 
 ### Governed narrowing (C2 — decision 0017: filter before the roll-up, one path)
 ```sql
@@ -86,8 +101,32 @@ actual_src AS (
 ),
 budget_src AS ( ... FROM budget_by_gl_month
   WHERE 'DUB' IN (<scope values>)                    -- unchanged derived-constant guard
-    AND gl_code IN (<resolved GL set>) )             -- NEW
+    AND gl_code IN (<resolved GL set> UNION <bucketed budget GLs>) )   -- NEW
 ```
+**Two Budget cases must not be conflated** (they were, in the first draft): a GL the master
+covers but which is **not in this selection's** resolved set is *out of selection* and must
+**not** appear; a GL present in the active budget batch but **absent from the master
+entirely** is *unmapped* and **must** appear, attributed to the `unmapped-GL` line — that is
+the settled decision, and dropping it is the exact truncation 0018 rejected. The gated proof
+exercises **both** cases distinctly.
+
+### The server-owned Selection
+`SelectionExecutor.run` (`selectionExecutor.ts:49`) needs a full semantic `Selection` and
+then **re-executes an ungrouped totals query** via `totalsFor` (`:160-182`). The immutable
+server-owned selection is pinned here: domain `governed-financial`, the three governed
+measures, dimensions `gl_code` + `month`, **no client filters**, and a `timeWindow` derived
+from the resolved period. The resolved-scope carrier **must** propagate through
+`run → executeResolved → totalsFor → SqlBuilder`: reaching only the grouped query would
+narrow the rows while the **totals leak unfiltered** numbers for the whole plant. A required
+test proves rows **and** totals carry the same triples and GL set.
+
+### Authorization on every branch
+`RequireAction("report")` checks only the action, but `executeResolved` (`:109-117`) is
+fail-closed on the action **and** the domain **and** every selected measure **and** every
+selected dimension. The options route and the unresolvable branch bypass the executor
+entirely, so the **full semantic authorization** runs before any master metadata or
+unresolvable result is returned, and each denial mode is tested to yield no query and no
+result.
 `actual_src` **absorbs** the `GROUP BY` that `actual_by_gl_month` performed, so the
 reduction to one row per `(gl_code, month)` still happens **before** the FULL OUTER JOIN —
 the no-fan-out invariant holds. Restricting `budget_src` fixes a **real defect** the story
@@ -103,9 +142,11 @@ still holds — the fail-closed gate, two-sided scope, zero-fill, the `%` CASE n
 in-query provenance.
 
 ### The first governed-query routes (C3)
-A new `mis` module + controller + service on the `reports.controller` template, registered in
-`app.module.ts` and in the `app.routes.test.ts` allow-list (that test fails otherwise),
-guarded by `AuthGuard` + `RequireAction("report")`.
+A new `mis` module + controller + service on the `reports.controller` template, at
+unversioned `api/mis/...` per decision 0019, registered in `app.module.ts` and in the
+`app.routes.test.ts` allow-list (that test fails otherwise), guarded by `AuthGuard` +
+`RequireAction("report")`, with named DTOs, documented Swagger 400/401/403, and **strict**
+rejection of unknown request fields.
 
 - **options** — master-derived Department / Function / Plant / period choices.
 - **run** — accepts **only** `{department, function, plant, period}`. It never accepts

@@ -1,0 +1,113 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "selection-resolution",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "selection-resolution turns a (department, function, plant, period) selection into governed numbers. A resolver service goes through task 1's mapping-master exports to return the cost centres, GL set, mis_format and bucket rows, or an unresolvable outcome, as an explicit discriminated union; period options are the loaded actual months plus a server-derived fy26-27-ytd with both edges defined. The governed path is NARROWED, never forked: the Actual CTE filters the resolved triples on actual_by_key_month and re-aggregates to (gl_code, month) before the FULL OUTER JOIN, and the Budget CTE is restricted to the resolved GL set UNION the bucketed budget GLs so out-of-selection GLs vanish while master-absent GLs still surface on unmapped-GL. An immutable server-owned Selection drives the executor, and the resolved scope propagates to the ungrouped totals query too. Two authenticated routes (options + run) expose it in the vendored house style per decision 0019, with named DTOs, documented typed errors, strict unknown-field rejection, and the full semantic authorization on every branch.",
+  "inspected_refs": [
+    "plans/active/mis-selection-selection-mapping-master.md",
+    "backend/src/mapping/mapping-master.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/sql/sqlValidator.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/reports/reports.controller.ts",
+    "backend/src/auth/auth.guard.ts",
+    "contract/src/api.ts",
+    "constitution/pnp-api-standards.md",
+    "constitution/pnp-coding-standards-modular-monolith.md",
+    "docs/decisions/0017-mis-selection-composite-key-seam.md",
+    "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
+    "docs/decisions/0019-fresh-routes-follow-vendored-house-style.md"
+  ],
+  "new_abstractions": [
+    "a selection resolver service returning a discriminated resolved/unresolvable outcome through the mapping master",
+    "selection-aware narrowing of the governed path (triple-filtered actual_src; budget_src restricted to the resolved GL set UNION the bucketed GLs)",
+    "an immutable server-owned Selection whose resolved scope propagates to the grouped AND totals executions",
+    "the first governed-query HTTP routes (options + run) whose run request cannot carry scope"
+  ],
+  "criteria_map": {
+    "resolving department, function, plant and period returns the applicable cost centres, GL set, MIS format and bucket rows, or an unresolvable outcome; the no mapping configured notice is decided by master resolution and never by whether the query returned rows, so a resolved selection with no transactions renders a configured zero result instead; the period options are the loaded actual months plus a derived FY 26-27 YTD that the server resolves from the latest active loaded month and never from the wall clock": "KEEP (amended). Resolution returns the scope or an UNRESOLVABLE outcome through an explicit discriminated union - a FULL OUTER JOIN over two empty sources returns no rows, so ResultTable alone cannot distinguish 'no data' from 'no mapping'. The notice is decided by master resolution, never by row count. FY-YTD derives from the latest ACTIVE LOADED month with both edges defined (no active batch, and a latest month outside FY 26-27).",
+    "the governed path is narrowed and never forked: the composed Actual side filters the resolved triples on actual_by_key_month and re-aggregates to gl code and month before the full outer join, the Budget side is restricted to the resolved GL set at its unchanged grain so no budget row outside the selection appears, the newly referenced warehouse object is listed in the objects touched so the validator still passes, and a demonstrated warehouse test proves a cost-centre-filtered selection yields one row per gl code and month with no fan-out and exact values": "KEEP (amended). The Actual side filters the resolved triples on actual_by_key_month and re-aggregates before the join; the Budget side is restricted to the resolved GL set UNION the BUCKETED budget GLs, so an out-of-selection GL is excluded while a GL absent from the master still appears on the unmapped-GL line. The resolved scope also propagates to the ungrouped TOTALS execution, or the rows narrow while the totals leak.",
+    "two authenticated routes expose it: an options route serving master-derived selector choices, and a run route that accepts only department, function, plant and period and never triples, GL codes, format ids or scope, both carrying named request and response types with documented error responses, registered in the application module and the route allow-list, and reusing the existing fail-closed governed authorization rather than bypassing it": "KEEP (amended). Two authenticated routes shaped by decision 0019 (unversioned api/mis, raw typed bodies, direct module import) but with named DTOs, documented Swagger 400/401/403, cookie auth and STRICT unknown-field rejection; the FULL semantic authorization (action + domain + every measure + every dimension) runs on the options and unresolvable branches too, not only the happy path."
+  },
+  "gaps": [
+    "P0 - task ownership contradicted the approved story plan: the approved plan is a FOUR-task split assigning the two HTTP routes to a separate selection-endpoint task, while the recorded decomposition is the human's THREE-task split in which this task owns them, leaving C3 with contradictory ownership.",
+    "P0 - the settled Budget bucket decision was contradicted by the proposed proof: the approved plan records that an active Budget GL absent from the master goes into unmapped-GL, but this task required the D-0008 proof to show a Budget GL outside the resolved set 'does not appear', with no way to distinguish an out-of-selection GL from an unmapped one - silently dropping the case the human explicitly decided to bucket.",
+    "P0 - run could not be implemented deterministically from four selectors: SelectionExecutor.run requires a full semantic Selection and RE-EXECUTES an ungrouped totals query via totalsFor, but the plan named neither the server-owned selection nor the requirement that the resolved-scope carrier traverse BOTH executions, so an implementer could narrow the rows while leaking unfiltered totals.",
+    "P1 - the two zero states and FY-YTD had no complete runtime contract: a FULL OUTER JOIN over two empty sources yields no rows and ResultTable cannot distinguish that from an unresolvable selection, and the plan left unspecified what happens with no active Actual batch or a latest batch outside FY 26-27.",
+    "P1 - C3 did not meet the constitution's API contract: no versioned resource paths, no success envelope or DTO fields named, and no Swagger/typed-error/cookie-auth/strict-field proof - fresh routes cannot silently inherit the vendored unversioned raw-response convention.",
+    "P1 - authorization was specified only for the happy resolved query: RequireAction('report') checks only the action, while executeResolved is fail-closed on the domain and every selected measure and dimension, and the options and unresolvable branches bypass the executor entirely.",
+    "P1 - the declared module shape contradicted the cited constitution: the new mis module imports the mapping module directly, which pnp-coding-standards-modular-monolith.md section 8.1 forbids, and the write scope lacked a service interface and a role suffix on selection-resolver.ts."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "The approved story plan's Task Decomposition has been RECONCILED in place to the recorded three-task split (the human's decomposition-count decision, taken after plan approval), so this task owns the routes and there is no selection-endpoint task. The plan was re-saved, re-grilled and re-approved to re-bind it.",
+    "Restrict the Budget CTE to the resolved GL set UNION the BUCKETED budget GLs, and keep the two cases DISTINCT: a GL the master covers but not in THIS selection is out-of-selection and must NOT appear; a GL absent from the master entirely is unmapped and MUST appear on the unmapped-GL line (the human's settled decision, 0018). The gated proof exercises both cases distinctly.",
+    "Pin the IMMUTABLE server-owned selection here - domain governed-financial, the three governed measures, dimensions gl_code + month, no client filters, and a timeWindow derived from the resolved period - and require the resolved-scope carrier to propagate through run -> executeResolved -> totalsFor -> SqlBuilder. A fourth required test proves the grouped rows AND the ungrouped totals carry exactly the same triples and GL set.",
+    "The response is an explicit DISCRIMINATED UNION in contract/src/api.ts - a resolved outcome (scope readout + result + bucket) versus an unresolvable outcome (notice + zero payload) - which task 3 consumes. FY-YTD edges are defined: no active actuals batch means no month options and no fy26-27-ytd; a latest active month outside FY 26-27 clamps to the FY end, and if no active month falls inside the FY the option is not offered.",
+    "HUMAN-decided (round), recorded as accepted decision 0019-fresh-routes-follow-vendored-house-style: fresh routes follow the vendored house style - unversioned api/mis, raw typed bodies, and a direct mis->mapping import - because EVERY existing controller is unversioned and unenveloped and the vendored code already cross-imports modules, so conforming would leave the MIS routes the only versioned/enveloped surface and split the client. 0019 does NOT relax named DTOs, documented Swagger 400/401/403, cookie auth, strict unknown-field rejection, or the exception-handling model, all of which remain required and tested.",
+    "Enforce the FULL semantic authorization (action + domain + every selected measure + every selected dimension) BEFORE returning master metadata or an unresolvable result, and test EACH denial mode yields no query and no selection result - covered by the new fourth required test.",
+    "Covered by decision 0019, which explicitly permits the direct module import for fresh PoC modules with a revisit trigger at the production pilot. The naming rules are honoured regardless: the new service files take a role suffix (selection-resolver.service.ts) and an explicit service interface."
+  ],
+  "open_items": [
+    "The MIS Reports page consuming the resolved/unresolvable union, and its rendering of the bucket, are task 3.",
+    "The hierarchical statement and Excel export are mis-statement; drill-down is its own story.",
+    "0019's versioning/envelope/module-boundary deviation is revisited at the production pilot (0011 / D-0003)."
+  ],
+  "rounds": [
+    {
+      "question": "selection-resolution grill (P1): these are the first FRESH routes in a vendored app, so the constitution applies to them \u2014 it requires /api/v1/<resource> paths, {success,data,error} envelopes on every endpoint, and forbids one domain module importing another directly (\u00a78.1: Service Bus or /common only). But every existing route is unversioned 'api/<resource>' returning raw bodies, and the vendored code cross-imports modules freely (chat.service imports ../semantic). Decision 0012 does NOT cover versioning, envelopes or module boundaries. How should the new mis routes and module be shaped?",
+      "options": [
+        "Match house style + ledger a deviation (Rec.)",
+        "Conform strictly for fresh code",
+        "Conform on API, deviate on modules"
+      ],
+      "chosen": "Match house style + ledger a deviation (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "P0 - task ownership contradicted the approved story plan: the approved plan is a FOUR-task split assigning the two HTTP routes to a separate selection-endpoint task, while the recorded decomposition is the human's THREE-task split in which this task owns them, leaving C3 with contradictory ownership.",
+      "source": "plans/active/mis-selection-selection-mapping-master.md"
+    },
+    {
+      "finding": "P0 - the settled Budget bucket decision was contradicted by the proposed proof: the approved plan records that an active Budget GL absent from the master goes into unmapped-GL, but this task required the D-0008 proof to show a Budget GL outside the resolved set 'does not appear', with no way to distinguish an out-of-selection GL from an unmapped one - silently dropping the case the human explicitly decided to bucket.",
+      "source": "plans/active/mis-selection-selection-mapping-master.md; docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+    },
+    {
+      "finding": "P0 - run could not be implemented deterministically from four selectors: SelectionExecutor.run requires a full semantic Selection and RE-EXECUTES an ungrouped totals query via totalsFor, but the plan named neither the server-owned selection nor the requirement that the resolved-scope carrier traverse BOTH executions, so an implementer could narrow the rows while leaking unfiltered totals.",
+      "source": "backend/src/chat/selectionExecutor.ts:49; backend/src/chat/selectionExecutor.ts:160"
+    },
+    {
+      "finding": "P1 - the two zero states and FY-YTD had no complete runtime contract: a FULL OUTER JOIN over two empty sources yields no rows and ResultTable cannot distinguish that from an unresolvable selection, and the plan left unspecified what happens with no active Actual batch or a latest batch outside FY 26-27.",
+      "source": "backend/src/sql/sqlBuilder.ts:130; contract/src/api.ts"
+    },
+    {
+      "finding": "P1 - C3 did not meet the constitution's API contract: no versioned resource paths, no success envelope or DTO fields named, and no Swagger/typed-error/cookie-auth/strict-field proof - fresh routes cannot silently inherit the vendored unversioned raw-response convention.",
+      "source": "constitution/pnp-api-standards.md:85; docs/decisions/0019-fresh-routes-follow-vendored-house-style.md"
+    },
+    {
+      "finding": "P1 - authorization was specified only for the happy resolved query: RequireAction('report') checks only the action, while executeResolved is fail-closed on the domain and every selected measure and dimension, and the options and unresolvable branches bypass the executor entirely.",
+      "source": "backend/src/auth/auth.guard.ts:76; backend/src/chat/selectionExecutor.ts:109"
+    },
+    {
+      "finding": "P1 - the declared module shape contradicted the cited constitution: the new mis module imports the mapping module directly, which pnp-coding-standards-modular-monolith.md section 8.1 forbids, and the write scope lacked a service interface and a role suffix on selection-resolver.ts.",
+      "source": "constitution/pnp-coding-standards-modular-monolith.md:238; docs/decisions/0019-fresh-routes-follow-vendored-house-style.md"
+    }
+  ],
+  "summary": "One cold read returned seven gaps - three blocking. Six are repository/decision-answerable and resolved in the amended contract + plan: the approved story plan's Task Decomposition was reconciled in place to the human's recorded three-task split (and the plan re-saved, re-grilled and re-approved to re-bind it); the Budget restriction now keeps out-of-selection GLs and master-absent GLs as DISTINCT cases so the settled bucket rule is not silently truncated; the immutable server-owned Selection is pinned and the resolved scope must reach the ungrouped totals execution, closing a real leak where rows narrow but totals do not; the response became an explicit resolved/unresolvable discriminated union with FY-YTD edges defined; the full semantic authorization now runs on the options and unresolvable branches; and the naming rules are honoured with a role suffix and a service interface. One was a genuine architectural decision put to the human and recorded as accepted decision 0019: fresh routes follow the vendored house style (unversioned api/mis, raw bodies, direct module import) rather than becoming the app's only versioned enveloped surface - with DTOs, Swagger typed errors, cookie auth and strict field rejection explicitly NOT relaxed. Verdict pass.",
+  "input_sha256": "5c1dbc490f5d305dbb411552c53bf13c67b608ebcc09bd1bf782a0f0fe12ca74",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "f8a5f19edabd766d4e5ffdb41a98a67aedc63dd0316f6d4c38d1991ae7140043",
+  "recorded_at": "2026-09-10T15:14:36+00:00",
+  "commit": "eb3e1649c3e90357f240bd01ccbb4d753c176e74",
+  "approved_task_plan_sha256": "f8a5f19edabd766d4e5ffdb41a98a67aedc63dd0316f6d4c38d1991ae7140043",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-10T15:15:39+00:00"
+}
