@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T05:38:14+00:00", "story": "governed-joins", "detail": "S-0001-0269: CONFIRMED parser behavior: node-sql-parser tableList includes the CTE alias names (actual_src/budget_src), so objectsTouched limited to the two base leaves fails the unchanged sqlValidator. RESOLUTION"}

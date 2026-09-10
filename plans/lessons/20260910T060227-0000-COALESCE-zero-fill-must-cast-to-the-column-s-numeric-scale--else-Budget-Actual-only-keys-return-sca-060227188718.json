@@ -1,0 +1,11 @@
+{
+  "topic": "COALESCE zero-fill must cast to the column's numeric scale, else Budget/Actual-only keys return scaleless '0' not '0.00'",
+  "lesson": "In the composed relation builder (backend/src/sql/sqlBuilder.ts composedCtes), the zero-fill COALESCE(actual_src.actual_net, 0) returns a scaleless numeric: for a key present on only one side the literal 0 prints as '0', while a real SUM(...)::numeric(18,2) prints as '125.00'. A governed financial relation MUST return consistent 2-decimal scale so downstream measures/% and golden fixtures compare deterministically. FIX: cast each zero-filled projection to numeric(18,2) - e.g. COALESCE(actual_src.actual_net, 0)::numeric(18,2) (and budget_net, rollover_net likewise). The gl-month rollups already cast their SUMs to numeric(18,2); the composed layer must preserve that scale through the FULL OUTER JOIN zero-fill. Proven by the D-0008 host proof: BUDGET-ONLY key returned actual '0' vs expected '0.00'.",
+  "source": "host D-0008 run of composed-relation.db.test.ts 2026-09-10 (BUDGET-ONLY actual '0' != '0.00')",
+  "applies_to": [
+    "backend/src/sql/sqlBuilder.ts"
+  ],
+  "severity": "medium",
+  "generated_by": "implementer",
+  "added_at": "2026-09-10T06:02:27+00:00"
+}

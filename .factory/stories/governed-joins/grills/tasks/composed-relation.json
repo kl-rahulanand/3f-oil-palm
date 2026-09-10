@@ -1,0 +1,101 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "composed-relation",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "composed-relation adds a builder-only composed marker to DomainSpec and, when a governed-financial domain carries it, the SQL builder emits WITH aliased actual/budget CTEs (selecting from the two real rollup views, Actual scoped by its plant='DUB' column, Budget structurally DUB) full-outer-joined on (gl_code, month) with task-2-owned COALESCE zero-fill and objectsTouched listing both view leaves - replacing the multi-gold-object throw. A new governed-financial read action is added to GRANT_ACTIONS, seeded to admin, and enforced at the shared executeResolved boundary together with the domain + selected measure/dimension grants (fail-closed). Freshness / enumeration / scope-validation stay on the real source views and composed reconciliation is deferred (narrowed C1). Hermetic builder/validator/executor-denial tests + a gated D-0008 zero-fill/no-fan-out proof. No warehouse object, no measures/domain (task 3), no endpoint.",
+  "inspected_refs": [
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/sql/sqlValidator.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/core/rbac.service.ts",
+    "backend/src/auth/auth.guard.ts",
+    "backend/src/grants/grants.constants.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/db/migrate.test.ts",
+    "contract/src/measure.ts",
+    "backend/src/semantic/semanticLayer.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/recon/reconciliation.service.ts",
+    "docs/decisions/0016-governed-joins-poc-scope.md"
+  ],
+  "new_abstractions": [
+    "a builder-only DomainSpec.composed marker (sources + joinKeys) that keeps goldObject a real view",
+    "the code-composed full-outer Budget-Actual join in the SQL builder (aliased CTEs, in-CTE Actual scope, task-owned COALESCE zero-fill)",
+    "a governed-financial read action + fail-closed boundary enforcement of action+domain+measure+dimension grants at executeResolved"
+  ],
+  "criteria_map": {
+    "a single closed, typed, code-composed financial relation full-outer-joins the two GL+month rollup views on gl_code and month with COALESCE zero-fill so a budget-only key and an actual-only key both appear, replacing the SQL builder's multi-gold-object rejection, and returns objectsTouched listing both source view leaf names for the validator allow-list; freshness, dimension enumeration and RBAC scope-validation stay pointed at the real source views and composed reconciliation is deferred (the governed measures are kept non-critical), with a revisit trigger for multi-plant/production": "KEEP (narrowed, human-decided). The composed relation is the code-composed full-outer join for measure QUERIES; freshness / dimension enumeration / RBAC scope-validation stay on the real source views and composed reconciliation is deferred (measures non-critical). The builder uses aliased CTEs (not view names, no shadowing) selecting from the real views, owns the COALESCE zero-fill, and returns both source view leaves in objectsTouched.",
+    "a governed-financial read action is required at the shared SelectionExecutor execution boundary together with the domain and Actual/Budget/% grants, and the row-scope predicate is injected INSIDE each source CTE before the join (Actual by plant, Budget by its trusted derived constant DUB); a denial case and a predicate-placement test are included": "KEEP (amended). The governed-financial read action is enforced at the shared executeResolved boundary together with the domain and every selected measure/dimension grant; scope is inside the Actual CTE (plant='DUB' against the user's validated scope) and Budget is structurally DUB (no plant column). Task 2 seeds only the action grant.",
+    "a demonstrated warehouse-DB test proves the composed relation zero-fills correctly and does NOT fan out: a GL with multiple actual cost centres does not repeat Budget, and totals are exact": "KEEP. A gated warehouse-DB test proves correct zero-fill (budget-only and actual-only keys) and no fan-out (a multi-cost-centre GL does not repeat Budget), exact values."
+  },
+  "gaps": [
+    "The proposed composed SQL could not run: each CTE was named after and selected from the same unqualified view (a recursive self-shadow), and the Budget CTE carried a plant predicate although budget_by_gl_month has no plant column.",
+    "'Builder-only marker; nothing else changes' contradicted C1's promise to provide relation semantics to freshness, dimension enumeration, RBAC scope-validation and reconciliation: those consumers read only domain.goldObject, so pinning it to Actual would make Budget-only keys invisible and Budget reloads absent from freshness/reconciliation.",
+    "The zero-fill / measure interface was unspecified: the builder inserts each measure's expr unchanged, so SUM(actual_net) is NULL for Budget-only groups and raw COALESCE projections conflict with grouped queries; task 3 would have to guess aliases, aggregation and zero-fill ownership.",
+    "The grants were sequenced against an absent domain: task 2 excludes baseDomains but asked to seed unnamed domain/measure/dimension grants for an unnamed role, and the migration test (outside write_scope) asserts no such grants exist.",
+    "The shared-boundary enforcement checked only the new action, but C2 requires the domain and measure grants too: allowedFor only filters metadata and the executor accepts a supplied domain/selection directly, so a user with the action but without the domain/measure grant could still execute.",
+    "The required tests exercised only builder SQL, validator allow-listing and action denial - none proved the promised non-builder relation semantics, so C1 could pass while freshness / Help / scope-validation / reconciliation stayed Actual-only."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "Use DISTINCT CTE aliases (a/b) selecting from the real rollup views - no view is shadowed - and drop the Budget plant predicate: budget_by_gl_month has no plant column and is structurally DUB-only by construction (0016 single plant). Two-sided scope = the Actual CTE filtered by its plant='DUB' column against the user's validated scope + Budget inherently DUB. objectsTouched lists the two base view leaves; tableList is verified to resolve to those leaves, not the aliases.",
+    "HUMAN-decided (round): NARROW C1 to the PoC - the composed relation is the code-composed JOIN that measure QUERIES run; freshness / dimension enumeration / RBAC scope-validation STAY pointed at the real source views (goldObject/freshnessColumn/scopeColumn point at actual_by_gl_month) and composed reconciliation is DEFERRED (governed measures kept non-critical), with a revisit trigger for multi-plant/production. C1's statement is narrowed accordingly; those consumers are not reworked here.",
+    "Specified the interface: the two rollups are already one row per (gl_code, month), so the composed relation is a 1:1 full-outer join with NO re-aggregation; COALESCE zero-fill of actual_net/budget_net and the join keys is OWNED by task 2 (the relation), so task-3 measures reference already-0-filled columns and never see NULL - task 3 owns aggregation, task 2 owns zero-fill.",
+    "Task 2 seeds ONLY the governed-financial read ACTION grant to role 'admin' (mirroring the ingest grant) and OWNS backend/src/db/migrate.test.ts to update its assertion; the governed-financial domain/measure/dimension grants move to TASK 3 where the domain is registered. The action id and role are named and stable.",
+    "Enforce at executeResolved ALL of - the read action, the domain grant, AND a grant for every selected measure and dimension - fail-closed, tested against a FIXTURE governed-financial composed domain (task 2 has no real domain), covering each denial branch plus the fully-granted allow case.",
+    "Added the executor authorization tests (each denial branch + the granted-allow case) and explicitly narrowed C1 so freshness / enumeration / scope-validation stay per-source-view and reconciliation is deferred - no composed semantics are required of those surfaces this task."
+  ],
+  "open_items": [
+    "Composed-aware freshness / dimension enumeration / RBAC scope-validation / reconciliation deferred (narrowed C1), revisit at multi-plant / production.",
+    "The governed-financial domain + Actual/Budget/% measures + their domain/measure/dimension grant seeds are task 3."
+  ],
+  "rounds": [
+    {
+      "question": "composed-relation grill (findings 2 & 6): the criterion promises the composed relation provides 'relation semantics to freshness, dimension enumeration, RBAC scope-validation, and reconciliation.' Those Pulse consumers each read one physical goldObject and issue 'FROM <goldObject>'. Making ALL of them genuinely composed-aware (querying the joined relation) is a materially larger task. For this PoC (single plant DUB; goal = % = Actual\u00f7Budget), how should the composed relation's NON-query surfaces be scoped?",
+      "options": [
+        "Narrow: composed JOIN for queries; defer the rest (Rec.)",
+        "Broad: make all consumers composed-aware now"
+      ],
+      "chosen": "Narrow: composed JOIN for queries; defer the rest (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The proposed composed SQL could not run: each CTE was named after and selected from the same unqualified view (a recursive self-shadow), and the Budget CTE carried a plant predicate although budget_by_gl_month has no plant column.",
+      "source": ".factory/stories/governed-joins/task-plans/composed-relation.md; backend/src/warehouse/warehouse-schema.ts:152"
+    },
+    {
+      "finding": "'Builder-only marker; nothing else changes' contradicted C1's promise to provide relation semantics to freshness, dimension enumeration, RBAC scope-validation and reconciliation: those consumers read only domain.goldObject, so pinning it to Actual would make Budget-only keys invisible and Budget reloads absent from freshness/reconciliation.",
+      "source": "backend/src/chat/selectionExecutor.ts:83; backend/src/help/help.service.ts:67; backend/src/recon/reconciliation.service.ts:143"
+    },
+    {
+      "finding": "The zero-fill / measure interface was unspecified: the builder inserts each measure's expr unchanged, so SUM(actual_net) is NULL for Budget-only groups and raw COALESCE projections conflict with grouped queries; task 3 would have to guess aliases, aggregation and zero-fill ownership.",
+      "source": "backend/src/sql/sqlBuilder.ts:39"
+    },
+    {
+      "finding": "The grants were sequenced against an absent domain: task 2 excludes baseDomains but asked to seed unnamed domain/measure/dimension grants for an unnamed role, and the migration test (outside write_scope) asserts no such grants exist.",
+      "source": "backend/src/db/migrate.test.ts:35"
+    },
+    {
+      "finding": "The shared-boundary enforcement checked only the new action, but C2 requires the domain and measure grants too: allowedFor only filters metadata and the executor accepts a supplied domain/selection directly, so a user with the action but without the domain/measure grant could still execute.",
+      "source": "backend/src/chat/selectionExecutor.ts:87"
+    },
+    {
+      "finding": "The required tests exercised only builder SQL, validator allow-listing and action denial - none proved the promised non-builder relation semantics, so C1 could pass while freshness / Help / scope-validation / reconciliation stayed Actual-only.",
+      "source": ".factory/stories/governed-joins/decomposition.json"
+    }
+  ],
+  "summary": "One cold read returned six blocking gaps. Five are repository/decision-answerable and resolved in the amended contract + plan: aliased CTEs selecting from the real views with no shadowing and no Budget plant predicate (Budget structurally DUB); the exact zero-fill interface (1:1 join, COALESCE owned by task 2, aggregation by task 3); grants re-sequenced so task 2 seeds only the read action and owns migrate.test while the domain/measure/dimension grants move to task 3; and fail-closed boundary enforcement of action+domain+measure+dimension grants with owned denial tests. One was a genuine scope decision put to the human: NARROW C1 to the composed JOIN for measure queries, leaving freshness/enumeration/scope-validation on the real source views and deferring composed reconciliation. Verdict pass.",
+  "input_sha256": "77df64482110e21bcbc61a91fa0c83a0fb59b19e72c50bdbc75c8b2a5f9680c6",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "08e185ddaae66dd6caedd733228843626a7f14b8e191446ef362a69f409c64d4",
+  "recorded_at": "2026-09-10T05:40:14+00:00",
+  "commit": "e5ae83563c9c263af2a29ecc3b9cb194313bb4ef",
+  "approved_task_plan_sha256": "08e185ddaae66dd6caedd733228843626a7f14b8e191446ef362a69f409c64d4",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-10T05:40:18+00:00"
+}

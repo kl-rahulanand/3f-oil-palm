@@ -71,14 +71,81 @@
       "title": "Closed, typed, code-composed Budget\u22c8Actual relation with two-sided scope",
       "objective": "Provide ONE governed financial gold relation that full-outer-joins the two GL+month rollups with zero-fill, serves every gold-object consumer, and enforces role-based access with the scope predicate inside both source CTEs.",
       "acceptance_criteria": [
-        "a single closed, typed code-composed financial relation full-outer-joins the two GL+month rollups on (gl_code, month) with COALESCE zero-fill (a Budget-only key and an Actual-only key both appear), replacing the SQL builder's multi-gold-object rejection; it lists every physical object in objectsTouched for the validator allow-list and provides relation semantics to freshness, dimension enumeration, RBAC scope validation and reconciliation",
+        "a single closed, typed, code-composed financial relation full-outer-joins the two GL+month rollup views on gl_code and month with COALESCE zero-fill so a budget-only key and an actual-only key both appear, replacing the SQL builder's multi-gold-object rejection, and returns objectsTouched listing both source view leaf names for the validator allow-list; freshness, dimension enumeration and RBAC scope-validation stay pointed at the real source views and composed reconciliation is deferred (the governed measures are kept non-critical), with a revisit trigger for multi-plant/production",
         "a governed-financial read action is required at the shared SelectionExecutor execution boundary together with the domain and Actual/Budget/% grants, and the row-scope predicate is injected INSIDE each source CTE before the join (Actual by plant, Budget by its trusted derived constant DUB); a denial case and a predicate-placement test are included",
         "a demonstrated warehouse-DB test proves the composed relation zero-fills correctly and does NOT fan out: a GL with multiple actual cost centres does not repeat Budget, and totals are exact"
       ],
       "dependencies": [
         "gl-month-rollups"
       ],
-      "user_facing": false
+      "user_facing": false,
+      "plan_contracts": [
+        {
+          "id": "t-cr-c1",
+          "statement": "a single closed, typed, code-composed financial relation full-outer-joins the two GL+month rollup views on gl_code and month with COALESCE zero-fill so a budget-only key and an actual-only key both appear, replacing the SQL builder's multi-gold-object rejection, and returns objectsTouched listing both source view leaf names for the validator allow-list; freshness, dimension enumeration and RBAC scope-validation stay pointed at the real source views and composed reconciliation is deferred (the governed measures are kept non-critical), with a revisit trigger for multi-plant/production",
+          "source": "backend/src/sql/sqlBuilder.ts"
+        },
+        {
+          "id": "t-cr-c2",
+          "statement": "a governed-financial read action is required at the shared SelectionExecutor execution boundary together with the domain and Actual/Budget/% grants, and the row-scope predicate is injected INSIDE each source CTE before the join (Actual by plant, Budget by its trusted derived constant DUB); a denial case and a predicate-placement test are included",
+          "source": "docs/decisions/0016-governed-joins-poc-scope.md"
+        },
+        {
+          "id": "t-cr-c3",
+          "statement": "a demonstrated warehouse-DB test proves the composed relation zero-fills correctly and does NOT fan out: a GL with multiple actual cost centres does not repeat Budget, and totals are exact",
+          "source": "docs/decisions/0004-pulse-governed-joins.md"
+        }
+      ],
+      "write_scope": [
+        "contract/src/measure.ts",
+        "backend/src/sql/sqlBuilder.ts",
+        "backend/src/sql/sqlBuilder.composed.test.ts",
+        "backend/src/sql/sqlValidator.composed.test.ts",
+        "backend/src/chat/selectionExecutor.ts",
+        "backend/src/chat/selectionExecutor.composed.test.ts",
+        "backend/src/grants/grants.constants.ts",
+        "backend/src/db/migrate.ts",
+        "backend/src/db/migrate.test.ts",
+        "backend/src/warehouse/composed-relation.db.test.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "the SQL builder composes a governed financial relation as WITH aliased actual and budget CTEs that select from the real rollup views and are full outer joined on gl_code and month, with COALESCE zero-fill in the relation so an all-budget-only key yields actual_net 0 and an all-actual-only key yields budget_net 0, instead of throwing the multi gold object error, and returns objectsTouched listing both source view leaf names",
+          "path": "backend/src/sql/sqlBuilder.composed.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the row-scope constraint is applied INSIDE each source CTE and not on the outer query: the Actual CTE filters its plant column to DUB against the user validated scope and the Budget CTE is structurally DUB by construction with no plant predicate, asserted on the composed SQL text, and the CTE aliases differ from the view names so no view is shadowed",
+          "path": "backend/src/sql/sqlBuilder.composed.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the composed WITH full-outer-join query passes sqlValidator when the two source view leaf names AND the builder deterministic CTE alias names are all in the allowed objects, and is rejected when a source view leaf is removed from the allow-list, proving the base view allow-list is the enforced security check while the code-fixed CTE alias names are not a data-source bypass",
+          "path": "backend/src/sql/sqlValidator.composed.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the selection executor enforces authorization at the shared executeResolved boundary for a governed financial domain: it throws a fail-closed error when the user lacks the governed financial read action, OR lacks the domain grant, OR lacks a grant for any selected measure or dimension, and allows a user holding the read action plus the domain and all selected measure and dimension grants",
+          "path": "backend/src/chat/selectionExecutor.composed.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "SECOND governed-joins task: ONE closed, typed, code-composed financial relation that full-outer-joins the two GL+month rollup views from task 1 (actual_by_gl_month, budget_by_gl_month, backend/src/warehouse/warehouse-schema.ts) on (gl_code, month) with COALESCE zero-fill, replacing the SQL builder's multi-gold-object rejection, plus a governed-financial READ action enforced (with the domain + selected measure/dimension grants) at the shared execution boundary. NARROWED SCOPE (grill round + 0016): the composed relation is the JOIN that measure QUERIES run; freshness / dimension enumeration / RBAC scope-validation STAY pointed at the real source views and composed reconciliation is DEFERRED (governed measures kept non-critical) - do NOT rework those consumers here. NO new warehouse object; NO measures or domain in baseDomains (task 3); NO endpoint. Decisions 0004, 0016, 0009. COMPOSED MARKER: add a BUILDER-ONLY optional typed field to DomainSpec (contract/src/measure.ts) - e.g. `composed?: { sources: string[]; joinKeys: string[] }` naming the two source views + ['gl_code','month'] - while goldObject/freshnessColumn/scopeColumn still point at a REAL source view (actual_by_gl_month) so the deferred consumers keep working unchanged. BUILDER (sqlBuilder.ts): BRANCH before the multi-gold-object throw at lines 29-32 when the domain carries the composed marker. Emit `WITH a AS (SELECT gl_code, month, actual_net FROM actual_by_gl_month WHERE plant IN (:scope)), b AS (SELECT gl_code, month, budget_net, rollover_net, budget_component_labels FROM budget_by_gl_month) SELECT COALESCE(a.gl_code,b.gl_code) AS gl_code, COALESCE(a.month,b.month) AS month, COALESCE(a.actual_net,0) AS actual_net, COALESCE(b.budget_net,0) AS budget_net, ... FROM a FULL OUTER JOIN b ON a.gl_code=b.gl_code AND a.month=b.month ... LIMIT :max`. CRITICAL FIXES from the grill: (1) the CTE ALIASES (a, b or actual_src/budget_src) MUST DIFFER from the view names - naming a CTE after the view it selects from SELF-SHADOWS (a recursive self-reference) and will not run; (2) budget_by_gl_month HAS NO plant column, so the Budget CTE takes NO plant predicate - Budget is structurally DUB-only by construction (0016 single plant); the two-sided scope is Actual filtered by its plant='DUB' column against the user's validated scope + Budget inherently DUB. ZERO-FILL OWNERSHIP (grill finding 3): the two rollup views are ALREADY one row per (gl_code, month), so the composed relation is a 1:1 full-outer join with NO re-aggregation; the COALESCE zero-fill of actual_net / budget_net (and the coalesced join keys) is OWNED HERE (task 2), so task-3 measures reference already-0-filled columns and never see NULL. Return objectsTouched = ['actual_by_gl_month','budget_by_gl_month']. VALIDATOR (sqlValidator.ts is NOT in write_scope - do not edit it): the composed WITH query must PASS the existing validator. CONFIRMED: node-sql-parser tableList INCLUDES the CTE alias names (a/b), not only the base views. RESOLUTION (no validator edit): the composed builder - which controls BOTH the SQL and objectsTouched - returns objectsTouched = the two base view leaves PLUS its own deterministic CTE alias names, so the unchanged validator passes. The base views remain the enforced allow-list: any UNAPPROVED base table (e.g. sap_transaction) is still rejected because the builder never adds it; the CTE alias names are code-fixed internal references, not a data-source bypass. Cover in sqlValidator.composed.test.ts: the composed query PASSES with the two view leaves + the alias names allow-listed, and is REJECTED when a base VIEW leaf is removed. Put the LIMIT on the outer SELECT. GOVERNED-READ ACTION + BOUNDARY ENFORCEMENT (t-cr-c2, grill findings 4+5): add ONE new action to GRANT_ACTIONS in grants.constants.ts (a governed-financial read action, e.g. 'report'). Task 2 SEEDS ONLY the ACTION grant to role 'admin' in backend/src/db/migrate.ts baseRolePerms (mirror {role:'admin',grantType:'action',grantId:'ingest'}, onConflictDoNothing) and UPDATES backend/src/db/migrate.test.ts for it - the governed-financial domain/measure/dimension grants are TASK 3's (they arrive WITH the domain). ENFORCE at the SHARED chokepoint in selectionExecutor.ts executeResolved (before builder.build ~line 94): for a governed-financial / composed domain, require ALL of - user.permissions.actions includes the read action, the domain grant, and a grant for EVERY selected measure and dimension - else throw a fail-closed SelectionExecutionBlockedError (allowedFor only filters metadata; the executor accepts a supplied domain/selection directly, so a user with the action but without the domain/measure grant must still be denied here). Test all denial branches with a FIXTURE governed-financial composed domain (task 2 has no real domain; use a fixture like definitionVersion.test.ts). HERMETIC TESTS (test:hermetic, NEW files): sqlBuilder.composed.test.ts (composed WITH/FULL OUTER JOIN/COALESCE shape, aliases differ from views, scope inside the Actual CTE only, objectsTouched both leaves); sqlValidator.composed.test.ts (allow-list pass/reject); selectionExecutor.composed.test.ts (each authorization denial branch + the granted-allow case, fixture domain, fake Warehouse). D-0008 GATED PROOF (NEW backend/src/warehouse/composed-relation.db.test.ts, { skip: WAREHOUSE_DB_TEST !== '1' }): migrateWarehouse(), seed via IngestionRepository actual+budget batches with a matched (gl,month) key, a Budget-only key, an Actual-only key, and a multi-cost-centre actual GL; run the composed builder's SQL through the read-only Warehouse and assert exact values: matched row nets both sides, Budget-only zero-fills actual, Actual-only zero-fills budget, multi-cost-centre GL does NOT repeat Budget (no fan-out). Guard the destructive TRUNCATE to loopback-only hosts; dead-port negative control; EXTEND backend/package.json test:warehouse-proof to run it serialized (--test-concurrency=1) with the existing reconciliation + gl-month-rollups proofs; register in test:hermetic + hermeticTests (tools/quality-gate.test.mjs). Commit tests.json with the pinned host command + pass counts + negative control BEFORE review (the review bundle EXCLUDES .factory, so the runnable test:warehouse-proof command in package.json is the reviewer-visible D-0008 proof). NEVER author the join in the LLM/runtime - code-composed only (0004). Keep required_test ids regex-metacharacter-free and name each test() leaf verbatim (task-1 D-0024 lesson).",
+      "review_budget": {
+        "max_changed_files": 13,
+        "max_changed_lines": 1500,
+        "reason": "The core cross-object capability: a composed-marker on DomainSpec, the code-composed full-outer zero-filled Budget-Actual join in the SQL builder (replacing the multi-gold-object throw, aliased CTEs, COALESCE zero-fill owned here, in-CTE Actual scope, both-leaf objectsTouched), a governed-financial read action + boundary enforcement of action+domain+measure+dimension grants (+ its seed and migrate.test update), hermetic builder/validator/executor-denial tests, and a gated D-0008 zero-fill/no-fan-out proof. Freshness/enum/scope-validation stay per-view; reconciliation deferred."
+      }
     },
     {
       "id": "governed-domain-measures",
@@ -113,5 +180,5 @@
   "epic": "data-foundation",
   "plan_file": "plans/active/governed-joins-financial-semantic-layer-governed-joins.md",
   "plan_sha256": "d2e0e7cce72ad535214615da07715538e2cf545e049ba758a1067287856b49d6",
-  "commit": "68151bedefd19503223756456caf2bf197aa4779"
+  "commit": "e5ae83563c9c263af2a29ecc3b9cb194313bb4ef"
 }

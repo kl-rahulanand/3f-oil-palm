@@ -23,9 +23,7 @@ test("default SEED_USERS is a placeholder email-based admin", () => {
   try {
     const cfg = loadConfig();
     assert.equal(DEFAULT_SEED_USERS, "admin@example.invalid|3F Admin|admin");
-    assert.deepEqual(cfg.seedUsers, [
-      { email: "admin@example.invalid", displayName: "3F Admin", roles: ["admin"] },
-    ]);
+    assert.deepEqual(cfg.seedUsers, [{ email: "admin@example.invalid", displayName: "3F Admin", roles: ["admin"] }]);
   } finally {
     if (original === undefined) delete process.env.SEED_USERS;
     else process.env.SEED_USERS = original;
@@ -35,23 +33,21 @@ test("default SEED_USERS is a placeholder email-based admin", () => {
 test("base roles contain framework actions but no domain grants", () => {
   const adminGrants = baseRolePerms.filter((grant) => grant.role === "admin");
 
-  assert.equal(baseRolePerms.some((grant) => grant.grantType === "domain"), false);
-  assert.equal(baseRolePerms.some((grant) => grant.grantType === "measure"), false);
-  assert.equal(baseRolePerms.some((grant) => grant.grantType === "dimension"), false);
-  assert.ok(
-    adminGrants.some(
-      (grant) =>
-        grant.grantType === "action" &&
-        grant.grantId === "save",
-    ),
+  assert.equal(
+    baseRolePerms.some((grant) => grant.grantType === "domain"),
+    false,
   );
-  assert.ok(
-    adminGrants.some(
-      (grant) =>
-        grant.grantType === "action" &&
-        grant.grantId === "pin",
-    ),
+  assert.equal(
+    baseRolePerms.some((grant) => grant.grantType === "measure"),
+    false,
   );
+  assert.equal(
+    baseRolePerms.some((grant) => grant.grantType === "dimension"),
+    false,
+  );
+  assert.ok(adminGrants.some((grant) => grant.grantType === "action" && grant.grantId === "save"));
+  assert.ok(adminGrants.some((grant) => grant.grantType === "action" && grant.grantId === "pin"));
+  assert.ok(adminGrants.some((grant) => grant.grantType === "action" && grant.grantId === "report"));
 });
 
 test("DBA role is separate from analyst and receives framework action grants", () => {
@@ -63,19 +59,10 @@ test("seedConfiguredUsers creates and updates managed email users idempotently",
   const email = uniqueEmail();
   createdEmails.push(email);
 
-  await db
-    .insert(roles)
-    .values({ name: "analyst", label: "Analyst / DBA" })
-    .onConflictDoNothing();
+  await db.insert(roles).values({ name: "analyst", label: "Analyst / DBA" }).onConflictDoNothing();
 
   try {
-    assert.equal(
-      await seedConfiguredUsers(
-        db,
-        [{ email, displayName: "Initial Analyst", roles: ["analyst"] }],
-      ),
-      1,
-    );
+    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Initial Analyst", roles: ["analyst"] }]), 1);
 
     let user = await getSeededUser(email);
     assert.ok(user);
@@ -84,24 +71,12 @@ test("seedConfiguredUsers creates and updates managed email users idempotently",
     assert.equal(await countUsers(email), 1);
     assert.equal(await countUserRoles(user.id, "analyst"), 1);
 
-    assert.equal(
-      await seedConfiguredUsers(
-        db,
-        [{ email, displayName: "Initial Analyst", roles: ["analyst"] }],
-      ),
-      1,
-    );
+    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Initial Analyst", roles: ["analyst"] }]), 1);
     assert.equal(await countUsers(email), 1);
     assert.equal(await countUserRoles(user.id, "analyst"), 1);
 
     await db.update(users).set({ isActive: false }).where(eq(users.id, user.id));
-    assert.equal(
-      await seedConfiguredUsers(
-        db,
-        [{ email, displayName: "Updated Analyst", roles: ["analyst"] }],
-      ),
-      1,
-    );
+    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Updated Analyst", roles: ["analyst"] }]), 1);
 
     user = await getSeededUser(email);
     assert.ok(user);

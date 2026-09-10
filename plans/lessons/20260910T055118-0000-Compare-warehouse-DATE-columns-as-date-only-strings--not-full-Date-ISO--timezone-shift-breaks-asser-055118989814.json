@@ -1,0 +1,12 @@
+{
+  "topic": "Compare warehouse DATE columns as date-only strings, not full Date/ISO (timezone-shift breaks assertions)",
+  "lesson": "The composed-relation gated proof failed only because month (a Postgres DATE) is read back by node-pg as a JS Date at LOCAL midnight, so in a non-UTC host timezone (IST) the ISO string shifts a day (2099-09-01 stored -> 2099-08-31T18:30:00Z read). The composed relation values were correct (matched key actual 125.00 + budget 200.00, zero-fill and no-fan-out work). FIX (test-only, backend/src/warehouse/composed-relation.db.test.ts): compare month as a DATE-ONLY value - either select month as text in the assertion query (to_char(month,'YYYY-MM-DD')), or normalize both sides to the yyyy-mm-dd date part - never compare the full Date/ISO across timezones. Do NOT change the composed relation SQL; the logic is proven correct.",
+  "source": "host D-0008 run of composed-relation.db.test.ts 2026-09-10",
+  "applies_to": [
+    "backend/src/warehouse/composed-relation.db.test.ts",
+    "backend/src/warehouse/**.db.test.ts"
+  ],
+  "severity": "medium",
+  "generated_by": "implementer",
+  "added_at": "2026-09-10T05:51:18+00:00"
+}

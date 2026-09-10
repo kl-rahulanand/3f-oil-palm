@@ -1,6 +1,6 @@
 export const GRANT_TYPES = ["domain", "measure", "dimension", "action"] as const;
 
-export const GRANT_ACTIONS = ["admin", "save", "pin", "ingest"] as const;
+export const GRANT_ACTIONS = ["admin", "save", "pin", "ingest", "report"] as const;
 
 export const GRANTS_MESSAGES = {
   roleDoesNotExist: (role: string): string => `role ${role} does not exist`,

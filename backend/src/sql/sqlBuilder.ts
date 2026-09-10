@@ -14,8 +14,7 @@ export interface BuiltQuery {
  * identity (never the question, never the model). The deterministic validator runs
  * afterward as an independent check.
  *
- * V1 scope: single gold object per query. Multi-measure across objects = per-object
- * queries merged in code by conformed keys (A5) — TODO, not a cross-object SQL join.
+ * V1 scope: one gold object, except for the closed governed financial relation.
  */
 @Injectable()
 export class SqlBuilder {
@@ -26,7 +25,7 @@ export class SqlBuilder {
       return m;
     });
     const goldObjects = new Set(measures.map((m) => m.goldObject));
-    if (goldObjects.size > 1) {
+    if (goldObjects.size > 1 && !domain.composed) {
       // TODO(A5): run per-object queries and merge in code by conformed dimension keys.
       throw new Error("cross-object composition not implemented in scaffold");
     }
@@ -49,13 +48,13 @@ export class SqlBuilder {
     // Implied (correctness) filters from every measure.
     for (const m of measures) where.push(...m.impliedFilters);
     // RBAC row predicate: inject the user's scope on the domain's scope column.
+    let scopePredicate: string | undefined;
     if (domain.scopeColumn) {
-      const vals = user.scope
-        .filter((s) => s.attribute === domain.scopeColumn)
-        .map((s) => s.value);
+      const vals = user.scope.filter((s) => s.attribute === domain.scopeColumn).map((s) => s.value);
       if (vals.length === 0) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
       // TODO(B2: multi-column scope): DomainSpec currently supports one scope column only.
-      where.push(`${domain.scopeColumn} IN (${vals.map((v) => this.lit(v)).join(", ")})`);
+      scopePredicate = `${domain.scopeColumn} IN (${vals.map((v) => this.lit(v)).join(", ")})`;
+      if (!domain.composed) where.push(scopePredicate);
     }
     // User-selected filters.
     for (const f of selection.filters) {
@@ -93,15 +92,44 @@ export class SqlBuilder {
         : "";
     const whereSql = where.length ? `\nWHERE ${where.join("\n  AND ")}` : "";
 
+    const composedCtes = domain.composed ? this.composedCtes(domain.composed.sources, scopePredicate) : undefined;
     const sql =
+      (composedCtes ? `${composedCtes}\n` : "") +
       `SELECT ${selectCols.join(", ")}` +
-      `\nFROM ${goldObject}` +
+      `\nFROM ${composedCtes ? "financial_relation" : goldObject}` +
       whereSql +
       groupBy +
       orderBy +
       `\nLIMIT ${limit}`;
 
-    return { sql, objectsTouched: [goldObject] };
+    return {
+      sql,
+      objectsTouched: domain.composed
+        ? [...domain.composed.sources, "actual_src", "budget_src", "financial_relation"]
+        : [goldObject],
+    };
+  }
+
+  private composedCtes([actualSource, budgetSource]: [string, string], scopePredicate?: string): string {
+    if (!scopePredicate) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
+    return `WITH actual_src AS (
+  SELECT gl_code, month, actual_net
+  FROM ${actualSource}
+  WHERE ${scopePredicate}
+), budget_src AS (
+  SELECT gl_code, month, budget_net, rollover_net, budget_component_labels
+  FROM ${budgetSource}
+), financial_relation AS (
+  SELECT COALESCE(actual_src.gl_code, budget_src.gl_code) AS gl_code,
+    COALESCE(actual_src.month, budget_src.month) AS month,
+    COALESCE(actual_src.actual_net, 0)::numeric(18,2) AS actual_net,
+    COALESCE(budget_src.budget_net, 0)::numeric(18,2) AS budget_net,
+    COALESCE(budget_src.rollover_net, 0)::numeric(18,2) AS rollover_net,
+    budget_src.budget_component_labels
+  FROM actual_src
+  FULL OUTER JOIN budget_src
+    ON actual_src.gl_code = budget_src.gl_code AND actual_src.month = budget_src.month
+)`;
   }
 
   /** Quote a trusted (validated) scope/filter value. TODO: replace literals with bind params. */
