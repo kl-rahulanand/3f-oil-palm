@@ -1,8 +1,8 @@
 {
   "generated_by": "autoreview",
-  "aspect": "quality",
+  "aspect": "security",
   "score": 10,
-  "summary": "Story-level closeout roll-up: all 12 sap-ingestion plan contracts across the 4 shipped tasks (warehouse-schema, actuals-loader, budget-loader, reconciliation-proof) were verdicted implemented by their own clean per-task quality reviews and merged; no code changed at the closeout HEAD. Aggregate verdict: all implemented.",
+  "summary": "Story-level closeout roll-up: per-task security reviews approved (AuthGuard + 'ingest' grant + route allow-list, read-only Warehouse port with DNS-isolation guard, zip-bomb guard, loopback-only destructive test guard, no sap_transaction/mis_budget cross-joins); no findings at the closeout HEAD.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",

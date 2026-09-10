@@ -1,51 +1,5 @@
 {
   "id": "reconciliation-proof",
   "title": "July DUB reconciliation + idempotency proof",
-  "status": "done",
-  "started_at": "2026-09-09T18:29:24+00:00",
-  "base_sha": "512c6d4d48186fe11c5068022a4246b6b2bbd179",
-  "dirty_at_start": {
-    ".factory/stories/sap-ingestion/decomposition.json": {
-      "digest": "514a6d13a2f036da58a81f0e787ac45d571e9fcfce530aafb443fd90dfdd1903",
-      "git": "1 .M N... 100644 100644 100644 b3796b365e7f933cc265e9b42bd70cb4992afafe b3796b365e7f933cc265e9b42bd70cb4992afafe .factory/stories/sap-ingestion/decomposition.json\u0000\u0000100644 b3796b365e7f933cc265e9b42bd70cb4992afafe 0\t.factory/stories/sap-ingestion/decomposition.json\u0000\u0000H .factory/stories/sap-ingestion/decomposition.json\u0000"
-    },
-    ".factory/stories/sap-ingestion/grills/tasks/reconciliation-proof.json": {
-      "digest": "4ed124b5d11c9b51b68897d1fb34116fd4a134e934456c326db965615db80fd7",
-      "git": "? .factory/stories/sap-ingestion/grills/tasks/reconciliation-proof.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/sap-ingestion/task-plans/reconciliation-proof.md": {
-      "digest": "2c815a74dab94325403eba41d0f1775d8305f94b96e70bbef24c50a11255c1c0",
-      "git": "? .factory/stories/sap-ingestion/task-plans/reconciliation-proof.md\u0000\u0000\u0000"
-    }
-  },
-  "task_sha256": "b33c6781d56da1d70b67f8cb606a432610ba30dc1bcf019730a98ff7a6332026",
-  "local_review_stamp": {
-    "stage_id": "reconciliation-proof",
-    "task_sha256": "b33c6781d56da1d70b67f8cb606a432610ba30dc1bcf019730a98ff7a6332026",
-    "brief_sha256": "f5610d409f155b39096a68d2c7ff652bd665c9465bdc5f5df0b6899817e44590",
-    "base_sha": "512c6d4d48186fe11c5068022a4246b6b2bbd179",
-    "product_tree_digest": "afc04d1ce04cab2a98a81bc4ca767f1545a46fd15435472b1a8e989d52b6bf67",
-    "recorded_at": "2026-09-09T19:46:17+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-09T19:46:50+00:00",
-  "measured": {
-    "strays": [],
-    "files": 5,
-    "lines": 322,
-    "budget": {
-      "files": 8,
-      "lines": 800
-    },
-    "test_id_misses": [
-      "\"the reconciliation query computes a plant+period net two independent ways from the warehouse - SUM(debit-credit) over the active actuals batch's raw sap_transaction rows AND SUM(actual_net) over the actual_by_key_month gold view - and returns both as paise-exact numeric(18,2) strings with the contributing line count equal, proving criterion t-rp-c1's logic on a synthetic hermetic fixture\" was not present in the fresh JUnit report (exact id or id-prefix)",
-      "\"the reconciliation counts ONLY the active actuals batch - an inactive prior actuals batch for the same plant+period and a budget batch are both excluded from rawNet, goldNet and lineCount - so after a replace only the new active batch is reflected and the total is unchanged, proving criterion t-rp-c2's idempotency invariant at the read layer on a synthetic hermetic fixture\" was not present in the fresh JUnit report (exact id or id-prefix)",
-      "\"the frozen july-dub-reconciliation fixture pins plant DUB, period 2026-07-01, the DUB line count 88, and the expected net 11512712.07, and the reconciliation module's expectation loader reads it and rejects a fixture whose expected net is not a paise-exact numeric(18,2) decimal string\" was not present in the fresh JUnit report (exact id or id-prefix)"
-    ]
-  }
+  "status": "done"
 }

@@ -49,6 +49,8 @@ The following are accepted: the story plan's decisions and rulings, and the cont
 - **t-bl-c1** (budget-loader): POST /api/ingest/budget uses the same AuthGuard + 'ingest' grant + allow-list + typed DTO/Swagger/CSRF pattern as the actuals endpoint
 - **t-bl-c2** (budget-loader): the MIS format workbook loads into mis_budget as a SEPARATE object, stored as-provided with NO derived allocation and NO mutation of SAP actuals (decision 0004)
 - **t-bl-c3** (budget-loader): a budget upload replaces only its (format/period/canonical plant) atomically via a new active budget ingest_batch; the prior budget batch is retained
+- **t-rp-c1** (reconciliation-proof): a demonstrated warehouse-DB test grounds the July DUB net to EXACTLY Rs 11,512,712.07 (paise) across the accepted raw sap_transaction rows AND the actual_by_key_month gold view, against a frozen in-repo reconciliation fixture
+- **t-rp-c2** (reconciliation-proof): re-uploading the July DUB actuals replaces that month with no duplicate rows and no double-counting in the gold view (idempotency), with the prior batch retained
 
 ### Lessons in force
 
@@ -75,11 +77,14 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at b9000b8a7d57
+- verify.py: ok at 8100829e91c6
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - sap-ingestion story-level closeout aggregate. All 4 tasks shipped and merged to master (warehouse-schema #13, actuals-loader #15, budget-loader #16, reconciliation-proof #17), each with its own three-lens review clean and D-0008 host proof. Hermetic suites green at HEAD (npm run test:hermetic: contract + backend + frontend + quality-gate); verify.py passes. Demonstrated host evidence (D-0008) against docker warehouse-db (127.0.0.1:5433), run by the orchestrator per task: warehouse-schema (warehouse:proof + gated schema test), actuals-loader (gated per-period replace + raw jsonb), budget-loader (gated atomic 12-period replace, prior-batch retention, later-period rollback, no actuals mutation), reconciliation-proof (gated July DUB net = EXACTLY Rs 11,512,712.07 across raw rows AND the actual_by_key_month gold view, whole-upload integrity, idempotent replace; loopback-host guarded; dead-port negative control fails the gated leaf).
+  - 3 command(s) recorded, e.g. `python3 factory/scripts/verify.py -> Verification passed (story HEAD 8100829)`
 
 ## Task actuals-loader
 
@@ -130,6 +135,8 @@ The following are accepted: the story plan's decisions and rulings, and the cont
 - **t-bl-c1** (budget-loader): POST /api/ingest/budget uses the same AuthGuard + 'ingest' grant + allow-list + typed DTO/Swagger/CSRF pattern as the actuals endpoint
 - **t-bl-c2** (budget-loader): the MIS format workbook loads into mis_budget as a SEPARATE object, stored as-provided with NO derived allocation and NO mutation of SAP actuals (decision 0004)
 - **t-bl-c3** (budget-loader): a budget upload replaces only its (format/period/canonical plant) atomically via a new active budget ingest_batch; the prior budget batch is retained
+- **t-rp-c1** (reconciliation-proof): a demonstrated warehouse-DB test grounds the July DUB net to EXACTLY Rs 11,512,712.07 (paise) across the accepted raw sap_transaction rows AND the actual_by_key_month gold view, against a frozen in-repo reconciliation fixture
+- **t-rp-c2** (reconciliation-proof): re-uploading the July DUB actuals replaces that month with no duplicate rows and no double-counting in the gold view (idempotency), with the prior batch retained
 
 ### Lessons in force
 
@@ -166,11 +173,14 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at b9000b8a7d57
+- verify.py: ok at 8100829e91c6
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - sap-ingestion story-level closeout aggregate. All 4 tasks shipped and merged to master (warehouse-schema #13, actuals-loader #15, budget-loader #16, reconciliation-proof #17), each with its own three-lens review clean and D-0008 host proof. Hermetic suites green at HEAD (npm run test:hermetic: contract + backend + frontend + quality-gate); verify.py passes. Demonstrated host evidence (D-0008) against docker warehouse-db (127.0.0.1:5433), run by the orchestrator per task: warehouse-schema (warehouse:proof + gated schema test), actuals-loader (gated per-period replace + raw jsonb), budget-loader (gated atomic 12-period replace, prior-batch retention, later-period rollback, no actuals mutation), reconciliation-proof (gated July DUB net = EXACTLY Rs 11,512,712.07 across raw rows AND the actual_by_key_month gold view, whole-upload integrity, idempotent replace; loopback-host guarded; dead-port negative control fails the gated leaf).
+  - 3 command(s) recorded, e.g. `python3 factory/scripts/verify.py -> Verification passed (story HEAD 8100829)`
 
 ## Task budget-loader
 
@@ -219,6 +229,8 @@ The following are accepted: the story plan's decisions and rulings, and the cont
 - **t-al-c2** (actuals-loader): the loader identifies the sheet by its required HEADER set (not file/sheet name), requires a single posting month, validates ALL rows before any write, and rejects invalid/mixed-period files with row-level diagnostics and NO change to the active batch
 - **t-al-c3** (actuals-loader): each row nets Actual = Debit - Credit at paise and applies the DUB-NUR->DUB normalization from the provided SAP Entries Mapping.xlsx; raw lines + original AND canonical keys are retained linked to a new ingest_batch
 - **t-al-c4** (actuals-loader): a re-upload of a period is idempotent: a new ingest_batch becomes active and the prior batch is retained (not erased), with no duplicate rows
+- **t-rp-c1** (reconciliation-proof): a demonstrated warehouse-DB test grounds the July DUB net to EXACTLY Rs 11,512,712.07 (paise) across the accepted raw sap_transaction rows AND the actual_by_key_month gold view, against a frozen in-repo reconciliation fixture
+- **t-rp-c2** (reconciliation-proof): re-uploading the July DUB actuals replaces that month with no duplicate rows and no double-counting in the gold view (idempotency), with the prior batch retained
 
 ### Lessons in force
 
@@ -253,11 +265,14 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at b9000b8a7d57
+- verify.py: ok at 8100829e91c6
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - sap-ingestion story-level closeout aggregate. All 4 tasks shipped and merged to master (warehouse-schema #13, actuals-loader #15, budget-loader #16, reconciliation-proof #17), each with its own three-lens review clean and D-0008 host proof. Hermetic suites green at HEAD (npm run test:hermetic: contract + backend + frontend + quality-gate); verify.py passes. Demonstrated host evidence (D-0008) against docker warehouse-db (127.0.0.1:5433), run by the orchestrator per task: warehouse-schema (warehouse:proof + gated schema test), actuals-loader (gated per-period replace + raw jsonb), budget-loader (gated atomic 12-period replace, prior-batch retention, later-period rollback, no actuals mutation), reconciliation-proof (gated July DUB net = EXACTLY Rs 11,512,712.07 across raw rows AND the actual_by_key_month gold view, whole-upload integrity, idempotent replace; loopback-host guarded; dead-port negative control fails the gated leaf).
+  - 3 command(s) recorded, e.g. `python3 factory/scripts/verify.py -> Verification passed (story HEAD 8100829)`
 
 ## Task reconciliation-proof
 
@@ -330,8 +345,11 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at b9000b8a7d57
+- verify.py: ok at 8100829e91c6
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - sap-ingestion story-level closeout aggregate. All 4 tasks shipped and merged to master (warehouse-schema #13, actuals-loader #15, budget-loader #16, reconciliation-proof #17), each with its own three-lens review clean and D-0008 host proof. Hermetic suites green at HEAD (npm run test:hermetic: contract + backend + frontend + quality-gate); verify.py passes. Demonstrated host evidence (D-0008) against docker warehouse-db (127.0.0.1:5433), run by the orchestrator per task: warehouse-schema (warehouse:proof + gated schema test), actuals-loader (gated per-period replace + raw jsonb), budget-loader (gated atomic 12-period replace, prior-batch retention, later-period rollback, no actuals mutation), reconciliation-proof (gated July DUB net = EXACTLY Rs 11,512,712.07 across raw rows AND the actual_by_key_month gold view, whole-upload integrity, idempotent replace; loopback-host guarded; dead-port negative control fails the gated leaf).
+  - 3 command(s) recorded, e.g. `python3 factory/scripts/verify.py -> Verification passed (story HEAD 8100829)`

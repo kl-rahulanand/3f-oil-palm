@@ -1,0 +1,5 @@
+{
+  "id": "actuals-loader",
+  "title": "SAP actuals Excel loader + idempotent per-period replace",
+  "status": "done"
+}

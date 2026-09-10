@@ -1,7 +1,7 @@
 {
   "generated_by": "implementer",
-  "outcome": "The ingested SAP actuals are now proven correct to source: a demonstrated warehouse-DB test grounds the July 2026 DUB net to EXACTLY Rs 11,512,712.07 (paise) across both the raw sap_transaction rows and the actual_by_key_month gold view, against a frozen in-repo fixture, and proves re-uploading the same month is idempotent (one new active batch, prior retained, no double-counting). This closes sap-ingestion: SAP actuals + MIS budgets ingest into the warehouse and the headline figure a Financial MIS will display is reconciled, paise-exact, and stable under re-upload.",
+  "outcome": "sap-ingestion delivers the Financial MIS data foundation: SAP actuals and MIS budgets ingest into a dedicated warehouse (guarded POST /api/ingest/actuals and /budget), each upload replaced idempotently per period with prior-batch retention, and the headline figure is proven to source \u2014 July 2026 DUB actuals reconcile to EXACTLY Rs 11,512,712.07 (paise) across both the raw sap_transaction rows and the actual_by_key_month gold view, stable under re-upload. Four tasks shipped: warehouse-schema (#13), actuals-loader (#15), budget-loader (#16), reconciliation-proof (#17). No governed budget-actual join or UI yet (governed-joins / reporting stories).",
   "issue": "sap-ingestion",
-  "commit": "98eacbe227d40f064bc0c8d645a05ae27501bf4a",
-  "recorded_at": "2026-09-09T19:47:06+00:00"
+  "commit": "8100829e91c6ca48b25baf1d42e6d478710915ed",
+  "recorded_at": "2026-09-10T01:54:17+00:00"
 }
