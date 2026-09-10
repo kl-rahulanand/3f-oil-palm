@@ -136,8 +136,8 @@ test("the resolved bucket folds repeated GL entries and assigns actual and budge
   if (response.outcome !== "resolved") return;
   assert.equal(response.result.rows[0].month, "2026-07-01");
   assert.deepEqual(
-    response.bucketRows.map(({ costCentre, glCode, provisional, reason, actual, budget }) => ({
-      costCentre,
+    response.bucketRows.map(({ costCentres, glCode, provisional, reason, actual, budget }) => ({
+      costCentres,
       glCode,
       provisional,
       reason,
@@ -146,7 +146,7 @@ test("the resolved bucket folds repeated GL entries and assigns actual and budge
     })),
     [
       {
-        costCentre: null,
+        costCentres: ["Primary", "Secondary"],
         glCode: "50001701",
         provisional: true,
         reason: "Primary: GL absent from Sheet1; Secondary: GL absent from Sheet2",
@@ -154,7 +154,7 @@ test("the resolved bucket folds repeated GL entries and assigns actual and budge
         budget: 24,
       },
       {
-        costCentre: null,
+        costCentres: [],
         glCode: "99999999",
         provisional: true,
         reason: "GL absent from Mapping Master",

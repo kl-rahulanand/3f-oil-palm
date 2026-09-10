@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T19:09:32+00:00", "story": "mis-selection", "detail": "Replacing MisSelectionBucketRow.costCentre with costCentres requires backend/src/mis/mis-selection.dto.ts to keep the typed Swagger response DTO aligned, but that mechanically implied file is absent f"}

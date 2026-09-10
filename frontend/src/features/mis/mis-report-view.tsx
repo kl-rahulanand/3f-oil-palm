@@ -226,10 +226,10 @@ function BucketRows({ response }: Readonly<{ response: MisSelectionResolvedRespo
       </div>
       <ul>
         {response.bucketRows.map((row) => (
-          <li key={`${row.plant}-${row.costCentre ?? "budget"}-${row.glCode}`}>
+          <li key={`${row.plant}-${row.glCode}`}>
             <div className="mis-bucket-triple">
               <span>{row.plant}</span>
-              <span>{row.costCentre ?? "Budget only"}</span>
+              <span>{formatCostCentres(row.costCentres)}</span>
               <strong>{row.glCode}</strong>
             </div>
             <div className="mis-bucket-amounts">
@@ -258,6 +258,11 @@ function isComplete(selection: MisSelectionRunRequest): boolean {
 
 function formatAmount(value: number): string {
   return `₹${amountFormatter.format(value)}`;
+}
+
+function formatCostCentres(costCentres: string[]): string {
+  if (costCentres.length === 0) return "No cost centre in master";
+  return costCentres.length === 1 ? costCentres[0] : `${costCentres.length} cost centres`;
 }
 
 function formatCell(value: string | number | null, column: ResultTable["columns"][number]): string {

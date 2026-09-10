@@ -109,7 +109,7 @@ test("the unmapped GL bucket is rendered as a reviewable list of its triples wit
     bucketRows: [
       {
         plant: "DUB",
-        costCentre: "Primary",
+        costCentres: ["Primary"],
         glCode: "50001701",
         misLine: "unmapped-GL",
         provisional: true,
@@ -119,13 +119,23 @@ test("the unmapped GL bucket is rendered as a reviewable list of its triples wit
       },
       {
         plant: "DUB",
-        costCentre: null,
+        costCentres: [],
         glCode: "99999999",
         misLine: "unmapped-GL",
         provisional: true,
         reason: "GL absent from Mapping Master",
         actual: 0,
         budget: 50,
+      },
+      {
+        plant: "DUB",
+        costCentres: ["Primary", "Secondary"],
+        glCode: "50001702",
+        misLine: "unmapped-GL",
+        provisional: true,
+        reason: "Primary: mapping review required; Secondary: mapping review required",
+        actual: 75,
+        budget: 0,
       },
     ],
   });
@@ -139,10 +149,13 @@ test("the unmapped GL bucket is rendered as a reviewable list of its triples wit
   expect(rows[0]).toHaveTextContent("Actual ₹125.00");
   expect(rows[0]).toHaveTextContent("Budget ₹200.00");
   expect(within(rows[1]).getByText("DUB")).toBeInTheDocument();
-  expect(within(rows[1]).getByText("Budget only")).toBeInTheDocument();
+  expect(within(rows[1]).getByText("No cost centre in master")).toBeInTheDocument();
   expect(within(rows[1]).getByText("99999999")).toBeInTheDocument();
   expect(rows[1]).toHaveTextContent("Actual ₹0.00");
   expect(rows[1]).toHaveTextContent("Budget ₹50.00");
+  expect(within(rows[2]).getByText("2 cost centres")).toBeInTheDocument();
+  expect(rows[2]).toHaveTextContent("Primary: mapping review required; Secondary: mapping review required");
+  expect(rows[2]).toHaveTextContent("Actual ₹75.00");
 });
 
 test("a resolved selection actually renders the governed numbers so the returned result rows and the totals appear on the page rather than the page passing while showing nothing", async () => {

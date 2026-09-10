@@ -1,19 +1,19 @@
 {
   "generated_by": "autoreview",
   "task_id": "selection-ui",
-  "score": 7,
-  "summary": "security lens over selection-ui (17 product path(s), 23ed18e..00347bf, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The main UI and response-shape handling are implemented, but the required unmapped-GL review artifact computes its amounts at the wrong grain. This produces materially incorrect governed financial values for valid mapping-master configurations containing repeated GL codes across cost centres.",
-  "blocking_findings": [
+  "score": 9,
+  "summary": "security lens over selection-ui (17 product path(s), 23ed18e..3e7d39a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The main selection flow and security boundaries shown in the bundle appear sound, with no exposed credentials or concrete authentication bypass. However, the bucket review UI misclassifies the explicitly supported multi-cost-centre GL case as Budget-only, making the user-facing mapping artifact materially inaccurate.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "[P1] Do not derive per-triple bucket amounts from GL-level results (backend/src/mis/mis-selection.service.ts:149): The execution result has already been re-aggregated to GL/month, but this map keys amounts only by `gl_code` and later assigns that aggregate to every configured bucket row for the GL."
+      "area": "frontend/src/features/mis",
+      "summary": "[P2] Do not label every null cost centre as budget-only (frontend/src/features/mis/mis-report-view.tsx:233): The backend deliberately sets `costCentre` to null both for a genuinely Budget-only GL and when one GL has bucket entries across multiple cost centres; the new controller test demonstrates the latter with nonzero Actual spend."
     }
   ],
-  "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
-    ".next/trace",
+    ".gitignore",
     "backend/src/db/migrate.test.ts",
     "backend/src/db/migrate.ts",
     "backend/src/mis/mis-selection.controller.test.ts",
@@ -35,10 +35,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "1b0f80396756fc52158016c602288589dd70ebc928adb09b9e7062e33e6afaad",
-  "brief_sha256": "77dead8b2097813815622519cb558000bf8c94bfcf3b9502a2e4242bd2d612d6",
-  "branch_diff_digest": "77421604e4ce384cf8eb1d6798f80b8a254a76e01cc2a1d40ae751c2f0685a16",
+  "review_run_id": "5acdf13db250bdd74076ac6629694b10137496ffe8808e6dbd2d2d18ba923aa3",
+  "brief_sha256": "9f3334dd28a9ee7621bc1871725568c026a6fde765e6d51c0b577f2caf91f648",
+  "branch_diff_digest": "3f9e4d4eb7e7cad6a33043088b2bfe58450cd2d1d472b4d700566b5ecaaccf6d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T18:50:27+00:00",
-  "commit": "00347bf767adb79962adb9ee556b79b311b2fd87"
+  "recorded_at": "2026-09-10T19:06:54+00:00",
+  "commit": "3e7d39a845a8b4de755caf0e441df7fb0fc88a3f"
 }

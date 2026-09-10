@@ -158,7 +158,7 @@ function bucketRows(resolution: MasterResolvedSelection, result: ResultTable) {
   for (const row of resolution.bucketRows) grouped.set(row.gl_code, [...(grouped.get(row.gl_code) ?? []), row]);
   const configured = [...grouped.entries()].map(([glCode, rows]) => ({
     plant: resolution.plant,
-    costCentre: rows.length === 1 ? rows[0].cost_center : null,
+    costCentres: rows.map(({ cost_center }) => cost_center),
     glCode,
     misLine: rows[0].mis_line,
     provisional: rows.some(({ provisional }) => provisional),
@@ -175,7 +175,7 @@ function bucketRows(resolution: MasterResolvedSelection, result: ResultTable) {
     ...configured,
     ...dynamicCodes.map((glCode) => ({
       plant: resolution.plant,
-      costCentre: null,
+      costCentres: [],
       glCode,
       misLine: UNMAPPED_GL_LINE,
       provisional: true,

@@ -2,18 +2,18 @@
   "generated_by": "autoreview",
   "task_id": "selection-ui",
   "score": 7,
-  "summary": "performance lens over selection-ui (17 product path(s), 23ed18e..00347bf, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The UI and API additions otherwise follow the supplied contracts, and the diff contains no compatibility wrapper or retained legacy symbol. However, the backend derives bucket-row amounts from GL-level result rows and repeats those aggregates for every matching cost-centre triple, so the core reviewable bucket can display materially incorrect and duplicated values.",
+  "summary": "performance lens over selection-ui (17 product path(s), 23ed18e..3e7d39a, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The main UI and API additions follow the stated contracts, and the diff contains no compatibility wrappers, aliases, or legacy leftovers. However, unknown GLs are still emitted at result-row/month grain after their amounts have been aggregated at GL grain, so multi-month selections duplicate both the review rows and their full totals. That is a blocking correctness regression in the required bucket surface.",
   "blocking_findings": [
     {
       "category": "bug",
       "area": "backend/src/mis",
-      "summary": "[P1] Do not assign GL-level totals to every bucket triple (backend/src/mis/mis-selection.service.ts:164): `amounts` is keyed only by `gl_code`, while `configured` can contain multiple cost-centre triples for the same GL."
+      "summary": "[P1] De-duplicate unconfigured bucket rows before attaching aggregated amounts (backend/src/mis/mis-selection.service.ts:181): The unconfigured portion of `bucketRows` is still produced by mapping matching `result.rows`, while `amounts.get(glCode)` now contains the total aggregated across every month for that GL."
     }
   ],
   "non_blocking_findings": [],
   "recommendation": "request-changes",
   "reviewed_scope": [
-    ".next/trace",
+    ".gitignore",
     "backend/src/db/migrate.test.ts",
     "backend/src/db/migrate.ts",
     "backend/src/mis/mis-selection.controller.test.ts",
@@ -35,10 +35,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "1b0f80396756fc52158016c602288589dd70ebc928adb09b9e7062e33e6afaad",
-  "brief_sha256": "77dead8b2097813815622519cb558000bf8c94bfcf3b9502a2e4242bd2d612d6",
-  "branch_diff_digest": "77421604e4ce384cf8eb1d6798f80b8a254a76e01cc2a1d40ae751c2f0685a16",
+  "review_run_id": "5acdf13db250bdd74076ac6629694b10137496ffe8808e6dbd2d2d18ba923aa3",
+  "brief_sha256": "9f3334dd28a9ee7621bc1871725568c026a6fde765e6d51c0b577f2caf91f648",
+  "branch_diff_digest": "3f9e4d4eb7e7cad6a33043088b2bfe58450cd2d1d472b4d700566b5ecaaccf6d",
   "residual_risks": [],
-  "recorded_at": "2026-09-10T18:50:27+00:00",
-  "commit": "00347bf767adb79962adb9ee556b79b311b2fd87"
+  "recorded_at": "2026-09-10T19:06:54+00:00",
+  "commit": "3e7d39a845a8b4de755caf0e441df7fb0fc88a3f"
 }

@@ -124,8 +124,8 @@ class MisSelectionBucketRowDto implements MisSelectionBucketRow {
   @ApiProperty({ example: "DUB" })
   plant!: string;
 
-  @ApiProperty({ example: "Primary", nullable: true })
-  costCentre!: string | null;
+  @ApiProperty({ example: ["Primary", "Secondary"], type: [String] })
+  costCentres!: string[];
 
   @ApiProperty({ example: "50001701" })
   glCode!: string;

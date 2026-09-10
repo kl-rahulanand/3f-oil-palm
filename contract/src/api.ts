@@ -220,7 +220,7 @@ export interface MisSelectionScopeReadout {
 
 export interface MisSelectionBucketRow {
   plant: string;
-  costCentre: string | null;
+  costCentres: string[];
   glCode: string;
   misLine: string;
   provisional: boolean;
