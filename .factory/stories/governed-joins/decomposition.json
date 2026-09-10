@@ -1,0 +1,117 @@
+{
+  "issue": "governed-joins",
+  "story": "governed-joins",
+  "tasks": [
+    {
+      "id": "gl-month-rollups",
+      "title": "GL+month active rollups for Actual (DUB) and Budget",
+      "objective": "Reduce both sides to one active row per (gl_code, month) BEFORE any join, so the later cross-object composition cannot fan out.",
+      "acceptance_criteria": [
+        "a reproducible warehouse rollup reduces DUB actuals to (gl_code, month) as SUM(actual_net) over cost centres (WHERE plant='DUB'), and an active-budget rollup reduces the ACTIVE budget batch to (gl_code, month) as SUM(budget_amount)::numeric(18,2) with period aliased to month, each reflecting ONLY the active batch",
+        "the budget rollup preserves the set of cost_center (Budget Components) labels per (gl_code, month) key as informational (never a join key), and carries raw rollover_amount untouched with no measure",
+        "a demonstrated warehouse-DB test proves each rollup reflects only the active batch: a retained prior actuals/budget batch does not change the rollup, and a budget reload swaps the active batch without altering actuals"
+      ],
+      "dependencies": [],
+      "user_facing": false,
+      "plan_contracts": [
+        {
+          "id": "t-glm-c1",
+          "statement": "a reproducible warehouse rollup reduces DUB actuals to (gl_code, month) as SUM(actual_net) over cost centres (WHERE plant='DUB'), and an active-budget rollup reduces the ACTIVE budget batch to (gl_code, month) as SUM(budget_amount)::numeric(18,2) with period aliased to month, each reflecting ONLY the active batch",
+          "source": "backend/src/warehouse/warehouse-schema.ts"
+        },
+        {
+          "id": "t-glm-c2",
+          "statement": "the budget rollup preserves the set of cost_center (Budget Components) labels per (gl_code, month) key as informational (never a join key), and carries raw rollover_amount untouched with no measure",
+          "source": "docs/decisions/0016-governed-joins-poc-scope.md"
+        },
+        {
+          "id": "t-glm-c3",
+          "statement": "a demonstrated warehouse-DB test proves each rollup reflects only the active batch: a retained prior actuals/budget batch does not change the rollup, and a budget reload swaps the active batch without altering actuals",
+          "source": "docs/decisions/0004-pulse-governed-joins.md"
+        }
+      ],
+      "write_scope": [
+        "backend/src/warehouse/warehouse-schema.ts",
+        "backend/drizzle-warehouse/0002_gl_month_rollups.sql",
+        "backend/drizzle-warehouse/meta/_journal.json",
+        "backend/src/warehouse/warehouse-schema.test.ts",
+        "backend/src/warehouse/gl-month-rollups.db.test.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "the actual_by_gl_month view reduces DUB actuals to gl_code and month as SUM of actual_net over cost centres, filtered to plant DUB and inheriting the active-batch filter through actual_by_key_month with no direct ingest_batch predicate, and exposes a constant plant DUB column; the budget_by_gl_month view rolls the active budget batch up to gl_code and month via its own direct join to ingest_batch on source_kind budget and is_active as SUM of budget_amount with period aliased to month, each asserted by SQL shape including the numeric 18 2 cast and the group-by key",
+          "path": "backend/src/warehouse/warehouse-schema.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "budget_by_gl_month preserves the deterministic set of cost_center Budget Components labels per gl_code and month key via array_agg distinct cost_center order by cost_center as an informational aggregate never a grouping or join key and carries raw rollover_amount summed but exposed by no measure, asserted by SQL shape including the order by inside the aggregate",
+          "path": "backend/src/warehouse/warehouse-schema.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": "FIRST task of governed-joins: two READ-ONLY warehouse GL+month rollup views that reduce each ingested object to ONE active row per (gl_code, month) BEFORE any cross-object join (the join itself is task 2, composed-relation). NO new endpoint, grant, base table, or dependency. It EXTENDS the warehouse schema built in sap-ingestion; mirror the existing actual_by_key_month view EXACTLY (backend/src/warehouse/warehouse-schema.ts:117-134, a drizzle pgView; its DDL is emitted in backend/drizzle-warehouse/0000_*.sql). GROUNDING: actual_by_key_month is Plant+CostCenter+GL+month (SUM(debit-credit)); mis_budget (warehouse-schema.ts:86-115) has NO plant, its month column is `period` (month-truncated), cost_center is the MIS 'Budget Components' LABEL, unique grain (batch_id,format_id,period,line_id,gl_code,cost_center); ingest_batch (warehouse-schema.ts:23-46) has the partial-unique active pointer on (source_kind, period) WHERE is_active. Decisions 0004 (no pre-join beyond this governed layer), 0015 (warehouse snake_case), 0016 (gl_code+month within DUB; Budget-Components label informational; roll-over measure deferred but raw rollover_amount kept). VIEW 1 actual_by_gl_month: SELECT 'DUB'::text AS plant, gl_code, month, SUM(actual_net)::numeric(18,2) AS actual_net FROM actual_by_key_month WHERE plant='DUB' GROUP BY gl_code, month \u2014 reduce the existing gold view across cost centres for the single DUB plant (the fan-out fix: without it, joining Plant+CostCenter+GL+month to a GL+month budget repeats Budget per cost centre). HUMAN-decided seam (task-1 grill round): EXPOSE a constant plant='DUB' column so task 2 can inject/verify its Actual-side scope predicate against the rollup. NOTE the active-batch filter is INHERITED through actual_by_key_month (which already filters source_kind='actuals' AND is_active) \u2014 this view has NO direct ingest_batch predicate; do not duplicate the join. VIEW 2 budget_by_gl_month: SELECT b.gl_code, b.period AS month, SUM(b.budget_amount)::numeric(18,2) AS budget_net, SUM(b.rollover_amount)::numeric(18,2) AS rollover_net, array_agg(DISTINCT b.cost_center ORDER BY b.cost_center) AS budget_component_labels FROM mis_budget b JOIN ingest_batch bt ON bt.id=b.batch_id WHERE bt.source_kind='budget' AND bt.is_active GROUP BY b.gl_code, b.period \u2014 the active budget batch only via its OWN direct join to ingest_batch; cost_center is NEVER a GROUP BY/join key, only a DETERMINISTIC informational label SET (the ORDER BY inside array_agg is REQUIRED \u2014 Postgres gives no order otherwise, and provenance/golden fixtures need determinism); rollover_net is carried but exposed by NO measure (roll-over deferred). Add both as drizzle pgViews in warehouse-schema.ts and their CREATE VIEW DDL in a NEW migration backend/drizzle-warehouse/0002_gl_month_rollups.sql AND its journal entry in backend/drizzle-warehouse/meta/_journal.json (both are owned; a migration not in the journal will not apply on a clean warehouse), applied by `npm --prefix backend run warehouse:migrate` (follow how 0000/0001 are wired). HERMETIC TESTS (warehouse-schema.test.ts, in test:hermetic): assert each view's SQL shape (active-batch filter, the (gl_code, month) GROUP BY, numeric(18,2) casts, DUB filter on actuals, the label-set aggregate, rollover carried) \u2014 regex/string assertions like the existing actual_by_key_month tests, no DB. D-0008 GATED PROOF (a NEW backend/src/warehouse/gl-month-rollups.db.test.ts, `{ skip: process.env.WAREHOUSE_DB_TEST !== '1' }`): migrateWarehouse(), then use IngestionRepository (NOT direct SQL inserts \u2014 the proof must exercise the atomic candidate-load-then-flip active-batch invariant) to: (a) load a PRIOR actuals batch then a REPLACEMENT actuals batch (across MULTIPLE cost centres for one gl_code+month in DUB) and assert the prior stays inactive, ONLY the replacement contributes, and actual_by_gl_month sums the replacement's cost centres to ONE row (with plant='DUB'); (b) load a PRIOR budget batch then a REPLACEMENT budget batch and assert budget_by_gl_month reflects ONLY the active batch and exposes the deterministic label set; (c) a budget reload swaps the active budget batch WITHOUT changing actuals. Guard the destructive TRUNCATE to loopback-only hosts and add a dead-port negative control. REGISTRATION (every backend *.test.ts is in EXACTLY ONE declared hermetic suite): add gl-month-rollups.db.test.ts to test:hermetic AND its hermeticTests registry in tools/quality-gate.test.mjs (the gated leaf self-skips there). RUNNABLE PROOF: EXTEND the existing backend/package.json `test:warehouse-proof` script (which today runs ONLY reconciliation.repository.test.ts) to run BOTH proofs \u2014 RETAIN reconciliation.repository.test.ts and add this file \u2014 and because both destructively TRUNCATE shared warehouse tables they MUST run SERIALIZED (node --test with --test-concurrency=1, or a sequential invocation), so one proof never wipes the other mid-run. Commit tests.json with the pinned host command (`... WAREHOUSE_DB_TEST=1 npm --prefix backend run test:warehouse-proof`, TS_NODE_PROJECT retained) + pass counts + the dead-port negative control (per decision 0009 + the sap-ingestion D-0008 lessons: demonstrated host evidence run by the orchestrator; the evidence record must be COMMITTED into the diff BEFORE review). NEVER read/write/join across the two objects here (that is task 2).",
+      "review_budget": {
+        "max_changed_files": 8,
+        "max_changed_lines": 700,
+        "reason": "Two read-only warehouse GL+month rollup views (a DUB actual reduction + an active-budget rollup preserving the Budget-Components label set) mirroring actual_by_key_month, their migration, hermetic SQL-shape tests, and a WAREHOUSE_DB_TEST=1 gated proof that each reflects only the active batch and the actual reduction does not repeat across cost centres. No endpoint, grant, base table, or dependency."
+      }
+    },
+    {
+      "id": "composed-relation",
+      "title": "Closed, typed, code-composed Budget\u22c8Actual relation with two-sided scope",
+      "objective": "Provide ONE governed financial gold relation that full-outer-joins the two GL+month rollups with zero-fill, serves every gold-object consumer, and enforces role-based access with the scope predicate inside both source CTEs.",
+      "acceptance_criteria": [
+        "a single closed, typed code-composed financial relation full-outer-joins the two GL+month rollups on (gl_code, month) with COALESCE zero-fill (a Budget-only key and an Actual-only key both appear), replacing the SQL builder's multi-gold-object rejection; it lists every physical object in objectsTouched for the validator allow-list and provides relation semantics to freshness, dimension enumeration, RBAC scope validation and reconciliation",
+        "a governed-financial read action is required at the shared SelectionExecutor execution boundary together with the domain and Actual/Budget/% grants, and the row-scope predicate is injected INSIDE each source CTE before the join (Actual by plant, Budget by its trusted derived constant DUB); a denial case and a predicate-placement test are included",
+        "a demonstrated warehouse-DB test proves the composed relation zero-fills correctly and does NOT fan out: a GL with multiple actual cost centres does not repeat Budget, and totals are exact"
+      ],
+      "dependencies": [
+        "gl-month-rollups"
+      ],
+      "user_facing": false
+    },
+    {
+      "id": "governed-domain-measures",
+      "title": "Code-authored Actual / Budget / % measures over the composed relation",
+      "objective": "Author the governed financial domain and its measures in code so report, drill-down and assistant share one definition; the LLM only selects measures.",
+      "acceptance_criteria": [
+        "a code-authored financial DomainSpec and Actual (SUM(Debit-Credit)), Budget (SUM(budget_amount)) and % MeasureSpecs are registered in semanticLayer baseDomains over the composed relation; two-column expressions are code-authored (not the runtime builder), and the LLM/runtime never authors the SQL",
+        "% follows the full nil rule: 0/0 -> NA/blank; Actual>0,Budget=0 -> over-budget (no %); Actual<0,Budget=0 -> credit / negative actual (no %); i.e. no percentage for any non-zero Actual against zero Budget, with the positive/negative labels distinguished"
+      ],
+      "dependencies": [
+        "composed-relation"
+      ],
+      "user_facing": false
+    },
+    {
+      "id": "golden-provenance",
+      "title": "Golden-answer fixtures (no fan-out) + provenance lineage",
+      "objective": "Gate correctness with exact golden fixtures and make every governed number reproducible and explainable.",
+      "acceptance_criteria": [
+        "a golden-answer reconciliation fixture asserts EXACT expected values for matched, Budget-only (zero-filled), Actual-only (zero-filled), duplicate/multi-cost-centre (no fan-out), reload/active-swap (answer unchanged, actuals untouched), and %-edge (0/0 NA, positive over-budget, negative credit/negative-actual) cases, as demonstrated host evidence (D-0008)",
+        "provenance for every governed number carries the measure definition + composed SQL PLUS active source batch ids keyed by (source, period), row-aligned source-presence (matched / budget-only / actual-only, or a set for aggregate rows), and a deterministic set of Budget-Components labels, all captured within the same composed query"
+      ],
+      "dependencies": [
+        "governed-domain-measures"
+      ],
+      "user_facing": false
+    }
+  ],
+  "generated_by": "docs-decomposer",
+  "user_facing": false,
+  "project": "3oilpalm",
+  "epic": "data-foundation",
+  "plan_file": "plans/active/governed-joins-financial-semantic-layer-governed-joins.md",
+  "plan_sha256": "d2e0e7cce72ad535214615da07715538e2cf545e049ba758a1067287856b49d6",
+  "commit": "68151bedefd19503223756456caf2bf197aa4779"
+}

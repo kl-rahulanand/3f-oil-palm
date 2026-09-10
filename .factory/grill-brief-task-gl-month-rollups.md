@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft gj-plan.md
+# Cold-read grill — gate: task — task plan gl-month-rollups
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -374,6 +374,25 @@ A `pass` with unresolved findings is refused by the recorder. Grill hard;
 downstream implementation inherits whatever you let through.
 
 
+## Lessons already in force for these paths
+
+The plan must design AROUND these. A plan that ignores one is not merely unlucky later — it is wrong now, and saying so is part of this read.
+
+- A required_tests entry must name a REAL leaf test (id = the string in test("...")), not the file path, and must pin TS_NODE_PROJECT=backend/tsconfig.json because forge runs it from repo root; otherwise junit-run's --test-name-pattern matches nothing and ts-node skips the workspace tsconfig, so the gate reports pass without running assertions. Always verify with a negative control (a required test whose negative control cannot fail is not proof).
+- Enforce at the DB level (a trigger, like the immutability trigger) that sap_transaction.month equals its ingest_batch.period and mis_budget.period equals its batch period; otherwise a mis-periodized row double-counts in actual_by_key_month, which groups by ROW month while active-uniqueness is keyed on BATCH period.
+- The WAREHOUSE_PG_* separation guard must REJECT when the normalized host AND port match the app DB, regardless of database name (canonicalize localhost/127.0.0.1/::1 and equivalent aliases) — otherwise warehouse DDL can be applied to the application Postgres server under a different db name.
+- The demonstrated warehouse proof must RUN migrate + the fixture against the warehouse DB via a committed, re-runnable warehouse:proof script that EXERCISES IngestionRepository's atomic candidate-load-then-flip; a hermetic test that only greps seed-proof.sql text is false-green. Do NOT build a controller/API here (that is the actuals-loader task) — exercise the repository directly.
+- The WAREHOUSE_PG_* separation guard must RESOLVE both the warehouse host and the app pg host via dns.promises.lookup(host,{all:true}) and reject when their resolved IP sets INTERSECT and the ports match (normalize IPv4-mapped ::ffff: and IPv6 loopback). A hand-picked list of loopback spellings + isIP() cannot catch DNS aliases or IPv6-mapped aliases of the app host. This makes loadWarehousePostgresConfig async — make createWarehouseWritePool async and await it in warehouse:migrate/proof and the hermetic test.
+- The D-0008 live warehouse proof must be a COMMITTED, reviewer-visible DB-backed test (e.g. backend/src/warehouse/warehouse-proof.db.test.ts calling proveWarehouse, registered in the backend package.json test:db script) so the required execution is provable from the diff itself — a tests.json narrative alone is invisible to the cold-diff reviewer and reads as an absent D-0008 record.
+- Put the DB-backed warehouse proof in its OWN file backend/src/warehouse/warehouse-proof.db.test.ts registered ONLY in test:db (and the db list of tools/quality-gate.test.mjs); keep warehouse-schema.test.ts hermetic-only. NEVER register one test file in both test:hermetic and test:db — tools/quality-gate.test.mjs asserts exactly one suite per file and fails the whole verify if a file appears twice.
+- SUPERSEDES the separate-file guidance for warehouse-schema: its write_scope does NOT include warehouse-proof.db.test.ts, so do NOT create that file. Keep the DB proof test INSIDE backend/src/warehouse/warehouse-schema.test.ts gated by WAREHOUSE_DB_TEST=1 (skips under plain test:hermetic, runs the migrate + IngestionRepository proof when the env + WAREHOUSE_PG_* are set), registered ONLY in test:hermetic. REMOVE warehouse-schema.test.ts from the test:db script and the db-list in tools/quality-gate.test.mjs, and drop the WAREHOUSE_DB_TEST env added to test:db — quality-gate requires each test file in exactly ONE suite and fails verify otherwise. This is the ONLY remaining fix.
+- The sap_transaction 'raw' jsonb column is ADDITIVE - add it to warehouse-schema.ts + a NEW backend/drizzle-warehouse/0001_*.sql migration (generate-once, apply-only via warehouse:migrate). Do NOT modify backend/src/warehouse/warehouse-schema.test.ts (out of write_scope); its column/constraint assertions use .includes and are non-exhaustive and the 0000 migration is unchanged, so it stays green untouched. Assert the raw column IN-SCOPE: sap-actuals.parser.test.ts (parser emits the full raw row) and the WAREHOUSE_DB_TEST=1-gated ingest.service.test.ts (raw persists).
+- tools/quality-gate.test.mjs validateIgnoredBaseline asserts .prettierignore's non-comment lines deep-equal the keys of its ignoredBaselineHashes map. So when D-0006 requires removing a file (e.g. backend/src/db/migrate.ts) from .prettierignore, you MUST also remove that path's entry from the ignoredBaselineHashes map in tools/quality-gate.test.mjs (both in write_scope) in the SAME change, and ensure the now-unignored file is prettier-formatted so format:check passes. Keep .prettierignore and ignoredBaselineHashes in sync.
+- The pinned WAREHOUSE_DB_TEST=1 host command must be prefixed with TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1; without them 'node --require ts-node/register --test <file.ts>' loads the TypeScript file as a single empty testcase that FALSE-PASSES (tests 1/pass 1) even against a dead DB port — verified: with the prefix the good port gives tests 4/pass 4 and a bad port fails the 2 gated DB leaves (ECONNREFUSED); without it a bad port still 'passes'.
+- autoreview blocks a PROOF task whose gated WAREHOUSE_DB_TEST=1 leaf is registered only in test:hermetic (where it self-skips) — from the diff there is no registered command that RUNS it. Add the gated test file to backend/package.json test:db (the DB-backed suite a Postgres/warehouse runner executes with WAREHOUSE_DB_TEST=1), alongside the committed tests.json execution record + the pinned host command in the plan. This makes the execution path provable from the diff itself; the demonstrated-host-evidence model (decision 0009 / D-0008) is unchanged — CI without a warehouse container still skips it.
+- Registering the gated reconciliation test in test:db is NOT enough: test:db does not set WAREHOUSE_DB_TEST=1, so the leaf still self-skips there and autoreview reads it as an unrunnable proof. FIX: add a dedicated backend package.json script 'test:warehouse-proof' that itself sets WAREHOUSE_DB_TEST=1 and runs backend/src/warehouse/reconciliation.repository.test.ts (the WAREHOUSE_PG_*/PGHOST/PGPORT connection env is still supplied by the host/operator, NOT hardcoded), and REMOVE the file from test:db (it is a warehouse-DB test, not an app-DB test). Then the registered command actually EXECUTES the proof when run against a warehouse; the pinned host command in tests.json becomes 'WAREHOUSE_PG_*... npm --prefix backend run test:warehouse-proof'. Keep it in test:hermetic too (self-skips there). Still demonstrated-host-evidence (decision 0009/D-0008), NOT CI-enforced.
+- Not a defect (Decisions): Factually incorrect and contradicts the settled D-0008 model. (1) The claim that the supplied evidence contains no invocation of test:warehouse-proof is false: the committed tests.json commands_run records 'npm --prefix backend run test:warehouse-proof -> tests 4 / pass 4 / fail 0 / skipped 0' (the gated warehouse leaf EXECUTES because the script sets WAREHOUSE_DB_TEST=1) plus a dead-port negative control (fail 1, ECONNREFUSED). Performance and security accepted this same evidence and approved this round. (2) The warehouse proof is committed, reviewer-visible and runnable via the registered test:warehouse-proof script. (3) The story plan Decisions section settles that DB-backed warehouse proofs run as DEMONSTRATED HOST EVIDENCE (docker warehouse, WAREHOUSE_PG_*) per D-0008, NOT inside the enforced hermetic path; demanding a non-skipped enforced execution is CI-enforcement the plan defers. — raised as "[P1] Record an execution of the gated warehouse proof (backend/src/warehouse/reconciliation.repository.test.ts:107): The only recorded execution is `npm run tes"
+- The reconciliation D-0008 gated leaf TRUNCATEs ingest_batch + sap_transaction CASCADE on whatever DB WAREHOUSE_PG_* points at. Guard it: BEFORE truncating, assert the warehouse host (WAREHOUSE_PG_HOST) is loopback/local (127.0.0.1, ::1, or localhost) and THROW a clear error refusing to run against a non-local warehouse — so a misconfigured WAREHOUSE_PG_* can never wipe a shared/production warehouse. Also fix the P2: tools/quality-gate.test.mjs wrapping the declared test lists in new Set removes the gate's exactly-one-suite detection (a file registered in two suites is silently deduped) — compare with duplicate detection preserved (e.g. detect duplicates before dedup, or assert no file appears in more than one suite) instead of Set-then-compare.
 
 ## Already answered on this story — verify, do not re-ask
 
@@ -434,159 +453,126 @@ These questions were put to the human and answered. Two obligations:
   A: PoC-join on GL + month, single plant DUB (Rec.)
 - Q: governed-joins RBAC (Finding 4): the spec says inject the row-scope predicate on BOTH objects for the full-outer join. For this PoC, what is the read-side RBAC model — which determines whether asymmetric one-sided visibility (user can see Actual but not Budget for a key) can even occur and needs a concrete zero-fill-vs-conceal policy + denial fixtures?
   A: Role-based all-or-nothing (Rec.)
+- Q: governed-joins plan grill (Q4): the settled %-nil rule covers 0/0 (NA/blank) and Actual>0,Budget=0 (over-budget). But Actual = Debit − Credit can be NEGATIVE (a net credit), and the spec defines no behavior for Actual<0 with Budget=0. What should the governed layer show for a NEGATIVE actual against zero budget?
+  A: No %, label 'credit / negative actual' (Rec.)
 
-## The artifact under interrogation (plan draft gj-plan.md)
+## The artifact under interrogation (task plan gl-month-rollups)
 
-# Story plan — governed-joins: Financial semantic layer + governed joins
+# Task plan — gl-month-rollups: GL+month active rollups for Actual (DUB) and Budget
 
-Story: governed-joins · Epic: data-foundation · user_facing: false (a backend
-capability the report / drill-down / assistant stories consume)
+Story: governed-joins · Task 1 of 4 · user_facing: false
 
-## Problem
-3F needs `% = Actual ÷ Budget` where Actual (SAP) and Budget (MIS plan) are
-separate, independently-revised objects. Decision 0004 requires ONE governed
-semantic layer that composes measures across those objects so the report,
-drill-down, and assistant read one source of truth with Pulse's trust guarantees.
-Today none of that machinery is populated: the code-authored measure domains are
-empty (`backend/src/semantic/semanticLayer.ts:11` `baseDomains = []`), and the SQL
-builder explicitly **rejects** cross-object composition
-(`backend/src/sql/sqlBuilder.ts:29-32` throws "cross-object composition not
-implemented in scaffold"). sap-ingestion landed the two objects
-(`actual_by_key_month`, `mis_budget`) but deferred the Budget↔Actual bridge here.
+## Objective
+Reduce each ingested object to **one active row per `(gl_code, month)`** via two
+read-only warehouse views, so the later cross-object composition (task 2) cannot
+fan out. This is the fan-out fix the plan grill required: `actual_by_key_month` is
+Plant+**CostCenter**+GL+month, so joining it raw to a GL+month budget would repeat
+Budget across cost centres.
 
-## Scope / Non-goals
-**In scope:** a code-authored governed financial domain with **Actual, Budget, %**
-measures; an **active-budget rollup** so retained batches never double-count; a
-**code-composed, validated full-outer, zero-filled Budget⋈Actual join** on
-`(gl_code, month)` within the single plant DUB; **role-based** RBAC with the scope
-predicate injected on both objects; **golden-answer fixtures** proving no fan-out;
-and **provenance** that carries both active source batch ids + per-row
-source-presence. One governed definition, shared by all three consumers.
+## Acceptance criteria (plan_contracts)
+- **t-glm-c1** — `actual_by_gl_month` reduces DUB actuals to `(gl_code, month)` as
+  `SUM(actual_net)` over cost centres (plant DUB, active batch); `budget_by_gl_month`
+  rolls the ACTIVE budget batch up to `(gl_code, month)` as `SUM(budget_amount)`
+  with `period` aliased to `month`.
+- **t-glm-c2** — `budget_by_gl_month` preserves the SET of `cost_center`
+  (Budget Components) labels per key as informational (never a grouping/join key),
+  and carries raw `rollover_amount` summed but exposed by no measure.
+- **t-glm-c3** — a demonstrated warehouse-DB test proves each rollup reflects only
+  the active batch (a retained prior batch does not change it; a budget reload
+  swaps the active batch without altering actuals).
 
-**Non-goals (deferred, per decision 0016 / 0014):** the Budget-label → SAP
-cost-centre + plant **mapping master** and balanced allocation; the **Roll-over**
-measure (pending Srihari's rule); multi-plant / cost-centre-grain reporting;
-any **LLM- or user-authored joins** (the LLM only *selects* measures); and the
-report / drill-down / assistant **UI** (their own stories consume this layer).
+## What already exists (reuse, do not re-create)
+- `backend/src/warehouse/warehouse-schema.ts:117-134` — `actual_by_key_month`
+  drizzle `pgView` (`SUM(debit-credit)::numeric(18,2)` over active actuals, grouped
+  Plant+CostCenter+GL+month); its DDL is emitted in
+  `backend/drizzle-warehouse/0000_*.sql`. **Mirror this exactly.**
+- `warehouse-schema.ts:86-115` — `mis_budget` (no plant; month col is `period`;
+  `cost_center` = Budget Components label; `budget_amount`/`rollover_amount`).
+- `warehouse-schema.ts:23-46` — `ingest_batch` partial-unique active pointer on
+  `(source_kind, period) WHERE is_active`.
+- `warehouse-migrate.ts` / `warehouse:migrate` (apply-only) — how 0000/0001 migrations run.
+- The gated-proof + flag-setting-script + loopback-guard pattern from sap-ingestion
+  (`reconciliation.repository.test.ts` + the `test:warehouse-proof` script).
 
-## Acceptance Criteria
-1. A code-authored governed financial domain exposes **Actual**, **Budget**, and
-   **%** measures over the ingested objects; Actual = `SUM(Debit − Credit)` and
-   Budget = `SUM(budget_amount)`, each read from its **active** batch only, and
-   `%` follows the settled nil rule (`0/0` → NA/blank; `Actual>0, Budget=0` →
-   over-budget, no percentage). The LLM/runtime never authors the SQL.
-2. Budget⋈Actual composes as a **code-composed, validated full-outer join** on
-   `(gl_code, month)` within DUB that **zero-fills the missing side** (a
-   budget-only key and an actual-only key both appear), with **no fan-out /
-   double-counting**, proven by a golden-answer fixture whose cases (matched,
-   Budget-only, Actual-only, duplicate/multi-line, reload/active-swap, %-edges)
-   each assert **exact** expected values.
-3. **RBAC** is role-based all-or-nothing (a domain/measure/action grant check),
-   with the row-scope predicate injected on **both** objects of the join; no
-   cross-object leak, and a denial case is covered.
-4. **Provenance** for every governed number carries the measure definition + the
-   composed SQL **plus** the two active source batch ids (actuals + budget) and the
-   per-row source-presence (matched / budget-only / actual-only), so a reload's
-   changed answer is attributable to a batch swap, not silent drift.
+## Design
+### View 1 — `actual_by_gl_month`
+```sql
+SELECT gl_code, month, SUM(actual_net)::numeric(18,2) AS actual_net
+FROM actual_by_key_month WHERE plant = 'DUB'
+GROUP BY gl_code, month
+```
+Reduces the existing gold view across cost centres for the single DUB plant (the
+fan-out fix).
 
-## Technical Approach
-- **Active-budget rollup** (mirrors `actual_by_key_month`,
-  `warehouse-schema.ts:117-134`): a `budget_by_key_month` view —
-  `SUM(budget_amount)::numeric(18,2) AS budget_net` (and rollover carried but
-  unpopulated) `FROM mis_budget b JOIN ingest_batch bt ON bt.id=b.batch_id WHERE
-  bt.source_kind='budget' AND bt.is_active GROUP BY b.gl_code, b.period` — the
-  budget month column is `period`, aliased to `month` to conform to Actual's key;
-  plant `DUB` is a constant literal (mis_budget has no plant column).
-- **Governed domain + measures** authored **in code** in
-  `semanticLayer.ts` `baseDomains` as a `DomainSpec` whose `goldObject` is the
-  composed join (below): `MeasureSpec`s Actual (`expr: SUM(actual_net)` /
-  `SUM(debit-credit)`), Budget (`SUM(budget_net)`), and `%` (`format: "percent"`,
-  a code-authored ratio expression guarding divide-by-zero per the nil rule) —
-  two-column expressions are expressible on the code-authored path (the
-  DB-authored compiler cannot do `SUM(a−b)`, so this must be code-authored).
-- **Code-composed join**: extend the builder (or add a composed-object provider)
-  so a governed financial `goldObject` resolves to a **full-outer join** of
-  `actual_by_key_month` (filtered `plant='DUB'`) and `budget_by_key_month` on
-  `(gl_code, month)`, `COALESCE`-zero-filling each side. The join is emitted by
-  code (never the LLM), and `sqlValidator` (join-agnostic) allows it because both
-  tables are allow-listed in `objectsTouched`.
-- **RBAC**: role-based grant check via `SemanticLayer.allowedFor(perms)` +
-  `RequireAction`; the scope predicate (`sqlBuilder.ts:52-59`) is injected on both
-  sides of the composed join for defense-in-depth (plant scope enforced on the
-  Actual side / at the join layer, since `mis_budget` has no plant).
-- **Provenance**: extend the `Provenance` contract (`contract/src/api.ts:251-261`)
-  and its construction (`chat.service.ts:377-394`) with `activeBatchIds`
-  (actuals + budget) and per-row `sourcePresence`.
-- **Golden fixtures**: a `WAREHOUSE_DB_TEST=1` gated test seeds known active
-  actual + budget batches and asserts the composed % / zero-fill / no-fan-out /
-  reload-swap / %-edges against exact values — **demonstrated host evidence
-  (D-0008)** run via a dedicated flag-setting script, committed reviewer-visible.
+### View 2 — `budget_by_gl_month`
+```sql
+SELECT b.gl_code, b.period AS month,
+       SUM(b.budget_amount)::numeric(18,2)   AS budget_net,
+       SUM(b.rollover_amount)::numeric(18,2) AS rollover_net,   -- carried, no measure
+       array_agg(DISTINCT b.cost_center)      AS budget_component_labels  -- informational set
+FROM mis_budget b JOIN ingest_batch bt ON bt.id = b.batch_id
+WHERE bt.source_kind = 'budget' AND bt.is_active
+GROUP BY b.gl_code, b.period
+```
+Active budget batch only; `cost_center` is NEVER a grouping/join key, only an
+informational label set; `rollover_net` is exposed by no measure (roll-over
+deferred, 0016).
 
-## Decisions
-- **0002** — Financial MIS; Actual = `Σ(Debit − Credit)` per key per period.
-- **0004** — governed joins: correct join semantics, RBAC across both objects,
-  validator support, golden fixtures, one shared definition (no split-brain).
-- **0009** — required_tests name real leaves + pin `TS_NODE_PROJECT`.
-- **0014** — sap-ingestion PoC: no mapping master (the deferral this story owns).
-- **0015** — warehouse snake_case (the new rollup view conforms).
-- **0016** — governed-joins PoC scope: join on `gl_code + month` within DUB;
-  Budget-Components label informational; mapping master + roll-over + row-scoping
-  deferred; role-based RBAC; the settled %-nil rule.
-- **D-0008** — the golden-fixture warehouse proof is demonstrated host evidence.
+### Wiring
+Add both as drizzle `pgView`s in `warehouse-schema.ts` and their `CREATE VIEW` DDL
+in a new `backend/drizzle-warehouse/0002_gl_month_rollups.sql` applied by
+`warehouse:migrate` (follow 0000/0001).
 
-## Task Decomposition (capability-driven; sequential unless noted)
-1. **budget-rollup** — the active-budget gold rollup `budget_by_key_month` in the
-   warehouse (view + migration, mirrors `actual_by_key_month`); hermetic schema
-   test + a gated D-0008 proof that it reflects only the active budget batch.
-2. **governed-domain** — the code-authored financial `DomainSpec` + Actual /
-   Budget / % `MeasureSpec`s in `baseDomains`, with the %-nil semantics and
-   allow-list/validator wiring; hermetic semantic-layer tests.
-3. **composed-join** — the code-composed, validated full-outer zero-filled
-   Budget⋈Actual join on `(gl_code, month)` in the builder/executor, RBAC injected
-   on both sides; hermetic builder/validator tests + a gated D-0008 proof of
-   correct zero-fill and no fan-out.
-4. **golden-provenance** — the golden-answer reconciliation fixtures (matched /
-   Budget-only / Actual-only / duplicate-no-fan-out / reload / %-edges, exact
-   values, gated D-0008) **and** the provenance lineage (both active batch ids +
-   per-row source-presence) that makes each number reproducible.
+### Tests
+- **Hermetic** (`warehouse-schema.test.ts`, in `test:hermetic`): SQL-shape
+  assertions on each view (active-batch filter, `(gl_code, month)` GROUP BY,
+  numeric(18,2) casts, the DUB filter, the label-set aggregate, rollover carried)
+  — regex/string like the existing `actual_by_key_month` tests, no DB.
+- **D-0008 gated** (`gl-month-rollups.db.test.ts`, `{ skip: WAREHOUSE_DB_TEST !==
+  "1" }`): `migrateWarehouse()`, then seed actuals across MULTIPLE cost centres for
+  one `gl_code+month` in DUB → assert `actual_by_gl_month` sums to ONE row; seed an
+  active budget batch + a retained prior inactive batch → assert `budget_by_gl_month`
+  reflects only the active batch and exposes the label set; a budget reload swaps
+  the active batch without changing actuals. Registered via a flag-SETTING
+  `test:warehouse-proof` script (sets `WAREHOUSE_DB_TEST=1`; `WAREHOUSE_PG_*` from
+  the host), destructive TRUNCATE guarded to loopback-only hosts, with a dead-port
+  negative control; enumerated in `tools/quality-gate.test.mjs`.
 
-## Risks
-- The composed join is **new SQL-builder surface** (today it throws); the primary
-  risk is fan-out / double-counting if a key is not 1:1 — mitigated by joining the
-  two **active rollups** (each already one row per key) and the golden fixtures.
-- `%` divide-by-zero must match the statement spec **exactly** or report and
-  assistant disagree; covered by %-edge golden cases.
-- Provenance reproducibility across a budget reload (active-batch swap) — covered
-  by the reload golden case + committed active batch ids.
+## Workflow
+```mermaid
+flowchart TD
+  A[actual_by_key_month<br/>Plant+CostCenter+GL+month] -->|WHERE plant=DUB · SUM over cost centres| V1[actual_by_gl_month<br/>gl_code+month]
+  M[mis_budget active batch<br/>gl_code, period, cost_center label] -->|JOIN ingest_batch is_active · SUM| V2[budget_by_gl_month<br/>gl_code+month · label SET · rollover carried]
+  V1 --> N[one active row per gl_code+month per side<br/>ready for task 2 composed join]
+  V2 --> N
+```
 
-## Surface Impact
-- **Data:** a new `budget_by_key_month` **view** + its migration (warehouse; a
-  read-only rollup, no new base table). No change to `sap_transaction` /
-  `mis_budget` / actuals.
-- **API/backend:** `semanticLayer.ts` (baseDomains), `sqlBuilder.ts` /
-  `selectionExecutor.ts` (composed join), `sqlValidator` allow-list, `rbac` /
-  auth guard wiring, `contract/src/api.ts` + `chat.service.ts` (provenance). No
-  new endpoint (the report / drill-down / assistant stories add their routes).
-- **Ops/docs/tests:** golden-fixture gated D-0008 proof + hermetic suites; decision
-  0016; this plan.
+## Manual Verification
+1. `docker compose up -d warehouse-db`; `npm run warehouse:migrate` — observe both
+   views exist.
+2. Run the gated proof host-side (`test:warehouse-proof` with `WAREHOUSE_PG_*`) —
+   observe `tests N / pass N / skipped 0`: a multi-cost-centre GL sums to one
+   actual row; the budget rollup reflects only the active batch and lists the
+   label set; a reload leaves actuals unchanged.
+3. Dead-port negative control (`WAREHOUSE_PG_PORT=5599`) — the gated proof FAILS
+   (ECONNREFUSED), proving it truly connects.
+4. `npm run test:hermetic` — passes; the gated leaf is SKIPPED there.
 
-## Verify Plan
-Hermetic: `build:contract`, `build:backend`, `typecheck`, `lint`, `format:check`,
-`test:hermetic`. Demonstrated host evidence (D-0008) against docker `warehouse-db`
-(127.0.0.1:5433, `WAREHOUSE_PG_*`): the active-budget rollup proof and the
-golden-answer join/zero-fill/no-fan-out/reload/%-edge proof, each via a dedicated
-`WAREHOUSE_DB_TEST=1` flag-setting runnable script, loopback-host guarded,
-committed reviewer-visible with a dead-port negative control (per the
-sap-ingestion D-0008 lessons).
+## Decisions attested
+0004 (governed joins), 0015 (warehouse snake_case), 0016 (gl_code+month within
+DUB; Budget-Components label informational; roll-over measure deferred, raw kept),
+0009 (required_tests real leaves + TS_NODE_PROJECT). D-0008 = demonstrated host
+evidence.
 
-## Implementation Assumptions
-- The governed financial domain's `goldObject` is the code-composed join result
-  (not a persisted view); if a persisted joined view proves cleaner, that is a
-  task-level call recorded in the task plan.
-- Roll-over columns are carried through the rollup/measures but left unpopulated
-  (deferred); the `%` measure and Actual/Budget are the shipped set.
-- The report/drill-down/assistant consume this layer; their selection surfaces and
-  any k-suppression tuning are their stories, not this one.
+## Surface impact
+- Data: two read-only views (`actual_by_gl_month`, `budget_by_gl_month`) + a
+  migration; no new base table, no change to `sap_transaction`/`mis_budget`.
+- No endpoint, grant, or dependency.
+- Tests: hermetic SQL-shape + the gated D-0008 rollup proof (+ quality-gate entry).
+
+## Out of scope
+The cross-object JOIN (task 2), the measures (task 3), golden fixtures/provenance
+(task 4); any mapping master, roll-over measure, or plant beyond DUB.
 
 
 ## What to return

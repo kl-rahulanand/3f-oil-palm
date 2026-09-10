@@ -1,0 +1,10 @@
+{
+  "event": "open",
+  "id": "Q-0028-c516",
+  "profile": "quickfix",
+  "reason": "governed-joins story-setup landing: decision 0016 + approved plan + decomposition + task-1 contract onto master so per-task worktrees carry the planning",
+  "started_at": "2026-09-10T04:19:32+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false
+}
