@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "governed-joins task-1 grill (Finding 6 \u2014 RBAC seam between task 1 and task 2): the actual_by_gl_month rollup reduces over the single DUB plant, so it drops the plant column. But task 2's contract requires injecting an Actual-side plant scope predicate INSIDE its source CTE. How should the DUB plant scope cross the task-1\u2192task-2 seam?",
+      "options": [
+        "Expose constant plant='DUB' column in the rollup (Rec.)",
+        "Bake the DUB filter in; task 2 re-asserts it"
+      ],
+      "chosen": "Expose constant plant='DUB' column in the rollup (Rec.)"
+    }
+  ],
+  "at": "2026-09-10T03:43:31.418355+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
