@@ -76,7 +76,7 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
     if (!label) {
       if (!glCode) continue;
       glRowCount += 1;
-      if (glRowCount * periods.length > rowLimit) throw new WorkbookRowLimitError(rowLimit);
+      assertRowLimit(outline.length, glRowCount, periods.length, rowLimit);
       issues.push(issue(["rows", row.number, "costCenter"], "Budget Components is required for a GL row"));
       for (const columns of periods) {
         parseMoney(row.getCell(columns.budget), row.number, "budgetAmount", issues);
@@ -120,12 +120,13 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
       glCode: leafKey ? glCode : undefined,
       leafKey,
     });
+    assertRowLimit(outline.length, glRowCount, periods.length, rowLimit);
     outlineStack[depth] = { nodeKey, sNo: identitySNo };
     outlineStack.length = depth + 1;
 
     if (subtotal) continue;
     glRowCount += 1;
-    if (glRowCount * periods.length > rowLimit) throw new WorkbookRowLimitError(rowLimit);
+    assertRowLimit(outline.length, glRowCount, periods.length, rowLimit);
     if (!/^\d{6,}$/.test(glCode)) {
       issues.push(issue(["rows", row.number, "glCode"], "GL Codes must be a numeric GL code"));
       continue;
@@ -189,6 +190,10 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
       mappingDriftCount: mappingDriftLeafKeys.length,
     },
   };
+}
+
+function assertRowLimit(outlineCount: number, glRowCount: number, periodCount: number, rowLimit: number): void {
+  if (outlineCount + glRowCount * periodCount > rowLimit) throw new WorkbookRowLimitError(rowLimit);
 }
 
 function stableLeafKey(sNo: string, glCode: string, label: string): string {

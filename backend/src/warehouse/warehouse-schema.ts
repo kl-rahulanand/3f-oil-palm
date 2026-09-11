@@ -84,31 +84,6 @@ export const sapTransaction = pgTable(
   ],
 );
 
-export const misBudget = pgTable(
-  "mis_budget",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    batchId: uuid("batch_id")
-      .notNull()
-      .references(() => ingestBatch.id),
-    formatId: text("format_id").notNull(),
-    period: date("period").notNull(),
-    lineId: text("line_id").notNull(),
-    leafKey: text("leaf_key"),
-    glCode: text("gl_code").notNull(),
-    costCenter: text("cost_center").notNull(),
-    budgetAmount: numeric("budget_amount", { precision: 18, scale: 2 }).notNull(),
-    rolloverAmount: numeric("rollover_amount", { precision: 18, scale: 2 }).notNull(),
-    createdAtUtc: timestamp("created_at_utc", { withTimezone: true }).notNull().defaultNow(),
-    updatedAtUtc: timestamp("updated_at_utc", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    check("mis_budget_period_month_check", sql`${table.period} = date_trunc('month', ${table.period})::date`),
-    unique("mis_budget_batch_grain_unique").on(table.batchId, table.formatId, table.period, table.leafKey),
-    index("idx_mis_budget_batch_id").on(table.batchId),
-  ],
-);
-
 export const misBudgetOutline = pgTable(
   "mis_budget_outline",
   {
@@ -142,6 +117,37 @@ export const misBudgetOutline = pgTable(
       foreignColumns: [table.batchId, table.nodeKey],
     }),
     index("idx_mis_budget_outline_batch_id").on(table.batchId),
+  ],
+);
+
+export const misBudget = pgTable(
+  "mis_budget",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => ingestBatch.id),
+    formatId: text("format_id").notNull(),
+    period: date("period").notNull(),
+    lineId: text("line_id").notNull(),
+    leafKey: text("leaf_key"),
+    glCode: text("gl_code").notNull(),
+    costCenter: text("cost_center").notNull(),
+    budgetAmount: numeric("budget_amount", { precision: 18, scale: 2 }).notNull(),
+    rolloverAmount: numeric("rollover_amount", { precision: 18, scale: 2 }).notNull(),
+    createdAtUtc: timestamp("created_at_utc", { withTimezone: true }).notNull().defaultNow(),
+    updatedAtUtc: timestamp("updated_at_utc", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check("mis_budget_period_month_check", sql`${table.period} = date_trunc('month', ${table.period})::date`),
+    check("mis_budget_leaf_key_required", sql`${table.leafKey} IS NOT NULL`),
+    unique("mis_budget_batch_grain_unique").on(table.batchId, table.formatId, table.period, table.leafKey),
+    foreignKey({
+      name: "mis_budget_outline_leaf_fk",
+      columns: [table.batchId, table.leafKey],
+      foreignColumns: [misBudgetOutline.batchId, misBudgetOutline.leafKey],
+    }),
+    index("idx_mis_budget_batch_id").on(table.batchId),
   ],
 );
 

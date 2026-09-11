@@ -59,7 +59,7 @@ export interface IIngestionRepository {
   replaceBudgetBatch(
     metadata: CandidateBatchMetadata,
     rows: MisBudgetInput[],
-    outline?: MisBudgetOutlineInput[],
+    outline: MisBudgetOutlineInput[],
   ): Promise<string>;
 }
 
@@ -77,7 +77,7 @@ export class IngestionRepository implements IIngestionRepository {
   replaceBudgetBatch(
     metadata: CandidateBatchMetadata,
     rows: MisBudgetInput[],
-    outline: MisBudgetOutlineInput[] = [],
+    outline: MisBudgetOutlineInput[],
   ): Promise<string> {
     return this.replaceBatch("budget", metadata, rows.length, async (transaction, batchId) => {
       await insertInChunks(outline, async (chunk) => {

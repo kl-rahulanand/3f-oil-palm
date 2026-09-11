@@ -546,6 +546,36 @@ test("budget ingest reports mapping drift when the candidate outline no longer c
   );
 });
 
+test("the budget parser counts formula subtotal outline nodes toward the workbook row limit", async () => {
+  await assert.rejects(
+    parseMisBudgetWorkbook(
+      await workbookBuffer((sheet) => {
+        addBudgetTable(sheet);
+        addGlRow(sheet, 6, {
+          lineId: "1",
+          component: "Formula subtotal",
+          glCode: "50000000",
+          aprilBudget: { formula: "SUM(K7:K8)", result: 1 },
+          aprilRollover: 0,
+          mayBudget: { formula: "SUM(O7:O8)", result: 1 },
+          mayRollover: 0,
+        });
+        addGlRow(sheet, 7, {
+          lineId: "2",
+          component: "Second formula subtotal",
+          glCode: "50000001",
+          aprilBudget: { formula: "SUM(K8:K9)", result: 1 },
+          aprilRollover: 0,
+          mayBudget: { formula: "SUM(O8:O9)", result: 1 },
+          mayRollover: 0,
+        });
+      }),
+      1,
+    ),
+    (error: unknown) => error instanceof WorkbookRowLimitError && error.limit === 1,
+  );
+});
+
 async function rejectsWithPaths(buffer: Promise<Buffer>, expectedPaths: string[]): Promise<void> {
   await assert.rejects(parseMisBudgetWorkbook(await buffer), (error: unknown) => {
     assert.ok(error instanceof z.ZodError);

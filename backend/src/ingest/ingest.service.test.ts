@@ -365,7 +365,7 @@ class RecordingBudgetIngestService extends IngestService {
         this.actualCalls += 1;
         throw new Error("actuals must not be touched");
       },
-      replaceBudgetBatch: async (metadata, rows, outline = []) => {
+      replaceBudgetBatch: async (metadata, rows, outline) => {
         this.budgetCalls.push({ metadata, rows, outline });
         if (this.budgetCalls.length === this.failOnBudgetCall) throw new Error("later period failed");
         if (!this.activePeriods.includes(metadata.period)) this.activePeriods.push(metadata.period);

@@ -1,4 +1,5 @@
 ALTER TABLE "mis_budget" ADD COLUMN "leaf_key" text;--> statement-breakpoint
+ALTER TABLE "mis_budget" ADD CONSTRAINT "mis_budget_leaf_key_required" CHECK ("leaf_key" IS NOT NULL) NOT VALID;--> statement-breakpoint
 ALTER TABLE "mis_budget" DROP CONSTRAINT "mis_budget_batch_grain_unique";--> statement-breakpoint
 ALTER TABLE "mis_budget" ADD CONSTRAINT "mis_budget_batch_grain_unique" UNIQUE("batch_id","format_id","period","leaf_key");--> statement-breakpoint
 CREATE TABLE "mis_budget_outline" (
@@ -23,6 +24,10 @@ CREATE TABLE "mis_budget_outline" (
 	CONSTRAINT "mis_budget_outline_parent_fk" FOREIGN KEY ("batch_id","parent_key") REFERENCES "public"."mis_budget_outline"("batch_id","node_key") ON DELETE no action ON UPDATE no action
 );--> statement-breakpoint
 CREATE INDEX "idx_mis_budget_outline_batch_id" ON "mis_budget_outline" USING btree ("batch_id");--> statement-breakpoint
+ALTER TABLE "mis_budget" ADD CONSTRAINT "mis_budget_outline_leaf_fk" FOREIGN KEY ("batch_id","leaf_key") REFERENCES "public"."mis_budget_outline"("batch_id","leaf_key") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+UPDATE "ingest_batch"
+SET "is_active" = false, "updated_at_utc" = now()
+WHERE "source_kind" = 'budget' AND "is_active";--> statement-breakpoint
 CREATE VIEW "public"."budget_by_leaf_month" AS (
   SELECT
     b.leaf_key,

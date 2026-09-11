@@ -72,6 +72,7 @@ test("the warehouse schema declares ingest_batch with a one-active-per source_ki
 
   assert.equal(misBudget.budgetAmount.getSQLType(), "numeric(18, 2)");
   assert.equal(misBudget.rolloverAmount.getSQLType(), "numeric(18, 2)");
+  assert.ok(names(budgets.checks).includes("mis_budget_leaf_key_required"));
   assert.deepEqual(
     budgets.indexes.map(({ config }) => config.name),
     ["idx_mis_budget_batch_id"],
@@ -80,7 +81,19 @@ test("the warehouse schema declares ingest_batch with a one-active-per source_ki
     budgets.uniqueConstraints[0].columns.map(({ name }) => name),
     ["batch_id", "format_id", "period", "leaf_key"],
   );
-  assert.equal(budgets.foreignKeys.length, 1);
+  assert.equal(budgets.foreignKeys.length, 2);
+  const outlineLeafForeignKey = budgets.foreignKeys.find(
+    ({ reference }) => reference().name === "mis_budget_outline_leaf_fk",
+  );
+  assert.ok(outlineLeafForeignKey);
+  assert.deepEqual(
+    outlineLeafForeignKey.reference().columns.map(({ name }) => name),
+    ["batch_id", "leaf_key"],
+  );
+  assert.deepEqual(
+    outlineLeafForeignKey.reference().foreignColumns.map(({ name }) => name),
+    ["batch_id", "leaf_key"],
+  );
 
   assert.deepEqual(columnNames(outlines.columns), [
     "id",
@@ -292,6 +305,12 @@ test("budget_by_gl_month preserves the deterministic set of cost_center Budget C
     "utf8",
   );
   assert.match(statementMigration, /CREATE TABLE "mis_budget_outline"/);
+  assert.match(statementMigration, /CONSTRAINT "mis_budget_leaf_key_required" CHECK \("leaf_key" IS NOT NULL\) NOT VALID/);
+  assert.match(statementMigration, /CONSTRAINT "mis_budget_outline_leaf_fk" FOREIGN KEY \("batch_id","leaf_key"\)/);
+  assert.match(
+    statementMigration,
+    /UPDATE "ingest_batch"[\s\S]*WHERE "source_kind" = 'budget' AND "is_active"/,
+  );
   assert.match(statementMigration, /CREATE VIEW "public"\."budget_by_leaf_month"/);
   const journal = JSON.parse(
     readFileSync(resolve(__dirname, "../../drizzle-warehouse/meta/_journal.json"), "utf8"),

@@ -5,7 +5,7 @@ import { SqlBuilder, type GovernedSelectionScope } from "./sqlBuilder";
 
 test("the statement projection full outer joins budget and actual at leaf and month grain filtering actuals by the resolved triples before aggregating and leaves the gl code and month relation untouched", () => {
   const builder = new SqlBuilder();
-  const statement = builder.buildStatementProjection(user, { from: "2026-07-01", to: "2026-07-01" }, scope);
+  const statement = builder.build(statementDomain, statementSelection, user, true, scope);
   const actualCte = statement.sql.match(/actual_by_leaf_month AS \(([\s\S]*?)\n\), budget_src/)?.[1] ?? "";
   const budgetCte = statement.sql.match(/budget_src AS \(([\s\S]*?)\n\), statement_relation/)?.[1] ?? "";
 
@@ -90,4 +90,11 @@ const selection: Selection = {
   measureIds: [domain.measures[0].id],
   dimensionIds: domain.dimensions.map(({ id }) => id),
   filters: [],
+};
+
+const statementDomain: DomainSpec = { ...domain, name: "mis-statement", goldObject: "statement_relation" };
+const statementSelection: Selection = {
+  ...selection,
+  domain: statementDomain.name,
+  timeWindow: { column: "month", from: "2026-07-01", to: "2026-07-01" },
 };

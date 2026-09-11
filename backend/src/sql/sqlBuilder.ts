@@ -42,6 +42,11 @@ export class SqlBuilder {
     includeProvenance = true,
     resolvedScope?: GovernedSelectionScope,
   ): BuiltQuery {
+    if (domain.goldObject === "statement_relation") {
+      const { from, to } = selection.timeWindow ?? {};
+      if (!from || !to) throw new Error("Statement projection requires a period");
+      return this.buildStatementProjection(user, { from, to }, resolvedScope);
+    }
     const measures = selection.measureIds.map((id) => {
       const m = domain.measures.find((x) => x.id === id);
       if (!m) throw new Error(`unknown measure ${id}`);
@@ -151,14 +156,14 @@ export class SqlBuilder {
     };
   }
 
-  buildStatementProjection(
+  private buildStatementProjection(
     user: AuthUser,
     period: StatementProjectionPeriod,
-    resolvedScope: GovernedSelectionScope,
+    resolvedScope?: GovernedSelectionScope,
   ): BuiltQuery {
     const scopeValues = user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
     if (!scopeValues.length) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
-    if (!resolvedScope.leafTargets?.length) throw new Error("Statement projection requires resolved leaf targets");
+    if (!resolvedScope?.leafTargets?.length) throw new Error("Statement projection requires resolved leaf targets");
 
     const periodEnd = this.lit(this.nextIsoDate(period.to));
     const periodStart = this.lit(period.from);
