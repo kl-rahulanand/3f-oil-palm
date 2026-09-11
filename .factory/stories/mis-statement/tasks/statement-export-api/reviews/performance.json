@@ -1,0 +1,34 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "statement-export-api",
+  "score": 7,
+  "summary": "performance lens over statement-export-api (9 product path(s), fb7d13c..1327f6e, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The export path otherwise follows the performance-sensitive contracts shown in the bundle: it invokes the statement service once, branches before headers, and writes the supplied payload without additional queries or subtotal derivation. However, the newly optional writer dependency is a blocking compatibility-only allowance and creates an explicitly permitted fail-late controller state.",
+  "blocking_findings": [
+    {
+      "category": "maintainability",
+      "area": "backend/src/mis",
+      "summary": "Make the export writer a required controller dependency (backend/src/mis/mis-statement.controller.ts:32): The optional `exporter?` parameter permits constructing the controller without the writer, although `export()` immediately dereferences it with `this.exporter!.write(...)`."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/app.routes.test.ts",
+    "backend/src/main.ts",
+    "backend/src/mis/mis-statement-export.interface.ts",
+    "backend/src/mis/mis-statement-export.service.ts",
+    "backend/src/mis/mis-statement-export.test.ts",
+    "backend/src/mis/mis-statement.controller.ts",
+    "backend/src/mis/mis.module.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "88b77912475af8d5b7216acbfacc2c76f829961e6340a28bf26dc6676a13efb3",
+  "brief_sha256": "3337a8ee5ab987e3240f4bc3759af783ab3d5e6865fd3cef2ba0753f8a1e7160",
+  "branch_diff_digest": "d3698d1f469e94ef3dfce5cd8762d8099eab4a4adbbcd04dd064477f80f4e40a",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T16:05:14+00:00",
+  "commit": "1327f6e75de7fbec5b377a538702b154533b61cc"
+}

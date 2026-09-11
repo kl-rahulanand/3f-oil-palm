@@ -1,0 +1,115 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "statement-export-api",
+  "score": 10,
+  "summary": "quality lens over statement-export-api (9 product path(s), fb7d13c..1327f6e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sea-c1: implemented \u2014 backend/src/mis/mis-statement.controller.ts:70, backend/src/main.ts:32, backend/src/app.routes.test.ts:33\nVERDICT t-sea-c2: implemented \u2014 backend/src/mis/mis-statement.controller.ts:115\nVERDICT t-sea-c3: implemented \u2014 backend/src/mis/mis-statement-export.service.ts:16, backend/src/mis/mis-statement-export.test.ts:86\nVERDICT t-sea-c4: implemented \u2014 backend/src/mis/mis-statement-export.service.ts:82\nVERDICT t-sea-c5: implemented \u2014 backend/src/mis/mis-statement-export.service.ts:110\nNo compatibility leftovers or other P0-P2 defects are visible in the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/app.routes.test.ts",
+    "backend/src/main.ts",
+    "backend/src/mis/mis-statement-export.interface.ts",
+    "backend/src/mis/mis-statement-export.service.ts",
+    "backend/src/mis/mis-statement-export.test.ts",
+    "backend/src/mis/mis-statement.controller.ts",
+    "backend/src/mis/mis.module.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-sea-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.controller.ts:70, backend/src/main.ts:32, backend/src/app.routes.test.ts:33"
+    },
+    {
+      "contract_id": "t-sea-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.controller.ts:115"
+    },
+    {
+      "contract_id": "t-sea-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement-export.service.ts:16, backend/src/mis/mis-statement-export.test.ts:86"
+    },
+    {
+      "contract_id": "t-sea-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement-export.service.ts:82"
+    },
+    {
+      "contract_id": "t-sea-c5",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement-export.service.ts:110"
+    },
+    {
+      "contract_id": "t-sm-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-model at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sm-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-model at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sm-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-model at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sa-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sa-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sa-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sa-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sa-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sv-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-view at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sv-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-view at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sv-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-view at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sv-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-view at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "88b77912475af8d5b7216acbfacc2c76f829961e6340a28bf26dc6676a13efb3",
+  "brief_sha256": "3337a8ee5ab987e3240f4bc3759af783ab3d5e6865fd3cef2ba0753f8a1e7160",
+  "branch_diff_digest": "d3698d1f469e94ef3dfce5cd8762d8099eab4a4adbbcd04dd064477f80f4e40a",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T16:05:14+00:00",
+  "commit": "1327f6e75de7fbec5b377a538702b154533b61cc"
+}
