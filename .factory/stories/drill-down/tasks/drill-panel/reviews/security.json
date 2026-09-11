@@ -1,0 +1,26 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "drill-panel",
+  "score": 10,
+  "summary": "security lens over drill-panel (5 product path(s), 1e8aa0f..ea787b2, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defects are demonstrated by the provided diff. The panel is a client-side projection of data already present in the statement response, introduces no route or network call, exposes no credentials, and adds no injection-prone rendering. The diff also contains no compatibility wrappers, aliases, deprecated branches, or other blocking leftovers.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/mis/drill-panel.test.tsx",
+    "frontend/src/features/mis/drill-panel.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "frontend/src/features/mis/statement-view.tsx"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "21099c132ca8dfc30484fc529b526ae77129728af8a4a6559403d4279da05810",
+  "brief_sha256": "57dc86ca9dbf2de7827cc5a3731fceb9128d322e330fd8238942e7faee150bf7",
+  "branch_diff_digest": "e694afbfdcfbae95bf2218055f263b365dd73a2df5d458aa4ef054f9ca431d31",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T21:08:35+00:00",
+  "commit": "ea787b23e2a785e712a8dd0384d040c9985a56bb"
+}
