@@ -45,6 +45,17 @@ established: the Primary / Secondary / Tertiary correspondence is legible from t
 vocabularies but is **recorded, never inferred at runtime**, and Srihari's confirmation
 resolves it exactly as the `unmapped-GL` bucket is resolved.
 
+> **Amended 2026-09-11 (implementation evidence).** This record specified the projection
+> at **leaf/month** grain. That multiplied rows against the governed `LIMIT`: the FY 26-27
+> YTD block spans twelve months over eighty leaves — **960 rows against a default
+> `maxRows` of 1000** — so the statement was forty rows from **silently truncating** and
+> under-reporting, with no error. The projection therefore aggregates over the requested
+> period **range**, returning **one row per leaf per block**, and a query that returns
+> exactly the limit now fails loudly instead of returning a short statement. The substance
+> of this record is unchanged: it is still a **separate** projection, the `(gl_code,
+> month)` relation is still untouched, the SAP cost centre is still never an output
+> dimension, and Actuals are still filtered by the resolved triples before aggregating.
+
 Confirmed by the human on 2026-09-11.
 
 ## Consequences

@@ -1,5 +1,48 @@
 {
   "id": "statement-api",
   "title": "The governed statement route",
-  "status": "pending"
+  "status": "done",
+  "started_at": "2026-09-11T09:22:40+00:00",
+  "base_sha": "15dd782a90284b528441c13de014ea9736f701ea",
+  "dirty_at_start": {
+    ".factory/stories/mis-statement/decomposition.json": {
+      "digest": "739eb50bff52a84991eb7d423db7a1365cecbb1555f6b7a35373e0b37ac7f5e3",
+      "git": "1 .M N... 100644 100644 100644 4fa4580c3385544829d5b528502dbe853b997a7b 4fa4580c3385544829d5b528502dbe853b997a7b .factory/stories/mis-statement/decomposition.json\u0000\u0000100644 4fa4580c3385544829d5b528502dbe853b997a7b 0\t.factory/stories/mis-statement/decomposition.json\u0000\u0000H .factory/stories/mis-statement/decomposition.json\u0000"
+    },
+    ".factory/stories/mis-statement/grills/tasks/statement-api.json": {
+      "digest": "14452a4a76e4cc589a8b992a69015d5a0aa9409d65b6435cae4a51454b8b3f60",
+      "git": "? .factory/stories/mis-statement/grills/tasks/statement-api.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/mis-statement/task-plans/statement-api.md": {
+      "digest": "b8a7d8bc054eb157bb2b258f00c1b530a8c68b09cf309fad5e4e6e0ece0bafc1",
+      "git": "? .factory/stories/mis-statement/task-plans/statement-api.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7",
+  "measured": {
+    "strays": [],
+    "files": 23,
+    "lines": 1452,
+    "budget": {
+      "files": 19,
+      "lines": 2400
+    },
+    "test_id_misses": []
+  },
+  "review_fix_reopened_at": "2026-09-11T11:37:42+00:00",
+  "review_fix_count": 1,
+  "local_review_stamp": {
+    "stage_id": "statement-api",
+    "base_sha": "15dd782a90284b528441c13de014ea9736f701ea",
+    "delta_id": "98728fe77d0b9d315cf06814bbadbbc78b2d81687a6f569a76d34ae64df5fb22",
+    "contract_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7",
+    "recorded_at": "2026-09-11T11:50:42+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-11T11:54:21+00:00"
 }

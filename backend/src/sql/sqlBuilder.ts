@@ -45,7 +45,7 @@ export class SqlBuilder {
     if (domain.goldObject === "statement_relation") {
       const { from, to } = selection.timeWindow ?? {};
       if (!from || !to) throw new Error("Statement projection requires a period");
-      return this.buildStatementProjection(user, { from, to }, resolvedScope);
+      return this.buildStatementProjection(domain, selection, user, { from, to }, includeProvenance, resolvedScope);
     }
     const measures = selection.measureIds.map((id) => {
       const m = domain.measures.find((x) => x.id === id);
@@ -157,23 +157,51 @@ export class SqlBuilder {
   }
 
   private buildStatementProjection(
+    domain: DomainSpec,
+    selection: Selection,
     user: AuthUser,
     period: StatementProjectionPeriod,
+    includeProvenance: boolean,
     resolvedScope?: GovernedSelectionScope,
   ): BuiltQuery {
     const scopeValues = user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
     if (!scopeValues.length) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
     if (!resolvedScope?.leafTargets?.length) throw new Error("Statement projection requires resolved leaf targets");
 
+    const measures = selection.measureIds.map((id) => {
+      const measure = domain.measures.find((candidate) => candidate.id === id);
+      if (!measure) throw new Error(`unknown measure ${id}`);
+      return measure;
+    });
+    const dimensions = selection.dimensionIds
+      .map((id) => domain.dimensions.find((candidate) => candidate.id === id))
+      .filter((dimension): dimension is NonNullable<typeof dimension> => !!dimension);
+
     const periodEnd = this.lit(this.nextIsoDate(period.to));
     const periodStart = this.lit(period.from);
+    const includesLeaf = dimensions.some(({ column }) => column === "leaf_key");
+    const selectColumns = [
+      ...dimensions.map(({ id, column }) => `relation.${column} AS ${id}`),
+      ...measures.map(({ id, expr }) => `${expr} AS ${id.split(".").pop()}`),
+    ];
+    if (includeProvenance) {
+      selectColumns.push(
+        "to_jsonb(array_agg(DISTINCT(relation.source_presence)))::text AS source_presence",
+        `(COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object(
+    'source', 'actuals', 'period', relation.month::text, 'batchId', relation.actual_batch_id)))
+      FILTER (WHERE relation.actual_batch_id IS NOT NULL)), '[]'::jsonb) ||
+   COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object(
+    'source', 'budget', 'period', relation.month::text, 'batchId', relation.budget_batch_id)))
+      FILTER (WHERE relation.budget_batch_id IS NOT NULL)), '[]'::jsonb))::text AS active_batch_ids`,
+      );
+    }
     const targetRows = resolvedScope.leafTargets.map(({ plant, costCenter, glCode, target }) =>
       [plant, costCenter, glCode, target.kind === "leaf" ? target.leafKey : "unmapped-GL"]
         .map((value) => this.lit(value))
         .join(", "),
     );
-    const sql = `WITH leaf_targets(plant, cost_center, gl_code, leaf_key) AS (
-  VALUES (${targetRows.join("),\n    (")})
+    const sql = `WITH leaf_targets AS (
+  SELECT * FROM (VALUES (${targetRows.join("),\n    (")})) AS target(plant, cost_center, gl_code, leaf_key)
 ), actual_by_leaf_month AS (
   SELECT target.leaf_key, actual.month,
     SUM(actual.actual_net)::numeric(18,2) AS actual_net
@@ -191,11 +219,12 @@ export class SqlBuilder {
   WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
     AND month >= ${periodStart} AND month < ${periodEnd}
 ), outline_order AS (
-  SELECT outline.leaf_key, batch.period AS month, outline.sort_order
+  SELECT outline.leaf_key, MIN(outline.sort_order) AS sort_order
   FROM mis_budget_outline AS outline
   INNER JOIN ingest_batch AS batch ON batch.id = outline.batch_id
   WHERE batch.source_kind = 'budget' AND batch.is_active AND outline.leaf_key IS NOT NULL
     AND batch.period >= ${periodStart} AND batch.period < ${periodEnd}
+  GROUP BY outline.leaf_key
 ), statement_relation AS (
   SELECT COALESCE(actual_src.leaf_key, budget_src.leaf_key) AS leaf_key,
     COALESCE(actual_src.month, budget_src.month) AS month,
@@ -223,12 +252,10 @@ export class SqlBuilder {
       AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
       AND budget_batch.is_active
 )
-SELECT relation.leaf_key, relation.month, relation.actual_net, relation.budget_net, relation.rollover_net,
-  relation.source_presence, relation.actual_batch_id, relation.budget_batch_id
+SELECT ${selectColumns.join(",\n  ")}
 FROM statement_relation AS relation
-LEFT JOIN outline_order AS outline
-  ON outline.leaf_key = relation.leaf_key AND outline.month = relation.month
-ORDER BY relation.month, outline.sort_order NULLS LAST, relation.leaf_key`;
+${includesLeaf ? "LEFT JOIN outline_order AS outline\n  ON outline.leaf_key = relation.leaf_key\nGROUP BY relation.leaf_key, outline.sort_order\nORDER BY outline.sort_order NULLS LAST, relation.leaf_key" : ""}
+LIMIT ${Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows)}`;
 
     return {
       sql,

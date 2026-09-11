@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-11T10:10:17+00:00", "story": "mis-statement", "detail": "The required leaf/range aggregation removes the statement projection's month column, so backend/src/warehouse/statement-projection.db.test.ts must mechanically update its StatementRow and uniqueness a"}
