@@ -108,7 +108,7 @@ export class MisStatementService implements IMisStatementService {
     const selection: Selection = {
       domain: "mis-statement",
       measureIds: [...MEASURE_IDS],
-      dimensionIds: [],
+      dimensionIds: ["leaf_key", "month"],
       filters: [],
     };
     const domain = this.semantic.domain(selection.domain);
@@ -128,6 +128,7 @@ export class MisStatementService implements IMisStatementService {
       domain,
       {
         ...selection,
+        dimensionIds: [],
         timeWindow: { grain: "month", column: "month", from: definition.from, to: definition.to },
       },
       {

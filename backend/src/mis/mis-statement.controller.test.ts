@@ -25,6 +25,10 @@ test("the statement route refuses an unauthorized plant but returns the unresolv
     () => controller.run(user, request("FORBIDDEN")),
     (error: unknown) => error instanceof HttpException && error.getStatus() === 403,
   );
+  await assert.rejects(
+    () => service.run({ ...user, permissions: { ...user.permissions, dimensionIds: [] } }, request("DUB")),
+    (error: unknown) => error instanceof HttpException && error.getStatus() === 403,
+  );
   assert.deepEqual(await controller.run(user, request("UNCOVERED")), {
     outcome: "unresolvable",
     notice: "No mapping configured",
@@ -87,7 +91,11 @@ class RouteResolver implements ISelectionResolverService {
 }
 
 class EmptyExecutor {
-  authorize(): void {}
+  authorize(user: AuthUser, _domain: unknown, selection: { dimensionIds: string[] }): void {
+    if (!selection.dimensionIds.every((id) => user.permissions.dimensionIds.includes(id))) {
+      throw new HttpException("forbidden", 403);
+    }
+  }
 
   async run() {
     return { result: { columns: [], rows: [] }, rowSourcePresence: [], activeBatchIds: [] };
