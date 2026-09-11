@@ -119,24 +119,25 @@ test("block headings use the spec labels formatted from each blocks range and mo
 });
 
 test("a non numeric percentage label is kept verbatim a null percentage renders as NA and a single block response renders one block", () => {
+  const selectedYtd = { ...selected("0.00", "10.00", "over-budget"), from: "2026-04-01" };
   const response: MisStatementResolvedResponse = {
     ...resolved,
     tree: [
-      { ...resolved.tree[0], measures: [selected("0.00", "10.00", "over-budget")], children: [] },
+      { ...resolved.tree[0], measures: [selectedYtd], children: [] },
       {
         nodeKey: "credit",
         sNo: "5",
         budgetComponent: "Credit",
         glCode: "5003",
-        measures: [selected("0.00", "0.00", null)],
+        measures: [{ ...selectedYtd, actual: "0.00", percentage: null }],
         children: [],
       },
     ],
-    grandTotal: { ...resolved.grandTotal, measures: [selected("0.00", "10.00", "over-budget")] },
+    grandTotal: { ...resolved.grandTotal, measures: [selectedYtd] },
   };
   render(<StatementView response={response} />);
 
-  expect(screen.getAllByRole("columnheader", { name: /July 2026|FY 26-27/ })).toHaveLength(1);
+  expect(screen.getAllByRole("columnheader", { name: "FY 26-27 (YTD to Jul)" })).toHaveLength(1);
   expect(screen.getByRole("row", { name: /Materials/ })).toHaveTextContent("over-budget");
   expect(screen.getByRole("row", { name: /Credit/ })).toHaveTextContent("NA");
 });

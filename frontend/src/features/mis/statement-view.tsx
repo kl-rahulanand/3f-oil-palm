@@ -160,7 +160,7 @@ function MeasureCells({ measure }: Readonly<{ measure: MisStatementMeasureBlock 
 
 function formatBlockHeading(block: MisStatementMeasureBlock): string {
   const to = dateAtUtc(block.to);
-  if (block.key === "fy26-27-ytd") {
+  if (block.from.slice(0, 7) !== block.to.slice(0, 7)) {
     const startYear = Number(block.from.slice(0, 4));
     return `FY ${String(startYear).slice(-2)}-${String(startYear + 1).slice(-2)} (YTD to ${shortMonthFormatter.format(to)})`;
   }
