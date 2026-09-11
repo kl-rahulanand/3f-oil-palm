@@ -33,7 +33,7 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   assert.match(statement.sql, /outline\.batch_id/);
   assert.doesNotMatch(statement.sql, /actual_batch\.plant|budget_batch\.plant/);
   assert.match(statement.sql, /GROUP BY relation\.leaf_key, outline\.sort_order/);
-  assert.match(statement.sql, /SUM\(relation\.actual_net\)::numeric\(18,2\) AS actual_net/);
+  assert.match(statement.sql, /SUM\(actual_net\) AS actual_net/);
   assert.match(statement.sql, /array_agg\(DISTINCT\(relation\.source_presence\)\)/);
   assert.match(statement.sql, /ORDER BY outline\.sort_order NULLS LAST, relation\.leaf_key/);
 
@@ -54,11 +54,11 @@ test("the statement query runs through the selection executor validate explain e
     {
       domain: domain.name,
       measureIds: domain.measures.map(({ id }) => id),
-      dimensionIds: [],
+      dimensionIds: ["leaf_key"],
       filters: [],
       timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
     },
-    { resolvedScope: scope },
+    { includeTotals: false, resolvedScope: scope },
   );
 
   assert.equal(warehouse.explainCalls, 1);
@@ -74,6 +74,28 @@ test("the statement query runs through the selection executor validate explain e
       percentage: "1.25",
     },
   ]);
+});
+
+test("the statement projection returns only the selected dimensions and measures", () => {
+  const domain = new SemanticLayer().domain("mis-statement");
+  assert.ok(domain);
+  const builder = new SqlBuilder();
+  const selected: Selection = {
+    domain: domain.name,
+    measureIds: ["mis-statement.actual_net"],
+    dimensionIds: ["leaf_key"],
+    filters: [],
+    timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
+  };
+  const projection = builder.build(domain, selected, statementUser, true, scope).sql.split("\nSELECT ").at(-1) ?? "";
+
+  assert.match(projection, /relation\.leaf_key AS leaf_key/);
+  assert.match(projection, /SUM\(actual_net\) AS actual_net/);
+  assert.doesNotMatch(projection, / AS month| AS budget_net| AS rollover_net| AS percentage/);
+  assert.throws(
+    () => builder.build(domain, { ...selected, measureIds: ["mis-statement.unknown"] }, statementUser, true, scope),
+    /unknown measure mis-statement\.unknown/,
+  );
 });
 
 const user: AuthUser = {
@@ -136,10 +158,12 @@ const selection: Selection = {
   filters: [],
 };
 
-const statementDomain: DomainSpec = { ...domain, name: "mis-statement", goldObject: "statement_relation" };
+const statementDomain = new SemanticLayer().domain("mis-statement")!;
 const statementSelection: Selection = {
   ...selection,
   domain: statementDomain.name,
+  measureIds: ["mis-statement.actual_net"],
+  dimensionIds: statementDomain.dimensions.map(({ id }) => id),
   timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
 };
 

@@ -45,7 +45,7 @@ export class SqlBuilder {
     if (domain.goldObject === "statement_relation") {
       const { from, to } = selection.timeWindow ?? {};
       if (!from || !to) throw new Error("Statement projection requires a period");
-      return this.buildStatementProjection(user, { from, to }, resolvedScope);
+      return this.buildStatementProjection(domain, selection, user, { from, to }, includeProvenance, resolvedScope);
     }
     const measures = selection.measureIds.map((id) => {
       const m = domain.measures.find((x) => x.id === id);
@@ -157,16 +157,46 @@ export class SqlBuilder {
   }
 
   private buildStatementProjection(
+    domain: DomainSpec,
+    selection: Selection,
     user: AuthUser,
     period: StatementProjectionPeriod,
+    includeProvenance: boolean,
     resolvedScope?: GovernedSelectionScope,
   ): BuiltQuery {
     const scopeValues = user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
     if (!scopeValues.length) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
     if (!resolvedScope?.leafTargets?.length) throw new Error("Statement projection requires resolved leaf targets");
 
+    const measures = selection.measureIds.map((id) => {
+      const measure = domain.measures.find((candidate) => candidate.id === id);
+      if (!measure) throw new Error(`unknown measure ${id}`);
+      return measure;
+    });
+    const dimensions = selection.dimensionIds
+      .map((id) => domain.dimensions.find((candidate) => candidate.id === id))
+      .filter((dimension): dimension is NonNullable<typeof dimension> => !!dimension);
+
     const periodEnd = this.lit(this.nextIsoDate(period.to));
     const periodStart = this.lit(period.from);
+    const includesLeaf = dimensions.some(({ column }) => column === "leaf_key");
+    const selectColumns = [
+      ...dimensions.map(({ id, column }) =>
+        column === "month" ? `${periodStart}::date AS ${id}` : `relation.${column} AS ${id}`,
+      ),
+      ...measures.map(({ id, expr }) => `${expr} AS ${id.split(".").pop()}`),
+    ];
+    if (includeProvenance) {
+      selectColumns.push(
+        "to_jsonb(array_agg(DISTINCT(relation.source_presence)))::text AS source_presence",
+        `(COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object(
+    'source', 'actuals', 'period', relation.month::text, 'batchId', relation.actual_batch_id)))
+      FILTER (WHERE relation.actual_batch_id IS NOT NULL)), '[]'::jsonb) ||
+   COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object(
+    'source', 'budget', 'period', relation.month::text, 'batchId', relation.budget_batch_id)))
+      FILTER (WHERE relation.budget_batch_id IS NOT NULL)), '[]'::jsonb))::text AS active_batch_ids`,
+      );
+    }
     const targetRows = resolvedScope.leafTargets.map(({ plant, costCenter, glCode, target }) =>
       [plant, costCenter, glCode, target.kind === "leaf" ? target.leafKey : "unmapped-GL"]
         .map((value) => this.lit(value))
@@ -224,29 +254,10 @@ export class SqlBuilder {
       AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
       AND budget_batch.is_active
 )
-SELECT relation.leaf_key, ${periodStart}::date AS month,
-  SUM(relation.actual_net)::numeric(18,2) AS actual_net,
-  SUM(relation.budget_net)::numeric(18,2) AS budget_net,
-  SUM(relation.rollover_net)::numeric(18,2) AS rollover_net,
-  CASE
-    WHEN SUM(relation.budget_net) = 0 AND SUM(relation.actual_net) = 0 THEN NULL
-    WHEN SUM(relation.budget_net) = 0 AND SUM(relation.actual_net) > 0 THEN 'over-budget'
-    WHEN SUM(relation.budget_net) = 0 AND SUM(relation.actual_net) < 0 THEN 'credit / negative actual'
-    ELSE (SUM(relation.actual_net) / SUM(relation.budget_net))::text
-  END AS percentage,
-  to_jsonb(array_agg(DISTINCT(relation.source_presence)))::text AS source_presence,
-  (COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object(
-    'source', 'actuals', 'period', relation.month::text, 'batchId', relation.actual_batch_id)))
-      FILTER (WHERE relation.actual_batch_id IS NOT NULL)), '[]'::jsonb) ||
-   COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object(
-    'source', 'budget', 'period', relation.month::text, 'batchId', relation.budget_batch_id)))
-      FILTER (WHERE relation.budget_batch_id IS NOT NULL)), '[]'::jsonb))::text AS active_batch_ids
+SELECT ${selectColumns.join(",\n  ")}
 FROM statement_relation AS relation
-LEFT JOIN outline_order AS outline
-  ON outline.leaf_key = relation.leaf_key
-GROUP BY relation.leaf_key, outline.sort_order
-ORDER BY outline.sort_order NULLS LAST, relation.leaf_key
-LIMIT ${loadConfig().maxRows}`;
+${includesLeaf ? "LEFT JOIN outline_order AS outline\n  ON outline.leaf_key = relation.leaf_key\nGROUP BY relation.leaf_key, outline.sort_order\nORDER BY outline.sort_order NULLS LAST, relation.leaf_key" : ""}
+LIMIT ${Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows)}`;
 
     return {
       sql,

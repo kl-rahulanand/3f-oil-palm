@@ -46,6 +46,7 @@ test("the statement service builds the tree from the outline of the budget batch
     ],
   );
   assert.equal(executor.calls.length, 2);
+  assert.deepEqual(executor.includeTotals, [false, false]);
 });
 
 test("the statement returns both the selected month and the financial year to date blocks but a single block when the selected period is itself the financial year to date", async () => {
@@ -203,6 +204,7 @@ class FakeResolver implements ISelectionResolverService {
 
 class FakeExecutor {
   calls: Array<{ from: string; to: string }> = [];
+  includeTotals: Array<boolean | undefined> = [];
 
   constructor(
     private readonly includeUnmapped: boolean,
@@ -213,10 +215,16 @@ class FakeExecutor {
 
   authorize(): void {}
 
-  async run(_user: AuthUser, _domain: unknown, selection: { timeWindow?: { from: string; to: string } }) {
+  async run(
+    _user: AuthUser,
+    _domain: unknown,
+    selection: { timeWindow?: { from: string; to: string } },
+    options: { includeTotals?: boolean } = {},
+  ) {
     const from = selection.timeWindow?.from ?? "";
     const to = selection.timeWindow?.to ?? "";
     this.calls.push({ from, to });
+    this.includeTotals.push(options.includeTotals);
     const ytd = from === "2026-04-01";
     let rows: Array<Record<string, string | number | null>> = [
       {
