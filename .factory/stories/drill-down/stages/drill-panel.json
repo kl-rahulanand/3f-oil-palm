@@ -1,7 +1,7 @@
 {
   "id": "drill-panel",
   "title": "The drill panel and the Actual-only affordance",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-11T20:33:53+00:00",
   "base_sha": "1e8aa0fdce916c050c91a6cdcc19b8578275c506",
   "dirty_at_start": {
@@ -18,5 +18,29 @@
       "git": "? .factory/stories/drill-down/task-plans/drill-panel.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "48e6f5da1298d524f146b5af9c74ace09e37ba8934ce99d6b7a10a7fc1211881"
+  "task_sha256": "48e6f5da1298d524f146b5af9c74ace09e37ba8934ce99d6b7a10a7fc1211881",
+  "local_review_stamp": {
+    "stage_id": "drill-panel",
+    "base_sha": "1e8aa0fdce916c050c91a6cdcc19b8578275c506",
+    "delta_id": "5a8bccb171ff939081b85666fd397b2d7af88b857da22ae1a768b19a9a6cf3c2",
+    "contract_sha256": "48e6f5da1298d524f146b5af9c74ace09e37ba8934ce99d6b7a10a7fc1211881",
+    "recorded_at": "2026-09-11T21:20:15+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-11T21:20:16+00:00",
+  "measured": {
+    "strays": [],
+    "files": 5,
+    "lines": 753,
+    "budget": {
+      "files": 5,
+      "lines": 1000
+    },
+    "test_id_misses": []
+  }
 }

@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "drill-panel",
   "score": 10,
-  "summary": "security lens over drill-panel (5 product path(s), 1e8aa0f..9bd727e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff introduces no actionable P0\u2013P2 defect. The aggregate drill remains a client-side projection with no network path, limits controls to non-leaf Actual cells, handles Grand Total via statement roots, sums and validates money in exact paise, derives nil-case percentages, and implements the required modal focus, Escape, scrim-close, focus-trap, and focus-return behavior. No credentials, authorization boundary changes, injection surfaces, or compatibility leftovers are present in the reviewed change.",
+  "summary": "security lens over drill-panel (5 product path(s), 1e8aa0f..02ec5bb, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff introduces no new route, network request, credential handling, executable interpolation, or authorization boundary. Aggregate drill data is projected from the already-present statement response, React safely renders the displayed values, and no compatibility shim, legacy alias, deprecated branch, or retained replacement surface is present. No actionable P0\u2013P2 security defect is demonstrated by the supplied evidence.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -17,10 +17,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "513680498e82618876b9c37442b10ab45803ea99089592a62c6caf6baf6da0a1",
-  "brief_sha256": "a867fd9d06e2318b64c5c77a58832de56d78fa9cd338b54bfa269749bf1e8a5f",
-  "branch_diff_digest": "e694afbfdcfbae95bf2218055f263b365dd73a2df5d458aa4ef054f9ca431d31",
+  "review_run_id": "fe195c7c0f8b0020268b62e518a496efcafbd35ee467f80622e7bc21b72a96ee",
+  "brief_sha256": "f5bdab0e111eb0c262797a7c1bfa4b925d55425cfb7cc5b33669d8aeb88f3945",
+  "branch_diff_digest": "5a8bccb171ff939081b85666fd397b2d7af88b857da22ae1a768b19a9a6cf3c2",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T21:13:39+00:00",
-  "commit": "9bd727ebeb8082f58218a1af3d82c309b2502beb"
+  "recorded_at": "2026-09-11T21:20:15+00:00",
+  "commit": "02ec5bb30447430edf654ab6f1ec61e0caf89b7a"
 }
