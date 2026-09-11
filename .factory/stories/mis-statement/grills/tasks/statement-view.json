@@ -1,0 +1,116 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "statement-view",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "statement-view renders the shipped statement payload INLINE on the MIS Reports page, below the existing selector, replacing the flat GL table once Generate runs - so the four selectors the route needs are the ones already in hand. It draws the workbook's tree at its natural depth in outline order with S. No., Budget Component and the GL code where a leaf has one, showing the ROUTE's parent subtotals and grand total rather than recomputing them, because task 4's export renders the same payload. Each period block shows Budget, Roll-over (empty), Actual and %, headed with the spec's labels formatted from the block's own range; money is displayed in Indian grouping rounded to the rupee half-up away from zero over the decimal string, never through float; a non-numeric percentage passes through verbatim and a null one reads NA. An unresolvable outcome shows the notice and no table, a resolved-empty selection shows the configured statement with zeros, the unmapped-GL line carries a blank GL and its own Actual, and the statement names its active period and contributing batch ids.",
+  "inspected_refs": [
+    "plans/drafts/task-statement-view.md",
+    "contract/src/api.ts",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/lib/api.ts",
+    "frontend/src/theme/tokens.test.ts",
+    "frontend/app/globals.css",
+    "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html",
+    "docs/specs/financial-mis-statement.md",
+    "harness.yaml",
+    "constitution/pnp-coding-standards-modular-monolith.md"
+  ],
+  "new_abstractions": [
+    "the statement rendered inline on the selector's own page, so no selection handoff exists",
+    "block headings formatted from each block's range into the spec's labels",
+    "rupee display rounding performed over a fixed-scale decimal string, never through float"
+  ],
+  "criteria_map": {
+    "The statement renders INLINE on the MIS Reports page, below the existing selector, replacing the flat GL table once Generate runs - so the four selectors it needs are the ones already in hand and there is no second surface reachable with a stale or missing selection. It draws the tree at the workbook's natural depth in outline order, each row carrying its S. No. and Budget Component, with the GL code shown for leaves that have one and left blank for the unmapped-GL line, whose glCode is null by contract.": "NEW SHAPE. The criterion now fixes the statement inline on the MIS Reports page - the human's ruling - which dissolves the missing selection handoff, and it carves out the unmapped-GL line whose glCode is null by contract.",
+    "Parent rows display the subtotals the ROUTE derived and a grand total foots the table - nothing is re-summed on the client, because the Excel export in task 4 renders the same payload and a second computation could disagree with it.": "KEEP. Parents are rendered, never recomputed; the reason is now stated in the criterion itself - task 4's export renders the same payload, so a second client computation could disagree with it.",
+    "Each period block renders Budget, Roll-over, Actual and % with Roll-over visibly EMPTY; block headings are the SPEC's labels - 'July 2026' and 'FY 26-27 (YTD to Jul)' - formatted in the view from each block's from/to, since the API emits raw values like 2026-07-01; money is displayed in Indian digit grouping with the rupee sign, rounded to the rupee HALF-UP AWAY FROM ZERO from the fixed-scale decimal string without ever going through float arithmetic; a non-numeric percentage is passed through VERBATIM and a null percentage renders as NA; and a single-block response renders one block.": "KEEP (amended). Block headings are now the SPEC's labels formatted from each block's range rather than the API's raw values, and the rounding rule is pinned to half-up away from zero over the decimal string.",
+    "The two outcomes render distinctly, branched on the response outcome rather than row emptiness: an unresolvable selection shows the 'No mapping configured' notice and NO statement table, because that payload carries tree: [] and grandTotal: null and there is nothing to zero-fill; a resolved selection with no transactions shows the full configured statement with zero values and no notice. The statement also names its provenance - the active period and the contributing batch ids the response carries - which the spec requires of a report generated from an uploaded extract rather than a live connection.": "KEEP (amended). 'Zeros plus the notice' was impossible for the unresolvable payload, so the criterion now distinguishes notice-and-no-table from the configured zero statement, and adds the provenance the spec requires."
+  },
+  "gaps": [
+    "The unresolvable response cannot render the 'zeros plus notice' the criterion demanded: contract/src/api.ts:291 gives it tree: [], grandTotal: null and no blocks or scope, so there is no zero-valued statement to draw.",
+    "'Reached from MIS Reports' had no selection handoff. The four selectors live only in MisReportView's local state while the statement route requires all four, so the plan described a link it could not build - and a second surface would then need its own stale/missing-selection state.",
+    "Block labels would have violated the confirmed spec if rendered verbatim as planned: the API emits '2026-07-01' and 'FY 26-27 YTD' while the spec requires 'July 2026' and 'FY 26-27 (YTD to Jul)'.",
+    "Frontend formatting was underspecified: FixedScaleMoney is an arbitrary-magnitude decimal string with no stated tie or negative rounding rule, and copying the existing Number() path would put money through float arithmetic.",
+    "The fourth criterion had no falsifiable proof - none of its leaves tested navigation, selector preservation, the sticky metrics, the eyebrow, the grand-total rule or accessibility.",
+    "The claimed token proof was FALSE: frontend/src/theme/tokens.test.ts compares only the files under frontend/src/theme against their source, so a new custom property added in the in-scope globals.css passes it untouched.",
+    "The spec requires the statement to name its active period and batch - it is built from an uploaded extract, not a live connection - but the task neither rendered nor tested the scope and provenance the API already supplies.",
+    "unmapped-GL is a leaf-like row whose glCode is null by contract, contradicting the blanket 'leaves carry the GL code' unless explicitly carved out.",
+    "reviewer_focus restated rules instead of citing the load-bearing constitution documents the task-grill contract requires."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "The criterion now says what that payload can actually express: an unresolvable outcome renders the 'No mapping configured' notice and NO statement table, while a RESOLVED selection with no transactions renders the full configured statement with zero values and no notice. The plan's grounding and its workflow diagram both name the empty tree and null grand total.",
+    "HUMAN-decided (round): the statement renders INLINE on the MIS Reports page, below the existing selector, replacing the flat GL table once Generate runs. The selectors it needs are the ones already in hand, there is no handoff to invent, and no second surface can be reached with a stale or missing selection. The write_scope drops the new page and picks up mis-report-view.tsx instead.",
+    "The view now formats each block heading from that block's own from/to into the spec's labels, so the heading follows the data rather than the API's raw values or a hard-coded month, and a required leaf asserts it.",
+    "The rounding rule is stated: display rounds to the rupee HALF-UP AWAY FROM ZERO, performed over the decimal string and never through float arithmetic, with reviewer_focus calling out that parseFloat on FixedScaleMoney is the defect.",
+    "The leaves went from four to FIVE and now falsify what a unit test can falsify: inline rendering with the route's subtotals un-recomputed, the spec block labels and money formatting, the verbatim/NA percentage and single-block case, the two outcomes, and the unmapped-GL blank GL plus provenance. The design metrics and accessibility are the functional check's and the reviewer's, which is stated rather than pretended.",
+    "The false claim is REMOVED and replaced with the truth in both the plan and reviewer_focus: tokens.test.ts does not prove a token was not added, because it only compares the theme source files; that is checked by reading the diff.",
+    "A new criterion clause requires the statement to name its provenance - the active period and contributing batch ids the response carries - with a required leaf asserting it.",
+    "The criterion now reads 'the GL code shown for leaves that have one and left blank for the unmapped-GL line, whose glCode is null by contract', and a required leaf asserts that row specifically.",
+    "reviewer_focus now cites constitution/pnp-coding-standards-modular-monolith.md for module layout and naming, constitution/03-modular-monolith-structure.md for where a feature's view and hook live, and constitution/07-exception-handling.md for how a failed statement call must surface as one clear state rather than a silent blank."
+  ],
+  "open_items": [
+    "The roll-over rule stays open; the column renders empty.",
+    "Design metrics and accessibility are proven by the functional check and the review, not by unit assertions.",
+    "The Excel export is task 4 and renders this same payload."
+  ],
+  "rounds": [
+    {
+      "question": "The grill found the statement has no way to receive the selection: the four selectors (Department/Function/Plant/period) live only in the MIS Reports page's local state, and the statement route needs all four. So where should the statement actually live?",
+      "options": [
+        "Inline, below the selector (Recommended)",
+        "A separate page carrying the selection in the URL",
+        "A separate page holding the selection in shared state"
+      ],
+      "chosen": "Inline, below the selector (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The unresolvable response cannot render the 'zeros plus notice' the criterion demanded: contract/src/api.ts:291 gives it tree: [], grandTotal: null and no blocks or scope, so there is no zero-valued statement to draw.",
+      "source": "contract/src/api.ts:291"
+    },
+    {
+      "finding": "'Reached from MIS Reports' had no selection handoff. The four selectors live only in MisReportView's local state while the statement route requires all four, so the plan described a link it could not build - and a second surface would then need its own stale/missing-selection state.",
+      "source": "frontend/src/features/mis/mis-report-view.tsx"
+    },
+    {
+      "finding": "Block labels would have violated the confirmed spec if rendered verbatim as planned: the API emits '2026-07-01' and 'FY 26-27 YTD' while the spec requires 'July 2026' and 'FY 26-27 (YTD to Jul)'.",
+      "source": "docs/specs/financial-mis-statement.md; contract/src/api.ts:260"
+    },
+    {
+      "finding": "Frontend formatting was underspecified: FixedScaleMoney is an arbitrary-magnitude decimal string with no stated tie or negative rounding rule, and copying the existing Number() path would put money through float arithmetic.",
+      "source": "contract/src/api.ts:258"
+    },
+    {
+      "finding": "The fourth criterion had no falsifiable proof - none of its leaves tested navigation, selector preservation, the sticky metrics, the eyebrow, the grand-total rule or accessibility.",
+      "source": ".factory/stories/mis-statement/decomposition.json"
+    },
+    {
+      "finding": "The claimed token proof was FALSE: frontend/src/theme/tokens.test.ts compares only the files under frontend/src/theme against their source, so a new custom property added in the in-scope globals.css passes it untouched.",
+      "source": "frontend/src/theme/tokens.test.ts:21"
+    },
+    {
+      "finding": "The spec requires the statement to name its active period and batch - it is built from an uploaded extract, not a live connection - but the task neither rendered nor tested the scope and provenance the API already supplies.",
+      "source": "docs/specs/financial-mis-statement.md"
+    },
+    {
+      "finding": "unmapped-GL is a leaf-like row whose glCode is null by contract, contradicting the blanket 'leaves carry the GL code' unless explicitly carved out.",
+      "source": "contract/src/api.ts:270"
+    },
+    {
+      "finding": "reviewer_focus restated rules instead of citing the load-bearing constitution documents the task-grill contract requires.",
+      "source": ".factory/stories/mis-statement/decomposition.json"
+    }
+  ],
+  "summary": "One cold read returned nine findings and blocked the handover. Two were falsifications of my own plan: the unresolvable payload carries tree: [] and grandTotal: null, so the promised 'zeros plus notice' had nothing to draw; and the claim that tokens.test.ts proves no theme token was added is FALSE, since it compares only the theme source files and a new custom property in globals.css passes it untouched - I verified both against the code before acting. The rest were real gaps: no selection handoff existed, block labels would have violated the confirmed spec, the rounding rule was unstated, provenance was silently dropped, the unmapped-GL line's null glCode contradicted a blanket criterion, the fourth criterion had no falsifiable proof, and reviewer_focus cited no constitution. The human settled the one genuine product question: the statement renders INLINE below the selector, which dissolves the handoff entirely rather than inventing one. The contract grew from four leaves to five and now states plainly which properties a unit test can falsify and which belong to the functional check. Verdict pass.",
+  "input_sha256": "23292351f9e48afcf1b8965c59d16cbe78bc29df20e274a718a46d3f7fbb9143",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "7869353fce9e122e933fdf44f4554d31435e823eea80b25a7cc35d77dd18505c",
+  "recorded_at": "2026-09-11T14:12:31+00:00",
+  "commit": "53dc378f3b109bca8b0ec3a87b22c01490cdd0bd"
+}
