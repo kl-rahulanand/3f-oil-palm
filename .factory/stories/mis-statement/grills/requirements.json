@@ -1,0 +1,126 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "mis-statement renders the Financial MIS (Table-2) for a selection resolved by the shipped mis-selection layer: the budget workbook's own outline supplies the row hierarchy at its natural depth, actuals attach at the GL leaf through the ONE governed path (selection narrows the Actual side before the GL/month roll-up, decision 0017), every parent is a derived subtotal rather than a stored row (decision 0020), and the mandatory unmapped-GL line keeps actual GLs that have no home in the outline visible. Each row carries S.No, Budget Component and the leaf GL code, with Roll-over shown but unpopulated and Payment Office omitted as Table-3. Measures are Budget, Roll-over, Actual and % for the selected month and FY 26-27 YTD, computed in exact paise and rounded only for display after aggregation. The statement exports to Excel with the same structure and values. Two zero states stay distinct: resolved-but-empty renders zero rows, no-mapping renders zeros plus the notice.",
+  "inspected_refs": [
+    "docs/specs/financial-mis-statement.md",
+    "docs/specs/sap-financial-ingestion.md",
+    "docs/specs/mis-selection-and-master.md",
+    "docs/specs/governed-metrics-and-joins.md",
+    "docs/architecture/20-financial-mis-data-model.md",
+    "docs/context/2026-09-01-srihari-requirements-qa.md",
+    "docs/decisions/0016-governed-joins-poc-scope.md",
+    "docs/decisions/0017-mis-selection-composite-key-seam.md",
+    "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
+    "docs/decisions/0020-mis-budget-leaf-grain.md",
+    "docs/product/BRIEF.md",
+    "harness.yaml",
+    "constitution/README.md"
+  ],
+  "new_abstractions": [
+    "the statement's row hierarchy as the budget workbook's own outline, rendered at its natural uneven depth",
+    "parents as derived subtotals over GL leaves rather than stored budget rows",
+    "an Excel export that preserves structure and values without pixel equivalence"
+  ],
+  "gaps": [
+    "'Live from SAP' contradicts the agreed PoC input: SAP data arrives by workbook upload (sap-financial-ingestion), and a live connection is explicitly a later phase. The statement would have misrepresented freshness and promised a 'current' number it cannot support.",
+    "The spec permitted a reading in which the statement aggregates directly, bypassing the ONE governed path decision 0017 established - selection filters Actuals by the master's resolved (plant, cost centre, GL) triples BEFORE the GL/month roll-up, with Budget not re-grained. A direct aggregation would bypass grants, provenance, zero-fill and the no-fan-out guarantee.",
+    "The spec collapsed two different zero states into generic zero rows: a resolved selection with no transactions, and a selection with NO MAPPING, which decision 0018 and the shipped mis-selection UI require to render zeros PLUS a 'no mapping configured' notice. Collapsing them either hides real spend or presents a mapping fault as a financial zero.",
+    "The mandatory visible unmapped-GL line (decision 0018) was absent from the requirement, so actual GLs with no home in the budget outline could be dropped or silently absorbed into a parent subtotal.",
+    "The requirement did not say parents are DERIVED. Decision 0020 settles that budget parents are computed from leaf GL rows and never read as stored rows; reading them double-counts. It also did not say Roll-over, which may be stored as 0 for ingest resilience, must stay visibly unpopulated.",
+    "The settled access contract from decision 0016 was missing: the governed layer is all-or-nothing for an authorized user, with two-sided scope injection, provenance and golden fixtures still applying. 'Read-only' alone does not state any of that.",
+    "'Exact to the format' conflicted with 'not a pixel replica', and the spec never said WHICH Table-2 identity columns must appear on screen and in the export - serial number, Budget Component, GL code, Roll-over indicator, Payment Office.",
+    "The acceptance criteria could not falsify a broken statement: 'reconciles to ... approximately Rs 1,15,12,712' cannot fail a wrong Budget or %, and 'matches Srihari's filled July MIS' never said whether matching means leaf rows, subtotals, totals, formatting, or all of them.",
+    "The arithmetic contract was unstated: whether rounding happens per line or only after aggregation (per-line rounding makes subtotals fail to foot), whether monetary zero stays visible, and whether a negative Actual against zero Budget behaves like a positive one.",
+    "docs/product/BRIEF.md is materially stale - it still frames Smart Palm / Yield / OER as immediate scope and the chatbot as a fast-follow, which will misdirect the next handover."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "REPO-ANSWERABLE, amended: the Why now says the statement is generated from the UPLOADED SAP extract, names the active period and its batch, and states plainly that this is not a live SAP connection.",
+    "REPO-ANSWERABLE (decision 0017), amended: a 'One governed path' clause requires the statement to read the governed relation with selection narrowing the Actual side before the roll-up, and forbids any direct aggregation that would bypass grants, provenance, zero-fill or no-fan-out.",
+    "REPO-ANSWERABLE (decision 0018 + shipped mis-selection behaviour), amended: 'Two distinct zero states' is now explicit - a resolved-but-empty selection renders zero rows, a no-mapping selection renders an all-zero statement PLUS the notice, and the two must not collapse.",
+    "REPO-ANSWERABLE (decision 0018), amended: the unmapped-GL line is stated as mandatory and visible, and actual GLs with no home in the budget outline land there rather than being dropped or absorbed.",
+    "REPO-ANSWERABLE (decision 0020), amended: 'Parents are derived, never read' is now a settled clause, with actuals attaching at the GL leaf, every parent a computed subtotal, and Roll-over visibly unpopulated even though it may be stored as 0.",
+    "REPO-ANSWERABLE (decision 0016), amended: an 'Access and provenance' clause records the all-or-nothing governed access, two-sided scope injection and carried-through provenance.",
+    "HUMAN-decided (round 2): each row carries the workbook S.No, the Budget Component name and the leaf GL code; the Roll-over Budget column is shown but unpopulated; Payment Office is omitted as Table-3. The 'exact to the format' tension is resolved as structure-not-pixels.",
+    "RESOLVED, amended: demo-ready now asserts EXACT values against the pinned July batch - Actual Rs 1,15,12,712.07 and Budget Rs 10,050,136.29, the latter matching the budget workbook's own grand total - plus footing subtotals, the unmapped-GL line's own Actual, and an export carrying the same structure AND values. The golden-reference upgrade now compares every displayed leaf, every derived subtotal, the grand total and each Budget/Actual/% value, with pixel equivalence explicitly not required.",
+    "RESOLVED, amended: compute in exact paise and round only for display and export AFTER aggregation, monetary zero shows as Rs 0, and the governed measure's existing nil rules stand - NA for 0/0, 'over-budget' for zero Budget with positive Actual, and 'credit / negative actual' for zero Budget with negative Actual, labelled distinctly rather than merged.",
+    "DEFERRED as D-0032 with a trigger: rewriting the product brief mid-story would churn the document every planning gate reads, and the specs and decision records are authoritative where they disagree."
+  ],
+  "open_items": [
+    "The roll-over rule from Srihari stays open; the column is rendered and left unpopulated, per the spec.",
+    "One filled month of Srihari's Financial MIS remains the golden reconciliation reference; the amended spec now says exactly what 'matches' will mean when it arrives.",
+    "docs/product/BRIEF.md is stale and ledgered as D-0032."
+  ],
+  "rounds": [
+    {
+      "question": "The statement's row hierarchy comes from the budget workbook's own outline, which has UNEVEN depth: most sections are two levels (e.g. '4 Materials Primary Nursery' \u2192 '4.1 Shade Net', GL 50001601), but 'Admin Expenses' is three ('9' \u2192 '9.01 Vehicle Maintenance', GL 55010900 \u2192 'Petrol and Diesel Charges', GL 55010901). Actuals attach at the GL leaf and parent values are derived by rolling up, never read (decision 0020). How deep should the statement render?",
+      "options": [
+        "Mirror the workbook outline (Recommended)",
+        "Flatten to two levels",
+        "Leaf GL rows only, no hierarchy"
+      ],
+      "chosen": "Mirror the workbook outline (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "Which identity columns should each statement row carry, on screen and in the Excel export? The legacy workbook's Table-2 carries a serial number, the Budget Component name, a GL code, a Roll-over Budget column and a Payment Office column. The measures themselves are settled (Budget \u00b7 Roll-over \u00b7 Actual \u00b7 %, for the selected month and FY 26-27 YTD).",
+      "options": [
+        "S.No + Component + GL, Roll-over blank (Recommended)",
+        "Component + GL only",
+        "Component name only"
+      ],
+      "chosen": "S.No + Component + GL, Roll-over blank (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "'Live from SAP' contradicts the agreed PoC input: SAP data arrives by workbook upload (sap-financial-ingestion), and a live connection is explicitly a later phase. The statement would have misrepresented freshness and promised a 'current' number it cannot support.",
+      "source": "docs/specs/financial-mis-statement.md:12 vs docs/specs/sap-financial-ingestion.md:19"
+    },
+    {
+      "finding": "The spec permitted a reading in which the statement aggregates directly, bypassing the ONE governed path decision 0017 established - selection filters Actuals by the master's resolved (plant, cost centre, GL) triples BEFORE the GL/month roll-up, with Budget not re-grained. A direct aggregation would bypass grants, provenance, zero-fill and the no-fan-out guarantee.",
+      "source": "docs/decisions/0017-mis-selection-composite-key-seam.md:30"
+    },
+    {
+      "finding": "The spec collapsed two different zero states into generic zero rows: a resolved selection with no transactions, and a selection with NO MAPPING, which decision 0018 and the shipped mis-selection UI require to render zeros PLUS a 'no mapping configured' notice. Collapsing them either hides real spend or presents a mapping fault as a financial zero.",
+      "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md:36"
+    },
+    {
+      "finding": "The mandatory visible unmapped-GL line (decision 0018) was absent from the requirement, so actual GLs with no home in the budget outline could be dropped or silently absorbed into a parent subtotal.",
+      "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md:36"
+    },
+    {
+      "finding": "The requirement did not say parents are DERIVED. Decision 0020 settles that budget parents are computed from leaf GL rows and never read as stored rows; reading them double-counts. It also did not say Roll-over, which may be stored as 0 for ingest resilience, must stay visibly unpopulated.",
+      "source": "docs/decisions/0020-mis-budget-leaf-grain.md:39"
+    },
+    {
+      "finding": "The settled access contract from decision 0016 was missing: the governed layer is all-or-nothing for an authorized user, with two-sided scope injection, provenance and golden fixtures still applying. 'Read-only' alone does not state any of that.",
+      "source": "docs/decisions/0016-governed-joins-poc-scope.md:31"
+    },
+    {
+      "finding": "'Exact to the format' conflicted with 'not a pixel replica', and the spec never said WHICH Table-2 identity columns must appear on screen and in the export - serial number, Budget Component, GL code, Roll-over indicator, Payment Office.",
+      "source": "docs/specs/financial-mis-statement.md:34 vs docs/architecture/20-financial-mis-data-model.md:42"
+    },
+    {
+      "finding": "The acceptance criteria could not falsify a broken statement: 'reconciles to ... approximately Rs 1,15,12,712' cannot fail a wrong Budget or %, and 'matches Srihari's filled July MIS' never said whether matching means leaf rows, subtotals, totals, formatting, or all of them.",
+      "source": "docs/specs/financial-mis-statement.md:60"
+    },
+    {
+      "finding": "The arithmetic contract was unstated: whether rounding happens per line or only after aggregation (per-line rounding makes subtotals fail to foot), whether monetary zero stays visible, and whether a negative Actual against zero Budget behaves like a positive one.",
+      "source": "docs/specs/financial-mis-statement.md:52"
+    },
+    {
+      "finding": "docs/product/BRIEF.md is materially stale - it still frames Smart Palm / Yield / OER as immediate scope and the chatbot as a fast-follow, which will misdirect the next handover.",
+      "source": "docs/product/BRIEF.md:8"
+    }
+  ],
+  "summary": "One cold read returned ten findings against the confirmed spec. Eight were repository-answerable and are resolved in the amended spec: the 'live from SAP' claim is corrected to the uploaded extract with its period and batch named; the ONE governed path (0017), the mandatory visible unmapped-GL line and the two distinct zero states (0018), derived parents with Roll-over unpopulated (0020), and the all-or-nothing access-and-provenance contract (0016) are all stated explicitly; the acceptance criteria are tightened from an approximate total to EXACT values against a pinned July batch - Actual Rs 1,15,12,712.07 and Budget Rs 10,050,136.29 - with the golden-reference comparison defined line by line; and the arithmetic contract now requires exact-paise computation rounded only after aggregation, so subtotals foot. One was deferred with a trigger (the stale product BRIEF, D-0032). Two were genuine product decisions put to the human: the statement mirrors the budget workbook's uneven outline depth rather than flattening it, and each row carries S.No, Budget Component and the leaf GL code with Roll-over blank and Payment Office omitted. Verdict pass.",
+  "issue": "mis-statement",
+  "input_sha256": "3f446db4686971703f979794bc8aa15d47b0f6d55657f12c5371fecbce5baa8f",
+  "recorded_at": "2026-09-11T04:40:46+00:00",
+  "commit": "cd46aae71528fe20860da081d112c224fdb4719a"
+}
