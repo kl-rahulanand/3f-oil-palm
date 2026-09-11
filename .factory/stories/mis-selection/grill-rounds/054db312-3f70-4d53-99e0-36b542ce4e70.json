@@ -1,0 +1,25 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The budget workbook is hierarchical. A row WITH an S.No is a parent line whose Budget cell is an uncalculated SUM() of the rows beneath it; those child rows have NO S.No but hold the actual numbers and their own GL codes (e.g. parent 55011200 'Insurance' = SUM of 55011201 'Insurance\u2013Stocks' + 55011202 'Insurance\u2013Assets'). SAP books actuals against the CHILD GLs \u2014 55010901 and 55010902 both appeared as real DUB actuals in the MIS Reports run. Which rows should the budget ingest store?",
+      "options": [
+        "Leaf rows only (Recommended)",
+        "Parent rows only",
+        "Both, marked by level"
+      ],
+      "chosen": "Leaf rows only (Recommended)"
+    },
+    {
+      "question": "532 'Roll Over Budget' cells (and 56 Budget cells) are formulas the workbook was saved without cached results for, so the parser cannot read a number. Decision 0016 defers Roll-over entirely and the governed layer only uses Actual, Budget and %. How should an uncomputed cell be treated?",
+      "options": [
+        "Roll-over 0, Budget rejects (Recommended)",
+        "Treat every uncomputed cell as 0",
+        "Reject the upload until recalculated"
+      ],
+      "chosen": "Roll-over 0, Budget rejects (Recommended)"
+    }
+  ],
+  "at": "2026-09-11T02:23:24.498108+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

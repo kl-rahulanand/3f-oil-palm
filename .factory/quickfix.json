@@ -1,0 +1,14 @@
+{
+  "id": "Q-0029-2b9f",
+  "profile": "lite",
+  "reason": "D-0029: the real client budget workbook has never ingested. Decision 0020 settles the financial question (store leaf rows at the GL codes SAP books, skip parent SUM subtotals, drop the S.No requirement, default an uncomputed Roll-over cell to 0 and count it). What remains is a small bounded parser change plus its tests - it does not deserve a story, and mis-statement is blocked until Budget loads.",
+  "started_at": "2026-09-11T02:24:26+00:00",
+  "max_files": 5,
+  "files": [
+    "backend/src/ingest/mis-budget.parser.test.ts",
+    "backend/src/ingest/mis-budget.parser.ts"
+  ],
+  "harness_source": false,
+  "by": "Rahul Anand",
+  "base_sha": "a44a75924e36592abaca1ba48d0e04e810e2c8b9"
+}
