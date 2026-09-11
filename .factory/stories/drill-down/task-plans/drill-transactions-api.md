@@ -16,17 +16,23 @@ No UI, no schema migration, and no change to the statement response, the stateme
 projection, `actual_by_key_month`, or the k-anon suppression the aggregate paths use.
 
 ## Acceptance criteria (plan_contracts)
-- **t-dta-c1** — read `sap_transaction` directly, in a repository **beside** the governed
-  executor, reusing `SelectionExecutor.authorize`, the plant-scope check, `SqlValidator`,
-  `warehouse.explain` and the configured timeout rather than reimplementing them (0025).
-- **t-dta-c2** — this is the **only** endpoint the story adds; aggregates are a client
-  projection and must not be served from here (0024).
-- **t-dta-c3** — `applyKSuppression` is **not** wired into this read, and no aggregate path
-  loses it.
-- **t-dta-c4** — the pin must be **complete**, not merely valid; an incomplete pin is a
-  refusal, never a partial footer.
-- **t-dta-c5** — a typed, pre-query, fail-closed audit event, covering refused attempts, and
-  never echoing a resolved predicate to an unauthorized caller.
+Six criteria, each identical to its recorded `plan_contracts` statement:
+- **t-dta-c1** — the route: unversioned, raw response, the three guards, fixed page size 100,
+  typed 400/401/403/409, **and its path added to the strict allow-list in
+  `app.routes.test.ts`**, which is the only thing that proves it exists (0019).
+- **t-dta-c2** — every predicate term except the pinned ids derived server-side, the reserved
+  `unmapped-GL` key handled, and **every pinned id validated as a UUID before it reaches SQL
+  construction**, with a negative test.
+- **t-dta-c3** — the pin is bound, not trusted: one actuals id per month in range, the outline
+  taken from **the budget batch whose period equals the block's `to`**, and **per-batch
+  status** in the response rather than a scalar flag.
+- **t-dta-c4** — a typed, pre-query, fail-closed audit event, plus a **route-scoped exception
+  filter** auditing authenticated guard-level refusals, never echoing the resolved predicate
+  (0025). `applyKSuppression` stays out of this read, and no aggregate path loses it.
+- **t-dta-c5** — two statements under one predicate through validator/explain/timeout,
+  fixed-scale money strings, and **date-only normalization** away from `toISOString()`.
+- **t-dta-c6** — exact-paise footing as an equality, the FY-YTD fixture, the empty-result and
+  bad-page cases, **and the new tests registered in the scripts CI actually runs**.
 
 ## What already exists (grounding, file:line)
 - `backend/src/warehouse/warehouse-schema.ts:48` — `sap_transaction`: `txn_no`, `line_id`,
@@ -93,12 +99,30 @@ The client sends `provenance.activeBatchIds` **verbatim**; the server splits it 
   and report `batchState: "replaced"`.
 - A pinned id that no longer exists → `409`, reported as gone. **Never** substitute the
   active batch.
-- The single pinned **budget** id is bound by the same replaced/gone rules and is what the
-  outline lookup keys on.
+- **Budget: there are twelve of them, not one.** Budget ingest writes a batch per workbook
+  month, so FY-YTD provenance carries several budget ids. The outline is taken from the
+  budget batch whose `period` equals the **block's `to`** — which is exactly what
+  `mis-statement.service.ts` itself reads (`findByBudgetPeriod(resolution.period.to)`) — and
+  that id is bound by the same replaced/gone rules. The other budget ids are not used: the
+  drill reads no budget.
+- **Status is reported per pinned batch**, not as a scalar: `{ source, period,
+  requestedBatchId, status: "current" | "replaced" | "gone", activeBatchId }`. Task 3 cannot
+  name *which* batch changed from a single flag.
+- **Every pinned id is validated as a UUID by the request schema** before it reaches SQL
+  construction. The repository interpolates literals and `SqlValidator` is a post-check that
+  does not make interpolation safe.
 
-The mapping master needs no pin: `MIS_MAPPING_MASTER` is a compiled-in constant with a
-`version` (0014), so it cannot drift inside a running process; the audit record names the
-version.
+The mapping master needs no pin **within a process**: `MIS_MAPPING_MASTER` is a compiled-in
+constant with a `version` (0014). A statement rendered before a deployment and drilled after
+one is a real but bounded window — ledgered as **D-0038**, with the audit record naming the
+version so any such drill is attributable rather than invisible.
+
+**Not reopened here:** a signed or server-held statement snapshot would bind the pin to the
+*displayed* statement outright, and a client can otherwise substitute a different historical
+batch for a month. That was put to the human at the plan gate and **rejected** in favour of
+the completeness rule: the substitution is a user misleading themselves with data they are
+already authorized to read — plant scope and triples still apply, so it discloses nothing —
+and the audit record names the exact ids read.
 
 ### 3. The read
 Two statements, one predicate, both through `SqlValidator` → `warehouse.explain` → execute
@@ -119,13 +143,25 @@ LIMIT 100 OFFSET <(page - 1) * 100>
 Page size is **fixed at 100** server-side. Money leaves the service as a fixed-scale decimal
 **string**, never a JSON number.
 
+`month` and `posting_date` are normalized to **date-only strings from process-local date
+parts**. `postgres.adapter.ts:112` serializes `DATE` through `toISOString()`, so east of UTC
+a month of `2026-07-01` comes back as `2026-06-30` — the same bug the statement already hit.
+The required test sets a non-UTC `TZ`; one that runs under UTC proves nothing.
+
 ### 4. The audit
 Derive predicate → build SQL → **write the record** → only then touch `sap_transaction`. A
 throw aborts before the read, exactly as `chat.service.ts` does inside `beforeExecute`.
 `AuditService` gains a typed drill event (actor, `nodeKey`, leaf key, triples, range, pinned
 actuals **and** budget ids, mapping-master version, SQL, objects touched) — `selection` is
-`jsonb`, so this is a TypeScript widening, not a migration. Authorization refusals write
-their own event type with the predicate **as submitted**.
+`jsonb`, so this is a TypeScript widening, not a migration.
+
+**Refusals need two paths, because the guards run first.** `AuthGuard`, the global
+`CsrfGuard` and `RequireAction("report")` all reject before the controller is reached, so the
+service can only audit its own refusals (plant scope, governed grants, stale or vanished
+pin). Guard-level refusals are caught by an exception filter registered **on this route
+only**, which audits any refusal where a user is authenticated and **skips unauthenticated
+callers** so an anonymous caller cannot flood `audit_events`. Every refusal event carries the
+predicate **as submitted**, never the resolved one.
 
 ### 5. The FY-YTD fixture
 The client extract is July only, so criterion "FY-YTD spans batches" cannot be proven against
@@ -136,17 +172,17 @@ assertions rest on client data and which on the fixture.
 ## Workflow
 ```mermaid
 flowchart TD
-  R["POST api/mis/statement/drill<br/>selector · nodeKey · block · pinnedBatches · page"] --> C{CsrfGuard · AuthGuard · RequireAction report}
-  C -->|refused| AR["audit: refusal event<br/>predicate AS SUBMITTED"] --> F403["403 · no rows, no counts"]
+  R["POST api/mis/statement/drill<br/>selector · nodeKey · block · pinnedBatches (UUIDs) · page"] --> C{CsrfGuard · AuthGuard · RequireAction report}
+  C -->|refused| FIL["route-scoped exception filter<br/>audits IF authenticated"] --> F403["403 · no rows, no counts"]
   C --> SC{plant in user.scope?}
-  SC -->|no| AR
+  SC -->|no| AR["audit: refusal event<br/>predicate AS SUBMITTED"] --> F403
   SC --> RES["SelectionResolverService.resolve<br/>triples + leafTargets"]
-  RES --> OUT["outline snapshot BY PINNED BUDGET BATCH<br/>(not the active one)"]
+  RES --> OUT["outline from the pinned BUDGET batch<br/>whose period = block.to (not the active one)"]
   OUT --> LK{"nodeKey → leaf key<br/>or reserved unmapped-GL"}
   LK -->|not a leaf| F400["400"]
   LK --> BIND{"bind the pin:<br/>one actuals batch per month in range"}
   BIND -->|month missing / batch gone| F409["409 stale · no substitution"]
-  BIND -->|id no longer active| REP["batchState: replaced"]
+  BIND -->|id no longer active| REP["per-batch status: replaced + activeBatchId"]
   BIND --> PRED["predicate: leaf · triples · range · scope · pinned ids"]
   REP --> PRED
   PRED --> SQL["build page SQL + footer SQL"]
@@ -155,13 +191,15 @@ flowchart TD
   AUD --> V["SqlValidator → warehouse.explain → execute (timeout)"]
   V --> P["page: ≤100 lines, deterministic order"]
   V --> T["footer: COUNT + SUMs over ALL matches"]
-  P --> OK["lines · totalCount · page · exact totals · batchIds · batchState"]
+  P --> OK["lines (date-only months) · totalCount · page<br/>exact totals · per-batch status"]
   T --> OK
 ```
 
 ## Manual Verification
 1. `npm run build:contract && npm run build:backend && npm run typecheck && npm run lint &&
-   npm run format:check && npm run test:hermetic` — the **seven** required leaves pass. Read
+   npm run format:check && npm run test:hermetic` — the **nine** required leaves pass, and
+   the new hermetic files appear in both `backend/package.json`'s `test:hermetic` **and**
+   `tools/quality-gate.test.mjs`; a file in neither is a test CI never runs. Read
    the junit report's **testcase name and executed count**, not the exit code: both runners
    report green having asserted nothing when a named leaf does not exist (D-0024, D-0031).
 2. **Gated warehouse proof** — with `WAREHOUSE_DB_TEST=1` and the documented `WAREHOUSE_PG_*`
@@ -193,15 +231,22 @@ house style), 0009 (required tests name a real leaf and pin `TS_NODE_PROJECT`).
   `warehouse/drill-transactions.{repository,interface}.ts` + unit and gated tests; drill
   request/response types in `contract/src/api.ts`.
 - **Changed (additive only):** `StatementOutlineRepository` gains a by-batch-id lookup;
-  `AuditService` gains the typed drill event; `mis.module.ts` registers the new providers;
-  `mis-statement.service.ts`/`.interface.ts` expose their block definitions and authorization
-  helper for reuse rather than duplication.
+  `AuditService` gains the typed drill event; `mis.module.ts` registers the new providers and
+  the route-scoped audit filter; `mis-statement.service.ts`/`.interface.ts` expose their block
+  definitions and authorization helper for reuse rather than duplication.
+- **Registration, without which nothing above is proven:** the route path in
+  `backend/src/app.routes.test.ts` (the strict allow-list), the new hermetic tests in
+  `backend/package.json` `test:hermetic` and `tools/quality-gate.test.mjs`, the gated proof in
+  `test:warehouse-proof`, and — because this task edits `audit.service.ts` — formatting it and
+  dropping its `.prettierignore` entry per **D-0006**.
 - **Unchanged:** the statement response contract, the statement projection,
   `actual_by_key_month`, `suppression.ts`, and the database schema. **No migration.**
 
 ## Out of scope
 The panel and both of its states (tasks 2 and 3); any Excel export of transactions (D-0035);
-auditing the statement and export routes (D-0036); drilling Budget, Roll-over or %.
+auditing the statement and export routes (D-0036); pinning the mapping-master version across
+deployments (D-0038); auditing guard refusals on routes other than this one; drilling Budget,
+Roll-over or %.
 
 <!-- forge:contract -->
 ## Contract (recorded)
@@ -212,12 +257,12 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 **Acceptance criteria**
 
-- POST api/mis/statement/drill (unversioned, raw response, direct module imports per decision 0019) takes the statement's own selector plus nodeKey, the measure block key, the statement's provenance.activeBatchIds passed through verbatim as pinnedBatches, and a 1-based page; it sits behind AuthGuard, RequireAction('report') and the globally registered CsrfGuard, and declares typed 400/401/403/409 responses alongside its success schema the way mis-statement.controller.ts does. Page size is FIXED SERVER-SIDE at 100 and is not client-settable.
-- The predicate is derived server-side on EVERY request and never taken from the client: the leaf key from nodeKey against the PINNED budget batch's outline snapshot (or the reserved key 'unmapped-GL', which the statement synthesises outside the outline and which maps to the resolver's leafTargets with target.kind === 'bucket'); the (plant, cost centre, GL) triples from SelectionResolverService for that leaf; the month range from the block key re-run through the statement's own block definitions; and the plant scope from user.scope. A nodeKey that is neither a leaf in that snapshot nor the reserved key is a 400. Only the pinned ids come from the browser, and they can only narrow the read.
-- The pinned set is BOUND, not trusted. The server splits pinnedBatches by source; it computes which months in the block's range have an actuals batch and requires exactly one pinned id per such month - a missing month, a duplicate, a wrong-source or wrong-period id is a REFUSAL, never an authorized but partial footer. An id that is valid but no longer the active batch for its month means the period was re-uploaded: read the PINNED batch and report the replacement. An id that no longer exists at all is reported as gone and refused. The single budget id is bound by the same replaced/gone rules, because the outline snapshot it carries is what maps nodeKey to a leaf - a budget re-upload would otherwise make the drill read a different leaf's transactions out of a perfectly pinned actuals batch. StatementOutlineRepository gains a by-batch-id lookup beside its by-period one.
-- Every drill writes its audit record BEFORE any sap_transaction read and fails closed: the typed drill event names the actor, nodeKey, the resolved leaf key, the triples, the month range, the pinned actuals AND budget ids, the mapping-master version, the generated SQL and the objects touched, and if the insert throws the endpoint errors with NO transaction query issued. The resolver and outline lookups that derive the predicate necessarily precede the write - the record cannot name a predicate that does not exist - and read only mapping and outline metadata. REFUSED attempts are audited too: an authorization refusal writes its own event type carrying the actor and the predicate AS SUBMITTED, never the resolved one. audit_events.selection is already jsonb, so this is a TypeScript widening of AuditService, not a schema change.
-- The read is two statements over sap_transaction joined to ingest_batch under one identical predicate, so the footer cannot drift from the page: the page (ORDER BY (debit - credit) DESC, month DESC, posting_date DESC, txn_no, line_id with LIMIT/OFFSET) and the footer (COUNT(*) plus the three SUMs, LIMIT 1). Both go through SqlValidator.validate and warehouse.explain before execution and run under the configured query timeout, reusing the governed layer's guards rather than reimplementing them. Money crosses the wire as a fixed-scale decimal STRING end to end - never a JSON number, which loses paise at scale. Value = Debit - Credit; reference is SAP Reference 1 and memo is LineMemo, which is what sap-ingestion already wrote into those columns.
-- Footing is proven in EXACT PAISE against the pinned July batch - for a leaf and for the unmapped-GL bucket - as an equality, never a tolerance: sap_transaction.debit and .credit are numeric(18,2), so the actual_by_key_month view's ::numeric(18,2) cast is a no-op and the statement's paise ARE these rows' paise summed. The FY-YTD multi-batch case CANNOT be proven against client data - the supplied SAP extract contains July only - so this task builds a deliberate multi-period actuals fixture for it, and the evidence says which proofs rest on client data and which on the fixture. An empty result is a SUCCESS: zero rows and a zero footer, not an error. A non-integer or out-of-range page is a 400.
+- POST api/mis/statement/drill is registered as an unversioned route returning a raw response with direct module imports, behind AuthGuard, RequireAction('report') and the globally registered CsrfGuard, taking the statement's own selector plus nodeKey, the measure block key, the statement's provenance.activeBatchIds passed through verbatim as pinnedBatches, and a 1-based page; page size is FIXED SERVER-SIDE at 100 and is not client-settable; it declares typed 400/401/403/409 responses alongside its success schema the way mis-statement.controller.ts does, and its path is added to the strict allow-list in backend/src/app.routes.test.ts, which is the only place that proves the route exists.
+- Every term of the predicate except the pinned batch ids is derived server-side on EVERY request and never read off the client: the leaf key from nodeKey against the PINNED budget batch's outline snapshot or the reserved key 'unmapped-GL' that the statement synthesises outside the outline; the (plant, cost centre, GL) triples from SelectionResolverService.leafTargets filtered to that leaf (target.kind 'leaf' with a matching leafKey, or target.kind 'bucket' for the reserved key); the month range from the statement's own block definitions; and the plant scope from user.scope. A nodeKey that is neither a leaf in that snapshot nor the reserved key is a 400. Every pinned batch id is validated as a UUID by the request schema BEFORE it reaches SQL construction, with a negative test, because the repository interpolates literals and SqlValidator is a post-check that does not make interpolation safe.
+- The pin is BOUND, not trusted. The server splits pinnedBatches by source; it computes which months in the block's range have an actuals batch and requires exactly one pinned id per such month - a missing month, a duplicate, a wrong-source or wrong-period id is a REFUSAL, never an authorized but partial footer. Budget ingest creates a batch per workbook month, so FY-YTD provenance carries several budget ids: the outline is taken from the budget batch whose period equals the block's `to`, matching what the statement itself read, and the other budget ids are not used. A pinned id that is valid but no longer active for its period means a re-upload: read the PINNED batch and report it. A pinned id that no longer exists is reported as gone and refused. The response reports status PER PINNED BATCH - source, period, requested id, current/replaced/gone, and the now-active id where there is one - not a single scalar flag, because task 3 cannot name what changed from a scalar.
+- Every drill writes its audit record BEFORE any sap_transaction read and fails closed: a TYPED drill event naming the actor, nodeKey, the resolved leaf key, the triples, the month range, the pinned actuals AND budget ids, the mapping-master version, the generated SQL and the objects touched, and if the insert throws the endpoint errors with NO transaction query issued. audit_events.selection is already jsonb, so this widens AuditService in TypeScript rather than the schema. Refusals are audited too: the service's own refusals directly, and guard-level refusals through an exception filter registered ON THIS ROUTE ONLY, which audits any refusal where a user is authenticated and skips unauthenticated callers so an anonymous caller cannot flood the audit table. A refusal event carries the predicate AS SUBMITTED, never the resolved one.
+- The read is two statements over sap_transaction joined to ingest_batch under one identical predicate, so the footer cannot drift from the page: the page (ORDER BY (debit - credit) DESC, month DESC, posting_date DESC, txn_no, line_id with LIMIT/OFFSET) and the footer (COUNT(*) plus the three SUMs, LIMIT 1). Both go through SqlValidator.validate and warehouse.explain before execution and run under the configured query timeout, reusing the governed layer's guards rather than reimplementing them, and applyKSuppression is NOT wired in - this read is the documented exception (0025) and no aggregate path loses it. Money crosses the wire as a fixed-scale decimal STRING, never a JSON number. month and posting_date are normalized to date-only strings from process-local date parts, because the Postgres adapter serializes DATE through toISOString() and east of UTC that turns 2026-07-01 into the previous day; a test proves the normalization under a non-UTC TZ.
+- Footing is proven in EXACT PAISE as an equality, never a tolerance - for a leaf and for the unmapped-GL bucket against the pinned July batch - because sap_transaction.debit and .credit are numeric(18,2), so the actual_by_key_month view's ::numeric(18,2) cast is a no-op and the statement's paise ARE these rows' paise summed. The FY-YTD multi-batch case CANNOT be proven against client data (the supplied SAP extract is July only), so this task builds a deliberate multi-period actuals fixture for it and the evidence states which proofs rest on client data and which on the fixture. An empty result is a SUCCESS with zero rows and a zero footer; a non-integer or out-of-range page is a 400. The new gated proof is registered in backend/package.json's test:warehouse-proof and the new hermetic tests in test:hermetic and tools/quality-gate.test.mjs, or CI runs none of them.
 
 **Write scope** (what `stage done` measures the diff against)
 
@@ -228,6 +273,7 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - backend/src/mis/mis-drill.service.test.ts
 - backend/src/mis/mis-drill.interface.ts
 - backend/src/mis/mis-drill.dto.ts
+- backend/src/mis/mis-drill.audit.filter.ts
 - backend/src/mis/mis.module.ts
 - backend/src/warehouse/drill-transactions.repository.ts
 - backend/src/warehouse/drill-transactions.interface.ts
@@ -236,18 +282,23 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - backend/src/warehouse/statement-outline.repository.ts
 - backend/src/warehouse/statement-outline.interface.ts
 - backend/src/core/audit.service.ts
-- backend/src/core/audit.service.test.ts
 - backend/src/mis/mis-statement.service.ts
 - backend/src/mis/mis-statement.interface.ts
+- backend/src/app.routes.test.ts
+- backend/package.json
+- tools/quality-gate.test.mjs
+- .prettierignore
 
 **Required tests** (run by `stage done`)
 
 - `the drill resolves its leaf and triples server side rejecting a node key that is neither a snapshot leaf nor the reserved unmapped gl bucket` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.service.test.ts)
-- `the pinned batch set is refused when it does not cover every month in the block range and is read with a replacement notice when a pinned batch is no longer active` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.service.test.ts)
-- `the drill resolves the node key against the pinned budget outline snapshot rather than the currently active one` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.service.test.ts)
+- `the request schema rejects a pinned batch id that is not a uuid before any sql is built` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.controller.test.ts)
+- `the pinned batch set is refused when it does not cover every month in the block range and reports per batch status when a pinned batch is no longer active` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.service.test.ts)
+- `the drill takes its outline from the pinned budget batch whose period equals the block end rather than the currently active one` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.service.test.ts)
 - `a failing audit insert aborts the drill before any transaction query is issued` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.service.test.ts)
-- `an unauthorized drill is audited with the predicate as submitted and never the resolved predicate` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.service.test.ts)
+- `an authenticated drill refused by the route guards is audited with the predicate as submitted and never the resolved predicate` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.controller.test.ts)
 - `the drill page and footer queries share one predicate and emit the deterministic order with a bounded limit the validator accepts` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/warehouse/drill-transactions.repository.test.ts)
+- `drill line dates are normalized to date only strings under a non utc timezone` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/warehouse/drill-transactions.repository.test.ts)
 - `the drill route refuses an out of range page and returns an empty result as a zero row success with a zero footer` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.controller.test.ts)
 
 **Verify commands**
@@ -259,5 +310,5 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - `npm run format:check`
 - `npm run test:hermetic`
 
-**Review budget.** 18 files / 2300 lines -- The task is one route but four distinct pieces of machinery, none of which exists today: server-side predicate derivation including the reserved unmapped-GL key the statement synthesises outside the outline; the batch-binding rule in four states across two pinned sources, which drags a by-batch-id lookup into StatementOutlineRepository; a typed drill audit event with a refusal path, widening AuditService beyond the governed Selection shape it currently takes; and a two-query raw-row repository that must pass SqlValidator and foot in exact paise, plus the multi-period fixture the FY-YTD criterion cannot be proven without. No schema migration and no UI.
+**Review budget.** 22 files / 2600 lines -- One route, but five pieces of machinery none of which exists today: server-side predicate derivation including the reserved unmapped-GL key the statement synthesises outside the outline, with UUID validation before SQL; the batch-binding rule in four states across two pinned sources, which drags a by-batch-id lookup into StatementOutlineRepository and per-batch status into the response; a typed drill audit event plus a route-scoped exception filter for guard-level refusals, widening AuditService past the governed Selection shape it takes today; a two-query raw-row repository that must pass SqlValidator, normalize DATE columns away from toISOString and foot in exact paise; and the multi-period fixture the FY-YTD criterion cannot be proven without. The file count carries four registration files the grill showed are load-bearing (app.routes.test.ts, package.json, quality-gate.test.mjs, .prettierignore) without which the route is unproven and the tests unrun. No schema change and no UI.
 <!-- /forge:contract -->
