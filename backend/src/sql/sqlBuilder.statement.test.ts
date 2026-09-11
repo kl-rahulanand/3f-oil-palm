@@ -7,7 +7,7 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   const builder = new SqlBuilder();
   const statement = builder.build(statementDomain, statementSelection, user, true, scope);
   const actualCte = statement.sql.match(/actual_by_leaf_month AS \(([\s\S]*?)\n\), budget_src/)?.[1] ?? "";
-  const budgetCte = statement.sql.match(/budget_src AS \(([\s\S]*?)\n\), statement_relation/)?.[1] ?? "";
+  const budgetCte = statement.sql.match(/budget_src AS \(([\s\S]*?)\n\), outline_order/)?.[1] ?? "";
 
   assert.match(statement.sql, /leaf_targets\(plant, cost_center, gl_code, leaf_key\) AS/);
   assert.match(statement.sql, /\('DUB', 'Primary', '50001605', '4\.5\|50001605\|fertilizers-manures'\)/);
@@ -25,6 +25,8 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   assert.match(statement.sql, /actual_src\.leaf_key = budget_src\.leaf_key AND actual_src\.month = budget_src\.month/);
   assert.match(statement.sql, /COALESCE\(actual_src\.actual_net, 0\)::numeric\(18,2\)/);
   assert.match(statement.sql, /COALESCE\(budget_src\.budget_net, 0\)::numeric\(18,2\)/);
+  assert.match(statement.sql, /outline\.batch_id/);
+  assert.match(statement.sql, /ORDER BY relation\.month, outline\.sort_order NULLS LAST, relation\.leaf_key/);
 
   const shipped = builder.build(domain, selection, user, true, scope);
   assert.match(shipped.sql, /GROUP BY gl_code, month/);

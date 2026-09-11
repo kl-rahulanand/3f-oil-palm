@@ -190,6 +190,12 @@ export class SqlBuilder {
   FROM budget_by_leaf_month
   WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
     AND month >= ${periodStart} AND month < ${periodEnd}
+), outline_order AS (
+  SELECT outline.leaf_key, batch.period AS month, outline.sort_order
+  FROM mis_budget_outline AS outline
+  INNER JOIN ingest_batch AS batch ON batch.id = outline.batch_id
+  WHERE batch.source_kind = 'budget' AND batch.is_active AND outline.leaf_key IS NOT NULL
+    AND batch.period >= ${periodStart} AND batch.period < ${periodEnd}
 ), statement_relation AS (
   SELECT COALESCE(actual_src.leaf_key, budget_src.leaf_key) AS leaf_key,
     COALESCE(actual_src.month, budget_src.month) AS month,
@@ -217,19 +223,24 @@ export class SqlBuilder {
       AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
       AND budget_batch.is_active
 )
-SELECT leaf_key, month, actual_net, budget_net, rollover_net, source_presence, actual_batch_id, budget_batch_id
-FROM statement_relation
-ORDER BY month, leaf_key`;
+SELECT relation.leaf_key, relation.month, relation.actual_net, relation.budget_net, relation.rollover_net,
+  relation.source_presence, relation.actual_batch_id, relation.budget_batch_id
+FROM statement_relation AS relation
+LEFT JOIN outline_order AS outline
+  ON outline.leaf_key = relation.leaf_key AND outline.month = relation.month
+ORDER BY relation.month, outline.sort_order NULLS LAST, relation.leaf_key`;
 
     return {
       sql,
       objectsTouched: [
         "actual_by_key_month",
         "budget_by_leaf_month",
+        "mis_budget_outline",
         "ingest_batch",
         "leaf_targets",
         "actual_by_leaf_month",
         "budget_src",
+        "outline_order",
         "statement_relation",
       ],
     };
