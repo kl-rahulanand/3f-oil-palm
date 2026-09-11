@@ -1,40 +1,25 @@
 {
   "generated_by": "autoreview",
   "task_id": "statement-model",
-  "score": 0,
-  "summary": "quality lens over statement-model (20 product path(s), 3d57c3c..36daf1c, Codex via the autoreview skill at --max-priority P2): 3 blocking, 1 non-blocking. The core projection is not reachable from production, drift does not prevent a split statement line, and the repository can activate a budget batch without its required snapshot.\nVERDICT t-sm-c1: partial \u2014 backend/src/warehouse/ingestion.repository.ts:80 permits activation with an empty outline\nVERDICT t-sm-c2: partial \u2014 backend/src/ingest/mis-budget.parser.ts:169 records mapping drift without rejecting the candidate\nVERDICT t-sm-c3: partial \u2014 backend/src/sql/sqlBuilder.ts:154 defines the leaf projection without a production invocation",
+  "score": 6,
+  "summary": "quality lens over statement-model (24 product path(s), 3d57c3c..cc92c65, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. VERDICT t-sm-c1: implemented \u2014 backend/drizzle-warehouse/0003_statement_leaf_projection.sql:5 defines the structural per-batch outline and backend/src/warehouse/ingestion.repository.ts:82 writes it transactionally.\nVERDICT t-sm-c2: partial \u2014 backend/src/mapping/mapping-master.ts:114 scopes duplicate-triple detection to one selection rather than the whole master.\nVERDICT t-sm-c3: implemented \u2014 backend/src/sql/sqlBuilder.ts:160 routes the governed builder to the leaf/month projection using injected leaf targets.\nLEFTOVERS: none found.\nThe projection and snapshot are substantially implemented, but the mapping loader does not guarantee globally unique triple targets and the expanded row guard undercounts the per-period snapshot writes.",
   "blocking_findings": [
     {
       "category": "bug",
-      "area": "backend/src/sql",
-      "summary": "[P1] Route production statement requests through the new projection (backend/src/sql/sqlBuilder.ts:154): `buildStatementProjection` is only invoked by the newly added tests."
-    },
-    {
-      "category": "bug",
-      "area": "backend/src/warehouse",
-      "summary": "[P1] Require an outline when replacing a budget batch (backend/src/warehouse/ingestion.repository.ts:80): The repository defaults `outline` to an empty array and can still insert rows and activate the batch."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0021-mis-statement-outline-snapshot.md",
-      "summary": "t-sm-c1: The budget parser walks the workbook outline and records it as a per-batch snapshot - the ordered section, component and leaf tree with each node's S. No., label and ordering, parent_key referencing a node in the SAME batch - carrying NO monetary amount; every leaf gains a stable key derived from its identity rather than its sheet row number, mis_budget carries that same leaf_key so amounts and structure join without touching GL, and the snapshot is persisted inside the same transaction that writes the rows and activates the batch."
+      "area": "backend/src/mapping",
+      "summary": "[P1] Enforce triple uniqueness across the entire mapping master (backend/src/mapping/mapping-master.ts:114): `entryKeys` is recreated for each selection, so the loader only rejects duplicate `(cost_center, gl_code)` entries within one selection."
     },
     {
       "category": "plan-contract-partial",
       "area": "docs/decisions/0022-mis-statement-governed-projection.md",
       "summary": "t-sm-c2: The Mapping Master records a TAGGED target for every entry - either a workbook leaf key or the reserved unmapped-GL bucket of decision 0018 - as provisional entries with reasons, so a SAP (cost centre, GL) triple resolves to exactly one target, recorded rather than inferred; the loader rejects two entries claiming one triple for different targets; and budget ingest validates the candidate snapshot's leaf keys against the master's declared targets so a renamed or renumbered line is reported as drift rather than silently splitting one statement line in two."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0017-mis-selection-composite-key-seam.md",
-      "summary": "t-sm-c3: The statement's governed projection returns Budget and Actual full-outer-joined at leaf/month grain, filtering Actuals by the master's resolved triples BEFORE aggregating per decision 0017 and reaching the builder through a typed leafTargets entry on GovernedSelectionScope rather than a global master import, with no fan-out and leaf-grain totals exact against the pinned July batch; the shipped (gl_code, month) relation and all six existing gated warehouse proofs are unchanged. Parent-by-parent footing belongs to task 2, which owns tree derivation."
     }
   ],
   "non_blocking_findings": [
     {
-      "category": "test_gap",
-      "area": "backend/src/warehouse",
-      "summary": "[P2] Assert exact per-leaf July amounts in the warehouse proof (backend/src/warehouse/statement-projection.db.test.ts:58): The gated proof asserts only row uniqueness and grand totals."
+      "category": "bug",
+      "area": "backend/src/ingest",
+      "summary": "[P2] Count each per-period outline snapshot against the expanded row cap (backend/src/ingest/mis-budget.parser.ts:196): The limit calculation counts `outlineCount` only once, but `IngestService` passes the complete outline to `replaceBudgetBatch` for every parsed period, causing every outline node to be persisted once per period."
     }
   ],
   "recommendation": "request-changes",
@@ -54,7 +39,11 @@
     "backend/src/mapping/selection-resolver.service.ts",
     "backend/src/sql/sqlBuilder.statement.test.ts",
     "backend/src/sql/sqlBuilder.ts",
+    "backend/src/warehouse/composed-relation.db.test.ts",
+    "backend/src/warehouse/gl-month-rollups.db.test.ts",
+    "backend/src/warehouse/golden-financial.db.test.ts",
     "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/selection-slice.db.test.ts",
     "backend/src/warehouse/statement-projection.db.test.ts",
     "backend/src/warehouse/warehouse-schema.test.ts",
     "backend/src/warehouse/warehouse-schema.ts",
@@ -64,27 +53,20 @@
   "contract_verdicts": [
     {
       "contract_id": "t-sm-c1",
-      "verdict": "partial",
-      "evidence": "backend/src/warehouse/ingestion.repository.ts:80 permits activation with an empty outline"
+      "verdict": "implemented",
+      "evidence": "backend/drizzle-warehouse/0003_statement_leaf_projection.sql:5 defines the structural per-batch outline and backend/src/warehouse/ingestion.repository.ts:82 writes it transactionally."
     },
     {
       "contract_id": "t-sm-c2",
       "verdict": "partial",
-      "evidence": "backend/src/ingest/mis-budget.parser.ts:169 records mapping drift without rejecting the candidate"
+      "evidence": "backend/src/mapping/mapping-master.ts:114 scopes duplicate-triple detection to one selection rather than the whole master."
     },
     {
       "contract_id": "t-sm-c3",
-      "verdict": "partial",
-      "evidence": "backend/src/sql/sqlBuilder.ts:154 defines the leaf projection without a production invocation"
+      "verdict": "implemented",
+      "evidence": "backend/src/sql/sqlBuilder.ts:160 routes the governed builder to the leaf/month projection using injected leaf targets."
     }
   ],
-  "aspect": "quality",
-  "review_run_id": "25a6d9938ed025203a4b4ab2cf4f4eba6b87dd7e6e192bd07a1526ae1ab77f28",
-  "brief_sha256": "e52bf44476f0f283b75d6c20cbb6b8ba44cd36c73214fc44198b0f4115215eb1",
-  "branch_diff_digest": "22a246bd5bc3f5993e58d9dec2a789112fdca4b8da2486d1b025f1a3cc5197ef",
-  "residual_risks": [],
-  "recorded_at": "2026-09-11T06:50:29+00:00",
-  "commit": "36daf1cb7f034af9a8d57df9b6a4dedadff4fd21",
   "rejected_findings": [
     {
       "finding": {
@@ -98,5 +80,12 @@
       "rejected_by": "orchestrator",
       "task_id": "statement-model"
     }
-  ]
+  ],
+  "aspect": "quality",
+  "review_run_id": "fd8cb0b2bbeef8862ecd9ab0f514b16f78a657af742545e0778af40009f1da9b",
+  "brief_sha256": "8e6f5815240108600bfdf0041dfd02150d7e22f3eded54b14a4ccb465ed3b5f2",
+  "branch_diff_digest": "3c3c116b573fc979b15028aa4b8bcb38a15b70e1f6f13a758563ae94d1521bf7",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T07:33:19+00:00",
+  "commit": "cc92c655254b64d8fcd6091306802904412bcda3"
 }
