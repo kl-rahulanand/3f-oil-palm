@@ -112,10 +112,87 @@
         "statement-model"
       ],
       "acceptance_criteria": [
-        "POST api/mis/statement accepts the four selectors already validated by misSelectionRunRequestSchema and returns the statement as a tree whose parents are DERIVED subtotals over their leaves, with the grand total footing, each row carrying its S. No., Budget Component and leaf GL code, and Roll-over present but unpopulated.",
-        "The route preserves the outcome split mis-selection settled: an unauthorized plant is refused, while a plant the master does not cover returns the unresolvable outcome with its notice rather than a 403; a resolved selection with no transactions returns a configured zero statement WITHOUT the notice.",
-        "The unmapped-GL line is present in the payload with its own Actual, and the response carries the scope readout and provenance, with amounts computed in exact paise and rounded only at the presentation boundary."
-      ]
+        "POST api/mis/statement accepts the four selectors already validated by misSelectionRunRequestSchema and returns the statement as a TREE built from the active budget batch's outline snapshot: every parent is a subtotal DERIVED from its leaves bottom-up and never read from storage, the grand total foots against the leaves, rows come back in the outline's sort_order, and each row carries its S. No., Budget Component label and - for leaves - the GL code.",
+        "Each row carries Budget, Roll-over, Actual and % for BOTH period blocks - the selected month and FY 26-27 YTD - with Roll-over present but unpopulated per the spec, amounts computed in exact paise and rounded only at the presentation boundary so subtotals foot, and the percentage keeping the governed measure's labels verbatim rather than being coerced to a number.",
+        "The route preserves the outcome split mis-selection settled - an unauthorized plant is refused, while a plant the master does not cover returns the unresolvable outcome with its notice rather than a 403, and a resolved selection with no transactions returns a configured zero statement WITHOUT the notice - and the unmapped-GL line is present with its own Actual and zero Budget, counted in the grand total per decision 0018."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-sa-c1",
+          "statement": "POST api/mis/statement accepts the four selectors already validated by misSelectionRunRequestSchema and returns the statement as a TREE built from the active budget batch's outline snapshot: every parent is a subtotal DERIVED from its leaves bottom-up and never read from storage, the grand total foots against the leaves, rows come back in the outline's sort_order, and each row carries its S. No., Budget Component label and - for leaves - the GL code.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sa-c2",
+          "statement": "Each row carries Budget, Roll-over, Actual and % for BOTH period blocks - the selected month and FY 26-27 YTD - with Roll-over present but unpopulated per the spec, amounts computed in exact paise and rounded only at the presentation boundary so subtotals foot, and the percentage keeping the governed measure's labels verbatim rather than being coerced to a number.",
+          "source": "docs/specs/financial-mis-statement.md"
+        },
+        {
+          "id": "t-sa-c3",
+          "statement": "The route preserves the outcome split mis-selection settled - an unauthorized plant is refused, while a plant the master does not cover returns the unresolvable outcome with its notice rather than a 403, and a resolved selection with no transactions returns a configured zero statement WITHOUT the notice - and the unmapped-GL line is present with its own Actual and zero Budget, counted in the grand total per decision 0018.",
+          "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+        }
+      ],
+      "write_scope": [
+        "backend/src/warehouse/statement-outline.repository.ts",
+        "backend/src/warehouse/statement-outline.interface.ts",
+        "backend/src/warehouse/statement-outline.repository.test.ts",
+        "backend/src/mis/mis-statement.controller.ts",
+        "backend/src/mis/mis-statement.service.ts",
+        "backend/src/mis/mis-statement.interface.ts",
+        "backend/src/mis/mis-statement.dto.ts",
+        "backend/src/mis/mis-statement.controller.test.ts",
+        "backend/src/mis/mis-statement.service.test.ts",
+        "backend/src/mis/mis.module.ts",
+        "backend/src/app.module.ts",
+        "contract/src/api.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "the statement route returns the outline as a tree whose parent rows are subtotals derived from their leaves with the grand total footing and rows in outline order",
+          "path": "backend/src/mis/mis-statement.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "each statement row carries budget rollover actual and percentage for both the selected month and the financial year to date with rollover unpopulated and the percentage label kept verbatim",
+          "path": "backend/src/mis/mis-statement.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the statement route refuses an unauthorized plant but returns the unresolvable outcome with its notice for a plant the master does not cover and a configured zero statement without the notice when there are no transactions",
+          "path": "backend/src/mis/mis-statement.controller.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the unmapped GL line is present with its own actual and zero budget and is counted in the grand total",
+          "path": "backend/src/mis/mis-statement.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": [
+        "PARENTS ARE DERIVED, never read. Decision 0020 stores no parent amounts and the outline snapshot carries no money at all, so a parent subtotal that comes from anywhere but its own leaves is a defect. The footing proof is THIS task's - statement-model deliberately proved only the leaf grain it produced.",
+        "EXACT PAISE through the service; round only at the presentation boundary. Rounding per line is what makes subtotals stop footing, and a statement whose parents do not foot is worthless to the person checking it.",
+        "The percentage measure returns LABELS ('over-budget', 'credit / negative actual') when budget is zero. Pass a non-numeric measure value through verbatim - mis-selection shipped NaN to a live page for exactly this.",
+        "Coverage is NOT authorization: a plant the master does not cover is UNRESOLVABLE, never 403. mis-selection shipped that defect once and had to split the branches mid-review.",
+        "Two period blocks, not one: the selected month AND FY 26-27 YTD, per the spec. Roll-over renders but stays empty until Srihari's rule (decision 0016 defers it).",
+        "Constitution: an explicit service interface lives in its own .interface.ts file (constitution/pnp-coding-standards-modular-monolith.md); decision 0019 governs the route's house style - unversioned path, raw typed body, direct module import, DTOs beside mis-selection.dto.ts.",
+        "The outline read is a NEW repository surface. It must respect the same active-batch rule the projection uses (source_kind = 'budget' AND is_active), or the tree and the numbers will describe different batches."
+      ],
+      "review_budget": {
+        "max_changed_files": 14,
+        "max_changed_lines": 1700,
+        "reason": "The route plus the tree assembly it exists to serve, and a new repository read: nothing persists the outline TREE for reporting today - statement-model wrote it and only the insert path exists - so the service needs a reader that honours the same active-batch rule as the projection. The tree derivation, its two period blocks and the unresolvable/403 split are the substance; no schema change, no SQL change, no UI."
+      }
     },
     {
       "id": "statement-view",
@@ -147,5 +224,5 @@
     }
   ],
   "plan_sha256": "951e85a33bb8891ee3e81dbb5d5f4519ef72b4cd0e457395a922f463ffe025e9",
-  "commit": "0f59ceebe216b017dda6b4c9fc71d69a56a6d8a6"
+  "commit": "15dd782a90284b528441c13de014ea9736f701ea"
 }
