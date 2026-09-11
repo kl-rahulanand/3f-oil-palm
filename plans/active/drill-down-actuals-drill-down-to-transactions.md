@@ -1,8 +1,8 @@
 ---
 issue: drill-down
 title: Actuals drill-down to transactions
-status: awaiting-approval
-saved: 2026-09-11T18:21:11+00:00
+status: approved
+saved: 2026-09-11T18:39:17+00:00
 story: drill-down
 decisions_reviewed:
   - 0001-poc-engagement-scope

@@ -1,0 +1,20 @@
+{
+  "issue": "drill-down",
+  "stages": [
+    {
+      "id": "drill-transactions-api",
+      "title": "The pinned, audited, paginated leaf transactions read",
+      "status": "pending"
+    },
+    {
+      "id": "drill-panel",
+      "title": "The drill panel and the Actual-only affordance",
+      "status": "pending"
+    },
+    {
+      "id": "drill-transactions-view",
+      "title": "The transactions state of the drill panel",
+      "status": "pending"
+    }
+  ]
+}

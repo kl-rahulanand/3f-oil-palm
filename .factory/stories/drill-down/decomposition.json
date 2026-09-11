@@ -1,0 +1,158 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "issue": "drill-down",
+  "story": "drill-down",
+  "project": "3oilpalm",
+  "epic": "reporting",
+  "user_facing": true,
+  "plan_file": "plans/active/drill-down-actuals-drill-down-to-transactions.md",
+  "tasks": [
+    {
+      "id": "drill-transactions-api",
+      "title": "The pinned, audited, paginated leaf transactions read",
+      "objective": "Build the one read path in this story that crosses the network: the SAP transaction lines behind a statement LEAF, read from sap_transaction under a predicate derived entirely server-side and pinned to BOTH the actuals batches and the budget batch the displayed statement was built from, audited before the read and refused rather than answered when the pin does not hold. Decision 0025 governs the path; decision 0024 is why there is only one endpoint - aggregates are a client projection, task 2. Backend only: no UI, no schema migration, and no change to the statement response, the statement projection, actual_by_key_month or the k-anon suppression the aggregate paths use.",
+      "user_facing": false,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "POST api/mis/statement/drill (unversioned, raw response, direct module imports per decision 0019) takes the statement's own selector plus nodeKey, the measure block key, the statement's provenance.activeBatchIds passed through verbatim as pinnedBatches, and a 1-based page; it sits behind AuthGuard, RequireAction('report') and the globally registered CsrfGuard, and declares typed 400/401/403/409 responses alongside its success schema the way mis-statement.controller.ts does. Page size is FIXED SERVER-SIDE at 100 and is not client-settable.",
+        "The predicate is derived server-side on EVERY request and never taken from the client: the leaf key from nodeKey against the PINNED budget batch's outline snapshot (or the reserved key 'unmapped-GL', which the statement synthesises outside the outline and which maps to the resolver's leafTargets with target.kind === 'bucket'); the (plant, cost centre, GL) triples from SelectionResolverService for that leaf; the month range from the block key re-run through the statement's own block definitions; and the plant scope from user.scope. A nodeKey that is neither a leaf in that snapshot nor the reserved key is a 400. Only the pinned ids come from the browser, and they can only narrow the read.",
+        "The pinned set is BOUND, not trusted. The server splits pinnedBatches by source; it computes which months in the block's range have an actuals batch and requires exactly one pinned id per such month - a missing month, a duplicate, a wrong-source or wrong-period id is a REFUSAL, never an authorized but partial footer. An id that is valid but no longer the active batch for its month means the period was re-uploaded: read the PINNED batch and report the replacement. An id that no longer exists at all is reported as gone and refused. The single budget id is bound by the same replaced/gone rules, because the outline snapshot it carries is what maps nodeKey to a leaf - a budget re-upload would otherwise make the drill read a different leaf's transactions out of a perfectly pinned actuals batch. StatementOutlineRepository gains a by-batch-id lookup beside its by-period one.",
+        "Every drill writes its audit record BEFORE any sap_transaction read and fails closed: the typed drill event names the actor, nodeKey, the resolved leaf key, the triples, the month range, the pinned actuals AND budget ids, the mapping-master version, the generated SQL and the objects touched, and if the insert throws the endpoint errors with NO transaction query issued. The resolver and outline lookups that derive the predicate necessarily precede the write - the record cannot name a predicate that does not exist - and read only mapping and outline metadata. REFUSED attempts are audited too: an authorization refusal writes its own event type carrying the actor and the predicate AS SUBMITTED, never the resolved one. audit_events.selection is already jsonb, so this is a TypeScript widening of AuditService, not a schema change.",
+        "The read is two statements over sap_transaction joined to ingest_batch under one identical predicate, so the footer cannot drift from the page: the page (ORDER BY (debit - credit) DESC, month DESC, posting_date DESC, txn_no, line_id with LIMIT/OFFSET) and the footer (COUNT(*) plus the three SUMs, LIMIT 1). Both go through SqlValidator.validate and warehouse.explain before execution and run under the configured query timeout, reusing the governed layer's guards rather than reimplementing them. Money crosses the wire as a fixed-scale decimal STRING end to end - never a JSON number, which loses paise at scale. Value = Debit - Credit; reference is SAP Reference 1 and memo is LineMemo, which is what sap-ingestion already wrote into those columns.",
+        "Footing is proven in EXACT PAISE against the pinned July batch - for a leaf and for the unmapped-GL bucket - as an equality, never a tolerance: sap_transaction.debit and .credit are numeric(18,2), so the actual_by_key_month view's ::numeric(18,2) cast is a no-op and the statement's paise ARE these rows' paise summed. The FY-YTD multi-batch case CANNOT be proven against client data - the supplied SAP extract contains July only - so this task builds a deliberate multi-period actuals fixture for it, and the evidence says which proofs rest on client data and which on the fixture. An empty result is a SUCCESS: zero rows and a zero footer, not an error. A non-integer or out-of-range page is a 400."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-dta-c1",
+          "statement": "The drill reads sap_transaction DIRECTLY under an explicit batch_id predicate, in a repository beside the governed executor rather than through it, because actual_by_key_month takes no batch parameter (it is hardcoded to batch.is_active) and SelectionExecutor is measure-and-dimension shaped with no measures to name at row grain. It reuses SelectionExecutor.authorize, the statement's plant-scope check, SqlValidator, warehouse.explain and the configured timeout rather than reimplementing any of them.",
+          "source": "docs/decisions/0025-drill-down-pinned-batch-raw-read.md"
+        },
+        {
+          "id": "t-dta-c2",
+          "statement": "This is the ONLY endpoint the story adds. Every aggregate, including the Grand Total, is a client-side flattening of the statement payload already on screen: it issues no request, exposes nothing new and writes no audit record. An implementer must not add a server-backed aggregate drill, and must not extend this route to serve one.",
+          "source": "docs/decisions/0024-drill-down-aggregate-client-projection.md"
+        },
+        {
+          "id": "t-dta-c3",
+          "statement": "The k-anonymity suppression path (backend/src/chat/suppression.ts) is NOT applied to this read and must not be wired in - this is the documented exception to the aggregate-only rules, and the compensating controls are the unchanged plant-scope predicate, the governed grant, and the fail-closed audit. Accepting client-supplied batch ids is safe only because the triples, the plant scope and the month range are re-derived server-side on every drill.",
+          "source": "plans/active/drill-down-actuals-drill-down-to-transactions.md#the-predicate-once"
+        },
+        {
+          "id": "t-dta-c4",
+          "statement": "The pin must be COMPLETE, not merely valid: exactly one actuals batch per month in the block's range that has one, the budget batch pinned alongside it, and a refusal rather than a partial footer when the set does not cover the range. A client that omits a month only narrows the read, which is safe for authorization and fatal for footing.",
+          "source": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-re-read-2026-09-11"
+        },
+        {
+          "id": "t-dta-c5",
+          "statement": "The audit record is pre-query and fail-closed, carries a TYPED drill payload rather than the governed Selection shape (which has no room for a node key, resolved triples or pins), and covers refused attempts as well as successful reads - an authorization refusal recording the predicate as submitted, never the resolved one, because echoing back what the caller could not see would itself be a disclosure.",
+          "source": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-re-read-2026-09-11"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "the drill resolves its leaf and triples server side rejecting a node key that is neither a snapshot leaf nor the reserved unmapped gl bucket",
+          "path": "backend/src/mis/mis-drill.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the pinned batch set is refused when it does not cover every month in the block range and is read with a replacement notice when a pinned batch is no longer active",
+          "path": "backend/src/mis/mis-drill.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the drill resolves the node key against the pinned budget outline snapshot rather than the currently active one",
+          "path": "backend/src/mis/mis-drill.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a failing audit insert aborts the drill before any transaction query is issued",
+          "path": "backend/src/mis/mis-drill.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an unauthorized drill is audited with the predicate as submitted and never the resolved predicate",
+          "path": "backend/src/mis/mis-drill.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the drill page and footer queries share one predicate and emit the deterministic order with a bounded limit the validator accepts",
+          "path": "backend/src/warehouse/drill-transactions.repository.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the drill route refuses an out of range page and returns an empty result as a zero row success with a zero footer",
+          "path": "backend/src/mis/mis-drill.controller.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "write_scope": [
+        "contract/src/api.ts",
+        "backend/src/mis/mis-drill.controller.ts",
+        "backend/src/mis/mis-drill.controller.test.ts",
+        "backend/src/mis/mis-drill.service.ts",
+        "backend/src/mis/mis-drill.service.test.ts",
+        "backend/src/mis/mis-drill.interface.ts",
+        "backend/src/mis/mis-drill.dto.ts",
+        "backend/src/mis/mis.module.ts",
+        "backend/src/warehouse/drill-transactions.repository.ts",
+        "backend/src/warehouse/drill-transactions.interface.ts",
+        "backend/src/warehouse/drill-transactions.repository.test.ts",
+        "backend/src/warehouse/drill-transactions.db.test.ts",
+        "backend/src/warehouse/statement-outline.repository.ts",
+        "backend/src/warehouse/statement-outline.interface.ts",
+        "backend/src/core/audit.service.ts",
+        "backend/src/core/audit.service.test.ts",
+        "backend/src/mis/mis-statement.service.ts",
+        "backend/src/mis/mis-statement.interface.ts"
+      ],
+      "reviewer_focus": [
+        "THE PREDICATE MUST BE RE-DERIVED, NOT ACCEPTED. Only the pinned batch ids may come from the browser. If the leaf key, the triples, the month range or the plant scope are read off the request, a crafted nodeKey widens a RAW-ROW read - the one place in this system that returns individual transaction lines. Check every field's provenance in the code, not in the DTO comment.",
+        "COMPLETENESS, NOT VALIDITY. 'Every pinned id is a real actuals batch in range' is the wrong check and passes while footing silently breaks: a client that omits one YTD month narrows the read and the footer disagrees with the number that was clicked. The rule is one id per month in range that HAS a batch, and a refusal otherwise.",
+        "THE BUDGET BATCH IS PART OF THE PIN. StatementOutlineRepository.findByBudgetPeriod filters batch.is_active. If the leaf is resolved through that rather than through the pinned budget batch, a budget re-upload between render and click makes the drill read a DIFFERENT leaf's transactions with every actuals id correct. This is the finding the requirements re-read caught; do not let it come back.",
+        "AUDIT BEFORE THE ROWS, AND IT MUST THROW. writeRequestEvent is fail-closed by construction; a try/catch around the drill's audit write turns the whole guarantee off. Verify by test that NO sap_transaction query is issued when the insert fails - not that an error was logged. Also check the refusal audit does not echo the RESOLVED predicate back to an unauthorized caller.",
+        "FOOTING IS AN EQUALITY, NOT A TOLERANCE. debit and credit are numeric(18,2), so the statement's paise are these rows' paise summed; any test comparing rounded rupees, or allowing a delta, is asserting nothing. Money must cross the wire as a fixed-scale string - a JSON number loses paise.",
+        "NO SUPPRESSION HERE, AND NO SUPPRESSION REMOVED ELSEWHERE. This read is the documented k-anon exception (decision 0025). Wiring applyKSuppression into it is wrong; so is touching the aggregate paths that legitimately use it.",
+        "THE FY-YTD PROOF CANNOT USE CLIENT DATA. The supplied extract is July only. A test claiming a multi-batch FY-YTD footing against the July batch is proving nothing - it needs the constructed multi-period fixture, and the evidence must say which proofs are fixture-based.",
+        "CHECK THE EXECUTED COUNT AND THE TESTCASE NAME in every recorded artifact, never the exit code (D-0024, D-0031): both runners report green having asserted nothing when a named leaf does not exist."
+      ],
+      "review_budget": {
+        "max_changed_files": 18,
+        "max_changed_lines": 2300,
+        "reason": "The task is one route but four distinct pieces of machinery, none of which exists today: server-side predicate derivation including the reserved unmapped-GL key the statement synthesises outside the outline; the batch-binding rule in four states across two pinned sources, which drags a by-batch-id lookup into StatementOutlineRepository; a typed drill audit event with a refusal path, widening AuditService beyond the governed Selection shape it currently takes; and a two-query raw-row repository that must pass SqlValidator and foot in exact paise, plus the multi-period fixture the FY-YTD criterion cannot be proven without. No schema migration and no UI."
+      }
+    },
+    {
+      "id": "drill-panel",
+      "title": "The drill panel and the Actual-only affordance",
+      "objective": "Build the next bounded slice when it reaches the frontier: the prototype's drill overlay and the Actual affordance on the statement, with the aggregate state rendered from the statement payload already on screen. Frontend only.",
+      "user_facing": true,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Clicking any non-leaf Actual opens the panel on a flattened list of its descendant leaves that foots to the clicked node, and Budget, Roll-over and % do nothing."
+      ]
+    },
+    {
+      "id": "drill-transactions-view",
+      "title": "The transactions state of the drill panel",
+      "objective": "Build the next bounded slice when it reaches the frontier: wire the leaf state of the panel to the transactions endpoint, with its table, footer, pagination and refusal notices. Frontend only.",
+      "user_facing": true,
+      "dependencies": [
+        "drill-transactions-api",
+        "drill-panel"
+      ],
+      "acceptance_criteria": [
+        "Clicking a leaf Actual opens its transactions with a footer that matches the statement on screen, pages a large result, and states plainly when the pinned batch was replaced or is gone."
+      ]
+    }
+  ],
+  "plan_sha256": "0b21f60deec85bd08fd80a9d0e5851a8197d2c07918118e1414f4fbc3dd51670",
+  "commit": "9eb4465f4cd4f0d7bf0cac4a328b1161e6e2ef47"
+}
