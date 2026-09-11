@@ -225,10 +225,91 @@
         "statement-api"
       ],
       "acceptance_criteria": [
-        "The statement renders the budget outline at its natural uneven depth - two levels for most sections, three under Admin Expenses - with each row showing its S. No., Budget Component and leaf GL, parents visibly subtotalling their children, the grand total footing, and the Roll-over column present but unpopulated.",
-        "Measures render for the selected month and FY 26-27 YTD in Indian grouping with the rupee symbol, and a non-numeric measure value such as over-budget or credit / negative actual is passed through VERBATIM rather than numeric-formatted into NaN.",
-        "The two zero states are rendered distinctly, branched on the response outcome rather than row emptiness, and the unmapped-GL line is visible with its own Actual."
-      ]
+        "The statement renders INLINE on the MIS Reports page, below the existing selector, replacing the flat GL table once Generate runs - so the four selectors it needs are the ones already in hand and there is no second surface reachable with a stale or missing selection. It draws the tree at the workbook's natural depth in outline order, each row carrying its S. No. and Budget Component, with the GL code shown for leaves that have one and left blank for the unmapped-GL line, whose glCode is null by contract.",
+        "Parent rows display the subtotals the ROUTE derived and a grand total foots the table - nothing is re-summed on the client, because the Excel export in task 4 renders the same payload and a second computation could disagree with it.",
+        "Each period block renders Budget, Roll-over, Actual and % with Roll-over visibly EMPTY; block headings are the SPEC's labels - 'July 2026' and 'FY 26-27 (YTD to Jul)' - formatted in the view from each block's from/to, since the API emits raw values like 2026-07-01; money is displayed in Indian digit grouping with the rupee sign, rounded to the rupee HALF-UP AWAY FROM ZERO from the fixed-scale decimal string without ever going through float arithmetic; a non-numeric percentage is passed through VERBATIM and a null percentage renders as NA; and a single-block response renders one block.",
+        "The two outcomes render distinctly, branched on the response outcome rather than row emptiness: an unresolvable selection shows the 'No mapping configured' notice and NO statement table, because that payload carries tree: [] and grandTotal: null and there is nothing to zero-fill; a resolved selection with no transactions shows the full configured statement with zero values and no notice. The statement also names its provenance - the active period and the contributing batch ids the response carries - which the spec requires of a report generated from an uploaded extract rather than a live connection."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-sv-c1",
+          "statement": "The statement renders INLINE on the MIS Reports page, below the existing selector, replacing the flat GL table once Generate runs - so the four selectors it needs are the ones already in hand and there is no second surface reachable with a stale or missing selection. It draws the tree at the workbook's natural depth in outline order, each row carrying its S. No. and Budget Component, with the GL code shown for leaves that have one and left blank for the unmapped-GL line, whose glCode is null by contract.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sv-c2",
+          "statement": "Parent rows display the subtotals the ROUTE derived and a grand total foots the table - nothing is re-summed on the client, because the Excel export in task 4 renders the same payload and a second computation could disagree with it.",
+          "source": "docs/decisions/0020-mis-budget-leaf-grain.md"
+        },
+        {
+          "id": "t-sv-c3",
+          "statement": "Each period block renders Budget, Roll-over, Actual and % with Roll-over visibly EMPTY; block headings are the SPEC's labels - 'July 2026' and 'FY 26-27 (YTD to Jul)' - formatted in the view from each block's from/to, since the API emits raw values like 2026-07-01; money is displayed in Indian digit grouping with the rupee sign, rounded to the rupee HALF-UP AWAY FROM ZERO from the fixed-scale decimal string without ever going through float arithmetic; a non-numeric percentage is passed through VERBATIM and a null percentage renders as NA; and a single-block response renders one block.",
+          "source": "docs/specs/financial-mis-statement.md"
+        },
+        {
+          "id": "t-sv-c4",
+          "statement": "The two outcomes render distinctly, branched on the response outcome rather than row emptiness: an unresolvable selection shows the 'No mapping configured' notice and NO statement table, because that payload carries tree: [] and grandTotal: null and there is nothing to zero-fill; a resolved selection with no transactions shows the full configured statement with zero values and no notice. The statement also names its provenance - the active period and the contributing batch ids the response carries - which the spec requires of a report generated from an uploaded extract rather than a live connection.",
+          "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+        }
+      ],
+      "write_scope": [
+        "frontend/src/features/mis/statement-view.tsx",
+        "frontend/src/features/mis/statement-view.test.tsx",
+        "frontend/src/features/mis/use-mis-statement.ts",
+        "frontend/src/features/mis/mis-report-view.tsx",
+        "frontend/src/features/mis/mis-report-view.test.tsx",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/api.test.ts",
+        "frontend/app/globals.css"
+      ],
+      "verify_commands": [
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:frontend",
+        "npm run build:frontend"
+      ],
+      "required_tests": [
+        {
+          "id": "the statement renders inline below the selector as a tree in outline order showing the routes parent subtotals and a grand total without recomputing them",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "block headings use the spec labels formatted from each blocks range and money renders in indian grouping rounded to the rupee with rollover empty",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a non numeric percentage label is kept verbatim a null percentage renders as NA and a single block response renders one block",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "an unresolvable outcome shows the notice with no statement table while a resolved selection with no transactions shows the configured statement with zeros and no notice",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the unmapped GL line renders with a blank gl code and its own actual and the statement names its active period and contributing batch ids",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "reviewer_focus": [
+        "The NaN lesson, already paid for twice here: a non-numeric percentage label passes through VERBATIM. The governed measure deliberately returns 'over-budget' and 'credit / negative actual' when budget is zero.",
+        "Branch on the response OUTCOME, never on row emptiness. Note the unresolvable payload carries tree: [] and grandTotal: null - there is nothing to zero-fill, so it renders the notice and NO table.",
+        "Money is FixedScaleMoney, a fixed-scale decimal STRING carrying exact paise. Never parseFloat it for arithmetic; rounding to the rupee is a display step over the string, half-up away from zero.",
+        "Parents are NOT recomputed on the client - the route derived them and task 4's export renders the same payload.",
+        "The claim that tokens.test.ts proves no token was added is FALSE: it compares only the files under frontend/src/theme against their source, so a new custom property in globals.css passes it. If a token must not be added, that has to be reviewed by reading the diff, not by citing that test.",
+        "constitution/pnp-coding-standards-modular-monolith.md governs module layout and naming for the new feature files; constitution/03-modular-monolith-structure.md governs where a feature's view, hook and types live; constitution/07-exception-handling.md governs how a failed statement call surfaces - one clear state, never a silent blank.",
+        "Accessibility is load-bearing on a deep financial table: a row's level must be carried in markup (a real tree or grid with aria-level), not implied by indentation padding; sticky identity columns and block headers must not trap keyboard focus; and the grand-total row must be announced as a total, not just styled as one."
+      ],
+      "review_budget": {
+        "max_changed_files": 8,
+        "max_changed_lines": 1500,
+        "reason": "The statement view, its hook and styles, rendering an already-shipped payload inline on the existing MIS Reports page, plus the statement data method on the api client. The substance is the hierarchical table - sticky identity columns, two spec-labelled period blocks, the route's subtotals rendered rather than recomputed, both outcomes, and provenance - with its design fidelity and accessibility. No backend, contract or schema change."
+      }
     },
     {
       "id": "statement-export",
@@ -246,5 +327,5 @@
     }
   ],
   "plan_sha256": "951e85a33bb8891ee3e81dbb5d5f4519ef72b4cd0e457395a922f463ffe025e9",
-  "commit": "78db638e4bd57c244fb7d8100c0b2e3e9e158484"
+  "commit": "80995080e2594538c0d2a4c4f7317a88a6b9dd00"
 }
