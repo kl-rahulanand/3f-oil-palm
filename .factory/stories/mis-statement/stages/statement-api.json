@@ -1,7 +1,7 @@
 {
   "id": "statement-api",
   "title": "The governed statement route",
-  "status": "done",
+  "status": "active",
   "started_at": "2026-09-11T09:22:40+00:00",
   "base_sha": "15dd782a90284b528441c13de014ea9736f701ea",
   "dirty_at_start": {
@@ -19,21 +19,6 @@
     }
   },
   "task_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7",
-  "local_review_stamp": {
-    "stage_id": "statement-api",
-    "task_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7",
-    "brief_sha256": "43233e3efe8d8e9e72acd4ccb05ee06fde942939174910eeaf667bf76c517922",
-    "base_sha": "15dd782a90284b528441c13de014ea9736f701ea",
-    "product_tree_digest": "78fa194f6450da65abe888010ed78198632e0ddd70d13db3d360f566e5d6fcfb",
-    "recorded_at": "2026-09-11T11:22:03+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-11T11:23:22+00:00",
   "measured": {
     "strays": [
       "backend/src/app.routes.test.ts",
@@ -48,5 +33,7 @@
       "lines": 2400
     },
     "test_id_misses": []
-  }
+  },
+  "review_fix_reopened_at": "2026-09-11T11:37:42+00:00",
+  "review_fix_count": 1
 }
