@@ -1,0 +1,10 @@
+{
+  "event": "open",
+  "id": "Q-0031-ee58",
+  "profile": "quickfix",
+  "reason": "re-vendor symphony-forge @ 871ff7b: scaffold-check runs on a hosted runner (FORGE_SCAFFOLD_RUNNER override). The vendored self-hosted pin queues forever in a client repo with no runner and it is the required status check \u2014 PR #31 merged before it ran and PR #32 is now blocked; harness-owned paths + manifest only",
+  "started_at": "2026-09-11T11:56:24+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false
+}

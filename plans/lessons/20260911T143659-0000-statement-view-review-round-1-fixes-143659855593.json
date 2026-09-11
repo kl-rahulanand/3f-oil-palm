@@ -1,0 +1,12 @@
+{
+  "topic": "statement-view review round 1 fixes",
+  "lesson": "TWO fixes. (1) BLOCKING - dead API surface: the page now imports useMisStatement (mis-report-view.tsx:7,11), so use-mis-selection.ts and the runMisSelection client method it wraps are orphaned, still exposing the replaced /api/mis/run flow. Remove the client method and the dead hook, and drop their now-pointless api.test.ts case. Leave the BACKEND route alone - /api/mis/run is mis-selection's shipped contract and drill-down may consume it; this is about the frontend's dead entry point only. Note use-mis-selection.ts also wrapped the options query, so move nothing: useMisStatement already provides options. (2) P2, and it was observed live during the functional check: when the first statement request rejects, mis-report-view.tsx:71 renders the 'could not be generated' error AND the 'Select Department, Function and Plant, then Generate' empty state together, because run.data is absent and isPending is false. A failure and an invitation to start are contradictory on screen - render the error state INSTEAD of the empty state, per constitution/07-exception-handling.md's one-clear-state rule.",
+  "source": "autoreview round 1 for statement-view: quality 9, performance 7 (1 blocking), security 10; the empty-state overlap was also seen live during the 403",
+  "applies_to": [
+    "frontend/src/features/**",
+    "frontend/src/lib/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T14:36:59+00:00"
+}

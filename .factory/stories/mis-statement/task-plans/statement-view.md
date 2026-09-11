@@ -189,6 +189,10 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - frontend/src/lib/api.test.ts
 - frontend/app/globals.css
 
+**Scope amendments** (measured paths the scope did not name, recorded with `forge stage amend-scope`)
+
+- frontend/src/features/mis/use-mis-selection.ts -- frontend/src/features/mis/use-mis-selection.ts was DELETED as the mechanically-implied consequence of a blocking review finding, authorized mid-stage as signal S-0006-e528: the page now imports useMisStatement, so that hook was the sole remaining caller of the orphaned runMisSelection client method, which still exposed the replaced /api/mis/run flow. Removing the method without deleting its only caller would not compile. The backend route is untouched - it is mis-selection's shipped contract and drill-down may consume it. 9 files against an 8 budget is that one deletion; 1107 lines is well inside the 1500 allowed.
+
 **Required tests** (run by `stage done`)
 
 - `the statement renders inline below the selector as a tree in outline order showing the routes parent subtotals and a grand total without recomputing them` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)

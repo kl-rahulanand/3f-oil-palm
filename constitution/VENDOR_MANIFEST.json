@@ -1,5 +1,5 @@
 {
-  "harness_commit": "3306e453423dacd8bbdf59a65f824ea74a9af450",
+  "harness_commit": "871ff7b925ffb597bcf617f82fff1203f7fd5e98",
   "files": {
     "factory/scripts/check_agents_hygiene.py": "63b5db9b788ebc55d3542af506566ab8d45ba7c7f588a6f93e78d3811d0003c4",
     "factory/scripts/check_board_complete.py": "75022051af7cc2928039641ba2ef1a5f31e45e6b5c1651e15c2213cca6c6a7a0",
