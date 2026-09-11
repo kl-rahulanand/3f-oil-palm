@@ -1,4 +1,4 @@
-# Cold-read grill — gate: requirements — requirements for mis-selection (docs/specs/mis-selection-and-master.md)
+# Cold-read grill — gate: requirements — requirements for mis-statement (docs/specs/financial-mis-statement.md)
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,64 +431,76 @@ These questions were put to the human and answered. Two obligations:
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
 
-## The artifact under interrogation (requirements for mis-selection (docs/specs/mis-selection-and-master.md))
+## The artifact under interrogation (requirements for mis-statement (docs/specs/financial-mis-statement.md))
 
 ---
-slug: mis-selection-and-master
-title: MIS selection & mapping master
+slug: financial-mis-statement
+title: Financial MIS statement
 status: confirmed
-saved: 2026-09-01T10:08:34+00:00
+saved: 2026-09-01T09:52:09+00:00
 ---
 
-# MIS selection & mapping master
+# Financial MIS statement
 
 ## Why
-Srihari's requirement is a parameterized generator: pick Department → Function →
-Plant and get the right report, driven by a centralized master — never by the
-source file name. The master is the config that resolves which cost centers, GL
-codes, and format apply.
+The Financial MIS is 3F's Phase-1 ask. Today Srihari hand-compiles it in Excel:
+slow, not live, and hard to verify. This capability generates the same statement
+live from SAP, exact to the format, so any number is current and traceable.
 
 ## Users
-Any user generating an MIS; (later) an admin who maintains the mapping.
+Finance / operations staff and management at 3F (replacing Srihari's manual build).
 
 ## Behaviour
-- User selects **Department, Function, Plant, period** (e.g. Agriculture →
-  Nursery → Agri–Nursery–DUB).
-- A centralized **Mapping Master** resolves, for that selection: the applicable
-  **Cost Centers + GL codes** and **which MIS format** to use.
-- Transactions are validated by the composite key **Plant + Cost Center + GL**
-  (the same GL spans Primary/Secondary — Srihari §4).
-- Only the relevant slice is extracted and rendered in that format; combinations
-  with no data still render (zero).
-- Selection **never** depends on the Excel sheet or file name.
+- Given a selection (Department, Function, Plant, period), produce the Financial
+  MIS in the confirmed format: hierarchical rows (budget component → sub-lines)
+  with, per period, **Budget · Roll-over Budget · Actual · %** (Actual ÷ Budget).
+- Group-header rows show subtotals; a grand total foots the statement.
+- Combinations with no transactions still appear, valued **zero** (never skipped).
+- The statement downloads to **Excel** matching the on-screen layout.
+- Read-only.
 
 ## Confirmed scope (grilled 2026-09-01)
-- **Master table:** build a **provisional** master now, seeded from the SAP
-  Entries Mapping sheet (+ the 7 missing GLs `50001701–706`, `50001905`);
-  reconcile when Srihari sends his definition.
-- **Editing:** maintained as **seed / config** for the PoC; an in-app admin editor
-  is a later phase.
-- **No mapping for a selection:** render an **empty statement (zeros) with a
-  'no mapping configured' notice** (consistent with zero-rows).
+- **Periods (PoC):** render **current month (July 2026) + FY 26-27 YTD** only. The
+  FY-YTD column is shown, labelled **"FY 26-27 (YTD to Jul)"**, and grows as more
+  months load. The full period set (historical FYs + all 12 months) is modelled
+  underneath so more data drops in without redesign — but not drawn empty now.
+- **Columns:** show **Budget · Actual · %** now. Keep the **Roll-over** column but
+  leave it **unpopulated** until Srihari confirms the roll-over rule (see Open).
+- **Excel export:** a **clean, correctly-structured** export of the on-screen
+  statement — **not** a pixel replica of the legacy 95-column workbook. **PoC =
+  the statement sheet only;** a bundled transactions/line-items sheet is added
+  later with the drill-down capability.
+- **Table scope:** **Table-2 (Financial MIS) only.** Table-3 (Payment-Office
+  rollup) and Table-1 (operational/physical units) are later phases.
+- **Nil & format:** Budget = 0 & Actual = 0 → "NA"/blank; Budget = 0 & Actual > 0
+  → show the actual with an over-budget flag (no %); numbers in **Indian grouping,
+  ₹, rounded to the rupee**.
 
 ## Rules
-- Composite key Plant + Cost Center + GL is mandatory.
-- The Mapping Master is the single source of selection/validation config.
+- Actual = **Σ(Debit − Credit)** for the matching Plant + Cost Center + GL, per
+  period (decision 0002).
+- Budget and Roll-over come from the **plan**, not SAP.
+- `%` guards divide-by-zero per the nil rules above.
 
 ## Out of scope (now)
-- In-app authoring of the master or of brand-new MIS formats; non-nursery budgets.
+- Editing budgets or actuals; any write-back; Table-1 and Table-3; roll-over calc.
 
 ## Acceptance criteria
-- Selecting Agriculture/Nursery/DUB returns exactly the DUB nursery slice.
-- Renaming the source file does not change the output.
-- A selection with no mapping renders zeros + the notice (no crash).
+- **Demo-ready:** the nursery **July** statement reconciles to our SAP-derived
+  totals (nursery net ≈ ₹1,15,12,712); zero-rows present; subtotals and grand
+  total foot; Excel export opens with the same structure.
+- **Validated (upgrade):** the same statement matches Srihari's filled July
+  Financial MIS once he provides it (golden reference).
 
 ## Open items (non-blocking)
-- Srihari's authoritative **Master Table** structure — reconcile the provisional
-  master against it (`docs/context/2026-09-01-srihari-requirements-qa.md` §6).
+- **Roll-over rule** from Srihari (carry-forward of unspent budget) — column kept,
+  calc deferred.
+- **One filled month** of Srihari's Financial MIS as the golden reconciliation
+  reference.
 
 ## Source
-Decisions 0002, 0003; `docs/context/2026-09-01-srihari-requirements-qa.md` (§4–6).
+Decisions 0002, 0003; `docs/architecture/20-financial-mis-data-model.md`;
+`docs/context/2026-09-01-srihari-requirements-qa.md`.
 
 
 ## What to return

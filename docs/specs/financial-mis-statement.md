@@ -10,7 +10,10 @@ saved: 2026-09-01T09:52:09+00:00
 ## Why
 The Financial MIS is 3F's Phase-1 ask. Today Srihari hand-compiles it in Excel:
 slow, not live, and hard to verify. This capability generates the same statement
-live from SAP, exact to the format, so any number is current and traceable.
+from the **uploaded SAP extract**, exact to the format, so any number is traceable
+to the batch it came from. It is **not** a live SAP connection — SAP data arrives by
+workbook upload (`sap-financial-ingestion`), so the statement names the active
+period and its batch rather than claiming currency it does not have.
 
 ## Users
 Finance / operations staff and management at 3F (replacing Srihari's manual build).
@@ -41,6 +44,42 @@ Finance / operations staff and management at 3F (replacing Srihari's manual buil
   → show the actual with an over-budget flag (no %); numbers in **Indian grouping,
   ₹, rounded to the rupee**.
 
+## Settled by the requirements grill (2026-09-11)
+- **Row hierarchy — mirror the workbook outline.** The statement's rows are the
+  budget workbook's own outline, rendered to whatever depth each section has: two
+  levels for most (`4 Materials Primary Nursery` → `4.1 Shade Net`, GL 50001601),
+  three under `9 Admin Expenses` (`9.01 Vehicle Maintenance`, GL 55010900 →
+  `Petrol and Diesel Charges`, GL 55010901). **Human-decided this grill.**
+- **Parents are derived, never read.** Actuals attach at the **GL leaf** and every
+  parent is a computed subtotal (decision **0020**) — reading a stored parent row
+  would double-count. Roll-over may be stored as 0 for ingest resilience but stays
+  **visibly unpopulated** here.
+- **Identity columns.** Each row carries the workbook **S.No**, the **Budget
+  Component** name and the leaf **GL code**; the Roll-over Budget column is shown
+  but unpopulated. **Payment Office is omitted** — that is Table-3, out of scope.
+  **Human-decided this grill.**
+- **One governed path.** The statement reads the governed relation: selection
+  filters Actuals by the master's resolved `(plant, cost centre, GL)` triples
+  *before* the GL/month roll-up, and Budget is not re-grained (decision **0017**).
+  No direct aggregation that would bypass grants, provenance, zero-fill or the
+  no-fan-out guarantee.
+- **Two distinct zero states.** A resolved selection with no transactions renders
+  zero rows; a selection with **no mapping** renders an all-zero statement **plus
+  the "no mapping configured" notice** (decision **0018**, as shipped by
+  `mis-selection`). They must not collapse into one another.
+- **The `unmapped-GL` line is mandatory and visible** (decision **0018**): actual
+  GLs with no home in the budget outline land there rather than being dropped or
+  absorbed into a parent.
+- **Access and provenance.** The governed layer is all-or-nothing for an authorized
+  user, with two-sided scope injection and provenance carried through (decision
+  **0016**); "read-only" alone does not state this.
+- **Arithmetic and rounding.** Compute in exact paise and round **only for display
+  and export, after aggregation** — rounding per line makes subtotals fail to foot.
+  Monetary zero shows as ₹0. The `%` nil rules are already implemented by the
+  governed measure: `NA` for 0/0, **over-budget** for Budget = 0 with positive
+  Actual, and **credit / negative actual** for Budget = 0 with negative Actual —
+  the two are labelled distinctly, not merged.
+
 ## Rules
 - Actual = **Σ(Debit − Credit)** for the matching Plant + Cost Center + GL, per
   period (decision 0002).
@@ -51,11 +90,16 @@ Finance / operations staff and management at 3F (replacing Srihari's manual buil
 - Editing budgets or actuals; any write-back; Table-1 and Table-3; roll-over calc.
 
 ## Acceptance criteria
-- **Demo-ready:** the nursery **July** statement reconciles to our SAP-derived
-  totals (nursery net ≈ ₹1,15,12,712); zero-rows present; subtotals and grand
-  total foot; Excel export opens with the same structure.
-- **Validated (upgrade):** the same statement matches Srihari's filled July
-  Financial MIS once he provides it (golden reference).
+- **Demo-ready:** against the pinned July batch the nursery statement reconciles
+  to **exact** values, not an approximation — Actual **₹1,15,12,712.07** and Budget
+  **₹10,050,136.29** for 2026-07-01, the latter matching the budget workbook's own
+  grand total. Zero-rows present; every parent subtotal and the grand total foot
+  against their leaves; the `unmapped-GL` line carries its own Actual; and the
+  Excel export opens with the same structure and the same values.
+- **Validated (upgrade):** once Srihari supplies a filled July Financial MIS, the
+  comparison covers **every displayed leaf, every derived subtotal, the grand total
+  and each Budget / Actual / % value**, after the declared rounding and nil rules —
+  mismatches reported by line and measure. Pixel equivalence is **not** required.
 
 ## Open items (non-blocking)
 - **Roll-over rule** from Srihari (carry-forward of unspent budget) — column kept,
