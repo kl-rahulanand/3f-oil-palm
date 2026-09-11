@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "statement-model",
   "score": 10,
-  "summary": "security lens over statement-model (24 product path(s), 3d57c3c..cc92c65, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defect is demonstrated by the supplied diff. The statement projection constrains Actuals by both the authenticated plant scope and resolved mapping triples, gates the fixed DUB budget source against that scope, uses escaped SQL literals, preserves the unmapped bucket without inventing a workbook leaf, and avoids apparent join fan-out. Snapshot and budget writes occur in the same repository transaction with database-backed relationships, and the destructive warehouse proof refuses non-local hosts. No credentials or compatibility leftovers are present.",
+  "summary": "security lens over statement-model (24 product path(s), 3d57c3c..d81a273, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 security defect. The statement projection constrains actuals to the authenticated user's plant scope, explicitly gates the structurally DUB-only budget source, uses escaped SQL literals, and receives governed leaf targets through the typed selection scope. The destructive warehouse proof refuses non-local hosts before truncation. No credentials or prohibited compatibility wrappers, aliases, shims, or legacy branches are present in the change bundle.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -34,10 +34,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "fd8cb0b2bbeef8862ecd9ab0f514b16f78a657af742545e0778af40009f1da9b",
-  "brief_sha256": "8e6f5815240108600bfdf0041dfd02150d7e22f3eded54b14a4ccb465ed3b5f2",
-  "branch_diff_digest": "3c3c116b573fc979b15028aa4b8bcb38a15b70e1f6f13a758563ae94d1521bf7",
+  "review_run_id": "916ebf02558087b541d160b70f1584f7808a1bc29877144a9434987c4597ee75",
+  "brief_sha256": "cd3b04e7a5700fc6f4125057e33824bd3f44876a5a5665e6d080b7f96f807523",
+  "branch_diff_digest": "fa45edb7bd087ec45e891217dec54c14fe4de40e5f7cb4052326b5f6188d6c51",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T07:33:19+00:00",
-  "commit": "cc92c655254b64d8fcd6091306802904412bcda3"
+  "recorded_at": "2026-09-11T08:04:38+00:00",
+  "commit": "d81a2730072d700161e3cddad3d8013697cb31db"
 }
