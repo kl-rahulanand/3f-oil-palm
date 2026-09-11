@@ -54,6 +54,10 @@ test("the pinned batch set is refused when it does not cover every month in the 
   await assert.rejects(gone.service.run(user, SESSION_ID, request()), (error: unknown) => {
     assert.ok(error instanceof AuditedDrillRefusalException);
     assert.equal(error.getStatus(), 409);
+    assert.deepEqual(error.getResponse(), {
+      message: "A pinned batch is gone",
+      batchStatuses: error.batchStatuses,
+    });
     assert.deepEqual(
       error.batchStatuses.find(({ source }) => source === "actuals"),
       {

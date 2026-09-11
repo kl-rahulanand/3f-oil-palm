@@ -11,6 +11,6 @@ export class AuditedDrillRefusalException extends HttpException {
     message: string,
     readonly batchStatuses: MisDrillBatchStatus[] = [],
   ) {
-    super(message, status);
+    super({ message, batchStatuses }, status);
   }
 }

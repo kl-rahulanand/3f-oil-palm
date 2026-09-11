@@ -1,7 +1,19 @@
-# Branch-wide plan-contract review brief
+# Review brief — drill-transactions-api — security lens
 
-For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
 
+LENS: SECURITY. OWASP-style trust boundaries, authentication and authorization
+(every new route/handler: who may call it, with what scope), secrets and
+credential handling, injection (SQL/command/template), data exposure and
+over-broad responses, unsafe defaults, privilege escalation, and abuse paths.
+Use category `security` for these findings.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
 ## Task drill-transactions-api
 
 ### Plan contracts
@@ -109,63 +121,3 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 - [medium] the controller test follows the required exporter dependency: Making MisStatementExportService a REQUIRED constructor dependency of MisStatementController - the blocking fix both the performance and security lenses raised - breaks backend/src/mis/mis-statement.controller.test.ts, whose construction passes only the statement service and now fails TS2554. That file is AUTHORIZED in scope for statement-export-api: add a minimal exporter stub to the constructor call and change NO assertion, because those assertions are statement-api's shipped evidence for the statement route and must still hold unchanged.
 - [high] junit-run negative control: tools/junit-run.mjs exits 0 and emits a testcase named after the FILE PATH when --name matches no leaf (D-0024), so a missing-name negative control cannot fail and is not the gate. The gate is that each report's testcase name equals the required leaf id verbatim - a report naming the file path asserted nothing. Verified both halves by hand: a real leaf name yields a testcase named for the leaf, a bogus one yields a testcase named backend/src/mis/mis-drill.service.test.ts. junit-run.mjs stays out of scope for feature tasks; fixing it is D-0024's own trigger.
 - [high] drill pagination needs a fixture, like FY-YTD: The gated drill proof asserts totalCount > lines.length for leaf 1.1|50001201|sprout-cost and fails: measured against the client July extract, the LARGEST (plant, cost centre, GL) group is 18 rows (55021000/Manpower), so NO single leaf can exceed the fixed 100-row page. Pagination-over-a-page is therefore in the same class as the FY-YTD multi-batch case - it cannot be proven against client data and needs the deliberately constructed fixture, with the evidence saying so. Keep the client-data assertions (exact-paise footing for the leaf and the unmapped bucket, repeat-page determinism) against client data; move only the greater-than-one-page assertion onto the fixture.
-
-## Task drill-panel
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- **0024 — The aggregate drill is a client projection of the statement payload; only the leaf
-  drill crosses the network** (accepted 2026-09-11). Rationale: the payload already carries
-  every field the prototype's aggregate panel shows, in exact-paise strings.
-- **0025 — The transaction drill reads `sap_transaction` under a pinned batch predicate,
-  beside the governed executor** (accepted 2026-09-11), reusing its authorization, validator,
-  explain and timeout, with a pre-query fail-closed audit record. Rationale:
-  `actual_by_key_month` takes no batch parameter and the governed executor is measure-shaped.
-- Inherited and load-bearing here: **0017** (triples filter the Actual side before roll-up),
-  **0018** (`unmapped-GL` is explicit and visible — so it drills, as a reserved key),
-  **0020** (Actuals attach at the GL leaf; parents are derived — so an aggregate has
-  descendant leaves to flatten), **0021** (the outline snapshot is what maps `nodeKey` →
-  leaf), **0022** (the statement's own projection, whose numbers the drill must foot to),
-  **0019** (unversioned route, raw response, direct module imports, typed error responses).
-
-## Task drill-transactions-view
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- **0024 — The aggregate drill is a client projection of the statement payload; only the leaf
-  drill crosses the network** (accepted 2026-09-11). Rationale: the payload already carries
-  every field the prototype's aggregate panel shows, in exact-paise strings.
-- **0025 — The transaction drill reads `sap_transaction` under a pinned batch predicate,
-  beside the governed executor** (accepted 2026-09-11), reusing its authorization, validator,
-  explain and timeout, with a pre-query fail-closed audit record. Rationale:
-  `actual_by_key_month` takes no batch parameter and the governed executor is measure-shaped.
-- Inherited and load-bearing here: **0017** (triples filter the Actual side before roll-up),
-  **0018** (`unmapped-GL` is explicit and visible — so it drills, as a reserved key),
-  **0020** (Actuals attach at the GL leaf; parents are derived — so an aggregate has
-  descendant leaves to flatten), **0021** (the outline snapshot is what maps `nodeKey` →
-  leaf), **0022** (the statement's own projection, whose numbers the drill must foot to),
-  **0019** (unversioned route, raw response, direct module imports, typed error responses).

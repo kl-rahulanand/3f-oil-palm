@@ -1,0 +1,52 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "drill-transactions-api",
+  "score": 9,
+  "summary": "security lens over drill-transactions-api (22 product path(s), 5a9ff14..8a354ce, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The core predicate derivation, UUID validation, pinned reads, query validation, and fail-closed pre-read audit are implemented correctly. However, authenticated CSRF refusals can escape auditing because of guard ordering, and stale/gone-pin refusals do not serialize the required per-batch status information.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src/mis",
+      "summary": "[P2] Authenticate callers before deciding whether to audit CSRF refusals (backend/src/mis/mis-drill.audit.filter.ts:21): The filter audits only when `request.authUser` is already populated, but this route's `AuthGuard` is controller-scoped while the brief states that `CsrfGuard` is global."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/mis",
+      "summary": "[P2] Include per-batch status details in refusal responses (backend/src/mis/mis-drill.interface.ts:14): `AuditedDrillRefusalException` stores `batchStatuses` only as a class property while passing a plain message to `HttpException`."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/app.routes.test.ts",
+    "backend/src/core/audit.service.ts",
+    "backend/src/mis/mis-drill.audit.filter.ts",
+    "backend/src/mis/mis-drill.controller.test.ts",
+    "backend/src/mis/mis-drill.controller.ts",
+    "backend/src/mis/mis-drill.dto.ts",
+    "backend/src/mis/mis-drill.interface.ts",
+    "backend/src/mis/mis-drill.service.test.ts",
+    "backend/src/mis/mis-drill.service.ts",
+    "backend/src/mis/mis-statement.interface.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/mis/mis.module.ts",
+    "backend/src/warehouse/drill-transactions.db.test.ts",
+    "backend/src/warehouse/drill-transactions.interface.ts",
+    "backend/src/warehouse/drill-transactions.repository.test.ts",
+    "backend/src/warehouse/drill-transactions.repository.ts",
+    "backend/src/warehouse/statement-outline.interface.ts",
+    "backend/src/warehouse/statement-outline.repository.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "150b7d72bd89bde9676b4aa78a5218db921e61b355ee644962559a67c588aeea",
+  "brief_sha256": "4021c5b08513c14c2742f829c224e09b04c61fc10e38bfba8bd49cdad16ccfec",
+  "branch_diff_digest": "61170034ce48430b7a0698bdbea63824eada862529c06674c6bfade5af357d46",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T19:52:41+00:00",
+  "commit": "8a354ce3f45da4ebd5737e7a51c84c4beaefbeac"
+}
