@@ -12,3 +12,7 @@ export interface StatementOutlineNode {
 export interface IStatementOutlineRepository {
   findByBudgetPeriod(period: string): Promise<StatementOutlineNode[]>;
 }
+
+export interface IPinnedStatementOutlineRepository extends IStatementOutlineRepository {
+  findByBudgetBatchId(batchId: string): Promise<StatementOutlineNode[]>;
+}

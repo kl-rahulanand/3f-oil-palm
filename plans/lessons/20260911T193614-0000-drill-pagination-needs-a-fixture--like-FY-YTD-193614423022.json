@@ -1,0 +1,12 @@
+{
+  "topic": "drill pagination needs a fixture, like FY-YTD",
+  "lesson": "The gated drill proof asserts totalCount > lines.length for leaf 1.1|50001201|sprout-cost and fails: measured against the client July extract, the LARGEST (plant, cost centre, GL) group is 18 rows (55021000/Manpower), so NO single leaf can exceed the fixed 100-row page. Pagination-over-a-page is therefore in the same class as the FY-YTD multi-batch case - it cannot be proven against client data and needs the deliberately constructed fixture, with the evidence saying so. Keep the client-data assertions (exact-paise footing for the leaf and the unmapped bucket, repeat-page determinism) against client data; move only the greater-than-one-page assertion onto the fixture.",
+  "source": "backend/src/warehouse/drill-transactions.db.test.ts:83",
+  "applies_to": [
+    "backend/src/warehouse/drill-transactions.db.test.ts",
+    "backend/src/warehouse/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T19:36:14+00:00"
+}

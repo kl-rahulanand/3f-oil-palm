@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-11T19:24:24+00:00", "story": "drill-down", "detail": "S-0001-d74e: Known harness defect D-0024, outside this task's write scope and not this task's to fix. Verification is trustworthy by the check the contract already mandates: each recorded artifact's testcase name "}

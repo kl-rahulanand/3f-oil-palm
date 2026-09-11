@@ -1,5 +1,9 @@
 {
   "id": "drill-transactions-api",
   "title": "The pinned, audited, paginated leaf transactions read",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-11T19:08:44+00:00",
+  "base_sha": "5a9ff14922e9e57120c107dca66d7a94a142de20",
+  "dirty_at_start": {},
+  "task_sha256": "4cd3a1f734316c44aad6c0c5a5b0bf0dcb7820a3f0b8f59d0c00028bd7d4d5e7"
 }

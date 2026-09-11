@@ -1,0 +1,184 @@
+import { ForbiddenException, Inject, Injectable } from "@nestjs/common";
+import type { FixedScaleMoney, MisDrillLine, ProvenanceBatch } from "@3f/contract";
+import { WAREHOUSE, loadConfig } from "../config";
+import { SqlValidator } from "../sql/sqlValidator";
+import type {
+  DrillBatch,
+  DrillPredicate,
+  DrillQueries,
+  DrillReadResult,
+  IDrillTransactionsRepository,
+} from "./drill-transactions.interface";
+import type { QueryResult, Warehouse } from "./warehouse.interface";
+
+export const DRILL_PAGE_SIZE = 100;
+const OBJECTS_TOUCHED = ["sap_transaction", "ingest_batch"];
+
+@Injectable()
+export class DrillTransactionsRepository implements IDrillTransactionsRepository {
+  constructor(
+    private readonly validator: SqlValidator,
+    @Inject(WAREHOUSE) private readonly warehouse: Warehouse,
+  ) {}
+
+  async findBatchesByIds(ids: string[]): Promise<DrillBatch[]> {
+    if (ids.length === 0) return [];
+    const result = await this.warehouse.execute(`SELECT id, source_kind, period, is_active
+FROM ingest_batch
+WHERE id IN (${ids.map(quote).join(", ")})
+LIMIT 25000`);
+    return batches(result);
+  }
+
+  async findActiveBatches(pins: ProvenanceBatch[]): Promise<DrillBatch[]> {
+    if (pins.length === 0) return [];
+    const predicates = uniquePins(pins).map(
+      ({ source, period }) => `(source_kind = ${quote(source)} AND period = ${quote(period)})`,
+    );
+    const result = await this.warehouse.execute(`SELECT id, source_kind, period, is_active
+FROM ingest_batch
+WHERE is_active AND (${predicates.join(" OR ")})
+LIMIT 25000`);
+    return batches(result);
+  }
+
+  async findActualPeriods(from: string, to: string): Promise<string[]> {
+    const result = await this.warehouse.execute(`SELECT DISTINCT period
+FROM ingest_batch
+WHERE source_kind = 'actuals' AND period >= ${quote(from)} AND period <= ${quote(to)}
+ORDER BY period
+LIMIT 25000`);
+    return result.rows
+      .map(({ period }) => normalizeDateOnly(period))
+      .filter((period): period is string => Boolean(period));
+  }
+
+  buildQueries(predicate: DrillPredicate, page: number): DrillQueries {
+    const where = buildPredicate(predicate);
+    return {
+      pageSql: `SELECT txn.month, txn.posting_date, txn.debit, txn.credit,
+  (txn.debit - txn.credit)::numeric(18,2) AS value, txn.reference, txn.memo
+FROM sap_transaction AS txn
+INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
+WHERE ${where}
+ORDER BY (txn.debit - txn.credit) DESC, txn.month DESC, txn.posting_date DESC, txn.txn_no, txn.line_id
+LIMIT ${DRILL_PAGE_SIZE} OFFSET ${(page - 1) * DRILL_PAGE_SIZE}`,
+      footerSql: `SELECT COUNT(*) AS total_count,
+  COALESCE(SUM(txn.debit), 0)::numeric(18,2) AS debit,
+  COALESCE(SUM(txn.credit), 0)::numeric(18,2) AS credit,
+  COALESCE(SUM(txn.debit - txn.credit), 0)::numeric(18,2) AS value
+FROM sap_transaction AS txn
+INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
+WHERE ${where}
+LIMIT 1`,
+      objectsTouched: [...OBJECTS_TOUCHED],
+    };
+  }
+
+  async execute(queries: DrillQueries): Promise<DrillReadResult> {
+    const config = loadConfig();
+    for (const sql of [queries.pageSql, queries.footerSql]) {
+      const validation = this.validator.validate(sql, queries.objectsTouched, config.maxRows);
+      if (!validation.ok) throw new ForbiddenException(validation.reason ?? "Drill query blocked");
+    }
+    await Promise.all([this.warehouse.explain(queries.pageSql), this.warehouse.explain(queries.footerSql)]);
+    const [page, footer] = await Promise.all([
+      withTimeout(this.warehouse.execute(queries.pageSql), config.queryTimeoutMs),
+      withTimeout(this.warehouse.execute(queries.footerSql), config.queryTimeoutMs),
+    ]);
+    const totals = footer.rows[0] ?? {};
+    return {
+      lines: page.rows.map(toLine),
+      totalCount: integer(totals.total_count),
+      footer: {
+        debit: money(totals.debit),
+        credit: money(totals.credit),
+        value: money(totals.value),
+      },
+    };
+  }
+}
+
+function buildPredicate(predicate: DrillPredicate): string {
+  const batches = predicate.actualBatchIds.length
+    ? `txn.batch_id IN (${predicate.actualBatchIds.map(quote).join(", ")})`
+    : "FALSE";
+  const triples = predicate.triples.length
+    ? `(${predicate.triples
+        .map(
+          ({ plant, costCenter, glCode }) =>
+            `(txn.plant = ${quote(plant)} AND txn.cost_center = ${quote(costCenter)} AND txn.gl_code = ${quote(glCode)})`,
+        )
+        .join(" OR ")})`
+    : "FALSE";
+  const plants = predicate.plants.length ? `txn.plant IN (${predicate.plants.map(quote).join(", ")})` : "FALSE";
+  return `${batches} AND ${triples} AND ${plants} AND txn.month >= ${quote(predicate.from)} AND txn.month <= ${quote(predicate.to)} AND batch.source_kind = 'actuals'`;
+}
+
+function batches(result: QueryResult): DrillBatch[] {
+  return result.rows.map((row) => ({
+    source: String(row.source_kind) as DrillBatch["source"],
+    period: normalizeDateOnly(row.period) ?? "",
+    batchId: String(row.id),
+    isActive: row.is_active === "true" || row.is_active === 1,
+  }));
+}
+
+function toLine(row: Record<string, string | number | null>): MisDrillLine {
+  const month = normalizeDateOnly(row.month);
+  const postingDate = normalizeDateOnly(row.posting_date);
+  if (!month || !postingDate) throw new Error("Drill query returned an invalid date");
+  return {
+    month,
+    postingDate,
+    debit: money(row.debit),
+    credit: money(row.credit),
+    value: money(row.value),
+    reference: row.reference === null ? null : String(row.reference),
+    memo: row.memo === null ? null : String(row.memo),
+  };
+}
+
+export function normalizeDateOnly(value: string | number | null | undefined): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function money(value: string | number | null | undefined): FixedScaleMoney {
+  const match = String(value ?? 0).match(/^(-?)(\d+)(?:\.(\d+))?$/);
+  if (!match) throw new Error("Drill query returned an invalid money value");
+  const fraction = match[3] ?? "";
+  if (fraction.length > 2 && /[^0]/.test(fraction.slice(2))) throw new Error("Drill query returned money below paise");
+  return `${match[1]}${match[2]}.${fraction.slice(0, 2).padEnd(2, "0")}` as FixedScaleMoney;
+}
+
+function integer(value: string | number | null | undefined): number {
+  const parsed = Number(value ?? 0);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error("Drill query returned an invalid count");
+  return parsed;
+}
+
+function quote(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function uniquePins(pins: ProvenanceBatch[]): ProvenanceBatch[] {
+  return [...new Map(pins.map((pin) => [`${pin.source}\0${pin.period}`, pin])).values()];
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Drill query timed out")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
