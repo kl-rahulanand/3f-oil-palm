@@ -420,11 +420,97 @@
         "statement-export-api"
       ],
       "acceptance_criteria": [
-        "A Download Excel control sits beside the statement in the imported prototype's SECONDARY treatment - white ground, emerald border and text, matching the Generate button's height and radius - and is present only when a resolved statement is on screen.",
-        "Pressing it downloads the workbook through the cookie-credentialed CSRF-aware client, and a failure surfaces as ONE clear state rather than a silent no-op, never leaving the control or the statement stuck in a pending state."
-      ]
+        "The Download Excel control sits in the STATEMENT's own header - not in the filter bar - in the prototype's secondary treatment (white ground, emerald border and text, sharing the Generate button's height and radius), and is present only when a resolved statement is on screen. The export request is built from the RESOLVED response's scope, never from the mutable filter selectors, so the file always matches the statement being looked at even if someone changes a dropdown after generating.",
+        "Pressing it fetches the workbook through a BINARY client path that keeps the cookie credentials, the CSRF bootstrap and the one-shot 401 refresh - proven as: an initial export returning 401 triggers EXACTLY ONE refresh and EXACTLY ONE retried export - since the existing post<T> helper ends in response.json() and cannot carry bytes.",
+        "Only the exact xlsx media type, allowing parameters, may enter the save path. A 200 carrying application/json - the unresolvable outcome - is NOT saved and the notice is shown instead; any other unexpected content type takes the clear-error path rather than being written to disk, so a corrupt file can never reach the user.",
+        "The saved filename comes from the server's Content-Disposition header, which main.ts exposes through CORS, with a single fixed fallback of financial-mis-statement.xlsx used only when the header is absent; the object URL created for the download is revoked afterwards, asserted rather than merely intended.",
+        "A failure surfaces as ONE clear state - never a silent no-op, which is worse than an error because the person believes they have the file - and leaves neither the control nor the statement stuck pending."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-sec-c1",
+          "statement": "The Download Excel control sits in the STATEMENT's own header - not in the filter bar - in the prototype's secondary treatment (white ground, emerald border and text, sharing the Generate button's height and radius), and is present only when a resolved statement is on screen. The export request is built from the RESOLVED response's scope, never from the mutable filter selectors, so the file always matches the statement being looked at even if someone changes a dropdown after generating.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sec-c2",
+          "statement": "Pressing it fetches the workbook through a BINARY client path that keeps the cookie credentials, the CSRF bootstrap and the one-shot 401 refresh - proven as: an initial export returning 401 triggers EXACTLY ONE refresh and EXACTLY ONE retried export - since the existing post<T> helper ends in response.json() and cannot carry bytes.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sec-c3",
+          "statement": "Only the exact xlsx media type, allowing parameters, may enter the save path. A 200 carrying application/json - the unresolvable outcome - is NOT saved and the notice is shown instead; any other unexpected content type takes the clear-error path rather than being written to disk, so a corrupt file can never reach the user.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sec-c4",
+          "statement": "The saved filename comes from the server's Content-Disposition header, which main.ts exposes through CORS, with a single fixed fallback of financial-mis-statement.xlsx used only when the header is absent; the object URL created for the download is revoked afterwards, asserted rather than merely intended.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sec-c5",
+          "statement": "A failure surfaces as ONE clear state - never a silent no-op, which is worse than an error because the person believes they have the file - and leaves neither the control nor the statement stuck pending.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        }
+      ],
+      "write_scope": [
+        "frontend/src/features/mis/statement-view.tsx",
+        "frontend/src/features/mis/statement-view.test.tsx",
+        "frontend/src/features/mis/use-mis-statement.ts",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/api.test.ts",
+        "frontend/app/globals.css"
+      ],
+      "verify_commands": [
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:frontend",
+        "npm run build:frontend"
+      ],
+      "required_tests": [
+        {
+          "id": "the download control appears in the statement header only with a resolved statement and builds its request from the resolved scope rather than the filter selectors",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "an export returning unauthorized triggers exactly one refresh and exactly one retried export carrying the csrf header and cookie credentials",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "only the xlsx media type is saved while a json unresolvable response shows the notice without saving and any other content type takes the error path",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the saved filename comes from the content disposition header with a single fixed fallback when it is absent and the object url is revoked afterwards",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a failed download surfaces one clear error state and leaves neither the control nor the statement pending",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "reviewer_focus": [
+        "The download must match the STATEMENT, not the selectors. Building the request from mutable filter state lets someone generate July, change a dropdown, download, and get a file that silently disagrees with the screen - on a financial document people forward. It is built from the resolved response's scope.",
+        "A silent no-op is the worst outcome - worse than an error - because the person believes they have the file and walks away. constitution/07-exception-handling.md's one-clear-state rule already bit this exact view once, where a failure rendered ALONGSIDE the empty state.",
+        "Media-type discipline: ONLY the exact xlsx type (parameters allowed) enters the save path. The unresolvable outcome is a 200 carrying JSON, and any other unexpected type is an error - a blob client that saves whatever arrived puts a corrupt .xlsx on someone's disk.",
+        "The binary path must keep the CSRF bootstrap, cookie credentials and the one-shot 401 refresh. Dropping the refresh silently breaks the download for anyone whose access token just expired, which is the most ordinary case there is.",
+        "The filename is the SERVER's: Content-Disposition is readable only because main.ts exposes it through CORS, and deriving it client-side would duplicate a grammar the server owns and let the two drift.",
+        "Revoke the object URL, and assert it - a page people click repeatedly should not leak one per click.",
+        "Design fidelity: the prototype's Download Excel is a SECONDARY button (white ground, emerald border and text) sharing Generate's height and radius. No theme token may be added or renamed - and tokens.test.ts does NOT prove that, since it compares only the files under frontend/src/theme: read the diff."
+      ],
+      "review_budget": {
+        "max_changed_files": 6,
+        "max_changed_lines": 900,
+        "reason": "One control and its failure state on an existing view, plus a binary fetch helper the JSON-only post<T> cannot provide, with media-type classification, filename handling and object-URL cleanup. Small by construction: the route and the workbook shipped in statement-export-api."
+      }
     }
   ],
-  "commit": "d831487f7520057b741967c0cf27b522cdcfa4b9",
+  "commit": "fe9bf20d9f233d3fc203add30ace9da38c0e0765",
   "plan_sha256": "3afcacab6c0137fabf3f3e2113137534ac4db55169bd64506a47d6820b51a391"
 }

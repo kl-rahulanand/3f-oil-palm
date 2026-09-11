@@ -1,0 +1,46 @@
+{
+  "id": "statement-export-control",
+  "title": "The Download Excel control",
+  "status": "done",
+  "started_at": "2026-09-11T16:29:24+00:00",
+  "base_sha": "a87ad6bdbf0a20d843278b4d324ce2bb014d8040",
+  "dirty_at_start": {
+    ".factory/stories/mis-statement/decomposition.json": {
+      "digest": "36184ead79437a1b64dd7fb5cb34c17828342a0cb8aecf05bdf51fcf9993d023",
+      "git": "1 .M N... 100644 100644 100644 5162494812658b849b5b9f20dc495d6af93af25c 5162494812658b849b5b9f20dc495d6af93af25c .factory/stories/mis-statement/decomposition.json\u0000\u0000100644 5162494812658b849b5b9f20dc495d6af93af25c 0\t.factory/stories/mis-statement/decomposition.json\u0000\u0000H .factory/stories/mis-statement/decomposition.json\u0000"
+    },
+    ".factory/stories/mis-statement/grills/tasks/statement-export-control.json": {
+      "digest": "f08037b91e1b73b78c26673113adfbafce35f976e7d824afb585240281998832",
+      "git": "? .factory/stories/mis-statement/grills/tasks/statement-export-control.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/mis-statement/task-plans/statement-export-control.md": {
+      "digest": "21ea1b9d7ef1def8e42946e9ebf9704040a97a6ac93a59736923b306046d2039",
+      "git": "? .factory/stories/mis-statement/task-plans/statement-export-control.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "c1ecb61f8b6b36d1badf54c0dec821aae5179d4d260e6f42b7ce8b9c8fd7ff26",
+  "local_review_stamp": {
+    "stage_id": "statement-export-control",
+    "base_sha": "a87ad6bdbf0a20d843278b4d324ce2bb014d8040",
+    "delta_id": "6f0a6534c7e26d121379e5689715d4f1ce4b579c07f3efddde089e427cd99557",
+    "contract_sha256": "c1ecb61f8b6b36d1badf54c0dec821aae5179d4d260e6f42b7ce8b9c8fd7ff26",
+    "recorded_at": "2026-09-11T16:47:12+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-11T16:47:13+00:00",
+  "measured": {
+    "strays": [],
+    "files": 6,
+    "lines": 372,
+    "budget": {
+      "files": 6,
+      "lines": 900
+    },
+    "test_id_misses": []
+  }
+}
