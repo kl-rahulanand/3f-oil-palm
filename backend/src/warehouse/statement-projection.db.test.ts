@@ -47,7 +47,7 @@ test(
           measureIds: [],
           dimensionIds: [],
           filters: [],
-          timeWindow: { column: "month", from: resolution.period.from, to: resolution.period.to },
+          timeWindow: { grain: "month", column: "month", from: resolution.period.from, to: resolution.period.to },
         },
         user,
         true,

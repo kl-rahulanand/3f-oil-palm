@@ -40,14 +40,22 @@ test(
         { plant: "DUB", gl_code: "50001701", month: PERIOD, actual_net: "125.00" },
       ]);
 
-      const budgetPrior = await repository.replaceBudgetBatch(metadata("budget-prior"), [
-        budgetRow("P1", "Legacy", "9999.00", "999.00"),
-      ]);
+      const priorRows = [budgetRow("P1", "Legacy", "9999.00", "999.00")];
+      const budgetPrior = await repository.replaceBudgetBatch(
+        metadata("budget-prior"),
+        priorRows,
+        budgetOutline(priorRows),
+      );
       const actualBeforeBudgetReload = await actualRollup(pool);
-      const budgetReplacement = await repository.replaceBudgetBatch(metadata("budget-replacement"), [
+      const replacementRows = [
         budgetRow("R1", "Labour", "250.00", "20.00"),
         budgetRow("R2", "Admin", "1000.00", "10.00"),
-      ]);
+      ];
+      const budgetReplacement = await repository.replaceBudgetBatch(
+        metadata("budget-replacement"),
+        replacementRows,
+        budgetOutline(replacementRows),
+      );
 
       await assertBatchState(pool, budgetPrior, false);
       await assertBatchState(pool, budgetReplacement, true);
@@ -97,11 +105,23 @@ function budgetRow(lineId: string, costCenter: string, budgetAmount: string, rol
     formatId: "nursery",
     period: PERIOD,
     lineId,
+    leafKey: lineId,
     glCode: "50001701",
     costCenter,
     budgetAmount,
     rolloverAmount,
   };
+}
+
+function budgetOutline(rows: MisBudgetInput[]) {
+  return rows.map(({ lineId, leafKey, costCenter: label, glCode }, sortOrder) => ({
+    nodeKey: `leaf:${leafKey}`,
+    depth: 0,
+    label,
+    sortOrder,
+    glCode,
+    leafKey,
+  }));
 }
 
 function assertLocalWarehouseHost(host: string | undefined): void {

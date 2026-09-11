@@ -27,10 +27,15 @@ test(
         actualRow("M2", "CC-2", "25.00"),
         actualRow("A1", "CC-3", "50.00", "0.00", "ACTUAL-ONLY"),
       ]);
-      const budgetBatchId = await repository.replaceBudgetBatch(metadata("budget"), [
+      const budgetRows = [
         budgetRow("M1", "MATCHED", "200.00"),
         budgetRow("B1", "BUDGET-ONLY", "300.00", "BUDGET-ONLY"),
-      ]);
+      ];
+      const budgetBatchId = await repository.replaceBudgetBatch(
+        metadata("budget"),
+        budgetRows,
+        budgetOutline(budgetRows),
+      );
 
       const built = new SqlBuilder().build(domain, selection, user);
       const rows: Array<Record<string, unknown>> = (await new PostgresAdapter().execute(built.sql)).rows.map((row) => ({
@@ -161,11 +166,23 @@ function budgetRow(lineId: string, costCenter: string, budgetAmount: string, glC
     formatId: "nursery",
     period: PERIOD,
     lineId,
+    leafKey: lineId,
     glCode,
     costCenter,
     budgetAmount,
     rolloverAmount: "0.00",
   };
+}
+
+function budgetOutline(rows: ReturnType<typeof budgetRow>[]) {
+  return rows.map(({ lineId, leafKey, costCenter: label, glCode }, sortOrder) => ({
+    nodeKey: `leaf:${leafKey}`,
+    depth: 0,
+    label,
+    sortOrder,
+    glCode,
+    leafKey,
+  }));
 }
 
 function assertLocalWarehouseHost(host: string | undefined): void {

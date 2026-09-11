@@ -305,12 +305,12 @@ test("budget_by_gl_month preserves the deterministic set of cost_center Budget C
     "utf8",
   );
   assert.match(statementMigration, /CREATE TABLE "mis_budget_outline"/);
-  assert.match(statementMigration, /CONSTRAINT "mis_budget_leaf_key_required" CHECK \("leaf_key" IS NOT NULL\) NOT VALID/);
-  assert.match(statementMigration, /CONSTRAINT "mis_budget_outline_leaf_fk" FOREIGN KEY \("batch_id","leaf_key"\)/);
   assert.match(
     statementMigration,
-    /UPDATE "ingest_batch"[\s\S]*WHERE "source_kind" = 'budget' AND "is_active"/,
+    /CONSTRAINT "mis_budget_leaf_key_required" CHECK \("leaf_key" IS NOT NULL\) NOT VALID/,
   );
+  assert.match(statementMigration, /CONSTRAINT "mis_budget_outline_leaf_fk" FOREIGN KEY \("batch_id","leaf_key"\)/);
+  assert.match(statementMigration, /UPDATE "ingest_batch"[\s\S]*WHERE "source_kind" = 'budget' AND "is_active"/);
   assert.match(statementMigration, /CREATE VIEW "public"\."budget_by_leaf_month"/);
   const journal = JSON.parse(
     readFileSync(resolve(__dirname, "../../drizzle-warehouse/meta/_journal.json"), "utf8"),

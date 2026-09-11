@@ -96,5 +96,5 @@ const statementDomain: DomainSpec = { ...domain, name: "mis-statement", goldObje
 const statementSelection: Selection = {
   ...selection,
   domain: statementDomain.name,
-  timeWindow: { column: "month", from: "2026-07-01", to: "2026-07-01" },
+  timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
 };
