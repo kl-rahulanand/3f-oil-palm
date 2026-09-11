@@ -9,3 +9,7 @@ export function useMisStatement() {
   const run = useMutation({ mutationFn: (selection: MisSelectionRunRequest) => api.runMisStatement(selection) });
   return { options, run };
 }
+
+export function useMisStatementExport() {
+  return useMutation({ mutationFn: api.exportMisStatement });
+}

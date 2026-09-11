@@ -1,0 +1,71 @@
+{
+  "commit": "6fecfc632cdf00c2a72b23eff7d9c600c33f2df0",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "pass",
+    "score": 9,
+    "summary": "Live E2E on the host. Signed in with the mock OTP, generated Agriculture / Nursery / DUB / 2026-07-01, and pressed Download Excel. The control is in the STATEMENT's own header (its container is mis-statement-actions, and closest('.mis-filter-bar') is null), confirming the human's ruling that it belongs to the statement rather than the mutable filter bar. Its computed style is the prototype's SECONDARY treatment exactly: white ground rgb(255,255,255), emerald border AND text rgb(28,107,73) = --kl-emerald, 34px height, 6px radius - the Generate button's metrics. Pressing it produced a real download of 12,408 bytes with content type application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, and the object URL was REVOKED exactly once, so repeated exports do not leak. The captured blob begins with the PK zip magic and its package contains xl/worksheets/sheet1.xml, xl/sharedStrings.xml, xl/workbook.xml and docProps - a complete xlsx, byte-for-byte the same workbook the route produces (12,407 bytes generated directly, a one-byte zip-timestamp difference), which was itself opened during statement-export-api and verified as worksheet 'Financial MIS' with 109 rows and a grand total of Rs 1,00,50,136 Budget against Rs 1,15,12,712 Actual. Finally, fetching the route from the page proved Content-Disposition is readable CROSS-ORIGIN - attachment; filename=\"financial-mis-agriculture-nursery-dub-2026-07-01-to-2026-07-01.xlsx\" - which is exactly what the CORS exposedHeaders entry added in statement-export-api exists for, so the saved name is the server's and not a browser-generated one.",
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The downloaded bytes were verified by capturing the blob in the page and matching it against the route-generated workbook already opened and asserted in statement-export-api, rather than by re-opening a file written through the browser's own save dialog, which the automation cannot drive. The identity of the bytes is established; the operating system's save step is not exercised."
+    ],
+    "residual_risks": [
+      "The unresolvable path is not walked live - the single-selection master makes it unreachable from the UI - and is proven by the component test that asserts a 200 JSON response shows the notice and saves nothing."
+    ],
+    "manual_validation_steps": [
+      "Started backend and frontend FROM THIS WORKTREE with the documented WAREHOUSE_PG_* env and AUTH_OTP_MOCK=1; confirmed 13 mapped routes including the export.",
+      "Signed in at /login with the mock OTP, opened MIS Reports and generated the July DUB statement.",
+      "Confirmed the Download Excel control is inside mis-statement-actions and NOT inside .mis-filter-bar.",
+      "Read its computed style live and compared against the prototype's secondary button: white ground, emerald border and text, 34px, 6px radius.",
+      "Hooked URL.createObjectURL and URL.revokeObjectURL to observe the actual download: 12,408 bytes, xlsx media type, one URL created and one revoked.",
+      "Captured the blob's bytes and checked the zip magic and package contents; compared against the 12,407-byte route-generated workbook already opened and asserted in the previous task.",
+      "Fetched the export route from the page's own origin and confirmed Content-Disposition is readable cross-origin with the server's canonical slug filename."
+    ],
+    "reviewed_scope": [
+      "frontend/src/features/mis/statement-view.tsx",
+      "frontend/src/features/mis/use-mis-statement.ts",
+      "frontend/src/lib/api.ts",
+      "frontend/app/globals.css"
+    ],
+    "recommendation": "Ship. The control is correctly placed, correctly styled, downloads the real workbook under the server's filename, and cleans up after itself.",
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-11T16:44:38+00:00",
+    "commit": "6fecfc632cdf00c2a72b23eff7d9c600c33f2df0"
+  },
+  "updated_at": "2026-09-11T16:44:38+00:00",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All five required vitest leaves for statement-export-control execute and pass, each proven by its EXECUTED count rather than an exit code, since vitest exits 0 when -t matches nothing (D-0031). They falsify the seams the grill identified: the control rendering in the statement header and building its request from the resolved scope rather than the filter selectors; an export 401 triggering exactly one refresh and exactly one retry; only the xlsx media type being saved while a JSON unresolvable response shows the notice and any other type takes the error path; the filename coming from Content-Disposition with a single fixed fallback and the object URL being revoked; and a failed download surfacing one clear state with nothing left pending. verify.py passes, including build:frontend.",
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts <path> -t <each of five leaves> -> executed=1, failures=0 for each"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/mis/statement-view.test.tsx (control placement and request identity, media-type classification, failure state)",
+      "frontend/src/lib/api.test.ts (the binary export helper: one-shot 401 refresh counted, filename from the header with a fixed fallback, object-URL revocation)"
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "Design fidelity and the real download are proven by the functional check rather than by these leaves, which is stated rather than implied."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "manual_validation_steps": [
+      "Skill attestation checked rather than assumed: the composed brief INLINES both design skills in full (emil-design-eng at line 403, frontend-design at line 698, each headed 'inlined; your runtime cannot load it'), so both were in the implementer's prompt by construction. The job log additionally shows it reading ~/.codex/skills/emil-design-eng/SKILL.md directly; it did NOT read the frontend-design file, which the inlining makes unnecessary."
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-11T16:44:38+00:00",
+    "commit": "6fecfc632cdf00c2a72b23eff7d9c600c33f2df0"
+  }
+}

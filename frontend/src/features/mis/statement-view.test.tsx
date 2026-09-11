@@ -4,9 +4,14 @@ import type {
   MisStatementResolvedResponse,
   MisStatementRunResponse,
 } from "@3f/contract";
-import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import { renderWithQuery } from "@/src/test/render";
 import { StatementView } from "./statement-view";
+
+const mocks = vi.hoisted(() => ({ exportMisStatement: vi.fn() }));
+
+vi.mock("@/src/lib/api", () => ({ api: mocks }));
 
 const selected = (budget: FixedScaleMoney, actual: FixedScaleMoney, percentage: string | null) =>
   measure("selected", budget, actual, percentage);
@@ -76,10 +81,44 @@ const resolved: MisStatementResolvedResponse = {
   },
 };
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  mocks.exportMisStatement.mockReset();
+});
+
+test("the download control appears in the statement header only with a resolved statement and builds its request from the resolved scope rather than the filter selectors", async () => {
+  renderWithQuery(
+    <StatementView
+      response={{
+        outcome: "unresolvable",
+        notice: "No mapping configured",
+        tree: [],
+        grandTotal: null,
+        provenance: { activeBatchIds: [] },
+      }}
+    />,
+  );
+  expect(screen.queryByRole("button", { name: "Download Excel" })).not.toBeInTheDocument();
+
+  cleanup();
+  mocks.exportMisStatement.mockResolvedValue(undefined);
+  renderWithQuery(<StatementView response={resolved} />);
+  const button = screen.getByRole("button", { name: "Download Excel" });
+  expect(button.closest("header")).toHaveClass("mis-statement-header");
+  fireEvent.click(button);
+
+  await waitFor(() =>
+    expect(mocks.exportMisStatement).toHaveBeenCalledWith({
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+    }),
+  );
+});
 
 test("the statement renders inline below the selector as a tree in outline order showing the routes parent subtotals and a grand total without recomputing them", () => {
-  render(<StatementView response={resolved} />);
+  renderWithQuery(<StatementView response={resolved} />);
 
   const table = screen.getByRole("treegrid", { name: "Financial MIS statement" });
   const rows = within(table)
@@ -107,7 +146,7 @@ test("block headings use the spec labels formatted from each blocks range and mo
       },
     ],
   };
-  render(<StatementView response={response} />);
+  renderWithQuery(<StatementView response={response} />);
 
   expect(screen.getByRole("columnheader", { name: "July 2026" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "FY 26-27 (YTD to Jul)" })).toBeInTheDocument();
@@ -135,7 +174,7 @@ test("a non numeric percentage label is kept verbatim a null percentage renders 
     ],
     grandTotal: { ...resolved.grandTotal, measures: [selectedYtd] },
   };
-  render(<StatementView response={response} />);
+  renderWithQuery(<StatementView response={response} />);
 
   expect(screen.getAllByRole("columnheader", { name: "FY 26-27 (YTD to Jul)" })).toHaveLength(1);
   expect(screen.getByRole("row", { name: /Materials/ })).toHaveTextContent("over-budget");
@@ -150,11 +189,12 @@ test("an unresolvable outcome shows the notice with no statement table while a r
     grandTotal: null,
     provenance: { activeBatchIds: [] },
   };
-  const { rerender } = render(<StatementView response={unresolvable} />);
+  renderWithQuery(<StatementView response={unresolvable} />);
   expect(screen.getByText("No mapping configured")).toBeInTheDocument();
   expect(screen.queryByRole("treegrid")).not.toBeInTheDocument();
 
-  rerender(
+  cleanup();
+  renderWithQuery(
     <StatementView
       response={{
         ...resolved,
@@ -178,7 +218,7 @@ test("an unresolvable outcome shows the notice with no statement table while a r
 });
 
 test("the unmapped GL line renders with a blank gl code and its own actual and the statement names its active period and contributing batch ids", () => {
-  render(
+  renderWithQuery(
     <StatementView
       response={{
         ...resolved,
@@ -203,6 +243,58 @@ test("the unmapped GL line renders with a blank gl code and its own actual and t
   expect(screen.getByText("Active period: July 2026")).toBeInTheDocument();
   expect(screen.getByText(/actual-batch-july/)).toBeInTheDocument();
   expect(screen.getByText(/budget-batch-july/)).toBeInTheDocument();
+});
+
+test("only the xlsx media type is saved while a json unresolvable response shows the notice without saving and any other content type takes the error path", async () => {
+  mocks.exportMisStatement.mockResolvedValueOnce(undefined);
+  renderWithQuery(<StatementView response={resolved} />);
+  fireEvent.click(screen.getByRole("button", { name: "Download Excel" }));
+  await waitFor(() => expect(mocks.exportMisStatement).toHaveBeenCalledTimes(1));
+  expect(screen.getByRole("treegrid")).toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+  cleanup();
+  mocks.exportMisStatement.mockResolvedValueOnce({
+    outcome: "unresolvable",
+    notice: "No mapping configured",
+    tree: [],
+    grandTotal: null,
+    provenance: { activeBatchIds: [] },
+  });
+  renderWithQuery(<StatementView response={resolved} />);
+  fireEvent.click(screen.getByRole("button", { name: "Download Excel" }));
+  expect(await screen.findByText("No mapping configured")).toBeInTheDocument();
+  expect(screen.getByRole("treegrid")).toBeInTheDocument();
+
+  cleanup();
+  mocks.exportMisStatement.mockRejectedValueOnce(new Error("Unexpected statement export content type"));
+  renderWithQuery(<StatementView response={resolved} />);
+  fireEvent.click(screen.getByRole("button", { name: "Download Excel" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("The workbook could not be downloaded. Try again.");
+  expect(screen.getByRole("treegrid")).toBeInTheDocument();
+});
+
+test("a failed download surfaces one clear error state and leaves neither the control nor the statement pending", async () => {
+  let rejectDownload!: (reason: Error) => void;
+  mocks.exportMisStatement.mockReturnValue(
+    new Promise((_resolve, reject) => {
+      rejectDownload = reject;
+    }),
+  );
+  renderWithQuery(<StatementView response={resolved} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Download Excel" }));
+  expect(await screen.findByRole("button", { name: "Downloading…" })).toBeDisabled();
+  expect(screen.getByRole("region", { name: "Nursery — DUB" })).toHaveAttribute("aria-busy", "true");
+
+  await act(async () => rejectDownload(new Error("offline")));
+
+  await screen.findByRole("alert");
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(screen.getByRole("alert")).toHaveTextContent("The workbook could not be downloaded. Try again.");
+  expect(screen.getByRole("button", { name: "Download Excel" })).toBeEnabled();
+  expect(screen.getByRole("region", { name: "Nursery — DUB" })).toHaveAttribute("aria-busy", "false");
+  expect(screen.getByRole("treegrid")).toBeInTheDocument();
 });
 
 function measure(
