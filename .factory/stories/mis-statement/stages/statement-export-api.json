@@ -1,52 +1,5 @@
 {
   "id": "statement-export-api",
   "title": "The Excel export route and workbook writer",
-  "status": "done",
-  "started_at": "2026-09-11T15:41:49+00:00",
-  "base_sha": "fb7d13cecc7ced988db190703e12f014d63b0ed2",
-  "dirty_at_start": {
-    ".factory/stories/mis-statement/decomposition.json": {
-      "digest": "9e3754349387635242184516b577c89e7fd0c7b657ef5675fc762b8beaf88ca4",
-      "git": "1 .M N... 100644 100644 100644 4cf37c582dc7845fcafb097f639435ead645bfd5 4cf37c582dc7845fcafb097f639435ead645bfd5 .factory/stories/mis-statement/decomposition.json\u0000\u0000100644 4cf37c582dc7845fcafb097f639435ead645bfd5 0\t.factory/stories/mis-statement/decomposition.json\u0000\u0000H .factory/stories/mis-statement/decomposition.json\u0000"
-    },
-    ".factory/stories/mis-statement/grills/tasks/statement-export-api.json": {
-      "digest": "a9e4ecac0bf1fc3984a1a76f0273a353d389bdea2ec7450d17a43350e0808480",
-      "git": "? .factory/stories/mis-statement/grills/tasks/statement-export-api.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/mis-statement/task-plans/statement-export-api.md": {
-      "digest": "404f5e09a563ef9935e36ad6b686c085d729a6305938d93e6f83338d20c737c9",
-      "git": "? .factory/stories/mis-statement/task-plans/statement-export-api.md\u0000\u0000\u0000"
-    },
-    "plans/active/mis-statement-mis-statement-excel-export.md": {
-      "digest": "e0b06de511bf3e0ad5a37866a96df359cef174d392938eaceca999653c00aff0",
-      "git": "1 .M N... 100644 100644 100644 3e477a10bc0af1cabab9f4b69a8e22e43349eee3 3e477a10bc0af1cabab9f4b69a8e22e43349eee3 plans/active/mis-statement-mis-statement-excel-export.md\u0000\u0000100644 3e477a10bc0af1cabab9f4b69a8e22e43349eee3 0\tplans/active/mis-statement-mis-statement-excel-export.md\u0000\u0000H plans/active/mis-statement-mis-statement-excel-export.md\u0000"
-    }
-  },
-  "task_sha256": "9a3da1efb8110f6e24b6858fdd4cd9d97e4a01915097ee8f16bd1325b8517c36",
-  "local_review_stamp": {
-    "stage_id": "statement-export-api",
-    "base_sha": "fb7d13cecc7ced988db190703e12f014d63b0ed2",
-    "delta_id": "7bf492c30c1ab00fe5e6651ce0061bb59c29f78e15f559ca936e946ae308a792",
-    "contract_sha256": "9a3da1efb8110f6e24b6858fdd4cd9d97e4a01915097ee8f16bd1325b8517c36",
-    "recorded_at": "2026-09-11T16:13:04+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-11T16:13:05+00:00",
-  "measured": {
-    "strays": [
-      "backend/src/mis/mis-statement.controller.test.ts"
-    ],
-    "files": 10,
-    "lines": 568,
-    "budget": {
-      "files": 10,
-      "lines": 1500
-    },
-    "test_id_misses": []
-  }
+  "status": "done"
 }

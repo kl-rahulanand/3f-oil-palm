@@ -215,3 +215,58 @@ task], (2) statement-api, (3) statement-view, (4) statement-export. It is one bo
 unit because the projection is meaningless without the leaf key it groups by, and the
 leaf key is meaningless without the snapshot that defines it; its three criteria are
 proven by the three hermetic required tests plus the gated D-0008 proof.
+
+<!-- forge:contract -->
+## Contract (recorded)
+
+Rendered by the harness from the recorded decomposition; edit the decomposition, not this block. It is excluded from the plan's approval and grill digests, so a re-render never stales either.
+
+**Objective.** Give the statement something to be built on: persist the budget workbook's outline as a per-batch snapshot keyed by a stable leaf key (decision 0021), record the provisional budget-leaf to SAP (cost centre, GL) correspondence in the versioned Mapping Master, and add the statement's own governed projection at leaf/month grain (decision 0022) while leaving the shipped (gl_code, month) relation untouched. No HTTP route, no UI - those are tasks 2, 3 and 4.
+
+**Acceptance criteria**
+
+- The budget parser walks the workbook outline and records it as a per-batch snapshot - the ordered section, component and leaf tree with each node's S. No., label and ordering, parent_key referencing a node in the SAME batch - carrying NO monetary amount; every leaf gains a stable key derived from its identity rather than its sheet row number, mis_budget carries that same leaf_key so amounts and structure join without touching GL, and the snapshot is persisted inside the same transaction that writes the rows and activates the batch.
+- The Mapping Master records a TAGGED target for every entry - either a workbook leaf key or the reserved unmapped-GL bucket of decision 0018 - as provisional entries with reasons, so a SAP (cost centre, GL) triple resolves to exactly one target, recorded rather than inferred; the loader rejects two entries claiming one triple for different targets; and budget ingest validates the candidate snapshot's leaf keys against the master's declared targets so a renamed or renumbered line is reported as drift rather than silently splitting one statement line in two.
+- The statement's governed projection returns Budget and Actual full-outer-joined at leaf/month grain, filtering Actuals by the master's resolved triples BEFORE aggregating per decision 0017 and reaching the builder through a typed leafTargets entry on GovernedSelectionScope rather than a global master import, with no fan-out and leaf-grain totals exact against the pinned July batch; the shipped (gl_code, month) relation and all six existing gated warehouse proofs are unchanged. Parent-by-parent footing belongs to task 2, which owns tree derivation.
+
+**Write scope** (what `stage done` measures the diff against)
+
+- backend/drizzle-warehouse/
+- backend/src/warehouse/warehouse-schema.ts
+- backend/src/warehouse/warehouse-schema.test.ts
+- backend/src/warehouse/warehouse-migrate.ts
+- backend/src/warehouse/ingestion.repository.ts
+- backend/src/ingest/ingest.service.ts
+- backend/src/ingest/ingest.service.test.ts
+- backend/src/ingest/mis-budget.parser.ts
+- backend/src/ingest/mis-budget.parser.test.ts
+- backend/src/mapping/mis-mapping-master.ts
+- backend/src/mapping/mapping-master.ts
+- backend/src/mapping/mapping-master.test.ts
+- backend/src/mapping/selection-resolver.service.ts
+- backend/src/mapping/selection-resolver.interface.ts
+- backend/src/mapping/selection-resolver.service.test.ts
+- backend/src/sql/sqlBuilder.ts
+- backend/src/sql/sqlBuilder.statement.test.ts
+- backend/src/warehouse/statement-projection.db.test.ts
+- backend/package.json
+- tools/quality-gate.test.mjs
+
+**Required tests** (run by `stage done`)
+
+- `the budget parser records the workbook outline as an ordered snapshot carrying no amounts and gives each leaf a stable key that survives a reordered workbook` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/ingest/mis-budget.parser.test.ts)
+- `the mapping master resolves a SAP cost centre and GL triple to exactly one statement leaf and records the budget leaf correspondence as provisional with a reason` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mapping/mapping-master.test.ts)
+- `the statement projection full outer joins budget and actual at leaf and month grain filtering actuals by the resolved triples before aggregating and leaves the gl code and month relation untouched` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/sql/sqlBuilder.statement.test.ts)
+- `budget ingest reports mapping drift when the candidate outline no longer carries a leaf key the master declares instead of silently splitting the line` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/ingest/mis-budget.parser.test.ts)
+
+**Verify commands**
+
+- `npm run build:contract`
+- `npm run build:backend`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run format:check`
+- `npm run test:hermetic`
+
+**Review budget.** 20 files / 2600 lines -- The story's foundation, and the task grill showed the original 13-file budget could not even reach the code it needed. Four inseparable deliverables: the outline snapshot (new table, new column, migration plus its journal and the pinned-migration test, and a parser that must now genuinely WALK the outline rather than test each row's formula independently); the persistence route through IngestService and replaceBudgetBatch inside the batch's own transaction; the master's tagged leaf-or-bucket targets with their loader rejection and the ingest-time drift check; and a second governed shape at leaf/month grain reaching the builder through a typed scope field, with its own gated D-0008 exact-reconciliation and no-fan-out proof plus registration. The projection is meaningless without the leaf key it groups by, and the leaf key is meaningless without the snapshot that defines it.
+<!-- /forge:contract -->
