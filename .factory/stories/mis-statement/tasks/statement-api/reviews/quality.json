@@ -1,23 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "statement-api",
-  "score": 9,
-  "summary": "quality lens over statement-api (21 product path(s), 15dd782..1b0a0dc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. VERDICT t-sa-c1: implemented \u2014 backend/src/sql/sqlBuilder.statement.test.ts:45 executor-path proof\nVERDICT t-sa-c2: implemented \u2014 backend/src/mis/mis-statement.service.ts:87 selected-period outline and derived tree\nVERDICT t-sa-c3: partial \u2014 backend/src/sql/sqlBuilder.ts:245 range aggregation lacks the required range-grain DB proof\nVERDICT t-sa-c4: implemented \u2014 backend/src/mis/mis-statement.service.ts:58 authorization, outcome, scope, and provenance handling\nVERDICT t-sa-c5: implemented \u2014 contract/src/api.ts:255 fixed-scale statement wire contract\nLEFTOVERS: none observed.\nThe implementation covers the requested route and behavior, but the DB-backed proof was not updated to validate the material range-grain change, leaving the financial truncation fix insufficiently protected.",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/financial-mis-statement.md",
-      "summary": "t-sa-c3: Each row carries Budget, Roll-over, Actual and % for the selected month AND the FY 26-27 YTD block, the service issuing the projection once per range and merging by leaf key; when the selected period IS the FY-YTD a SINGLE block is returned rather than the same figures twice. Roll-over is present but unpopulated, amounts are exact paise rounded only at the presentation boundary, and a non-numeric percentage label is passed through verbatim."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "backend/src/sql",
-      "summary": "Update the DB proof to exercise the new range grain (backend/src/sql/sqlBuilder.ts:245): The projection now groups solely by leaf, but the unchanged DB-backed statement proof still exercises only July and checks uniqueness at `(leaf_key, month)` grain."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "score": 10,
+  "summary": "quality lens over statement-api (22 product path(s), 15dd782..98f66e1, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sa-c1: implemented \u2014 backend/src/semantic/semanticLayer.ts:71 registers the governed domain, and backend/src/sql/sqlBuilder.statement.test.ts:47 exercises it through SelectionExecutor with validation, explain, execution, and a bounded LIMIT.\nVERDICT t-sa-c2: implemented \u2014 backend/src/mis/mis-statement.service.ts:90 reads the selected period's budget outline and derives the ordered tree, subtotals, and grand total.\nVERDICT t-sa-c3: implemented \u2014 backend/src/mis/mis-statement.service.ts:83 executes each distinct range once and preserves exact paise, null roll-over, percentage labels, and range deduplication.\nVERDICT t-sa-c4: implemented \u2014 backend/src/mis/mis-statement.service.ts:63 enforces plant scope, preserves unresolvable and zero-statement outcomes, and carries source and batch provenance including unmapped-GL.\nVERDICT t-sa-c5: implemented \u2014 contract/src/api.ts:257 defines fixed-scale money, measure blocks, recursive nodes, grand total placement, provenance, and absent roll-over semantics.\nLEFTOVERS: none detected; no P0-P2 actionable defects are demonstrated by the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/app.module.ts",
@@ -37,6 +25,7 @@
     "backend/src/sql/sqlBuilder.ts",
     "backend/src/warehouse/statement-outline.interface.ts",
     "backend/src/warehouse/statement-outline.repository.ts",
+    "backend/src/warehouse/statement-projection.db.test.ts",
     "contract/src/api.ts",
     "contract/src/measure.ts",
     "tools/quality-gate.test.mjs"
@@ -46,27 +35,27 @@
     {
       "contract_id": "t-sa-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/sql/sqlBuilder.statement.test.ts:45 executor-path proof"
+      "evidence": "backend/src/semantic/semanticLayer.ts:71 registers the governed domain, and backend/src/sql/sqlBuilder.statement.test.ts:47 exercises it through SelectionExecutor with validation, explain, execution, and a bounded LIMIT."
     },
     {
       "contract_id": "t-sa-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-statement.service.ts:87 selected-period outline and derived tree"
+      "evidence": "backend/src/mis/mis-statement.service.ts:90 reads the selected period's budget outline and derives the ordered tree, subtotals, and grand total."
     },
     {
       "contract_id": "t-sa-c3",
-      "verdict": "partial",
-      "evidence": "backend/src/sql/sqlBuilder.ts:245 range aggregation lacks the required range-grain DB proof"
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.service.ts:83 executes each distinct range once and preserves exact paise, null roll-over, percentage labels, and range deduplication."
     },
     {
       "contract_id": "t-sa-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-statement.service.ts:58 authorization, outcome, scope, and provenance handling"
+      "evidence": "backend/src/mis/mis-statement.service.ts:63 enforces plant scope, preserves unresolvable and zero-statement outcomes, and carries source and batch provenance including unmapped-GL."
     },
     {
       "contract_id": "t-sa-c5",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:255 fixed-scale statement wire contract"
+      "evidence": "contract/src/api.ts:257 defines fixed-scale money, measure blocks, recursive nodes, grand total placement, provenance, and absent roll-over semantics."
     },
     {
       "contract_id": "t-sm-c1",
@@ -85,10 +74,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "2b9c4063c5faeefe7576f161923555d71453b43e59b0dc15f67ac6961bf765dd",
-  "brief_sha256": "71ca19b2e8ee6e01e7d98d8567d86a778d2c6c2587c4e3b05d4a45f922173721",
-  "branch_diff_digest": "8973361b5f1530f9fc3279375fdf5b6f436bf163409fbb2ea6a66979dc5f64f7",
+  "review_run_id": "3fa4d6bf3ba5c30e932a32f15a34f63e132ebd4bc34f45fc5f356cf48db3ada5",
+  "brief_sha256": "ee18f16611032250fe108df30a593188491bec122f2e5d1d9418dd96e4279c8b",
+  "branch_diff_digest": "b267573a918dc0d2de17b158760c1df8f29b9418fa4981edfd5f1f46c5adc192",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T10:25:29+00:00",
-  "commit": "1b0a0dcde95a47f432d4105bd2c8dd977e7b11b0"
+  "recorded_at": "2026-09-11T10:38:32+00:00",
+  "commit": "98f66e1e95b35752f25da92335b42d4db2c96f08"
 }

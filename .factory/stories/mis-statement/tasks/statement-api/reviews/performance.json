@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "statement-api",
-  "score": 9,
-  "summary": "performance lens over statement-api (21 product path(s), 15dd782..1b0a0dc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The main range-grain aggregation and bounded-limit changes address the larger statement-query performance risk, but April selections still issue the same governed projection twice despite the once-per-range contract. No compatibility leftovers are visible in the supplied diff.",
+  "score": 10,
+  "summary": "performance lens over statement-api (22 product path(s), 15dd782..98f66e1, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 defect is demonstrated by the supplied diff. The statement projection is range-aggregated before the bounded LIMIT, each distinct range is executed once through SelectionExecutor, outline lookup is keyed by the selected budget period, tree aggregation is linear in the outline size, and no compatibility wrapper, alias, shim, or retained legacy branch appears in the change.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "[P2] Deduplicate identical selected and YTD ranges (backend/src/mis/mis-statement.service.ts:85): When the selected month is the FY start (`2026-04-01`), `blockDefinitions` produces two blocks with the same `from` and `to`, and this `map` independently runs both through the executor."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/app.module.ts",
@@ -31,16 +25,17 @@
     "backend/src/sql/sqlBuilder.ts",
     "backend/src/warehouse/statement-outline.interface.ts",
     "backend/src/warehouse/statement-outline.repository.ts",
+    "backend/src/warehouse/statement-projection.db.test.ts",
     "contract/src/api.ts",
     "contract/src/measure.ts",
     "tools/quality-gate.test.mjs"
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "2b9c4063c5faeefe7576f161923555d71453b43e59b0dc15f67ac6961bf765dd",
-  "brief_sha256": "71ca19b2e8ee6e01e7d98d8567d86a778d2c6c2587c4e3b05d4a45f922173721",
-  "branch_diff_digest": "8973361b5f1530f9fc3279375fdf5b6f436bf163409fbb2ea6a66979dc5f64f7",
+  "review_run_id": "3fa4d6bf3ba5c30e932a32f15a34f63e132ebd4bc34f45fc5f356cf48db3ada5",
+  "brief_sha256": "ee18f16611032250fe108df30a593188491bec122f2e5d1d9418dd96e4279c8b",
+  "branch_diff_digest": "b267573a918dc0d2de17b158760c1df8f29b9418fa4981edfd5f1f46c5adc192",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T10:25:29+00:00",
-  "commit": "1b0a0dcde95a47f432d4105bd2c8dd977e7b11b0"
+  "recorded_at": "2026-09-11T10:38:32+00:00",
+  "commit": "98f66e1e95b35752f25da92335b42d4db2c96f08"
 }
