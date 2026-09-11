@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft mis-selection-plan.md
+# Cold-read grill — gate: plan — plan draft mis-statement.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -430,15 +430,16 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: mis-selection delivery boundary: mis-statement (story 5) owns the finished hierarchical statement + Excel export, so this story must stop short of that or the two build conflicting report surfaces. But you want to put this in front of Srihari to get the unmapped-GL assignments back. How much should mis-selection visibly deliver?
-  A: Selector + resolved scope + bucket list (Rec.)
+- Q: The statement's row hierarchy comes from the budget workbook's own outline, which has UNEVEN depth: most sections are two levels (e.g. '4 Materials Primary Nursery' → '4.1 Shade Net', GL 50001601), but 'Admin Expenses' is three ('9' → '9.01 Vehicle Maintenance', GL 55010900 → 'Petrol and Diesel Charges', GL 55010901). Actuals attach at the GL leaf and parent values are derived by rolling up, never read (decision 0020). How deep should the statement render?
+  A: Mirror the workbook outline (Recommended)
+- Q: Which identity columns should each statement row carry, on screen and in the Excel export? The legacy workbook's Table-2 carries a serial number, the Budget Component name, a GL code, a Roll-over Budget column and a Payment Office column. The measures themselves are settled (Budget · Roll-over · Actual · %, for the selected month and FY 26-27 YTD).
+  A: S.No + Component + GL, Roll-over blank (Recommended)
 
-## The artifact under interrogation (plan draft mis-selection-plan.md)
+## The artifact under interrogation (plan draft mis-statement.md)
 
 ---
-story: mis-selection
-title: Selection + mapping master
-user_facing: true
+story: mis-statement
+title: MIS statement + Excel export
 decisions_reviewed:
   - 0001-poc-engagement-scope
   - 0002-phase1-financial-mis
@@ -458,220 +459,149 @@ decisions_reviewed:
   - 0016-governed-joins-poc-scope
   - 0017-mis-selection-composite-key-seam
   - 0018-mis-selection-unmapped-gl-bucket
+  - 0019-fresh-routes-follow-vendored-house-style
+  - 0020-mis-budget-leaf-grain
 ---
 
-# mis-selection — Selection + mapping master
+# MIS statement + Excel export
 
-## Objective
-Make the MIS a **parameterized generator**: a user picks Department → Function → Plant
-→ period, and a centralized **Mapping Master** — never the Excel sheet or file name —
-resolves which cost centres, GL codes and MIS format apply. Those resolved
-`(plant, cost_center, gl)` triples then **narrow the single governed query path** that
-`governed-joins` shipped, so the numbers keep their grants, scope, zero-fill, %-nil rule
-and provenance.
+## Problem
+`mis-selection` resolves a selection to its governed scope and shows the DUB nursery
+slice as a flat GL table. That is not the Financial MIS. Srihari's statement is a
+**hierarchical** document — budget component lines with derived subtotals and a grand
+total — and replacing his manual build means producing it exactly, from the uploaded
+SAP extract and the uploaded plan, and letting him take it away as Excel.
 
-This story fulfils decision **0014**'s explicit deferral ("a governed mapping master … are
-DEFERRED to the mis-selection and governed-joins stories") and settles the same coverage
-gap 0014 identified, via decision **0018**.
+Reading the system for this plan surfaced the structural crux, and it is not where the
+spec suggested it would be:
 
-## Acceptance criteria (from the spec)
-1. Selecting **Agriculture / Nursery / DUB** returns exactly the DUB nursery slice.
-2. Renaming the source file does not change the output.
-3. A selection with **no mapping** renders zeros + a "no mapping configured" notice (no crash).
+- **The statement's line structure is not persisted anywhere.** `mis_budget`
+  (`warehouse-schema.ts:87`) stores `formatId, period, lineId, glCode, costCenter,
+  budgetAmount, rolloverAmount` — no S.No, no parent link, no ordering. The `lineId`
+  is the workbook's **sheet row number** (`mis-budget.parser.ts`, D-0029), which is a
+  uniqueness token, not an outline. The outline the human asked us to mirror is
+  currently read and thrown away at ingest.
+- **A GL does not identify a statement line.** In July, 80 leaf rows carry only 60
+  distinct GLs, and **three GLs hold non-zero budget on more than one component**:
+  `50001605` Fertilizers (₹1,73,891.67 / ₹1,34,729.67 / ₹330.87 across Primary,
+  Secondary and Tertiary nursery), `50001606` Pesticides (₹3,826.67 / ₹40,275.75) and
+  `50001901` Nursery labour (₹81,022.89 / ₹3,86,774.80). Decision **0017** rolls Actual
+  up to `(gl_code, month)` with cost centre deliberately a *filter*, never an output
+  dimension — so the governed relation returns **one Actual per GL** and the statement
+  has no way to place it on the right component row.
 
-## What already exists (grounding, file:line)
-- **Cost-centre grain**: `warehouse-schema.ts:117-134` `actual_by_key_month` —
-  `(plant, cost_center, gl_code, month, actual_net)`, active-batch filter **baked into the
-  view** (consumers never write an `ingest_batch` predicate). Index
-  `idx_sap_transaction_month_plant_cost_center_gl_code` (`:77-82`) covers the triple+month.
-- **Pre-rolled grain**: `warehouse-schema.ts:136-150` `actual_by_gl_month` — `plant` is a
-  **constant literal**, `cost_center` is gone. Hence 0017: a selection cannot filter after
-  the roll-up.
-- **Governed builder**: `sqlBuilder.ts:124-166` `composedCtes` — `actual_src` reads
-  `actual_by_gl_month WHERE ${scopePredicate}`; `scopePredicate` built at `:60-66` from
-  `user.scope` on `domain.scopeColumn` (`plant`), injected **inside** the CTEs (`:65`).
-  `objectsTouched` at `:117-121`; `sqlValidator.ts:43-49` rejects any leaf not listed
-  (`unapproved object: X`).
-- **Governed gate**: `selectionExecutor.ts:109-117` — fail-closed on the `report` action +
-  domain + every selected measure/dimension. Grants already seeded to `admin`
-  (`migrate.ts:19-29`).
-- **`Selection` type**: `contract/src/measure.ts:146-159`. **A filter whose `dimensionId`
-  is not a declared dimension is silently dropped** (`sqlBuilder.ts:70`) — so triples
-  **cannot** ride in as ordinary `selection.filters`.
-- **Domain**: `semanticLayer.ts:16-20` — `sources: ["actual_by_gl_month",
-  "budget_by_gl_month"]`, `scopeColumn: "plant"`; dimensions are only `gl_code` and
-  `month` (`:65-68`) — there is **no `cost_center` dimension** (0017: a filter, never an
-  output dimension).
-- **Routing reality**: `app.module.ts:11-16` imports only Core/Health/Ingest;
-  `app.routes.test.ts:20-30` is a `deepEqual` **allowlist of 9 routes**.
-  `ReportsController`/`ChatController`/etc. exist as source but are **not routed**. So this
-  story ships the **first governed-query HTTP route**. Closest template:
-  `reports.controller.ts` + `reports.service.ts:69-92` `resolveAuthorizedSelection`.
-  Guards: `auth.guard.ts` `AuthGuard`, `RequireAction("…")` (`:77-90`), `@CurrentUser()`.
-- **Plant aliases**: `ingest/plant-mapping.ts:1-7` hard-codes `{"DUB-NUR": "DUB"}`, applied
-  **at ingest** (`sap-actuals.parser.ts:142`) writing canonical `plant` + raw `plant_src`.
-  The display alias `Agri – Nursery – DUB` has **no code representation**.
-- **Seed/config precedent**: frozen JSON + strict hand-written loader —
-  `__fixtures__/july-dub-reconciliation.json` + `reconciliation.repository.ts:62-77`
-  (note its `source` string naming the workbook), and `golden-financial.db.test.ts:117-160`
-  (exact-key-set + canonical-sort validation). **No JSON config exists outside
-  `__fixtures__`**; runtime config is env-only (`config.ts`).
-- **Frontend**: authenticated shell `app/(app)/layout.tsx:7-9`; new pages live at
-  `app/(app)/<route>/page.tsx`. `AppShell` nav is **hard-coded** (`app-shell.tsx:12-18`)
-  with "MIS Reports" a disabled `<span>` (`:110-115`) and a hard-coded page title (`:156`).
-  **Only one reusable component exists** (`ui/button.tsx`); no Select/Input/Table. Tokens
-  are CSS vars (`src/theme/*.css`, guarded by `tokens.test.ts`). `lib/api.ts` exposes
-  **only 5 auth methods** — no data endpoint yet.
-- **Seed evidence (read from the workbook)**: `SAP Entries Mapping.xlsx` `Sheet1` header is
-  `Plant | Cost Center | GL code | Revised GL name | Cost Center` — **two** Cost Center
-  columns, 94 rows where B ≠ E, and only column **E** (`Primary`/`secondary`/`Tertiary`)
-  matches what SAP books. **No Department, no Function, no format id, no MIS line/S.No.**
-  Every `Plant` is the literal `DUB`. `SAP Report` has 4,113 lines; the only DUB-family
-  plant is **`DUB-NUR`, 88 rows → 28 distinct triples**. `50001605` appears three times
-  under different cost centres, so **GL alone is not unique**. `Nursery MIS Format.xlsx`
-  `Plant list` uses the SAP alias `DUB-NUR`.
-- **Design**: prototype `3F Financial MIS.dc.html:79-122` — a four-`<select>` filter bar
-  (Department 168px / Function 150px / Plant 212px / Period 132px), Generate + Download
-  Excel; empty state `:126-140`; a provenance popover `:545` rendering resolved scope in
-  mono (`Plant = DUB · Cost centre = DUB-NUR · GL = … · Period = Jul 2026`) — the nearest
-  existing visual for the resolved-scope readout. Admin "Mapping master" table `:599-641`
-  (columns Plant · Cost centre · GL code · Budget component · Rollover · Updated) — its
-  **column set** informs the master's display contract; its **write affordances are
-  explicitly non-binding** for this story (spec `:34-35`, `:43-44`).
+SAP does carry the distinction (its cost centres are `Primary`, `secondary`,
+`Tertiary`, …) and the budget sections mirror it (`4 Materials Primary Nursery`,
+`5 Materials Secondary Nursery`, `6 Materials Tertiary Nursery`). What is missing is
+the **recorded correspondence** between them — precisely the *Budget-label → SAP
+cost-centre mapping master* that decision **0016 §2** deferred, whose revisit trigger
+is *"the client supplies the mapping, OR multi-cost-centre / multi-plant governed
+reporting is required."* **That trigger has now fired**, and this story is where it
+lands.
 
-## Design
-### The Mapping Master (authored, not derived)
-A **versioned, repo-owned** artifact is the single runtime authority for selection and
-validation. The workbooks are **seed evidence**, never runtime input (acceptance criterion
-2 falls out of this). Each row carries, explicitly:
+## Scope / Non-goals
+**In scope**
+- Persist the budget workbook's **outline** (S.No, section, component, ordering,
+  parent/child) with the batch, so the statement can mirror it.
+- Record the **budget-leaf ↔ SAP (cost centre, GL)** correspondence in the versioned
+  Mapping Master, so an Actual lands on the right line.
+- Group the governed roll-up by the **governed line**, so one query still serves the
+  statement — no second query path, no per-row query.
+- Render the statement: hierarchy at its natural depth, derived subtotals, grand
+  total, both zero states, the visible `unmapped-GL` line.
+- Measures per the spec: **Budget · Roll-over · Actual · %** for the **selected month**
+  and **FY 26-27 YTD**, Roll-over rendered but unpopulated.
+- **Excel export** of the on-screen statement — the first download route in the app.
 
-`department · function · plant_canonical (DUB) · plant_aliases [DUB-NUR, "Agri – Nursery – DUB"] · cost_center · gl_code · mis_format · mis_line · provisional`
+**Non-goals**
+- Table-1 (operational) and Table-3 (Payment Office) — out of scope by the spec, and
+  Table-3 is the block the budget parser now deliberately stops before.
+- The roll-over **calculation** (column rendered, left blank until Srihari's rule).
+- Actuals drill-down to transactions — that is the `drill-down` story, and the export's
+  transactions sheet goes with it.
+- Editing budgets or actuals; any write-back.
+- A live SAP connection: the statement reads the uploaded extract and names its batch.
 
-Department, Function, `mis_format`/`mis_line` and the alias relation are **authored** —
-Sheet1 has none of them. Column **E** is authoritative for `cost_center`. The master owns
-alias authority, which is why `plant-mapping.ts`'s hard-coded `DUB-NUR → DUB` is folded
-into it rather than left as a second source of truth.
+## Acceptance Criteria
+- **s-ms-c1** — For Agriculture / Nursery / DUB / 2026-07-01 the statement renders the
+  budget workbook's outline at its natural depth (two levels for most sections, three
+  under `9 Admin Expenses`), each row carrying **S.No, Budget Component and leaf GL**,
+  with Roll-over shown and unpopulated.
+- **s-ms-c2** — Every parent is a **derived** subtotal over its leaves and the grand
+  total foots; against the pinned July batch the statement reconciles to **exact**
+  values — Actual **₹1,15,12,712.07** and Budget **₹1,00,50,136.29** — and the three
+  multi-component GLs show their Actual split across Primary / Secondary / Tertiary
+  rather than summed onto one line.
+- **s-ms-c3** — Both zero states stay distinct (a resolved-but-empty selection renders
+  zero rows; a no-mapping selection renders zeros **plus** the notice), and the
+  `unmapped-GL` line is visible with its own Actual.
+- **s-ms-c4** — The statement downloads as **Excel** with the same structure and the
+  same values, opening cleanly with the hierarchy intact.
 
-### The unmapped-GL bucket (decision 0018)
-The nine unresolved triples get **explicit** master rows targeting the reserved
-`unmapped-GL` line, flagged provisional — never inferred, never dropped:
+## Technical Approach
+### Where the line structure comes from
+The spec already says *"Budget and Roll-over come from the plan, not SAP"*. The outline
+is part of that plan, so it is **persisted with the budget batch**, not frozen in the
+repo: when Srihari re-issues his workbook the statement follows it. `mis_budget` gains
+the outline columns (`s_no`, `section`, `component`, `sort_order`, `parent_key`) and the
+parser — which already walks the outline to decide what is a subtotal — records them
+instead of discarding them. Decision **0020** is untouched: **no parent amount is ever
+stored**; only the parent's *identity* is, so the statement can group leaves under it
+and derive the subtotal itself.
 
-| triple | rows |
-|---|---|
-| `DUB-NUR / Primary / 50001701–50001706` | 8 |
-| `DUB-NUR / Tertiary / 50001905` | 3 |
-| `DUB-NUR / Primary / 50001902` (Sheet1 says Tertiary) | 8 |
-| `DUB-NUR / Primary / 50001903` (Sheet1 says Tertiary) | 3 |
+### Where the Actual↔line correspondence comes from
+The Mapping Master (`backend/src/mapping/mis-mapping-master.ts`) is already the single
+runtime authority for `(cost_centre, gl_code) → mis_line` and plant aliases. It gains
+the **budget-leaf correspondence**: each entry names the budget leaf its triple belongs
+to. This is 0016 §2's deferred mapping, scoped to the one nursery selection. Following
+the pattern `mis-selection` established, the correspondence is **provisional with a
+reason** — the Primary/Secondary/Tertiary correspondence is legible from the two
+vocabularies, but it is *recorded*, never inferred at runtime, and Srihari's
+confirmation resolves it exactly as the `unmapped-GL` bucket is resolved.
 
-66 resolved + 22 bucketed = **88**. A completeness fixture asserts **every DUB raw triple
-resolves exactly once** and mapped + bucket totals equal the full DUB actuals total. The
-two conflict GLs go to the bucket **as a conflict**, not by silently choosing a column.
+### One governed path, still
+Decision **0017** stands: selection filters the Actual side by the master's resolved
+triples **before** the roll-up. What changes is the *grouping key* of that roll-up —
+from `gl_code` to the **governed line** the master defines. This respects 0016/0017 to
+the letter: the SAP **cost centre is still never an output dimension**; what the
+statement reads back is a master-defined line, which is the same governed vocabulary
+`mis_line` already uses. There is no second query path and no per-row query.
 
-### Narrowing the governed path (decision 0017)
-`composedCtes`' Actual side becomes selection-aware:
+### Arithmetic
+Aggregate in **exact paise** and round only for display and export, after aggregation —
+rounding per line makes subtotals fail to foot. `%` keeps the shipped governed measure
+semantics, including its distinct `over-budget` and `credit / negative actual` labels;
+the renderer must pass a non-numeric measure value through verbatim (the lesson
+`mis-selection` paid for).
 
-```sql
-actual_src AS (
-  SELECT gl_code, month, SUM(actual_net)::numeric(18,2) AS actual_net
-  FROM actual_by_key_month
-  WHERE <scopePredicate>            -- unchanged: plant IN (validated scope)
-    AND (plant, cost_center, gl_code) IN ( <resolved triples> )
-  GROUP BY gl_code, month
-)
-```
-It absorbs the `GROUP BY` that `actual_by_gl_month` used to perform, so the reduction to
-one row per `(gl_code, month)` still happens **before** the FULL OUTER JOIN — the
-no-fan-out invariant holds. `actual_by_key_month` **must** be added to `objectsTouched`
-(`sqlBuilder.ts:117-121`) or `sqlValidator.ts:43-49` blocks the query. Budget is **not**
-re-grained. Because triples cannot ride in `selection.filters` (silently dropped,
-`sqlBuilder.ts:70`), they travel as a **distinct resolved-scope carrier** on the build
-input. The pinned assertions at `sqlBuilder.composed.test.ts:73` move accordingly.
+### Export
+`exceljs@^4.4.0` is already a backend dependency for parsing and writes workbooks too,
+so no new dependency. The export is the **first download route** in the app, so it
+establishes the pattern: a governed route returning a streamed workbook with a
+`Content-Disposition` filename, built from the **same** statement payload the screen
+renders — not a second assembly of the numbers, which would be free to drift.
 
-### Surfaces
-The first governed-query route (module + controller wired into `app.module.ts` and the
-`app.routes.test.ts` allowlist), guarded by `AuthGuard` + `RequireAction("report")`, and an
-authenticated MIS Reports page rendering the selector, the resolved-scope readout, the two
-zero states, and the bucket list.
-
-**Two zero states, distinguished by resolution — never by row count:**
-- selection **unresolvable** → zeros + "no mapping configured" notice;
-- selection **resolves but has no transactions** → a configured zero statement, no notice.
-
-Only **loaded** Actual months are selectable (July 2026 today); FY26-27 YTD is derived.
-
-## Workflow
-```mermaid
-flowchart TD
-  U[User picks Department / Function / Plant / period] --> R[Master resolution]
-  M[(Mapping Master · versioned repo-owned<br/>authored: dept, function, aliases, format, line)] --> R
-  R -->|unresolvable| N[zeros + 'no mapping configured' notice]
-  R -->|resolved| T["scope = cost centres + GLs + format<br/>+ unmapped-GL bucket rows"]
-  T --> B["governed builder: actual_src filters triples<br/>on actual_by_key_month, GROUP BY gl_code, month"]
-  B --> J[FULL OUTER JOIN with budget_by_gl_month · unchanged]
-  J --> G[grants · scope · zero-fill · %-nil · provenance all still apply]
-  G --> P[resolved-scope readout + zero states + bucket list]
-```
-
-## Verify Plan
-- Hermetic: master loader accepts the frozen master and rejects malformed/incomplete ones;
-  resolution returns the right scope for Agriculture/Nursery/DUB and the unresolvable
-  outcome for an unmapped selection; the builder emits the triple-filtered `actual_src`
-  with `actual_by_key_month` in `objectsTouched` and still passes the validator; the route
-  allowlist test includes exactly the new route; frontend component + state tests.
-- **D-0008 host proof**: a gated warehouse test proves the completeness invariant (every
-  DUB raw triple resolves exactly once; mapped + bucket = the full DUB total) and that a
-  cost-centre-filtered selection yields one row per `(gl_code, month)` with **no fan-out**
-  and exact values, registered in `test:warehouse-proof` with a dead-port negative control.
-- Functional check (user_facing): the authenticated selector produces the DUB nursery
-  slice, the notice state, and the bucket list.
-
-## Surface impact
-| Surface | Change | Classification |
-|---|---|---|
-| `backend/src/mapping/` (new) | Mapping Master artifact + strict loader + resolution | new module |
-| `backend/src/ingest/plant-mapping.ts` | alias authority folded into the master | modified |
-| `backend/src/sql/sqlBuilder.ts` | selection-aware `actual_src`; `objectsTouched` | modified (governed builder) |
-| `contract/src/measure.ts` | resolved-scope carrier on the build input | contract change |
-| `backend/src/app.module.ts`, `app.routes.test.ts` | first governed-query route registered | modified (allowlist) |
-| `backend/src/<selection>/` (new) | controller + service (`reports.controller` template) | new route |
-| `frontend/app/(app)/<route>/page.tsx` (new) | MIS Reports page | new UI |
-| `frontend/src/components/ui/` | select/form primitives (none exist) | new UI primitives |
-| `frontend/src/components/shell/app-shell.tsx` | enable the MIS Reports nav item + title | modified |
-| `frontend/src/lib/api.ts` | first data endpoint method | modified |
-
-## Risks
-- Touching the just-shipped governed builder risks regressing `governed-joins`' proofs —
-  mitigated by keeping the reduction pre-join and re-running the full `test:warehouse-proof`.
-- The master is **authored**; a wrong Department/Function/line assignment is a silent
-  content error, not a type error — mitigated by the completeness fixture and by the bucket
-  making gaps visible rather than absorbing them.
-- The frontend has no form primitives, so the selector is genuinely new UI work.
-
-## Out of scope
-The finished hierarchical statement and **Excel export** (`mis-statement`); actuals
-drill-down (`drill-down`); in-app authoring of the master (spec `:43-44`); non-nursery
-budgets; plants beyond DUB; the balanced budget allocation (0014/0016 — still deferred,
-and unnecessary here because 0017 keeps Budget at `(gl_code, month)`).
+## Surface Impact
+- **Warehouse**: `mis_budget` gains outline columns + a migration; the budget rollup
+  view carries them through.
+- **Backend**: `mis-budget.parser.ts` records the outline; `mis-mapping-master.ts` gains
+  the budget-leaf correspondence; `sqlBuilder.ts` groups the roll-up by governed line;
+  a statement service + route under `backend/src/mis/`; an export route.
+- **Contract**: statement row/tree types and the export request in `contract/src/api.ts`.
+- **Frontend**: a statement view under `src/features/mis/`, reached from MIS Reports.
+- **Unchanged by design**: the resolution and selection routes (`mis-selection`), the
+  governed measures and their nil rules, the six gated warehouse proofs, the auth shell.
 
 ## Task Decomposition
-1. **mapping-master** (`user_facing: false`) — the versioned repo-owned Mapping Master
-   artifact + strict loader + the `unmapped-GL` bucket rows for the nine triples, with the
-   completeness fixture proving every DUB raw triple resolves exactly once (66 + 22 = 88,
-   no drop, no fan-out). Folds the hard-coded plant alias into master-owned alias authority.
-2. **selection-resolution** (`user_facing: false`) — resolve Department/Function/Plant/period
-   → resolved scope (cost centres, GLs, format, bucket rows) or the unresolvable outcome;
-   and narrow the governed path per 0017 (selection-aware `actual_src` on
-   `actual_by_key_month`, `objectsTouched`, the resolved-scope carrier, and the moved
-   assertions), with the gated D-0008 no-fan-out proof.
-3. **selection-endpoint** (`user_facing: false`) — the first governed-query HTTP route:
-   module + controller + service on the `reports.controller` template, `AuthGuard` +
-   `RequireAction("report")`, zod-validated, registered in `app.module.ts` and the
-   `app.routes.test.ts` allowlist; returns resolved scope + governed result + bucket.
-4. **selection-ui** (`user_facing: true`) — the authenticated MIS Reports page: the
-   four-control selector (loaded months only), Generate, the resolved-scope readout, both
-   zero states, and the unmapped-GL bucket list; new select/form primitives; enable the
-   AppShell nav item + page title; the first data method in `lib/api.ts`. Design specialists
-   and the functional check are mandatory for this task.
+Three bounded tasks, sequential — each builds on the last:
+1. **statement-model** (backend, `user_facing: false`) — persist the outline, record the
+   budget-leaf correspondence in the master, group the governed roll-up by governed
+   line, and return the hierarchical statement payload. Gated D-0008 proof that July
+   reconciles exactly and the three multi-component GLs split correctly.
+2. **statement-view** (frontend, `user_facing: true`) — render the hierarchy, derived
+   subtotals, grand total, both zero states and the `unmapped-GL` line.
+3. **statement-export** (fullstack, `user_facing: true`) — the Excel download, built
+   from the same payload the screen renders.
 
 
 ## What to return

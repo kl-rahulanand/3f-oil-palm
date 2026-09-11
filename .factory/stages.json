@@ -1,20 +1,25 @@
 {
-  "issue": "mis-selection",
+  "issue": "mis-statement",
   "stages": [
     {
-      "id": "mapping-master",
-      "title": "Versioned Mapping Master + unmapped-GL bucket",
-      "status": "done"
+      "id": "statement-model",
+      "title": "Budget outline snapshot, stable leaf key, and the statement's governed projection",
+      "status": "pending"
     },
     {
-      "id": "selection-resolution",
-      "title": "Master-driven resolution, governed narrowing, and the first governed-query routes",
-      "status": "done"
+      "id": "statement-api",
+      "title": "The governed statement route",
+      "status": "pending"
     },
     {
-      "id": "selection-ui",
-      "title": "Authenticated MIS Reports selection page",
-      "status": "done"
+      "id": "statement-view",
+      "title": "The Financial MIS statement on screen",
+      "status": "pending"
+    },
+    {
+      "id": "statement-export",
+      "title": "Excel export of the statement",
+      "status": "pending"
     }
   ]
 }

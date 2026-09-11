@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -83,6 +84,42 @@ export const sapTransaction = pgTable(
   ],
 );
 
+export const misBudgetOutline = pgTable(
+  "mis_budget_outline",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => ingestBatch.id),
+    nodeKey: text("node_key").notNull(),
+    parentKey: text("parent_key"),
+    depth: integer("depth").notNull(),
+    sNo: text("s_no"),
+    label: text("label").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    glCode: text("gl_code"),
+    leafKey: text("leaf_key"),
+    createdAtUtc: timestamp("created_at_utc", { withTimezone: true }).notNull().defaultNow(),
+    updatedAtUtc: timestamp("updated_at_utc", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check("mis_budget_outline_depth_check", sql`${table.depth} >= 0`),
+    check("mis_budget_outline_sort_order_check", sql`${table.sortOrder} >= 0`),
+    check(
+      "mis_budget_outline_leaf_check",
+      sql`(${table.glCode} IS NULL AND ${table.leafKey} IS NULL) OR (${table.glCode} IS NOT NULL AND ${table.leafKey} IS NOT NULL)`,
+    ),
+    unique("mis_budget_outline_batch_node_unique").on(table.batchId, table.nodeKey),
+    unique("mis_budget_outline_batch_leaf_unique").on(table.batchId, table.leafKey),
+    foreignKey({
+      name: "mis_budget_outline_parent_fk",
+      columns: [table.batchId, table.parentKey],
+      foreignColumns: [table.batchId, table.nodeKey],
+    }),
+    index("idx_mis_budget_outline_batch_id").on(table.batchId),
+  ],
+);
+
 export const misBudget = pgTable(
   "mis_budget",
   {
@@ -93,6 +130,7 @@ export const misBudget = pgTable(
     formatId: text("format_id").notNull(),
     period: date("period").notNull(),
     lineId: text("line_id").notNull(),
+    leafKey: text("leaf_key"),
     glCode: text("gl_code").notNull(),
     costCenter: text("cost_center").notNull(),
     budgetAmount: numeric("budget_amount", { precision: 18, scale: 2 }).notNull(),
@@ -102,14 +140,13 @@ export const misBudget = pgTable(
   },
   (table) => [
     check("mis_budget_period_month_check", sql`${table.period} = date_trunc('month', ${table.period})::date`),
-    unique("mis_budget_batch_grain_unique").on(
-      table.batchId,
-      table.formatId,
-      table.period,
-      table.lineId,
-      table.glCode,
-      table.costCenter,
-    ),
+    check("mis_budget_leaf_key_required", sql`${table.leafKey} IS NOT NULL`),
+    unique("mis_budget_batch_grain_unique").on(table.batchId, table.formatId, table.period, table.leafKey),
+    foreignKey({
+      name: "mis_budget_outline_leaf_fk",
+      columns: [table.batchId, table.leafKey],
+      foreignColumns: [misBudgetOutline.batchId, misBudgetOutline.leafKey],
+    }),
     index("idx_mis_budget_batch_id").on(table.batchId),
   ],
 );
@@ -166,4 +203,23 @@ export const budgetByGlMonth = pgView("budget_by_gl_month", {
   INNER JOIN ingest_batch AS bt ON bt.id = b.batch_id
   WHERE bt.source_kind = 'budget' AND bt.is_active
   GROUP BY b.gl_code, b.period
+`);
+
+export const budgetByLeafMonth = pgView("budget_by_leaf_month", {
+  leafKey: text("leaf_key").notNull(),
+  month: date("month").notNull(),
+  budgetNet: numeric("budget_net", { precision: 18, scale: 2 }).notNull(),
+  rolloverNet: numeric("rollover_net", { precision: 18, scale: 2 }).notNull(),
+}).as(sql`
+  SELECT
+    b.leaf_key,
+    b.period AS month,
+    SUM(b.budget_amount)::numeric(18, 2) AS budget_net,
+    SUM(b.rollover_amount)::numeric(18, 2) AS rollover_net
+  FROM mis_budget AS b
+  INNER JOIN ingest_batch AS bt ON bt.id = b.batch_id
+  INNER JOIN mis_budget_outline AS outline
+    ON outline.batch_id = b.batch_id AND outline.leaf_key = b.leaf_key
+  WHERE bt.source_kind = 'budget' AND bt.is_active
+  GROUP BY b.leaf_key, b.period
 `);

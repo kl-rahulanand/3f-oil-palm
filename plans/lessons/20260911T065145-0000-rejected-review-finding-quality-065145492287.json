@@ -1,0 +1,11 @@
+{
+  "topic": "rejected-review-finding-quality",
+  "lesson": "Not a defect (0023): Contradicts accepted decision 0023: the drift check REPORTS and the upload SUCCEEDS. Refusing the batch was put to the human as an explicit option and rejected, because a renamed line would block the client's upload entirely and only we could unblock it. Ingest is deliberately fail-open on drift and fail-closed on money. \u2014 raised as \"[P1] Reject mapping drift before persisting the renamed outline (backend/src/ingest/mis-budget.parser.ts:169): The parser calculates missing master leaf keys bu\"",
+  "source": "review reject statement-model quality at 2026-09-11T06:51:45+00:00",
+  "applies_to": [
+    "backend/src/ingest/**"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T06:51:45+00:00"
+}

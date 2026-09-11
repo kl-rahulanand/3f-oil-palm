@@ -1,0 +1,35 @@
+{
+  "commit": "d81a2730072d700161e3cddad3d8013697cb31db",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All four required leaves for statement-model execute and pass, each proven by the junit report naming the LEAF rather than by an exit code: a negative control with a nonexistent leaf name also exits 0 and reports tests=1 pass=1, but its testcase name is the FILE PATH (Node's file-level pass, D-0024's false-green), while each real run's testcase name is the required id verbatim. Re-run at the FINAL reviewed tree after three review rounds, the gated D-0008 host proof runs 18/18 with 0 failures and 0 skipped, and the dead-port control fails 7 gated leaves with ECONNREFUSED, so the green run is real database work. The new statement projection proof asserts EXACT values rather than non-emptiness: 81 leaf/month rows with distinct (leaf_key, month) keys - the no-fan-out assertion - Actual totalling 11512712.07 and Budget 10050136.29, and the three multi-component GLs split across their nursery stages (4.5|50001605, 5.3|50001605 and 6.1|50001605; 7.1|50001901 and 7.2|50001901) instead of summing onto one line. The six pre-existing gated proofs pass unchanged, which is decision 0022's promise that the (gl_code, month) relation was not disturbed.",
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "node tools/junit-run.mjs --file <path> --name <each required leaf> --report <report> --require ts-node/register -> tests 1 / pass 1 / fail 0, testcase name = the leaf",
+      "negative control: the same runner with --name this-leaf-does-not-exist-negative-control -> exit 0, tests 1, testcase name = the FILE PATH (D-0024)",
+      "WAREHOUSE_PG_* set, npm --prefix backend run test:warehouse-proof -> tests 18 / pass 18 / fail 0 / skipped 0",
+      "dead-port control: the same command with WAREHOUSE_PG_PORT=5599 -> tests 18 / pass 11 / fail 7, 14 ECONNREFUSED",
+      "re-run after every fix round; final tree: verify passed, test:warehouse-proof 18/18"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/ingest/mis-budget.parser.test.ts (the outline snapshot with its stable leaf key, and the mapping-drift report)",
+      "backend/src/mapping/mapping-master.test.ts (a SAP triple resolving to exactly one tagged target)",
+      "backend/src/sql/sqlBuilder.statement.test.ts (the leaf/month full outer join, filtering before aggregating)",
+      "backend/src/warehouse/statement-projection.db.test.ts (gated D-0008: exact July totals, no fan-out, the three-way GL split, the retained unmapped-GL line)",
+      "backend/src/warehouse/warehouse-schema.test.ts (the pinned last-migration number moves to 0003)"
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "tools/junit-run.mjs still false-passes a nonexistent leaf name (D-0024). Proven here by the negative control and worked around by checking the report's testcase name; the gate itself remains unfixed.",
+      "A round-2 performance finding asked the provenance joins to add a plant predicate; ingest_batch has no plant column, the attempt broke the proof with SQLSTATE 42703, and it was reverted and ledgered as a false finding."
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-11T08:04:50+00:00",
+    "commit": "d81a2730072d700161e3cddad3d8013697cb31db"
+  },
+  "updated_at": "2026-09-11T08:04:50+00:00"
+}

@@ -12,6 +12,17 @@ export interface GovernedSelectionScope {
   triples: Array<{ plant: string; costCenter: string; glCode: string }>;
   glCodes: string[];
   masterGlCodes: string[];
+  leafTargets?: Array<{
+    plant: string;
+    costCenter: string;
+    glCode: string;
+    target: { kind: "leaf"; leafKey: string } | { kind: "bucket" };
+  }>;
+}
+
+export interface StatementProjectionPeriod {
+  from: string;
+  to: string;
 }
 
 /**
@@ -31,6 +42,11 @@ export class SqlBuilder {
     includeProvenance = true,
     resolvedScope?: GovernedSelectionScope,
   ): BuiltQuery {
+    if (domain.goldObject === "statement_relation") {
+      const { from, to } = selection.timeWindow ?? {};
+      if (!from || !to) throw new Error("Statement projection requires a period");
+      return this.buildStatementProjection(user, { from, to }, resolvedScope);
+    }
     const measures = selection.measureIds.map((id) => {
       const m = domain.measures.find((x) => x.id === id);
       if (!m) throw new Error(`unknown measure ${id}`);
@@ -137,6 +153,96 @@ export class SqlBuilder {
             "financial_relation",
           ]
         : [goldObject],
+    };
+  }
+
+  private buildStatementProjection(
+    user: AuthUser,
+    period: StatementProjectionPeriod,
+    resolvedScope?: GovernedSelectionScope,
+  ): BuiltQuery {
+    const scopeValues = user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
+    if (!scopeValues.length) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
+    if (!resolvedScope?.leafTargets?.length) throw new Error("Statement projection requires resolved leaf targets");
+
+    const periodEnd = this.lit(this.nextIsoDate(period.to));
+    const periodStart = this.lit(period.from);
+    const targetRows = resolvedScope.leafTargets.map(({ plant, costCenter, glCode, target }) =>
+      [plant, costCenter, glCode, target.kind === "leaf" ? target.leafKey : "unmapped-GL"]
+        .map((value) => this.lit(value))
+        .join(", "),
+    );
+    const sql = `WITH leaf_targets(plant, cost_center, gl_code, leaf_key) AS (
+  VALUES (${targetRows.join("),\n    (")})
+), actual_by_leaf_month AS (
+  SELECT target.leaf_key, actual.month,
+    SUM(actual.actual_net)::numeric(18,2) AS actual_net
+  FROM actual_by_key_month AS actual
+  INNER JOIN leaf_targets AS target
+    ON target.plant = actual.plant
+      AND target.cost_center = actual.cost_center
+      AND target.gl_code = actual.gl_code
+  WHERE actual.plant IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
+    AND actual.month >= ${periodStart} AND actual.month < ${periodEnd}
+  GROUP BY target.leaf_key, actual.month
+), budget_src AS (
+  SELECT leaf_key, month, budget_net, rollover_net
+  FROM budget_by_leaf_month
+  WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
+    AND month >= ${periodStart} AND month < ${periodEnd}
+), outline_order AS (
+  SELECT outline.leaf_key, batch.period AS month, outline.sort_order
+  FROM mis_budget_outline AS outline
+  INNER JOIN ingest_batch AS batch ON batch.id = outline.batch_id
+  WHERE batch.source_kind = 'budget' AND batch.is_active AND outline.leaf_key IS NOT NULL
+    AND batch.period >= ${periodStart} AND batch.period < ${periodEnd}
+), statement_relation AS (
+  SELECT COALESCE(actual_src.leaf_key, budget_src.leaf_key) AS leaf_key,
+    COALESCE(actual_src.month, budget_src.month) AS month,
+    COALESCE(actual_src.actual_net, 0)::numeric(18,2) AS actual_net,
+    COALESCE(budget_src.budget_net, 0)::numeric(18,2) AS budget_net,
+    COALESCE(budget_src.rollover_net, 0)::numeric(18,2) AS rollover_net,
+    CASE
+      WHEN actual_src.leaf_key IS NULL THEN 'budget-only'
+      WHEN budget_src.leaf_key IS NULL THEN 'actual-only'
+      ELSE 'matched'
+    END AS source_presence,
+    actual_batch.id AS actual_batch_id,
+    budget_batch.id AS budget_batch_id
+  FROM actual_by_leaf_month AS actual_src
+  FULL OUTER JOIN budget_src
+    ON actual_src.leaf_key = budget_src.leaf_key AND actual_src.month = budget_src.month
+  LEFT JOIN ingest_batch AS actual_batch
+    ON actual_src.leaf_key IS NOT NULL
+      AND actual_batch.source_kind = 'actuals'
+      AND actual_batch.period = COALESCE(actual_src.month, budget_src.month)
+      AND actual_batch.is_active
+  LEFT JOIN ingest_batch AS budget_batch
+    ON budget_src.leaf_key IS NOT NULL
+      AND budget_batch.source_kind = 'budget'
+      AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
+      AND budget_batch.is_active
+)
+SELECT relation.leaf_key, relation.month, relation.actual_net, relation.budget_net, relation.rollover_net,
+  relation.source_presence, relation.actual_batch_id, relation.budget_batch_id
+FROM statement_relation AS relation
+LEFT JOIN outline_order AS outline
+  ON outline.leaf_key = relation.leaf_key AND outline.month = relation.month
+ORDER BY relation.month, outline.sort_order NULLS LAST, relation.leaf_key`;
+
+    return {
+      sql,
+      objectsTouched: [
+        "actual_by_key_month",
+        "budget_by_leaf_month",
+        "mis_budget_outline",
+        "ingest_batch",
+        "leaf_targets",
+        "actual_by_leaf_month",
+        "budget_src",
+        "outline_order",
+        "statement_relation",
+      ],
     };
   }
 

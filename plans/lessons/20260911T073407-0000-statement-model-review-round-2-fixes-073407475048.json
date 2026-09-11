@@ -1,0 +1,13 @@
+{
+  "topic": "statement-model review round 2 fixes",
+  "lesson": "THREE fixes from the second review round. (1) BLOCKING, and it defeats an explicit contract requirement: entryKeys in mapping-master.ts:114 is recreated inside the per-selection loop, so the loader only rejects a duplicate (cost_centre, gl_code) WITHIN one selection. The contract requires rejecting two entries that claim one triple for different targets ANYWHERE in the master - that is what makes a SAP triple resolve to exactly one statement leaf. Hoist the key set so uniqueness is enforced across the whole master, and add a test that two selections claiming the same triple for different targets is rejected. (2) BLOCKING fan-out risk: the active-batch provenance joins in sqlBuilder.ts:216 match on source_kind and period only, while active batches are also distinguished by PLANT - so a second plant's active batch for the same period multiplies the statement rows. Join on plant as well. This is the same defect class as the one-sided batch attribution fixed during golden-provenance: a provenance join that is not gated on every key of the batch's identity fans out silently. (3) P2: the expanded-row limit in mis-budget.parser.ts:196 counts outlineCount ONCE, but IngestService persists the snapshot per period, so a subtotal-heavy workbook still understates its true row cost - count the snapshot per period in the cap.",
+  "source": "autoreview round 2 for statement-model: quality 6 (1 blocking), performance 7 (1 blocking), security 10 approve",
+  "applies_to": [
+    "backend/src/mapping/**",
+    "backend/src/sql/**",
+    "backend/src/ingest/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T07:34:07+00:00"
+}

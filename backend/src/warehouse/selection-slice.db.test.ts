@@ -32,11 +32,12 @@ test(
         actualRow("SELECTED", "Primary", "100.00"),
         actualRow("OTHER-COST-CENTRE", "Admin", "25.00"),
       ]);
-      await repository.replaceBudgetBatch(metadata("budget"), [
+      const budgetRows = [
         budgetRow("SELECTED", "50001701", "200.00"),
         budgetRow("OUTSIDE", "50001201", "300.00"),
         budgetRow("UNKNOWN", "99999999", "50.00"),
-      ]);
+      ];
+      await repository.replaceBudgetBatch(metadata("budget"), budgetRows, budgetOutline(budgetRows));
 
       const masterGlCodes = [
         ...new Set(
@@ -145,11 +146,23 @@ function budgetRow(lineId: string, glCode: string, budgetAmount: string) {
     formatId: "nursery",
     period: PERIOD,
     lineId,
+    leafKey: lineId,
     glCode,
     costCenter: lineId,
     budgetAmount,
     rolloverAmount: "0.00",
   };
+}
+
+function budgetOutline(rows: ReturnType<typeof budgetRow>[]) {
+  return rows.map(({ lineId, leafKey, costCenter: label, glCode }, sortOrder) => ({
+    nodeKey: `leaf:${leafKey}`,
+    depth: 0,
+    label,
+    sortOrder,
+    glCode,
+    leafKey,
+  }));
 }
 
 function assertLocalWarehouseHost(host: string | undefined): void {

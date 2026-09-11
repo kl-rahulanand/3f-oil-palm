@@ -83,7 +83,12 @@ test(
       const fixture = loadGoldenExpectation(FIXTURE_PATH);
       const repository = new IngestionRepository(createWarehouseDb(pool));
       const actualBatchId = await repository.replaceActualsBatch(metadata("actuals"), actualRows());
-      const firstBudgetBatchId = await repository.replaceBudgetBatch(metadata("budget-before"), budgetRows("200.00"));
+      const firstBudgetRows = budgetRows("200.00");
+      const firstBudgetBatchId = await repository.replaceBudgetBatch(
+        metadata("budget-before"),
+        firstBudgetRows,
+        budgetOutline(firstBudgetRows),
+      );
       const before = await executeGoldenQuery(pool);
 
       assertGoldenRow(before.adapterRows, fixture.matched, actualBatchId, firstBudgetBatchId);
@@ -98,7 +103,12 @@ test(
       assertRawProvenance(before.rawRows, fixture, actualBatchId, firstBudgetBatchId);
 
       const actualsBeforeReload = await activeActuals(pool);
-      const secondBudgetBatchId = await repository.replaceBudgetBatch(metadata("budget-after"), budgetRows("250.00"));
+      const secondBudgetRows = budgetRows("250.00");
+      const secondBudgetBatchId = await repository.replaceBudgetBatch(
+        metadata("budget-after"),
+        secondBudgetRows,
+        budgetOutline(secondBudgetRows),
+      );
       const after = await executeGoldenQuery(pool);
 
       assertGoldenRow(after.adapterRows, fixture.reloadActiveSwap.after, actualBatchId, secondBudgetBatchId);
@@ -361,11 +371,23 @@ function budgetRow(lineId: string, costCenter: string, budgetAmount: string, glC
     formatId: "nursery",
     period: PERIOD,
     lineId,
+    leafKey: lineId,
     glCode,
     costCenter,
     budgetAmount,
     rolloverAmount: "0.00",
   };
+}
+
+function budgetOutline(rows: MisBudgetInput[]) {
+  return rows.map(({ lineId, leafKey, costCenter: label, glCode }, sortOrder) => ({
+    nodeKey: `leaf:${leafKey}`,
+    depth: 0,
+    label,
+    sortOrder,
+    glCode,
+    leafKey,
+  }));
 }
 
 function assertLocalWarehouseHost(host: string | undefined): void {

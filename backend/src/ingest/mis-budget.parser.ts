@@ -1,6 +1,7 @@
 import { Workbook, type Cell, type CellValue, type Row, type Worksheet } from "exceljs";
 import { z } from "zod";
-import type { MisBudgetInput } from "../warehouse/ingestion.repository";
+import { MAPPING_MASTER, budgetLeafKeysForFormat } from "../mapping/mapping-master";
+import type { MisBudgetInput, MisBudgetOutlineInput } from "../warehouse/ingestion.repository";
 import { MAX_ACTUALS_ROWS } from "./ingest.schemas";
 import { assertWorkbookArchiveWithinLimits, WorkbookArchiveLimitError, WorkbookRowLimitError } from "./workbook-guard";
 
@@ -18,6 +19,7 @@ export interface ParsedMisBudgetPeriod {
 export interface ParsedMisBudget {
   formatId: string;
   plant: string;
+  outline: MisBudgetOutlineInput[];
   periods: ParsedMisBudgetPeriod[];
   totalRowCount: number;
   validationResult: Record<string, unknown>;
@@ -33,6 +35,11 @@ interface PeriodColumns {
   period: string;
   budget: number;
   rollover: number;
+}
+
+interface OutlineParent {
+  nodeKey: string;
+  sNo?: string;
 }
 
 export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTUALS_ROWS): Promise<ParsedMisBudget> {
@@ -52,6 +59,9 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
   const periods = findPeriodColumns(table, issues);
   if (!periods.length) issues.push(issue(["file", "headers"], "No monthly budget blocks were found"));
 
+  const outline: MisBudgetOutlineInput[] = [];
+  const outlineKeys = new Set<string>();
+  const outlineStack: OutlineParent[] = [];
   const rowsByPeriod = new Map(periods.map(({ period }) => [period, [] as MisBudgetInput[]]));
   const identities = new Set<string>();
   let glRowCount = 0;
@@ -59,22 +69,71 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
   for (let rowNumber = table.rowNumber + 2; rowNumber <= table.worksheet.rowCount; rowNumber += 1) {
     const row = table.worksheet.getRow(rowNumber);
     if (startsNewTable(row)) break;
+    const labelCell = row.getCell(requiredColumn(table, "Budget Components"));
+    const label = cellText(labelCell);
     const glCode = cellText(row.getCell(requiredColumn(table, "GL Codes")));
-    if (!glCode) continue;
-    if (periods.some(({ budget }) => isSubtotal(row.getCell(budget)))) continue;
+    const subtotal = periods.some(({ budget }) => isSubtotal(row.getCell(budget)));
+    if (!label) {
+      if (!glCode) continue;
+      glRowCount += 1;
+      assertRowLimit(outline.length, glRowCount, periods.length, rowLimit);
+      issues.push(issue(["rows", row.number, "costCenter"], "Budget Components is required for a GL row"));
+      for (const columns of periods) {
+        parseMoney(row.getCell(columns.budget), row.number, "budgetAmount", issues);
+        const rolloverCell = row.getCell(columns.rollover);
+        if (isFormula(rolloverCell.value) && typeof rolloverCell.value.result !== "number") {
+          uncomputedRolloverCount += 1;
+        } else {
+          parseMoney(rolloverCell, row.number, "rolloverAmount", issues);
+        }
+      }
+      continue;
+    }
+    if (!glCode && !subtotal) continue;
+
+    const depth = labelCell.alignment?.indent ?? 0;
+    const parent = depth ? outlineStack[depth - 1] : undefined;
+    if (depth && !parent) {
+      issues.push(issue(["rows", row.number, "outline"], "Outline node has no parent"));
+      continue;
+    }
+    const sNo = cellText(row.getCell(requiredColumn(table, "S. No."))) || undefined;
+    const identitySNo = sNo ?? parent?.sNo;
+    if (!subtotal && !identitySNo) {
+      issues.push(issue(["rows", row.number, "sNo"], "Leaf requires an S. No. or a numbered parent"));
+      continue;
+    }
+    const leafKey = subtotal ? undefined : stableLeafKey(identitySNo!, glCode, label);
+    const nodeKey = leafKey ? `leaf:${leafKey}` : `node:${identitySNo ?? "root"}|${slug(label)}`;
+    if (outlineKeys.has(nodeKey)) {
+      issues.push(issue(["rows", row.number, "outline"], "Outline node identity is duplicated"));
+      continue;
+    }
+    outlineKeys.add(nodeKey);
+    outline.push({
+      nodeKey,
+      parentKey: parent?.nodeKey,
+      depth,
+      sNo,
+      label,
+      sortOrder: outline.length,
+      glCode: leafKey ? glCode : undefined,
+      leafKey,
+    });
+    assertRowLimit(outline.length, glRowCount, periods.length, rowLimit);
+    outlineStack[depth] = { nodeKey, sNo: identitySNo };
+    outlineStack.length = depth + 1;
+
+    if (subtotal) continue;
     glRowCount += 1;
-    if (glRowCount * periods.length > rowLimit) throw new WorkbookRowLimitError(rowLimit);
+    assertRowLimit(outline.length, glRowCount, periods.length, rowLimit);
     if (!/^\d{6,}$/.test(glCode)) {
       issues.push(issue(["rows", row.number, "glCode"], "GL Codes must be a numeric GL code"));
       continue;
     }
 
-    const costCenter = cellText(row.getCell(requiredColumn(table, "Budget Components")));
+    const costCenter = label;
     const lineId = String(row.number);
-    if (!costCenter) {
-      issues.push(issue(["rows", row.number, "costCenter"], "Budget Components is required for a GL row"));
-    }
-
     for (const columns of periods) {
       const budgetAmount = parseMoney(row.getCell(columns.budget), row.number, "budgetAmount", issues);
       const rolloverCell = row.getCell(columns.rollover);
@@ -82,9 +141,9 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
         isFormula(rolloverCell.value) && typeof rolloverCell.value.result !== "number"
           ? ((uncomputedRolloverCount += 1), 0n)
           : parseMoney(rolloverCell, row.number, "rolloverAmount", issues);
-      if (!costCenter || budgetAmount === undefined || rolloverAmount === undefined) continue;
+      if (budgetAmount === undefined || rolloverAmount === undefined) continue;
 
-      const identity = [MIS_BUDGET_FORMAT_ID, columns.period, lineId, glCode, costCenter].join("\u0000");
+      const identity = [MIS_BUDGET_FORMAT_ID, columns.period, leafKey].join("\u0000");
       if (identities.has(identity)) {
         issues.push(issue(["rows", row.number, "grain"], "Budget row grain is duplicated"));
         continue;
@@ -94,6 +153,7 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
         formatId: MIS_BUDGET_FORMAT_ID,
         period: columns.period,
         lineId,
+        leafKey,
         glCode,
         costCenter,
         budgetAmount: formatPaise(budgetAmount),
@@ -107,9 +167,14 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
 
   const parsedPeriods = periods.map(({ period }) => ({ period, rows: rowsByPeriod.get(period)! }));
   const totalRowCount = parsedPeriods.reduce((total, current) => total + current.rows.length, 0);
+  const outlineLeafKeys = new Set(outline.flatMap(({ leafKey }) => (leafKey ? [leafKey] : [])));
+  const mappingDriftLeafKeys = budgetLeafKeysForFormat(MIS_BUDGET_FORMAT_ID, MAPPING_MASTER).filter(
+    (leafKey) => !outlineLeafKeys.has(leafKey),
+  );
   return {
     formatId: MIS_BUDGET_FORMAT_ID,
     plant: MIS_BUDGET_PLANT,
+    outline,
     periods: parsedPeriods,
     totalRowCount,
     validationResult: {
@@ -121,8 +186,27 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
       rowCount: totalRowCount,
       headerRow: table.rowNumber,
       uncomputedRolloverCount,
+      mappingDriftLeafKeys,
+      mappingDriftCount: mappingDriftLeafKeys.length,
     },
   };
+}
+
+function assertRowLimit(outlineCount: number, glRowCount: number, periodCount: number, rowLimit: number): void {
+  if ((outlineCount + glRowCount) * periodCount > rowLimit) throw new WorkbookRowLimitError(rowLimit);
+}
+
+function stableLeafKey(sNo: string, glCode: string, label: string): string {
+  return `${sNo}|${glCode}|${slug(label)}`;
+}
+
+function slug(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replaceAll(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-|-$/g, "");
 }
 
 function findTable(worksheets: Worksheet[]): LocatedTable | undefined {

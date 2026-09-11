@@ -1,0 +1,39 @@
+{
+  "id": "statement-model",
+  "title": "Budget outline snapshot, stable leaf key, and the statement's governed projection",
+  "status": "done",
+  "started_at": "2026-09-11T05:53:00+00:00",
+  "base_sha": "3d57c3c7f3d71b8873c5af547c54626ea944d5a4",
+  "dirty_at_start": {},
+  "task_sha256": "d48e345709b890bbe0226c61454c59b26bb7f1b8676aaec972bd940f6f70cc8a",
+  "local_review_stamp": {
+    "stage_id": "statement-model",
+    "task_sha256": "d48e345709b890bbe0226c61454c59b26bb7f1b8676aaec972bd940f6f70cc8a",
+    "brief_sha256": "6546de57afdd7cbc09983811f70ad45ee9e5fa742d4214a5abbf9284753ac4c9",
+    "base_sha": "3d57c3c7f3d71b8873c5af547c54626ea944d5a4",
+    "product_tree_digest": "6cfa28764f494e259271f0d68bbb6031bab43e15653c00f5dfec30d7a393a987",
+    "recorded_at": "2026-09-11T08:04:38+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-11T08:05:30+00:00",
+  "measured": {
+    "strays": [
+      "backend/src/warehouse/composed-relation.db.test.ts",
+      "backend/src/warehouse/gl-month-rollups.db.test.ts",
+      "backend/src/warehouse/golden-financial.db.test.ts",
+      "backend/src/warehouse/selection-slice.db.test.ts"
+    ],
+    "files": 24,
+    "lines": 1305,
+    "budget": {
+      "files": 20,
+      "lines": 2600
+    },
+    "test_id_misses": []
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "statement-model",
+  "score": 10,
+  "summary": "performance lens over statement-model (24 product path(s), 3d57c3c..d81a273, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The change satisfies the reviewed performance contracts: parser output is bounded after period expansion, bulk writes remain chunked and transactional, the leaf/month projection filters by period and governed targets before its leaf roll-up, database constraints prevent join fan-out, and the warehouse proof asserts exact row counts, per-leaf amounts, totals, ordering, repeated-GL separation, and the unmapped bucket. No compatibility leftovers or actionable P0\u2013P2 performance defects are evident in the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse/0003_statement_leaf_projection.sql",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/ingest/ingest.service.test.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/ingest/mis-budget.parser.test.ts",
+    "backend/src/ingest/mis-budget.parser.ts",
+    "backend/src/mapping/mapping-master.test.ts",
+    "backend/src/mapping/mapping-master.ts",
+    "backend/src/mapping/mis-mapping-master.ts",
+    "backend/src/mapping/selection-resolver.interface.ts",
+    "backend/src/mapping/selection-resolver.service.test.ts",
+    "backend/src/mapping/selection-resolver.service.ts",
+    "backend/src/sql/sqlBuilder.statement.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/warehouse/composed-relation.db.test.ts",
+    "backend/src/warehouse/gl-month-rollups.db.test.ts",
+    "backend/src/warehouse/golden-financial.db.test.ts",
+    "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/selection-slice.db.test.ts",
+    "backend/src/warehouse/statement-projection.db.test.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "rejected_findings": [
+    {
+      "finding": {
+        "category": "bug",
+        "area": "backend/src/ingest",
+        "summary": "[P1] Reject mapping drift before activating the budget batch (backend/src/ingest/mis-budget.parser.ts:170): The parser only records missing master leaf keys in `validationResult`; `IngestService` then persists the rows and activates the batch unconditionally."
+      },
+      "reason": "Contradicts accepted decision 0023: the drift check REPORTS and the upload SUCCEEDS. Refusing the batch was put to the human as an explicit option and rejected. Ingest is deliberately fail-open on drift and fail-closed on money (an uncomputed Budget cell still refuses, per decision 0020).",
+      "cite": "0023",
+      "rejected_at": "2026-09-11T06:51:51+00:00",
+      "rejected_by": "orchestrator",
+      "task_id": "statement-model"
+    }
+  ],
+  "aspect": "performance",
+  "review_run_id": "916ebf02558087b541d160b70f1584f7808a1bc29877144a9434987c4597ee75",
+  "brief_sha256": "cd3b04e7a5700fc6f4125057e33824bd3f44876a5a5665e6d080b7f96f807523",
+  "branch_diff_digest": "fa45edb7bd087ec45e891217dec54c14fe4de40e5f7cb4052326b5f6188d6c51",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T08:04:38+00:00",
+  "commit": "d81a2730072d700161e3cddad3d8013697cb31db"
+}

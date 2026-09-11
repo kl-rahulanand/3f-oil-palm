@@ -70,6 +70,7 @@ export class IngestService {
             reconciliationResult: {},
           },
           current.rows,
+          parsed.outline,
         );
         results.push({ period: current.period, batchId, rowCount: current.rows.length });
       }

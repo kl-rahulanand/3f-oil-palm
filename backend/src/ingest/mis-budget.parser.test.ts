@@ -43,6 +43,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
             formatId: "nursery-mis-financial-v1",
             period: "2026-04-01",
             lineId: "6",
+            leafKey: "1.1|50001201|imported-sprouts",
             glCode: "50001201",
             costCenter: "Imported Sprouts",
             budgetAmount: "10.11",
@@ -52,6 +53,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
             formatId: "nursery-mis-financial-v1",
             period: "2026-04-01",
             lineId: "7",
+            leafKey: "1.2|50001202|land-levelling",
             glCode: "50001202",
             costCenter: "Land Levelling",
             budgetAmount: "-1.00",
@@ -66,6 +68,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
             formatId: "nursery-mis-financial-v1",
             period: "2026-05-01",
             lineId: "6",
+            leafKey: "1.1|50001201|imported-sprouts",
             glCode: "50001201",
             costCenter: "Imported Sprouts",
             budgetAmount: "1234.50",
@@ -75,6 +78,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
             formatId: "nursery-mis-financial-v1",
             period: "2026-05-01",
             lineId: "7",
+            leafKey: "1.2|50001202|land-levelling",
             glCode: "50001202",
             costCenter: "Land Levelling",
             budgetAmount: "1.01",
@@ -428,6 +432,141 @@ test("a non-numeric GL code inside the MIS budget table is rejected", async () =
   );
 });
 
+test("the budget parser records the workbook outline as an ordered snapshot carrying no amounts and gives each leaf a stable key that survives a reordered workbook", async () => {
+  const first = await parseMisBudgetWorkbook(await outlineWorkbook(["materials", "admin"]));
+  const reordered = await parseMisBudgetWorkbook(await outlineWorkbook(["admin", "materials"]));
+
+  assert.deepEqual(
+    first.outline.map(({ nodeKey, parentKey, depth, sNo, label, sortOrder, glCode, leafKey }) => ({
+      nodeKey,
+      parentKey,
+      depth,
+      sNo,
+      label,
+      sortOrder,
+      glCode,
+      leafKey,
+    })),
+    [
+      {
+        nodeKey: "node:4|materials-primary-nursery",
+        parentKey: undefined,
+        depth: 0,
+        sNo: "4",
+        label: "Materials Primary Nursery",
+        sortOrder: 0,
+        glCode: undefined,
+        leafKey: undefined,
+      },
+      {
+        nodeKey: "leaf:4.3|50001603|protrays",
+        parentKey: "node:4|materials-primary-nursery",
+        depth: 1,
+        sNo: "4.3",
+        label: "Protrays",
+        sortOrder: 1,
+        glCode: "50001603",
+        leafKey: "4.3|50001603|protrays",
+      },
+      {
+        nodeKey: "node:9|admin-expenses",
+        parentKey: undefined,
+        depth: 0,
+        sNo: "9",
+        label: "Admin Expenses",
+        sortOrder: 2,
+        glCode: undefined,
+        leafKey: undefined,
+      },
+      {
+        nodeKey: "node:9.01|vehicle-maintenance",
+        parentKey: "node:9|admin-expenses",
+        depth: 1,
+        sNo: "9.01",
+        label: "Vehicle Maintenance",
+        sortOrder: 3,
+        glCode: undefined,
+        leafKey: undefined,
+      },
+      {
+        nodeKey: "leaf:9.01|55010901|petrol-and-diesel-charges",
+        parentKey: "node:9.01|vehicle-maintenance",
+        depth: 2,
+        sNo: undefined,
+        label: "Petrol and Diesel Charges",
+        sortOrder: 4,
+        glCode: "55010901",
+        leafKey: "9.01|55010901|petrol-and-diesel-charges",
+      },
+    ],
+  );
+  assert.ok(first.outline.every((node) => !Object.keys(node).some((key) => /amount|budget|rollover/i.test(key))));
+  assert.deepEqual(
+    reordered.outline.flatMap(({ leafKey }) => (leafKey ? [leafKey] : [])).sort(),
+    first.outline.flatMap(({ leafKey }) => (leafKey ? [leafKey] : [])).sort(),
+  );
+});
+
+test("budget ingest reports mapping drift when the candidate outline no longer carries a leaf key the master declares instead of silently splitting the line", async () => {
+  const original = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "1.1",
+        component: "Sprout Cost",
+        glCode: "50001201",
+        aprilBudget: 1,
+        aprilRollover: 0,
+        mayBudget: 1,
+        mayRollover: 0,
+      });
+    }),
+  );
+  const renamed = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "1.1",
+        component: "Renamed Sprout Cost",
+        glCode: "50001201",
+        aprilBudget: 1,
+        aprilRollover: 0,
+        mayBudget: 1,
+        mayRollover: 0,
+      });
+    }),
+  );
+
+  assert.ok(!(original.validationResult.mappingDriftLeafKeys as string[]).includes("1.1|50001201|sprout-cost"));
+  assert.ok((renamed.validationResult.mappingDriftLeafKeys as string[]).includes("1.1|50001201|sprout-cost"));
+  assert.equal(
+    renamed.periods[0].rows[0].leafKey,
+    "1.1|50001201|renamed-sprout-cost",
+    "the new identity is reported rather than joined to the old target",
+  );
+});
+
+test("the budget parser counts each per-period formula subtotal outline snapshot toward the workbook row limit", async () => {
+  await assert.rejects(
+    parseMisBudgetWorkbook(
+      await workbookBuffer((sheet) => {
+        addBudgetTable(sheet);
+        addGlRow(sheet, 6, {
+          lineId: "1",
+          component: "Formula subtotal",
+          glCode: "50000000",
+          aprilBudget: { formula: "SUM(K7:K8)", result: 1 },
+          aprilRollover: 0,
+          mayBudget: { formula: "SUM(O7:O8)", result: 1 },
+          mayRollover: 0,
+        });
+      }),
+      1,
+    ),
+    (error: unknown) => error instanceof WorkbookRowLimitError && error.limit === 1,
+  );
+});
+
 async function rejectsWithPaths(buffer: Promise<Buffer>, expectedPaths: string[]): Promise<void> {
   await assert.rejects(parseMisBudgetWorkbook(await buffer), (error: unknown) => {
     assert.ok(error instanceof z.ZodError);
@@ -486,6 +625,7 @@ function addGlRow(
 ): void {
   sheet.getCell(row, 1).value = values.lineId;
   sheet.getCell(row, 2).value = values.component;
+  sheet.getCell(row, 2).alignment = { indent: values.lineId ? 0 : 1 };
   sheet.getCell(row, 6).value = values.glCode;
   sheet.getCell(row, 7).value = 99_999;
   sheet.getCell(row, 11).value = values.aprilBudget;
@@ -497,6 +637,68 @@ function addGlRow(
   sheet.getCell(row, 17).value = 77_777;
   sheet.getCell(row, 18).value = "derived";
   sheet.getCell(row, 19).value = 66_666;
+}
+
+async function outlineWorkbook(order: Array<"materials" | "admin">): Promise<Buffer> {
+  return workbookBuffer((sheet) => {
+    addBudgetTable(sheet);
+    let row = 6;
+    for (const block of order) {
+      if (block === "materials") {
+        addGlRow(sheet, row, {
+          lineId: "4",
+          component: "Materials Primary Nursery",
+          glCode: "50001600",
+          aprilBudget: { formula: `SUM(K${row + 1})`, result: 1 },
+          aprilRollover: 0,
+          mayBudget: { formula: `SUM(O${row + 1})`, result: 1 },
+          mayRollover: 0,
+        });
+        addGlRow(sheet, row + 1, {
+          lineId: "4.3",
+          component: "Protrays",
+          glCode: "50001603",
+          aprilBudget: 1,
+          aprilRollover: 0,
+          mayBudget: 1,
+          mayRollover: 0,
+        });
+        sheet.getCell(row + 1, 2).alignment = { indent: 1 };
+        row += 2;
+      } else {
+        addGlRow(sheet, row, {
+          lineId: "9",
+          component: "Admin Expenses",
+          glCode: "55000000",
+          aprilBudget: { formula: `SUM(K${row + 1})`, result: 1 },
+          aprilRollover: 0,
+          mayBudget: { formula: `SUM(O${row + 1})`, result: 1 },
+          mayRollover: 0,
+        });
+        addGlRow(sheet, row + 1, {
+          lineId: "9.01",
+          component: "Vehicle Maintenance",
+          glCode: "55010900",
+          aprilBudget: { formula: `SUM(K${row + 2})`, result: 1 },
+          aprilRollover: 0,
+          mayBudget: { formula: `SUM(O${row + 2})`, result: 1 },
+          mayRollover: 0,
+        });
+        sheet.getCell(row + 1, 2).alignment = { indent: 1 };
+        addGlRow(sheet, row + 2, {
+          lineId: "",
+          component: "Petrol and Diesel Charges",
+          glCode: "55010901",
+          aprilBudget: 1,
+          aprilRollover: 0,
+          mayBudget: 1,
+          mayRollover: 0,
+        });
+        sheet.getCell(row + 2, 2).alignment = { indent: 2 };
+        row += 3;
+      }
+    }
+  });
 }
 
 function addPaymentOfficeTable(sheet: Worksheet, row: number): void {
