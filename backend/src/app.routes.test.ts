@@ -30,6 +30,7 @@ test("only the sanctioned allow-list is registered and unowned capability routes
       "POST /api/ingest/budget",
       "POST /api/mis/run",
       "POST /api/mis/statement",
+      "POST /api/mis/statement/drill",
       "POST /api/mis/statement/export",
     ]);
   } finally {

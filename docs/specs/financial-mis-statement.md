@@ -36,8 +36,10 @@ Finance / operations staff and management at 3F (replacing Srihari's manual buil
   leave it **unpopulated** until Srihari confirms the roll-over rule (see Open).
 - **Excel export:** a **clean, correctly-structured** export of the on-screen
   statement — **not** a pixel replica of the legacy 95-column workbook. **PoC =
-  the statement sheet only;** a bundled transactions/line-items sheet is added
-  later with the drill-down capability.
+  the statement sheet only;** a bundled transactions/line-items sheet is **deferred to a
+  named later capability**. It was originally expected to arrive with `actuals-drill-down`;
+  that story's requirements grill (2026-09-11) kept the drill **UI-only**, since it already
+  carries a new raw-row read path, an RBAC exception and an audit requirement.
 - **Table scope:** **Table-2 (Financial MIS) only.** Table-3 (Payment-Office
   rollup) and Table-1 (operational/physical units) are later phases.
 - **Nil & format:** Budget = 0 & Actual = 0 → "NA"/blank; Budget = 0 & Actual > 0

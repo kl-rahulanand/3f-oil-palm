@@ -1,0 +1,34 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The spec promises a '2-level drill' (group \u2192 sub-lines \u2192 transactions), but the statement we shipped mirrors the workbook's outline at ARBITRARY depth \u2014 Admin Expenses is three levels deep. So clicking an Actual at the top of Admin has two levels below it, not one. What should clicking an aggregate Actual do?",
+      "options": [
+        "Any aggregate opens its leaf sub-lines (Recommended)",
+        "Strictly one level down each click",
+        "Every aggregate goes straight to transactions"
+      ],
+      "chosen": "Any aggregate opens its leaf sub-lines (Recommended)"
+    },
+    {
+      "question": "The statement's acceptance criterion is that line items foot EXACTLY to the clicked Actual. But if someone re-uploads the July actuals while a statement is on screen, the drill would read the newly active batch and no longer foot. What should the drill read?",
+      "options": [
+        "Pin to the statement's batch (Recommended)",
+        "Always read the currently active batch",
+        "Pin to the batch, and block the drill if it was replaced"
+      ],
+      "chosen": "Pin to the statement's batch (Recommended)"
+    },
+    {
+      "question": "The statement spec says a bundled transactions sheet arrives 'with the drill-down capability', but the drill-down spec itself describes no export at all. Should this story include exporting transactions to Excel?",
+      "options": [
+        "No \u2014 keep this story UI-only (Recommended)",
+        "Yes \u2014 include a transactions sheet in the export",
+        "Yes, but only the currently drilled line items"
+      ],
+      "chosen": "No \u2014 keep this story UI-only (Recommended)"
+    }
+  ],
+  "at": "2026-09-11T17:34:47.820949+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

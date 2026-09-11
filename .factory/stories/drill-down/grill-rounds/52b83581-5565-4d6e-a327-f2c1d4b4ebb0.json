@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Fifteen acceptance criteria to split. The plan proposed three tasks, but the backend one has grown since: predicate derivation, the batch-binding rule in four states across **two** pinned sources, an outline by-batch lookup, a typed audit event including refusals, a two-query repository, a route with five response shapes, and a multi-period fixture. Frontend is two tasks either way (aggregate state needs no network; leaf state owns a new endpoint, pagination and failure states), and WORKFLOW.md forbids a task spanning backend and frontend. How many tasks?",
+      "options": [
+        "Four \u2014 split the backend at the SQL seam (Recommended)",
+        "Three \u2014 as the plan proposed",
+        "Five \u2014 also split the audit out"
+      ],
+      "chosen": "Three \u2014 as the plan proposed"
+    }
+  ],
+  "at": "2026-09-11T18:40:09.479812+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

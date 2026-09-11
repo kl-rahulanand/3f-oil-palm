@@ -25,7 +25,6 @@ backend/src/chat/timeWindowParse.ts
 backend/src/common/openapi.ts
 backend/src/conversations/conversations.controller.ts
 backend/src/conversations/conversations.service.ts
-backend/src/core/audit.service.ts
 backend/src/core/core.module.ts
 backend/src/core/dimension-values.service.test.ts
 backend/src/core/rbac.service.ts

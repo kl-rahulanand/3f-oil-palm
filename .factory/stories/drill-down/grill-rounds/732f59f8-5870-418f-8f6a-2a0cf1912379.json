@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "You asked for refused drill attempts to be audited. The cold read found that can't work as drawn: `AuthGuard`, the global `CsrfGuard` and `RequireAction(\"report\")` all reject **before** the controller runs, so a caller with no `report` grant probing the raw-row endpoint never reaches any code that could write the record. Reaching those refusals means adding something to the route's error path.",
+      "options": [
+        "Drill-scoped exception filter (Recommended)",
+        "Service-level refusals only",
+        "Shared auth interceptor"
+      ],
+      "chosen": "Drill-scoped exception filter (Recommended)"
+    }
+  ],
+  "at": "2026-09-11T18:54:21.130623+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

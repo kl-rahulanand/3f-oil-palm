@@ -37,6 +37,8 @@ const hermeticTests = [
   "backend/src/measures/authored-measure.registry.test.ts",
   "backend/src/measures/measures.guard.test.ts",
   "backend/src/mis/mis-selection.controller.test.ts",
+  "backend/src/mis/mis-drill.controller.test.ts",
+  "backend/src/mis/mis-drill.service.test.ts",
   "backend/src/mis/mis-statement-export.test.ts",
   "backend/src/mis/mis-statement.controller.test.ts",
   "backend/src/mis/mis-statement.service.test.ts",
@@ -53,6 +55,8 @@ const hermeticTests = [
   "backend/src/swagger-production.test.ts",
   "backend/src/swagger.test.ts",
   "backend/src/warehouse/composed-relation.db.test.ts",
+  "backend/src/warehouse/drill-transactions.db.test.ts",
+  "backend/src/warehouse/drill-transactions.repository.test.ts",
   "backend/src/warehouse/gl-month-rollups.db.test.ts",
   "backend/src/warehouse/golden-financial.db.test.ts",
   "backend/src/warehouse/postgres.adapter.oid.test.ts",
@@ -111,7 +115,7 @@ const expectedWorkspaceScripts = {
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts",
+      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts",
   },
   contract: {
     build: "tsc -p tsconfig.json",
@@ -173,7 +177,6 @@ a91b8489592d28d7e418290e34799dcfb58238c54bb1050fba339280d11ed646 backend/src/cha
 c401ca278a38b619644004834a832197cd3e21ea4394dff874611ba000adb90d backend/src/common/openapi.ts
 5cdcc416d806108b06f887f81fded9bce2288cfeb36d825546a401d619f6ed8b backend/src/conversations/conversations.controller.ts
 ea49b24dd229a78110685297c646190e971c1526ac096c7003df75c675c20998 backend/src/conversations/conversations.service.ts
-9b2bd594219c886c6e6601ac2d3b607110691115f8ef6ebf4a65f63de303a0b6 backend/src/core/audit.service.ts
 2718e8ae46e7d45b0fb8f70a3c779bf6ba5bc8aa1eed33a7d76805027441cb6c backend/src/core/core.module.ts
 9db182303af310614919aa97c2ea0228dc4dbca406af52863fc22c650909c612 backend/src/core/dimension-values.service.test.ts
 b218baa747af4070dc3bd9ef6b7188f6f1c79e8e1f92c94330087cbbecc8fd76 backend/src/core/rbac.service.ts

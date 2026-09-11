@@ -1,13 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { ResponseClass, Selection } from "@3f/contract";
+import type { MisDrillRequest, ProvenanceBatch, ResponseClass, Selection } from "@3f/contract";
 import { DRIZZLE_DB } from "../config";
 import type { AppDb } from "../db/pool";
 import { auditEvents } from "../db/schema";
 import type { LlmUsage } from "../llm/llm.interface";
 
-type DbExecutor =
-  | AppDb
-  | Parameters<Parameters<AppDb["transaction"]>[0]>[0];
+type DbExecutor = AppDb | Parameters<Parameters<AppDb["transaction"]>[0]>[0];
 
 export type AdminAuditAction =
   | "user.create"
@@ -66,6 +64,68 @@ export class AuditService {
     return rows[0].id;
   }
 
+  async writeDrillEvent(e: {
+    actorId: string;
+    sessionId: string;
+    nodeKey: string;
+    leafKey: string;
+    triples: Array<{ plant: string; costCenter: string; glCode: string }>;
+    monthRange: { from: string; to: string };
+    pinnedActuals: ProvenanceBatch[];
+    pinnedBudgets: ProvenanceBatch[];
+    mappingMasterVersion: number;
+    generatedSql: string;
+    objectsTouched: string[];
+  }): Promise<number> {
+    return this.writeDrillAudit(
+      "mis.drill.request",
+      e.actorId,
+      e.sessionId,
+      {
+        actorId: e.actorId,
+        nodeKey: e.nodeKey,
+        leafKey: e.leafKey,
+        triples: e.triples,
+        monthRange: e.monthRange,
+        pinnedActuals: e.pinnedActuals,
+        pinnedBudgets: e.pinnedBudgets,
+        mappingMasterVersion: e.mappingMasterVersion,
+      },
+      e.generatedSql,
+      e.objectsTouched,
+    );
+  }
+
+  async writeDrillRefusalEvent(e: { actorId: string; sessionId: string; submitted: unknown }): Promise<number> {
+    return this.writeDrillAudit("mis.drill.refusal", e.actorId, e.sessionId, {
+      actorId: e.actorId,
+      submitted: e.submitted as Partial<MisDrillRequest>,
+    });
+  }
+
+  private async writeDrillAudit(
+    eventType: "mis.drill.request" | "mis.drill.refusal",
+    userId: string,
+    sessionId: string,
+    selection: Record<string, unknown>,
+    generatedSql?: string,
+    objectsTouched?: string[],
+  ): Promise<number> {
+    const rows = await this.db
+      .insert(auditEvents)
+      .values({
+        eventType,
+        userId,
+        sessionId,
+        question: "MIS statement transaction drill",
+        selection,
+        generatedSql: generatedSql ?? null,
+        objectsTouched: objectsTouched ?? null,
+      })
+      .returning({ id: auditEvents.id });
+    return rows[0].id;
+  }
+
   /** Write the result/error event AFTER execution. Best-effort (never blocks the answer). */
   async writeResultEvent(e: {
     userId: string;
@@ -104,12 +164,15 @@ export class AuditService {
   }
 
   /** Write an attributable admin mutation using the caller's transaction when provided. */
-  async writeAdminEvent(e: {
-    actorId: string;
-    action: AdminAuditAction;
-    target: AdminAuditTarget;
-    detail: Record<string, unknown>;
-  }, executor?: DbExecutor): Promise<void> {
+  async writeAdminEvent(
+    e: {
+      actorId: string;
+      action: AdminAuditAction;
+      target: AdminAuditTarget;
+      detail: Record<string, unknown>;
+    },
+    executor?: DbExecutor,
+  ): Promise<void> {
     const db = executor ?? this.db;
     await db.insert(auditEvents).values({
       eventType: "admin.mutation",

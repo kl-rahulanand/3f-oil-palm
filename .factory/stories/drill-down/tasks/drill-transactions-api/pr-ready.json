@@ -1,0 +1,7 @@
+{
+  "task_id": "drill-transactions-api",
+  "branch": "feat/drill-down-drill-transactions-api",
+  "base_main_sha": "01958d061c01fadc9f28c7e09696217c8a5907c2",
+  "commit": "a14920dc05caac9180c7f3b16885516cd057002e",
+  "sealed_at": "2026-09-11T20:09:15+00:00"
+}

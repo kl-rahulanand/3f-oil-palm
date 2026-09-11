@@ -18,7 +18,11 @@ import type { ISelectionResolverService, MasterResolvedSelection } from "../mapp
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
 import type { IStatementOutlineRepository, StatementOutlineNode } from "../warehouse/statement-outline.interface";
-import type { IMisStatementService } from "./mis-statement.interface";
+import type {
+  IMisStatementDrillSupport,
+  IMisStatementService,
+  MisStatementBlockDefinition,
+} from "./mis-statement.interface";
 
 const FY_START = "2026-04-01";
 const MEASURE_IDS = [
@@ -48,7 +52,7 @@ interface MutableNode extends StatementOutlineNode {
 }
 
 @Injectable()
-export class MisStatementService implements IMisStatementService {
+export class MisStatementService implements IMisStatementService, IMisStatementDrillSupport {
   constructor(
     @Inject(SelectionResolverService) private readonly resolver: ISelectionResolverService,
     private readonly semantic: SemanticLayer,
@@ -57,8 +61,7 @@ export class MisStatementService implements IMisStatementService {
   ) {}
 
   async run(user: AuthUser, request: MisSelectionRunRequest): Promise<MisStatementRunResponse> {
-    const { domain, selection } = this.authorizedSelection(user);
-    this.executor.authorize(user, domain, selection);
+    const { domain, selection } = this.authorize(user);
     const canonicalPlant = this.resolver.canonicalPlant(request.plant);
     if (canonicalPlant && !plantScope(user).includes(canonicalPlant)) {
       throw new SelectionExecutionBlockedError("MIS statement plant scope is not authorized");
@@ -82,9 +85,7 @@ export class MisStatementService implements IMisStatementService {
     }
 
     const blocks = await Promise.all(
-      blockDefinitions(resolution).map((definition) =>
-        this.executeBlock(user, domain, selection, resolution, definition),
-      ),
+      this.blocks(resolution).map((definition) => this.executeBlock(user, domain, selection, resolution, definition)),
     );
     const outline = await this.outlines.findByBudgetPeriod(resolution.period.to);
     const { tree, grandTotal } = buildTree(outline, blocks);
@@ -105,7 +106,7 @@ export class MisStatementService implements IMisStatementService {
     };
   }
 
-  private authorizedSelection(user: AuthUser): { domain: DomainSpec; selection: Selection } {
+  authorize(user: AuthUser): { domain: DomainSpec; selection: Selection } {
     const selection: Selection = {
       domain: "mis-statement",
       measureIds: [...MEASURE_IDS],
@@ -114,7 +115,12 @@ export class MisStatementService implements IMisStatementService {
     };
     const domain = this.semantic.domain(selection.domain);
     if (!domain) throw new Error("MIS statement domain is not configured");
+    this.executor.authorize(user, domain, selection);
     return { domain, selection };
+  }
+
+  blocks(resolution: MasterResolvedSelection): MisStatementBlockDefinition[] {
+    return blockDefinitions(resolution);
   }
 
   private async executeBlock(

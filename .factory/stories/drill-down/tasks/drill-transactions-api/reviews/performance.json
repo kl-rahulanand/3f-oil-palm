@@ -1,0 +1,52 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "drill-transactions-api",
+  "score": 9,
+  "summary": "performance lens over drill-transactions-api (22 product path(s), 5a9ff14..a14920d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The functional predicate and pinning flow shown in the diff is largely consistent with the stated contracts, but the new hot path has two concrete production performance defects: its timeout does not stop database work, and every drill loads an entire pinned outline to resolve one node.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/warehouse",
+      "summary": "[P2] Cancel warehouse statements when the request timeout expires (backend/src/warehouse/drill-transactions.repository.ts:86): `withTimeout` only races the warehouse promise against a timer; it does not cancel either SQL statement."
+    },
+    {
+      "category": "bug",
+      "area": "backend/src/warehouse",
+      "summary": "[P2] Query the requested outline node instead of loading the full snapshot (backend/src/warehouse/statement-outline.repository.ts:14): The new pinned-batch lookup delegates to the generic outline reader, which selects, orders, transfers, and materializes up to 25,000 outline rows."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/app.routes.test.ts",
+    "backend/src/core/audit.service.ts",
+    "backend/src/mis/mis-drill.audit.filter.ts",
+    "backend/src/mis/mis-drill.controller.test.ts",
+    "backend/src/mis/mis-drill.controller.ts",
+    "backend/src/mis/mis-drill.dto.ts",
+    "backend/src/mis/mis-drill.interface.ts",
+    "backend/src/mis/mis-drill.service.test.ts",
+    "backend/src/mis/mis-drill.service.ts",
+    "backend/src/mis/mis-statement.interface.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/mis/mis.module.ts",
+    "backend/src/warehouse/drill-transactions.db.test.ts",
+    "backend/src/warehouse/drill-transactions.interface.ts",
+    "backend/src/warehouse/drill-transactions.repository.test.ts",
+    "backend/src/warehouse/drill-transactions.repository.ts",
+    "backend/src/warehouse/statement-outline.interface.ts",
+    "backend/src/warehouse/statement-outline.repository.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "fa86f1cce415e9f6eec00407c5a90ce9600f5f17fe0d4080b500bb2cbff3f388",
+  "brief_sha256": "1bd4a6e0bbe607599837de04d1460eba8c6e61bc028e1d24676015617bf51c51",
+  "branch_diff_digest": "cfa583b37ae34f3521b0d78a03a118b2ede791cfffa0d9a962e6933fac787381",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T20:09:06+00:00",
+  "commit": "a14920dc05caac9180c7f3b16885516cd057002e"
+}

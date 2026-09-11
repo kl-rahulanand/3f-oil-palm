@@ -1,4 +1,4 @@
-# Cold-read grill — gate: requirements — requirements for mis-statement (docs/specs/financial-mis-statement.md)
+# Cold-read grill — gate: requirements — requirements for drill-down (docs/specs/actuals-drill-down.md)
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -375,6 +375,7 @@ downstream implementation inherits whatever you let through.
 
 
 
+
 ## Already answered on this story — verify, do not re-ask
 
 These questions were put to the human and answered. Two obligations:
@@ -430,77 +431,120 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
+- Q: The spec promises a '2-level drill' (group → sub-lines → transactions), but the statement we shipped mirrors the workbook's outline at ARBITRARY depth — Admin Expenses is three levels deep. So clicking an Actual at the top of Admin has two levels below it, not one. What should clicking an aggregate Actual do?
+  A: Any aggregate opens its leaf sub-lines (Recommended)
+- Q: The statement's acceptance criterion is that line items foot EXACTLY to the clicked Actual. But if someone re-uploads the July actuals while a statement is on screen, the drill would read the newly active batch and no longer foot. What should the drill read?
+  A: Pin to the statement's batch (Recommended)
+- Q: The statement spec says a bundled transactions sheet arrives 'with the drill-down capability', but the drill-down spec itself describes no export at all. Should this story include exporting transactions to Excel?
+  A: No — keep this story UI-only (Recommended)
+- Q: The drill pins to batch ids the browser sends. The grill found a real hole: `provenance.activeBatchIds` is statement-wide (both sources, all blocks), so a client that omits one month's actuals batch from an FY-YTD drill narrows the read and produces a footer that silently disagrees with the number clicked. Authorization is still safe — omitting only ever reads less — but footing is not. How should the server bind the pinned set?
+  A: Require a complete month-for-month set (Recommended)
+- Q: Column conflict the grill caught: the spec's Behaviour section lists line items as 'Month, Debit, Credit, Value, reference, memo, posting date', but the approved prototype's drill table has six columns and no posting date. Posting date is also part of the settled deterministic tie-break, so it exists in the data either way.
+  A: Show it — 7th column (Recommended)
+- Q: The plan depends on two decisions I minted while planning; both are `proposed` and need your confirmation before the plan can honestly claim to reconcile with the active corpus. 0024 — the aggregate drill is a client-side projection of the statement payload, so only leaf→transactions crosses the network. 0025 — the transaction drill reads sap_transaction directly under a pinned batch_id predicate, beside the governed executor but reusing its authorization/validator/explain/timeout, with a pre-query fail-closed audit.
+  A: Accept both (Recommended)
+- Q: Closing the plan grill. Eight findings: five the repo answered (reserved `unmapped-GL` key; Grand Total flattens `response.tree` roots; audit boundary is 'before any sap_transaction read'; route/page/error contract pinned to house style; FY-YTD proof needs a constructed multi-period fixture because the client extract is July-only), three you settled (complete month-for-month pin, Posting date as a 7th column, both decisions accepted). The plan is amended and the two decisions are accepted. Any remaining gap before this hands off to decomposition?
+  A: No gaps — hand off (Recommended)
 
-## The artifact under interrogation (requirements for mis-statement (docs/specs/financial-mis-statement.md))
+## The artifact under interrogation (requirements for drill-down (docs/specs/actuals-drill-down.md))
 
 ---
-slug: financial-mis-statement
-title: Financial MIS statement
+slug: actuals-drill-down
+title: Actuals drill-down
 status: confirmed
-saved: 2026-09-01T09:52:09+00:00
+saved: 2026-09-01T10:10:31+00:00
 ---
 
-# Financial MIS statement
+# Actuals drill-down
 
 ## Why
-The Financial MIS is 3F's Phase-1 ask. Today Srihari hand-compiles it in Excel:
-slow, not live, and hard to verify. This capability generates the same statement
-live from SAP, exact to the format, so any number is current and traceable.
+The headline pain is "I can't verify how a number was built." Clicking an Actual
+to see the exact transactions behind it is the feature that answers that — and
+it's what Excel can't do.
 
 ## Users
-Finance / operations staff and management at 3F (replacing Srihari's manual build).
+Finance / operations staff verifying a number.
 
 ## Behaviour
-- Given a selection (Department, Function, Plant, period), produce the Financial
-  MIS in the confirmed format: hierarchical rows (budget component → sub-lines)
-  with, per period, **Budget · Roll-over Budget · Actual · %** (Actual ÷ Budget).
-- Group-header rows show subtotals; a grand total foots the statement.
-- Combinations with no transactions still appear, valued **zero** (never skipped).
-- The statement downloads to **Excel** matching the on-screen layout.
-- Read-only.
+- Only **Actual** amounts are interactive; **Budget and %** are not clickable.
+- **2-level drill:** clicking a **group-total** Actual opens its **sub-lines**;
+  clicking a **sub-line** Actual opens the **transaction line items**.
+- Line items show **Month, Debit, Credit, Value, reference, memo, posting date**,
+  sorted **Value largest→lowest** then **Month latest→oldest**, footing exactly to
+  the clicked Actual.
+- Budgets never drill.
 
 ## Confirmed scope (grilled 2026-09-01)
-- **Periods (PoC):** render **current month (July 2026) + FY 26-27 YTD** only. The
-  FY-YTD column is shown, labelled **"FY 26-27 (YTD to Jul)"**, and grows as more
-  months load. The full period set (historical FYs + all 12 months) is modelled
-  underneath so more data drops in without redesign — but not drawn empty now.
-- **Columns:** show **Budget · Actual · %** now. Keep the **Roll-over** column but
-  leave it **unpopulated** until Srihari confirms the roll-over rule (see Open).
-- **Excel export:** a **clean, correctly-structured** export of the on-screen
-  statement — **not** a pixel replica of the legacy 95-column workbook. **PoC =
-  the statement sheet only;** a bundled transactions/line-items sheet is added
-  later with the drill-down capability.
-- **Table scope:** **Table-2 (Financial MIS) only.** Table-3 (Payment-Office
-  rollup) and Table-1 (operational/physical units) are later phases.
-- **Nil & format:** Budget = 0 & Actual = 0 → "NA"/blank; Budget = 0 & Actual > 0
-  → show the actual with an over-budget flag (no %); numbers in **Indian grouping,
-  ₹, rounded to the rupee**.
+- **Levels:** 2-level (group → sub-lines → transactions) — richer than Srihari's
+  written single-level spec; **to confirm with Srihari** (async).
+- **Raw rows:** the drill-down **exposes individual transaction lines within the
+  user's RBAC scope, audited** — an explicit exception to Pulse's aggregate-only /
+  k-anon suppression (the feature's whole purpose).
+- **Columns:** Month, Debit, Credit, Value, reference, memo, posting date.
+
+## Settled by the requirements grill (2026-09-11)
+- **Depth — any aggregate opens its leaf sub-lines.** The shipped statement mirrors the
+  workbook outline at **arbitrary** depth (three levels under `9 Admin Expenses`), so a
+  strict "one level per click" would be a 3-click drill there and 2-click elsewhere.
+  Clicking **any non-leaf Actual** opens a flattened list of **all its descendant leaves**;
+  clicking a **leaf** (including **`unmapped-GL`**) opens that leaf's raw transactions.
+  **Grand Total follows the same rule.** **Human-decided this grill.**
+- **The drill is pinned to the statement's batch.** Re-uploading a period replaces the
+  active actuals batch; a drill reading the newly active rows would no longer foot to the
+  number that was clicked — silently. So the drill reads the **exact actual-batch ids the
+  displayed statement was built from**, together with its resolved triples, node key and
+  selected time block. **Authorization is re-checked at drill time** against the user's
+  current plant scope, but the **data** is the statement's. If that batch has since been
+  replaced, **say so** rather than showing different numbers. **Human-decided this grill.**
+- **No export in this story.** The statement spec promised a bundled transactions sheet
+  "with the drill-down capability"; that is **deferred to a named later capability**. This
+  story is UI-only — it already carries a new raw-row read path, an RBAC exception and an
+  audit requirement. **Human-decided this grill.**
+- **Footing is compared in exact paise**, never the statement's display-rounded rupees:
+  the statement aggregates *before* rounding, so two visually equal `₹` values can conceal
+  a real mismatch.
+- **The drill predicate** is: the selected statement **node key** (and its descendant leaf
+  keys where the node is an aggregate), the master's resolved **`(plant, cost centre, GL)`
+  triples**, the **selected month or YTD range**, and the **pinned actual-batch ids**.
+- **Authorization and audit are testable, not adjectival.** The drill requires the **same
+  governed-financial authorization and current plant scope** as the statement, and writes a
+  **pre-query, fail-closed audit record** naming the actor, the predicate above and the
+  batch ids — if the audit write fails, the read does not happen.
+- **Column semantics.** `Value = Debit − Credit`; `reference` is the SAP **Reference 1**
+  column; `memo` is **LineMemo**. Sort **Value ↓, Month ↓**, then a deterministic
+  tie-break — **posting date ↓, then transaction number, then line id** — so a page is
+  stable across requests.
+- **Large results are server-paginated.** A response carries the **total matching count**
+  and an **exact full-result footer** (not a page subtotal), with the visible page sorted
+  deterministically.
 
 ## Rules
-- Actual = **Σ(Debit − Credit)** for the matching Plant + Cost Center + GL, per
-  period (decision 0002).
-- Budget and Roll-over come from the **plan**, not SAP.
-- `%` guards divide-by-zero per the nil rules above.
+- Line items are a distinct raw-row read path (a grain change, not a same-grain
+  join); RBAC-scoped and written to the append-only audit like every read.
 
 ## Out of scope (now)
-- Editing budgets or actuals; any write-back; Table-1 and Table-3; roll-over calc.
+- Editing; drilling Budget/%; drill beyond the transaction line.
+- **Exporting transactions to Excel** — deferred to a named later capability (see Settled).
 
 ## Acceptance criteria
-- **Demo-ready:** the nursery **July** statement reconciles to our SAP-derived
-  totals (nursery net ≈ ₹1,15,12,712); zero-rows present; subtotals and grand
-  total foot; Excel export opens with the same structure.
-- **Validated (upgrade):** the same statement matches Srihari's filled July
-  Financial MIS once he provides it (golden reference).
+- **Footing, in exact paise**: the line-item footer equals the clicked Actual — proven for
+  a **leaf**, for a **derived group** (where the footer equals the sum of its descendant
+  leaves), for an **FY-YTD** drill spanning several monthly batches, and for the
+  **`unmapped-GL`** line.
+- Default sort is **Value ↓ then Month ↓** with a deterministic tie-break; **Budget and %
+  do nothing on click**.
+- A user sees **only** transactions within their RBAC scope: an unauthorized plant is
+  refused and **no rows leak**; each drill writes its audit record **before** the read, and
+  a failed audit write means no read.
+- **Re-upload after display**: with the statement on screen and the period re-uploaded, the
+  drill still foots to the displayed number and says the batch was replaced.
+- Large results paginate, and the footer covers **all** matches, not the visible page.
 
 ## Open items (non-blocking)
-- **Roll-over rule** from Srihari (carry-forward of unspent budget) — column kept,
-  calc deferred.
-- **One filled month** of Srihari's Financial MIS as the golden reconciliation
-  reference.
+- Confirm 2-level (group opens sub-lines) with Srihari vs his single-level spec.
 
 ## Source
-Decisions 0002, 0003; `docs/architecture/20-financial-mis-data-model.md`;
-`docs/context/2026-09-01-srihari-requirements-qa.md`.
+`docs/context/2026-09-01-srihari-requirements-qa.md` (§3); build plan; decision 0003.
 
 
 ## What to return

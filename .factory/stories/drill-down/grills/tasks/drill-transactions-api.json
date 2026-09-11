@@ -1,0 +1,124 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "issue": "drill-down",
+  "task_id": "drill-transactions-api",
+  "verdict": "pass",
+  "summary": "Cold read of the recorded drill-transactions-api contract and its task plan (Codex gpt-5.6-terra @ xhigh, read-only, task-mtxb2bt3-nq5i7p) returned NOT CONVERGED with nine findings. Eight were answered by the repository and folded into the contract and task plan; one - that auditing refusals is impossible as drawn because the guards reject before the controller - was put to the human, who chose a route-scoped exception filter. The recorded criteria and plan_contracts were also reconciled to a one-to-one set of six, which the gate requires.",
+  "questions_asked": 2,
+  "criteria_map": {
+    "POST api/mis/statement/drill is registered as an unversioned route returning a raw response with direct module imports, behind AuthGuard, RequireAction('report') and the globally registered CsrfGuard, taking the statement's own selector plus nodeKey, the measure block key, the statement's provenance.activeBatchIds passed through verbatim as pinnedBatches, and a 1-based page; page size is FIXED SERVER-SIDE at 100 and is not client-settable; it declares typed 400/401/403/409 responses alongside its success schema the way mis-statement.controller.ts does, and its path is added to the strict allow-list in backend/src/app.routes.test.ts, which is the only place that proves the route exists.": "Route shape and registration. The cold read found the strict allow-list in backend/src/app.routes.test.ts was outside write_scope, so the route could be written and still be unproven; the criterion now names it and the file is in scope.",
+    "Every term of the predicate except the pinned batch ids is derived server-side on EVERY request and never read off the client: the leaf key from nodeKey against the PINNED budget batch's outline snapshot or the reserved key 'unmapped-GL' that the statement synthesises outside the outline; the (plant, cost centre, GL) triples from SelectionResolverService.leafTargets filtered to that leaf (target.kind 'leaf' with a matching leafKey, or target.kind 'bucket' for the reserved key); the month range from the statement's own block definitions; and the plant scope from user.scope. A nodeKey that is neither a leaf in that snapshot nor the reserved key is a 400. Every pinned batch id is validated as a UUID by the request schema BEFORE it reaches SQL construction, with a negative test, because the repository interpolates literals and SqlValidator is a post-check that does not make interpolation safe.": "Server-side predicate derivation plus UUID validation. The cold read flagged that pinnedBatches are client-controlled strings reaching an interpolated IN (...) predicate and that SqlValidator is a post-check that does not make interpolation safe; the request schema now enforces UUIDs with a required negative test.",
+    "The pin is BOUND, not trusted. The server splits pinnedBatches by source; it computes which months in the block's range have an actuals batch and requires exactly one pinned id per such month - a missing month, a duplicate, a wrong-source or wrong-period id is a REFUSAL, never an authorized but partial footer. Budget ingest creates a batch per workbook month, so FY-YTD provenance carries several budget ids: the outline is taken from the budget batch whose period equals the block's `to`, matching what the statement itself read, and the other budget ids are not used. A pinned id that is valid but no longer active for its period means a re-upload: read the PINNED batch and report it. A pinned id that no longer exists is reported as gone and refused. The response reports status PER PINNED BATCH - source, period, requested id, current/replaced/gone, and the now-active id where there is one - not a single scalar flag, because task 3 cannot name what changed from a scalar.": "Pin binding. The cold read found 'one pinned budget id' contradicts the system: budget ingest writes a batch per workbook month so FY-YTD provenance carries several. The outline is now pinned to the budget batch whose period equals the block's to - what mis-statement.service.ts itself reads - and the response reports status per pinned batch rather than a scalar flag task 3 could not act on.",
+    "Every drill writes its audit record BEFORE any sap_transaction read and fails closed: a TYPED drill event naming the actor, nodeKey, the resolved leaf key, the triples, the month range, the pinned actuals AND budget ids, the mapping-master version, the generated SQL and the objects touched, and if the insert throws the endpoint errors with NO transaction query issued. audit_events.selection is already jsonb, so this widens AuditService in TypeScript rather than the schema. Refusals are audited too: the service's own refusals directly, and guard-level refusals through an exception filter registered ON THIS ROUTE ONLY, which audits any refusal where a user is authenticated and skips unauthenticated callers so an anonymous caller cannot flood the audit table. A refusal event carries the predicate AS SUBMITTED, never the resolved one.": "Audit. The cold read found audit-all-refusals impossible as drawn because AuthGuard, CsrfGuard and RequireAction reject before the controller runs. The human chose a route-scoped exception filter that audits authenticated refusals and skips unauthenticated callers so the audit table cannot be flooded.",
+    "The read is two statements over sap_transaction joined to ingest_batch under one identical predicate, so the footer cannot drift from the page: the page (ORDER BY (debit - credit) DESC, month DESC, posting_date DESC, txn_no, line_id with LIMIT/OFFSET) and the footer (COUNT(*) plus the three SUMs, LIMIT 1). Both go through SqlValidator.validate and warehouse.explain before execution and run under the configured query timeout, reusing the governed layer's guards rather than reimplementing them, and applyKSuppression is NOT wired in - this read is the documented exception (0025) and no aggregate path loses it. Money crosses the wire as a fixed-scale decimal STRING, never a JSON number. month and posting_date are normalized to date-only strings from process-local date parts, because the Postgres adapter serializes DATE through toISOString() and east of UTC that turns 2026-07-01 into the previous day; a test proves the normalization under a non-UTC TZ.": "The read path. The cold read found month and posting_date would be wrong outside UTC because postgres.adapter.ts serializes DATE through toISOString(); the criterion now requires date-only normalization from process-local parts with a proof under a non-UTC TZ.",
+    "Footing is proven in EXACT PAISE as an equality, never a tolerance - for a leaf and for the unmapped-GL bucket against the pinned July batch - because sap_transaction.debit and .credit are numeric(18,2), so the actual_by_key_month view's ::numeric(18,2) cast is a no-op and the statement's paise ARE these rows' paise summed. The FY-YTD multi-batch case CANNOT be proven against client data (the supplied SAP extract is July only), so this task builds a deliberate multi-period actuals fixture for it and the evidence states which proofs rest on client data and which on the fixture. An empty result is a SUCCESS with zero rows and a zero footer; a non-integer or out-of-range page is a 400. The new gated proof is registered in backend/package.json's test:warehouse-proof and the new hermetic tests in test:hermetic and tools/quality-gate.test.mjs, or CI runs none of them.": "Proofs and their registration. The cold read found the new gated proof and hermetic tests were in no script CI runs; the criterion now requires registration in backend/package.json test:hermetic and test:warehouse-proof and in tools/quality-gate.test.mjs, alongside the exact-paise equality and the FY-YTD fixture the July-only client extract makes necessary."
+  },
+  "gaps": [
+    "The task gate was mechanically unsatisfiable as recorded: six acceptance_criteria against five plan_contracts statements, and the recorder requires acceptance_criteria, criteria_map keys and plan_contracts statements to be the same set.",
+    "write_scope could not produce the endpoint or prove it: the strict route allow-list in backend/src/app.routes.test.ts, the test:hermetic and test:warehouse-proof lists in backend/package.json, the hermetic list in tools/quality-gate.test.mjs, and the .prettierignore entry for audit.service.ts (D-0006) were all outside scope.",
+    "month and posting_date would be wrong outside UTC: postgres.adapter.ts serializes DATE through toISOString(), so east of UTC 2026-07-01 returns as the previous day - the same defect the statement already hit.",
+    "UUID validation of the client-controlled pinned batch ids was implicit: they reach an interpolated IN (...) predicate, and SqlValidator is a post-check that does not make literal interpolation safe.",
+    "Replacement reporting was underspecified: a scalar batchState cannot say WHICH of several pins changed or name its successor, so task 3 could not render the required notice.",
+    "The mapping master is pinned only within a process: a statement rendered before a deployment can be drilled after one against a different master version and therefore different triples, with the audit record detecting it only after a wrong footer was shown."
+  ],
+  "contradictions": [
+    "'One pinned budget id' contradicts the shipped system: ingest.service.ts creates a budget batch per workbook month, so FY-YTD statement provenance carries several budget tuples and the task's single-budget-id rule could never be satisfied for that block.",
+    "Auditing all refused attempts contradicts the guard order: AuthGuard, the globally registered CsrfGuard and RequireAction('report') all reject before the controller is reached, so no service-level code could write the refusal event the contract and flowchart promised.",
+    "Binding the pin by validity alone does not bind it to the DISPLAYED statement: a client can substitute a different historical batch for the same month and receive different rows that still pass every stated check."
+  ],
+  "resolutions": [
+    "REPO-ANSWERED \u2014 the contract now records six acceptance criteria that are verbatim its six plan_contracts statements, satisfying the gate's three-way equality.",
+    "REPO-ANSWERED \u2014 write_scope gains backend/src/app.routes.test.ts, backend/package.json, tools/quality-gate.test.mjs and .prettierignore, and criterion t-dta-c6 makes registration part of the contract: a test in no script is a test CI never runs, and the route is unproven until the allow-list names it.",
+    "REPO-ANSWERED \u2014 criterion t-dta-c5 requires month and posting_date to be normalized to date-only strings from process-local date parts, with a required test that sets a non-UTC TZ; a test running under UTC proves nothing.",
+    "REPO-ANSWERED \u2014 criterion t-dta-c2 requires the request schema to validate every pinned id as a UUID before SQL construction, with a required negative test exercising the schema rather than a hand-built repository call.",
+    "REPO-ANSWERED \u2014 criterion t-dta-c3 replaces the scalar with per-batch status: source, period, requested id, current/replaced/gone, and the now-active id where there is one.",
+    "REPO-ANSWERED \u2014 the budget contradiction is closed by taking the outline from the budget batch whose period equals the block's `to`, which is exactly what mis-statement.service.ts reads via findByBudgetPeriod(resolution.period.to); the remaining budget provenance entries are unused because the drill reads no budget.",
+    "REPO-ANSWERED (settled at the plan gate, not reopened) \u2014 the substituted-batch case was put to the human at the plan gate as 'server-held statement snapshot' and rejected in favour of the completeness rule. The substitution is a user misleading themselves with data they are already authorized to read: plant scope and triples still apply, so nothing is disclosed, and the audit record names the exact batch ids read. The task plan now records this explicitly so the next reader sees it settled rather than missed.",
+    "LEDGERED \u2014 mapping-master drift across deployments is D-0038, with its revisit trigger; closing it properly needs the master version on the statement response, which this story leaves unchanged (decisions 0011, 0014).",
+    "HUMAN (kl-rahulanand) \u2014 guard-level refusals are audited by an exception filter registered ON THIS ROUTE ONLY, auditing any refusal where a user is authenticated and skipping unauthenticated callers so an anonymous caller cannot flood audit_events. Service-level refusals stay in the service. Rejected: service-level only (the 'no report grant' probe the human named would leave no trace) and a shared auth interceptor (changes shared authentication infrastructure from inside a drill-down task)."
+  ],
+  "open_items": [
+    "Non-blocking \u2014 the review budget was raised to 22 files / 2600 lines with a recorded reason: four of those files are registration-only, and without them the route is unproven and the tests unrun."
+  ],
+  "inspected_refs": [
+    ".factory/stories/drill-down/decomposition.json",
+    ".factory/stories/drill-down/task-plans/drill-transactions-api.md",
+    "backend/src/app.routes.test.ts",
+    "backend/package.json",
+    "tools/quality-gate.test.mjs",
+    ".prettierignore",
+    "backend/src/warehouse/postgres.adapter.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/auth/auth.guard.ts",
+    "backend/src/core/audit.service.ts",
+    "backend/src/sql/sqlValidator.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/warehouse/statement-outline.repository.ts",
+    "contract/src/api.ts"
+  ],
+  "rounds": [
+    {
+      "question": "You asked for refused drill attempts to be audited. The cold read found that can't work as drawn: `AuthGuard`, the global `CsrfGuard` and `RequireAction(\"report\")` all reject **before** the controller runs, so a caller with no `report` grant probing the raw-row endpoint never reaches any code that could write the record. Reaching those refusals means adding something to the route's error path.",
+      "options": [
+        "Drill-scoped exception filter (Recommended)",
+        "Service-level refusals only",
+        "Shared auth interceptor"
+      ],
+      "chosen": "Drill-scoped exception filter (Recommended)"
+    },
+    {
+      "question": "Closing the task grill for drill-transactions-api. Nine findings. Eight settled from the repo \u2014 three of them were real bugs-in-waiting: (a) **twelve budget batches, not one** \u2014 budget ingest writes one per workbook month, so the outline is pinned to the batch whose period equals the block's end, which is what the statement itself reads; (b) **DATE columns come back a day early east of UTC** \u2014 the adapter serializes through `toISOString()`, the same bug the statement already hit, so dates are normalized from local parts with a non-UTC test; (c) **four registration files were missing from write scope** \u2014 without `app.routes.test.ts` the route isn't proven to exist, and without the two test scripts CI runs none of the new tests. Plus UUID validation before SQL, per-batch status instead of a scalar flag, D-0038 for mapping-master drift across deploys, and the route-scoped audit filter you chose. Any remaining gap before I delegate this to Codex?",
+      "options": [
+        "No gaps \u2014 delegate it (Recommended)",
+        "The substituted-batch case still bothers me",
+        "Something else \u2014 I'll say what"
+      ],
+      "chosen": "No gaps \u2014 delegate it (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "decision": "keep",
+  "current_flow": "Today a user reads the Financial MIS at POST api/mis/statement: MisStatementService authorizes the governed mis-statement selection, resolves the selector to triples and leafTargets, runs the statement projection per measure block, reads the budget outline via StatementOutlineRepository.findByBudgetPeriod(resolution.period.to), folds leaves into derived parents and returns a tree plus provenance.activeBatchIds. Every Actual on that screen is an aggregate: nothing in the system returns an individual sap_transaction row to a user, actual_by_key_month is hardcoded to batch.is_active with no batch parameter, AuditService.writeRequestEvent has exactly one caller (chat.service.ts), and the only raw-adjacent read paths go through SelectionExecutor, which is measure-and-dimension shaped and applies k-anonymity suppression. This task adds the first path that returns transaction lines, pinned to the batches the displayed statement was built from and audited before the read.",
+  "new_abstractions": [
+    "A drill-transactions repository beside the governed executor - the first read at row grain, reusing SqlValidator, warehouse.explain and the query timeout but not the measure/dimension machinery or k-suppression.",
+    "A typed drill audit event on AuditService, distinct from the governed-Selection-shaped writeRequestEvent, because a node key, resolved triples and batch pins have nowhere to live in a Selection.",
+    "A route-scoped exception filter that audits authenticated refusals, because the guards reject before any service code runs.",
+    "Per-batch pin status (source, period, requested id, current/replaced/gone, active id) as a wire concept the frontend renders from."
+  ],
+  "citations": [
+    {
+      "finding": "The task gate was mechanically unsatisfiable as recorded: six acceptance_criteria against five plan_contracts statements, and the recorder requires acceptance_criteria, criteria_map keys and plan_contracts statements to be the same set.",
+      "source": "factory/scripts/record_grill_from_json.py:216-241 (acceptance_criteria, criteria_map keys and plan_contracts statements must be one set) \u2014 the contract now records six criteria verbatim identical to its six plan_contracts statements."
+    },
+    {
+      "finding": "write_scope could not produce the endpoint or prove it: the strict route allow-list in backend/src/app.routes.test.ts, the test:hermetic and test:warehouse-proof lists in backend/package.json, the hermetic list in tools/quality-gate.test.mjs, and the .prettierignore entry for audit.service.ts (D-0006) were all outside scope.",
+      "source": "backend/src/app.routes.test.ts:20 (strict registered-route allow-list), backend/package.json:19 (test:hermetic, test:warehouse-proof), tools/quality-gate.test.mjs:12 (hermetic list), .prettierignore:28 (backend/src/core/audit.service.ts) \u2014 all four added to write_scope, and registration made part of criterion t-dta-c6."
+    },
+    {
+      "finding": "month and posting_date would be wrong outside UTC: postgres.adapter.ts serializes DATE through toISOString(), so east of UTC 2026-07-01 returns as the previous day - the same defect the statement already hit.",
+      "source": "backend/src/warehouse/postgres.adapter.ts:112 (DATE serialized through toISOString()) \u2014 criterion t-dta-c5 requires date-only normalization from process-local parts with a required test under a non-UTC TZ."
+    },
+    {
+      "finding": "UUID validation of the client-controlled pinned batch ids was implicit: they reach an interpolated IN (...) predicate, and SqlValidator is a post-check that does not make literal interpolation safe.",
+      "source": "backend/src/sql/sqlValidator.ts:20 (astify-based post-check, no parameter binding) and backend/src/warehouse/statement-outline.repository.ts:10 (the house pattern interpolates escaped literals) \u2014 criterion t-dta-c2 requires UUID validation in the request schema before SQL construction, with a negative test."
+    },
+    {
+      "finding": "Replacement reporting was underspecified: a scalar batchState cannot say WHICH of several pins changed or name its successor, so task 3 could not render the required notice.",
+      "source": "plans/active/drill-down-actuals-drill-down-to-transactions.md#binding-the-pinned-batch-set and the drill-panel/drill-transactions-view task objectives \u2014 criterion t-dta-c3 now specifies per-batch status rather than a scalar, because task 3 renders the notice from it."
+    },
+    {
+      "finding": "The mapping master is pinned only within a process: a statement rendered before a deployment can be drilled after one against a different master version and therefore different triples, with the audit record detecting it only after a wrong footer was shown.",
+      "source": "plans/deferrals.md D-0038, docs/decisions/0014-sap-ingestion-poc-no-master.md and docs/decisions/0011-deployment-readiness-poc-scope.md \u2014 ledgered with a revisit trigger rather than closed, since closing it needs the master version on the statement response this story leaves unchanged."
+    }
+  ],
+  "input_sha256": "a63435bf081c3cd1c411f96bb4c11e5859b356f790595c1bb18faca7eeed4c39",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "aa5b26f611bfa8895f4ea87497f5e6c55989fb7f5fcfb30c245b679735f34bfa",
+  "recorded_at": "2026-09-11T19:05:57+00:00",
+  "commit": "c273bab0e18f54ccb4e20a1776782874e4de8121",
+  "approved_task_plan_sha256": "aa5b26f611bfa8895f4ea87497f5e6c55989fb7f5fcfb30c245b679735f34bfa",
+  "approved_by": "kl-rahulanand",
+  "approved_at": "2026-09-11T19:06:43+00:00"
+}

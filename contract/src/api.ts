@@ -300,6 +300,51 @@ export interface MisStatementUnresolvableResponse {
 
 export type MisStatementRunResponse = MisStatementResolvedResponse | MisStatementUnresolvableResponse;
 
+/** POST /api/mis/statement/drill */
+export interface MisDrillRequest extends MisSelectionRunRequest {
+  nodeKey: string;
+  block: MisStatementMeasureBlock["key"];
+  pinnedBatches: ProvenanceBatch[];
+  page: number;
+}
+
+export interface MisDrillBatchStatus {
+  source: ProvenanceBatch["source"];
+  period: string;
+  requestedBatchId: string;
+  status: "current" | "replaced" | "gone";
+  activeBatchId: string | null;
+}
+
+export interface MisDrillLine {
+  month: string;
+  postingDate: string;
+  debit: FixedScaleMoney;
+  credit: FixedScaleMoney;
+  value: FixedScaleMoney;
+  reference: string | null;
+  memo: string | null;
+}
+
+export interface MisDrillFooter {
+  debit: FixedScaleMoney;
+  credit: FixedScaleMoney;
+  value: FixedScaleMoney;
+}
+
+export interface MisDrillResponse {
+  nodeKey: string;
+  leafKey: string;
+  lines: MisDrillLine[];
+  footer: MisDrillFooter;
+  totalCount: number;
+  page: number;
+  pageSize: 100;
+  actualBatchIds: string[];
+  budgetBatchId: string;
+  batchStatuses: MisDrillBatchStatus[];
+}
+
 export interface PinSnapshot {
   status: "ok" | "error" | "access_revoked";
   result?: ResultTable;

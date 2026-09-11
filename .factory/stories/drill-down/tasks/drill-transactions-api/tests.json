@@ -1,0 +1,49 @@
+{
+  "commit": "06c82c3b3cd65f6177aa2d41c5f425868825020c",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All six verify commands and all nine required test leaves pass, and the gated warehouse proof passes on the host. Footing is proven in exact paise for a client July leaf and for the unmapped-GL bucket against the real July batch. Pagination-over-a-page and FY-YTD footing across several actuals batches are proven on a deliberately constructed fixture, because the client SAP extract is July-only and its largest (plant, cost centre, GL) group holds 18 rows - no single leaf in client data can exceed the fixed 100-row page. Every leaf was confirmed by reading the junit report's testcase name, never the exit code (D-0024, D-0031).",
+    "pass_fail_summary": "hermetic: 122 backend tests (110 passed, 12 skipped - the DB-gated files) + 26 frontend tests, 0 failures; gated warehouse proof: 20 tests, 20 passed, 0 failed, 0 skipped; required leaves: 9/9 executed under their exact testcase name",
+    "commands_run": [
+      "npm run build:contract",
+      "npm run build:backend",
+      "npm run typecheck",
+      "npm run lint",
+      "npm run format:check",
+      "npm run test:hermetic",
+      "WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_DATABASE=warehouse npm run test:warehouse-proof --prefix backend"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/mis/mis-drill.service.test.ts",
+      "backend/src/mis/mis-drill.controller.test.ts",
+      "backend/src/warehouse/drill-transactions.repository.test.ts",
+      "backend/src/warehouse/drill-transactions.db.test.ts",
+      "backend/src/app.routes.test.ts",
+      "tools/quality-gate.test.mjs"
+    ],
+    "blocking_findings": [],
+    "remaining_gaps": [
+      "Pagination over a page and FY-YTD footing across several actuals batches rest on a constructed fixture (a synthetic 101-row April batch and a May batch), not on client data - the July-only extract cannot demonstrate either. The exact-paise leaf and unmapped-GL footing assertions DO rest on the real client batch.",
+      "The gated warehouse proof is host evidence, not CI evidence (D-0008): CI has no Postgres service container, so backend/src/warehouse/drill-transactions.db.test.ts is registered in test:warehouse-proof and skips in the hermetic run."
+    ],
+    "reviewed_scope": [
+      "backend/src/mis/mis-drill.controller.ts",
+      "backend/src/mis/mis-drill.service.ts",
+      "backend/src/mis/mis-drill.dto.ts",
+      "backend/src/mis/mis-drill.interface.ts",
+      "backend/src/mis/mis-drill.audit.filter.ts",
+      "backend/src/warehouse/drill-transactions.repository.ts",
+      "backend/src/warehouse/drill-transactions.interface.ts",
+      "backend/src/warehouse/statement-outline.repository.ts",
+      "backend/src/core/audit.service.ts",
+      "contract/src/api.ts"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-11T19:48:05+00:00",
+    "commit": "06c82c3b3cd65f6177aa2d41c5f425868825020c"
+  },
+  "updated_at": "2026-09-11T19:48:05+00:00"
+}
