@@ -112,31 +112,48 @@
         "statement-model"
       ],
       "acceptance_criteria": [
-        "POST api/mis/statement accepts the four selectors already validated by misSelectionRunRequestSchema and returns the statement as a TREE built from the active budget batch's outline snapshot: every parent is a subtotal DERIVED from its leaves bottom-up and never read from storage, the grand total foots against the leaves, rows come back in the outline's sort_order, and each row carries its S. No., Budget Component label and - for leaves - the GL code.",
-        "Each row carries Budget, Roll-over, Actual and % for BOTH period blocks - the selected month and FY 26-27 YTD - with Roll-over present but unpopulated per the spec, amounts computed in exact paise and rounded only at the presentation boundary so subtotals foot, and the percentage keeping the governed measure's labels verbatim rather than being coerced to a number.",
-        "The route preserves the outcome split mis-selection settled - an unauthorized plant is refused, while a plant the master does not cover returns the unresolvable outcome with its notice rather than a 403, and a resolved selection with no transactions returns a configured zero statement WITHOUT the notice - and the unmapped-GL line is present with its own Actual and zero Budget, counted in the grand total per decision 0018."
+        "A registered governed statement domain (goldObject statement_relation) with its measures, dimensions and seeded report grant makes sqlBuilder's statement branch reachable in production, and the projection emits the mandatory bounded LIMIT the validator requires, so the query runs through SelectionExecutor's validate-explain-execute path rather than being hand-built - proven by a test that goes through the executor, not around it.",
+        "POST api/mis/statement returns the statement as a TREE built from the outline of the budget batch for the SELECTED PERIOD - active budget batches are one per period, all carrying the same outline, so the reader is keyed by (source_kind budget, period) and never by 'the active batch' - with every parent a subtotal DERIVED bottom-up from its leaves, the grand total footing, rows in outline sort_order, and each row carrying S. No., Budget Component and for leaves the GL code.",
+        "Each row carries Budget, Roll-over, Actual and % for the selected month AND the FY 26-27 YTD block, the service issuing the projection once per range and merging by leaf key; when the selected period IS the FY-YTD a SINGLE block is returned rather than the same figures twice. Roll-over is present but unpopulated, amounts are exact paise rounded only at the presentation boundary, and a non-numeric percentage label is passed through verbatim.",
+        "The response carries the scope readout and the provenance the projection emits - per-row source presence plus the contributing actual and budget batch ids - and preserves the outcome split: an unauthorized plant is refused, a plant the master does not cover returns the unresolvable outcome with its notice, a resolved selection with no transactions returns a configured zero statement WITHOUT the notice, and the unmapped-GL line is present with its own Actual, zero Budget, counted in the grand total.",
+        "contract/src/api.ts defines the statement wire types tasks 3 and 4 build against: the node shape and how children are carried, where the grand total sits, how money is represented (a fixed-scale decimal string, never a float), and what an absent measure is - so the view and the export cannot each invent an answer."
       ],
       "plan_contracts": [
         {
           "id": "t-sa-c1",
-          "statement": "POST api/mis/statement accepts the four selectors already validated by misSelectionRunRequestSchema and returns the statement as a TREE built from the active budget batch's outline snapshot: every parent is a subtotal DERIVED from its leaves bottom-up and never read from storage, the grand total foots against the leaves, rows come back in the outline's sort_order, and each row carries its S. No., Budget Component label and - for leaves - the GL code.",
-          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+          "statement": "A registered governed statement domain (goldObject statement_relation) with its measures, dimensions and seeded report grant makes sqlBuilder's statement branch reachable in production, and the projection emits the mandatory bounded LIMIT the validator requires, so the query runs through SelectionExecutor's validate-explain-execute path rather than being hand-built - proven by a test that goes through the executor, not around it.",
+          "source": "docs/decisions/0022-mis-statement-governed-projection.md"
         },
         {
           "id": "t-sa-c2",
-          "statement": "Each row carries Budget, Roll-over, Actual and % for BOTH period blocks - the selected month and FY 26-27 YTD - with Roll-over present but unpopulated per the spec, amounts computed in exact paise and rounded only at the presentation boundary so subtotals foot, and the percentage keeping the governed measure's labels verbatim rather than being coerced to a number.",
-          "source": "docs/specs/financial-mis-statement.md"
+          "statement": "POST api/mis/statement returns the statement as a TREE built from the outline of the budget batch for the SELECTED PERIOD - active budget batches are one per period, all carrying the same outline, so the reader is keyed by (source_kind budget, period) and never by 'the active batch' - with every parent a subtotal DERIVED bottom-up from its leaves, the grand total footing, rows in outline sort_order, and each row carrying S. No., Budget Component and for leaves the GL code.",
+          "source": "docs/decisions/0021-mis-statement-outline-snapshot.md"
         },
         {
           "id": "t-sa-c3",
-          "statement": "The route preserves the outcome split mis-selection settled - an unauthorized plant is refused, while a plant the master does not cover returns the unresolvable outcome with its notice rather than a 403, and a resolved selection with no transactions returns a configured zero statement WITHOUT the notice - and the unmapped-GL line is present with its own Actual and zero Budget, counted in the grand total per decision 0018.",
+          "statement": "Each row carries Budget, Roll-over, Actual and % for the selected month AND the FY 26-27 YTD block, the service issuing the projection once per range and merging by leaf key; when the selected period IS the FY-YTD a SINGLE block is returned rather than the same figures twice. Roll-over is present but unpopulated, amounts are exact paise rounded only at the presentation boundary, and a non-numeric percentage label is passed through verbatim.",
+          "source": "docs/specs/financial-mis-statement.md"
+        },
+        {
+          "id": "t-sa-c4",
+          "statement": "The response carries the scope readout and the provenance the projection emits - per-row source presence plus the contributing actual and budget batch ids - and preserves the outcome split: an unauthorized plant is refused, a plant the master does not cover returns the unresolvable outcome with its notice, a resolved selection with no transactions returns a configured zero statement WITHOUT the notice, and the unmapped-GL line is present with its own Actual, zero Budget, counted in the grand total.",
           "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+        },
+        {
+          "id": "t-sa-c5",
+          "statement": "contract/src/api.ts defines the statement wire types tasks 3 and 4 build against: the node shape and how children are carried, where the grand total sits, how money is represented (a fixed-scale decimal string, never a float), and what an absent measure is - so the view and the export cannot each invent an answer.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
         }
       ],
       "write_scope": [
+        "backend/src/semantic/semanticLayer.ts",
+        "backend/src/semantic/semanticLayer.statement.test.ts",
+        "backend/src/db/migrate.ts",
+        "backend/src/db/migrate.test.ts",
+        "backend/src/sql/sqlBuilder.ts",
+        "backend/src/sql/sqlBuilder.statement.test.ts",
         "backend/src/warehouse/statement-outline.repository.ts",
         "backend/src/warehouse/statement-outline.interface.ts",
-        "backend/src/warehouse/statement-outline.repository.test.ts",
         "backend/src/mis/mis-statement.controller.ts",
         "backend/src/mis/mis-statement.service.ts",
         "backend/src/mis/mis-statement.interface.ts",
@@ -159,12 +176,17 @@
       ],
       "required_tests": [
         {
-          "id": "the statement route returns the outline as a tree whose parent rows are subtotals derived from their leaves with the grand total footing and rows in outline order",
+          "id": "the statement query runs through the selection executor validate explain execute path with its mandatory bounded limit rather than being built by hand",
+          "path": "backend/src/sql/sqlBuilder.statement.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the statement service builds the tree from the outline of the budget batch for the selected period with every parent derived from its leaves and the grand total footing in outline order",
           "path": "backend/src/mis/mis-statement.service.test.ts",
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         },
         {
-          "id": "each statement row carries budget rollover actual and percentage for both the selected month and the financial year to date with rollover unpopulated and the percentage label kept verbatim",
+          "id": "the statement returns both the selected month and the financial year to date blocks but a single block when the selected period is itself the financial year to date",
           "path": "backend/src/mis/mis-statement.service.test.ts",
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         },
@@ -174,24 +196,24 @@
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         },
         {
-          "id": "the unmapped GL line is present with its own actual and zero budget and is counted in the grand total",
+          "id": "the unmapped GL line is present with its own actual and zero budget counted in the grand total and the response carries per row source presence with the contributing batch ids",
           "path": "backend/src/mis/mis-statement.service.test.ts",
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         }
       ],
       "reviewer_focus": [
-        "PARENTS ARE DERIVED, never read. Decision 0020 stores no parent amounts and the outline snapshot carries no money at all, so a parent subtotal that comes from anywhere but its own leaves is a defect. The footing proof is THIS task's - statement-model deliberately proved only the leaf grain it produced.",
-        "EXACT PAISE through the service; round only at the presentation boundary. Rounding per line is what makes subtotals stop footing, and a statement whose parents do not foot is worthless to the person checking it.",
-        "The percentage measure returns LABELS ('over-budget', 'credit / negative actual') when budget is zero. Pass a non-numeric measure value through verbatim - mis-selection shipped NaN to a live page for exactly this.",
-        "Coverage is NOT authorization: a plant the master does not cover is UNRESOLVABLE, never 403. mis-selection shipped that defect once and had to split the branches mid-review.",
-        "Two period blocks, not one: the selected month AND FY 26-27 YTD, per the spec. Roll-over renders but stays empty until Srihari's rule (decision 0016 defers it).",
-        "Constitution: an explicit service interface lives in its own .interface.ts file (constitution/pnp-coding-standards-modular-monolith.md); decision 0019 governs the route's house style - unversioned path, raw typed body, direct module import, DTOs beside mis-selection.dto.ts.",
-        "The outline read is a NEW repository surface. It must respect the same active-batch rule the projection uses (source_kind = 'budget' AND is_active), or the tree and the numbers will describe different batches."
+        "The governed path must be REAL, not asserted. sqlBuilder branches on goldObject === 'statement_relation' and NO such domain existed before this task; SelectionExecutor always validates, and the validator mandates a bounded LIMIT the statement projection did not emit. A test that builds the query by hand proves nothing - go through the executor.",
+        "Active budget batches are one per PERIOD (12 of them today), each carrying the same outline. A reader that says 'the active budget batch' will pick arbitrarily. Key it by (source_kind, period) for the selected period.",
+        "PARENTS ARE DERIVED, never read - decision 0020 stores no parent amounts and the outline carries no money. The footing proof is THIS task's; statement-model deliberately proved only its leaf grain.",
+        "EXACT PAISE through the service, rounded once at the presentation boundary. Money crosses the wire as a fixed-scale decimal STRING, never a float - a JSON number silently loses paise at scale.",
+        "The percentage measure returns LABELS when budget is zero. Pass a non-numeric value through verbatim; mis-selection shipped NaN to a live page for exactly this.",
+        "Coverage is NOT authorization: a plant the master does not cover is UNRESOLVABLE, never 403.",
+        "Constitution: the service interface lives in its own .interface.ts (pnp-coding-standards-modular-monolith.md); decision 0019 governs the route's house style; decision 0016 keeps grants, scope injection and provenance intact."
       ],
       "review_budget": {
-        "max_changed_files": 14,
-        "max_changed_lines": 1700,
-        "reason": "The route plus the tree assembly it exists to serve, and a new repository read: nothing persists the outline TREE for reporting today - statement-model wrote it and only the insert path exists - so the service needs a reader that honours the same active-batch rule as the projection. The tree derivation, its two period blocks and the unresolvable/403 split are the substance; no schema change, no SQL change, no UI."
+        "max_changed_files": 19,
+        "max_changed_lines": 2400,
+        "reason": "The task grill showed this is not the thin route the first contract assumed. Before any tree can be assembled the governed path has to EXIST: a registered statement domain with measures and a seeded grant (the builder branches on goldObject statement_relation, which nothing declared), and the mandatory bounded LIMIT the validator requires, without which the executor fails closed. On top of that sits the new per-period outline reader, the bottom-up tree assembly with its two period blocks, the provenance pass-through, and the wire types tasks 3 and 4 build against. Still no schema change and no UI."
       }
     },
     {
@@ -224,5 +246,5 @@
     }
   ],
   "plan_sha256": "951e85a33bb8891ee3e81dbb5d5f4519ef72b4cd0e457395a922f463ffe025e9",
-  "commit": "15dd782a90284b528441c13de014ea9736f701ea"
+  "commit": "78db638e4bd57c244fb7d8100c0b2e3e9e158484"
 }

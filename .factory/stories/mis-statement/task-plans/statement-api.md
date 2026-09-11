@@ -23,10 +23,12 @@ No UI and no export: those are tasks 3 and 4.
   grand total.
 
 ## What already exists (grounding, file:line)
-- **The projection, shipped in task 1** — `sqlBuilder.ts:48` dispatches to
-  `buildStatementProjection` whenever `resolvedScope.leafTargets` is present, so the route
-  reaches it through the **normal governed execution path**; no new SQL is written here.
-  It returns flat rows: `leaf_key, month, actual_net, budget_net, rollover_net,
+- **The projection, shipped in task 1** — `sqlBuilder.ts:45` dispatches to
+  `buildStatementProjection` **only when `domain.goldObject === "statement_relation"`**,
+  *not* merely because `leafTargets` exist. **No such domain is registered**
+  (`semanticLayer.ts` has zero `statement_relation` entries), so the branch is currently
+  unreachable in production — the first contract's claim that the route "reaches it
+  through the normal governed execution path" was wrong. It returns flat rows: `leaf_key, month, actual_net, budget_net, rollover_net,
   source_presence, sort_order`, already ordered by the outline's `sort_order`.
 - **The outline table** — `warehouse-schema.ts` `mis_budget_outline`: `node_key,
   parent_key, depth, s_no, label, sort_order, gl_code, leaf_key`, per batch, **carrying no
@@ -44,6 +46,25 @@ No UI and no export: those are tasks 3 and 4.
   mid-review: **coverage is not authorization**.
 
 ## Design
+### First make the governed path exist (t-sa-c1)
+Three things must be true before a single row can be served, and none of them was:
+- **Register the domain.** A `statement_relation` `DomainSpec` with its measures and
+  dimensions in `semanticLayer.ts`, plus the seeded governed **`report` grant** in
+  `migrate.ts`, so the builder's branch is selectable and decision **0016**'s
+  all-or-nothing access still gates it.
+- **Emit the mandatory `LIMIT`.** `SelectionExecutor` always validates the built SQL and
+  `sqlValidator.ts:62` enforces a *bounded* `LIMIT`; the statement projection emits none,
+  so the governed path **fails closed** today. The projection gains one.
+- **Prove it through the executor.** A test that hand-builds the query proves nothing
+  about the path the route actually takes — the required leaf goes through
+  `SelectionExecutor`'s validate → explain → execute.
+
+### The outline reader is keyed by PERIOD, not by "the active batch"
+Budget ingest writes **one active batch per period** — twelve today, each carrying the
+same outline — so "read the active budget batch" picks arbitrarily among them. The reader
+is keyed by `(source_kind = 'budget', period = <selected>)`, which is also what keeps the
+tree and the numbers describing the same batch.
+
 ### The tree is assembled, never queried
 The projection returns **leaves**. The outline supplies the **structure**. The service
 reads the active budget batch's outline nodes, attaches each projection row to its leaf by
@@ -56,14 +77,27 @@ The reader must honour the **same active-batch rule** the projection uses
 (`source_kind = 'budget' AND is_active`), or the tree and the numbers describe different
 batches — a failure that would look like a footing error and be diagnosed as one.
 
-### Two period blocks
-The spec requires the **selected month** and **FY 26-27 YTD** side by side. Both come from
-the same projection over different month ranges; the FY-YTD range is the one the options
-route already derives. `%` is the governed measure's, labels intact.
+### Two period blocks — from two runs, merged
+The resolver emits **one** range per request, so the service issues the projection **once
+per block** (the selected month, and the FY 26-27 YTD range the options route already
+derives) and merges them by leaf key. `%` is the governed measure's, labels intact.
+
+**When the selected period IS the FY-YTD, a single block is returned** — human-decided
+this grill — rather than printing identical figures twice under two headings, which on a
+financial statement invites someone to read them as two separate facts.
 
 ### Exact paise
 Aggregate in paise as integers and round **once**, at the presentation boundary. Rounding
 each line first is precisely what makes a subtotal disagree with its children.
+
+### Provenance and the wire types
+The projection already emits `source_presence` and the contributing `actual_batch_id` /
+`budget_batch_id`; the response carries them through rather than promising provenance it
+cannot supply. And because tasks 3 and 4 both render this payload, `contract/src/api.ts`
+**defines the shape**: the node, how children are carried, where the grand total sits,
+money as a **fixed-scale decimal string** (never a JSON float, which loses paise at scale),
+and what an absent measure is. Undefined here means the view and the export each invent an
+answer, and disagree.
 
 ### The unmapped-GL line
 Decision **0018**'s reserved bucket has no workbook leaf (it is a *tagged* target, not a
@@ -93,7 +127,7 @@ flowchart TD
 
 ## Manual Verification
 1. `npm run build:contract && npm run build:backend && npm run typecheck && npm run lint
-   && npm run format:check && npm run test:hermetic` — the four required leaves pass.
+   && npm run format:check && npm run test:hermetic` — the **five** required leaves pass.
    Check the junit report's **testcase name** is the leaf, not the file path: `junit-run`
    false-passes a nonexistent `--name` (D-0024), so an exit code proves nothing.
 2. **Against the live warehouse**, call the route for Agriculture / Nursery / DUB /
@@ -112,11 +146,15 @@ governed access, scope injection, provenance), **0023** (drift reports, never bl
 **0009** (required tests name a real leaf), **0012/0015**, **0002/0003**.
 
 ## Surface impact
-- **Backend**: a `statement-outline` repository read (NEW) with its `.interface.ts`; the
+- **Backend**: the `statement_relation` domain + measures in `semanticLayer.ts` and its
+  seeded grant in `migrate.ts` (NEW — without them the builder's branch is unreachable);
+  the mandatory bounded `LIMIT` on the statement projection in `sqlBuilder.ts`; a
+  `statement-outline` repository read keyed by period (NEW) with its `.interface.ts`; the
   statement service assembling the tree (NEW); `mis-statement.controller.ts` +
   `mis-statement.dto.ts` (NEW); module registration.
 - **Contract**: the statement tree/row types in `contract/src/api.ts` (NEW).
-- **Unchanged by design**: `buildStatementProjection` and all SQL (task 1), the
+- **Unchanged by design**: the projection's shape and its CTEs (task 1 — only the
+  bounded `LIMIT` is added), the
   `(gl_code, month)` relation, the selection/options routes, the seven gated proofs, the
   warehouse schema, every frontend file.
 
