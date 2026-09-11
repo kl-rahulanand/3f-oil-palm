@@ -1,7 +1,7 @@
 {
   "generated_by": "implementer",
-  "outcome": "The Financial MIS statement is now served. POST api/mis/statement returns Srihari's statement as a tree: the workbook outline at its natural depth, every parent a subtotal derived from its own leaves, the grand total footing, rows in outline order, each carrying its S.No, Budget Component and leaf GL. Budget, Roll-over, Actual and % come back for the selected month and FY 26-27 YTD - a single block when the selected period is itself the YTD - with money as a fixed-scale decimal string so paise survive the wire, and the unmapped-GL line visible with its own Actual counted in the total. Making it work required the governed path to exist at all: a registered statement domain with its own grant, and the bounded LIMIT the validator demands.",
+  "outcome": "The Financial MIS statement is on screen. Choosing Agriculture / Nursery / DUB and a period now draws Srihari's statement inline below the selector: the workbook's own hierarchy at its natural depth, 106 rows deep, each line carrying its S.No, Budget Component and GL code, with the month and FY-YTD blocks side by side and Roll-over held empty until his rule arrives. It reconciles exactly - July Budget Rs 1,00,50,136 against Actual Rs 1,15,12,712 at 114.6%, FY-YTD Budget Rs 2,59,13,990 - and every parent foots against its own children rather than being recomputed on the client, so the screen and the coming Excel export cannot disagree.",
   "issue": "mis-statement",
-  "commit": "b319895da88c30b3ac75b94c940683ed7d03ce8b",
-  "recorded_at": "2026-09-11T11:23:49+00:00"
+  "commit": "9142f42e6844edaff2c0b54b083b6091b4b4cd38",
+  "recorded_at": "2026-09-11T14:50:48+00:00"
 }

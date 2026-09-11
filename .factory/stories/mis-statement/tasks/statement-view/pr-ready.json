@@ -1,0 +1,7 @@
+{
+  "task_id": "statement-view",
+  "branch": "feat/mis-statement-statement-view",
+  "base_main_sha": "c248d4652a1cd53650e30e8be641526627d1f5b3",
+  "commit": "81da314ee06bcf91a708ab97810238ee162ac1b9",
+  "sealed_at": "2026-09-11T14:50:22+00:00"
+}

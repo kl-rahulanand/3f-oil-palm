@@ -1,0 +1,1 @@
+{"event": "stage-measured", "generated_by": "implementer", "at": "2026-09-11T14:50:10+00:00", "story": "mis-statement", "detail": "statement-view: statement-view changed 1 path(s) outside its declared write_scope: frontend/src/features/mis/use-mis-selection.ts; statement-view exceeds its review budget: measured files=9, lines=1107; budget files=8, lines=1500"}

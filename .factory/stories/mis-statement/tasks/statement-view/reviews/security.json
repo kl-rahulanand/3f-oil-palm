@@ -1,0 +1,29 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "statement-view",
+  "score": 10,
+  "summary": "security lens over statement-view (8 product path(s), c248d46..81da314, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows no actionable P0\u2013P2 defect. The statement request continues through the existing credentialed, CSRF-protected request path; no credentials, injection sink, authorization bypass, unsafe rendering, or excessive response handling is introduced. The view branches on the response outcome, preserves exact string-based money formatting, passes non-numeric percentages through verbatim, derives headings from date ranges, surfaces request failures as a single state, and removes the explicitly orphaned frontend compatibility surface without touching the governed backend route.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "frontend/src/features/mis/statement-view.tsx",
+    "frontend/src/features/mis/use-mis-statement.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "67cf584d9ff79566f37df40a90346ec3f5d013fa37e3b029fdeffa3de03aa8e8",
+  "brief_sha256": "e0564f7bc6c31107dd339642bb13dd97d7dcbdc39301a84688ef6084d75675c0",
+  "branch_diff_digest": "09dba1f24190ed7a710c41bf5ce40a2eaf655141b25e71945efb7b8085566b1b",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T14:50:08+00:00",
+  "commit": "81da314ee06bcf91a708ab97810238ee162ac1b9"
+}
