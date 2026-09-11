@@ -1,0 +1,45 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "drill-transactions-view",
+  "score": 8,
+  "summary": "performance lens over drill-transactions-view (8 product path(s), 9aa7e9c..f9fce31, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The core request, pagination, ordering, footer, and date-formatting paths are present, and no compatibility-only leftovers are shown. However, in-flight drills can accumulate after navigation, the transaction pager breaks the modal focus trap when its boundary buttons are disabled, and replaced-batch responses render alongside transaction data despite the one-state contract.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/features/mis",
+      "summary": "Cancel or serialize drill requests when leaving the transaction view (frontend/src/features/mis/drill-panel.tsx:107): `reset()` only resets the TanStack mutation state; it does not abort the `fetch`, and the shown API method accepts no abort signal."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/mis",
+      "summary": "Exclude disabled pager buttons from the focus-trap boundary (frontend/src/features/mis/drill-panel.tsx:85): The focus-trap query includes disabled buttons and then treats the final match as focusable."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/mis",
+      "summary": "Render replaced-batch results as a standalone state (frontend/src/features/mis/drill-panel.tsx:251): When `batchStatuses` contains replaced entries, this conditional adds a notice but execution continues into the transaction table, footer, and pagination."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/mis/drill-panel.test.tsx",
+    "frontend/src/features/mis/drill-panel.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "frontend/src/features/mis/statement-view.tsx",
+    "frontend/src/features/mis/use-mis-statement.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "0352ed882a3b2de49fadf52fa8dd406e627ac079ef2b241d988bfc4fa1ba5d8d",
+  "brief_sha256": "26e8caef37e95e9adc46d4906d91393fc9234d75eae18852b8202dc40f113b22",
+  "branch_diff_digest": "449cd753495235c32535d439b1b888dcd5742d5cd7f45eb1c32b1158fcc46c6c",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T22:07:53+00:00",
+  "commit": "f9fce31726664ecfaffbea03ab96c0ee9eb7ee64"
+}
