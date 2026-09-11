@@ -1,0 +1,128 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "actuals-drill-down makes an Actual on the Financial MIS statement clickable. Any NON-LEAF Actual opens a flattened list of all its descendant leaves, however deep the workbook outline goes; a leaf - including unmapped-GL - opens its raw transaction lines showing Month, Debit, Credit, Value, reference, memo and posting date, sorted Value down, Month down, then posting date, transaction number and line id. Budget and % never drill. The read is PINNED to the actual-batch ids the displayed statement was built from, together with its node key, resolved triples and time block, so it foots to the clicked number in EXACT PAISE even if the period has been re-uploaded - in which case it says so. It requires the same governed authorization and current plant scope as the statement and writes a pre-query fail-closed audit record; large results paginate with an exact full-result footer. The story is UI-only: the bundled transactions sheet is deferred as D-0035.",
+  "inspected_refs": [
+    "docs/specs/actuals-drill-down.md",
+    "docs/specs/financial-mis-statement.md",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "contract/src/api.ts",
+    "docs/decisions/0016-governed-joins-poc-scope.md",
+    "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
+    "docs/decisions/0021-mis-statement-outline-snapshot.md",
+    "docs/decisions/0022-mis-statement-governed-projection.md",
+    "docs/context/2026-09-01-srihari-requirements-qa.md"
+  ],
+  "new_abstractions": [
+    "a drill pinned to the displayed statement's batch ids rather than the currently active batch",
+    "any aggregate opening its flattened descendant leaves, independent of outline depth",
+    "a raw-row read path with a pre-query fail-closed audit record"
+  ],
+  "gaps": [
+    "The drill promises TWO levels, but the shipped statement mirrors the workbook outline at ARBITRARY depth - three levels under 9 Admin Expenses - so a strict one-level-per-click drill would be 3 clicks there and 2 everywhere else, and the spec never said what Grand Total or the unmapped-GL line do.",
+    "Snapshot versus active reload: a statement shows a total from its active actuals batch, but re-uploading that period replaces the batch. A drill reading the newly active rows would no longer foot to the number that was clicked - silently breaking the one acceptance criterion the spec names.",
+    "The statement spec says a bundled transactions sheet arrives 'with the drill-down capability', but this spec contains no export behaviour, no scope for it and no acceptance criteria - two confirmed specs disagreeing about what this story delivers.",
+    "'Exact transactions' had no pagination, no maximum result size, and no statement of whether the footer covers the visible page or all matches.",
+    "The footer was to equal 'the clicked Actual', but the statement aggregates in exact paise and rounds only for DISPLAY - so comparing against the displayed rupee figure lets two visually equal values conceal a real mismatch.",
+    "The drill predicate was never specified: which node, which descendant leaves, which resolved triples, which time range and which batch ids identify the rows behind a clicked number.",
+    "'RBAC-scoped and audited' is not testable as written - it names no authorization, no scope check, no audit content and no ordering between the audit write and the read.",
+    "Column semantics were undefined: what Value is, which SAP columns reference and memo come from, and what happens when two rows tie on Value and Month - so a 'deterministic sort' was not deterministic.",
+    "Acceptance coverage was thin: nothing covered a derived-group drill, an FY-YTD drill spanning several monthly batches, an unmapped-GL drill, a re-upload after display, an authorization denial proving no rows leak, or the audit write itself."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "HUMAN-decided (round): any NON-LEAF Actual opens a flattened list of ALL its descendant leaves, however deep; a leaf - including unmapped-GL - opens its raw transactions; Grand Total follows the same rule. Two levels of interaction whatever the outline depth, which is what '2-level' means in practice.",
+    "HUMAN-decided (round): the drill is PINNED to the exact actual-batch ids the displayed statement was built from, so it always foots to the number clicked. Authorization is re-checked at drill time against current plant scope, but the data is the statement's; if that batch has since been replaced, the drill SAYS SO rather than showing different numbers.",
+    "HUMAN-decided (round): this story stays UI-ONLY. The statement spec has been amended in place to defer the bundled transactions sheet to a named later capability, and the deferral is ledgered as D-0035 with a trigger. The drill already carries a new raw-row read path, an RBAC exception and an audit requirement.",
+    "Amended: large results are SERVER-PAGINATED, the response carries the total matching count, and the footer is the EXACT FULL-RESULT total rather than a page subtotal, with the visible page deterministically sorted.",
+    "Amended: footing is compared in EXACT PAISE, never the display-rounded rupees, and the acceptance criterion now says so explicitly.",
+    "Amended: the predicate is the selected node key plus its descendant leaf keys where the node is an aggregate, the master's resolved (plant, cost centre, GL) triples, the selected month or YTD range, and the pinned actual-batch ids.",
+    "Amended: the drill requires the SAME governed-financial authorization and current plant scope as the statement, and writes a PRE-QUERY, FAIL-CLOSED audit record naming the actor, the predicate and the batch ids - if the audit write fails, the read does not happen.",
+    "Amended against the real schema (backend/src/warehouse/warehouse-schema.ts, verified): Value = Debit - Credit; reference is SAP Reference 1; memo is LineMemo; and the sort is Value DESC, Month DESC, then posting_date DESC, txn_no, line_id - columns that all exist - so a page is stable across requests.",
+    "Amended: acceptance now covers leaf and derived-group footing, an FY-YTD drill across monthly batches, an unmapped-GL drill, re-upload after display, an authorization denial proving no rows leak, and the audit write ordering."
+  ],
+  "open_items": [
+    "Confirming the 2-level drill with Srihari against his single-level written spec remains the spec's own open item.",
+    "The bundled transactions sheet is deferred as D-0035 with a trigger.",
+    "This story deliberately exposes raw rows - an explicit exception to the aggregate-only suppression rules - so its security review is load-bearing."
+  ],
+  "rounds": [
+    {
+      "question": "The spec promises a '2-level drill' (group \u2192 sub-lines \u2192 transactions), but the statement we shipped mirrors the workbook's outline at ARBITRARY depth \u2014 Admin Expenses is three levels deep. So clicking an Actual at the top of Admin has two levels below it, not one. What should clicking an aggregate Actual do?",
+      "options": [
+        "Any aggregate opens its leaf sub-lines (Recommended)",
+        "Strictly one level down each click",
+        "Every aggregate goes straight to transactions"
+      ],
+      "chosen": "Any aggregate opens its leaf sub-lines (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "The statement's acceptance criterion is that line items foot EXACTLY to the clicked Actual. But if someone re-uploads the July actuals while a statement is on screen, the drill would read the newly active batch and no longer foot. What should the drill read?",
+      "options": [
+        "Pin to the statement's batch (Recommended)",
+        "Always read the currently active batch",
+        "Pin to the batch, and block the drill if it was replaced"
+      ],
+      "chosen": "Pin to the statement's batch (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "The statement spec says a bundled transactions sheet arrives 'with the drill-down capability', but the drill-down spec itself describes no export at all. Should this story include exporting transactions to Excel?",
+      "options": [
+        "No \u2014 keep this story UI-only (Recommended)",
+        "Yes \u2014 include a transactions sheet in the export",
+        "Yes, but only the currently drilled line items"
+      ],
+      "chosen": "No \u2014 keep this story UI-only (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The drill promises TWO levels, but the shipped statement mirrors the workbook outline at ARBITRARY depth - three levels under 9 Admin Expenses - so a strict one-level-per-click drill would be 3 clicks there and 2 everywhere else, and the spec never said what Grand Total or the unmapped-GL line do.",
+      "source": "docs/specs/financial-mis-statement.md (arbitrary-depth outline); docs/specs/actuals-drill-down.md"
+    },
+    {
+      "finding": "Snapshot versus active reload: a statement shows a total from its active actuals batch, but re-uploading that period replaces the batch. A drill reading the newly active rows would no longer foot to the number that was clicked - silently breaking the one acceptance criterion the spec names.",
+      "source": "backend/src/warehouse/warehouse-schema.ts (ingest_batch.is_active)"
+    },
+    {
+      "finding": "The statement spec says a bundled transactions sheet arrives 'with the drill-down capability', but this spec contains no export behaviour, no scope for it and no acceptance criteria - two confirmed specs disagreeing about what this story delivers.",
+      "source": "docs/specs/financial-mis-statement.md:36"
+    },
+    {
+      "finding": "'Exact transactions' had no pagination, no maximum result size, and no statement of whether the footer covers the visible page or all matches.",
+      "source": "docs/specs/actuals-drill-down.md"
+    },
+    {
+      "finding": "The footer was to equal 'the clicked Actual', but the statement aggregates in exact paise and rounds only for DISPLAY - so comparing against the displayed rupee figure lets two visually equal values conceal a real mismatch.",
+      "source": "docs/specs/financial-mis-statement.md (rounding after aggregation)"
+    },
+    {
+      "finding": "The drill predicate was never specified: which node, which descendant leaves, which resolved triples, which time range and which batch ids identify the rows behind a clicked number.",
+      "source": "docs/specs/actuals-drill-down.md"
+    },
+    {
+      "finding": "'RBAC-scoped and audited' is not testable as written - it names no authorization, no scope check, no audit content and no ordering between the audit write and the read.",
+      "source": "docs/specs/actuals-drill-down.md"
+    },
+    {
+      "finding": "Column semantics were undefined: what Value is, which SAP columns reference and memo come from, and what happens when two rows tie on Value and Month - so a 'deterministic sort' was not deterministic.",
+      "source": "backend/src/warehouse/warehouse-schema.ts (sap_transaction columns)"
+    },
+    {
+      "finding": "Acceptance coverage was thin: nothing covered a derived-group drill, an FY-YTD drill spanning several monthly batches, an unmapped-GL drill, a re-upload after display, an authorization denial proving no rows leak, or the audit write itself.",
+      "source": "docs/specs/actuals-drill-down.md"
+    }
+  ],
+  "summary": "One cold read returned nine findings against the confirmed spec and left it NOT CONVERGED on four. Six were repository-answerable and are resolved in the amended spec: footing is compared in EXACT PAISE rather than the statement's display-rounded rupees, since the statement rounds only after aggregating and two visually equal figures can hide a mismatch; the drill predicate is spelled out; 'RBAC-scoped and audited' becomes a testable requirement with a pre-query fail-closed audit record; column semantics and a deterministic tie-break are pinned against the real schema, which I checked rather than assumed; large results paginate with an exact full-result footer; and acceptance now covers derived-group footing, an FY-YTD drill across batches, unmapped-GL, re-upload after display, an authorization denial proving no rows leak, and the audit write. Three were genuine product decisions and went to the human: any aggregate opens its flattened descendant leaves whatever the outline depth; the drill is PINNED to the displayed statement's batch so it always foots, saying so if that batch was replaced; and the story stays UI-only, with the statement spec amended in place and the bundled transactions sheet deferred as D-0035. Verdict pass.",
+  "issue": "drill-down",
+  "input_sha256": "4d67f9778004afdaef7bbe9d9e8192d23d4aa12af1bca197dc2978d456c3e4a2",
+  "recorded_at": "2026-09-11T17:36:13+00:00",
+  "commit": "7f10afb78c0be4f86268289a14a2cd9bbae04dc7"
+}
