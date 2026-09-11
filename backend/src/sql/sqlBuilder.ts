@@ -191,11 +191,12 @@ export class SqlBuilder {
   WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
     AND month >= ${periodStart} AND month < ${periodEnd}
 ), outline_order AS (
-  SELECT outline.leaf_key, batch.period AS month, outline.sort_order
+  SELECT outline.leaf_key, MIN(outline.sort_order) AS sort_order
   FROM mis_budget_outline AS outline
   INNER JOIN ingest_batch AS batch ON batch.id = outline.batch_id
   WHERE batch.source_kind = 'budget' AND batch.is_active AND outline.leaf_key IS NOT NULL
     AND batch.period >= ${periodStart} AND batch.period < ${periodEnd}
+  GROUP BY outline.leaf_key
 ), statement_relation AS (
   SELECT COALESCE(actual_src.leaf_key, budget_src.leaf_key) AS leaf_key,
     COALESCE(actual_src.month, budget_src.month) AS month,
@@ -223,22 +224,28 @@ export class SqlBuilder {
       AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
       AND budget_batch.is_active
 )
-SELECT relation.leaf_key, relation.month, relation.actual_net, relation.budget_net, relation.rollover_net,
+SELECT relation.leaf_key, ${periodStart}::date AS month,
+  SUM(relation.actual_net)::numeric(18,2) AS actual_net,
+  SUM(relation.budget_net)::numeric(18,2) AS budget_net,
+  SUM(relation.rollover_net)::numeric(18,2) AS rollover_net,
   CASE
-    WHEN relation.budget_net = 0 AND relation.actual_net = 0 THEN NULL
-    WHEN relation.budget_net = 0 AND relation.actual_net > 0 THEN 'over-budget'
-    WHEN relation.budget_net = 0 AND relation.actual_net < 0 THEN 'credit / negative actual'
-    ELSE (relation.actual_net / relation.budget_net)::text
+    WHEN SUM(relation.budget_net) = 0 AND SUM(relation.actual_net) = 0 THEN NULL
+    WHEN SUM(relation.budget_net) = 0 AND SUM(relation.actual_net) > 0 THEN 'over-budget'
+    WHEN SUM(relation.budget_net) = 0 AND SUM(relation.actual_net) < 0 THEN 'credit / negative actual'
+    ELSE (SUM(relation.actual_net) / SUM(relation.budget_net))::text
   END AS percentage,
-  jsonb_build_array(relation.source_presence)::text AS source_presence,
-  ((CASE WHEN relation.actual_batch_id IS NULL THEN '[]'::jsonb ELSE jsonb_build_array(jsonb_build_object(
-    'source', 'actuals', 'period', relation.month::text, 'batchId', relation.actual_batch_id)) END) ||
-   (CASE WHEN relation.budget_batch_id IS NULL THEN '[]'::jsonb ELSE jsonb_build_array(jsonb_build_object(
-    'source', 'budget', 'period', relation.month::text, 'batchId', relation.budget_batch_id)) END))::text AS active_batch_ids
+  jsonb_agg(DISTINCT relation.source_presence)::text AS source_presence,
+  (COALESCE(jsonb_agg(DISTINCT jsonb_build_object(
+    'source', 'actuals', 'period', relation.month::text, 'batchId', relation.actual_batch_id))
+      FILTER (WHERE relation.actual_batch_id IS NOT NULL), '[]'::jsonb) ||
+   COALESCE(jsonb_agg(DISTINCT jsonb_build_object(
+    'source', 'budget', 'period', relation.month::text, 'batchId', relation.budget_batch_id))
+      FILTER (WHERE relation.budget_batch_id IS NOT NULL), '[]'::jsonb))::text AS active_batch_ids
 FROM statement_relation AS relation
 LEFT JOIN outline_order AS outline
-  ON outline.leaf_key = relation.leaf_key AND outline.month = relation.month
-ORDER BY relation.month, outline.sort_order NULLS LAST, relation.leaf_key
+  ON outline.leaf_key = relation.leaf_key
+GROUP BY relation.leaf_key, outline.sort_order
+ORDER BY outline.sort_order NULLS LAST, relation.leaf_key
 LIMIT ${loadConfig().maxRows}`;
 
     return {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AuthUser, MisSelectionRunRequest, ProvenanceBatch, SourcePresence } from "@3f/contract";
 import type { SelectionExecutor } from "../chat/selectionExecutor";
+import { loadConfig } from "../config";
 import type { ISelectionResolverService, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import type { IStatementOutlineRepository, StatementOutlineNode } from "../warehouse/statement-outline.interface";
@@ -111,9 +112,37 @@ test("the unmapped GL line is present with its own actual and zero budget counte
   assert.deepEqual(response.provenance.activeBatchIds, [actualBatch, budgetBatch]);
 });
 
-function fixture(options: { includeUnmapped?: boolean; activeBatchIds?: ProvenanceBatch[] } = {}) {
+test("the statement fails closed when the governed projection reaches its configured row limit", async () => {
+  const { service } = fixture({ rowCount: loadConfig().maxRows });
+
+  await assert.rejects(service.run(user, request("fy26-27-ytd")), /exceeded the configured row limit/);
+});
+
+test("a zero-budget parent derives its percentage label from its aggregate actual", async () => {
+  const { service } = fixture({ mixedZeroBudget: true });
+  const response = await service.run(user, request("fy26-27-ytd"));
+
+  assert.equal(response.outcome, "resolved");
+  if (response.outcome !== "resolved") return;
+  assert.equal(response.tree[1].measures[0].actual, "-10.00");
+  assert.equal(response.tree[1].measures[0].percentage, "credit / negative actual");
+});
+
+function fixture(
+  options: {
+    includeUnmapped?: boolean;
+    activeBatchIds?: ProvenanceBatch[];
+    rowCount?: number;
+    mixedZeroBudget?: boolean;
+  } = {},
+) {
   const resolver = new FakeResolver();
-  const executor = new FakeExecutor(options.includeUnmapped ?? false, options.activeBatchIds ?? []);
+  const executor = new FakeExecutor(
+    options.includeUnmapped ?? false,
+    options.activeBatchIds ?? [],
+    options.rowCount,
+    options.mixedZeroBudget ?? false,
+  );
   const outlines = new FakeOutlines();
   const service = new MisStatementService(
     resolver,
@@ -168,6 +197,8 @@ class FakeExecutor {
   constructor(
     private readonly includeUnmapped: boolean,
     private readonly activeBatchIds: ProvenanceBatch[],
+    private readonly rowCount?: number,
+    private readonly mixedZeroBudget = false,
   ) {}
 
   authorize(): void {}
@@ -177,7 +208,7 @@ class FakeExecutor {
     const to = selection.timeWindow?.to ?? "";
     this.calls.push({ from, to });
     const ytd = from === "2026-04-01";
-    const rows: Array<Record<string, string | number | null>> = [
+    let rows: Array<Record<string, string | number | null>> = [
       {
         leaf_key: "shade",
         actual_net: ytd ? "20.20" : "10.10",
@@ -197,6 +228,18 @@ class FakeExecutor {
         percentage: "0.5",
       },
     ];
+    if (this.mixedZeroBudget) {
+      rows = [
+        { leaf_key: "shade", actual_net: "0.00", budget_net: "0.00", percentage: null },
+        { leaf_key: "diesel", actual_net: "10.00", budget_net: "0.00", percentage: "over-budget" },
+        {
+          leaf_key: "repairs",
+          actual_net: "-20.00",
+          budget_net: "0.00",
+          percentage: "credit / negative actual",
+        },
+      ];
+    }
     const rowSourcePresence: SourcePresence[] = ["matched", "matched", "matched"];
     if (this.includeUnmapped) {
       rows.push({
@@ -207,7 +250,19 @@ class FakeExecutor {
       });
       rowSourcePresence.push("actual-only");
     }
-    return { result: { columns: [], rows }, rowSourcePresence, activeBatchIds: this.activeBatchIds };
+    if (this.rowCount !== undefined) {
+      rows = Array.from({ length: this.rowCount }, (_, index) => ({
+        leaf_key: `leaf-${index}`,
+        actual_net: "0.00",
+        budget_net: "0.00",
+        percentage: null,
+      }));
+    }
+    return {
+      result: { columns: [], rows },
+      rowSourcePresence: this.rowCount === undefined ? rowSourcePresence : Array(this.rowCount).fill("matched"),
+      activeBatchIds: this.activeBatchIds,
+    };
   }
 }
 

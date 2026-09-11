@@ -253,7 +253,9 @@ export interface MisSelectionUnresolvableResponse {
 
 export type MisSelectionRunResponse = MisSelectionResolvedResponse | MisSelectionUnresolvableResponse;
 
-export type FixedScaleMoney = `${number}.${number}`;
+type DecimalDigit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+
+export type FixedScaleMoney = `${bigint}.${DecimalDigit}${DecimalDigit}`;
 
 export interface MisStatementMeasureBlock {
   key: "selected" | "fy26-27-ytd";

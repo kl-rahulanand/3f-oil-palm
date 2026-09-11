@@ -32,7 +32,10 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   assert.match(statement.sql, /COALESCE\(budget_src\.budget_net, 0\)::numeric\(18,2\)/);
   assert.match(statement.sql, /outline\.batch_id/);
   assert.doesNotMatch(statement.sql, /actual_batch\.plant|budget_batch\.plant/);
-  assert.match(statement.sql, /ORDER BY relation\.month, outline\.sort_order NULLS LAST, relation\.leaf_key/);
+  assert.match(statement.sql, /GROUP BY relation\.leaf_key, outline\.sort_order/);
+  assert.match(statement.sql, /SUM\(relation\.actual_net\)::numeric\(18,2\) AS actual_net/);
+  assert.match(statement.sql, /jsonb_agg\(DISTINCT relation\.source_presence\)/);
+  assert.match(statement.sql, /ORDER BY outline\.sort_order NULLS LAST, relation\.leaf_key/);
 
   const shipped = builder.build(domain, selection, user, true, scope);
   assert.match(shipped.sql, /GROUP BY gl_code, month/);

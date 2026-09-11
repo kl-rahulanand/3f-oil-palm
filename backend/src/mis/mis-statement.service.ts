@@ -12,6 +12,7 @@ import type {
   SourcePresence,
 } from "@3f/contract";
 import { SelectionExecutionBlockedError, SelectionExecutor } from "../chat/selectionExecutor";
+import { loadConfig } from "../config";
 import { SelectionPeriodUnavailableError, SelectionResolverService } from "../mapping/selection-resolver.service";
 import type { ISelectionResolverService, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
@@ -140,6 +141,9 @@ export class MisStatementService implements IMisStatementService {
         },
       },
     );
+    if (execution.result.rows.length >= loadConfig().maxRows) {
+      throw new SelectionExecutionBlockedError("MIS statement exceeded the configured row limit");
+    }
     const byLeaf = new Map<string, Amounts>();
     execution.result.rows.forEach((row, index) => {
       if (typeof row.leaf_key !== "string") return;
@@ -263,7 +267,6 @@ function sumAmounts(nodes: MutableNode[], index: number): Amounts {
     const amount = node.amounts[index] ?? emptyAmounts();
     total.actual += amount.actual;
     total.budget += amount.budget;
-    total.labels.push(...amount.labels);
     total.sourcePresence = mergePresence(total.sourcePresence, amount.sourcePresence);
     return total;
   }, emptyAmounts());
