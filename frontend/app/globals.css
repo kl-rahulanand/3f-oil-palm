@@ -948,7 +948,9 @@ button {
   font-weight: var(--weight-h1);
 }
 .mis-drill-foot small {
-  display: block;
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
   margin-top: 2px;
   color: var(--kl-caption-ui);
   font-family: var(--font-mono);

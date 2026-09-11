@@ -259,7 +259,7 @@ function MeasureCells({
   );
 }
 
-function formatBlockHeading(block: MisStatementMeasureBlock): string {
+export function formatBlockHeading(block: MisStatementMeasureBlock): string {
   const to = dateAtUtc(block.to);
   if (block.from.slice(0, 7) !== block.to.slice(0, 7)) {
     const startYear = Number(block.from.slice(0, 4));
@@ -276,10 +276,19 @@ export function formatMoney(value: FixedScaleMoney): string {
   const negative = value.startsWith("-");
   const [whole, paise] = value.replace("-", "").split(".");
   const rounded = BigInt(whole) + (paise >= "50" ? BigInt(1) : BigInt(0));
-  const digits = rounded.toString();
+  return `${negative && rounded !== BigInt(0) ? "−" : ""}₹${formatRupeeDigits(rounded.toString())}`;
+}
+
+export function formatExactMoney(value: FixedScaleMoney): string {
+  const negative = value.startsWith("-");
+  const [whole, paise] = value.replace("-", "").split(".");
+  return `${negative && (whole !== "0" || paise !== "00") ? "−" : ""}₹${formatRupeeDigits(whole)}.${paise}`;
+}
+
+function formatRupeeDigits(digits: string): string {
   const lastThree = digits.slice(-3);
   const leading = digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",");
-  return `${negative && rounded !== BigInt(0) ? "−" : ""}₹${leading ? `${leading},` : ""}${lastThree}`;
+  return `${leading ? `${leading},` : ""}${lastThree}`;
 }
 
 export function formatPercentage(value: string | null): string {

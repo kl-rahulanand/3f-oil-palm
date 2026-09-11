@@ -2,7 +2,7 @@
 
 import type { FixedScaleMoney, MisStatementMeasureBlock, MisStatementNode } from "@3f/contract";
 import { useEffect, useRef, type KeyboardEvent } from "react";
-import { formatMoney, formatPercentage } from "./statement-view";
+import { formatBlockHeading, formatExactMoney, formatMoney, formatPercentage } from "./statement-view";
 
 export interface DrillPanelSelection {
   node: MisStatementNode;
@@ -24,9 +24,7 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
   const budgetPaise = measures.reduce((total, measure) => total + toPaise(measure.budget), ZERO);
   const actualPaise = measures.reduce((total, measure) => total + toPaise(measure.actual), ZERO);
   const clickedMeasure = measureFor(selection.node, selection.blockKey);
-  if (budgetPaise !== toPaise(clickedMeasure.budget) || actualPaise !== toPaise(clickedMeasure.actual)) {
-    throw new Error("Drill panel totals do not foot to the clicked statement node");
-  }
+  const foots = budgetPaise === toPaise(clickedMeasure.budget) && actualPaise === toPaise(clickedMeasure.actual);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -86,7 +84,7 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
             <div className="mis-drill-total">
               <strong>{formatMoney(clickedMeasure.actual)}</strong>
               <span>
-                {clickedMeasure.label} · {leaves.length} {leaves.length === 1 ? "line" : "lines"}
+                {formatBlockHeading(clickedMeasure)} · {leaves.length} {leaves.length === 1 ? "line" : "lines"}
               </span>
             </div>
           </div>
@@ -128,18 +126,33 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
               })}
               <tr className="mis-drill-foot" aria-label="Total">
                 <th colSpan={2} scope="row">
-                  Total
+                  {foots ? "Total" : "Total withheld"}
                 </th>
                 <td />
-                <td data-numeric="true">
-                  {formatMoney(fromPaise(budgetPaise))}
-                  <small>{fromPaise(budgetPaise)} exact</small>
-                </td>
-                <td data-numeric="true">
-                  {formatMoney(fromPaise(actualPaise))}
-                  <small>{fromPaise(actualPaise)} exact</small>
-                </td>
-                <td data-numeric="true">{derivedPercentage(budgetPaise, actualPaise)}</td>
+                {foots ? (
+                  <>
+                    <td data-numeric="true">
+                      {formatMoney(fromPaise(budgetPaise))}
+                      <small>
+                        <span>{formatExactMoney(fromPaise(budgetPaise))}</span>
+                        <span>exact</span>
+                      </small>
+                    </td>
+                    <td data-numeric="true">
+                      {formatMoney(fromPaise(actualPaise))}
+                      <small>
+                        <span>{formatExactMoney(fromPaise(actualPaise))}</span>
+                        <span>exact</span>
+                      </small>
+                    </td>
+                    <td data-numeric="true">{derivedPercentage(budgetPaise, actualPaise)}</td>
+                  </>
+                ) : (
+                  <td colSpan={3} role="alert">
+                    The descendant leaves do not foot to this statement line’s Budget and Actual, so the total is
+                    withheld.
+                  </td>
+                )}
               </tr>
             </tbody>
           </table>

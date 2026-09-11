@@ -65,7 +65,7 @@ test("a non leaf actual opens the panel on all its descendant leaves and the tot
     expect.stringContaining("Stationery"),
   ]);
   expect(dialog).not.toHaveTextContent("Vehicle Maintenance");
-  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("30.06 exact");
+  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("₹30.06exact");
   expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("₹30");
 });
 
@@ -75,8 +75,9 @@ test("the panel renders the clicked measure block and foots to it when the finan
 
   const dialog = screen.getByRole("dialog", { name: "Admin Expenses" });
   expect(within(dialog).getByRole("row", { name: /Diesel/ })).toHaveTextContent("₹20");
-  expect(dialog).toHaveTextContent("raw ytd label");
-  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("60.12 exact");
+  expect(dialog).toHaveTextContent("FY 26-27 (YTD to Jul)");
+  expect(dialog).not.toHaveTextContent("raw ytd label");
+  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("₹60.12exact");
 });
 
 test("the grand total opens the flattened roots of the statement tree including the unmapped gl line and foots to the grand total", () => {
@@ -86,7 +87,32 @@ test("the grand total opens the flattened roots of the statement tree including 
 
   const dialog = screen.getByRole("dialog", { name: "Grand Total" });
   expect(within(dialog).getByRole("row", { name: /unmapped-GL/ })).toBeInTheDocument();
-  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("32.07 exact");
+  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("₹32.07exact");
+});
+
+test("the exact paise line uses indian money grouping and labels the value without trailing prose", () => {
+  const leaf = node("large-leaf", "1.1", "Large leaf", "5001", "10050136.29", "10050136.29", "0.00", "0.00");
+  const parent = node("large-parent", "1", "Large parent", null, "10050136.29", "10050136.29", "0.00", "0.00", [leaf]);
+  renderWithQuery(<StatementView response={{ ...response, tree: [parent], grandTotal: parent }} />);
+  openActual("Large parent", 0);
+
+  const exact = within(screen.getByRole("row", { name: "Total" })).getAllByText("exact");
+  expect(exact[0].previousElementSibling).toHaveTextContent("₹1,00,50,136.29");
+  expect(exact[1].previousElementSibling).toHaveTextContent("₹1,00,50,136.29");
+});
+
+test("a footing mismatch keeps the leaf rows visible and withholds the unverifiable total", () => {
+  const divergentAdmin = { ...admin, measures: [measure("selected", "60.06", "30.07"), admin.measures[1]] };
+  renderWithQuery(<StatementView response={{ ...response, tree: [divergentAdmin, unmapped] }} />);
+  openActual("Admin Expenses", 0);
+
+  const dialog = screen.getByRole("dialog", { name: "Admin Expenses" });
+  expect(within(dialog).getByRole("row", { name: /Diesel/ })).toBeInTheDocument();
+  expect(within(dialog).getByRole("row", { name: /Stationery/ })).toBeInTheDocument();
+  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("Total withheld");
+  expect(within(dialog).getByRole("alert")).toHaveTextContent(
+    "The descendant leaves do not foot to this statement line’s Budget and Actual, so the total is withheld.",
+  );
 });
 
 test("the total row derives its percentage by the statement nil rules for a zero budget with no actual a positive actual and a negative actual", () => {

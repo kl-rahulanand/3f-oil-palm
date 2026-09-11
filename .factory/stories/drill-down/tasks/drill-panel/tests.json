@@ -1,0 +1,78 @@
+{
+  "commit": "4f95238cadee9759fb9568a4f5437dbe43933eb6",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "passed",
+    "score": 9,
+    "summary": "Live check against this worktree's own servers (backend cwd verified as this checkout, frontend restarted clean after an HMR artifact). Generated the Agriculture / Nursery / DUB / 2026-07-01 statement and exercised every contract. Clicking 9 Admin Expenses' Actual opens 37 DESCENDANT leaves - first row 'Petrol and Diesel Charges' GL 55010901, a grandchild under 9.01 Vehicle Maintenance - proving the flatten does not stop at children, and the Total reads the clicked figure. The Grand Total opens 81 flattened roots including the unmapped-GL line and foots to Budget 1,00,50,136.29 and Actual 1,15,12,712.07, the exact demo-ready values the statement spec names. The panel is block-sensitive: the FY 26-27 YTD block shows Budget 44,26,500 against July's 1,32,000 for the same node. Of 106 statement rows exactly 25 carry an Actual control - the non-leaf nodes - and Budget, Roll-over and % expose no button, no tabbable element and no pointer cursor anywhere; leaf Actuals are plain text as the human settled, and the 'Click any Actual' copy is correctly absent until task 3. Escape closes the panel, a scrim click closes it, and focus returns to the opening button. The prototype's motion is live: computed animationName is 'slidein' on the panel and 'fadein' on the scrim.",
+    "manual_validation_steps": [
+      "Confirmed the dev servers are THIS worktree before trusting anything: backend process cwd resolves to this checkout's backend directory, frontend restarted from this tree.",
+      "Generated the statement for Agriculture / Nursery / DUB / 2026-07-01 and confirmed 106 rows render.",
+      "Clicked 9 Admin Expenses' July Actual: 37 descendant leaves listed, first row a third-level GL leaf, Total 5,14,749 equal to the clicked cell, chip reads 'Statement outline order'.",
+      "Clicked the same node's FY 26-27 YTD Actual: Budget 44,26,500 rather than July's 1,32,000, proving the panel reads the clicked block and not measures[0].",
+      "Clicked the Grand Total: 81 flattened roots including unmapped-GL, footing to 1,00,50,136.29 / 1,15,12,712.07.",
+      "Probed Budget, Roll-over and % cells: no button, no tabbable descendant, cursor auto, no click handler. Probed a leaf row's Actual: no button, cursor auto.",
+      "Escape closed the panel and focus returned to a button; a scrim click closed it too.",
+      "Read computed styles: .mis-drill-panel animationName 'slidein', .mis-drill-scrim animationName 'fadein'.",
+      "Re-ran the whole flow after the ISO-label fix and confirmed the meta line reads 'July 2026 - 37 lines'."
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The statement's S.No column shows '31' for the Land Levelling line. This is the workbook's own malformed value, already ledgered as D-0034, not a panel defect.",
+      "The frontend dev server needed a restart mid-check after Fast Refresh corrupted its bundle following many consecutive edits ('__webpack' TypeError, HTTP 500). Nothing in the shipped code; noted so a future check does not misread it as a regression."
+    ],
+    "residual_risks": [
+      "Design parity was judged against docs/design/3F-Financial-MIS with two departures recorded in the task plan and approved by the human: the sort chip reads 'Statement outline order' rather than the prototype's 'Actual descending' (which would misdescribe outline-ordered rows), and the 'Click any Actual to see its transactions' copy is held for task 3.",
+      "The exact-paise secondary line is new UI with no prototype counterpart; it follows the statement's rupee and Indian-grouping convention with the paise retained."
+    ],
+    "recommendation": "approve",
+    "reviewed_scope": [
+      "frontend/src/features/mis/drill-panel.tsx",
+      "frontend/src/features/mis/statement-view.tsx",
+      "frontend/app/globals.css"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-11T21:03:08+00:00",
+    "commit": "4f95238cadee9759fb9568a4f5437dbe43933eb6"
+  },
+  "updated_at": "2026-09-11T21:04:25+00:00",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All five verify commands and all seven required test leaves pass, each confirmed by reading the junit testcase name and a non-zero executed count rather than the exit code (vitest exits 0 having asserted nothing when -t matches no leaf, D-0031). The leaves cover the descendant flatten and its paise-exact footing three levels deep, the clicked-block case against a divergent FY-YTD fixture, the Grand Total special case over response.tree roots, the derived zero-budget percentage labels, a spy proving zero API calls, the full dialog contract (initial focus, Escape, scrim click, Tab and Shift+Tab trap, focus return), and the inertness of Budget, Roll-over, % and leaf Actuals. Design work was done under emil-design-eng and frontend-design: both found real defects that were fixed by the implementer rather than waved through.",
+    "pass_fail_summary": "frontend: 35 tests passed, 0 failed; required leaves: 7/7 executed under their exact testcase name; typecheck, lint, format:check and the production build all clean",
+    "commands_run": [
+      "npm run typecheck",
+      "npm run lint",
+      "npm run format:check",
+      "npm run test:frontend",
+      "npm run build:frontend"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/mis/drill-panel.test.tsx",
+      "frontend/src/features/mis/statement-view.test.tsx"
+    ],
+    "blocking_findings": [],
+    "remaining_gaps": [
+      "Leaf Actuals are inert and the prototype's 'Click any Actual to see its transactions' copy is absent by design, both settled by the human at the task grill; task 3 upgrades the cells and adds the copy together."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "reviewed_scope": [
+      "frontend/src/features/mis/drill-panel.tsx",
+      "frontend/src/features/mis/drill-panel.test.tsx",
+      "frontend/src/features/mis/statement-view.tsx",
+      "frontend/src/features/mis/statement-view.test.tsx",
+      "frontend/app/globals.css"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-11T21:04:25+00:00",
+    "commit": "4f95238cadee9759fb9568a4f5437dbe43933eb6"
+  }
+}
