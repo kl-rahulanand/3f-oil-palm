@@ -1,0 +1,29 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "statement-view",
+  "score": 10,
+  "summary": "security lens over statement-view (8 product path(s), c248d46..c55fc7e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 defect. The new statement request uses the existing credentialed, CSRF-protected API path; React safely renders server-provided text; unresolvable outcomes suppress the table; monetary strings avoid floating-point arithmetic; and no changed line introduces a credential, authorization bypass, injection sink, or compatibility shim.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "frontend/src/features/mis/statement-view.tsx",
+    "frontend/src/features/mis/use-mis-statement.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "57e18906ecdedccba9bb0d2d1a89e902c0afbe291abcd5a81600cc4c812b2918",
+  "brief_sha256": "230c6b5cc4af352dd20bda518e236be4c2e9057919028aba748c698ece1e9020",
+  "branch_diff_digest": "449f7737349171f17414c9d771645493fa04eedb982a5ea4191ebd1b526bbd97",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T14:36:26+00:00",
+  "commit": "c55fc7e4b2b23459da7130cbcaf8ded818c8c972"
+}
