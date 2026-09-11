@@ -53,6 +53,7 @@ export class SelectionExecutor {
     opts: {
       beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>;
       resolvedScope?: GovernedSelectionScope;
+      includeTotals?: boolean;
     } = {},
   ): Promise<SelectionExecutionResult> {
     const appliedTimeWindow = resolveTimeWindow(
@@ -82,7 +83,7 @@ export class SelectionExecutor {
       opts.resolvedScope,
     );
     const totals =
-      resolvedSelection.dimensionIds.length > 0
+      opts.includeTotals !== false && resolvedSelection.dimensionIds.length > 0
         ? await this.totalsFor(user, domain, resolvedSelection, opts.beforeExecute, opts.resolvedScope)
         : undefined;
 

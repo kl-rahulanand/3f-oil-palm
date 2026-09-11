@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-11T09:29:23+00:00", "story": "mis-statement", "detail": "statement-api must extend contract/src/measure.ts because DomainSpec.composed.joinKeys is hard-coded to gl_code/month while decision 0022 requires the registered statement domain to declare leaf_key/m"}

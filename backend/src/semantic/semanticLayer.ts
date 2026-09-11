@@ -67,6 +67,33 @@ END`,
         { id: "month", label: "Month", column: "month" },
       ],
     },
+    {
+      name: "mis-statement",
+      label: "MIS statement",
+      goldObject: "statement_relation",
+      composed: {
+        sources: ["actual_by_key_month", "budget_by_leaf_month"],
+        joinKeys: ["leaf_key", "month"],
+      },
+      scopeColumn: "plant",
+      routingHints: ["MIS statement", "financial statement", "budget statement"],
+      measures: [
+        statementMeasure("actual_net", "Actual", "SUM(actual_net)"),
+        statementMeasure("budget_net", "Budget", "SUM(budget_net)"),
+        statementMeasure("rollover_net", "Roll-over", "SUM(rollover_net)"),
+        statementMeasure(
+          "percentage",
+          "%",
+          `CASE
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) = 0 THEN NULL
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) > 0 THEN 'over-budget'
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) < 0 THEN 'credit / negative actual'
+  ELSE (SUM(actual_net) / SUM(budget_net))::text
+END`,
+        ),
+      ],
+      dimensions: [{ id: "leaf_key", label: "Statement leaf", column: "leaf_key" }],
+    },
   ];
 
   constructor(@Optional() private readonly authored?: AuthoredMeasureRegistry) {}
@@ -103,4 +130,19 @@ END`,
     const authored = this.authored?.published(domain.name) ?? [];
     return authored.length ? { ...domain, measures: [...domain.measures, ...authored] } : domain;
   }
+}
+
+function statementMeasure(id: string, label: string, expr: string): MeasureSpec {
+  return {
+    id: `mis-statement.${id}`,
+    label,
+    goldObject: "statement_relation",
+    expr,
+    grain: "statement leaf and period range",
+    impliedFilters: [],
+    allowedDimensions: ["leaf_key"],
+    timeColumn: "month",
+    defaultTimeGrain: "month",
+    piiSensitive: false,
+  };
 }

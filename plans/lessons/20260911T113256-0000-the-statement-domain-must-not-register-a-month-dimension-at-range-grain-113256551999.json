@@ -1,0 +1,13 @@
+{
+  "topic": "the statement domain must not register a month dimension at range grain",
+  "lesson": "BLOCKING (contract verdict t-sa-c1 partial). The statement domain still declares a 'month' dimension, and sqlBuilder.ts:184 projects it as periodStart::date AS month. That was honest at leaf/MONTH grain, but the projection now aggregates over a period RANGE, so an April-to-July block returns a row labelled '2026-04-01' - the statement claims a single month for figures spanning four. A single date cannot represent a range. Remove 'month' from the statement domain's dimensions in semanticLayer.ts and drop the periodStart special case from the projection: the block already carries its own from and to in MisStatementMeasureBlock, which is where the period belongs. Leaf_key remains the only statement dimension. Update the statement tests and the gated proof to stop selecting a month dimension. A registered dimension that cannot be projected truthfully is worse than an absent one, because consumers will believe it.",
+  "source": "autoreview contract verdict t-sa-c1 partial; sqlBuilder.ts:184",
+  "applies_to": [
+    "backend/src/semantic/**",
+    "backend/src/sql/**",
+    "backend/src/mis/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T11:32:56+00:00"
+}

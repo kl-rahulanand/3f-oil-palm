@@ -1,0 +1,12 @@
+{
+  "topic": "the statement domain needs a widened joinKeys literal",
+  "lesson": "contract/src/measure.ts:59 types DomainSpec.composed.joinKeys as the literal tuple ['gl_code', 'month']. The statement_relation domain that decision 0022 requires joins on leaf_key and month, so it cannot be declared until that type admits the statement grain. contract/src/measure.ts is AUTHORIZED in scope for statement-api. Widen it precisely - a readonly tuple union that admits ['leaf_key','month'] alongside ['gl_code','month'] - and do NOT loosen it to string[]: the literal type is what prevents a domain declaring a join the builder cannot honour. The existing composed governed-financial domain must still type-check unchanged, which is decision 0022's promise that the (gl_code, month) relation is untouched.",
+  "source": "signal S-0002-47a9; contract/src/measure.ts:59",
+  "applies_to": [
+    "contract/src/**",
+    "backend/src/semantic/**"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T09:29:55+00:00"
+}

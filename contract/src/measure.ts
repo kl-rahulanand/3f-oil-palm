@@ -56,7 +56,7 @@ export interface DomainSpec {
   /** Builder-only marker for the governed Actual/Budget relation. */
   composed?: {
     sources: [actual: string, budget: string];
-    joinKeys: ["gl_code", "month"];
+    joinKeys: ["gl_code", "month"] | ["leaf_key", "month"];
   };
   /** Column used to compute the gold object's data freshness watermark. */
   freshnessColumn?: string;

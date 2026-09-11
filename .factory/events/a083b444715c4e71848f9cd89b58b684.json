@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-11T10:43:35+00:00", "story": "mis-statement", "detail": "S-0005-b2b4: AUTHORIZED, with constraints. Verified at selectionExecutor.ts:84-87: whenever dimensionIds is non-empty the executor runs a SECOND ungrouped query via totalsFor, so the statement would issue two quer"}
