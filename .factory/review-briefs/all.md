@@ -90,11 +90,14 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at e0c205bd9912
+- verify.py: ok at a44a75924e36
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - Story roll-up for mis-selection, re-run on the merged closeout tree. python3 factory/scripts/verify.py passes (structural, typecheck, quality, test). The aggregate D-0008 host proof `npm --prefix backend run test:warehouse-proof` runs 16/16 with 0 failures and 0 skipped against the local warehouse, covering the story's two new gated proofs (mapping-master.db.test.ts - every ingested DUB triple resolves exactly once, 66 mapped + 22 bucketed = 88 with no fan-out; selection-slice.db.test.ts - a cost-centre filtered selection returns one exact row per GL and month, excludes a master-covered GL outside the selection, and attributes a Budget GL absent from the master to the unmapped-GL line) alongside the four governed-joins proofs it retains. The negative control - the same command against dead port 5599 - fails 6 leaves with ECONNREFUSED and passes only the 10 ungated ones, so the green run is real execution rather than skips. Each task's own automated artifact was recorded and CI-verified at its PR.
+  - 3 command(s) recorded, e.g. `python3 factory/scripts/verify.py -> Verification passed`
 
 ## Task selection-resolution
 
@@ -201,11 +204,14 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at e0c205bd9912
+- verify.py: ok at a44a75924e36
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - Story roll-up for mis-selection, re-run on the merged closeout tree. python3 factory/scripts/verify.py passes (structural, typecheck, quality, test). The aggregate D-0008 host proof `npm --prefix backend run test:warehouse-proof` runs 16/16 with 0 failures and 0 skipped against the local warehouse, covering the story's two new gated proofs (mapping-master.db.test.ts - every ingested DUB triple resolves exactly once, 66 mapped + 22 bucketed = 88 with no fan-out; selection-slice.db.test.ts - a cost-centre filtered selection returns one exact row per GL and month, excludes a master-covered GL outside the selection, and attributes a Budget GL absent from the master to the unmapped-GL line) alongside the four governed-joins proofs it retains. The negative control - the same command against dead port 5599 - fails 6 leaves with ECONNREFUSED and passes only the 10 ungated ones, so the green run is real execution rather than skips. Each task's own automated artifact was recorded and CI-verified at its PR.
+  - 3 command(s) recorded, e.g. `python3 factory/scripts/verify.py -> Verification passed`
 
 ## Task selection-ui
 
@@ -293,8 +299,11 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at e0c205bd9912
+- verify.py: ok at a44a75924e36
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - Story roll-up for mis-selection, re-run on the merged closeout tree. python3 factory/scripts/verify.py passes (structural, typecheck, quality, test). The aggregate D-0008 host proof `npm --prefix backend run test:warehouse-proof` runs 16/16 with 0 failures and 0 skipped against the local warehouse, covering the story's two new gated proofs (mapping-master.db.test.ts - every ingested DUB triple resolves exactly once, 66 mapped + 22 bucketed = 88 with no fan-out; selection-slice.db.test.ts - a cost-centre filtered selection returns one exact row per GL and month, excludes a master-covered GL outside the selection, and attributes a Budget GL absent from the master to the unmapped-GL line) alongside the four governed-joins proofs it retains. The negative control - the same command against dead port 5599 - fails 6 leaves with ECONNREFUSED and passes only the 10 ungated ones, so the green run is real execution rather than skips. Each task's own automated artifact was recorded and CI-verified at its PR.
+  - 3 command(s) recorded, e.g. `python3 factory/scripts/verify.py -> Verification passed`
