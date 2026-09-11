@@ -1,0 +1,75 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "statement-model",
+  "score": 0,
+  "summary": "performance lens over statement-model (20 product path(s), 3d57c3c..36daf1c, Codex via the autoreview skill at --max-priority P2): 4 blocking, 1 non-blocking. The change leaves multiple core guarantees partial: mapping drift does not stop activation, incremental migration hides existing active budgets, and the repository still permits budget batches without snapshots. Its required warehouse proof also does not pin per-leaf monetary correctness, and outline construction bypasses the ingestion row bound.",
+  "blocking_findings": [
+    {
+      "category": "regression",
+      "area": "backend/drizzle-warehouse",
+      "summary": "[P1] Preserve active budgets when introducing the leaf projection (backend/drizzle-warehouse/0003_statement_leaf_projection.sql:1): The migration adds `leaf_key` as nullable without backfilling existing `mis_budget` rows or creating outline snapshots for existing active batches."
+    },
+    {
+      "category": "bug",
+      "area": "backend/src/warehouse",
+      "summary": "[P1] Make the outline mandatory for budget replacement (backend/src/warehouse/ingestion.repository.ts:61): `replaceBudgetBatch` keeps the new outline argument optional and the implementation defaults it to an empty array."
+    },
+    {
+      "category": "test_gap",
+      "area": "backend/src/warehouse",
+      "summary": "[P1] Assert exact monetary totals for each July leaf (backend/src/warehouse/statement-projection.db.test.ts:61): The gated proof checks only row uniqueness and two grand totals."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/ingest",
+      "summary": "[P2] Include structural outline nodes in the workbook row bound (backend/src/ingest/mis-budget.parser.ts:121): Subtotal nodes are appended to `outline` and then skip the only `glRowCount * periods.length` limit check."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse/0003_statement_leaf_projection.sql",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/ingest/ingest.service.test.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/ingest/mis-budget.parser.test.ts",
+    "backend/src/ingest/mis-budget.parser.ts",
+    "backend/src/mapping/mapping-master.test.ts",
+    "backend/src/mapping/mapping-master.ts",
+    "backend/src/mapping/mis-mapping-master.ts",
+    "backend/src/mapping/selection-resolver.interface.ts",
+    "backend/src/mapping/selection-resolver.service.test.ts",
+    "backend/src/mapping/selection-resolver.service.ts",
+    "backend/src/sql/sqlBuilder.statement.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/statement-projection.db.test.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "25a6d9938ed025203a4b4ab2cf4f4eba6b87dd7e6e192bd07a1526ae1ab77f28",
+  "brief_sha256": "e52bf44476f0f283b75d6c20cbb6b8ba44cd36c73214fc44198b0f4115215eb1",
+  "branch_diff_digest": "22a246bd5bc3f5993e58d9dec2a789112fdca4b8da2486d1b025f1a3cc5197ef",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T06:50:29+00:00",
+  "commit": "36daf1cb7f034af9a8d57df9b6a4dedadff4fd21",
+  "rejected_findings": [
+    {
+      "finding": {
+        "category": "bug",
+        "area": "backend/src/ingest",
+        "summary": "[P1] Reject mapping drift before activating the budget batch (backend/src/ingest/mis-budget.parser.ts:170): The parser only records missing master leaf keys in `validationResult`; `IngestService` then persists the rows and activates the batch unconditionally."
+      },
+      "reason": "Contradicts accepted decision 0023: the drift check REPORTS and the upload SUCCEEDS. Refusing the batch was put to the human as an explicit option and rejected. Ingest is deliberately fail-open on drift and fail-closed on money (an uncomputed Budget cell still refuses, per decision 0020).",
+      "cite": "0023",
+      "rejected_at": "2026-09-11T06:51:51+00:00",
+      "rejected_by": "orchestrator",
+      "task_id": "statement-model"
+    }
+  ]
+}

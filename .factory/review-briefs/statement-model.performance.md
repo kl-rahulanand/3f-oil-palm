@@ -1,7 +1,20 @@
-# Branch-wide plan-contract review brief
+# Review brief — statement-model — performance lens
 
-For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
 
+LENS: PERFORMANCE. Hot paths, algorithmic complexity, query fanout (N+1),
+I/O amplification, memory churn, concurrency bottlenecks, missing pagination or
+bounds, work repeated per request that could be done once. Distinguish measured
+evidence from inference and say which each finding is. Use category `bug` for a
+performance defect that will bite in production and `maintainability` for a cost
+worth reducing.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
 ## Task statement-model
 
 ### Plan contracts
@@ -86,93 +99,3 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 - [high] A defaulted parameter hides injection bugs: always pass the master explicitly to resolveMappingTriple, and check user.scope before exposing master metadata: Three fixes from the selection-resolution review. (1) BLOCKING: resolveMappingTriple(triple, master = MAPPING_MASTER) has a DEFAULTED second parameter, so calling it with only the triple compiles and silently resolves against the module-level default rather than the master the service was given. Always pass the master explicitly (selection-resolver.service.ts:95) — otherwise an injected/alternate master is ignored and the tests prove nothing about it. (2) SECURITY: the mis service authorizes the action, domain, measures and dimensions but never checks user.scope before returning mapping-master metadata (mis-selection.service.ts:45), so a user scoped away from DUB can still read DUB selector options and the resolved scope readout. Enforce the validated plant scope BEFORE exposing master metadata or a resolved scope — this is the same disclosure class as the composed-relation Budget-scope bug fixed in governed-joins. (3) PERFORMANCE: the selection's month range is applied to the JOINED relation while actual_src is filtered only by scope+triples and budget_src only by GL membership; push the period predicate INTO both source CTEs so each side filters before the full outer join, consistent with decision 0017's filter-before-the-rollup principle.
 - [high] warehouse DATE reaching the UI: A warehouse DATE column read through pg and JSON-serialized arrives at the browser as an IST-shifted UTC timestamp (2026-07-01 becomes 2026-06-30T18:30:00.000Z), so a user-facing table shows the WRONG MONTH. Normalize month/date cells to a date-only YYYY-MM-DD string on the server before they enter a result row, and format them for display on the client.
 - [high] invert pg DATE parsing with process-local parts, never a fixed timezone: node-postgres parses a DATE column into a JS Date at LOCAL midnight of the process timezone, so the exact inverse is to read back the PROCESS-LOCAL date parts (getFullYear/getMonth/getDate). Formatting with a hardcoded timeZone such as Asia/Kolkata only happens to work on hosts at or west of that offset and silently returns the previous day on hosts east of it (e.g. Asia/Tokyo), so a date-only normalizer must never pin a timezone.
-
-## Task statement-api
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- **0021** (this story) — the outline is a per-batch snapshot keyed by a stable leaf key;
-  amends 0020's one-parent-level assumption.
-- **0022** (this story) — the statement reads its own governed projection at leaf/month
-  grain; the GL-month relation is untouched; 0016 §2's deferred Budget-label mapping is
-  taken up here, provisionally.
-- **0020** — leaf rows only, no stored parent amounts; parents are derived.
-- **0017** — filter before the roll-up; selection narrows the governed path, never forks it.
-- **0018** — the `unmapped-GL` line stays visible; the no-mapping zero state keeps its notice.
-- **0016** — all-or-nothing governed access, two-sided scope injection, provenance, golden fixtures.
-- **0019** — fresh routes follow the vendored house style.
-- **0002 / 0003** — this is the Phase-1 deliverable and its presentation layer.
-- **0007 / 0010 / 0012 / 0015** — Next.js, 3F branding, the vendored-API deviation, warehouse snake_case.
-- **0009** — `required_tests` name a real leaf and pin `TS_NODE_PROJECT`.
-
-## Task statement-view
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- **0021** (this story) — the outline is a per-batch snapshot keyed by a stable leaf key;
-  amends 0020's one-parent-level assumption.
-- **0022** (this story) — the statement reads its own governed projection at leaf/month
-  grain; the GL-month relation is untouched; 0016 §2's deferred Budget-label mapping is
-  taken up here, provisionally.
-- **0020** — leaf rows only, no stored parent amounts; parents are derived.
-- **0017** — filter before the roll-up; selection narrows the governed path, never forks it.
-- **0018** — the `unmapped-GL` line stays visible; the no-mapping zero state keeps its notice.
-- **0016** — all-or-nothing governed access, two-sided scope injection, provenance, golden fixtures.
-- **0019** — fresh routes follow the vendored house style.
-- **0002 / 0003** — this is the Phase-1 deliverable and its presentation layer.
-- **0007 / 0010 / 0012 / 0015** — Next.js, 3F branding, the vendored-API deviation, warehouse snake_case.
-- **0009** — `required_tests` name a real leaf and pin `TS_NODE_PROJECT`.
-
-## Task statement-export
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- **0021** (this story) — the outline is a per-batch snapshot keyed by a stable leaf key;
-  amends 0020's one-parent-level assumption.
-- **0022** (this story) — the statement reads its own governed projection at leaf/month
-  grain; the GL-month relation is untouched; 0016 §2's deferred Budget-label mapping is
-  taken up here, provisionally.
-- **0020** — leaf rows only, no stored parent amounts; parents are derived.
-- **0017** — filter before the roll-up; selection narrows the governed path, never forks it.
-- **0018** — the `unmapped-GL` line stays visible; the no-mapping zero state keeps its notice.
-- **0016** — all-or-nothing governed access, two-sided scope injection, provenance, golden fixtures.
-- **0019** — fresh routes follow the vendored house style.
-- **0002 / 0003** — this is the Phase-1 deliverable and its presentation layer.
-- **0007 / 0010 / 0012 / 0015** — Next.js, 3F branding, the vendored-API deviation, warehouse snake_case.
-- **0009** — `required_tests` name a real leaf and pin `TS_NODE_PROJECT`.

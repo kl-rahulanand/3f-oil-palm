@@ -1,0 +1,11 @@
+{
+  "topic": "rejected-review-finding-performance",
+  "lesson": "Not a defect (0023): Contradicts accepted decision 0023: the drift check REPORTS and the upload SUCCEEDS. Refusing the batch was put to the human as an explicit option and rejected. Ingest is deliberately fail-open on drift and fail-closed on money (an uncomputed Budget cell still refuses, per decision 0020). \u2014 raised as \"[P1] Reject mapping drift before activating the budget batch (backend/src/ingest/mis-budget.parser.ts:170): The parser only records missing master leaf keys in \"",
+  "source": "review reject statement-model performance at 2026-09-11T06:51:51+00:00",
+  "applies_to": [
+    "backend/src/ingest/**"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T06:51:51+00:00"
+}

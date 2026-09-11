@@ -1,0 +1,51 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "statement-model",
+  "score": 6,
+  "summary": "security lens over statement-model (20 product path(s), 3d57c3c..36daf1c, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The change permits active budget batches without their required structural snapshot through an explicit compatibility default, and the new outline parser creates a row-limit bypass for subtotal-heavy workbooks. Both are actionable within the selected change.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/warehouse",
+      "summary": "[P1] Require every budget batch to provide its outline snapshot (backend/src/warehouse/ingestion.repository.ts:62): `replaceBudgetBatch` retains the old two-argument contract by making `outline` optional, while the implementation defaults it to `[]`."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src/ingest",
+      "summary": "[P2] Apply the workbook row limit to outline nodes as well as leaves (backend/src/ingest/mis-budget.parser.ts:126): Subtotal rows are appended to `outline` and then skip the only `glRowCount`/expanded-row limit check."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/drizzle-warehouse/0003_statement_leaf_projection.sql",
+    "backend/drizzle-warehouse/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/ingest/ingest.service.test.ts",
+    "backend/src/ingest/ingest.service.ts",
+    "backend/src/ingest/mis-budget.parser.test.ts",
+    "backend/src/ingest/mis-budget.parser.ts",
+    "backend/src/mapping/mapping-master.test.ts",
+    "backend/src/mapping/mapping-master.ts",
+    "backend/src/mapping/mis-mapping-master.ts",
+    "backend/src/mapping/selection-resolver.interface.ts",
+    "backend/src/mapping/selection-resolver.service.test.ts",
+    "backend/src/mapping/selection-resolver.service.ts",
+    "backend/src/sql/sqlBuilder.statement.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/warehouse/ingestion.repository.ts",
+    "backend/src/warehouse/statement-projection.db.test.ts",
+    "backend/src/warehouse/warehouse-schema.test.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "25a6d9938ed025203a4b4ab2cf4f4eba6b87dd7e6e192bd07a1526ae1ab77f28",
+  "brief_sha256": "e52bf44476f0f283b75d6c20cbb6b8ba44cd36c73214fc44198b0f4115215eb1",
+  "branch_diff_digest": "22a246bd5bc3f5993e58d9dec2a789112fdca4b8da2486d1b025f1a3cc5197ef",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T06:50:29+00:00",
+  "commit": "36daf1cb7f034af9a8d57df9b6a4dedadff4fd21"
+}
