@@ -1,0 +1,25 @@
+{
+  "issue": "mis-statement",
+  "stages": [
+    {
+      "id": "statement-model",
+      "title": "Budget outline snapshot, stable leaf key, and the statement's governed projection",
+      "status": "pending"
+    },
+    {
+      "id": "statement-api",
+      "title": "The governed statement route",
+      "status": "pending"
+    },
+    {
+      "id": "statement-view",
+      "title": "The Financial MIS statement on screen",
+      "status": "pending"
+    },
+    {
+      "id": "statement-export",
+      "title": "Excel export of the statement",
+      "status": "pending"
+    }
+  ]
+}

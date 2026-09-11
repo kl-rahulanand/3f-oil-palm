@@ -1,0 +1,136 @@
+{
+  "issue": "mis-statement",
+  "story": "mis-statement",
+  "project": "3oilpalm",
+  "epic": "reporting",
+  "generated_by": "docs-decomposer",
+  "user_facing": true,
+  "plan_file": "plans/active/mis-statement-mis-statement-excel-export.md",
+  "tasks": [
+    {
+      "id": "statement-model",
+      "title": "Budget outline snapshot, stable leaf key, and the statement's governed projection",
+      "objective": "Give the statement something to be built on: persist the budget workbook's outline as a per-batch snapshot keyed by a stable leaf key (decision 0021), record the provisional budget-leaf to SAP (cost centre, GL) correspondence in the versioned Mapping Master, and add the statement's own governed projection at leaf/month grain (decision 0022) while leaving the shipped (gl_code, month) relation untouched. No HTTP route, no UI - those are tasks 2, 3 and 4.",
+      "user_facing": false,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "The budget parser walks the workbook outline and records it as a per-batch snapshot - the ordered section, component and leaf tree with each node's S. No., label and ordering - carrying NO monetary amount, and every leaf gains a stable key derived from its identity rather than its sheet row number, so re-ingesting a reordered workbook maps onto the same lines.",
+        "The Mapping Master records the budget-leaf correspondence for the DUB nursery selection as provisional entries with reasons, so a SAP (cost centre, GL) triple resolves to exactly one statement leaf and the correspondence is recorded rather than inferred at runtime.",
+        "The statement's governed projection returns Budget and Actual full-outer-joined at leaf/month grain, filtering Actuals by the master's resolved triples BEFORE aggregating per decision 0017, with no fan-out; the shipped (gl_code, month) relation and all six existing gated warehouse proofs are unchanged."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-sm-c1",
+          "statement": "The budget parser walks the workbook outline and records it as a per-batch snapshot - the ordered section, component and leaf tree with each node's S. No., label and ordering - carrying NO monetary amount, and every leaf gains a stable key derived from its identity rather than its sheet row number, so re-ingesting a reordered workbook maps onto the same lines.",
+          "source": "docs/decisions/0021-mis-statement-outline-snapshot.md"
+        },
+        {
+          "id": "t-sm-c2",
+          "statement": "The Mapping Master records the budget-leaf correspondence for the DUB nursery selection as provisional entries with reasons, so a SAP (cost centre, GL) triple resolves to exactly one statement leaf and the correspondence is recorded rather than inferred at runtime.",
+          "source": "docs/decisions/0022-mis-statement-governed-projection.md"
+        },
+        {
+          "id": "t-sm-c3",
+          "statement": "The statement's governed projection returns Budget and Actual full-outer-joined at leaf/month grain, filtering Actuals by the master's resolved triples BEFORE aggregating per decision 0017, with no fan-out; the shipped (gl_code, month) relation and all six existing gated warehouse proofs are unchanged.",
+          "source": "docs/decisions/0017-mis-selection-composite-key-seam.md"
+        }
+      ],
+      "write_scope": [
+        "backend/src/warehouse/warehouse-schema.ts",
+        "backend/src/warehouse/warehouse-migrate.ts",
+        "backend/src/ingest/mis-budget.parser.ts",
+        "backend/src/ingest/mis-budget.parser.test.ts",
+        "backend/src/warehouse/ingestion.repository.ts",
+        "backend/src/mapping/mis-mapping-master.ts",
+        "backend/src/mapping/mapping-master.ts",
+        "backend/src/mapping/mapping-master.test.ts",
+        "backend/src/sql/sqlBuilder.ts",
+        "backend/src/sql/sqlBuilder.statement.test.ts",
+        "backend/src/warehouse/statement-projection.db.test.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs"
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "required_tests": [
+        {
+          "id": "the budget parser records the workbook outline as an ordered snapshot carrying no amounts and gives each leaf a stable key that survives a reordered workbook",
+          "path": "backend/src/ingest/mis-budget.parser.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the mapping master resolves a SAP cost centre and GL triple to exactly one statement leaf and records the budget leaf correspondence as provisional with a reason",
+          "path": "backend/src/mapping/mapping-master.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the statement projection full outer joins budget and actual at leaf and month grain filtering actuals by the resolved triples before aggregating and leaves the gl code and month relation untouched",
+          "path": "backend/src/sql/sqlBuilder.statement.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "reviewer_focus": [
+        "DOUBLE COUNTING is the defect class this task exists to avoid. The snapshot must carry structure only - if any amount reaches it, parents and leaves both total. Decision 0020 stands: leaf rows only, no stored parent amounts.",
+        "FAN-OUT at the new grain. A leaf/month join can fan out where the GL/month one did not. The gated proof must assert exact row counts AND exact July totals, not just that a query returns rows.",
+        "The stable leaf key must NOT be the sheet row number. D-0029 set lineId to the row number; a key derived from it silently repoints every mapping when Srihari reissues the workbook.",
+        "Decision 0022's promise: the shipped (gl_code, month) relation is untouched and all six existing gated warehouse proofs pass unchanged. That is the evidence, not an assertion.",
+        "The budget-leaf correspondence is RECORDED, never inferred at runtime from label similarity - the mis-selection pattern. Provisional entries carry a reason."
+      ],
+      "review_budget": {
+        "max_changed_files": 13,
+        "max_changed_lines": 1800,
+        "reason": "The story's foundation, three coupled deliverables that cannot be separated: the outline snapshot (a schema change, a migration, and a parser that must now genuinely WALK the outline rather than test each row's formula independently), the master's budget-leaf correspondence, and a second governed shape at leaf/month grain with its own gated D-0008 no-fan-out and exact-reconciliation proof. Larger than a normal task because the projection is meaningless without the leaf key it groups by, and the leaf key is meaningless without the snapshot that defines it."
+      }
+    },
+    {
+      "id": "statement-api",
+      "title": "The governed statement route",
+      "objective": "Expose the hierarchical statement over HTTP: POST api/mis/statement returning the statement tree, its measures for the selected month and FY 26-27 YTD, the resolved scope readout and provenance - behind the same guard and governed report grant the shipped selection routes use, following decision 0019's vendored house style.",
+      "user_facing": false,
+      "dependencies": [
+        "statement-model"
+      ],
+      "acceptance_criteria": [
+        "POST api/mis/statement accepts the four selectors already validated by misSelectionRunRequestSchema and returns the statement as a tree whose parents are DERIVED subtotals over their leaves, with the grand total footing, each row carrying its S. No., Budget Component and leaf GL code, and Roll-over present but unpopulated.",
+        "The route preserves the outcome split mis-selection settled: an unauthorized plant is refused, while a plant the master does not cover returns the unresolvable outcome with its notice rather than a 403; a resolved selection with no transactions returns a configured zero statement WITHOUT the notice.",
+        "The unmapped-GL line is present in the payload with its own Actual, and the response carries the scope readout and provenance, with amounts computed in exact paise and rounded only at the presentation boundary."
+      ]
+    },
+    {
+      "id": "statement-view",
+      "title": "The Financial MIS statement on screen",
+      "objective": "Render the statement a person can read and hand to Srihari: the workbook's hierarchy at its natural depth, derived subtotals, the grand total, both zero states kept distinct, and the visible unmapped-GL line - reached from MIS Reports and matching the imported design prototype's metrics.",
+      "user_facing": true,
+      "dependencies": [
+        "statement-api"
+      ],
+      "acceptance_criteria": [
+        "The statement renders the budget outline at its natural uneven depth - two levels for most sections, three under Admin Expenses - with each row showing its S. No., Budget Component and leaf GL, parents visibly subtotalling their children, the grand total footing, and the Roll-over column present but unpopulated.",
+        "Measures render for the selected month and FY 26-27 YTD in Indian grouping with the rupee symbol, and a non-numeric measure value such as over-budget or credit / negative actual is passed through VERBATIM rather than numeric-formatted into NaN.",
+        "The two zero states are rendered distinctly, branched on the response outcome rather than row emptiness, and the unmapped-GL line is visible with its own Actual."
+      ]
+    },
+    {
+      "id": "statement-export",
+      "title": "Excel export of the statement",
+      "objective": "Let Srihari take the statement away: POST api/mis/statement/export streams an exceljs workbook built from the SAME payload the screen renders, with the hierarchy and values intact - the first download route in the app - plus the download affordance on the statement view.",
+      "user_facing": true,
+      "dependencies": [
+        "statement-view"
+      ],
+      "acceptance_criteria": [
+        "POST api/mis/statement/export returns an xlsx workbook as a streamed download with a Content-Disposition filename, behind the same guard and governed report grant as the statement route, built from the same statement payload the screen renders rather than a second assembly of the numbers.",
+        "The exported sheet carries the same hierarchy, the same identity columns and the same values as the screen - including the unmapped-GL line and the unpopulated Roll-over column - with parents as derived subtotals and the grand total footing after the declared rounding.",
+        "The statement view offers the download and surfaces a failure legibly rather than silently doing nothing."
+      ]
+    }
+  ],
+  "plan_sha256": "9a0790c982fb1ce827e41003f630c1ec83f9d697e7d126b702d778f3a0253eeb",
+  "commit": "759b507dfcad78b5019de7b9d2b92e5294a6ac38"
+}
