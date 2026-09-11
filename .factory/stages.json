@@ -4,31 +4,27 @@
     {
       "id": "statement-model",
       "title": "Budget outline snapshot, stable leaf key, and the statement's governed projection",
-      "status": "done",
-      "task_sha256": "d48e345709b890bbe0226c61454c59b26bb7f1b8676aaec972bd940f6f70cc8a"
+      "status": "done"
     },
     {
       "id": "statement-api",
       "title": "The governed statement route",
-      "status": "done",
-      "task_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7"
+      "status": "done"
     },
     {
       "id": "statement-view",
       "title": "The Financial MIS statement on screen",
-      "status": "done",
-      "task_sha256": "51ec6f8b7d39a11216160f5ca900a7bebce74598c6bd0ad1d1843d0e32aabc3a"
+      "status": "done"
     },
     {
       "id": "statement-export-api",
       "title": "The Excel export route and workbook writer",
-      "status": "done",
-      "task_sha256": "9a3da1efb8110f6e24b6858fdd4cd9d97e4a01915097ee8f16bd1325b8517c36"
+      "status": "done"
     },
     {
       "id": "statement-export-control",
       "title": "The Download Excel control",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
