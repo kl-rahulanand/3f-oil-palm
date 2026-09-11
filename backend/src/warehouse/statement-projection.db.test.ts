@@ -4,6 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { IngestService, type UploadedWorkbook } from "../ingest/ingest.service";
 import { SelectionResolverService } from "../mapping/selection-resolver.service";
+import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { createWarehouseWritePool } from "./ingestion.repository";
 import { migrateWarehouse } from "./warehouse-migrate";
@@ -202,14 +203,11 @@ const EXPECTED_JULY_LEAVES = [
   ["unmapped-GL", "1766805.73", "0.00"],
 ] as const;
 
-const statementDomain = {
-  name: "mis-statement",
-  label: "MIS statement",
-  goldObject: "statement_relation",
-  routingHints: [],
-  measures: [],
-  dimensions: [],
-};
+const statementDomain = (() => {
+  const domain = new SemanticLayer().domain("mis-statement");
+  if (!domain) throw new Error("MIS statement domain is not registered");
+  return domain;
+})();
 
 const user = {
   id: "statement-proof",

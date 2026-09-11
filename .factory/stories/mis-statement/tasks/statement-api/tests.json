@@ -1,13 +1,14 @@
 {
-  "commit": "a676ed3dd1bc2986a22b10e12ffed9d8584c2cc6",
+  "commit": "15da3c4651a4b525f3f678974dd0e44987d5564a",
   "automated": {
     "generated_by": "implementer",
     "status": "passed",
-    "summary": "All five required leaves for statement-api execute and pass, each proven by the junit report naming the LEAF rather than by an exit code - junit-run false-passes a nonexistent --name (D-0024), so every run was checked for its testcase name and none reported the file path. The leaves falsify the seams the task grill identified as risky: the query runs through SelectionExecutor's validate-explain-execute path with its mandatory bounded LIMIT rather than being hand-built; the tree is assembled from the outline of the budget batch for the SELECTED PERIOD with every parent derived from its leaves and the grand total footing in outline order; both period blocks are returned but a single block when the selected period is itself the FY-YTD; the unauthorized-plant refusal stays distinct from the unresolvable outcome and from a configured zero; and the unmapped-GL line carries its own Actual with zero Budget, counted in the grand total, alongside per-row source presence and contributing batch ids. verify.py passes. After the follow-up round the gated D-0008 proof re-runs 18/18 at the new range grain with every task-1 value assertion unchanged - 81 rows, Actual 11512712.07, Budget 10050136.29 - which is the evidence that aggregating the projection over the period range did not disturb what task 1 proved.",
+    "summary": "All five required leaves for statement-api execute and pass, each proven by the junit report naming the LEAF rather than by an exit code - junit-run false-passes a nonexistent --name (D-0024), so every run was checked for its testcase name and none reported the file path. The leaves falsify the seams the task grill identified as risky: the query runs through SelectionExecutor's validate-explain-execute path with its mandatory bounded LIMIT rather than being hand-built; the tree is assembled from the outline of the budget batch for the SELECTED PERIOD with every parent derived from its leaves and the grand total footing in outline order; both period blocks are returned but a single block when the selected period is itself the FY-YTD; the unauthorized-plant refusal stays distinct from the unresolvable outcome and from a configured zero; and the unmapped-GL line carries its own Actual with zero Budget, counted in the grand total, alongside per-row source presence and contributing batch ids. verify.py passes. After the follow-up round the gated D-0008 proof re-runs 18/18 at the new range grain with every task-1 value assertion unchanged - 81 rows, Actual 11512712.07, Budget 10050136.29 - which is the evidence that aggregating the projection over the period range did not disturb what task 1 proved. The gated proof was strengthened three times during the review loop and now uses the REGISTERED statement domain from SemanticLayer rather than a hand-built stand-in, builds the same selection the route sends, asserts an exact per-leaf table of all 81 July leaves, and exercises a real four-month FY-YTD range proving each leaf equals the sum of its months and that the range grain returns ~81 rows rather than ~324.",
     "commands_run": [
       "python3 factory/scripts/verify.py -> Verification passed",
       "node tools/junit-run.mjs --file <path> --name <each of five leaves> --report <report> --require ts-node/register -> tests 1 / pass 1 / fail 0, testcase name = the leaf in every case",
-      "WAREHOUSE_PG_* set, npm --prefix backend run test:warehouse-proof -> tests 18 / pass 18 / fail 0 after the range-grain change"
+      "WAREHOUSE_PG_* set, npm --prefix backend run test:warehouse-proof -> tests 18 / pass 18 / fail 0 after the range-grain change",
+      "final: test:warehouse-proof 18/18 after the authorization fix, the range grain and the registered-domain correction"
     ],
     "tests_added_or_updated": [
       "backend/src/sql/sqlBuilder.statement.test.ts (executor + validator execution with the bounded limit)",
@@ -23,8 +24,8 @@
     "residual_risks": [],
     "manual_validation_steps": [],
     "reviewed_scope": [],
-    "recorded_at": "2026-09-11T10:16:55+00:00",
-    "commit": "a676ed3dd1bc2986a22b10e12ffed9d8584c2cc6"
+    "recorded_at": "2026-09-11T11:09:51+00:00",
+    "commit": "15da3c4651a4b525f3f678974dd0e44987d5564a"
   },
-  "updated_at": "2026-09-11T10:16:55+00:00"
+  "updated_at": "2026-09-11T11:09:51+00:00"
 }
