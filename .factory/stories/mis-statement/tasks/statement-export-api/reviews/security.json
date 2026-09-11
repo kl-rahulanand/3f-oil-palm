@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "statement-export-api",
-  "score": 7,
-  "summary": "security lens over statement-export-api (9 product path(s), fb7d13c..1327f6e, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The route protections, response branching, filename sanitization, CORS exposure, and workbook formula neutralization shown in the diff otherwise satisfy the security-focused contracts. However, the optional exporter is a blocking compatibility concession and leaves the new export handler with an avoidable runtime failure state.",
-  "blocking_findings": [
-    {
-      "category": "maintainability",
-      "area": "backend/src/mis",
-      "summary": "[P1] Make the export service a required dependency (backend/src/mis/mis-statement.controller.ts:32): The exporter is declared optional even though `MisModule` always provides it and the export route unconditionally dereferences it with `this.exporter!`."
-    }
-  ],
+  "score": 10,
+  "summary": "security lens over statement-export-api (10 product path(s), fb7d13c..ba3d13d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The change adds the export route with the required authentication and report-action guard, relies on the stated global CSRF protection, branches before setting download headers, derives a restricted ASCII filename from resolved scope, and neutralizes the specified uploaded-workbook text fields against formula injection. No actionable P0\u2013P2 defect is demonstrated by the provided diff.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/app.routes.test.ts",
@@ -19,16 +13,17 @@
     "backend/src/mis/mis-statement-export.interface.ts",
     "backend/src/mis/mis-statement-export.service.ts",
     "backend/src/mis/mis-statement-export.test.ts",
+    "backend/src/mis/mis-statement.controller.test.ts",
     "backend/src/mis/mis-statement.controller.ts",
     "backend/src/mis/mis.module.ts",
     "tools/quality-gate.test.mjs"
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "88b77912475af8d5b7216acbfacc2c76f829961e6340a28bf26dc6676a13efb3",
-  "brief_sha256": "3337a8ee5ab987e3240f4bc3759af783ab3d5e6865fd3cef2ba0753f8a1e7160",
-  "branch_diff_digest": "d3698d1f469e94ef3dfce5cd8762d8099eab4a4adbbcd04dd064477f80f4e40a",
+  "review_run_id": "678745b3b7036ff962cbc01ed7e91e8bd6be61ce6d561567084f57ea63b4e33c",
+  "brief_sha256": "71e57f6cb172961cdf5c5adfd9878c85c03344f105e231bd5848342996d59c1d",
+  "branch_diff_digest": "7bf492c30c1ab00fe5e6651ce0061bb59c29f78e15f559ca936e946ae308a792",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T16:05:14+00:00",
-  "commit": "1327f6e75de7fbec5b377a538702b154533b61cc"
+  "recorded_at": "2026-09-11T16:13:04+00:00",
+  "commit": "ba3d13d7a46a947ad0e68b59ffa789c4df041ad1"
 }

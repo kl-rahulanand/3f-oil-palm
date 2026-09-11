@@ -1,7 +1,7 @@
 {
   "id": "statement-export-api",
   "title": "The Excel export route and workbook writer",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-11T15:41:49+00:00",
   "base_sha": "fb7d13cecc7ced988db190703e12f014d63b0ed2",
   "dirty_at_start": {
@@ -22,5 +22,31 @@
       "git": "1 .M N... 100644 100644 100644 3e477a10bc0af1cabab9f4b69a8e22e43349eee3 3e477a10bc0af1cabab9f4b69a8e22e43349eee3 plans/active/mis-statement-mis-statement-excel-export.md\u0000\u0000100644 3e477a10bc0af1cabab9f4b69a8e22e43349eee3 0\tplans/active/mis-statement-mis-statement-excel-export.md\u0000\u0000H plans/active/mis-statement-mis-statement-excel-export.md\u0000"
     }
   },
-  "task_sha256": "9a3da1efb8110f6e24b6858fdd4cd9d97e4a01915097ee8f16bd1325b8517c36"
+  "task_sha256": "9a3da1efb8110f6e24b6858fdd4cd9d97e4a01915097ee8f16bd1325b8517c36",
+  "local_review_stamp": {
+    "stage_id": "statement-export-api",
+    "base_sha": "fb7d13cecc7ced988db190703e12f014d63b0ed2",
+    "delta_id": "7bf492c30c1ab00fe5e6651ce0061bb59c29f78e15f559ca936e946ae308a792",
+    "contract_sha256": "9a3da1efb8110f6e24b6858fdd4cd9d97e4a01915097ee8f16bd1325b8517c36",
+    "recorded_at": "2026-09-11T16:13:04+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-11T16:13:05+00:00",
+  "measured": {
+    "strays": [
+      "backend/src/mis/mis-statement.controller.test.ts"
+    ],
+    "files": 10,
+    "lines": 568,
+    "budget": {
+      "files": 10,
+      "lines": 1500
+    },
+    "test_id_misses": []
+  }
 }
