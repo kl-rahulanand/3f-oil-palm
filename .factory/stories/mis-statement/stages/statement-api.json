@@ -18,5 +18,19 @@
       "git": "? .factory/stories/mis-statement/task-plans/statement-api.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7"
+  "task_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7",
+  "local_review_stamp": {
+    "stage_id": "statement-api",
+    "task_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7",
+    "brief_sha256": "57536b239ddae4716584f951c94833d20505d4001146405818278565e29d17ae",
+    "base_sha": "15dd782a90284b528441c13de014ea9736f701ea",
+    "product_tree_digest": "1eced5a595140027b92ef89cd7907090a7095f9b6a531a49ff280078147abe3d",
+    "recorded_at": "2026-09-11T10:05:01+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  }
 }

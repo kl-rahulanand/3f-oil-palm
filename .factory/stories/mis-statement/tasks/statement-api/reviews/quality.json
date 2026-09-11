@@ -1,0 +1,104 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "statement-api",
+  "score": 9,
+  "summary": "quality lens over statement-api (21 product path(s), 15dd782..f09ffe8, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. VERDICT t-sa-c1: implemented \u2014 backend/src/sql/sqlBuilder.statement.test.ts:43 proves the registered statement domain reaches SelectionExecutor's validate/explain/execute path with a bounded LIMIT.\nVERDICT t-sa-c2: implemented \u2014 backend/src/mis/mis-statement.service.ts:88 loads the selected period's outline and backend/src/mis/mis-statement.service.ts:187 derives parents bottom-up in outline order.\nVERDICT t-sa-c3: partial \u2014 backend/src/mis/mis-statement.service.ts:289 can assign an arbitrary child label to a zero-budget parent instead of deriving its percentage from the aggregate totals.\nVERDICT t-sa-c4: implemented \u2014 backend/src/mis/mis-statement.service.ts:61 enforces plant scope and backend/src/mis/mis-statement.service.ts:191 includes the unmapped-GL amount in the tree and grand total while preserving provenance.\nVERDICT t-sa-c5: partial \u2014 contract/src/api.ts:255 declares money as a string but does not enforce the promised fixed two-decimal scale.\nLEFTOVERS: none found.",
+  "blocking_findings": [
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/financial-mis-statement.md",
+      "summary": "t-sa-c3: Each row carries Budget, Roll-over, Actual and % for the selected month AND the FY 26-27 YTD block, the service issuing the projection once per range and merging by leaf key; when the selected period IS the FY-YTD a SINGLE block is returned rather than the same figures twice. Roll-over is present but unpopulated, amounts are exact paise rounded only at the presentation boundary, and a non-numeric percentage label is passed through verbatim."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/mis-statement-mis-statement-excel-export.md",
+      "summary": "t-sa-c5: contract/src/api.ts defines the statement wire types tasks 3 and 4 build against: the node shape and how children are carried, where the grand total sits, how money is represented (a fixed-scale decimal string, never a float), and what an absent measure is - so the view and the export cannot each invent an answer."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/mis",
+      "summary": "[P2] Derive zero-budget parent percentages from aggregate totals (backend/src/mis/mis-statement.service.ts:289): `sumAmounts` combines child labels, but this branch returns the first label before checking the aggregate actual."
+    },
+    {
+      "category": "bug",
+      "area": "contract/src",
+      "summary": "[P2] Make the money contract enforce exactly two decimal places (contract/src/api.ts:255): `${number}.${number}` accepts variable-scale values such as `\"1.2\"` and `\"1.234\"`, so consumers can satisfy `FixedScaleMoney` without supplying the promised fixed-paise representation."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/db/migrate.test.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/mis/mis-statement.controller.test.ts",
+    "backend/src/mis/mis-statement.controller.ts",
+    "backend/src/mis/mis-statement.dto.ts",
+    "backend/src/mis/mis-statement.interface.ts",
+    "backend/src/mis/mis-statement.service.test.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/mis/mis.module.ts",
+    "backend/src/semantic/semanticLayer.statement.test.ts",
+    "backend/src/semantic/semanticLayer.ts",
+    "backend/src/sql/sqlBuilder.statement.test.ts",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/warehouse/statement-outline.interface.ts",
+    "backend/src/warehouse/statement-outline.repository.ts",
+    "contract/src/api.ts",
+    "contract/src/measure.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-sa-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/sql/sqlBuilder.statement.test.ts:43 proves the registered statement domain reaches SelectionExecutor's validate/explain/execute path with a bounded LIMIT."
+    },
+    {
+      "contract_id": "t-sa-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.service.ts:88 loads the selected period's outline and backend/src/mis/mis-statement.service.ts:187 derives parents bottom-up in outline order."
+    },
+    {
+      "contract_id": "t-sa-c3",
+      "verdict": "partial",
+      "evidence": "backend/src/mis/mis-statement.service.ts:289 can assign an arbitrary child label to a zero-budget parent instead of deriving its percentage from the aggregate totals."
+    },
+    {
+      "contract_id": "t-sa-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.service.ts:61 enforces plant scope and backend/src/mis/mis-statement.service.ts:191 includes the unmapped-GL amount in the tree and grand total while preserving provenance."
+    },
+    {
+      "contract_id": "t-sa-c5",
+      "verdict": "partial",
+      "evidence": "contract/src/api.ts:255 declares money as a string but does not enforce the promised fixed two-decimal scale."
+    },
+    {
+      "contract_id": "t-sm-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-model at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sm-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-model at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sm-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under statement-model at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "adf8934a3c442c390ea0ad84893039e8e6c2ccada65bbdf0cfea32ec29081f86",
+  "brief_sha256": "c19be2e1cf8db86127598dbe69f09b1fff1888758421ccfafa15d0b81224b968",
+  "branch_diff_digest": "8a78c9105d5c4a5e7d24ef1a735ea4541d1f5e32a7b29411e1ace9ad3137e93d",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T10:05:01+00:00",
+  "commit": "f09ffe8a06afb52a838b71512e4e0861bde24464"
+}
