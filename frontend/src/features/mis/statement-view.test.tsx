@@ -297,6 +297,22 @@ test("a failed download surfaces one clear error state and leaves neither the co
   expect(screen.getByRole("treegrid")).toBeInTheDocument();
 });
 
+test("budget rollover and percentage cells expose no control and leaf actuals do nothing when clicked", () => {
+  renderWithQuery(<StatementView response={resolved} />);
+
+  const parentCells = within(screen.getByRole("row", { name: /Materials/ })).getAllByRole("gridcell");
+  expect(within(parentCells[2]).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(parentCells[3]).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(parentCells[5]).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(parentCells[4]).getByRole("button")).toBeInTheDocument();
+
+  const leafRow = screen.getByRole("row", { name: /Shade Net/ });
+  const leafActual = within(leafRow).getAllByRole("gridcell")[4];
+  expect(within(leafRow).queryByRole("button")).not.toBeInTheDocument();
+  fireEvent.click(leafActual);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
 function measure(
   key: MisStatementMeasureBlock["key"],
   budget: FixedScaleMoney,

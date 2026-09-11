@@ -153,12 +153,115 @@
     {
       "id": "drill-panel",
       "title": "The drill panel and the Actual-only affordance",
-      "objective": "Build the next bounded slice when it reaches the frontier: the prototype's drill overlay and the Actual affordance on the statement, with the aggregate state rendered from the statement payload already on screen. Frontend only.",
+      "objective": "Make Actuals interactive and give the drill its panel. Clicking any non-leaf Actual - including the Grand Total - opens the approved prototype's overlay on a flattened list of that node's descendant leaves, footing to the number that was clicked in exact paise. Per decision 0024 this is a pure projection of the statement payload already on screen: no request, no audit record, and it works with the network down. Frontend only; the leaf drill to transactions is task 3, and nothing in this task calls api/mis/statement/drill.",
       "user_facing": true,
       "dependencies": [],
       "acceptance_criteria": [
-        "Clicking any non-leaf Actual opens the panel on a flattened list of its descendant leaves that foots to the clicked node, and Budget, Roll-over and % do nothing."
-      ]
+        "Every NON-LEAF Actual cell in the statement tree and in the grand-total footer row becomes a real <button> inside its gridcell, so the role='treegrid' table keeps a valid structure and the affordance is keyboard-reachable; Budget, Roll-over and % carry no click handler, no focusable control and no pointer affordance anywhere in the table. LEAF Actuals stay inert - in the statement AND in the panel's own leaf rows, where they render as plain non-focusable text with no underline, pointer or handler - and the prototype's 'Click any Actual to see its transactions' guidance is held back to task 3 so nothing on screen promises a behaviour this task does not deliver. Task 3 upgrades those cells and adds that copy together.",
+        "Clicking a non-leaf Actual opens the panel on a flattened list of ALL its descendant leaves, not just its immediate children, rendered in the CLICKED measure block as the prototype's table - S.No, Sub-line, GL code, Budget, Actual, % - in the statement's own outline order, under a static non-interactive chip reading 'Statement outline order' rather than the prototype's 'Actual descending', which would misdescribe the rows. It issues NO network request and writes no audit record, proven falsifiably by spying on the API client across opening both a nested aggregate and the Grand Total and asserting zero calls - not by inspection.",
+        "The Grand Total opens the same way, by a deliberate special case: grandTotal is a SIBLING of the tree carrying children: [], so flattening its own children would render an empty panel. Clicking it flattens the roots of response.tree instead, which already include the synthetic unmapped-GL root, and the panel's Total row equals the statement's grand total.",
+        "The panel's Total row foots in EXACT PAISE: budget and actual are summed over the flattened leaves as integer paise from their FixedScaleMoney two-decimal strings and compared to the clicked node's own value as an equality, never through Number(). Proven for a three-level node (9 Admin Expenses to 9.01 Vehicle Maintenance to its leaves) where a one-level flatten lists different rows, and for the Grand Total, and against a divergent FY-YTD fixture so the test cannot pass while silently reading the default selected block. The Total row renders the rupee figure through the statement's own formatMoney so it reads identically to the cell that was clicked, with the exact paise value on a secondary line. Its percentage is DERIVED from the summed budget and actual by the statement's nil rules - NA for zero over zero, over-budget for a zero budget with positive actual, and credit / negative actual for a zero budget with negative actual - each proven directly, never summed and never passed through a numeric formatter.",
+        "The panel matches the approved prototype: a scrim over the statement, the eyebrow 'Drill-down', a breadcrumb (group then sub-line where there is one), the node title, a total and meta line, the sort chip row, and a close control. It is a real modal dialog: it takes focus when it opens, Escape closes it, CLICKING THE SCRIM closes it as the prototype's own scrim handler does, focus is trapped across Tab and Shift+Tab at both boundaries while it is open, and on close focus returns to the Actual control that opened it.",
+        "The behaviour is proven by vitest leaves covering the descendant flatten and its paise-exact footing at three levels and on a divergent FY-YTD block, the Grand Total special case over response.tree roots, the zero-budget percentage labels, that Budget, Roll-over and % expose no control and that leaf Actuals do nothing when clicked, the zero-network assertion, and the dialog's initial focus, Escape, scrim-click, focus trap and focus return; plus a live functional check against this worktree's servers confirming design parity with the prototype panel. The task is user_facing, so the design skills are loaded, used and attested."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-dp-c1",
+          "statement": "Every NON-LEAF Actual cell in the statement tree and in the grand-total footer row becomes a real <button> inside its gridcell, so the role='treegrid' table keeps a valid structure and the affordance is keyboard-reachable; Budget, Roll-over and % carry no click handler, no focusable control and no pointer affordance anywhere in the table. LEAF Actuals stay inert - in the statement AND in the panel's own leaf rows, where they render as plain non-focusable text with no underline, pointer or handler - and the prototype's 'Click any Actual to see its transactions' guidance is held back to task 3 so nothing on screen promises a behaviour this task does not deliver. Task 3 upgrades those cells and adds that copy together.",
+          "source": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-re-read-2026-09-11"
+        },
+        {
+          "id": "t-dp-c2",
+          "statement": "Clicking a non-leaf Actual opens the panel on a flattened list of ALL its descendant leaves, not just its immediate children, rendered in the CLICKED measure block as the prototype's table - S.No, Sub-line, GL code, Budget, Actual, % - in the statement's own outline order, under a static non-interactive chip reading 'Statement outline order' rather than the prototype's 'Actual descending', which would misdescribe the rows. It issues NO network request and writes no audit record, proven falsifiably by spying on the API client across opening both a nested aggregate and the Grand Total and asserting zero calls - not by inspection.",
+          "source": "docs/decisions/0024-drill-down-aggregate-client-projection.md"
+        },
+        {
+          "id": "t-dp-c3",
+          "statement": "The Grand Total opens the same way, by a deliberate special case: grandTotal is a SIBLING of the tree carrying children: [], so flattening its own children would render an empty panel. Clicking it flattens the roots of response.tree instead, which already include the synthetic unmapped-GL root, and the panel's Total row equals the statement's grand total.",
+          "source": "plans/active/drill-down-actuals-drill-down-to-transactions.md#acceptance-criteria"
+        },
+        {
+          "id": "t-dp-c4",
+          "statement": "The panel's Total row foots in EXACT PAISE: budget and actual are summed over the flattened leaves as integer paise from their FixedScaleMoney two-decimal strings and compared to the clicked node's own value as an equality, never through Number(). Proven for a three-level node (9 Admin Expenses to 9.01 Vehicle Maintenance to its leaves) where a one-level flatten lists different rows, and for the Grand Total, and against a divergent FY-YTD fixture so the test cannot pass while silently reading the default selected block. The Total row renders the rupee figure through the statement's own formatMoney so it reads identically to the cell that was clicked, with the exact paise value on a secondary line. Its percentage is DERIVED from the summed budget and actual by the statement's nil rules - NA for zero over zero, over-budget for a zero budget with positive actual, and credit / negative actual for a zero budget with negative actual - each proven directly, never summed and never passed through a numeric formatter.",
+          "source": "plans/active/drill-down-actuals-drill-down-to-transactions.md#the-panel"
+        },
+        {
+          "id": "t-dp-c5",
+          "statement": "The panel matches the approved prototype: a scrim over the statement, the eyebrow 'Drill-down', a breadcrumb (group then sub-line where there is one), the node title, a total and meta line, the sort chip row, and a close control. It is a real modal dialog: it takes focus when it opens, Escape closes it, CLICKING THE SCRIM closes it as the prototype's own scrim handler does, focus is trapped across Tab and Shift+Tab at both boundaries while it is open, and on close focus returns to the Actual control that opened it.",
+          "source": "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html"
+        },
+        {
+          "id": "t-dp-c6",
+          "statement": "The behaviour is proven by vitest leaves covering the descendant flatten and its paise-exact footing at three levels and on a divergent FY-YTD block, the Grand Total special case over response.tree roots, the zero-budget percentage labels, that Budget, Roll-over and % expose no control and that leaf Actuals do nothing when clicked, the zero-network assertion, and the dialog's initial focus, Escape, scrim-click, focus trap and focus return; plus a live functional check against this worktree's servers confirming design parity with the prototype panel. The task is user_facing, so the design skills are loaded, used and attested.",
+          "source": "plans/active/drill-down-actuals-drill-down-to-transactions.md#verify-plan"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "a non leaf actual opens the panel on all its descendant leaves and the total foots to the clicked node in exact paise at three levels",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the panel renders the clicked measure block and foots to it when the financial year to date block differs from the selected month",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the grand total opens the flattened roots of the statement tree including the unmapped gl line and foots to the grand total",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the total row derives its percentage by the statement nil rules for a zero budget with no actual a positive actual and a negative actual",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "opening a nested aggregate and the grand total issues no api call at all",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the drill panel takes focus traps tab and shift tab closes on escape and on a scrim click and returns focus to the actual control that opened it",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "budget rollover and percentage cells expose no control and leaf actuals do nothing when clicked",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "verify_commands": [
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:frontend",
+        "npm run build:frontend"
+      ],
+      "write_scope": [
+        "frontend/src/features/mis/drill-panel.tsx",
+        "frontend/src/features/mis/drill-panel.test.tsx",
+        "frontend/src/features/mis/statement-view.tsx",
+        "frontend/src/features/mis/statement-view.test.tsx",
+        "frontend/app/globals.css"
+      ],
+      "reviewer_focus": [
+        "NO NETWORK IN THIS TASK. Decision 0024 is the whole reason this task exists separately: the aggregate panel reads the MisStatementRunResponse already on screen. A fetch, a react-query hook, or any call to api/mis/statement/drill is a contract violation. There is a required test that spies the API client and asserts ZERO calls - check it actually spies the client the component uses, not a stub it never touches.",
+        "DESCENDANT LEAVES, NOT CHILDREN. The statement nests three deep under 9 Admin Expenses. A flatten that stops at immediate children renders the wrong rows AND a Total that still foots, because parents are derived - so the footing assertion alone will not catch it. The three-level test must assert the ROWS, not just the total.",
+        "THE CLICKED BLOCK, NOT THE FIRST ONE. A panel that always reads measures[0] passes every single-block fixture. The FY-YTD test exists to catch that: its two blocks must hold DIFFERENT numbers, and the assertion must be against the clicked one.",
+        "GRAND TOTAL IS A SIBLING WITH children: []. Flattening its children gives an empty panel. It must flatten response.tree roots, which already include the synthetic unmapped-GL root.",
+        "PAISE, NOT RUPEES, AND NOT Number(). FixedScaleMoney is a two-decimal string; sum it as integer paise (BigInt), never via Number - a float sum over a hundred-odd leaves loses the last paise, and formatMoney rounds to the rupee so a rounded comparison can hide a real mismatch. The percentage is DERIVED from the summed pair by the statement's nil rules; a label must never reach a numeric formatter (mis-selection shipped that bug once).",
+        "THE TREEGRID MUST STAY VALID. The Actual affordance is a button INSIDE its gridcell, not a click handler on the td and not a role swap. Budget, Roll-over and % must have no handler, no tabindex and no pointer cursor - a hover style alone is an affordance. Leaf Actuals must be plain text in BOTH the statement and the panel: no underline, no pointer, nothing focusable.",
+        "IT IS A DIALOG, AND ALL FIVE BEHAVIOURS ARE REQUIRED: initial focus, Escape, SCRIM CLICK (the prototype's own scrim carries a close handler), a trap that holds at BOTH Tab boundaries, and focus return to the opener. These regress silently, which is why each is named.",
+        "DESIGN PARITY IS AGAINST docs/design/3F-Financial-MIS, not against taste - with two deliberate departures recorded in the contract: the sort chip reads 'Statement outline order' because that is what the rows are, and the 'Click any Actual to see its transactions' copy is held for task 3 because this task does not deliver it."
+      ],
+      "review_budget": {
+        "max_changed_files": 5,
+        "max_changed_lines": 1000,
+        "reason": "A new panel component carrying three structural pieces (the descendant flatten, paise-exact footing with derived nil-rule percentages, and full modal-dialog behaviour), the statement view's Actual affordance and panel state, their two test files covering seven required leaves, and the panel's styles in the one global stylesheet the frontend uses. No new dependency, no network layer, no contract change - the wire types this renders from already shipped with task 1."
+      }
     },
     {
       "id": "drill-transactions-view",
@@ -175,5 +278,5 @@
     }
   ],
   "plan_sha256": "0b21f60deec85bd08fd80a9d0e5851a8197d2c07918118e1414f4fbc3dd51670",
-  "commit": "8d822ea73136f88a37cc4931dc218f460344ad21"
+  "commit": "fd676ffe009da886733aa4cd95d6855d2377e5ad"
 }
