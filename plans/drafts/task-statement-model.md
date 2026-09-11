@@ -96,7 +96,13 @@ line changes its leaf key, which would otherwise split one statement line into a
 budget-only row and an actual-only row — silently. So budget ingest **validates the
 candidate snapshot's leaf keys against the master's declared targets** and records any
 master target with no matching leaf in the batch's validation result, the way the
-uncomputed roll-over count already is. Drift is reported, never absorbed.
+uncomputed roll-over count already is.
+
+**The upload still succeeds** (human-decided this grill): Srihari is never blocked from
+loading a new plan, and the drift is visible for us to reconcile the master. Flagging
+drifted lines on the statement itself was considered and rejected — it reaches into
+task 2's payload and task 3's rendering, beyond this task. Drift is reported, never
+absorbed.
 
 ### The statement projection (t-sm-c3)
 - **Budget side** — a `budget_by_leaf_month` view: `mis_budget` INNER JOINed to the

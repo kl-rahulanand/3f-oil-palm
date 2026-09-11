@@ -14,36 +14,43 @@
       "user_facing": false,
       "dependencies": [],
       "acceptance_criteria": [
-        "The budget parser walks the workbook outline and records it as a per-batch snapshot - the ordered section, component and leaf tree with each node's S. No., label and ordering - carrying NO monetary amount, and every leaf gains a stable key derived from its identity rather than its sheet row number, so re-ingesting a reordered workbook maps onto the same lines.",
-        "The Mapping Master records the budget-leaf correspondence for the DUB nursery selection as provisional entries with reasons, so a SAP (cost centre, GL) triple resolves to exactly one statement leaf and the correspondence is recorded rather than inferred at runtime.",
-        "The statement's governed projection returns Budget and Actual full-outer-joined at leaf/month grain, filtering Actuals by the master's resolved triples BEFORE aggregating per decision 0017, with no fan-out; the shipped (gl_code, month) relation and all six existing gated warehouse proofs are unchanged."
+        "The budget parser walks the workbook outline and records it as a per-batch snapshot - the ordered section, component and leaf tree with each node's S. No., label and ordering, parent_key referencing a node in the SAME batch - carrying NO monetary amount; every leaf gains a stable key derived from its identity rather than its sheet row number, mis_budget carries that same leaf_key so amounts and structure join without touching GL, and the snapshot is persisted inside the same transaction that writes the rows and activates the batch.",
+        "The Mapping Master records a TAGGED target for every entry - either a workbook leaf key or the reserved unmapped-GL bucket of decision 0018 - as provisional entries with reasons, so a SAP (cost centre, GL) triple resolves to exactly one target, recorded rather than inferred; the loader rejects two entries claiming one triple for different targets; and budget ingest validates the candidate snapshot's leaf keys against the master's declared targets so a renamed or renumbered line is reported as drift rather than silently splitting one statement line in two.",
+        "The statement's governed projection returns Budget and Actual full-outer-joined at leaf/month grain, filtering Actuals by the master's resolved triples BEFORE aggregating per decision 0017 and reaching the builder through a typed leafTargets entry on GovernedSelectionScope rather than a global master import, with no fan-out and leaf-grain totals exact against the pinned July batch; the shipped (gl_code, month) relation and all six existing gated warehouse proofs are unchanged. Parent-by-parent footing belongs to task 2, which owns tree derivation."
       ],
       "plan_contracts": [
         {
           "id": "t-sm-c1",
-          "statement": "The budget parser walks the workbook outline and records it as a per-batch snapshot - the ordered section, component and leaf tree with each node's S. No., label and ordering - carrying NO monetary amount, and every leaf gains a stable key derived from its identity rather than its sheet row number, so re-ingesting a reordered workbook maps onto the same lines.",
+          "statement": "The budget parser walks the workbook outline and records it as a per-batch snapshot - the ordered section, component and leaf tree with each node's S. No., label and ordering, parent_key referencing a node in the SAME batch - carrying NO monetary amount; every leaf gains a stable key derived from its identity rather than its sheet row number, mis_budget carries that same leaf_key so amounts and structure join without touching GL, and the snapshot is persisted inside the same transaction that writes the rows and activates the batch.",
           "source": "docs/decisions/0021-mis-statement-outline-snapshot.md"
         },
         {
           "id": "t-sm-c2",
-          "statement": "The Mapping Master records the budget-leaf correspondence for the DUB nursery selection as provisional entries with reasons, so a SAP (cost centre, GL) triple resolves to exactly one statement leaf and the correspondence is recorded rather than inferred at runtime.",
+          "statement": "The Mapping Master records a TAGGED target for every entry - either a workbook leaf key or the reserved unmapped-GL bucket of decision 0018 - as provisional entries with reasons, so a SAP (cost centre, GL) triple resolves to exactly one target, recorded rather than inferred; the loader rejects two entries claiming one triple for different targets; and budget ingest validates the candidate snapshot's leaf keys against the master's declared targets so a renamed or renumbered line is reported as drift rather than silently splitting one statement line in two.",
           "source": "docs/decisions/0022-mis-statement-governed-projection.md"
         },
         {
           "id": "t-sm-c3",
-          "statement": "The statement's governed projection returns Budget and Actual full-outer-joined at leaf/month grain, filtering Actuals by the master's resolved triples BEFORE aggregating per decision 0017, with no fan-out; the shipped (gl_code, month) relation and all six existing gated warehouse proofs are unchanged.",
+          "statement": "The statement's governed projection returns Budget and Actual full-outer-joined at leaf/month grain, filtering Actuals by the master's resolved triples BEFORE aggregating per decision 0017 and reaching the builder through a typed leafTargets entry on GovernedSelectionScope rather than a global master import, with no fan-out and leaf-grain totals exact against the pinned July batch; the shipped (gl_code, month) relation and all six existing gated warehouse proofs are unchanged. Parent-by-parent footing belongs to task 2, which owns tree derivation.",
           "source": "docs/decisions/0017-mis-selection-composite-key-seam.md"
         }
       ],
       "write_scope": [
+        "backend/drizzle-warehouse/",
         "backend/src/warehouse/warehouse-schema.ts",
+        "backend/src/warehouse/warehouse-schema.test.ts",
         "backend/src/warehouse/warehouse-migrate.ts",
+        "backend/src/warehouse/ingestion.repository.ts",
+        "backend/src/ingest/ingest.service.ts",
+        "backend/src/ingest/ingest.service.test.ts",
         "backend/src/ingest/mis-budget.parser.ts",
         "backend/src/ingest/mis-budget.parser.test.ts",
-        "backend/src/warehouse/ingestion.repository.ts",
         "backend/src/mapping/mis-mapping-master.ts",
         "backend/src/mapping/mapping-master.ts",
         "backend/src/mapping/mapping-master.test.ts",
+        "backend/src/mapping/selection-resolver.service.ts",
+        "backend/src/mapping/selection-resolver.interface.ts",
+        "backend/src/mapping/selection-resolver.service.test.ts",
         "backend/src/sql/sqlBuilder.ts",
         "backend/src/sql/sqlBuilder.statement.test.ts",
         "backend/src/warehouse/statement-projection.db.test.ts",
@@ -73,19 +80,27 @@
           "id": "the statement projection full outer joins budget and actual at leaf and month grain filtering actuals by the resolved triples before aggregating and leaves the gl code and month relation untouched",
           "path": "backend/src/sql/sqlBuilder.statement.test.ts",
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "budget ingest reports mapping drift when the candidate outline no longer carries a leaf key the master declares instead of silently splitting the line",
+          "path": "backend/src/ingest/mis-budget.parser.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         }
       ],
       "reviewer_focus": [
-        "DOUBLE COUNTING is the defect class this task exists to avoid. The snapshot must carry structure only - if any amount reaches it, parents and leaves both total. Decision 0020 stands: leaf rows only, no stored parent amounts.",
-        "FAN-OUT at the new grain. A leaf/month join can fan out where the GL/month one did not. The gated proof must assert exact row counts AND exact July totals, not just that a query returns rows.",
-        "The stable leaf key must NOT be the sheet row number. D-0029 set lineId to the row number; a key derived from it silently repoints every mapping when Srihari reissues the workbook.",
-        "Decision 0022's promise: the shipped (gl_code, month) relation is untouched and all six existing gated warehouse proofs pass unchanged. That is the evidence, not an assertion.",
-        "The budget-leaf correspondence is RECORDED, never inferred at runtime from label similarity - the mis-selection pattern. Provisional entries carry a reason."
+        "DOUBLE COUNTING is the defect class this task exists to avoid. The snapshot table has NO amount column - that is structural, not a convention. Decision 0020 stands: leaf rows only, no stored parent amounts.",
+        "FAN-OUT at the new grain. A leaf/month join can fan out where the GL/month one did not. The gated proof must assert EXACT row counts and EXACT July leaf totals, not merely that a query returns rows, and must run with its dead-port negative control.",
+        "The stable leaf key must NOT be the sheet row number, and the budget/snapshot join must NOT fall back to GL - joining on GL re-merges exactly the 50001605 / 50001606 / 50001901 lines this story exists to split.",
+        "The unmapped-GL bucket has no workbook leaf: the master's target is TAGGED (leaf or bucket). Do not force the nine bucket triples to invent a leaf key. A bucket row carries zero Budget, its own Actual, and still counts toward the grand total (decision 0018).",
+        "The triple-to-leaf mapping must reach the builder through a typed GovernedSelectionScope field. Importing MAPPING_MASTER inside sqlBuilder bypasses the injectable-master seam selection-resolution was fixed to establish.",
+        "Decision 0022's promise is kept by EVIDENCE: the shipped (gl_code, month) relation is untouched and all six existing gated warehouse proofs pass unchanged.",
+        "The migration, its journal metadata and warehouse-schema.test.ts's pinned last-migration number move TOGETHER; the snapshot is written inside the same transaction that activates the batch, or a rolled-back batch leaves an orphan.",
+        "Standards: constitution/03-modular-monolith-structure.md and pnp-coding-standards-modular-monolith.md for module layout and the .interface.ts naming rule; the database/migration standards for the new table, column and view; decision 0015 keeps the warehouse snake_case."
       ],
       "review_budget": {
-        "max_changed_files": 13,
-        "max_changed_lines": 1800,
-        "reason": "The story's foundation, three coupled deliverables that cannot be separated: the outline snapshot (a schema change, a migration, and a parser that must now genuinely WALK the outline rather than test each row's formula independently), the master's budget-leaf correspondence, and a second governed shape at leaf/month grain with its own gated D-0008 no-fan-out and exact-reconciliation proof. Larger than a normal task because the projection is meaningless without the leaf key it groups by, and the leaf key is meaningless without the snapshot that defines it."
+        "max_changed_files": 20,
+        "max_changed_lines": 2600,
+        "reason": "The story's foundation, and the task grill showed the original 13-file budget could not even reach the code it needed. Four inseparable deliverables: the outline snapshot (new table, new column, migration plus its journal and the pinned-migration test, and a parser that must now genuinely WALK the outline rather than test each row's formula independently); the persistence route through IngestService and replaceBudgetBatch inside the batch's own transaction; the master's tagged leaf-or-bucket targets with their loader rejection and the ingest-time drift check; and a second governed shape at leaf/month grain reaching the builder through a typed scope field, with its own gated D-0008 exact-reconciliation and no-fan-out proof plus registration. The projection is meaningless without the leaf key it groups by, and the leaf key is meaningless without the snapshot that defines it."
       }
     },
     {
@@ -131,6 +146,6 @@
       ]
     }
   ],
-  "plan_sha256": "9a0790c982fb1ce827e41003f630c1ec83f9d697e7d126b702d778f3a0253eeb",
-  "commit": "759b507dfcad78b5019de7b9d2b92e5294a6ac38"
+  "plan_sha256": "951e85a33bb8891ee3e81dbb5d5f4519ef72b4cd0e457395a922f463ffe025e9",
+  "commit": "0f59ceebe216b017dda6b4c9fc71d69a56a6d8a6"
 }
