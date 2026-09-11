@@ -10,16 +10,20 @@ it, and the one clear thing that happens when it fails.
 Shipping it completes the **mis-statement** story.
 
 ## Acceptance criteria (plan_contracts)
-- **t-sec-c1** — a Download Excel control beside the statement in the prototype's
-  **secondary** treatment (white ground, emerald border and text, the Generate button's
-  height and radius), shown **only when a resolved statement is on screen**.
-- **t-sec-c2** — pressing it fetches the workbook through a **binary** client path that
-  keeps the cookie credentials, CSRF bootstrap and one-shot 401 refresh, and saves it
-  under the filename the **server** sent in `Content-Disposition`, falling back to the
-  canonical name if absent.
-- **t-sec-c3** — the **200-with-JSON** unresolvable outcome is **not saved as a file**.
-- **t-sec-c4** — a failure surfaces as **one clear state**, never a silent no-op, and
-  leaves neither the control nor the statement stuck pending.
+- **t-sec-c1** — the control sits in the **statement's own header**, not the filter bar,
+  in the prototype's **secondary** treatment, present only with a resolved statement; the
+  request is built from the **resolved response's scope**, never the mutable selectors, so
+  the file always matches the statement on screen.
+- **t-sec-c2** — a **binary** client path keeping cookie credentials, CSRF bootstrap and
+  the one-shot 401 refresh, proven as **401 → exactly one refresh → exactly one retry**.
+- **t-sec-c3** — **only** the exact xlsx media type (parameters allowed) may be saved; a
+  200 carrying `application/json` shows the **notice** and saves nothing; any other
+  content type takes the **error** path.
+- **t-sec-c4** — the filename comes from the server's `Content-Disposition` (CORS-exposed),
+  with a single fixed fallback **`financial-mis-statement.xlsx`**; the object URL is
+  **revoked**, asserted rather than intended.
+- **t-sec-c5** — a failure is **one clear state**, never a silent no-op, nothing left
+  pending.
 
 ## Mandatory for a user-facing task
 `harness.yaml` — the recorder **refuses** a user-facing testing artifact unless
@@ -49,25 +53,35 @@ means **actually downloading a file and opening it**, not watching a button chan
   text, 34px, 6px radius.
 
 ## Design
+### The control belongs to the statement, not the selectors
+**Human-decided this grill.** The prototype puts Download beside Generate, but the filter
+selectors are **mutable**: generate July, change Plant, press Download, and you get a file
+that silently disagrees with the statement in front of you — on a document people forward.
+So the control lives in the **statement's header** and the request is built from the
+**resolved response's scope**. A button in the filter bar would also *read* as "download
+what I've selected" when it means "download what's shown".
+
 ### A binary sibling, not a reuse
 `post<T>` parses JSON and cannot carry a workbook. The new helper does everything `post`
 does **except** the parse: CSRF bootstrap, `credentials: "include"`, and the one-shot 401
 refresh — dropping that last one would silently break the download for anyone whose access
 token has just expired, which is the most ordinary case there is.
 
-### Three outcomes, not two
-A download has a third case the rest of the app does not:
-- **xlsx** → save it under the server's filename;
-- **200 + JSON** (unresolvable) → **not a file**; show the notice, save nothing. Saving it
-  would put a corrupt `.xlsx` on someone's disk;
-- **error** → one clear state.
+### Three outcomes, classified by media type
+"Inspect what came back" is not a rule, so here is the rule: **only the exact xlsx media
+type (parameters allowed) enters the save path.**
+- **xlsx** → save under the server's filename;
+- **200 + `application/json`** (unresolvable) → **not a file**: show the **notice**, save
+  nothing;
+- **anything else**, including an unexpected 200 → the **error** path.
 
-The control **inspects what came back** before treating it as a workbook.
+Anything looser puts a corrupt `.xlsx` on someone's disk.
 
 ### The filename comes from the server
 `Content-Disposition` is readable only because the route exposes it through CORS. The
-control parses the header and falls back to the canonical name only when it is absent —
-deriving it client-side would duplicate a grammar the server already owns.
+control parses the header and falls back to a **single fixed name**,
+`financial-mis-statement.xlsx`, only when it is absent — deriving the scope-and-range slug
+client-side would duplicate a grammar the server owns and let the two drift.
 
 ### Housekeeping
 An object URL created for a download is **revoked** after use; a page people click
@@ -76,18 +90,19 @@ repeatedly should not leak one per click.
 ## Workflow
 ```mermaid
 flowchart TD
-  S["resolved statement on screen"] --> B["Download Excel (secondary button)"]
-  B --> F["binary fetch: CSRF bootstrap · cookie credentials · one-shot 401 refresh"]
-  F --> R{what came back}
-  R -->|xlsx| N["filename from Content-Disposition (CORS-exposed)"]
+  S["resolved statement on screen"] --> B["Download Excel · in the STATEMENT header"]
+  B --> Q["request built from the RESOLVED scope, not the selectors"]
+  Q --> F["binary fetch: CSRF bootstrap · cookie credentials · one-shot 401 refresh"]
+  F --> R{media type}
+  R -->|exact xlsx type| N["filename from Content-Disposition (CORS-exposed)"]
   N --> SV["save · revoke the object URL"]
-  R -->|200 + JSON unresolvable| NF["NOT a file — show the notice, save nothing"]
-  R -->|error| E["one clear failure state · nothing left pending"]
+  R -->|200 + application/json| NF["NOT a file — show the notice, save nothing"]
+  R -->|anything else| E["one clear failure state · nothing left pending"]
 ```
 
 ## Manual Verification
 1. `npm run typecheck && npm run lint && npm run format:check && npm run test:frontend &&
-   npm run build:frontend` — the four required leaves pass. Check each leaf's **executed
+   npm run build:frontend` — the **five** required leaves pass. Check each leaf's **executed
    count**: vitest exits 0 when `-t` matches nothing (D-0031).
 2. **Functional check (mandatory, user_facing)** — a download is only proven by a file:
    sign in, generate Agriculture / Nursery / DUB / Jul 2026, press **Download Excel**,
@@ -130,9 +145,10 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 **Acceptance criteria**
 
-- A Download Excel control sits beside the statement in the imported prototype's SECONDARY treatment - white ground, emerald border and text, sharing the Generate button's height and radius - shown only when a resolved statement is on screen, since there is nothing to export otherwise.
-- Pressing it fetches the workbook through a BINARY client path that keeps the existing cookie credentials, CSRF bootstrap and one-shot 401 refresh, then saves it using the filename the server sent in Content-Disposition - which main.ts exposes through CORS - falling back to the canonical name if the header is absent. The existing post<T> helper parses JSON and cannot carry bytes, so this is a new helper rather than a reuse.
-- The 200-with-JSON unresolvable outcome is NOT saved as a file: the control inspects what came back before treating it as a workbook, so a corrupt .xlsx can never reach the user's disk.
+- The Download Excel control sits in the STATEMENT's own header - not in the filter bar - in the prototype's secondary treatment (white ground, emerald border and text, sharing the Generate button's height and radius), and is present only when a resolved statement is on screen. The export request is built from the RESOLVED response's scope, never from the mutable filter selectors, so the file always matches the statement being looked at even if someone changes a dropdown after generating.
+- Pressing it fetches the workbook through a BINARY client path that keeps the cookie credentials, the CSRF bootstrap and the one-shot 401 refresh - proven as: an initial export returning 401 triggers EXACTLY ONE refresh and EXACTLY ONE retried export - since the existing post<T> helper ends in response.json() and cannot carry bytes.
+- Only the exact xlsx media type, allowing parameters, may enter the save path. A 200 carrying application/json - the unresolvable outcome - is NOT saved and the notice is shown instead; any other unexpected content type takes the clear-error path rather than being written to disk, so a corrupt file can never reach the user.
+- The saved filename comes from the server's Content-Disposition header, which main.ts exposes through CORS, with a single fixed fallback of financial-mis-statement.xlsx used only when the header is absent; the object URL created for the download is revoked afterwards, asserted rather than merely intended.
 - A failure surfaces as ONE clear state - never a silent no-op, which is worse than an error because the person believes they have the file - and leaves neither the control nor the statement stuck pending.
 
 **Write scope** (what `stage done` measures the diff against)
@@ -146,9 +162,10 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 **Required tests** (run by `stage done`)
 
-- `the download control appears only with a resolved statement and requests the workbook with the csrf header and cookie credentials` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
-- `the saved filename comes from the content disposition header and falls back to the canonical name when the header is absent` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/lib/api.test.ts)
-- `a json unresolvable response is not saved as a workbook` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
+- `the download control appears in the statement header only with a resolved statement and builds its request from the resolved scope rather than the filter selectors` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
+- `an export returning unauthorized triggers exactly one refresh and exactly one retried export carrying the csrf header and cookie credentials` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/lib/api.test.ts)
+- `only the xlsx media type is saved while a json unresolvable response shows the notice without saving and any other content type takes the error path` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
+- `the saved filename comes from the content disposition header with a single fixed fallback when it is absent and the object url is revoked afterwards` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/lib/api.test.ts)
 - `a failed download surfaces one clear error state and leaves neither the control nor the statement pending` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
 
 **Verify commands**
@@ -159,5 +176,5 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - `npm run test:frontend`
 - `npm run build:frontend`
 
-**Review budget.** 6 files / 800 lines -- One control and its failure state on an existing view, plus a binary fetch helper on the api client that the JSON-only post<T> cannot provide. Small by construction: the workbook itself is statement-export-api's, already shipped.
+**Review budget.** 6 files / 900 lines -- One control and its failure state on an existing view, plus a binary fetch helper the JSON-only post<T> cannot provide, with media-type classification, filename handling and object-URL cleanup. Small by construction: the route and the workbook shipped in statement-export-api.
 <!-- /forge:contract -->

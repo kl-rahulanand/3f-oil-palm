@@ -420,29 +420,35 @@
         "statement-export-api"
       ],
       "acceptance_criteria": [
-        "A Download Excel control sits beside the statement in the imported prototype's SECONDARY treatment - white ground, emerald border and text, sharing the Generate button's height and radius - shown only when a resolved statement is on screen, since there is nothing to export otherwise.",
-        "Pressing it fetches the workbook through a BINARY client path that keeps the existing cookie credentials, CSRF bootstrap and one-shot 401 refresh, then saves it using the filename the server sent in Content-Disposition - which main.ts exposes through CORS - falling back to the canonical name if the header is absent. The existing post<T> helper parses JSON and cannot carry bytes, so this is a new helper rather than a reuse.",
-        "The 200-with-JSON unresolvable outcome is NOT saved as a file: the control inspects what came back before treating it as a workbook, so a corrupt .xlsx can never reach the user's disk.",
+        "The Download Excel control sits in the STATEMENT's own header - not in the filter bar - in the prototype's secondary treatment (white ground, emerald border and text, sharing the Generate button's height and radius), and is present only when a resolved statement is on screen. The export request is built from the RESOLVED response's scope, never from the mutable filter selectors, so the file always matches the statement being looked at even if someone changes a dropdown after generating.",
+        "Pressing it fetches the workbook through a BINARY client path that keeps the cookie credentials, the CSRF bootstrap and the one-shot 401 refresh - proven as: an initial export returning 401 triggers EXACTLY ONE refresh and EXACTLY ONE retried export - since the existing post<T> helper ends in response.json() and cannot carry bytes.",
+        "Only the exact xlsx media type, allowing parameters, may enter the save path. A 200 carrying application/json - the unresolvable outcome - is NOT saved and the notice is shown instead; any other unexpected content type takes the clear-error path rather than being written to disk, so a corrupt file can never reach the user.",
+        "The saved filename comes from the server's Content-Disposition header, which main.ts exposes through CORS, with a single fixed fallback of financial-mis-statement.xlsx used only when the header is absent; the object URL created for the download is revoked afterwards, asserted rather than merely intended.",
         "A failure surfaces as ONE clear state - never a silent no-op, which is worse than an error because the person believes they have the file - and leaves neither the control nor the statement stuck pending."
       ],
       "plan_contracts": [
         {
           "id": "t-sec-c1",
-          "statement": "A Download Excel control sits beside the statement in the imported prototype's SECONDARY treatment - white ground, emerald border and text, sharing the Generate button's height and radius - shown only when a resolved statement is on screen, since there is nothing to export otherwise.",
+          "statement": "The Download Excel control sits in the STATEMENT's own header - not in the filter bar - in the prototype's secondary treatment (white ground, emerald border and text, sharing the Generate button's height and radius), and is present only when a resolved statement is on screen. The export request is built from the RESOLVED response's scope, never from the mutable filter selectors, so the file always matches the statement being looked at even if someone changes a dropdown after generating.",
           "source": "plans/active/mis-statement-mis-statement-excel-export.md"
         },
         {
           "id": "t-sec-c2",
-          "statement": "Pressing it fetches the workbook through a BINARY client path that keeps the existing cookie credentials, CSRF bootstrap and one-shot 401 refresh, then saves it using the filename the server sent in Content-Disposition - which main.ts exposes through CORS - falling back to the canonical name if the header is absent. The existing post<T> helper parses JSON and cannot carry bytes, so this is a new helper rather than a reuse.",
+          "statement": "Pressing it fetches the workbook through a BINARY client path that keeps the cookie credentials, the CSRF bootstrap and the one-shot 401 refresh - proven as: an initial export returning 401 triggers EXACTLY ONE refresh and EXACTLY ONE retried export - since the existing post<T> helper ends in response.json() and cannot carry bytes.",
           "source": "plans/active/mis-statement-mis-statement-excel-export.md"
         },
         {
           "id": "t-sec-c3",
-          "statement": "The 200-with-JSON unresolvable outcome is NOT saved as a file: the control inspects what came back before treating it as a workbook, so a corrupt .xlsx can never reach the user's disk.",
+          "statement": "Only the exact xlsx media type, allowing parameters, may enter the save path. A 200 carrying application/json - the unresolvable outcome - is NOT saved and the notice is shown instead; any other unexpected content type takes the clear-error path rather than being written to disk, so a corrupt file can never reach the user.",
           "source": "plans/active/mis-statement-mis-statement-excel-export.md"
         },
         {
           "id": "t-sec-c4",
+          "statement": "The saved filename comes from the server's Content-Disposition header, which main.ts exposes through CORS, with a single fixed fallback of financial-mis-statement.xlsx used only when the header is absent; the object URL created for the download is revoked afterwards, asserted rather than merely intended.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sec-c5",
           "statement": "A failure surfaces as ONE clear state - never a silent no-op, which is worse than an error because the person believes they have the file - and leaves neither the control nor the statement stuck pending.",
           "source": "plans/active/mis-statement-mis-statement-excel-export.md"
         }
@@ -464,18 +470,23 @@
       ],
       "required_tests": [
         {
-          "id": "the download control appears only with a resolved statement and requests the workbook with the csrf header and cookie credentials",
+          "id": "the download control appears in the statement header only with a resolved statement and builds its request from the resolved scope rather than the filter selectors",
           "path": "frontend/src/features/mis/statement-view.test.tsx",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         },
         {
-          "id": "the saved filename comes from the content disposition header and falls back to the canonical name when the header is absent",
+          "id": "an export returning unauthorized triggers exactly one refresh and exactly one retried export carrying the csrf header and cookie credentials",
           "path": "frontend/src/lib/api.test.ts",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         },
         {
-          "id": "a json unresolvable response is not saved as a workbook",
+          "id": "only the xlsx media type is saved while a json unresolvable response shows the notice without saving and any other content type takes the error path",
           "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the saved filename comes from the content disposition header with a single fixed fallback when it is absent and the object url is revoked afterwards",
+          "path": "frontend/src/lib/api.test.ts",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         },
         {
@@ -485,20 +496,21 @@
         }
       ],
       "reviewer_focus": [
-        "A silent no-op is the worst outcome here - worse than an error - because the person believes they have the file and walks away. constitution/07-exception-handling.md's one-clear-state rule already bit this exact view once, where a failure message rendered ALONGSIDE the empty state.",
-        "The unresolvable outcome returns 200 with JSON. A blob client that saves whatever came back produces a corrupt .xlsx on the user's disk; the control must inspect the response before treating it as a workbook.",
-        "The existing post<T> helper calls response.json() and cannot carry bytes. The binary path must still do the CSRF bootstrap, send cookie credentials and keep the one-shot 401 refresh - dropping any of those silently breaks the download for a user whose access token has just expired.",
-        "Content-Disposition is readable only because main.ts exposes it through CORS (statement-export-api added that). If the filename is derived client-side instead, that exposure was pointless and the two will drift.",
-        "Design fidelity: the prototype's Download Excel is a SECONDARY button - white ground, emerald border and text - beside the primary Generate, sharing its height and radius. No theme token may be added or renamed, and note that tokens.test.ts does NOT prove that, since it compares only the files under frontend/src/theme: check the diff.",
-        "Object URLs created for a download must be revoked; a page that leaks one per click is a slow leak on a screen people use repeatedly."
+        "The download must match the STATEMENT, not the selectors. Building the request from mutable filter state lets someone generate July, change a dropdown, download, and get a file that silently disagrees with the screen - on a financial document people forward. It is built from the resolved response's scope.",
+        "A silent no-op is the worst outcome - worse than an error - because the person believes they have the file and walks away. constitution/07-exception-handling.md's one-clear-state rule already bit this exact view once, where a failure rendered ALONGSIDE the empty state.",
+        "Media-type discipline: ONLY the exact xlsx type (parameters allowed) enters the save path. The unresolvable outcome is a 200 carrying JSON, and any other unexpected type is an error - a blob client that saves whatever arrived puts a corrupt .xlsx on someone's disk.",
+        "The binary path must keep the CSRF bootstrap, cookie credentials and the one-shot 401 refresh. Dropping the refresh silently breaks the download for anyone whose access token just expired, which is the most ordinary case there is.",
+        "The filename is the SERVER's: Content-Disposition is readable only because main.ts exposes it through CORS, and deriving it client-side would duplicate a grammar the server owns and let the two drift.",
+        "Revoke the object URL, and assert it - a page people click repeatedly should not leak one per click.",
+        "Design fidelity: the prototype's Download Excel is a SECONDARY button (white ground, emerald border and text) sharing Generate's height and radius. No theme token may be added or renamed - and tokens.test.ts does NOT prove that, since it compares only the files under frontend/src/theme: read the diff."
       ],
       "review_budget": {
         "max_changed_files": 6,
-        "max_changed_lines": 800,
-        "reason": "One control and its failure state on an existing view, plus a binary fetch helper on the api client that the JSON-only post<T> cannot provide. Small by construction: the workbook itself is statement-export-api's, already shipped."
+        "max_changed_lines": 900,
+        "reason": "One control and its failure state on an existing view, plus a binary fetch helper the JSON-only post<T> cannot provide, with media-type classification, filename handling and object-URL cleanup. Small by construction: the route and the workbook shipped in statement-export-api."
       }
     }
   ],
-  "commit": "3d305877ec74fd32e7b3131fbd945d2138734914",
+  "commit": "fe9bf20d9f233d3fc203add30ace9da38c0e0765",
   "plan_sha256": "3afcacab6c0137fabf3f3e2113137534ac4db55169bd64506a47d6820b51a391"
 }
