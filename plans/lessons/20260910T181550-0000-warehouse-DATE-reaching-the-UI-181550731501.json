@@ -1,0 +1,13 @@
+{
+  "topic": "warehouse DATE reaching the UI",
+  "lesson": "A warehouse DATE column read through pg and JSON-serialized arrives at the browser as an IST-shifted UTC timestamp (2026-07-01 becomes 2026-06-30T18:30:00.000Z), so a user-facing table shows the WRONG MONTH. Normalize month/date cells to a date-only YYYY-MM-DD string on the server before they enter a result row, and format them for display on the client.",
+  "source": ".factory/stories/mis-selection/tests.json functional selection-ui",
+  "applies_to": [
+    "backend/src/mis/**",
+    "backend/src/sql/**",
+    "frontend/src/features/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-10T18:15:50+00:00"
+}

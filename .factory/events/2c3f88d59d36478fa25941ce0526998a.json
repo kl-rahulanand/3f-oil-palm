@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T18:53:58+00:00", "story": "mis-selection", "detail": "S-0021-8b38: You are right that the grain cannot be recovered from a GL/month result, and the ruling is NOT to add a query path or touch the builder/executor. RULING: change the DISPLAY GRAIN of the bucket to matc"}

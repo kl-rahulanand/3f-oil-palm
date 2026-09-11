@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T18:55:39+00:00", "story": "mis-selection", "detail": "The accepted review blocker cannot be fixed inside selection-ui write_scope: MisSelectionService receives only GL/month result rows, so correct per-(plant,cost_center,gl_code) bucket Actual amounts re"}

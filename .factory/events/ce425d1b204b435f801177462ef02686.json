@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T18:52:50+00:00", "story": "mis-selection", "detail": "Autoreview requires removing tracked generated .next/trace, but .next/trace is outside the task write scope; authorize its deletion or amend scope."}

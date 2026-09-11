@@ -1,0 +1,7 @@
+{
+  "generated_by": "implementer",
+  "outcome": "The MIS Reports page is live: an authenticated user picks Agriculture / Nursery / DUB / a loaded period, presses Generate, and sees the governed DUB nursery slice from real SAP data - the resolved scope (7 cost centres, 28 GL codes, nursery-mis-financial-v1), the totals, 28 GL rows by month, and the unmapped-GL bucket as a reviewable list carrying an Actual and a Budget amount per GL with the reason each one is unmapped. That list is the artifact that goes to Srihari to get the authoritative mapping back.",
+  "issue": "mis-selection",
+  "commit": "99220edb356fda54a68df792c46922778242ef7e",
+  "recorded_at": "2026-09-10T19:20:14+00:00"
+}

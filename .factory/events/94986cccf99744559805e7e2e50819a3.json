@@ -1,0 +1,1 @@
+{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-10T18:52:50+00:00", "story": "mis-selection", "detail": "Review requires exact per-triple bucket amounts, but the only allowed input in mis-selection.service.ts is the governed result already aggregated to GL/month; fixing the grain requires either a new wa"}
