@@ -55,28 +55,34 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
   const rowsByPeriod = new Map(periods.map(({ period }) => [period, [] as MisBudgetInput[]]));
   const identities = new Set<string>();
   let glRowCount = 0;
-  const rows: Row[] = [];
-  table.worksheet.eachRow((row, rowNumber) => {
-    if (rowNumber > table.rowNumber + 1) rows.push(row);
-  });
-
-  for (const row of rows) {
+  let uncomputedRolloverCount = 0;
+  for (let rowNumber = table.rowNumber + 2; rowNumber <= table.worksheet.rowCount; rowNumber += 1) {
+    const row = table.worksheet.getRow(rowNumber);
+    if (startsNewTable(row)) break;
     const glCode = cellText(row.getCell(requiredColumn(table, "GL Codes")));
     if (!glCode) continue;
+    if (periods.some(({ budget }) => isSubtotal(row.getCell(budget)))) continue;
     glRowCount += 1;
     if (glRowCount * periods.length > rowLimit) throw new WorkbookRowLimitError(rowLimit);
+    if (!/^\d{6,}$/.test(glCode)) {
+      issues.push(issue(["rows", row.number, "glCode"], "GL Codes must be a numeric GL code"));
+      continue;
+    }
 
-    const lineId = cellText(row.getCell(requiredColumn(table, "S. No.")));
     const costCenter = cellText(row.getCell(requiredColumn(table, "Budget Components")));
-    if (!lineId) issues.push(issue(["rows", row.number, "lineId"], "S.No is required for a GL row"));
+    const lineId = String(row.number);
     if (!costCenter) {
       issues.push(issue(["rows", row.number, "costCenter"], "Budget Components is required for a GL row"));
     }
 
     for (const columns of periods) {
       const budgetAmount = parseMoney(row.getCell(columns.budget), row.number, "budgetAmount", issues);
-      const rolloverAmount = parseMoney(row.getCell(columns.rollover), row.number, "rolloverAmount", issues);
-      if (!lineId || !costCenter || budgetAmount === undefined || rolloverAmount === undefined) continue;
+      const rolloverCell = row.getCell(columns.rollover);
+      const rolloverAmount =
+        isFormula(rolloverCell.value) && typeof rolloverCell.value.result !== "number"
+          ? ((uncomputedRolloverCount += 1), 0n)
+          : parseMoney(rolloverCell, row.number, "rolloverAmount", issues);
+      if (!costCenter || budgetAmount === undefined || rolloverAmount === undefined) continue;
 
       const identity = [MIS_BUDGET_FORMAT_ID, columns.period, lineId, glCode, costCenter].join("\u0000");
       if (identities.has(identity)) {
@@ -114,6 +120,7 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
       glRowCount,
       rowCount: totalRowCount,
       headerRow: table.rowNumber,
+      uncomputedRolloverCount,
     },
   };
 }
@@ -142,11 +149,15 @@ function findPeriodColumns(table: LocatedTable, issues: z.ZodIssue[]): PeriodCol
   header.eachCell((cell, column) => {
     if (cell.isMerged && cell.master.address !== cell.address) return;
     const value = formulaResult(cell.value);
-    if (!(value instanceof Date)) return;
+    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) return;
     const period = firstOfMonth(value);
     if (!period) {
-      const label = Number.isFinite(value.getTime()) ? value.toISOString().slice(0, 10) : cell.address;
-      issues.push(issue(["file", "headers", label], "Monthly block date must be the first of the month"));
+      issues.push(
+        issue(
+          ["file", "headers", value.toISOString().slice(0, 10)],
+          "Monthly block date must be the first of the month",
+        ),
+      );
       return;
     }
     const names = PERIOD_SUBHEADERS.map((_, offset) => normalizeHeader(cellText(subheader.getCell(column + offset))));
@@ -214,13 +225,24 @@ function isFormula(value: CellValue): value is Extract<CellValue, { formula: str
   return typeof value === "object" && value !== null && ("formula" in value || "sharedFormula" in value);
 }
 
+function isSubtotal(cell: Cell): boolean {
+  return /\$?[A-Z]{1,3}\$?\d+/i.test(cell.formula);
+}
+
+function startsNewTable(row: Row): boolean {
+  const first = cellText(row.getCell(1));
+  return (
+    /^Table-\d+/i.test(first) || /^Table-\d+/i.test(cellText(row.getCell(2))) || normalizeHeader(first) === "S. No."
+  );
+}
+
 function formulaResult(value: CellValue): CellValue {
   return isFormula(value) ? (value.result ?? null) : value;
 }
 
 function cellText(cell: Cell): string {
   const value = formulaResult(cell.value);
-  if (value instanceof Date) return value.toISOString();
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.toISOString() : "";
   if (typeof value === "object" && value !== null && "richText" in value) {
     return value.richText
       .map(({ text }) => text)

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { parseMisBudgetWorkbook } from "./mis-budget.parser";
 import { WorkbookRowLimitError } from "./workbook-guard";
 
-test("the MIS budget parser identifies Table-2 by its required header set, extracts the Budget and Roll Over Budget columns of every first-of-month date block present for GL line rows, skips component group rows and the YTD and FY blocks, accepts a formula cell's cached numeric result and rejects one with no cache, stores amounts as paise and every field as provided, and rejects duplicate grain, a GL row missing its S.No or component, and a workbook with no GL rows before any write", async () => {
+test("the MIS budget parser identifies Table-2 by its required header set, extracts the Budget and Roll Over Budget columns of every first-of-month date block present for GL line rows, skips component group rows and the YTD and FY blocks, accepts a formula cell's cached numeric result and rejects one with no cache, stores amounts as paise and every field as provided, and rejects a GL row missing its component and a workbook with no GL rows before any write", async () => {
   const parsed = await parseMisBudgetWorkbook(
     await workbookBuffer((sheet) => {
       addBudgetTable(sheet);
@@ -42,7 +42,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
           {
             formatId: "nursery-mis-financial-v1",
             period: "2026-04-01",
-            lineId: "1.1",
+            lineId: "6",
             glCode: "50001201",
             costCenter: "Imported Sprouts",
             budgetAmount: "10.11",
@@ -51,7 +51,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
           {
             formatId: "nursery-mis-financial-v1",
             period: "2026-04-01",
-            lineId: "1.2",
+            lineId: "7",
             glCode: "50001202",
             costCenter: "Land Levelling",
             budgetAmount: "-1.00",
@@ -65,7 +65,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
           {
             formatId: "nursery-mis-financial-v1",
             period: "2026-05-01",
-            lineId: "1.1",
+            lineId: "6",
             glCode: "50001201",
             costCenter: "Imported Sprouts",
             budgetAmount: "1234.50",
@@ -74,7 +74,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
           {
             formatId: "nursery-mis-financial-v1",
             period: "2026-05-01",
-            lineId: "1.2",
+            lineId: "7",
             glCode: "50001202",
             costCenter: "Land Levelling",
             budgetAmount: "1.01",
@@ -83,24 +83,6 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
         ],
       },
     ],
-  );
-
-  await rejectsWithPaths(
-    workbookBuffer((sheet) => {
-      addBudgetTable(sheet);
-      const duplicate = {
-        lineId: "1.1",
-        component: "Imported Sprouts",
-        glCode: "50001201",
-        aprilBudget: 1,
-        aprilRollover: 0,
-        mayBudget: 1,
-        mayRollover: 0,
-      };
-      addGlRow(sheet, 6, duplicate);
-      addGlRow(sheet, 7, duplicate);
-    }),
-    ["rows.7.grain", "rows.7.grain"],
   );
 
   await rejectsWithPaths(
@@ -116,7 +98,7 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
         mayRollover: 0,
       });
     }),
-    ["rows.6.lineId", "rows.6.costCenter", "rows.6.budgetAmount", "rows.6.rolloverAmount"],
+    ["rows.6.costCenter", "rows.6.budgetAmount"],
   );
 
   await rejectsWithPaths(
@@ -160,6 +142,289 @@ test("the MIS budget parser identifies Table-2 by its required header set, extra
       1,
     ),
     (error: unknown) => error instanceof WorkbookRowLimitError && error.limit === 1,
+  );
+});
+
+test("an Invalid Date elsewhere in the sheet does not prevent finding the MIS budget headers", async () => {
+  const parsed = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      sheet.getCell(1, 1).value = new Date(Number.NaN);
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "1.1",
+        component: "Imported Sprouts",
+        glCode: "50001201",
+        aprilBudget: 1,
+        aprilRollover: 0,
+        mayBudget: 1,
+        mayRollover: 0,
+      });
+    }),
+  );
+
+  assert.deepEqual(
+    parsed.periods.map(({ period }) => period),
+    ["2026-04-01", "2026-05-01"],
+  );
+  assert.equal(parsed.validationResult.headerRow, 3);
+});
+
+test("an uncomputed date-formatted formula header is not treated as a malformed monthly block", async () => {
+  const parsed = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      sheet.getCell(3, 19).numFmt = "mmm-yy";
+      sheet.getCell(3, 19).value = { formula: 'CONCATENATE("FY 26-27 (YTD Jul-26)")', result: new Date(Number.NaN) };
+      addGlRow(sheet, 6, {
+        lineId: "1.1",
+        component: "Imported Sprouts",
+        glCode: "50001201",
+        aprilBudget: 1,
+        aprilRollover: 0,
+        mayBudget: 1,
+        mayRollover: 0,
+      });
+    }),
+  );
+
+  assert.deepEqual(
+    parsed.periods.map(({ period }) => period),
+    ["2026-04-01", "2026-05-01"],
+  );
+});
+
+test("an uncached SUM parent is skipped while S.No.-less leaf GL rows are stored", async () => {
+  const parsed = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "1",
+        component: "Insurance",
+        glCode: "55011200",
+        aprilBudget: { formula: "SUM(K7:K8)" },
+        aprilRollover: { formula: "SUM(L7:L8)" },
+        mayBudget: { formula: "SUM(O7:O8)" },
+        mayRollover: { formula: "SUM(P7:P8)" },
+      });
+      addGlRow(sheet, 7, {
+        lineId: "",
+        component: "Insurance - Stocks",
+        glCode: "55011201",
+        aprilBudget: 10,
+        aprilRollover: { formula: "A1" },
+        mayBudget: 20,
+        mayRollover: { formula: "A1" },
+      });
+      addGlRow(sheet, 8, {
+        lineId: "",
+        component: "Insurance - Assets",
+        glCode: "55011202",
+        aprilBudget: 30,
+        aprilRollover: 0,
+        mayBudget: 40,
+        mayRollover: 0,
+      });
+    }),
+  );
+
+  assert.deepEqual(
+    parsed.periods.map(({ period, rows }) => ({
+      period,
+      rows: rows.map(({ lineId, glCode, budgetAmount, rolloverAmount }) => ({
+        lineId,
+        glCode,
+        budgetAmount,
+        rolloverAmount,
+      })),
+    })),
+    [
+      {
+        period: "2026-04-01",
+        rows: [
+          { lineId: "7", glCode: "55011201", budgetAmount: "10.00", rolloverAmount: "0.00" },
+          { lineId: "8", glCode: "55011202", budgetAmount: "30.00", rolloverAmount: "0.00" },
+        ],
+      },
+      {
+        period: "2026-05-01",
+        rows: [
+          { lineId: "7", glCode: "55011201", budgetAmount: "20.00", rolloverAmount: "0.00" },
+          { lineId: "8", glCode: "55011202", budgetAmount: "40.00", rolloverAmount: "0.00" },
+        ],
+      },
+    ],
+  );
+  assert.equal(parsed.validationResult.uncomputedRolloverCount, 2);
+});
+
+test("a cached SUM parent is skipped while only its children are stored", async () => {
+  const parsed = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "1",
+        component: "Vehicle Maintenance",
+        glCode: "55010900",
+        aprilBudget: { formula: "SUM(K7:K8)", result: 30 },
+        aprilRollover: { formula: "SUM(L7:L8)", result: 0 },
+        mayBudget: { formula: "SUM(O7:O8)", result: 70 },
+        mayRollover: { formula: "SUM(P7:P8)", result: 0 },
+      });
+      addGlRow(sheet, 7, {
+        lineId: "",
+        component: "Petrol and Diesel",
+        glCode: "55010901",
+        aprilBudget: 10,
+        aprilRollover: 0,
+        mayBudget: 30,
+        mayRollover: 0,
+      });
+      addGlRow(sheet, 8, {
+        lineId: "",
+        component: "Repairs and Maintenance Vehicles",
+        glCode: "55010902",
+        aprilBudget: 20,
+        aprilRollover: 0,
+        mayBudget: 40,
+        mayRollover: 0,
+      });
+    }),
+  );
+
+  assert.deepEqual(
+    parsed.periods.map(({ period, rows }) => ({
+      period,
+      rows: rows.map(({ glCode, budgetAmount }) => ({ glCode, budgetAmount })),
+    })),
+    [
+      {
+        period: "2026-04-01",
+        rows: [
+          { glCode: "55010901", budgetAmount: "10.00" },
+          { glCode: "55010902", budgetAmount: "20.00" },
+        ],
+      },
+      {
+        period: "2026-05-01",
+        rows: [
+          { glCode: "55010901", budgetAmount: "30.00" },
+          { glCode: "55010902", budgetAmount: "40.00" },
+        ],
+      },
+    ],
+  );
+});
+
+test("a section row whose budget references cells is skipped while its leaves are stored", async () => {
+  const parsed = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "9",
+        component: "Admin Expenses",
+        glCode: "55000000",
+        aprilBudget: { formula: "K7+K8", result: 132_000 },
+        aprilRollover: 0,
+        mayBudget: { sharedFormula: "K6", result: 132_000 },
+        mayRollover: 0,
+      });
+      addGlRow(sheet, 7, {
+        lineId: "",
+        component: "Admin Expenses - One",
+        glCode: "55000001",
+        aprilBudget: 60_000,
+        aprilRollover: 0,
+        mayBudget: 60_000,
+        mayRollover: 0,
+      });
+      addGlRow(sheet, 8, {
+        lineId: "",
+        component: "Admin Expenses - Two",
+        glCode: "55000002",
+        aprilBudget: 72_000,
+        aprilRollover: 0,
+        mayBudget: 72_000,
+        mayRollover: 0,
+      });
+    }),
+  );
+
+  assert.deepEqual(
+    parsed.periods.map(({ rows }) => rows.map(({ glCode, budgetAmount }) => ({ glCode, budgetAmount }))),
+    [
+      [
+        { glCode: "55000001", budgetAmount: "60000.00" },
+        { glCode: "55000002", budgetAmount: "72000.00" },
+      ],
+      [
+        { glCode: "55000001", budgetAmount: "60000.00" },
+        { glCode: "55000002", budgetAmount: "72000.00" },
+      ],
+    ],
+  );
+});
+
+test("a formula without a cell reference remains a leaf value", async () => {
+  const parsed = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "1",
+        component: "Admin Expenses",
+        glCode: "55000001",
+        aprilBudget: { formula: "12000*1.05", result: 12_600 },
+        aprilRollover: 0,
+        mayBudget: { formula: "12000*1.05", result: 12_600 },
+        mayRollover: 0,
+      });
+    }),
+  );
+
+  assert.deepEqual(
+    parsed.periods.map(({ rows }) => rows.map(({ glCode, budgetAmount }) => ({ glCode, budgetAmount }))),
+    [[{ glCode: "55000001", budgetAmount: "12600.00" }], [{ glCode: "55000001", budgetAmount: "12600.00" }]],
+  );
+});
+
+test("a following Table-3 block is not ingested as part of the MIS budget table", async () => {
+  const parsed = await parseMisBudgetWorkbook(
+    await workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "1.1",
+        component: "Imported Sprouts",
+        glCode: "50001201",
+        aprilBudget: 10,
+        aprilRollover: 0,
+        mayBudget: 20,
+        mayRollover: 0,
+      });
+      addPaymentOfficeTable(sheet, 8);
+    }),
+  );
+
+  assert.deepEqual(
+    parsed.periods.map(({ rows }) => rows.map(({ glCode }) => glCode)),
+    [["50001201"], ["50001201"]],
+  );
+  assert.equal(parsed.validationResult.glRowCount, 1);
+});
+
+test("a non-numeric GL code inside the MIS budget table is rejected", async () => {
+  await rejectsWithPaths(
+    workbookBuffer((sheet) => {
+      addBudgetTable(sheet);
+      addGlRow(sheet, 6, {
+        lineId: "1.1",
+        component: "Payment Office",
+        glCode: "HO",
+        aprilBudget: 10,
+        aprilRollover: 0,
+        mayBudget: 20,
+        mayRollover: 0,
+      });
+    }),
+    ["rows.6.glCode"],
   );
 });
 
@@ -232,4 +497,22 @@ function addGlRow(
   sheet.getCell(row, 17).value = 77_777;
   sheet.getCell(row, 18).value = "derived";
   sheet.getCell(row, 19).value = 66_666;
+}
+
+function addPaymentOfficeTable(sheet: Worksheet, row: number): void {
+  sheet.getCell(row, 1).value = "Table-3";
+  sheet.getCell(row, 2).value = "Payment Office-wise Budget and Actuals";
+  sheet.getCell(row + 2, 1).value = "S. No.";
+  sheet.getCell(row + 2, 2).value = "Payment Office";
+  ["HO", "LO", "HOD"].forEach((glCode, index) => {
+    addGlRow(sheet, row + 3 + index, {
+      lineId: String(index + 1),
+      component: glCode,
+      glCode,
+      aprilBudget: 10,
+      aprilRollover: 0,
+      mayBudget: 20,
+      mayRollover: 0,
+    });
+  });
 }
