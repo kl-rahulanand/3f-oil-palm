@@ -1,0 +1,11 @@
+{
+  "topic": "the controller test follows the required exporter dependency",
+  "lesson": "Making MisStatementExportService a REQUIRED constructor dependency of MisStatementController - the blocking fix both the performance and security lenses raised - breaks backend/src/mis/mis-statement.controller.test.ts, whose construction passes only the statement service and now fails TS2554. That file is AUTHORIZED in scope for statement-export-api: add a minimal exporter stub to the constructor call and change NO assertion, because those assertions are statement-api's shipped evidence for the statement route and must still hold unchanged.",
+  "source": "signal S-0007-c166",
+  "applies_to": [
+    "backend/src/mis/**"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T16:07:30+00:00"
+}

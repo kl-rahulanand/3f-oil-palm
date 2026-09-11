@@ -29,7 +29,7 @@ export function configureApp(
   // short-circuits, so logging must run first for every request (preflight included) to be
   // correlated and recorded.
   app.use(requestLogging(logger));
-  app.enableCors({ origin: cfg.frontendOrigin, credentials: true });
+  app.enableCors({ origin: cfg.frontendOrigin, credentials: true, exposedHeaders: ["Content-Disposition"] });
   app.useGlobalFilters(new GlobalExceptionFilter(cfg, logger));
   if (!cfg.swaggerEnabled) return;
 
