@@ -9,8 +9,9 @@ scope, the governed numbers, the correct zero state, and — visibly, not absorb
 **unmapped-GL bucket**. This is the artifact we put in front of Srihari to get the
 authoritative mapping back.
 
-No backend change: tasks 1 and 2 shipped the master, the resolution, the governed narrowing
-and the routes. This task **consumes** them.
+It mostly **consumes** what tasks 1 and 2 shipped — but the grill found it also needs a
+small, specific **backend** change (see *Grill-resolved* below): the seeded admin has no DUB
+plant scope, and `MisSelectionBucketRow` carries no amount, so C3 is otherwise impossible.
 
 ## Mandatory for a user-facing task
 `harness.yaml:113-116` — the recorder **refuses** a user-facing testing artifact unless
@@ -81,14 +82,36 @@ Render **only what the options route returns** — the loaded actual months plus
 `fy26-27-ytd`. No client-side month computation, and not the prototype's June/May, which
 have no Actual data; task 2 derives FY-YTD server-side from the latest active loaded month.
 
-### The bucket (C3, decision 0018)
-`MisSelectionBucketRow[]` renders as a **reviewable list** — each triple with its amount —
-so the mapping gap is **visible rather than absorbed into a total**. A total that silently
-included bucketed spend would defeat the purpose of the bucket.
+### The bucket (C3, decision 0018 as amended)
+`MisSelectionBucketRow[]` renders as a **reviewable list**, so the mapping gap is **visible
+rather than absorbed into a total**. The type carries no amount today, so this task extends
+it and the service populates it. **Each row shows both its Actual and its Budget amount**
+for the selected period (human-decided this grill), with `costCentre` **null** for
+Budget-only rows — they are GL-only, not triples — so the gap is legible on each side and
+reconcilable against the slice totals.
+
+Decision **0018 has been amended**: it previously assigned *all* visible bucket rendering to
+`mis-statement`. The settled split is now explicit — **mis-selection renders the reviewable
+list** (the artifact for Srihari), **mis-statement renders the bucket line inside the
+statement**. Both are required; they are different surfaces.
+
+## Grill-resolved (four blockers)
+- **The happy path was unusable as seeded.** The admin has the `report` action but **no DUB
+  plant scope** (`migrate.ts:37`), so `plantScope(user)` is empty, options return nothing and
+  a DUB run is refused. This task seeds it and asserts it in `migrate.test.ts`.
+- **C3 needed a contract change** — see the bucket section above.
+- **Decision 0018 reconciled** — see above.
+- **The live no-mapping walkthrough is unreachable.** The master has exactly one selection
+  (Agriculture/Nursery/DUB) and the options route derives its controls *from* master
+  selections, so the UI cannot offer a non-matching combination. The **functional check
+  therefore covers the resolved path end-to-end**, and the **unresolvable branch is proven by
+  the component test** against a mocked response. We do not claim a walkthrough that cannot
+  be performed.
 
 ### Shell
 Enable the MIS Reports nav item to link to the new route and make the title reflect the
-active page; `app-shell.test.tsx` and `nav-drawer.test.tsx` move with the nav table.
+active page; `app-shell.test.tsx` moves with the nav table. `nav-drawer.test.tsx` stays
+**untouched** — it tests the drawer's toggle/Escape/focus behaviour, not the nav table.
 
 ## Workflow
 ```mermaid
@@ -107,16 +130,21 @@ flowchart TD
 ```
 
 ## Manual Verification
-1. `npm run test:hermetic` (includes `npm run test:frontend`) — the three required vitest
+1. `npm run test:hermetic` (includes `npm run test:frontend`) — the **four** required vitest
    leaves pass: selects populated from options with only loaded months + FY-YTD and Generate
    posting exactly four selectors; the scope readout plus **both** zero states rendered
-   distinctly; the bucket rendered as a reviewable list.
+   distinctly; the bucket rendered as a reviewable list with Actual and Budget amounts; and
+   the resolved response's **result rows and totals actually rendered** (so the page cannot
+   pass while showing nothing).
+   `npm run build:frontend` — this adds a Next.js route, so the frontend must build.
 2. `npm run typecheck && npm run lint && npm run format:check` — and `tokens.test.ts` still
    passes, proving no token was added or renamed.
 3. **Functional check (mandatory, user_facing)**: with the backend running and the warehouse
    seeded, sign in, open **MIS Reports** from the nav, select Agriculture / Nursery / DUB /
    Jul 2026, press Generate, and confirm the DUB nursery slice, the scope readout, and the
-   bucket list; then a selection with no mapping shows zeros **and** the notice.
+   bucket list with both amounts. The **unresolvable** state is NOT walked through live — the
+   single-selection master makes it unreachable from the UI — and is proven by the component
+   test instead.
 4. The six existing gated warehouse proofs still pass — this task adds no query path.
 
 ## Decisions attested
@@ -129,11 +157,16 @@ conventions this page reuses).
 - Frontend: `app/(app)/mis-reports/page.tsx` (NEW), `src/features/mis/` view + hook (NEW),
   `src/lib/api.ts` (first data methods), `src/components/shell/app-shell.tsx` (enable the
   nav item + title), `app/globals.css` (page classes).
-- Tests: `src/features/mis/mis-report-view.test.tsx` (NEW),
-  `app-shell.test.tsx` + `nav-drawer.test.tsx` (nav table moved).
-- **Unchanged by design**: all backend code (tasks 1-2 shipped it), the contract types
-  (consumed, not changed), the theme tokens (`tokens.test.ts` guards them), the six gated
-  warehouse proofs, and `SessionGuard`/`AppShell` auth.
+- Backend: `contract/src/api.ts` (`MisSelectionBucketRow` gains Actual + Budget amounts),
+  `backend/src/mis/mis-selection.service.ts` (populate them), `backend/src/db/migrate.ts`
+  (seed the admin's DUB plant scope).
+- Tests: `src/features/mis/mis-report-view.test.tsx` (NEW), `src/lib/api.test.ts` (the new
+  data methods' CSRF/credential/refresh), `app-shell.test.tsx` (nav table),
+  `backend/src/mis/mis-selection.controller.test.ts`, `backend/src/db/migrate.test.ts`.
+- **Unchanged by design**: the resolution, the governed narrowing and the routes
+  (tasks 1-2), the theme tokens (`tokens.test.ts` guards them), the six gated warehouse
+  proofs, `SessionGuard`/`AppShell` auth, and `nav-drawer.test.tsx` — it tests the drawer's
+  toggle/Escape/focus behaviour, **not** the nav table, so it stays untouched.
 
 ## Out of scope
 The hierarchical statement and **Excel export** — the prototype's "Download Excel" button

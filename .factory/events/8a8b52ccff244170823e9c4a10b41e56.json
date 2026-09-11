@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T17:49:07+00:00", "story": "mis-selection", "detail": "Enabling route-aware AppShell title/navigation correctly uses Next usePathname, but unchanged frontend/src/components/shell/nav-drawer.test.tsx replaces next/navigation with a local mock that omits us"}

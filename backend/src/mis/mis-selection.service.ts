@@ -84,6 +84,7 @@ export class MisSelectionService implements IMisSelectionService {
         },
       },
     );
+    const result = normalizeResult(execution.result);
 
     return {
       outcome: "resolved",
@@ -96,9 +97,9 @@ export class MisSelectionService implements IMisSelectionService {
         glCodes: resolution.glCodes,
         misFormat: resolution.misFormat,
       },
-      result: execution.result,
+      result,
       totals: totals(execution.totals),
-      bucketRows: bucketRows(resolution, execution.result),
+      bucketRows: bucketRows(resolution, result),
     };
   }
 
@@ -115,6 +116,23 @@ export class MisSelectionService implements IMisSelectionService {
   }
 }
 
+function normalizeResult(result: ResultTable): ResultTable {
+  return {
+    ...result,
+    rows: result.rows.map((row) => ("month" in row ? { ...row, month: dateOnly(row.month) } : row)),
+  };
+}
+
+function dateOnly(value: unknown): string | number | null {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (!(value instanceof Date) && typeof value !== "string") return value as number | null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return String(value);
+  return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((part, index) => String(part).padStart(index ? 2 : 4, "0"))
+    .join("-");
+}
+
 function plantScope(user: AuthUser): string[] {
   return user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
 }
@@ -128,13 +146,24 @@ function totals(values: Record<string, number> | undefined): MisSelectionTotals 
 }
 
 function bucketRows(resolution: MasterResolvedSelection, result: ResultTable) {
-  const configured = resolution.bucketRows.map((row) => ({
+  const amounts = new Map<string, { actual: number; budget: number }>();
+  for (const row of result.rows) {
+    if (typeof row.gl_code !== "string") continue;
+    const amount = amounts.get(row.gl_code) ?? { actual: 0, budget: 0 };
+    amount.actual += Number(row.actual) || 0;
+    amount.budget += Number(row.budget) || 0;
+    amounts.set(row.gl_code, amount);
+  }
+  const grouped = new Map<string, typeof resolution.bucketRows>();
+  for (const row of resolution.bucketRows) grouped.set(row.gl_code, [...(grouped.get(row.gl_code) ?? []), row]);
+  const configured = [...grouped.entries()].map(([glCode, rows]) => ({
     plant: resolution.plant,
-    costCentre: row.cost_center,
-    glCode: row.gl_code,
-    misLine: row.mis_line,
-    provisional: row.provisional,
-    reason: row.reason ?? "Mapping review required",
+    costCentres: rows.map(({ cost_center }) => cost_center),
+    glCode,
+    misLine: rows[0].mis_line,
+    provisional: rows.some(({ provisional }) => provisional),
+    reason: rows.map(({ cost_center, reason }) => `${cost_center}: ${reason ?? "Mapping review required"}`).join("; "),
+    ...(amounts.get(glCode) ?? { actual: 0, budget: 0 }),
   }));
   const configuredCodes = new Set(configured.map(({ glCode }) => glCode));
   const masterCodes = new Set(resolution.masterGlCodes);
@@ -146,11 +175,12 @@ function bucketRows(resolution: MasterResolvedSelection, result: ResultTable) {
     ...configured,
     ...dynamicCodes.map((glCode) => ({
       plant: resolution.plant,
-      costCentre: null,
+      costCentres: [],
       glCode,
       misLine: UNMAPPED_GL_LINE,
       provisional: true,
       reason: "GL absent from Mapping Master",
+      ...(amounts.get(glCode) ?? { actual: 0, budget: 0 }),
     })),
   ];
 }

@@ -124,8 +124,8 @@ class MisSelectionBucketRowDto implements MisSelectionBucketRow {
   @ApiProperty({ example: "DUB" })
   plant!: string;
 
-  @ApiProperty({ example: "Primary", nullable: true })
-  costCentre!: string | null;
+  @ApiProperty({ example: ["Primary", "Secondary"], type: [String] })
+  costCentres!: string[];
 
   @ApiProperty({ example: "50001701" })
   glCode!: string;
@@ -138,6 +138,12 @@ class MisSelectionBucketRowDto implements MisSelectionBucketRow {
 
   @ApiProperty({ example: "GL absent from Sheet1" })
   reason!: string;
+
+  @ApiProperty({ example: 125 })
+  actual!: number;
+
+  @ApiProperty({ example: 200 })
+  budget!: number;
 }
 
 export class MisSelectionResolvedResponseDto implements MisSelectionResolvedResponse {

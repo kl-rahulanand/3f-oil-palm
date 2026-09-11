@@ -1,0 +1,82 @@
+{
+  "commit": "06a7c38130a333e88106d4b1bc42178f6aa01bf8",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All four required vitest leaves for selection-ui execute and pass, each proven with an executed-count check rather than a bare exit code: every required id runs exactly ONE leaf (tests=4, skipped=3, failures=0), while a nonexistent id runs NONE (tests=4, skipped=4) - so the ids name real, executing leaves and the reported green is not the runner's no-match false pass. python3 factory/scripts/verify.py passed after each delegated round (structural, typecheck, quality, test), and npm run build:frontend is part of the task's verify commands.",
+    "commands_run": [
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts frontend/src/features/mis/mis-report-view.test.tsx -t \"<each required id>\" --reporter=junit --outputFile=<report>",
+      "negative control: the same command with -t \"this-leaf-does-not-exist-negative-control\" -> tests=4 skipped=4 failures=0 (exit 0), which is why the executed count is checked",
+      "python3 factory/scripts/verify.py"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/mis/mis-report-view.test.tsx (4 required leaves: selector population + Generate payload; scope readout and both zero states; the unmapped-GL bucket list with amounts; the governed rows and totals actually rendered)",
+      "frontend/src/lib/api.test.ts (the new data methods' CSRF bootstrap, cookie credentials and one-shot 401 refresh)",
+      "frontend/src/components/shell/app-shell.test.tsx (the enabled MIS Reports nav item and page title)",
+      "backend/src/mis/mis-selection.controller.test.ts (bucket rows carry Actual and Budget; the month cell is normalized to a date-only string)",
+      "backend/src/db/migrate.test.ts (the seeded admin's DUB plant scope)"
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The vitest runner exits 0 when -t matches no leaf, so the gate cannot fail closed on a drifted leaf name; proven here by the executed-count control and ledgered as D-0029 alongside D-0024."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-10T19:24:33+00:00",
+    "commit": "06a7c38130a333e88106d4b1bc42178f6aa01bf8"
+  },
+  "updated_at": "2026-09-10T19:24:33+00:00",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "pass",
+    "score": 9,
+    "summary": "Live E2E on the host against the real client data. Signed in as admin@example.invalid with the mock OTP, reached MIS Reports from the now-enabled nav item, and ran Agriculture/Nursery/DUB/2026-07-01 against the ingested July SAP actuals (SAP Entries Mapping.xlsx#SAP Report, 4,113 rows). The resolved branch renders end to end: the scope readout names 7 cost centres, 28 GL codes and nursery-mis-financial-v1; totals show Actual Rs 1,15,12,712.07; 28 governed GL rows render with the month as 'Jul 2026' and the % measure as its designed label 'over-budget' (0 occurrences of NaN on the page); and the unmapped-GL bucket renders as a reviewable list of 9 triples, each carrying an Actual and a Budget amount plus its reason ('GL absent from Sheet1', 'Sheet1 says Tertiary while SAP books Primary'). The first pass FAILED on two rendered defects - the month cell showed the IST-shifted ISO timestamp 2026-06-30T18:30:00.000Z (the wrong month) and every % cell showed NaN - both fixed through delegated rounds and re-verified live here. A third delegated round closed four design-fidelity gaps against the imported prototype.",
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The period select shows raw ISO dates ('2026-07-01', '2099-11-01') because the options route returns the ISO date as the label and the page renders the label verbatim by design; the label belongs to the already-merged selection-resolver (task 2), ledgered as D-0028.",
+      "'2099-11-01' is a genuine stray month in the client's SAP workbook, not a rendering artifact - it surfaces real source data quality."
+    ],
+    "residual_risks": [
+      "The Budget side is Rs 0.00 everywhere because the budget workbook cannot be ingested on the host: mis-budget.parser.ts cellText() calls toISOString() on an Invalid Date produced by exceljs for one cell in Nursery MIS Format.xlsx, so the ingest throws RangeError: Invalid time value. Budget rendering is proven structurally (every table row and every bucket row shows a Budget amount) but not with non-zero live values. Ledgered as D-0027.",
+      "The unresolvable branch is not walked live - the single-selection master makes it unreachable from the UI - and is proven by the component test, exactly as the approved plan states.",
+      "The vitest required_test gate cannot fail closed on a drifted leaf name (a bogus -t exits 0 with tests=4 skipped=4). For this task the four leaves are proven by demonstrated control: each required id executes exactly ONE leaf (tests=4 skipped=3 failures=0) and a nonexistent id executes NONE. Ledgered as D-0029 alongside D-0024."
+    ],
+    "manual_validation_steps": [
+      "Migrated app-db (5432) and warehouse-db (5433) and ingested the real SAP actuals: 4,113 rows, July 2026, 30 DUB key rows.",
+      "Ran the backend on 4000 with the documented WAREHOUSE_PG_* connection and AUTH_OTP_MOCK=1; confirmed Mapped {/api/mis/options, GET} and Mapped {/api/mis/run, POST}.",
+      "Ran the frontend dev server on 3000 FROM THIS WORKTREE - a stale dev server from a different worktree was serving 3000 and was serving that other worktree's build.",
+      "Signed in at /login with admin@example.invalid and the mock OTP 000000 and landed on Dashboard.",
+      "Clicked the MIS Reports nav item - previously a disabled span, now an enabled link - and confirmed the page title, the empty state, and the four native selects populated from GET /api/mis/options (200).",
+      "Selected Agriculture / Nursery / Agri - Nursery - DUB / 2026-07-01, pressed Generate; POST /api/mis/run returned 200 and the resolved branch rendered.",
+      "Counted on the rendered page: 28 'Jul 2026' month cells, 28 'over-budget' labels, 0 'NaN', the scope readout, the totals, and the 'Unmapped GL review' list.",
+      "DESIGN FIDELITY against docs/design/3F-Financial-MIS/3F Financial MIS.dc.html, measured from live computed styles: filter selects 34px / 6px radius / 12.5px / appearance:none / border #d9e1dd; Generate 34px / 6px radius / 12.5px / bg #1c6b49 / padding 0 18px; filter labels 11px in --kl-slate #5f706a; empty-state icon block 44px with a 10px radius and the prototype's supporting line. All four match the prototype's stated values.",
+      "Re-ran python3 factory/scripts/verify.py after each delegated round - passed."
+    ],
+    "reviewed_scope": [
+      "frontend/app/(app)/mis-reports/page.tsx",
+      "frontend/src/features/mis/mis-report-view.tsx",
+      "frontend/src/features/mis/use-mis-selection.ts",
+      "frontend/app/globals.css",
+      "frontend/src/components/shell/app-shell.tsx",
+      "frontend/src/lib/api.ts",
+      "backend/src/mis/mis-selection.service.ts",
+      "backend/src/db/migrate.ts"
+    ],
+    "recommendation": "Ship. The resolved path is proven live against real client data and the surface matches the imported design prototype; the Budget data gap and the two label/gate items are ledgered as D-0027, D-0028 and D-0029.",
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-10T18:46:11+00:00",
+    "commit": "23ed18e41271c13304f5a3cfbeff5b78d2945349"
+  }
+}

@@ -4,17 +4,17 @@ import type { AuthUser } from "@3f/contract";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart3, Bot, ChevronLeft, Compass, LayoutDashboard, LogOut, Menu, Search, Shield } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { sessionQueryKey } from "@/src/features/auth/session";
 import { ApiError, api } from "@/src/lib/api";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, active: true },
-  { label: "MIS Reports", icon: BarChart3, active: false },
-  { label: "Ask", icon: Bot, active: false },
-  { label: "Explore / Saved", icon: Compass, active: false },
-  { label: "Admin", icon: Shield, active: false },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "MIS Reports", icon: BarChart3, href: "/mis-reports" },
+  { label: "Ask", icon: Bot },
+  { label: "Explore / Saved", icon: Compass },
+  { label: "Admin", icon: Shield },
 ] as const;
 
 function initials(name: string): string {
@@ -28,6 +28,7 @@ function initials(name: string): string {
 
 export function AppShell({ user, children }: Readonly<{ user: AuthUser; children: ReactNode }>) {
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const mobileToggleRef = useRef<HTMLButtonElement>(null);
   const viewportRef = useRef<boolean | null>(null);
@@ -100,10 +101,16 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
         </div>
         <nav>
           <ul className="nav-list">
-            {navItems.map(({ label, icon: Icon, active }) => (
+            {navItems.map(({ label, icon: Icon, ...item }) => (
               <li key={label}>
-                {active ? (
-                  <Link className="nav-item" href="/dashboard" prefetch={false} aria-current="page" aria-label={label}>
+                {"href" in item ? (
+                  <Link
+                    className="nav-item"
+                    href={item.href}
+                    prefetch={false}
+                    aria-current={pathname === item.href ? "page" : undefined}
+                    aria-label={label}
+                  >
                     <Icon size={17} />
                     {navOpen && <span>{label}</span>}
                   </Link>
@@ -153,7 +160,9 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
             >
               <Menu size={17} />
             </button>
-            <span className="page-title">Dashboard</span>
+            <span className="page-title">
+              {navItems.find((item) => "href" in item && item.href === pathname)?.label ?? "Dashboard"}
+            </span>
             <label className="search-shell" aria-disabled="true">
               <Search size={15} />
               <span className="sr-only">Global search</span>

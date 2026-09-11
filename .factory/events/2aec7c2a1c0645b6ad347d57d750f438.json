@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T19:09:58+00:00", "story": "mis-selection", "detail": "S-0024-b03c: AUTHORIZED - mechanically implied, exactly as for the earlier S-0018: backend/src/mis/mis-selection.dto.ts exists only to keep the typed Swagger response aligned with the contract type, so a contract "}

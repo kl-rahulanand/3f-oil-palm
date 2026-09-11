@@ -4,6 +4,7 @@ dist
 coverage
 .turbo
 .vite
+.next/
 
 # Env files (never commit)
 .env

@@ -3,7 +3,7 @@ import { after, test } from "node:test";
 import { and, count, eq } from "drizzle-orm";
 import { DEFAULT_SEED_USERS, loadConfig } from "../config";
 import { createDb, createPool } from "./pool";
-import { otpCodes, refreshTokens, roles, userRoles, users } from "./schema";
+import { otpCodes, refreshTokens, roles, userRoles, users, userScope } from "./schema";
 import { baseRolePerms, seedConfiguredUsers } from "./migrate";
 
 const pool = createPool();
@@ -53,35 +53,38 @@ test("DBA role is separate from analyst and receives framework action grants", (
   assert.ok(dbaGrants.some((grant) => grant.grantType === "action" && grant.grantId === "save"));
 });
 
-test("seedConfiguredUsers creates and updates managed email users idempotently", async () => {
+test("seedConfiguredUsers creates and updates managed admins with DUB plant scope idempotently", async () => {
   const email = uniqueEmail();
   createdEmails.push(email);
 
-  await db.insert(roles).values({ name: "analyst", label: "Analyst / DBA" }).onConflictDoNothing();
+  await db.insert(roles).values({ name: "admin", label: "Administrator" }).onConflictDoNothing();
 
   try {
-    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Initial Analyst", roles: ["analyst"] }]), 1);
+    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Initial Admin", roles: ["admin"] }]), 1);
 
     let user = await getSeededUser(email);
     assert.ok(user);
-    assert.equal(user.displayName, "Initial Analyst");
+    assert.equal(user.displayName, "Initial Admin");
     assert.equal(user.isActive, true);
     assert.equal(await countUsers(email), 1);
-    assert.equal(await countUserRoles(user.id, "analyst"), 1);
+    assert.equal(await countUserRoles(user.id, "admin"), 1);
+    assert.equal(await countUserScope(user.id, "plant", "DUB"), 1);
 
-    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Initial Analyst", roles: ["analyst"] }]), 1);
+    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Initial Admin", roles: ["admin"] }]), 1);
     assert.equal(await countUsers(email), 1);
-    assert.equal(await countUserRoles(user.id, "analyst"), 1);
+    assert.equal(await countUserRoles(user.id, "admin"), 1);
+    assert.equal(await countUserScope(user.id, "plant", "DUB"), 1);
 
     await db.update(users).set({ isActive: false }).where(eq(users.id, user.id));
-    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Updated Analyst", roles: ["analyst"] }]), 1);
+    assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Updated Admin", roles: ["admin"] }]), 1);
 
     user = await getSeededUser(email);
     assert.ok(user);
-    assert.equal(user.displayName, "Updated Analyst");
+    assert.equal(user.displayName, "Updated Admin");
     assert.equal(user.isActive, true);
     assert.equal(await countUsers(email), 1);
-    assert.equal(await countUserRoles(user.id, "analyst"), 1);
+    assert.equal(await countUserRoles(user.id, "admin"), 1);
+    assert.equal(await countUserScope(user.id, "plant", "DUB"), 1);
   } finally {
     await cleanup();
   }
@@ -152,6 +155,14 @@ async function countUserRoles(userId: string, role: string): Promise<number> {
     .select({ count: count() })
     .from(userRoles)
     .where(and(eq(userRoles.userId, userId), eq(userRoles.role, role)));
+  return Number(rows[0].count);
+}
+
+async function countUserScope(userId: string, attribute: string, value: string): Promise<number> {
+  const rows = await db
+    .select({ count: count() })
+    .from(userScope)
+    .where(and(eq(userScope.userId, userId), eq(userScope.attribute, attribute), eq(userScope.value, value)));
   return Number(rows[0].count);
 }
 

@@ -9,7 +9,10 @@ import { expect, test, vi } from "vitest";
 import { AppShell } from "./app-shell";
 import { renderWithQuery } from "@/src/test/render";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/dashboard",
+  useRouter: () => ({ replace: vi.fn() }),
+}));
 
 const user: AuthUser = {
   id: "user-1",

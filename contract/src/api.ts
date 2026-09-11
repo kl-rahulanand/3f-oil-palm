@@ -220,11 +220,13 @@ export interface MisSelectionScopeReadout {
 
 export interface MisSelectionBucketRow {
   plant: string;
-  costCentre: string | null;
+  costCentres: string[];
   glCode: string;
   misLine: string;
   provisional: boolean;
   reason: string;
+  actual: number;
+  budget: number;
 }
 
 export interface MisSelectionTotals {
