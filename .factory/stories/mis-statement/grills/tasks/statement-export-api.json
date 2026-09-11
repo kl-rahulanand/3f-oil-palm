@@ -132,5 +132,8 @@
   "grounding_treeish": "",
   "task_plan_sha256": "90050f5cde05a846b4f0bcd8b7a4f7794b1fceae22d456fff12446d3c47b3c75",
   "recorded_at": "2026-09-11T15:39:34+00:00",
-  "commit": "84223cf693b056851c3bf29c292b6ccae4bd5d30"
+  "commit": "84223cf693b056851c3bf29c292b6ccae4bd5d30",
+  "approved_task_plan_sha256": "90050f5cde05a846b4f0bcd8b7a4f7794b1fceae22d456fff12446d3c47b3c75",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-11T15:41:08+00:00"
 }
