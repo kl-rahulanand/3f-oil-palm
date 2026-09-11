@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "drill-transactions-view",
-  "score": 9,
-  "summary": "security lens over drill-transactions-view (8 product path(s), 9aa7e9c..f9fce31, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The request path preserves the displayed scope, pinned provenance, CSRF handling, and authorization boundary, but replaced-batch responses violate the required fail-safe presentation by continuing to show superseded transaction data.",
+  "score": 10,
+  "summary": "security lens over drill-transactions-view (8 product path(s), 9aa7e9c..e4ae0b5, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defect is demonstrated by the supplied diff. The transaction request uses the shared authenticated API path with CSRF protection, passes the displayed statement scope and pinned batch list without client-side narrowing, and does not expose an apparent injection sink or real credential. Transaction reference and memo values are rendered through React text nodes, which are escaped by default. Authorization and pin validation remain server-side according to the provided sealed route contracts.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "security",
-      "area": "frontend/src/features/mis",
-      "summary": "Replaced-batch responses still expose superseded transaction data (frontend/src/features/mis/drill-panel.tsx:251): When any `batchStatuses` entry is `replaced`, this branch adds a notice but then continues to render the response's transaction rows, count, and footer."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/features/mis/drill-panel.test.tsx",
@@ -26,10 +20,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "0352ed882a3b2de49fadf52fa8dd406e627ac079ef2b241d988bfc4fa1ba5d8d",
-  "brief_sha256": "26e8caef37e95e9adc46d4906d91393fc9234d75eae18852b8202dc40f113b22",
-  "branch_diff_digest": "449cd753495235c32535d439b1b888dcd5742d5cd7f45eb1c32b1158fcc46c6c",
+  "review_run_id": "1c7c15d1544c5310b9567cdb477b1d348348f939a6b2f865efd2d7aa297e6560",
+  "brief_sha256": "5ca70171900a1de783b1688c1164641b35aef75a4e1f18a9e284ba084331f1ea",
+  "branch_diff_digest": "eeb93bf3a21d5031231ed8c1374e6da3c0343452de58b38464c68ae0f908224d",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T22:07:53+00:00",
-  "commit": "f9fce31726664ecfaffbea03ab96c0ee9eb7ee64"
+  "recorded_at": "2026-09-11T22:22:07+00:00",
+  "commit": "e4ae0b5aea4138e3b9c9216766fde0f4f36e3178"
 }

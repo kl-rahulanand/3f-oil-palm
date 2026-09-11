@@ -1,42 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "drill-transactions-view",
-  "score": 1,
-  "summary": "quality lens over drill-transactions-view (8 product path(s), 9aa7e9c..f9fce31, Codex via the autoreview skill at --max-priority P2): 3 blocking, 0 non-blocking. VERDICT t-dtv-c1: partial \u2014 frontend/src/features/mis/drill-panel.tsx:103 removes the focused aggregate leaf without assigning focus in the transaction view\nVERDICT t-dtv-c2: implemented \u2014 frontend/src/features/mis/drill-panel.tsx:62 builds the request from the resolved scope and passes provenance directly\nVERDICT t-dtv-c3: implemented \u2014 frontend/src/features/mis/drill-panel.tsx:264 renders the seven-column server-ordered transaction table and server footer\nVERDICT t-dtv-c4: implemented \u2014 frontend/src/features/mis/drill-panel.tsx:322 implements server-side page navigation with pending-state disabling and retained results\nVERDICT t-dtv-c5: partial \u2014 frontend/src/features/mis/drill-panel.tsx:218 discards per-batch replacement details in the 409 refusal state\nVERDICT t-dtv-c6: partial \u2014 frontend/src/features/mis/drill-panel.test.tsx:198 uses a footer equal to the visible page subtotal, so the required full-result-total proof is ineffective",
-  "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/mis",
-      "summary": "Preserve focus when replacing the aggregate body with transactions (frontend/src/features/mis/drill-panel.tsx:103): Activating a leaf calls `setTransactionNode`, which unmounts the focused leaf button, but the only effect that focuses the dialog depends on `selection.opener` and does not rerun for this transition."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/src/features/mis",
-      "summary": "Render replacement details as a standalone 409 refusal (frontend/src/features/mis/drill-panel.tsx:218): The 409 branch returns only generic \u201cStatement out of date\u201d copy and cannot display the server's per-batch replacement details."
-    },
-    {
-      "category": "test_gap",
-      "area": "frontend/src/features/mis",
-      "summary": "Make the footer test distinguish a full-result total from a page subtotal (frontend/src/features/mis/drill-panel.test.tsx:198): The fabricated 101-row response contains page rows worth 4.00 and 1.01 while leaving the footer at the default 5.01."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-grill-2026-09-11",
-      "summary": "t-dtv-c1: Leaf Actuals become activatable in BOTH places task 2 deliberately left inert: the statement tree and the drill panel's own leaf rows. Each becomes a real <button> inside its gridcell or cell, keeping the treegrid valid and the control keyboard-reachable, and the prototype's guidance copy 'Click any Actual to see its transactions. Budget is not drillable.' is added now that it is true. Budget, Roll-over and % remain inert everywhere - no handler, no focusable control, no pointer affordance - and the unmapped-GL line drills like any other leaf. Drilling a leaf from INSIDE the aggregate panel replaces the panel's body in place rather than opening a second dialog, and the breadcrumb's group crumb becomes a Back control - the prototype's own drill.toGroup seam - that returns to the aggregate list and moves focus to the leaf row's Actual that was used. Close always returns focus to the statement Actual button that opened the panel, which stays mounted throughout, so focus can never land on an unmounted control."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-re-read-2026-09-11",
-      "summary": "t-dtv-c5: Every server outcome has exactly ONE clear state on screen, never two at once. Replacement is reported per batch: batchStatuses is a LIST and an FY-YTD drill can carry several replaced entries, so the panel names EVERY replaced source and period, never the first match from a find(). A stale or vanished pin (409) is a refusal that says the statement is out of date and to generate it again - it never silently shows different numbers. An authorization refusal (403) and a generic failure each say what happened and what to do, in the interface's voice, and neither renders alongside rows, counts or a footer. The displayed footer is also checked against the clicked leaf's own Actual in exact paise; a mismatch withholds the total in the same treatment task 2 established rather than showing a figure the panel cannot vouch for."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/drill-down-actuals-drill-down-to-transactions.md#verify-plan",
-      "summary": "t-dtv-c6: The behaviour is proven by vitest leaves covering: the request built from the displayed scope with provenance passed verbatim; the seven-column table in server order with the full-result footer and its paise equality to the clicked leaf; pagination re-requesting rather than slicing, and the pending-then-failed transition clearing the previous page; the empty result; multi-batch replacement naming every replaced period; and the forbidden and failed states rendering alone. Two of the leaves are deliberately NOT component tests: one exercises the api client directly in frontend/src/lib/api.test.ts, because component tests mock the client and therefore prove nothing about the route, the CSRF header, the retry-on-401 or the untouched payload; and one re-asserts task 2's zero-network aggregate proof as a REQUIRED leaf of this task, so regressing decision 0024 fails this task rather than relying on the suite happening to keep it. The live check runs against this worktree's servers and drills a real leaf, compares the footer to the statement cell and confirms design parity with the prototype panel; it does NOT page, because the July extract's largest (plant, cost centre, GL) group is 18 rows and no real leaf can reach a 100-row page - pagination is proven against a fabricated response and the evidence says so."
-    }
-  ],
+  "score": 10,
+  "summary": "quality lens over drill-transactions-view (8 product path(s), 9aa7e9c..e4ae0b5, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-dtv-c1: implemented \u2014 frontend/src/features/mis/statement-view.tsx:210 and frontend/src/features/mis/drill-panel.tsx:321 activate leaf Actuals in both locations with in-place Back/focus handling.\nVERDICT t-dtv-c2: implemented \u2014 frontend/src/features/mis/drill-panel.tsx:65 constructs the request from the resolved response and passes provenance verbatim through the shared client.\nVERDICT t-dtv-c3: implemented \u2014 frontend/src/features/mis/drill-panel.tsx:239 renders the seven server-ordered, UTC-safe transaction columns with dedicated styling and full-result totals.\nVERDICT t-dtv-c4: implemented \u2014 frontend/src/features/mis/drill-panel.tsx:295 retains successful data while paging, disables navigation during requests, and clears it on terminal failure.\nVERDICT t-dtv-c5: implemented \u2014 frontend/src/features/mis/drill-panel.tsx:195 renders mutually exclusive refusal states, lists every replaced batch, and withholds mismatched totals.\nVERDICT t-dtv-c6: implemented \u2014 frontend/src/features/mis/drill-panel.test.tsx:173 and frontend/src/lib/api.test.ts:78 cover the required component and direct-client behaviors.\nNo blocking compatibility leftovers or other actionable P0\u2013P2 defects are shown by the supplied diff.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/features/mis/drill-panel.test.tsx",
@@ -53,33 +22,33 @@
   "contract_verdicts": [
     {
       "contract_id": "t-dtv-c1",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/mis/drill-panel.tsx:103 removes the focused aggregate leaf without assigning focus in the transaction view"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/statement-view.tsx:210 and frontend/src/features/mis/drill-panel.tsx:321 activate leaf Actuals in both locations with in-place Back/focus handling."
     },
     {
       "contract_id": "t-dtv-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/drill-panel.tsx:62 builds the request from the resolved scope and passes provenance directly"
+      "evidence": "frontend/src/features/mis/drill-panel.tsx:65 constructs the request from the resolved response and passes provenance verbatim through the shared client."
     },
     {
       "contract_id": "t-dtv-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/drill-panel.tsx:264 renders the seven-column server-ordered transaction table and server footer"
+      "evidence": "frontend/src/features/mis/drill-panel.tsx:239 renders the seven server-ordered, UTC-safe transaction columns with dedicated styling and full-result totals."
     },
     {
       "contract_id": "t-dtv-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/drill-panel.tsx:322 implements server-side page navigation with pending-state disabling and retained results"
+      "evidence": "frontend/src/features/mis/drill-panel.tsx:295 retains successful data while paging, disables navigation during requests, and clears it on terminal failure."
     },
     {
       "contract_id": "t-dtv-c5",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/mis/drill-panel.tsx:218 discards per-batch replacement details in the 409 refusal state"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/drill-panel.tsx:195 renders mutually exclusive refusal states, lists every replaced batch, and withholds mismatched totals."
     },
     {
       "contract_id": "t-dtv-c6",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/mis/drill-panel.test.tsx:198 uses a footer equal to the visible page subtotal, so the required full-result-total proof is ineffective"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/drill-panel.test.tsx:173 and frontend/src/lib/api.test.ts:78 cover the required component and direct-client behaviors."
     },
     {
       "contract_id": "t-dta-c1",
@@ -143,10 +112,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "0352ed882a3b2de49fadf52fa8dd406e627ac079ef2b241d988bfc4fa1ba5d8d",
-  "brief_sha256": "26e8caef37e95e9adc46d4906d91393fc9234d75eae18852b8202dc40f113b22",
-  "branch_diff_digest": "449cd753495235c32535d439b1b888dcd5742d5cd7f45eb1c32b1158fcc46c6c",
+  "review_run_id": "1c7c15d1544c5310b9567cdb477b1d348348f939a6b2f865efd2d7aa297e6560",
+  "brief_sha256": "5ca70171900a1de783b1688c1164641b35aef75a4e1f18a9e284ba084331f1ea",
+  "branch_diff_digest": "eeb93bf3a21d5031231ed8c1374e6da3c0343452de58b38464c68ae0f908224d",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T22:07:53+00:00",
-  "commit": "f9fce31726664ecfaffbea03ab96c0ee9eb7ee64"
+  "recorded_at": "2026-09-11T22:22:07+00:00",
+  "commit": "e4ae0b5aea4138e3b9c9216766fde0f4f36e3178"
 }
