@@ -10,6 +10,7 @@ import { migrateWarehouse } from "./warehouse-migrate";
 import type { QueryResult, Warehouse } from "./warehouse.interface";
 
 const PERIOD = "2026-07-01";
+const FY_YTD_PERIODS = ["2026-04-01", "2026-05-01", "2026-06-01", PERIOD];
 const ACTUALS_PATH = join(__dirname, "../../../docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx");
 const BUDGET_PATH = join(__dirname, "../../../docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx");
 
@@ -40,29 +41,31 @@ test(
       if (resolution.outcome !== "resolved") return;
       assert.ok(resolution.leafTargets);
 
-      const built = new SqlBuilder().build(
-        statementDomain,
-        {
-          domain: statementDomain.name,
-          measureIds: [],
-          dimensionIds: [],
-          filters: [],
-          timeWindow: { grain: "month", column: "month", from: resolution.period.from, to: resolution.period.to },
-        },
-        user,
-        true,
-        {
-          triples: resolution.triples,
-          glCodes: resolution.glCodes,
-          masterGlCodes: resolution.masterGlCodes,
-          leafTargets: resolution.leafTargets,
-        },
-      );
+      const build = (from: string, to: string) =>
+        new SqlBuilder().build(
+          statementDomain,
+          {
+            domain: statementDomain.name,
+            measureIds: [],
+            dimensionIds: [],
+            filters: [],
+            timeWindow: { grain: "month", column: "month", from, to },
+          },
+          user,
+          true,
+          {
+            triples: resolution.triples,
+            glCodes: resolution.glCodes,
+            masterGlCodes: resolution.masterGlCodes,
+            leafTargets: resolution.leafTargets,
+          },
+        );
+      const built = build(resolution.period.from, resolution.period.to);
       const result = await pool.query<StatementRow>(built.sql);
-      const rows = result.rows.map((row) => ({ ...row, month: dateOnly(row.month) }));
+      const rows = result.rows;
 
       assert.equal(rows.length, 81);
-      assert.equal(new Set(rows.map(({ leaf_key, month }) => `${leaf_key}\0${month}`)).size, rows.length);
+      assert.equal(new Set(rows.map(({ leaf_key }) => leaf_key)).size, rows.length);
       assert.equal(sumMoney(rows.map(({ actual_net }) => actual_net)), "11512712.07");
       assert.equal(sumMoney(rows.map(({ budget_net }) => budget_net)), "10050136.29");
       assert.deepEqual(
@@ -90,6 +93,19 @@ test(
       assert.ok(bucket);
       assert.equal(bucket.budget_net, "0.00");
       assert.notEqual(bucket.actual_net, "0.00");
+
+      const monthlyRows = (
+        await Promise.all(FY_YTD_PERIODS.map((period) => pool.query<StatementRow>(build(period, period).sql)))
+      ).flatMap(({ rows: periodRows }) => periodRows);
+      const ytdRows = (await pool.query<StatementRow>(build(FY_YTD_PERIODS[0], PERIOD).sql)).rows;
+      assert.equal(ytdRows.length, 81);
+      assert.equal(new Set(ytdRows.map(({ leaf_key }) => leaf_key)).size, ytdRows.length);
+      assert.ok(ytdRows.length < monthlyRows.length);
+      for (const row of ytdRows) {
+        const matchingMonths = monthlyRows.filter(({ leaf_key }) => leaf_key === row.leaf_key);
+        assert.equal(row.actual_net, sumMoney(matchingMonths.map(({ actual_net }) => actual_net)));
+        assert.equal(row.budget_net, sumMoney(matchingMonths.map(({ budget_net }) => budget_net)));
+      }
     } finally {
       await pool.end();
     }
@@ -98,7 +114,6 @@ test(
 
 interface StatementRow {
   leaf_key: string;
-  month: Date;
   actual_net: string;
   budget_net: string;
 }
@@ -237,12 +252,6 @@ function sumMoney(values: string[]): string {
   }, 0n);
   const absolute = paise < 0 ? -paise : paise;
   return `${paise < 0 ? "-" : ""}${absolute / 100n}.${(absolute % 100n).toString().padStart(2, "0")}`;
-}
-
-function dateOnly(value: Date): string {
-  return [value.getFullYear(), value.getMonth() + 1, value.getDate()]
-    .map((part, index) => String(part).padStart(index ? 2 : 4, "0"))
-    .join("-");
 }
 
 function assertLocalWarehouseHost(host: string | undefined): void {

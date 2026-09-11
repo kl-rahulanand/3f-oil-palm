@@ -162,15 +162,19 @@ function blockDefinitions(resolution: MasterResolvedSelection): BlockResult["def
   if (resolution.period.value === "fy26-27-ytd") {
     return [{ key: "fy26-27-ytd", label: "FY 26-27 YTD", from: resolution.period.from, to: resolution.period.to }];
   }
-  return [
-    {
-      key: "selected",
-      label: resolution.period.value,
-      from: resolution.period.from,
-      to: resolution.period.to,
-    },
-    { key: "fy26-27-ytd", label: "FY 26-27 YTD", from: FY_START, to: resolution.period.to },
-  ];
+  const selected: BlockResult["definition"] = {
+    key: "selected",
+    label: resolution.period.value,
+    from: resolution.period.from,
+    to: resolution.period.to,
+  };
+  const ytd: BlockResult["definition"] = {
+    key: "fy26-27-ytd",
+    label: "FY 26-27 YTD",
+    from: FY_START,
+    to: resolution.period.to,
+  };
+  return selected.from === ytd.from && selected.to === ytd.to ? [selected] : [selected, ytd];
 }
 
 function buildTree(outline: StatementOutlineNode[], blocks: BlockResult[]) {

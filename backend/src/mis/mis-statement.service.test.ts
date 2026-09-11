@@ -74,6 +74,16 @@ test("the statement returns both the selected month and the financial year to da
     ["fy26-27-ytd"],
   );
   assert.deepEqual(ytd.executor.calls, [{ from: "2026-04-01", to: "2026-07-01" }]);
+
+  const fyStart = fixture();
+  const fyStartResponse = await fyStart.service.run(user, request("2026-04-01"));
+  assert.equal(fyStartResponse.outcome, "resolved");
+  if (fyStartResponse.outcome !== "resolved") return;
+  assert.deepEqual(
+    fyStartResponse.grandTotal.measures.map(({ key }) => key),
+    ["selected"],
+  );
+  assert.deepEqual(fyStart.executor.calls, [{ from: "2026-04-01", to: "2026-04-01" }]);
 });
 
 test("the unmapped GL line is present with its own actual and zero budget counted in the grand total and the response carries per row source presence with the contributing batch ids", async () => {
@@ -185,7 +195,7 @@ class FakeResolver implements ISelectionResolverService {
       period: {
         value: request.period,
         from: request.period === "fy26-27-ytd" ? "2026-04-01" : request.period,
-        to: "2026-07-01",
+        to: request.period === "fy26-27-ytd" ? "2026-07-01" : request.period,
       },
     };
   }
