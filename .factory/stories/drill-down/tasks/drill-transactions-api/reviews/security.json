@@ -2,18 +2,13 @@
   "generated_by": "autoreview",
   "task_id": "drill-transactions-api",
   "score": 9,
-  "summary": "security lens over drill-transactions-api (22 product path(s), 5a9ff14..8a354ce, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The core predicate derivation, UUID validation, pinned reads, query validation, and fail-closed pre-read audit are implemented correctly. However, authenticated CSRF refusals can escape auditing because of guard ordering, and stale/gone-pin refusals do not serialize the required per-batch status information.",
+  "summary": "security lens over drill-transactions-api (22 product path(s), 5a9ff14..2b878ad, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The authorization, server-derived predicate, UUID validation, pin binding, and fail-closed audit path shown in the diff are sound. However, the new read path's timeout is only a response-side Promise race and does not bound database execution, leaving a concrete resource-exhaustion path that must be fixed or explicitly deferred before shipping.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "security",
-      "area": "backend/src/mis",
-      "summary": "[P2] Authenticate callers before deciding whether to audit CSRF refusals (backend/src/mis/mis-drill.audit.filter.ts:21): The filter audits only when `request.authUser` is already populated, but this route's `AuthGuard` is controller-scoped while the brief states that `CsrfGuard` is global."
-    },
-    {
-      "category": "security",
-      "area": "backend/src/mis",
-      "summary": "[P2] Include per-batch status details in refusal responses (backend/src/mis/mis-drill.interface.ts:14): `AuditedDrillRefusalException` stores `batchStatuses` only as a class property while passing a plain message to `HttpException`."
+      "area": "backend/src/warehouse",
+      "summary": "Configured timeout leaves both warehouse queries running (backend/src/warehouse/drill-transactions.repository.ts:174): `withTimeout` races an already-started `warehouse.execute()` promise against a timer, but it never cancels the query when the timer wins."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -43,10 +38,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "150b7d72bd89bde9676b4aa78a5218db921e61b355ee644962559a67c588aeea",
+  "review_run_id": "f90d2cc4ff1a3b1f519ff06823808276b8de661de8feb4a12774e796239fa76a",
   "brief_sha256": "4021c5b08513c14c2742f829c224e09b04c61fc10e38bfba8bd49cdad16ccfec",
-  "branch_diff_digest": "61170034ce48430b7a0698bdbea63824eada862529c06674c6bfade5af357d46",
+  "branch_diff_digest": "cfa583b37ae34f3521b0d78a03a118b2ede791cfffa0d9a962e6933fac787381",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T19:52:41+00:00",
-  "commit": "8a354ce3f45da4ebd5737e7a51c84c4beaefbeac"
+  "recorded_at": "2026-09-11T20:02:29+00:00",
+  "commit": "2b878ade33164fb082a648054e2cb3917ba57365"
 }

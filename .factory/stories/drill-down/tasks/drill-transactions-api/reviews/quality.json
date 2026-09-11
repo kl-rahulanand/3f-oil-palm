@@ -1,22 +1,23 @@
 {
   "generated_by": "autoreview",
   "task_id": "drill-transactions-api",
-  "score": 7,
-  "summary": "quality lens over drill-transactions-api (22 product path(s), 5a9ff14..8a354ce, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. VERDICT t-dta-c1: implemented \u2014 backend/src/mis/mis-drill.controller.ts:29 and backend/src/app.routes.test.ts:33 register and sanction the guarded unversioned route\nVERDICT t-dta-c2: implemented \u2014 backend/src/mis/mis-drill.service.ts:61 derives the leaf, triples, scope, and block range server-side, while backend/src/mis/mis-drill.dto.ts:18 validates UUIDs\nVERDICT t-dta-c3: partial \u2014 backend/src/mis/mis-drill.interface.ts:14 omits per-batch statuses from the serialized refusal payload\nVERDICT t-dta-c4: implemented \u2014 backend/src/mis/mis-drill.service.ts:81 writes the fail-closed audit event before transaction execution, with route-scoped refusal auditing in backend/src/mis/mis-drill.audit.filter.ts:18\nVERDICT t-dta-c5: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:75 validates, explains, times, and executes the page and footer queries with fixed-scale money and date normalization\nVERDICT t-dta-c6: implemented \u2014 backend/src/warehouse/drill-transactions.db.test.ts:29 provides exact-paise client and fixture proofs, registered by backend/package.json:17",
+  "score": 9,
+  "summary": "quality lens over drill-transactions-api (22 product path(s), 5a9ff14..2b878ad, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The route and governed read path are substantially implemented, but pin binding accepts and silently ignores out-of-range actuals pins. No compatibility leftovers are present.\nVERDICT t-dta-c1: implemented \u2014 backend/src/mis/mis-drill.controller.ts:29 registers the guarded raw-response route with typed responses\nVERDICT t-dta-c2: implemented \u2014 backend/src/mis/mis-drill.service.ts:59 derives the leaf and predicate server-side; backend/src/mis/mis-drill.dto.ts:12 validates UUIDs\nVERDICT t-dta-c3: partial \u2014 backend/src/mis/mis-drill.service.ts:139 filters away wrong-period actuals pins instead of refusing them\nVERDICT t-dta-c4: implemented \u2014 backend/src/mis/mis-drill.service.ts:77 writes the fail-closed audit event before transaction execution\nVERDICT t-dta-c5: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:81 validates, explains, times, and executes both queries\nVERDICT t-dta-c6: implemented \u2014 backend/src/warehouse/drill-transactions.db.test.ts:28 provides the exact-paise, multi-period, empty, and pagination proof registered by backend/package.json:17",
   "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "[P1] Include per-batch statuses in the refusal response payload (backend/src/mis/mis-drill.interface.ts:14): When a pinned batch is gone, `bindPins` supplies `batchStatuses` to this exception, but the constructor passes only `message` to `HttpException`."
-    },
     {
       "category": "plan-contract-partial",
       "area": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-re-read-2026-09-11",
       "summary": "t-dta-c3: The pin is BOUND, not trusted. The server splits pinnedBatches by source; it computes which months in the block's range have an actuals batch and requires exactly one pinned id per such month - a missing month, a duplicate, a wrong-source or wrong-period id is a REFUSAL, never an authorized but partial footer. Budget ingest creates a batch per workbook month, so FY-YTD provenance carries several budget ids: the outline is taken from the budget batch whose period equals the block's `to`, matching what the statement itself read, and the other budget ids are not used. A pinned id that is valid but no longer active for its period means a re-upload: read the PINNED batch and report it. A pinned id that no longer exists is reported as gone and refused. The response reports status PER PINNED BATCH - source, period, requested id, current/replaced/gone, and the now-active id where there is one - not a single scalar flag, because task 3 cannot name what changed from a scalar."
     }
   ],
-  "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/mis",
+      "summary": "[P2] Refuse actuals pins outside the selected block range (backend/src/mis/mis-drill.service.ts:139): The `actuals` array silently filters out pins whose period is outside `[from, to]`, while the subsequent completeness check examines only expected in-range periods."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     ".prettierignore",
     "backend/package.json",
@@ -46,39 +47,39 @@
     {
       "contract_id": "t-dta-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.controller.ts:29 and backend/src/app.routes.test.ts:33 register and sanction the guarded unversioned route"
+      "evidence": "backend/src/mis/mis-drill.controller.ts:29 registers the guarded raw-response route with typed responses"
     },
     {
       "contract_id": "t-dta-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.service.ts:61 derives the leaf, triples, scope, and block range server-side, while backend/src/mis/mis-drill.dto.ts:18 validates UUIDs"
+      "evidence": "backend/src/mis/mis-drill.service.ts:59 derives the leaf and predicate server-side; backend/src/mis/mis-drill.dto.ts:12 validates UUIDs"
     },
     {
       "contract_id": "t-dta-c3",
       "verdict": "partial",
-      "evidence": "backend/src/mis/mis-drill.interface.ts:14 omits per-batch statuses from the serialized refusal payload"
+      "evidence": "backend/src/mis/mis-drill.service.ts:139 filters away wrong-period actuals pins instead of refusing them"
     },
     {
       "contract_id": "t-dta-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.service.ts:81 writes the fail-closed audit event before transaction execution, with route-scoped refusal auditing in backend/src/mis/mis-drill.audit.filter.ts:18"
+      "evidence": "backend/src/mis/mis-drill.service.ts:77 writes the fail-closed audit event before transaction execution"
     },
     {
       "contract_id": "t-dta-c5",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:75 validates, explains, times, and executes the page and footer queries with fixed-scale money and date normalization"
+      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:81 validates, explains, times, and executes both queries"
     },
     {
       "contract_id": "t-dta-c6",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/drill-transactions.db.test.ts:29 provides exact-paise client and fixture proofs, registered by backend/package.json:17"
+      "evidence": "backend/src/warehouse/drill-transactions.db.test.ts:28 provides the exact-paise, multi-period, empty, and pagination proof registered by backend/package.json:17"
     }
   ],
   "aspect": "quality",
-  "review_run_id": "150b7d72bd89bde9676b4aa78a5218db921e61b355ee644962559a67c588aeea",
+  "review_run_id": "f90d2cc4ff1a3b1f519ff06823808276b8de661de8feb4a12774e796239fa76a",
   "brief_sha256": "4021c5b08513c14c2742f829c224e09b04c61fc10e38bfba8bd49cdad16ccfec",
-  "branch_diff_digest": "61170034ce48430b7a0698bdbea63824eada862529c06674c6bfade5af357d46",
+  "branch_diff_digest": "cfa583b37ae34f3521b0d78a03a118b2ede791cfffa0d9a962e6933fac787381",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T19:52:41+00:00",
-  "commit": "8a354ce3f45da4ebd5737e7a51c84c4beaefbeac"
+  "recorded_at": "2026-09-11T20:02:29+00:00",
+  "commit": "2b878ade33164fb082a648054e2cb3917ba57365"
 }
