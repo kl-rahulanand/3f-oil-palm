@@ -1,17 +1,22 @@
 {
   "generated_by": "autoreview",
   "task_id": "statement-view",
-  "score": 9,
-  "summary": "quality lens over statement-view (8 product path(s), c248d46..c55fc7e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. VERDICT t-sv-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:83 renders the statement inline from the existing selector flow\nVERDICT t-sv-c2: implemented \u2014 frontend/src/features/mis/statement-view.tsx:90 renders the route-provided node and grand-total measures without client-side summation\nVERDICT t-sv-c3: implemented \u2014 frontend/src/features/mis/statement-view.tsx:139 renders the required blocks and delegates exact money and percentage display formatting\nVERDICT t-sv-c4: implemented \u2014 frontend/src/features/mis/statement-view.tsx:11 branches explicitly on the unresolvable outcome and omits the table\nThe contracts are reachable and implemented, but the failed-request path simultaneously renders error and empty states, so the patch is not fully correct.",
-  "blocking_findings": [],
-  "non_blocking_findings": [
+  "score": 7,
+  "summary": "quality lens over statement-view (8 product path(s), c248d46..ff23f5f, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The inline statement, route-provided totals, outcome split, exact money formatting, provenance, accessibility metadata, and removal of the orphaned frontend selection API are implemented. The selected FY-YTD single-block case is mislabeled, leaving the period-block contract partial.\nVERDICT t-sv-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:83 inline StatementView is rendered from the existing selector mutation\nVERDICT t-sv-c2: implemented \u2014 frontend/src/features/mis/statement-view.tsx:91 grandTotal and node measures are rendered directly from the route payload\nVERDICT t-sv-c3: partial \u2014 frontend/src/features/mis/statement-view.tsx:161 derives YTD semantics from the block key instead of every block's from/to range\nVERDICT t-sv-c4: implemented \u2014 frontend/src/features/mis/statement-view.tsx:9 branches on outcome before rendering the table, with provenance rendered at line 100",
+  "blocking_findings": [
     {
       "category": "bug",
       "area": "frontend/src/features/mis",
-      "summary": "[P2] Do not render the empty state alongside a failed report (frontend/src/features/mis/mis-report-view.tsx:71): When the first statement request rejects, `run.data` is absent, `run.isPending` is false, and `options.isError` is false, so this condition renders the normal \u201cSelect \u2026 then Generate\u201d empty state at the same time as the error alert above it."
+      "summary": "[P1] Derive the single-block FY heading from its range (frontend/src/features/mis/statement-view.tsx:161): `formatBlockHeading` treats every block keyed `selected` as a single month and formats only `to`."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/financial-mis-statement.md",
+      "summary": "t-sv-c3: Each period block renders Budget, Roll-over, Actual and % with Roll-over visibly EMPTY; block headings are the SPEC's labels - 'July 2026' and 'FY 26-27 (YTD to Jul)' - formatted in the view from each block's from/to, since the API emits raw values like 2026-07-01; money is displayed in Indian digit grouping with the rupee sign, rounded to the rupee HALF-UP AWAY FROM ZERO from the fixed-scale decimal string without ever going through float arithmetic; a non-numeric percentage is passed through VERBATIM and a null percentage renders as NA; and a single-block response renders one block."
     }
   ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/features/mis/mis-report-view.test.tsx",
@@ -29,22 +34,22 @@
     {
       "contract_id": "t-sv-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:83 renders the statement inline from the existing selector flow"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:83 inline StatementView is rendered from the existing selector mutation"
     },
     {
       "contract_id": "t-sv-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:90 renders the route-provided node and grand-total measures without client-side summation"
+      "evidence": "frontend/src/features/mis/statement-view.tsx:91 grandTotal and node measures are rendered directly from the route payload"
     },
     {
       "contract_id": "t-sv-c3",
-      "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:139 renders the required blocks and delegates exact money and percentage display formatting"
+      "verdict": "partial",
+      "evidence": "frontend/src/features/mis/statement-view.tsx:161 derives YTD semantics from the block key instead of every block's from/to range"
     },
     {
       "contract_id": "t-sv-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:11 branches explicitly on the unresolvable outcome and omits the table"
+      "evidence": "frontend/src/features/mis/statement-view.tsx:9 branches on outcome before rendering the table, with provenance rendered at line 100"
     },
     {
       "contract_id": "t-sm-c1",
@@ -88,10 +93,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "57e18906ecdedccba9bb0d2d1a89e902c0afbe291abcd5a81600cc4c812b2918",
-  "brief_sha256": "230c6b5cc4af352dd20bda518e236be4c2e9057919028aba748c698ece1e9020",
-  "branch_diff_digest": "449f7737349171f17414c9d771645493fa04eedb982a5ea4191ebd1b526bbd97",
+  "review_run_id": "d08bfcc85b6e40fd2773b9d2933084bcb6fac6a7830f7e1158fbedafad655d7b",
+  "brief_sha256": "045c1105b0a5d9c0b07cef6127eaa5a3c3edb71242b23ac0350f7121d1690c17",
+  "branch_diff_digest": "90b186016431024b22d56477f57a9ab35adb537ba23264d9cf85cb935673f81d",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T14:36:25+00:00",
-  "commit": "c55fc7e4b2b23459da7130cbcaf8ded818c8c972"
+  "recorded_at": "2026-09-11T14:45:12+00:00",
+  "commit": "ff23f5f6fd03bc21dc6c1484b78134967ac4c35b"
 }
