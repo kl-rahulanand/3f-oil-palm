@@ -1,0 +1,97 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "statement-export-control",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "statement-export-control adds the Download Excel button to the STATEMENT's own header, present only with a resolved statement, building its request from the resolved response's scope rather than the mutable filter selectors so the file always matches what is on screen. It fetches through a binary client path that keeps the cookie credentials, CSRF bootstrap and a one-shot 401 refresh - exactly one refresh and one retry - because the existing post<T> helper ends in response.json(). Only the exact xlsx media type is saved; a 200 carrying JSON is the unresolvable outcome and shows the notice without saving; anything else is an error. The filename comes from the server's CORS-exposed Content-Disposition with a single fixed fallback, the object URL is revoked, and a failure is one clear state with nothing left pending.",
+  "inspected_refs": [
+    "plans/drafts/task-statement-export-control.md",
+    "backend/src/mis/mis-statement.controller.ts",
+    "backend/src/main.ts",
+    "frontend/src/lib/api.ts",
+    "frontend/src/features/mis/statement-view.tsx",
+    "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html",
+    "constitution/07-exception-handling.md",
+    "harness.yaml"
+  ],
+  "new_abstractions": [
+    "a binary fetch sibling to post<T> that keeps the CSRF and refresh behaviour but not the JSON parse",
+    "media-type classification deciding save, notice or error",
+    "the export request built from the resolved scope rather than live filter state"
+  ],
+  "criteria_map": {
+    "The Download Excel control sits in the STATEMENT's own header - not in the filter bar - in the prototype's secondary treatment (white ground, emerald border and text, sharing the Generate button's height and radius), and is present only when a resolved statement is on screen. The export request is built from the RESOLVED response's scope, never from the mutable filter selectors, so the file always matches the statement being looked at even if someone changes a dropdown after generating.": "AMENDED by the human's ruling: the control moves from the prototype's filter-bar placement into the statement header, and the request is built from the resolved scope so a changed selector cannot produce a mismatched file.",
+    "Pressing it fetches the workbook through a BINARY client path that keeps the cookie credentials, the CSRF bootstrap and the one-shot 401 refresh - proven as: an initial export returning 401 triggers EXACTLY ONE refresh and EXACTLY ONE retried export - since the existing post<T> helper ends in response.json() and cannot carry bytes.": "AMENDED: the one-shot refresh now has a proof shape - 401, exactly one refresh, exactly one retry.",
+    "Only the exact xlsx media type, allowing parameters, may enter the save path. A 200 carrying application/json - the unresolvable outcome - is NOT saved and the notice is shown instead; any other unexpected content type takes the clear-error path rather than being written to disk, so a corrupt file can never reach the user.": "AMENDED: an explicit media-type rule replaces 'inspect what came back', and the notice must be SHOWN rather than merely nothing saved.",
+    "The saved filename comes from the server's Content-Disposition header, which main.ts exposes through CORS, with a single fixed fallback of financial-mis-statement.xlsx used only when the header is absent; the object URL created for the download is revoked afterwards, asserted rather than merely intended.": "NEW: the headerless fallback is a single fixed name, and object-URL revocation is asserted rather than intended.",
+    "A failure surfaces as ONE clear state - never a silent no-op, which is worse than an error because the person believes they have the file - and leaves neither the control nor the statement stuck pending.": "KEEP: one clear failure state, never a silent no-op, nothing left pending."
+  },
+  "gaps": [
+    "Control location and request identity: the prototype puts Download beside Generate in the filter bar, but the selectors are MUTABLE - generate July, change Plant, press Download, and the file silently disagrees with the statement on screen, on a document people forward.",
+    "'Canonical name' was undefined as a headerless fallback. The server's canonical form is a scope-and-range slug, so telling the client to fall back to 'the canonical name' either duplicates that grammar or means nothing.",
+    "The plan said a 200 application/json must 'show the notice', but the recorded criterion and its test proved only 'not saved' - a mapping change between render and download could stop showing the notice without failing anything.",
+    "'Inspect what came back' is not a rule. Without an explicit media-type test, a successful but unexpected content type could still reach the save path and put a corrupt xlsx on the user's disk.",
+    "The one-shot 401 refresh was required by the criterion but its leaf named only headers and credentials, so a path that refreshed twice, or not at all, would still pass.",
+    "Object-URL revocation was reviewer focus only - an intention, not a deterministic proof - so repeated exports could leak one URL per click without any test noticing."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "HUMAN-decided (round): the control sits in the STATEMENT's own header and the request is built from the RESOLVED response's scope, never the mutable selectors, so the file always matches the statement being looked at. This departs from the prototype's placement deliberately: a button in the filter bar also READS as 'download what I've selected' when it means 'download what's shown'.",
+    "A single fixed fallback is pinned: financial-mis-statement.xlsx, used only when Content-Disposition is absent, with the server's header used whenever present.",
+    "The third criterion now requires the notice to be SHOWN for a JSON unresolvable response, not merely that nothing is saved, and its leaf asserts both.",
+    "The rule is explicit: ONLY the exact xlsx media type, parameters allowed, enters the save path; any other content type takes the clear-error path. The leaf asserts all three branches.",
+    "The second criterion now states the proof shape - an initial export returning 401 triggers EXACTLY ONE refresh and EXACTLY ONE retried export - and its leaf asserts those counts.",
+    "Revocation moved from reviewer focus into the fourth criterion and its leaf, asserted after a synthetic download rather than intended."
+  ],
+  "open_items": [
+    "A transactions sheet ships with drill-down.",
+    "The roll-over column stays empty until Srihari's rule.",
+    "Shipping this task completes the mis-statement story."
+  ],
+  "rounds": [
+    {
+      "question": "The prototype puts Download Excel next to Generate, in the filter bar. But the filter selectors are mutable: someone can generate a July statement, change the Plant dropdown, then hit Download \u2014 and get a file that doesn't match what's on screen. The grill's alternative is to put the control in the statement's own header and build the request from the RESOLVED response's scope rather than the live filter state. Where should it go?",
+      "options": [
+        "Statement header, from the resolved scope (Recommended)",
+        "Beside Generate, as the prototype shows",
+        "Beside Generate, but from the resolved scope"
+      ],
+      "chosen": "Statement header, from the resolved scope (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "Control location and request identity: the prototype puts Download beside Generate in the filter bar, but the selectors are MUTABLE - generate July, change Plant, press Download, and the file silently disagrees with the statement on screen, on a document people forward.",
+      "source": "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html:117; frontend/src/features/mis/mis-report-view.tsx"
+    },
+    {
+      "finding": "'Canonical name' was undefined as a headerless fallback. The server's canonical form is a scope-and-range slug, so telling the client to fall back to 'the canonical name' either duplicates that grammar or means nothing.",
+      "source": "backend/src/mis/mis-statement.controller.ts (statementFilename)"
+    },
+    {
+      "finding": "The plan said a 200 application/json must 'show the notice', but the recorded criterion and its test proved only 'not saved' - a mapping change between render and download could stop showing the notice without failing anything.",
+      "source": ".factory/stories/mis-statement/decomposition.json"
+    },
+    {
+      "finding": "'Inspect what came back' is not a rule. Without an explicit media-type test, a successful but unexpected content type could still reach the save path and put a corrupt xlsx on the user's disk.",
+      "source": "frontend/src/lib/api.ts:30"
+    },
+    {
+      "finding": "The one-shot 401 refresh was required by the criterion but its leaf named only headers and credentials, so a path that refreshed twice, or not at all, would still pass.",
+      "source": "frontend/src/lib/api.ts:43"
+    },
+    {
+      "finding": "Object-URL revocation was reviewer focus only - an intention, not a deterministic proof - so repeated exports could leak one URL per click without any test noticing.",
+      "source": "plans/drafts/task-statement-export-control.md"
+    }
+  ],
+  "summary": "One cold read returned six findings on the story's final task. The sharpest was not about the download at all but about IDENTITY: the prototype puts Download beside Generate, yet the filter selectors are mutable, so someone could generate July, change a dropdown and download a file that silently disagrees with the statement in front of them - on a document people forward. The human moved the control into the statement's own header and made the request come from the RESOLVED response's scope. The rest tightened proof into falsifiable shape: an explicit media-type rule so only a true xlsx is ever saved and the unresolvable notice is SHOWN rather than merely not saved; a counted refresh proof of exactly one refresh and one retry; a single fixed headerless fallback filename instead of an undefined 'canonical name'; and object-URL revocation asserted rather than intended. Five required leaves. Verdict pass.",
+  "input_sha256": "1904959835d9b27cfefec1b2203ecfd570c89f31359bc232e47c2132dbbd70d5",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "02202fee1b09d7ccdd575060df11e0be8d54655fd20a6fb20bd2bf53e1c565b7",
+  "recorded_at": "2026-09-11T16:27:56+00:00",
+  "commit": "f9bda2941ea520220a62889c52c24f9e47bb3566"
+}
