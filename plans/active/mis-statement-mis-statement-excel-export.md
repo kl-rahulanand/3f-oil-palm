@@ -2,7 +2,7 @@
 issue: mis-statement
 title: MIS statement + Excel export
 status: approved
-saved: 2026-09-11T05:42:19+00:00
+saved: 2026-09-11T15:24:33+00:00
 story: mis-statement
 decisions_reviewed:
   - 0001-poc-engagement-scope
@@ -27,6 +27,7 @@ decisions_reviewed:
   - 0020-mis-budget-leaf-grain
   - 0021-mis-statement-outline-snapshot
   - 0022-mis-statement-governed-projection
+  - 0023-mis-statement-drift-reports-not-blocks
 ---
 
 # MIS statement + Excel export
@@ -242,8 +243,8 @@ master does not cover returns the **unresolvable** outcome, never a 403 — the 
 | **Unchanged by design** | the `(gl_code, month)` relation, the semantic domain and its measures, the selection/options routes, the six gated warehouse proofs, `SessionGuard`/`AppShell` | **unchanged** |
 
 ## Task Decomposition
-Four bounded tasks, sequential — each builds on the last. The export is split so no task
-spans backend and frontend at once:
+Five bounded tasks, sequential — each builds on the last, and no task spans backend and
+frontend, which WORKFLOW.md forbids:
 1. **statement-model** (backend, `user_facing: false`) — persist the outline snapshot with
    its stable leaf key, record the provisional budget-leaf correspondence in the master,
    and add the statement's governed projection at leaf/month grain. Gated D-0008 proof:
@@ -254,6 +255,14 @@ spans backend and frontend at once:
 3. **statement-view** (frontend, `user_facing: true`) — render the hierarchy at its
    natural depth, derived subtotals, grand total, both zero states and the visible
    `unmapped-GL` line, with non-numeric measure labels passed through verbatim.
-4. **statement-export** (backend, `user_facing: true`) — `POST api/mis/statement/export`
-   streaming an `exceljs` workbook built from the **same payload** task 2 returns, plus
-   the download affordance on the statement view.
+4. **statement-export-api** (backend, `user_facing: false`) —
+   `POST api/mis/statement/export` streaming an `exceljs` workbook written from the same
+   assembled payload the statement route returns, never re-queried or re-derived.
+5. **statement-export-control** (frontend, `user_facing: true`) — the Download Excel
+   control on the statement view, in the prototype's secondary-button treatment, with one
+   clear failure state.
+
+**Why five and not four.** `WORKFLOW.md` is explicit that *backend and frontend never
+share a task* — disjoint write scopes, different reviewer focus, and only the frontend is
+`user_facing`. The export's workbook writer and its download control fall either side of
+that line, so the split is forced rather than chosen.

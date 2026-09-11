@@ -1,7 +1,7 @@
 {
   "generated_by": "implementer",
-  "outcome": "The Financial MIS statement is on screen. Choosing Agriculture / Nursery / DUB and a period now draws Srihari's statement inline below the selector: the workbook's own hierarchy at its natural depth, 106 rows deep, each line carrying its S.No, Budget Component and GL code, with the month and FY-YTD blocks side by side and Roll-over held empty until his rule arrives. It reconciles exactly - July Budget Rs 1,00,50,136 against Actual Rs 1,15,12,712 at 114.6%, FY-YTD Budget Rs 2,59,13,990 - and every parent foots against its own children rather than being recomputed on the client, so the screen and the coming Excel export cannot disagree.",
+  "outcome": "Srihari can take the statement away. POST api/mis/statement/export streams a real workbook - worksheet 'Financial MIS', the hierarchy in preorder with Excel outline levels so it collapses and expands like his own file, a merged Grand Total row, and a filename naming the selection and period. The numbers are NUMBERS rounded to the rupee, not pictures of numbers, so a column sums: grand total Rs 10,050,136 Budget against Rs 11,512,712 Actual for July and Rs 2,59,13,990 for the year to date - the same figures the screen shows, under the same headings. Text coming from his own uploaded workbook is neutralised so a cell beginning with an equals sign cannot reopen as a formula in a file that gets forwarded.",
   "issue": "mis-statement",
-  "commit": "9142f42e6844edaff2c0b54b083b6091b4b4cd38",
-  "recorded_at": "2026-09-11T14:50:48+00:00"
+  "commit": "3f8d31c3fa0e3db88d3fe8d68293a88967004161",
+  "recorded_at": "2026-09-11T16:13:49+00:00"
 }
