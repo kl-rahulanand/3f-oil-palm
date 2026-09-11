@@ -46,8 +46,8 @@ test(
           statementDomain,
           {
             domain: statementDomain.name,
-            measureIds: [],
-            dimensionIds: [],
+            measureIds: statementDomain.measures.map(({ id }) => id),
+            dimensionIds: ["leaf_key"],
             filters: [],
             timeWindow: { grain: "month", column: "month", from, to },
           },
