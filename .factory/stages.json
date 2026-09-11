@@ -10,7 +10,8 @@
     {
       "id": "statement-api",
       "title": "The governed statement route",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7"
     },
     {
       "id": "statement-view",

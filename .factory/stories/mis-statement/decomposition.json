@@ -225,10 +225,87 @@
         "statement-api"
       ],
       "acceptance_criteria": [
-        "The statement renders the budget outline at its natural uneven depth - two levels for most sections, three under Admin Expenses - with each row showing its S. No., Budget Component and leaf GL, parents visibly subtotalling their children, the grand total footing, and the Roll-over column present but unpopulated.",
-        "Measures render for the selected month and FY 26-27 YTD in Indian grouping with the rupee symbol, and a non-numeric measure value such as over-budget or credit / negative actual is passed through VERBATIM rather than numeric-formatted into NaN.",
-        "The two zero states are rendered distinctly, branched on the response outcome rather than row emptiness, and the unmapped-GL line is visible with its own Actual."
-      ]
+        "The statement renders as a TREE at the workbook's natural depth in outline order - two levels for most sections, three under Admin Expenses - each row carrying its S. No., Budget Component and, for leaves, the GL code; parent rows show the subtotals the route derived and a grand total foots the statement. Payment Office is NOT rendered: it belongs to Table-3, which the spec puts out of scope.",
+        "Each period block renders Budget, Roll-over, Actual and % - Roll-over visibly present but EMPTY until Srihari's rule - with money in Indian digit grouping prefixed by the rupee sign and rounded to the rupee for display only, and a non-numeric percentage such as over-budget or credit / negative actual passed through VERBATIM rather than numeric-formatted. When the route returns a single block the table shows one block, not the same figures twice.",
+        "The two zero states render distinctly, branched on the response outcome rather than row emptiness: an unresolvable selection shows zeros plus the no-mapping-configured notice, while a resolved selection with no transactions shows a configured zero statement without it. The unmapped-GL line is visible with its own Actual.",
+        "The statement is reached from the existing MIS Reports page and matches the imported design prototype's metrics for the surfaces it reuses - the eyebrow at 10px with .22em tracking in mono, the deep-forest grand-total rule, sticky identity columns and block headers - adding no theme token, since tokens.test.ts guards the set."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-sv-c1",
+          "statement": "The statement renders as a TREE at the workbook's natural depth in outline order - two levels for most sections, three under Admin Expenses - each row carrying its S. No., Budget Component and, for leaves, the GL code; parent rows show the subtotals the route derived and a grand total foots the statement. Payment Office is NOT rendered: it belongs to Table-3, which the spec puts out of scope.",
+          "source": "docs/specs/financial-mis-statement.md"
+        },
+        {
+          "id": "t-sv-c2",
+          "statement": "Each period block renders Budget, Roll-over, Actual and % - Roll-over visibly present but EMPTY until Srihari's rule - with money in Indian digit grouping prefixed by the rupee sign and rounded to the rupee for display only, and a non-numeric percentage such as over-budget or credit / negative actual passed through VERBATIM rather than numeric-formatted. When the route returns a single block the table shows one block, not the same figures twice.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sv-c3",
+          "statement": "The two zero states render distinctly, branched on the response outcome rather than row emptiness: an unresolvable selection shows zeros plus the no-mapping-configured notice, while a resolved selection with no transactions shows a configured zero statement without it. The unmapped-GL line is visible with its own Actual.",
+          "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+        },
+        {
+          "id": "t-sv-c4",
+          "statement": "The statement is reached from the existing MIS Reports page and matches the imported design prototype's metrics for the surfaces it reuses - the eyebrow at 10px with .22em tracking in mono, the deep-forest grand-total rule, sticky identity columns and block headers - adding no theme token, since tokens.test.ts guards the set.",
+          "source": "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html"
+        }
+      ],
+      "write_scope": [
+        "frontend/app/(app)/mis-reports/statement/page.tsx",
+        "frontend/src/features/mis/statement-view.tsx",
+        "frontend/src/features/mis/statement-view.test.tsx",
+        "frontend/src/features/mis/use-mis-statement.ts",
+        "frontend/src/features/mis/mis-report-view.tsx",
+        "frontend/src/features/mis/mis-report-view.test.tsx",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/api.test.ts",
+        "frontend/app/globals.css"
+      ],
+      "verify_commands": [
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:frontend",
+        "npm run build:frontend"
+      ],
+      "required_tests": [
+        {
+          "id": "the statement renders the outline as a tree in order with parent subtotals the route derived and a grand total footing the table",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "each period block renders budget rollover actual and percentage with rollover empty money in indian grouping and a non numeric percentage label kept verbatim",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the two zero states render distinctly branched on the response outcome and the unmapped GL line is visible with its own actual",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a single block response renders one block rather than the same figures twice",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "reviewer_focus": [
+        "The NaN lesson, twice paid for in this project: a non-numeric percentage label must pass through VERBATIM. mis-selection shipped NaN to a live page for exactly this, and the governed measure deliberately returns 'over-budget' and 'credit / negative actual' when budget is zero.",
+        "Branch on the response OUTCOME, never on row emptiness - that distinction is the reason this epic exists.",
+        "Money arrives as FixedScaleMoney, a fixed-scale decimal STRING. Do not parseFloat it into arithmetic; display rounding to the rupee is a presentation step over a string that already carries exact paise.",
+        "Parents are NOT recomputed on the client: the route already derived every subtotal and the grand total. A view that re-sums them invents a second source of truth that can disagree with the export.",
+        "Payment Office is NOT rendered - Table-3 is out of scope - even though the prototype's identity block shows it.",
+        "Design fidelity against docs/design/3F-Financial-MIS/3F Financial MIS.dc.html, and NO theme token may be added or renamed: frontend/src/theme/tokens.test.ts guards the set.",
+        "A deep table must stay readable and navigable: indentation alone is not structure for assistive technology, and the sticky identity columns and block headers must not trap keyboard focus."
+      ],
+      "review_budget": {
+        "max_changed_files": 9,
+        "max_changed_lines": 1500,
+        "reason": "One page plus its view, hook and styles, consuming the already-shipped statement route, and a small edit to the existing MIS Reports page to reach it. The substance is the hierarchical table - sticky identity columns, two period blocks, derived subtotals rendered rather than recomputed, both zero states - and its design fidelity. No backend change, no contract change."
+      }
     },
     {
       "id": "statement-export",
@@ -246,5 +323,5 @@
     }
   ],
   "plan_sha256": "951e85a33bb8891ee3e81dbb5d5f4519ef72b4cd0e457395a922f463ffe025e9",
-  "commit": "78db638e4bd57c244fb7d8100c0b2e3e9e158484"
+  "commit": "cfe09b4c68ca0a25bb448cc1b6bf3fd461146553"
 }

@@ -167,3 +167,60 @@ Task 2 of the mis-statement story's 4-task decomposition: (1) statement-model [s
 PR #30], (2) **statement-api** [this task], (3) statement-view, (4) statement-export. One
 bounded unit — a route and the tree assembly it exists to serve — proven by four hermetic
 required tests plus the live reconciliation in Manual Verification.
+
+<!-- forge:contract -->
+## Contract (recorded)
+
+Rendered by the harness from the recorded decomposition; edit the decomposition, not this block. It is excluded from the plan's approval and grill digests, so a re-render never stales either.
+
+**Objective.** Expose the hierarchical statement over HTTP: POST api/mis/statement returning the statement tree, its measures for the selected month and FY 26-27 YTD, the resolved scope readout and provenance - behind the same guard and governed report grant the shipped selection routes use, following decision 0019's vendored house style.
+
+**Acceptance criteria**
+
+- A registered governed statement domain (goldObject statement_relation) with its measures, dimensions and seeded report grant makes sqlBuilder's statement branch reachable in production, and the projection emits the mandatory bounded LIMIT the validator requires, so the query runs through SelectionExecutor's validate-explain-execute path rather than being hand-built - proven by a test that goes through the executor, not around it.
+- POST api/mis/statement returns the statement as a TREE built from the outline of the budget batch for the SELECTED PERIOD - active budget batches are one per period, all carrying the same outline, so the reader is keyed by (source_kind budget, period) and never by 'the active batch' - with every parent a subtotal DERIVED bottom-up from its leaves, the grand total footing, rows in outline sort_order, and each row carrying S. No., Budget Component and for leaves the GL code.
+- Each row carries Budget, Roll-over, Actual and % for the selected month AND the FY 26-27 YTD block, the service issuing the projection once per range and merging by leaf key; when the selected period IS the FY-YTD a SINGLE block is returned rather than the same figures twice. Roll-over is present but unpopulated, amounts are exact paise rounded only at the presentation boundary, and a non-numeric percentage label is passed through verbatim.
+- The response carries the scope readout and the provenance the projection emits - per-row source presence plus the contributing actual and budget batch ids - and preserves the outcome split: an unauthorized plant is refused, a plant the master does not cover returns the unresolvable outcome with its notice, a resolved selection with no transactions returns a configured zero statement WITHOUT the notice, and the unmapped-GL line is present with its own Actual, zero Budget, counted in the grand total.
+- contract/src/api.ts defines the statement wire types tasks 3 and 4 build against: the node shape and how children are carried, where the grand total sits, how money is represented (a fixed-scale decimal string, never a float), and what an absent measure is - so the view and the export cannot each invent an answer.
+
+**Write scope** (what `stage done` measures the diff against)
+
+- backend/src/semantic/semanticLayer.ts
+- backend/src/semantic/semanticLayer.statement.test.ts
+- backend/src/db/migrate.ts
+- backend/src/db/migrate.test.ts
+- backend/src/sql/sqlBuilder.ts
+- backend/src/sql/sqlBuilder.statement.test.ts
+- backend/src/warehouse/statement-outline.repository.ts
+- backend/src/warehouse/statement-outline.interface.ts
+- backend/src/mis/mis-statement.controller.ts
+- backend/src/mis/mis-statement.service.ts
+- backend/src/mis/mis-statement.interface.ts
+- backend/src/mis/mis-statement.dto.ts
+- backend/src/mis/mis-statement.controller.test.ts
+- backend/src/mis/mis-statement.service.test.ts
+- backend/src/mis/mis.module.ts
+- backend/src/app.module.ts
+- contract/src/api.ts
+- backend/package.json
+- tools/quality-gate.test.mjs
+
+**Required tests** (run by `stage done`)
+
+- `the statement query runs through the selection executor validate explain execute path with its mandatory bounded limit rather than being built by hand` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/sql/sqlBuilder.statement.test.ts)
+- `the statement service builds the tree from the outline of the budget batch for the selected period with every parent derived from its leaves and the grand total footing in outline order` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+- `the statement returns both the selected month and the financial year to date blocks but a single block when the selected period is itself the financial year to date` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+- `the statement route refuses an unauthorized plant but returns the unresolvable outcome with its notice for a plant the master does not cover and a configured zero statement without the notice when there are no transactions` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.controller.test.ts)
+- `the unmapped GL line is present with its own actual and zero budget counted in the grand total and the response carries per row source presence with the contributing batch ids` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+
+**Verify commands**
+
+- `npm run build:contract`
+- `npm run build:backend`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run format:check`
+- `npm run test:hermetic`
+
+**Review budget.** 19 files / 2400 lines -- The task grill showed this is not the thin route the first contract assumed. Before any tree can be assembled the governed path has to EXIST: a registered statement domain with measures and a seeded grant (the builder branches on goldObject statement_relation, which nothing declared), and the mandatory bounded LIMIT the validator requires, without which the executor fails closed. On top of that sits the new per-period outline reader, the bottom-up tree assembly with its two period blocks, the provenance pass-through, and the wire types tasks 3 and 4 build against. Still no schema change and no UI.
+<!-- /forge:contract -->
