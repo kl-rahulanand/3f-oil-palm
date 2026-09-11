@@ -1,0 +1,34 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The drill pins to batch ids the browser sends. The grill found a real hole: `provenance.activeBatchIds` is statement-wide (both sources, all blocks), so a client that omits one month's actuals batch from an FY-YTD drill narrows the read and produces a footer that silently disagrees with the number clicked. Authorization is still safe \u2014 omitting only ever reads less \u2014 but footing is not. How should the server bind the pinned set?",
+      "options": [
+        "Require a complete month-for-month set (Recommended)",
+        "Server-held statement snapshot",
+        "Server recomputes and ignores the client's list"
+      ],
+      "chosen": "Require a complete month-for-month set (Recommended)"
+    },
+    {
+      "question": "Column conflict the grill caught: the spec's Behaviour section lists line items as 'Month, Debit, Credit, Value, reference, memo, posting date', but the approved prototype's drill table has six columns and no posting date. Posting date is also part of the settled deterministic tie-break, so it exists in the data either way.",
+      "options": [
+        "Show it \u2014 7th column (Recommended)",
+        "Keep the prototype's six columns",
+        "Show it, but only on the row detail"
+      ],
+      "chosen": "Show it \u2014 7th column (Recommended)"
+    },
+    {
+      "question": "The plan depends on two decisions I minted while planning; both are `proposed` and need your confirmation before the plan can honestly claim to reconcile with the active corpus. 0024 \u2014 the aggregate drill is a client-side projection of the statement payload, so only leaf\u2192transactions crosses the network. 0025 \u2014 the transaction drill reads sap_transaction directly under a pinned batch_id predicate, beside the governed executor but reusing its authorization/validator/explain/timeout, with a pre-query fail-closed audit.",
+      "options": [
+        "Accept both (Recommended)",
+        "Accept 0025 only",
+        "Hold both \u2014 I want to read them first"
+      ],
+      "chosen": "Accept both (Recommended)"
+    }
+  ],
+  "at": "2026-09-11T18:00:37.340765+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

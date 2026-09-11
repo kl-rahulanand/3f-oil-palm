@@ -1,11 +1,11 @@
 ---
-status: proposed
-confirmed_by: ""
+status: accepted
+confirmed_by: "kl-rahulanand"
 date: 2026-09-11
 stories: [drill-down]
 ---
 
-# Drill Down Pinned Batch Raw Read
+# The transaction drill reads sap_transaction under a pinned batch predicate, beside the governed executor
 
 ## Context
 Two facts in the built system force this decision.

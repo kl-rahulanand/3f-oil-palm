@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft mis-statement.md
+# Cold-read grill — gate: plan — plan draft drill-down.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -375,6 +375,7 @@ downstream implementation inherits whatever you let through.
 
 
 
+
 ## Already answered on this story — verify, do not re-ask
 
 These questions were put to the human and answered. Two obligations:
@@ -430,16 +431,18 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: The statement's row hierarchy comes from the budget workbook's own outline, which has UNEVEN depth: most sections are two levels (e.g. '4 Materials Primary Nursery' → '4.1 Shade Net', GL 50001601), but 'Admin Expenses' is three ('9' → '9.01 Vehicle Maintenance', GL 55010900 → 'Petrol and Diesel Charges', GL 55010901). Actuals attach at the GL leaf and parent values are derived by rolling up, never read (decision 0020). How deep should the statement render?
-  A: Mirror the workbook outline (Recommended)
-- Q: Which identity columns should each statement row carry, on screen and in the Excel export? The legacy workbook's Table-2 carries a serial number, the Budget Component name, a GL code, a Roll-over Budget column and a Payment Office column. The measures themselves are settled (Budget · Roll-over · Actual · %, for the selected month and FY 26-27 YTD).
-  A: S.No + Component + GL, Roll-over blank (Recommended)
+- Q: The spec promises a '2-level drill' (group → sub-lines → transactions), but the statement we shipped mirrors the workbook's outline at ARBITRARY depth — Admin Expenses is three levels deep. So clicking an Actual at the top of Admin has two levels below it, not one. What should clicking an aggregate Actual do?
+  A: Any aggregate opens its leaf sub-lines (Recommended)
+- Q: The statement's acceptance criterion is that line items foot EXACTLY to the clicked Actual. But if someone re-uploads the July actuals while a statement is on screen, the drill would read the newly active batch and no longer foot. What should the drill read?
+  A: Pin to the statement's batch (Recommended)
+- Q: The statement spec says a bundled transactions sheet arrives 'with the drill-down capability', but the drill-down spec itself describes no export at all. Should this story include exporting transactions to Excel?
+  A: No — keep this story UI-only (Recommended)
 
-## The artifact under interrogation (plan draft mis-statement.md)
+## The artifact under interrogation (plan draft drill-down.md)
 
 ---
-story: mis-statement
-title: MIS statement + Excel export
+story: drill-down
+title: Actuals drill-down to transactions
 decisions_reviewed:
   - 0001-poc-engagement-scope
   - 0002-phase1-financial-mis
@@ -461,147 +464,278 @@ decisions_reviewed:
   - 0018-mis-selection-unmapped-gl-bucket
   - 0019-fresh-routes-follow-vendored-house-style
   - 0020-mis-budget-leaf-grain
+  - 0021-mis-statement-outline-snapshot
+  - 0022-mis-statement-governed-projection
+  - 0023-mis-statement-drift-reports-not-blocks
+  - 0024-drill-down-aggregate-client-projection
+  - 0025-drill-down-pinned-batch-raw-read
 ---
 
-# MIS statement + Excel export
+# Actuals drill-down to transactions
 
 ## Problem
-`mis-selection` resolves a selection to its governed scope and shows the DUB nursery
-slice as a flat GL table. That is not the Financial MIS. Srihari's statement is a
-**hierarchical** document — budget component lines with derived subtotals and a grand
-total — and replacing his manual build means producing it exactly, from the uploaded
-SAP extract and the uploaded plan, and letting him take it away as Excel.
+`mis-statement` ships the Financial MIS as a hierarchy of budget components with derived
+subtotals and a grand total. Srihari can now read the number. He still cannot answer the
+question that motivated the whole engagement — *how was this number built?* — because every
+Actual on that screen is an aggregate over transactions the screen never shows.
 
-Reading the system for this plan surfaced the structural crux, and it is not where the
-spec suggested it would be:
+This story makes Actuals interactive: click a group and see the leaves that make it up,
+click a leaf and see the SAP transaction lines behind it, footing to the paise.
 
-- **The statement's line structure is not persisted anywhere.** `mis_budget`
-  (`warehouse-schema.ts:87`) stores `formatId, period, lineId, glCode, costCenter,
-  budgetAmount, rolloverAmount` — no S.No, no parent link, no ordering. The `lineId`
-  is the workbook's **sheet row number** (`mis-budget.parser.ts`, D-0029), which is a
-  uniqueness token, not an outline. The outline the human asked us to mirror is
-  currently read and thrown away at ingest.
-- **A GL does not identify a statement line.** In July, 80 leaf rows carry only 60
-  distinct GLs, and **three GLs hold non-zero budget on more than one component**:
-  `50001605` Fertilizers (₹1,73,891.67 / ₹1,34,729.67 / ₹330.87 across Primary,
-  Secondary and Tertiary nursery), `50001606` Pesticides (₹3,826.67 / ₹40,275.75) and
-  `50001901` Nursery labour (₹81,022.89 / ₹3,86,774.80). Decision **0017** rolls Actual
-  up to `(gl_code, month)` with cost centre deliberately a *filter*, never an output
-  dimension — so the governed relation returns **one Actual per GL** and the statement
-  has no way to place it on the right component row.
+Reading the system for this plan moved the crux twice, and neither place is where the spec
+implied it would be.
 
-SAP does carry the distinction (its cost centres are `Primary`, `secondary`,
-`Tertiary`, …) and the budget sections mirror it (`4 Materials Primary Nursery`,
-`5 Materials Secondary Nursery`, `6 Materials Tertiary Nursery`). What is missing is
-the **recorded correspondence** between them — precisely the *Budget-label → SAP
-cost-centre mapping master* that decision **0016 §2** deferred, whose revisit trigger
-is *"the client supplies the mapping, OR multi-cost-centre / multi-plant governed
-reporting is required."* **That trigger has now fired**, and this story is where it
-lands.
+**The governed relation cannot be pinned to a batch.** The grill settled that a drill must
+read the *exact* actual-batch ids the displayed statement was built from — otherwise a
+re-upload between render and click silently changes the answer under the user's finger. But
+the statement's Actual comes from the `actual_by_key_month` view
+(`backend/src/warehouse/warehouse-schema.ts:154`):
+
+```sql
+SELECT plant, cost_center, gl_code, month, SUM(debit - credit)::numeric(18,2) AS actual_net
+FROM sap_transaction AS txn
+INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
+WHERE batch.source_kind = 'actuals' AND batch.is_active
+GROUP BY ...
+```
+
+There is no batch-id parameter. The view *is* "whatever is active now", and
+`ingest_batch_active_source_period_unique` guarantees exactly one active actuals batch per
+period — so a re-upload flips the whole view with no seam to hold on to. A pinned drill
+therefore cannot be a lower-grain read of the same relation; it has to read `sap_transaction`
+with an explicit `batch_id IN (…)`. That is not a workaround, it is what makes the required
+"the batch was replaced" notice *possible*: pinned ids versus currently-active ids for the
+same months is a comparison only the raw path can make.
+
+**Footing is a predicate problem, not an arithmetic one.** `sap_transaction.debit` and
+`.credit` are `numeric(18,2)` (`warehouse-schema.ts:67-68`), so the view's `::numeric(18,2)`
+cast is a no-op: the statement's paise *are* these rows' paise, summed. The drill and the
+statement can only disagree by reading a **different set of rows** — a different batch, a
+different triple set, a different month range. So "foots in exact paise" is testable as an
+identity between two predicates, and the tests should assert equality, never a tolerance.
+
+**Most of the drill does not need the server at all.** The grill settled that a non-leaf
+opens *its descendant leaves*, not transactions. `MisStatementNode` already carries `sNo`,
+`budgetComponent`, `glCode` and `children`; each `MisStatementMeasureBlock` carries `budget`,
+`actual` and `percentage`; and `FixedScaleMoney` is a fixed two-decimal string, so summing
+descendants in exact paise is decidable on the payload the browser already holds. The
+approved prototype agrees — its L1 panel is *S.No · Sub-line · GL code · Budget · Actual · %*
+plus a Total row, which is precisely a flatten of the clicked node. One click crosses the
+network in this story: **leaf → transactions** (decision **0024**).
+
+That matters for the security load. The leaf step is the only place raw rows are exposed —
+the documented exception to the aggregate-only / k-anonymity rules the governed layer
+(`backend/src/chat/suppression.ts`) enforces everywhere else — so it is the only place that
+needs the RBAC re-check and the audit record, and it gets all of the review attention.
+
+**And it has no audit to inherit.** `AuditService.writeRequestEvent` — the fail-closed
+writer, documented "if the request event cannot be written, the query MUST NOT execute" —
+has exactly one caller in the repo: `backend/src/chat/chat.service.ts:317`. `POST
+api/mis/statement` writes nothing. The drill cannot point at the statement's audit; it must
+establish the pattern. The statement's own gap is recorded as **D-0036**, not widened into
+this story.
 
 ## Scope / Non-goals
+
 **In scope**
-- Persist the budget workbook's **outline** (S.No, section, component, ordering,
-  parent/child) with the batch, so the statement can mirror it.
-- Record the **budget-leaf ↔ SAP (cost centre, GL)** correspondence in the versioned
-  Mapping Master, so an Actual lands on the right line.
-- Group the governed roll-up by the **governed line**, so one query still serves the
-  statement — no second query path, no per-row query.
-- Render the statement: hierarchy at its natural depth, derived subtotals, grand
-  total, both zero states, the visible `unmapped-GL` line.
-- Measures per the spec: **Budget · Roll-over · Actual · %** for the **selected month**
-  and **FY 26-27 YTD**, Roll-over rendered but unpopulated.
-- **Excel export** of the on-screen statement — the first download route in the app.
+- One new backend route returning the transaction lines behind a **leaf**, pinned to the
+  statement's actual-batch ids, server-paginated, with an exact full-result footer.
+- A pre-query, **fail-closed** audit record for every drill.
+- The drill panel from the approved prototype: scrim, breadcrumb, title, total + meta, sort
+  chips, close, and both body states (leaf list / transactions).
+- The Actual-only affordance on the statement: every Actual cell in the tree **and** in the
+  grand-total footer is activatable; Budget, Roll-over and % are inert.
+- The batch-replaced notice.
 
 **Non-goals**
-- Table-1 (operational) and Table-3 (Payment Office) — out of scope by the spec, and
-  Table-3 is the block the budget parser now deliberately stops before.
-- The roll-over **calculation** (column rendered, left blank until Srihari's rule).
-- Actuals drill-down to transactions — that is the `drill-down` story, and the export's
-  transactions sheet goes with it.
-- Editing budgets or actuals; any write-back.
-- A live SAP connection: the statement reads the uploaded extract and names its batch.
+- **Excel export of transactions** — the statement spec's bundled sheet is deferred as
+  **D-0035**; this story is UI-only, as the grill settled.
+- Drilling Budget, Roll-over or % — inert by acceptance criterion, not by omission.
+- Any write path, and any drill below the transaction line.
+- Auditing the statement and export routes (**D-0036**).
+- Any change to `actual_by_key_month`, to the statement projection, to `MisStatementNode`, or
+  to the k-anon suppression used by the aggregate paths.
+- Any schema migration: `sap_transaction` and `audit_events` already carry everything needed.
 
 ## Acceptance Criteria
-- **s-ms-c1** — For Agriculture / Nursery / DUB / 2026-07-01 the statement renders the
-  budget workbook's outline at its natural depth (two levels for most sections, three
-  under `9 Admin Expenses`), each row carrying **S.No, Budget Component and leaf GL**,
-  with Roll-over shown and unpopulated.
-- **s-ms-c2** — Every parent is a **derived** subtotal over its leaves and the grand
-  total foots; against the pinned July batch the statement reconciles to **exact**
-  values — Actual **₹1,15,12,712.07** and Budget **₹1,00,50,136.29** — and the three
-  multi-component GLs show their Actual split across Primary / Secondary / Tertiary
-  rather than summed onto one line.
-- **s-ms-c3** — Both zero states stay distinct (a resolved-but-empty selection renders
-  zero rows; a no-mapping selection renders zeros **plus** the notice), and the
-  `unmapped-GL` line is visible with its own Actual.
-- **s-ms-c4** — The statement downloads as **Excel** with the same structure and the
-  same values, opening cleanly with the hierarchy intact.
+1. **Leaf foots in exact paise.** For a leaf line on the July statement, the panel's footer
+   `Value` total equals that leaf's `actual` `FixedScaleMoney` string exactly — compared as
+   paise, never as the display-rounded rupee.
+2. **Derived group foots.** Opening a non-leaf lists **all** descendant leaves (not just
+   immediate children) and its Total row equals the clicked node's `actual` exactly.
+   Demonstrated at a three-level node (`9 Admin Expenses` → `9.01 Vehicle Maintenance` →
+   leaf), where "one level per click" would have been wrong.
+3. **Grand Total behaves the same way** — it opens the flattened leaf list, and its total
+   equals the statement's grand total.
+4. **FY-YTD drill spans batches.** A leaf drilled on the FY 26-27 YTD block foots across
+   several monthly actuals batches, and the panel names each contributing batch.
+5. **`unmapped-GL` drills.** The bucket line (decision **0018**) opens its transactions and
+   foots, like any other leaf.
+6. **Sort and tie-break are deterministic.** Default order is `Value` ↓ then `Month` ↓, then
+   `posting_date` ↓, `txn_no`, `line_id`; requesting the same page twice returns the same
+   rows in the same order.
+7. **Budget, Roll-over and % do nothing on click** — no handler, no cursor affordance, no
+   focusable control.
+8. **Scope is enforced and nothing leaks.** A user without the target plant in scope is
+   refused, and the refusal body carries **no** transaction rows, counts or totals. A user
+   without the `mis-statement` domain grant or the `report` action is refused identically.
+9. **Audit is pre-query and fail-closed.** Each drill writes an `audit_events` row naming the
+   actor, the predicate (leaf, triples, month range) and the pinned batch ids **before** any
+   warehouse read; with the audit insert failing, the endpoint errors and **no** warehouse
+   query is issued.
+10. **Re-upload after display.** With the statement on screen and its period re-uploaded, the
+    drill still foots to the displayed number *and* states that the batch was replaced.
+11. **Pagination is server-side and the footer is not.** With a result larger than one page,
+    the response carries the total matching count and totals over **all** matches; the footer
+    on screen never equals a page subtotal.
 
 ## Technical Approach
-### Where the line structure comes from
-The spec already says *"Budget and Roll-over come from the plan, not SAP"*. The outline
-is part of that plan, so it is **persisted with the budget batch**, not frozen in the
-repo: when Srihari re-issues his workbook the statement follows it. `mis_budget` gains
-the outline columns (`s_no`, `section`, `component`, `sort_order`, `parent_key`) and the
-parser — which already walks the outline to decide what is a subtotal — records them
-instead of discarding them. Decision **0020** is untouched: **no parent amount is ever
-stored**; only the parent's *identity* is, so the statement can group leaves under it
-and derive the subtotal itself.
 
-### Where the Actual↔line correspondence comes from
-The Mapping Master (`backend/src/mapping/mis-mapping-master.ts`) is already the single
-runtime authority for `(cost_centre, gl_code) → mis_line` and plant aliases. It gains
-the **budget-leaf correspondence**: each entry names the budget leaf its triple belongs
-to. This is 0016 §2's deferred mapping, scoped to the one nursery selection. Following
-the pattern `mis-selection` established, the correspondence is **provisional with a
-reason** — the Primary/Secondary/Tertiary correspondence is legible from the two
-vocabularies, but it is *recorded*, never inferred at runtime, and Srihari's
-confirmation resolves it exactly as the `unmapped-GL` bucket is resolved.
+### The predicate, once
+Everything the drill does is one predicate, derived **server-side** on every request:
 
-### One governed path, still
-Decision **0017** stands: selection filters the Actual side by the master's resolved
-triples **before** the roll-up. What changes is the *grouping key* of that roll-up —
-from `gl_code` to the **governed line** the master defines. This respects 0016/0017 to
-the letter: the SAP **cost centre is still never an output dimension**; what the
-statement reads back is a master-defined line, which is the same governed vocabulary
-`mis_line` already uses. There is no second query path and no per-row query.
+| term | source | never from |
+|---|---|---|
+| leaf key | `nodeKey` → outline snapshot for the budget period | the client's idea of the leaf |
+| `(plant, cost centre, GL)` triples | `SelectionResolverService.resolve(request).leafTargets` filtered to that leaf (`target.kind === "leaf"` and matching `leafKey`; `kind === "bucket"` for `unmapped-GL`) | the client |
+| month range | the block key re-run through the statement's own `blockDefinitions` | the client's dates |
+| plant scope | `user.scope` where `attribute === "plant"` | the client |
+| pinned batch ids | the request, **validated** to be actuals batches whose period falls in range | — |
 
-### Arithmetic
-Aggregate in **exact paise** and round only for display and export, after aggregation —
-rounding per line makes subtotals fail to foot. `%` keeps the shipped governed measure
-semantics, including its distinct `over-budget` and `credit / negative actual` labels;
-the renderer must pass a non-numeric measure value through verbatim (the lesson
-`mis-selection` paid for).
+Only the last row comes from the browser, and it can only **narrow** the read. That is what
+makes accepting it safe.
 
-### Export
-`exceljs@^4.4.0` is already a backend dependency for parsing and writes workbooks too,
-so no new dependency. The export is the **first download route** in the app, so it
-establishes the pattern: a governed route returning a streamed workbook with a
-`Content-Disposition` filename, built from the **same** statement payload the screen
-renders — not a second assembly of the numbers, which would be free to drift.
+### Request and response
+The request extends the shape the export control already round-trips successfully
+(`department`, `function`, `plant`, `period` — see `use-mis-statement.ts`) with `nodeKey`,
+the measure `block` key (`"selected" | "fy26-27-ytd"`), the pinned `actualBatchIds`, and
+`page`. **No change to `MisStatementNode` or to the statement response is required** — the
+statement already puts `nodeKey`, `scope` and `provenance.activeBatchIds` on the wire.
+
+The response carries the page of lines (`month`, `debit`, `credit`, `value`, `reference`,
+`memo`, `postingDate`), the **total matching count**, exact full-result totals as
+`FixedScaleMoney`, the batch ids actually read, and a batch-replaced flag. Money stays a
+fixed-scale string end to end — the statement's `FixedScaleMoney` discipline — so no value
+ever passes through a JS `number`.
+
+Column semantics are fixed by the grill: `Value = Debit − Credit`, `reference` is SAP
+**Reference 1**, `memo` is **LineMemo** — which is exactly what `sap-ingestion` already wrote
+into `sap_transaction.reference` and `.memo`.
+
+### The read path
+A dedicated repository beside the governed executor (decision **0025**), following the house
+precedent set by `StatementOutlineRepository` — string SQL over `Warehouse.execute` — but
+reusing the governed guards rather than reimplementing them: `SelectionExecutor.authorize`
+plus the statement's plant-scope check, then `SqlValidator.validate` (object allowlist, no
+`SELECT *`, mandatory bounded `LIMIT` ≤ `maxRows`), then `warehouse.explain`, then execution
+under the configured timeout.
+
+Two statements per drill, under one audit record: the page (`ORDER BY (debit - credit) DESC,
+month DESC, posting_date DESC, txn_no, line_id` with `LIMIT`/`OFFSET`) and the footer
+(`COUNT(*)` and the three `SUM`s, `LIMIT 1`). Both read `sap_transaction` joined to
+`ingest_batch`, under the identical predicate, so the footer cannot drift from the page.
+
+The composite index `idx_sap_transaction_month_plant_cost_center_gl_code` covers the
+selective part of the predicate.
+
+### The audit record
+Written inside the same "before execute" discipline chat uses: build the SQL, write the
+record, and let a throw abort before the warehouse is touched. `audit_events` already has the
+columns — `question` for the human-readable drill description, `selection` (jsonb) for the
+predicate and pinned ids, `generated_sql`, `objects_touched`, and `session_id` from the
+existing `@SessionId()` decorator (`backend/src/auth/auth.guard.ts:100`). **No migration.**
+
+### The panel
+The approved prototype's drill overlay, rendered from `docs/design/3F-Financial-MIS`: scrim,
+eyebrow "Drill-down", breadcrumb (group › sub-line), title, total + meta line, "Sorted"
+chips, and a close control. Body is one of two states — the client-side leaf list (decision
+**0024**), whose Total row foots by construction; or the transactions table with its Total
+row and the prototype's "Matches the Actual in the report" note. The prototype's guidance
+copy ("Click any Actual to see its transactions. Budget is not drillable.") is kept.
+
+Each Actual cell becomes a real `<button>` inside its `gridcell` so the `role="treegrid"`
+table keeps a valid structure and the affordance is keyboard-reachable; Escape closes, focus
+returns to the cell that opened the panel.
+
+## Decisions
+- **0024 — Drill Down Aggregate Client Projection** (proposed with this plan): the aggregate
+  drill is a client-side projection of the statement payload; only the leaf drill crosses the
+  network. Rationale: the payload already carries every field the prototype's leaf list
+  shows, in exact-paise strings.
+- **0025 — Drill Down Pinned Batch Raw Read** (proposed with this plan): the transaction
+  drill reads `sap_transaction` directly under a pinned `batch_id` predicate, beside the
+  governed executor but reusing its authorization, validator, explain and timeout, with a
+  pre-query fail-closed audit record. Rationale: `actual_by_key_month` takes no batch
+  parameter and the governed executor is measure-shaped.
+- Inherited and load-bearing here: **0017** (triples filter the Actual side before roll-up),
+  **0018** (`unmapped-GL` is explicit and visible — so it drills), **0020** (Actuals attach at
+  the GL leaf; parents are derived — so an aggregate has descendant leaves to flatten),
+  **0021** (the outline snapshot is what maps `nodeKey` → leaf), **0022** (the statement's own
+  projection, whose numbers the drill must foot to), **0019** (unversioned route, raw
+  response, direct module imports).
+
+## Risks
+- **Pinned ids that no longer exist.** A batch id can be deleted or deactivated between
+  render and click. The drill must distinguish "replaced" from "gone" and still refuse to
+  substitute the active batch silently. Covered by criterion 10 and tested both ways.
+- **Trusting the client's node key.** If `nodeKey` were taken at face value, a crafted value
+  could widen the triple set. Mitigated by re-deriving the leaf and its triples from the
+  outline snapshot and the resolver on every request, and by rejecting a `nodeKey` that is
+  not a leaf in the current snapshot.
+- **`SqlValidator` is a parser gate.** It astifies the SQL with `node-sql-parser`; a
+  construct it cannot parse blocks the read rather than allowing it. Keep the drill SQL to
+  the shapes already proven by the statement projection.
+- **Sorting is not indexed.** `ORDER BY (debit - credit) DESC` has no supporting index; the
+  filter is selective enough that this is a sort of a small set, but the plan should be
+  checked with `EXPLAIN` on the real July batch rather than assumed.
+- **Offset pagination.** Stable only because the total order is fully deterministic
+  (criterion 6). If the tie-break were ever relaxed, pages would overlap.
+- **The panel is an overlay on a `treegrid`.** Focus management and the Escape/scrim
+  behaviour are the parts most likely to regress silently; the functional check covers them.
+
+## Verify Plan
+- **Backend unit** — predicate derivation (leaf mapping, triple filtering, block → range,
+  batch-id validation and the replaced/gone distinction), and refusal shapes carrying no rows.
+- **Backend DB-backed** (gated host evidence, **D-0008**) against the pinned July batch:
+  exact-paise footing for a leaf, an FY-YTD leaf spanning batches, and `unmapped-GL`;
+  deterministic ordering across repeated page requests; page-vs-footer totals on a result
+  larger than one page.
+- **Audit** — a test that makes the audit insert fail and asserts the warehouse was never
+  queried, plus one asserting the written row's predicate and batch ids.
+- **Frontend unit** — the aggregate flatten sums descendant leaves to the clicked node's
+  `FixedScaleMoney` for a three-level node and for the grand total; Budget/Roll-over/% expose
+  no control; the batch-replaced notice renders.
+- **Functional check** (`user_facing` tasks) — live, against this worktree's servers: open the
+  statement, drill a group, drill a leaf from within it, compare the footer to the statement
+  cell, page a large result, and confirm design parity with the prototype panel.
+- Every automated artifact records the **executed count and the testcase name**, not the exit
+  code (D-0024, D-0031).
 
 ## Surface Impact
-- **Warehouse**: `mis_budget` gains outline columns + a migration; the budget rollup
-  view carries them through.
-- **Backend**: `mis-budget.parser.ts` records the outline; `mis-mapping-master.ts` gains
-  the budget-leaf correspondence; `sqlBuilder.ts` groups the roll-up by governed line;
-  a statement service + route under `backend/src/mis/`; an export route.
-- **Contract**: statement row/tree types and the export request in `contract/src/api.ts`.
-- **Frontend**: a statement view under `src/features/mis/`, reached from MIS Reports.
-- **Unchanged by design**: the resolution and selection routes (`mis-selection`), the
-  governed measures and their nil rules, the six gated warehouse proofs, the auth shell.
+- **New:** one route under `api/mis`, its DTOs beside `mis-statement.dto.ts`, contract types
+  for the drill request/response, a transactions repository in `backend/src/warehouse/`, and
+  the drill panel plus its hook and styles in `frontend/src/features/mis/`.
+- **Changed:** `statement-view.tsx` — Actual cells become activatable and own the panel state.
+- **Unchanged:** the statement response contract, the statement projection, the semantic
+  layer, `actual_by_key_month`, the suppression path, and the database schema. No migration.
 
 ## Task Decomposition
-Three bounded tasks, sequential — each builds on the last:
-1. **statement-model** (backend, `user_facing: false`) — persist the outline, record the
-   budget-leaf correspondence in the master, group the governed roll-up by governed
-   line, and return the hierarchical statement payload. Gated D-0008 proof that July
-   reconciles exactly and the three multi-component GLs split correctly.
-2. **statement-view** (frontend, `user_facing: true`) — render the hierarchy, derived
-   subtotals, grand total, both zero states and the `unmapped-GL` line.
-3. **statement-export** (fullstack, `user_facing: true`) — the Excel download, built
-   from the same payload the screen renders.
+Three bounded tasks, sequential. No task spans backend and frontend — `WORKFLOW.md` forbids
+it, and only the frontend tasks are `user_facing`.
+
+1. **drill-transactions-api** (backend, `user_facing: false`) — the pinned, audited,
+   paginated leaf read: predicate derivation, the repository, the route and its DTOs,
+   contract types, and the batch-replaced determination.
+2. **drill-panel** (frontend, `user_facing: true`) — the prototype's overlay and the Actual
+   affordance, with the aggregate state rendered entirely from the statement payload. Needs
+   no network, so it is demonstrable the moment it lands.
+3. **drill-transactions-view** (frontend, `user_facing: true`) — the leaf state: wire the
+   endpoint, the transactions table and its footer, pagination, and the batch-replaced notice.
+
+**Why the frontend is two tasks.** The aggregate state and the leaf state share only the
+panel shell; one is a pure projection of data already on screen, the other is the consumer of
+a new network path with its own failure and pagination states. Splitting them keeps the
+second task's review focused on the part that can actually be wrong.
 
 
 ## What to return

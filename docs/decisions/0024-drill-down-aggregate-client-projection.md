@@ -1,11 +1,11 @@
 ---
-status: proposed
-confirmed_by: ""
+status: accepted
+confirmed_by: "kl-rahulanand"
 date: 2026-09-11
 stories: [drill-down]
 ---
 
-# Drill Down Aggregate Client Projection
+# The aggregate drill is a client projection of the statement payload; only the leaf drill crosses the network
 
 ## Context
 The requirements grill settled that clicking **any non-leaf Actual** opens a flattened
