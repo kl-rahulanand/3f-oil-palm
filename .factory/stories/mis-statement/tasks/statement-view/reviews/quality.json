@@ -1,22 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "statement-view",
-  "score": 7,
-  "summary": "quality lens over statement-view (8 product path(s), c248d46..ff23f5f, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The inline statement, route-provided totals, outcome split, exact money formatting, provenance, accessibility metadata, and removal of the orphaned frontend selection API are implemented. The selected FY-YTD single-block case is mislabeled, leaving the period-block contract partial.\nVERDICT t-sv-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:83 inline StatementView is rendered from the existing selector mutation\nVERDICT t-sv-c2: implemented \u2014 frontend/src/features/mis/statement-view.tsx:91 grandTotal and node measures are rendered directly from the route payload\nVERDICT t-sv-c3: partial \u2014 frontend/src/features/mis/statement-view.tsx:161 derives YTD semantics from the block key instead of every block's from/to range\nVERDICT t-sv-c4: implemented \u2014 frontend/src/features/mis/statement-view.tsx:9 branches on outcome before rendering the table, with provenance rendered at line 100",
-  "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/mis",
-      "summary": "[P1] Derive the single-block FY heading from its range (frontend/src/features/mis/statement-view.tsx:161): `formatBlockHeading` treats every block keyed `selected` as a single month and formats only `to`."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/financial-mis-statement.md",
-      "summary": "t-sv-c3: Each period block renders Budget, Roll-over, Actual and % with Roll-over visibly EMPTY; block headings are the SPEC's labels - 'July 2026' and 'FY 26-27 (YTD to Jul)' - formatted in the view from each block's from/to, since the API emits raw values like 2026-07-01; money is displayed in Indian digit grouping with the rupee sign, rounded to the rupee HALF-UP AWAY FROM ZERO from the fixed-scale decimal string without ever going through float arithmetic; a non-numeric percentage is passed through VERBATIM and a null percentage renders as NA; and a single-block response renders one block."
-    }
-  ],
+  "score": 10,
+  "summary": "quality lens over statement-view (8 product path(s), c248d46..81da314, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sv-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:83 and frontend/src/features/mis/statement-view.tsx:79\nVERDICT t-sv-c2: implemented \u2014 frontend/src/features/mis/statement-view.tsx:91\nVERDICT t-sv-c3: implemented \u2014 frontend/src/features/mis/statement-view.tsx:161\nVERDICT t-sv-c4: implemented \u2014 frontend/src/features/mis/statement-view.tsx:12\nNo blocking compatibility wrappers, aliases, re-exports, deprecated branches, or other leftovers are present in the diff. The statement view is reachable from the existing MIS page, preserves route-supplied totals, handles outcome and error states distinctly, formats exact fixed-scale money without floating-point conversion, preserves percentage labels, exposes hierarchy accessibly, and renders provenance.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/features/mis/mis-report-view.test.tsx",
@@ -34,22 +23,22 @@
     {
       "contract_id": "t-sv-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:83 inline StatementView is rendered from the existing selector mutation"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:83 and frontend/src/features/mis/statement-view.tsx:79"
     },
     {
       "contract_id": "t-sv-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:91 grandTotal and node measures are rendered directly from the route payload"
+      "evidence": "frontend/src/features/mis/statement-view.tsx:91"
     },
     {
       "contract_id": "t-sv-c3",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:161 derives YTD semantics from the block key instead of every block's from/to range"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/statement-view.tsx:161"
     },
     {
       "contract_id": "t-sv-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:9 branches on outcome before rendering the table, with provenance rendered at line 100"
+      "evidence": "frontend/src/features/mis/statement-view.tsx:12"
     },
     {
       "contract_id": "t-sm-c1",
@@ -93,10 +82,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "d08bfcc85b6e40fd2773b9d2933084bcb6fac6a7830f7e1158fbedafad655d7b",
-  "brief_sha256": "045c1105b0a5d9c0b07cef6127eaa5a3c3edb71242b23ac0350f7121d1690c17",
-  "branch_diff_digest": "90b186016431024b22d56477f57a9ab35adb537ba23264d9cf85cb935673f81d",
+  "review_run_id": "67cf584d9ff79566f37df40a90346ec3f5d013fa37e3b029fdeffa3de03aa8e8",
+  "brief_sha256": "e0564f7bc6c31107dd339642bb13dd97d7dcbdc39301a84688ef6084d75675c0",
+  "branch_diff_digest": "09dba1f24190ed7a710c41bf5ce40a2eaf655141b25e71945efb7b8085566b1b",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T14:45:12+00:00",
-  "commit": "ff23f5f6fd03bc21dc6c1484b78134967ac4c35b"
+  "recorded_at": "2026-09-11T14:50:08+00:00",
+  "commit": "81da314ee06bcf91a708ab97810238ee162ac1b9"
 }

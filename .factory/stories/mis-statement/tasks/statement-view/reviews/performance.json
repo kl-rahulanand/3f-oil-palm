@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "statement-view",
   "score": 10,
-  "summary": "performance lens over statement-view (8 product path(s), c248d46..ff23f5f, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows no actionable P0-P2 performance or correctness defect. Rendering is linear in the number of statement nodes and period blocks, with no added request fanout or repeated client-side aggregation. The obsolete frontend selection hook and API method are removed rather than retained as compatibility leftovers, and the new statement view follows the supplied outcome, exact-money, tree, subtotal, and provenance contracts.",
+  "summary": "performance lens over statement-view (8 product path(s), c248d46..81da314, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0-P2 defect is demonstrated by the supplied diff. The view performs one statement request, renders the returned tree in linear row/block time, does not recompute subtotals, and introduces no evident query fanout or repeated I/O. The obsolete frontend selection hook and client method are removed rather than retained as compatibility leftovers.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -20,10 +20,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "d08bfcc85b6e40fd2773b9d2933084bcb6fac6a7830f7e1158fbedafad655d7b",
-  "brief_sha256": "045c1105b0a5d9c0b07cef6127eaa5a3c3edb71242b23ac0350f7121d1690c17",
-  "branch_diff_digest": "90b186016431024b22d56477f57a9ab35adb537ba23264d9cf85cb935673f81d",
+  "review_run_id": "67cf584d9ff79566f37df40a90346ec3f5d013fa37e3b029fdeffa3de03aa8e8",
+  "brief_sha256": "e0564f7bc6c31107dd339642bb13dd97d7dcbdc39301a84688ef6084d75675c0",
+  "branch_diff_digest": "09dba1f24190ed7a710c41bf5ce40a2eaf655141b25e71945efb7b8085566b1b",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T14:45:12+00:00",
-  "commit": "ff23f5f6fd03bc21dc6c1484b78134967ac4c35b"
+  "recorded_at": "2026-09-11T14:50:08+00:00",
+  "commit": "81da314ee06bcf91a708ab97810238ee162ac1b9"
 }
