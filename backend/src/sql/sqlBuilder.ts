@@ -175,7 +175,7 @@ export class SqlBuilder {
     const sql = `WITH leaf_targets(plant, cost_center, gl_code, leaf_key) AS (
   VALUES (${targetRows.join("),\n    (")})
 ), actual_by_leaf_month AS (
-  SELECT target.leaf_key, actual.month, actual.plant,
+  SELECT target.leaf_key, actual.month,
     SUM(actual.actual_net)::numeric(18,2) AS actual_net
   FROM actual_by_key_month AS actual
   INNER JOIN leaf_targets AS target
@@ -184,9 +184,9 @@ export class SqlBuilder {
       AND target.gl_code = actual.gl_code
   WHERE actual.plant IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
     AND actual.month >= ${periodStart} AND actual.month < ${periodEnd}
-  GROUP BY target.leaf_key, actual.month, actual.plant
+  GROUP BY target.leaf_key, actual.month
 ), budget_src AS (
-  SELECT leaf_key, month, 'DUB' AS plant, budget_net, rollover_net
+  SELECT leaf_key, month, budget_net, rollover_net
   FROM budget_by_leaf_month
   WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
     AND month >= ${periodStart} AND month < ${periodEnd}
@@ -216,13 +216,11 @@ export class SqlBuilder {
     ON actual_src.leaf_key IS NOT NULL
       AND actual_batch.source_kind = 'actuals'
       AND actual_batch.period = COALESCE(actual_src.month, budget_src.month)
-      AND actual_batch.plant = actual_src.plant
       AND actual_batch.is_active
   LEFT JOIN ingest_batch AS budget_batch
     ON budget_src.leaf_key IS NOT NULL
       AND budget_batch.source_kind = 'budget'
       AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
-      AND budget_batch.plant = budget_src.plant
       AND budget_batch.is_active
 )
 SELECT relation.leaf_key, relation.month, relation.actual_net, relation.budget_net, relation.rollover_net,
