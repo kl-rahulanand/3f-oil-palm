@@ -775,6 +775,7 @@ button {
   position: absolute;
   inset: 0;
   background: rgba(12, 53, 41, 0.32);
+  animation: fadein 0.2s ease;
 }
 .mis-drill-panel {
   position: absolute;
@@ -786,6 +787,7 @@ button {
   outline: 0;
   background: var(--kl-white);
   box-shadow: -8px 0 24px rgba(12, 53, 41, 0.1);
+  animation: slidein 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mis-drill-header {
   display: flex;
@@ -977,6 +979,17 @@ button {
     transform: translateY(6px);
   }
 }
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes slidein {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
 @media (hover: hover) and (pointer: fine) {
   .nav-toggle:hover {
     background: var(--kl-surface-on-dark);
@@ -1073,7 +1086,9 @@ button {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .login-step {
+  .login-step,
+  .mis-drill-scrim,
+  .mis-drill-panel {
     animation: none;
   }
   .side-nav,
