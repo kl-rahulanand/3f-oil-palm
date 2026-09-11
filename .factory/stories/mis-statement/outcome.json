@@ -1,7 +1,7 @@
 {
   "generated_by": "implementer",
-  "outcome": "The Financial MIS statement now has a foundation to stand on. The budget workbook's outline is persisted as a per-batch snapshot carrying structure but never money, each leaf keyed by its identity rather than its sheet row, so a reissued workbook maps onto the same lines and a renamed one reports drift instead of silently splitting a statement line. The Mapping Master resolves each SAP triple to exactly one tagged target - a workbook leaf or the reserved unmapped-GL bucket - and the statement reads its own governed projection at leaf/month grain, which is what finally lets Fertilizers, Pesticides and Nursery labour split across Primary, Secondary and Tertiary instead of collapsing onto one line. July reconciles exactly: 81 leaf rows, Actual Rs 1,15,12,712.07, Budget Rs 1,00,50,136.29.",
+  "outcome": "The Financial MIS statement is now served. POST api/mis/statement returns Srihari's statement as a tree: the workbook outline at its natural depth, every parent a subtotal derived from its own leaves, the grand total footing, rows in outline order, each carrying its S.No, Budget Component and leaf GL. Budget, Roll-over, Actual and % come back for the selected month and FY 26-27 YTD - a single block when the selected period is itself the YTD - with money as a fixed-scale decimal string so paise survive the wire, and the unmapped-GL line visible with its own Actual counted in the total. Making it work required the governed path to exist at all: a registered statement domain with its own grant, and the bounded LIMIT the validator demands.",
   "issue": "mis-statement",
-  "commit": "d81a2730072d700161e3cddad3d8013697cb31db",
-  "recorded_at": "2026-09-11T08:05:52+00:00"
+  "commit": "b319895da88c30b3ac75b94c940683ed7d03ce8b",
+  "recorded_at": "2026-09-11T11:23:49+00:00"
 }

@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "statement-api",
   "score": 10,
-  "summary": "performance lens over statement-api (22 product path(s), 15dd782..98f66e1, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 defect is demonstrated by the supplied diff. The statement projection is range-aggregated before the bounded LIMIT, each distinct range is executed once through SelectionExecutor, outline lookup is keyed by the selected budget period, tree aggregation is linear in the outline size, and no compatibility wrapper, alias, shim, or retained legacy branch appears in the change.",
+  "summary": "performance lens over statement-api (23 product path(s), 15dd782..b319895, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance defects are demonstrated by the supplied diff. The statement path performs one governed projection per distinct range, suppresses the executor\u2019s unused totals query, aggregates range results to leaf grain before applying a bounded LIMIT, fails closed at that limit, reads the outline once, and builds the hierarchy in linear passes. No compatibility wrappers, aliases, deprecated branches, or other blocking leftovers are present.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -10,6 +10,7 @@
     "backend/package.json",
     "backend/src/app.module.ts",
     "backend/src/app.routes.test.ts",
+    "backend/src/chat/selectionExecutor.ts",
     "backend/src/db/migrate.test.ts",
     "backend/src/db/migrate.ts",
     "backend/src/mis/mis-statement.controller.test.ts",
@@ -32,10 +33,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "3fa4d6bf3ba5c30e932a32f15a34f63e132ebd4bc34f45fc5f356cf48db3ada5",
-  "brief_sha256": "ee18f16611032250fe108df30a593188491bec122f2e5d1d9418dd96e4279c8b",
-  "branch_diff_digest": "b267573a918dc0d2de17b158760c1df8f29b9418fa4981edfd5f1f46c5adc192",
+  "review_run_id": "bee8f7e16c6a8661d29877326638756bd30f195b75b368c574ef88af7fe102e8",
+  "brief_sha256": "435eb38860ae2e62410eae1aa1919bcece0fe14060658c72beb2f0e38e7f7af6",
+  "branch_diff_digest": "7786f876b3abb3900635beb97562e842a0610c9efb66d149c84d1e19790f53b8",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T10:38:32+00:00",
-  "commit": "98f66e1e95b35752f25da92335b42d4db2c96f08"
+  "recorded_at": "2026-09-11T11:22:03+00:00",
+  "commit": "b319895da88c30b3ac75b94c940683ed7d03ce8b"
 }
