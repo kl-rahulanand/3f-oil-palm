@@ -40,6 +40,12 @@ test("base roles grant admins the governed financial domain, measures, and dimen
     ["measure", "governed-financial.percentage"],
     ["dimension", "gl_code"],
     ["dimension", "month"],
+    ["domain", "mis-statement"],
+    ["measure", "mis-statement.actual_net"],
+    ["measure", "mis-statement.budget_net"],
+    ["measure", "mis-statement.rollover_net"],
+    ["measure", "mis-statement.percentage"],
+    ["dimension", "leaf_key"],
   ]) {
     assert.ok(adminGrants.some((grant) => grant.grantType === grantType && grant.grantId === grantId));
   }

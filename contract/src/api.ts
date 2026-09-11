@@ -253,6 +253,51 @@ export interface MisSelectionUnresolvableResponse {
 
 export type MisSelectionRunResponse = MisSelectionResolvedResponse | MisSelectionUnresolvableResponse;
 
+export type FixedScaleMoney = `${number}.${number}`;
+
+export interface MisStatementMeasureBlock {
+  key: "selected" | "fy26-27-ytd";
+  label: string;
+  from: string;
+  to: string;
+  budget: FixedScaleMoney;
+  rollover: null;
+  actual: FixedScaleMoney;
+  percentage: string | null;
+  sourcePresence: SourcePresence[];
+}
+
+export interface MisStatementNode {
+  nodeKey: string;
+  sNo: string | null;
+  budgetComponent: string;
+  glCode: string | null;
+  measures: MisStatementMeasureBlock[];
+  children: MisStatementNode[];
+}
+
+export interface MisStatementProvenance {
+  activeBatchIds: ProvenanceBatch[];
+}
+
+export interface MisStatementResolvedResponse {
+  outcome: "resolved";
+  scope: MisSelectionScopeReadout;
+  tree: MisStatementNode[];
+  grandTotal: MisStatementNode;
+  provenance: MisStatementProvenance;
+}
+
+export interface MisStatementUnresolvableResponse {
+  outcome: "unresolvable";
+  notice: "No mapping configured";
+  tree: [];
+  grandTotal: null;
+  provenance: MisStatementProvenance;
+}
+
+export type MisStatementRunResponse = MisStatementResolvedResponse | MisStatementUnresolvableResponse;
+
 export interface PinSnapshot {
   status: "ok" | "error" | "access_revoked";
   result?: ResultTable;

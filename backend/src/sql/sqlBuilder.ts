@@ -224,11 +224,22 @@ export class SqlBuilder {
       AND budget_batch.is_active
 )
 SELECT relation.leaf_key, relation.month, relation.actual_net, relation.budget_net, relation.rollover_net,
-  relation.source_presence, relation.actual_batch_id, relation.budget_batch_id
+  CASE
+    WHEN relation.budget_net = 0 AND relation.actual_net = 0 THEN NULL
+    WHEN relation.budget_net = 0 AND relation.actual_net > 0 THEN 'over-budget'
+    WHEN relation.budget_net = 0 AND relation.actual_net < 0 THEN 'credit / negative actual'
+    ELSE (relation.actual_net / relation.budget_net)::text
+  END AS percentage,
+  jsonb_build_array(relation.source_presence)::text AS source_presence,
+  ((CASE WHEN relation.actual_batch_id IS NULL THEN '[]'::jsonb ELSE jsonb_build_array(jsonb_build_object(
+    'source', 'actuals', 'period', relation.month::text, 'batchId', relation.actual_batch_id)) END) ||
+   (CASE WHEN relation.budget_batch_id IS NULL THEN '[]'::jsonb ELSE jsonb_build_array(jsonb_build_object(
+    'source', 'budget', 'period', relation.month::text, 'batchId', relation.budget_batch_id)) END))::text AS active_batch_ids
 FROM statement_relation AS relation
 LEFT JOIN outline_order AS outline
   ON outline.leaf_key = relation.leaf_key AND outline.month = relation.month
-ORDER BY relation.month, outline.sort_order NULLS LAST, relation.leaf_key`;
+ORDER BY relation.month, outline.sort_order NULLS LAST, relation.leaf_key
+LIMIT ${loadConfig().maxRows}`;
 
     return {
       sql,
