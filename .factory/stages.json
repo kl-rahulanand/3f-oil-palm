@@ -16,7 +16,8 @@
     {
       "id": "statement-view",
       "title": "The Financial MIS statement on screen",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "51ec6f8b7d39a11216160f5ca900a7bebce74598c6bd0ad1d1843d0e32aabc3a"
     },
     {
       "id": "statement-export",
