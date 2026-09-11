@@ -24,8 +24,10 @@ No HTTP route, no UI, no export: those are tasks 2, 3 and 4.
   than inferred at runtime.
 - **t-sm-c3** — the statement projection returns Budget and Actual **full-outer-joined at
   leaf/month grain**, filtering Actuals by the master's resolved triples **before**
-  aggregating (decision 0017), with **no fan-out**; the `(gl_code, month)` relation and
-  all six existing gated warehouse proofs are **unchanged**.
+  aggregating (decision 0017), with **no fan-out** and with leaf-grain totals exact
+  against the pinned July batch; the `(gl_code, month)` relation and all six existing
+  gated warehouse proofs are **unchanged**. Parent-by-parent footing is **task 2's**,
+  which owns tree derivation.
 
 ## What already exists (grounding, file:line)
 - **`mis_budget`** — `warehouse-schema.ts:86`: `batchId, formatId, period, lineId,
@@ -61,6 +63,12 @@ double-counting structurally impossible rather than merely avoided — decision 
 rule (a Budget cell that is a formula containing a cell reference is a derived subtotal)
 is what classifies a node as a parent.
 
+`mis_budget` itself gains a **`leaf_key`** column, written by the parser at ingest, so
+the amount row and its snapshot node share one key — there is **no join on GL**, which
+would re-merge the very `50001605` / `50001606` / `50001901` lines this story exists to
+split. Uniqueness is enforced per `(batch_id, period, leaf_key)`, and `parent_key` must
+reference a node **in the same batch**, so an outline cannot straddle two uploads.
+
 **The stable leaf key** is derived from identity, never position:
 `<nearest ancestor S.No>|<gl_code>|<slug(component label)>`. Reordering rows cannot
 change it; `50001605` under `4.x`, `5.x` and `6.x` yields three distinct keys, which is
@@ -68,17 +76,38 @@ exactly the split the statement needs. It changes only when Srihari renumbers or
 a line — which *is* a structural change, and should be visible as one.
 
 ### The master correspondence (t-sm-c2)
-Each master entry gains its `budget_leaf_key`, **provisional with a reason**, following
+A master entry's target is **tagged**, not a bare key: either
+`{ kind: "leaf", leafKey }` or `{ kind: "bucket" }` — the reserved `unmapped-GL` line of
+decision **0018**. The nine triples that deliberately resolve to the bucket have **no**
+workbook leaf and must not be forced to invent one. A bucket row carries **zero Budget**
+and its own Actual, is placed as a **distinct top-level line** rather than inside a
+section, and **is included in the grand total** — the slice must still reconcile to the
+full DUB total, which is the whole point of decision 0018.
+
+Each leaf-tagged entry carries its `budget_leaf_key`, **provisional with a reason**, following
 the pattern `mis-selection` established for the `unmapped-GL` bucket. The loader gains
 one more rejection: **two entries claiming the same triple for different leaves**, since
 that would make a triple resolve to two statement lines. The Primary / Secondary /
 Tertiary correspondence is legible from the two vocabularies but is **recorded, never
 inferred at runtime from label similarity**.
 
+**Structural drift must fail visibly.** A reissued workbook that renames or renumbers a
+line changes its leaf key, which would otherwise split one statement line into a
+budget-only row and an actual-only row — silently. So budget ingest **validates the
+candidate snapshot's leaf keys against the master's declared targets** and records any
+master target with no matching leaf in the batch's validation result, the way the
+uncomputed roll-over count already is. Drift is reported, never absorbed.
+
 ### The statement projection (t-sm-c3)
 - **Budget side** — a `budget_by_leaf_month` view: `mis_budget` INNER JOINed to the
   active batch's outline snapshot on `(batch_id, lineId→node)`, grouped by
   `(leaf_key, month)`. Entirely DB-side, so it is a view like its siblings.
+- **The mapping reaches the builder through the governed boundary, not a global import.**
+  `GovernedSelectionScope` (`sqlBuilder.ts:11`) carries triples and GL arrays only, and
+  `SelectionResolverService` (`selection-resolver.service.ts:70`) emits the same, so both
+  gain a typed `leafTargets` entry — `(plant, costCentre, glCode) → tagged target`.
+  Importing `MAPPING_MASTER` directly inside the builder would bypass the injectable-
+  master seam that `selection-resolution` was made to fix, and is forbidden here.
 - **Actual side** — built in `sqlBuilder`, because the master lives in TypeScript, not
   the database. `actual_by_key_month` is filtered by the resolved triples **first**
   (decision 0017, the same literal IN-list `composedCtes` already uses), then mapped to
@@ -88,6 +117,21 @@ inferred at runtime from label similarity**.
   zero-fill — the scale cast matters, or a one-sided key returns a scaleless `'0'`.
 - An actual triple whose leaf the master does not cover lands on the **`unmapped-GL`**
   line (decision 0018), never dropped and never absorbed into a parent.
+
+### The route from parse to persisted batch (t-sm-c1)
+The outline has no path to storage today: `parseMisBudgetWorkbook` returns period rows,
+`IngestService.ingestBudget` (`ingest.service.ts:55`) calls
+`replaceBudgetBatch(metadata, rows)`, and the repository accepts only rows. So the parse
+result carries the outline alongside the rows, `replaceBudgetBatch` takes and persists it,
+and it is written **inside the same transaction** that writes the rows and activates the
+batch — a snapshot that could survive a rolled-back batch would be worse than none. The
+ingest service and its atomic-rollback test are therefore in scope.
+
+### The migration
+Warehouse migrations are committed SQL under `backend/drizzle-warehouse` applied by the
+runner, with journal metadata, and `warehouse-schema.test.ts:223` **pins the last
+migration as `0002`**. The new table, the new column, the new view and that pin all move
+together — omitting any one of them leaves the runner and the test disagreeing.
 
 ### What must not change
 `composedCtes`' existing `resolvedScope` path, `actual_by_gl_month`, `budget_by_gl_month`
@@ -122,9 +166,12 @@ flowchart TD
    must be re-ingested, per decision 0021) and confirm the snapshot has the expected
    node counts with **no amount column**.
 3. **Gated D-0008 host proof** — the new `statement-projection.db.test.ts`, registered in
-   `test:warehouse-proof`, asserts against the pinned July batch: Actual
-   **₹1,15,12,712.07** and Budget **₹1,00,50,136.29**; every parent equals the sum of its
-   leaves and the grand total foots; `50001605`, `50001606` and `50001901` **split across
+   `test:warehouse-proof` and in the quality-gate expected-script registry, asserts
+   against the pinned July batch: Actual **₹1,15,12,712.07** and Budget
+   **₹1,00,50,136.29** summed over the leaf rows; every parent equals the sum of its
+   leaves — **parent-by-parent footing belongs to task 2**, which owns tree derivation;
+   this task proves the leaf grain it actually produces — `50001605`, `50001606` and
+   `50001901` **split across
    Primary / Secondary / Tertiary** instead of summing onto one line; and **no fan-out**
    (exact row counts, not merely non-empty). Run the dead-port **negative control** — a
    green run that cannot fail is not evidence.

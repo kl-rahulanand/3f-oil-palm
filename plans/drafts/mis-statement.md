@@ -68,8 +68,9 @@ lands.
   parent/child) with the batch, so the statement can mirror it.
 - Record the **budget-leaf ↔ SAP (cost centre, GL)** correspondence in the versioned
   Mapping Master, so an Actual lands on the right line.
-- Group the governed roll-up by the **governed line**, so one query still serves the
-  statement — no second query path, no per-row query.
+- Add the statement's **own governed projection** at leaf/month grain (decision
+  **0022**), leaving the shipped `(gl_code, month)` relation untouched — one query
+  serves the statement, and no per-row query.
 - Render the statement: hierarchy at its natural depth, derived subtotals, grand
   total, both zero states, the visible `unmapped-GL` line.
 - Measures per the spec: **Budget · Roll-over · Actual · %** for the **selected month**
