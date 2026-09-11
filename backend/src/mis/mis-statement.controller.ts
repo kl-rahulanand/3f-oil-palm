@@ -29,7 +29,7 @@ import { MisStatementService } from "./mis-statement.service";
 export class MisStatementController {
   constructor(
     @Inject(MisStatementService) private readonly statements: IMisStatementService,
-    @Inject(MisStatementExportService) private readonly exporter?: IMisStatementExportService,
+    @Inject(MisStatementExportService) private readonly exporter: IMisStatementExportService,
   ) {}
 
   @Post("statement")
@@ -119,7 +119,7 @@ export class MisStatementController {
     const statement = await this.statements.run(user, parsed.data);
     if (statement.outcome === "unresolvable") return statement;
 
-    const workbook = await this.exporter!.write(statement);
+    const workbook = await this.exporter.write(statement);
     response.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     response.setHeader("Content-Disposition", `attachment; filename="${statementFilename(statement)}"`);
     return new StreamableFile(workbook);

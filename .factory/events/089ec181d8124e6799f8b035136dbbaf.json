@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-11T16:07:30+00:00", "story": "mis-statement", "detail": "S-0007-c166: AUTHORIZED - mechanically implied and verified: mis-statement.controller.ts:32 now takes the exporter as a required constructor parameter (the blocking fix both the performance and security lenses dem"}
