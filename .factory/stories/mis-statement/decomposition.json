@@ -312,39 +312,39 @@
       }
     },
     {
-      "id": "statement-export",
-      "title": "Excel export of the statement",
-      "objective": "Let Srihari take the statement away: POST api/mis/statement/export streams an exceljs workbook built from the SAME payload the screen renders, with the hierarchy and values intact - the first download route in the app - plus the download affordance on the statement view.",
-      "user_facing": true,
+      "id": "statement-export-api",
+      "title": "The Excel export route and workbook writer",
+      "objective": "Serve the statement as a downloadable workbook: POST api/mis/statement/export writes an exceljs sheet from the payload the statement service assembles for THAT request, streamed with a Content-Disposition filename. Backend only - the download control is statement-export-control.",
+      "user_facing": false,
       "dependencies": [
         "statement-view"
       ],
       "acceptance_criteria": [
-        "POST api/mis/statement/export returns an xlsx workbook as a streamed download with a Content-Disposition filename naming the selection and period, behind the SAME SessionGuard and governed report grant as the statement route, preserving the same outcome split - an unauthorized plant refused, a plant the master does not cover returning the unresolvable outcome rather than a 403. It is the first download route in the app, so it sets the pattern that drill-down's transactions sheet will follow.",
-        "The workbook is built from the SAME statement payload the screen renders - the service assembles the tree once and both the JSON response and the sheet are written from it - so the export cannot drift from the page. A test asserts cell-by-cell that the sheet's rows, identity columns and amounts equal the payload's, including the derived parent subtotals, the grand total, the unmapped-GL line and the empty Roll-over column.",
-        "The sheet carries the statement's structure, not a flat dump: the workbook outline order and depth, an indent or level per row so the hierarchy survives in Excel, both period blocks under their spec labels, money as NUMBERS with a rupee number format rather than pre-formatted strings so the recipient can sum and pivot, and the percentage written as its label verbatim when it is not numeric.",
-        "The statement view offers a Download Excel control beside the statement, following the imported prototype's secondary-button treatment, which surfaces a failure legibly rather than silently doing nothing and does not leave the page in a pending state after an error."
+        "POST api/mis/statement/export accepts the same four selectors as the statement route and is protected the same way - AuthGuard plus RequireAction('report'), under the global CSRF guard - with Swagger documenting the xlsx content type, the Content-Disposition header, the JSON unresolvable outcome and the required CSRF header, and the route added to the strict allow-list in app.routes.test.ts.",
+        "A RESOLVED request streams an .xlsx with a sanitized canonical filename naming the scope and range. An UNRESOLVABLE request keeps the existing 200 application/json unresolvable outcome and produces NO file, so a client cannot save a JSON body as a workbook; an unauthorized plant is still refused.",
+        "The workbook is written from the payload MisStatementService.run returns for that request - invoked ONCE per authorized request - and the writer never re-queries the projection, re-walks the outline or re-derives a subtotal. A test asserts cell by cell that the sheet equals that payload, including derived parent subtotals, the grand total, the unmapped-GL line and the empty Roll-over column.",
+        "The sheet carries structure rather than a flat dump: a merged Identity header plus one header group per PRESENT block - one or two, matching the payload, since a selected FY-YTD period yields a single block - the tree flattened in preorder with an Excel outline level per row, S. No./Budget Component/GL plus four columns per block, a final grand-total row, money written as NUMBERS with a rupee number format rather than pre-formatted strings, and a non-numeric percentage written verbatim."
       ],
       "plan_contracts": [
         {
-          "id": "t-se-c1",
-          "statement": "POST api/mis/statement/export returns an xlsx workbook as a streamed download with a Content-Disposition filename naming the selection and period, behind the SAME SessionGuard and governed report grant as the statement route, preserving the same outcome split - an unauthorized plant refused, a plant the master does not cover returning the unresolvable outcome rather than a 403. It is the first download route in the app, so it sets the pattern that drill-down's transactions sheet will follow.",
-          "source": "docs/decisions/0019-fresh-routes-follow-vendored-house-style.md"
-        },
-        {
-          "id": "t-se-c2",
-          "statement": "The workbook is built from the SAME statement payload the screen renders - the service assembles the tree once and both the JSON response and the sheet are written from it - so the export cannot drift from the page. A test asserts cell-by-cell that the sheet's rows, identity columns and amounts equal the payload's, including the derived parent subtotals, the grand total, the unmapped-GL line and the empty Roll-over column.",
+          "id": "t-sea-c1",
+          "statement": "POST api/mis/statement/export accepts the same four selectors as the statement route and is protected the same way - AuthGuard plus RequireAction('report'), under the global CSRF guard - with Swagger documenting the xlsx content type, the Content-Disposition header, the JSON unresolvable outcome and the required CSRF header, and the route added to the strict allow-list in app.routes.test.ts.",
           "source": "plans/active/mis-statement-mis-statement-excel-export.md"
         },
         {
-          "id": "t-se-c3",
-          "statement": "The sheet carries the statement's structure, not a flat dump: the workbook outline order and depth, an indent or level per row so the hierarchy survives in Excel, both period blocks under their spec labels, money as NUMBERS with a rupee number format rather than pre-formatted strings so the recipient can sum and pivot, and the percentage written as its label verbatim when it is not numeric.",
-          "source": "docs/specs/financial-mis-statement.md"
+          "id": "t-sea-c2",
+          "statement": "A RESOLVED request streams an .xlsx with a sanitized canonical filename naming the scope and range. An UNRESOLVABLE request keeps the existing 200 application/json unresolvable outcome and produces NO file, so a client cannot save a JSON body as a workbook; an unauthorized plant is still refused.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
         },
         {
-          "id": "t-se-c4",
-          "statement": "The statement view offers a Download Excel control beside the statement, following the imported prototype's secondary-button treatment, which surfaces a failure legibly rather than silently doing nothing and does not leave the page in a pending state after an error.",
-          "source": "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html"
+          "id": "t-sea-c3",
+          "statement": "The workbook is written from the payload MisStatementService.run returns for that request - invoked ONCE per authorized request - and the writer never re-queries the projection, re-walks the outline or re-derives a subtotal. A test asserts cell by cell that the sheet equals that payload, including derived parent subtotals, the grand total, the unmapped-GL line and the empty Roll-over column.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
+        },
+        {
+          "id": "t-sea-c4",
+          "statement": "The sheet carries structure rather than a flat dump: a merged Identity header plus one header group per PRESENT block - one or two, matching the payload, since a selected FY-YTD period yields a single block - the tree flattened in preorder with an Excel outline level per row, S. No./Budget Component/GL plus four columns per block, a final grand-total row, money written as NUMBERS with a rupee number format rather than pre-formatted strings, and a non-numeric percentage written verbatim.",
+          "source": "plans/active/mis-statement-mis-statement-excel-export.md"
         }
       ],
       "write_scope": [
@@ -352,16 +352,12 @@
         "backend/src/mis/mis-statement-export.interface.ts",
         "backend/src/mis/mis-statement-export.test.ts",
         "backend/src/mis/mis-statement.controller.ts",
-        "backend/src/mis/mis-statement.service.ts",
-        "backend/src/mis/mis-statement.interface.ts",
         "backend/src/mis/mis-statement.dto.ts",
         "backend/src/mis/mis.module.ts",
         "backend/src/app.routes.test.ts",
         "contract/src/api.ts",
-        "frontend/src/features/mis/statement-view.tsx",
-        "frontend/src/features/mis/statement-view.test.tsx",
-        "frontend/src/lib/api.ts",
-        "frontend/app/globals.css"
+        "backend/package.json",
+        "tools/quality-gate.test.mjs"
       ],
       "verify_commands": [
         "npm run build:contract",
@@ -369,13 +365,11 @@
         "npm run typecheck",
         "npm run lint",
         "npm run format:check",
-        "npm run test:hermetic",
-        "npm run test:frontend",
-        "npm run build:frontend"
+        "npm run test:hermetic"
       ],
       "required_tests": [
         {
-          "id": "the export route streams an xlsx workbook with a content disposition filename behind the same guard and grant as the statement route",
+          "id": "the export route streams an xlsx with a sanitized filename for a resolved request and keeps the json unresolvable outcome with no file behind the same auth guard and report action",
           "path": "backend/src/mis/mis-statement-export.test.ts",
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         },
@@ -385,31 +379,40 @@
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         },
         {
-          "id": "the sheet preserves outline order and depth writes money as numbers with a rupee format and writes a non numeric percentage label verbatim",
+          "id": "the sheet writes one header group per present block flattens the tree in preorder with an outline level per row writes money as numbers with a rupee format and writes a non numeric percentage verbatim",
           "path": "backend/src/mis/mis-statement-export.test.ts",
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
-        },
-        {
-          "id": "the download control surfaces a failure legibly and does not leave the statement in a pending state",
-          "path": "frontend/src/features/mis/statement-view.test.tsx",
-          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
         }
       ],
       "reviewer_focus": [
-        "EXPORT DRIFT is the defect class this task exists to prevent: the workbook must be written from the SAME assembled payload the JSON response carries. A second traversal that re-reads the projection, or re-derives a subtotal, is free to disagree with the screen and nobody would notice until Srihari did.",
-        "Money must be written as NUMBERS with a rupee number format, not as pre-formatted strings. A recipient who cannot sum a column has been handed a picture of a statement. The payload's FixedScaleMoney is a decimal string - convert it exactly, not via a display-rounded value.",
-        "The export inherits the governed grant and scope (decision 0016): a download must not become a way around the access contract, and the unresolvable outcome must not become a 403.",
-        "constitution/07-exception-handling.md: a failed download surfaces as ONE clear state in the UI - the statement-view round already had to fix an error rendering alongside the empty state.",
-        "constitution/pnp-coding-standards-modular-monolith.md: the export service is its own module surface with its own .interface.ts; it consumes the statement service rather than reaching past it into the builder.",
-        "This is the FIRST download route in the app, so streaming, the filename and the Content-Disposition header set the pattern drill-down's transactions sheet will follow - review it as a precedent, not a one-off."
+        "EXPORT DRIFT is the defect class this task exists to prevent. The guarantee is PER REQUEST: each endpoint invokes MisStatementService.run once, and the writer receives that resolved object. A writer that re-queries the projection or re-derives a subtotal is free to disagree with the screen, and nobody would notice until Srihari did.",
+        "Money must be NUMBERS with a rupee number format, never pre-formatted strings - a recipient who cannot sum a column has been handed a picture of a statement. FixedScaleMoney is an exact decimal string: convert it directly, never via a display-rounded value.",
+        "The JSON/XLSX boundary: an unresolvable request returns 200 application/json and NO file. A blob client that saves that body as .xlsx produces a corrupt download, so the route must not pretend it is a file.",
+        "Name the real protections: AuthGuard plus RequireAction('report') under the global CSRF guard. SessionGuard is the FRONTEND guard and does not exist here.",
+        "Block count is DYNAMIC - one or two, matching the payload - because a selected FY-YTD period yields a single block. A sheet that always writes two header groups contradicts the settled rule.",
+        "This is the FIRST download route in the app: streaming, the filename and the Content-Disposition header set the pattern drill-down's transactions sheet will follow. Review it as a precedent.",
+        "constitution/pnp-coding-standards-modular-monolith.md: the export service is its own surface with its own .interface.ts and consumes the statement service rather than reaching past it into the builder."
       ],
       "review_budget": {
-        "max_changed_files": 14,
-        "max_changed_lines": 1600,
-        "reason": "The export service and its route, the statement service refactored so one assembled payload feeds both the JSON response and the workbook, the route allow-list entry every new route needs, and the download control with its failure state on the existing statement view. The substance is the workbook writer and the cell-by-cell equality proof against the payload. No schema change, no SQL change."
+        "max_changed_files": 10,
+        "max_changed_lines": 1400,
+        "reason": "The workbook writer and its route, their DTOs and Swagger documentation, the allow-list entry every new route needs, and the contract shape. The substance is the writer and the cell-by-cell equality proof against the payload. No schema change, no SQL change, no frontend file."
       }
+    },
+    {
+      "id": "statement-export-control",
+      "title": "The Download Excel control",
+      "objective": "Give the statement a Download Excel control in the prototype's secondary-button treatment, which surfaces a failure legibly and never leaves the page pending. Frontend only.",
+      "user_facing": true,
+      "dependencies": [
+        "statement-export-api"
+      ],
+      "acceptance_criteria": [
+        "A Download Excel control sits beside the statement in the imported prototype's SECONDARY treatment - white ground, emerald border and text, matching the Generate button's height and radius - and is present only when a resolved statement is on screen.",
+        "Pressing it downloads the workbook through the cookie-credentialed CSRF-aware client, and a failure surfaces as ONE clear state rather than a silent no-op, never leaving the control or the statement stuck in a pending state."
+      ]
     }
   ],
-  "plan_sha256": "951e85a33bb8891ee3e81dbb5d5f4519ef72b4cd0e457395a922f463ffe025e9",
-  "commit": "a92f61a64271d6c69fff0e92bfdb170410e94eee"
+  "commit": "0ac1b1a87934a9d164de15275e77ea545c2f90a7",
+  "plan_sha256": "3afcacab6c0137fabf3f3e2113137534ac4db55169bd64506a47d6820b51a391"
 }

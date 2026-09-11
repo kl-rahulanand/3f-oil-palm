@@ -1,8 +1,8 @@
 ---
 issue: mis-statement
 title: MIS statement + Excel export
-status: awaiting-approval
-saved: 2026-09-11T15:23:15+00:00
+status: approved
+saved: 2026-09-11T15:24:33+00:00
 story: mis-statement
 decisions_reviewed:
   - 0001-poc-engagement-scope
