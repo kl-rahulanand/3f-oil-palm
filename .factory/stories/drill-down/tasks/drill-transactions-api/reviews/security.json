@@ -2,13 +2,13 @@
   "generated_by": "autoreview",
   "task_id": "drill-transactions-api",
   "score": 9,
-  "summary": "security lens over drill-transactions-api (22 product path(s), 5a9ff14..2b878ad, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The authorization, server-derived predicate, UUID validation, pin binding, and fail-closed audit path shown in the diff are sound. However, the new read path's timeout is only a response-side Promise race and does not bound database execution, leaving a concrete resource-exhaustion path that must be fixed or explicitly deferred before shipping.",
+  "summary": "security lens over drill-transactions-api (22 product path(s), 5a9ff14..a14920d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The route otherwise derives and scopes its raw-row predicate appropriately, validates pinned UUIDs before SQL construction, and audits before transaction reads. However, its timeout implementation leaves timed-out database statements running, creating a concrete resource-exhaustion path on this potentially expensive raw transaction endpoint.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "security",
       "area": "backend/src/warehouse",
-      "summary": "Configured timeout leaves both warehouse queries running (backend/src/warehouse/drill-transactions.repository.ts:174): `withTimeout` races an already-started `warehouse.execute()` promise against a timer, but it never cancels the query when the timer wins."
+      "summary": "[P2] Cancel warehouse statements when the drill timeout expires (backend/src/warehouse/drill-transactions.repository.ts:176): `Promise.race` only rejects the HTTP-side promise; it does not cancel either `warehouse.execute` operation."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -38,10 +38,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "f90d2cc4ff1a3b1f519ff06823808276b8de661de8feb4a12774e796239fa76a",
-  "brief_sha256": "4021c5b08513c14c2742f829c224e09b04c61fc10e38bfba8bd49cdad16ccfec",
+  "review_run_id": "fa86f1cce415e9f6eec00407c5a90ce9600f5f17fe0d4080b500bb2cbff3f388",
+  "brief_sha256": "1bd4a6e0bbe607599837de04d1460eba8c6e61bc028e1d24676015617bf51c51",
   "branch_diff_digest": "cfa583b37ae34f3521b0d78a03a118b2ede791cfffa0d9a962e6933fac787381",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T20:02:29+00:00",
-  "commit": "2b878ade33164fb082a648054e2cb3917ba57365"
+  "recorded_at": "2026-09-11T20:09:06+00:00",
+  "commit": "a14920dc05caac9180c7f3b16885516cd057002e"
 }

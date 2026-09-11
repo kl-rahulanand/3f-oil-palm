@@ -2,18 +2,18 @@
   "generated_by": "autoreview",
   "task_id": "drill-transactions-api",
   "score": 9,
-  "summary": "performance lens over drill-transactions-api (22 product path(s), 5a9ff14..2b878ad, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The predicate derivation and pin checks shown are generally bounded and server-derived, and no compatibility leftovers are present. However, the query timeout does not stop database work, and the client-controlled page bound permits extremely deep OFFSET queries; both are actionable production performance defects.",
+  "summary": "performance lens over drill-transactions-api (22 product path(s), 5a9ff14..a14920d, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The functional predicate and pinning flow shown in the diff is largely consistent with the stated contracts, but the new hot path has two concrete production performance defects: its timeout does not stop database work, and every drill loads an entire pinned outline to resolve one node.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
       "area": "backend/src/warehouse",
-      "summary": "Timeout leaves both warehouse queries running after the request fails (backend/src/warehouse/drill-transactions.repository.ts:177): `withTimeout` only races the already-started `warehouse.execute` promise against a timer; rejecting that wrapper does not cancel the database statement."
+      "summary": "[P2] Cancel warehouse statements when the request timeout expires (backend/src/warehouse/drill-transactions.repository.ts:86): `withTimeout` only races the warehouse promise against a timer; it does not cancel either SQL statement."
     },
     {
       "category": "bug",
       "area": "backend/src/warehouse",
-      "summary": "Reject deep pages before constructing a massive OFFSET query (backend/src/warehouse/drill-transactions.repository.ts:65): The request schema permits pages up to 1,000,000, so this expression can emit an OFFSET of 99,999,900."
+      "summary": "[P2] Query the requested outline node instead of loading the full snapshot (backend/src/warehouse/statement-outline.repository.ts:14): The new pinned-batch lookup delegates to the generic outline reader, which selects, orders, transfers, and materializes up to 25,000 outline rows."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -43,10 +43,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "f90d2cc4ff1a3b1f519ff06823808276b8de661de8feb4a12774e796239fa76a",
-  "brief_sha256": "4021c5b08513c14c2742f829c224e09b04c61fc10e38bfba8bd49cdad16ccfec",
+  "review_run_id": "fa86f1cce415e9f6eec00407c5a90ce9600f5f17fe0d4080b500bb2cbff3f388",
+  "brief_sha256": "1bd4a6e0bbe607599837de04d1460eba8c6e61bc028e1d24676015617bf51c51",
   "branch_diff_digest": "cfa583b37ae34f3521b0d78a03a118b2ede791cfffa0d9a962e6933fac787381",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T20:02:29+00:00",
-  "commit": "2b878ade33164fb082a648054e2cb3917ba57365"
+  "recorded_at": "2026-09-11T20:09:06+00:00",
+  "commit": "a14920dc05caac9180c7f3b16885516cd057002e"
 }
