@@ -120,7 +120,7 @@
   ],
   "summary": "One cold read returned ten findings against the confirmed spec. Eight were repository-answerable and are resolved in the amended spec: the 'live from SAP' claim is corrected to the uploaded extract with its period and batch named; the ONE governed path (0017), the mandatory visible unmapped-GL line and the two distinct zero states (0018), derived parents with Roll-over unpopulated (0020), and the all-or-nothing access-and-provenance contract (0016) are all stated explicitly; the acceptance criteria are tightened from an approximate total to EXACT values against a pinned July batch - Actual Rs 1,15,12,712.07 and Budget Rs 10,050,136.29 - with the golden-reference comparison defined line by line; and the arithmetic contract now requires exact-paise computation rounded only after aggregation, so subtotals foot. One was deferred with a trigger (the stale product BRIEF, D-0032). Two were genuine product decisions put to the human: the statement mirrors the budget workbook's uneven outline depth rather than flattening it, and each row carries S.No, Budget Component and the leaf GL code with Roll-over blank and Payment Office omitted. Verdict pass.",
   "issue": "mis-statement",
-  "input_sha256": "a56920cc9aa04955acdc1fcb25d0505eba0d78d38f242d600056698908645c9c",
-  "recorded_at": "2026-09-11T05:38:02+00:00",
-  "commit": "b8774faecd4c79fb025b33be56765a187c85292b"
+  "input_sha256": "8852c0ce2e626a7fc44b6835ab11009628d84b5645c5fc0cb4984dc0f2cd3f50",
+  "recorded_at": "2026-09-11T15:23:05+00:00",
+  "commit": "2ff2eb25f44e3645c57df0da5baac6a63a06af48"
 }

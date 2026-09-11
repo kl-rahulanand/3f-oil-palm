@@ -27,6 +27,7 @@ decisions_reviewed:
   - 0020-mis-budget-leaf-grain
   - 0021-mis-statement-outline-snapshot
   - 0022-mis-statement-governed-projection
+  - 0023-mis-statement-drift-reports-not-blocks
 ---
 
 # MIS statement + Excel export
