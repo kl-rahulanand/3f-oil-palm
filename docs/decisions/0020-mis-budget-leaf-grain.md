@@ -74,5 +74,11 @@ Confirmed by the human on 2026-09-11.
 - Deferral **D-0029** is resolved by this record and the change it implies.
 - The ingest's validation report gains a count of uncomputed Roll-over cells, so a workbook
   that silently lost its cached results is visible rather than absorbed.
-- If a future workbook books actuals against parent codes, or nests more than one level,
-  this record must be revisited — the rule assumes one parent level over leaf GLs.
+- If a future workbook books actuals against parent codes, this record must be revisited.
+
+> **Amended 2026-09-11 by decision [0021](0021-mis-statement-outline-snapshot.md).** The
+> "assumes one parent level over leaf GLs" caveat is superseded: `9 Admin Expenses` →
+> `9.01 Vehicle Maintenance` → `Petrol and Diesel Charges` is two parent levels, and the
+> outline is now persisted as a per-batch snapshot of arbitrary depth. The substantive
+> rule here is unchanged — a Budget cell that is a formula containing a cell reference
+> marks a derived subtotal, and no parent amount is ever stored.
