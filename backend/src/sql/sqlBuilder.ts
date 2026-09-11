@@ -181,9 +181,7 @@ export class SqlBuilder {
     const periodStart = this.lit(period.from);
     const includesLeaf = dimensions.some(({ column }) => column === "leaf_key");
     const selectColumns = [
-      ...dimensions.map(({ id, column }) =>
-        column === "month" ? `${periodStart}::date AS ${id}` : `relation.${column} AS ${id}`,
-      ),
+      ...dimensions.map(({ id, column }) => `relation.${column} AS ${id}`),
       ...measures.map(({ id, expr }) => `${expr} AS ${id.split(".").pop()}`),
     ];
     if (includeProvenance) {

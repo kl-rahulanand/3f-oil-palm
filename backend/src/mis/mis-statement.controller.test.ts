@@ -144,7 +144,7 @@ const user: AuthUser = {
       "mis-statement.rollover_net",
       "mis-statement.percentage",
     ],
-    dimensionIds: ["leaf_key", "month"],
+    dimensionIds: ["leaf_key"],
   },
   scope: [{ attribute: "plant", value: "DUB" }],
 };

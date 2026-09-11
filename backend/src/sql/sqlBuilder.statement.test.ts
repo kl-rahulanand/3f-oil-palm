@@ -36,6 +36,7 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   assert.match(statement.sql, /SUM\(actual_net\) AS actual_net/);
   assert.match(statement.sql, /array_agg\(DISTINCT\(relation\.source_presence\)\)/);
   assert.match(statement.sql, /ORDER BY outline\.sort_order NULLS LAST, relation\.leaf_key/);
+  assert.doesNotMatch(statement.sql, /::date AS month/);
 
   const shipped = builder.build(domain, selection, user, true, scope);
   assert.match(shipped.sql, /GROUP BY gl_code, month/);
@@ -67,7 +68,6 @@ test("the statement query runs through the selection executor validate explain e
   assert.deepEqual(result.result.rows, [
     {
       leaf_key: "4.5|50001605|fertilizers-manures",
-      month: "2026-07-01",
       actual_net: "25.00",
       budget_net: "20.00",
       rollover_net: "0.00",
@@ -178,7 +178,7 @@ const statementUser: AuthUser = {
       "mis-statement.rollover_net",
       "mis-statement.percentage",
     ],
-    dimensionIds: ["leaf_key", "month"],
+    dimensionIds: ["leaf_key"],
   },
 };
 
@@ -197,7 +197,6 @@ class StatementWarehouse implements Warehouse {
     return {
       columns: [
         { name: "leaf_key", numeric: false },
-        { name: "month", numeric: false },
         { name: "actual_net", numeric: true },
         { name: "budget_net", numeric: true },
         { name: "rollover_net", numeric: true },
@@ -208,7 +207,6 @@ class StatementWarehouse implements Warehouse {
       rows: [
         {
           leaf_key: "4.5|50001605|fertilizers-manures",
-          month: "2026-07-01",
           actual_net: "25.00",
           budget_net: "20.00",
           rollover_net: "0.00",

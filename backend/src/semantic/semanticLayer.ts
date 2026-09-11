@@ -92,10 +92,7 @@ END`,
 END`,
         ),
       ],
-      dimensions: [
-        { id: "leaf_key", label: "Statement leaf", column: "leaf_key" },
-        { id: "month", label: "Month", column: "month" },
-      ],
+      dimensions: [{ id: "leaf_key", label: "Statement leaf", column: "leaf_key" }],
     },
   ];
 
@@ -141,9 +138,9 @@ function statementMeasure(id: string, label: string, expr: string): MeasureSpec 
     label,
     goldObject: "statement_relation",
     expr,
-    grain: "statement leaf and month",
+    grain: "statement leaf and period range",
     impliedFilters: [],
-    allowedDimensions: ["leaf_key", "month"],
+    allowedDimensions: ["leaf_key"],
     timeColumn: "month",
     defaultTimeGrain: "month",
     piiSensitive: false,
