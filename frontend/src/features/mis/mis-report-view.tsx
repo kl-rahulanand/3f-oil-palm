@@ -68,7 +68,7 @@ export function MisReportView() {
       {run.isError && (
         <StatusMessage error>The report could not be generated. Check the selection and try again.</StatusMessage>
       )}
-      {!run.data && !run.isPending && !options.isError && (
+      {!run.data && !run.isPending && !run.isError && !options.isError && (
         <div className="mis-empty-state">
           <div className="mis-empty-icon" aria-hidden="true">
             <span />

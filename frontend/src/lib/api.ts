@@ -6,7 +6,6 @@ import type {
   AuthRefreshResponse,
   MisSelectionOptionsResponse,
   MisSelectionRunRequest,
-  MisSelectionRunResponse,
   MisStatementRunResponse,
 } from "@3f/contract";
 
@@ -60,8 +59,6 @@ async function request<T = unknown>(path: string, refreshOn401 = false): Promise
 
 export const api = {
   misOptions: () => request<MisSelectionOptionsResponse>("/api/mis/options", true),
-  runMisSelection: (selection: MisSelectionRunRequest) =>
-    post<MisSelectionRunResponse>("/api/mis/run", selection, true),
   runMisStatement: (selection: MisSelectionRunRequest) =>
     post<MisStatementRunResponse>("/api/mis/statement", selection, true),
   csrf: () => request<{ ok: true }>(CSRF_PATH),

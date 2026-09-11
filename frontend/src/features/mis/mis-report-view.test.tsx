@@ -113,6 +113,7 @@ test("a failed statement call surfaces one clear report error and no stale state
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "The report could not be generated. Check the selection and try again.",
   );
+  expect(screen.queryByText("Select Department, Function and Plant, then Generate")).not.toBeInTheDocument();
   expect(screen.queryByRole("treegrid")).not.toBeInTheDocument();
 });
 
