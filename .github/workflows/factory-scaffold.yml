@@ -7,7 +7,12 @@ on:
 
 jobs:
   scaffold-check:
-    runs-on: self-hosted
+    # This workflow is vendored into client repos, which have no self-hosted
+    # runner: a job pinned to `self-hosted` queues forever there, and it is the
+    # required check. Default to a hosted image; the harness repo (or any
+    # client with its own runner) sets the FORGE_SCAFFOLD_RUNNER repository
+    # variable to `self-hosted`.
+    runs-on: ${{ vars.FORGE_SCAFFOLD_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
       # This workflow is VENDORED into every client repo, so each step has to be
