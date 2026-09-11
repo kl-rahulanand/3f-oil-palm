@@ -52,6 +52,10 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
   }, [selection.opener]);
 
   useEffect(() => {
+    if (transactionNode) dialogRef.current?.focus();
+  }, [transactionNode]);
+
+  useEffect(() => {
     if (!transactionNode) {
       const nodeKey = focusAfterBack.current;
       if (nodeKey) leafButtons.current.get(nodeKey)?.focus();
@@ -82,7 +86,9 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
     }
     if (event.key !== "Tab") return;
     const controls = Array.from(
-      dialogRef.current?.querySelectorAll<HTMLElement>("button, [href], [tabindex]:not([tabindex='-1'])") ?? [],
+      dialogRef.current?.querySelectorAll<HTMLElement>(
+        "button:not(:disabled), [href], [tabindex]:not([tabindex='-1'])",
+      ) ?? [],
     );
     const first = controls[0];
     const last = controls.at(-1);
@@ -112,6 +118,7 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
 
   const aggregateTotals = aggregateTotal(selection, leaves);
   const transactionFoots = result ? toPaise(result.footer.value) === toPaise(clickedMeasure.actual) : true;
+  const transactionReplaced = result?.batchStatuses.some(({ status }) => status === "replaced") ?? false;
 
   return (
     <div className="mis-drill-layer">
@@ -147,7 +154,7 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
             <h2 id="mis-drill-title">{activeNode.budgetComponent}</h2>
             <div className="mis-drill-total">
               <strong>
-                {isError
+                {isError || transactionReplaced
                   ? "Transactions unavailable"
                   : transactionNode
                     ? transactionFoots
@@ -157,7 +164,7 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
                       ? formatMoney(clickedMeasure.actual)
                       : "Total withheld"}
               </strong>
-              {!isError && (
+              {!isError && !transactionReplaced && (
                 <span>
                   {formatBlockHeading(clickedMeasure)} ·{" "}
                   {transactionNode
@@ -240,6 +247,14 @@ function TransactionBody({
   const first = result.totalCount === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
   const last = result.totalCount === 0 ? 0 : first + result.lines.length - 1;
   const replaced = result.batchStatuses.filter(({ status }) => status === "replaced");
+  if (replaced.length > 0)
+    return (
+      <div className="mis-drill-state" role="alert">
+        <strong>Statement batches replaced since generation</strong>
+        <span>{replaced.map(({ source, period }) => `${source} — ${formatMonth(period)}`).join("; ")}</span>
+        <span>Generate the statement again before opening its transactions.</span>
+      </div>
+    );
   return (
     <>
       <div className="mis-drill-sort">
@@ -248,12 +263,6 @@ function TransactionBody({
         <span className="mis-drill-chip">Month ↓</span>
         {pending && <span role="status">Loading page…</span>}
       </div>
-      {replaced.length > 0 && (
-        <div className="mis-drill-notice" role="status">
-          <strong>Statement batches replaced since generation</strong>
-          <span>{replaced.map(({ source, period }) => `${source} — ${formatMonth(period)}`).join("; ")}</span>
-        </div>
-      )}
       {!foots && (
         <div className="mis-drill-notice" role="alert">
           <strong>Total withheld</strong>

@@ -207,9 +207,9 @@ test("the transactions table renders the server rows in server order across seve
         {
           month: "2026-06-01",
           postingDate: "2026-06-04",
-          debit: "1.01",
+          debit: "1.00",
           credit: "0.00",
-          value: "1.01",
+          value: "1.00",
           reference: "REF-A",
           memo: "First",
         },
@@ -304,7 +304,14 @@ test("every replaced pinned batch is named and a stale pin refuses and tells the
   );
   renderWithQuery(<StatementView response={response} />);
   openActual("Diesel", 0);
-  expect(await screen.findByText(/actuals — Jun 2026; actuals — Jul 2026/)).toBeInTheDocument();
+  const replaced = await screen.findByRole("alert");
+  const replacedDialog = screen.getByRole("dialog", { name: "Diesel" });
+  expect(replaced).toHaveTextContent("actuals — Jun 2026; actuals — Jul 2026");
+  expect(replacedDialog.querySelector(".mis-drill-total strong")).toHaveTextContent("Transactions unavailable");
+  expect(replacedDialog.querySelector(".mis-drill-total span")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByText(/matching · rows/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Matches the Actual in the report")).not.toBeInTheDocument();
 
   cleanup();
   mocks.runMisDrill.mockRejectedValueOnce(Object.assign(new Error("stale"), { status: 409 }));
@@ -339,7 +346,7 @@ test("drilling a leaf inside the aggregate panel replaces the body in place and 
   const leafRow = within(screen.getByRole("dialog")).getByRole("row", { name: /Diesel/ });
   fireEvent.click(within(leafRow).getByRole("button"));
 
-  expect(await screen.findByRole("dialog", { name: "Diesel" })).toBeInTheDocument();
+  expect(await screen.findByRole("dialog", { name: "Diesel" })).toHaveFocus();
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: "Admin Expenses" }));
   const returnedLeaf = within(screen.getByRole("dialog")).getByRole("row", { name: /Diesel/ });
