@@ -84,10 +84,10 @@ test("the reopened workbook equals the statement payload cell by cell on the fin
     "July 2026",
     "July 2026",
     "July 2026",
-    "FY 26-27 YTD",
-    "FY 26-27 YTD",
-    "FY 26-27 YTD",
-    "FY 26-27 YTD",
+    "FY 26-27 (YTD to Jul)",
+    "FY 26-27 (YTD to Jul)",
+    "FY 26-27 (YTD to Jul)",
+    "FY 26-27 (YTD to Jul)",
   ]);
   assert.deepEqual(cells(worksheet, 2, 11), [
     "S. No.",
@@ -144,11 +144,11 @@ test("amounts are numbers rounded to the rupee with a rupee format a numeric per
     node("numeric", "1.50", "-1.50", "0.125"),
     node("label", "1.49", "2.49", "credit / negative actual"),
     node("null", "-1.49", "0.49", null),
-  ];
-  const worksheet = await reopen(statement(roots, node("Grand Total", "1.50", "1.50", "1"), true));
+  ].map(withYtdRange);
+  const worksheet = await reopen(statement(roots, withYtdRange(node("Grand Total", "1.50", "1.50", "1")), true));
 
   assert.equal(worksheet.columnCount, 7);
-  assert.equal(worksheet.getCell("D1").value, "July 2026");
+  assert.equal(worksheet.getCell("D1").value, "FY 26-27 (YTD to Jul)");
   assert.equal(worksheet.getCell("G1").isMerged, true);
   assert.equal(worksheet.getCell("H1").value, null);
   assert.equal(worksheet.getCell("D3").value, 2);
@@ -232,9 +232,13 @@ function node(
     sNo: budgetComponent,
     budgetComponent,
     glCode: "5000",
-    measures: [block("selected", "July 2026", budget, actual, percentage)],
+    measures: [block("selected", "2026-07-01", budget, actual, percentage)],
     children,
   };
+}
+
+function withYtdRange(value: MisStatementNode): MisStatementNode {
+  return { ...value, measures: value.measures.map((measure) => ({ ...measure, from: "2026-04-01" })) };
 }
 
 function block(
@@ -247,7 +251,7 @@ function block(
   return {
     key,
     label,
-    from: "2026-07-01",
+    from: key === "fy26-27-ytd" ? "2026-04-01" : "2026-07-01",
     to: "2026-07-31",
     budget,
     rollover: null,

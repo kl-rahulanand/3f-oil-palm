@@ -10,6 +10,8 @@ import type { IMisStatementExportService } from "./mis-statement-export.interfac
 
 const RUPEE_FORMAT = "₹#,##0;[Red]-₹#,##0";
 const PERCENTAGE_FORMAT = "0.00%";
+const MONTH_FORMATTER = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
+const SHORT_MONTH_FORMATTER = new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "UTC" });
 
 @Injectable()
 export class MisStatementExportService implements IMisStatementExportService {
@@ -41,11 +43,20 @@ function writeHeaders(worksheet: Worksheet, blocks: MisStatementMeasureBlock[]):
   blocks.forEach((block, index) => {
     const firstColumn = 4 + index * 4;
     worksheet.mergeCells(1, firstColumn, 1, firstColumn + 3);
-    worksheet.getCell(1, firstColumn).value = block.label;
+    worksheet.getCell(1, firstColumn).value = formatBlockHeading(block);
     ["Budget", "Roll-over", "Actual", "%"].forEach((value, offset) => {
       worksheet.getCell(2, firstColumn + offset).value = value;
     });
   });
+}
+
+function formatBlockHeading(block: MisStatementMeasureBlock): string {
+  const to = new Date(`${block.to.slice(0, 10)}T00:00:00Z`);
+  if (block.from.slice(0, 7) !== block.to.slice(0, 7)) {
+    const startYear = Number(block.from.slice(0, 4));
+    return `FY ${String(startYear).slice(-2)}-${String(startYear + 1).slice(-2)} (YTD to ${SHORT_MONTH_FORMATTER.format(to)})`;
+  }
+  return MONTH_FORMATTER.format(to);
 }
 
 function writeStatementRow(row: Row, node: MisStatementNode, outlineLevel: number): void {
