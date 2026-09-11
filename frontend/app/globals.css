@@ -582,12 +582,39 @@ button {
   color: var(--kl-deep-forest);
   font-size: var(--text-lead);
 }
-.mis-statement-header > p {
+.mis-statement-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.mis-statement-actions p {
   margin: 0;
   color: var(--kl-slate);
   font-family: var(--font-mono);
   font-size: var(--text-mono-label);
   font-variant-numeric: tabular-nums;
+}
+.mis-download {
+  height: 34px;
+  border: 1px solid var(--kl-emerald);
+  border-radius: var(--radius-sm);
+  background: var(--kl-white);
+  color: var(--kl-emerald);
+  padding: 0 18px;
+  font-size: 12.5px;
+  line-height: 1;
+  transition:
+    background-color 160ms ease,
+    transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.mis-download:hover {
+  background: var(--kl-off-white);
+}
+.mis-download:active {
+  transform: scale(0.97);
+}
+.mis-download-notice {
+  margin: 0 var(--space-4) var(--space-4);
 }
 .mis-statement-scroll {
   max-height: calc(100vh - 300px);
@@ -837,6 +864,9 @@ button {
   .text-action,
   .nav-toggle,
   .logout-button {
+    transition-duration: 0ms;
+  }
+  .mis-download {
     transition-duration: 0ms;
   }
   .mis-generate {

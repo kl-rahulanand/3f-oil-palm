@@ -5,12 +5,16 @@ import type {
   MisStatementRunResponse,
 } from "@3f/contract";
 import { Fragment } from "react";
+import { Button } from "@/src/components/ui/button";
+import { useMisStatementExport } from "./use-mis-statement";
 
 const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
 const shortMonthFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "UTC" });
 const percentageFormatter = new Intl.NumberFormat("en-IN", { style: "percent", maximumFractionDigits: 1 });
 
 export function StatementView({ response }: Readonly<{ response: MisStatementRunResponse }>) {
+  const download = useMisStatementExport();
+
   if (response.outcome === "unresolvable") {
     return (
       <div className="mis-results" aria-live="polite">
@@ -26,7 +30,12 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
   const activeBlock = blocks.find(({ key }) => key === "selected") ?? blocks[0];
 
   return (
-    <section className="mis-statement" aria-labelledby="mis-statement-title" aria-live="polite">
+    <section
+      className="mis-statement"
+      aria-labelledby="mis-statement-title"
+      aria-live="polite"
+      aria-busy={download.isPending}
+    >
       <header className="mis-statement-header">
         <div>
           <p className="mis-eyebrow">Financial statement</p>
@@ -34,8 +43,38 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
             {response.scope.function} — {response.scope.plant}
           </h2>
         </div>
-        <p>Active period: {formatBlockHeading(activeBlock)}</p>
+        <div className="mis-statement-actions">
+          <p>Active period: {formatBlockHeading(activeBlock)}</p>
+          <Button
+            className="mis-download"
+            type="button"
+            disabled={download.isPending}
+            onClick={() =>
+              download.mutate({
+                department: response.scope.department,
+                function: response.scope.function,
+                plant: response.scope.plant,
+                period: response.scope.period,
+              })
+            }
+          >
+            {download.isPending ? "Downloading…" : "Download Excel"}
+          </Button>
+        </div>
       </header>
+
+      {download.data && (
+        <div className="mis-notice mis-download-notice" role="status">
+          <strong>{download.data.notice}</strong>
+          <span>Generate the statement again before downloading.</span>
+        </div>
+      )}
+      {download.isError && (
+        <div className="mis-notice mis-download-notice" role="alert">
+          <strong>Download failed</strong>
+          <span>The workbook could not be downloaded. Try again.</span>
+        </div>
+      )}
 
       <div className="mis-statement-scroll">
         <table className="mis-statement-table" role="treegrid" aria-label="Financial MIS statement">
