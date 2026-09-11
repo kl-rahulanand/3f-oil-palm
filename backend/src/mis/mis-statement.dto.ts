@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import type {
+  FixedScaleMoney,
   MisStatementMeasureBlock,
   MisStatementNode,
   MisStatementProvenance,
@@ -23,13 +24,13 @@ class MisStatementMeasureBlockDto implements MisStatementMeasureBlock {
   to!: string;
 
   @ApiProperty({ example: "10050136.29" })
-  budget!: `${number}.${number}`;
+  budget!: FixedScaleMoney;
 
   @ApiProperty({ type: String, example: null, nullable: true })
   rollover: null = null;
 
   @ApiProperty({ example: "11512712.07" })
-  actual!: `${number}.${number}`;
+  actual!: FixedScaleMoney;
 
   @ApiProperty({ type: String, example: "1.1455", nullable: true })
   percentage!: string | null;

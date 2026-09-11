@@ -234,13 +234,13 @@ SELECT relation.leaf_key, ${periodStart}::date AS month,
     WHEN SUM(relation.budget_net) = 0 AND SUM(relation.actual_net) < 0 THEN 'credit / negative actual'
     ELSE (SUM(relation.actual_net) / SUM(relation.budget_net))::text
   END AS percentage,
-  jsonb_agg(DISTINCT relation.source_presence)::text AS source_presence,
-  (COALESCE(jsonb_agg(DISTINCT jsonb_build_object(
-    'source', 'actuals', 'period', relation.month::text, 'batchId', relation.actual_batch_id))
-      FILTER (WHERE relation.actual_batch_id IS NOT NULL), '[]'::jsonb) ||
-   COALESCE(jsonb_agg(DISTINCT jsonb_build_object(
-    'source', 'budget', 'period', relation.month::text, 'batchId', relation.budget_batch_id))
-      FILTER (WHERE relation.budget_batch_id IS NOT NULL), '[]'::jsonb))::text AS active_batch_ids
+  to_jsonb(array_agg(DISTINCT(relation.source_presence)))::text AS source_presence,
+  (COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object(
+    'source', 'actuals', 'period', relation.month::text, 'batchId', relation.actual_batch_id)))
+      FILTER (WHERE relation.actual_batch_id IS NOT NULL)), '[]'::jsonb) ||
+   COALESCE(to_jsonb(array_agg(DISTINCT(jsonb_build_object(
+    'source', 'budget', 'period', relation.month::text, 'batchId', relation.budget_batch_id)))
+      FILTER (WHERE relation.budget_batch_id IS NOT NULL)), '[]'::jsonb))::text AS active_batch_ids
 FROM statement_relation AS relation
 LEFT JOIN outline_order AS outline
   ON outline.leaf_key = relation.leaf_key
