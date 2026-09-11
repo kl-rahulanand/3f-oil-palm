@@ -1,0 +1,12 @@
+{
+  "topic": "ingest_batch has no plant column - batch identity is source_kind + period + is_active",
+  "lesson": "FALSE FINDING, do not act on it again. A review round on statement-model claimed 'active batches are distinguished by plant as well' and asked the statement projection's provenance joins to add a plant predicate. There is NO plant column on ingest_batch (backend/src/warehouse/warehouse-schema.ts): its columns are id, source_kind, period, uploaded_by, uploaded_at_utc, row_count, validation_result, reconciliation_result, is_active, created_at_utc, updated_at_utc. Plant lives on the ROW tables (sap_transaction), not on the batch. Acting on the finding produced 'column actual_batch.plant does not exist' (SQLSTATE 42703) and broke the gated proof. The batch's full identity IS source_kind + period + is_active, so a join on those three already cannot fan out on a second plant's batch - there is no such thing. Revert to joining on source_kind, period and is_active. I ledgered the reviewer's claim without checking the schema first, which is what let it reach the code; READ THE COLUMN before asserting a join key.",
+  "source": "autoreview round 2 performance finding on sqlBuilder.ts:216; refuted by backend/src/warehouse/warehouse-schema.ts",
+  "applies_to": [
+    "backend/src/sql/**",
+    "backend/src/warehouse/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T07:45:34+00:00"
+}

@@ -546,7 +546,7 @@ test("budget ingest reports mapping drift when the candidate outline no longer c
   );
 });
 
-test("the budget parser counts formula subtotal outline nodes toward the workbook row limit", async () => {
+test("the budget parser counts each per-period formula subtotal outline snapshot toward the workbook row limit", async () => {
   await assert.rejects(
     parseMisBudgetWorkbook(
       await workbookBuffer((sheet) => {
@@ -558,15 +558,6 @@ test("the budget parser counts formula subtotal outline nodes toward the workboo
           aprilBudget: { formula: "SUM(K7:K8)", result: 1 },
           aprilRollover: 0,
           mayBudget: { formula: "SUM(O7:O8)", result: 1 },
-          mayRollover: 0,
-        });
-        addGlRow(sheet, 7, {
-          lineId: "2",
-          component: "Second formula subtotal",
-          glCode: "50000001",
-          aprilBudget: { formula: "SUM(K8:K9)", result: 1 },
-          aprilRollover: 0,
-          mayBudget: { formula: "SUM(O8:O9)", result: 1 },
           mayRollover: 0,
         });
       }),

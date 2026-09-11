@@ -193,7 +193,7 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
 }
 
 function assertRowLimit(outlineCount: number, glRowCount: number, periodCount: number, rowLimit: number): void {
-  if (outlineCount + glRowCount * periodCount > rowLimit) throw new WorkbookRowLimitError(rowLimit);
+  if ((outlineCount + glRowCount) * periodCount > rowLimit) throw new WorkbookRowLimitError(rowLimit);
 }
 
 function stableLeafKey(sNo: string, glCode: string, label: string): string {

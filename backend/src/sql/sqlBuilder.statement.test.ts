@@ -18,6 +18,7 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   assert.match(actualCte, /target\.gl_code = actual\.gl_code/);
   assert.match(actualCte, /WHERE actual\.plant IN \('DUB'\)/);
   assert.match(actualCte, /actual\.month >= '2026-07-01' AND actual\.month < '2026-07-02'/);
+  assert.match(actualCte, /GROUP BY target\.leaf_key, actual\.month, actual\.plant/);
   assert.ok(actualCte.indexOf("INNER JOIN leaf_targets") < actualCte.indexOf("GROUP BY target.leaf_key"));
   assert.match(budgetCte, /FROM budget_by_leaf_month/);
   assert.match(budgetCte, /WHERE 'DUB' IN \('DUB'\)/);
@@ -26,6 +27,8 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   assert.match(statement.sql, /COALESCE\(actual_src\.actual_net, 0\)::numeric\(18,2\)/);
   assert.match(statement.sql, /COALESCE\(budget_src\.budget_net, 0\)::numeric\(18,2\)/);
   assert.match(statement.sql, /outline\.batch_id/);
+  assert.match(statement.sql, /actual_batch\.plant = actual_src\.plant/);
+  assert.match(statement.sql, /budget_batch\.plant = budget_src\.plant/);
   assert.match(statement.sql, /ORDER BY relation\.month, outline\.sort_order NULLS LAST, relation\.leaf_key/);
 
   const shipped = builder.build(domain, selection, user, true, scope);

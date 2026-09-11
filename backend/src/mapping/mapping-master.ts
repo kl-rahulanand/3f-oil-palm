@@ -99,6 +99,7 @@ export function loadMappingMaster(value: unknown): MappingMaster {
 
   const selectionKeys = new Set<string>();
   const aliases = new Set<string>();
+  const entryKeys = new Set<string>();
   for (const selection of parsed.data.selections) {
     const selectionKey = key(selection.department, selection.function, selection.plant_canonical);
     if (selectionKeys.has(selectionKey))
@@ -111,7 +112,6 @@ export function loadMappingMaster(value: unknown): MappingMaster {
       aliases.add(alias);
     }
 
-    const entryKeys = new Set<string>();
     for (const entry of selection.entries) {
       if (!entry.target) throw new MappingMasterValidationError("Mapping master has an entry without a target");
       const entryKey = key(entry.cost_center, entry.gl_code);

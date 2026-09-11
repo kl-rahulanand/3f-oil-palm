@@ -118,6 +118,28 @@ test("the mapping master resolves a SAP cost centre and GL triple to exactly one
       }),
     /duplicate selection entry/,
   );
+  assert.throws(
+    () =>
+      loadMappingMaster({
+        ...MIS_MAPPING_MASTER,
+        selections: [
+          selection,
+          {
+            ...selection,
+            department: "Other",
+            plant_canonical: "OTHER",
+            plant_aliases: { sap: ["OTHER-SAP"], display: ["Other display"] },
+            entries: [
+              {
+                ...selection.entries[0],
+                target: { kind: "leaf", leaf_key: "different-leaf" },
+              },
+            ],
+          },
+        ],
+      }),
+    /duplicate selection entry/,
+  );
 });
 
 test("the mapping master maps each of the nine unresolved DUB triples to the reserved unmapped GL line with a reason and its mapped plus bucketed triples are exactly the twenty eight distinct DUB triples so nothing is inferred and nothing is dropped", () => {
