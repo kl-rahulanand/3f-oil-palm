@@ -1,54 +1,5 @@
 {
   "id": "selection-resolution",
   "title": "Master-driven resolution, governed narrowing, and the first governed-query routes",
-  "status": "done",
-  "started_at": "2026-09-10T15:16:04+00:00",
-  "base_sha": "97764ad9bb15512c2d17de67353e61b6a64a65e5",
-  "dirty_at_start": {
-    ".factory/stories/mis-selection/decomposition.json": {
-      "digest": "e6645f511b5639649a854914c3a88deed27aaea95fa3b2c394e8dde392ac84b7",
-      "git": "1 .M N... 100644 100644 100644 453f76553af391f1faa10a6736046000252d9bd0 453f76553af391f1faa10a6736046000252d9bd0 .factory/stories/mis-selection/decomposition.json\u0000\u0000100644 453f76553af391f1faa10a6736046000252d9bd0 0\t.factory/stories/mis-selection/decomposition.json\u0000\u0000H .factory/stories/mis-selection/decomposition.json\u0000"
-    },
-    ".factory/stories/mis-selection/grills/tasks/selection-resolution.json": {
-      "digest": "683e5497aed71fae298b2fc9ad15d9b05ffacc22efee2eec414ad479a50286b6",
-      "git": "? .factory/stories/mis-selection/grills/tasks/selection-resolution.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/mis-selection/task-plans/selection-resolution.md": {
-      "digest": "d11060a6569f93490a701104a55992fa1e61cef93720904e9ecd889d86b51010",
-      "git": "? .factory/stories/mis-selection/task-plans/selection-resolution.md\u0000\u0000\u0000"
-    },
-    "plans/active/mis-selection-selection-mapping-master.md": {
-      "digest": "d275d879b3956fd909fb350cf749b72a64f8eb1c2c6f2275b2ea698312b43b46",
-      "git": "1 .M N... 100644 100644 100644 b981698a623b375c337a920d90684680960e30a5 b981698a623b375c337a920d90684680960e30a5 plans/active/mis-selection-selection-mapping-master.md\u0000\u0000100644 b981698a623b375c337a920d90684680960e30a5 0\tplans/active/mis-selection-selection-mapping-master.md\u0000\u0000H plans/active/mis-selection-selection-mapping-master.md\u0000"
-    }
-  },
-  "task_sha256": "ca08660f0f7f8cac368cb7c3b8df80755626bafb3ff9ee68117257e365802b01",
-  "local_review_stamp": {
-    "stage_id": "selection-resolution",
-    "task_sha256": "ca08660f0f7f8cac368cb7c3b8df80755626bafb3ff9ee68117257e365802b01",
-    "brief_sha256": "45664a3fc731837b9816539d7687b895c2aca00806566007fee731a5982cae63",
-    "base_sha": "97764ad9bb15512c2d17de67353e61b6a64a65e5",
-    "product_tree_digest": "a76f5079294aaa08caa2badc95e90a7b1614f59be7dbe83bb8bfac24b63cc926",
-    "recorded_at": "2026-09-10T17:12:33+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-10T17:13:40+00:00",
-  "measured": {
-    "strays": [
-      "backend/src/mapping/selection-resolver.interface.ts",
-      "backend/src/mis/mis-selection.interface.ts"
-    ],
-    "files": 20,
-    "lines": 1509,
-    "budget": {
-      "files": 20,
-      "lines": 2400
-    },
-    "test_id_misses": []
-  }
+  "status": "done"
 }

@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "selection-resolution grill (P1): these are the first FRESH routes in a vendored app, so the constitution applies to them \u2014 it requires /api/v1/<resource> paths, {success,data,error} envelopes on every endpoint, and forbids one domain module importing another directly (\u00a78.1: Service Bus or /common only). But every existing route is unversioned 'api/<resource>' returning raw bodies, and the vendored code cross-imports modules freely (chat.service imports ../semantic). Decision 0012 does NOT cover versioning, envelopes or module boundaries. How should the new mis routes and module be shaped?",
+      "options": [
+        "Match house style + ledger a deviation (Rec.)",
+        "Conform strictly for fresh code",
+        "Conform on API, deviate on modules"
+      ],
+      "chosen": "Match house style + ledger a deviation (Rec.)"
+    }
+  ],
+  "at": "2026-09-10T15:09:29.482181+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

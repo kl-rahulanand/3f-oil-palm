@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "mis-selection plan grill found a real bug: today the Budget side of the join admits EVERY active DUB budget GL, so a mapped selection can return Budget rows for GLs outside its resolved set \u2014 breaking acceptance criterion 1 ('exactly the DUB nursery slice'). The fix is to restrict Budget to the resolved master GL set. But that creates a mirror of the Actuals gap decision 0018 solved: Budget GLs present in the active budget batch but ABSENT from the mapping master would silently vanish from the report. How should unmapped BUDGET GLs be handled?",
+      "options": [
+        "Mirror the bucket for Budget (Rec.)",
+        "Restrict Budget silently",
+        "Leave Budget unrestricted"
+      ],
+      "chosen": "Mirror the bucket for Budget (Rec.)"
+    }
+  ],
+  "at": "2026-09-10T13:29:32.163360+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

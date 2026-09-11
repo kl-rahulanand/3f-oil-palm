@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "mis-selection delivery boundary: mis-statement (story 5) owns the finished hierarchical statement + Excel export, so this story must stop short of that or the two build conflicting report surfaces. But you want to put this in front of Srihari to get the unmapped-GL assignments back. How much should mis-selection visibly deliver?",
+      "options": [
+        "Selector + resolved scope + bucket list (Rec.)",
+        "Selector + resolution API only",
+        "Pull the statement forward into this story"
+      ],
+      "chosen": "Selector + resolved scope + bucket list (Rec.)"
+    }
+  ],
+  "at": "2026-09-10T13:05:04.083422+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

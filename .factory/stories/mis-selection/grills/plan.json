@@ -1,0 +1,123 @@
+{
+  "generated_by": "griller",
+  "gate": "plan",
+  "issue_key": "mis-selection",
+  "verdict": "pass",
+  "decision": "keep",
+  "current_flow": "mis-selection ships a versioned repo-owned Mapping Master (selection records keyed by department/function/canonical plant owning the aliases + mis_format, plus entry records mapping cost_center+gl_code to a mis_line with provisional/reason), whose nine unresolved Actual triples and any unmapped Budget GL land in an explicit unmapped-GL bucket so both sides reconcile to 88 DUB rows. Two server-owned routes \u2014 options and run \u2014 expose it: run accepts ONLY the four selectors, so a client can never widen a report; the server resolves, authorizes and invokes the EXISTING governed executor. The governed path is narrowed, not forked: actual_src filters the resolved triples on actual_by_key_month and re-aggregates to (gl_code, month) before the FULL OUTER JOIN, and budget_src is restricted to the resolved GL set at its unchanged grain. A gated D-0008 proof pins the completeness invariant and no-fan-out; the UI is one authenticated page using native selects.",
+  "inspected_refs": [
+    "docs/specs/mis-selection-and-master.md",
+    "docs/specs/financial-mis-statement.md",
+    "docs/decisions/0014-sap-ingestion-poc-no-master.md",
+    "docs/decisions/0016-governed-joins-poc-scope.md",
+    "docs/decisions/0017-mis-selection-composite-key-seam.md",
+    "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
+    "backend/src/sql/sqlBuilder.ts",
+    "backend/src/sql/sqlValidator.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/ingest/plant-mapping.ts",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/reports/reports.controller.ts",
+    "contract/src/measure.ts",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/lib/api.ts",
+    ".factory/stories/mis-selection/grills/requirements.json"
+  ],
+  "new_abstractions": [
+    "a versioned repo-owned Mapping Master with selection records (aliases + format, singular alias authority) and entry records (cost_center+gl -> mis_line, provisional + reason)",
+    "the unmapped-GL bucket applied symmetrically to Actual AND Budget so the slice reconciles",
+    "a server-owned options/run API boundary where the run request cannot carry scope",
+    "selection-aware narrowing of the existing governed path (triple-filtered actual_src on actual_by_key_month; budget_src restricted to the resolved GL set)"
+  ],
+  "gaps": [
+    "The cold read reported the requirements grill as missing, so the plan could not pass its plan gate.",
+    "The draft had no Decisions reconciliation section despite 18 active decisions, failing the plan contract.",
+    "The new API lacked named request/response DTOs and documented Swagger error responses, which the constitution requires for fresh code.",
+    "Surface Impact omitted the changed test/config surfaces and every unchanged-by-design reason, and the Verify Plan gave no exact falsifying commands.",
+    "The API boundary let a client supply resolved scope: the UI needs master-backed selector options, triples cannot ride as ordinary filters (silently dropped), and a client able to send scope could WIDEN a report \u2014 an escalation seam.",
+    "Budget slice semantics were wrong: the plan filtered only actual_src, but budget_src admits every active DUB budget GL and the FULL OUTER JOIN preserves budget-only rows, so a mapped selection could return Budget outside its resolved GL set \u2014 breaking acceptance criterion 1.",
+    "The proposed flat master row repeated department, function, canonical plant, aliases and format per triple, so a conflicting alias or format would make resolution non-deterministic with no principled winner for a strict loader.",
+    "The period contract was self-contradictory: 'only loaded Actual months are selectable' excludes the required FY26-27 YTD choice, which is derived rather than loaded, and the request value and its inclusive range were never defined.",
+    "The UI abstraction budget was unjustified: 'new select/form primitives' serves no acceptance criterion and creates a component API for a single page.",
+    "Two active decisions contradicted each other: 0017's closing consequence said D-0027 stayed open and blocked planning, while 0018 explicitly resolved D-0027 with the bucket and the ledger agreed \u2014 and the draft reconciled neither."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "FALSE FINDING \u2014 verified against the working tree: .factory/stories/mis-selection/grills/requirements.json exists and is recorded with verdict pass, 6 gaps, 6 resolutions and 1 bound round. The cold reader missed it; no plan change was warranted.",
+    "Added a '## Decisions' section reconciling all 18 active decisions, naming the load-bearing ones: 0014 (this story FULFILS its deferral of the master; its balanced budget allocation stays deferred), 0016 (partially revisited by 0017 \u2014 cost centres are a filter, never a join key/Budget grain/output dimension), 0017, 0018, 0004/0015/0009, and 0012 (its vendored-API deviation does NOT cover this story's fresh routes).",
+    "The plan now requires named request/response DTOs and documented Swagger error responses on both new routes, explicitly noting that the 0012 / D-0020 vendored deviation applies only to the vendored controllers, not to fresh code.",
+    "Surface Impact now lists the changed test and config surfaces (the pinned composed/validator tests, the warehouse db tests and golden fixture, backend/package.json, quality-gate, the app-shell tests) plus an explicit 'Unchanged by design' row (view bodies, executor authorization, %-nil CASE, zero-fill, provenance, Budget grain, ingestion raw retention). The Verify Plan now gives exact commands with their falsifying conditions, including the pinned D-0008 host command and the dead-port negative control.",
+    "Server-owned boundary: TWO authenticated documented routes \u2014 options (master-derived selector choices) and run. The run request accepts ONLY {department, function, plant, period} and never triples, GL codes, format ids or scope; the server resolves via the master, authorizes, and invokes the EXISTING governed executor. The escalation seam is closed by construction and the single governed path is preserved.",
+    "Restrict budget_src to the resolved master GL set while keeping its (gl_code, month) grain \u2014 compatible with 0017, which forbids re-graining Budget but not filtering it. HUMAN-decided extension (round): a budget GL present in the active batch but ABSENT from the master mirrors into the same unmapped-GL bucket, so both sides stay complete and reconcilable instead of silently truncated.",
+    "One versioned master with TWO record kinds: selection records keyed by (department, function, plant_canonical) owning the aliases and mis_format \u2014 making alias authority genuinely singular and doubling as the selector's option source \u2014 plus entry records mapping (cost_center, gl_code) -> mis_line with provisional and reason. The loader rejects duplicate selection keys, so resolution is deterministic.",
+    "Options are the loaded Actual months (July 2026 today) PLUS one derived 'fy26-27-ytd' option; the server resolves it as 2026-04-01 through the latest active loaded month, never the wall clock, so the API and UI cannot disagree.",
+    "No new shared component API for one page: styled NATIVE <select> controls local to the MIS page (matching the prototype's four selects) plus the existing Button. A shared primitive is promoted only when a second consumer exists.",
+    "0018 GOVERNS the bucket question. Decision 0017 has been amended in place with a dated supersession note removing its stale 'D-0027 stays open / planning cannot converge' consequence, and the plan's Decisions section states the precedence explicitly. The ledger already records D-0027 as done."
+  ],
+  "open_items": [
+    "Reconciling the provisional master against Srihari's authoritative Master Table remains the spec's open item; the unmapped-GL bucket contents are the artifact that drives it.",
+    "The finished hierarchical statement, its rendering of the unmapped-GL line, and the Excel export belong to mis-statement; actuals drill-down belongs to drill-down.",
+    "The balanced budget allocation stays deferred (0014/0016) \u2014 0017 keeps Budget at (gl_code, month)."
+  ],
+  "rounds": [
+    {
+      "question": "mis-selection plan grill found a real bug: today the Budget side of the join admits EVERY active DUB budget GL, so a mapped selection can return Budget rows for GLs outside its resolved set \u2014 breaking acceptance criterion 1 ('exactly the DUB nursery slice'). The fix is to restrict Budget to the resolved master GL set. But that creates a mirror of the Actuals gap decision 0018 solved: Budget GLs present in the active budget batch but ABSENT from the mapping master would silently vanish from the report. How should unmapped BUDGET GLs be handled?",
+      "options": [
+        "Mirror the bucket for Budget (Rec.)",
+        "Restrict Budget silently",
+        "Leave Budget unrestricted"
+      ],
+      "chosen": "Mirror the bucket for Budget (Rec.)",
+      "frontier_empty": true
+    }
+  ],
+  "citations": [
+    {
+      "finding": "The cold read reported the requirements grill as missing, so the plan could not pass its plan gate.",
+      "source": ".factory/stories/mis-selection/grills/requirements.json"
+    },
+    {
+      "finding": "The draft had no Decisions reconciliation section despite 18 active decisions, failing the plan contract.",
+      "source": "docs/decisions/0014-sap-ingestion-poc-no-master.md"
+    },
+    {
+      "finding": "The new API lacked named request/response DTOs and documented Swagger error responses, which the constitution requires for fresh code.",
+      "source": "docs/decisions/0012-vendored-api-constitution-deviation.md"
+    },
+    {
+      "finding": "Surface Impact omitted the changed test/config surfaces and every unchanged-by-design reason, and the Verify Plan gave no exact falsifying commands.",
+      "source": "backend/package.json; tools/quality-gate.test.mjs"
+    },
+    {
+      "finding": "The API boundary let a client supply resolved scope: the UI needs master-backed selector options, triples cannot ride as ordinary filters (silently dropped), and a client able to send scope could WIDEN a report \u2014 an escalation seam.",
+      "source": "backend/src/sql/sqlBuilder.ts:67; backend/src/chat/selectionExecutor.ts:109"
+    },
+    {
+      "finding": "Budget slice semantics were wrong: the plan filtered only actual_src, but budget_src admits every active DUB budget GL and the FULL OUTER JOIN preserves budget-only rows, so a mapped selection could return Budget outside its resolved GL set \u2014 breaking acceptance criterion 1.",
+      "source": "backend/src/sql/sqlBuilder.ts:130; docs/decisions/0017-mis-selection-composite-key-seam.md:44"
+    },
+    {
+      "finding": "The proposed flat master row repeated department, function, canonical plant, aliases and format per triple, so a conflicting alias or format would make resolution non-deterministic with no principled winner for a strict loader.",
+      "source": "backend/src/warehouse/reconciliation.repository.ts:62"
+    },
+    {
+      "finding": "The period contract was self-contradictory: 'only loaded Actual months are selectable' excludes the required FY26-27 YTD choice, which is derived rather than loaded, and the request value and its inclusive range were never defined.",
+      "source": "docs/specs/financial-mis-statement.md:20"
+    },
+    {
+      "finding": "The UI abstraction budget was unjustified: 'new select/form primitives' serves no acceptance criterion and creates a component API for a single page.",
+      "source": "frontend/src/components/ui/button.tsx"
+    },
+    {
+      "finding": "Two active decisions contradicted each other: 0017's closing consequence said D-0027 stayed open and blocked planning, while 0018 explicitly resolved D-0027 with the bucket and the ledger agreed \u2014 and the draft reconciled neither.",
+      "source": "docs/decisions/0017-mis-selection-composite-key-seam.md:64; docs/decisions/0018-mis-selection-unmapped-gl-bucket.md:34"
+    }
+  ],
+  "summary": "One cold read of the plan draft returned ten gaps. One was FALSE (the requirements grill is recorded \u2014 verified: verdict pass, 6 gaps, 1 bound round). Eight are repository/decision-answerable and resolved in the amended plan: a Decisions section reconciling all 18 actives (0014 is fulfilled, not contradicted; 0012's vendored deviation does not excuse fresh routes from DTOs/Swagger); expanded Surface Impact with test/config and unchanged-by-design rows; a Verify Plan of exact falsifying commands including the pinned D-0008 host proof and dead-port control; a server-owned options/run boundary whose run request cannot carry scope, closing an escalation seam; a normalized two-record master making alias authority singular and resolution deterministic; loaded months plus a server-derived fy26-27-ytd; native selects instead of a premature component API; and an in-place amendment to 0017 removing its stale D-0027 consequence so 0018 governs the bucket. One was a genuine product decision put to the human: restricting Budget to the resolved GL set fixes a real acceptance-criterion-1 defect, and unmapped Budget GLs now MIRROR into the unmapped-GL bucket so neither side is silently truncated. Verdict pass.",
+  "input_sha256": "b2eb1e9b382835254b9ed9f2f20de15261d59861769f361b34c1b5aa1ddc2f63",
+  "issue": "mis-selection",
+  "recorded_at": "2026-09-10T15:12:30+00:00",
+  "commit": "d60e5427fd4331ebe53175564b5800dfd294480b"
+}

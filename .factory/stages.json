@@ -1,24 +1,19 @@
 {
-  "issue": "governed-joins",
+  "issue": "mis-selection",
   "stages": [
     {
-      "id": "gl-month-rollups",
-      "title": "GL+month active rollups for Actual (DUB) and Budget",
+      "id": "mapping-master",
+      "title": "Versioned Mapping Master + unmapped-GL bucket",
       "status": "done"
     },
     {
-      "id": "composed-relation",
-      "title": "Closed, typed, code-composed Budget\u22c8Actual relation with two-sided scope",
+      "id": "selection-resolution",
+      "title": "Master-driven resolution, governed narrowing, and the first governed-query routes",
       "status": "done"
     },
     {
-      "id": "governed-domain-measures",
-      "title": "Code-authored Actual / Budget / % measures over the composed relation",
-      "status": "done"
-    },
-    {
-      "id": "golden-provenance",
-      "title": "Golden-answer fixtures (no fan-out) + provenance lineage",
+      "id": "selection-ui",
+      "title": "Authenticated MIS Reports selection page",
       "status": "done"
     }
   ]

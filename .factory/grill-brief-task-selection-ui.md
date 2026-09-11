@@ -1,4 +1,4 @@
-# Cold-read grill — gate: requirements — requirements for mis-selection (docs/specs/mis-selection-and-master.md)
+# Cold-read grill — gate: task — task plan selection-ui
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -430,65 +430,169 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
+- Q: mis-selection delivery boundary: mis-statement (story 5) owns the finished hierarchical statement + Excel export, so this story must stop short of that or the two build conflicting report surfaces. But you want to put this in front of Srihari to get the unmapped-GL assignments back. How much should mis-selection visibly deliver?
+  A: Selector + resolved scope + bucket list (Rec.)
+- Q: mis-selection plan grill found a real bug: today the Budget side of the join admits EVERY active DUB budget GL, so a mapped selection can return Budget rows for GLs outside its resolved set — breaking acceptance criterion 1 ('exactly the DUB nursery slice'). The fix is to restrict Budget to the resolved master GL set. But that creates a mirror of the Actuals gap decision 0018 solved: Budget GLs present in the active budget batch but ABSENT from the mapping master would silently vanish from the report. How should unmapped BUDGET GLs be handled?
+  A: Mirror the bucket for Budget (Rec.)
+- Q: mis-selection decomposition: how many tasks should this story split into? My plan proposed 4. The harness asks for the fewest that stay bounded, since each task costs its own plan, grill, approval, review and PR — but an overloaded task grinds through review rounds instead (governed-joins task 4 took 4 rounds at comparable size).
+  A: 3 tasks
+- Q: mapping-master grill (blocker): the master must give each resolved triple an MIS line, but nothing states it mechanically. Sheet1 has only Plant, Cost Center, GL code and 'Revised GL name' — no S.No or line id — and Nursery MIS Format.xlsx's format sheet turns out to be Table-1 (Operational MIS), which the statement spec puts out of scope (Table-2 Financial MIS only). Without pinning this, a fixture could satisfy the 28-triple count while assigning triples to wrong or identical lines, breaking the future statement. What identifies an MIS line for the 66 resolved triples?
+  A: Sheet1's 'Revised GL name' verbatim (Rec.)
+- Q: selection-resolution grill (P1): these are the first FRESH routes in a vendored app, so the constitution applies to them — it requires /api/v1/<resource> paths, {success,data,error} envelopes on every endpoint, and forbids one domain module importing another directly (§8.1: Service Bus or /common only). But every existing route is unversioned 'api/<resource>' returning raw bodies, and the vendored code cross-imports modules freely (chat.service imports ../semantic). Decision 0012 does NOT cover versioning, envelopes or module boundaries. How should the new mis routes and module be shaped?
+  A: Match house style + ledger a deviation (Rec.)
 
-## The artifact under interrogation (requirements for mis-selection (docs/specs/mis-selection-and-master.md))
+## The artifact under interrogation (task plan selection-ui)
 
----
-slug: mis-selection-and-master
-title: MIS selection & mapping master
-status: confirmed
-saved: 2026-09-01T10:08:34+00:00
----
+# Task plan — selection-ui: the authenticated MIS Reports page
 
-# MIS selection & mapping master
+Story: mis-selection · Task 3 of 3 (FINAL) · **user_facing: true**
 
-## Why
-Srihari's requirement is a parameterized generator: pick Department → Function →
-Plant and get the right report, driven by a centralized master — never by the
-source file name. The master is the config that resolves which cost centers, GL
-codes, and format apply.
+## Objective
+Make the selection real for a person: an authenticated **MIS Reports** page where a user
+picks Department → Function → Plant → period, presses **Generate**, and sees the resolved
+scope, the governed numbers, the correct zero state, and — visibly, not absorbed — the
+**unmapped-GL bucket**. This is the artifact we put in front of Srihari to get the
+authoritative mapping back.
 
-## Users
-Any user generating an MIS; (later) an admin who maintains the mapping.
+No backend change: tasks 1 and 2 shipped the master, the resolution, the governed narrowing
+and the routes. This task **consumes** them.
 
-## Behaviour
-- User selects **Department, Function, Plant, period** (e.g. Agriculture →
-  Nursery → Agri–Nursery–DUB).
-- A centralized **Mapping Master** resolves, for that selection: the applicable
-  **Cost Centers + GL codes** and **which MIS format** to use.
-- Transactions are validated by the composite key **Plant + Cost Center + GL**
-  (the same GL spans Primary/Secondary — Srihari §4).
-- Only the relevant slice is extracted and rendered in that format; combinations
-  with no data still render (zero).
-- Selection **never** depends on the Excel sheet or file name.
+## Mandatory for a user-facing task
+`harness.yaml:113-116` — the recorder **refuses** a user-facing testing artifact unless
+`skills_used` attests **both `emil-design-eng` and `frontend-design`**; both are installed
+in the Codex runtime. A **functional check** is also required (owner
+`codex:functional-checker`), recorded via `record_test_from_json.py --kind functional` — the
+automated artifact alone does not satisfy this task.
 
-## Confirmed scope (grilled 2026-09-01)
-- **Master table:** build a **provisional** master now, seeded from the SAP
-  Entries Mapping sheet (+ the 7 missing GLs `50001701–706`, `50001905`);
-  reconcile when Srihari sends his definition.
-- **Editing:** maintained as **seed / config** for the PoC; an in-app admin editor
-  is a later phase.
-- **No mapping for a selection:** render an **empty statement (zeros) with a
-  'no mapping configured' notice** (consistent with zero-rows).
+## Acceptance criteria (plan_contracts)
+- **t-ui-c1** — Department / Function / Plant / period as native selects populated from the
+  options route, offering only the loaded actual months plus FY 26-27 YTD; **Generate** runs
+  the selection through the run route, so Agriculture/Nursery/DUB returns exactly the DUB
+  nursery slice.
+- **t-ui-c2** — a resolved-scope readout naming the cost centres, GL codes and MIS format,
+  and the **two zero states rendered distinctly**.
+- **t-ui-c3** — the unmapped-GL bucket rendered as a **reviewable list** of its triples with
+  amounts; the MIS Reports nav item and page title enabled in the shell.
 
-## Rules
-- Composite key Plant + Cost Center + GL is mandatory.
-- The Mapping Master is the single source of selection/validation config.
+## What already exists (grounding, file:line)
+- **Task 2's contract, shipped** — `contract/src/api.ts:189-250`: `MisSelectionRunRequest`
+  `{department, function, plant, period}`; `MisSelectionOptionsResponse` +
+  `MisSelectionPeriodOption`; and the **discriminated union**
+  `MisSelectionResolvedResponse | MisSelectionUnresolvableResponse` carrying
+  `MisSelectionScopeReadout`, `MisSelectionBucketRow[]`, `MisSelectionTotals`.
+- **Routes** — `backend/src/mis/mis-selection.controller.ts:28,33,55`:
+  `GET api/mis/options`, `POST api/mis/run`, unversioned with raw typed bodies per
+  decision **0019**.
+- **API client** — `frontend/src/lib/api.ts` exposes **only 5 auth methods**; its
+  cookie-credentialed fetch, CSRF bootstrap and one-shot 401 refresh live at `:18-37`, and
+  it throws `ApiError`. These become the first **data** methods.
+- **Shell** — `app/(app)/layout.tsx:7-9` gives `SessionGuard` + `AppShell` free to any page
+  at `app/(app)/<route>/page.tsx`. `components/shell/app-shell.tsx:12-18` hard-codes
+  `navItems`, rendering **"MIS Reports" as a disabled `<span aria-disabled="true">`**
+  (`:110-115`), with the page title hard-coded at `:156`. `app-shell.test.tsx` and
+  `nav-drawer.test.tsx` assert against that table.
+- **Components/tokens** — only `components/ui/button.tsx` is reusable; there is **no**
+  Select/Input/Table primitive. Tokens are CSS variables in `src/theme/*.css`
+  (`--kl-emerald`, `--kl-line`, `--surface-card`, `--space-*`, `--radius-*`), guarded by
+  `src/theme/tokens.test.ts`; layout classes live in `app/globals.css`.
+- **Design prototype** — `docs/design/3F-Financial-MIS/3F Financial MIS.dc.html`: filter bar
+  `:79-122` (four native selects, 34px, `--kl-line`, `--radius-sm`, then Generate); empty
+  state `:126-140` ("Select Department, Function and Plant, then Generate"); provenance
+  popover `:545` rendering scope in mono.
+- **Frontend tests** — **vitest**, not `node --test`:
+  `npm exec --no -- vitest run --config frontend/vitest.config.ts`.
 
-## Out of scope (now)
-- In-app authoring of the master or of brand-new MIS formats; non-nursery budgets.
+## Design
+### The page
+`frontend/app/(app)/mis-reports/page.tsx` inherits `SessionGuard` + `AppShell` — no auth is
+re-implemented. The feature lives in `src/features/mis/`.
 
-## Acceptance criteria
-- Selecting Agriculture/Nursery/DUB returns exactly the DUB nursery slice.
-- Renaming the source file does not change the output.
-- A selection with no mapping renders zeros + the notice (no crash).
+### Branch on the union, never on emptiness
+The two zero states are distinguished **by the response shape**:
+- **unresolvable** → zeros **plus** the "no mapping configured" notice;
+- **resolved with no transactions** → a configured zero result with **no** notice.
 
-## Open items (non-blocking)
-- Srihari's authoritative **Master Table** structure — reconcile the provisional
-  master against it (`docs/context/2026-09-01-srihari-requirements-qa.md` §6).
+Conflating them is the exact defect this story exists to avoid, so both are tested.
 
-## Source
-Decisions 0002, 0003; `docs/context/2026-09-01-srihari-requirements-qa.md` (§4–6).
+### UI shape — no design system
+Styled **native `<select>`** controls local to the MIS feature plus the existing `Button`.
+**No** shared Select/Input/Table primitives: that serves no acceptance criterion and creates
+a component API for one page (settled on the story plan grill). Styling uses the existing
+CSS-variable tokens and `globals.css` classes — **no token is added or renamed**, since
+`tokens.test.ts` guards the set.
+
+### Period
+Render **only what the options route returns** — the loaded actual months plus the derived
+`fy26-27-ytd`. No client-side month computation, and not the prototype's June/May, which
+have no Actual data; task 2 derives FY-YTD server-side from the latest active loaded month.
+
+### The bucket (C3, decision 0018)
+`MisSelectionBucketRow[]` renders as a **reviewable list** — each triple with its amount —
+so the mapping gap is **visible rather than absorbed into a total**. A total that silently
+included bucketed spend would defeat the purpose of the bucket.
+
+### Shell
+Enable the MIS Reports nav item to link to the new route and make the title reflect the
+active page; `app-shell.test.tsx` and `nav-drawer.test.tsx` move with the nav table.
+
+## Workflow
+```mermaid
+flowchart TD
+  P["/mis-reports page · SessionGuard + AppShell inherited"] --> O[GET api/mis/options]
+  O --> S["four native selects: Department · Function · Plant · Period<br/>(loaded months + FY 26-27 YTD, as returned)"]
+  S --> G[Generate]
+  G --> R["POST api/mis/run · ONLY the four selectors"]
+  R --> U{response union}
+  U -->|unresolvable| N["zeros + 'no mapping configured' notice"]
+  U -->|resolved| V["scope readout (cost centres · GLs · format)<br/>+ governed numbers"]
+  V --> Z{any transactions?}
+  Z -->|no| C["configured zero result · NO notice"]
+  Z -->|yes| T[the DUB nursery slice]
+  V --> B["unmapped-GL bucket as a reviewable list of triples + amounts"]
+```
+
+## Manual Verification
+1. `npm run test:hermetic` (includes `npm run test:frontend`) — the three required vitest
+   leaves pass: selects populated from options with only loaded months + FY-YTD and Generate
+   posting exactly four selectors; the scope readout plus **both** zero states rendered
+   distinctly; the bucket rendered as a reviewable list.
+2. `npm run typecheck && npm run lint && npm run format:check` — and `tokens.test.ts` still
+   passes, proving no token was added or renamed.
+3. **Functional check (mandatory, user_facing)**: with the backend running and the warehouse
+   seeded, sign in, open **MIS Reports** from the nav, select Agriculture / Nursery / DUB /
+   Jul 2026, press Generate, and confirm the DUB nursery slice, the scope readout, and the
+   bucket list; then a selection with no mapping shows zeros **and** the notice.
+4. The six existing gated warehouse proofs still pass — this task adds no query path.
+
+## Decisions attested
+0019 (vendored house style: the unversioned `api/mis` routes and raw bodies this page
+consumes), 0018 (the bucket must stay visible), 0017 (the governed narrowing behind the
+numbers), 0007 (Next.js), 0010 (3F branding), 0005/0011, 0009, 0012 (the vendored client
+conventions this page reuses).
+
+## Surface impact
+- Frontend: `app/(app)/mis-reports/page.tsx` (NEW), `src/features/mis/` view + hook (NEW),
+  `src/lib/api.ts` (first data methods), `src/components/shell/app-shell.tsx` (enable the
+  nav item + title), `app/globals.css` (page classes).
+- Tests: `src/features/mis/mis-report-view.test.tsx` (NEW),
+  `app-shell.test.tsx` + `nav-drawer.test.tsx` (nav table moved).
+- **Unchanged by design**: all backend code (tasks 1-2 shipped it), the contract types
+  (consumed, not changed), the theme tokens (`tokens.test.ts` guards them), the six gated
+  warehouse proofs, and `SessionGuard`/`AppShell` auth.
+
+## Out of scope
+The hierarchical statement and **Excel export** — the prototype's "Download Excel" button
+belongs to `mis-statement`; actuals drill-down (`drill-down`); the prototype's Admin
+mapping-master screen (in-app authoring is not in this PoC); shared design-system
+primitives; any backend or query change.
+
+## Task Decomposition
+This is task 3 (FINAL) of the mis-selection story's 3-task decomposition
+(`.factory/stories/mis-selection/decomposition.json`): (1) mapping-master [#25],
+(2) selection-resolution [#26], (3) **selection-ui** [this task]. It is a single bounded
+unit — one page consuming already-shipped routes — and is not further subdivided; its three
+criteria are proven by the three vitest required_tests plus the mandatory functional check.
+Shipping it completes the story.
 
 
 ## What to return

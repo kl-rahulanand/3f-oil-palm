@@ -1,7 +1,7 @@
 {
   "generated_by": "implementer",
-  "outcome": "The MIS Reports page is live: an authenticated user picks Agriculture / Nursery / DUB / a loaded period, presses Generate, and sees the governed DUB nursery slice from real SAP data - the resolved scope (7 cost centres, 28 GL codes, nursery-mis-financial-v1), the totals, 28 GL rows by month, and the unmapped-GL bucket as a reviewable list carrying an Actual and a Budget amount per GL with the reason each one is unmapped. That list is the artifact that goes to Srihari to get the authoritative mapping back.",
+  "outcome": "mis-selection ships the selection layer end to end. A versioned repo-owned Mapping Master is now the single authority for plant aliases, the MIS format and the (cost centre, GL) to MIS-line mapping, with the nine unresolved DUB triples held in an explicit unmapped-GL bucket rather than inferred or dropped. Selection narrows the governed path rather than forking it - the master's resolved triples filter the Actual side before the (gl_code, month) roll-up - and two governed routes expose it. An authenticated user opens MIS Reports, picks Agriculture / Nursery / DUB and a period, presses Generate, and sees the DUB nursery slice from real SAP data: the resolved scope, the totals, the governed GL rows, and the unmapped-GL bucket as a reviewable list carrying an Actual and a Budget amount per GL with the reason each one is unmapped. That list is the artifact that goes to Srihari to get the authoritative mapping back.",
   "issue": "mis-selection",
-  "commit": "99220edb356fda54a68df792c46922778242ef7e",
-  "recorded_at": "2026-09-10T19:20:14+00:00"
+  "commit": "e0c205bd9912ae9440b5503a5ca492a11900cbe4",
+  "recorded_at": "2026-09-11T01:41:14+00:00"
 }
