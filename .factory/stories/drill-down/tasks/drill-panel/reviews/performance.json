@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "drill-panel",
   "score": 10,
-  "summary": "performance lens over drill-panel (5 product path(s), 1e8aa0f..ea787b2, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the aggregate drill as a bounded client-side projection: it recursively flattens descendant leaves in outline order, special-cases Grand Total to use the statement roots, selects the clicked measure block, and performs footing with BigInt paise rather than floating-point arithmetic. The modal behaviors, inert non-Actual/leaf cells, zero-network test, mismatch refusal state, human-readable period heading, exact-money formatting, and reduced-motion handling are all present. No P0\u2013P2 performance defect, concrete security risk, or compatibility leftover is demonstrated by the supplied change bundle.",
+  "summary": "performance lens over drill-panel (5 product path(s), 1e8aa0f..9bd727e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows no actionable P0\u2013P2 performance defect. Aggregate drills project the existing response without network I/O, flatten descendant leaves once per panel render, and perform linear work proportional to the rendered rows. The bundle also contains no compatibility wrappers, aliases, legacy branches, or retained replacement surfaces.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -17,10 +17,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "21099c132ca8dfc30484fc529b526ae77129728af8a4a6559403d4279da05810",
-  "brief_sha256": "57dc86ca9dbf2de7827cc5a3731fceb9128d322e330fd8238942e7faee150bf7",
+  "review_run_id": "513680498e82618876b9c37442b10ab45803ea99089592a62c6caf6baf6da0a1",
+  "brief_sha256": "a867fd9d06e2318b64c5c77a58832de56d78fa9cd338b54bfa269749bf1e8a5f",
   "branch_diff_digest": "e694afbfdcfbae95bf2218055f263b365dd73a2df5d458aa4ef054f9ca431d31",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T21:08:35+00:00",
-  "commit": "ea787b23e2a785e712a8dd0384d040c9985a56bb"
+  "recorded_at": "2026-09-11T21:13:39+00:00",
+  "commit": "9bd727ebeb8082f58218a1af3d82c309b2502beb"
 }
