@@ -37,6 +37,7 @@ const hermeticTests = [
   "backend/src/measures/authored-measure.registry.test.ts",
   "backend/src/measures/measures.guard.test.ts",
   "backend/src/mis/mis-selection.controller.test.ts",
+  "backend/src/mis/mis-statement-export.test.ts",
   "backend/src/mis/mis-statement.controller.test.ts",
   "backend/src/mis/mis-statement.service.test.ts",
   "backend/src/pins/pins.schemas.test.ts",
