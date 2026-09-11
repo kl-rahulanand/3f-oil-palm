@@ -22,7 +22,8 @@
     {
       "id": "statement-export-api",
       "title": "The Excel export route and workbook writer",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "9a3da1efb8110f6e24b6858fdd4cd9d97e4a01915097ee8f16bd1325b8517c36"
     },
     {
       "id": "statement-export-control",

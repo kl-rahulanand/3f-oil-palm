@@ -202,10 +202,6 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - backend/package.json
 - tools/quality-gate.test.mjs
 
-**Scope amendments** (measured paths the scope did not name, recorded with `forge stage amend-scope`)
-
-- backend/src/mis/mis-statement.controller.test.ts -- backend/src/mis/mis-statement.controller.test.ts was authorized mid-stage as signal S-0007-c166: making MisStatementExportService a REQUIRED constructor dependency - the blocking fix both the performance and security lenses raised on the same line - breaks that test's construction with TS2554 until it supplies an exporter stub. Only the constructor call changed; no assertion moved, because those assertions are statement-api's shipped evidence for the statement route and must still hold.
-
 **Required tests** (run by `stage done`)
 
 - `the export route calls the statement service once and branches before setting headers so a resolved request streams an xlsx with the canonical slug filename while an unresolvable request returns plain json with no file headers` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement-export.test.ts)
