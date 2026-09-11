@@ -1,23 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "statement-api",
-  "score": 9,
-  "summary": "quality lens over statement-api (23 product path(s), 15dd782..b319895, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. VERDICT t-sa-c1: partial \u2014 backend/src/sql/sqlBuilder.ts:184 exposes a registered month dimension whose range result is incorrectly labelled.\nVERDICT t-sa-c2: implemented \u2014 backend/src/mis/mis-statement.service.ts:92 reads the selected-period outline and backend/src/mis/mis-statement.service.ts:169 derives the tree bottom-up.\nVERDICT t-sa-c3: implemented \u2014 backend/src/mis/mis-statement.service.ts:79 executes once per distinct range and backend/src/mis/mis-statement.service.ts:280 preserves exact paise through presentation.\nVERDICT t-sa-c4: implemented \u2014 backend/src/mis/mis-statement.service.ts:63 enforces plant scope, preserves unresolvable handling, and returns row-aligned provenance and contributing batch IDs.\nVERDICT t-sa-c5: implemented \u2014 contract/src/api.ts:257 defines the fixed-scale statement wire types, tree, grand total, and absent roll-over representation.\nLEFTOVERS: none visible in the supplied diff.\nThe fixed statement endpoint is largely implemented, but the production-reachable governed domain returns materially misleading data for an advertised dimension over multi-month ranges.",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0022-mis-statement-governed-projection.md",
-      "summary": "t-sa-c1: A registered governed statement domain (goldObject statement_relation) with its measures, dimensions and seeded report grant makes sqlBuilder's statement branch reachable in production, and the projection emits the mandatory bounded LIMIT the validator requires, so the query runs through SelectionExecutor's validate-explain-execute path rather than being hand-built - proven by a test that goes through the executor, not around it."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/sql",
-      "summary": "[P2] Do not label range aggregates as the first month (backend/src/sql/sqlBuilder.ts:184): When `month` is selected, this branch projects the range start as a constant while the query aggregates the entire requested range and groups only by leaf."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "score": 10,
+  "summary": "quality lens over statement-api (23 product path(s), 97acd8c..51a0f4a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-sa-c1: implemented \u2014 backend/src/sql/sqlBuilder.statement.test.ts:47 proves the registered statement domain runs through SelectionExecutor validation, explain, and execution with a bounded LIMIT.\nVERDICT t-sa-c2: implemented \u2014 backend/src/mis/mis-statement.service.ts:89 reads the selected-period budget outline and backend/src/mis/mis-statement.service.ts:166 derives the ordered tree, parent subtotals, and grand total.\nVERDICT t-sa-c3: implemented \u2014 backend/src/mis/mis-statement.service.ts:83 executes once per distinct range, while backend/src/mis/mis-statement.service.ts:270 preserves exact paise and presentation formatting.\nVERDICT t-sa-c4: implemented \u2014 backend/src/mis/mis-statement.service.ts:64 enforces plant scope, preserves the unresolvable outcome, unmapped line, source presence, and contributing batch provenance.\nVERDICT t-sa-c5: implemented \u2014 contract/src/api.ts:257 defines fixed-scale money, measure blocks, recursive nodes, grand total placement, provenance, and resolved/unresolvable response shapes.\nLEFTOVERS: none observed; the diff contains no compatibility wrappers, retained aliases, or legacy branches. No actionable P0\u2013P2 defect is demonstrated by the supplied change bundle.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/app.module.ts",
@@ -47,28 +35,28 @@
   "contract_verdicts": [
     {
       "contract_id": "t-sa-c1",
-      "verdict": "partial",
-      "evidence": "backend/src/sql/sqlBuilder.ts:184 exposes a registered month dimension whose range result is incorrectly labelled."
+      "verdict": "implemented",
+      "evidence": "backend/src/sql/sqlBuilder.statement.test.ts:47 proves the registered statement domain runs through SelectionExecutor validation, explain, and execution with a bounded LIMIT."
     },
     {
       "contract_id": "t-sa-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-statement.service.ts:92 reads the selected-period outline and backend/src/mis/mis-statement.service.ts:169 derives the tree bottom-up."
+      "evidence": "backend/src/mis/mis-statement.service.ts:89 reads the selected-period budget outline and backend/src/mis/mis-statement.service.ts:166 derives the ordered tree, parent subtotals, and grand total."
     },
     {
       "contract_id": "t-sa-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-statement.service.ts:79 executes once per distinct range and backend/src/mis/mis-statement.service.ts:280 preserves exact paise through presentation."
+      "evidence": "backend/src/mis/mis-statement.service.ts:83 executes once per distinct range, while backend/src/mis/mis-statement.service.ts:270 preserves exact paise and presentation formatting."
     },
     {
       "contract_id": "t-sa-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-statement.service.ts:63 enforces plant scope, preserves unresolvable handling, and returns row-aligned provenance and contributing batch IDs."
+      "evidence": "backend/src/mis/mis-statement.service.ts:64 enforces plant scope, preserves the unresolvable outcome, unmapped line, source presence, and contributing batch provenance."
     },
     {
       "contract_id": "t-sa-c5",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:257 defines the fixed-scale statement wire types, tree, grand total, and absent roll-over representation."
+      "evidence": "contract/src/api.ts:257 defines fixed-scale money, measure blocks, recursive nodes, grand total placement, provenance, and resolved/unresolvable response shapes."
     },
     {
       "contract_id": "t-sm-c1",
@@ -87,10 +75,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "bee8f7e16c6a8661d29877326638756bd30f195b75b368c574ef88af7fe102e8",
-  "brief_sha256": "435eb38860ae2e62410eae1aa1919bcece0fe14060658c72beb2f0e38e7f7af6",
-  "branch_diff_digest": "7786f876b3abb3900635beb97562e842a0610c9efb66d149c84d1e19790f53b8",
+  "review_run_id": "5c22684dab9aab8f7d49f7de8dd1ef6e85a3ab1d27bfa1904b46d79cd85f8593",
+  "brief_sha256": "c753e44c782ae7ce26938bbda316ba18b3e8dd6b10b6a25626f5735af4c8c8ab",
+  "branch_diff_digest": "50b0c4c2d1911d2f9d71b24ebaf650bf41acb66254583e1191f6e1600f651fba",
   "residual_risks": [],
-  "recorded_at": "2026-09-11T11:22:03+00:00",
-  "commit": "b319895da88c30b3ac75b94c940683ed7d03ce8b"
+  "recorded_at": "2026-09-11T11:50:41+00:00",
+  "commit": "c65889f583e2021a775c688b1eeb0f1b561f018d"
 }

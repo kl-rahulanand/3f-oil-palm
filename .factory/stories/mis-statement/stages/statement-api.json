@@ -35,5 +35,18 @@
     "test_id_misses": []
   },
   "review_fix_reopened_at": "2026-09-11T11:37:42+00:00",
-  "review_fix_count": 1
+  "review_fix_count": 1,
+  "local_review_stamp": {
+    "stage_id": "statement-api",
+    "base_sha": "15dd782a90284b528441c13de014ea9736f701ea",
+    "delta_id": "98728fe77d0b9d315cf06814bbadbbc78b2d81687a6f569a76d34ae64df5fb22",
+    "contract_sha256": "14e3083af956b63cbef95eb0024f26518fa50483067897b1f4d656a58bf63be7",
+    "recorded_at": "2026-09-11T11:50:42+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  }
 }
