@@ -1,7 +1,7 @@
 {
   "generated_by": "implementer",
-  "outcome": "Srihari can take the statement away. POST api/mis/statement/export streams a real workbook - worksheet 'Financial MIS', the hierarchy in preorder with Excel outline levels so it collapses and expands like his own file, a merged Grand Total row, and a filename naming the selection and period. The numbers are NUMBERS rounded to the rupee, not pictures of numbers, so a column sums: grand total Rs 10,050,136 Budget against Rs 11,512,712 Actual for July and Rs 2,59,13,990 for the year to date - the same figures the screen shows, under the same headings. Text coming from his own uploaded workbook is neutralised so a cell beginning with an equals sign cannot reopen as a formula in a file that gets forwarded.",
+  "outcome": "The Financial MIS statement can now be taken away. A Download Excel control sits in the statement's own header - not the filter bar - so the file always matches the statement being looked at, even if someone changes a dropdown after generating. It fetches through a binary path that keeps the cookie credentials, CSRF bootstrap and a one-shot 401 refresh, saves only a true xlsx under the filename the server chose, shows the no-mapping notice instead of saving when there is nothing to export, and cleans up the object URL behind it. Verified live: 12,408 bytes of real workbook, opening to Srihari's own hierarchy and totals.",
   "issue": "mis-statement",
-  "commit": "3f8d31c3fa0e3db88d3fe8d68293a88967004161",
-  "recorded_at": "2026-09-11T16:13:49+00:00"
+  "commit": "3aa9f72dfaec5dd77127885e3d5c8a66b5015594",
+  "recorded_at": "2026-09-11T16:47:44+00:00"
 }

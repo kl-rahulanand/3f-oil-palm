@@ -1,7 +1,7 @@
 {
   "id": "statement-export-control",
   "title": "The Download Excel control",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-11T16:29:24+00:00",
   "base_sha": "a87ad6bdbf0a20d843278b4d324ce2bb014d8040",
   "dirty_at_start": {
@@ -18,5 +18,29 @@
       "git": "? .factory/stories/mis-statement/task-plans/statement-export-control.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "c1ecb61f8b6b36d1badf54c0dec821aae5179d4d260e6f42b7ce8b9c8fd7ff26"
+  "task_sha256": "c1ecb61f8b6b36d1badf54c0dec821aae5179d4d260e6f42b7ce8b9c8fd7ff26",
+  "local_review_stamp": {
+    "stage_id": "statement-export-control",
+    "base_sha": "a87ad6bdbf0a20d843278b4d324ce2bb014d8040",
+    "delta_id": "6f0a6534c7e26d121379e5689715d4f1ce4b579c07f3efddde089e427cd99557",
+    "contract_sha256": "c1ecb61f8b6b36d1badf54c0dec821aae5179d4d260e6f42b7ce8b9c8fd7ff26",
+    "recorded_at": "2026-09-11T16:47:12+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-11T16:47:13+00:00",
+  "measured": {
+    "strays": [],
+    "files": 6,
+    "lines": 372,
+    "budget": {
+      "files": 6,
+      "lines": 900
+    },
+    "test_id_misses": []
+  }
 }
