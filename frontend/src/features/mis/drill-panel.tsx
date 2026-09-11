@@ -82,7 +82,7 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
             </div>
             <h2 id="mis-drill-title">{selection.node.budgetComponent}</h2>
             <div className="mis-drill-total">
-              <strong>{formatMoney(clickedMeasure.actual)}</strong>
+              <strong>{foots ? formatMoney(clickedMeasure.actual) : "Total withheld"}</strong>
               <span>
                 {formatBlockHeading(clickedMeasure)} · {leaves.length} {leaves.length === 1 ? "line" : "lines"}
               </span>

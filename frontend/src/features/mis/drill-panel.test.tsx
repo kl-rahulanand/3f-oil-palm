@@ -109,6 +109,7 @@ test("a footing mismatch keeps the leaf rows visible and withholds the unverifia
   const dialog = screen.getByRole("dialog", { name: "Admin Expenses" });
   expect(within(dialog).getByRole("row", { name: /Diesel/ })).toBeInTheDocument();
   expect(within(dialog).getByRole("row", { name: /Stationery/ })).toBeInTheDocument();
+  expect(dialog.querySelector(".mis-drill-total strong")).toHaveTextContent(/^Total withheld$/);
   expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("Total withheld");
   expect(within(dialog).getByRole("alert")).toHaveTextContent(
     "The descendant leaves do not foot to this statement line’s Budget and Actual, so the total is withheld.",
