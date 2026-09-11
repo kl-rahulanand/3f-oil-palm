@@ -3,7 +3,7 @@
   "gate": "plan",
   "verdict": "pass",
   "decision": "keep",
-  "input_digest": "ddd3b9da6edf4d745c6ccd3b3b40a186ce6214a2a61971e88b0a47a5f2998e3d",
+  "input_digest": "264f6b3f1d7890c4c8bb0e892053d435d67548aaf2f7353574a6b7cc829f6b04",
   "current_flow": "mis-statement renders the Financial MIS for a resolved selection and exports it to Excel. The budget workbook's outline is persisted as a per-batch snapshot with a stable leaf key (decision 0021), so the statement mirrors the plan at its natural uneven depth without ever storing a parent amount. The statement reads its own governed projection at leaf/month grain (decision 0022) - filtering Actuals by the master's resolved triples before aggregating, per 0017 - while the shipped (gl_code, month) relation is left untouched, which is what lets the three multi-component GLs split across Primary, Secondary and Tertiary. Parents are derived subtotals, the unmapped-GL line stays visible, both zero states stay distinct, arithmetic is exact paise rounded only for display, and the Excel export is built from the same payload the screen renders. Four sequential tasks: statement-model, statement-api, statement-view, statement-export.",
   "inspected_refs": [
     "plans/drafts/mis-statement.md",
@@ -117,8 +117,8 @@
     }
   ],
   "summary": "One cold read returned nine findings against the plan draft, two of them root decisions that blocked everything downstream. Seven were repository-answerable and are fixed in the amended plan: the false claim that the parser already walks the outline is corrected (it tests each row's formula independently and building the tree is new work); the missing Decisions, Risks and Verify Plan sections are written; Surface Impact is now eight classified rows; the routes gain DTO, auth and Swagger detail under decision 0019; the export task is split so no task spans backend and frontend, giving four tasks; and decision 0020 is amended in place to drop its one-parent-level assumption. The two root decisions went to the human and are recorded as decisions 0021 and 0022: the outline is a per-batch snapshot keyed by a stable leaf key rather than a parent_key on row-numbered leaves, and the statement reads its OWN governed projection at leaf/month grain while the shipped GL-month relation stays untouched - recorded honestly as a new governed shape, with the six existing gated proofs required to pass unchanged as the evidence. Verdict pass.",
-  "input_sha256": "a009e255a46c30a46a4e1758a0fcb643bd98f0a28ae2241beea54b4677b9c5c0",
+  "input_sha256": "3afcacab6c0137fabf3f3e2113137534ac4db55169bd64506a47d6820b51a391",
   "issue": "mis-statement",
-  "recorded_at": "2026-09-11T15:23:05+00:00",
-  "commit": "2ff2eb25f44e3645c57df0da5baac6a63a06af48"
+  "recorded_at": "2026-09-11T15:23:15+00:00",
+  "commit": "df6cbefc1e713f024b42b042f7f5eee156967116"
 }
