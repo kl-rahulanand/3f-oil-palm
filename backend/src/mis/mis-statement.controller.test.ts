@@ -9,6 +9,7 @@ import type { SelectionExecutor } from "../chat/selectionExecutor";
 import type { ISelectionResolverService, MasterSelectionResolution } from "../mapping/selection-resolver.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import type { IStatementOutlineRepository } from "../warehouse/statement-outline.interface";
+import type { IMisStatementExportService } from "./mis-statement-export.interface";
 import { MisStatementController } from "./mis-statement.controller";
 import { MisStatementService } from "./mis-statement.service";
 
@@ -19,7 +20,7 @@ test("the statement route refuses an unauthorized plant but returns the unresolv
     new EmptyExecutor() as unknown as SelectionExecutor,
     new OneLeafOutline(),
   );
-  const controller = new MisStatementController(service);
+  const controller = new MisStatementController(service, exporter);
 
   await assert.rejects(
     () => controller.run(user, request("FORBIDDEN")),
@@ -147,4 +148,10 @@ const user: AuthUser = {
     dimensionIds: ["leaf_key"],
   },
   scope: [{ attribute: "plant", value: "DUB" }],
+};
+
+const exporter: IMisStatementExportService = {
+  async write() {
+    return Buffer.alloc(0);
+  },
 };
