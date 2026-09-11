@@ -4,6 +4,7 @@ import type {
   FixedScaleMoney,
   MisStatementMeasureBlock,
   MisStatementNode,
+  MisStatementResolvedResponse,
   MisStatementRunResponse,
 } from "@3f/contract";
 import { Fragment, useState } from "react";
@@ -122,6 +123,7 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
                 blocks={blocks}
                 level={1}
                 breadcrumb={[]}
+                response={response}
                 onOpen={setDrill}
                 key={node.nodeKey}
               />
@@ -141,6 +143,7 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
                       roots: response.tree,
                       blockKey: block.key,
                       breadcrumb: [response.grandTotal.budgetComponent],
+                      response,
                       opener,
                     })
                   }
@@ -153,7 +156,7 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
       </div>
 
       <footer className="mis-statement-provenance">
-        <span>Amounts in ₹. All configured budget components are shown.</span>
+        <span>Click any Actual to see its transactions. Budget is not drillable.</span>
         <span>
           Contributing batch IDs:{" "}
           {response.provenance.activeBatchIds.map(({ batchId }) => batchId).join(", ") || "None"}
@@ -169,12 +172,14 @@ function StatementRow({
   blocks,
   level,
   breadcrumb,
+  response,
   onOpen,
 }: Readonly<{
   node: MisStatementNode;
   blocks: MisStatementMeasureBlock[];
   level: number;
   breadcrumb: string[];
+  response: MisStatementResolvedResponse;
   onOpen: (selection: DrillPanelSelection) => void;
 }>) {
   const parent = node.children.length > 0;
@@ -205,10 +210,15 @@ function StatementRow({
         {blocks.map((block, index) => (
           <MeasureCells
             measure={node.measures[index]}
-            onOpen={
-              parent
-                ? (opener) => onOpen({ node, roots: node.children, blockKey: block.key, breadcrumb: path, opener })
-                : undefined
+            onOpen={(opener) =>
+              onOpen({
+                node,
+                roots: parent ? node.children : [],
+                blockKey: block.key,
+                breadcrumb: path,
+                response,
+                opener,
+              })
             }
             key={block.key}
           />
@@ -220,6 +230,7 @@ function StatementRow({
           blocks={blocks}
           level={level + 1}
           breadcrumb={path}
+          response={response}
           onOpen={onOpen}
           key={child.nodeKey}
         />

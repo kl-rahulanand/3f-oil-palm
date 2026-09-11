@@ -1,14 +1,22 @@
 "use client";
 
-import type { FixedScaleMoney, MisStatementMeasureBlock, MisStatementNode } from "@3f/contract";
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import type {
+  FixedScaleMoney,
+  MisDrillResponse,
+  MisStatementMeasureBlock,
+  MisStatementNode,
+  MisStatementResolvedResponse,
+} from "@3f/contract";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { formatBlockHeading, formatExactMoney, formatMoney, formatPercentage } from "./statement-view";
+import { useMisDrill } from "./use-mis-statement";
 
 export interface DrillPanelSelection {
   node: MisStatementNode;
   roots: MisStatementNode[];
   blockKey: MisStatementMeasureBlock["key"];
   breadcrumb: string[];
+  response: MisStatementResolvedResponse;
   opener: HTMLButtonElement;
 }
 
@@ -16,21 +24,55 @@ const ZERO = BigInt(0);
 const TEN = BigInt(10);
 const ONE_HUNDRED = BigInt(100);
 const ONE_THOUSAND = BigInt(1000);
+const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
+const dateFormatter = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
 export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPanelSelection; onClose: () => void }>) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const leafButtons = useRef(new Map<string, HTMLButtonElement>());
+  const focusAfterBack = useRef<string | null>(null);
+  const [transactionNode, setTransactionNode] = useState<MisStatementNode | null>(
+    selection.roots.length === 0 ? selection.node : null,
+  );
+  const [page, setPage] = useState(1);
+  const [result, setResult] = useState<MisDrillResponse | null>(null);
+  const { mutate, reset, isPending, isError, error } = useMisDrill();
   const leaves = flattenLeaves(selection.roots);
-  const measures = leaves.map((leaf) => measureFor(leaf, selection.blockKey));
-  const budgetPaise = measures.reduce((total, measure) => total + toPaise(measure.budget), ZERO);
-  const actualPaise = measures.reduce((total, measure) => total + toPaise(measure.actual), ZERO);
-  const clickedMeasure = measureFor(selection.node, selection.blockKey);
-  const foots = budgetPaise === toPaise(clickedMeasure.budget) && actualPaise === toPaise(clickedMeasure.actual);
+  const activeNode = transactionNode ?? selection.node;
+  const clickedMeasure = measureFor(activeNode, selection.blockKey);
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    dialog?.focus();
+    dialogRef.current?.focus();
     return () => selection.opener.focus();
   }, [selection.opener]);
+
+  useEffect(() => {
+    if (!transactionNode) {
+      const nodeKey = focusAfterBack.current;
+      if (nodeKey) leafButtons.current.get(nodeKey)?.focus();
+      focusAfterBack.current = null;
+      return;
+    }
+    const { department, function: functionName, plant, period } = selection.response.scope;
+    mutate(
+      {
+        department,
+        function: functionName,
+        plant,
+        period,
+        nodeKey: transactionNode.nodeKey,
+        block: selection.blockKey,
+        pinnedBatches: selection.response.provenance.activeBatchIds,
+        page,
+      },
+      { onSuccess: setResult, onError: () => setResult(null) },
+    );
+  }, [mutate, page, selection.blockKey, selection.response, transactionNode]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
@@ -39,15 +81,13 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
       return;
     }
     if (event.key !== "Tab") return;
-
     const controls = Array.from(
       dialogRef.current?.querySelectorAll<HTMLElement>("button, [href], [tabindex]:not([tabindex='-1'])") ?? [],
     );
     const first = controls[0];
     const last = controls.at(-1);
-    if (!first || !last) {
-      event.preventDefault();
-    } else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
+    if (!first || !last) event.preventDefault();
+    else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
       event.preventDefault();
       last.focus();
     } else if (!event.shiftKey && document.activeElement === last) {
@@ -55,6 +95,23 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
       first.focus();
     }
   }
+
+  function openLeaf(node: MisStatementNode) {
+    setResult(null);
+    setPage(1);
+    setTransactionNode(node);
+  }
+
+  function showAggregate() {
+    focusAfterBack.current = transactionNode?.nodeKey ?? null;
+    reset();
+    setResult(null);
+    setTransactionNode(null);
+    setPage(1);
+  }
+
+  const aggregateTotals = aggregateTotal(selection, leaves);
+  const transactionFoots = result ? toPaise(result.footer.value) === toPaise(clickedMeasure.actual) : true;
 
   return (
     <div className="mis-drill-layer">
@@ -65,6 +122,7 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
         role="dialog"
         aria-modal="true"
         aria-labelledby="mis-drill-title"
+        aria-busy={isPending}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
@@ -73,117 +131,338 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
             <div className="mis-drill-breadcrumb">
               <span className="mis-eyebrow">Drill-down</span>
               <span className="mis-drill-divider" />
-              {selection.breadcrumb.map((crumb, index) => (
-                <span key={`${crumb}-${index}`}>
-                  {index > 0 && <span aria-hidden="true">›</span>}
-                  <span>{crumb}</span>
-                </span>
-              ))}
+              {transactionNode && selection.roots.length > 0 ? (
+                <button className="mis-drill-back" type="button" onClick={showAggregate}>
+                  {selection.node.budgetComponent}
+                </button>
+              ) : (
+                selection.breadcrumb.map((crumb, index) => (
+                  <span key={`${crumb}-${index}`}>
+                    {index > 0 && <span aria-hidden="true">›</span>}
+                    <span>{crumb}</span>
+                  </span>
+                ))
+              )}
             </div>
-            <h2 id="mis-drill-title">{selection.node.budgetComponent}</h2>
+            <h2 id="mis-drill-title">{activeNode.budgetComponent}</h2>
             <div className="mis-drill-total">
-              <strong>{foots ? formatMoney(clickedMeasure.actual) : "Total withheld"}</strong>
-              <span>
-                {formatBlockHeading(clickedMeasure)} · {leaves.length} {leaves.length === 1 ? "line" : "lines"}
-              </span>
+              <strong>
+                {isError
+                  ? "Transactions unavailable"
+                  : transactionNode
+                    ? transactionFoots
+                      ? formatMoney(clickedMeasure.actual)
+                      : "Total withheld"
+                    : aggregateTotals.foots
+                      ? formatMoney(clickedMeasure.actual)
+                      : "Total withheld"}
+              </strong>
+              {!isError && (
+                <span>
+                  {formatBlockHeading(clickedMeasure)} ·{" "}
+                  {transactionNode
+                    ? result
+                      ? `${result.totalCount} ${result.totalCount === 1 ? "line" : "lines"}`
+                      : "Loading transactions…"
+                    : `${leaves.length} ${leaves.length === 1 ? "line" : "lines"}`}
+                </span>
+              )}
             </div>
           </div>
           <button className="mis-drill-close" type="button" aria-label="Close drill-down" onClick={onClose}>
             ✕
           </button>
         </header>
-
-        <div className="mis-drill-sort">
-          <span>Sorted</span>
-          <span className="mis-drill-chip">Statement outline order</span>
-        </div>
-
-        <div className="mis-drill-table-scroll">
-          <table className="mis-drill-table">
-            <thead>
-              <tr>
-                <th scope="col">S.No</th>
-                <th scope="col">Sub-line</th>
-                <th scope="col">GL code</th>
-                <th scope="col">Budget</th>
-                <th scope="col">Actual</th>
-                <th scope="col">%</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaves.map((leaf) => {
-                const measure = measureFor(leaf, selection.blockKey);
-                return (
-                  <tr key={leaf.nodeKey}>
-                    <td>{leaf.sNo}</td>
-                    <th scope="row">{leaf.budgetComponent}</th>
-                    <td>{leaf.glCode}</td>
-                    <td data-numeric="true">{formatMoney(measure.budget)}</td>
-                    <td data-numeric="true">{formatMoney(measure.actual)}</td>
-                    <td data-numeric="true">{formatPercentage(measure.percentage)}</td>
-                  </tr>
-                );
-              })}
-              <tr className="mis-drill-foot" aria-label="Total">
-                <th colSpan={2} scope="row">
-                  {foots ? "Total" : "Total withheld"}
-                </th>
-                <td />
-                {foots ? (
-                  <>
-                    <td data-numeric="true">
-                      {formatMoney(fromPaise(budgetPaise))}
-                      <small>
-                        <span>{formatExactMoney(fromPaise(budgetPaise))}</span>
-                        <span>exact</span>
-                      </small>
-                    </td>
-                    <td data-numeric="true">
-                      {formatMoney(fromPaise(actualPaise))}
-                      <small>
-                        <span>{formatExactMoney(fromPaise(actualPaise))}</span>
-                        <span>exact</span>
-                      </small>
-                    </td>
-                    <td data-numeric="true">{derivedPercentage(budgetPaise, actualPaise)}</td>
-                  </>
-                ) : (
-                  <td colSpan={3} role="alert">
-                    The descendant leaves do not foot to this statement line’s Budget and Actual, so the total is
-                    withheld.
-                  </td>
-                )}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {transactionNode ? (
+          <TransactionBody
+            result={result}
+            clickedActual={clickedMeasure.actual}
+            pending={isPending}
+            error={error}
+            page={page}
+            onPage={setPage}
+          />
+        ) : (
+          <AggregateBody
+            leaves={leaves}
+            blockKey={selection.blockKey}
+            totals={aggregateTotals}
+            leafButtons={leafButtons.current}
+            onOpen={openLeaf}
+          />
+        )}
       </div>
     </div>
   );
 }
 
+function TransactionBody({
+  result,
+  clickedActual,
+  pending,
+  error,
+  page,
+  onPage,
+}: Readonly<{
+  result: MisDrillResponse | null;
+  clickedActual: FixedScaleMoney;
+  pending: boolean;
+  error: Error | null;
+  page: number;
+  onPage: (page: number) => void;
+}>) {
+  if (error) {
+    const status = "status" in error && typeof error.status === "number" ? error.status : 0;
+    const copy =
+      status === 409
+        ? ["Statement out of date", "Generate the statement again before opening its transactions."]
+        : status === 403
+          ? [
+              "Transactions are not available",
+              "Your access does not include these lines. Ask an administrator if you need access.",
+            ]
+          : ["Transactions could not be loaded", "Try opening this Actual again."];
+    return (
+      <div className="mis-drill-state" role="alert">
+        <strong>{copy[0]}</strong>
+        <span>{copy[1]}</span>
+      </div>
+    );
+  }
+  if (!result)
+    return (
+      <div className="mis-drill-state" role="status">
+        Loading transactions…
+      </div>
+    );
+
+  const foots = toPaise(result.footer.value) === toPaise(clickedActual);
+  const first = result.totalCount === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
+  const last = result.totalCount === 0 ? 0 : first + result.lines.length - 1;
+  const replaced = result.batchStatuses.filter(({ status }) => status === "replaced");
+  return (
+    <>
+      <div className="mis-drill-sort">
+        <span>Sorted</span>
+        <span className="mis-drill-chip">Value ↓</span>
+        <span className="mis-drill-chip">Month ↓</span>
+        {pending && <span role="status">Loading page…</span>}
+      </div>
+      {replaced.length > 0 && (
+        <div className="mis-drill-notice" role="status">
+          <strong>Statement batches replaced since generation</strong>
+          <span>{replaced.map(({ source, period }) => `${source} — ${formatMonth(period)}`).join("; ")}</span>
+        </div>
+      )}
+      {!foots && (
+        <div className="mis-drill-notice" role="alert">
+          <strong>Total withheld</strong>
+          <span>The transaction total does not foot to this statement line’s Actual.</span>
+        </div>
+      )}
+      <div className="mis-drill-table-scroll">
+        <table className="mis-drill-table mis-drill-transactions">
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              <th scope="col">Posting date</th>
+              <th scope="col">Debit</th>
+              <th scope="col">Credit</th>
+              <th scope="col">Value</th>
+              <th scope="col">Reference</th>
+              <th scope="col">Memo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.lines.length === 0 ? (
+              <tr>
+                <td colSpan={7}>No transactions match this Actual.</td>
+              </tr>
+            ) : (
+              result.lines.map((line, index) => (
+                <tr key={`${result.page}-${index}`}>
+                  <td>{formatMonth(line.month)}</td>
+                  <td>{formatDate(line.postingDate)}</td>
+                  <td data-numeric="true">{formatMoney(line.debit)}</td>
+                  <td data-numeric="true">{formatMoney(line.credit)}</td>
+                  <td data-numeric="true">{formatMoney(line.value)}</td>
+                  <td>{line.reference ?? "—"}</td>
+                  <td>{line.memo ?? "—"}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          <tfoot>
+            <tr className="mis-drill-foot" aria-label={foots ? "Total" : "Total withheld"}>
+              <th colSpan={2} scope="row">
+                {foots ? "Total" : "Total withheld"}
+              </th>
+              {foots ? (
+                <>
+                  <MoneyTotal value={result.footer.debit} />
+                  <MoneyTotal value={result.footer.credit} />
+                  <MoneyTotal value={result.footer.value} />
+                  <td colSpan={2}>
+                    <small>Matches the Actual in the report</small>
+                  </td>
+                </>
+              ) : (
+                <td colSpan={5}>The total is withheld until the statement is generated again.</td>
+              )}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <nav className="mis-drill-pagination" aria-label="Transaction pages">
+        <span>
+          {result.totalCount} matching · rows {first}–{last} on screen
+        </span>
+        <div>
+          <button type="button" disabled={pending || page <= 1} onClick={() => onPage(page - 1)}>
+            Previous
+          </button>
+          <span>Page {result.page}</span>
+          <button type="button" disabled={pending || last >= result.totalCount} onClick={() => onPage(page + 1)}>
+            Next
+          </button>
+        </div>
+      </nav>
+    </>
+  );
+}
+
+function MoneyTotal({ value }: Readonly<{ value: FixedScaleMoney }>) {
+  return (
+    <td data-numeric="true">
+      {formatMoney(value)}
+      <small>
+        <span>{formatExactMoney(value)}</span>
+        <span>exact</span>
+      </small>
+    </td>
+  );
+}
+
+function AggregateBody({
+  leaves,
+  blockKey,
+  totals,
+  leafButtons,
+  onOpen,
+}: Readonly<{
+  leaves: MisStatementNode[];
+  blockKey: MisStatementMeasureBlock["key"];
+  totals: ReturnType<typeof aggregateTotal>;
+  leafButtons: Map<string, HTMLButtonElement>;
+  onOpen: (node: MisStatementNode) => void;
+}>) {
+  return (
+    <>
+      <div className="mis-drill-sort">
+        <span>Sorted</span>
+        <span className="mis-drill-chip">Statement outline order</span>
+      </div>
+      <div className="mis-drill-table-scroll">
+        <table className="mis-drill-table">
+          <thead>
+            <tr>
+              <th scope="col">S.No</th>
+              <th scope="col">Sub-line</th>
+              <th scope="col">GL code</th>
+              <th scope="col">Budget</th>
+              <th scope="col">Actual</th>
+              <th scope="col">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leaves.map((leaf) => {
+              const measure = measureFor(leaf, blockKey);
+              return (
+                <tr key={leaf.nodeKey}>
+                  <td>{leaf.sNo}</td>
+                  <th scope="row">{leaf.budgetComponent}</th>
+                  <td>{leaf.glCode}</td>
+                  <td data-numeric="true">{formatMoney(measure.budget)}</td>
+                  <td data-numeric="true">
+                    <button
+                      ref={(button) =>
+                        button ? void leafButtons.set(leaf.nodeKey, button) : void leafButtons.delete(leaf.nodeKey)
+                      }
+                      className="mis-actual-action"
+                      type="button"
+                      onClick={() => onOpen(leaf)}
+                    >
+                      {formatMoney(measure.actual)}
+                    </button>
+                  </td>
+                  <td data-numeric="true">{formatPercentage(measure.percentage)}</td>
+                </tr>
+              );
+            })}
+            <tr className="mis-drill-foot" aria-label="Total">
+              <th colSpan={2} scope="row">
+                {totals.foots ? "Total" : "Total withheld"}
+              </th>
+              <td />
+              {totals.foots ? (
+                <>
+                  <MoneyTotal value={fromPaise(totals.budgetPaise)} />
+                  <MoneyTotal value={fromPaise(totals.actualPaise)} />
+                  <td data-numeric="true">{derivedPercentage(totals.budgetPaise, totals.actualPaise)}</td>
+                </>
+              ) : (
+                <td colSpan={3} role="alert">
+                  The descendant leaves do not foot to this statement line’s Budget and Actual, so the total is
+                  withheld.
+                </td>
+              )}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function aggregateTotal(selection: DrillPanelSelection, leaves: MisStatementNode[]) {
+  const measures = leaves.map((leaf) => measureFor(leaf, selection.blockKey));
+  const budgetPaise = measures.reduce((total, measure) => total + toPaise(measure.budget), ZERO);
+  const actualPaise = measures.reduce((total, measure) => total + toPaise(measure.actual), ZERO);
+  const clicked = measureFor(selection.node, selection.blockKey);
+  return {
+    budgetPaise,
+    actualPaise,
+    foots: budgetPaise === toPaise(clicked.budget) && actualPaise === toPaise(clicked.actual),
+  };
+}
+
 function flattenLeaves(nodes: MisStatementNode[]): MisStatementNode[] {
   return nodes.flatMap((node) => (node.children.length === 0 ? [node] : flattenLeaves(node.children)));
 }
-
 function measureFor(node: MisStatementNode, key: MisStatementMeasureBlock["key"]): MisStatementMeasureBlock {
   const measure = node.measures.find((candidate) => candidate.key === key);
   if (!measure) throw new Error(`Statement measure block ${key} is missing`);
   return measure;
 }
-
 function toPaise(value: FixedScaleMoney): bigint {
   const negative = value.startsWith("-");
   const [whole, fraction] = value.replace("-", "").split(".");
   const paise = BigInt(whole) * ONE_HUNDRED + BigInt(fraction);
   return negative ? -paise : paise;
 }
-
 function fromPaise(value: bigint): FixedScaleMoney {
   const absolute = value < ZERO ? -value : value;
   return `${value < ZERO ? "-" : ""}${absolute / ONE_HUNDRED}.${String(absolute % ONE_HUNDRED).padStart(2, "0")}` as FixedScaleMoney;
 }
-
+function dateAtUtc(value: string): Date {
+  return new Date(`${value.slice(0, 10)}T00:00:00Z`);
+}
+function formatMonth(value: string): string {
+  return monthFormatter.format(dateAtUtc(value));
+}
+function formatDate(value: string): string {
+  return dateFormatter.format(dateAtUtc(value));
+}
 function derivedPercentage(budget: bigint, actual: bigint): string {
   if (budget === ZERO) {
     if (actual === ZERO) return "NA";

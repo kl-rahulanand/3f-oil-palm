@@ -1,5 +1,22 @@
 {
   "id": "drill-transactions-view",
   "title": "The transactions state of the drill panel",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-11T21:38:04+00:00",
+  "base_sha": "9aa7e9cf4586f7097cd5075259d8557dd5a5f439",
+  "dirty_at_start": {
+    ".factory/stories/drill-down/decomposition.json": {
+      "digest": "3e0d2171fb6081b547c0fd1298aac2b1ec8dbcc2165342fe83feb9d162e20845",
+      "git": "1 .M N... 100644 100644 100644 20a707b03d95900c2840d36674ab674999776e0e 20a707b03d95900c2840d36674ab674999776e0e .factory/stories/drill-down/decomposition.json\u0000\u0000100644 20a707b03d95900c2840d36674ab674999776e0e 0\t.factory/stories/drill-down/decomposition.json\u0000\u0000H .factory/stories/drill-down/decomposition.json\u0000"
+    },
+    ".factory/stories/drill-down/grills/tasks/drill-transactions-view.json": {
+      "digest": "c5825687e4357638d7328ccf5c03dc112b6ccaabd41c5bfe09acef09f6935113",
+      "git": "? .factory/stories/drill-down/grills/tasks/drill-transactions-view.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/drill-down/task-plans/drill-transactions-view.md": {
+      "digest": "397852bcb20e4662452e4e96dcb789e93fb814fb3783a1c33b4dafb1106cece6",
+      "git": "? .factory/stories/drill-down/task-plans/drill-transactions-view.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "1d4753180f44d95fa126e189374355c3ed0fb2ae0a91a0ba6d9bd8f977b5e063"
 }

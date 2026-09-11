@@ -758,12 +758,16 @@ button {
   transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .mis-actual-action:focus-visible,
-.mis-drill-close:focus-visible {
+.mis-drill-close:focus-visible,
+.mis-drill-back:focus-visible,
+.mis-drill-pagination button:focus-visible {
   outline: 2px solid var(--kl-emerald);
   outline-offset: 2px;
 }
 .mis-actual-action:active,
-.mis-drill-close:active {
+.mis-drill-close:active,
+.mis-drill-back:active,
+.mis-drill-pagination button:active {
   transform: scale(0.97);
 }
 .mis-drill-layer {
@@ -831,6 +835,17 @@ button {
   width: 1px;
   height: 11px;
   background: var(--kl-line);
+}
+.mis-drill-back {
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--kl-emerald);
+  cursor: pointer;
+  font: inherit;
+  padding: 2px 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .mis-drill-total {
   display: flex;
@@ -947,6 +962,32 @@ button {
   font-size: 12.5px;
   font-weight: var(--weight-h1);
 }
+.mis-drill-table.mis-drill-transactions th,
+.mis-drill-table.mis-drill-transactions td {
+  width: auto;
+  padding-right: 8px;
+  padding-left: 8px;
+  color: inherit;
+  text-align: left;
+}
+.mis-drill-table.mis-drill-transactions th:first-child,
+.mis-drill-table.mis-drill-transactions td:first-child {
+  width: 92px;
+  padding-left: 22px;
+}
+.mis-drill-table.mis-drill-transactions th:nth-child(2),
+.mis-drill-table.mis-drill-transactions td:nth-child(2) {
+  width: 112px;
+}
+.mis-drill-table.mis-drill-transactions [data-numeric="true"] {
+  width: 104px;
+  text-align: right;
+}
+.mis-drill-table.mis-drill-transactions th:last-child,
+.mis-drill-table.mis-drill-transactions td:last-child {
+  min-width: 180px;
+  padding-right: 22px;
+}
 .mis-drill-foot small {
   display: flex;
   justify-content: flex-end;
@@ -956,6 +997,60 @@ button {
   font-family: var(--font-mono);
   font-size: 9.5px;
   font-weight: 400;
+}
+.mis-drill-state {
+  display: flex;
+  min-height: 180px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px;
+  color: var(--kl-slate);
+  text-align: center;
+}
+.mis-drill-state strong,
+.mis-drill-notice strong {
+  color: var(--kl-deep-forest);
+}
+.mis-drill-notice {
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+  border-bottom: 1px solid var(--kl-paper);
+  padding: 10px 22px;
+  color: var(--kl-slate);
+  font-size: 12px;
+}
+.mis-drill-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--kl-line);
+  padding: 10px 22px;
+  color: var(--kl-slate);
+  font-size: 11.5px;
+}
+.mis-drill-pagination div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.mis-drill-pagination button {
+  border: 1px solid var(--kl-line);
+  border-radius: var(--radius-sm);
+  background: var(--kl-white);
+  color: var(--kl-deep-forest);
+  cursor: pointer;
+  font: inherit;
+  padding: 4px 8px;
+  transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.mis-drill-pagination button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 @media (hover: hover) and (pointer: fine) {
   .mis-drill-close:hover {
