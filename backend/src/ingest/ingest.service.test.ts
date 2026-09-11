@@ -9,6 +9,7 @@ import {
   type CandidateBatchMetadata,
   type IIngestionRepository,
   type MisBudgetInput,
+  type MisBudgetOutlineInput,
   type SapTransactionInput,
 } from "../warehouse/ingestion.repository";
 import { migrateWarehouse } from "../warehouse/warehouse-migrate";
@@ -151,11 +152,12 @@ test("the ingest service validates the whole budget workbook before any write, m
   assert.deepEqual(service.activePeriods, ["2026-04-01", "2026-05-01"]);
   assert.equal(service.actualCalls, 0);
   assert.deepEqual(
-    service.budgetCalls.map(({ metadata, rows }) => ({
+    service.budgetCalls.map(({ metadata, rows, outline }) => ({
       period: metadata.period,
       uploadedBy: metadata.uploadedBy,
       formatId: rows[0].formatId,
       rowPeriod: rows[0].period,
+      outlineLeafKey: outline[0].leafKey,
     })),
     [
       {
@@ -163,12 +165,14 @@ test("the ingest service validates the whole budget workbook before any write, m
         uploadedBy: "authenticated-user-id",
         formatId: "nursery-mis-financial-v1",
         rowPeriod: "2026-04-01",
+        outlineLeafKey: "1.1|50001201|imported-sprouts",
       },
       {
         period: "2026-05-01",
         uploadedBy: "authenticated-user-id",
         formatId: "nursery-mis-financial-v1",
         rowPeriod: "2026-05-01",
+        outlineLeafKey: "1.1|50001201|imported-sprouts",
       },
     ],
   );
@@ -286,6 +290,11 @@ test(
         [batchIds],
       );
       assert.equal(retainedRows.rows[0].count, "4");
+      const retainedOutlines = await pool.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM mis_budget_outline WHERE batch_id = ANY($1::uuid[])",
+        [batchIds],
+      );
+      assert.equal(retainedOutlines.rows[0].count, "4");
 
       await assert.rejects(new InvalidSecondPeriodBudgetService().ingestBudget(upload, `budget-fail-${suffix}`));
       const active = await pool.query<{ period: string; id: string }>(
@@ -301,6 +310,10 @@ test(
         [`budget-fail-${suffix}`],
       );
       assert.equal(failedBatches.rows[0].count, "0");
+      const orphanOutlines = await pool.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM mis_budget_outline AS outline LEFT JOIN ingest_batch AS batch ON batch.id = outline.batch_id WHERE batch.id IS NULL",
+      );
+      assert.equal(orphanOutlines.rows[0].count, "0");
       const actualsAfter = await pool.query<{ count: string }>("SELECT COUNT(*)::text AS count FROM sap_transaction");
       assert.equal(actualsAfter.rows[0].count, actualsBefore.rows[0].count);
     } finally {
@@ -334,7 +347,11 @@ class ArchiveLimitIngestService extends RecordingIngestService {
 }
 
 class RecordingBudgetIngestService extends IngestService {
-  readonly budgetCalls: Array<{ metadata: CandidateBatchMetadata; rows: MisBudgetInput[] }> = [];
+  readonly budgetCalls: Array<{
+    metadata: CandidateBatchMetadata;
+    rows: MisBudgetInput[];
+    outline: MisBudgetOutlineInput[];
+  }> = [];
   readonly activePeriods: string[] = [];
   transactionCount = 0;
   actualCalls = 0;
@@ -348,8 +365,8 @@ class RecordingBudgetIngestService extends IngestService {
         this.actualCalls += 1;
         throw new Error("actuals must not be touched");
       },
-      replaceBudgetBatch: async (metadata, rows) => {
-        this.budgetCalls.push({ metadata, rows });
+      replaceBudgetBatch: async (metadata, rows, outline = []) => {
+        this.budgetCalls.push({ metadata, rows, outline });
         if (this.budgetCalls.length === this.failOnBudgetCall) throw new Error("later period failed");
         if (!this.activePeriods.includes(metadata.period)) this.activePeriods.push(metadata.period);
         return `11111111-1111-4111-8111-${this.budgetCalls.length.toString().padStart(12, "0")}`;

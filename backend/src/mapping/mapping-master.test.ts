@@ -43,7 +43,7 @@ const DUB_TRIPLES = [
 ] as const;
 
 test("the mapping master loader accepts the versioned master and rejects a malformed master a duplicate selection key and a provisional entry that carries no reason, and the master is the single authority for the canonical plant the SAP alias and the display alias", () => {
-  assert.equal(loadMappingMaster(MIS_MAPPING_MASTER).version, 1);
+  assert.equal(loadMappingMaster(MIS_MAPPING_MASTER).version, 2);
   assert.throws(() => loadMappingMaster({ version: 1 }), MappingMasterValidationError);
   assert.throws(
     () =>
@@ -66,12 +66,58 @@ test("the mapping master loader accepts the versioned master and rejects a malfo
       }),
     /provisional entry without a reason/,
   );
+  assert.throws(
+    () =>
+      loadMappingMaster({
+        ...MIS_MAPPING_MASTER,
+        selections: [
+          {
+            ...MIS_MAPPING_MASTER.selections[0],
+            entries: [{ ...MIS_MAPPING_MASTER.selections[0].entries[0], target: undefined }],
+          },
+        ],
+      }),
+    /entry without a target/,
+  );
 
   for (const alias of ["DUB", "DUB-NUR", "Agri - Nursery - DUB"]) {
     assert.equal(canonicalPlantFromMaster(alias), "DUB");
     assert.equal(canonicalPlant(alias), "DUB");
   }
   assert.equal(canonicalPlant("UNKNOWN"), "UNKNOWN");
+});
+
+test("the mapping master resolves a SAP cost centre and GL triple to exactly one statement leaf and records the budget leaf correspondence as provisional with a reason", () => {
+  const leaf = resolveMappingTriple({ plant: "DUB-NUR", cost_center: "Primary", gl_code: "50001605" });
+  assert.deepEqual(leaf?.target, {
+    kind: "leaf",
+    leaf_key: "4.5|50001605|fertilizers-manures",
+  });
+  assert.equal(leaf?.provisional, true);
+  assert.ok(leaf?.reason);
+
+  const bucket = resolveMappingTriple({ plant: "DUB-NUR", cost_center: "Primary", gl_code: "50001701" });
+  assert.deepEqual(bucket?.target, { kind: "bucket" });
+  assert.equal(bucket?.provisional, true);
+  assert.ok(bucket?.reason);
+
+  const selection = MIS_MAPPING_MASTER.selections[0];
+  assert.throws(
+    () =>
+      loadMappingMaster({
+        ...MIS_MAPPING_MASTER,
+        selections: [
+          {
+            ...selection,
+            entries: [
+              selection.entries[0],
+              { ...selection.entries[0], target: { kind: "leaf", leaf_key: "different-leaf" } },
+            ],
+          },
+        ],
+      }),
+    /duplicate selection entry/,
+  );
 });
 
 test("the mapping master maps each of the nine unresolved DUB triples to the reserved unmapped GL line with a reason and its mapped plus bucketed triples are exactly the twenty eight distinct DUB triples so nothing is inferred and nothing is dropped", () => {

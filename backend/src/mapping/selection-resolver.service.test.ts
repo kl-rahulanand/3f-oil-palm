@@ -24,6 +24,14 @@ test("resolving a department function plant and period through the mapping maste
     assert.equal(resolved.misFormat, "nursery-mis-financial-v1");
     assert.ok(resolved.costCentres.includes("Primary"));
     assert.ok(resolved.glCodes.includes("50001701"));
+    assert.deepEqual(
+      resolved.leafTargets?.find(({ costCenter, glCode }) => costCenter === "Primary" && glCode === "50001605")?.target,
+      { kind: "leaf", leafKey: "4.5|50001605|fertilizers-manures" },
+    );
+    assert.deepEqual(
+      resolved.leafTargets?.find(({ costCenter, glCode }) => costCenter === "Primary" && glCode === "50001701")?.target,
+      { kind: "bucket" },
+    );
     assert.equal(resolved.bucketRows.length, 9);
     assert.ok(resolved.bucketRows.every(({ mis_line, reason }) => mis_line === "unmapped-GL" && reason));
     assert.deepEqual(resolved.period, {

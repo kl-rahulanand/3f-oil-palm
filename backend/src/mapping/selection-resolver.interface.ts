@@ -1,5 +1,6 @@
 import type { MisSelectionOptionsResponse, MisSelectionRunRequest } from "@3f/contract";
 import type { MappingEntry } from "./mapping-master";
+import type { GovernedSelectionScope } from "../sql/sqlBuilder";
 
 export interface ResolvedSelectionPeriod {
   value: string;
@@ -17,6 +18,7 @@ export interface MasterResolvedSelection {
   misFormat: string;
   bucketRows: MappingEntry[];
   triples: Array<{ plant: string; costCenter: string; glCode: string }>;
+  leafTargets?: NonNullable<GovernedSelectionScope["leafTargets"]>;
   masterGlCodes: string[];
   period: ResolvedSelectionPeriod;
 }

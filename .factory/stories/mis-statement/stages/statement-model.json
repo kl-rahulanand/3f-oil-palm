@@ -1,5 +1,9 @@
 {
   "id": "statement-model",
   "title": "Budget outline snapshot, stable leaf key, and the statement's governed projection",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-11T05:53:00+00:00",
+  "base_sha": "3d57c3c7f3d71b8873c5af547c54626ea944d5a4",
+  "dirty_at_start": {},
+  "task_sha256": "d48e345709b890bbe0226c61454c59b26bb7f1b8676aaec972bd940f6f70cc8a"
 }

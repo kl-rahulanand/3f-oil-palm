@@ -7,9 +7,11 @@ import { loadWarehousePostgresConfig } from "../config";
 import {
   actualByGlMonth,
   actualByKeyMonth,
+  budgetByLeafMonth,
   budgetByGlMonth,
   ingestBatch,
   misBudget,
+  misBudgetOutline,
   sapTransaction,
 } from "./warehouse-schema";
 
@@ -27,8 +29,12 @@ test("the warehouse schema declares ingest_batch with a one-active-per source_ki
   const batch = getTableConfig(ingestBatch);
   const transactions = getTableConfig(sapTransaction);
   const budgets = getTableConfig(misBudget);
+  const outlines = getTableConfig(misBudgetOutline);
 
-  assert.deepEqual([batch.name, transactions.name, budgets.name], ["ingest_batch", "sap_transaction", "mis_budget"]);
+  assert.deepEqual(
+    [batch.name, transactions.name, budgets.name, outlines.name],
+    ["ingest_batch", "sap_transaction", "mis_budget", "mis_budget_outline"],
+  );
   assert.deepEqual(names(batch.checks).sort(), [
     "ingest_batch_period_month_check",
     "ingest_batch_row_count_check",
@@ -72,11 +78,40 @@ test("the warehouse schema declares ingest_batch with a one-active-per source_ki
   );
   assert.deepEqual(
     budgets.uniqueConstraints[0].columns.map(({ name }) => name),
-    ["batch_id", "format_id", "period", "line_id", "gl_code", "cost_center"],
+    ["batch_id", "format_id", "period", "leaf_key"],
   );
   assert.equal(budgets.foreignKeys.length, 1);
 
-  for (const table of [ingestBatch, sapTransaction, misBudget]) {
+  assert.deepEqual(columnNames(outlines.columns), [
+    "id",
+    "batch_id",
+    "node_key",
+    "parent_key",
+    "depth",
+    "s_no",
+    "label",
+    "sort_order",
+    "gl_code",
+    "leaf_key",
+    "created_at_utc",
+    "updated_at_utc",
+  ]);
+  assert.ok(!columnNames(outlines.columns).some((name) => /amount/.test(name)));
+  assert.equal(outlines.foreignKeys.length, 2);
+  const parentForeignKey = outlines.foreignKeys.find(
+    ({ reference }) => reference().name === "mis_budget_outline_parent_fk",
+  );
+  assert.ok(parentForeignKey);
+  assert.deepEqual(
+    parentForeignKey.reference().columns.map(({ name }) => name),
+    ["batch_id", "parent_key"],
+  );
+  assert.deepEqual(
+    parentForeignKey.reference().foreignColumns.map(({ name }) => name),
+    ["batch_id", "node_key"],
+  );
+
+  for (const table of [ingestBatch, sapTransaction, misBudget, misBudgetOutline]) {
     const auditColumns = columnNames(getTableConfig(table).columns);
     assert.ok(auditColumns.includes("created_at_utc"));
     assert.ok(auditColumns.includes("updated_at_utc"));
@@ -226,7 +261,7 @@ test("the actual_by_gl_month view reduces DUB actuals to gl_code and month as SU
   const journal = JSON.parse(
     readFileSync(resolve(__dirname, "../../drizzle-warehouse/meta/_journal.json"), "utf8"),
   ) as { entries: Array<{ tag: string }> };
-  assert.equal(journal.entries.at(-1)?.tag, "0002_gl_month_rollups");
+  assert.equal(journal.entries.at(-1)?.tag, "0003_statement_leaf_projection");
 });
 
 test("budget_by_gl_month preserves the deterministic set of cost_center Budget Components labels per gl_code and month key via array_agg distinct cost_center order by cost_center as an informational aggregate never a grouping or join key and carries raw rollover_amount summed but exposed by no measure, asserted by SQL shape including the order by inside the aggregate", () => {
@@ -237,4 +272,29 @@ test("budget_by_gl_month preserves the deterministic set of cost_center Budget C
   assert.match(viewSql, /sum\(b\.rollover_amount\)::numeric\(18, 2\) as rollover_net/);
   assert.match(viewSql, /group by b\.gl_code, b\.period/);
   assert.doesNotMatch(viewSql, /group by[^;]*cost_center/);
+
+  assert.equal(isPgMaterializedView(budgetByLeafMonth), false);
+  const leaf = getViewConfig(budgetByLeafMonth);
+  assert.equal(leaf.name, "budget_by_leaf_month");
+  assert.deepEqual(columnNames(Object.values(leaf.selectedFields) as Array<{ name: string }>), [
+    "leaf_key",
+    "month",
+    "budget_net",
+    "rollover_net",
+  ]);
+  assert.ok(leaf.query);
+  const leafSql = dialect.sqlToQuery(leaf.query).sql.replaceAll(/\s+/g, " ").toLowerCase();
+  assert.match(leafSql, /outline\.batch_id = b\.batch_id and outline\.leaf_key = b\.leaf_key/);
+  assert.match(leafSql, /group by b\.leaf_key, b\.period/);
+
+  const statementMigration = readFileSync(
+    resolve(__dirname, "../../drizzle-warehouse/0003_statement_leaf_projection.sql"),
+    "utf8",
+  );
+  assert.match(statementMigration, /CREATE TABLE "mis_budget_outline"/);
+  assert.match(statementMigration, /CREATE VIEW "public"\."budget_by_leaf_month"/);
+  const journal = JSON.parse(
+    readFileSync(resolve(__dirname, "../../drizzle-warehouse/meta/_journal.json"), "utf8"),
+  ) as { entries: Array<{ tag: string }> };
+  assert.equal(journal.entries.at(-1)?.tag, "0003_statement_leaf_projection");
 });

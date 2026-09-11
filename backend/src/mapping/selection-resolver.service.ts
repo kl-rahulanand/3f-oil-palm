@@ -82,6 +82,12 @@ export class SelectionResolverService implements ISelectionResolverService {
         costCenter: cost_center,
         glCode: gl_code,
       })),
+      leafTargets: entries.map(({ cost_center, gl_code, target }) => ({
+        plant: selection.plant_canonical,
+        costCenter: cost_center,
+        glCode: gl_code,
+        target: toGovernedTarget(target),
+      })),
       masterGlCodes: unique(
         this.master.selections.flatMap((candidate) => [
           ...candidate.entries.map(({ gl_code }) => gl_code),
@@ -100,6 +106,11 @@ export class SelectionResolverService implements ISelectionResolverService {
       .map(({ period }) => period)
       .filter((period): period is string => typeof period === "string" && MONTH_PATTERN.test(period));
   }
+}
+
+function toGovernedTarget(target: MappingEntry["target"]) {
+  if (!target) throw new Error("Mapping master selection entry has no target");
+  return target.kind === "leaf" ? { kind: "leaf" as const, leafKey: target.leaf_key } : { kind: "bucket" as const };
 }
 
 function resolveEntries(selection: MappingSelection, master: MappingMaster): MappingEntry[] {

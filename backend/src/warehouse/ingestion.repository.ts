@@ -2,7 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool, type PoolConfig } from "pg";
 import { loadConfig, loadWarehousePostgresConfig } from "../config";
-import { ingestBatch, misBudget, sapTransaction } from "./warehouse-schema";
+import { ingestBatch, misBudget, misBudgetOutline, sapTransaction } from "./warehouse-schema";
 import * as warehouseSchema from "./warehouse-schema";
 
 export type WarehouseDb = NodePgDatabase<typeof warehouseSchema>;
@@ -49,10 +49,18 @@ export type SapTransactionInput = Omit<
 >;
 
 export type MisBudgetInput = Omit<typeof misBudget.$inferInsert, "id" | "batchId" | "createdAtUtc" | "updatedAtUtc">;
+export type MisBudgetOutlineInput = Omit<
+  typeof misBudgetOutline.$inferInsert,
+  "id" | "batchId" | "createdAtUtc" | "updatedAtUtc"
+>;
 
 export interface IIngestionRepository {
   replaceActualsBatch(metadata: CandidateBatchMetadata, rows: SapTransactionInput[]): Promise<string>;
-  replaceBudgetBatch(metadata: CandidateBatchMetadata, rows: MisBudgetInput[]): Promise<string>;
+  replaceBudgetBatch(
+    metadata: CandidateBatchMetadata,
+    rows: MisBudgetInput[],
+    outline?: MisBudgetOutlineInput[],
+  ): Promise<string>;
 }
 
 export class IngestionRepository implements IIngestionRepository {
@@ -66,8 +74,15 @@ export class IngestionRepository implements IIngestionRepository {
     });
   }
 
-  replaceBudgetBatch(metadata: CandidateBatchMetadata, rows: MisBudgetInput[]): Promise<string> {
+  replaceBudgetBatch(
+    metadata: CandidateBatchMetadata,
+    rows: MisBudgetInput[],
+    outline: MisBudgetOutlineInput[] = [],
+  ): Promise<string> {
     return this.replaceBatch("budget", metadata, rows.length, async (transaction, batchId) => {
+      await insertInChunks(outline, async (chunk) => {
+        await transaction.insert(misBudgetOutline).values(chunk.map((node) => ({ ...node, batchId })));
+      });
       await insertInChunks(rows, async (chunk) => {
         await transaction.insert(misBudget).values(chunk.map((row) => ({ ...row, batchId })));
       });

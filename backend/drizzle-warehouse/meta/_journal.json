@@ -22,6 +22,13 @@
       "when": 1789015200000,
       "tag": "0002_gl_month_rollups",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789101600000,
+      "tag": "0003_statement_leaf_projection",
+      "breakpoints": true
     }
   ]
 }
