@@ -25,13 +25,13 @@ class MisStatementMeasureBlockDto implements MisStatementMeasureBlock {
   @ApiProperty({ example: "10050136.29" })
   budget!: `${number}.${number}`;
 
-  @ApiProperty({ example: null, nullable: true })
+  @ApiProperty({ type: String, example: null, nullable: true })
   rollover: null = null;
 
   @ApiProperty({ example: "11512712.07" })
   actual!: `${number}.${number}`;
 
-  @ApiProperty({ example: "1.1455", nullable: true })
+  @ApiProperty({ type: String, example: "1.1455", nullable: true })
   percentage!: string | null;
 
   @ApiProperty({ enum: ["matched", "budget-only", "actual-only"], isArray: true })
@@ -42,13 +42,13 @@ class MisStatementNodeDto implements MisStatementNode {
   @ApiProperty({ example: "9|admin-expenses" })
   nodeKey!: string;
 
-  @ApiProperty({ example: "9", nullable: true })
+  @ApiProperty({ type: String, example: "9", nullable: true })
   sNo!: string | null;
 
   @ApiProperty({ example: "Admin Expenses" })
   budgetComponent!: string;
 
-  @ApiProperty({ example: "55011101", nullable: true })
+  @ApiProperty({ type: String, example: "55011101", nullable: true })
   glCode!: string | null;
 
   @ApiProperty({ type: [MisStatementMeasureBlockDto] })
@@ -124,7 +124,7 @@ export class MisStatementUnresolvableResponseDto implements MisStatementUnresolv
   @ApiProperty({ type: [MisStatementNodeDto], maxItems: 0 })
   tree: [] = [];
 
-  @ApiProperty({ example: null, nullable: true })
+  @ApiProperty({ type: MisStatementNodeDto, example: null, nullable: true })
   grandTotal: null = null;
 
   @ApiProperty({ type: MisStatementProvenanceDto })

@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-11T09:38:39+00:00", "story": "mis-statement", "detail": "S-0003-4eab: AUTHORIZED - mechanically implied, and verified: backend/src/app.routes.test.ts holds a strict sanctioned-route allow-list that already names 'GET /api/mis/options' and 'POST /api/mis/run', so adding "}

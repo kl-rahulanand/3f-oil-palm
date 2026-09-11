@@ -81,7 +81,9 @@ export class MisStatementService implements IMisStatementService {
     }
 
     const blocks = await Promise.all(
-      blockDefinitions(resolution).map((definition) => this.executeBlock(user, domain, selection, resolution, definition)),
+      blockDefinitions(resolution).map((definition) =>
+        this.executeBlock(user, domain, selection, resolution, definition),
+      ),
     );
     const outline = await this.outlines.findByBudgetPeriod(resolution.period.to);
     const { tree, grandTotal } = buildTree(outline, blocks);
@@ -301,10 +303,7 @@ function isNumeric(value: string): boolean {
   return value.trim() !== "" && Number.isFinite(Number(value));
 }
 
-function mergePresence(
-  left: SourcePresence[],
-  right: SourcePresence | SourcePresence[] | undefined,
-): SourcePresence[] {
+function mergePresence(left: SourcePresence[], right: SourcePresence | SourcePresence[] | undefined): SourcePresence[] {
   const values = Array.isArray(right) ? right : right ? [right] : [];
   return SOURCE_ORDER.filter((value) => left.includes(value) || values.includes(value));
 }

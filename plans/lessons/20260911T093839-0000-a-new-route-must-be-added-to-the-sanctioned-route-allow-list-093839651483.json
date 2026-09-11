@@ -1,0 +1,12 @@
+{
+  "topic": "a new route must be added to the sanctioned route allow-list",
+  "lesson": "backend/src/app.routes.test.ts holds a STRICT sanctioned-route allow-list (it already names 'GET /api/mis/options' and 'POST /api/mis/run'). Any task that adds an HTTP route must add that exact route string there in the same change or hermetic verification fails - the file is mechanically implied by the route, not separate scope, and is authorized for such a task. Add only the new route; never relax the list into a pattern and never drop an entry, because the list being exhaustive is what makes an accidentally-exposed route fail the build. This applies to statement-api (POST /api/mis/statement) and again to statement-export (POST /api/mis/statement/export).",
+  "source": "signal S-0003-4eab; backend/src/app.routes.test.ts:23,31",
+  "applies_to": [
+    "backend/src/mis/**",
+    "backend/src/app.module.ts"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T09:38:39+00:00"
+}

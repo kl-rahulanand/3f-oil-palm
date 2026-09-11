@@ -73,7 +73,7 @@ END`,
       goldObject: "statement_relation",
       composed: {
         sources: ["actual_by_key_month", "budget_by_leaf_month"],
-        joinKeys: ["gl_code", "month"],
+        joinKeys: ["leaf_key", "month"],
       },
       scopeColumn: "plant",
       routingHints: ["MIS statement", "financial statement", "budget statement"],

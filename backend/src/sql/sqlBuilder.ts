@@ -172,8 +172,8 @@ export class SqlBuilder {
         .map((value) => this.lit(value))
         .join(", "),
     );
-    const sql = `WITH leaf_targets(plant, cost_center, gl_code, leaf_key) AS (
-  VALUES (${targetRows.join("),\n    (")})
+    const sql = `WITH leaf_targets AS (
+  SELECT * FROM (VALUES (${targetRows.join("),\n    (")})) AS target(plant, cost_center, gl_code, leaf_key)
 ), actual_by_leaf_month AS (
   SELECT target.leaf_key, actual.month,
     SUM(actual.actual_net)::numeric(18,2) AS actual_net
