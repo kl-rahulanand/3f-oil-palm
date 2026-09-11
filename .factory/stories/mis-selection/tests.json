@@ -1,0 +1,66 @@
+{
+  "commit": "e0c205bd9912ae9440b5503a5ca492a11900cbe4",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Story roll-up for mis-selection, re-run on the merged closeout tree. python3 factory/scripts/verify.py passes (structural, typecheck, quality, test). The aggregate D-0008 host proof `npm --prefix backend run test:warehouse-proof` runs 16/16 with 0 failures and 0 skipped against the local warehouse, covering the story's two new gated proofs (mapping-master.db.test.ts - every ingested DUB triple resolves exactly once, 66 mapped + 22 bucketed = 88 with no fan-out; selection-slice.db.test.ts - a cost-centre filtered selection returns one exact row per GL and month, excludes a master-covered GL outside the selection, and attributes a Budget GL absent from the master to the unmapped-GL line) alongside the four governed-joins proofs it retains. The negative control - the same command against dead port 5599 - fails 6 leaves with ECONNREFUSED and passes only the 10 ungated ones, so the green run is real execution rather than skips. Each task's own automated artifact was recorded and CI-verified at its PR.",
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_PASSWORD=warehouse-local WAREHOUSE_PG_DATABASE=warehouse npm --prefix backend run test:warehouse-proof -> tests 16 / pass 16 / fail 0 / skipped 0",
+      "negative control: the same command with WAREHOUSE_PG_PORT=5599 -> tests 16 / pass 10 / fail 6, 12 ECONNREFUSED"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/mapping/mapping-master.test.ts and mapping-master.db.test.ts (task 1)",
+      "backend/src/mapping/selection-resolver.service.ts tests and backend/src/warehouse/selection-slice.db.test.ts (task 2)",
+      "backend/src/mis/mis-selection.controller.test.ts, backend/src/db/migrate.test.ts (tasks 2-3)",
+      "frontend/src/features/mis/mis-report-view.test.tsx, frontend/src/lib/api.test.ts, frontend/src/components/shell/app-shell.test.tsx (task 3)"
+    ],
+    "blocking_findings": [],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "non_blocking_findings": [],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-11T01:42:03+00:00",
+    "commit": "e0c205bd9912ae9440b5503a5ca492a11900cbe4"
+  },
+  "updated_at": "2026-09-11T01:42:03+00:00",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "pass",
+    "score": 9,
+    "summary": "Story-level functional evidence for mis-selection. The live end-to-end check was run on the host against the real client workbook during task 3, and the product code on this closeout tree is BYTE-IDENTICAL to the merged master that was exercised (`git diff origin/master HEAD -- backend frontend contract tools` is empty), so the evidence applies unchanged. Signed in with the mock OTP, reached MIS Reports from the now-enabled nav item, selected Agriculture / Nursery / Agri - Nursery - DUB / 2026-07-01 and pressed Generate: the resolved scope named 7 cost centres, 28 GL codes and nursery-mis-financial-v1; totals showed Actual Rs 1,15,12,712.07; 28 governed GL rows rendered with the month as 'Jul 2026' and the percentage measure as its designed label 'over-budget' (zero occurrences of NaN); and the unmapped-GL bucket rendered as a reviewable list of 9 rows, each with an Actual and a Budget amount and its reason. That run also covers the story's acceptance criteria 1 and 2; criterion 3 (no mapping renders zeros plus the notice, no crash) is proven by the component and controller tests, because the single-selection master makes the unresolvable branch unreachable from the live UI.",
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The period select shows raw ISO dates because the options route returns the ISO date as its label; ledgered as D-0030 (renumbered from D-0028 in selection-ui's own evidence)."
+    ],
+    "residual_risks": [
+      "The Budget side reads Rs 0.00 because the real budget workbook cannot be ingested: mis-budget.parser.ts cellText() calls toISOString() on an Invalid Date exceljs produces for one cell in Nursery MIS Format.xlsx. Budget rendering is proven structurally, not with non-zero live values. Ledgered as D-0029 (renumbered from D-0027) and it BLOCKS mis-statement, which needs live Budget.",
+      "The vitest required_test gate cannot fail closed on a drifted leaf name; selection-ui's four leaves were proven by demonstrated positive/negative control instead. Ledgered as D-0031 (renumbered from D-0029)."
+    ],
+    "manual_validation_steps": [
+      "Confirmed the closeout tree's product code is identical to the merged master that was exercised live.",
+      "Re-ran the aggregate gated warehouse proof on this tree: 16/16, with a dead-port negative control failing 6 leaves.",
+      "Re-ran python3 factory/scripts/verify.py on this tree: passed."
+    ],
+    "reviewed_scope": [
+      "frontend/app/(app)/mis-reports/page.tsx, frontend/src/features/mis/",
+      "backend/src/mis/, backend/src/mapping/",
+      "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html (design fidelity)"
+    ],
+    "recommendation": "Ship the story; D-0029 is the gating follow-up for mis-statement.",
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-11T01:42:03+00:00",
+    "commit": "e0c205bd9912ae9440b5503a5ca492a11900cbe4"
+  }
+}
