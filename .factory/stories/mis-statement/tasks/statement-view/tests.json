@@ -1,0 +1,34 @@
+{
+  "commit": "18cd74e913a2508da0de774c3b5c12f6d3666710",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All five required vitest leaves for statement-view execute and pass, each proven by its EXECUTED count rather than an exit code - vitest exits 0 when -t matches nothing (D-0031), so every run was checked for tests minus skipped equal to exactly 1 with zero failures. The leaves cover what a unit test can falsify: the statement rendered inline below the selector showing the route's parent subtotals and grand total without recomputing them; the spec's block labels formatted from each block's own range with money in Indian grouping and Roll-over empty; a non-numeric percentage kept verbatim, a null percentage as NA, and a single-block response rendering one block; the unresolvable outcome showing the notice with no table while a resolved-but-empty selection shows the configured statement with zeros; and the unmapped-GL line with its blank GL code plus the statement naming its active period and contributing batch ids. verify.py passes, including build:frontend.",
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts frontend/src/features/mis/statement-view.test.tsx -t <each of five leaves> --reporter=junit --outputFile=<report> -> executed=1, failures=0 for each"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/mis/statement-view.test.tsx (all five required leaves)",
+      "frontend/src/features/mis/mis-report-view.test.tsx (the statement rendering inline in place of the flat GL table)",
+      "frontend/src/lib/api.test.ts (the statement data method's CSRF bootstrap, cookie credentials and one-shot 401 refresh)"
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "Design metrics and accessibility are not asserted by these leaves and are not claimed to be: they belong to the functional check and the three-lens review, as the task plan states."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "manual_validation_steps": [
+      "Skill attestation checked rather than assumed: the composed brief INLINES both design skills in full (emil-design-eng at line 403, frontend-design at line 698, each headed 'inlined; your runtime cannot load it'), so both were in the implementer's prompt by construction. The job log additionally shows it reading ~/.codex/skills/emil-design-eng/SKILL.md directly; it did NOT read the frontend-design file, which the inlining makes unnecessary."
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-11T14:28:51+00:00",
+    "commit": "18cd74e913a2508da0de774c3b5c12f6d3666710"
+  },
+  "updated_at": "2026-09-11T14:28:51+00:00"
+}

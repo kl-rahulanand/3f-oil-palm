@@ -7,6 +7,7 @@ import type {
   MisSelectionOptionsResponse,
   MisSelectionRunRequest,
   MisSelectionRunResponse,
+  MisStatementRunResponse,
 } from "@3f/contract";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:4000";
@@ -61,6 +62,8 @@ export const api = {
   misOptions: () => request<MisSelectionOptionsResponse>("/api/mis/options", true),
   runMisSelection: (selection: MisSelectionRunRequest) =>
     post<MisSelectionRunResponse>("/api/mis/run", selection, true),
+  runMisStatement: (selection: MisSelectionRunRequest) =>
+    post<MisStatementRunResponse>("/api/mis/statement", selection, true),
   csrf: () => request<{ ok: true }>(CSRF_PATH),
   requestOtp: (email: string) => post<AuthOtpRequestResponse>("/api/auth/otp/request", { email }),
   verifyOtp: (email: string, code: string) => post<AuthOtpVerifyResponse>("/api/auth/otp/verify", { email, code }),
