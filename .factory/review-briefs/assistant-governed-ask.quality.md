@@ -1,4 +1,36 @@
-# Branch-wide plan-contract review brief
+# Review brief — assistant-governed-ask — quality lens
+
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
+
+LENS: QUALITY. Correctness, regressions, gaps in the implementer's tests,
+API/contract drift, and maintainability. Check approved-deliverable presence and
+reachability FIRST: every deliverable a plan contract, acceptance criterion, or
+the reviewer focus names must be genuinely implemented AND reachable (registered,
+invoked — not merely defined in a file nothing imports); an absent or unreachable
+deliverable is a blocking finding even when the rest is clean. Flag
+single-responsibility violations and incoherent file/folder organisation against
+the reviewer focus (never a mandated layout). Structure-for-growth in shared
+infrastructure is NOT over-engineering; reserve that finding for speculative
+abstraction. Enforce the minimal-diff discipline (a new dependency where the
+stdlib suffices, reimplementing an existing helper, sprawl where a surgical
+change would do) — but a diff that drops validation, error handling, security, or
+accessibility to look smaller is the OPPOSITE finding. The constitution's coding
+standards are law: flag deviations you can see in the diff. Assess cyclomatic
+complexity of every changed function; genuinely knotted control flow (roughly
+>10 independent paths) is blocking and must name its decomposition.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
+CONTRACT VERDICTS (mandatory, machine-parsed). In overall_explanation, emit ONE
+line per plan contract listed under "Plan contracts" below, exactly in this form:
+
+VERDICT <contract-id>: implemented|partial|missing — <file:line evidence>
+
+Every listed contract must get a line. Do not rename contract ids.
 
 For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
 
@@ -93,81 +125,3 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 - [high] junit-run negative control: tools/junit-run.mjs exits 0 and emits a testcase named after the FILE PATH when --name matches no leaf (D-0024), so a missing-name negative control cannot fail and is not the gate. The gate is that each report's testcase name equals the required leaf id verbatim - a report naming the file path asserted nothing. Verified both halves by hand: a real leaf name yields a testcase named for the leaf, a bogus one yields a testcase named backend/src/mis/mis-drill.service.test.ts. junit-run.mjs stays out of scope for feature tasks; fixing it is D-0024's own trigger.
 - [high] out-of-range actuals pins are filtered, not refused: t-dta-c3's 'wrong-period id is a REFUSAL' means a pin whose CLAIMED period disagrees with the batch's real period, which mis-drill.service.ts:125-136 already refuses. It does NOT mean an actuals pin for a month outside the drilled block. mis-statement.service.ts:105 unions provenance.activeBatchIds across BOTH measure blocks, so a July statement carries April-July actuals batches, and the contract has the client send that array VERBATIM - a July-block drill therefore always receives out-of-range pins, and refusing them would break every selected-month drill. Filtering them at mis-drill.service.ts:139 is correct and safe: the SQL is independently month-bounded at drill-transactions.repository.ts:115, so a surplus batch id cannot widen the read, and every pin still appears in the per-batch statuses. Do not report this as a partial fulfilment of t-dta-c3.
 - [high] chat.sse.test.ts is in scope and viewInReport stays required: backend/src/chat/chat.sse.test.ts is now in this task's write_scope. It is mechanically implied by criterion t-aga-c5: making AskResponse.viewInReport a REQUIRED discriminated union forces every construction site of an AskResponse to supply it, and that test is one. Keep the field required - do NOT revert it to optional. The task grill demanded the union precisely because an absent optional field cannot carry the 'unavailable, and here is why' case, which is the whole point of the field. chat.sse.test.ts is also listed in .prettierignore, so D-0006 applies to it as it does to chat.controller.ts and smalltalk-guard.ts: format it and remove its entry in the same change. Nothing else about the contract changes.
-
-## Task assistant-ask-surfaces
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- **0026** — the assistant ships in the PoC, superseding only 0002's chatbot clause.
-- **0027** — Bedrock in `ap-south-1`; question, prior turns and governed vocabulary may leave the
-  app, warehouse rows never do.
-- **0028** — saves store the selection, never the answer; pins are personal and re-authorize.
-- Inherited and load-bearing: **0016** (all-or-nothing governed access), **0018** (a zero is not
-  an absence — hence the out-of-catalog refusal), **0022** (the statement projection the answers
-  and the report link agree with), **0019** (house style for the routes), **0011** (retention and
-  residency contracts ride with the pilot), **0012** (the vendored API's constitution deviation
-  still covers these controllers).
-
-## Task assistant-exploration-api
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- **0026** — the assistant ships in the PoC, superseding only 0002's chatbot clause.
-- **0027** — Bedrock in `ap-south-1`; question, prior turns and governed vocabulary may leave the
-  app, warehouse rows never do.
-- **0028** — saves store the selection, never the answer; pins are personal and re-authorize.
-- Inherited and load-bearing: **0016** (all-or-nothing governed access), **0018** (a zero is not
-  an absence — hence the out-of-catalog refusal), **0022** (the statement projection the answers
-  and the report link agree with), **0019** (house style for the routes), **0011** (retention and
-  residency contracts ride with the pilot), **0012** (the vendored API's constitution deviation
-  still covers these controllers).
-
-## Task assistant-exploration-view
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- **0026** — the assistant ships in the PoC, superseding only 0002's chatbot clause.
-- **0027** — Bedrock in `ap-south-1`; question, prior turns and governed vocabulary may leave the
-  app, warehouse rows never do.
-- **0028** — saves store the selection, never the answer; pins are personal and re-authorize.
-- Inherited and load-bearing: **0016** (all-or-nothing governed access), **0018** (a zero is not
-  an absence — hence the out-of-catalog refusal), **0022** (the statement projection the answers
-  and the report link agree with), **0019** (house style for the routes), **0011** (retention and
-  residency contracts ride with the pilot), **0012** (the vendored API's constitution deviation
-  still covers these controllers).

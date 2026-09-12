@@ -1,0 +1,66 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-governed-ask",
+  "score": 0,
+  "summary": "performance lens over assistant-governed-ask (20 product path(s), 99626df..b3c8a3a, Codex via the autoreview skill at --max-priority P2): 4 blocking, 1 non-blocking. The core route registration and governance changes are present, but conversation IDs are not consistently rejected with a typed 400, several durable-conversation compatibility leftovers remain despite the blocking no-leftovers rule, and common greetings now incur the semantic/LLM path instead of deterministic handling.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "[P1] Reject conversationId before entering the streaming callback (backend/src/chat/chat.schemas.ts:18): `conversationId` remains valid under this schema."
+    },
+    {
+      "category": "maintainability",
+      "area": "backend/src/chat",
+      "summary": "[P1] Remove the unused durable-conversations service dependency (backend/src/chat/chat.service.ts:54): The durable conversation reads and writes were deleted, but `ConversationsService` remains injected as `_conversations` and is also instantiated through `ChatModule`."
+    },
+    {
+      "category": "maintainability",
+      "area": "backend/src/chat",
+      "summary": "[P1] Remove the accepted-but-ignored turnId compatibility input (backend/src/chat/chat.schemas.ts:19): The public schema still accepts `turnId`, the controller forwards it, and the service merely renames it `_turnId` without using it."
+    },
+    {
+      "category": "maintainability",
+      "area": "contract/src",
+      "summary": "[P1] Remove the newly introduced deprecated compatibility marker (contract/src/api.ts:133): The change explicitly introduces an `@deprecated` comment for `conversationId`."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "regression",
+      "area": "backend/src/chat",
+      "summary": "[P2] Keep ordinary greeting phrases on the deterministic path (backend/src/chat/smalltalk-guard.ts:63): Replacing the prior short greeting-prefix match with exact set membership means inputs such as `hello there` and `hey team` no longer classify as general chat."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/chat/chat.controller.ts",
+    "backend/src/chat/chat.module.ts",
+    "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.service.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/chat.sse.test.ts",
+    "backend/src/chat/reconciliation-guard.ts",
+    "backend/src/chat/smalltalk-guard.test.ts",
+    "backend/src/chat/smalltalk-guard.ts",
+    "backend/src/mis/mis-statement.controller.test.ts",
+    "backend/src/mis/mis-statement.controller.ts",
+    "backend/src/mis/mis-statement.dto.ts",
+    "backend/src/mis/mis-statement.interface.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "92164711574a0c1bc1793a8acf946f456c24a0f12d2a26c5decc36181e32ae4d",
+  "brief_sha256": "d20757a3b1c3a5d0742b165cab886f653696c5072874c8fc69a2b7c6904842ac",
+  "branch_diff_digest": "278186b0852226448056046a4e0fed2744677d9f74f05b8222b9996c88fc6ce5",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T08:36:55+00:00",
+  "commit": "b3c8a3ae18cce932ad54fbdeeeb21050409a0614"
+}
