@@ -2,18 +2,18 @@
   "generated_by": "autoreview",
   "task_id": "assistant-ask-surfaces",
   "score": 9,
-  "summary": "performance lens over assistant-ask-surfaces (13 product path(s), e24a8bd..357c441, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The change introduces two actionable P2 performance defects: the primary MIS route eagerly loads the new charting dependency while Ask is collapsed, and conversation work grows without bound across requests and renders. No compatibility wrapper, retained alias, or other prohibited leftover is visible in the supplied diff.",
+  "summary": "performance lens over assistant-ask-surfaces (13 product path(s), e24a8bd..8dd1cbc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The feature implementation is broadly coherent, but it introduces two avoidable scaling defects on the core Ask path: unbounded conversation payload growth and quadratic suppression lookup during table rendering. Both can materially increase latency or make long sessions and large suppressed results unusable.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
       "area": "frontend/src/features/assistant",
-      "summary": "[P2] Lazy-load Recharts instead of shipping it with every MIS report visit (frontend/src/features/assistant/ask-panel.tsx:19): The top-level Recharts import makes its charting stack part of the AskPanel module."
+      "summary": "[P2] Bound prior turns before rebuilding every request (frontend/src/features/assistant/use-ask.ts:27): Every successful turn is copied into every subsequent request with no count or token-budget bound."
     },
     {
       "category": "bug",
       "area": "frontend/src/features/assistant",
-      "summary": "[P2] Bound the conversation history sent and rendered per turn (frontend/src/features/assistant/use-ask.ts:30): Each submission scans and sends every successful turn accumulated since the provider mounted, with no cap or window."
+      "summary": "[P2] Pre-index suppressed cells instead of scanning them for every cell (frontend/src/features/assistant/ask-panel.tsx:360): Each rendered table cell calls `isSuppressed`, which performs a linear scan of `suppressedCells`."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -36,10 +36,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "8a5644204d30e0c0f6a7ebcd7413a634ca655648f04e51328dd118ca84095268",
+  "review_run_id": "8a9f78d488b6a92b0974a92e1050a1c3074337612bd9646949099863221f2961",
   "brief_sha256": "8f7a6577aab1f8418c329a86e388c43ac61604d6ee33b4d7be671315c94b06b6",
-  "branch_diff_digest": "38045f932c56479c4478936035e8aff1b01d80d25c66aac77a7b92310f27a797",
+  "branch_diff_digest": "a796795192b223952608a2104a1157effdfe79be6462fb869e30819952b39697",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T11:32:46+00:00",
-  "commit": "357c4413c804d620054dd1f731bed7682f1416b5"
+  "recorded_at": "2026-09-12T11:48:43+00:00",
+  "commit": "8dd1cbcb4e24c059d02cf47e75b11f5533b88902"
 }
