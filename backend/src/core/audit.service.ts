@@ -28,6 +28,9 @@ export type AdminAuditTarget =
       grantId: string;
     };
 
+export type ExplorationResource = "saved" | "pins";
+export type ExplorationAction = "create" | "list" | "delete" | "reorder" | "update_view";
+
 /**
  * Append-only audit EVENT log (eng review G1). Fail-closed: if the request event
  * cannot be written, the query MUST NOT execute - no audit, no query.
@@ -101,6 +104,70 @@ export class AuditService {
       actorId: e.actorId,
       submitted: e.submitted as Partial<MisDrillRequest>,
     });
+  }
+
+  async writeExplorationRequestEvent(e: {
+    actorId: string;
+    sessionId: string;
+    resource: ExplorationResource;
+    action: ExplorationAction;
+    submitted?: unknown;
+  }): Promise<number> {
+    return this.writeExplorationAudit("request", e);
+  }
+
+  async writeExplorationRefusalEvent(e: {
+    actorId: string;
+    sessionId: string;
+    resource: ExplorationResource;
+    action: ExplorationAction;
+    submitted?: unknown;
+  }): Promise<number> {
+    return this.writeExplorationAudit("refusal", e);
+  }
+
+  async writeExplorationRefusalEvents(
+    events: Array<{
+      actorId: string;
+      sessionId: string;
+      resource: ExplorationResource;
+      action: ExplorationAction;
+      submitted?: unknown;
+    }>,
+  ): Promise<void> {
+    if (events.length === 0) return;
+    await this.db.insert(auditEvents).values(
+      events.map((event) => ({
+        eventType: `exploration.${event.resource}.refusal`,
+        userId: event.actorId,
+        sessionId: event.sessionId || null,
+        question: `${event.resource} ${event.action}`,
+        selection: { action: event.action, submitted: event.submitted ?? null },
+      })),
+    );
+  }
+
+  private async writeExplorationAudit(
+    outcome: "request" | "refusal",
+    e: {
+      actorId: string;
+      sessionId: string;
+      resource: ExplorationResource;
+      action: ExplorationAction;
+      submitted?: unknown;
+    },
+  ): Promise<number> {
+    const rows = await this.db
+      .insert(auditEvents)
+      .values({
+        eventType: `exploration.${e.resource}.${outcome}`,
+        userId: e.actorId,
+        sessionId: e.sessionId || null,
+        question: `${e.resource} ${e.action}`,
+        selection: { action: e.action, submitted: e.submitted ?? null },
+      })
+      .returning({ id: auditEvents.id });
+    return rows[0].id;
   }
 
   private async writeDrillAudit(

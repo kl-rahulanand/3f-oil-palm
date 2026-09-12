@@ -23,6 +23,7 @@ const hermeticTests = [
   "backend/src/chat/suppression.test.ts",
   "backend/src/chat/timeWindowParse.test.ts",
   "backend/src/common/error-envelope.wiring.test.ts",
+  "backend/src/common/exploration-audit.filter.test.ts",
   "backend/src/common/request-logging.test.ts",
   "backend/src/core/dimension-values.service.test.ts",
   "backend/src/db/migrate.trim.test.ts",
@@ -44,6 +45,8 @@ const hermeticTests = [
   "backend/src/mis/mis-statement.controller.test.ts",
   "backend/src/mis/mis-statement.service.test.ts",
   "backend/src/pins/pins.schemas.test.ts",
+  "backend/src/pins/pins.service.test.ts",
+  "backend/src/saved/saved.service.test.ts",
   "backend/src/semantic/definitionVersion.test.ts",
   "backend/src/semantic/semanticLayer.financial.test.ts",
   "backend/src/semantic/semanticLayer.statement.test.ts",
@@ -72,6 +75,7 @@ const dbTests = [
   "backend/src/auth/auth.controller.test.ts",
   "backend/src/core/audit.service.test.ts",
   "backend/src/core/session.service.test.ts",
+  "backend/src/db/migrate.exploration.db.test.ts",
   "backend/src/db/migrate.test.ts",
   "backend/src/usage/usage.controller.test.ts",
   "backend/src/usage/usage.service.test.ts",
@@ -175,12 +179,10 @@ a91b8489592d28d7e418290e34799dcfb58238c54bb1050fba339280d11ed646 backend/src/cha
 c401ca278a38b619644004834a832197cd3e21ea4394dff874611ba000adb90d backend/src/common/openapi.ts
 5cdcc416d806108b06f887f81fded9bce2288cfeb36d825546a401d619f6ed8b backend/src/conversations/conversations.controller.ts
 ea49b24dd229a78110685297c646190e971c1526ac096c7003df75c675c20998 backend/src/conversations/conversations.service.ts
-2718e8ae46e7d45b0fb8f70a3c779bf6ba5bc8aa1eed33a7d76805027441cb6c backend/src/core/core.module.ts
 9db182303af310614919aa97c2ea0228dc4dbca406af52863fc22c650909c612 backend/src/core/dimension-values.service.test.ts
 b218baa747af4070dc3bd9ef6b7188f6f1c79e8e1f92c94330087cbbecc8fd76 backend/src/core/rbac.service.ts
 ceaa15512931da9c7b4874e9f73b45e2f1143fa11c36b2f52a6ebfb0821dd75b backend/src/core/session.service.test.ts
 819c28a31a0c36a411c3e655939c797ce2c40ac2f57384a1f27b9d9723bcbbf2 backend/src/core/session.service.ts
-7a9fb83c1ad4b0c8a989540df1d2a4e18e603ca19696905cda43b8db009a0b69 backend/src/db/migrate.trim.test.ts
 5414f861e89f339709c595131720b7dad8d3891181b2fb1b243d948f8fd78605 backend/src/db/schema.ts
 fdd5b42a8c71a4ae157087975610d937c371c2e9ed32399478f3f61fb8db6d69 backend/src/email/email.service.ts
 96b9245a12b5beba3a4a566481760658363ba82bc02f7bfe037a8e6b8848bd60 backend/src/grants/grants.controller.ts
@@ -197,14 +199,10 @@ bf94f2bb3dfcf7f0c200d22c660c9b768e511fa2f5eee9a558351a1a5fac5997 backend/src/mea
 91ec7447e738b5ded87619650cd7005f4115a65cc68d6108a2d27196ce6546d2 backend/src/measures/measures.module.ts
 0e60ecdbc6e1c8ed436c00201f64eeb4b406768a60d3166b0d5a25e4db939840 backend/src/measures/measures.schemas.ts
 03011f262717f9465b3f347323fbef3d9b20ca8ae2ce7d5bbe650df3edde2d3c backend/src/measures/measures.service.ts
-333f9abad726eef945643388b83937bc0f3e5feae9a83e21465f158a753569ce backend/src/pins/pin-refresh.service.ts
-a4022ae4bd0a53a0b23e01d3f0e30471ef878c62903843a9ec3e33d82c47a0be backend/src/pins/pins.controller.ts
-66996c3e987de114b130905055df18968d2c5eb6b6d89936a18948b8cc127ecc backend/src/pins/pins.service.ts
 933e6c77490f45144c43b5e58c5917a7dc4e2d87cafbc7e6c807a30defee2cae backend/src/recon/recon.run.ts
 c16c3caf691704a163a15c6b4e52bd5bb0360ad742dfff8151e310d69b149712 backend/src/recon/recon.store.ts
 2acc47706b6cffcac04ecd156725b593c3240b9bf2c00154a8a6ce01150306e6 backend/src/recon/reconciliation.service.ts
 48af5fd4514fb0ff8e81812eea986b4026488c9c548afab66df0fa5cdd55b633 backend/src/reports/reports.service.ts
-e48dbf50d844bec63200a3983d087e25499ff0a6902472fbb6dd7fccf64e0ab6 backend/src/saved/saved.service.ts
 430a16cf27377aad3c3f64136659755773322fd3189d436ca39b38c0e8edc9ba backend/src/semantic/definitionVersion.test.ts
 6ad8d170c0e6053c6d992094ba2a7c098ed2460871e8fe7c871e98a690feae7a backend/src/semantic/selectionValidation.ts
 8d4180354a45af0dd7a53c37e7124df29fc5fa0f76c54a8a007186d1bc94d5d1 backend/src/sql/sql.constants.ts

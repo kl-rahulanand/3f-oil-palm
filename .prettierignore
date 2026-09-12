@@ -22,12 +22,10 @@ backend/src/chat/timeWindowParse.ts
 backend/src/common/openapi.ts
 backend/src/conversations/conversations.controller.ts
 backend/src/conversations/conversations.service.ts
-backend/src/core/core.module.ts
 backend/src/core/dimension-values.service.test.ts
 backend/src/core/rbac.service.ts
 backend/src/core/session.service.test.ts
 backend/src/core/session.service.ts
-backend/src/db/migrate.trim.test.ts
 backend/src/db/schema.ts
 backend/src/email/email.service.ts
 backend/src/grants/grants.controller.ts
@@ -44,14 +42,10 @@ backend/src/measures/measures.controller.ts
 backend/src/measures/measures.module.ts
 backend/src/measures/measures.schemas.ts
 backend/src/measures/measures.service.ts
-backend/src/pins/pin-refresh.service.ts
-backend/src/pins/pins.controller.ts
-backend/src/pins/pins.service.ts
 backend/src/recon/recon.run.ts
 backend/src/recon/recon.store.ts
 backend/src/recon/reconciliation.service.ts
 backend/src/reports/reports.service.ts
-backend/src/saved/saved.service.ts
 backend/src/semantic/definitionVersion.test.ts
 backend/src/semantic/selectionValidation.ts
 backend/src/sql/sql.constants.ts

@@ -8,6 +8,8 @@ import { ChatController } from "./chat/chat.controller";
 import { UsersController } from "./users/users.controller";
 import { GrantsController } from "./grants/grants.controller";
 import { ReportsController } from "./reports/reports.controller";
+import { PinsController } from "./pins/pins.controller";
+import { SavedController } from "./saved/saved.controller";
 import { buildSwaggerConfig } from "./main";
 
 test("controller metadata contains auth, admin, and data API paths without bearer security", () => {
@@ -17,6 +19,8 @@ test("controller metadata contains auth, admin, and data API paths without beare
     ...controllerRoutes(UsersController),
     ...controllerRoutes(GrantsController),
     ...controllerRoutes(ReportsController),
+    ...controllerRoutes(PinsController),
+    ...controllerRoutes(SavedController),
   ];
 
   for (const expected of [
@@ -35,6 +39,14 @@ test("controller metadata contains auth, admin, and data API paths without beare
     "POST /api/admin/grants",
     "GET /api/reports",
     "POST /api/reports/:id/run",
+    "POST /api/saved",
+    "GET /api/saved",
+    "DELETE /api/saved/:id",
+    "POST /api/pins",
+    "GET /api/pins",
+    "PATCH /api/pins/reorder",
+    "PATCH /api/pins/:id/view",
+    "DELETE /api/pins/:id",
   ]) {
     assert.ok(paths.includes(expected), `missing ${expected}`);
   }
