@@ -1,0 +1,104 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "issue": "assistant",
+  "verdict": "pass",
+  "summary": "Cold read of the confirmed assistant spec against the built repo (Codex gpt-5.6-terra @ xhigh, read-only, task-mty0owi1-tduss4) returned NOT CONVERGED with ten findings. Seven were answerable from the repository and are settled in a new 'Settled by the requirements grill (2026-09-12)' section plus rewritten acceptance criteria; three were put to the human and carry their own accepted decision records (0026, 0027, 0028). The decisions were minted and accepted BEFORE this grill was recorded, so the product-tree digest is stable - the ordering that cost drill-down a second cold read.",
+  "questions_asked": 5,
+  "gaps": [
+    "'Explore beyond the fixed MIS' had no bounded data vocabulary: the spec never said which domains, measures, dimensions or periods the assistant may expose, nor what happens to a question outside that catalog, inviting unsupported exploration or a misleading zero.",
+    "'Verified' and 'no fabricated numbers' were not falsifiable: the spec did not say whether ALL visible numeric text - prose, labels, percentages, chart annotations, follow-ups - must come from the deterministic result, nor define rounding, empty results, ambiguous questions, or when a chart is inapplicable.",
+    "'View in report' was undefined: an assistant selection need not map one-to-one to a statement, and the spec did not require the link to carry the department, function, plant, period or the batch provenance of the answer, so it could open a different or newly reloaded figure.",
+    "RBAC and audit had no failure semantics: the spec never inherited the all-or-nothing policy explicitly, never required re-authorization on every ask, saved re-run and pin open, and never said whether an audit-write failure blocks the read or which outcomes are audited.",
+    "The declared surfaces were not acceptance-covered: the docked panel, standalone Ask page, chart, provenance display, report link, saved queries and pinned dashboards were all promised, but the acceptance criteria proved only one generic answer, general chat and a saved re-run - so a partial delivery could pass while omitting most of the story.",
+    "'Normal chat', off-topic chat and the excluded causal 'why' had no precedence, so an excluded 'why did costs rise?' could become an unverified causal answer.",
+    "The handover assumed the vendored Pulse assistant already worked: AppModule imports none of chat, saved or pins, the registered-route allow-list in backend/src/app.routes.test.ts contains none of their routes, and the applied migration backend/drizzle/0000_auth_audit.sql creates auth and audit tables only."
+  ],
+  "contradictions": [
+    "The confirmed spec said the assistant is 'Included in the first PoC release' while docs/product/BRIEF.md called the conversational layer 'sequenced as a fast-follow' and accepted decision 0002 said 'the chatbot remain later phases'. All three are accepted product sources and they cannot all be true; the roadmap meanwhile encodes the spec's reading as story 7 of 7.",
+    "The spec parked 'LLM & residency: OPEN - decide later' as NON-BLOCKING for a story that ships a live assistant. Answering a natural-language question necessarily sends user text off the machine, and MockLlmProvider always returns kind 'clarify' and never selects, so there was no shippable fallback that avoids the question.",
+    "The spec used 'saved queries', 'saved report' and 'pinned dashboards' interchangeably while the vendored contract already distinguishes a SavedQuery (a Selection) from a PinSnapshot (a ResultTable with computedAt and an access_revoked status) - the code was more decided than the requirements it implements."
+  ],
+  "resolutions": [
+    "REPO-ANSWERED - the spec now bounds the vocabulary to the domains semanticLayer.ts actually registers (governed-financial and mis-statement) over the proven Agriculture/Nursery/DUB slice, and requires a question outside that catalog to be refused as unsupported rather than answered zero, which decision 0018 established is a different and meaningful value.",
+    "REPO-ANSWERED - 'no fabricated numbers' is now falsifiable: every numeric character the user can see, including prose, labels, chart axes and annotations, is rendered from the deterministic governed result and never emitted by the model; rounding follows the statement's rules; and the empty, ambiguous and no-suitable-chart cases each have a stated behaviour.",
+    "REPO-ANSWERED - 'view in report' now has a contract: the link carries the selection's department, function, plant and period AND the batch provenance of the answer, and is absent with a reason when a question has no statement representation rather than linking to something else.",
+    "REPO-ANSWERED - the spec now inherits decision 0016's all-or-nothing access explicitly, requires re-authorization on every ask, saved re-run and pin open, and requires the audit record to be written before the read and to fail closed as the vendored chat path already does at chat.service.ts, with denials and unsupported requests audited too, following the drill-down precedent.",
+    "REPO-ANSWERED - the acceptance criteria are rewritten to name every promised surface: both surfaces, the chart and when it is omitted, provenance, the report link and its absent-with-a-reason case, saved queries and pins re-running under current RBAC, the out-of-catalog refusal, the declined causal why, and the fail-closed audit including denials.",
+    "REPO-ANSWERED - the spec now states the response matrix in precedence order: data question, definition question, ambiguous question (one clarifying question), causal why (declined, stays out of scope), and general chat (answered naturally, claims nothing about 3F's data, guides back).",
+    "REPO-ANSWERED - the spec now states plainly that the vendored chat, saved and pin routes are NOT registered, citing AppModule, the route allow-list and the applied auth/audit-only migration, and that this story owns the routes, the persistence and the UI rather than treating the Pulse reference as a usable feature.",
+    "HUMAN (kl-rahulanand) - decision 0026: the assistant ships in the PoC as story 7 of 7, superseding ONLY the chatbot clause of decision 0002 (its Operational MIS deferral stands) and amending the BRIEF's timing clause. Rejected: shipping exploration without the conversational layer, and deferring the whole story to a later phase.",
+    "HUMAN (kl-rahulanand) - decision 0027: AWS Bedrock in ap-south-1 (Mumbai), keeping question text in-country. Only the question, the prior turns and the governed vocabulary the user may already see leave the app; warehouse rows never do. Retention is AWS default for the PoC, with a contractual position riding on the production pilot (0011). Rejected: us-east-1, and keeping the seam with no live model.",
+    "HUMAN (kl-rahulanand) - decision 0028: a save stores the governed selection, never the answer; pins are personal and re-authorize on every open, so a revoked grant yields a refusal rather than a cached figure. Rejected: storing a visible answer snapshot, and shareable pins."
+  ],
+  "open_items": [
+    "Non-blocking - D-0032 is only HALF closed. The BRIEF's chatbot-timing clause is fixed, but it still frames Smart Palm, Yield-per-hectare and OER as v1's headline metrics, which decisions 0002 and 0014 replaced with the SAP-only Financial MIS. That is a documentation rewrite rather than a clause edit and keeps its revisit trigger; decision 0026 records the limit explicitly so a later reader is not misled.",
+    "Non-blocking - BEDROCK_MODEL_ID has no default and is a real deployment input; the PoC cannot demo the assistant without it."
+  ],
+  "inspected_refs": [
+    "docs/specs/assistant-and-exploration.md",
+    "docs/product/BRIEF.md",
+    "docs/decisions/0002-phase1-financial-mis.md",
+    "docs/decisions/0011-deployment-readiness-poc-scope.md",
+    "docs/decisions/0016-governed-joins-poc-scope.md",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/llm/mock.provider.ts",
+    "backend/src/llm/bedrock.provider.ts",
+    "backend/src/config.ts",
+    "backend/src/semantic/semanticLayer.ts",
+    "backend/drizzle/0000_auth_audit.sql",
+    "contract/src/api.ts"
+  ],
+  "rounds": [
+    {
+      "question": "The confirmed spec says the assistant is \"Included in the first PoC release\". Your BRIEF calls the chatbot \"sequenced as a fast-follow\" and accepted decision **0002** says \"the chatbot remain later phases\". Those cannot all be true, and D-0032 already flags the BRIEF as drifted. A planner cannot size this story until you settle it.",
+      "options": [
+        "Assistant ships in the PoC (Recommended)",
+        "Ship exploration now, converse later",
+        "Defer the whole story"
+      ],
+      "chosen": "Assistant ships in the PoC (Recommended)"
+    },
+    {
+      "question": "If the assistant ships with natural language: the only implemented provider is **Bedrock** (`bedrock.provider.ts`), and `MockLlmProvider` always returns \"clarify\" \u2014 it never selects, so it cannot answer a single question. Using a real model means the user's typed question, and conversation context, leave this machine. The spec parks LLM and data residency as \"OPEN \u2014 decide later\", and decision 0011 defers deployment readiness.",
+      "options": [
+        "Bedrock, and I'll name the region (Recommended)",
+        "Keep the seam, no live model in the PoC",
+        "Not applicable \u2014 see my scope answer"
+      ],
+      "chosen": "Bedrock, and I'll name the region (Recommended)"
+    },
+    {
+      "question": "The spec uses \"saved queries\", \"saved report\" and \"pinned dashboards\" interchangeably. The vendored contract already distinguishes a saved *selection* from a *snapshot* (`PinSnapshot` even carries an `access_revoked` status), so the code is more decided than the spec. These differ materially for confidentiality.",
+      "options": [
+        "Selections only, personal, re-run under current RBAC (Recommended)",
+        "Selections plus a visible snapshot",
+        "Personal plus shareable pins"
+      ],
+      "chosen": "Selections only, personal, re-run under current RBAC (Recommended)"
+    },
+    {
+      "question": "The Bedrock region to record in the decision. `config.ts:180` already defaults `AWS_REGION` to **ap-south-1** (Mumbai), which keeps the question text in-country for an Indian client. `BEDROCK_MODEL_ID` has no default, so it must be set either way.",
+      "options": [
+        "ap-south-1, Mumbai (Recommended)",
+        "us-east-1, N. Virginia",
+        "I'll confirm the region with 3F first"
+      ],
+      "chosen": "ap-south-1, Mumbai (Recommended)"
+    },
+    {
+      "question": "Closing the assistant requirements grill. Ten findings. Your three calls: the assistant ships in the PoC (I'll mint a decision superseding that clause of 0002 and amend the drifted BRIEF, closing D-0032); Bedrock as the provider; saves store selections only, personal, re-run under current RBAC. The seven I'm settling from the repo: the bounded data vocabulary is exactly what `semanticLayer.ts` registers (governed-financial + mis-statement) over the proven DUB slice, with out-of-catalog questions refused rather than answered zero; \"no fabricated numbers\" becomes falsifiable \u2014 every numeric character on screen, including prose and chart labels, is rendered from the deterministic result; the \"view in report\" deep link carries the selection *and* the answer's batch provenance, with a stated fallback when a question can't be represented as a statement; RBAC/audit inherit 0016's all-or-nothing with re-authorization on every ask, re-run and pin refresh, and a fail-closed audit as the chat path already does; the acceptance criteria are extended to cover every promised surface; a response matrix settles data / definition / ambiguous / causal / off-topic precedence; and the spec will state plainly that the vendored chat, saved and pin routes are **not registered** \u2014 `AppModule` imports none of them and the applied migration is auth/audit only \u2014 so this story owns restoring them. Any remaining gap?",
+      "options": [
+        "No gaps \u2014 amend and record (Recommended)",
+        "Something else \u2014 I'll say what"
+      ],
+      "chosen": "No gaps \u2014 amend and record (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "97990b1189cea70d166cfcd84b37262ccce222cdff348bd79d7df42971e58969",
+  "recorded_at": "2026-09-12T06:55:50+00:00",
+  "commit": "8da8a8499ce443b9786195fe9d27bcea144be3cd"
+}
