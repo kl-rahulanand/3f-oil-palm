@@ -30,9 +30,61 @@ Finance / management asking questions; analysts exploring beyond the fixed MIS.
 
 ## Confirmed scope (grilled 2026-09-01)
 - **Timing:** in the first PoC release (not a fast-follow).
-- **LLM & residency:** **OPEN — decide later.**
+- **LLM & residency:** settled 2026-09-12 — Bedrock, `ap-south-1` (decision **0027**).
 - **Guardrail:** conversational for chat; numbers only from governed measures
   (select-only, never authors SQL, never fabricates); guide back when diverging.
+
+## Settled by the requirements grill (2026-09-12)
+A cold read against the built repo found ten gaps. All are settled here; three were
+human-decided and carry their own decision records.
+
+- **Timing is settled, and the contradiction is closed.** The assistant **ships in the PoC** as
+  story 7 of 7 (decision **0026**), superseding only the chatbot clause of decision 0002 and
+  amending the chatbot-timing clause of `docs/product/BRIEF.md`. That closes only the **timing
+  half** of **D-0032** — the BRIEF still frames Smart Palm, Yield/ha and OER as v1's headline
+  metrics, and that half stays open. 0002's Operational MIS deferral stands. **Human-decided this grill.**
+- **LLM and residency are no longer open.** AWS **Bedrock in `ap-south-1` (Mumbai)** (decision
+  **0027**). Only the **question, the prior turns, and the governed vocabulary** the user is
+  already authorized to see may leave the app; **warehouse rows never do**. `MockLlmProvider`
+  always returns `clarify` and never selects, so it is development-only and not a shippable
+  fallback. **Human-decided this grill.**
+- **A save stores the selection, never the answer** (decision **0028**): pins are personal and
+  **re-authorize on every open**, so a revoked grant yields a refusal rather than a cached
+  figure. Answer snapshots and shareable pins are out of scope. **Human-decided this grill.**
+- **The data vocabulary is bounded and named.** The assistant may select only from the domains
+  the semantic layer actually registers — **`governed-financial`** and **`mis-statement`** —
+  over the proven Agriculture / Nursery / DUB slice and the periods the statement offers. A
+  question outside that catalog is **refused as unsupported and says so**; it is never answered
+  with a zero, which decision **0018** already established is a different and meaningful value.
+- **"Verified" and "no fabricated numbers" are falsifiable.** **Every numeric character the user
+  can see** — in prose, labels, chart axes and annotations, and follow-ups — is rendered from the
+  deterministic governed result. The model never emits a figure. Rounding follows the statement's
+  rules (Indian grouping, ₹, display-rounded after aggregation). An empty result says it is
+  empty; an ambiguous question asks one clarifying question rather than guessing; and when no
+  chart suits the shape of the answer, none is drawn.
+- **"View in report" has a contract.** The link carries the selection's Department, Function,
+  Plant and period **and the batch provenance of the answer that produced it**, so the statement
+  it opens is the one the assistant was talking about. When a question cannot be represented as a
+  statement selection, the link is **absent with a reason**, never a link to something else.
+- **RBAC and audit have failure semantics.** The assistant inherits the all-or-nothing governed
+  access of decision **0016** and **re-authorizes on every ask, every saved re-run and every pin
+  open** — never on the strength of an earlier authorization. Every data answer writes its audit
+  record **before** the read and **fails closed**, as the vendored chat path already does; denials
+  and unsupported requests are audited too, following the drill-down precedent.
+- **The response matrix is explicit**, in precedence order: a **data question** is answered from
+  the governed measures with provenance; a **definition question** is answered from the semantic
+  layer's own labels; an **ambiguous** question gets one clarifying question; a **causal "why"**
+  is declined as out of scope (it stays out) and redirected to what the numbers do show; and
+  **general chat** is answered naturally but claims nothing about 3F's data and guides back to
+  the report.
+- **Every promised surface is acceptance-covered** — see Acceptance criteria below, which now
+  name the docked panel, the standalone Ask page, the chart, provenance, the report link, saved
+  queries and pinned dashboards, rather than proving one generic answer.
+- **The vendored Pulse assistant is NOT wired in, and this story owns wiring it.** `AppModule`
+  imports none of `chat`, `saved` or `pins`; the registered-route allow-list in
+  `backend/src/app.routes.test.ts` contains no `/api/chat`, `/api/saved` or `/api/pins`; and the
+  applied migration `backend/drizzle/0000_auth_audit.sql` creates auth and audit tables only.
+  The story owns the routes, the persistence and the UI, and must not assume any of it exists.
 
 ## Rules
 - RBAC + append-only audit on every data answer.
@@ -43,14 +95,29 @@ Finance / management asking questions; analysts exploring beyond the fixed MIS.
   nice-to-have, not a gate.
 
 ## Acceptance criteria
-- An NL data question returns a **verified, provenanced** answer matching the
-  report — **no fabricated numbers**, read-only only.
-- General chit-chat is handled naturally; off-topic questions get a helpful nudge
-  back to the report.
-- A saved report re-runs correctly under the current user's RBAC.
+- An NL data question returns a **verified, provenanced** answer matching the report — **no
+  fabricated numbers**, read-only only — with every visible numeric character traceable to the
+  governed result.
+- The answer is reachable from **both** surfaces: the **docked assistant** beside the report and
+  the **standalone Ask page**.
+- A **chart** is drawn when the answer's shape suits one, from the same result, and omitted
+  rather than forced when it does not.
+- **Provenance** is shown with the answer, and **"view in report"** opens the statement for that
+  selection carrying the answer's batch provenance — or is absent with a reason when the question
+  has no statement representation.
+- A **saved query** stores the selection and **re-runs correctly under the current user's RBAC**;
+  a **pinned dashboard** opens by re-running, and a revoked grant produces a refusal rather than
+  a cached figure.
+- A question **outside the governed catalog** is refused as unsupported, never answered zero.
+- General chit-chat is handled naturally; off-topic questions get a helpful nudge back to the
+  report; a causal **"why"** is declined rather than answered.
+- Every data answer is **authorized and audited fail-closed**; a denial is audited too.
 
 ## Open items (non-blocking)
-- **LLM/model + data-residency** decision (deferred).
+- The **Bedrock model id** (`BEDROCK_MODEL_ID`) is a deployment input with no default; the region
+  is settled as `ap-south-1` by decision **0027**.
+- A contractual **retention and NDA position** for model inputs rides with the production pilot
+  (decision **0011**), not with this story.
 
 ## Source
 Decision 0003; Pulse README (Metabot, saved queries, pin-to-dashboard).

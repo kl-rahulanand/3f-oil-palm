@@ -1,0 +1,34 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The confirmed spec says the assistant is \"Included in the first PoC release\". Your BRIEF calls the chatbot \"sequenced as a fast-follow\" and accepted decision **0002** says \"the chatbot remain later phases\". Those cannot all be true, and D-0032 already flags the BRIEF as drifted. A planner cannot size this story until you settle it.",
+      "options": [
+        "Assistant ships in the PoC (Recommended)",
+        "Ship exploration now, converse later",
+        "Defer the whole story"
+      ],
+      "chosen": "Assistant ships in the PoC (Recommended)"
+    },
+    {
+      "question": "If the assistant ships with natural language: the only implemented provider is **Bedrock** (`bedrock.provider.ts`), and `MockLlmProvider` always returns \"clarify\" \u2014 it never selects, so it cannot answer a single question. Using a real model means the user's typed question, and conversation context, leave this machine. The spec parks LLM and data residency as \"OPEN \u2014 decide later\", and decision 0011 defers deployment readiness.",
+      "options": [
+        "Bedrock, and I'll name the region (Recommended)",
+        "Keep the seam, no live model in the PoC",
+        "Not applicable \u2014 see my scope answer"
+      ],
+      "chosen": "Bedrock, and I'll name the region (Recommended)"
+    },
+    {
+      "question": "The spec uses \"saved queries\", \"saved report\" and \"pinned dashboards\" interchangeably. The vendored contract already distinguishes a saved *selection* from a *snapshot* (`PinSnapshot` even carries an `access_revoked` status), so the code is more decided than the spec. These differ materially for confidentiality.",
+      "options": [
+        "Selections only, personal, re-run under current RBAC (Recommended)",
+        "Selections plus a visible snapshot",
+        "Personal plus shareable pins"
+      ],
+      "chosen": "Selections only, personal, re-run under current RBAC (Recommended)"
+    }
+  ],
+  "at": "2026-09-12T06:52:29.909125+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

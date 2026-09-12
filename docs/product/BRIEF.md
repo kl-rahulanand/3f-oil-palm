@@ -12,7 +12,8 @@ are distorted by manual value edits. We are building an automated, live MIS: a
 single trusted layer over the two data sources that reports the key metrics with
 clickable drill-downs so any number can be traced to the source rows that produced
 it. v1 also includes a conversational (chatbot) layer over the same centralized
-data (sequenced as a fast-follow). The system is a **read-only reporting layer** —
+data, shipping **within the PoC** as its final story (decision **0026**, which
+supersedes that clause of decision 0002). The system is a **read-only reporting layer** —
 it never edits SAP or Smart Palm. v1 makes numbers *live and traceable*, not
 *certified correct*: the manual manipulation of Yield/ha and OER happens upstream
 in the source systems and is explicitly out of scope for now (deferral D-0001).
