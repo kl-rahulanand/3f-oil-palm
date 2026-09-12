@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-12T14:37:02+00:00", "story": "assistant", "detail": "S-0008-b46e: Resolved by the orchestrator - correct call to raise it, and nothing for you to fix. The EPERM on 127.0.0.1:5432 is the D-0008 model working as designed: gated DB proofs run as demonstrated HOST evide"}

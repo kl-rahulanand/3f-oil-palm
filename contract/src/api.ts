@@ -372,6 +372,7 @@ export interface PinSnapshot {
 export interface SavedQuery {
   id: string;
   selection: Selection;
+  status: ExplorationSelectionStatus;
   chartType?: ChartType;
   createdAt: string;
 }
@@ -387,15 +388,22 @@ export interface Pin {
   id: string;
   title: string;
   selection: Selection;
+  status: ExplorationSelectionStatus;
   chartType?: ChartType;
   view?: ChartView;
   definitionVersion: string;
   definitionChanged: boolean;
   position: number;
   createdAt: string;
-  lastRefresh?: string;
-  snapshot?: PinSnapshot;
 }
+
+export type ExplorationSelectionStatus =
+  | { runnable: true }
+  | {
+      runnable: false;
+      reason: "grant_revoked" | "definition_unregistered";
+      message: string;
+    };
 
 /** POST /api/pins */
 export interface CreatePinRequest {

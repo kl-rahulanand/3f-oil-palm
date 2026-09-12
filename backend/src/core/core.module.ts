@@ -1,12 +1,5 @@
 import { Global, Module } from "@nestjs/common";
-import {
-  ALARM_SINK,
-  DRIZZLE_DB,
-  LLM_PROVIDER,
-  RECON_STORE,
-  WAREHOUSE,
-  loadConfig,
-} from "../config";
+import { ALARM_SINK, DRIZZLE_DB, LLM_PROVIDER, RECON_STORE, WAREHOUSE, loadConfig } from "../config";
 import { createDb } from "../db/pool";
 import { StarRocksAdapter } from "../warehouse/starrocks.adapter";
 import { StarRocksMysqlAdapter } from "../warehouse/starrocks-mysql.adapter";
@@ -25,7 +18,6 @@ import { LoggerAlarmSink } from "../recon/recon.alarm";
 import { DrizzleReconStore } from "../recon/recon.store";
 import { ReconciliationService } from "../recon/reconciliation.service";
 import { SelectionExecutor } from "../chat/selectionExecutor";
-import { PinRefreshService } from "../pins/pin-refresh.service";
 import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
 
 /** Global core: app DB + the two seams (warehouse, LLM) + shared services. */
@@ -43,8 +35,7 @@ import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
     },
     {
       provide: LLM_PROVIDER,
-      useFactory: () =>
-        loadConfig().llmProvider === "bedrock" ? new BedrockLlmProvider() : new MockLlmProvider(),
+      useFactory: () => (loadConfig().llmProvider === "bedrock" ? new BedrockLlmProvider() : new MockLlmProvider()),
     },
     RbacService,
     DimensionValuesService,
@@ -54,7 +45,6 @@ import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
     { provide: ALARM_SINK, useClass: LoggerAlarmSink },
     ReconciliationService,
     SelectionExecutor,
-    PinRefreshService,
     AuthoredMeasureRegistry,
     SemanticLayer,
     SqlBuilder,
@@ -72,7 +62,6 @@ import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
     ALARM_SINK,
     ReconciliationService,
     SelectionExecutor,
-    PinRefreshService,
     AuthoredMeasureRegistry,
     SemanticLayer,
     SqlBuilder,

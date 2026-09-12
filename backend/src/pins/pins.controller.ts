@@ -1,94 +1,149 @@
-﻿import { BadRequestException, Body, Controller, Delete, Get, HttpStatus, NotFoundException, Param, Patch, Post, UseGuards } from "@nestjs/common";
-import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { AuthUser, CreatePinRequest, Pin, UpdatePinViewRequest } from "@3f/contract";
-import { zodApiBody } from "../common/openapi";
-import { AuthGuard, CurrentUser, RequireAction } from "../auth/auth.guard";
+﻿import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseFilters,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiBody, ApiExtraModels, ApiHeader, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
+import type { AuthUser, Pin } from "@3f/contract";
+import { AuthGuard, CurrentUser, RequireAction, SessionId } from "../auth/auth.guard";
+import { CSRF_HEADER } from "../auth/cookies";
+import { ExplorationAuditFilter } from "../common/exploration-audit.filter";
+import { ExplorationDeleteResponseDto, ExplorationErrorDto } from "../saved/saved.schemas";
 import { PinsService } from "./pins.service";
-import { createPinSchema, reorderPinsSchema, updatePinViewSchema } from "./pins.schemas";
-import { PinRefreshService } from "./pin-refresh.service";
+import {
+  CreatePinRequestDto,
+  PinResponseDto,
+  ReorderPinsRequestDto,
+  UpdatePinViewRequestDto,
+  createPinSchema,
+  reorderPinsSchema,
+  updatePinViewSchema,
+} from "./pins.schemas";
 
-@ApiTags("pins")
+@ApiTags("Pins")
+@ApiExtraModels(CreatePinRequestDto, UpdatePinViewRequestDto, ReorderPinsRequestDto, PinResponseDto)
 @Controller("api/pins")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RequireAction("pin"))
+@UseFilters(ExplorationAuditFilter)
 export class PinsController {
-  constructor(
-    private readonly pins: PinsService,
-    private readonly refresh: PinRefreshService,
-  ) {}
+  constructor(private readonly pins: PinsService) {}
 
   @Post()
-  @UseGuards(RequireAction("pin"))
   @ApiOperation({ summary: "Pin a semantic selection to the current user's dashboard" })
-  @ApiBody(zodApiBody(createPinSchema))
-  @ApiResponse({ status: HttpStatus.CREATED, description: "Pin created" })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid or unauthorized selection" })
-  create(@CurrentUser() user: AuthUser, @Body() body: CreatePinRequest): Promise<Pin> {
+  @ApiHeader({ name: CSRF_HEADER, required: true, description: "Token matching the 3f_csrf cookie." })
+  @ApiBody({ type: CreatePinRequestDto })
+  @ApiResponse({ status: HttpStatus.CREATED, description: "Pin created.", type: PinResponseDto })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid selection.", type: ExplorationErrorDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: "Authentication is required.",
+    type: ExplorationErrorDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: "CSRF or pin grant validation failed.",
+    type: ExplorationErrorDto,
+  })
+  create(@CurrentUser() user: AuthUser, @SessionId() sessionId: string, @Body() body: unknown): Promise<Pin> {
     const parsed = createPinSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.issues[0]?.message);
-    return this.pins.create(user, parsed.data);
+    return this.pins.create(user, sessionId, parsed.data);
   }
 
   @Get()
   @ApiOperation({ summary: "List the current user's dashboard pins" })
-  @ApiResponse({ status: HttpStatus.OK, description: "Pins listed" })
-  list(@CurrentUser() user: AuthUser): Promise<Pin[]> {
-    return this.pins.list(user);
-  }
-
-  @Post("refresh-all")
-  @ApiOperation({ summary: "Refresh all of the current user's pinned snapshots" })
-  @ApiResponse({ status: HttpStatus.OK, description: "Pins refreshed" })
-  async refreshAll(@CurrentUser() user: AuthUser): Promise<Pin[]> {
-    await this.refresh.refreshAllForUser(user);
-    return this.pins.list(user);
-  }
-
-  @Post(":id/refresh")
-  @ApiOperation({ summary: "Refresh one of the current user's pinned snapshots" })
-  @ApiParam({ name: "id", description: "Pin id" })
-  @ApiResponse({ status: HttpStatus.OK, description: "Pin refreshed" })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: "Pin not found" })
-  async refreshOne(@CurrentUser() user: AuthUser, @Param("id") id: string): Promise<Pin> {
-    await this.refresh.refreshOne(user, id);
-    const pin = (await this.pins.list(user)).find((row) => row.id === id);
-    if (!pin) throw new NotFoundException("Pin not found");
-    return pin;
+  @ApiResponse({ status: HttpStatus.OK, description: "Pins listed.", type: PinResponseDto, isArray: true })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid request.", type: ExplorationErrorDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: "Authentication is required.",
+    type: ExplorationErrorDto,
+  })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: "Pin grant validation failed.", type: ExplorationErrorDto })
+  list(@CurrentUser() user: AuthUser, @SessionId() sessionId: string): Promise<Pin[]> {
+    return this.pins.list(user, sessionId);
   }
 
   @Patch("reorder")
   @ApiOperation({ summary: "Reorder the current user's dashboard pins" })
-  @ApiBody(zodApiBody(reorderPinsSchema))
-  @ApiResponse({ status: HttpStatus.OK, description: "Pins reordered" })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid pin order" })
-  reorder(@CurrentUser() user: AuthUser, @Body() body: { orderedIds: string[] }): Promise<Pin[]> {
+  @ApiHeader({ name: CSRF_HEADER, required: true, description: "Token matching the 3f_csrf cookie." })
+  @ApiBody({ type: ReorderPinsRequestDto })
+  @ApiResponse({ status: HttpStatus.OK, description: "Pins reordered.", type: PinResponseDto, isArray: true })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid pin order.", type: ExplorationErrorDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: "Authentication is required.",
+    type: ExplorationErrorDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: "CSRF or pin grant validation failed.",
+    type: ExplorationErrorDto,
+  })
+  reorder(@CurrentUser() user: AuthUser, @SessionId() sessionId: string, @Body() body: unknown): Promise<Pin[]> {
     const parsed = reorderPinsSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.issues[0]?.message);
-    return this.pins.reorder(user, parsed.data.orderedIds);
+    return this.pins.reorder(user, sessionId, parsed.data.orderedIds);
   }
 
   @Patch(":id/view")
   @ApiOperation({ summary: "Update presentation preferences for one of the current user's pins" })
   @ApiParam({ name: "id", description: "Pin id" })
-  @ApiBody(zodApiBody(updatePinViewSchema))
-  @ApiResponse({ status: HttpStatus.OK, description: "Pin view updated" })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid pin view" })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: "Pin not found" })
+  @ApiHeader({ name: CSRF_HEADER, required: true, description: "Token matching the 3f_csrf cookie." })
+  @ApiBody({ type: UpdatePinViewRequestDto })
+  @ApiResponse({ status: HttpStatus.OK, description: "Pin view updated.", type: PinResponseDto })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid pin view.", type: ExplorationErrorDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: "Authentication is required.",
+    type: ExplorationErrorDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: "CSRF or pin grant validation failed.",
+    type: ExplorationErrorDto,
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: "Pin not found.", type: ExplorationErrorDto })
   updateView(
     @CurrentUser() user: AuthUser,
+    @SessionId() sessionId: string,
     @Param("id") id: string,
-    @Body() body: UpdatePinViewRequest,
+    @Body() body: unknown,
   ): Promise<Pin> {
     const parsed = updatePinViewSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.issues[0]?.message);
-    return this.pins.updateView(user.id, id, parsed.data.view);
+    return this.pins.updateView(user, sessionId, id, parsed.data.view);
   }
 
   @Delete(":id")
   @ApiOperation({ summary: "Delete one of the current user's pins" })
   @ApiParam({ name: "id", description: "Pin id" })
-  @ApiResponse({ status: HttpStatus.OK, description: "Pin deleted" })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: "Pin not found" })
-  remove(@CurrentUser() user: AuthUser, @Param("id") id: string): Promise<{ ok: true }> {
-    return this.pins.remove(user, id);
+  @ApiResponse({ status: HttpStatus.OK, description: "Pin deleted.", type: ExplorationDeleteResponseDto })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid request.", type: ExplorationErrorDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: "Authentication is required.",
+    type: ExplorationErrorDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: "CSRF or pin grant validation failed.",
+    type: ExplorationErrorDto,
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: "Pin not found.", type: ExplorationErrorDto })
+  remove(
+    @CurrentUser() user: AuthUser,
+    @SessionId() sessionId: string,
+    @Param("id") id: string,
+  ): Promise<{ ok: true }> {
+    return this.pins.remove(user, sessionId, id);
   }
 }

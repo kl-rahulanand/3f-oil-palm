@@ -8,6 +8,13 @@
       "when": 1783036800000,
       "tag": "0000_auth_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789171200000,
+      "tag": "0001_saved_and_pins",
+      "breakpoints": true
     }
   ]
 }

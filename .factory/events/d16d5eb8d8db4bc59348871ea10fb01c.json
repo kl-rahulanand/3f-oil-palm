@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-12T14:36:06+00:00", "story": "assistant", "detail": "The required app-DB migration leaf is committed and registered, but its exact command cannot connect to the local app DB in this sandbox (EPERM 127.0.0.1:5432); run the isolated create/drop proof from"}

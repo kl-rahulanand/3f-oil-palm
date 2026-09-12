@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-12T14:30:37+00:00", "story": "assistant", "detail": "S-0007-82b0: Resolved by the orchestrator, not by you. node_modules is now fully installed in this worktree: I ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host, which is the documented path (l"}

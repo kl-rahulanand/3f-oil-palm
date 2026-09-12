@@ -301,14 +301,140 @@
     {
       "id": "assistant-exploration-api",
       "title": "Saved selections and personal pins, with the snapshot behaviour removed",
-      "objective": "Build the next bounded slice when it reaches the frontier: the scoped migration for saved_queries and dashboard_pins, the saved and pin routes storing selections only and re-authorizing on every open, and the removal of the vendored snapshot-on-create and snapshot-on-list behaviour. Backend only.",
+      "objective": "Give exploration its persistence and its routes, and delete the snapshot behaviour decision 0028 forbids. A deliberately scoped migration creates saved_queries and dashboard_pins; the saved and pins modules are registered behind their existing grants; every read re-authorizes as the current user; and PinRefreshService, its interval, the two refresh routes and the create-time and list-time snapshot reads are removed outright. Backend only - the Explore and pinned-reports surfaces are task 4.",
       "user_facing": false,
       "dependencies": [
         "assistant-governed-ask"
       ],
       "acceptance_criteria": [
-        "A saved selection re-runs under the current user's RBAC and a revoked grant is refused rather than served from a cached figure, and no route returns a stored ResultTable."
-      ]
+        "A DELIBERATELY SCOPED migration creates exactly two tables - saved_queries and dashboard_pins - and applies cleanly to a database whose only prior migration is 0000_auth_audit.sql, which is what every existing environment has. It is NOT generated from schema.ts: that would sweep in all seven absent tables, including pin_snapshots (which decision 0028 forbids writing to), conversations and conversation_turns (durable history deferred at the plan grill) and authored_measures and reconciliation_runs (features this story does not ship). Those five stay declared-but-absent and the gap is named rather than quietly closed. THE TWO-TABLE SCOPE SUPERSEDES the approved story plan's 'five new tables' wording at plans/active/assistant-assistant-exploration.md:111 and :263, which predates decision 0028 and the plan-grill deferral of durable history; confirmed by the human on 2026-09-12, with the plan body left unedited so its approval digest stands. Table and column names MATCH schema.ts:254-278 EXACTLY - saved_queries, dashboard_pins, user_id, chart_type, view_prefs, definition_version, refresh_cadence, last_refresh, created_at - because drizzle reads those names. That casing follows the vendored app-DB convention already set by 0000_auth_audit.sql under decision 0012 and is NOT authorized by decision 0015, whose snake_case deviation is warehouse-only (0015 line 17). 0015's still-applicable half DOES bind: an explicit index on each FK column (saved_queries.user_id, dashboard_pins.user_id) and timezone-aware timestamps.",
+        "The saved and pins modules are REGISTERED and GOVERNED: imported by app.module.ts, with every route in the strict allow-list in backend/src/app.routes.test.ts - the only thing that proves a route exists - and each behind AuthGuard, the global CsrfGuard and its existing action grant (RequireAction('save') for saved, RequireAction('pin') for pins; no new action is minted, GRANT_ACTIONS already carries both). The allow-list assertion must fail on an UNEXPECTED route as well as a missing one, because the refresh routes are being removed and their absence is part of the contract. These routes enter the public API surface for the first time, so decision 0019's NON-deviated half binds them: named typed request and response DTOs, documented Swagger responses including typed 400/401/403, strict rejection of unknown request fields, and constitution/07-exception-handling.md's failure model. 0019's actual deviations stand - unversioned api/<resource> paths, raw typed bodies rather than {success,data,error} envelopes, direct cross-module imports - and 0019 imposes no pagination requirement.",
+        "The snapshot machinery is DELETED, not merely unused. pins.service.ts:50 refreshes and persists a ResultTable on create and list left-joins pin_snapshots to return it; PinRefreshService is a whole background service - OnModuleInit/OnModuleDestroy, an interval calling refreshAllDue, storeAccessRevoked and storeExecutionError all writing pinSnapshots - and pins.controller.ts exposes POST :id/refresh and POST refresh-all. All of it goes: the service, its interval, the two refresh routes, the create-time refresh and the list join. The service has THREE live referrers, and missing any one of them fails the build or leaves the interval running: backend/src/core/core.module.ts imports it at :28, provides it at :57 and exports it at :75; pins.controller.ts:16 injects it; pins.service.ts:18/:25 imports it and toSnapshot. core.module.ts is therefore in write_scope and all three of its references go with the file. The Pin interface loses its snapshot and lastRefresh fields in contract/src/api.ts - an optional field that is never populated is exactly the compatibility leftover this task exists to remove. NO route returns a stored ResultTable and the pin_snapshots table is never created; the PinSnapshot interface and the pinSnapshots declaration in schema.ts may remain unused, as decision 0028's consequences state.",
+        "Every read re-authorizes as the CURRENT user against the CURRENT semantic layer, because a save is a question and a question may stop being answerable. Listing saved queries or pins validates each stored selection against the caller's present grants and the registered domains; one the caller may no longer run is returned as a refusal that says so, never silently dropped and never served from anything cached - there is nothing cached to serve. A selection naming a measure or dimension the semantic layer no longer registers is likewise reported rather than returned as if runnable. THE REFUSAL HAS A DECLARED SHAPE, because today SavedQuery (contract/src/api.ts:372) and Pin (:386) each require a runnable Selection and there is nowhere to say no. contract/src/api.ts is in write_scope: both interfaces gain a REQUIRED discriminated status - {runnable: true} | {runnable: false, reason: 'grant_revoked' | 'definition_unregistered', message: string} - required rather than optional so a consumer cannot forget to render it, following the required-discriminated-union precedent at contract/src/api.ts:486. The stored selection is RETAINED on a refusal so the reader can still see and delete what they saved. No frontend consumes SavedQuery or Pin yet - task 4 builds those surfaces - so this shape is settled here, not later.",
+        "Authorization and audit are per-request on EVERY route this task registers, not merely on create: POST /api/saved, GET /api/saved, DELETE /api/saved/:id, POST /api/pins, GET /api/pins, PATCH /api/pins/reorder, PATCH /api/pins/:id/view (pins.controller.ts:69) and DELETE /api/pins/:id. Each writes its audit record BEFORE the read or write and FAILS CLOSED - if the audit insert throws, the operation does not happen. Refusals are audited too, INCLUDING the ones RequireAction('save') and RequireAction('pin') throw from inside the guard (auth.guard.ts:77-90) BEFORE any controller method runs, which no in-controller audit can reach: those are caught by a route-scoped audit exception filter applied to both controllers, exactly as MisDrillAuditFilter does for the drill under decision 0025 (backend/src/mis/mis-drill.audit.filter.ts, @UseFilters at mis-drill.controller.ts:32), delegating to GlobalExceptionFilter once the record is written. AuditService gains typed exploration request and refusal methods beside the existing writeDrillEvent/writeDrillRefusalEvent; event_type is free text in 0000_auth_audit.sql:80 so they need no migration. Nothing here uses writeResultEvent, which audit.service.ts documents as best-effort and never blocking.",
+        "The behaviour is proven by hermetic leaves covering registration and the absence of the refresh routes, the create and list payloads carrying NO ResultTable, the re-authorization refusal for a revoked grant and for a selection whose measure is no longer registered, the fail-closed audit on a denied branch, and a guard-level RequireAction denial being audited by the route-scoped filter; plus a DB-backed proof that the scoped migration applies to a database holding only 0000_auth_audit.sql, creates exactly saved_queries and dashboard_pins, and leaves the other five declared tables absent - run against an ISOLATED scratch database it creates and drops, never the developer's app DB. That proof is an APP-DB test, so it belongs in tools/quality-gate.test.mjs's dbTests list and backend/package.json test:db beside migrate.test.ts; test:warehouse-proof is the separate WAREHOUSE_PG_* group gated on WAREHOUSE_DB_TEST=1 and is the wrong home. It stays outside CI under D-0008 and is demonstrated on the host. backend/src/db/migrate.trim.test.ts:6 pins an EXACT expected-table list and WILL break: it is in write_scope and its EXPECTED_TABLES grows by exactly saved_queries and dashboard_pins, which makes it the hermetic proof that the SQL creates those two and none of the other five. New hermetic files are registered in backend/package.json test:hermetic AND tools/quality-gate.test.mjs hermeticTests, or CI runs none of them - and the partition assertion at quality-gate.test.mjs:331 requires every backend test file to appear in exactly one of dbTests or hermeticTests. Under D-0006, every file this task edits that is named in .prettierignore - backend/src/core/core.module.ts, backend/src/db/migrate.trim.test.ts, backend/src/pins/pins.controller.ts, backend/src/pins/pins.service.ts, backend/src/saved/saved.service.ts - is formatted and removed from that list in the same change, and the entry for the deleted pin-refresh.service.ts goes with the file. Check the EXECUTED COUNT and testcase name in every artifact, never the exit code (D-0024, D-0031)."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-aea-c1",
+          "statement": "A DELIBERATELY SCOPED migration creates exactly two tables - saved_queries and dashboard_pins - and applies cleanly to a database whose only prior migration is 0000_auth_audit.sql, which is what every existing environment has. It is NOT generated from schema.ts: that would sweep in all seven absent tables, including pin_snapshots (which decision 0028 forbids writing to), conversations and conversation_turns (durable history deferred at the plan grill) and authored_measures and reconciliation_runs (features this story does not ship). Those five stay declared-but-absent and the gap is named rather than quietly closed. THE TWO-TABLE SCOPE SUPERSEDES the approved story plan's 'five new tables' wording at plans/active/assistant-assistant-exploration.md:111 and :263, which predates decision 0028 and the plan-grill deferral of durable history; confirmed by the human on 2026-09-12, with the plan body left unedited so its approval digest stands. Table and column names MATCH schema.ts:254-278 EXACTLY - saved_queries, dashboard_pins, user_id, chart_type, view_prefs, definition_version, refresh_cadence, last_refresh, created_at - because drizzle reads those names. That casing follows the vendored app-DB convention already set by 0000_auth_audit.sql under decision 0012 and is NOT authorized by decision 0015, whose snake_case deviation is warehouse-only (0015 line 17). 0015's still-applicable half DOES bind: an explicit index on each FK column (saved_queries.user_id, dashboard_pins.user_id) and timezone-aware timestamps.",
+          "source": "plans/active/assistant-assistant-exploration.md#the-migration"
+        },
+        {
+          "id": "t-aea-c2",
+          "statement": "The saved and pins modules are REGISTERED and GOVERNED: imported by app.module.ts, with every route in the strict allow-list in backend/src/app.routes.test.ts - the only thing that proves a route exists - and each behind AuthGuard, the global CsrfGuard and its existing action grant (RequireAction('save') for saved, RequireAction('pin') for pins; no new action is minted, GRANT_ACTIONS already carries both). The allow-list assertion must fail on an UNEXPECTED route as well as a missing one, because the refresh routes are being removed and their absence is part of the contract. These routes enter the public API surface for the first time, so decision 0019's NON-deviated half binds them: named typed request and response DTOs, documented Swagger responses including typed 400/401/403, strict rejection of unknown request fields, and constitution/07-exception-handling.md's failure model. 0019's actual deviations stand - unversioned api/<resource> paths, raw typed bodies rather than {success,data,error} envelopes, direct cross-module imports - and 0019 imposes no pagination requirement.",
+          "source": "docs/decisions/0019-fresh-routes-follow-vendored-house-style.md"
+        },
+        {
+          "id": "t-aea-c3",
+          "statement": "The snapshot machinery is DELETED, not merely unused. pins.service.ts:50 refreshes and persists a ResultTable on create and list left-joins pin_snapshots to return it; PinRefreshService is a whole background service - OnModuleInit/OnModuleDestroy, an interval calling refreshAllDue, storeAccessRevoked and storeExecutionError all writing pinSnapshots - and pins.controller.ts exposes POST :id/refresh and POST refresh-all. All of it goes: the service, its interval, the two refresh routes, the create-time refresh and the list join. The service has THREE live referrers, and missing any one of them fails the build or leaves the interval running: backend/src/core/core.module.ts imports it at :28, provides it at :57 and exports it at :75; pins.controller.ts:16 injects it; pins.service.ts:18/:25 imports it and toSnapshot. core.module.ts is therefore in write_scope and all three of its references go with the file. The Pin interface loses its snapshot and lastRefresh fields in contract/src/api.ts - an optional field that is never populated is exactly the compatibility leftover this task exists to remove. NO route returns a stored ResultTable and the pin_snapshots table is never created; the PinSnapshot interface and the pinSnapshots declaration in schema.ts may remain unused, as decision 0028's consequences state.",
+          "source": "docs/decisions/0028-saved-selections-not-snapshots.md"
+        },
+        {
+          "id": "t-aea-c4",
+          "statement": "Every read re-authorizes as the CURRENT user against the CURRENT semantic layer, because a save is a question and a question may stop being answerable. Listing saved queries or pins validates each stored selection against the caller's present grants and the registered domains; one the caller may no longer run is returned as a refusal that says so, never silently dropped and never served from anything cached - there is nothing cached to serve. A selection naming a measure or dimension the semantic layer no longer registers is likewise reported rather than returned as if runnable. THE REFUSAL HAS A DECLARED SHAPE, because today SavedQuery (contract/src/api.ts:372) and Pin (:386) each require a runnable Selection and there is nowhere to say no. contract/src/api.ts is in write_scope: both interfaces gain a REQUIRED discriminated status - {runnable: true} | {runnable: false, reason: 'grant_revoked' | 'definition_unregistered', message: string} - required rather than optional so a consumer cannot forget to render it, following the required-discriminated-union precedent at contract/src/api.ts:486. The stored selection is RETAINED on a refusal so the reader can still see and delete what they saved. No frontend consumes SavedQuery or Pin yet - task 4 builds those surfaces - so this shape is settled here, not later.",
+          "source": "docs/decisions/0016-governed-joins-poc-scope.md"
+        },
+        {
+          "id": "t-aea-c5",
+          "statement": "Authorization and audit are per-request on EVERY route this task registers, not merely on create: POST /api/saved, GET /api/saved, DELETE /api/saved/:id, POST /api/pins, GET /api/pins, PATCH /api/pins/reorder, PATCH /api/pins/:id/view (pins.controller.ts:69) and DELETE /api/pins/:id. Each writes its audit record BEFORE the read or write and FAILS CLOSED - if the audit insert throws, the operation does not happen. Refusals are audited too, INCLUDING the ones RequireAction('save') and RequireAction('pin') throw from inside the guard (auth.guard.ts:77-90) BEFORE any controller method runs, which no in-controller audit can reach: those are caught by a route-scoped audit exception filter applied to both controllers, exactly as MisDrillAuditFilter does for the drill under decision 0025 (backend/src/mis/mis-drill.audit.filter.ts, @UseFilters at mis-drill.controller.ts:32), delegating to GlobalExceptionFilter once the record is written. AuditService gains typed exploration request and refusal methods beside the existing writeDrillEvent/writeDrillRefusalEvent; event_type is free text in 0000_auth_audit.sql:80 so they need no migration. Nothing here uses writeResultEvent, which audit.service.ts documents as best-effort and never blocking.",
+          "source": "backend/src/mis/mis-drill.audit.filter.ts"
+        },
+        {
+          "id": "t-aea-c6",
+          "statement": "The behaviour is proven by hermetic leaves covering registration and the absence of the refresh routes, the create and list payloads carrying NO ResultTable, the re-authorization refusal for a revoked grant and for a selection whose measure is no longer registered, the fail-closed audit on a denied branch, and a guard-level RequireAction denial being audited by the route-scoped filter; plus a DB-backed proof that the scoped migration applies to a database holding only 0000_auth_audit.sql, creates exactly saved_queries and dashboard_pins, and leaves the other five declared tables absent - run against an ISOLATED scratch database it creates and drops, never the developer's app DB. That proof is an APP-DB test, so it belongs in tools/quality-gate.test.mjs's dbTests list and backend/package.json test:db beside migrate.test.ts; test:warehouse-proof is the separate WAREHOUSE_PG_* group gated on WAREHOUSE_DB_TEST=1 and is the wrong home. It stays outside CI under D-0008 and is demonstrated on the host. backend/src/db/migrate.trim.test.ts:6 pins an EXACT expected-table list and WILL break: it is in write_scope and its EXPECTED_TABLES grows by exactly saved_queries and dashboard_pins, which makes it the hermetic proof that the SQL creates those two and none of the other five. New hermetic files are registered in backend/package.json test:hermetic AND tools/quality-gate.test.mjs hermeticTests, or CI runs none of them - and the partition assertion at quality-gate.test.mjs:331 requires every backend test file to appear in exactly one of dbTests or hermeticTests. Under D-0006, every file this task edits that is named in .prettierignore - backend/src/core/core.module.ts, backend/src/db/migrate.trim.test.ts, backend/src/pins/pins.controller.ts, backend/src/pins/pins.service.ts, backend/src/saved/saved.service.ts - is formatted and removed from that list in the same change, and the entry for the deleted pin-refresh.service.ts goes with the file. Check the EXECUTED COUNT and testcase name in every artifact, never the exit code (D-0024, D-0031).",
+          "source": "plans/active/assistant-assistant-exploration.md#verify-plan"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "the saved and pins routes are registered behind their existing grants and no refresh route remains in the allow list",
+          "path": "backend/src/app.routes.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "creating and listing a pin returns no stored result table and no snapshot is written",
+          "path": "backend/src/pins/pins.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "listing refuses a saved selection the caller may no longer run instead of dropping it or serving a cached figure",
+          "path": "backend/src/saved/saved.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a selection naming a measure the semantic layer no longer registers is reported rather than returned as runnable",
+          "path": "backend/src/pins/pins.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a failing audit insert aborts a saved query write before it happens",
+          "path": "backend/src/saved/saved.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a require action denial thrown by the guard is audited by the route scoped filter before the request fails",
+          "path": "backend/src/common/exploration-audit.filter.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the scoped migration creates exactly saved queries and dashboard pins on a database holding only the auth audit migration",
+          "path": "backend/src/db/migrate.exploration.db.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "write_scope": [
+        "backend/drizzle/0001_saved_and_pins.sql",
+        "backend/drizzle/meta/_journal.json",
+        "backend/src/app.module.ts",
+        "backend/src/app.routes.test.ts",
+        "backend/src/common/exploration-audit.filter.ts",
+        "backend/src/common/exploration-audit.filter.test.ts",
+        "backend/src/core/core.module.ts",
+        "backend/src/core/audit.service.ts",
+        "backend/src/saved/saved.module.ts",
+        "backend/src/saved/saved.controller.ts",
+        "backend/src/saved/saved.schemas.ts",
+        "backend/src/saved/saved.service.ts",
+        "backend/src/saved/saved.service.test.ts",
+        "backend/src/pins/pins.module.ts",
+        "backend/src/pins/pins.controller.ts",
+        "backend/src/pins/pins.schemas.ts",
+        "backend/src/pins/pins.schemas.test.ts",
+        "backend/src/pins/pins.service.ts",
+        "backend/src/pins/pins.service.test.ts",
+        "backend/src/pins/pin-refresh.service.ts",
+        "backend/src/db/migrate.trim.test.ts",
+        "backend/src/db/migrate.exploration.db.test.ts",
+        "backend/src/swagger.test.ts",
+        "contract/src/api.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs",
+        ".prettierignore"
+      ],
+      "reviewer_focus": [
+        "THE MIGRATION IS HAND-SCOPED ON PURPOSE, AND THE APPROVED PLAN DISAGREES WITH IT. plans/active/assistant-assistant-exploration.md:111 and :263 say FIVE tables; this task builds TWO, and the human confirmed that on 2026-09-12. The plan body is deliberately unedited because approved_plan_sha256 locks it. Do not reject the two-table migration on the plan's wording. Seven tables are declared in schema.ts and absent from the database; a migration generated from schema.ts sweeps in pin_snapshots - which decision 0028 forbids writing to - plus the deferred conversation tables and two unrelated features. Check the SQL, not the intent.",
+        "DELETION, NOT DEPRECATION, AND IT REACHES INTO core.module.ts. PinRefreshService has three live referrers: core.module.ts imports/provides/exports it at :28/:57/:75, pins.controller.ts:16 injects it, pins.service.ts:25 takes it @Optional. Deleting the file without core.module.ts fails the build; leaving core.module.ts alone keeps the interval running. Pin.snapshot and Pin.lastRefresh must also leave contract/src/api.ts - a field that is never populated is the compatibility-leftover class that cost assistant-governed-ask an entire review round.",
+        "THE ALLOW-LIST MUST FAIL ON AN UNEXPECTED ROUTE. The refresh routes' absence is part of this contract, so a test that only checks the expected routes are present would pass with them still registered.",
+        "RE-AUTHORIZE, DO NOT CACHE, AND SAY NO IN A DECLARED SHAPE. A save is a question, and a question can stop being answerable. The required discriminated status on SavedQuery and Pin is the whole point: an optional flag a consumer can forget to read would let a revoked grant render as a normal row. The stored selection stays so the reader can still delete what they saved.",
+        "AUDIT EVERY ROUTE, INCLUDING WHAT THE GUARD REFUSES. RequireAction throws from inside the guard (auth.guard.ts:77-90) before any controller method runs, so an in-controller audit cannot see a denied save or pin. The route-scoped filter is the only thing that catches it; MisDrillAuditFilter is the working precedent. Eight routes, not one. FAIL-CLOSED MEANS THE WRITE DOES NOT HAPPEN: writeResultEvent is documented best-effort and never blocks, so using it here would satisfy the letter and lose the guarantee.",
+        "NO ResultTable IN ANY PAYLOAD. That is the observable form of decision 0028: nothing at rest the user could not re-derive by asking again.",
+        "CASING IS 0012, NOT 0015. Decision 0015's snake_case deviation is warehouse-only (line 17). These app-DB tables are snake_case because 0000_auth_audit.sql and schema.ts:254-278 already are, under decision 0012. What 0015 DOES still require here: an explicit index on each FK column and timezone-aware timestamps. Decision 0019's non-deviated half also binds these newly public routes - typed DTOs, documented 400/401/403 - though 0019 asks for no pagination.",
+        "A TEST CI DOES NOT RUN IS NOT A TEST, AND THE GROUPS ARE NOT INTERCHANGEABLE: hermetic files go in backend/package.json test:hermetic AND quality-gate.test.mjs hermeticTests; the app-DB migration proof goes in dbTests and test:db, NOT test:warehouse-proof (that group is the WAREHOUSE_PG_* database behind WAREHOUSE_DB_TEST=1). quality-gate.test.mjs:331 requires every backend test in exactly one list. migrate.trim.test.ts:6 pins an exact table list and must grow by exactly two. Check the EXECUTED COUNT and testcase name in every artifact, never the exit code (D-0024, D-0031)."
+      ],
+      "review_budget": {
+        "max_changed_files": 27,
+        "max_changed_lines": 2900,
+        "reason": "The first schema change to the app database since platform-base, hand-scoped against a schema.ts that declares five more absent tables and against an approved plan that says five; registration and governance of two vendored modules under decision 0019's non-deviated half; a required discriminated refusal status added to two shared contract interfaces; a fail-closed audit on eight routes plus a route-scoped filter for guard-level denials; and the outright deletion of a background refresh service with its interval, two routes, a create-time refresh, a list-time join and its registration in core.module.ts. Seven required leaves, one a DB-backed migration proof against an isolated scratch database, plus the D-0006 formatting debt on five files this task must touch. No UI."
+      }
     },
     {
       "id": "assistant-exploration-view",
@@ -325,5 +451,5 @@
     }
   ],
   "plan_sha256": "b42f23505a02ff4d849e94e042ca5514d3ebff0a4ceb25809c5696ada0e46150",
-  "commit": "c31ae4009589257bbb756c4d42c7a92e425bcdf3"
+  "commit": "e6ea3bf656731acc3207c0820ede20802b217f75"
 }
