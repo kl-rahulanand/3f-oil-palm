@@ -14,8 +14,142 @@
       "user_facing": false,
       "dependencies": [],
       "acceptance_criteria": [
-        "A governed natural-language question is answered from the governed measures with provenance, the model never emits a figure, and the view-in-report link opens the statement the answer came from or is refused as stale."
-      ]
+        "The vendored chat module is REGISTERED and GOVERNED: a ChatModule (and the LLM provider module it needs) is imported by app.module.ts, POST /api/chat and POST /api/chat/stream appear in the strict allow-list in backend/src/app.routes.test.ts - the only thing that proves a route exists - and both sit behind AuthGuard, the globally registered CsrfGuard and RequireAction('report'), the same governed action the statement uses. No new grant action is minted: GRANT_ACTIONS already carries report, save and pin.",
+        "The Bedrock input boundary is enforced BY TEST, not by inspection: a test asserts what the provider is called with. Permitted are the question, the prior turns, and the governed vocabulary INCLUDING dimension distinct values capped by dimensionEnumMax - which is chat.service.ts:167 calling dimensionValuesForAllowedDomains against the warehouse, permitted by decision 0027 as amended. Forbidden, and asserted absent, are amounts, measure values, transaction lines, batch contents and any row of a governed result. The provider is selected by LLM_PROVIDER; the mock only ever returns kind 'clarify' and is development-only.",
+        "The response matrix holds in precedence order and each branch is proven: a DATA question is answered from the governed measures with provenance.verified true and every visible numeric character rendered from the deterministic result; a DEFINITION question is answered from the semantic layer's own labels; an AMBIGUOUS question returns exactly one clarifying question; a CAUSAL 'why' is DECLINED as out of scope and redirected to what the numbers show; and GENERAL CHAT is answered from DETERMINISTIC templates extending the existing smalltalk-guard - the model is never asked for prose and can emit no numeral, so 'never fabricates a number' holds structurally rather than by instruction.",
+        "A question outside the governed catalog is REFUSED as unsupported and says so. The catalog is exactly the domains semanticLayer.ts registers - governed-financial and mis-statement - over the proven Agriculture / Nursery / DUB slice and the periods the statement offers. It is never answered with a zero: decision 0018 established that a zero is a meaningful value distinct from an absence, and conflating them here would teach the reader to distrust every zero on the statement.",
+        "View-in-report works on BOTH sides. AskResponse gains an optional field carrying the statement's department, function, plant and period PLUS the answer's activeBatchIds, populated only when the selection maps to a statement and ABSENT WITH A REASON otherwise - the client links from it and never reconstructs a selection itself. POST /api/mis/statement ACCEPTS those pinned batch ids, VALIDATES them, and returns a typed 'the data was refreshed - ask again' outcome when they are no longer the active batches, following the drill's precedent rather than silently rendering different numbers. Its path is a CHANGE to a shipped, reviewed route that the report and the drill both depend on, so the existing statement and drill tests must still pass untouched.",
+        "Authorization and audit are per-request on EVERY branch. The fail-closed request event currently guards only the final governed execution, while the denied and unsupported branches fall to writeResultEvent, which audit.service.ts documents as best-effort and never blocking. Every branch that consults governed data - including refusals and unsupported requests - now writes its record BEFORE the read and fails closed: if the audit write throws, no governed query is issued. Proven by a test that makes the insert fail and asserts the warehouse was never queried.",
+        "The task leaves the rest of the system as it found it and registers what it adds. The semantic layer, the warehouse schema, every governed measure and the drill path are untouched; no saved, pins or conversations route is registered here; and D-0006 is honoured for every prettier-ignored file this task edits - chat.controller.ts and smalltalk-guard.ts are formatted and their .prettierignore entries removed in the same change. New hermetic tests are registered in backend/package.json test:hermetic AND tools/quality-gate.test.mjs, or CI runs none of them."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-aga-c1",
+          "statement": "The vendored chat module is REGISTERED and GOVERNED: a ChatModule (and the LLM provider module it needs) is imported by app.module.ts, POST /api/chat and POST /api/chat/stream appear in the strict allow-list in backend/src/app.routes.test.ts - the only thing that proves a route exists - and both sit behind AuthGuard, the globally registered CsrfGuard and RequireAction('report'), the same governed action the statement uses. No new grant action is minted: GRANT_ACTIONS already carries report, save and pin.",
+          "source": "docs/decisions/0019-fresh-routes-follow-vendored-house-style.md"
+        },
+        {
+          "id": "t-aga-c2",
+          "statement": "The Bedrock input boundary is enforced BY TEST, not by inspection: a test asserts what the provider is called with. Permitted are the question, the prior turns, and the governed vocabulary INCLUDING dimension distinct values capped by dimensionEnumMax - which is chat.service.ts:167 calling dimensionValuesForAllowedDomains against the warehouse, permitted by decision 0027 as amended. Forbidden, and asserted absent, are amounts, measure values, transaction lines, batch contents and any row of a governed result. The provider is selected by LLM_PROVIDER; the mock only ever returns kind 'clarify' and is development-only.",
+          "source": "docs/decisions/0027-assistant-llm-bedrock-mumbai.md"
+        },
+        {
+          "id": "t-aga-c3",
+          "statement": "The response matrix holds in precedence order and each branch is proven: a DATA question is answered from the governed measures with provenance.verified true and every visible numeric character rendered from the deterministic result; a DEFINITION question is answered from the semantic layer's own labels; an AMBIGUOUS question returns exactly one clarifying question; a CAUSAL 'why' is DECLINED as out of scope and redirected to what the numbers show; and GENERAL CHAT is answered from DETERMINISTIC templates extending the existing smalltalk-guard - the model is never asked for prose and can emit no numeral, so 'never fabricates a number' holds structurally rather than by instruction.",
+          "source": "docs/specs/assistant-and-exploration.md#settled-by-the-requirements-grill-2026-09-12"
+        },
+        {
+          "id": "t-aga-c4",
+          "statement": "A question outside the governed catalog is REFUSED as unsupported and says so. The catalog is exactly the domains semanticLayer.ts registers - governed-financial and mis-statement - over the proven Agriculture / Nursery / DUB slice and the periods the statement offers. It is never answered with a zero: decision 0018 established that a zero is a meaningful value distinct from an absence, and conflating them here would teach the reader to distrust every zero on the statement.",
+          "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+        },
+        {
+          "id": "t-aga-c5",
+          "statement": "View-in-report works on BOTH sides. AskResponse gains an optional field carrying the statement's department, function, plant and period PLUS the answer's activeBatchIds, populated only when the selection maps to a statement and ABSENT WITH A REASON otherwise - the client links from it and never reconstructs a selection itself. POST /api/mis/statement ACCEPTS those pinned batch ids, VALIDATES them, and returns a typed 'the data was refreshed - ask again' outcome when they are no longer the active batches, following the drill's precedent rather than silently rendering different numbers. Its path is a CHANGE to a shipped, reviewed route that the report and the drill both depend on, so the existing statement and drill tests must still pass untouched.",
+          "source": "plans/active/assistant-assistant-exploration.md#view-in-report-on-both-sides"
+        },
+        {
+          "id": "t-aga-c6",
+          "statement": "Authorization and audit are per-request on EVERY branch. The fail-closed request event currently guards only the final governed execution, while the denied and unsupported branches fall to writeResultEvent, which audit.service.ts documents as best-effort and never blocking. Every branch that consults governed data - including refusals and unsupported requests - now writes its record BEFORE the read and fails closed: if the audit write throws, no governed query is issued. Proven by a test that makes the insert fail and asserts the warehouse was never queried.",
+          "source": "backend/src/core/audit.service.ts"
+        },
+        {
+          "id": "t-aga-c7",
+          "statement": "The task leaves the rest of the system as it found it and registers what it adds. The semantic layer, the warehouse schema, every governed measure and the drill path are untouched; no saved, pins or conversations route is registered here; and D-0006 is honoured for every prettier-ignored file this task edits - chat.controller.ts and smalltalk-guard.ts are formatted and their .prettierignore entries removed in the same change. New hermetic tests are registered in backend/package.json test:hermetic AND tools/quality-gate.test.mjs, or CI runs none of them.",
+          "source": "docs/decisions/0006-frontend-fresh-backend-vendor.md"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "the chat routes are registered behind the governed report action and appear in the strict route allow list",
+          "path": "backend/src/app.routes.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the llm provider receives the question prior turns and dimension values and never an amount or a result row",
+          "path": "backend/src/chat/chat.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a data question answers from the governed measures and a definition question answers from the semantic layer labels",
+          "path": "backend/src/chat/chat.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an ambiguous question returns one clarifying question and a causal why is declined rather than answered",
+          "path": "backend/src/chat/chat.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "general chat is answered from deterministic templates that assert nothing about the data and contain no numeral",
+          "path": "backend/src/chat/smalltalk-guard.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a question outside the registered domains is refused as unsupported and never answered with a zero",
+          "path": "backend/src/chat/chat.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the answer carries the statement selectors and batch ids when it maps to a statement and is absent with a reason when it does not",
+          "path": "backend/src/chat/chat.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the statement route refuses a pinned batch that is no longer active with its typed refreshed data outcome",
+          "path": "backend/src/mis/mis-statement.controller.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a failing audit insert aborts a denied request and an unsupported request before any governed query is issued",
+          "path": "backend/src/chat/chat.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "write_scope": [
+        "contract/src/api.ts",
+        "backend/src/app.module.ts",
+        "backend/src/app.routes.test.ts",
+        "backend/src/chat/chat.module.ts",
+        "backend/src/chat/chat.controller.ts",
+        "backend/src/chat/chat.service.ts",
+        "backend/src/chat/chat.service.test.ts",
+        "backend/src/chat/smalltalk-guard.ts",
+        "backend/src/chat/smalltalk-guard.test.ts",
+        "backend/src/llm/llm.module.ts",
+        "backend/src/mis/mis-statement.controller.ts",
+        "backend/src/mis/mis-statement.controller.test.ts",
+        "backend/src/mis/mis-statement.service.ts",
+        "backend/src/mis/mis-statement.service.test.ts",
+        "backend/src/mis/mis-statement.dto.ts",
+        "backend/src/mis/mis-statement.interface.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs",
+        ".prettierignore"
+      ],
+      "reviewer_focus": [
+        "REGISTRATION IS THE POINT, AND THE ALLOW-LIST IS THE PROOF. backend/src/app.routes.test.ts is the only artifact that shows a route exists; a ChatModule imported without updating it leaves the route unproven. Check RequireAction('report') is actually on the controller, not merely AuthGuard - the vendored controller ships with AuthGuard alone, which authenticates but does not authorize.",
+        "THE LLM BOUNDARY MUST BE ASSERTED ON THE PROVIDER'S INPUT, not on a comment. Decision 0027 permits the question, the prior turns and the governed vocabulary INCLUDING dimension distinct values; it forbids amounts, measure values, transaction lines, batch contents and result rows. A test that only checks the happy path proves nothing - confirm it asserts the forbidden things are ABSENT.",
+        "THE STATEMENT ROUTE IS SHIPPED CODE THAT THE REPORT AND THE DRILL BOTH DEPEND ON. Adding pinned batch ids must not change its behaviour when they are absent, and every existing statement and drill test must still pass untouched. A regression here breaks two merged stories.",
+        "A ZERO IS NOT AN ABSENCE (decision 0018). An out-of-catalog question answered with an empty governed result rendered as zero is the single most damaging failure this surface can have: it teaches the reader to distrust every zero on the statement. It must be a refusal that says so.",
+        "THE MODEL MUST NEVER EMIT A NUMERAL. General chat is deterministic templates; the provider is a selector. If any branch asks Bedrock for prose, the no-fabrication guarantee stops being structural and becomes an instruction the model may ignore.",
+        "FAIL-CLOSED MEANS THE QUERY DOES NOT RUN. writeResultEvent is documented best-effort and never blocks; moving the denied and unsupported branches onto it would satisfy the letter and lose the guarantee. Verify by test that no governed query is issued when the audit insert throws - not that an error was logged.",
+        "D-0006 APPLIES TO chat.controller.ts AND smalltalk-guard.ts (both are in .prettierignore) but NOT to chat.service.ts, which is absent from that file and already formatted. Editing the first two means formatting them and removing their ignore entries in the same change; a review that flags chat.service.ts as ignored is wrong - read .prettierignore rather than assuming.",
+        "A TEST CI DOES NOT RUN IS NOT A TEST. New hermetic files must be added to backend/package.json test:hermetic AND tools/quality-gate.test.mjs. And check the EXECUTED COUNT and testcase name in every artifact, never the exit code (D-0024, D-0031)."
+      ],
+      "review_budget": {
+        "max_changed_files": 19,
+        "max_changed_lines": 2600,
+        "reason": "Registration is small; everything around it is not. The task governs a 3,758-line vendored chat stack it did not write, enforces a provider boundary by test, implements and proves five response-matrix branches, moves a fail-closed audit boundary onto branches that currently use a best-effort writer, and changes a SHIPPED statement route to accept and validate pinned batch ids with a typed refusal - a change two merged stories depend on not breaking. It also carries two D-0006 reformats (chat.controller.ts, smalltalk-guard.ts) whose diffs are mechanical but large, and the four registration files without which the routes are unproven and the new tests unrun. No migration and no UI."
+      }
     },
     {
       "id": "assistant-ask-surfaces",
@@ -56,5 +190,5 @@
     }
   ],
   "plan_sha256": "b42f23505a02ff4d849e94e042ca5514d3ebff0a4ceb25809c5696ada0e46150",
-  "commit": "4a4f52dfa1f61461e0c6b189785adf10889059df"
+  "commit": "ded8017ce1c15b2e70d6978866f5a1196fbf8657"
 }
