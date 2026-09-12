@@ -10,8 +10,10 @@ import {
   type Selection,
 } from "@3f/contract";
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "../llm/llm.interface";
+import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
+import { askSchema } from "./chat.schemas";
 import { ChatService } from "./chat.service";
 
 test("the llm provider receives the question prior turns and dimension values and never an amount or a result row", async () => {
@@ -19,7 +21,14 @@ test("the llm provider receives the question prior turns and dimension values an
     selection: financialSelection,
     result: {
       columns: [{ key: "actual", label: "Actual", numeric: true }],
-      rows: [{ actual: 123.45, secret_row_marker: "warehouse-row" }],
+      rows: [
+        {
+          actual: 123.45,
+          secret_row_marker: "warehouse-row",
+          transaction_line: "transaction-line",
+          batch_contents: "batch-contents",
+        },
+      ],
     },
     activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
   });
@@ -36,12 +45,18 @@ test("the llm provider receives the question prior turns and dimension values an
 
   assert.equal(fixture.llm.inputs.length, 1);
   const input = fixture.llm.inputs[0];
+  assert.deepEqual(Object.keys(input).sort(), ["allowedDomains", "dimensionValues", "priorTurns", "question"]);
   assert.equal(input.question, "Show Actual by GL code");
   assert.deepEqual(input.priorTurns, priorTurns);
-  assert.deepEqual(input.dimensionValues?.gl_code, ["DUB"]);
+  assert.equal(input.allowedDomains[0]?.name, "governed-financial");
+  assert.equal(input.allowedDomains[0]?.measures[0]?.label, "Actual");
+  assert.equal(input.allowedDomains[0]?.dimensions.find(({ id }) => id === "gl_code")?.label, "GL code");
+  assert.equal(input.dimensionValues?.gl_code?.length, 50);
+  assert.deepEqual(input.dimensionValues?.gl_code?.at(0), "DUB-00");
+  assert.deepEqual(input.dimensionValues?.gl_code?.at(-1), "DUB-49");
   assert.equal("month" in (input.dimensionValues ?? {}), false);
   const serialized = JSON.stringify(input);
-  for (const forbidden of ["123.45", "warehouse-row", ACTUAL_BATCH_ID]) {
+  for (const forbidden of ["123.45", "warehouse-row", "transaction-line", "batch-contents", ACTUAL_BATCH_ID]) {
     assert.equal(serialized.includes(forbidden), false, forbidden);
   }
 });
@@ -179,6 +194,7 @@ test("a request carrying a conversation id is rejected and prior turns are read 
     priorTurns,
   );
   assert.deepEqual(transported.llm.inputs[0].priorTurns, priorTurns);
+  assert.equal(askSchema.safeParse({ question: "x".repeat(LLM_CONTEXT_CHAR_BUDGET + 1) }).success, false);
 });
 
 const financialSelection: Selection = {
@@ -283,8 +299,8 @@ class FakeDimensions {
   calls = 0;
   async values(_object: string, column: string) {
     this.calls += 1;
-    if (column === "month") return Array.from({ length: 101 }, (_, index) => `month-${index}`);
-    return ["DUB"];
+    if (column === "month") return Array.from({ length: 51 }, (_, index) => `month-${index}`);
+    return Array.from({ length: 50 }, (_, index) => `DUB-${String(index).padStart(2, "0")}`);
   }
 }
 

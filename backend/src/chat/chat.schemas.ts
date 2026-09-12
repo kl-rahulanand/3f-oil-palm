@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { selectionSchema } from "../saved/saved.schemas";
+import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
 import { CHAT_VALIDATION } from "./chat.constants";
 
 const reportGroundingTimeWindowSchema = z
@@ -14,7 +15,7 @@ const reportGroundingTimeWindowSchema = z
 
 export const askSchema = z
   .object({
-    question: z.string().min(CHAT_VALIDATION.questionMinLength),
+    question: z.string().min(CHAT_VALIDATION.questionMinLength).max(LLM_CONTEXT_CHAR_BUDGET),
     sessionId: z.string().min(1).max(200).optional(),
     selection: selectionSchema.optional(),
     priorTurns: z.array(z.object({ question: z.string().min(1), selection: selectionSchema }).strict()).optional(),
