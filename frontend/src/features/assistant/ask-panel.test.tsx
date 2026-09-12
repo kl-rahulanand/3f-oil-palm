@@ -1,14 +1,30 @@
-import type { AskResponse, Selection } from "@3f/contract";
+import type { AskResponse, AuthUser, Selection } from "@3f/contract";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import AskPage from "@/app/(app)/ask/page";
+import { AppShell } from "@/src/components/shell/app-shell";
+import { renderWithQuery } from "@/src/test/render";
 import { AskPanel } from "./ask-panel";
 import { AskProvider } from "./use-ask";
 
-const mocks = vi.hoisted(() => ({ ask: vi.fn() }));
+const mocks = vi.hoisted(() => ({ ask: vi.fn(), replace: vi.fn() }));
 
 vi.mock("@/src/lib/api", () => ({ api: mocks }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/ask",
+  useRouter: () => ({ replace: mocks.replace }),
+}));
+
+const user: AuthUser = {
+  id: "user",
+  email: "admin@example.invalid",
+  display_name: "R. Venkatesh",
+  is_active: true,
+  roles: ["admin"],
+  permissions: { domains: [], measureIds: [], dimensionIds: [], actions: [] },
+  scope: [],
+};
 
 const selection: Selection = {
   domain: "mis-statement",
@@ -22,14 +38,17 @@ const success: AskResponse = {
   sessionId: "session",
   title: "Governed result",
   selection,
-  chartType: "table",
+  chartType: "bar",
   result: {
     columns: [
       { key: "measure", label: "Measure", numeric: false },
       { key: "actual", label: "Actual", numeric: true },
       { key: "budget", label: "Budget", numeric: true },
     ],
-    rows: [{ measure: "Nursery", actual: "125.50", budget: "200.00" }],
+    rows: [
+      { measure: "Nursery", actual: "125.50", budget: "200.00" },
+      { measure: "Seedlings", actual: "75.25", budget: "80.00" },
+    ],
   },
   provenance: {
     verified: true,
@@ -73,12 +92,23 @@ test("a successful answer renders its result with the verified badge the provena
 
   const answer = (await screen.findByText("Governed result")).closest("article")!;
   expect(within(answer).getByText("✓ Verified")).toBeInTheDocument();
+  expect(within(answer).getByRole("img", { name: "bar chart" })).toBeInTheDocument();
   expect(within(answer).getByRole("table")).toHaveTextContent("Nursery");
   fireEvent.click(within(answer).getByText("How this was calculated"));
   expect(within(answer).getByText("Actual and Budget for the governed nursery scope")).toBeInTheDocument();
   expect(within(answer).getByText("Agriculture · Nursery · DUB")).toBeInTheDocument();
   expect(within(answer).getByText("July close")).toBeInTheDocument();
-  expect(answer.textContent?.replace(/\D/g, "")).toBe("1255020000");
+  expect(answer.textContent?.replace(/\D/g, "")).toBe("125502000075258000");
+
+  cleanup();
+  mocks.ask.mockResolvedValue({
+    ...success,
+    provenance: { ...success.provenance!, verified: false },
+  });
+  renderAsk();
+  submit("Show an unverified governed result");
+  await screen.findByText("Governed result");
+  expect(screen.queryByText("✓ Verified")).not.toBeInTheDocument();
 });
 
 test("a chart shape the client cannot draw honestly falls back to the table rather than a misleading chart", async () => {
@@ -151,8 +181,12 @@ test("an informational answer renders its definition and suggested questions rat
 
   expect(await screen.findByRole("heading", { name: "Actual" })).toBeInTheDocument();
   expect(screen.getByText("The governed amount posted from SAP.")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Show governed Actual for Agriculture Nursery DUB this month" })).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Show percentage for Agriculture Nursery DUB this month" })).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Show governed Actual for Agriculture Nursery DUB this month" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Show percentage for Agriculture Nursery DUB this month" }),
+  ).not.toBeInTheDocument();
 });
 
 test("each message bearing failure class renders its honest message alone with no result chart provenance or report link", async () => {
@@ -245,7 +279,7 @@ test("only successful turns become prior turns and the thread survives opening t
   expect(screen.queryByText("Show governed Actual")).not.toBeInTheDocument();
 });
 
-test("the docked panel and the standalone ask page render from the same component", () => {
+test("the docked panel and the standalone ask page render from the same component and ask is a live shell destination", () => {
   render(
     <AskProvider>
       <AskPage />
@@ -260,6 +294,15 @@ test("the docked panel and the standalone ask page render from the same componen
     </AskProvider>,
   );
   expect(screen.getByRole("region", { name: "Ask panel" })).toHaveAttribute("data-surface", "docked");
+
+  cleanup();
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+  renderWithQuery(
+    <AppShell user={user}>
+      <div>Canvas</div>
+    </AppShell>,
+  );
+  expect(screen.getByRole("link", { name: "Ask" })).toHaveAttribute("href", "/ask");
 });
 
 function renderAsk() {

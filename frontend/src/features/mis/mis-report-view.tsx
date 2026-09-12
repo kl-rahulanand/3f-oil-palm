@@ -37,70 +37,72 @@ export function MisReportView() {
   return (
     <div className="mis-ask-layout">
       <section className="mis-report">
-      <header className="mis-report-header">
-        <p className="mis-eyebrow">Governed financial view</p>
-        <h1>MIS Reports</h1>
-        <p>Resolve a nursery selection to its approved scope and review the resulting Actual and Budget values.</p>
-      </header>
+        <header className="mis-report-header">
+          <p className="mis-eyebrow">Governed financial view</p>
+          <h1>MIS Reports</h1>
+          <p>Resolve a nursery selection to its approved scope and review the resulting Actual and Budget values.</p>
+        </header>
 
-      <form className="mis-filter-bar" onSubmit={generate}>
-        <SelectField
-          label="Department"
-          value={selection.department}
-          options={options.data?.departments.map((value) => ({ value, label: value })) ?? []}
-          onChange={(value) => update("department", value)}
-        />
-        <SelectField
-          label="Function"
-          value={selection.function}
-          options={options.data?.functions.map((value) => ({ value, label: value })) ?? []}
-          onChange={(value) => update("function", value)}
-        />
-        <SelectField
-          label="Plant"
-          value={selection.plant}
-          options={options.data?.plants.map(({ value, label }) => ({ value, label })) ?? []}
-          onChange={(value) => update("plant", value)}
-        />
-        <SelectField
-          label="Period"
-          value={selection.period}
-          options={options.data?.periods.map(({ value, label }) => ({ value, label })) ?? []}
-          onChange={(value) => update("period", value)}
-        />
-        <Button
-          className="mis-generate"
-          type="submit"
-          disabled={options.isPending || run.isPending || !isComplete(selection)}
-        >
-          {run.isPending ? "Generating…" : "Generate"}
-        </Button>
-      </form>
+        <form className="mis-filter-bar" onSubmit={generate}>
+          <SelectField
+            label="Department"
+            value={selection.department}
+            options={options.data?.departments.map((value) => ({ value, label: value })) ?? []}
+            onChange={(value) => update("department", value)}
+          />
+          <SelectField
+            label="Function"
+            value={selection.function}
+            options={options.data?.functions.map((value) => ({ value, label: value })) ?? []}
+            onChange={(value) => update("function", value)}
+          />
+          <SelectField
+            label="Plant"
+            value={selection.plant}
+            options={options.data?.plants.map(({ value, label }) => ({ value, label })) ?? []}
+            onChange={(value) => update("plant", value)}
+          />
+          <SelectField
+            label="Period"
+            value={selection.period}
+            options={options.data?.periods.map(({ value, label }) => ({ value, label })) ?? []}
+            onChange={(value) => update("period", value)}
+          />
+          <Button
+            className="mis-generate"
+            type="submit"
+            disabled={options.isPending || run.isPending || !isComplete(selection)}
+          >
+            {run.isPending ? "Generating…" : "Generate"}
+          </Button>
+        </form>
 
-      {options.isError && (
-        <StatusMessage error>Selection options could not be loaded. Refresh the page to try again.</StatusMessage>
-      )}
-      {run.isError && (
-        <StatusMessage error>The report could not be generated. Check the selection and try again.</StatusMessage>
-      )}
-      {!run.data && !run.isPending && !run.isError && !options.isError && (
-        <div className="mis-empty-state">
-          <div className="mis-empty-icon" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
+        {options.isError && (
+          <StatusMessage error>Selection options could not be loaded. Refresh the page to try again.</StatusMessage>
+        )}
+        {run.isError && (
+          <StatusMessage error>The report could not be generated. Check the selection and try again.</StatusMessage>
+        )}
+        {!run.data && !run.isPending && !run.isError && !options.isError && (
+          <div className="mis-empty-state">
+            <div className="mis-empty-icon" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <strong>Select Department, Function and Plant, then Generate</strong>
+            <p>
+              Actuals are read from SAP for the selected period. Nothing is written back — this report is read-only.
+            </p>
           </div>
-          <strong>Select Department, Function and Plant, then Generate</strong>
-          <p>Actuals are read from SAP for the selected period. Nothing is written back — this report is read-only.</p>
-        </div>
-      )}
-      {run.isSuccess &&
-        (run.data.outcome === "refresh-required" ? (
-          <StatusMessage error>{run.data.notice}</StatusMessage>
-        ) : (
-          <StatementView response={run.data} />
-        ))}
+        )}
+        {run.isSuccess &&
+          (run.data.outcome === "refresh-required" ? (
+            <StatusMessage error>{run.data.notice}</StatusMessage>
+          ) : (
+            <StatementView response={run.data} />
+          ))}
       </section>
       {askOpen ? (
         <AskPanel surface="docked" onCollapse={() => setAskOpen(false)} />

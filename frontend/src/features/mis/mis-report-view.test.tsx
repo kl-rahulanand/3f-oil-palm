@@ -133,7 +133,10 @@ test("a refresh required statement response replaces the report with its notice 
     activeBatchIds: JSON.stringify(activeBatchIds),
   });
   mocks.misOptions.mockResolvedValue(options);
-  mocks.runMisStatement.mockResolvedValue({ outcome: "refresh-required", notice: "The data was refreshed - ask again" });
+  mocks.runMisStatement.mockResolvedValue({
+    outcome: "refresh-required",
+    notice: "The data was refreshed - ask again",
+  });
 
   renderWithQuery(<MisReportView />);
 

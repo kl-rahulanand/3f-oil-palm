@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  type AskResponse,
-  type ChartType,
-  type ProvenanceBatch,
-  type ResultTable,
-} from "@3f/contract";
+import { type AskResponse, type ChartType, type ProvenanceBatch, type ResultTable } from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -30,10 +25,7 @@ const SEED_QUESTIONS = [
 ];
 const CHART_COLORS = ["#1c6b49", "#0c3529", "#7aa889", "#c8922f"];
 
-export function AskPanel({
-  surface,
-  onCollapse,
-}: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>) {
+export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>) {
   const { turns, isPending, error, ask } = useAsk();
   const [draft, setDraft] = useState("");
   const suggestions = latestSuggestions(turns) ?? SEED_QUESTIONS;
@@ -327,7 +319,9 @@ function canDraw(result: ResultTable, chartType: ChartType): boolean {
 }
 
 function isNumeric(value: string | number | null): boolean {
-  return typeof value === "number" || (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)));
+  return (
+    typeof value === "number" || (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)))
+  );
 }
 
 function cell(value: string | number | null | undefined): string | number {

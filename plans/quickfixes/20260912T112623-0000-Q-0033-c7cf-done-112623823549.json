@@ -1,0 +1,12 @@
+{
+  "event": "done",
+  "id": "Q-0033-c7cf",
+  "profile": "degraded",
+  "kind": "degraded",
+  "reason": "Correcting my own error from window Q-0032-fcc8: I installed recharts from the host with npm's default caret range, writing frontend/package.json 'recharts': '^3.10.1', which violates the repo's exact-pin rule enforced at tools/quality-gate.test.mjs:319 and fails verify. The sandbox can edit package.json but cannot regenerate package-lock.json - it has neither registry access nor a readable npm cache (S-0003/S-0004/S-0005) - so the lockfile half cannot be fixed there. Bounded to re-pinning that one dependency: frontend/package.json and package-lock.json only.",
+  "started_at": "2026-09-12T11:26:17+00:00",
+  "completed_at": "2026-09-12T11:26:23+00:00",
+  "files": [],
+  "task_id": "assistant-ask-surfaces",
+  "story": "assistant"
+}
