@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "assistant-governed-ask",
   "score": 10,
-  "summary": "security lens over assistant-governed-ask (20 product path(s), 99626df..d47dcd9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows the new chat routes protected by authentication, the global CSRF guard, and the existing report action; it introduces no second LLM binding or unowned routes. Request-entry auditing occurs before warehouse-facing work, conversationId is rejected by the strict schema, durable conversation persistence is removed, provider inputs remain limited to permitted context, and statement batch pins are validated against current provenance. No actionable P0\u2013P2 security defect or prohibited compatibility leftover is demonstrated by the provided evidence.",
+  "summary": "security lens over assistant-governed-ask (20 product path(s), 99626df..1d278ff, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows the new chat routes registered behind authentication, the global CSRF guard, and the existing report action; it does not introduce a second LLM binding or register unowned modules. Entry auditing precedes vocabulary and warehouse access, durable conversation inputs and persistence are removed, prior turns are bounded before provider use, statement pins use a route-specific schema and are revalidated, and the edited hermetic tests are registered. No actionable P0\u2013P2 defect or compatibility leftover is demonstrated by the supplied bundle.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -30,10 +30,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "6c1ede69cf8e890916906a08a2da0621ce5481b487461aee78cb4be2d052bfc3",
+  "review_run_id": "bb5989e80821fe5e731e7af49452044097cff7d1f00ab9497cf25436b31b5c83",
   "brief_sha256": "c7abce70018ce656a1a833446b747a60959010bd47a433a270348ea03235dbea",
-  "branch_diff_digest": "38ab913505fdd110171f1329a20b5a8713268428c5ffc0cb2a4610ada196d338",
+  "branch_diff_digest": "284b5a0085ab64cc383116958f2ddb08935fd6c17bc339c196828534689d8181",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T09:15:24+00:00",
-  "commit": "d47dcd994d15ac69dde12ccf82b34bb2d865f531"
+  "recorded_at": "2026-09-12T09:27:58+00:00",
+  "commit": "1d278ff5132320ad3899753e2da4634d24cda445"
 }

@@ -1,23 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-governed-ask",
-  "score": 9,
-  "summary": "quality lens over assistant-governed-ask (20 product path(s), 99626df..d47dcd9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The implementation covers the requested governed routes, response behavior, audit ordering, statement-link contract, and removal of durable conversations. One mandatory provider-boundary assertion is missing, so the Bedrock input contract remains only partially proven.\nVERDICT t-aga-c1: implemented \u2014 backend/src/app.routes.test.ts:12 registers and exhaustively governs both chat routes while checking unowned routes are absent\nVERDICT t-aga-c2: partial \u2014 backend/src/chat/chat.service.test.ts:38 checks provider arguments but does not exercise dimensionEnumMax truncation\nVERDICT t-aga-c3: implemented \u2014 backend/src/chat/chat.service.test.ts:52 proves response precedence and backend/src/chat/chat.service.test.ts:94 drives a non-discrepancy causal question\nVERDICT t-aga-c4: implemented \u2014 backend/src/chat/chat.service.test.ts:104 proves out-of-catalog selections are refused without rendering zero\nVERDICT t-aga-c5: implemented \u2014 contract/src/api.ts:482 defines the required discriminated link union and backend/src/mis/mis-statement.service.ts:92 validates statement-only pins\nVERDICT t-aga-c6: implemented \u2014 backend/src/chat/chat.service.ts:98 writes the fail-closed entry audit before routing or warehouse-backed lookups\nVERDICT t-aga-c7: implemented \u2014 backend/src/chat/chat.schemas.ts:14 strictly rejects durable-conversation fields and transports prior turns, with the new hermetic test registered in both test manifests\nNo compatibility wrappers, aliases, deprecated branches, or other leftovers are present in the shown diff.",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0027-assistant-llm-bedrock-mumbai.md",
-      "summary": "t-aga-c2: The Bedrock input boundary is enforced BY TEST on the provider's arguments, asserting both that the permitted things are present and that the forbidden ones are ABSENT. Permitted: the question, the prior turns, and the governed vocabulary INCLUDING dimension distinct values capped by dimensionEnumMax (chat.service.ts:167, permitted by decision 0027 as amended). Forbidden: amounts, measure values, transaction lines, batch contents and any row of a governed result. The provider is chosen by config.llmProvider, which DEFAULTS TO MOCK IN EVERY ENVIRONMENT (config.ts:178) - so the contract states plainly that a deployment without LLM_PROVIDER=bedrock and a set BEDROCK_MODEL_ID can only ever return a clarification, rather than calling mock 'development-only'."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "backend/src/chat",
-      "summary": "[P2] Exercise the dimension-enum cap in the provider-boundary test (backend/src/chat/chat.service.test.ts:38): The boundary test only returns one value for the authorized `gl_code` dimension."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "score": 10,
+  "summary": "quality lens over assistant-governed-ask (20 product path(s), 99626df..1d278ff, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-aga-c1: implemented \u2014 backend/src/app.module.ts:15 registers ChatModule and backend/src/app.routes.test.ts:32 proves the governed route allow-list.\nVERDICT t-aga-c2: implemented \u2014 backend/src/chat/chat.service.test.ts:13 verifies the provider input boundary, including permitted context and forbidden result data.\nVERDICT t-aga-c3: implemented \u2014 backend/src/chat/reconciliation-guard.ts:31 adds causal classification, with response-matrix coverage in backend/src/chat/chat.service.test.ts:61.\nVERDICT t-aga-c4: implemented \u2014 backend/src/chat/chat.service.test.ts:106 proves out-of-catalog selections are refused without rendering a zero.\nVERDICT t-aga-c5: implemented \u2014 contract/src/api.ts:485 defines the discriminated report-link contract, while backend/src/mis/mis-statement.service.ts:92 validates pinned batches.\nVERDICT t-aga-c6: implemented \u2014 backend/src/chat/chat.service.ts:98 performs the fail-closed entry audit before routing or warehouse-backed lookups.\nVERDICT t-aga-c7: implemented \u2014 backend/src/chat/chat.schemas.ts:16 strictly rejects removed conversation fields and transports prior turns; backend/package.json:17 registers the new hermetic test.\nLEFTOVERS: clean \u2014 the removed durable-conversation fields, persistence path, and unused service injection are not retained as compatibility code.\nNo actionable P0\u2013P2 defect is demonstrated by the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     ".prettierignore",
     "backend/package.json",
@@ -45,44 +33,44 @@
     {
       "contract_id": "t-aga-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/app.routes.test.ts:12 registers and exhaustively governs both chat routes while checking unowned routes are absent"
+      "evidence": "backend/src/app.module.ts:15 registers ChatModule and backend/src/app.routes.test.ts:32 proves the governed route allow-list."
     },
     {
       "contract_id": "t-aga-c2",
-      "verdict": "partial",
-      "evidence": "backend/src/chat/chat.service.test.ts:38 checks provider arguments but does not exercise dimensionEnumMax truncation"
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.test.ts:13 verifies the provider input boundary, including permitted context and forbidden result data."
     },
     {
       "contract_id": "t-aga-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.test.ts:52 proves response precedence and backend/src/chat/chat.service.test.ts:94 drives a non-discrepancy causal question"
+      "evidence": "backend/src/chat/reconciliation-guard.ts:31 adds causal classification, with response-matrix coverage in backend/src/chat/chat.service.test.ts:61."
     },
     {
       "contract_id": "t-aga-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.test.ts:104 proves out-of-catalog selections are refused without rendering zero"
+      "evidence": "backend/src/chat/chat.service.test.ts:106 proves out-of-catalog selections are refused without rendering a zero."
     },
     {
       "contract_id": "t-aga-c5",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:482 defines the required discriminated link union and backend/src/mis/mis-statement.service.ts:92 validates statement-only pins"
+      "evidence": "contract/src/api.ts:485 defines the discriminated report-link contract, while backend/src/mis/mis-statement.service.ts:92 validates pinned batches."
     },
     {
       "contract_id": "t-aga-c6",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.ts:98 writes the fail-closed entry audit before routing or warehouse-backed lookups"
+      "evidence": "backend/src/chat/chat.service.ts:98 performs the fail-closed entry audit before routing or warehouse-backed lookups."
     },
     {
       "contract_id": "t-aga-c7",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.schemas.ts:14 strictly rejects durable-conversation fields and transports prior turns, with the new hermetic test registered in both test manifests"
+      "evidence": "backend/src/chat/chat.schemas.ts:16 strictly rejects removed conversation fields and transports prior turns; backend/package.json:17 registers the new hermetic test."
     }
   ],
   "aspect": "quality",
-  "review_run_id": "6c1ede69cf8e890916906a08a2da0621ce5481b487461aee78cb4be2d052bfc3",
+  "review_run_id": "bb5989e80821fe5e731e7af49452044097cff7d1f00ab9497cf25436b31b5c83",
   "brief_sha256": "c7abce70018ce656a1a833446b747a60959010bd47a433a270348ea03235dbea",
-  "branch_diff_digest": "38ab913505fdd110171f1329a20b5a8713268428c5ffc0cb2a4610ada196d338",
+  "branch_diff_digest": "284b5a0085ab64cc383116958f2ddb08935fd6c17bc339c196828534689d8181",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T09:15:24+00:00",
-  "commit": "d47dcd994d15ac69dde12ccf82b34bb2d865f531"
+  "recorded_at": "2026-09-12T09:27:58+00:00",
+  "commit": "1d278ff5132320ad3899753e2da4634d24cda445"
 }
