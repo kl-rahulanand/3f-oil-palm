@@ -165,6 +165,23 @@ test("save and pin controls appear only on a successful answer and call their ro
   expect(screen.queryByRole("button", { name: "Pin report" })).not.toBeInTheDocument();
 });
 
+test("failed save and pin controls show actionable copy without raw API errors", async () => {
+  mocks.ask.mockResolvedValue(success);
+  mocks.saveQuery.mockRejectedValue(new Error("API request failed with status 500"));
+  renderAsk();
+  submit("Show the governed result");
+
+  await screen.findByRole("heading", { name: "Governed result" });
+  fireEvent.click(screen.getByRole("button", { name: "Save view" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("The view could not be saved. Try again.");
+  expect(screen.queryByText("API request failed with status 500")).not.toBeInTheDocument();
+
+  mocks.createPin.mockRejectedValue(new Error("API request failed with status 500"));
+  fireEvent.click(screen.getByRole("button", { name: "Pin report" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("The report could not be pinned. Try again.");
+  expect(screen.queryByText("API request failed with status 500")).not.toBeInTheDocument();
+});
+
 test("suppressed values and signed pie data render only in the honest table fallback", async () => {
   mocks.ask.mockResolvedValueOnce({
     ...success,

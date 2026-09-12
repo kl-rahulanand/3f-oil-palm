@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useAsk } from "@/src/features/assistant/use-ask";
 import { selectionLabel } from "./selection-label";
 import { useSavedViews } from "./use-exploration";
@@ -9,6 +10,7 @@ export function SavedViews() {
   const router = useRouter();
   const { rerun } = useAsk();
   const { items, isPending, loadError, deleteError, deletingId, remove } = useSavedViews();
+  const [openErrorId, setOpenErrorId] = useState<string>();
 
   return (
     <section className="exploration-page" aria-labelledby="saved-views-heading">
@@ -46,15 +48,21 @@ export function SavedViews() {
                       <h2>{label.title}</h2>
                       {label.summary && <p>{label.summary}</p>}
                       {!item.status.runnable && <p className="exploration-refusal">{item.status.message}</p>}
+                      {openErrorId === item.id && (
+                        <p className="exploration-refusal" role="alert">
+                          Another question is still running. Try opening this view when it finishes.
+                        </p>
+                      )}
                     </div>
                     <div className="exploration-actions">
                       {item.status.runnable && (
                         <button
                           className="exploration-open"
                           type="button"
-                          onClick={() => {
-                            void rerun(label.title, item.selection);
-                            router.push("/ask");
+                          onClick={async () => {
+                            setOpenErrorId(undefined);
+                            if (await rerun(label.title, item.selection)) router.push("/ask");
+                            else setOpenErrorId(item.id);
                           }}
                         >
                           Open

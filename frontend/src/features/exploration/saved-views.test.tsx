@@ -1,7 +1,7 @@
 import type { SavedQuery, Selection } from "@3f/contract";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { AskProvider } from "@/src/features/assistant/use-ask";
+import { AskProvider, useAsk } from "@/src/features/assistant/use-ask";
 import { renderWithQuery } from "@/src/test/render";
 import { SavedViews } from "./saved-views";
 
@@ -87,6 +87,27 @@ test("a successful saved-view delete removes the row only after the route succee
   expect(mocks.deleteSavedQuery).toHaveBeenCalledWith("known");
 });
 
+test("a saved rerun rejected while another question is pending stays on the row", async () => {
+  mocks.savedQueries.mockResolvedValue([saved("known", selection, { runnable: true })]);
+  mocks.ask.mockImplementation(() => new Promise(() => undefined));
+  renderWithQuery(
+    <AskProvider>
+      <PendingQuestion />
+      <SavedViews />
+    </AskProvider>,
+  );
+
+  await screen.findByRole("heading", { name: "Actual" });
+  fireEvent.click(screen.getByRole("button", { name: "Start question" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Another question is still running. Try opening this view when it finishes.",
+  );
+  expect(mocks.push).not.toHaveBeenCalled();
+});
+
 function saved(id: string, value: Selection, status: SavedQuery["status"]): SavedQuery {
   return { id, selection: value, status, createdAt: "2026-09-12T00:00:00.000Z" };
 }
@@ -96,5 +117,14 @@ function renderSaved() {
     <AskProvider>
       <SavedViews />
     </AskProvider>,
+  );
+}
+
+function PendingQuestion() {
+  const { ask } = useAsk();
+  return (
+    <button type="button" onClick={() => void ask("Question in progress")}>
+      Start question
+    </button>
   );
 }

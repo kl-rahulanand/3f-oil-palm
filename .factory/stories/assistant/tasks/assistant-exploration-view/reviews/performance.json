@@ -1,0 +1,40 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-exploration-view",
+  "score": 10,
+  "summary": "performance lens over assistant-exploration-view (19 product path(s), d4772bc..7886743, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff introduces no actionable P0\u2013P2 performance defect. Each exploration surface performs one list request, pinned reports remain metadata-only until explicitly opened, and reruns use the existing Ask flow without adding query fanout or replaying stored results. No compatibility wrapper, shim, alias, deprecated branch, or other blocking leftover is introduced.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "backend/src/semantic/semanticLayer.ts",
+    "contract/src/api.ts",
+    "frontend/app/(app)/dashboard/page.tsx",
+    "frontend/app/(app)/explore/page.tsx",
+    "frontend/app/globals.css",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/pinned-reports.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
+    "frontend/src/features/exploration/saved-views.tsx",
+    "frontend/src/features/exploration/selection-label.test.ts",
+    "frontend/src/features/exploration/selection-label.ts",
+    "frontend/src/features/exploration/use-exploration.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "d2800eb3216f8a861c9fd428bfaefd2d138f8e4ebafff10bc2e8f137e259284b",
+  "brief_sha256": "0b843c55a21625167c7c335587b86b25cb1cbb438c5f605160e7bcbf6eaac904",
+  "branch_diff_digest": "098fdb8520abcf8cb7c5ceb75f3a2d1ff374c55a9c465e660d46260b56cc951e",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T17:31:22+00:00",
+  "commit": "7886743749babf7f4cf44be19d8a1c8c2f16f77f"
+}

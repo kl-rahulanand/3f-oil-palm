@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useAsk } from "@/src/features/assistant/use-ask";
 import { selectionLabel } from "./selection-label";
 import { usePinnedReports } from "./use-exploration";
@@ -10,6 +11,7 @@ export function PinnedReports() {
   const { rerun } = useAsk();
   const { items, isPending, loadError, deleteError, deletingId, remove } = usePinnedReports();
   const pins = [...items].sort((left, right) => left.position - right.position);
+  const [openErrorId, setOpenErrorId] = useState<string>();
 
   return (
     <section className="exploration-page" aria-labelledby="pinned-reports-heading">
@@ -49,15 +51,21 @@ export function PinnedReports() {
                       {label.summary && <p>{label.summary}</p>}
                       {pin.definitionChanged && <p className="exploration-changed">Definition changed</p>}
                       {!pin.status.runnable && <p className="exploration-refusal">{pin.status.message}</p>}
+                      {openErrorId === pin.id && (
+                        <p className="exploration-refusal" role="alert">
+                          Another question is still running. Try opening this report when it finishes.
+                        </p>
+                      )}
                     </div>
                     <div className="exploration-actions">
                       {pin.status.runnable && (
                         <button
                           className="exploration-open"
                           type="button"
-                          onClick={() => {
-                            void rerun(label.title, pin.selection);
-                            router.push("/ask");
+                          onClick={async () => {
+                            setOpenErrorId(undefined);
+                            if (await rerun(label.title, pin.selection)) router.push("/ask");
+                            else setOpenErrorId(pin.id);
                           }}
                         >
                           Open

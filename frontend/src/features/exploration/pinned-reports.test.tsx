@@ -1,7 +1,7 @@
 import type { Pin, SavedQuery, Selection } from "@3f/contract";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { AskProvider } from "@/src/features/assistant/use-ask";
+import { AskProvider, useAsk } from "@/src/features/assistant/use-ask";
 import { renderWithQuery } from "@/src/test/render";
 import { PinnedReports } from "./pinned-reports";
 import { SavedViews } from "./saved-views";
@@ -98,6 +98,27 @@ test("a failed pin delete surfaces its error instead of dropping the row", async
   expect(screen.getByRole("heading", { name: "Pinned budget" })).toBeInTheDocument();
 });
 
+test("a pinned rerun rejected while another question is pending stays on the row", async () => {
+  mocks.pins.mockResolvedValue([pin("pin", "Pinned budget", 0, false)]);
+  mocks.ask.mockImplementation(() => new Promise(() => undefined));
+  renderWithQuery(
+    <AskProvider>
+      <PendingQuestion />
+      <PinnedReports />
+    </AskProvider>,
+  );
+
+  await screen.findByRole("heading", { name: "Pinned budget" });
+  fireEvent.click(screen.getByRole("button", { name: "Start question" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Another question is still running. Try opening this report when it finishes.",
+  );
+  expect(mocks.push).not.toHaveBeenCalled();
+});
+
 function pin(
   id: string,
   title: string,
@@ -122,5 +143,14 @@ function renderPins() {
     <AskProvider>
       <PinnedReports />
     </AskProvider>,
+  );
+}
+
+function PendingQuestion() {
+  const { ask } = useAsk();
+  return (
+    <button type="button" onClick={() => void ask("Question in progress")}>
+      Start question
+    </button>
   );
 }

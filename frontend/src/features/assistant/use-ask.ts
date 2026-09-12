@@ -14,7 +14,7 @@ interface AskContextValue {
   isPending: boolean;
   error: string | null;
   ask: (question: string) => Promise<void>;
-  rerun: (question: string, selection: Selection) => Promise<void>;
+  rerun: (question: string, selection: Selection) => Promise<boolean>;
 }
 
 const AskContext = createContext<AskContextValue | null>(null);
@@ -24,9 +24,9 @@ export function AskProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(question: string, selection?: Selection) {
+  async function run(question: string, selection?: Selection): Promise<boolean> {
     const trimmed = question.trim();
-    if (!trimmed || isPending) return;
+    if (!trimmed || isPending) return false;
 
     const priorTurns: AskPriorTurn[] = turns.flatMap((turn) =>
       turn.response.responseClass === "success" && turn.response.selection
@@ -47,6 +47,7 @@ export function AskProvider({ children }: Readonly<{ children: ReactNode }>) {
     } finally {
       setIsPending(false);
     }
+    return true;
   }
 
   return createElement(
@@ -56,7 +57,9 @@ export function AskProvider({ children }: Readonly<{ children: ReactNode }>) {
         turns,
         isPending,
         error,
-        ask: (question) => run(question),
+        ask: async (question) => {
+          await run(question);
+        },
         rerun: (question, selection) => run(question, selection),
       },
     },

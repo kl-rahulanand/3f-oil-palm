@@ -148,15 +148,11 @@ function SuccessAnswer({ response }: Readonly<{ response: AskResponse }>) {
         });
         setNotice({ kind: "success", message: "Pinned report" });
       }
-    } catch (error) {
+    } catch {
       setNotice({
         kind: "error",
         message:
-          error instanceof Error
-            ? error.message
-            : kind === "save"
-              ? "The view could not be saved."
-              : "The report could not be pinned.",
+          kind === "save" ? "The view could not be saved. Try again." : "The report could not be pinned. Try again.",
       });
     } finally {
       setSaving(undefined);
