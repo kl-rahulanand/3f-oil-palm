@@ -1,7 +1,7 @@
 {
   "id": "assistant-ask-surfaces",
   "title": "The docked Ask panel and the standalone Ask page",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-12T10:43:21+00:00",
   "base_sha": "e24a8bd811ea4e97af4c499ff206f2631ef4ffe5",
   "dirty_at_start": {
@@ -18,5 +18,29 @@
       "git": "1 A. N... 000000 100644 100644 0000000000000000000000000000000000000000 ce3310245f675bf475ea922708ddc979cb0cefb1 .factory/stories/assistant/task-plans/assistant-ask-surfaces.md\u0000\u0000100644 ce3310245f675bf475ea922708ddc979cb0cefb1 0\t.factory/stories/assistant/task-plans/assistant-ask-surfaces.md\u0000\u0000H .factory/stories/assistant/task-plans/assistant-ask-surfaces.md\u0000"
     }
   },
-  "task_sha256": "032b1819d05d28e43585ce61fd4911ad327e908489ce940f037da5900b1b3a33"
+  "task_sha256": "032b1819d05d28e43585ce61fd4911ad327e908489ce940f037da5900b1b3a33",
+  "local_review_stamp": {
+    "stage_id": "assistant-ask-surfaces",
+    "base_sha": "e24a8bd811ea4e97af4c499ff206f2631ef4ffe5",
+    "delta_id": "cf110088ef3b3e3b61c0dcb26c2c25a24e2d222c4fc71f163bb4f9f7bf928469",
+    "contract_sha256": "032b1819d05d28e43585ce61fd4911ad327e908489ce940f037da5900b1b3a33",
+    "recorded_at": "2026-09-12T12:01:44+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-12T12:01:46+00:00",
+  "measured": {
+    "strays": [],
+    "files": 13,
+    "lines": 1974,
+    "budget": {
+      "files": 14,
+      "lines": 2400
+    },
+    "test_id_misses": []
+  }
 }

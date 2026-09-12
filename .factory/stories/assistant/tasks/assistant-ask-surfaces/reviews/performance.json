@@ -2,18 +2,13 @@
   "generated_by": "autoreview",
   "task_id": "assistant-ask-surfaces",
   "score": 9,
-  "summary": "performance lens over assistant-ask-surfaces (13 product path(s), e24a8bd..8dd1cbc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The feature implementation is broadly coherent, but it introduces two avoidable scaling defects on the core Ask path: unbounded conversation payload growth and quadratic suppression lookup during table rendering. Both can materially increase latency or make long sessions and large suppressed results unusable.",
+  "summary": "performance lens over assistant-ask-surfaces (13 product path(s), e24a8bd..387ed25, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. A supported response shape can be classified as drawable while Recharts renders no pie sectors, so the chart contract is not satisfied. No compatibility-only wrapper, alias, re-export, or legacy branch is present in the supplied diff.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
       "area": "frontend/src/features/assistant",
-      "summary": "[P2] Bound prior turns before rebuilding every request (frontend/src/features/assistant/use-ask.ts:27): Every successful turn is copied into every subsequent request with no count or token-budget bound."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/src/features/assistant",
-      "summary": "[P2] Pre-index suppressed cells instead of scanning them for every cell (frontend/src/features/assistant/ask-panel.tsx:360): Each rendered table cell calls `isSuppressed`, which performs a linear scan of `suppressedCells`."
+      "summary": "[P2] Normalize numeric strings before passing pie data to Recharts (frontend/src/features/assistant/ask-panel.tsx:331): `canDraw` accepts numeric strings such as `\"125.50\"`, but `ResultChart` passes the original rows unchanged to `<Pie>`."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -36,10 +31,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "8a9f78d488b6a92b0974a92e1050a1c3074337612bd9646949099863221f2961",
+  "review_run_id": "3dd7cea08ecb71792c10a5f87c52a43fd5945ff4bf707b61aaf5cf68d925fda4",
   "brief_sha256": "8f7a6577aab1f8418c329a86e388c43ac61604d6ee33b4d7be671315c94b06b6",
-  "branch_diff_digest": "a796795192b223952608a2104a1157effdfe79be6462fb869e30819952b39697",
+  "branch_diff_digest": "cf110088ef3b3e3b61c0dcb26c2c25a24e2d222c4fc71f163bb4f9f7bf928469",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T11:48:43+00:00",
-  "commit": "8dd1cbcb4e24c059d02cf47e75b11f5533b88902"
+  "recorded_at": "2026-09-12T12:01:44+00:00",
+  "commit": "387ed25d318387c28162585b41363175df2dad48"
 }

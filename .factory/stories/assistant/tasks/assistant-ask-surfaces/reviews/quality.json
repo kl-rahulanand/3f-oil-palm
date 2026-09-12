@@ -1,23 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-ask-surfaces",
-  "score": 9,
-  "summary": "quality lens over assistant-ask-surfaces (13 product path(s), e24a8bd..8dd1cbc, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The product implementation shown covers the requested surfaces and response handling, but the mandatory cross-navigation persistence proof does not exercise navigation or a page remount. No compatibility leftovers are visible.\nVERDICT t-aas-c1: implemented \u2014 frontend/src/components/shell/app-shell.tsx:179 mounts shared in-memory Ask state around both routed surfaces\nVERDICT t-aas-c2: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:151 renders response results through truthful chart validation and table fallback\nVERDICT t-aas-c3: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:96 branches on the refresh-required route outcome\nVERDICT t-aas-c4: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:96 dispatches the seven response classes by their distinct shapes\nVERDICT t-aas-c5: implemented \u2014 frontend/src/features/assistant/use-ask.ts:28 derives priorTurns exclusively from successful responses with selections\nVERDICT t-aas-c6: partial \u2014 frontend/src/features/assistant/ask-panel.test.tsx:368 substitutes a surface state change for the required docked-to-page navigation proof",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/assistant-assistant-exploration.md#verify-plan",
-      "summary": "t-aas-c6: The surfaces are proven by vitest leaves covering a rendered success with its verified badge, provenance disclosure and chart fallback; the view-in-report union's two arms; the refresh-required branch in the report view; each non-success class rendering alone with its own shape; a clarification's options being selectable; prior turns carrying only successful turns across the docked-to-page navigation; and the api client's route, CSRF header and exact body. The Suggested row is seeded with prompts drawn from the REGISTERED CATALOG - the governed-financial and mis-statement measures over the proven DUB slice - so a seeded chip is answerable rather than invented phrasing that returns unsupported, and server-supplied suggestedQuestions replace them when they arrive. Human-decided at the task grill. The task is user_facing, so the design skills are loaded, used and attested, and the live check exercises the Success path with BEDROCK_MODEL_ID set."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "frontend/src/features/assistant",
-      "summary": "[P2] Exercise a real docked-to-page remount in the thread-persistence test (frontend/src/features/assistant/ask-panel.test.tsx:368): The required navigation proof is replaced with a click interceptor that calls `setSurface(\"page\")` on the same `AskPanel` instance."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "score": 10,
+  "summary": "quality lens over assistant-ask-surfaces (13 product path(s), e24a8bd..387ed25, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-aas-c1: implemented \u2014 frontend/src/components/shell/app-shell.tsx:15 and frontend/src/features/mis/mis-report-view.tsx:110 expose the shared AskPanel through live page and docked navigation.\nVERDICT t-aas-c2: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:125 renders verified provenance, response-owned results, honest chart fallbacks, and all supported chart types.\nVERDICT t-aas-c3: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:287 renders both report-link arms, while frontend/src/features/mis/mis-report-view.tsx:91 handles refresh-required responses.\nVERDICT t-aas-c4: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:89 branches across success, informational, clarification, and all message-bearing failure classes.\nVERDICT t-aas-c5: implemented \u2014 frontend/src/features/assistant/use-ask.ts:28 derives prior turns exclusively from successful selections, and frontend/src/lib/api.test.ts:78 verifies the exact request body and CSRF header.\nVERDICT t-aas-c6: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:78 and frontend/src/features/mis/mis-report-view.test.tsx:127 cover the required rendering, navigation, fallback, union, and stale-link behaviors.\nLEFTOVERS: none observed in the supplied diff.\nNo actionable P0\u2013P2 defect is demonstrated by the change bundle.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/(app)/ask/page.tsx",
     "frontend/app/globals.css",
@@ -40,32 +28,32 @@
     {
       "contract_id": "t-aas-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/components/shell/app-shell.tsx:179 mounts shared in-memory Ask state around both routed surfaces"
+      "evidence": "frontend/src/components/shell/app-shell.tsx:15 and frontend/src/features/mis/mis-report-view.tsx:110 expose the shared AskPanel through live page and docked navigation."
     },
     {
       "contract_id": "t-aas-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:151 renders response results through truthful chart validation and table fallback"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:125 renders verified provenance, response-owned results, honest chart fallbacks, and all supported chart types."
     },
     {
       "contract_id": "t-aas-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:96 branches on the refresh-required route outcome"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:287 renders both report-link arms, while frontend/src/features/mis/mis-report-view.tsx:91 handles refresh-required responses."
     },
     {
       "contract_id": "t-aas-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:96 dispatches the seven response classes by their distinct shapes"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:89 branches across success, informational, clarification, and all message-bearing failure classes."
     },
     {
       "contract_id": "t-aas-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:28 derives priorTurns exclusively from successful responses with selections"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:28 derives prior turns exclusively from successful selections, and frontend/src/lib/api.test.ts:78 verifies the exact request body and CSRF header."
     },
     {
       "contract_id": "t-aas-c6",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:368 substitutes a surface state change for the required docked-to-page navigation proof"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:78 and frontend/src/features/mis/mis-report-view.test.tsx:127 cover the required rendering, navigation, fallback, union, and stale-link behaviors."
     },
     {
       "contract_id": "t-aga-c1",
@@ -104,10 +92,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "8a9f78d488b6a92b0974a92e1050a1c3074337612bd9646949099863221f2961",
+  "review_run_id": "3dd7cea08ecb71792c10a5f87c52a43fd5945ff4bf707b61aaf5cf68d925fda4",
   "brief_sha256": "8f7a6577aab1f8418c329a86e388c43ac61604d6ee33b4d7be671315c94b06b6",
-  "branch_diff_digest": "a796795192b223952608a2104a1157effdfe79be6462fb869e30819952b39697",
+  "branch_diff_digest": "cf110088ef3b3e3b61c0dcb26c2c25a24e2d222c4fc71f163bb4f9f7bf928469",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T11:48:43+00:00",
-  "commit": "8dd1cbcb4e24c059d02cf47e75b11f5533b88902"
+  "recorded_at": "2026-09-12T12:01:44+00:00",
+  "commit": "387ed25d318387c28162585b41363175df2dad48"
 }
