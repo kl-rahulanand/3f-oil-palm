@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-12T10:53:46+00:00", "story": "assistant", "detail": "The binding lesson says recharts@3.10.1 is available offline, but npm 11.19.0 reports ENOTCACHED for both metadata and tarball despite npm cache ls listing them; dependency installation cannot proceed"}
