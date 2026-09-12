@@ -8,7 +8,7 @@ import { renderWithQuery } from "@/src/test/render";
 import { AskPanel } from "./ask-panel";
 import { AskProvider } from "./use-ask";
 
-const mocks = vi.hoisted(() => ({ ask: vi.fn(), replace: vi.fn() }));
+const mocks = vi.hoisted(() => ({ ask: vi.fn(), saveQuery: vi.fn(), createPin: vi.fn(), replace: vi.fn() }));
 
 vi.mock("@/src/lib/api", () => ({ api: mocks }));
 vi.mock("next/navigation", () => ({
@@ -82,6 +82,8 @@ const success: AskResponse = {
 afterEach(() => {
   cleanup();
   mocks.ask.mockReset();
+  mocks.saveQuery.mockReset();
+  mocks.createPin.mockReset();
 });
 
 test("a successful answer renders its result with the verified badge the provenance disclosure and no number the response did not carry", async () => {
@@ -130,6 +132,37 @@ test("a chart shape the client cannot draw honestly falls back to the table rath
 
   expect(await screen.findByRole("table")).toHaveTextContent("125.50");
   expect(screen.queryByRole("img", { name: "bar chart" })).not.toBeInTheDocument();
+});
+
+test("save and pin controls appear only on a successful answer and call their routes", async () => {
+  mocks.ask.mockResolvedValueOnce(success);
+  mocks.saveQuery.mockResolvedValue({});
+  mocks.createPin.mockResolvedValue({});
+  renderAsk();
+  submit("Show the governed result");
+
+  await screen.findByRole("heading", { name: "Governed result" });
+  fireEvent.click(screen.getByRole("button", { name: "Save view" }));
+  await waitFor(() => expect(mocks.saveQuery).toHaveBeenCalledWith({ selection, chartType: "bar" }));
+  fireEvent.click(screen.getByRole("button", { name: "Pin report" }));
+  await waitFor(() =>
+    expect(mocks.createPin).toHaveBeenCalledWith({ selection, title: "Governed result", chartType: "bar" }),
+  );
+
+  cleanup();
+  mocks.ask.mockResolvedValueOnce({
+    responseClass: "informational" as AskResponse["responseClass"],
+    sessionId: "session",
+    title: "Actual",
+    definition: "The governed actual amount.",
+    viewInReport: { available: false, reason: "Definitions do not open a report." },
+  });
+  renderAsk();
+  submit("Define Actual");
+
+  await screen.findByRole("heading", { name: "Actual" });
+  expect(screen.queryByRole("button", { name: "Save view" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Pin report" })).not.toBeInTheDocument();
 });
 
 test("suppressed values and signed pie data render only in the honest table fallback", async () => {

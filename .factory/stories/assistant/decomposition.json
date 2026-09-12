@@ -439,17 +439,137 @@
     {
       "id": "assistant-exploration-view",
       "title": "The Explore surface and pinned reports",
-      "objective": "Build the next bounded slice when it reaches the frontier: the Explore / saved-views surface and the dashboard's pinned-reports list, opening by re-running rather than replaying. Frontend only.",
+      "objective": "Build the Explore / saved-views surface and the dashboard's pinned-reports list, plus the Save and Pin controls that make task 3's routes reachable at all, opening each by RE-RUNNING its stored selection through the existing model-bypass on POST /api/chat rather than replaying a stored answer - there is none to replay, by decision 0028. Mostly frontend, with one deliberate shared change: the measure and dimension labels move into @3f/contract so the server registry and the client read one constant that cannot drift.",
       "user_facing": true,
       "dependencies": [
         "assistant-exploration-api",
         "assistant-ask-surfaces"
       ],
       "acceptance_criteria": [
-        "A saved view and a pinned report each open by re-running their selection, and a refusal renders as a refusal rather than an empty result."
-      ]
+        "Saved-view labels come from ONE source that cannot drift. SavedQuery carries no name (contract/src/api.ts:372) and the human-readable labels - 'Actual', 'Budget', 'GL code', 'Month', 'Statement leaf' - live only in backend/src/semantic/semanticLayer.ts:14-95, which no endpoint publishes: GET /api/mis/options returns the four report selectors, not measures or dimensions. So the labels move into the SHARED @3f/contract package and backend/src/semantic/semanticLayer.ts IMPORTS them, making server and client read the same constant - human-decided 2026-09-12 over a backend display descriptor, a static frontend copy and a persisted label column. A static copy was rejected precisely because nothing would catch its drift. semanticLayer.financial.test.ts:21 asserts those exact label strings and must still pass unchanged, which is the proof the move altered no published vocabulary. The Explore page then follows the prototype - eyebrow 'Explore', heading 'Saved views', the line 'Selections you can reopen without rebuilding the filter row.' - with each row's label and filter summary derived from that shared constant, never invented prose and never a raw uuid. A selection naming a definition the layer no longer registers has a DEFINED FALLBACK: the row renders the unregistered id verbatim, marked as unavailable, so the reader can still identify and delete it rather than meeting a blank or a crash.",
+        "Explore becomes a LIVE destination and the dashboard renders Pinned reports. frontend/src/components/shell/app-shell.tsx:17 lists 'Explore / Saved' with NO href today - the same disabled state Ask was in before task 2 - so it gains one and the shell test proves it. frontend/app/(app)/dashboard/page.tsx is a placeholder today and gains the prototype's 'Pinned reports' list, labelled from Pin.title (contract/src/api.ts:389) in stored position order, with Pin.definitionChanged surfaced because a pin whose definitions moved is what a reader must not mistake for a stable number. A pinned card is METADATA ONLY until it is opened - title, definition-changed state and an Open control, and NO figure - human-decided 2026-09-12 against both re-running every pin on dashboard load and a lazy viewport-triggered fan-out. The prototype draws a figure on each card; decision 0028 deleted every stored figure, so drawing one would mean a governed warehouse execution per pin on every dashboard visit. That divergence from the prototype is deliberate and recorded here.",
+        "Opening RE-RUNS the stored selection and never replays an answer - nothing at rest could be replayed, since task 3 removed Pin.snapshot and Pin.lastRefresh and no payload carries a ResultTable. The path is POST /api/chat carrying the stored selection: chat.controller.ts:38 passes the request's selection into the service and chat.service.ts:162 assigns it directly, BYPASSING the model. Two traps on that path are silent when got wrong and both must be honoured: usesEditedSelection is Boolean(editedSelection && !groundedReport) (chat.service.ts:145), so sending reportGrounding makes grounding WIN and the stored selection is ignored while the surface still looks correct; and the route requires a non-empty question (chat.constants.ts:2), so the client sends the row's DERIVED label rather than fabricating a sentence the product would then appear to have answered. The result is rendered by TASK 2's EXISTING renderer, not a second implementation: ask-panel.tsx exports only AskPanel and parseActiveBatchIds, and use-ask.ts's AskContextValue types ask as (question: string) => Promise<void>, which cannot carry a selection - so AskProvider gains a selection-bearing re-run action and opening navigates to /ask and appends to the existing thread. frontend/src/lib/api.ts:106 types ask as Pick<AskRequest, 'question' | 'priorTurns'> and widens to carry selection, proven by a direct api-client leaf asserting the EXACT body: selection present, reportGrounding ABSENT.",
+        "A refusal renders AS a refusal, never as an empty result, following decision 0018's principle that an unresolved thing becomes a VISIBLE, distinctly-labelled outcome carrying its status rather than being excluded - 0018 applied that to the unmapped-GL bucket; a refused saved view is the same shape of problem. Both surfaces read the REQUIRED discriminated status task 3 shipped (contract/src/api.ts:400: {runnable:true} | {runnable:false, reason:'grant_revoked'|'definition_unregistered', message}). A non-runnable row shows its message and offers NO open control, because opening it would only produce the refusal again; it is never hidden and never silently dropped, and it remains deletable - a row the reader can see but not remove is worse than one never shown. A re-run returning a non-success ResponseClass renders honestly through task 2's existing renderer, which already handles all seven classes.",
+        "Saved views and pins can be CREATED and DELETED from the product, not only from the API. There is no frontend caller of POST /api/saved or POST /api/pins anywhere today, so task 3's routes are unreachable and the approved story plan's own functional check - 'save and re-open, pin and re-open' - cannot be performed. Task 4 therefore adds visible Save and Pin controls to a SUCCESSFUL Ask answer, human-decided 2026-09-12 over seeding by API and over deferring self-serve creation; without them the story would ship a read-only surface over dead routes. Controls appear only on a successful answer, since only a success carries a runnable selection. Deleting works from BOTH surfaces (DELETE /api/saved/:id and DELETE /api/pins/:id, both registered and allow-listed), and a delete that FAILS surfaces its error rather than optimistically dropping the row from the list.",
+        "The surfaces are proven by vitest leaves covering, on BOTH surfaces where both apply: the Explore nav item resolving to a live destination; a saved row labelled from the shared constant rather than a raw id, and the unavailable-definition fallback rendering the id verbatim as unavailable; a pinned row rendering from Pin.title in position order, metadata-only with definitionChanged surfaced and NO figure before open; a non-runnable row rendering its refusal message with no open control on each surface; an open issuing POST /api/chat with the stored selection and NO reportGrounding, asserted on the exact request body in frontend/src/lib/api.test.ts because a component test mocks the client and proves nothing about the route, the CSRF header or the body; Save and Pin controls appearing only on a successful answer and calling their routes; and a delete removing the row on each surface while a FAILED delete surfaces its error. Styling lives in frontend/app/globals.css beside task 2's .ask-panel rules, which is in scope. The task is user_facing, so emil-design-eng and frontend-design are loaded, used and attested - the recorder REFUSES a user-facing automated artifact without them - and the functional check runs LIVE with BEDROCK_MODEL_ID set and is now actually performable because the Save and Pin controls exist: ask, save, reopen from Explore and confirm the figures came from a fresh execution, pin, reopen from the dashboard, and confirm a revoked grant produces a visible refusal rather than a blank card. If BEDROCK_MODEL_ID is unavailable that is a BLOCKED functional check reported as such, never one quietly passed against the mock provider, which can only ever return a clarification. Every artifact is judged on its testcase NAME and EXECUTED COUNT, never an exit code (D-0024, D-0031)."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-aev-c1",
+          "statement": "Saved-view labels come from ONE source that cannot drift. SavedQuery carries no name (contract/src/api.ts:372) and the human-readable labels - 'Actual', 'Budget', 'GL code', 'Month', 'Statement leaf' - live only in backend/src/semantic/semanticLayer.ts:14-95, which no endpoint publishes: GET /api/mis/options returns the four report selectors, not measures or dimensions. So the labels move into the SHARED @3f/contract package and backend/src/semantic/semanticLayer.ts IMPORTS them, making server and client read the same constant - human-decided 2026-09-12 over a backend display descriptor, a static frontend copy and a persisted label column. A static copy was rejected precisely because nothing would catch its drift. semanticLayer.financial.test.ts:21 asserts those exact label strings and must still pass unchanged, which is the proof the move altered no published vocabulary. The Explore page then follows the prototype - eyebrow 'Explore', heading 'Saved views', the line 'Selections you can reopen without rebuilding the filter row.' - with each row's label and filter summary derived from that shared constant, never invented prose and never a raw uuid. A selection naming a definition the layer no longer registers has a DEFINED FALLBACK: the row renders the unregistered id verbatim, marked as unavailable, so the reader can still identify and delete it rather than meeting a blank or a crash.",
+          "source": "backend/src/semantic/semanticLayer.ts"
+        },
+        {
+          "id": "t-aev-c2",
+          "statement": "Explore becomes a LIVE destination and the dashboard renders Pinned reports. frontend/src/components/shell/app-shell.tsx:17 lists 'Explore / Saved' with NO href today - the same disabled state Ask was in before task 2 - so it gains one and the shell test proves it. frontend/app/(app)/dashboard/page.tsx is a placeholder today and gains the prototype's 'Pinned reports' list, labelled from Pin.title (contract/src/api.ts:389) in stored position order, with Pin.definitionChanged surfaced because a pin whose definitions moved is what a reader must not mistake for a stable number. A pinned card is METADATA ONLY until it is opened - title, definition-changed state and an Open control, and NO figure - human-decided 2026-09-12 against both re-running every pin on dashboard load and a lazy viewport-triggered fan-out. The prototype draws a figure on each card; decision 0028 deleted every stored figure, so drawing one would mean a governed warehouse execution per pin on every dashboard visit. That divergence from the prototype is deliberate and recorded here.",
+          "source": "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html"
+        },
+        {
+          "id": "t-aev-c3",
+          "statement": "Opening RE-RUNS the stored selection and never replays an answer - nothing at rest could be replayed, since task 3 removed Pin.snapshot and Pin.lastRefresh and no payload carries a ResultTable. The path is POST /api/chat carrying the stored selection: chat.controller.ts:38 passes the request's selection into the service and chat.service.ts:162 assigns it directly, BYPASSING the model. Two traps on that path are silent when got wrong and both must be honoured: usesEditedSelection is Boolean(editedSelection && !groundedReport) (chat.service.ts:145), so sending reportGrounding makes grounding WIN and the stored selection is ignored while the surface still looks correct; and the route requires a non-empty question (chat.constants.ts:2), so the client sends the row's DERIVED label rather than fabricating a sentence the product would then appear to have answered. The result is rendered by TASK 2's EXISTING renderer, not a second implementation: ask-panel.tsx exports only AskPanel and parseActiveBatchIds, and use-ask.ts's AskContextValue types ask as (question: string) => Promise<void>, which cannot carry a selection - so AskProvider gains a selection-bearing re-run action and opening navigates to /ask and appends to the existing thread. frontend/src/lib/api.ts:106 types ask as Pick<AskRequest, 'question' | 'priorTurns'> and widens to carry selection, proven by a direct api-client leaf asserting the EXACT body: selection present, reportGrounding ABSENT.",
+          "source": "backend/src/chat/chat.service.ts"
+        },
+        {
+          "id": "t-aev-c4",
+          "statement": "A refusal renders AS a refusal, never as an empty result, following decision 0018's principle that an unresolved thing becomes a VISIBLE, distinctly-labelled outcome carrying its status rather than being excluded - 0018 applied that to the unmapped-GL bucket; a refused saved view is the same shape of problem. Both surfaces read the REQUIRED discriminated status task 3 shipped (contract/src/api.ts:400: {runnable:true} | {runnable:false, reason:'grant_revoked'|'definition_unregistered', message}). A non-runnable row shows its message and offers NO open control, because opening it would only produce the refusal again; it is never hidden and never silently dropped, and it remains deletable - a row the reader can see but not remove is worse than one never shown. A re-run returning a non-success ResponseClass renders honestly through task 2's existing renderer, which already handles all seven classes.",
+          "source": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md"
+        },
+        {
+          "id": "t-aev-c5",
+          "statement": "Saved views and pins can be CREATED and DELETED from the product, not only from the API. There is no frontend caller of POST /api/saved or POST /api/pins anywhere today, so task 3's routes are unreachable and the approved story plan's own functional check - 'save and re-open, pin and re-open' - cannot be performed. Task 4 therefore adds visible Save and Pin controls to a SUCCESSFUL Ask answer, human-decided 2026-09-12 over seeding by API and over deferring self-serve creation; without them the story would ship a read-only surface over dead routes. Controls appear only on a successful answer, since only a success carries a runnable selection. Deleting works from BOTH surfaces (DELETE /api/saved/:id and DELETE /api/pins/:id, both registered and allow-listed), and a delete that FAILS surfaces its error rather than optimistically dropping the row from the list.",
+          "source": "backend/src/app.routes.test.ts"
+        },
+        {
+          "id": "t-aev-c6",
+          "statement": "The surfaces are proven by vitest leaves covering, on BOTH surfaces where both apply: the Explore nav item resolving to a live destination; a saved row labelled from the shared constant rather than a raw id, and the unavailable-definition fallback rendering the id verbatim as unavailable; a pinned row rendering from Pin.title in position order, metadata-only with definitionChanged surfaced and NO figure before open; a non-runnable row rendering its refusal message with no open control on each surface; an open issuing POST /api/chat with the stored selection and NO reportGrounding, asserted on the exact request body in frontend/src/lib/api.test.ts because a component test mocks the client and proves nothing about the route, the CSRF header or the body; Save and Pin controls appearing only on a successful answer and calling their routes; and a delete removing the row on each surface while a FAILED delete surfaces its error. Styling lives in frontend/app/globals.css beside task 2's .ask-panel rules, which is in scope. The task is user_facing, so emil-design-eng and frontend-design are loaded, used and attested - the recorder REFUSES a user-facing automated artifact without them - and the functional check runs LIVE with BEDROCK_MODEL_ID set and is now actually performable because the Save and Pin controls exist: ask, save, reopen from Explore and confirm the figures came from a fresh execution, pin, reopen from the dashboard, and confirm a revoked grant produces a visible refusal rather than a blank card. If BEDROCK_MODEL_ID is unavailable that is a BLOCKED functional check reported as such, never one quietly passed against the mock provider, which can only ever return a clarification. Every artifact is judged on its testcase NAME and EXECUTED COUNT, never an exit code (D-0024, D-0031).",
+          "source": "plans/active/assistant-assistant-exploration.md#verify-plan"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "the explore nav item resolves to a live destination",
+          "path": "frontend/src/components/shell/app-shell.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a saved row is labelled from the shared catalog and an unregistered definition falls back to its identifier marked unavailable",
+          "path": "frontend/src/features/exploration/saved-views.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a pinned row renders metadata only in position order with a changed definition surfaced and no figure",
+          "path": "frontend/src/features/exploration/pinned-reports.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a non runnable row renders its refusal message and offers no open control on both surfaces",
+          "path": "frontend/src/features/exploration/pinned-reports.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "opening a saved view posts the stored selection with no report grounding",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "save and pin controls appear only on a successful answer and call their routes",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a failed delete surfaces its error instead of dropping the row",
+          "path": "frontend/src/features/exploration/saved-views.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run build:frontend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "write_scope": [
+        "contract/src/api.ts",
+        "backend/src/semantic/semanticLayer.ts",
+        "backend/src/semantic/semanticLayer.financial.test.ts",
+        "frontend/app/(app)/explore/page.tsx",
+        "frontend/app/(app)/dashboard/page.tsx",
+        "frontend/app/globals.css",
+        "frontend/src/components/shell/app-shell.tsx",
+        "frontend/src/components/shell/app-shell.test.tsx",
+        "frontend/src/features/assistant/ask-panel.tsx",
+        "frontend/src/features/assistant/ask-panel.test.tsx",
+        "frontend/src/features/assistant/use-ask.ts",
+        "frontend/src/features/exploration/saved-views.tsx",
+        "frontend/src/features/exploration/saved-views.test.tsx",
+        "frontend/src/features/exploration/pinned-reports.tsx",
+        "frontend/src/features/exploration/pinned-reports.test.tsx",
+        "frontend/src/features/exploration/use-exploration.ts",
+        "frontend/src/features/exploration/selection-label.ts",
+        "frontend/src/features/exploration/selection-label.test.ts",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/api.test.ts"
+      ],
+      "reviewer_focus": [
+        "RE-RUN, NEVER REPLAY, AND THE TRAPS ARE SILENT. Nothing is stored to replay - task 3 deleted Pin.snapshot and Pin.lastRefresh. Check the REQUEST BODY: the stored selection present and reportGrounding ABSENT. usesEditedSelection is Boolean(editedSelection && !groundedReport) (chat.service.ts:145), so grounding sent by mistake WINS and the stored selection is quietly ignored while the surface still looks right. And the route needs a non-empty question (chat.constants.ts:2) - check the client sends the derived label, not a fabricated sentence the product would appear to have answered.",
+        "ONE LABEL SOURCE, NOT TWO. The labels move into @3f/contract and semanticLayer.ts IMPORTS them. A second client-side copy was explicitly rejected by the human because nothing would catch its drift. semanticLayer.financial.test.ts:21 asserts the exact label strings and must pass UNCHANGED - that is the proof no published vocabulary moved.",
+        "THE PINNED CARD SHOWS NO FIGURE, ON PURPOSE. The prototype draws one; decision 0028 deleted every stored figure, so drawing it means a governed warehouse execution per pin on every dashboard load. The human chose metadata-only until an explicit Open. A card that fetches a number on mount is the defect, not the feature.",
+        "A REFUSAL IS NOT AN EMPTY RESULT (0018). status is a REQUIRED discriminated union so a consumer cannot forget it. A non-runnable row shows its message, offers no open control, is never hidden, and stays DELETABLE.",
+        "SAVE AND PIN MUST ACTUALLY EXIST. There is no frontend caller of POST /api/saved or POST /api/pins today, which is why task 3's routes are unreachable and the approved plan's functional check could not be run. Controls belong on a SUCCESSFUL answer only - only a success carries a runnable selection.",
+        "REUSE THE RENDERER. ask-panel.tsx exports only AskPanel and parseActiveBatchIds, and AskContextValue types ask as (question: string) => Promise<void>. Extending AskProvider is the way; a second response renderer would be the divergent-implementation defect this contract forbids.",
+        "THE API-CLIENT LEAF IS NOT OPTIONAL. A component test mocks the client and proves nothing about the route, the CSRF header or the body. Assert the EXACT body in frontend/src/lib/api.test.ts.",
+        "USER-FACING MEANS DESIGN SKILLS AND A REAL LIVE CHECK. emil-design-eng and frontend-design must be loaded, used and attested. The mock provider only ever returns a clarification, so a Success path 'passed' against it is a false green - report BLOCKED instead."
+      ],
+      "review_budget": {
+        "max_changed_files": 20,
+        "max_changed_lines": 2600,
+        "reason": "Two new surfaces plus the shell, dashboard and Ask panel they attach to; Save and Pin controls without which task 3's routes are unreachable and the approved functional check cannot run; AskProvider extended to re-run a stored selection so the existing seven-class renderer is reused rather than duplicated; the measure and dimension labels moved into @3f/contract with semanticLayer.ts importing them so one constant serves both sides; a derived-label module with an unavailable-definition fallback; and the shared stylesheet. Seven required vitest leaves plus a user-facing live functional check and the two mandatory design skills."
+      }
     }
   ],
   "plan_sha256": "b42f23505a02ff4d849e94e042ca5514d3ebff0a4ceb25809c5696ada0e46150",
-  "commit": "e6ea3bf656731acc3207c0820ede20802b217f75"
+  "commit": "ceff86e881fed2a0924793070f4f94221e9535e6"
 }

@@ -368,6 +368,24 @@ export interface PinSnapshot {
   errorMessage?: string;
 }
 
+/** Human-readable labels shared by the semantic registry and exploration surfaces. */
+export const SEMANTIC_LABELS = {
+  measures: {
+    "governed-financial.actual": "Actual",
+    "governed-financial.budget": "Budget",
+    "governed-financial.percentage": "%",
+    "mis-statement.actual_net": "Actual",
+    "mis-statement.budget_net": "Budget",
+    "mis-statement.rollover_net": "Roll-over",
+    "mis-statement.percentage": "%",
+  },
+  dimensions: {
+    gl_code: "GL code",
+    month: "Month",
+    leaf_key: "Statement leaf",
+  },
+} as const;
+
 /** Saved semantic selection for re-running through the normal chat path. */
 export interface SavedQuery {
   id: string;

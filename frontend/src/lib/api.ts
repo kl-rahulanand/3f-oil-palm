@@ -6,12 +6,16 @@ import type {
   AuthOtpRequestResponse,
   AuthOtpVerifyResponse,
   AuthRefreshResponse,
+  CreatePinRequest,
   MisDrillRequest,
   MisDrillResponse,
   MisSelectionOptionsResponse,
   MisSelectionRunRequest,
   MisStatementRouteResponse,
   MisStatementUnresolvableResponse,
+  Pin,
+  SaveQueryRequest,
+  SavedQuery,
 } from "@3f/contract";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:4000";
@@ -59,6 +63,21 @@ async function post<T>(path: string, body: object, refreshOn401 = false): Promis
   return response.json() as Promise<T>;
 }
 
+async function remove(path: string, refreshOn401 = false): Promise<{ ok: true }> {
+  await request(CSRF_PATH);
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: { "x-csrf-token": csrfCookie() },
+  });
+  if (response.status === 401 && refreshOn401) {
+    await post<AuthRefreshResponse>("/api/auth/refresh", {});
+    return remove(path);
+  }
+  if (!response.ok) throw new ApiError(response.status);
+  return response.json() as Promise<{ ok: true }>;
+}
+
 async function exportMisStatement(
   selection: MisSelectionRunRequest,
 ): Promise<MisStatementUnresolvableResponse | undefined> {
@@ -103,7 +122,14 @@ export const api = {
   misOptions: () => request<MisSelectionOptionsResponse>("/api/mis/options", true),
   runMisStatement: (selection: MisSelectionRunRequest) =>
     post<MisStatementRouteResponse>("/api/mis/statement", selection, true),
-  ask: (request: Pick<AskRequest, "question" | "priorTurns">) => post<AskResponse>("/api/chat", request, true),
+  ask: (request: Pick<AskRequest, "question" | "priorTurns" | "selection">) =>
+    post<AskResponse>("/api/chat", request, true),
+  savedQueries: () => request<SavedQuery[]>("/api/saved", true),
+  saveQuery: (body: SaveQueryRequest) => post<SavedQuery>("/api/saved", body, true),
+  deleteSavedQuery: (id: string) => remove(`/api/saved/${id}`, true),
+  pins: () => request<Pin[]>("/api/pins", true),
+  createPin: (body: CreatePinRequest) => post<Pin>("/api/pins", body, true),
+  deletePin: (id: string) => remove(`/api/pins/${id}`, true),
   runMisDrill: (request: MisDrillRequest) => post<MisDrillResponse>("/api/mis/statement/drill", request, true),
   exportMisStatement,
   csrf: () => request<{ ok: true }>(CSRF_PATH),

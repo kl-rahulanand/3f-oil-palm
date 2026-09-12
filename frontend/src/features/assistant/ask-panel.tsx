@@ -4,6 +4,7 @@ import { type AskResponse, type ChartType, type ProvenanceBatch, type ResultTabl
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
+import { api } from "@/src/lib/api";
 import { useAsk, type AskTurn } from "./use-ask";
 
 const SEED_QUESTIONS = [
@@ -125,6 +126,43 @@ function Answer({
 }
 
 function SuccessAnswer({ response }: Readonly<{ response: AskResponse }>) {
+  const [saving, setSaving] = useState<"save" | "pin">();
+  const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string }>();
+
+  async function preserve(kind: "save" | "pin") {
+    if (!response.selection) return;
+    setSaving(kind);
+    setNotice(undefined);
+    try {
+      if (kind === "save") {
+        await api.saveQuery({
+          selection: response.selection,
+          ...(response.chartType ? { chartType: response.chartType } : {}),
+        });
+        setNotice({ kind: "success", message: "Saved view" });
+      } else {
+        await api.createPin({
+          selection: response.selection,
+          ...(response.title ? { title: response.title } : {}),
+          ...(response.chartType ? { chartType: response.chartType } : {}),
+        });
+        setNotice({ kind: "success", message: "Pinned report" });
+      }
+    } catch (error) {
+      setNotice({
+        kind: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : kind === "save"
+              ? "The view could not be saved."
+              : "The report could not be pinned.",
+      });
+    } finally {
+      setSaving(undefined);
+    }
+  }
+
   return (
     <article className="ask-answer ask-success">
       {response.provenance?.verified && <span className="ask-verified">✓ Verified</span>}
@@ -142,6 +180,37 @@ function SuccessAnswer({ response }: Readonly<{ response: AskResponse }>) {
       {response.result && <ResultVisual result={response.result} chartType={response.chartType} />}
       {response.provenance && <ProvenanceDisclosure provenance={response.provenance} />}
       <ViewInReport response={response} />
+      {response.selection && (
+        <div className="ask-preserve-actions">
+          <button
+            className="ask-save-view"
+            type="button"
+            aria-busy={saving === "save"}
+            disabled={Boolean(saving)}
+            onClick={() => void preserve("save")}
+          >
+            {saving === "save" ? "Saving…" : "Save view"}
+          </button>
+          <button
+            className="ask-pin-report"
+            type="button"
+            aria-busy={saving === "pin"}
+            disabled={Boolean(saving)}
+            onClick={() => void preserve("pin")}
+          >
+            {saving === "pin" ? "Pinning…" : "Pin report"}
+          </button>
+          {notice && (
+            <span
+              className="ask-preserve-notice"
+              data-error={notice.kind === "error" || undefined}
+              role={notice.kind === "error" ? "alert" : "status"}
+            >
+              {notice.message}
+            </span>
+          )}
+        </div>
+      )}
     </article>
   );
 }
