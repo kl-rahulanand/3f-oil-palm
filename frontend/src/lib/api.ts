@@ -4,6 +4,8 @@ import type {
   AuthOtpRequestResponse,
   AuthOtpVerifyResponse,
   AuthRefreshResponse,
+  MisDrillRequest,
+  MisDrillResponse,
   MisSelectionOptionsResponse,
   MisSelectionRunRequest,
   MisStatementRunResponse,
@@ -99,6 +101,7 @@ export const api = {
   misOptions: () => request<MisSelectionOptionsResponse>("/api/mis/options", true),
   runMisStatement: (selection: MisSelectionRunRequest) =>
     post<MisStatementRunResponse>("/api/mis/statement", selection, true),
+  runMisDrill: (request: MisDrillRequest) => post<MisDrillResponse>("/api/mis/statement/drill", request, true),
   exportMisStatement,
   csrf: () => request<{ ok: true }>(CSRF_PATH),
   requestOtp: (email: string) => post<AuthOtpRequestResponse>("/api/auth/otp/request", { email }),

@@ -1,0 +1,12 @@
+{
+  "topic": "the 409 refusal is not the per-batch replacement case",
+  "lesson": "t-dtv-c5 contains TWO rules for TWO different responses and they must not be merged. Sentence one governs REPLACEMENT - an HTTP 200 that carries rows plus batchStatuses - and requires every replaced source and period to be named, never a find(). Sentence two governs a stale or vanished pin, an HTTP 409, and requires only that it refuse, never show different numbers, and tell the reader to generate the statement again; it does NOT require naming the batch. It cannot: AuditedDrillRefusalException supers with { message, batchStatuses }, but global-exception.filter.ts builds details as 'validation ? { fieldErrors } : {}' with a generic userMessage, so batchStatuses never reach the client on an error. Fixing that means changing the shared error envelope every route uses - a backend change, which WORKFLOW.md forbids a frontend task from making - and it is deferred as D-0039. Do not report the generic 409 copy as a partial fulfilment of t-dtv-c5.",
+  "source": "S-0002-ae2f and the quality lens t-dtv-c5 partial verdict",
+  "applies_to": [
+    "frontend/src/features/mis/drill-panel.tsx",
+    "frontend/src/features/mis/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T22:12:20+00:00"
+}

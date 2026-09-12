@@ -9,7 +9,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
 import { StatementView } from "./statement-view";
 
-const mocks = vi.hoisted(() => ({ exportMisStatement: vi.fn() }));
+const mocks = vi.hoisted(() => ({ exportMisStatement: vi.fn(), runMisDrill: vi.fn() }));
 
 vi.mock("@/src/lib/api", () => ({ api: mocks }));
 
@@ -84,6 +84,7 @@ const resolved: MisStatementResolvedResponse = {
 afterEach(() => {
   cleanup();
   mocks.exportMisStatement.mockReset();
+  mocks.runMisDrill.mockReset();
 });
 
 test("the download control appears in the statement header only with a resolved statement and builds its request from the resolved scope rather than the filter selectors", async () => {
@@ -297,7 +298,8 @@ test("a failed download surfaces one clear error state and leaves neither the co
   expect(screen.getByRole("treegrid")).toBeInTheDocument();
 });
 
-test("budget rollover and percentage cells expose no control and leaf actuals do nothing when clicked", () => {
+test("leaf actuals are activatable in the statement and in the panel while budget rollover and percentage stay inert", () => {
+  mocks.runMisDrill.mockReturnValue(new Promise(() => undefined));
   renderWithQuery(<StatementView response={resolved} />);
 
   const parentCells = within(screen.getByRole("row", { name: /Materials/ })).getAllByRole("gridcell");
@@ -307,10 +309,16 @@ test("budget rollover and percentage cells expose no control and leaf actuals do
   expect(within(parentCells[4]).getByRole("button")).toBeInTheDocument();
 
   const leafRow = screen.getByRole("row", { name: /Shade Net/ });
-  const leafActual = within(leafRow).getAllByRole("gridcell")[4];
-  expect(within(leafRow).queryByRole("button")).not.toBeInTheDocument();
-  fireEvent.click(leafActual);
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(within(leafRow).getAllByRole("button")).toHaveLength(2);
+  fireEvent.click(within(leafRow).getAllByRole("button")[0]);
+  expect(screen.getByRole("dialog", { name: "Shade Net" })).toBeInTheDocument();
+  expect(screen.getByText("Click any Actual to see its transactions. Budget is not drillable.")).toBeInTheDocument();
+
+  cleanup();
+  renderWithQuery(<StatementView response={resolved} />);
+  fireEvent.click(within(screen.getByRole("row", { name: /Materials/ })).getAllByRole("button")[0]);
+  const panelLeaf = within(screen.getByRole("dialog")).getByRole("row", { name: /Shade Net/ });
+  expect(within(panelLeaf).getAllByRole("button")).toHaveLength(1);
 });
 
 function measure(

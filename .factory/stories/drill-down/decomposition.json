@@ -266,17 +266,144 @@
     {
       "id": "drill-transactions-view",
       "title": "The transactions state of the drill panel",
-      "objective": "Build the next bounded slice when it reaches the frontier: wire the leaf state of the panel to the transactions endpoint, with its table, footer, pagination and refusal notices. Frontend only.",
+      "objective": "Finish the drill: wire the panel's leaf state to POST api/mis/statement/drill, render the transaction lines behind a leaf with a footer that foots to the number on the statement, page a large result server-side, and give every refusal its own clear state. This is the only task in the story that calls the endpoint task 1 shipped. Frontend only: no contract change, no backend change, and the aggregate state task 2 built stays a pure client projection (decision 0024).",
       "user_facing": true,
       "dependencies": [
         "drill-transactions-api",
         "drill-panel"
       ],
       "acceptance_criteria": [
-        "Clicking a leaf Actual opens its transactions with a footer that matches the statement on screen, pages a large result, and states plainly when the pinned batch was replaced or is gone."
-      ]
+        "Leaf Actuals become activatable in BOTH places task 2 deliberately left inert: the statement tree and the drill panel's own leaf rows. Each becomes a real <button> inside its gridcell or cell, keeping the treegrid valid and the control keyboard-reachable, and the prototype's guidance copy 'Click any Actual to see its transactions. Budget is not drillable.' is added now that it is true. Budget, Roll-over and % remain inert everywhere - no handler, no focusable control, no pointer affordance - and the unmapped-GL line drills like any other leaf. Drilling a leaf from INSIDE the aggregate panel replaces the panel's body in place rather than opening a second dialog, and the breadcrumb's group crumb becomes a Back control - the prototype's own drill.toGroup seam - that returns to the aggregate list and moves focus to the leaf row's Actual that was used. Close always returns focus to the statement Actual button that opened the panel, which stays mounted throughout, so focus can never land on an unmounted control.",
+        "The request is built from the DISPLAYED statement, never from the mutable filter selectors, exactly as the export control already does: the resolved response's scope (department, function, plant, period), the clicked nodeKey, the clicked measure block's key, the response's provenance.activeBatchIds passed through VERBATIM as pinnedBatches, and a 1-based page. It goes through the shared api client so it carries the CSRF header the global guard requires, as POST /api/mis/statement/drill. The client never filters, reorders or reconstructs the pinned array: the server binds it, and a client that trims it would turn a refusal into a silently wrong footer.",
+        "The transactions state renders the server's rows in the server's order - never re-sorted on the client - as SEVEN columns: Month, Posting date, Debit, Credit, Value, Reference and Memo. Posting date is the recorded departure from the prototype's six columns, settled because the spec's column list is normative and a line's month is its booking month rather than the day it was posted. month and postingDate arrive as date-only strings and are formatted for display in a UTC-SAFE way - parsed at UTC midnight like statement-view already does, never through a local-time Date - because rendering them raw repeats the ISO-label defect this story already fixed once. The seven-column table gets its OWN column styling: the existing .mis-drill-table positional rules (first-child, nth-child(3), nth-child(n+4), last-child) were written for the six-column aggregate table and misalign these columns, so the transactions table declares which of its columns are numeric and which read left. The footer renders the server's FULL-RESULT totals through the statement's rupee formatter with the exact paise on a secondary line, never a page subtotal, and carries the prototype's note that it matches the Actual in the report.",
+        "Pagination is server-side and the client obeys it: pages are 1-based and page size is the server's fixed 100, never set or overridden by the client. The control states the total matching count and which rows are on screen, and moving between pages re-requests rather than slicing what is already loaded. An empty result is a valid response and renders a zero-row state with a zero footer, not an error. While a page is in flight the policy is explicit: page navigation is DISABLED, the previous successful page stays on screen with a loading indication, and a terminal refusal or failure CLEARS those rows, the count and the footer - stale numbers must never sit beside an error.",
+        "Every server outcome has exactly ONE clear state on screen, never two at once. Replacement is reported per batch: batchStatuses is a LIST and an FY-YTD drill can carry several replaced entries, so the panel names EVERY replaced source and period, never the first match from a find(). A stale or vanished pin (409) is a refusal that says the statement is out of date and to generate it again - it never silently shows different numbers. An authorization refusal (403) and a generic failure each say what happened and what to do, in the interface's voice, and neither renders alongside rows, counts or a footer. The displayed footer is also checked against the clicked leaf's own Actual in exact paise; a mismatch withholds the total in the same treatment task 2 established rather than showing a figure the panel cannot vouch for.",
+        "The behaviour is proven by vitest leaves covering: the request built from the displayed scope with provenance passed verbatim; the seven-column table in server order with the full-result footer and its paise equality to the clicked leaf; pagination re-requesting rather than slicing, and the pending-then-failed transition clearing the previous page; the empty result; multi-batch replacement naming every replaced period; and the forbidden and failed states rendering alone. Two of the leaves are deliberately NOT component tests: one exercises the api client directly in frontend/src/lib/api.test.ts, because component tests mock the client and therefore prove nothing about the route, the CSRF header, the retry-on-401 or the untouched payload; and one re-asserts task 2's zero-network aggregate proof as a REQUIRED leaf of this task, so regressing decision 0024 fails this task rather than relying on the suite happening to keep it. The live check runs against this worktree's servers and drills a real leaf, compares the footer to the statement cell and confirms design parity with the prototype panel; it does NOT page, because the July extract's largest (plant, cost centre, GL) group is 18 rows and no real leaf can reach a 100-row page - pagination is proven against a fabricated response and the evidence says so."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-dtv-c1",
+          "statement": "Leaf Actuals become activatable in BOTH places task 2 deliberately left inert: the statement tree and the drill panel's own leaf rows. Each becomes a real <button> inside its gridcell or cell, keeping the treegrid valid and the control keyboard-reachable, and the prototype's guidance copy 'Click any Actual to see its transactions. Budget is not drillable.' is added now that it is true. Budget, Roll-over and % remain inert everywhere - no handler, no focusable control, no pointer affordance - and the unmapped-GL line drills like any other leaf. Drilling a leaf from INSIDE the aggregate panel replaces the panel's body in place rather than opening a second dialog, and the breadcrumb's group crumb becomes a Back control - the prototype's own drill.toGroup seam - that returns to the aggregate list and moves focus to the leaf row's Actual that was used. Close always returns focus to the statement Actual button that opened the panel, which stays mounted throughout, so focus can never land on an unmounted control.",
+          "source": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-grill-2026-09-11"
+        },
+        {
+          "id": "t-dtv-c2",
+          "statement": "The request is built from the DISPLAYED statement, never from the mutable filter selectors, exactly as the export control already does: the resolved response's scope (department, function, plant, period), the clicked nodeKey, the clicked measure block's key, the response's provenance.activeBatchIds passed through VERBATIM as pinnedBatches, and a 1-based page. It goes through the shared api client so it carries the CSRF header the global guard requires, as POST /api/mis/statement/drill. The client never filters, reorders or reconstructs the pinned array: the server binds it, and a client that trims it would turn a refusal into a silently wrong footer.",
+          "source": "docs/decisions/0025-drill-down-pinned-batch-raw-read.md"
+        },
+        {
+          "id": "t-dtv-c3",
+          "statement": "The transactions state renders the server's rows in the server's order - never re-sorted on the client - as SEVEN columns: Month, Posting date, Debit, Credit, Value, Reference and Memo. Posting date is the recorded departure from the prototype's six columns, settled because the spec's column list is normative and a line's month is its booking month rather than the day it was posted. month and postingDate arrive as date-only strings and are formatted for display in a UTC-SAFE way - parsed at UTC midnight like statement-view already does, never through a local-time Date - because rendering them raw repeats the ISO-label defect this story already fixed once. The seven-column table gets its OWN column styling: the existing .mis-drill-table positional rules (first-child, nth-child(3), nth-child(n+4), last-child) were written for the six-column aggregate table and misalign these columns, so the transactions table declares which of its columns are numeric and which read left. The footer renders the server's FULL-RESULT totals through the statement's rupee formatter with the exact paise on a secondary line, never a page subtotal, and carries the prototype's note that it matches the Actual in the report.",
+          "source": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-re-read-2026-09-11"
+        },
+        {
+          "id": "t-dtv-c4",
+          "statement": "Pagination is server-side and the client obeys it: pages are 1-based and page size is the server's fixed 100, never set or overridden by the client. The control states the total matching count and which rows are on screen, and moving between pages re-requests rather than slicing what is already loaded. An empty result is a valid response and renders a zero-row state with a zero footer, not an error. While a page is in flight the policy is explicit: page navigation is DISABLED, the previous successful page stays on screen with a loading indication, and a terminal refusal or failure CLEARS those rows, the count and the footer - stale numbers must never sit beside an error.",
+          "source": "plans/active/drill-down-actuals-drill-down-to-transactions.md#request-and-response"
+        },
+        {
+          "id": "t-dtv-c5",
+          "statement": "Every server outcome has exactly ONE clear state on screen, never two at once. Replacement is reported per batch: batchStatuses is a LIST and an FY-YTD drill can carry several replaced entries, so the panel names EVERY replaced source and period, never the first match from a find(). A stale or vanished pin (409) is a refusal that says the statement is out of date and to generate it again - it never silently shows different numbers. An authorization refusal (403) and a generic failure each say what happened and what to do, in the interface's voice, and neither renders alongside rows, counts or a footer. The displayed footer is also checked against the clicked leaf's own Actual in exact paise; a mismatch withholds the total in the same treatment task 2 established rather than showing a figure the panel cannot vouch for.",
+          "source": "docs/specs/actuals-drill-down.md#settled-by-the-requirements-re-read-2026-09-11"
+        },
+        {
+          "id": "t-dtv-c6",
+          "statement": "The behaviour is proven by vitest leaves covering: the request built from the displayed scope with provenance passed verbatim; the seven-column table in server order with the full-result footer and its paise equality to the clicked leaf; pagination re-requesting rather than slicing, and the pending-then-failed transition clearing the previous page; the empty result; multi-batch replacement naming every replaced period; and the forbidden and failed states rendering alone. Two of the leaves are deliberately NOT component tests: one exercises the api client directly in frontend/src/lib/api.test.ts, because component tests mock the client and therefore prove nothing about the route, the CSRF header, the retry-on-401 or the untouched payload; and one re-asserts task 2's zero-network aggregate proof as a REQUIRED leaf of this task, so regressing decision 0024 fails this task rather than relying on the suite happening to keep it. The live check runs against this worktree's servers and drills a real leaf, compares the footer to the statement cell and confirms design parity with the prototype panel; it does NOT page, because the July extract's largest (plant, cost centre, GL) group is 18 rows and no real leaf can reach a 100-row page - pagination is proven against a fabricated response and the evidence says so.",
+          "source": "plans/active/drill-down-actuals-drill-down-to-transactions.md#verify-plan"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "a leaf actual requests the drill with the displayed scope the clicked node and block and the provenance batches passed through verbatim",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the drill client posts to the governed drill route with the csrf header and the pinned batches untouched",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the transactions table renders the server rows in server order across seven columns with the full result footer equal to the clicked leaf actual in exact paise",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "paging re-requests the next page and a failed next page clears the previous rows count and footer",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "an empty transaction result renders a zero row state with a zero footer and not an error",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "every replaced pinned batch is named and a stale pin refuses and tells the reader to generate the statement again",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a forbidden drill and a failed drill each render alone with no rows counts or footer",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "drilling a leaf inside the aggregate panel replaces the body in place and back returns to the group with focus on the leaf row",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "leaf actuals are activatable in the statement and in the panel while budget rollover and percentage stay inert",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "opening a nested aggregate and the grand total issues no api call at all",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "verify_commands": [
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:frontend",
+        "npm run build:frontend"
+      ],
+      "write_scope": [
+        "frontend/src/features/mis/drill-panel.tsx",
+        "frontend/src/features/mis/drill-panel.test.tsx",
+        "frontend/src/features/mis/statement-view.tsx",
+        "frontend/src/features/mis/statement-view.test.tsx",
+        "frontend/src/features/mis/use-mis-statement.ts",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/api.test.ts",
+        "frontend/app/globals.css"
+      ],
+      "reviewer_focus": [
+        "PROVENANCE GOES THROUGH VERBATIM. The server binds the pinned set and REFUSES an incomplete one; a client that filters provenance.activeBatchIds to 'the relevant ones' converts a refusal into a silently wrong footer. Check the array reaches the request untouched - not filtered by source, not deduped, not trimmed to the block's months.",
+        "BUILD THE REQUEST FROM THE RESPONSE, NOT THE SELECTORS. The export control already does this for a reason: a reader who changes a dropdown after generating must still drill the statement they are looking at. Read scope off the resolved response.",
+        "DO NOT RE-SORT ON THE CLIENT. The server's order is deterministic by contract (Value desc, Month desc, posting_date desc, txn_no, line_id) and pagination depends on it. Any client-side sort silently breaks page boundaries.",
+        "THE FOOTER IS THE SERVER'S FULL-RESULT TOTAL. Summing the rows on screen gives a PAGE subtotal that will match on a single-page leaf and quietly lie on a paged one - which is exactly the case the client extract cannot produce, so a test must fabricate it.",
+        "ONE STATE AT A TIME. Replaced, stale, forbidden, failed and empty are five distinct outcomes; none may render beside rows, and none may render beside another. mis-report-view shipped an error and an empty-state together once - constitution 07 exists because of that class.",
+        "LEAF ACTUALS IN BOTH PLACES. Task 2 deliberately left them inert in the statement AND in the panel's leaf rows, and held the guidance copy. Both are this task's to activate; a task that wires only the statement leaves the panel's own rows as the false affordance we avoided.",
+        "TASK 2'S AGGREGATE PATH MUST STAY OFFLINE. Decision 0024: opening a non-leaf still issues zero requests. The existing spy test must keep passing untouched - if it needed changing, something regressed.",
+        "CHECK THE EXECUTED COUNT AND TESTCASE NAME in every artifact, never the exit code (D-0031).",
+        "THE API-CLIENT LEAF IS NOT A COMPONENT TEST. Component tests mock the client, so they cannot prove the route path, the CSRF header, the retry-on-401 or that pinnedBatches reached the wire untouched. frontend/src/lib/api.test.ts:52 is the pattern; the required leaf must live there.",
+        "batchStatuses IS A LIST. An FY-YTD drill can carry several replaced batches. A find() renders one and hides the rest; the criterion requires every replaced source and period to be named.",
+        "PENDING IS A STATE WITH RULES: navigation disabled, the previous page still visible with a loading indication, and a terminal failure CLEARS rows, count and footer. Stale numbers beside an error is the constitution-07 defect this codebase has shipped before.",
+        "DATE-ONLY STRINGS, UTC-SAFE. month and postingDate arrive as date-only strings; a local-time Date shifts them a day east of UTC, and rendering them raw repeats the ISO-label defect fixed in task 2. statement-view already parses at UTC midnight - follow it.",
+        "THE SEVEN-COLUMN TABLE NEEDS ITS OWN STYLING. .mis-drill-table's positional rules (nth-child(3), nth-child(n+4)) encode the SIX-column aggregate layout and will misalign these columns.",
+        "FOCUS MUST NEVER LAND ON AN UNMOUNTED CONTROL. Drilling a leaf from inside the panel swaps the body in place; Back returns to the group with focus on the leaf row used; Close returns to the statement button, which stays mounted throughout."
+      ],
+      "review_budget": {
+        "max_changed_files": 8,
+        "max_changed_lines": 1500,
+        "reason": "The panel gains a second body state with its own data lifecycle - request, pending policy, pagination and five distinct failure outcomes - plus in-place navigation between the aggregate and leaf states with a Back seam and its focus contract, the api client method and its own direct test, the leaf affordance in two places, and dedicated styling for a seven-column table whose existing positional rules encode the six-column layout. Ten required leaves, most of them state-machine cases that exist only in this task. No contract change and no backend change."
+      }
     }
   ],
   "plan_sha256": "0b21f60deec85bd08fd80a9d0e5851a8197d2c07918118e1414f4fbc3dd51670",
-  "commit": "fd676ffe009da886733aa4cd95d6855d2377e5ad"
+  "commit": "560f5212acbc76757562f05137ddd09a0454d6f3"
 }

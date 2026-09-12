@@ -1,10 +1,11 @@
 import type {
   FixedScaleMoney,
+  MisDrillResponse,
   MisStatementMeasureBlock,
   MisStatementNode,
   MisStatementResolvedResponse,
 } from "@3f/contract";
-import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
 import { StatementView } from "./statement-view";
@@ -12,6 +13,7 @@ import { StatementView } from "./statement-view";
 const mocks = vi.hoisted(() => ({
   misOptions: vi.fn(),
   runMisStatement: vi.fn(),
+  runMisDrill: vi.fn(),
   exportMisStatement: vi.fn(),
   csrf: vi.fn(),
   requestOtp: vi.fn(),
@@ -45,7 +47,12 @@ const response: MisStatementResolvedResponse = {
   },
   tree: [admin, unmapped],
   grandTotal: node("grand-total", null, "Grand Total", null, "60.06", "32.07", "120.12", "64.14"),
-  provenance: { activeBatchIds: [] },
+  provenance: {
+    activeBatchIds: [
+      { source: "actuals", period: "2026-07-01", batchId: "actuals-july" },
+      { source: "budget", period: "2026-07-01", batchId: "budget-july" },
+    ],
+  },
 };
 
 afterEach(() => {
@@ -147,10 +154,11 @@ test("the drill panel takes focus traps tab and shift tab closes on escape and o
 
   const dialog = screen.getByRole("dialog");
   const close = screen.getByRole("button", { name: "Close drill-down" });
+  const last = within(dialog).getAllByRole("button").at(-1)!;
   expect(dialog).toHaveFocus();
   fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
-  expect(close).toHaveFocus();
-  fireEvent.keyDown(close, { key: "Tab" });
+  expect(last).toHaveFocus();
+  fireEvent.keyDown(last, { key: "Tab" });
   expect(close).toHaveFocus();
   fireEvent.keyDown(close, { key: "Escape" });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -161,6 +169,215 @@ test("the drill panel takes focus traps tab and shift tab closes on escape and o
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(opener).toHaveFocus();
 });
+
+test("a leaf actual requests the drill with the displayed scope the clicked node and block and the provenance batches passed through verbatim", async () => {
+  mocks.runMisDrill.mockResolvedValue(drillResponse());
+  renderWithQuery(<StatementView response={response} />);
+  openActual("Diesel", 0);
+
+  await waitFor(() => expect(mocks.runMisDrill).toHaveBeenCalledTimes(1));
+  const request = mocks.runMisDrill.mock.calls[0][0];
+  expect(request).toEqual({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+    nodeKey: "diesel",
+    block: "selected",
+    pinnedBatches: response.provenance.activeBatchIds,
+    page: 1,
+  });
+  expect(request.pinnedBatches).toBe(response.provenance.activeBatchIds);
+});
+
+test("the transactions table renders the server rows in server order across seven columns with the full result footer equal to the clicked leaf actual in exact paise", async () => {
+  mocks.runMisDrill.mockResolvedValue(
+    drillResponse({
+      totalCount: 101,
+      lines: [
+        {
+          month: "2026-07-01",
+          postingDate: "2026-07-20",
+          debit: "4.00",
+          credit: "0.00",
+          value: "4.00",
+          reference: "REF-B",
+          memo: "Second",
+        },
+        {
+          month: "2026-06-01",
+          postingDate: "2026-06-04",
+          debit: "1.00",
+          credit: "0.00",
+          value: "1.00",
+          reference: "REF-A",
+          memo: "First",
+        },
+      ],
+    }),
+  );
+  renderWithQuery(<StatementView response={response} />);
+  openActual("Diesel", 0);
+
+  const table = await screen.findByRole("table");
+  expect(
+    within(table)
+      .getAllByRole("columnheader")
+      .map((cell) => cell.textContent),
+  ).toEqual(["Month", "Posting date", "Debit", "Credit", "Value", "Reference", "Memo"]);
+  const rows = within(table).getAllByRole("row").slice(1, -1);
+  expect(rows.map((row) => row.textContent)).toEqual([
+    expect.stringContaining("REF-BSecond"),
+    expect.stringContaining("REF-AFirst"),
+  ]);
+  expect(within(table).getByRole("row", { name: "Total" })).toHaveTextContent("₹5.01exact");
+  expect(within(table).getByRole("row", { name: "Total" })).toHaveTextContent("Matches the Actual in the report");
+});
+
+test("paging re-requests the next page and a failed next page clears the previous rows count and footer", async () => {
+  let rejectNext!: (reason: Error) => void;
+  mocks.runMisDrill.mockImplementation(({ page }: { page: number }) =>
+    page === 1
+      ? Promise.resolve(drillResponse({ totalCount: 101 }))
+      : new Promise((_resolve, reject) => {
+          rejectNext = reject;
+        }),
+  );
+  renderWithQuery(<StatementView response={response} />);
+  openActual("Diesel", 0);
+
+  expect(await screen.findByText("101 matching · rows 1–1 on screen")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await waitFor(() => expect(mocks.runMisDrill).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })));
+  expect(screen.getByText("101 matching · rows 1–1 on screen")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+  expect(screen.getByText("Loading page…")).toBeInTheDocument();
+
+  await act(async () => rejectNext(new Error("offline")));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Transactions could not be loaded");
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByText(/matching · rows/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Matches the Actual in the report")).not.toBeInTheDocument();
+});
+
+test("an empty transaction result renders a zero row state with a zero footer and not an error", async () => {
+  const empty = node("empty", "1", "Empty leaf", "5999", "0.00", "0.00", "0.00", "0.00");
+  mocks.runMisDrill.mockResolvedValue(
+    drillResponse({
+      nodeKey: "empty",
+      leafKey: "empty",
+      lines: [],
+      totalCount: 0,
+      footer: { debit: "0.00", credit: "0.00", value: "0.00" },
+    }),
+  );
+  renderWithQuery(<StatementView response={{ ...response, tree: [empty], grandTotal: empty }} />);
+  openActual("Empty leaf", 0);
+
+  expect(await screen.findByText("No transactions match this Actual.")).toBeInTheDocument();
+  expect(screen.getByText("0 matching · rows 0–0 on screen")).toBeInTheDocument();
+  expect(screen.getByRole("row", { name: "Total" })).toHaveTextContent("₹0.00exact");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("every replaced pinned batch is named and a stale pin refuses and tells the reader to generate the statement again", async () => {
+  mocks.runMisDrill.mockResolvedValueOnce(
+    drillResponse({
+      batchStatuses: [
+        {
+          source: "actuals",
+          period: "2026-06-01",
+          requestedBatchId: "old-june",
+          status: "replaced",
+          activeBatchId: "new-june",
+        },
+        {
+          source: "actuals",
+          period: "2026-07-01",
+          requestedBatchId: "old-july",
+          status: "replaced",
+          activeBatchId: "new-july",
+        },
+      ],
+    }),
+  );
+  renderWithQuery(<StatementView response={response} />);
+  openActual("Diesel", 0);
+  const replaced = await screen.findByRole("alert");
+  const replacedDialog = screen.getByRole("dialog", { name: "Diesel" });
+  expect(replaced).toHaveTextContent("actuals — Jun 2026; actuals — Jul 2026");
+  expect(replacedDialog.querySelector(".mis-drill-total strong")).toHaveTextContent("Transactions unavailable");
+  expect(replacedDialog.querySelector(".mis-drill-total span")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByText(/matching · rows/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Matches the Actual in the report")).not.toBeInTheDocument();
+
+  cleanup();
+  mocks.runMisDrill.mockRejectedValueOnce(Object.assign(new Error("stale"), { status: 409 }));
+  renderWithQuery(<StatementView response={response} />);
+  openActual("Diesel", 0);
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Statement out of date");
+  expect(alert).toHaveTextContent("Generate the statement again");
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
+
+test("a forbidden drill and a failed drill each render alone with no rows counts or footer", async () => {
+  for (const [error, expected] of [
+    [Object.assign(new Error("forbidden"), { status: 403 }), "Ask an administrator if you need access"],
+    [new Error("offline"), "Try opening this Actual again"],
+  ] as const) {
+    mocks.runMisDrill.mockRejectedValueOnce(error);
+    renderWithQuery(<StatementView response={response} />);
+    openActual("Diesel", 0);
+    expect(await screen.findByRole("alert")).toHaveTextContent(expected);
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText(/matching · rows/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Matches the Actual in the report")).not.toBeInTheDocument();
+    cleanup();
+  }
+});
+
+test("drilling a leaf inside the aggregate panel replaces the body in place and back returns to the group with focus on the leaf row", async () => {
+  mocks.runMisDrill.mockResolvedValue(drillResponse());
+  renderWithQuery(<StatementView response={response} />);
+  openActual("Admin Expenses", 0);
+  const leafRow = within(screen.getByRole("dialog")).getByRole("row", { name: /Diesel/ });
+  fireEvent.click(within(leafRow).getByRole("button"));
+
+  expect(await screen.findByRole("dialog", { name: "Diesel" })).toHaveFocus();
+  expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Admin Expenses" }));
+  const returnedLeaf = within(screen.getByRole("dialog")).getByRole("row", { name: /Diesel/ });
+  await waitFor(() => expect(within(returnedLeaf).getByRole("button")).toHaveFocus());
+});
+
+function drillResponse(overrides: Partial<MisDrillResponse> = {}): MisDrillResponse {
+  return {
+    nodeKey: "diesel",
+    leafKey: "diesel",
+    lines: [
+      {
+        month: "2026-07-01",
+        postingDate: "2026-07-02",
+        debit: "5.01",
+        credit: "0.00",
+        value: "5.01",
+        reference: "REF-1",
+        memo: "Diesel",
+      },
+    ],
+    footer: { debit: "5.01", credit: "0.00", value: "5.01" },
+    totalCount: 1,
+    page: 1,
+    pageSize: 100,
+    actualBatchIds: ["actuals-july"],
+    budgetBatchId: "budget-july",
+    batchStatuses: [],
+    ...overrides,
+  };
+}
 
 function openActual(rowName: string, blockIndex: number) {
   fireEvent.click(within(screen.getByRole("row", { name: new RegExp(rowName) })).getAllByRole("button")[blockIndex]);
