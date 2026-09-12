@@ -1,8 +1,8 @@
 ---
 issue: assistant
 title: Assistant + exploration
-status: awaiting-approval
-saved: 2026-09-12T07:24:50+00:00
+status: approved
+saved: 2026-09-12T07:26:33+00:00
 story: assistant
 decisions_reviewed:
   - 0001-poc-engagement-scope
