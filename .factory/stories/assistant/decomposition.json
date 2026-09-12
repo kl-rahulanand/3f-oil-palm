@@ -128,6 +128,7 @@
         "backend/src/chat/chat.schemas.ts",
         "backend/src/chat/chat.service.ts",
         "backend/src/chat/chat.service.test.ts",
+        "backend/src/chat/chat.sse.test.ts",
         "backend/src/chat/smalltalk-guard.ts",
         "backend/src/chat/smalltalk-guard.test.ts",
         "backend/src/chat/reconciliation-guard.ts",
@@ -196,5 +197,5 @@
     }
   ],
   "plan_sha256": "b42f23505a02ff4d849e94e042ca5514d3ebff0a4ceb25809c5696ada0e46150",
-  "commit": "84b5f9f39d3b02822d5afb1e0d3e58a46327c670"
+  "commit": "99626dfe6fc5f96621bc151fb14d68e72b11adb7"
 }

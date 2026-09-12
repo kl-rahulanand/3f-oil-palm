@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-12T08:16:18+00:00", "story": "assistant", "detail": "S-0001-6fca: Scope widened - backend/src/chat/chat.sse.test.ts is yours to edit. It is mechanically implied by the required viewInReport union, which the task grill required precisely because an absent optional fi"}

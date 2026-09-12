@@ -3,10 +3,10 @@ import type {
   AuthUser,
   DomainSpec,
   FixedScaleMoney,
-  MisSelectionRunRequest,
+  MisStatementRouteResponse,
+  MisStatementRunRequest,
   MisStatementMeasureBlock,
   MisStatementNode,
-  MisStatementRunResponse,
   ProvenanceBatch,
   Selection,
   SourcePresence,
@@ -60,7 +60,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
     @Inject(StatementOutlineRepository) private readonly outlines: IStatementOutlineRepository,
   ) {}
 
-  async run(user: AuthUser, request: MisSelectionRunRequest): Promise<MisStatementRunResponse> {
+  async run(user: AuthUser, request: MisStatementRunRequest): Promise<MisStatementRouteResponse> {
     const { domain, selection } = this.authorize(user);
     const canonicalPlant = this.resolver.canonicalPlant(request.plant);
     if (canonicalPlant && !plantScope(user).includes(canonicalPlant)) {
@@ -89,6 +89,10 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
     );
     const outline = await this.outlines.findByBudgetPeriod(resolution.period.to);
     const { tree, grandTotal } = buildTree(outline, blocks);
+    const activeBatchIds = uniqueBatches(blocks.flatMap((block) => block.activeBatchIds));
+    if (request.pinnedBatches && !batchesStillActive(request.pinnedBatches, activeBatchIds)) {
+      return { outcome: "refresh-required", notice: "The data was refreshed - ask again" };
+    }
     return {
       outcome: "resolved",
       scope: {
@@ -102,7 +106,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
       },
       tree,
       grandTotal,
-      provenance: { activeBatchIds: uniqueBatches(blocks.flatMap(({ activeBatchIds }) => activeBatchIds)) },
+      provenance: { activeBatchIds },
     };
   }
 
@@ -324,6 +328,11 @@ function mergePresence(left: SourcePresence[], right: SourcePresence | SourcePre
 
 function uniqueBatches(values: ProvenanceBatch[]): ProvenanceBatch[] {
   return [...new Map(values.map((value) => [`${value.source}\0${value.period}\0${value.batchId}`, value])).values()];
+}
+
+function batchesStillActive(requested: ProvenanceBatch[], active: ProvenanceBatch[]): boolean {
+  const activeKeys = new Set(active.map(({ source, period, batchId }) => `${source}\0${period}\0${batchId}`));
+  return requested.every(({ source, period, batchId }) => activeKeys.has(`${source}\0${period}\0${batchId}`));
 }
 
 function plantScope(user: AuthUser): string[] {

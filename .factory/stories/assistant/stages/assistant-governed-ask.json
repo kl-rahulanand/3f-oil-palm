@@ -1,5 +1,9 @@
 {
   "id": "assistant-governed-ask",
   "title": "Register and govern the vendored assistant, with the view-in-report contract on both sides",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-12T07:54:21+00:00",
+  "base_sha": "99626dfe6fc5f96621bc151fb14d68e72b11adb7",
+  "dirty_at_start": {},
+  "task_sha256": "9c4fdf393e9dd630c2c59897264ae290c5d44912a2ed33a1e5014489d2b5ba4a"
 }

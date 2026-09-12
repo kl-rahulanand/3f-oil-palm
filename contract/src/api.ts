@@ -119,11 +119,16 @@ export interface AskReportGrounding {
   timeWindow?: { from: string; to: string; column?: string };
 }
 
+export interface AskPriorTurn {
+  question: string;
+  selection: Selection;
+}
+
 export interface AskRequest {
   question: string;
   /** Session id for multi-turn context (chips). Server-issued. */
   sessionId?: string;
-  /** Client-generated conversation/thread id for independent multi-turn context. */
+  /** @deprecated Durable conversations are disabled; requests carrying this field are rejected. */
   conversationId?: string;
   /** Durable turn to replace when re-running an edited selection. */
   turnId?: string;
@@ -131,6 +136,8 @@ export interface AskRequest {
   selection?: Selection;
   /** Optional server-resolved report grounding; the client sends no semantic Selection. */
   reportGrounding?: AskReportGrounding;
+  /** Client-held recent turns, bounded again by the server before they reach the model. */
+  priorTurns?: AskPriorTurn[];
 }
 
 /** An editable interpretation chip shown under the question. */
@@ -299,6 +306,17 @@ export interface MisStatementUnresolvableResponse {
 }
 
 export type MisStatementRunResponse = MisStatementResolvedResponse | MisStatementUnresolvableResponse;
+
+export interface MisStatementRunRequest extends MisSelectionRunRequest {
+  pinnedBatches?: ProvenanceBatch[];
+}
+
+export interface MisStatementRefreshRequiredResponse {
+  outcome: "refresh-required";
+  notice: "The data was refreshed - ask again";
+}
+
+export type MisStatementRouteResponse = MisStatementRunResponse | MisStatementRefreshRequiredResponse;
 
 /** POST /api/mis/statement/drill */
 export interface MisDrillRequest extends MisSelectionRunRequest {
@@ -470,6 +488,17 @@ export interface AskResponse {
   appliedTimeWindow?: { from: string; to: string; column: string };
   /** Concrete dimension filters applied to the query, for editable value filters. */
   appliedFilters?: SelectionFilter[];
+  /** Deterministic mapping back to the governed statement, or the reason no mapping exists. */
+  viewInReport?:
+    | {
+        available: true;
+        department: string;
+        function: string;
+        plant: string;
+        period: string;
+        activeBatchIds: ProvenanceBatch[];
+      }
+    | { available: false; reason: string };
   /** Human-readable, honest message for non-success classes. */
   message?: string;
   /** For ClarificationNeeded — options the user can pick. */

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ExecutionContext, HttpException } from "@nestjs/common";
 import { GUARDS_METADATA } from "@nestjs/common/constants";
-import type { AuthUser, MisSelectionRunRequest } from "@3f/contract";
+import type { AuthUser, MisSelectionRunRequest, MisStatementRunRequest, ProvenanceBatch } from "@3f/contract";
 import { AuthGuard, type AuthedRequest } from "../auth/auth.guard";
 import type { SelectionExecutor } from "../chat/selectionExecutor";
 import type { ISelectionResolverService, MasterSelectionResolution } from "../mapping/selection-resolver.interface";
@@ -13,14 +13,35 @@ import type { IMisStatementExportService } from "./mis-statement-export.interfac
 import { MisStatementController } from "./mis-statement.controller";
 import { MisStatementService } from "./mis-statement.service";
 
+test("the statement route refuses a pinned batch that is no longer active and behaves unchanged when no pinned ids are sent", async () => {
+  const { controller } = statementController();
+  const unpinned = await controller.run(user, request("DUB"));
+  assert.equal(unpinned.outcome, "resolved");
+
+  const pinned: MisStatementRunRequest = {
+    ...request("DUB"),
+    pinnedBatches: [
+      {
+        source: "actuals",
+        period: "2026-07-01",
+        batchId: "00000000-0000-0000-0000-000000000099",
+      },
+    ],
+  };
+  assert.deepEqual(await controller.run(user, pinned), {
+    outcome: "refresh-required",
+    notice: "The data was refreshed - ask again",
+  });
+
+  const active = statementController([
+    pinned.pinnedBatches![0],
+    { source: "budget", period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000100" },
+  ]);
+  assert.equal((await active.controller.run(user, pinned)).outcome, "resolved");
+});
+
 test("the statement route refuses an unauthorized plant but returns the unresolvable outcome with its notice for a plant the master does not cover and a configured zero statement without the notice when there are no transactions", async () => {
-  const service = new MisStatementService(
-    new RouteResolver(),
-    new SemanticLayer(),
-    new EmptyExecutor() as unknown as SelectionExecutor,
-    new OneLeafOutline(),
-  );
-  const controller = new MisStatementController(service, exporter);
+  const { controller, service } = statementController();
 
   await assert.rejects(
     () => controller.run(user, request("FORBIDDEN")),
@@ -63,6 +84,19 @@ test("the statement route refuses an unauthorized plant but returns the unresolv
   assert.equal(new ReportGuard().canActivate(context(user)), true);
 });
 
+function statementController(activeBatchIds: ProvenanceBatch[] = []): {
+  controller: MisStatementController;
+  service: MisStatementService;
+} {
+  const service = new MisStatementService(
+    new RouteResolver(),
+    new SemanticLayer(),
+    new EmptyExecutor(activeBatchIds) as unknown as SelectionExecutor,
+    new OneLeafOutline(),
+  );
+  return { controller: new MisStatementController(service, exporter), service };
+}
+
 class RouteResolver implements ISelectionResolverService {
   async options() {
     return { departments: [], functions: [], plants: [], periods: [] };
@@ -92,6 +126,8 @@ class RouteResolver implements ISelectionResolverService {
 }
 
 class EmptyExecutor {
+  constructor(private readonly activeBatchIds: ProvenanceBatch[] = []) {}
+
   authorize(user: AuthUser, _domain: unknown, selection: { dimensionIds: string[] }): void {
     if (!selection.dimensionIds.every((id) => user.permissions.dimensionIds.includes(id))) {
       throw new HttpException("forbidden", 403);
@@ -99,7 +135,7 @@ class EmptyExecutor {
   }
 
   async run() {
-    return { result: { columns: [], rows: [] }, rowSourcePresence: [], activeBatchIds: [] };
+    return { result: { columns: [], rows: [] }, rowSourcePresence: [], activeBatchIds: this.activeBatchIds };
   }
 }
 

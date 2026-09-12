@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, test } from "node:test";
 import { classifySmalltalk } from "./smalltalk-guard";
+
+test("general chat is answered from deterministic templates containing no numeral that could read as a data value", () => {
+  for (const question of ["hello", "thanks", "what can you do"]) {
+    const response = classifySmalltalk(question);
+    assert.ok(response);
+    const rendered = JSON.stringify(response).replaceAll("3F", "");
+    assert.doesNotMatch(rendered, /\d/);
+  }
+});
 
 describe("classifySmalltalk", () => {
   it("matches greetings, thanks, and capability questions", () => {

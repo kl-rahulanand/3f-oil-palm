@@ -1,4 +1,4 @@
-import type { AuthUser, DomainSpec, MisSelectionRunRequest, MisStatementRunResponse, Selection } from "@3f/contract";
+import type { AuthUser, DomainSpec, MisStatementRouteResponse, MisStatementRunRequest, Selection } from "@3f/contract";
 import type { MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 
 export interface MisStatementBlockDefinition {
@@ -9,7 +9,7 @@ export interface MisStatementBlockDefinition {
 }
 
 export interface IMisStatementService {
-  run(user: AuthUser, request: MisSelectionRunRequest): Promise<MisStatementRunResponse>;
+  run(user: AuthUser, request: MisStatementRunRequest): Promise<MisStatementRouteResponse>;
 }
 
 export interface IMisStatementDrillSupport {

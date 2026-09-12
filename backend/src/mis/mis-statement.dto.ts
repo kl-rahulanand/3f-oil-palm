@@ -4,11 +4,38 @@ import type {
   MisStatementMeasureBlock,
   MisStatementNode,
   MisStatementProvenance,
+  MisStatementRefreshRequiredResponse,
   MisStatementResolvedResponse,
+  MisStatementRunRequest,
   MisStatementUnresolvableResponse,
   ProvenanceBatch,
   SourcePresence,
 } from "@3f/contract";
+import { z } from "zod";
+import { MisSelectionRunRequestDto, misSelectionRunRequestSchema } from "./mis-selection.dto";
+
+const provenanceBatchSchema = z
+  .object({
+    source: z.enum(["actuals", "budget"]),
+    period: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    batchId: z.string().uuid(),
+  })
+  .strict();
+
+export const misStatementRunRequestSchema = misSelectionRunRequestSchema.extend({
+  pinnedBatches: z
+    .array(provenanceBatchSchema)
+    .min(1)
+    .refine((values) => new Set(values.map(({ batchId }) => batchId)).size === values.length, {
+      message: "pinned batches must be unique",
+    })
+    .optional(),
+});
+
+export class MisStatementRunRequestDto extends MisSelectionRunRequestDto implements MisStatementRunRequest {
+  @ApiProperty({ type: () => [MisStatementProvenanceBatchDto], required: false })
+  pinnedBatches?: ProvenanceBatch[];
+}
 
 class MisStatementMeasureBlockDto implements MisStatementMeasureBlock {
   @ApiProperty({ enum: ["selected", "fy26-27-ytd"] })
@@ -68,6 +95,14 @@ class MisStatementProvenanceBatchDto implements ProvenanceBatch {
 
   @ApiProperty({ format: "uuid" })
   batchId!: string;
+}
+
+export class MisStatementRefreshRequiredResponseDto implements MisStatementRefreshRequiredResponse {
+  @ApiProperty({ enum: ["refresh-required"] })
+  outcome: "refresh-required" = "refresh-required";
+
+  @ApiProperty({ enum: ["The data was refreshed - ask again"] })
+  notice: "The data was refreshed - ask again" = "The data was refreshed - ask again";
 }
 
 class MisStatementProvenanceDto implements MisStatementProvenance {

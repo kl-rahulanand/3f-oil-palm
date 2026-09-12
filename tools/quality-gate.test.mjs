@@ -15,6 +15,7 @@ const expectedCommands = {
 const hermeticTests = [
   "backend/src/app.routes.test.ts",
   "backend/src/branding.identifiers.test.ts",
+  "backend/src/chat/chat.service.test.ts",
   "backend/src/chat/chat.sse.test.ts",
   "backend/src/chat/reconciliation-guard.test.ts",
   "backend/src/chat/selectionExecutor.composed.test.ts",
@@ -168,10 +169,8 @@ c96d9a455bdc15fa5143d51ac482c014a203218d3fbca9601b7a111b0d2bf6e0 backend/src/aut
 27fcf5cef0f49b1de541e36e5930fa75337f604a01bbfd2254d6511681812faa backend/src/auth/rate-limit.service.ts
 e85528150c0ebdfc7e199915a28487acc28ccb6011ea649ca4cf89c61e17753c backend/src/chat/ambiguity.ts
 2e62afac708fe9c84f43018d442cdd333925cec3e01405638eaf5ffa305c6389 backend/src/chat/chat.constants.ts
-a5cc8e0c0d5f7574f211fd9c9c5aed03fd7b918a05a6f00e3bb32c44928b9db5 backend/src/chat/chat.controller.ts
 b6133d425e36598cd312eb730e5ff7ff32d18040109e222539238645d36b7b8b backend/src/chat/chat.sse.test.ts
 8f23925eb1ac1c01f4938f30f8838820a84b512092772b6781e3229f6964b84e backend/src/chat/chat.sse.ts
-6586b1f8acfb5b09a2b01a0503e04edc4e0cb65d83c2e041a71a06d4303653f3 backend/src/chat/smalltalk-guard.ts
 d87c8800569af74975ce67dbdb408de2ebbc1c11cbf00a5eb51f42190e1aefe9 backend/src/chat/suppression.ts
 a91b8489592d28d7e418290e34799dcfb58238c54bb1050fba339280d11ed646 backend/src/chat/timeWindowParse.ts
 c401ca278a38b619644004834a832197cd3e21ea4394dff874611ba000adb90d backend/src/common/openapi.ts
