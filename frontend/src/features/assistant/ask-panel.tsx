@@ -235,6 +235,7 @@ function ResultChart({
 }
 
 function ResultTableView({ result }: Readonly<{ result: ResultTable }>) {
+  const suppressed = new Set(result.suppressedCells?.map(({ row, key }) => `${row}:${key}`));
   return (
     <div className="ask-table-wrap">
       <table className="ask-table">
@@ -252,7 +253,7 @@ function ResultTableView({ result }: Readonly<{ result: ResultTable }>) {
             <tr key={result.columns.map((column) => String(row[column.key])).join("|")}>
               {result.columns.map((column) => (
                 <td key={column.key} data-numeric={column.numeric || undefined}>
-                  {isSuppressed(result, rowIndex, column.key) ? "—" : cell(row[column.key])}
+                  {suppressed.has(`${rowIndex}:${column.key}`) ? "—" : cell(row[column.key])}
                 </td>
               ))}
             </tr>
@@ -333,10 +334,6 @@ function isNumeric(value: string | number | null): boolean {
 
 function cell(value: string | number | null | undefined): string | number {
   return value ?? "—";
-}
-
-function isSuppressed(result: ResultTable, row: number, key: string): boolean {
-  return result.suppressedCells?.some((cell) => cell.row === row && cell.key === key) ?? false;
 }
 
 function latestSuggestions(turns: AskTurn[]): string[] | undefined {

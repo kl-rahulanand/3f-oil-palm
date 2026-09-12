@@ -294,7 +294,7 @@ test("only successful turns become prior turns and the thread survives opening t
     });
   const mounted = render(
     <AskProvider>
-      <SurfaceHarness />
+      <RouteHarness />
     </AskProvider>,
   );
 
@@ -302,9 +302,11 @@ test("only successful turns become prior turns and the thread survives opening t
   await screen.findByText("Governed result");
   submit("Predict next season");
   await screen.findByText("That question is not supported.");
+  fireEvent.change(screen.getByLabelText("Ask about your MIS data"), { target: { value: "Unsaved draft" } });
   fireEvent.click(screen.getByRole("link", { name: "Open in Ask" }));
   expect(screen.getByRole("region", { name: "Ask" })).toHaveAttribute("data-surface", "page");
   expect(screen.getByText("Show governed Actual")).toBeInTheDocument();
+  expect(screen.getByLabelText("Ask about your MIS data")).toHaveValue("");
   submit("Define Budget");
 
   await waitFor(() =>
@@ -358,18 +360,18 @@ function submit(question: string) {
   fireEvent.click(screen.getByRole("button", { name: "Send question" }));
 }
 
-function SurfaceHarness() {
-  const [surface, setSurface] = useState<"docked" | "page">("docked");
+function RouteHarness() {
+  const [pathname, setPathname] = useState("/mis-reports");
   return (
     <div
       onClickCapture={(event) => {
         if ((event.target as HTMLElement).closest('a[href="/ask"]')) {
           event.preventDefault();
-          setSurface("page");
+          setPathname("/ask");
         }
       }}
     >
-      <AskPanel surface={surface} />
+      {pathname === "/ask" ? <AskPage /> : <AskPanel surface="docked" />}
     </div>
   );
 }
