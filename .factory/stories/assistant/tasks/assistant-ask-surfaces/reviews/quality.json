@@ -1,0 +1,133 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-ask-surfaces",
+  "score": 5,
+  "summary": "quality lens over assistant-ask-surfaces (13 product path(s), e24a8bd..357c441, Codex via the autoreview skill at --max-priority P2): 1 blocking, 3 non-blocking. VERDICT t-aas-c1: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:28, frontend/app/(app)/ask/page.tsx:4, frontend/src/components/shell/app-shell.tsx:15\nVERDICT t-aas-c2: partial \u2014 frontend/src/features/assistant/ask-panel.tsx:60 permits false verification messaging and lines 178/316 admit dishonest chart output\nVERDICT t-aas-c3: partial \u2014 frontend/src/features/mis/mis-report-view.tsx:29 preserves answer-pinned batches after selector changes\nVERDICT t-aas-c4: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:109 dispatches the distinct response shapes\nVERDICT t-aas-c5: implemented \u2014 frontend/src/features/assistant/use-ask.ts:27 constructs prior turns solely from successful selections and frontend/src/lib/api.ts:106 sends the contract body\nVERDICT t-aas-c6: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:113 and frontend/src/features/mis/mis-report-view.test.tsx:126 provide the named surface and refresh-required leaves",
+  "blocking_findings": [
+    {
+      "category": "security",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P1] Do not render suppressed values through charts (frontend/src/features/assistant/ask-panel.tsx:178): `ResultTableView` honors `suppressedCells`, but the KPI path reads the underlying value directly, and the other chart paths pass the unfiltered `result.rows` to Recharts."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "contract/src/api.ts",
+      "summary": "t-aas-c2: A successful answer renders its title, its result and its chart, and EVERY numeric character on screen comes from the deterministic result - the response's own values, totals and labels - never from prose the client composes. Charts use RECHARTS per decision 0007, which means adding the dependency: it is absent from frontend/package.json today, so that file and the lockfile are in scope. Each chartType the response can carry - kpi, line, bar, pie, table - renders truthfully or not at all; a shape the client cannot draw honestly falls back to the table rather than to a misleading chart. The verified badge renders ONLY when provenance.verified is true, and the provenance block discloses the readback, measures, scope and dataAsOf behind a disclosure control."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/assistant-assistant-exploration.md#view-in-report-on-both-sides",
+      "summary": "t-aas-c3: View in report renders from the response's DISCRIMINATED union and never reconstructs a selection: available true gives a link carrying the four selectors and activeBatchIds; available false SHOWS the reason rather than silently omitting the link. Following such a link exercises the STATEMENT side, so it is proven where it lives: frontend/src/lib/api.ts still types runMisStatement as MisStatementRunResponse rather than the MisStatementRouteResponse task 1 introduced, so a refresh-required response would reach StatementView missing the fields it reads. The client type is widened, mis-report-view.tsx branches on the refresh-required outcome and replaces the report with that notice, and the required leaf for it lives in mis-report-view.test.tsx - an ask-panel test cannot prove the statement route parsed the selectors, posted them and rendered the refusal."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/features/mis",
+      "summary": "[P2] Clear answer-pinned batches when a linked selection changes (frontend/src/features/mis/mis-report-view.tsx:29): When the page is opened from an answer, `selection` contains the linked request's `pinnedBatches` at runtime."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P2] Fall back from pie charts for signed financial values (frontend/src/features/assistant/ask-panel.tsx:316): The pie eligibility check accepts every numeric value, including negative or mixed-sign amounts."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P2] Do not claim that unverified answers are verified (frontend/src/features/assistant/ask-panel.tsx:60): This unconditional introduction tells users that all answers are verified even when a successful response has `provenance.verified === false`."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "frontend/app/(app)/ask/page.tsx",
+    "frontend/app/globals.css",
+    "frontend/package.json",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts",
+    "package-lock.json"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-aas-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:28, frontend/app/(app)/ask/page.tsx:4, frontend/src/components/shell/app-shell.tsx:15"
+    },
+    {
+      "contract_id": "t-aas-c2",
+      "verdict": "partial",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:60 permits false verification messaging and lines 178/316 admit dishonest chart output"
+    },
+    {
+      "contract_id": "t-aas-c3",
+      "verdict": "partial",
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:29 preserves answer-pinned batches after selector changes"
+    },
+    {
+      "contract_id": "t-aas-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:109 dispatches the distinct response shapes"
+    },
+    {
+      "contract_id": "t-aas-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:27 constructs prior turns solely from successful selections and frontend/src/lib/api.ts:106 sends the contract body"
+    },
+    {
+      "contract_id": "t-aas-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:113 and frontend/src/features/mis/mis-report-view.test.tsx:126 provide the named surface and refresh-required leaves"
+    },
+    {
+      "contract_id": "t-aga-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c7",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "8a5644204d30e0c0f6a7ebcd7413a634ca655648f04e51328dd118ca84095268",
+  "brief_sha256": "8f7a6577aab1f8418c329a86e388c43ac61604d6ee33b4d7be671315c94b06b6",
+  "branch_diff_digest": "38045f932c56479c4478936035e8aff1b01d80d25c66aac77a7b92310f27a797",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T11:32:46+00:00",
+  "commit": "357c4413c804d620054dd1f731bed7682f1416b5"
+}

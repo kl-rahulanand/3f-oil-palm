@@ -1,0 +1,61 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-ask-surfaces",
+  "score": 2,
+  "summary": "security lens over assistant-ask-surfaces (13 product path(s), e24a8bd..357c441, Codex via the autoreview skill at --max-priority P2): 2 blocking, 3 non-blocking. The patch introduces material trust and report-integrity defects: it makes an unconditional verification claim, can ignore later View in report navigations, and can silently discard invalid snapshot pins. It also retains old pins after selector edits and accepts financial data shapes that pie charts cannot represent honestly. No real credentials or compatibility leftovers are shown in the supplied diff.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/features/mis",
+      "summary": "[P1] Process every in-page View in report navigation (frontend/src/features/mis/mis-report-view.tsx:22): On `/mis-reports`, navigation from the docked Ask panel changes only the search parameters and preserves this component."
+    },
+    {
+      "category": "security",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P1] Do not claim that unverified answers are verified (frontend/src/features/assistant/ask-panel.tsx:60): This assertion is always displayed, including for the explicitly supported state where a successful response has `provenance.verified === false`."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "frontend/src/features/mis",
+      "summary": "[P2] Reject malformed pinned-batch parameters instead of running unpinned (frontend/src/features/mis/mis-report-view.tsx:126): When `activeBatchIds` is present but malformed, `parseActiveBatchIds` returns `undefined` and this request silently omits `pinnedBatches`."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/mis",
+      "summary": "[P2] Remove link-only pinned batches when editing the report selection (frontend/src/features/mis/mis-report-view.tsx:18): `linkedRequest` can contain `pinnedBatches`, and assigning it directly to the editable `selection` state retains that property at runtime despite the narrower TypeScript annotation."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P2] Fall back from pie charts for signed financial values (frontend/src/features/assistant/ask-panel.tsx:317): The drawability check accepts any finite numeric values for a pie chart and only verifies that one measure exists."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "frontend/app/(app)/ask/page.tsx",
+    "frontend/app/globals.css",
+    "frontend/package.json",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts",
+    "package-lock.json"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "8a5644204d30e0c0f6a7ebcd7413a634ca655648f04e51328dd118ca84095268",
+  "brief_sha256": "8f7a6577aab1f8418c329a86e388c43ac61604d6ee33b4d7be671315c94b06b6",
+  "branch_diff_digest": "38045f932c56479c4478936035e8aff1b01d80d25c66aac77a7b92310f27a797",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T11:32:46+00:00",
+  "commit": "357c4413c804d620054dd1f731bed7682f1416b5"
+}

@@ -1,0 +1,45 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-ask-surfaces",
+  "score": 9,
+  "summary": "performance lens over assistant-ask-surfaces (13 product path(s), e24a8bd..357c441, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The change introduces two actionable P2 performance defects: the primary MIS route eagerly loads the new charting dependency while Ask is collapsed, and conversation work grows without bound across requests and renders. No compatibility wrapper, retained alias, or other prohibited leftover is visible in the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P2] Lazy-load Recharts instead of shipping it with every MIS report visit (frontend/src/features/assistant/ask-panel.tsx:19): The top-level Recharts import makes its charting stack part of the AskPanel module."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P2] Bound the conversation history sent and rendered per turn (frontend/src/features/assistant/use-ask.ts:30): Each submission scans and sends every successful turn accumulated since the provider mounted, with no cap or window."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "frontend/app/(app)/ask/page.tsx",
+    "frontend/app/globals.css",
+    "frontend/package.json",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts",
+    "package-lock.json"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "8a5644204d30e0c0f6a7ebcd7413a634ca655648f04e51328dd118ca84095268",
+  "brief_sha256": "8f7a6577aab1f8418c329a86e388c43ac61604d6ee33b4d7be671315c94b06b6",
+  "branch_diff_digest": "38045f932c56479c4478936035e8aff1b01d80d25c66aac77a7b92310f27a797",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T11:32:46+00:00",
+  "commit": "357c4413c804d620054dd1f731bed7682f1416b5"
+}
