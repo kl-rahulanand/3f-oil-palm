@@ -75,6 +75,65 @@ test("the MIS statement method posts the four selectors to the governed statemen
   expect((init?.headers as Record<string, string>)["x-csrf-token"]).toBe("statement-token");
 });
 
+test("the drill client posts to the governed drill route with the csrf header and the pinned batches untouched", async () => {
+  let cookie = "";
+  let csrfRequests = 0;
+  let drillRequests = 0;
+  Object.defineProperty(document, "cookie", { configurable: true, get: () => cookie });
+  const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/auth/csrf")) {
+      cookie = `3f_csrf=drill-token-${++csrfRequests}`;
+      return response();
+    }
+    if (url.endsWith("/api/auth/refresh")) return response();
+    if (url.endsWith("/api/mis/statement/drill")) {
+      drillRequests += 1;
+      return drillRequests === 1
+        ? response(401)
+        : response(200, {
+            nodeKey: "diesel",
+            leafKey: "diesel",
+            lines: [],
+            footer: { debit: "0.00", credit: "0.00", value: "0.00" },
+            totalCount: 0,
+            page: 1,
+            pageSize: 100,
+            actualBatchIds: [],
+            budgetBatchId: "budget-july",
+            batchStatuses: [],
+          });
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  const pinnedBatches = [
+    { source: "actuals" as const, period: "2026-07-01", batchId: "actuals-july" },
+    { source: "budget" as const, period: "2026-07-01", batchId: "budget-july" },
+  ];
+  const request = {
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+    nodeKey: "diesel",
+    block: "selected" as const,
+    pinnedBatches,
+    page: 1,
+  };
+
+  await api.runMisDrill(request);
+
+  const calls = fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/mis/statement/drill"));
+  expect(calls).toHaveLength(2);
+  expect(calls.map(([, init]) => JSON.parse(String(init?.body)).pinnedBatches)).toEqual([pinnedBatches, pinnedBatches]);
+  expect(calls.map(([, init]) => (init?.headers as Record<string, string>)["x-csrf-token"])).toEqual([
+    "drill-token-1",
+    "drill-token-3",
+  ]);
+  expect(calls.every(([input]) => String(input) === "http://127.0.0.1:4000/api/mis/statement/drill")).toBe(true);
+});
+
 test("an export returning unauthorized triggers exactly one refresh and exactly one retried export carrying the csrf header and cookie credentials", async () => {
   let cookie = "";
   let csrfRequests = 0;

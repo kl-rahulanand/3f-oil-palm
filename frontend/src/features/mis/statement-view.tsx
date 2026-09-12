@@ -1,11 +1,15 @@
+"use client";
+
 import type {
   FixedScaleMoney,
   MisStatementMeasureBlock,
   MisStatementNode,
+  MisStatementResolvedResponse,
   MisStatementRunResponse,
 } from "@3f/contract";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Button } from "@/src/components/ui/button";
+import { DrillPanel, type DrillPanelSelection } from "./drill-panel";
 import { useMisStatementExport } from "./use-mis-statement";
 
 const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
@@ -14,6 +18,7 @@ const percentageFormatter = new Intl.NumberFormat("en-IN", { style: "percent", m
 
 export function StatementView({ response }: Readonly<{ response: MisStatementRunResponse }>) {
   const download = useMisStatementExport();
+  const [drill, setDrill] = useState<DrillPanelSelection | null>(null);
 
   if (response.outcome === "unresolvable") {
     return (
@@ -113,7 +118,15 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
           </thead>
           <tbody>
             {response.tree.map((node) => (
-              <StatementRow node={node} blocks={blocks} level={1} key={node.nodeKey} />
+              <StatementRow
+                node={node}
+                blocks={blocks}
+                level={1}
+                breadcrumb={[]}
+                response={response}
+                onOpen={setDrill}
+                key={node.nodeKey}
+              />
             ))}
           </tbody>
           <tfoot>
@@ -122,7 +135,20 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
                 Grand total
               </th>
               {blocks.map((block, index) => (
-                <MeasureCells measure={response.grandTotal.measures[index]} key={block.key} />
+                <MeasureCells
+                  measure={response.grandTotal.measures[index]}
+                  onOpen={(opener) =>
+                    setDrill({
+                      node: response.grandTotal,
+                      roots: response.tree,
+                      blockKey: block.key,
+                      breadcrumb: [response.grandTotal.budgetComponent],
+                      response,
+                      opener,
+                    })
+                  }
+                  key={block.key}
+                />
               ))}
             </tr>
           </tfoot>
@@ -130,12 +156,13 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
       </div>
 
       <footer className="mis-statement-provenance">
-        <span>Amounts in ₹. All configured budget components are shown.</span>
+        <span>Click any Actual to see its transactions. Budget is not drillable.</span>
         <span>
           Contributing batch IDs:{" "}
           {response.provenance.activeBatchIds.map(({ batchId }) => batchId).join(", ") || "None"}
         </span>
       </footer>
+      {drill && <DrillPanel selection={drill} onClose={() => setDrill(null)} />}
     </section>
   );
 }
@@ -144,8 +171,19 @@ function StatementRow({
   node,
   blocks,
   level,
-}: Readonly<{ node: MisStatementNode; blocks: MisStatementMeasureBlock[]; level: number }>) {
+  breadcrumb,
+  response,
+  onOpen,
+}: Readonly<{
+  node: MisStatementNode;
+  blocks: MisStatementMeasureBlock[];
+  level: number;
+  breadcrumb: string[];
+  response: MisStatementResolvedResponse;
+  onOpen: (selection: DrillPanelSelection) => void;
+}>) {
   const parent = node.children.length > 0;
+  const path = [...breadcrumb, node.budgetComponent];
   return (
     <>
       <tr
@@ -170,17 +208,41 @@ function StatementRow({
           {node.glCode}
         </td>
         {blocks.map((block, index) => (
-          <MeasureCells measure={node.measures[index]} key={block.key} />
+          <MeasureCells
+            measure={node.measures[index]}
+            onOpen={(opener) =>
+              onOpen({
+                node,
+                roots: parent ? node.children : [],
+                blockKey: block.key,
+                breadcrumb: path,
+                response,
+                opener,
+              })
+            }
+            key={block.key}
+          />
         ))}
       </tr>
       {node.children.map((child) => (
-        <StatementRow node={child} blocks={blocks} level={level + 1} key={child.nodeKey} />
+        <StatementRow
+          node={child}
+          blocks={blocks}
+          level={level + 1}
+          breadcrumb={path}
+          response={response}
+          onOpen={onOpen}
+          key={child.nodeKey}
+        />
       ))}
     </>
   );
 }
 
-function MeasureCells({ measure }: Readonly<{ measure: MisStatementMeasureBlock }>) {
+function MeasureCells({
+  measure,
+  onOpen,
+}: Readonly<{ measure: MisStatementMeasureBlock; onOpen?: (opener: HTMLButtonElement) => void }>) {
   return (
     <>
       <td role="gridcell" data-numeric="true">
@@ -188,7 +250,18 @@ function MeasureCells({ measure }: Readonly<{ measure: MisStatementMeasureBlock 
       </td>
       <td role="gridcell" data-numeric="true" aria-label="Roll-over unavailable" />
       <td role="gridcell" data-numeric="true">
-        {formatMoney(measure.actual)}
+        {onOpen ? (
+          <button
+            className="mis-actual-action"
+            type="button"
+            aria-label={`Drill down Actual ${formatMoney(measure.actual)} for ${measure.label}`}
+            onClick={(event) => onOpen(event.currentTarget)}
+          >
+            {formatMoney(measure.actual)}
+          </button>
+        ) : (
+          formatMoney(measure.actual)
+        )}
       </td>
       <td role="gridcell" className="mis-statement-block-end" data-numeric="true">
         {formatPercentage(measure.percentage)}
@@ -197,7 +270,7 @@ function MeasureCells({ measure }: Readonly<{ measure: MisStatementMeasureBlock 
   );
 }
 
-function formatBlockHeading(block: MisStatementMeasureBlock): string {
+export function formatBlockHeading(block: MisStatementMeasureBlock): string {
   const to = dateAtUtc(block.to);
   if (block.from.slice(0, 7) !== block.to.slice(0, 7)) {
     const startYear = Number(block.from.slice(0, 4));
@@ -210,17 +283,26 @@ function dateAtUtc(value: string): Date {
   return new Date(`${value.slice(0, 10)}T00:00:00Z`);
 }
 
-function formatMoney(value: FixedScaleMoney): string {
+export function formatMoney(value: FixedScaleMoney): string {
   const negative = value.startsWith("-");
   const [whole, paise] = value.replace("-", "").split(".");
   const rounded = BigInt(whole) + (paise >= "50" ? BigInt(1) : BigInt(0));
-  const digits = rounded.toString();
-  const lastThree = digits.slice(-3);
-  const leading = digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",");
-  return `${negative && rounded !== BigInt(0) ? "−" : ""}₹${leading ? `${leading},` : ""}${lastThree}`;
+  return `${negative && rounded !== BigInt(0) ? "−" : ""}₹${formatRupeeDigits(rounded.toString())}`;
 }
 
-function formatPercentage(value: string | null): string {
+export function formatExactMoney(value: FixedScaleMoney): string {
+  const negative = value.startsWith("-");
+  const [whole, paise] = value.replace("-", "").split(".");
+  return `${negative && (whole !== "0" || paise !== "00") ? "−" : ""}₹${formatRupeeDigits(whole)}.${paise}`;
+}
+
+function formatRupeeDigits(digits: string): string {
+  const lastThree = digits.slice(-3);
+  const leading = digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+  return `${leading ? `${leading},` : ""}${lastThree}`;
+}
+
+export function formatPercentage(value: string | null): string {
   if (value === null) return "NA";
   const numeric = Number(value);
   return Number.isFinite(numeric) ? percentageFormatter.format(numeric) : value;

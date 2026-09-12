@@ -1,0 +1,11 @@
+{
+  "topic": "the drill panel meta line shows a raw ISO period",
+  "lesson": "Live check on the drill panel: the meta line under the total reads '2026-07-01 - 81 lines' for the selected-month block, a raw ISO date sitting directly beneath a statement whose own header says 'July 2026'. The cause is that the panel prints measure.label verbatim, and mis-statement.service.ts sets the selected block's label to resolution.period.value (the ISO string) while the FY block gets the human label 'FY 26-27 YTD' - so only the month block is wrong. statement-view.tsx already exports the fix: formatBlockHeading(block) derives 'July 2026' or 'FY 26-27 (YTD to Jul)' from block.from and block.to, and drill-panel.tsx already imports formatMoney and formatPercentage from that module. Use formatBlockHeading for the panel's meta line instead of the raw label, and assert the rendered heading in a test. This is the same class as D-0030 (raw ISO period labels reaching the UI) surfacing in new surface area.",
+  "source": "live functional check of drill-panel",
+  "applies_to": [
+    "frontend/src/features/mis/drill-panel.tsx"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-11T20:57:15+00:00"
+}

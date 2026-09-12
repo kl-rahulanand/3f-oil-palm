@@ -1,0 +1,29 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "drill-transactions-view",
+  "score": 10,
+  "summary": "performance lens over drill-transactions-view (8 product path(s), 9aa7e9c..e4ae0b5, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 defect. Transaction data remains bounded by server pagination, page changes re-request data without client-side sorting or slicing, the prior page is retained only while a request is pending and cleared on terminal failure, provenance is forwarded unchanged, and formatting work is bounded to the current page. The diff also contains no compatibility wrappers, retained aliases, or other blocking leftover code.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/mis/drill-panel.test.tsx",
+    "frontend/src/features/mis/drill-panel.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "frontend/src/features/mis/statement-view.tsx",
+    "frontend/src/features/mis/use-mis-statement.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "1c7c15d1544c5310b9567cdb477b1d348348f939a6b2f865efd2d7aa297e6560",
+  "brief_sha256": "5ca70171900a1de783b1688c1164641b35aef75a4e1f18a9e284ba084331f1ea",
+  "branch_diff_digest": "eeb93bf3a21d5031231ed8c1374e6da3c0343452de58b38464c68ae0f908224d",
+  "residual_risks": [],
+  "recorded_at": "2026-09-11T22:22:07+00:00",
+  "commit": "e4ae0b5aea4138e3b9c9216766fde0f4f36e3178"
+}
