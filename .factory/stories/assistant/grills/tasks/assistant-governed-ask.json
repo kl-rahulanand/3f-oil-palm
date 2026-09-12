@@ -117,5 +117,8 @@
   "grounding_treeish": "",
   "task_plan_sha256": "6ae082661a037a719f2cbef5a900f690660caf9fabf51cde71a219e579a7c063",
   "recorded_at": "2026-09-12T07:43:38+00:00",
-  "commit": "46d23543bc3803544f664f1518baae63f6739464"
+  "commit": "46d23543bc3803544f664f1518baae63f6739464",
+  "approved_task_plan_sha256": "6ae082661a037a719f2cbef5a900f690660caf9fabf51cde71a219e579a7c063",
+  "approved_by": "kl-rahulanand",
+  "approved_at": "2026-09-12T07:53:46+00:00"
 }
