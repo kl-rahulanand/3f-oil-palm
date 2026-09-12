@@ -3,19 +3,7 @@
 import { type AskResponse, type ChartType, type ProvenanceBatch, type ResultTable } from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  XAxis,
-} from "recharts";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAsk, type AskTurn } from "./use-ask";
 
 const SEED_QUESTIONS = [
@@ -57,7 +45,7 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
       </header>
 
       <div className="ask-intro">
-        <p>Ask about this report. Answers are verified against the source.</p>
+        <p>Ask about this report. Each answer shows its verification status.</p>
         <span className="ask-eyebrow">Suggested</span>
         <div className="ask-suggestions">
           {suggestions.map((question) => (
@@ -159,20 +147,11 @@ function SuccessAnswer({ response }: Readonly<{ response: AskResponse }>) {
 }
 
 function ResultVisual({ result, chartType = "table" }: Readonly<{ result: ResultTable; chartType?: ChartType }>) {
-  return canDraw(result, chartType) ? (
-    <ResultChart result={result} chartType={chartType} />
-  ) : (
-    <ResultTableView result={result} />
-  );
-}
-
-function ResultChart({ result, chartType }: Readonly<{ result: ResultTable; chartType: ChartType }>) {
-  const dimensions = result.columns.filter((column) => !column.numeric);
-  const measures = result.columns.filter((column) => column.numeric);
+  if (chartType === "table" || !canDraw(result, chartType)) return <ResultTableView result={result} />;
   if (chartType === "kpi") {
     return (
       <dl className="ask-kpis" aria-label="Key results">
-        {measures.map((measure) => (
+        {result.columns.map((measure) => (
           <div key={measure.key}>
             <dt>{measure.label}</dt>
             <dd>{cell(result.rows[0]?.[measure.key])}</dd>
@@ -181,7 +160,31 @@ function ResultChart({ result, chartType }: Readonly<{ result: ResultTable; char
       </dl>
     );
   }
+  return <ResultChart result={result} chartType={chartType} />;
+}
 
+function ResultChart({
+  result,
+  chartType,
+}: Readonly<{ result: ResultTable; chartType: Exclude<ChartType, "kpi" | "table"> }>) {
+  const [recharts, setRecharts] = useState<typeof import("recharts")>();
+  useEffect(() => {
+    let mounted = true;
+    void import("recharts").then(
+      (module) => {
+        if (mounted) setRecharts(module);
+      },
+      () => undefined,
+    );
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (!recharts) return <ResultTableView result={result} />;
+  const { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, XAxis } = recharts;
+  const dimensions = result.columns.filter((column) => !column.numeric);
+  const measures = result.columns.filter((column) => column.numeric);
   const dimension = dimensions[0]!;
   return (
     <div className="ask-chart">
@@ -308,13 +311,17 @@ function reportHref(view: Extract<AskResponse["viewInReport"], { available: true
 
 function canDraw(result: ResultTable, chartType: ChartType): boolean {
   if (chartType === "table") return false;
+  if (result.suppressedCells?.length) return false;
   const dimensions = result.columns.filter((column) => !column.numeric);
   const measures = result.columns.filter((column) => column.numeric);
   if (!result.rows.length || !measures.length) return false;
   if (result.rows.some((row) => measures.some((measure) => !isNumeric(row[measure.key])))) return false;
   if (chartType === "kpi") return dimensions.length === 0 && result.rows.length === 1;
   if (dimensions.length !== 1) return false;
-  if (chartType === "pie") return measures.length === 1;
+  if (chartType === "pie") {
+    const values = result.rows.map((row) => Number(row[measures[0]!.key]));
+    return measures.length === 1 && values.every((value) => value >= 0) && values.some((value) => value > 0);
+  }
   return result.rows.length > 1;
 }
 

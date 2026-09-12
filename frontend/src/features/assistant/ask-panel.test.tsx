@@ -92,7 +92,7 @@ test("a successful answer renders its result with the verified badge the provena
 
   const answer = (await screen.findByText("Governed result")).closest("article")!;
   expect(within(answer).getByText("✓ Verified")).toBeInTheDocument();
-  expect(within(answer).getByRole("img", { name: "bar chart" })).toBeInTheDocument();
+  expect(await within(answer).findByRole("img", { name: "bar chart" })).toBeInTheDocument();
   expect(within(answer).getByRole("table")).toHaveTextContent("Nursery");
   fireEvent.click(within(answer).getByText("How this was calculated"));
   expect(within(answer).getByText("Actual and Budget for the governed nursery scope")).toBeInTheDocument();
@@ -130,6 +130,46 @@ test("a chart shape the client cannot draw honestly falls back to the table rath
 
   expect(await screen.findByRole("table")).toHaveTextContent("125.50");
   expect(screen.queryByRole("img", { name: "bar chart" })).not.toBeInTheDocument();
+});
+
+test("suppressed values and signed pie data render only in the honest table fallback", async () => {
+  mocks.ask.mockResolvedValueOnce({
+    ...success,
+    chartType: "kpi",
+    result: {
+      columns: [{ key: "actual", label: "Actual", numeric: true }],
+      rows: [{ actual: "125.50" }],
+      suppressedCells: [{ row: 0, key: "actual" }],
+    },
+  });
+  renderAsk();
+  submit("Show a suppressed result");
+
+  const suppressedTable = await screen.findByRole("table");
+  expect(within(suppressedTable).getByText("—")).toBeInTheDocument();
+  expect(within(suppressedTable).queryByText("125.50")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Key results")).not.toBeInTheDocument();
+
+  cleanup();
+  mocks.ask.mockResolvedValueOnce({
+    ...success,
+    chartType: "pie",
+    result: {
+      columns: [
+        { key: "measure", label: "Measure", numeric: false },
+        { key: "actual", label: "Actual", numeric: true },
+      ],
+      rows: [
+        { measure: "Debit", actual: "-25.00" },
+        { measure: "Credit", actual: "75.00" },
+      ],
+    },
+  });
+  renderAsk();
+  submit("Show signed financial values");
+
+  expect(await screen.findByRole("table")).toHaveTextContent("-25.00");
+  expect(screen.queryByRole("img", { name: "pie chart" })).not.toBeInTheDocument();
 });
 
 test("view in report renders the link when available and shows the reason when it is not", async () => {
