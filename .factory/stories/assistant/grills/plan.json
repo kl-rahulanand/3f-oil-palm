@@ -1,0 +1,103 @@
+{
+  "generated_by": "griller",
+  "gate": "plan",
+  "issue": "assistant",
+  "verdict": "pass",
+  "summary": "Cold read of plans/drafts/assistant.md (Codex gpt-5.6-terra @ xhigh, read-only, task-mty1dgmf-utu823) returned NOT CONVERGED with six repository-resolvable blockers and three product-shape questions; a fourth question was raised by the orchestrator after verifying one of the findings. All six blockers are amended into the plan - three of them were incorrect assertions in the draft itself - and all four questions were put to the human in one round. Decision 0027 was amended as a result, which staled and required re-stamping the requirements grill.",
+  "questions_asked": 5,
+  "gaps": [
+    "The plan asserted the statement API was Unchanged, but 'view in report' cannot preserve the answer's provenance by adding a field to AskResponse alone: the statement request takes four selectors and has no pinnedBatches - only the drill route accepts them - so no task owned the statement-side request, validation, stale-batch behaviour or frontend handoff.",
+    "The plan said PinSnapshot would sit unused, but the vendored pins ACTIVELY violate decision 0028: pins.service.ts:50 refreshes and persists a ResultTable on create, list left-joins pin_snapshots and returns it, and the refresh routes expose it. Leaving it unused is not enough; the behaviour must be removed.",
+    "The plan's Bedrock boundary did not match the code: chat.service.ts:167 queries warehouse distinct dimension values through DimensionValuesService and serializes them into the prompt, which are neither the question, the prior turns, nor static governed vocabulary as decision 0027 was written.",
+    "Audit was not per-request as promised: the fail-closed request event guards only the final governed execution, while unsupported and denied branches fall to writeResultEvent, which audit.service.ts documents as best-effort and never blocking, and pin refresh executes without the chat audit boundary at all.",
+    "'One generated migration for five tables' was factually wrong twice over: schema.ts also declares the absent authored_measures and reconciliation_runs, making seven, and a migration generated from schema.ts cannot silently be scoped to a subset.",
+    "Surface Impact did not meet the required per-surface classification, omitted docs, tests and ops rows with their reasons, and misclassified the statement API as unchanged. The decomposition also omitted the conversation route and module dependency that durable chat would have required."
+  ],
+  "contradictions": [
+    "The plan promised that 'view in report' opens the statement the answer came from, while the statement route reads only ACTIVE batches - so a batch change between asking and clicking would silently render different numbers, which is precisely what the drill-down pin was built to prevent.",
+    "The plan migrated conversations and conversation_turns while decision 0028 forbids storing anything the user could not re-derive; the vendored conversations controller rehydrates stored answerSnapshot values, which are governed results and provenance at rest.",
+    "The spec promises the assistant 'converses like a normal agent', but the Bedrock provider is a selection-only tool interface that can select, clarify or mark unsupported and cannot return free prose; the existing small-talk handling is deterministic."
+  ],
+  "resolutions": [
+    "REPO-ANSWERED - the plan now classifies POST /api/mis/statement as CHANGED: it gains pinned batch ids on the request, their validation, and a typed 'the data was refreshed - ask again' outcome, owned by task 1 alongside the AskResponse field. Both halves are named because the link is a promise the system cannot keep with only one.",
+    "REPO-ANSWERED - the plan now requires REMOVING the snapshot-on-create and snapshot-on-list behaviour and the refresh routes, records it in Surface Impact as behaviour deleted rather than unused, and adds an acceptance criterion that creating and listing a pin returns no ResultTable. pin_snapshots is not created by the migration.",
+    "REPO-ANSWERED and HUMAN-CONFIRMED - the orchestrator verified chat.service.ts:167 and put the boundary question to the human, who chose to permit dimension distinct values capped by dimensionEnumMax. Decision 0027 was amended to say so explicitly, including that 3F's plant, cost-centre and GL identifiers do reach AWS, and to require a test asserting the provider's input so the boundary is a control rather than a sentence.",
+    "REPO-ANSWERED - the plan moves the fail-closed audit boundary so every branch that consults governed data, including denials and unsupported requests, writes its record first, and routes pin re-runs through the same boundary instead of executing directly.",
+    "REPO-ANSWERED - the migration is now deliberately HAND-SCOPED to saved_queries and dashboard_pins, with the plan naming all seven absent tables and stating why the other five are not created: two are forbidden or deferred by this story's own decisions and two belong to unrelated features. The declaration-versus-database gap for those five is named rather than silently closed.",
+    "REPO-ANSWERED - Surface Impact is rewritten as a classified per-surface table including docs, tests and ops rows with reasons, and the decomposition dropped to four tasks with the migration moved into exploration, since deferring history and forbidding snapshots left no tables the assistant itself needs.",
+    "HUMAN (kl-rahulanand) - durable chat history is DEFERRED for the PoC: the current thread lives in client state, conversations and conversation_turns are not created, and /api/conversations is not registered. Rejected: selection-only persisted history (a materially bigger story needing a revised schema, contract and routes) and persisting snapshots (would reopen decision 0028).",
+    "HUMAN (kl-rahulanand) - a stale view-in-report link is REFUSED with a typed 'data refreshed - ask again' result, following the drill-down precedent. Rejected: building historical pinned-batch statement rendering (reopens the shipped statement projection) and linking without the guarantee (reintroduces the silent-change problem the drill pin exists to prevent).",
+    "HUMAN (kl-rahulanand) - general chat is answered from DETERMINISTIC templates extending the existing smalltalk-guard; the model is never asked for prose and can emit no numeral, so 'never fabricates a number' holds structurally. Rejected: a generative prose mode under a separate guard."
+  ],
+  "open_items": [
+    "Non-blocking - BEDROCK_MODEL_ID has no default and no fallback. The plan states that an unavailable model id makes the functional check BLOCKED rather than passed against the mock provider, which can only ever return a clarification.",
+    "Non-blocking - five declared tables (authored_measures, conversations, conversation_turns, reconciliation_runs, pin_snapshots) remain declared in schema.ts and absent from the database after this story. That gap is named in the plan rather than closed by a migration nobody asked for.",
+    "Non-blocking - a fifth task was considered for grant seeding and security hardening and dropped; if the task grills surface that work it is added then rather than reserved speculatively now."
+  ],
+  "inspected_refs": [
+    "plans/drafts/assistant.md",
+    "contract/src/api.ts",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/pins/pins.service.ts",
+    "backend/src/pins/pin-refresh.service.ts",
+    "backend/src/llm/bedrock.provider.ts",
+    "backend/src/llm/mock.provider.ts",
+    "backend/src/core/audit.service.ts",
+    "backend/src/db/schema.ts",
+    "backend/drizzle/0000_auth_audit.sql",
+    "backend/src/semantic/semanticLayer.ts",
+    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md",
+    "docs/decisions/0028-saved-selections-not-snapshots.md"
+  ],
+  "rounds": [
+    {
+      "question": "**Correction to what I told you.** When you approved decision 0027 I said \"warehouse rows never leave the app\". True for rows \u2014 but `chat.service.ts:167` calls `dimensionValuesForAllowedDomains`, which runs `SELECT DISTINCT` against the **warehouse** for each dimension and serializes those values into the Bedrock prompt. So today the model would receive your actual plant names, cost-centre names and GL codes. Not rows, not measure values \u2014 but warehouse contents, and I didn't know that when I wrote the decision.",
+      "options": [
+        "Permit distinct values, amend 0027 to say so (Recommended)",
+        "Send only static vocabulary",
+        "Permit them, but only names the user is already scoped to"
+      ],
+      "chosen": "Permit distinct values, amend 0027 to say so (Recommended)"
+    },
+    {
+      "question": "The vendored chat persists conversations and rehydrates stored `answerSnapshot` values \u2014 governed results and provenance at rest. That contradicts decision 0028's \"nothing stored that the user could not re-derive\". The prototype shows chat history; the confirmed spec and roadmap do not require it.",
+      "options": [
+        "Defer durable history (Recommended)",
+        "Persist selection-only history",
+        "Persist history with snapshots"
+      ],
+      "chosen": "Defer durable history (Recommended)"
+    },
+    {
+      "question": "\"View in report\" is supposed to open the statement the answer came from. But the statement route takes only four selectors \u2014 it has no `pinnedBatches`; only the drill route does. So if SAP or budget batches change between asking and clicking, the link silently opens different numbers.",
+      "options": [
+        "Refuse a stale link and say so (Recommended)",
+        "Build historical pinned-batch statements",
+        "Link without the guarantee"
+      ],
+      "chosen": "Refuse a stale link and say so (Recommended)"
+    },
+    {
+      "question": "The spec promises the assistant \"converses like a normal agent\" for general chat. But the Bedrock provider is a **selection-only tool interface** \u2014 it can select, clarify, or mark unsupported. It cannot return free prose. The existing small-talk handling is deterministic templates.",
+      "options": [
+        "Deterministic friendly templates (Recommended)",
+        "Generative prose under a separate contract"
+      ],
+      "chosen": "Deterministic friendly templates (Recommended)"
+    },
+    {
+      "question": "Closing the assistant plan grill. Your four calls are folded in, plus six repository blockers \u2014 three of which were wrong claims in my own draft. I had said the statement API was **unchanged**; it isn't, because it has no `pinnedBatches` and \"view in report\" cannot keep its promise without them. I had said `PinSnapshot` would sit **unused**; it doesn't, `pins.service.ts:50` persists and returns a `ResultTable` today, so the story has to *delete* that. And I had said **five** absent tables; it is seven, which is why the migration is now hand-scoped to the two this story actually needs rather than generated. Also fixed: the audit is now fail-closed on every branch, not just before the final execution; `Surface Impact` is properly classified per surface; and the decomposition dropped to four tasks \u2014 with the migration moved *into* exploration, since deferring history and forbidding snapshots left no tables the assistant itself needs. Any remaining gap before this goes to the board?",
+      "options": [
+        "No gaps \u2014 board it (Recommended)",
+        "Something else \u2014 I'll say what"
+      ],
+      "chosen": "No gaps \u2014 board it (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "b42f23505a02ff4d849e94e042ca5514d3ebff0a4ceb25809c5696ada0e46150",
+  "recorded_at": "2026-09-12T07:24:43+00:00",
+  "commit": "6d5a3efd4b2cbe28d5d6dcf23217786df7a7213b"
+}
