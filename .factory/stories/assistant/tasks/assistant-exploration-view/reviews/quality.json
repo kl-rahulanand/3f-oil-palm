@@ -1,28 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-exploration-view",
-  "score": 9,
-  "summary": "quality lens over assistant-exploration-view (19 product path(s), d4772bc..7886743, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. VERDICT t-aev-c1: implemented \u2014 contract/src/api.ts:371 and backend/src/semantic/semanticLayer.ts:25 share the semantic labels.\nVERDICT t-aev-c2: implemented \u2014 frontend/app/(app)/dashboard/page.tsx:4 and frontend/src/components/shell/app-shell.tsx:17 make both destinations live and render pinned metadata.\nVERDICT t-aev-c3: partial \u2014 frontend/src/features/exploration/pinned-reports.tsx:60 navigates even when the selection rerun is rejected as already pending.\nVERDICT t-aev-c4: implemented \u2014 frontend/src/features/exploration/saved-views.tsx:49 visibly renders refusals while retaining Delete and omitting Open.\nVERDICT t-aev-c5: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:181 exposes Save and Pin for successful selections, and both exploration surfaces expose deletion.\nVERDICT t-aev-c6: implemented \u2014 frontend/src/lib/api.test.ts:116 directly verifies the exact rerun body, while the exploration component leaves cover labeling, refusal, metadata-only pins, ordering, and deletion.\nNo compatibility leftovers are visible in the supplied diff. The main behavior is present, but opening can silently skip the selected rerun during an existing request, and creation failures leak raw transport errors into the UI.",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "backend/src/chat/chat.service.ts",
-      "summary": "t-aev-c3: Opening RE-RUNS the stored selection and never replays an answer - nothing at rest could be replayed, since task 3 removed Pin.snapshot and Pin.lastRefresh and no payload carries a ResultTable. The path is POST /api/chat carrying the stored selection: chat.controller.ts:38 passes the request's selection into the service and chat.service.ts:162 assigns it directly, BYPASSING the model. Two traps on that path are silent when got wrong and both must be honoured: usesEditedSelection is Boolean(editedSelection && !groundedReport) (chat.service.ts:145), so sending reportGrounding makes grounding WIN and the stored selection is ignored while the surface still looks correct; and the route requires a non-empty question (chat.constants.ts:2), so the client sends the row's DERIVED label rather than fabricating a sentence the product would then appear to have answered. The result is rendered by TASK 2's EXISTING renderer, not a second implementation: ask-panel.tsx exports only AskPanel and parseActiveBatchIds, and use-ask.ts's AskContextValue types ask as (question: string) => Promise<void>, which cannot carry a selection - so AskProvider gains a selection-bearing re-run action and opening navigates to /ask and appends to the existing thread. frontend/src/lib/api.ts:106 types ask as Pick<AskRequest, 'question' | 'priorTurns'> and widens to carry selection, proven by a direct api-client leaf asserting the EXACT body: selection present, reportGrounding ABSENT."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/exploration",
-      "summary": "[P2] Do not navigate when a saved rerun was rejected as already pending (frontend/src/features/exploration/pinned-reports.tsx:60): Both exploration Open handlers invoke `rerun` and then navigate unconditionally, but `run` returns immediately when another Ask request is pending."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/src/features/assistant",
-      "summary": "[P2] Replace raw API errors in the Save and Pin notices (frontend/src/features/assistant/ask-panel.tsx:154): When either creation request fails with `ApiError`, this branch renders its implementation-facing message (for example, `API request failed with status 500`) directly in the user-facing Ask panel."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "score": 10,
+  "summary": "quality lens over assistant-exploration-view (19 product path(s), d4772bc..91c1377, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-aev-c1: implemented \u2014 contract/src/api.ts:371 and backend/src/semantic/semanticLayer.ts:23 share the semantic labels, with frontend/src/features/exploration/selection-label.ts:9 providing the unavailable-id fallback.\nVERDICT t-aev-c2: implemented \u2014 frontend/src/components/shell/app-shell.tsx:17 enables Explore, and frontend/app/(app)/dashboard/page.tsx:4 renders pinned reports.\nVERDICT t-aev-c3: implemented \u2014 frontend/src/features/assistant/use-ask.ts:27 accepts stored selections, while frontend/src/lib/api.test.ts:116 verifies the exact chat body without reportGrounding.\nVERDICT t-aev-c4: implemented \u2014 frontend/src/features/exploration/saved-views.tsx:48 and frontend/src/features/exploration/pinned-reports.tsx:53 visibly render refusals while retaining Delete and withholding Open.\nVERDICT t-aev-c5: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:177 exposes Save and Pin only for successful selections, and both exploration surfaces provide failure-aware deletion.\nVERDICT t-aev-c6: implemented \u2014 frontend/src/features/exploration/saved-views.test.tsx:24, frontend/src/features/exploration/pinned-reports.test.tsx:34, and frontend/src/lib/api.test.ts:116 cover the required surface and request behavior.\nNo blocking compatibility leftovers are present in the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/src/semantic/semanticLayer.ts",
     "contract/src/api.ts",
@@ -51,32 +34,32 @@
     {
       "contract_id": "t-aev-c1",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:371 and backend/src/semantic/semanticLayer.ts:25 share the semantic labels."
+      "evidence": "contract/src/api.ts:371 and backend/src/semantic/semanticLayer.ts:23 share the semantic labels, with frontend/src/features/exploration/selection-label.ts:9 providing the unavailable-id fallback."
     },
     {
       "contract_id": "t-aev-c2",
       "verdict": "implemented",
-      "evidence": "frontend/app/(app)/dashboard/page.tsx:4 and frontend/src/components/shell/app-shell.tsx:17 make both destinations live and render pinned metadata."
+      "evidence": "frontend/src/components/shell/app-shell.tsx:17 enables Explore, and frontend/app/(app)/dashboard/page.tsx:4 renders pinned reports."
     },
     {
       "contract_id": "t-aev-c3",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:60 navigates even when the selection rerun is rejected as already pending."
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:27 accepts stored selections, while frontend/src/lib/api.test.ts:116 verifies the exact chat body without reportGrounding."
     },
     {
       "contract_id": "t-aev-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/saved-views.tsx:49 visibly renders refusals while retaining Delete and omitting Open."
+      "evidence": "frontend/src/features/exploration/saved-views.tsx:48 and frontend/src/features/exploration/pinned-reports.tsx:53 visibly render refusals while retaining Delete and withholding Open."
     },
     {
       "contract_id": "t-aev-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:181 exposes Save and Pin for successful selections, and both exploration surfaces expose deletion."
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:177 exposes Save and Pin only for successful selections, and both exploration surfaces provide failure-aware deletion."
     },
     {
       "contract_id": "t-aev-c6",
       "verdict": "implemented",
-      "evidence": "frontend/src/lib/api.test.ts:116 directly verifies the exact rerun body, while the exploration component leaves cover labeling, refusal, metadata-only pins, ordering, and deletion."
+      "evidence": "frontend/src/features/exploration/saved-views.test.tsx:24, frontend/src/features/exploration/pinned-reports.test.tsx:34, and frontend/src/lib/api.test.ts:116 cover the required surface and request behavior."
     },
     {
       "contract_id": "t-aga-c1",
@@ -175,10 +158,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "d2800eb3216f8a861c9fd428bfaefd2d138f8e4ebafff10bc2e8f137e259284b",
-  "brief_sha256": "0b843c55a21625167c7c335587b86b25cb1cbb438c5f605160e7bcbf6eaac904",
-  "branch_diff_digest": "098fdb8520abcf8cb7c5ceb75f3a2d1ff374c55a9c465e660d46260b56cc951e",
+  "review_run_id": "6fb5a81d952200ca258ff55271ef618e1791f461c8536c7f12998ffd55266049",
+  "brief_sha256": "994688d2263c0e9e347ede34d36412bd900a6e074d90b1f54a326a5b8c078d8b",
+  "branch_diff_digest": "b92d8d8d3c692aff190e4e30137956499b7d2d07262fad59e74c82c673619fd7",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T17:31:22+00:00",
-  "commit": "7886743749babf7f4cf44be19d8a1c8c2f16f77f"
+  "recorded_at": "2026-09-12T17:42:57+00:00",
+  "commit": "91c1377cf8b9771d8812dbc432fdf57edd304ac5"
 }

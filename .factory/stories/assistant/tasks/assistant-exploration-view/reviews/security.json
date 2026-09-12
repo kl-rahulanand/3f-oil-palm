@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "assistant-exploration-view",
   "score": 10,
-  "summary": "security lens over assistant-exploration-view (19 product path(s), d4772bc..7886743, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security or correctness defects are demonstrated by the supplied diff. The new frontend operations use the existing authenticated API client and CSRF mechanism, saved selections are re-run with the stored selection while omitting reportGrounding, non-runnable entries remain visible and deletable without an Open action, and no compatibility-only code or apparent credentials are introduced.",
+  "summary": "security lens over assistant-exploration-view (19 product path(s), d4772bc..91c1377, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The reviewed diff introduces no actionable P0\u2013P2 security or correctness defect. Re-runs send the stored selection without reportGrounding, refuse navigation while another request is pending, and use the existing authenticated API client with CSRF protection for mutations. Non-runnable items remain visible and deletable, failures use controlled user-facing messages, and no credentials, unsafe rendering, authorization bypass, compatibility shim, or stored-result replay is introduced.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -31,10 +31,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "d2800eb3216f8a861c9fd428bfaefd2d138f8e4ebafff10bc2e8f137e259284b",
-  "brief_sha256": "0b843c55a21625167c7c335587b86b25cb1cbb438c5f605160e7bcbf6eaac904",
-  "branch_diff_digest": "098fdb8520abcf8cb7c5ceb75f3a2d1ff374c55a9c465e660d46260b56cc951e",
+  "review_run_id": "6fb5a81d952200ca258ff55271ef618e1791f461c8536c7f12998ffd55266049",
+  "brief_sha256": "994688d2263c0e9e347ede34d36412bd900a6e074d90b1f54a326a5b8c078d8b",
+  "branch_diff_digest": "b92d8d8d3c692aff190e4e30137956499b7d2d07262fad59e74c82c673619fd7",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T17:31:22+00:00",
-  "commit": "7886743749babf7f4cf44be19d8a1c8c2f16f77f"
+  "recorded_at": "2026-09-12T17:42:57+00:00",
+  "commit": "91c1377cf8b9771d8812dbc432fdf57edd304ac5"
 }

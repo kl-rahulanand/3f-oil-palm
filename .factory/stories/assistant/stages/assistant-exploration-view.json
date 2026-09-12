@@ -1,7 +1,7 @@
 {
   "id": "assistant-exploration-view",
   "title": "The Explore surface and pinned reports",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-12T16:40:19+00:00",
   "base_sha": "d4772bca37c586c34e6cd23db874088d47263513",
   "dirty_at_start": {
@@ -18,5 +18,29 @@
       "git": "? .factory/stories/assistant/task-plans/assistant-exploration-view.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "e793cd0cd12f3d538978de2bf3f988450bf7a9dd17ed3b58dd4dd065a6d0c1c0"
+  "task_sha256": "e793cd0cd12f3d538978de2bf3f988450bf7a9dd17ed3b58dd4dd065a6d0c1c0",
+  "local_review_stamp": {
+    "stage_id": "assistant-exploration-view",
+    "base_sha": "d4772bca37c586c34e6cd23db874088d47263513",
+    "delta_id": "b92d8d8d3c692aff190e4e30137956499b7d2d07262fad59e74c82c673619fd7",
+    "contract_sha256": "e793cd0cd12f3d538978de2bf3f988450bf7a9dd17ed3b58dd4dd065a6d0c1c0",
+    "recorded_at": "2026-09-12T17:42:57+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-12T17:42:59+00:00",
+  "measured": {
+    "strays": [],
+    "files": 19,
+    "lines": 1078,
+    "budget": {
+      "files": 20,
+      "lines": 2600
+    },
+    "test_id_misses": []
+  }
 }
