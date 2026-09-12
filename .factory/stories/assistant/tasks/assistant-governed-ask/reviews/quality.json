@@ -2,29 +2,19 @@
   "generated_by": "autoreview",
   "task_id": "assistant-governed-ask",
   "score": 9,
-  "summary": "quality lens over assistant-governed-ask (20 product path(s), 99626df..5c83920, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. VERDICT t-aga-c1: implemented \u2014 backend/src/app.module.ts:15 and backend/src/app.routes.test.ts:31\nVERDICT t-aga-c2: implemented \u2014 backend/src/chat/chat.service.test.ts:16\nVERDICT t-aga-c3: partial \u2014 backend/src/chat/smalltalk-guard.ts:64 permits punctuated greetings to escape deterministic handling\nVERDICT t-aga-c4: implemented \u2014 backend/src/chat/chat.service.ts:227\nVERDICT t-aga-c5: partial \u2014 backend/src/mis/mis-statement.dto.ts:29 rejects the valid no-pins empty-list representation\nVERDICT t-aga-c6: implemented \u2014 backend/src/chat/chat.service.ts:98\nVERDICT t-aga-c7: implemented \u2014 backend/src/chat/chat.schemas.ts:14\nLEFTOVERS: none shown in the supplied diff.\n\nThe main route governance, provider boundary, audit ordering, catalog validation, durable-conversation removal, report mapping, and test registration are present. The two concrete wire/response-matrix defects above make the patch incomplete.",
+  "summary": "quality lens over assistant-governed-ask (20 product path(s), 99626df..d47dcd9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The implementation covers the requested governed routes, response behavior, audit ordering, statement-link contract, and removal of durable conversations. One mandatory provider-boundary assertion is missing, so the Bedrock input contract remains only partially proven.\nVERDICT t-aga-c1: implemented \u2014 backend/src/app.routes.test.ts:12 registers and exhaustively governs both chat routes while checking unowned routes are absent\nVERDICT t-aga-c2: partial \u2014 backend/src/chat/chat.service.test.ts:38 checks provider arguments but does not exercise dimensionEnumMax truncation\nVERDICT t-aga-c3: implemented \u2014 backend/src/chat/chat.service.test.ts:52 proves response precedence and backend/src/chat/chat.service.test.ts:94 drives a non-discrepancy causal question\nVERDICT t-aga-c4: implemented \u2014 backend/src/chat/chat.service.test.ts:104 proves out-of-catalog selections are refused without rendering zero\nVERDICT t-aga-c5: implemented \u2014 contract/src/api.ts:482 defines the required discriminated link union and backend/src/mis/mis-statement.service.ts:92 validates statement-only pins\nVERDICT t-aga-c6: implemented \u2014 backend/src/chat/chat.service.ts:98 writes the fail-closed entry audit before routing or warehouse-backed lookups\nVERDICT t-aga-c7: implemented \u2014 backend/src/chat/chat.schemas.ts:14 strictly rejects durable-conversation fields and transports prior turns, with the new hermetic test registered in both test manifests\nNo compatibility wrappers, aliases, deprecated branches, or other leftovers are present in the shown diff.",
   "blocking_findings": [
     {
       "category": "plan-contract-partial",
-      "area": "docs/specs/assistant-and-exploration.md#settled-by-the-requirements-grill-2026-09-12",
-      "summary": "t-aga-c3: The response matrix holds in precedence order and each branch is proven, INCLUDING the collisions rather than one clean example each. A DATA question is answered from the governed measures with provenance.verified true and every visible numeric character rendered from the deterministic result; a DEFINITION question from the semantic layer's labels; an AMBIGUOUS question returns exactly one clarifying question; GENERAL CHAT comes from DETERMINISTIC templates extending smalltalk-guard, which may contain no numeral that could read as a data value - brand tokens such as '3F' are exempt, which the existing copy relies on. CAUSAL 'why' needs NEW work: reconciliation-guard.ts:8 declines only questions that also look like a discrepancy, so 'Why is labour high?' reaches the model today. A causal classifier declines it and redirects to what the numbers show, and a test drives a causal question that is NOT discrepancy-shaped."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/assistant-assistant-exploration.md#view-in-report-on-both-sides",
-      "summary": "t-aga-c5: View-in-report has a real wire contract and a stated mapping rule. The field is a DISCRIMINATED union - { available: true, department, function, plant, period, activeBatchIds } | { available: false, reason } - because 'absent with a reason' cannot be represented by an absent optional field. The mapping rule is explicit, because none is derivable from the domain: the statement domain exposes only leaf_key as a dimension (semanticLayer.ts:141), so a link is offered ONLY when the answer was executed against the mis-statement domain AND its resolved scope names exactly one department, function, plant and an offered period; every other answer returns available: false with the reason. POST /api/mis/statement then accepts pinned batch ids on a STATEMENT-ONLY request schema - misSelectionRunRequestSchema is parsed by three call sites (mis-selection.controller.ts:86 for /api/mis/run, and mis-statement.controller.ts:66 and :115 for statement and export), so extending the shared schema would silently change all three - validates them, and returns a typed 'the data was refreshed - ask again' outcome when they are no longer active. With NO pinned ids the route behaves exactly as it does today, and the existing statement, export and drill tests pass untouched."
+      "area": "docs/decisions/0027-assistant-llm-bedrock-mumbai.md",
+      "summary": "t-aga-c2: The Bedrock input boundary is enforced BY TEST on the provider's arguments, asserting both that the permitted things are present and that the forbidden ones are ABSENT. Permitted: the question, the prior turns, and the governed vocabulary INCLUDING dimension distinct values capped by dimensionEnumMax (chat.service.ts:167, permitted by decision 0027 as amended). Forbidden: amounts, measure values, transaction lines, batch contents and any row of a governed result. The provider is chosen by config.llmProvider, which DEFAULTS TO MOCK IN EVERY ENVIRONMENT (config.ts:178) - so the contract states plainly that a deployment without LLM_PROVIDER=bedrock and a set BEDROCK_MODEL_ID can only ever return a clarification, rather than calling mock 'development-only'."
     }
   ],
   "non_blocking_findings": [
     {
-      "category": "regression",
+      "category": "test_gap",
       "area": "backend/src/chat",
-      "summary": "[P2] Keep punctuated greetings on the deterministic smalltalk path (backend/src/chat/smalltalk-guard.ts:64): Replacing the word-boundary check with `(?:$|\\s)` makes ordinary greetings followed by punctuation, such as `Hi, team`, stop matching the greeting prefix."
-    },
-    {
-      "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "[P2] Treat an empty pinned-batch list as the no-pins path (backend/src/mis/mis-statement.dto.ts:29): The public `MisStatementRunRequest` type permits `pinnedBatches: []`, and `viewInReport.activeBatchIds` can legitimately be empty for a configured zero/no-transaction statement."
+      "summary": "[P2] Exercise the dimension-enum cap in the provider-boundary test (backend/src/chat/chat.service.test.ts:38): The boundary test only returns one value for the authorized `gl_code` dimension."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -55,44 +45,44 @@
     {
       "contract_id": "t-aga-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/app.module.ts:15 and backend/src/app.routes.test.ts:31"
+      "evidence": "backend/src/app.routes.test.ts:12 registers and exhaustively governs both chat routes while checking unowned routes are absent"
     },
     {
       "contract_id": "t-aga-c2",
-      "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.test.ts:16"
+      "verdict": "partial",
+      "evidence": "backend/src/chat/chat.service.test.ts:38 checks provider arguments but does not exercise dimensionEnumMax truncation"
     },
     {
       "contract_id": "t-aga-c3",
-      "verdict": "partial",
-      "evidence": "backend/src/chat/smalltalk-guard.ts:64 permits punctuated greetings to escape deterministic handling"
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.test.ts:52 proves response precedence and backend/src/chat/chat.service.test.ts:94 drives a non-discrepancy causal question"
     },
     {
       "contract_id": "t-aga-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.ts:227"
+      "evidence": "backend/src/chat/chat.service.test.ts:104 proves out-of-catalog selections are refused without rendering zero"
     },
     {
       "contract_id": "t-aga-c5",
-      "verdict": "partial",
-      "evidence": "backend/src/mis/mis-statement.dto.ts:29 rejects the valid no-pins empty-list representation"
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:482 defines the required discriminated link union and backend/src/mis/mis-statement.service.ts:92 validates statement-only pins"
     },
     {
       "contract_id": "t-aga-c6",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.ts:98"
+      "evidence": "backend/src/chat/chat.service.ts:98 writes the fail-closed entry audit before routing or warehouse-backed lookups"
     },
     {
       "contract_id": "t-aga-c7",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.schemas.ts:14"
+      "evidence": "backend/src/chat/chat.schemas.ts:14 strictly rejects durable-conversation fields and transports prior turns, with the new hermetic test registered in both test manifests"
     }
   ],
   "aspect": "quality",
-  "review_run_id": "5b0c79424c891112594698df344ea97fdba11592150dc8c5ccb7f264268a3d39",
-  "brief_sha256": "f46882c86e7a1a3eb0dc0816a4753f1ad0819f53d195825170b4c0e06fe24aeb",
-  "branch_diff_digest": "80b14f8b2107f9db422a090379aa9d41893b3102c32c651393cde4de98a1c11f",
+  "review_run_id": "6c1ede69cf8e890916906a08a2da0621ce5481b487461aee78cb4be2d052bfc3",
+  "brief_sha256": "c7abce70018ce656a1a833446b747a60959010bd47a433a270348ea03235dbea",
+  "branch_diff_digest": "38ab913505fdd110171f1329a20b5a8713268428c5ffc0cb2a4610ada196d338",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T08:54:27+00:00",
-  "commit": "5c83920f0a45387beb6186854f25602a9bd8f4f7"
+  "recorded_at": "2026-09-12T09:15:24+00:00",
+  "commit": "d47dcd994d15ac69dde12ccf82b34bb2d865f531"
 }

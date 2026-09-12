@@ -2,13 +2,13 @@
   "generated_by": "autoreview",
   "task_id": "assistant-governed-ask",
   "score": 9,
-  "summary": "performance lens over assistant-governed-ask (20 product path(s), 99626df..5c83920, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The main chat-route and statement changes appear bounded and no blocking compatibility-only leftovers are demonstrated by the supplied diff. However, the export route remains wired to the old request schema, leaving its newly declared refresh-required behavior ineffective for pinned requests.",
+  "summary": "performance lens over assistant-governed-ask (20 product path(s), 99626df..d47dcd9, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The patch activates the chat routes without bounding the primary prompt passed to persistent audit storage and the LLM. This creates a concrete per-request resource and external-cost amplification path. No blocking compatibility leftovers are evident in the supplied diff.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "[P2] Use the statement request schema for exports (backend/src/mis/mis-statement.controller.ts:131): The export endpoint still parses requests with `misSelectionRunRequestSchema`, while only `misStatementRunRequestSchema` recognizes `pinnedBatches`."
+      "area": "backend/src/chat",
+      "summary": "[P2] Bound questions before auditing and sending them to the LLM (backend/src/chat/chat.schemas.ts:16): The newly registered chat endpoints accept a `question` with no maximum length."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -36,10 +36,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "5b0c79424c891112594698df344ea97fdba11592150dc8c5ccb7f264268a3d39",
-  "brief_sha256": "f46882c86e7a1a3eb0dc0816a4753f1ad0819f53d195825170b4c0e06fe24aeb",
-  "branch_diff_digest": "80b14f8b2107f9db422a090379aa9d41893b3102c32c651393cde4de98a1c11f",
+  "review_run_id": "6c1ede69cf8e890916906a08a2da0621ce5481b487461aee78cb4be2d052bfc3",
+  "brief_sha256": "c7abce70018ce656a1a833446b747a60959010bd47a433a270348ea03235dbea",
+  "branch_diff_digest": "38ab913505fdd110171f1329a20b5a8713268428c5ffc0cb2a4610ada196d338",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T08:54:27+00:00",
-  "commit": "5c83920f0a45387beb6186854f25602a9bd8f4f7"
+  "recorded_at": "2026-09-12T09:15:24+00:00",
+  "commit": "d47dcd994d15ac69dde12ccf82b34bb2d865f531"
 }
