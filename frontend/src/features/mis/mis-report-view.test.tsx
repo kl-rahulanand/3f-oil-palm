@@ -4,9 +4,14 @@ import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
 import { MisReportView } from "./mis-report-view";
 
-const mocks = vi.hoisted(() => ({ misOptions: vi.fn(), runMisStatement: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  misOptions: vi.fn(),
+  runMisStatement: vi.fn(),
+  searchParams: new URLSearchParams(),
+}));
 
 vi.mock("@/src/lib/api", () => ({ api: mocks }));
+vi.mock("next/navigation", () => ({ useSearchParams: () => mocks.searchParams }));
 
 const options = {
   departments: ["Agriculture"],
@@ -75,6 +80,7 @@ afterEach(() => {
   cleanup();
   mocks.misOptions.mockReset();
   mocks.runMisStatement.mockReset();
+  mocks.searchParams = new URLSearchParams();
 });
 
 test("Generate posts the existing four selectors to the statement route and renders the statement inline below them", async () => {
@@ -115,6 +121,32 @@ test("a failed statement call surfaces one clear report error and no stale state
   );
   expect(screen.queryByText("Select Department, Function and Plant, then Generate")).not.toBeInTheDocument();
   expect(screen.queryByRole("treegrid")).not.toBeInTheDocument();
+});
+
+test("a refresh required statement response replaces the report with its notice instead of rendering an empty statement", async () => {
+  const activeBatchIds = [{ source: "actuals", period: "2026-07-01", batchId: "actuals-july" }];
+  mocks.searchParams = new URLSearchParams({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+    activeBatchIds: JSON.stringify(activeBatchIds),
+  });
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValue({ outcome: "refresh-required", notice: "The data was refreshed - ask again" });
+
+  renderWithQuery(<MisReportView />);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("The data was refreshed - ask again");
+  expect(screen.queryByRole("treegrid", { name: "Financial MIS statement" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Select Department, Function and Plant, then Generate")).not.toBeInTheDocument();
+  expect(mocks.runMisStatement).toHaveBeenCalledWith({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+    pinnedBatches: activeBatchIds,
+  });
 });
 
 function chooseSelection() {

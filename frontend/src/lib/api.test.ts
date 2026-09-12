@@ -75,6 +75,44 @@ test("the MIS statement method posts the four selectors to the governed statemen
   expect((init?.headers as Record<string, string>)["x-csrf-token"]).toBe("statement-token");
 });
 
+test("the ask client posts to the governed chat route with the csrf header and a body of question and qualifying prior turns only", async () => {
+  Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=ask-token" });
+  const result = {
+    responseClass: "informational",
+    sessionId: "session",
+    title: "Actual",
+    definition: "The governed actual amount.",
+    viewInReport: { available: false, reason: "Definitions do not open a report." },
+  };
+  const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) =>
+    String(input).endsWith("/api/chat") ? response(200, result) : response(),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const priorTurns = [
+    {
+      question: "Show governed Actual",
+      selection: {
+        domain: "mis-statement",
+        measureIds: ["mis-statement.actual"],
+        dimensionIds: ["mis-statement.leaf_key"],
+        filters: [],
+      },
+    },
+  ];
+
+  await expect(api.ask({ question: "Define Actual", priorTurns })).resolves.toEqual(result);
+
+  const [url, init] = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/api/chat"))!;
+  expect(String(url)).toBe("http://127.0.0.1:4000/api/chat");
+  expect(init).toMatchObject({
+    method: "POST",
+    credentials: "include",
+    body: JSON.stringify({ question: "Define Actual", priorTurns }),
+  });
+  expect((init?.headers as Record<string, string>)["x-csrf-token"]).toBe("ask-token");
+  expect(Object.keys(JSON.parse(String(init?.body))).sort()).toEqual(["priorTurns", "question"]);
+});
+
 test("the drill client posts to the governed drill route with the csrf header and the pinned batches untouched", async () => {
   let cookie = "";
   let csrfRequests = 0;

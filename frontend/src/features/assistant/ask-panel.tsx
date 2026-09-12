@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ResponseClass,
   type AskResponse,
   type ChartType,
   type ProvenanceBatch,
@@ -115,17 +114,16 @@ function Answer({
   question,
   onAsk,
 }: Readonly<{ response: AskResponse; question: string; onAsk: (question: string) => Promise<void> }>) {
-  if (response.responseClass === ResponseClass.Success) return <SuccessAnswer response={response} />;
-  if (response.responseClass === ResponseClass.Informational) {
+  if (response.responseClass === "success") return <SuccessAnswer response={response} />;
+  if (response.responseClass === "informational") {
     return (
       <article className="ask-answer ask-information">
         {response.title && <h2>{response.title}</h2>}
         {response.definition && <p>{response.definition}</p>}
-        {response.suggestedQuestions?.map((suggestion) => <p key={suggestion}>{suggestion}</p>)}
       </article>
     );
   }
-  if (response.responseClass === ResponseClass.ClarificationNeeded) {
+  if (response.responseClass === "clarification_needed") {
     return (
       <article className="ask-answer ask-clarification">
         <p>{response.clarify?.prompt}</p>
@@ -194,46 +192,48 @@ function ResultChart({ result, chartType }: Readonly<{ result: ResultTable; char
 
   const dimension = dimensions[0]!;
   return (
-    <div className="ask-chart" role="img" aria-label={`${chartType} chart`}>
-      <ResponsiveContainer width="100%" height="100%">
-        {chartType === "pie" ? (
-          <PieChart>
-            <Pie data={result.rows} dataKey={measures[0]!.key} nameKey={dimension.key} outerRadius="78%">
-              {result.rows.map((row, index) => (
-                <Cell key={String(row[dimension.key])} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+    <div className="ask-chart">
+      <div className="ask-chart-canvas" role="img" aria-label={`${chartType} chart`}>
+        <ResponsiveContainer width="100%" height="100%">
+          {chartType === "pie" ? (
+            <PieChart>
+              <Pie data={result.rows} dataKey={measures[0]!.key} nameKey={dimension.key} outerRadius="78%">
+                {result.rows.map((row, index) => (
+                  <Cell key={String(row[dimension.key])} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+            </PieChart>
+          ) : chartType === "line" ? (
+            <LineChart data={result.rows}>
+              <CartesianGrid stroke="#e3e9e5" vertical={false} />
+              <XAxis dataKey={dimension.key} tickLine={false} axisLine={false} />
+              {measures.map((measure, index) => (
+                <Line
+                  key={measure.key}
+                  dataKey={measure.key}
+                  name={measure.label}
+                  stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                  strokeWidth={2}
+                />
               ))}
-            </Pie>
-          </PieChart>
-        ) : chartType === "line" ? (
-          <LineChart data={result.rows}>
-            <CartesianGrid stroke="#e3e9e5" vertical={false} />
-            <XAxis dataKey={dimension.key} tickLine={false} axisLine={false} />
-            {measures.map((measure, index) => (
-              <Line
-                key={measure.key}
-                dataKey={measure.key}
-                name={measure.label}
-                stroke={CHART_COLORS[index % CHART_COLORS.length]}
-                strokeWidth={2}
-              />
-            ))}
-          </LineChart>
-        ) : (
-          <BarChart data={result.rows}>
-            <CartesianGrid stroke="#e3e9e5" vertical={false} />
-            <XAxis dataKey={dimension.key} tickLine={false} axisLine={false} />
-            {measures.map((measure, index) => (
-              <Bar
-                key={measure.key}
-                dataKey={measure.key}
-                name={measure.label}
-                fill={CHART_COLORS[index % CHART_COLORS.length]}
-                radius={[3, 3, 0, 0]}
-              />
-            ))}
-          </BarChart>
-        )}
-      </ResponsiveContainer>
+            </LineChart>
+          ) : (
+            <BarChart data={result.rows}>
+              <CartesianGrid stroke="#e3e9e5" vertical={false} />
+              <XAxis dataKey={dimension.key} tickLine={false} axisLine={false} />
+              {measures.map((measure, index) => (
+                <Bar
+                  key={measure.key}
+                  dataKey={measure.key}
+                  name={measure.label}
+                  fill={CHART_COLORS[index % CHART_COLORS.length]}
+                  radius={[3, 3, 0, 0]}
+                />
+              ))}
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
       <ResultTableView result={result} />
     </div>
   );
@@ -319,10 +319,9 @@ function canDraw(result: ResultTable, chartType: ChartType): boolean {
   const dimensions = result.columns.filter((column) => !column.numeric);
   const measures = result.columns.filter((column) => column.numeric);
   if (!result.rows.length || !measures.length) return false;
+  if (result.rows.some((row) => measures.some((measure) => !isNumeric(row[measure.key])))) return false;
   if (chartType === "kpi") return dimensions.length === 0 && result.rows.length === 1;
-  if (dimensions.length !== 1 || result.rows.some((row) => measures.some((measure) => !isNumeric(row[measure.key])))) {
-    return false;
-  }
+  if (dimensions.length !== 1) return false;
   if (chartType === "pie") return measures.length === 1;
   return result.rows.length > 1;
 }

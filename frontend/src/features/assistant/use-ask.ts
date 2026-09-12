@@ -1,7 +1,7 @@
 "use client";
 
-import { ResponseClass, type AskPriorTurn, type AskResponse } from "@3f/contract";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import type { AskPriorTurn, AskResponse } from "@3f/contract";
+import { createContext, createElement, useContext, useState, type ReactNode } from "react";
 import { api } from "@/src/lib/api";
 
 export interface AskTurn {
@@ -28,7 +28,7 @@ export function AskProvider({ children }: Readonly<{ children: ReactNode }>) {
     if (!trimmed || isPending) return;
 
     const priorTurns: AskPriorTurn[] = turns.flatMap((turn) =>
-      turn.response.responseClass === ResponseClass.Success && turn.response.selection
+      turn.response.responseClass === "success" && turn.response.selection
         ? [{ question: turn.question, selection: turn.response.selection }]
         : [],
     );
@@ -44,7 +44,7 @@ export function AskProvider({ children }: Readonly<{ children: ReactNode }>) {
     }
   }
 
-  return <AskContext.Provider value={{ turns, isPending, error, ask }}>{children}</AskContext.Provider>;
+  return createElement(AskContext.Provider, { value: { turns, isPending, error, ask } }, children);
 }
 
 export function useAsk(): AskContextValue {
