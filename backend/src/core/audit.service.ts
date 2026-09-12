@@ -126,6 +126,27 @@ export class AuditService {
     return this.writeExplorationAudit("refusal", e);
   }
 
+  async writeExplorationRefusalEvents(
+    events: Array<{
+      actorId: string;
+      sessionId: string;
+      resource: ExplorationResource;
+      action: ExplorationAction;
+      submitted?: unknown;
+    }>,
+  ): Promise<void> {
+    if (events.length === 0) return;
+    await this.db.insert(auditEvents).values(
+      events.map((event) => ({
+        eventType: `exploration.${event.resource}.refusal`,
+        userId: event.actorId,
+        sessionId: event.sessionId || null,
+        question: `${event.resource} ${event.action}`,
+        selection: { action: event.action, submitted: event.submitted ?? null },
+      })),
+    );
+  }
+
   private async writeExplorationAudit(
     outcome: "request" | "refusal",
     e: {

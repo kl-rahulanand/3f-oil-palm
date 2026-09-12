@@ -6,6 +6,7 @@
   Get,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseFilters,
@@ -96,7 +97,7 @@ export class PinsController {
 
   @Patch(":id/view")
   @ApiOperation({ summary: "Update presentation preferences for one of the current user's pins" })
-  @ApiParam({ name: "id", description: "Pin id" })
+  @ApiParam({ name: "id", description: "Pin id", format: "uuid" })
   @ApiHeader({ name: CSRF_HEADER, required: true, description: "Token matching the 3f_csrf cookie." })
   @ApiBody({ type: UpdatePinViewRequestDto })
   @ApiResponse({ status: HttpStatus.OK, description: "Pin view updated.", type: PinResponseDto })
@@ -115,7 +116,7 @@ export class PinsController {
   updateView(
     @CurrentUser() user: AuthUser,
     @SessionId() sessionId: string,
-    @Param("id") id: string,
+    @Param("id", new ParseUUIDPipe()) id: string,
     @Body() body: unknown,
   ): Promise<Pin> {
     const parsed = updatePinViewSchema.safeParse(body);
@@ -125,7 +126,7 @@ export class PinsController {
 
   @Delete(":id")
   @ApiOperation({ summary: "Delete one of the current user's pins" })
-  @ApiParam({ name: "id", description: "Pin id" })
+  @ApiParam({ name: "id", description: "Pin id", format: "uuid" })
   @ApiResponse({ status: HttpStatus.OK, description: "Pin deleted.", type: ExplorationDeleteResponseDto })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid request.", type: ExplorationErrorDto })
   @ApiResponse({
@@ -142,7 +143,7 @@ export class PinsController {
   remove(
     @CurrentUser() user: AuthUser,
     @SessionId() sessionId: string,
-    @Param("id") id: string,
+    @Param("id", new ParseUUIDPipe()) id: string,
   ): Promise<{ ok: true }> {
     return this.pins.remove(user, sessionId, id);
   }

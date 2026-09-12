@@ -4,12 +4,13 @@ import { test } from "node:test";
 import { HttpException, type ExecutionContext, type INestApplication } from "@nestjs/common";
 import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { NestFactory } from "@nestjs/core";
+import { SwaggerModule } from "@nestjs/swagger";
 import type { AuthUser } from "@3f/contract";
 import { AppModule } from "./app.module";
 import { type AuthedRequest, AuthGuard } from "./auth/auth.guard";
 import { ChatController } from "./chat/chat.controller";
 import { AuthoredMeasureRegistry } from "./measures/authored-measure.registry";
-import { configureApp } from "./main";
+import { buildSwaggerConfig, configureApp } from "./main";
 import { PinsController } from "./pins/pins.controller";
 import { SavedController } from "./saved/saved.controller";
 
@@ -66,6 +67,17 @@ test("the saved and pins routes are registered behind their existing grants and 
     assertActionGuard(ChatController, "report");
     assertActionGuard(SavedController, "save");
     assertActionGuard(PinsController, "pin");
+
+    const selectionSchema = SwaggerModule.createDocument(app, buildSwaggerConfig()).components?.schemas
+      ?.ExplorationSelectionDto as { properties?: Record<string, unknown> } | undefined;
+    assert.deepEqual(Object.keys(selectionSchema?.properties ?? {}).sort(), [
+      "dimensionIds",
+      "domain",
+      "filters",
+      "limit",
+      "measureIds",
+      "timeWindow",
+    ]);
   } finally {
     AuthoredMeasureRegistry.prototype.onModuleInit = originalInit;
     await app?.close();

@@ -6,6 +6,7 @@
   Get,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   UseFilters,
   UseGuards,
@@ -79,7 +80,7 @@ export class SavedController {
 
   @Delete(":id")
   @ApiOperation({ summary: "Delete one of the current user's saved queries" })
-  @ApiParam({ name: "id", description: "Saved query id" })
+  @ApiParam({ name: "id", description: "Saved query id", format: "uuid" })
   @ApiResponse({ status: HttpStatus.OK, description: "Saved query deleted.", type: ExplorationDeleteResponseDto })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: "Invalid request.", type: ExplorationErrorDto })
   @ApiResponse({
@@ -96,7 +97,7 @@ export class SavedController {
   remove(
     @CurrentUser() user: AuthUser,
     @SessionId() sessionId: string,
-    @Param("id") id: string,
+    @Param("id", new ParseUUIDPipe()) id: string,
   ): Promise<{ ok: true }> {
     return this.saved.remove(user, sessionId, id);
   }

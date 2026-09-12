@@ -1,7 +1,7 @@
 import { ArgumentsHost, Catch, HttpException, type ExceptionFilter } from "@nestjs/common";
 import type { AuthedRequest } from "../auth/auth.guard";
 import { loadConfig } from "../config";
-import { AuditService, type ExplorationAction } from "../core/audit.service";
+import { AuditService, type ExplorationAction, type ExplorationResource } from "../core/audit.service";
 import { GlobalExceptionFilter } from "./global-exception.filter";
 import { StructuredLogger } from "./structured.logger";
 
@@ -19,11 +19,12 @@ export class ExplorationAuditFilter implements ExceptionFilter {
     const status = exception instanceof HttpException ? exception.getStatus() : 500;
     if (request.authUser && status >= 400 && status < 500) {
       try {
+        const routePath = String(request.route?.path ?? "");
         await this.audit.writeExplorationRefusalEvent({
           actorId: request.authUser.id,
           sessionId: request.sessionId ?? "",
-          resource: request.originalUrl.includes("/api/pins") ? "pins" : "saved",
-          action: explorationAction(request.method, request.originalUrl),
+          resource: explorationResource(routePath),
+          action: explorationAction(request.method, routePath),
           submitted: request.body,
         });
       } catch (auditError) {
@@ -33,6 +34,12 @@ export class ExplorationAuditFilter implements ExceptionFilter {
     }
     this.fallback.catch(exception, host);
   }
+}
+
+function explorationResource(routePath: string): ExplorationResource {
+  if (routePath.startsWith("/api/pins")) return "pins";
+  if (routePath.startsWith("/api/saved")) return "saved";
+  throw new Error("Exploration route could not be identified for refusal audit");
 }
 
 function explorationAction(method: string, url: string): ExplorationAction {

@@ -47,17 +47,21 @@ export class SavedService {
       .where(eq(savedQueries.userId, user.id))
       .orderBy(desc(savedQueries.createdAt));
     const saved = rows.map((row) => toSavedQuery(row, selectionStatus(this.semantic, user, row.selection)));
-    for (const item of saved) {
-      if (!item.status.runnable) {
-        await this.audit.writeExplorationRefusalEvent({
-          actorId: user.id,
-          sessionId,
-          resource: "saved",
-          action: "list",
-          submitted: { id: item.id, reason: item.status.reason },
-        });
-      }
-    }
+    await this.audit.writeExplorationRefusalEvents(
+      saved.flatMap((item) =>
+        item.status.runnable
+          ? []
+          : [
+              {
+                actorId: user.id,
+                sessionId,
+                resource: "saved",
+                action: "list",
+                submitted: { id: item.id, reason: item.status.reason },
+              },
+            ],
+      ),
+    );
     return saved;
   }
 
@@ -113,6 +117,7 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
     };
   }
   if (
+    (domain.composed && !user.permissions.actions.includes("report")) ||
     !user.permissions.domains.includes(selection.domain) ||
     selection.measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
     [...dimensionIds].some((id) => !user.permissions.dimensionIds.includes(id))

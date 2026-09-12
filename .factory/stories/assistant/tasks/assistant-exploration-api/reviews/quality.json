@@ -1,0 +1,180 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-exploration-api",
+  "score": 5,
+  "summary": "quality lens over assistant-exploration-api (27 product path(s), eaf73d8..ca0e573, Codex via the autoreview skill at --max-priority P2): 1 blocking, 3 non-blocking. VERDICT t-aea-c1: implemented \u2014 backend/drizzle/0001_saved_and_pins.sql:3 creates the deliberately scoped two-table migration with indexed foreign keys and timezone-aware timestamps.\nVERDICT t-aea-c2: partial \u2014 backend/src/saved/saved.schemas.ts:52 emits the central selection payload as an opaque OpenAPI object, and UUID route parameters are not validated.\nVERDICT t-aea-c3: implemented \u2014 backend/src/app.routes.test.ts:24 enforces the exhaustive route set without refresh endpoints, while snapshot fields and live refresh references are removed.\nVERDICT t-aea-c4: partial \u2014 backend/src/saved/saved.service.ts:119 ignores the caller's current scope grants when deciding whether a stored selection is runnable.\nVERDICT t-aea-c5: implemented \u2014 backend/src/common/exploration-audit.filter.ts:18 audits controller-scoped 4xx refusals and fails closed when that audit write fails.\nVERDICT t-aea-c6: partial \u2014 backend/src/common/exploration-audit.filter.test.ts:17 covers only a successful refusal audit, not the required fail-closed denied-branch negative case.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/saved",
+      "summary": "[P1] Include current scope grants in read-time authorization (backend/src/saved/saved.service.ts:119): `selectionStatus` considers only the domain, measure, and dimension permission arrays."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/decisions/0019-fresh-routes-follow-vendored-house-style.md",
+      "summary": "t-aea-c2: The saved and pins modules are REGISTERED and GOVERNED: imported by app.module.ts, with every route in the strict allow-list in backend/src/app.routes.test.ts - the only thing that proves a route exists - and each behind AuthGuard, the global CsrfGuard and its existing action grant (RequireAction('save') for saved, RequireAction('pin') for pins; no new action is minted, GRANT_ACTIONS already carries both). The allow-list assertion must fail on an UNEXPECTED route as well as a missing one, because the refresh routes are being removed and their absence is part of the contract. These routes enter the public API surface for the first time, so decision 0019's NON-deviated half binds them: named typed request and response DTOs, documented Swagger responses including typed 400/401/403, strict rejection of unknown request fields, and constitution/07-exception-handling.md's failure model. 0019's actual deviations stand - unversioned api/<resource> paths, raw typed bodies rather than {success,data,error} envelopes, direct cross-module imports - and 0019 imposes no pagination requirement."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/decisions/0016-governed-joins-poc-scope.md",
+      "summary": "t-aea-c4: Every read re-authorizes as the CURRENT user against the CURRENT semantic layer, because a save is a question and a question may stop being answerable. Listing saved queries or pins validates each stored selection against the caller's present grants and the registered domains; one the caller may no longer run is returned as a refusal that says so, never silently dropped and never served from anything cached - there is nothing cached to serve. A selection naming a measure or dimension the semantic layer no longer registers is likewise reported rather than returned as if runnable. THE REFUSAL HAS A DECLARED SHAPE, because today SavedQuery (contract/src/api.ts:372) and Pin (:386) each require a runnable Selection and there is nowhere to say no. contract/src/api.ts is in write_scope: both interfaces gain a REQUIRED discriminated status - {runnable: true} | {runnable: false, reason: 'grant_revoked' | 'definition_unregistered', message: string} - required rather than optional so a consumer cannot forget to render it, following the required-discriminated-union precedent at contract/src/api.ts:486. The stored selection is RETAINED on a refusal so the reader can still see and delete what they saved. No frontend consumes SavedQuery or Pin yet - task 4 builds those surfaces - so this shape is settled here, not later."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/assistant-assistant-exploration.md#verify-plan",
+      "summary": "t-aea-c6: The behaviour is proven by hermetic leaves covering registration and the absence of the refresh routes, the create and list payloads carrying NO ResultTable, the re-authorization refusal for a revoked grant and for a selection whose measure is no longer registered, the fail-closed audit on a denied branch, and a guard-level RequireAction denial being audited by the route-scoped filter; plus a DB-backed proof that the scoped migration applies to a database holding only 0000_auth_audit.sql, creates exactly saved_queries and dashboard_pins, and leaves the other five declared tables absent - run against an ISOLATED scratch database it creates and drops, never the developer's app DB. That proof is an APP-DB test, so it belongs in tools/quality-gate.test.mjs's dbTests list and backend/package.json test:db beside migrate.test.ts; test:warehouse-proof is the separate WAREHOUSE_PG_* group gated on WAREHOUSE_DB_TEST=1 and is the wrong home. It stays outside CI under D-0008 and is demonstrated on the host. backend/src/db/migrate.trim.test.ts:6 pins an EXACT expected-table list and WILL break: it is in write_scope and its EXPECTED_TABLES grows by exactly saved_queries and dashboard_pins, which makes it the hermetic proof that the SQL creates those two and none of the other five. New hermetic files are registered in backend/package.json test:hermetic AND tools/quality-gate.test.mjs hermeticTests, or CI runs none of them - and the partition assertion at quality-gate.test.mjs:331 requires every backend test file to appear in exactly one of dbTests or hermeticTests. Under D-0006, every file this task edits that is named in .prettierignore - backend/src/core/core.module.ts, backend/src/db/migrate.trim.test.ts, backend/src/pins/pins.controller.ts, backend/src/pins/pins.service.ts, backend/src/saved/saved.service.ts - is formatted and removed from that list in the same change, and the entry for the deleted pin-refresh.service.ts goes with the file. Check the EXECUTED COUNT and testcase name in every artifact, never the exit code (D-0024, D-0031)."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/pins",
+      "summary": "[P2] Validate UUID path parameters before executing database queries (backend/src/pins/pins.controller.ts:138): The pin update/delete and saved delete routes pass raw path strings into UUID-column comparisons."
+    },
+    {
+      "category": "regression",
+      "area": "backend/src/saved",
+      "summary": "[P2] Describe DTO object fields instead of exposing opaque OpenAPI objects (backend/src/saved/saved.schemas.ts:52): Although the DTO classes are named, their central `selection` property is explicitly emitted as an unstructured `object`, so generated clients cannot discover required fields such as `domain`, `measureIds`, `dimensionIds`, and `filters`."
+    },
+    {
+      "category": "test_gap",
+      "area": "backend/src/common",
+      "summary": "[P2] Add the required negative test for refusal-audit failure (backend/src/common/exploration-audit.filter.test.ts:17): The guard-denial test only covers a successful `writeExplorationRefusalEvent`, while the saved-service negative test covers failure of the ordinary request audit on an allowed create."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/drizzle/0001_saved_and_pins.sql",
+    "backend/drizzle/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/common/exploration-audit.filter.test.ts",
+    "backend/src/common/exploration-audit.filter.ts",
+    "backend/src/core/audit.service.ts",
+    "backend/src/core/core.module.ts",
+    "backend/src/db/migrate.exploration.db.test.ts",
+    "backend/src/db/migrate.trim.test.ts",
+    "backend/src/pins/pin-refresh.service.ts",
+    "backend/src/pins/pins.controller.ts",
+    "backend/src/pins/pins.module.ts",
+    "backend/src/pins/pins.schemas.test.ts",
+    "backend/src/pins/pins.schemas.ts",
+    "backend/src/pins/pins.service.test.ts",
+    "backend/src/pins/pins.service.ts",
+    "backend/src/saved/saved.controller.ts",
+    "backend/src/saved/saved.module.ts",
+    "backend/src/saved/saved.schemas.ts",
+    "backend/src/saved/saved.service.test.ts",
+    "backend/src/saved/saved.service.ts",
+    "backend/src/swagger.test.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-aea-c1",
+      "verdict": "implemented",
+      "evidence": "backend/drizzle/0001_saved_and_pins.sql:3 creates the deliberately scoped two-table migration with indexed foreign keys and timezone-aware timestamps."
+    },
+    {
+      "contract_id": "t-aea-c2",
+      "verdict": "partial",
+      "evidence": "backend/src/saved/saved.schemas.ts:52 emits the central selection payload as an opaque OpenAPI object, and UUID route parameters are not validated."
+    },
+    {
+      "contract_id": "t-aea-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/app.routes.test.ts:24 enforces the exhaustive route set without refresh endpoints, while snapshot fields and live refresh references are removed."
+    },
+    {
+      "contract_id": "t-aea-c4",
+      "verdict": "partial",
+      "evidence": "backend/src/saved/saved.service.ts:119 ignores the caller's current scope grants when deciding whether a stored selection is runnable."
+    },
+    {
+      "contract_id": "t-aea-c5",
+      "verdict": "implemented",
+      "evidence": "backend/src/common/exploration-audit.filter.ts:18 audits controller-scoped 4xx refusals and fails closed when that audit write fails."
+    },
+    {
+      "contract_id": "t-aea-c6",
+      "verdict": "partial",
+      "evidence": "backend/src/common/exploration-audit.filter.test.ts:17 covers only a successful refusal audit, not the required fail-closed denied-branch negative case."
+    },
+    {
+      "contract_id": "t-aga-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aga-c7",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-governed-ask at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aas-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-ask-surfaces at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aas-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-ask-surfaces at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aas-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-ask-surfaces at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aas-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-ask-surfaces at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aas-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-ask-surfaces at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-aas-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-ask-surfaces at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "8c0db21a016c4c78a373d7de1bc7febd42b79bad1ed98a7b7cbcb5fc94878566",
+  "brief_sha256": "90dd54982efed6e22f1119713e8189024358d5dad81ea3e482185571554fce09",
+  "branch_diff_digest": "462716c6ba4584fc6bca8224b65a80e5b0f670eb3ee73d43d92a2e4e0c516f62",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T14:46:51+00:00",
+  "commit": "ca0e573c72ede8a40aa41976a68d7cd525c8d72d"
+}

@@ -1,0 +1,52 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-exploration-api",
+  "score": 9,
+  "summary": "performance lens over assistant-exploration-api (27 product path(s), eaf73d8..ca0e573, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The snapshot compatibility machinery is removed cleanly, but both list paths introduce deterministic, serial N+1 audit-write fanout when stored selections are refused. That is an actionable performance defect on newly registered public endpoints.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/saved",
+      "summary": "[P2] Batch refusal audits when listing saved selections (backend/src/saved/saved.service.ts:52): The diff directly shows one request-audit insert and one SELECT followed by an individually awaited audit insert for every refused saved query."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/drizzle/0001_saved_and_pins.sql",
+    "backend/drizzle/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/common/exploration-audit.filter.test.ts",
+    "backend/src/common/exploration-audit.filter.ts",
+    "backend/src/core/audit.service.ts",
+    "backend/src/core/core.module.ts",
+    "backend/src/db/migrate.exploration.db.test.ts",
+    "backend/src/db/migrate.trim.test.ts",
+    "backend/src/pins/pin-refresh.service.ts",
+    "backend/src/pins/pins.controller.ts",
+    "backend/src/pins/pins.module.ts",
+    "backend/src/pins/pins.schemas.test.ts",
+    "backend/src/pins/pins.schemas.ts",
+    "backend/src/pins/pins.service.test.ts",
+    "backend/src/pins/pins.service.ts",
+    "backend/src/saved/saved.controller.ts",
+    "backend/src/saved/saved.module.ts",
+    "backend/src/saved/saved.schemas.ts",
+    "backend/src/saved/saved.service.test.ts",
+    "backend/src/saved/saved.service.ts",
+    "backend/src/swagger.test.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "8c0db21a016c4c78a373d7de1bc7febd42b79bad1ed98a7b7cbcb5fc94878566",
+  "brief_sha256": "90dd54982efed6e22f1119713e8189024358d5dad81ea3e482185571554fce09",
+  "branch_diff_digest": "462716c6ba4584fc6bca8224b65a80e5b0f670eb3ee73d43d92a2e4e0c516f62",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T14:46:51+00:00",
+  "commit": "ca0e573c72ede8a40aa41976a68d7cd525c8d72d"
+}

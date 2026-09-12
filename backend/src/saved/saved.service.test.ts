@@ -11,7 +11,7 @@ test("listing refuses a saved selection the caller may no longer run instead of 
   const refusals: unknown[] = [];
   const service = new SavedService(listDb(savedRow(SELECTION)), new SemanticLayer(), audit({ refusals }));
 
-  const [saved] = await service.list({ ...USER, permissions: { ...USER.permissions, measureIds: [] } }, SESSION_ID);
+  const [saved] = await service.list({ ...USER, permissions: { ...USER.permissions, actions: ["save"] } }, SESSION_ID);
 
   assert.deepEqual(saved.selection, SELECTION);
   assert.deepEqual(saved.status, {
@@ -58,9 +58,8 @@ function audit({ refusals }: { refusals: unknown[] }): AuditService {
     async writeExplorationRequestEvent() {
       return 1;
     },
-    async writeExplorationRefusalEvent(event: unknown) {
-      refusals.push(event);
-      return 2;
+    async writeExplorationRefusalEvents(events: unknown[]) {
+      refusals.push(...events);
     },
   } as unknown as AuditService;
 }
@@ -89,7 +88,7 @@ const USER: AuthUser = {
   is_active: true,
   roles: ["finance"],
   permissions: {
-    actions: ["save"],
+    actions: ["save", "report"],
     domains: ["governed-financial"],
     measureIds: ["governed-financial.actual"],
     dimensionIds: ["month"],

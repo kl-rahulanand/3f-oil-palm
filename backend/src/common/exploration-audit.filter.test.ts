@@ -25,7 +25,7 @@ test("a require action denial thrown by the guard is audited by the route scoped
     sessionId: SESSION_ID,
     body: { selection: "submitted" },
     method: "POST",
-    originalUrl: "/api/saved",
+    originalUrl: "/api/saved?next=/api/pins",
     route: { path: "/api/saved" },
     baseUrl: "",
   } as unknown as AuthedRequest;
@@ -58,6 +58,33 @@ test("a require action denial thrown by the guard is audited by the route scoped
     },
   ]);
   assert.equal(response.statusCode, 403);
+});
+
+test("a refusal audit failure replaces the guard denial with a fail closed server error", async () => {
+  const order: string[] = [];
+  const audit = {
+    async writeExplorationRefusalEvent() {
+      throw new Error("audit unavailable");
+    },
+  } as unknown as AuditService;
+  const request = {
+    authUser: USER,
+    sessionId: SESSION_ID,
+    body: { selection: "submitted" },
+    method: "POST",
+    originalUrl: "/api/saved",
+    route: { path: "/api/saved" },
+    baseUrl: "",
+  } as unknown as AuthedRequest;
+  const response = new FakeResponse(order);
+
+  await new ExplorationAuditFilter(audit).catch(
+    new ForbiddenException("Requires 'save' action"),
+    host(request, response),
+  );
+
+  assert.deepEqual(order, ["response"]);
+  assert.equal(response.statusCode, 500);
 });
 
 class FakeResponse {

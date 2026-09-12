@@ -1,0 +1,57 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-exploration-api",
+  "score": 9,
+  "summary": "security lens over assistant-exploration-api (27 product path(s), eaf73d8..ca0e573, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The migration, route guards, snapshot removal, strict body schemas, and pre-operation request audits are consistent with the supplied contracts. However, current scope revocation is omitted from both runnable-status authorization decisions, and refusal audit classification can be manipulated through the raw URL. These are actionable security defects in two central requirements of the change.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src/saved",
+      "summary": "Re-authorize saved selections against the caller's current scope (backend/src/saved/saved.service.ts:114): The runnable-status check only compares domain, measure, and dimension IDs."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/common",
+      "summary": "Do not derive audit identity from attacker-controlled query text (backend/src/common/exploration-audit.filter.ts:25): The filter classifies a refusal as pins whenever `originalUrl` contains `/api/pins`."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/drizzle/0001_saved_and_pins.sql",
+    "backend/drizzle/meta/_journal.json",
+    "backend/package.json",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/common/exploration-audit.filter.test.ts",
+    "backend/src/common/exploration-audit.filter.ts",
+    "backend/src/core/audit.service.ts",
+    "backend/src/core/core.module.ts",
+    "backend/src/db/migrate.exploration.db.test.ts",
+    "backend/src/db/migrate.trim.test.ts",
+    "backend/src/pins/pin-refresh.service.ts",
+    "backend/src/pins/pins.controller.ts",
+    "backend/src/pins/pins.module.ts",
+    "backend/src/pins/pins.schemas.test.ts",
+    "backend/src/pins/pins.schemas.ts",
+    "backend/src/pins/pins.service.test.ts",
+    "backend/src/pins/pins.service.ts",
+    "backend/src/saved/saved.controller.ts",
+    "backend/src/saved/saved.module.ts",
+    "backend/src/saved/saved.schemas.ts",
+    "backend/src/saved/saved.service.test.ts",
+    "backend/src/saved/saved.service.ts",
+    "backend/src/swagger.test.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "8c0db21a016c4c78a373d7de1bc7febd42b79bad1ed98a7b7cbcb5fc94878566",
+  "brief_sha256": "90dd54982efed6e22f1119713e8189024358d5dad81ea3e482185571554fce09",
+  "branch_diff_digest": "462716c6ba4584fc6bca8224b65a80e5b0f670eb3ee73d43d92a2e4e0c516f62",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T14:46:51+00:00",
+  "commit": "ca0e573c72ede8a40aa41976a68d7cd525c8d72d"
+}

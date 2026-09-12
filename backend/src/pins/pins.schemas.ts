@@ -10,7 +10,7 @@ import type {
   UpdatePinViewRequest,
 } from "@3f/contract";
 import { z } from "zod";
-import { chartTypeSchema, selectionSchema } from "../saved/saved.schemas";
+import { ExplorationSelectionDto, chartTypeSchema, selectionSchema } from "../saved/saved.schemas";
 
 export const chartViewSchema = z
   .object({
@@ -48,22 +48,41 @@ export const reorderPinsSchema = z
   })
   .strict();
 
+class PinSortDto implements NonNullable<ChartView["sort"]> {
+  @ApiProperty({ example: "month" })
+  key!: string;
+
+  @ApiProperty({ enum: ["asc", "desc"], example: "asc" })
+  direction!: "asc" | "desc";
+}
+
+class ChartViewDto implements ChartView {
+  @ApiProperty({ enum: ["kpi", "line", "bar", "pie", "table"], required: false })
+  chartType?: ChartType;
+
+  @ApiProperty({ required: false, example: false })
+  axisSwapped?: boolean;
+
+  @ApiProperty({ type: PinSortDto, required: false, nullable: true })
+  sort?: PinSortDto | null;
+}
+
 export class CreatePinRequestDto implements CreatePinRequest {
   @ApiProperty({ required: false, maxLength: 120, example: "Monthly actuals" })
   title?: string;
 
-  @ApiProperty({ type: "object", description: "Governed semantic selection to pin." })
+  @ApiProperty({ type: ExplorationSelectionDto, description: "Governed semantic selection to pin." })
   selection!: Selection;
 
   @ApiProperty({ enum: ["kpi", "line", "bar", "pie", "table"], required: false })
   chartType?: ChartType;
 
-  @ApiProperty({ type: "object", required: false })
+  @ApiProperty({ type: ChartViewDto, required: false })
   view?: ChartView;
 }
 
 export class UpdatePinViewRequestDto implements UpdatePinViewRequest {
-  @ApiProperty({ type: "object" })
+  @ApiProperty({ type: ChartViewDto })
   view!: ChartView;
 }
 
@@ -79,7 +98,7 @@ export class PinResponseDto implements Pin {
   @ApiProperty({ example: "Monthly actuals" })
   title!: string;
 
-  @ApiProperty({ type: "object" })
+  @ApiProperty({ type: ExplorationSelectionDto })
   selection!: Selection;
 
   @ApiProperty({
@@ -101,7 +120,7 @@ export class PinResponseDto implements Pin {
   @ApiProperty({ enum: ["kpi", "line", "bar", "pie", "table"], required: false })
   chartType?: ChartType;
 
-  @ApiProperty({ type: "object", required: false })
+  @ApiProperty({ type: ChartViewDto, required: false })
   view?: ChartView;
 
   @ApiProperty()

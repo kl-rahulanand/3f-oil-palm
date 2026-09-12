@@ -141,12 +141,25 @@ export class PinsService {
       .from(dashboardPins)
       .where(eq(dashboardPins.userId, user.id))
       .orderBy(asc(dashboardPins.position), desc(dashboardPins.createdAt));
-    const pins: Pin[] = [];
-    for (const row of rows) {
+    const pins = rows.map((row) => {
       const status = selectionStatus(this.semantic, user, row.selection);
-      await this.auditRefusal(user, sessionId, row.id, status, "list");
-      pins.push(toPin(row, status, this.definitionChanged(row)));
-    }
+      return toPin(row, status, this.definitionChanged(row));
+    });
+    await this.audit.writeExplorationRefusalEvents(
+      pins.flatMap((pin) =>
+        pin.status.runnable
+          ? []
+          : [
+              {
+                actorId: user.id,
+                sessionId,
+                resource: "pins",
+                action: "list",
+                submitted: { id: pin.id, reason: pin.status.reason },
+              },
+            ],
+      ),
+    );
     return pins;
   }
 
@@ -215,8 +228,9 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
   if (!parsed.success) throw new BadRequestException("Stored pin selection is invalid");
   const selection = parsed.data;
   const dimensionIds = new Set([...selection.dimensionIds, ...selection.filters.map((filter) => filter.dimensionId)]);
+  const domain = semantic.domain(selection.domain);
   if (
-    !semantic.domain(selection.domain) ||
+    !domain ||
     selection.measureIds.some((id) => !semantic.measure(selection.domain, id)) ||
     [...dimensionIds].some((id) => !semantic.dimension(selection.domain, id))
   ) {
@@ -227,6 +241,7 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
     };
   }
   if (
+    (domain.composed && !user.permissions.actions.includes("report")) ||
     !user.permissions.domains.includes(selection.domain) ||
     selection.measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
     [...dimensionIds].some((id) => !user.permissions.dimensionIds.includes(id))

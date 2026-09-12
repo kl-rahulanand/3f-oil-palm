@@ -65,9 +65,8 @@ function audit(refusals: unknown[] = []): AuditService {
     async writeExplorationRequestEvent() {
       return 1;
     },
-    async writeExplorationRefusalEvent(event: unknown) {
-      refusals.push(event);
-      return 2;
+    async writeExplorationRefusalEvents(events: unknown[]) {
+      refusals.push(...events);
     },
   } as unknown as AuditService;
 }
@@ -102,7 +101,7 @@ const USER: AuthUser = {
   is_active: true,
   roles: ["finance"],
   permissions: {
-    actions: ["pin"],
+    actions: ["pin", "report"],
     domains: ["governed-financial"],
     measureIds: ["governed-financial.actual"],
     dimensionIds: ["month"],
