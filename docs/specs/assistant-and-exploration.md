@@ -44,8 +44,11 @@ human-decided and carry their own decision records.
   half** of **D-0032** — the BRIEF still frames Smart Palm, Yield/ha and OER as v1's headline
   metrics, and that half stays open. 0002's Operational MIS deferral stands. **Human-decided this grill.**
 - **LLM and residency are no longer open.** AWS **Bedrock in `ap-south-1` (Mumbai)** (decision
-  **0027**). Only the **question, the prior turns, and the governed vocabulary** the user is
-  already authorized to see may leave the app; **warehouse rows never do**. `MockLlmProvider`
+  **0027**). Only the **question, the prior turns, and the governed vocabulary** may leave the
+  app — names, labels, **and dimension distinct values** (capped by `dimensionEnumMax`), so 3F's
+  plant, cost-centre and GL identifiers do reach AWS. **Amounts, transaction lines, batch
+  contents and result rows never do**, and a test asserts the provider's input so the boundary is
+  a control rather than a sentence. `MockLlmProvider`
   always returns `clarify` and never selects, so it is development-only and not a shippable
   fallback. **Human-decided this grill.**
 - **A save stores the selection, never the answer** (decision **0028**): pins are personal and

@@ -53,14 +53,31 @@ not saved, not pins. The registered-route allow-list in `backend/src/app.routes.
 fourteen routes and contains no `/api/chat`, `/api/saved` or `/api/pins`. This story's first job
 is registration and governance, not authorship.
 
-**The persistence it needs does not exist.** `backend/src/db/schema.ts` declares `conversations`,
+**The persistence it needs does not exist — and it is seven tables, not five.** `backend/src/db/schema.ts` declares `conversations`,
 `conversation_turns`, `saved_queries`, `dashboard_pins` and `pin_snapshots`. `backend/drizzle/`
 contains exactly one migration, `0000_auth_audit.sql`, which creates `users`, `roles`,
 `user_roles`, `role_perms`, `user_scope`, `sessions`, `otp_codes`, `refresh_tokens` and
-`audit_events` — and `migrate.ts` runs that folder. So those five tables are **declared in
-Drizzle and absent from the database**. Registering the chat module without a migration produces
-an assistant that fails on its first durable turn. That is the single most load-bearing fact in
-this plan, and it is invisible from the schema file alone.
+`audit_events` — and `migrate.ts` runs that folder. Seven declared tables are therefore **absent
+from the database**: `authored_measures`, `conversations`, `conversation_turns`,
+`reconciliation_runs`, `saved_queries`, `dashboard_pins` and `pin_snapshots`. Registering the
+chat module without a migration produces an assistant that fails on its first write. That is the
+single most load-bearing fact in this plan, and it is invisible from the schema file alone.
+
+It also means the migration must be **deliberately scoped, not generated**: a migration generated
+from `schema.ts` would sweep in all seven, including two (`authored_measures`,
+`reconciliation_runs`) that belong to features this story does not ship. This story creates
+**two** — `saved_queries` and `dashboard_pins` — and neither `conversations`/`conversation_turns`
+(durable history is deferred, below) nor `pin_snapshots` (decision **0028** forbids what it
+stores).
+
+**Two vendored behaviours actively contradict the decisions you just accepted.** Pins are not
+merely snapshot-capable — `pins.service.ts:50` refreshes and persists a `ResultTable` on create,
+and `list` left-joins `pin_snapshots` and returns it. That is governed data at rest, which
+decision **0028** forbids. It is not enough to leave `PinSnapshot` unused; this story **removes
+that behaviour**. Likewise the audit is not per-request as the spec now promises: the fail-closed
+request event is written only immediately before the final governed execution, while the
+unsupported and denied branches fall to `writeResultEvent`, which `audit.service.ts` documents as
+best-effort and never blocking.
 
 **A third thing, smaller but fatal to a demo:** `MockLlmProvider.select()` always returns
 `kind: "clarify"`. It never selects. Without `LLM_PROVIDER=bedrock` and a set `BEDROCK_MODEL_ID`
@@ -74,11 +91,14 @@ carries `selection`, `result`, `totals`, `chartType`, `availableChartTypes`, `av
 `activeBatchIds`. The governed vocabulary is narrow and real: `semanticLayer.ts` registers
 exactly two domains, `governed-financial` and `mis-statement`.
 
-**The one output-side gap is "view in report".** `AskReportGrounding { reportId, timeWindow }`
-grounds a question *in* a report. Nothing carries an answer *back* to a statement: the MIS
-statement needs Department, Function, Plant and period, and the spec settled that the link must
-also preserve the answer's batch provenance so the statement it opens is the one the assistant
-was talking about. That field does not exist and this story adds it.
+**The one output-side gap is "view in report", and it is deeper than a response field.**
+`AskReportGrounding { reportId, timeWindow }` grounds a question *in* a report. Nothing carries an
+answer *back* to a statement — and the statement route cannot receive it if it did: it takes four
+selectors and has **no `pinnedBatches`**; only the drill route accepts those. So preserving the
+answer's provenance means changing the **statement request** as well, to accept pinned batch ids,
+validate them, and return a typed "the data was refreshed — ask again" result when they are no
+longer active, exactly as the drill does. The statement API is therefore **Changed** by this
+story, not unchanged as an earlier draft of this plan claimed.
 
 ## Scope / Non-goals
 
@@ -95,8 +115,19 @@ was talking about. That field does not exist and this story adds it.
 - The response matrix: data / definition / ambiguous / causal-declined / general chat.
 
 **Non-goals**
-- **Answer snapshots and shareable pins** (decision **0028**) — `PinSnapshot` stays in the
-  contract unused rather than deleted.
+- **Answer snapshots and shareable pins** (decision **0028**). The vendored snapshot-on-create
+  and snapshot-on-list behaviour is **removed**, and `pin_snapshots` is not created.
+- **Durable chat history.** The current thread lives in client state only; `conversations` and
+  `conversation_turns` are not created and `/api/conversations` is not registered. The prototype
+  shows history, but neither the confirmed spec nor the acceptance criteria require it, and the
+  vendored implementation rehydrates stored answers — governed data at rest, which 0028 forbids.
+  **Human-decided at the plan grill.**
+- **Generative prose.** General chat is answered from deterministic templates that cannot assert
+  anything about 3F's data or emit a numeral; the model stays strictly a selector.
+  **Human-decided at the plan grill.**
+- **Historical statement rendering.** A stale "view in report" link is refused, not reconstructed;
+  teaching the statement projection to render against arbitrary past batches is a separate story.
+  **Human-decided at the plan grill.**
 - Any write-back, any SQL authored by the model, any number produced by the model.
 - Causal "why" answers — declined by the response matrix, not attempted.
 - Widening the governed vocabulary beyond the two registered domains, or beyond the proven
@@ -110,9 +141,11 @@ was talking about. That field does not exist and this story adds it.
 1. **The routes exist and are governed.** `/api/chat`, `/api/chat/stream`, `/api/saved` and
    `/api/pins` are registered, appear in `app.routes.test.ts`'s allow-list, and sit behind
    `AuthGuard`, the global `CsrfGuard` and the governed grant — a user without it is refused.
-2. **The tables exist.** A migration creates `conversations`, `conversation_turns`,
-   `saved_queries`, `dashboard_pins` and `pin_snapshots`, and `db:migrate` applies cleanly on a
-   database that has only `0000_auth_audit.sql`.
+2. **The tables exist, and only the ones this story needs.** A deliberately scoped migration
+   creates exactly `saved_queries` and `dashboard_pins` — not `pin_snapshots`, not
+   `conversations`/`conversation_turns`, and not the unrelated `authored_measures` or
+   `reconciliation_runs` a generated migration would sweep in. `db:migrate` applies cleanly on a
+   database holding only `0000_auth_audit.sql`.
 3. **A data question is answered from the governed measures**, with `provenance.verified` true,
    and every visible numeric character — prose, labels, chart axes, annotations — rendered from
    the deterministic result. The model emits no figure.
@@ -123,19 +156,27 @@ was talking about. That field does not exist and this story adds it.
    causal "why" declined and redirected; general chat answered naturally, claiming nothing about
    3F's data.
 6. **View in report** carries the selection's Department, Function, Plant, period **and** the
-   answer's `activeBatchIds`, so the statement it opens is the one the answer came from — and is
-   **absent with a reason** when a question has no statement representation.
+   answer's `activeBatchIds`; the statement route accepts and **validates** those ids and returns
+   a typed "the data was refreshed — ask again" result when they are no longer active, rather than
+   silently rendering different numbers. The link is **absent with a reason** when a question has
+   no statement representation.
 7. **Both surfaces work**: the docked panel beside the report and the standalone Ask page, with
    suggested chips, the verified badge and provenance disclosure, per the approved prototype.
 8. **A saved selection re-runs under the current user's RBAC**, and a **pin opens by re-running**;
    a revoked grant produces a refusal, never a cached figure. Nothing is stored that the user
-   could not re-derive by asking again.
-9. **Authorization and audit are per-request**: every ask, every saved re-run and every pin open
-   re-authorizes and writes its audit record **before** the read, failing closed; denials and
-   unsupported requests are audited too.
+   could not re-derive by asking again — and creating or listing a pin **persists and returns no
+   `ResultTable`**, which the vendored code does today and this story removes.
+9. **Authorization and audit are per-request, on every branch**: every ask, saved re-run and pin
+   open re-authorizes and writes a **fail-closed** record before the read. Denied and unsupported
+   requests get a fail-closed record too — not the best-effort `writeResultEvent` the vendored
+   path uses for them today — and a pin re-run goes through the same boundary rather than
+   executing directly.
 10. **The Bedrock boundary is enforced and testable**: the provider receives the question, the
-    prior turns and the governed vocabulary, and **no warehouse row, measure value or batch
-    content** — proven by asserting the provider's input, not by inspection.
+    prior turns, and the governed vocabulary **including dimension distinct values capped by
+    `dimensionEnumMax`** (decision **0027** as amended) — and **no amount, transaction line, batch
+    content or result row**. Proven by asserting the provider's input, not by inspection.
+11. **General chat is deterministic.** Small talk and off-topic nudges come from templates; the
+    model is never asked for prose and can emit no numeral.
 
 ## Technical Approach
 
@@ -146,20 +187,48 @@ way `RequireAction("report")` gates the statement. The vendored services are use
 where they need to change it is to enforce this story's boundary, not to rewrite their behaviour.
 
 ### The migration
-One Drizzle migration for the five declared tables, generated from `schema.ts` so the declaration
-and the database stop disagreeing. It must apply on a database whose only prior migration is
-`0000_auth_audit.sql`, which is what every existing environment has.
+One **hand-scoped** Drizzle migration creating `saved_queries` and `dashboard_pins` only. Not
+generated from `schema.ts`: that would sweep in all seven absent tables, including
+`pin_snapshots` (which 0028 forbids storing into), `conversations`/`conversation_turns` (history
+deferred) and `authored_measures`/`reconciliation_runs` (other features entirely). It must apply
+on a database whose only prior migration is `0000_auth_audit.sql`, which is what every existing
+environment has. The declaration-versus-database gap for the other five is left as it is and
+named, not quietly closed by a migration nobody asked for.
 
 ### The Bedrock boundary
 `LLM_PROVIDER=bedrock`, `AWS_REGION=ap-south-1`, `BEDROCK_MODEL_ID` set. The enforceable part is
-what `LlmSelectionInput` carries: the question, prior turns and the allowed domains' vocabulary.
-The test asserts the provider's **input**, so a future change that starts passing result rows
-fails rather than leaks.
+what `LlmSelectionInput` carries: the question, the prior turns, and the allowed domains'
+vocabulary **including dimension distinct values capped by `dimensionEnumMax`** — which is
+`chat.service.ts:167` calling `dimensionValuesForAllowedDomains` against the warehouse, permitted
+by 0027 as amended. The test asserts the provider's **input**, so a future change that starts
+passing amounts or result rows fails rather than leaks.
 
-### View in report
-A new optional field on the success response carrying the four statement selectors plus the
-answer's `activeBatchIds`, populated only when the selection maps to a statement, and absent —
-with a reason — otherwise. The client links from it; it never reconstructs a selection itself.
+### Pins lose their snapshot
+`pins.service.ts:50` refreshes and persists a `ResultTable` on create and `list` left-joins
+`pin_snapshots` to return it. Both are removed, along with the refresh routes, so a pin holds a
+selection and nothing else. This is a **deletion** of shipped vendored behaviour, made because
+decision 0028 forbids it — not a feature left switched off.
+
+### Audit on every branch
+The vendored fail-closed request event guards only the final governed execution; denied and
+unsupported branches fall to `writeResultEvent`, which is documented best-effort and never
+blocks. This story moves the fail-closed boundary so that **every** branch that consults governed
+data — including refusals — writes its record first, and routes pin re-runs through the same
+boundary instead of executing directly.
+
+### View in report, on both sides
+A new optional field on the success response carries the four statement selectors plus the
+answer's `activeBatchIds`, populated only when the selection maps to a statement and absent —
+with a reason — otherwise. The client links from it and never reconstructs a selection itself.
+
+The **statement route accepts those ids and validates them**, returning a typed "the data was
+refreshed — ask again" outcome when they are no longer the active batches, which is the drill's
+established precedent rather than a new idea. Without that half, the link is a promise the
+system cannot keep.
+
+### General chat
+Deterministic templates, extending the existing `smalltalk-guard`. The model is never asked for
+prose, so "never fabricates a number" holds structurally rather than by instruction.
 
 ### The surfaces
 Both from `docs/design/3F-Financial-MIS`: the docked panel (eyebrow, "Ask about this report.
@@ -197,11 +266,15 @@ Ask page it opens. Saved views and pins follow the prototype's Explore surface a
 ## Verify Plan
 - **Backend unit** — route registration and the allow-list; the governed grant refusing an
   ungranted user; the response matrix's five branches; the out-of-catalog refusal; the
-  view-in-report field present with batch ids and absent-with-a-reason; the Bedrock input
-  boundary asserted on the provider's arguments.
-- **Backend DB-backed** (gated, **D-0008**) — the migration applying to a database holding only
-  `0000_auth_audit.sql`; a saved selection re-running under a *revoked* grant producing a refusal
-  rather than a cached figure.
+  view-in-report field present with batch ids and absent-with-a-reason; the statement route
+  refusing a stale pinned batch with its typed outcome; pins creating and listing with **no**
+  `ResultTable` in the payload; the fail-closed audit on the denied and unsupported branches; and
+  the Bedrock input boundary asserted on the provider's arguments — permitting dimension values,
+  rejecting amounts and rows.
+- **Backend DB-backed** (gated, **D-0008**) — the scoped migration applying to a database holding
+  only `0000_auth_audit.sql`, creating exactly `saved_queries` and `dashboard_pins` and leaving
+  the other five declared tables absent; a saved selection re-running under a *revoked* grant
+  producing a refusal rather than a cached figure.
 - **Audit** — a failing audit insert aborts the read; denials and unsupported requests are
   recorded.
 - **Frontend unit** — both surfaces render an answer with its verified badge and provenance; the
@@ -210,41 +283,55 @@ Ask page it opens. Saved views and pins follow the prototype's Explore surface a
 - **Functional check** (`user_facing` tasks) — live against this worktree's servers with Bedrock
   configured: ask a real question of the July statement and confirm the answer matches the report,
   follow "view in report" and confirm it lands on the same figures, save and re-open, pin and
-  re-open.
+  re-open. If `BEDROCK_MODEL_ID` is unavailable at check time, that is a **blocked** functional
+  check to be reported as such — never one quietly passed against the mock provider, which can
+  only ever return a clarification.
 - Every automated artifact records the **executed count and testcase name**, never the exit code
   (D-0024, D-0031).
 
 ## Surface Impact
-- **New:** module files for chat, saved and pins; one Drizzle migration; the view-in-report
-  contract field; the docked Ask panel, the standalone Ask page, and the saved/pins surfaces in
-  `frontend/`.
-- **Changed:** `app.module.ts` (three imports), `app.routes.test.ts` (the allow-list),
-  `backend/src/db/migrate.ts` only if grant seeding is needed for a new action, and
-  `frontend/app/globals.css`.
-- **Unchanged:** the semantic layer, the statement and drill paths, the warehouse schema, and
-  every governed measure. The assistant reads what the report reads.
+| surface | classification | why |
+|---|---|---|
+| `POST /api/chat`, `/api/chat/stream` | **New** (route registration) | vendored controller exists but is unreachable; registering it is what makes the assistant real |
+| `POST /api/saved`, `/api/pins` | **New** (route registration) | same, for exploration |
+| `saved_queries`, `dashboard_pins` tables | **New** (migration) | declared in `schema.ts`, absent from the database |
+| view-in-report field on `AskResponse` | **New** (contract) | nothing today carries an answer back to a statement |
+| `POST /api/mis/statement` | **Changed** (request + outcome) | gains pinned batch ids, their validation, and a typed refreshed-data refusal; without it the link cannot keep its promise |
+| `PinsService` create/list, pin refresh routes | **Changed** (behaviour removed) | persisting and returning a `ResultTable` violates decision 0028 |
+| `ChatService` audit boundary | **Changed** | the fail-closed record must cover denied and unsupported branches, not only the final execution |
+| `app.module.ts`, `app.routes.test.ts` | **Changed** | three module imports and the strict allow-list that is the only proof a route exists |
+| `backend/src/db/migrate.ts` | **Changed** *if* a new governed action is seeded | the assistant may need its own grant alongside `report` |
+| Docked Ask panel, standalone Ask page, Explore, pinned reports | **New** (UI) | none of these surfaces exist in `frontend/` today |
+| `frontend/app/globals.css` | **Changed** | the single stylesheet every surface uses |
+| Semantic layer, warehouse schema, governed measures, drill path | **Unchanged** | the assistant reads exactly what the report reads |
+| `conversations`, `conversation_turns`, `pin_snapshots` | **Unchanged (deliberately absent)** | durable history deferred and snapshots forbidden; the declaration-versus-database gap is named, not silently closed |
+| Docs | **Changed** | decision 0027 amended for the dimension-values boundary; the spec's boundary sentence amended to match |
+| Tests | **New** | provider-input assertion, the five response-matrix branches, the stale-link refusal, the revoked-grant refusal, migration-applies-clean |
+| Ops | **Changed** | `LLM_PROVIDER`, `AWS_REGION` and `BEDROCK_MODEL_ID` become required deployment inputs; without the model id the assistant cannot answer at all |
 
 ## Task Decomposition
-Five bounded tasks, sequential. No task spans backend and frontend — `WORKFLOW.md` forbids it,
+Four bounded tasks, sequential. No task spans backend and frontend — `WORKFLOW.md` forbids it,
 which is why exploration is two tasks rather than one.
-1. **assistant-persistence** (backend, `user_facing: false`) — the migration for the five
-   declared-but-absent tables, applied and proven against a database holding only the auth/audit
-   migration.
-2. **assistant-governed-ask** (backend, `user_facing: false`) — register and govern chat, wire
-   Bedrock with its boundary enforced, the response matrix, the out-of-catalog refusal, and the
-   view-in-report contract field.
-3. **assistant-surfaces** (frontend, `user_facing: true`) — the docked Ask panel and the
-   standalone Ask page from the prototype: chips, verified badge, provenance disclosure, view in
-   report.
-4. **assistant-exploration-api** (backend, `user_facing: false`) — the saved-selection and pin
-   routes, storing selections only and re-authorizing on every open, with a revoked grant
-   producing a refusal rather than a cached figure.
-5. **assistant-exploration-view** (frontend, `user_facing: true`) — the Explore / saved-views
-   surface and the dashboard's pinned-reports list, opening by re-running.
+1. **assistant-governed-ask** (backend, `user_facing: false`) — register and govern the chat
+   module, wire Bedrock with its input boundary enforced by test, implement the response matrix
+   and the out-of-catalog refusal, move the fail-closed audit to cover every branch, and add the
+   view-in-report field **with its statement-side counterpart**: pinned batch ids on the
+   statement request, their validation, and the typed refreshed-data refusal.
+2. **assistant-ask-surfaces** (frontend, `user_facing: true`) — the docked Ask panel and the
+   standalone Ask page from the prototype: suggested chips, the verified badge, provenance
+   disclosure, and the view-in-report link including its stale and absent states.
+3. **assistant-exploration-api** (backend, `user_facing: false`) — the scoped migration creating
+   `saved_queries` and `dashboard_pins`; the saved and pin routes storing selections only and
+   re-authorizing on every open; and the **removal** of the vendored snapshot-on-create and
+   snapshot-on-list behaviour together with the refresh routes.
+4. **assistant-exploration-view** (frontend, `user_facing: true`) — the Explore / saved-views
+   surface and the dashboard's pinned-reports list, opening by re-running rather than replaying.
 
-**Why five.** The migration is the hard dependency everything else needs and is provable on its
-own. Registration-and-governance is where the security load sits and deserves its own review.
-The two Ask surfaces share a payload and a design language, so they are one task. Exploration
-splits in two only because `WORKFLOW.md` forbids a task spanning backend and frontend — and it
-is last because it is the part most likely to be cut if the PoC deadline bites, which is an
-argument for sequencing it late, not for skipping it.
+**Why the order changed from an earlier draft.** The migration is no longer a task of its own,
+and no longer first. Once durable history was deferred and snapshots forbidden, the only tables
+left are `saved_queries` and `dashboard_pins` — both used solely by exploration — so the
+migration belongs *with* exploration rather than gating the assistant. Ask now leads because it
+is the story's point and carries its security load, and because a working answer is what makes
+the surfaces reviewable. The two Ask surfaces share a payload and a design language, so they are
+one task. Exploration is last because it is the part most likely to be cut if the PoC deadline
+bites — an argument for sequencing it late, not for skipping it.

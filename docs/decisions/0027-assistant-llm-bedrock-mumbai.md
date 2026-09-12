@@ -27,10 +27,25 @@ readiness, so this decision covers the PoC and names its own revisit trigger.
 The assistant uses **AWS Bedrock in `ap-south-1` (Mumbai)**, keeping question text in-country.
 
 **What may be sent:** the user's question, the prior turns of that conversation, and the
-**governed vocabulary** — domain, measure and dimension names and labels the user is already
-authorized to see. **Warehouse rows never leave the app**: no transaction lines, no measure
-values, no batch contents. The model **selects** from that vocabulary; it never authors SQL and
-never produces a number.
+**governed vocabulary** — domain, measure and dimension names and labels, **and the distinct
+values of those dimensions**, capped by `dimensionEnumMax`. **Warehouse rows, measure values and
+batch contents never leave the app.** The model **selects** from that vocabulary; it never
+authors SQL and never produces a number.
+
+**Amended 2026-09-12, before any code was written.** The first draft of this decision said
+"warehouse rows never leave" and stopped there, which read as a tighter boundary than the code
+actually holds: `chat.service.ts:167` calls `dimensionValuesForAllowedDomains`, which runs
+`SELECT DISTINCT` against the **warehouse gold objects** and serializes the result into the
+Bedrock prompt. Those are not rows and not measure values, but they are warehouse **content** —
+in this project, real plant names, cost-centre names and GL codes. The human was told the
+narrower boundary when accepting this decision and chose, on being corrected, to permit them:
+without a dimension's values the model can pick a dimension but never a value, so any question
+naming a specific plant or cost centre falls to the clarify path and the assistant is
+materially weaker.
+
+So the boundary is stated honestly rather than aspirationally: **3F's plant, cost-centre and GL
+identifiers do reach AWS Bedrock in `ap-south-1`.** What does not is any amount, any transaction
+line, any batch content, and any row of a governed result.
 
 **Retention** is AWS Bedrock's default for the PoC; a contractual retention and NDA position is
 part of the production pilot (0011), not of this story.
@@ -44,6 +59,9 @@ part of the production pilot (0011), not of this story.
   aspirational.
 - Question text is user-authored and may contain anything the user types, including figures they
   paste. That is a residual risk of any assistant and is named rather than solved here.
+- The permitted-vocabulary boundary is **enforceable by test**, and must be: a test asserts what
+  the provider is called with, so a later change that starts passing measure values or result
+  rows fails rather than leaks. A boundary that is only written down is not a control.
 - A region change, a second region, or a non-AWS model is a new decision. Revisit when the
   production pilot (0011) sets a contractual retention and residency position, when 3F states a
   residency requirement of its own, or when the chosen model is unavailable in `ap-south-1`.

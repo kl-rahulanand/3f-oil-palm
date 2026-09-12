@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft drill-down.md
+# Cold-read grill — gate: plan — plan draft assistant.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,18 +431,22 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: The spec promises a '2-level drill' (group → sub-lines → transactions), but the statement we shipped mirrors the workbook's outline at ARBITRARY depth — Admin Expenses is three levels deep. So clicking an Actual at the top of Admin has two levels below it, not one. What should clicking an aggregate Actual do?
-  A: Any aggregate opens its leaf sub-lines (Recommended)
-- Q: The statement's acceptance criterion is that line items foot EXACTLY to the clicked Actual. But if someone re-uploads the July actuals while a statement is on screen, the drill would read the newly active batch and no longer foot. What should the drill read?
-  A: Pin to the statement's batch (Recommended)
-- Q: The statement spec says a bundled transactions sheet arrives 'with the drill-down capability', but the drill-down spec itself describes no export at all. Should this story include exporting transactions to Excel?
-  A: No — keep this story UI-only (Recommended)
+- Q: The confirmed spec says the assistant is "Included in the first PoC release". Your BRIEF calls the chatbot "sequenced as a fast-follow" and accepted decision **0002** says "the chatbot remain later phases". Those cannot all be true, and D-0032 already flags the BRIEF as drifted. A planner cannot size this story until you settle it.
+  A: Assistant ships in the PoC (Recommended)
+- Q: If the assistant ships with natural language: the only implemented provider is **Bedrock** (`bedrock.provider.ts`), and `MockLlmProvider` always returns "clarify" — it never selects, so it cannot answer a single question. Using a real model means the user's typed question, and conversation context, leave this machine. The spec parks LLM and data residency as "OPEN — decide later", and decision 0011 defers deployment readiness.
+  A: Bedrock, and I'll name the region (Recommended)
+- Q: The spec uses "saved queries", "saved report" and "pinned dashboards" interchangeably. The vendored contract already distinguishes a saved *selection* from a *snapshot* (`PinSnapshot` even carries an `access_revoked` status), so the code is more decided than the spec. These differ materially for confidentiality.
+  A: Selections only, personal, re-run under current RBAC (Recommended)
+- Q: The Bedrock region to record in the decision. `config.ts:180` already defaults `AWS_REGION` to **ap-south-1** (Mumbai), which keeps the question text in-country for an Indian client. `BEDROCK_MODEL_ID` has no default, so it must be set either way.
+  A: ap-south-1, Mumbai (Recommended)
+- Q: Closing the assistant requirements grill. Ten findings. Your three calls: the assistant ships in the PoC (I'll mint a decision superseding that clause of 0002 and amend the drifted BRIEF, closing D-0032); Bedrock as the provider; saves store selections only, personal, re-run under current RBAC. The seven I'm settling from the repo: the bounded data vocabulary is exactly what `semanticLayer.ts` registers (governed-financial + mis-statement) over the proven DUB slice, with out-of-catalog questions refused rather than answered zero; "no fabricated numbers" becomes falsifiable — every numeric character on screen, including prose and chart labels, is rendered from the deterministic result; the "view in report" deep link carries the selection *and* the answer's batch provenance, with a stated fallback when a question can't be represented as a statement; RBAC/audit inherit 0016's all-or-nothing with re-authorization on every ask, re-run and pin refresh, and a fail-closed audit as the chat path already does; the acceptance criteria are extended to cover every promised surface; a response matrix settles data / definition / ambiguous / causal / off-topic precedence; and the spec will state plainly that the vendored chat, saved and pin routes are **not registered** — `AppModule` imports none of them and the applied migration is auth/audit only — so this story owns restoring them. Any remaining gap?
+  A: No gaps — amend and record (Recommended)
 
-## The artifact under interrogation (plan draft drill-down.md)
+## The artifact under interrogation (plan draft assistant.md)
 
 ---
-story: drill-down
-title: Actuals drill-down to transactions
+story: assistant
+title: Assistant + exploration
 decisions_reviewed:
   - 0001-poc-engagement-scope
   - 0002-phase1-financial-mis
@@ -469,273 +473,227 @@ decisions_reviewed:
   - 0023-mis-statement-drift-reports-not-blocks
   - 0024-drill-down-aggregate-client-projection
   - 0025-drill-down-pinned-batch-raw-read
+  - 0026-assistant-ships-in-the-poc
+  - 0027-assistant-llm-bedrock-mumbai
+  - 0028-saved-selections-not-snapshots
 ---
 
-# Actuals drill-down to transactions
+# Assistant + exploration
 
 ## Problem
-`mis-statement` ships the Financial MIS as a hierarchy of budget components with derived
-subtotals and a grand total. Srihari can now read the number. He still cannot answer the
-question that motivated the whole engagement — *how was this number built?* — because every
-Actual on that screen is an aggregate over transactions the screen never shows.
+Six stories in, 3F can read the Financial MIS and trace any Actual to the transactions behind
+it. What they still cannot do is **ask**. The last roadmap story adds the conversational and
+exploration layer over the same governed measures — and closes the PoC.
 
-This story makes Actuals interactive: click a group and see the leaves that make it up,
-click a leaf and see the SAP transaction lines behind it, footing to the paise.
+Reading the system for this plan moved the problem twice, and both times away from "build an
+assistant" toward "make the one we already have reachable, and give it somewhere to write."
 
-Reading the system for this plan moved the crux twice, and neither place is where the spec
-implied it would be.
+**The assistant is vendored, complete-looking, and entirely unreachable.** `backend/src/chat/`
+is 3,758 lines across eighteen files — `ChatService.ask()` with smalltalk classification,
+ambiguity and clarify handling, a reconciliation guard, verified-selection checks, SSE
+streaming, provenance assembly and a fail-closed audit write inside `beforeExecute`. Its
+collaborators all exist: `ConversationsService`, `ReportsService`, `HelpService`,
+`DimensionValuesService`. And **none of it is wired in**: `backend/src/app.module.ts` imports
+`CoreModule`, `HealthModule`, `IngestModule`, `MisSelectionModule` and `MisModule` — not chat,
+not saved, not pins. The registered-route allow-list in `backend/src/app.routes.test.ts` lists
+fourteen routes and contains no `/api/chat`, `/api/saved` or `/api/pins`. This story's first job
+is registration and governance, not authorship.
 
-**The governed relation cannot be pinned to a batch.** The grill settled that a drill must
-read the *exact* actual-batch ids the displayed statement was built from — otherwise a
-re-upload between render and click silently changes the answer under the user's finger. But
-the statement's Actual comes from the `actual_by_key_month` view
-(`backend/src/warehouse/warehouse-schema.ts:154`):
+**The persistence it needs does not exist.** `backend/src/db/schema.ts` declares `conversations`,
+`conversation_turns`, `saved_queries`, `dashboard_pins` and `pin_snapshots`. `backend/drizzle/`
+contains exactly one migration, `0000_auth_audit.sql`, which creates `users`, `roles`,
+`user_roles`, `role_perms`, `user_scope`, `sessions`, `otp_codes`, `refresh_tokens` and
+`audit_events` — and `migrate.ts` runs that folder. So those five tables are **declared in
+Drizzle and absent from the database**. Registering the chat module without a migration produces
+an assistant that fails on its first durable turn. That is the single most load-bearing fact in
+this plan, and it is invisible from the schema file alone.
 
-```sql
-SELECT plant, cost_center, gl_code, month, SUM(debit - credit)::numeric(18,2) AS actual_net
-FROM sap_transaction AS txn
-INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
-WHERE batch.source_kind = 'actuals' AND batch.is_active
-GROUP BY ...
-```
+**A third thing, smaller but fatal to a demo:** `MockLlmProvider.select()` always returns
+`kind: "clarify"`. It never selects. Without `LLM_PROVIDER=bedrock` and a set `BEDROCK_MODEL_ID`
+the assistant cannot answer a single question — it can only ask one back. Decision **0027**
+settles the provider and region; the model id remains a deployment input with no default.
 
-There is no batch-id parameter. The view *is* "whatever is active now", and
-`ingest_batch_active_source_period_unique` guarantees exactly one active actuals batch per
-period — so a re-upload flips the whole view with no seam to hold on to. A pinned drill
-therefore cannot be a lower-grain read of the same relation; it has to read `sap_transaction`
-with an explicit `batch_id IN (…)`. That is not a workaround, it is what makes the required
-"the batch was replaced" notice *possible*: pinned ids versus currently-active ids for the
-same months is a comparison only the raw path can make.
+What the vendored code **does** already give us is most of the answer contract. `AskResponse`
+carries `selection`, `result`, `totals`, `chartType`, `availableChartTypes`, `availableFields`,
+`provenance`, `appliedTimeWindow`, `appliedFilters`, `chips` and `clarify`; `Provenance` carries
+`verified`, the measure definitions, `readback`, `dataAsOf`, `sql` and — since `governed-joins` —
+`activeBatchIds`. The governed vocabulary is narrow and real: `semanticLayer.ts` registers
+exactly two domains, `governed-financial` and `mis-statement`.
 
-**Footing is a predicate problem, not an arithmetic one.** `sap_transaction.debit` and
-`.credit` are `numeric(18,2)` (`warehouse-schema.ts:67-68`), so the view's `::numeric(18,2)`
-cast is a no-op: the statement's paise *are* these rows' paise, summed. The drill and the
-statement can only disagree by reading a **different set of rows** — a different batch, a
-different triple set, a different month range. So "foots in exact paise" is testable as an
-identity between two predicates, and the tests should assert equality, never a tolerance.
-
-**Most of the drill does not need the server at all.** The grill settled that a non-leaf
-opens *its descendant leaves*, not transactions. `MisStatementNode` already carries `sNo`,
-`budgetComponent`, `glCode` and `children`; each `MisStatementMeasureBlock` carries `budget`,
-`actual` and `percentage`; and `FixedScaleMoney` is a fixed two-decimal string, so summing
-descendants in exact paise is decidable on the payload the browser already holds. The
-approved prototype agrees — its L1 panel is *S.No · Sub-line · GL code · Budget · Actual · %*
-plus a Total row, which is precisely a flatten of the clicked node. One click crosses the
-network in this story: **leaf → transactions** (decision **0024**).
-
-That matters for the security load. The leaf step is the only place raw rows are exposed —
-the documented exception to the aggregate-only / k-anonymity rules the governed layer
-(`backend/src/chat/suppression.ts`) enforces everywhere else — so it is the only place that
-needs the RBAC re-check and the audit record, and it gets all of the review attention.
-
-**And it has no audit to inherit.** `AuditService.writeRequestEvent` — the fail-closed
-writer, documented "if the request event cannot be written, the query MUST NOT execute" —
-has exactly one caller in the repo: `backend/src/chat/chat.service.ts:317`. `POST
-api/mis/statement` writes nothing. The drill cannot point at the statement's audit; it must
-establish the pattern. The statement's own gap is recorded as **D-0036**, not widened into
-this story.
+**The one output-side gap is "view in report".** `AskReportGrounding { reportId, timeWindow }`
+grounds a question *in* a report. Nothing carries an answer *back* to a statement: the MIS
+statement needs Department, Function, Plant and period, and the spec settled that the link must
+also preserve the answer's batch provenance so the statement it opens is the one the assistant
+was talking about. That field does not exist and this story adds it.
 
 ## Scope / Non-goals
 
 **In scope**
-- One new backend route returning the transaction lines behind a **leaf**, pinned to the
-  statement's actual-batch ids, server-paginated, with an exact full-result footer.
-- A pre-query, **fail-closed** audit record for every drill.
-- The drill panel from the approved prototype: scrim, breadcrumb, title, total + meta, sort
-  chips, close, and both body states (leaf list / transactions).
-- The Actual-only affordance on the statement: every Actual cell in the tree **and** in the
-  grand-total footer is activatable; Budget, Roll-over and % are inert.
-- The batch-replaced notice.
+- Registering and governing the vendored chat, saved and pins modules, with their routes added to
+  the strict allow-list that is the only thing proving a route exists.
+- The **migration** creating the five declared-but-absent tables.
+- Bedrock wired per decision **0027**, with the boundary enforced: the question, prior turns and
+  governed vocabulary may leave; **warehouse rows never do**.
+- The **docked Ask panel** on the report and the **standalone Ask page**, from the approved
+  prototype, with suggested chips, the verified badge, provenance disclosure and **view in
+  report**.
+- **Saved selections** and **personal pins** per decision **0028**, re-authorizing on every open.
+- The response matrix: data / definition / ambiguous / causal-declined / general chat.
 
 **Non-goals**
-- **Excel export of transactions** — the statement spec's bundled sheet is deferred as
-  **D-0035**; this story is UI-only, as the grill settled.
-- Drilling Budget, Roll-over or % — inert by acceptance criterion, not by omission.
-- Any write path, and any drill below the transaction line.
-- Auditing the statement and export routes (**D-0036**).
-- Any change to `actual_by_key_month`, to the statement projection, to `MisStatementNode`, or
-  to the k-anon suppression used by the aggregate paths.
-- Any schema migration: `sap_transaction` and `audit_events` already carry everything needed.
+- **Answer snapshots and shareable pins** (decision **0028**) — `PinSnapshot` stays in the
+  contract unused rather than deleted.
+- Any write-back, any SQL authored by the model, any number produced by the model.
+- Causal "why" answers — declined by the response matrix, not attempted.
+- Widening the governed vocabulary beyond the two registered domains, or beyond the proven
+  Agriculture / Nursery / DUB slice.
+- A contractual retention or NDA position for model inputs — that rides with the production
+  pilot (decision **0011**).
+- Rewriting the BRIEF's Smart Palm / Yield / OER framing — the timing half of **D-0032** is
+  closed by decision 0026; that half stays open.
 
 ## Acceptance Criteria
-1. **Leaf foots in exact paise.** For a leaf line on the July statement, the panel's footer
-   `Value` total equals that leaf's `actual` `FixedScaleMoney` string exactly — compared as
-   paise, never as the display-rounded rupee.
-2. **Derived group foots.** Opening a non-leaf lists **all** descendant leaves (not just
-   immediate children) and its Total row equals the clicked node's `actual` exactly.
-   Demonstrated at a three-level node (`9 Admin Expenses` → `9.01 Vehicle Maintenance` →
-   leaf), where "one level per click" would have been wrong.
-3. **Grand Total behaves the same way** — it opens the flattened leaf list, and its total
-   equals the statement's grand total.
-4. **FY-YTD drill spans batches.** A leaf drilled on the FY 26-27 YTD block foots across
-   several monthly actuals batches, and the panel names each contributing batch.
-5. **`unmapped-GL` drills.** The bucket line (decision **0018**) opens its transactions and
-   foots, like any other leaf.
-6. **Sort and tie-break are deterministic.** Default order is `Value` ↓ then `Month` ↓, then
-   `posting_date` ↓, `txn_no`, `line_id`; requesting the same page twice returns the same
-   rows in the same order.
-7. **Budget, Roll-over and % do nothing on click** — no handler, no cursor affordance, no
-   focusable control.
-8. **Scope is enforced and nothing leaks.** A user without the target plant in scope is
-   refused, and the refusal body carries **no** transaction rows, counts or totals. A user
-   without the `mis-statement` domain grant or the `report` action is refused identically.
-9. **Audit is pre-query and fail-closed.** Each drill writes an `audit_events` row naming the
-   actor, the predicate (leaf, triples, month range) and the pinned batch ids **before** any
-   warehouse read; with the audit insert failing, the endpoint errors and **no** warehouse
-   query is issued.
-10. **Re-upload after display.** With the statement on screen and its period re-uploaded, the
-    drill still foots to the displayed number *and* states that the batch was replaced.
-11. **Pagination is server-side and the footer is not.** With a result larger than one page,
-    the response carries the total matching count and totals over **all** matches; the footer
-    on screen never equals a page subtotal.
+1. **The routes exist and are governed.** `/api/chat`, `/api/chat/stream`, `/api/saved` and
+   `/api/pins` are registered, appear in `app.routes.test.ts`'s allow-list, and sit behind
+   `AuthGuard`, the global `CsrfGuard` and the governed grant — a user without it is refused.
+2. **The tables exist.** A migration creates `conversations`, `conversation_turns`,
+   `saved_queries`, `dashboard_pins` and `pin_snapshots`, and `db:migrate` applies cleanly on a
+   database that has only `0000_auth_audit.sql`.
+3. **A data question is answered from the governed measures**, with `provenance.verified` true,
+   and every visible numeric character — prose, labels, chart axes, annotations — rendered from
+   the deterministic result. The model emits no figure.
+4. **Out-of-catalog questions are refused as unsupported** and say so; they are never answered
+   with a zero, which decision **0018** established means something different.
+5. **The response matrix holds** in precedence order: data question answered with provenance;
+   definition answered from the semantic layer's labels; ambiguous gets one clarifying question;
+   causal "why" declined and redirected; general chat answered naturally, claiming nothing about
+   3F's data.
+6. **View in report** carries the selection's Department, Function, Plant, period **and** the
+   answer's `activeBatchIds`, so the statement it opens is the one the answer came from — and is
+   **absent with a reason** when a question has no statement representation.
+7. **Both surfaces work**: the docked panel beside the report and the standalone Ask page, with
+   suggested chips, the verified badge and provenance disclosure, per the approved prototype.
+8. **A saved selection re-runs under the current user's RBAC**, and a **pin opens by re-running**;
+   a revoked grant produces a refusal, never a cached figure. Nothing is stored that the user
+   could not re-derive by asking again.
+9. **Authorization and audit are per-request**: every ask, every saved re-run and every pin open
+   re-authorizes and writes its audit record **before** the read, failing closed; denials and
+   unsupported requests are audited too.
+10. **The Bedrock boundary is enforced and testable**: the provider receives the question, the
+    prior turns and the governed vocabulary, and **no warehouse row, measure value or batch
+    content** — proven by asserting the provider's input, not by inspection.
 
 ## Technical Approach
 
-### The predicate, once
-Everything the drill does is one predicate, derived **server-side** on every request:
+### Registration, not authorship
+`AppModule` gains `ChatModule`, `SavedModule` and `PinsModule` (creating the module files the
+vendored controllers lack), the routes join the allow-list, and the governed grant gates them the
+way `RequireAction("report")` gates the statement. The vendored services are used as they are;
+where they need to change it is to enforce this story's boundary, not to rewrite their behaviour.
 
-| term | source | never from |
-|---|---|---|
-| leaf key | `nodeKey` → outline snapshot for the budget period | the client's idea of the leaf |
-| `(plant, cost centre, GL)` triples | `SelectionResolverService.resolve(request).leafTargets` filtered to that leaf (`target.kind === "leaf"` and matching `leafKey`; `kind === "bucket"` for `unmapped-GL`) | the client |
-| month range | the block key re-run through the statement's own `blockDefinitions` | the client's dates |
-| plant scope | `user.scope` where `attribute === "plant"` | the client |
-| pinned batch ids | the request, **validated** to be actuals batches whose period falls in range | — |
+### The migration
+One Drizzle migration for the five declared tables, generated from `schema.ts` so the declaration
+and the database stop disagreeing. It must apply on a database whose only prior migration is
+`0000_auth_audit.sql`, which is what every existing environment has.
 
-Only the last row comes from the browser, and it can only **narrow** the read. That is what
-makes accepting it safe.
+### The Bedrock boundary
+`LLM_PROVIDER=bedrock`, `AWS_REGION=ap-south-1`, `BEDROCK_MODEL_ID` set. The enforceable part is
+what `LlmSelectionInput` carries: the question, prior turns and the allowed domains' vocabulary.
+The test asserts the provider's **input**, so a future change that starts passing result rows
+fails rather than leaks.
 
-### Request and response
-The request extends the shape the export control already round-trips successfully
-(`department`, `function`, `plant`, `period` — see `use-mis-statement.ts`) with `nodeKey`,
-the measure `block` key (`"selected" | "fy26-27-ytd"`), the pinned `actualBatchIds`, and
-`page`. **No change to `MisStatementNode` or to the statement response is required** — the
-statement already puts `nodeKey`, `scope` and `provenance.activeBatchIds` on the wire.
+### View in report
+A new optional field on the success response carrying the four statement selectors plus the
+answer's `activeBatchIds`, populated only when the selection maps to a statement, and absent —
+with a reason — otherwise. The client links from it; it never reconstructs a selection itself.
 
-The response carries the page of lines (`month`, `debit`, `credit`, `value`, `reference`,
-`memo`, `postingDate`), the **total matching count**, exact full-result totals as
-`FixedScaleMoney`, the batch ids actually read, and a batch-replaced flag. Money stays a
-fixed-scale string end to end — the statement's `FixedScaleMoney` discipline — so no value
-ever passes through a JS `number`.
-
-Column semantics are fixed by the grill: `Value = Debit − Credit`, `reference` is SAP
-**Reference 1**, `memo` is **LineMemo** — which is exactly what `sap-ingestion` already wrote
-into `sap_transaction.reference` and `.memo`.
-
-### The read path
-A dedicated repository beside the governed executor (decision **0025**), following the house
-precedent set by `StatementOutlineRepository` — string SQL over `Warehouse.execute` — but
-reusing the governed guards rather than reimplementing them: `SelectionExecutor.authorize`
-plus the statement's plant-scope check, then `SqlValidator.validate` (object allowlist, no
-`SELECT *`, mandatory bounded `LIMIT` ≤ `maxRows`), then `warehouse.explain`, then execution
-under the configured timeout.
-
-Two statements per drill, under one audit record: the page (`ORDER BY (debit - credit) DESC,
-month DESC, posting_date DESC, txn_no, line_id` with `LIMIT`/`OFFSET`) and the footer
-(`COUNT(*)` and the three `SUM`s, `LIMIT 1`). Both read `sap_transaction` joined to
-`ingest_batch`, under the identical predicate, so the footer cannot drift from the page.
-
-The composite index `idx_sap_transaction_month_plant_cost_center_gl_code` covers the
-selective part of the predicate.
-
-### The audit record
-Written inside the same "before execute" discipline chat uses: build the SQL, write the
-record, and let a throw abort before the warehouse is touched. `audit_events` already has the
-columns — `question` for the human-readable drill description, `selection` (jsonb) for the
-predicate and pinned ids, `generated_sql`, `objects_touched`, and `session_id` from the
-existing `@SessionId()` decorator (`backend/src/auth/auth.guard.ts:100`). **No migration.**
-
-### The panel
-The approved prototype's drill overlay, rendered from `docs/design/3F-Financial-MIS`: scrim,
-eyebrow "Drill-down", breadcrumb (group › sub-line), title, total + meta line, "Sorted"
-chips, and a close control. Body is one of two states — the client-side leaf list (decision
-**0024**), whose Total row foots by construction; or the transactions table with its Total
-row and the prototype's "Matches the Actual in the report" note. The prototype's guidance
-copy ("Click any Actual to see its transactions. Budget is not drillable.") is kept.
-
-Each Actual cell becomes a real `<button>` inside its `gridcell` so the `role="treegrid"`
-table keeps a valid structure and the affordance is keyboard-reachable; Escape closes, focus
-returns to the cell that opened the panel.
+### The surfaces
+Both from `docs/design/3F-Financial-MIS`: the docked panel (eyebrow, "Ask about this report.
+Answers are verified against the source.", suggested chips, the `✓ Verified` badge, the
+collapsible provenance block, the "View in report" link and "⤢ Open in Ask") and the standalone
+Ask page it opens. Saved views and pins follow the prototype's Explore surface and the dashboard's
+"Pinned reports" list.
 
 ## Decisions
-- **0024 — Drill Down Aggregate Client Projection** (proposed with this plan): the aggregate
-  drill is a client-side projection of the statement payload; only the leaf drill crosses the
-  network. Rationale: the payload already carries every field the prototype's leaf list
-  shows, in exact-paise strings.
-- **0025 — Drill Down Pinned Batch Raw Read** (proposed with this plan): the transaction
-  drill reads `sap_transaction` directly under a pinned `batch_id` predicate, beside the
-  governed executor but reusing its authorization, validator, explain and timeout, with a
-  pre-query fail-closed audit record. Rationale: `actual_by_key_month` takes no batch
-  parameter and the governed executor is measure-shaped.
-- Inherited and load-bearing here: **0017** (triples filter the Actual side before roll-up),
-  **0018** (`unmapped-GL` is explicit and visible — so it drills), **0020** (Actuals attach at
-  the GL leaf; parents are derived — so an aggregate has descendant leaves to flatten),
-  **0021** (the outline snapshot is what maps `nodeKey` → leaf), **0022** (the statement's own
-  projection, whose numbers the drill must foot to), **0019** (unversioned route, raw
-  response, direct module imports).
+- **0026** — the assistant ships in the PoC, superseding only 0002's chatbot clause.
+- **0027** — Bedrock in `ap-south-1`; question, prior turns and governed vocabulary may leave the
+  app, warehouse rows never do.
+- **0028** — saves store the selection, never the answer; pins are personal and re-authorize.
+- Inherited and load-bearing: **0016** (all-or-nothing governed access), **0018** (a zero is not
+  an absence — hence the out-of-catalog refusal), **0022** (the statement projection the answers
+  and the report link agree with), **0019** (house style for the routes), **0011** (retention and
+  residency contracts ride with the pilot), **0012** (the vendored API's constitution deviation
+  still covers these controllers).
 
 ## Risks
-- **Pinned ids that no longer exist.** A batch id can be deleted or deactivated between
-  render and click. The drill must distinguish "replaced" from "gone" and still refuse to
-  substitute the active batch silently. Covered by criterion 10 and tested both ways.
-- **Trusting the client's node key.** If `nodeKey` were taken at face value, a crafted value
-  could widen the triple set. Mitigated by re-deriving the leaf and its triples from the
-  outline snapshot and the resolver on every request, and by rejecting a `nodeKey` that is
-  not a leaf in the current snapshot.
-- **`SqlValidator` is a parser gate.** It astifies the SQL with `node-sql-parser`; a
-  construct it cannot parse blocks the read rather than allowing it. Keep the drill SQL to
-  the shapes already proven by the statement projection.
-- **Sorting is not indexed.** `ORDER BY (debit - credit) DESC` has no supporting index; the
-  filter is selective enough that this is a sort of a small set, but the plan should be
-  checked with `EXPLAIN` on the real July batch rather than assumed.
-- **Offset pagination.** Stable only because the total order is fully deterministic
-  (criterion 6). If the tie-break were ever relaxed, pages would overlap.
-- **The panel is an overlay on a `treegrid`.** Focus management and the Escape/scrim
-  behaviour are the parts most likely to regress silently; the functional check covers them.
+- **The vendored chat code is large and was written for a different product.** Its smalltalk,
+  ambiguity and reconciliation guards were tuned for Pulse's domains. They may misclassify 3F
+  questions, and the response matrix is the contract they must now satisfy.
+- **A demo cannot run without `BEDROCK_MODEL_ID`.** The mock provider only clarifies. This is a
+  deployment input with no default and no fallback — worth confirming before any client session.
+- **Model quality is not a gate we control.** The plan makes fabrication *structurally*
+  impossible — numbers come only from the governed result — but a poor selection still produces a
+  confidently wrong-looking answer to the right question. The clarify path is the mitigation.
+- **Five new tables on the app database.** The migration is additive, but it is the first schema
+  change to the app DB since platform-base, and it must apply to an environment that has only
+  ever seen `0000_auth_audit.sql`.
+- **Scope.** This is the largest remaining story: two backend module groups, a migration, a
+  provider boundary, and three UI surfaces. The decomposition splits it accordingly.
 
 ## Verify Plan
-- **Backend unit** — predicate derivation (leaf mapping, triple filtering, block → range,
-  batch-id validation and the replaced/gone distinction), and refusal shapes carrying no rows.
-- **Backend DB-backed** (gated host evidence, **D-0008**) against the pinned July batch:
-  exact-paise footing for a leaf, an FY-YTD leaf spanning batches, and `unmapped-GL`;
-  deterministic ordering across repeated page requests; page-vs-footer totals on a result
-  larger than one page.
-- **Audit** — a test that makes the audit insert fail and asserts the warehouse was never
-  queried, plus one asserting the written row's predicate and batch ids.
-- **Frontend unit** — the aggregate flatten sums descendant leaves to the clicked node's
-  `FixedScaleMoney` for a three-level node and for the grand total; Budget/Roll-over/% expose
-  no control; the batch-replaced notice renders.
-- **Functional check** (`user_facing` tasks) — live, against this worktree's servers: open the
-  statement, drill a group, drill a leaf from within it, compare the footer to the statement
-  cell, page a large result, and confirm design parity with the prototype panel.
-- Every automated artifact records the **executed count and the testcase name**, not the exit
-  code (D-0024, D-0031).
+- **Backend unit** — route registration and the allow-list; the governed grant refusing an
+  ungranted user; the response matrix's five branches; the out-of-catalog refusal; the
+  view-in-report field present with batch ids and absent-with-a-reason; the Bedrock input
+  boundary asserted on the provider's arguments.
+- **Backend DB-backed** (gated, **D-0008**) — the migration applying to a database holding only
+  `0000_auth_audit.sql`; a saved selection re-running under a *revoked* grant producing a refusal
+  rather than a cached figure.
+- **Audit** — a failing audit insert aborts the read; denials and unsupported requests are
+  recorded.
+- **Frontend unit** — both surfaces render an answer with its verified badge and provenance; the
+  report link appears only when the response carries one; chips issue asks; saved and pinned items
+  re-run rather than replay.
+- **Functional check** (`user_facing` tasks) — live against this worktree's servers with Bedrock
+  configured: ask a real question of the July statement and confirm the answer matches the report,
+  follow "view in report" and confirm it lands on the same figures, save and re-open, pin and
+  re-open.
+- Every automated artifact records the **executed count and testcase name**, never the exit code
+  (D-0024, D-0031).
 
 ## Surface Impact
-- **New:** one route under `api/mis`, its DTOs beside `mis-statement.dto.ts`, contract types
-  for the drill request/response, a transactions repository in `backend/src/warehouse/`, and
-  the drill panel plus its hook and styles in `frontend/src/features/mis/`.
-- **Changed:** `statement-view.tsx` — Actual cells become activatable and own the panel state.
-- **Unchanged:** the statement response contract, the statement projection, the semantic
-  layer, `actual_by_key_month`, the suppression path, and the database schema. No migration.
+- **New:** module files for chat, saved and pins; one Drizzle migration; the view-in-report
+  contract field; the docked Ask panel, the standalone Ask page, and the saved/pins surfaces in
+  `frontend/`.
+- **Changed:** `app.module.ts` (three imports), `app.routes.test.ts` (the allow-list),
+  `backend/src/db/migrate.ts` only if grant seeding is needed for a new action, and
+  `frontend/app/globals.css`.
+- **Unchanged:** the semantic layer, the statement and drill paths, the warehouse schema, and
+  every governed measure. The assistant reads what the report reads.
 
 ## Task Decomposition
-Three bounded tasks, sequential. No task spans backend and frontend — `WORKFLOW.md` forbids
-it, and only the frontend tasks are `user_facing`.
+Five bounded tasks, sequential. No task spans backend and frontend — `WORKFLOW.md` forbids it,
+which is why exploration is two tasks rather than one.
+1. **assistant-persistence** (backend, `user_facing: false`) — the migration for the five
+   declared-but-absent tables, applied and proven against a database holding only the auth/audit
+   migration.
+2. **assistant-governed-ask** (backend, `user_facing: false`) — register and govern chat, wire
+   Bedrock with its boundary enforced, the response matrix, the out-of-catalog refusal, and the
+   view-in-report contract field.
+3. **assistant-surfaces** (frontend, `user_facing: true`) — the docked Ask panel and the
+   standalone Ask page from the prototype: chips, verified badge, provenance disclosure, view in
+   report.
+4. **assistant-exploration-api** (backend, `user_facing: false`) — the saved-selection and pin
+   routes, storing selections only and re-authorizing on every open, with a revoked grant
+   producing a refusal rather than a cached figure.
+5. **assistant-exploration-view** (frontend, `user_facing: true`) — the Explore / saved-views
+   surface and the dashboard's pinned-reports list, opening by re-running.
 
-1. **drill-transactions-api** (backend, `user_facing: false`) — the pinned, audited,
-   paginated leaf read: predicate derivation, the repository, the route and its DTOs,
-   contract types, and the batch-replaced determination.
-2. **drill-panel** (frontend, `user_facing: true`) — the prototype's overlay and the Actual
-   affordance, with the aggregate state rendered entirely from the statement payload. Needs
-   no network, so it is demonstrable the moment it lands.
-3. **drill-transactions-view** (frontend, `user_facing: true`) — the leaf state: wire the
-   endpoint, the transactions table and its footer, pagination, and the batch-replaced notice.
-
-**Why the frontend is two tasks.** The aggregate state and the leaf state share only the
-panel shell; one is a pure projection of data already on screen, the other is the consumer of
-a new network path with its own failure and pagination states. Splitting them keeps the
-second task's review focused on the part that can actually be wrong.
+**Why five.** The migration is the hard dependency everything else needs and is provable on its
+own. Registration-and-governance is where the security load sits and deserves its own review.
+The two Ask surfaces share a payload and a design language, so they are one task. Exploration
+splits in two only because `WORKFLOW.md` forbids a task spanning backend and frontend — and it
+is last because it is the part most likely to be cut if the PoC deadline bites, which is an
+argument for sequencing it late, not for skipping it.
 
 
 ## What to return
