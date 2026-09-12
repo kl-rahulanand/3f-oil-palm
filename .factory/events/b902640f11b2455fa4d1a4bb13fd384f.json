@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-12T10:55:51+00:00", "story": "assistant", "detail": "S-0004-b9b8: Cache PATH problem, not a missing package. On the host, 'npm install recharts@3.10.1 --offline --dry-run -w @3f/frontend' succeeds and resolves 565 packages from the cache at /Users/caw-dev-m4-5/.npm "}

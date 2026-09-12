@@ -1,0 +1,34 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-ask-surfaces",
+  "score": 10,
+  "summary": "security lens over assistant-ask-surfaces (13 product path(s), e24a8bd..387ed25, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defects are demonstrated by the supplied diff. The new client uses the governed chat route through the existing credentialed, CSRF-protected request path; response content is rendered through React rather than unsafe HTML; report-link fields are URL-encoded and structurally checked before use; no credentials are present; and the diff contains no compatibility wrappers, aliases, or deprecated leftovers.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/(app)/ask/page.tsx",
+    "frontend/app/globals.css",
+    "frontend/package.json",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts",
+    "package-lock.json"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "3dd7cea08ecb71792c10a5f87c52a43fd5945ff4bf707b61aaf5cf68d925fda4",
+  "brief_sha256": "8f7a6577aab1f8418c329a86e388c43ac61604d6ee33b4d7be671315c94b06b6",
+  "branch_diff_digest": "cf110088ef3b3e3b61c0dcb26c2c25a24e2d222c4fc71f163bb4f9f7bf928469",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T12:01:44+00:00",
+  "commit": "387ed25d318387c28162585b41363175df2dad48"
+}

@@ -7,12 +7,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { sessionQueryKey } from "@/src/features/auth/session";
+import { AskProvider } from "@/src/features/assistant/use-ask";
 import { ApiError, api } from "@/src/lib/api";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "MIS Reports", icon: BarChart3, href: "/mis-reports" },
-  { label: "Ask", icon: Bot },
+  { label: "Ask", icon: Bot, href: "/ask" },
   { label: "Explore / Saved", icon: Compass },
   { label: "Admin", icon: Shield },
 ] as const;
@@ -178,7 +179,9 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
             </span>
           </div>
         </header>
-        <main className="app-canvas">{children}</main>
+        <main className="app-canvas">
+          <AskProvider>{children}</AskProvider>
+        </main>
       </div>
     </div>
   );

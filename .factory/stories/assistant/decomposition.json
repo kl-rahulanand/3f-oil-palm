@@ -161,14 +161,142 @@
     {
       "id": "assistant-ask-surfaces",
       "title": "The docked Ask panel and the standalone Ask page",
-      "objective": "Build the next bounded slice when it reaches the frontier: the prototype's two Ask surfaces with suggested chips, the verified badge, provenance disclosure, and the view-in-report link including its stale and absent states. Frontend only.",
+      "objective": "Build the two Ask surfaces the prototype draws: a docked panel beside the MIS report and a standalone Ask page, rendering the governed answer task 1 now serves - its result, chart, verified badge, provenance disclosure and view-in-report link - and rendering every non-success outcome honestly and alone. Frontend only: no contract change, no backend change, and no saved or pinned surface, which is task 4.",
       "user_facing": true,
       "dependencies": [
         "assistant-governed-ask"
       ],
       "acceptance_criteria": [
-        "A question asked from either surface renders its verified answer, provenance and report link, matching the approved prototype."
-      ]
+        "Both surfaces exist and match the approved prototype: a DOCKED Ask panel beside the MIS report and a STANDALONE Ask page. Both render from the SAME component so they cannot drift. 'Ask' becomes a LIVE destination in the app shell - app-shell.tsx:15 renders it today with no href, which contradicts the prototype - so the page is reached from the navigation as well as from the panel's 'Open in Ask'. The active thread is carried in in-memory app state ACROSS that internal navigation, so opening the page expands the conversation rather than discarding it; a direct visit to /ask starts fresh and a reload always starts fresh, so nothing durable is created. Human-decided at the task grill.",
+        "A successful answer renders its title, its result and its chart, and EVERY numeric character on screen comes from the deterministic result - the response's own values, totals and labels - never from prose the client composes. Charts use RECHARTS per decision 0007, which means adding the dependency: it is absent from frontend/package.json today, so that file and the lockfile are in scope. Each chartType the response can carry - kpi, line, bar, pie, table - renders truthfully or not at all; a shape the client cannot draw honestly falls back to the table rather than to a misleading chart. The verified badge renders ONLY when provenance.verified is true, and the provenance block discloses the readback, measures, scope and dataAsOf behind a disclosure control.",
+        "View in report renders from the response's DISCRIMINATED union and never reconstructs a selection: available true gives a link carrying the four selectors and activeBatchIds; available false SHOWS the reason rather than silently omitting the link. Following such a link exercises the STATEMENT side, so it is proven where it lives: frontend/src/lib/api.ts still types runMisStatement as MisStatementRunResponse rather than the MisStatementRouteResponse task 1 introduced, so a refresh-required response would reach StatementView missing the fields it reads. The client type is widened, mis-report-view.tsx branches on the refresh-required outcome and replaces the report with that notice, and the required leaf for it lives in mis-report-view.test.tsx - an ask-panel test cannot prove the statement route parsed the selectors, posted them and rendered the refusal.",
+        "All SEVEN ResponseClass values render honestly and exactly one at a time - and they do NOT share one shape. An INFORMATIONAL answer carries title, definition and suggestedQuestions rather than message (chat.service.ts spreads the lookup and reconcile payloads), so rendering only message would show a blank answer or invite the client to invent one. A CLARIFICATION carries its prompt and options and reads as a question, not an error. The message-bearing failures - blocked_by_policy, not_supported, execution_failed, backend_error - show their honest message and NO result, chart, totals, provenance or report link.",
+        "The client sends only what the contract carries. Prior turns live in in-memory app state and only SUCCESSFUL turns qualify: AskPriorTurn requires a selection (contract/src/api.ts:122) and only a successful answer supplies one, so the hook must never invent a selection for a clarification or an error turn. No conversationId is sent (task 1's route rejects it) and nothing is written to storage that outlives the tab. The required leaf in frontend/src/lib/api.test.ts drives the client directly and asserts the EXACT request body - question and qualifying priorTurns only - rather than merely the absence of conversationId, because a component test mocks the client and proves nothing about the route or the CSRF header.",
+        "The surfaces are proven by vitest leaves covering a rendered success with its verified badge, provenance disclosure and chart fallback; the view-in-report union's two arms; the refresh-required branch in the report view; each non-success class rendering alone with its own shape; a clarification's options being selectable; prior turns carrying only successful turns across the docked-to-page navigation; and the api client's route, CSRF header and exact body. The Suggested row is seeded with prompts drawn from the REGISTERED CATALOG - the governed-financial and mis-statement measures over the proven DUB slice - so a seeded chip is answerable rather than invented phrasing that returns unsupported, and server-supplied suggestedQuestions replace them when they arrive. Human-decided at the task grill. The task is user_facing, so the design skills are loaded, used and attested, and the live check exercises the Success path with BEDROCK_MODEL_ID set."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-aas-c1",
+          "statement": "Both surfaces exist and match the approved prototype: a DOCKED Ask panel beside the MIS report and a STANDALONE Ask page. Both render from the SAME component so they cannot drift. 'Ask' becomes a LIVE destination in the app shell - app-shell.tsx:15 renders it today with no href, which contradicts the prototype - so the page is reached from the navigation as well as from the panel's 'Open in Ask'. The active thread is carried in in-memory app state ACROSS that internal navigation, so opening the page expands the conversation rather than discarding it; a direct visit to /ask starts fresh and a reload always starts fresh, so nothing durable is created. Human-decided at the task grill.",
+          "source": "docs/design/3F-Financial-MIS/3F Financial MIS.dc.html"
+        },
+        {
+          "id": "t-aas-c2",
+          "statement": "A successful answer renders its title, its result and its chart, and EVERY numeric character on screen comes from the deterministic result - the response's own values, totals and labels - never from prose the client composes. Charts use RECHARTS per decision 0007, which means adding the dependency: it is absent from frontend/package.json today, so that file and the lockfile are in scope. Each chartType the response can carry - kpi, line, bar, pie, table - renders truthfully or not at all; a shape the client cannot draw honestly falls back to the table rather than to a misleading chart. The verified badge renders ONLY when provenance.verified is true, and the provenance block discloses the readback, measures, scope and dataAsOf behind a disclosure control.",
+          "source": "contract/src/api.ts"
+        },
+        {
+          "id": "t-aas-c3",
+          "statement": "View in report renders from the response's DISCRIMINATED union and never reconstructs a selection: available true gives a link carrying the four selectors and activeBatchIds; available false SHOWS the reason rather than silently omitting the link. Following such a link exercises the STATEMENT side, so it is proven where it lives: frontend/src/lib/api.ts still types runMisStatement as MisStatementRunResponse rather than the MisStatementRouteResponse task 1 introduced, so a refresh-required response would reach StatementView missing the fields it reads. The client type is widened, mis-report-view.tsx branches on the refresh-required outcome and replaces the report with that notice, and the required leaf for it lives in mis-report-view.test.tsx - an ask-panel test cannot prove the statement route parsed the selectors, posted them and rendered the refusal.",
+          "source": "plans/active/assistant-assistant-exploration.md#view-in-report-on-both-sides"
+        },
+        {
+          "id": "t-aas-c4",
+          "statement": "All SEVEN ResponseClass values render honestly and exactly one at a time - and they do NOT share one shape. An INFORMATIONAL answer carries title, definition and suggestedQuestions rather than message (chat.service.ts spreads the lookup and reconcile payloads), so rendering only message would show a blank answer or invite the client to invent one. A CLARIFICATION carries its prompt and options and reads as a question, not an error. The message-bearing failures - blocked_by_policy, not_supported, execution_failed, backend_error - show their honest message and NO result, chart, totals, provenance or report link.",
+          "source": "contract/src/api.ts"
+        },
+        {
+          "id": "t-aas-c5",
+          "statement": "The client sends only what the contract carries. Prior turns live in in-memory app state and only SUCCESSFUL turns qualify: AskPriorTurn requires a selection (contract/src/api.ts:122) and only a successful answer supplies one, so the hook must never invent a selection for a clarification or an error turn. No conversationId is sent (task 1's route rejects it) and nothing is written to storage that outlives the tab. The required leaf in frontend/src/lib/api.test.ts drives the client directly and asserts the EXACT request body - question and qualifying priorTurns only - rather than merely the absence of conversationId, because a component test mocks the client and proves nothing about the route or the CSRF header.",
+          "source": "docs/decisions/0027-assistant-llm-bedrock-mumbai.md"
+        },
+        {
+          "id": "t-aas-c6",
+          "statement": "The surfaces are proven by vitest leaves covering a rendered success with its verified badge, provenance disclosure and chart fallback; the view-in-report union's two arms; the refresh-required branch in the report view; each non-success class rendering alone with its own shape; a clarification's options being selectable; prior turns carrying only successful turns across the docked-to-page navigation; and the api client's route, CSRF header and exact body. The Suggested row is seeded with prompts drawn from the REGISTERED CATALOG - the governed-financial and mis-statement measures over the proven DUB slice - so a seeded chip is answerable rather than invented phrasing that returns unsupported, and server-supplied suggestedQuestions replace them when they arrive. Human-decided at the task grill. The task is user_facing, so the design skills are loaded, used and attested, and the live check exercises the Success path with BEDROCK_MODEL_ID set.",
+          "source": "plans/active/assistant-assistant-exploration.md#verify-plan"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "a successful answer renders its result with the verified badge the provenance disclosure and no number the response did not carry",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a chart shape the client cannot draw honestly falls back to the table rather than a misleading chart",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "view in report renders the link when available and shows the reason when it is not",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a refresh required statement response replaces the report with its notice instead of rendering an empty statement",
+          "path": "frontend/src/features/mis/mis-report-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "an informational answer renders its definition and suggested questions rather than an empty message",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "each message bearing failure class renders its honest message alone with no result chart provenance or report link",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a clarification renders its options selectably and does not read as an error",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "only successful turns become prior turns and the thread survives opening the ask page but not a reload",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the docked panel and the standalone ask page render from the same component and ask is a live shell destination",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the ask client posts to the governed chat route with the csrf header and a body of question and qualifying prior turns only",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "verify_commands": [
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:frontend",
+        "npm run build:frontend"
+      ],
+      "write_scope": [
+        "frontend/src/features/assistant/ask-panel.tsx",
+        "frontend/src/features/assistant/ask-panel.test.tsx",
+        "frontend/src/features/assistant/use-ask.ts",
+        "frontend/app/(app)/ask/page.tsx",
+        "frontend/app/(app)/mis-reports/page.tsx",
+        "frontend/src/components/shell/app-shell.tsx",
+        "frontend/src/components/shell/app-shell.test.tsx",
+        "frontend/src/features/mis/mis-report-view.tsx",
+        "frontend/src/features/mis/mis-report-view.test.tsx",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/api.test.ts",
+        "frontend/app/globals.css",
+        "frontend/package.json",
+        "package-lock.json"
+      ],
+      "reviewer_focus": [
+        "EVERY NUMERAL MUST COME FROM THE RESPONSE. The entire trust story is that the model never produces a figure. A client that formats, derives, sums or interpolates a number - even a row count phrased in prose - breaks it. Check the rendered output against the payload, not against the component's intent.",
+        "THE VERIFIED BADGE IS NOT DECORATION. It renders only when provenance.verified is true. A badge driven by 'we got a 200' certifies answers nobody checked, which is worse than no badge.",
+        "THE SEVEN CLASSES DO NOT SHARE ONE SHAPE. Informational carries title/definition/suggestedQuestions, NOT message - a renderer keyed on message alone yields a blank informational answer. Clarification carries prompt and options. Only the four failure classes carry message. One state at a time, always.",
+        "viewInReport IS A UNION AND BOTH ARMS ARE VISIBLE. available: false must SHOW its reason. And the client must never rebuild a selection from the answer - it links with what the server gave it.",
+        "THE STALE-LINK PROOF BELONGS IN mis-report-view.test.tsx. api.ts types runMisStatement as MisStatementRunResponse, not the route union task 1 added, so a refresh-required response reaches StatementView missing fields it reads. An ask-panel test cannot prove the statement route parsed the selectors, posted them and rendered the refusal.",
+        "PRIOR TURNS ARE SUCCESSFUL TURNS ONLY. AskPriorTurn requires a selection and only a success supplies one; a hook that invents a selection for a clarification or an error turn sends the model something the user never got. The api leaf must assert the EXACT body, not just the absence of conversationId.",
+        "SEEDED CHIPS MUST BE ANSWERABLE. The human chose 3F-specific prompts; that only works if they are drawn from the registered catalog (governed-financial, mis-statement, the DUB slice). A chip that returns unsupported reads as the product being broken, which is the exact risk of this choice.",
+        "RECHARTS IS A NEW DEPENDENCY (decision 0007). It is absent from frontend/package.json, so the lockfile moves too. A chart the client cannot draw honestly must fall back to the table - never to a chart that misrepresents the shape.",
+        "DESIGN PARITY IS AGAINST docs/design/3F-Financial-MIS, and 'Ask' must become a live shell destination - it is disabled at app-shell.tsx:15 today. Check the EXECUTED COUNT and testcase name in every artifact, never the exit code (D-0031)."
+      ],
+      "review_budget": {
+        "max_changed_files": 14,
+        "max_changed_lines": 2400,
+        "reason": "Two surfaces sharing one component, a renderer handling seven outcome classes that do NOT share a shape, the view-in-report union plus the statement side's refresh-required branch (which drags the api client's return type and the report view with it), a first chart dependency with an honest-fallback rule across five chart types, an in-memory thread that survives internal navigation but not a reload, the shell's Ask destination, the api client method and its own direct test, and the styles for all of it. Ten required leaves, most of them outcome-class cases that exist only here. No contract change and no backend change."
+      }
     },
     {
       "id": "assistant-exploration-api",
@@ -197,5 +325,5 @@
     }
   ],
   "plan_sha256": "b42f23505a02ff4d849e94e042ca5514d3ebff0a4ceb25809c5696ada0e46150",
-  "commit": "99626dfe6fc5f96621bc151fb14d68e72b11adb7"
+  "commit": "c31ae4009589257bbb756c4d42c7a92e425bcdf3"
 }

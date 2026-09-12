@@ -1,12 +1,18 @@
 import type { MisStatementResolvedResponse } from "@3f/contract";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { useReducer } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
 import { MisReportView } from "./mis-report-view";
 
-const mocks = vi.hoisted(() => ({ misOptions: vi.fn(), runMisStatement: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  misOptions: vi.fn(),
+  runMisStatement: vi.fn(),
+  searchParams: new URLSearchParams(),
+}));
 
 vi.mock("@/src/lib/api", () => ({ api: mocks }));
+vi.mock("next/navigation", () => ({ useSearchParams: () => mocks.searchParams }));
 
 const options = {
   departments: ["Agriculture"],
@@ -75,6 +81,7 @@ afterEach(() => {
   cleanup();
   mocks.misOptions.mockReset();
   mocks.runMisStatement.mockReset();
+  mocks.searchParams = new URLSearchParams();
 });
 
 test("Generate posts the existing four selectors to the statement route and renders the statement inline below them", async () => {
@@ -117,9 +124,115 @@ test("a failed statement call surfaces one clear report error and no stale state
   expect(screen.queryByRole("treegrid")).not.toBeInTheDocument();
 });
 
+test("a refresh required statement response replaces the report with its notice instead of rendering an empty statement", async () => {
+  const activeBatchIds = [{ source: "actuals", period: "2026-07-01", batchId: "actuals-july" }];
+  mocks.searchParams = new URLSearchParams({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+    activeBatchIds: JSON.stringify(activeBatchIds),
+  });
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValue({
+    outcome: "refresh-required",
+    notice: "The data was refreshed - ask again",
+  });
+
+  renderWithQuery(<MisReportView />);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("The data was refreshed - ask again");
+  expect(screen.queryByRole("treegrid", { name: "Financial MIS statement" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Select Department, Function and Plant, then Generate")).not.toBeInTheDocument();
+  expect(mocks.runMisStatement).toHaveBeenCalledWith({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+    pinnedBatches: activeBatchIds,
+  });
+});
+
+test("each in-page report link runs with its own pins while edited selections run without link-only pins", async () => {
+  const firstPins = [{ source: "actuals" as const, period: "2026-07-01", batchId: "actuals-first" }];
+  const secondPins = [{ source: "actuals" as const, period: "2026-07-01", batchId: "actuals-second" }];
+  mocks.searchParams = reportParams(firstPins);
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValue(statement);
+
+  renderWithQuery(<NavigationHarness />);
+
+  await waitFor(() =>
+    expect(mocks.runMisStatement).toHaveBeenCalledWith({
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+      pinnedBatches: firstPins,
+    }),
+  );
+  fireEvent.change(await screen.findByLabelText("Department"), { target: { value: "" } });
+  fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Agriculture" } });
+  fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+  await waitFor(() =>
+    expect(mocks.runMisStatement).toHaveBeenLastCalledWith({
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+    }),
+  );
+
+  mocks.searchParams = reportParams(secondPins);
+  fireEvent.click(screen.getByRole("button", { name: "Navigate report link" }));
+  await waitFor(() =>
+    expect(mocks.runMisStatement).toHaveBeenLastCalledWith({
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+      pinnedBatches: secondPins,
+    }),
+  );
+});
+
+test("a malformed pinned-batch report link is refused instead of running an unpinned statement", async () => {
+  mocks.searchParams = reportParams("not-json");
+  mocks.misOptions.mockResolvedValue(options);
+  renderWithQuery(<MisReportView />);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "The report link is invalid. Return to Ask and open it again.",
+  );
+  expect(mocks.runMisStatement).not.toHaveBeenCalled();
+  expect(screen.queryByText("Select Department, Function and Plant, then Generate")).not.toBeInTheDocument();
+});
+
 function chooseSelection() {
   fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Agriculture" } });
   fireEvent.change(screen.getByLabelText("Function"), { target: { value: "Nursery" } });
   fireEvent.change(screen.getByLabelText("Plant"), { target: { value: "DUB" } });
   fireEvent.change(screen.getByLabelText("Period"), { target: { value: "2026-07-01" } });
+}
+
+function reportParams(activeBatchIds: unknown): URLSearchParams {
+  return new URLSearchParams({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+    activeBatchIds: typeof activeBatchIds === "string" ? activeBatchIds : JSON.stringify(activeBatchIds),
+  });
+}
+
+function NavigationHarness() {
+  const [, rerender] = useReducer((value: number) => value + 1, 0);
+  return (
+    <>
+      <button type="button" onClick={rerender}>
+        Navigate report link
+      </button>
+      <MisReportView />
+    </>
+  );
 }

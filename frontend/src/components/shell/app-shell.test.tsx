@@ -35,7 +35,8 @@ test("enables MIS Reports navigation and reflects the active page title without 
   expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute("aria-current");
   expect(screen.getByRole("link", { name: "MIS Reports" })).toHaveAttribute("aria-current", "page");
   expect(screen.getByText("MIS Reports", { selector: ".page-title" })).toBeInTheDocument();
-  for (const label of labels.slice(2)) {
+  expect(screen.getByRole("link", { name: "Ask" })).toHaveAttribute("href", "/ask");
+  for (const label of labels.slice(3)) {
     const item = navigation.getByText(label).closest(".nav-item");
     expect(item).toHaveAttribute("aria-disabled", "true");
     expect(item?.tagName).toBe("SPAN");
