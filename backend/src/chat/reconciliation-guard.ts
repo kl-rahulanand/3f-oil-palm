@@ -28,6 +28,17 @@ export function classifyReconciliationQuestion(question: string): Reconciliation
   };
 }
 
+export function classifyCausalQuestion(question: string): ReconciliationInfo | null {
+  if (!INTENT_RE.test(question)) return null;
+  return {
+    title: "Causal analysis is not configured",
+    definitionKind: "meta",
+    definition:
+      "I can't infer why a result is high or low. Ask what the governed numbers show for a specific metric or breakdown.",
+    suggestedQuestions: ["Show an available metric", "Break down an available metric"],
+  };
+}
+
 function hasTwoDistinctComparedNumbers(question: string): boolean {
   if (!NUMBER_COMPARISON_RE.test(question)) return false;
 

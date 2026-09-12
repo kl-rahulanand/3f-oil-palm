@@ -1,0 +1,76 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-governed-ask",
+  "score": 10,
+  "summary": "quality lens over assistant-governed-ask (20 product path(s), 99626df..1d278ff, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-aga-c1: implemented \u2014 backend/src/app.module.ts:15 registers ChatModule and backend/src/app.routes.test.ts:32 proves the governed route allow-list.\nVERDICT t-aga-c2: implemented \u2014 backend/src/chat/chat.service.test.ts:13 verifies the provider input boundary, including permitted context and forbidden result data.\nVERDICT t-aga-c3: implemented \u2014 backend/src/chat/reconciliation-guard.ts:31 adds causal classification, with response-matrix coverage in backend/src/chat/chat.service.test.ts:61.\nVERDICT t-aga-c4: implemented \u2014 backend/src/chat/chat.service.test.ts:106 proves out-of-catalog selections are refused without rendering a zero.\nVERDICT t-aga-c5: implemented \u2014 contract/src/api.ts:485 defines the discriminated report-link contract, while backend/src/mis/mis-statement.service.ts:92 validates pinned batches.\nVERDICT t-aga-c6: implemented \u2014 backend/src/chat/chat.service.ts:98 performs the fail-closed entry audit before routing or warehouse-backed lookups.\nVERDICT t-aga-c7: implemented \u2014 backend/src/chat/chat.schemas.ts:16 strictly rejects removed conversation fields and transports prior turns; backend/package.json:17 registers the new hermetic test.\nLEFTOVERS: clean \u2014 the removed durable-conversation fields, persistence path, and unused service injection are not retained as compatibility code.\nNo actionable P0\u2013P2 defect is demonstrated by the supplied diff.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/app.module.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/src/chat/chat.controller.ts",
+    "backend/src/chat/chat.module.ts",
+    "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.service.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/chat.sse.test.ts",
+    "backend/src/chat/reconciliation-guard.ts",
+    "backend/src/chat/smalltalk-guard.test.ts",
+    "backend/src/chat/smalltalk-guard.ts",
+    "backend/src/mis/mis-statement.controller.test.ts",
+    "backend/src/mis/mis-statement.controller.ts",
+    "backend/src/mis/mis-statement.dto.ts",
+    "backend/src/mis/mis-statement.interface.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-aga-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/app.module.ts:15 registers ChatModule and backend/src/app.routes.test.ts:32 proves the governed route allow-list."
+    },
+    {
+      "contract_id": "t-aga-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.test.ts:13 verifies the provider input boundary, including permitted context and forbidden result data."
+    },
+    {
+      "contract_id": "t-aga-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/reconciliation-guard.ts:31 adds causal classification, with response-matrix coverage in backend/src/chat/chat.service.test.ts:61."
+    },
+    {
+      "contract_id": "t-aga-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.test.ts:106 proves out-of-catalog selections are refused without rendering a zero."
+    },
+    {
+      "contract_id": "t-aga-c5",
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:485 defines the discriminated report-link contract, while backend/src/mis/mis-statement.service.ts:92 validates pinned batches."
+    },
+    {
+      "contract_id": "t-aga-c6",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.ts:98 performs the fail-closed entry audit before routing or warehouse-backed lookups."
+    },
+    {
+      "contract_id": "t-aga-c7",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.schemas.ts:16 strictly rejects removed conversation fields and transports prior turns; backend/package.json:17 registers the new hermetic test."
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "bb5989e80821fe5e731e7af49452044097cff7d1f00ab9497cf25436b31b5c83",
+  "brief_sha256": "c7abce70018ce656a1a833446b747a60959010bd47a433a270348ea03235dbea",
+  "branch_diff_digest": "284b5a0085ab64cc383116958f2ddb08935fd6c17bc339c196828534689d8181",
+  "residual_risks": [],
+  "recorded_at": "2026-09-12T09:27:58+00:00",
+  "commit": "1d278ff5132320ad3899753e2da4634d24cda445"
+}

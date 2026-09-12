@@ -6,6 +6,7 @@ import { CHAT_STREAM_PHASES, runChatStream, serializeSseFrame } from "./chat.sse
 const bufferedResponse: AskResponse = {
   responseClass: ResponseClass.Success,
   sessionId: "session-1",
+  viewInReport: { available: false, reason: "This answer is not from the MIS statement." },
   title: "lead_count — Sales",
   provenance: {
     verified: true,
@@ -22,14 +23,17 @@ const bufferedResponse: AskResponse = {
 test("streaming success emits phases then token then result", async () => {
   const events: ChatStreamEvent[] = [];
 
-  await runChatStream(async (onEvent) => {
-    for (const phase of CHAT_STREAM_PHASES) onEvent({ type: "phase", phase });
-    onEvent({ type: "token", text: bufferedResponse.provenance!.readback });
-    return bufferedResponse;
-  }, (event) => events.push(event));
+  await runChatStream(
+    async (onEvent) => {
+      for (const phase of CHAT_STREAM_PHASES) onEvent({ type: "phase", phase });
+      onEvent({ type: "token", text: bufferedResponse.provenance!.readback });
+      return bufferedResponse;
+    },
+    (event) => events.push(event),
+  );
 
   assert.deepEqual(
-    events.map((event) => event.type === "phase" ? event.phase : event.type),
+    events.map((event) => (event.type === "phase" ? event.phase : event.type)),
     [...CHAT_STREAM_PHASES, "token", "result"],
   );
   assert.deepEqual(events.at(-1), { type: "result", response: bufferedResponse });
@@ -38,7 +42,10 @@ test("streaming success emits phases then token then result", async () => {
 
 test("streamed result equals the buffered AskResponse", async () => {
   const events: ChatStreamEvent[] = [];
-  await runChatStream(async () => bufferedResponse, (event) => events.push(event));
+  await runChatStream(
+    async () => bufferedResponse,
+    (event) => events.push(event),
+  );
   assert.deepEqual(events, [{ type: "result", response: bufferedResponse }]);
 });
 
@@ -48,24 +55,31 @@ test("typed and thrown failures emit an error event", async () => {
     async () => ({
       responseClass: ResponseClass.ExecutionFailed,
       sessionId: "session-1",
+      viewInReport: { available: false, reason: "The query failed." },
       message: "Query timed out",
     }),
     (event) => typedEvents.push(event),
   );
-  assert.deepEqual(typedEvents, [{
-    type: "error",
-    message: "Query timed out",
-    responseClass: ResponseClass.ExecutionFailed,
-  }]);
+  assert.deepEqual(typedEvents, [
+    {
+      type: "error",
+      message: "Query timed out",
+      responseClass: ResponseClass.ExecutionFailed,
+    },
+  ]);
 
   const thrownEvents: ChatStreamEvent[] = [];
   await runChatStream(
-    async () => { throw new Error("Warehouse unavailable"); },
+    async () => {
+      throw new Error("Warehouse unavailable");
+    },
     (event) => thrownEvents.push(event),
   );
-  assert.deepEqual(thrownEvents, [{
-    type: "error",
-    message: "Warehouse unavailable",
-    responseClass: ResponseClass.BackendError,
-  }]);
+  assert.deepEqual(thrownEvents, [
+    {
+      type: "error",
+      message: "Warehouse unavailable",
+      responseClass: ResponseClass.BackendError,
+    },
+  ]);
 });

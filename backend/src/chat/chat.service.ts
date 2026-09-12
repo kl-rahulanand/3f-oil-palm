@@ -1,12 +1,12 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   ResponseClass,
+  type AskPriorTurn,
   type AskReportGrounding,
   type AskResponse,
   type AuthUser,
   type ChatStreamEvent,
   type Chip,
-  type ConversationAnswerSnapshot,
   type DomainSpec,
   type MeasureSpec,
   type Permissions,
@@ -20,14 +20,15 @@ import type { LlmPriorTurn, LlmProvider, LlmUsage } from "../llm/llm.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { AuditService } from "../core/audit.service";
 import { DimensionValuesService } from "../core/dimension-values.service";
-import { ConversationsService } from "../conversations/conversations.service";
 import { ReportsService } from "../reports/reports.service";
 import { HelpService } from "../help/help.service";
+import { SelectionPeriodUnavailableError, SelectionResolverService } from "../mapping/selection-resolver.service";
+import type { MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { classifyMeta, glossaryLookup, unsupportedFallbackMessage } from "../help/glossary";
 import { CHAT_MESSAGES } from "./chat.constants";
 import { domainRoutingAmbiguity, requiredTimeWindowClarify } from "./ambiguity";
 import { chooseChart } from "./chartChooser";
-import { classifyReconciliationQuestion } from "./reconciliation-guard";
+import { classifyCausalQuestion, classifyReconciliationQuestion } from "./reconciliation-guard";
 import { classifySmalltalk } from "./smalltalk-guard";
 import { parseTimeWindow } from "./timeWindowParse";
 import {
@@ -49,10 +50,10 @@ export class ChatService {
     private readonly semantic: SemanticLayer,
     private readonly selectionExecutor: SelectionExecutor,
     private readonly audit: AuditService,
-    private readonly conversations: ConversationsService,
     private readonly dimensionValues: DimensionValuesService,
     private readonly reports: ReportsService,
     private readonly help: HelpService,
+    private readonly selectionResolver: SelectionResolverService,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
   ) {}
 
@@ -61,18 +62,25 @@ export class ChatService {
     sessionId: string,
     question: string,
     editedSelection?: Selection,
-    conversationId?: string,
-    turnId?: string,
     reportGrounding?: AskReportGrounding,
+    clientPriorTurns?: AskPriorTurn[],
     onEvent?: (event: ChatStreamEvent) => void,
   ): Promise<AskResponse> {
     const started = Date.now();
     const cfg = loadConfig();
     let usedPriorContext = false;
     let llmUsage: LlmUsage | undefined;
-    const done = (r: Omit<AskResponse, "sessionId" | "latencyMs">): AskResponse => {
+    const done = (
+      r: Omit<AskResponse, "sessionId" | "latencyMs" | "viewInReport"> & {
+        viewInReport?: AskResponse["viewInReport"];
+      },
+    ): AskResponse => {
       const res: AskResponse = {
         ...r,
+        viewInReport: r.viewInReport ?? {
+          available: false,
+          reason: "This response cannot be opened in the MIS statement.",
+        },
         usedPriorContext,
         sessionId,
         latencyMs: Date.now() - started,
@@ -87,6 +95,11 @@ export class ChatService {
       return res;
     };
 
+    try {
+      await this.audit.writeRequestEvent({ userId: user.id, sessionId, question });
+    } catch {
+      return done({ responseClass: ResponseClass.BackendError, message: CHAT_MESSAGES.auditNotRecorded });
+    }
     onEvent?.({ type: "phase", phase: "routing" });
     const allowed = this.semantic.allowedFor(user.permissions);
     if (allowed.length === 0)
@@ -114,6 +127,10 @@ export class ChatService {
           ...reconcile,
         });
       }
+      const causal = classifyCausalQuestion(question);
+      if (causal) {
+        return done({ responseClass: ResponseClass.Informational, kind: "informational", ...causal });
+      }
     }
     if (!editedSelection && !reportGrounding) {
       const smalltalk = classifySmalltalk(question);
@@ -133,26 +150,11 @@ export class ChatService {
         }
       : undefined;
 
-    let conversationOwned = false;
-    let priorSelection: Selection | undefined;
-    let priorTurns: LlmPriorTurn[] = [];
-    if (!groundedReport && conversationId && isDurableConversationId(conversationId)) {
-      try {
-        const storedTurns = await this.conversations.getRecentTurns(user.id, conversationId, cfg.sessionTurnWindow);
-        conversationOwned = true;
-        priorSelection = storedTurns.at(-1)?.selection;
-        priorTurns = trimPriorTurnsToTokenBudget(
-          storedTurns.map(({ question: priorQuestion, selection }) => ({
-            question: priorQuestion,
-            selection,
-          })),
-        );
-      } catch (error) {
-        if (!(error instanceof NotFoundException)) throw error;
-      }
-    } else if (groundingPriorTurn) {
-      priorTurns = trimPriorTurnsToTokenBudget([groundingPriorTurn]);
-    }
+    const priorTurns: LlmPriorTurn[] = trimPriorTurnsToTokenBudget([
+      ...(clientPriorTurns ?? []),
+      ...(groundingPriorTurn ? [groundingPriorTurn] : []),
+    ]);
+    const priorSelection = priorTurns.at(-1)?.selection;
 
     // 1. Selection: use the user's edited chips, else ask the LLM to select.
     onEvent?.({ type: "phase", phase: "selecting" });
@@ -222,6 +224,8 @@ export class ChatService {
         });
     }
 
+    // Prompt topicality is best-effort; the enforceable boundary is that every emitted id
+    // must belong to the registered semantic catalog and the caller's permissions.
     // 2. Validate the selection against the semantic layer AND the user's permissions.
     const domain = this.semantic.domain(selection.domain);
     if (!domain || !user.permissions.domains.includes(selection.domain))
@@ -301,6 +305,30 @@ export class ChatService {
         clarify: timeWindowClarify,
       });
 
+    let statementScope: MasterResolvedSelection | undefined;
+    if (domain.name === "mis-statement") {
+      const request = statementRequest(user, appliedTimeWindow);
+      if (!request) {
+        return done({
+          responseClass: ResponseClass.NotSupported,
+          message: "The answer does not resolve to one statement selector set and offered period.",
+        });
+      }
+      let resolution;
+      try {
+        resolution = await this.selectionResolver.resolve(request);
+      } catch (error) {
+        if (error instanceof SelectionPeriodUnavailableError) {
+          return done({ responseClass: ResponseClass.NotSupported, message: "The statement period is not available." });
+        }
+        throw error;
+      }
+      if (resolution.outcome === "unresolvable") {
+        return done({ responseClass: ResponseClass.NotSupported, message: "No mapping configured." });
+      }
+      statementScope = resolution;
+    }
+
     let sql: string;
     let result: ResultTable;
     let totals: Record<string, number> | undefined;
@@ -312,12 +340,21 @@ export class ChatService {
     onEvent?.({ type: "phase", phase: "querying" });
     try {
       const execution = await this.selectionExecutor.run(user, domain, selection, {
+        ...(statementScope
+          ? {
+              resolvedScope: {
+                triples: statementScope.triples,
+                glCodes: statementScope.glCodes,
+                masterGlCodes: statementScope.masterGlCodes,
+                leafTargets: statementScope.leafTargets,
+              },
+            }
+          : {}),
         beforeExecute: async (built) => {
           try {
             await this.audit.writeRequestEvent({
               userId: user.id,
               sessionId,
-              ...(conversationOwned && conversationId ? { conversationId } : {}),
               question,
               selection: built.selection,
               generatedSql: built.sql,
@@ -406,39 +443,9 @@ export class ChatService {
       provenance,
       appliedTimeWindow,
       appliedFilters: selection.filters,
+      viewInReport: buildViewInReport(domain, statementScope, activeBatchIds),
       ...answerMetadata,
     };
-
-    if (conversationOwned && conversationId) {
-      const answer: ConversationAnswerSnapshot = {
-        title: successResponse.title,
-        chips: successResponse.chips,
-        result: successResponse.result,
-        chartType: successResponse.chartType,
-        ...(totals ? { totals } : {}),
-        provenance: successResponse.provenance,
-        usedPriorContext,
-        availableFields: successResponse.availableFields,
-        appliedFilters: successResponse.appliedFilters,
-        appliedTimeWindow: successResponse.appliedTimeWindow,
-      };
-      try {
-        const persistedTurn =
-          usesEditedSelection && turnId && isDurableConversationId(turnId)
-            ? await this.conversations.replaceTurn(user.id, conversationId, turnId, question, selection, answer)
-            : !usesEditedSelection
-              ? await this.conversations.appendTurn(user.id, conversationId, {
-                  question,
-                  selection,
-                  answer,
-                })
-              : undefined;
-        if (persistedTurn) successResponse.turnId = persistedTurn.id;
-      } catch (error) {
-        if (groundedReport) throw error;
-        if (!(error instanceof NotFoundException)) throw error;
-      }
-    }
 
     onEvent?.({ type: "token", text: provenance.readback });
     return done(successResponse);
@@ -676,15 +683,46 @@ export function trimPriorTurnsToTokenBudget(
   return retained;
 }
 
-function isDurableConversationId(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-}
-
 export function isVerifiedSelection(
   selection: Selection,
   resolveMeasure: (domain: string, measureId: string) => MeasureSpec | undefined,
 ): boolean {
   return selection.measureIds.every((id) => resolveMeasure(selection.domain, id) != null);
+}
+
+function buildViewInReport(
+  domain: DomainSpec,
+  statementScope: MasterResolvedSelection | undefined,
+  activeBatchIds: NonNullable<Provenance["activeBatchIds"]>,
+): NonNullable<AskResponse["viewInReport"]> {
+  if (domain.name !== "mis-statement") {
+    return { available: false, reason: "This answer was not executed against the MIS statement." };
+  }
+  if (!statementScope) {
+    return { available: false, reason: "The answer does not resolve to one statement selector set." };
+  }
+  return {
+    available: true,
+    department: statementScope.department,
+    function: statementScope.function,
+    plant: statementScope.plant,
+    period: statementScope.period.value,
+    activeBatchIds,
+  };
+}
+
+function statementRequest(user: AuthUser, window: AppliedTimeWindow | undefined) {
+  const value = (attribute: string) => {
+    const values = [
+      ...new Set(user.scope.filter((scope) => scope.attribute === attribute).map((scope) => scope.value)),
+    ];
+    return values.length === 1 ? values[0] : undefined;
+  };
+  const department = value("department");
+  const businessFunction = value("function");
+  const plant = value("plant");
+  if (!department || !businessFunction || !plant || !window || window.from !== window.to) return undefined;
+  return { department, function: businessFunction, plant, period: window.from };
 }
 
 export function buildReadback(

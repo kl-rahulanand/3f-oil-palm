@@ -51,18 +51,26 @@ const CAPABILITY = new Set([
 ]);
 
 function normalize(q: string): string {
-  return q.trim().toLowerCase().replace(/[!?.\s]+$/g, "").replace(/\s+/g, " ");
+  return q
+    .trim()
+    .toLowerCase()
+    .replace(/[!?.\s]+$/g, "")
+    .replace(/\s+/g, " ");
 }
 
 export function classifySmalltalk(question: string): SmalltalkInfo | null {
   const q = normalize(question);
   if (!q) return null;
-  const isGreeting =
-    GREETINGS.has(q) || THANKS.has(q) || (/^(hi|hello|hey)\b/.test(q) && q.split(" ").length <= 3);
+  const isGreeting = GREETINGS.has(q) || THANKS.has(q) || /^(hi|hello|hey)[,\s]+(team|everyone|folks|all)$/.test(q);
   const isCapability = CAPABILITY.has(q);
   if (!isGreeting && !isCapability) return null;
   const definition = isCapability
     ? "I answer questions using the metrics and dimensions configured for your access. Try one of these:"
     : "Hi! I'm 3F — I answer questions about your configured data domains. Try one of these:";
-  return { title: isCapability ? "What you can ask" : "Hello", definitionKind: "meta", definition, suggestedQuestions: SUGGESTIONS };
+  return {
+    title: isCapability ? "What you can ask" : "Hello",
+    definitionKind: "meta",
+    definition,
+    suggestedQuestions: SUGGESTIONS,
+  };
 }

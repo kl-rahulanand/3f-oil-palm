@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-12T08:57:35+00:00", "story": "assistant", "detail": "Removing the obsolete MisStatementRunResponse compatibility export requires updating backend/src/mis/mis-statement-export.test.ts, which imports it, but that mechanically implied test file is outside "}

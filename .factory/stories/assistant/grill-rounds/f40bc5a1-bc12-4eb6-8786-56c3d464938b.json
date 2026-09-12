@@ -1,0 +1,24 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The Bedrock region to record in the decision. `config.ts:180` already defaults `AWS_REGION` to **ap-south-1** (Mumbai), which keeps the question text in-country for an Indian client. `BEDROCK_MODEL_ID` has no default, so it must be set either way.",
+      "options": [
+        "ap-south-1, Mumbai (Recommended)",
+        "us-east-1, N. Virginia",
+        "I'll confirm the region with 3F first"
+      ],
+      "chosen": "ap-south-1, Mumbai (Recommended)"
+    },
+    {
+      "question": "Closing the assistant requirements grill. Ten findings. Your three calls: the assistant ships in the PoC (I'll mint a decision superseding that clause of 0002 and amend the drifted BRIEF, closing D-0032); Bedrock as the provider; saves store selections only, personal, re-run under current RBAC. The seven I'm settling from the repo: the bounded data vocabulary is exactly what `semanticLayer.ts` registers (governed-financial + mis-statement) over the proven DUB slice, with out-of-catalog questions refused rather than answered zero; \"no fabricated numbers\" becomes falsifiable \u2014 every numeric character on screen, including prose and chart labels, is rendered from the deterministic result; the \"view in report\" deep link carries the selection *and* the answer's batch provenance, with a stated fallback when a question can't be represented as a statement; RBAC/audit inherit 0016's all-or-nothing with re-authorization on every ask, re-run and pin refresh, and a fail-closed audit as the chat path already does; the acceptance criteria are extended to cover every promised surface; a response matrix settles data / definition / ambiguous / causal / off-topic precedence; and the spec will state plainly that the vendored chat, saved and pin routes are **not registered** \u2014 `AppModule` imports none of them and the applied migration is auth/audit only \u2014 so this story owns restoring them. Any remaining gap?",
+      "options": [
+        "No gaps \u2014 amend and record (Recommended)",
+        "Something else \u2014 I'll say what"
+      ],
+      "chosen": "No gaps \u2014 amend and record (Recommended)"
+    }
+  ],
+  "at": "2026-09-12T06:52:58.771157+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

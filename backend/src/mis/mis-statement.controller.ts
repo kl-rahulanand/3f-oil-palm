@@ -12,18 +12,33 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiExtraModels, ApiHeader, ApiOperation, ApiResponse, ApiTags, getSchemaPath } from "@nestjs/swagger";
 import type { Response } from "express";
-import type { AuthUser, MisStatementRunResponse, MisStatementUnresolvableResponse } from "@3f/contract";
+import type {
+  AuthUser,
+  MisStatementRefreshRequiredResponse,
+  MisStatementRouteResponse,
+  MisStatementUnresolvableResponse,
+} from "@3f/contract";
 import { AuthGuard, CurrentUser, RequireAction } from "../auth/auth.guard";
 import { CSRF_HEADER } from "../auth/cookies";
-import { MisSelectionErrorDto, MisSelectionRunRequestDto, misSelectionRunRequestSchema } from "./mis-selection.dto";
+import { MisSelectionErrorDto } from "./mis-selection.dto";
 import type { IMisStatementExportService } from "./mis-statement-export.interface";
 import { MisStatementExportService } from "./mis-statement-export.service";
-import { MisStatementResolvedResponseDto, MisStatementUnresolvableResponseDto } from "./mis-statement.dto";
+import {
+  MisStatementRefreshRequiredResponseDto,
+  MisStatementResolvedResponseDto,
+  MisStatementRunRequestDto,
+  MisStatementUnresolvableResponseDto,
+  misStatementRunRequestSchema,
+} from "./mis-statement.dto";
 import type { IMisStatementService } from "./mis-statement.interface";
 import { MisStatementService } from "./mis-statement.service";
 
 @ApiTags("MIS")
-@ApiExtraModels(MisStatementResolvedResponseDto, MisStatementUnresolvableResponseDto)
+@ApiExtraModels(
+  MisStatementResolvedResponseDto,
+  MisStatementUnresolvableResponseDto,
+  MisStatementRefreshRequiredResponseDto,
+)
 @Controller("api/mis")
 @UseGuards(AuthGuard)
 export class MisStatementController {
@@ -40,7 +55,7 @@ export class MisStatementController {
     description:
       "Returns the selected-period budget outline with derived subtotals, FY 26-27 YTD measures, scope, and provenance.",
   })
-  @ApiBody({ type: MisSelectionRunRequestDto })
+  @ApiBody({ type: MisStatementRunRequestDto })
   @ApiResponse({
     status: HttpStatus.OK,
     description: "Statement resolved or reported as unresolvable.",
@@ -48,6 +63,7 @@ export class MisStatementController {
       oneOf: [
         { $ref: getSchemaPath(MisStatementResolvedResponseDto) },
         { $ref: getSchemaPath(MisStatementUnresolvableResponseDto) },
+        { $ref: getSchemaPath(MisStatementRefreshRequiredResponseDto) },
       ],
     },
   })
@@ -62,8 +78,8 @@ export class MisStatementController {
     description: "Governed report access is required.",
     type: MisSelectionErrorDto,
   })
-  run(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<MisStatementRunResponse> {
-    const parsed = misSelectionRunRequestSchema.safeParse(body);
+  run(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<MisStatementRouteResponse> {
+    const parsed = misStatementRunRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues.map((issue) => `${issue.path.join(".") || "request"} invalid`));
     }
@@ -79,7 +95,7 @@ export class MisStatementController {
       "Returns the unresolvable JSON outcome or streams the resolved statement as an Excel workbook built from the same request payload.",
   })
   @ApiHeader({ name: CSRF_HEADER, required: true, description: "Token matching the 3f_csrf cookie." })
-  @ApiBody({ type: MisSelectionRunRequestDto })
+  @ApiBody({ type: MisStatementRunRequestDto })
   @ApiResponse({
     status: HttpStatus.OK,
     description: "Statement workbook streamed or selection reported as unresolvable.",
@@ -111,13 +127,13 @@ export class MisStatementController {
     @CurrentUser() user: AuthUser,
     @Body() body: unknown,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<MisStatementUnresolvableResponse | StreamableFile> {
-    const parsed = misSelectionRunRequestSchema.safeParse(body);
+  ): Promise<MisStatementUnresolvableResponse | MisStatementRefreshRequiredResponse | StreamableFile> {
+    const parsed = misStatementRunRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues.map((issue) => `${issue.path.join(".") || "request"} invalid`));
     }
     const statement = await this.statements.run(user, parsed.data);
-    if (statement.outcome === "unresolvable") return statement;
+    if (statement.outcome !== "resolved") return statement;
 
     const workbook = await this.exporter.write(statement);
     response.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -126,7 +142,7 @@ export class MisStatementController {
   }
 }
 
-function statementFilename(statement: Extract<MisStatementRunResponse, { outcome: "resolved" }>): string {
+function statementFilename(statement: Extract<MisStatementRouteResponse, { outcome: "resolved" }>): string {
   const block = statement.grandTotal.measures.find(({ key }) => key === "selected") ?? statement.grandTotal.measures[0];
   return `financial-mis-${slug(statement.scope.department)}-${slug(statement.scope.function)}-${slug(statement.scope.plant)}-${slug(block.from)}-to-${slug(block.to)}.xlsx`;
 }
