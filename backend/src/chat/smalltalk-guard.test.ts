@@ -13,7 +13,17 @@ test("general chat is answered from deterministic templates containing no numera
 
 describe("classifySmalltalk", () => {
   it("matches greetings, thanks, and capability questions", () => {
-    for (const question of ["hi", "Hello!", "thanks", "good morning", "who are you", "help", "what can you do"]) {
+    for (const question of [
+      "hi",
+      "Hello!",
+      "hello there",
+      "hey team",
+      "thanks",
+      "good morning",
+      "who are you",
+      "help",
+      "what can you do",
+    ]) {
       const result = classifySmalltalk(question);
       assert.ok(result, question);
       assert.equal(result.definitionKind, "meta");

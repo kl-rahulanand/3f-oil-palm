@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   ResponseClass,
   type AskPriorTurn,
@@ -20,7 +20,6 @@ import type { LlmPriorTurn, LlmProvider, LlmUsage } from "../llm/llm.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { AuditService } from "../core/audit.service";
 import { DimensionValuesService } from "../core/dimension-values.service";
-import { ConversationsService } from "../conversations/conversations.service";
 import { ReportsService } from "../reports/reports.service";
 import { HelpService } from "../help/help.service";
 import { SelectionPeriodUnavailableError, SelectionResolverService } from "../mapping/selection-resolver.service";
@@ -51,7 +50,6 @@ export class ChatService {
     private readonly semantic: SemanticLayer,
     private readonly selectionExecutor: SelectionExecutor,
     private readonly audit: AuditService,
-    private readonly _conversations: ConversationsService,
     private readonly dimensionValues: DimensionValuesService,
     private readonly reports: ReportsService,
     private readonly help: HelpService,
@@ -64,8 +62,6 @@ export class ChatService {
     sessionId: string,
     question: string,
     editedSelection?: Selection,
-    conversationId?: string,
-    _turnId?: string,
     reportGrounding?: AskReportGrounding,
     clientPriorTurns?: AskPriorTurn[],
     onEvent?: (event: ChatStreamEvent) => void,
@@ -104,10 +100,6 @@ export class ChatService {
     } catch {
       return done({ responseClass: ResponseClass.BackendError, message: CHAT_MESSAGES.auditNotRecorded });
     }
-    if (conversationId) {
-      throw new BadRequestException("Durable conversations are disabled; send prior turns in the request body.");
-    }
-
     onEvent?.({ type: "phase", phase: "routing" });
     const allowed = this.semantic.allowedFor(user.permissions);
     if (allowed.length === 0)

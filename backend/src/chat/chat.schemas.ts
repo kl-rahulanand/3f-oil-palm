@@ -15,8 +15,7 @@ const reportGroundingTimeWindowSchema = z
 export const askSchema = z
   .object({
     question: z.string().min(CHAT_VALIDATION.questionMinLength),
-    conversationId: z.string().max(CHAT_VALIDATION.conversationIdMaxLength).optional(),
-    turnId: z.string().max(CHAT_VALIDATION.conversationIdMaxLength).optional(),
+    sessionId: z.string().min(1).max(200).optional(),
     selection: selectionSchema.optional(),
     priorTurns: z.array(z.object({ question: z.string().min(1), selection: selectionSchema }).strict()).optional(),
     reportGrounding: z

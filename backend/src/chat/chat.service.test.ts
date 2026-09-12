@@ -11,6 +11,7 @@ import {
 } from "@3f/contract";
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "../llm/llm.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
+import { ChatController } from "./chat.controller";
 import { ChatService } from "./chat.service";
 
 test("the llm provider receives the question prior turns and dimension values and never an amount or a result row", async () => {
@@ -28,8 +29,6 @@ test("the llm provider receives the question prior turns and dimension values an
     userFor("governed-financial"),
     "session",
     "Show Actual by GL code",
-    undefined,
-    undefined,
     undefined,
     undefined,
     priorTurns,
@@ -58,6 +57,9 @@ test("a data question answers from the governed measures and a definition questi
   assert.equal(answer.responseClass, ResponseClass.Success);
   assert.equal(answer.provenance?.verified, true);
   assert.deepEqual(answer.result, RESULT);
+  assert.deepEqual(numericTokens(answer.title), []);
+  assert.deepEqual(numericTokens(answer.provenance?.readback), numericTokens(JSON.stringify(answer.appliedTimeWindow)));
+  assert.deepEqual(numericTokens(JSON.stringify(answer.result)), numericTokens(JSON.stringify(RESULT)));
   assert.equal(data.llm.inputs.length, 0);
 
   const definition = makeFixture({ selection: financialSelection });
@@ -72,9 +74,14 @@ test("a data question answers from the governed measures and a definition questi
   assert.equal(definition.llm.inputs.length, 0);
 
   const ambiguous = makeFixture({ kind: "clarify" });
-  const ambiguousAnswer = await ambiguous.service.ask(userFor("governed-financial"), "session", "Show performance");
+  const ambiguousAnswer = await ambiguous.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Hello, show performance",
+  );
   assert.equal(ambiguousAnswer.responseClass, ResponseClass.ClarificationNeeded);
   assert.equal(typeof ambiguousAnswer.clarify?.prompt, "string");
+  assert.equal(ambiguousAnswer.clarify?.prompt.match(/\?/g)?.length, 1);
   assert.equal(Array.isArray(ambiguousAnswer.clarify?.options), true);
 
   const generalCollision = makeFixture({ selection: financialSelection });
@@ -97,13 +104,19 @@ test("a causal why question that is not discrepancy shaped is declined before it
 });
 
 test("a selection naming a measure outside the registered domains is refused server side and never rendered as a zero", async () => {
-  const fixture = makeFixture({ selection: { ...financialSelection, measureIds: ["outside.amount"] } });
-  const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show the selected metric");
+  const invalidSelections: Array<[Selection, RegExp]> = [
+    [{ ...financialSelection, measureIds: ["outside.amount"] }, /Measure not available/],
+    [{ ...financialSelection, dimensionIds: ["outside.dimension"] }, /Dimension not available/],
+  ];
+  for (const [selection, expected] of invalidSelections) {
+    const fixture = makeFixture({ selection });
+    const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show the selected metric");
 
-  assert.equal(response.responseClass, ResponseClass.NotSupported);
-  assert.match(response.message ?? "", /Measure not available/);
-  assert.equal((response.message ?? "").includes("0"), false);
-  assert.equal(fixture.executor.calls, 0);
+    assert.equal(response.responseClass, ResponseClass.NotSupported);
+    assert.match(response.message ?? "", expected);
+    assert.equal((response.message ?? "").includes("0"), false);
+    assert.equal(fixture.executor.calls, 0);
+  }
 });
 
 test("the view in report field is available only for a statement domain answer resolving to one selector set and otherwise carries a reason", async () => {
@@ -137,18 +150,23 @@ test("a failing entry audit aborts the request before any warehouse read includi
 });
 
 test("a request carrying a conversation id is rejected and prior turns are read from the request body instead", async () => {
-  const rejected = makeFixture({ selection: financialSelection });
+  let enteredStream = false;
+  const controller = new ChatController({
+    ask: async () => {
+      enteredStream = true;
+      throw new Error("unreachable");
+    },
+  } as never);
   await assert.rejects(
-    rejected.service.ask(
+    controller.stream(
       userFor("governed-financial"),
       "session",
-      "Show Actual",
-      undefined,
-      "00000000-0000-0000-0000-000000000099",
+      { question: "Show Actual", conversationId: "00000000-0000-0000-0000-000000000099" } as never,
+      {} as never,
     ),
-    BadRequestException,
+    (error: unknown) => error instanceof BadRequestException && error.getStatus() === 400,
   );
-  assert.equal(rejected.executor.calls, 0);
+  assert.equal(enteredStream, false);
 
   const priorTurns: AskPriorTurn[] = [{ question: "Earlier", selection: financialSelection }];
   const transported = makeFixture({ selection: financialSelection });
@@ -156,8 +174,6 @@ test("a request carrying a conversation id is rejected and prior turns are read 
     userFor("governed-financial"),
     "session",
     "Show Actual",
-    undefined,
-    undefined,
     undefined,
     undefined,
     priorTurns,
@@ -207,7 +223,6 @@ function makeFixture(options: {
     new SemanticLayer(),
     executor as never,
     audit as never,
-    {} as never,
     dimensions as never,
     {} as never,
     help as never,
@@ -215,6 +230,10 @@ function makeFixture(options: {
     llm,
   );
   return { service, llm, executor, audit, dimensions, help };
+}
+
+function numericTokens(value: unknown): string[] {
+  return String(value ?? "").match(/\d+(?:\.\d+)?/g) ?? [];
 }
 
 class FakeLlm implements LlmProvider {

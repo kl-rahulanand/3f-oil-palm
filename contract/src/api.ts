@@ -128,10 +128,6 @@ export interface AskRequest {
   question: string;
   /** Session id for multi-turn context (chips). Server-issued. */
   sessionId?: string;
-  /** @deprecated Durable conversations are disabled; requests carrying this field are rejected. */
-  conversationId?: string;
-  /** Durable turn to replace when re-running an edited selection. */
-  turnId?: string;
   /** Optional edited chips when the user tweaks the interpretation. */
   selection?: Selection;
   /** Optional server-resolved report grounding; the client sends no semantic Selection. */
@@ -458,9 +454,7 @@ export interface AskResponse {
   definitionKind?: "measure" | "dimension" | "value" | "meta";
   definition?: string;
   suggestedQuestions?: string[];
-  /** Durable turn created or replaced by this successful ask. */
-  turnId?: string;
-  /** True only when prior durable turns were supplied to the LLM for this answer. */
+  /** True only when client-held prior turns were supplied to the LLM for this answer. */
   usedPriorContext?: boolean;
   /** Present on Success. */
   title?: string;

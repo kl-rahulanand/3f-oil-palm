@@ -61,7 +61,8 @@ function normalize(q: string): string {
 export function classifySmalltalk(question: string): SmalltalkInfo | null {
   const q = normalize(question);
   if (!q) return null;
-  const isGreeting = GREETINGS.has(q) || THANKS.has(q);
+  const isGreeting =
+    GREETINGS.has(q) || THANKS.has(q) || (/^(hi|hello|hey)(?:$|\s)/.test(q) && q.split(" ").length <= 3);
   const isCapability = CAPABILITY.has(q);
   if (!isGreeting && !isCapability) return null;
   const definition = isCapability

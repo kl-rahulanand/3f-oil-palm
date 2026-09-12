@@ -36,8 +36,6 @@ export class ChatController {
       sessionId,
       parsed.data.question,
       parsed.data.selection,
-      parsed.data.conversationId,
-      parsed.data.turnId,
       parsed.data.reportGrounding,
       parsed.data.priorTurns,
     );
@@ -70,8 +68,6 @@ export class ChatController {
             sessionId,
             parsed.data.question,
             parsed.data.selection,
-            parsed.data.conversationId,
-            parsed.data.turnId,
             parsed.data.reportGrounding,
             parsed.data.priorTurns,
             onEvent,
