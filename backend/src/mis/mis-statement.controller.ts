@@ -20,7 +20,7 @@ import type {
 } from "@3f/contract";
 import { AuthGuard, CurrentUser, RequireAction } from "../auth/auth.guard";
 import { CSRF_HEADER } from "../auth/cookies";
-import { MisSelectionErrorDto, MisSelectionRunRequestDto, misSelectionRunRequestSchema } from "./mis-selection.dto";
+import { MisSelectionErrorDto } from "./mis-selection.dto";
 import type { IMisStatementExportService } from "./mis-statement-export.interface";
 import { MisStatementExportService } from "./mis-statement-export.service";
 import {
@@ -95,7 +95,7 @@ export class MisStatementController {
       "Returns the unresolvable JSON outcome or streams the resolved statement as an Excel workbook built from the same request payload.",
   })
   @ApiHeader({ name: CSRF_HEADER, required: true, description: "Token matching the 3f_csrf cookie." })
-  @ApiBody({ type: MisSelectionRunRequestDto })
+  @ApiBody({ type: MisStatementRunRequestDto })
   @ApiResponse({
     status: HttpStatus.OK,
     description: "Statement workbook streamed or selection reported as unresolvable.",
@@ -128,7 +128,7 @@ export class MisStatementController {
     @Body() body: unknown,
     @Res({ passthrough: true }) response: Response,
   ): Promise<MisStatementUnresolvableResponse | MisStatementRefreshRequiredResponse | StreamableFile> {
-    const parsed = misSelectionRunRequestSchema.safeParse(body);
+    const parsed = misStatementRunRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues.map((issue) => `${issue.path.join(".") || "request"} invalid`));
     }

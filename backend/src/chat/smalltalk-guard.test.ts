@@ -17,6 +17,7 @@ describe("classifySmalltalk", () => {
       "hi",
       "Hello!",
       "hello there",
+      "Hi, team",
       "hey team",
       "thanks",
       "good morning",

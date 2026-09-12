@@ -17,6 +17,7 @@ test("the statement route refuses a pinned batch that is no longer active and be
   const { controller } = statementController();
   const unpinned = await controller.run(user, request("DUB"));
   assert.equal(unpinned.outcome, "resolved");
+  assert.equal((await controller.run(user, { ...request("DUB"), pinnedBatches: [] })).outcome, "resolved");
 
   const pinned: MisStatementRunRequest = {
     ...request("DUB"),
@@ -38,6 +39,17 @@ test("the statement route refuses a pinned batch that is no longer active and be
     { source: "budget", period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000100" },
   ]);
   assert.equal((await active.controller.run(user, pinned)).outcome, "resolved");
+
+  const headers: Record<string, string> = {};
+  assert.deepEqual(
+    await controller.export(user, pinned, {
+      setHeader(name: string, value: string) {
+        headers[name] = value;
+      },
+    } as never),
+    { outcome: "refresh-required", notice: "The data was refreshed - ask again" },
+  );
+  assert.deepEqual(headers, {});
 });
 
 test("the statement route refuses an unauthorized plant but returns the unresolvable outcome with its notice for a plant the master does not cover and a configured zero statement without the notice when there are no transactions", async () => {

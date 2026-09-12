@@ -25,7 +25,6 @@ const provenanceBatchSchema = z
 export const misStatementRunRequestSchema = misSelectionRunRequestSchema.extend({
   pinnedBatches: z
     .array(provenanceBatchSchema)
-    .min(1)
     .refine((values) => new Set(values.map(({ batchId }) => batchId)).size === values.length, {
       message: "pinned batches must be unique",
     })
