@@ -1,0 +1,7 @@
+{
+  "task_id": "assistant-governed-ask",
+  "branch": "feat/assistant-assistant-governed-ask",
+  "base_main_sha": "e0cdbcc6928d5e4d41af7439f813ce18b0f35807",
+  "commit": "1d278ff5132320ad3899753e2da4634d24cda445",
+  "sealed_at": "2026-09-12T09:28:09+00:00"
+}
