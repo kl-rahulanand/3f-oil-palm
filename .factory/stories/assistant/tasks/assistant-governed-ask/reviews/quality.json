@@ -1,24 +1,9 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-governed-ask",
-  "score": 0,
-  "summary": "quality lens over assistant-governed-ask (20 product path(s), 99626df..b3c8a3a, Codex via the autoreview skill at --max-priority P2): 3 blocking, 3 non-blocking. The backend route, governance, audit-entry ordering, and statement pin validation are substantially implemented, but two user-facing transports remain server-only, durable-conversation compatibility symbols remain, short greeting handling regresses, and required boundary tests are incomplete.\nVERDICT t-aga-c1: implemented \u2014 backend/src/app.module.ts:13 evidence\nVERDICT t-aga-c2: implemented \u2014 backend/src/chat/chat.service.test.ts:16 evidence\nVERDICT t-aga-c3: partial \u2014 backend/src/chat/smalltalk-guard.ts:62 evidence\nVERDICT t-aga-c4: partial \u2014 backend/src/chat/chat.service.test.ts:108 evidence\nVERDICT t-aga-c5: partial \u2014 contract/src/api.ts:492 evidence\nVERDICT t-aga-c6: implemented \u2014 backend/src/chat/chat.service.ts:99 evidence\nVERDICT t-aga-c7: partial \u2014 contract/src/api.ts:132 evidence",
+  "score": 9,
+  "summary": "quality lens over assistant-governed-ask (20 product path(s), 99626df..5c83920, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. VERDICT t-aga-c1: implemented \u2014 backend/src/app.module.ts:15 and backend/src/app.routes.test.ts:31\nVERDICT t-aga-c2: implemented \u2014 backend/src/chat/chat.service.test.ts:16\nVERDICT t-aga-c3: partial \u2014 backend/src/chat/smalltalk-guard.ts:64 permits punctuated greetings to escape deterministic handling\nVERDICT t-aga-c4: implemented \u2014 backend/src/chat/chat.service.ts:227\nVERDICT t-aga-c5: partial \u2014 backend/src/mis/mis-statement.dto.ts:29 rejects the valid no-pins empty-list representation\nVERDICT t-aga-c6: implemented \u2014 backend/src/chat/chat.service.ts:98\nVERDICT t-aga-c7: implemented \u2014 backend/src/chat/chat.schemas.ts:14\nLEFTOVERS: none shown in the supplied diff.\n\nThe main route governance, provider boundary, audit ordering, catalog validation, durable-conversation removal, report mapping, and test registration are present. The two concrete wire/response-matrix defects above make the patch incomplete.",
   "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "contract/src",
-      "summary": "[P1] Implement the client side of View in report (contract/src/api.ts:492): The branch only adds the `viewInReport` response shape and backend mapping; no frontend code consumes it, renders the action, or posts its selectors and `activeBatchIds` to `/api/mis/statement`."
-    },
-    {
-      "category": "regression",
-      "area": "contract/src",
-      "summary": "[P1] Migrate the client to the new prior-turn transport (contract/src/api.ts:141): `priorTurns` is added to the wire contract and consumed by the service, but the bundle contains no client change that retains turns in client state and sends this field."
-    },
-    {
-      "category": "maintainability",
-      "area": "contract/src",
-      "summary": "[P1] Remove the retained durable-conversation request fields (contract/src/api.ts:132): The public request contract retains `conversationId` under an explicit `@deprecated` marker and also retains `turnId`; the schema/controller continue accepting both, while `turnId` is merely renamed `_turnId` and ignored by the service."
-    },
     {
       "category": "plan-contract-partial",
       "area": "docs/specs/assistant-and-exploration.md#settled-by-the-requirements-grill-2026-09-12",
@@ -26,38 +11,23 @@
     },
     {
       "category": "plan-contract-partial",
-      "area": "docs/decisions/0018-mis-selection-unmapped-gl-bucket.md",
-      "summary": "t-aga-c4: The enforceable half of the catalog rule is enforced, and only that half is claimed. A selection referencing any measure or dimension outside the registered domains - governed-financial and mis-statement - is REFUSED server-side and deterministically, and a refusal is NEVER rendered as a zero: decision 0018 made a zero a meaningful value, and conflating them would teach the reader to distrust every zero on the statement. What is NOT claimed as a guarantee: that an off-topic question is refused. bedrock.provider.ts:265 validates the ids an emitted selection uses, not whether the question was about the catalog, so an irrelevant question that yields a valid selection returns governed numbers with honest provenance. That is a best-effort prompt behaviour, stated as such in the plan and in the code comment, not proven by a test that stubs kind 'unsupported'. Human-decided at the task grill."
-    },
-    {
-      "category": "plan-contract-partial",
       "area": "plans/active/assistant-assistant-exploration.md#view-in-report-on-both-sides",
       "summary": "t-aga-c5: View-in-report has a real wire contract and a stated mapping rule. The field is a DISCRIMINATED union - { available: true, department, function, plant, period, activeBatchIds } | { available: false, reason } - because 'absent with a reason' cannot be represented by an absent optional field. The mapping rule is explicit, because none is derivable from the domain: the statement domain exposes only leaf_key as a dimension (semanticLayer.ts:141), so a link is offered ONLY when the answer was executed against the mis-statement domain AND its resolved scope names exactly one department, function, plant and an offered period; every other answer returns available: false with the reason. POST /api/mis/statement then accepts pinned batch ids on a STATEMENT-ONLY request schema - misSelectionRunRequestSchema is parsed by three call sites (mis-selection.controller.ts:86 for /api/mis/run, and mis-statement.controller.ts:66 and :115 for statement and export), so extending the shared schema would silently change all three - validates them, and returns a typed 'the data was refreshed - ask again' outcome when they are no longer active. With NO pinned ids the route behaves exactly as it does today, and the existing statement, export and drill tests pass untouched."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0028-saved-selections-not-snapshots.md",
-      "summary": "t-aga-c7: Durable conversation is disabled, not merely unused, and prior turns get a transport. A client-supplied conversationId today makes chat.service.ts:139 read the conversations table and :412 persist an answer snapshot - tables this story deliberately does not create - so a client could trigger either a missing-table failure or governed data at rest, which decision 0028 forbids. The route REJECTS conversationId with a typed 400, and prior turns travel in the request body from client state, capped by the existing token budget, so the permitted-input boundary still has something to permit. No conversations, saved or pins route is registered here. D-0006 is honoured for every prettier-ignored file this task edits - chat.controller.ts and smalltalk-guard.ts are formatted and their .prettierignore entries removed in the same change, while chat.service.ts is NOT in that file and needs no reformat - and new hermetic tests are registered in backend/package.json test:hermetic AND tools/quality-gate.test.mjs, or CI runs none of them."
     }
   ],
   "non_blocking_findings": [
     {
       "category": "regression",
       "area": "backend/src/chat",
-      "summary": "[P2] Preserve deterministic handling for short greeting variants (backend/src/chat/smalltalk-guard.ts:62): Replacing the existing short greeting-prefix check with exact set membership makes previously recognized general-chat inputs such as `hello there` or `hey team` fall through to semantic/model routing."
+      "summary": "[P2] Keep punctuated greetings on the deterministic smalltalk path (backend/src/chat/smalltalk-guard.ts:64): Replacing the word-boundary check with `(?:$|\\s)` makes ordinary greetings followed by punctuation, such as `Hi, team`, stop matching the greeting prefix."
     },
     {
-      "category": "test_gap",
-      "area": "backend/src/chat",
-      "summary": "[P2] Prove refusal for out-of-catalog dimensions as well as measures (backend/src/chat/chat.service.test.ts:108): The new catalog-boundary test exercises only an unknown measure."
-    },
-    {
-      "category": "test_gap",
-      "area": "backend/src/chat",
-      "summary": "[P2] Assert that every rendered numeric character comes from the result (backend/src/chat/chat.service.test.ts:62): The data-response test checks `responseClass`, provenance, and equality of the raw result table, but never examines rendered fields such as the title/readback."
+      "category": "bug",
+      "area": "backend/src/mis",
+      "summary": "[P2] Treat an empty pinned-batch list as the no-pins path (backend/src/mis/mis-statement.dto.ts:29): The public `MisStatementRunRequest` type permits `pinnedBatches: []`, and `viewInReport.activeBatchIds` can legitimately be empty for a configured zero/no-transaction statement."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     ".prettierignore",
     "backend/package.json",
@@ -85,44 +55,44 @@
     {
       "contract_id": "t-aga-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/app.module.ts:13 evidence"
+      "evidence": "backend/src/app.module.ts:15 and backend/src/app.routes.test.ts:31"
     },
     {
       "contract_id": "t-aga-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.test.ts:16 evidence"
+      "evidence": "backend/src/chat/chat.service.test.ts:16"
     },
     {
       "contract_id": "t-aga-c3",
       "verdict": "partial",
-      "evidence": "backend/src/chat/smalltalk-guard.ts:62 evidence"
+      "evidence": "backend/src/chat/smalltalk-guard.ts:64 permits punctuated greetings to escape deterministic handling"
     },
     {
       "contract_id": "t-aga-c4",
-      "verdict": "partial",
-      "evidence": "backend/src/chat/chat.service.test.ts:108 evidence"
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.ts:227"
     },
     {
       "contract_id": "t-aga-c5",
       "verdict": "partial",
-      "evidence": "contract/src/api.ts:492 evidence"
+      "evidence": "backend/src/mis/mis-statement.dto.ts:29 rejects the valid no-pins empty-list representation"
     },
     {
       "contract_id": "t-aga-c6",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.ts:99 evidence"
+      "evidence": "backend/src/chat/chat.service.ts:98"
     },
     {
       "contract_id": "t-aga-c7",
-      "verdict": "partial",
-      "evidence": "contract/src/api.ts:132 evidence"
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.schemas.ts:14"
     }
   ],
   "aspect": "quality",
-  "review_run_id": "92164711574a0c1bc1793a8acf946f456c24a0f12d2a26c5decc36181e32ae4d",
-  "brief_sha256": "d20757a3b1c3a5d0742b165cab886f653696c5072874c8fc69a2b7c6904842ac",
-  "branch_diff_digest": "278186b0852226448056046a4e0fed2744677d9f74f05b8222b9996c88fc6ce5",
+  "review_run_id": "5b0c79424c891112594698df344ea97fdba11592150dc8c5ccb7f264268a3d39",
+  "brief_sha256": "f46882c86e7a1a3eb0dc0816a4753f1ad0819f53d195825170b4c0e06fe24aeb",
+  "branch_diff_digest": "80b14f8b2107f9db422a090379aa9d41893b3102c32c651393cde4de98a1c11f",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T08:36:55+00:00",
-  "commit": "b3c8a3ae18cce932ad54fbdeeeb21050409a0614"
+  "recorded_at": "2026-09-12T08:54:27+00:00",
+  "commit": "5c83920f0a45387beb6186854f25602a9bd8f4f7"
 }

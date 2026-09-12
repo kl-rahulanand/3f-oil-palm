@@ -1,35 +1,20 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-governed-ask",
-  "score": 0,
-  "summary": "security lens over assistant-governed-ask (20 product path(s), 99626df..b3c8a3a, Codex via the autoreview skill at --max-priority P2): 4 blocking, 1 non-blocking. The primary authorization, CSRF, audit-before-warehouse, model-input, catalog-validation, and pinned-batch controls shown in the diff are sound. However, the change leaves several explicitly blocking compatibility leftovers, introduces a contract/schema rejection mismatch, and edits a D-0006-ignored file without removing its ignore-baseline entries, which the supplied evidence says fails the quality gate.",
+  "score": 6,
+  "summary": "security lens over assistant-governed-ask (20 product path(s), 99626df..5c83920, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The authentication, report-action authorization, global CSRF coverage, fail-closed entry audit, Bedrock input restrictions, durable-conversation rejection, and statement pin revalidation shown in the diff are otherwise consistent with the security contracts. The patch remains incorrect because it retains a blocking compatibility response layer and its statement request schema rejects a valid empty pinned-batch representation.",
   "blocking_findings": [
     {
-      "category": "regression",
-      "area": "backend/src/chat",
-      "summary": "[P1] Remove chat.service.ts from the D-0006 ignore baseline (backend/src/chat/chat.service.ts:1): This patch modifies `chat.service.ts`, but the corresponding `.prettierignore` entry and `ignoredBaselineHashes` entry are not removed."
-    },
-    {
       "category": "maintainability",
       "area": "contract/src",
-      "summary": "[P1] Remove the deprecated conversationId compatibility surface (contract/src/api.ts:133): `AskRequest` still advertises `conversationId` and explicitly marks it deprecated, while the implementation rejects it."
-    },
-    {
-      "category": "maintainability",
-      "area": "contract/src",
-      "summary": "[P1] Delete the ignored durable turnId parameter (contract/src/api.ts:135): `turnId` still claims to identify a durable turn, is accepted by the schema and forwarded through the controller, but is renamed `_turnId` and never used by `ChatService` after durable persistence was removed."
-    },
-    {
-      "category": "maintainability",
-      "area": "backend/src/chat",
-      "summary": "[P1] Remove the dead ConversationsService dependency (backend/src/chat/chat.service.ts:56): All conversation reads and writes are deleted, yet `ChatService` retains an unused `_conversations` constructor dependency and `ChatModule` still provides `ConversationsService`."
+      "summary": "[P1] Remove the retained response compatibility layer (contract/src/api.ts:315): The endpoint is migrated to the new `MisStatementRouteResponse`, but that type wraps the existing exported `MisStatementRunResponse`, leaving the old response contract available for prior callers."
     }
   ],
   "non_blocking_findings": [
     {
-      "category": "regression",
-      "area": "backend/src/chat",
-      "summary": "[P2] Align the strict request schema with AskRequest.sessionId (backend/src/chat/chat.schemas.ts:34): Making `askSchema` strict means a body containing `sessionId` is now rejected because that property is not listed in the schema, even though the exported `AskRequest` contract still declares it as valid."
+      "category": "bug",
+      "area": "backend/src/mis",
+      "summary": "[P2] Accept an empty pinned-batch list as the no-pins request (backend/src/mis/mis-statement.dto.ts:29): The public `MisStatementRunRequest` type permits `pinnedBatches: []`, and an available `viewInReport` response always carries an `activeBatchIds` array that can legitimately be empty."
     }
   ],
   "recommendation": "request-changes",
@@ -57,10 +42,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "92164711574a0c1bc1793a8acf946f456c24a0f12d2a26c5decc36181e32ae4d",
-  "brief_sha256": "d20757a3b1c3a5d0742b165cab886f653696c5072874c8fc69a2b7c6904842ac",
-  "branch_diff_digest": "278186b0852226448056046a4e0fed2744677d9f74f05b8222b9996c88fc6ce5",
+  "review_run_id": "5b0c79424c891112594698df344ea97fdba11592150dc8c5ccb7f264268a3d39",
+  "brief_sha256": "f46882c86e7a1a3eb0dc0816a4753f1ad0819f53d195825170b4c0e06fe24aeb",
+  "branch_diff_digest": "80b14f8b2107f9db422a090379aa9d41893b3102c32c651393cde4de98a1c11f",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T08:36:55+00:00",
-  "commit": "b3c8a3ae18cce932ad54fbdeeeb21050409a0614"
+  "recorded_at": "2026-09-12T08:54:27+00:00",
+  "commit": "5c83920f0a45387beb6186854f25602a9bd8f4f7"
 }
