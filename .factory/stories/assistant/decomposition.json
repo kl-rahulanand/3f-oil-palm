@@ -1,0 +1,60 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "issue": "assistant",
+  "story": "assistant",
+  "project": "3oilpalm",
+  "epic": "assistant",
+  "user_facing": true,
+  "plan_file": "plans/active/assistant-assistant-exploration.md",
+  "tasks": [
+    {
+      "id": "assistant-governed-ask",
+      "title": "Register and govern the vendored assistant, with the view-in-report contract on both sides",
+      "objective": "Make the vendored chat stack reachable and governed: register it, enforce the Bedrock input boundary by test, implement the response matrix and the out-of-catalog refusal, move the fail-closed audit onto every branch, and add the view-in-report field together with the statement-side pinned-batch validation that makes it mean something. Backend only.",
+      "user_facing": false,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "A governed natural-language question is answered from the governed measures with provenance, the model never emits a figure, and the view-in-report link opens the statement the answer came from or is refused as stale."
+      ]
+    },
+    {
+      "id": "assistant-ask-surfaces",
+      "title": "The docked Ask panel and the standalone Ask page",
+      "objective": "Build the next bounded slice when it reaches the frontier: the prototype's two Ask surfaces with suggested chips, the verified badge, provenance disclosure, and the view-in-report link including its stale and absent states. Frontend only.",
+      "user_facing": true,
+      "dependencies": [
+        "assistant-governed-ask"
+      ],
+      "acceptance_criteria": [
+        "A question asked from either surface renders its verified answer, provenance and report link, matching the approved prototype."
+      ]
+    },
+    {
+      "id": "assistant-exploration-api",
+      "title": "Saved selections and personal pins, with the snapshot behaviour removed",
+      "objective": "Build the next bounded slice when it reaches the frontier: the scoped migration for saved_queries and dashboard_pins, the saved and pin routes storing selections only and re-authorizing on every open, and the removal of the vendored snapshot-on-create and snapshot-on-list behaviour. Backend only.",
+      "user_facing": false,
+      "dependencies": [
+        "assistant-governed-ask"
+      ],
+      "acceptance_criteria": [
+        "A saved selection re-runs under the current user's RBAC and a revoked grant is refused rather than served from a cached figure, and no route returns a stored ResultTable."
+      ]
+    },
+    {
+      "id": "assistant-exploration-view",
+      "title": "The Explore surface and pinned reports",
+      "objective": "Build the next bounded slice when it reaches the frontier: the Explore / saved-views surface and the dashboard's pinned-reports list, opening by re-running rather than replaying. Frontend only.",
+      "user_facing": true,
+      "dependencies": [
+        "assistant-exploration-api",
+        "assistant-ask-surfaces"
+      ],
+      "acceptance_criteria": [
+        "A saved view and a pinned report each open by re-running their selection, and a refusal renders as a refusal rather than an empty result."
+      ]
+    }
+  ],
+  "plan_sha256": "b42f23505a02ff4d849e94e042ca5514d3ebff0a4ceb25809c5696ada0e46150",
+  "commit": "4a4f52dfa1f61461e0c6b189785adf10889059df"
+}

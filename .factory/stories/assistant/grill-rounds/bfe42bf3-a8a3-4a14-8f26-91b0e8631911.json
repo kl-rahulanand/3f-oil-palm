@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Fifteen acceptance criteria. The plan's four tasks are: **governed-ask** (backend), **ask-surfaces** (frontend), **exploration-api** (backend), **exploration-view** (frontend). The question is whether task 1 is one bounded session: it registers and governs the chat module, wires Bedrock with a tested input boundary, implements the five-branch response matrix and the out-of-catalog refusal, moves the fail-closed audit onto every branch, adds the view-in-report field \u2014 *and* changes the shipped statement route to accept and validate pinned batch ids with a typed refusal.",
+      "options": [
+        "Five \u2014 split the statement change out (Recommended)",
+        "Four \u2014 as the plan says",
+        "Three \u2014 fold exploration together"
+      ],
+      "chosen": "Four \u2014 as the plan says"
+    }
+  ],
+  "at": "2026-09-12T07:27:13.263611+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
