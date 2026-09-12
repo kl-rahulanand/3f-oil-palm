@@ -1,23 +1,13 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-exploration-api",
-  "score": 4,
-  "summary": "quality lens over assistant-exploration-api (27 product path(s), eaf73d8..9a04f17, Codex via the autoreview skill at --max-priority P2): 2 blocking, 0 non-blocking. VERDICT t-aea-c1: implemented \u2014 backend/drizzle/0001_saved_and_pins.sql:3 creates the deliberately scoped two-table migration with indexed foreign keys and timezone-aware timestamps\nVERDICT t-aea-c2: implemented \u2014 backend/src/app.module.ts:16 registers both modules and backend/src/app.routes.test.ts:28 enforces the exhaustive route surface\nVERDICT t-aea-c3: implemented \u2014 contract/src/api.ts:388 removes snapshot-facing Pin fields while the refresh service and routes are deleted\nVERDICT t-aea-c4: partial \u2014 backend/src/saved/saved.service.ts:119 omits current scope grants from the runnable-status authorization predicate\nVERDICT t-aea-c5: partial \u2014 backend/src/pins/pins.service.ts:119 performs refusal auditing only after the pin mutation has committed\nVERDICT t-aea-c6: implemented \u2014 backend/package.json:17 registers the new hermetic leaves and backend/package.json:18 registers the isolated app-DB migration proof",
+  "score": 7,
+  "summary": "quality lens over assistant-exploration-api (27 product path(s), eaf73d8..75cea9c, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. VERDICT t-aea-c1: implemented \u2014 backend/drizzle/0001_saved_and_pins.sql:3 creates the deliberately scoped two-table migration.\nVERDICT t-aea-c2: implemented \u2014 backend/src/app.module.ts:16 registers both governed modules, with the strict route list covered separately.\nVERDICT t-aea-c3: implemented \u2014 backend/src/pins/pins.service.ts:57 returns pins without snapshot refresh machinery or stored results.\nVERDICT t-aea-c4: implemented \u2014 contract/src/api.ts:401 declares the required runnable/refusal discriminated status.\nVERDICT t-aea-c5: partial \u2014 backend/src/pins/pins.service.ts:102 performs refusal auditing only after reorder mutations have committed.\nVERDICT t-aea-c6: implemented \u2014 backend/src/db/migrate.exploration.db.test.ts:9 provides the isolated app-DB migration proof and the diff registers the required suites.",
   "blocking_findings": [
     {
-      "category": "bug",
-      "area": "backend/src/saved",
-      "summary": "[P1] Re-authorize selections against the caller's current scope grants (backend/src/saved/saved.service.ts:119): `selectionStatus` checks the domain, measures, dimensions, and composed-domain `report` action, but never verifies a scoped domain's `scopeColumn` against `user.scope`."
-    },
-    {
-      "category": "bug",
+      "category": "security",
       "area": "backend/src/pins",
-      "summary": "[P1] Do not commit pin mutations before refusal auditing succeeds (backend/src/pins/pins.service.ts:119): `updateView` commits the `dashboard_pins` update before awaiting the refusal audit."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/decisions/0016-governed-joins-poc-scope.md",
-      "summary": "t-aea-c4: Every read re-authorizes as the CURRENT user against the CURRENT semantic layer, because a save is a question and a question may stop being answerable. Listing saved queries or pins validates each stored selection against the caller's present grants and the registered domains; one the caller may no longer run is returned as a refusal that says so, never silently dropped and never served from anything cached - there is nothing cached to serve. A selection naming a measure or dimension the semantic layer no longer registers is likewise reported rather than returned as if runnable. THE REFUSAL HAS A DECLARED SHAPE, because today SavedQuery (contract/src/api.ts:372) and Pin (:386) each require a runnable Selection and there is nowhere to say no. contract/src/api.ts is in write_scope: both interfaces gain a REQUIRED discriminated status - {runnable: true} | {runnable: false, reason: 'grant_revoked' | 'definition_unregistered', message: string} - required rather than optional so a consumer cannot forget to render it, following the required-discriminated-union precedent at contract/src/api.ts:486. The stored selection is RETAINED on a refusal so the reader can still see and delete what they saved. No frontend consumes SavedQuery or Pin yet - task 4 builds those surfaces - so this shape is settled here, not later."
+      "summary": "[P1] Audit pin refusals before committing a reorder (backend/src/pins/pins.service.ts:102): `reorder` commits all position updates and only then calls `listRows`, where revoked or unregistered selections are refusal-audited."
     },
     {
       "category": "plan-contract-partial",
@@ -61,32 +51,32 @@
     {
       "contract_id": "t-aea-c1",
       "verdict": "implemented",
-      "evidence": "backend/drizzle/0001_saved_and_pins.sql:3 creates the deliberately scoped two-table migration with indexed foreign keys and timezone-aware timestamps"
+      "evidence": "backend/drizzle/0001_saved_and_pins.sql:3 creates the deliberately scoped two-table migration."
     },
     {
       "contract_id": "t-aea-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/app.module.ts:16 registers both modules and backend/src/app.routes.test.ts:28 enforces the exhaustive route surface"
+      "evidence": "backend/src/app.module.ts:16 registers both governed modules, with the strict route list covered separately."
     },
     {
       "contract_id": "t-aea-c3",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:388 removes snapshot-facing Pin fields while the refresh service and routes are deleted"
+      "evidence": "backend/src/pins/pins.service.ts:57 returns pins without snapshot refresh machinery or stored results."
     },
     {
       "contract_id": "t-aea-c4",
-      "verdict": "partial",
-      "evidence": "backend/src/saved/saved.service.ts:119 omits current scope grants from the runnable-status authorization predicate"
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:401 declares the required runnable/refusal discriminated status."
     },
     {
       "contract_id": "t-aea-c5",
       "verdict": "partial",
-      "evidence": "backend/src/pins/pins.service.ts:119 performs refusal auditing only after the pin mutation has committed"
+      "evidence": "backend/src/pins/pins.service.ts:102 performs refusal auditing only after reorder mutations have committed."
     },
     {
       "contract_id": "t-aea-c6",
       "verdict": "implemented",
-      "evidence": "backend/package.json:17 registers the new hermetic leaves and backend/package.json:18 registers the isolated app-DB migration proof"
+      "evidence": "backend/src/db/migrate.exploration.db.test.ts:9 provides the isolated app-DB migration proof and the diff registers the required suites."
     },
     {
       "contract_id": "t-aga-c1",
@@ -155,10 +145,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "1780ec68056e544bfd1f55105f65c8ac658ed325b23447739e74d664a5adec16",
-  "brief_sha256": "fd9b08726d2aa44af25a58749387b988b6ee5f39a590f0e6bb3728a19e3e73d8",
-  "branch_diff_digest": "5445b3baf61fc6b498f9aff33b293d844b375817797406a7ecfad7f7f5aeeefa",
+  "review_run_id": "2f3a059fde7fd33c6487144f6b951396400c6b49b27976ba8c1c8bc38d0e1d11",
+  "brief_sha256": "219bc6b5f97d3f0e58a3ae42b1e96946663171fcbcfaabc42c245e41972f2868",
+  "branch_diff_digest": "9c29f833908a28ee94e3179ec47b32772b96aa26246cc927b5cb7394a95a5c68",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T15:53:06+00:00",
-  "commit": "9a04f1726d9e830996d8cd43b6f9065809f5b5f6"
+  "recorded_at": "2026-09-12T16:06:21+00:00",
+  "commit": "75cea9c4b5674462f9de88bf161d96057ad28303"
 }

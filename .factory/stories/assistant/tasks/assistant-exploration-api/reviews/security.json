@@ -1,27 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-exploration-api",
-  "score": 8,
-  "summary": "security lens over assistant-exploration-api (27 product path(s), eaf73d8..9a04f17, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The routes are authenticated and tenant-scoped, but the new runnable-status logic does not consistently reproduce execution authorization, and pin mutations can persist after a required refusal-audit write fails. These are actionable authorization and fail-closed audit defects.",
+  "score": 10,
+  "summary": "security lens over assistant-exploration-api (27 product path(s), eaf73d8..75cea9c, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the scoped two-table migration, registers and guards the saved/pins routes, strictly validates request bodies and UUID parameters, re-authorizes stored selections against current grants and scope, audits requests and guard-level refusals fail-closed, and removes the snapshot refresh machinery and response fields. No actionable P0-P2 security defect or prohibited compatibility leftover is evident in the provided bundle.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "security",
-      "area": "backend/src/pins",
-      "summary": "[P2] Audit refusals before committing pin mutations (backend/src/pins/pins.service.ts:118): `updateView` updates `dashboard_pins` before writing the required refusal event."
-    },
-    {
-      "category": "security",
-      "area": "backend/src/saved",
-      "summary": "[P2] Do not hard-code newly saved selections as runnable (backend/src/saved/saved.service.ts:40): Creation returns `{runnable: true}` immediately after `validateSelectionForUser`, even though composed-domain execution additionally requires the `report` action."
-    },
-    {
-      "category": "security",
-      "area": "backend/src/saved",
-      "summary": "[P2] Include current row-level scope in selection reauthorization (backend/src/saved/saved.service.ts:121): The listing authorization check considers actions, domains, measures, and dimensions but never verifies that the user still has an entry for the domain's `scopeColumn`."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     ".prettierignore",
     "backend/drizzle/0001_saved_and_pins.sql",
@@ -53,10 +37,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "1780ec68056e544bfd1f55105f65c8ac658ed325b23447739e74d664a5adec16",
-  "brief_sha256": "fd9b08726d2aa44af25a58749387b988b6ee5f39a590f0e6bb3728a19e3e73d8",
-  "branch_diff_digest": "5445b3baf61fc6b498f9aff33b293d844b375817797406a7ecfad7f7f5aeeefa",
+  "review_run_id": "2f3a059fde7fd33c6487144f6b951396400c6b49b27976ba8c1c8bc38d0e1d11",
+  "brief_sha256": "219bc6b5f97d3f0e58a3ae42b1e96946663171fcbcfaabc42c245e41972f2868",
+  "branch_diff_digest": "9c29f833908a28ee94e3179ec47b32772b96aa26246cc927b5cb7394a95a5c68",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T15:53:06+00:00",
-  "commit": "9a04f1726d9e830996d8cd43b6f9065809f5b5f6"
+  "recorded_at": "2026-09-12T16:06:21+00:00",
+  "commit": "75cea9c4b5674462f9de88bf161d96057ad28303"
 }

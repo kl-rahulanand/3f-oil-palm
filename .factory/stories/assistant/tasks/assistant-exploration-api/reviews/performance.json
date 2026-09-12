@@ -1,27 +1,16 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-exploration-api",
-  "score": 3,
-  "summary": "performance lens over assistant-exploration-api (27 product path(s), eaf73d8..9a04f17, Codex via the autoreview skill at --max-priority P2): 2 blocking, 1 non-blocking. The patch removes the snapshot machinery and fixes the serial refusal-audit inserts, with no compatibility leftovers visible in the bundle. However, stored selections are still declared runnable after required scope grants disappear, and pin mutations can commit before a mandatory refusal audit succeeds. The required second audit-classification regression case is also absent.",
+  "score": 7,
+  "summary": "performance lens over assistant-exploration-api (27 product path(s), eaf73d8..75cea9c, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The snapshot machinery and compatibility fields are cleanly removed, and the listing audits are batched. However, the reorder path still commits a mutation before its refusal audit and misclassifies that audit, breaking the explicit fail-closed audit contract.",
   "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/saved",
-      "summary": "Recheck scope grants before marking stored selections runnable (backend/src/saved/saved.service.ts:119): The authorization condition never verifies that the caller still has an entry for the domain's required `scopeColumn`."
-    },
     {
       "category": "security",
       "area": "backend/src/pins",
-      "summary": "Audit refusals before committing pin mutations (backend/src/pins/pins.service.ts:118): `updateView` commits the database update before calling `auditRefusal`."
+      "summary": "[P1] Audit reorder refusals before committing the reorder (backend/src/pins/pins.service.ts:102): `reorder` commits its position updates and only then calls `listRows`, which performs the selection re-authorization and batched refusal audit."
     }
   ],
-  "non_blocking_findings": [
-    {
-      "category": "test_gap",
-      "area": "backend/src/common",
-      "summary": "Cover query-bearing reorder routes in the audit-classification regression test (backend/src/common/exploration-audit.filter.test.ts:28): The test covers only the attacker-controlled resource-spoofing case (`/api/saved?next=/api/pins`)."
-    }
-  ],
+  "non_blocking_findings": [],
   "recommendation": "request-changes",
   "reviewed_scope": [
     ".prettierignore",
@@ -54,10 +43,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "1780ec68056e544bfd1f55105f65c8ac658ed325b23447739e74d664a5adec16",
-  "brief_sha256": "fd9b08726d2aa44af25a58749387b988b6ee5f39a590f0e6bb3728a19e3e73d8",
-  "branch_diff_digest": "5445b3baf61fc6b498f9aff33b293d844b375817797406a7ecfad7f7f5aeeefa",
+  "review_run_id": "2f3a059fde7fd33c6487144f6b951396400c6b49b27976ba8c1c8bc38d0e1d11",
+  "brief_sha256": "219bc6b5f97d3f0e58a3ae42b1e96946663171fcbcfaabc42c245e41972f2868",
+  "branch_diff_digest": "9c29f833908a28ee94e3179ec47b32772b96aa26246cc927b5cb7394a95a5c68",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T15:53:06+00:00",
-  "commit": "9a04f1726d9e830996d8cd43b6f9065809f5b5f6"
+  "recorded_at": "2026-09-12T16:06:21+00:00",
+  "commit": "75cea9c4b5674462f9de88bf161d96057ad28303"
 }

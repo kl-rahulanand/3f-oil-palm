@@ -73,10 +73,7 @@ export class PinsService {
       action: "reorder",
       submitted: { orderedIds },
     });
-    const rows = await this.db
-      .select({ id: dashboardPins.id })
-      .from(dashboardPins)
-      .where(eq(dashboardPins.userId, user.id));
+    const rows = await this.db.select().from(dashboardPins).where(eq(dashboardPins.userId, user.id));
     const ownedIds = rows.map((row) => row.id);
     const ownedSet = new Set(ownedIds);
     const orderedSet = new Set(orderedIds);
@@ -90,6 +87,31 @@ export class PinsService {
       throw new BadRequestException("Pin order must include exactly the current user's pins");
     }
 
+    const rowsById = new Map(rows.map((row) => [row.id, row]));
+    const pins = orderedIds.map((id, position) => {
+      const row = rowsById.get(id)!;
+      return toPin(
+        { ...row, position },
+        selectionStatus(this.semantic, user, row.selection),
+        this.definitionChanged(row),
+      );
+    });
+    await this.audit.writeExplorationRefusalEvents(
+      pins.flatMap((pin) =>
+        pin.status.runnable
+          ? []
+          : [
+              {
+                actorId: user.id,
+                sessionId,
+                resource: "pins",
+                action: "reorder",
+                submitted: { id: pin.id, reason: pin.status.reason },
+              },
+            ],
+      ),
+    );
+
     await this.db.transaction(async (tx) => {
       for (const [index, id] of orderedIds.entries()) {
         await tx
@@ -99,7 +121,7 @@ export class PinsService {
       }
     });
 
-    return this.listRows(user, sessionId);
+    return pins;
   }
 
   async updateView(user: AuthUser, sessionId: string, id: string, view: ChartView): Promise<Pin> {

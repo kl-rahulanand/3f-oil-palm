@@ -73,6 +73,39 @@ test("a pin without the current row scope is refused before a view update can co
   assert.equal(updated, false);
 });
 
+test("a pin refusal is audited before a reorder can commit", async () => {
+  let transactionStarted = false;
+  const row = pinRow(SELECTION);
+  const db = {
+    select: () => ({ from: () => ({ where: async () => [row] }) }),
+    async transaction() {
+      transactionStarted = true;
+      throw new Error("transaction should not run");
+    },
+  } as unknown as AppDb;
+  const failingAudit = {
+    async writeExplorationRequestEvent() {
+      return 1;
+    },
+    async writeExplorationRefusalEvents(events: unknown[]) {
+      assert.deepEqual(events, [
+        {
+          actorId: USER.id,
+          sessionId: SESSION_ID,
+          resource: "pins",
+          action: "reorder",
+          submitted: { id: row.id, reason: "grant_revoked" },
+        },
+      ]);
+      throw new Error("audit unavailable");
+    },
+  } as unknown as AuditService;
+  const service = new PinsService(db, new SemanticLayer(), failingAudit);
+
+  await assert.rejects(() => service.reorder({ ...USER, scope: [] }, SESSION_ID, [row.id]), /audit unavailable/);
+  assert.equal(transactionStarted, false);
+});
+
 function pinDb(row: ReturnType<typeof pinRow>, insertedTables: unknown[]): AppDb {
   return {
     insert: (table: unknown) => {
