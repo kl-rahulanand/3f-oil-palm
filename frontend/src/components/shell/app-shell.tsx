@@ -14,7 +14,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "MIS Reports", icon: BarChart3, href: "/mis-reports" },
   { label: "Ask", icon: Bot, href: "/ask" },
-  { label: "Explore / Saved", icon: Compass },
+  { label: "Explore / Saved", icon: Compass, href: "/explore" },
   { label: "Admin", icon: Shield },
 ] as const;
 

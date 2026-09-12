@@ -1,6 +1,6 @@
 "use client";
 
-import type { AskPriorTurn, AskResponse } from "@3f/contract";
+import type { AskPriorTurn, AskResponse, Selection } from "@3f/contract";
 import { createContext, createElement, useContext, useState, type ReactNode } from "react";
 import { api } from "@/src/lib/api";
 
@@ -14,6 +14,7 @@ interface AskContextValue {
   isPending: boolean;
   error: string | null;
   ask: (question: string) => Promise<void>;
+  rerun: (question: string, selection: Selection) => Promise<boolean>;
 }
 
 const AskContext = createContext<AskContextValue | null>(null);
@@ -23,9 +24,9 @@ export function AskProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function ask(question: string) {
+  async function run(question: string, selection?: Selection): Promise<boolean> {
     const trimmed = question.trim();
-    if (!trimmed || isPending) return;
+    if (!trimmed || isPending) return false;
 
     const priorTurns: AskPriorTurn[] = turns.flatMap((turn) =>
       turn.response.responseClass === "success" && turn.response.selection
@@ -35,16 +36,35 @@ export function AskProvider({ children }: Readonly<{ children: ReactNode }>) {
     setIsPending(true);
     setError(null);
     try {
-      const response = await api.ask({ question: trimmed, ...(priorTurns.length ? { priorTurns } : {}) });
+      const response = await api.ask({
+        question: trimmed,
+        ...(priorTurns.length ? { priorTurns } : {}),
+        ...(selection ? { selection } : {}),
+      });
       setTurns((current) => [...current, { question: trimmed, response }]);
     } catch {
       setError("The question could not be sent. Try again.");
     } finally {
       setIsPending(false);
     }
+    return true;
   }
 
-  return createElement(AskContext.Provider, { value: { turns, isPending, error, ask } }, children);
+  return createElement(
+    AskContext.Provider,
+    {
+      value: {
+        turns,
+        isPending,
+        error,
+        ask: async (question) => {
+          await run(question);
+        },
+        rerun: (question, selection) => run(question, selection),
+      },
+    },
+    children,
+  );
 }
 
 export function useAsk(): AskContextValue {

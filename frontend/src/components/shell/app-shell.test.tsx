@@ -1,6 +1,6 @@
 import type { AuthUser } from "@3f/contract";
-import { screen, within } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
+import { cleanup, screen, within } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
 import { AppShell } from "./app-shell";
 import { renderWithQuery } from "@/src/test/render";
 
@@ -19,6 +19,8 @@ const user: AuthUser = {
   scope: [],
 };
 
+afterEach(cleanup);
+
 test("enables MIS Reports navigation and reflects the active page title without making feature API calls", () => {
   Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
   const fetchMock = vi.fn();
@@ -36,7 +38,8 @@ test("enables MIS Reports navigation and reflects the active page title without 
   expect(screen.getByRole("link", { name: "MIS Reports" })).toHaveAttribute("aria-current", "page");
   expect(screen.getByText("MIS Reports", { selector: ".page-title" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Ask" })).toHaveAttribute("href", "/ask");
-  for (const label of labels.slice(3)) {
+  expect(screen.getByRole("link", { name: "Explore / Saved" })).toHaveAttribute("href", "/explore");
+  for (const label of labels.slice(4)) {
     const item = navigation.getByText(label).closest(".nav-item");
     expect(item).toHaveAttribute("aria-disabled", "true");
     expect(item?.tagName).toBe("SPAN");
@@ -44,4 +47,15 @@ test("enables MIS Reports navigation and reflects the active page title without 
   expect(screen.getByPlaceholderText("Search components, GL codes, plants")).toBeDisabled();
   expect(screen.getByText("Freshness unavailable")).toHaveAttribute("aria-disabled", "true");
   expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test("the explore nav item resolves to a live destination", () => {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+  renderWithQuery(
+    <AppShell user={user}>
+      <div>Canvas</div>
+    </AppShell>,
+  );
+
+  expect(screen.getByRole("link", { name: "Explore / Saved" })).toHaveAttribute("href", "/explore");
 });

@@ -113,6 +113,66 @@ test("the ask client posts to the governed chat route with the csrf header and a
   expect(Object.keys(JSON.parse(String(init?.body))).sort()).toEqual(["priorTurns", "question"]);
 });
 
+test("opening a saved view posts the stored selection with no report grounding", async () => {
+  Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=rerun-token" });
+  const result = {
+    responseClass: "success",
+    sessionId: "session",
+    viewInReport: { available: false, reason: "Not a statement selection." },
+  };
+  const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) =>
+    String(input).endsWith("/api/chat") ? response(200, result) : response(),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const selection = {
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["gl_code"],
+    filters: [],
+  };
+
+  await api.ask({ question: "Actual", selection });
+
+  const [url, init] = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/api/chat"))!;
+  expect(String(url)).toBe("http://127.0.0.1:4000/api/chat");
+  expect(init).toMatchObject({
+    method: "POST",
+    credentials: "include",
+    body: JSON.stringify({ question: "Actual", selection }),
+  });
+  expect((init?.headers as Record<string, string>)["x-csrf-token"]).toBe("rerun-token");
+  expect(Object.keys(JSON.parse(String(init?.body))).sort()).toEqual(["question", "selection"]);
+  expect(JSON.parse(String(init?.body))).not.toHaveProperty("reportGrounding");
+});
+
+test("saved-view and pin mutations use their governed routes with csrf", async () => {
+  Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=explore-token" });
+  const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => response());
+  vi.stubGlobal("fetch", fetchMock);
+  const selection = {
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: [],
+    filters: [],
+  };
+
+  await api.saveQuery({ selection });
+  await api.createPin({ title: "Actual", selection });
+  await api.deleteSavedQuery("saved-id");
+  await api.deletePin("pin-id");
+
+  const mutations = fetchMock.mock.calls.filter(([input]) => !String(input).endsWith("/api/auth/csrf"));
+  expect(mutations.map(([input, init]) => [String(input), init?.method, init?.body])).toEqual([
+    ["http://127.0.0.1:4000/api/saved", "POST", JSON.stringify({ selection })],
+    ["http://127.0.0.1:4000/api/pins", "POST", JSON.stringify({ title: "Actual", selection })],
+    ["http://127.0.0.1:4000/api/saved/saved-id", "DELETE", undefined],
+    ["http://127.0.0.1:4000/api/pins/pin-id", "DELETE", undefined],
+  ]);
+  expect(
+    mutations.every(([, init]) => (init?.headers as Record<string, string>)["x-csrf-token"] === "explore-token"),
+  ).toBe(true);
+});
+
 test("the drill client posts to the governed drill route with the csrf header and the pinned batches untouched", async () => {
   let cookie = "";
   let csrfRequests = 0;

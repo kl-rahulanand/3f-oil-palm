@@ -1,5 +1,5 @@
 import { Injectable, Optional } from "@nestjs/common";
-import type { DomainSpec, MeasureSpec, DimensionSpec, Permissions } from "@3f/contract";
+import { SEMANTIC_LABELS, type DomainSpec, type MeasureSpec, type DimensionSpec, type Permissions } from "@3f/contract";
 import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
 
 /**
@@ -22,7 +22,7 @@ export class SemanticLayer {
       measures: [
         {
           id: "governed-financial.actual",
-          label: "Actual",
+          label: SEMANTIC_LABELS.measures["governed-financial.actual"],
           goldObject: "actual_by_gl_month",
           expr: "SUM(actual_net)",
           grain: "gl_code and month",
@@ -34,7 +34,7 @@ export class SemanticLayer {
         },
         {
           id: "governed-financial.budget",
-          label: "Budget",
+          label: SEMANTIC_LABELS.measures["governed-financial.budget"],
           goldObject: "budget_by_gl_month",
           expr: "SUM(budget_net)",
           grain: "gl_code and month",
@@ -46,7 +46,7 @@ export class SemanticLayer {
         },
         {
           id: "governed-financial.percentage",
-          label: "%",
+          label: SEMANTIC_LABELS.measures["governed-financial.percentage"],
           goldObject: "actual_by_gl_month",
           expr: `CASE
   WHEN SUM(budget_net) = 0 AND SUM(actual_net) = 0 THEN NULL
@@ -63,8 +63,8 @@ END`,
         },
       ],
       dimensions: [
-        { id: "gl_code", label: "GL code", column: "gl_code" },
-        { id: "month", label: "Month", column: "month" },
+        { id: "gl_code", label: SEMANTIC_LABELS.dimensions.gl_code, column: "gl_code" },
+        { id: "month", label: SEMANTIC_LABELS.dimensions.month, column: "month" },
       ],
     },
     {
@@ -78,12 +78,12 @@ END`,
       scopeColumn: "plant",
       routingHints: ["MIS statement", "financial statement", "budget statement"],
       measures: [
-        statementMeasure("actual_net", "Actual", "SUM(actual_net)"),
-        statementMeasure("budget_net", "Budget", "SUM(budget_net)"),
-        statementMeasure("rollover_net", "Roll-over", "SUM(rollover_net)"),
+        statementMeasure("actual_net", SEMANTIC_LABELS.measures["mis-statement.actual_net"], "SUM(actual_net)"),
+        statementMeasure("budget_net", SEMANTIC_LABELS.measures["mis-statement.budget_net"], "SUM(budget_net)"),
+        statementMeasure("rollover_net", SEMANTIC_LABELS.measures["mis-statement.rollover_net"], "SUM(rollover_net)"),
         statementMeasure(
           "percentage",
-          "%",
+          SEMANTIC_LABELS.measures["mis-statement.percentage"],
           `CASE
   WHEN SUM(budget_net) = 0 AND SUM(actual_net) = 0 THEN NULL
   WHEN SUM(budget_net) = 0 AND SUM(actual_net) > 0 THEN 'over-budget'
@@ -92,7 +92,7 @@ END`,
 END`,
         ),
       ],
-      dimensions: [{ id: "leaf_key", label: "Statement leaf", column: "leaf_key" }],
+      dimensions: [{ id: "leaf_key", label: SEMANTIC_LABELS.dimensions.leaf_key, column: "leaf_key" }],
     },
   ];
 
