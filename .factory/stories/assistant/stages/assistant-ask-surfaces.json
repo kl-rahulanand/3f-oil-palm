@@ -1,5 +1,22 @@
 {
   "id": "assistant-ask-surfaces",
   "title": "The docked Ask panel and the standalone Ask page",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-12T10:43:21+00:00",
+  "base_sha": "e24a8bd811ea4e97af4c499ff206f2631ef4ffe5",
+  "dirty_at_start": {
+    ".factory/stories/assistant/decomposition.json": {
+      "digest": "7c663215ed4c50e7fb97eaa98de784f3c7de3fac1f04b9b06838773b7075302c",
+      "git": "1 M. N... 100644 100644 100644 b819cebd1c712f04df0f1b424bbf2f4bd393315a 1e8659eb90fe52ecad29a593d5a3e3227ef8d1a8 .factory/stories/assistant/decomposition.json\u0000\u0000100644 1e8659eb90fe52ecad29a593d5a3e3227ef8d1a8 0\t.factory/stories/assistant/decomposition.json\u0000\u0000H .factory/stories/assistant/decomposition.json\u0000"
+    },
+    ".factory/stories/assistant/grills/tasks/assistant-ask-surfaces.json": {
+      "digest": "da60feab61be4974cc36ff1e90dd1de08913d2f3e26681aee9bd3f277faf3e11",
+      "git": "1 A. N... 000000 100644 100644 0000000000000000000000000000000000000000 57bb5f09981f9bb744c38725c7ddf9cc7ed5c604 .factory/stories/assistant/grills/tasks/assistant-ask-surfaces.json\u0000\u0000100644 57bb5f09981f9bb744c38725c7ddf9cc7ed5c604 0\t.factory/stories/assistant/grills/tasks/assistant-ask-surfaces.json\u0000\u0000H .factory/stories/assistant/grills/tasks/assistant-ask-surfaces.json\u0000"
+    },
+    ".factory/stories/assistant/task-plans/assistant-ask-surfaces.md": {
+      "digest": "f5c0609a6eef2593627c05e83fc365c8b660204bef9caec609126862eeeb813d",
+      "git": "1 A. N... 000000 100644 100644 0000000000000000000000000000000000000000 ce3310245f675bf475ea922708ddc979cb0cefb1 .factory/stories/assistant/task-plans/assistant-ask-surfaces.md\u0000\u0000100644 ce3310245f675bf475ea922708ddc979cb0cefb1 0\t.factory/stories/assistant/task-plans/assistant-ask-surfaces.md\u0000\u0000H .factory/stories/assistant/task-plans/assistant-ask-surfaces.md\u0000"
+    }
+  },
+  "task_sha256": "032b1819d05d28e43585ce61fd4911ad327e908489ce940f037da5900b1b3a33"
 }

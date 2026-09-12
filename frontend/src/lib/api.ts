@@ -1,4 +1,6 @@
 import type {
+  AskRequest,
+  AskResponse,
   AuthLogoutResponse,
   AuthMeResponse,
   AuthOtpRequestResponse,
@@ -8,7 +10,7 @@ import type {
   MisDrillResponse,
   MisSelectionOptionsResponse,
   MisSelectionRunRequest,
-  MisStatementRunResponse,
+  MisStatementRouteResponse,
   MisStatementUnresolvableResponse,
 } from "@3f/contract";
 
@@ -100,7 +102,8 @@ async function request<T = unknown>(path: string, refreshOn401 = false): Promise
 export const api = {
   misOptions: () => request<MisSelectionOptionsResponse>("/api/mis/options", true),
   runMisStatement: (selection: MisSelectionRunRequest) =>
-    post<MisStatementRunResponse>("/api/mis/statement", selection, true),
+    post<MisStatementRouteResponse>("/api/mis/statement", selection, true),
+  ask: (request: Pick<AskRequest, "question" | "priorTurns">) => post<AskResponse>("/api/chat", request, true),
   runMisDrill: (request: MisDrillRequest) => post<MisDrillResponse>("/api/mis/statement/drill", request, true),
   exportMisStatement,
   csrf: () => request<{ ok: true }>(CSRF_PATH),

@@ -1,15 +1,29 @@
 "use client";
 
-import type { MisSelectionRunRequest } from "@3f/contract";
-import { useState, type FormEvent } from "react";
+import type { MisSelectionRunRequest, MisStatementRunRequest } from "@3f/contract";
+import { MessageSquareText } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/src/components/ui/button";
+import { AskPanel, parseActiveBatchIds } from "@/src/features/assistant/ask-panel";
 import { StatementView } from "./statement-view";
 import { useMisStatement } from "./use-mis-statement";
 
 const EMPTY_SELECTION: MisSelectionRunRequest = { department: "", function: "", plant: "", period: "" };
 export function MisReportView() {
   const { options, run } = useMisStatement();
-  const [selection, setSelection] = useState(EMPTY_SELECTION);
+  const searchParams = useSearchParams();
+  const linkedRequest = linkedStatementRequest(searchParams);
+  const requestedLink = useRef(false);
+  const [selection, setSelection] = useState<MisSelectionRunRequest>(linkedRequest ?? EMPTY_SELECTION);
+  const [askOpen, setAskOpen] = useState(false);
+
+  useEffect(() => {
+    if (linkedRequest && !requestedLink.current) {
+      requestedLink.current = true;
+      run.mutate(linkedRequest);
+    }
+  }, [linkedRequest, run]);
 
   function update(field: keyof MisSelectionRunRequest, value: string) {
     setSelection((current) => ({ ...current, [field]: value }));
@@ -21,7 +35,8 @@ export function MisReportView() {
   }
 
   return (
-    <section className="mis-report">
+    <div className="mis-ask-layout">
+      <section className="mis-report">
       <header className="mis-report-header">
         <p className="mis-eyebrow">Governed financial view</p>
         <h1>MIS Reports</h1>
@@ -80,9 +95,33 @@ export function MisReportView() {
           <p>Actuals are read from SAP for the selected period. Nothing is written back — this report is read-only.</p>
         </div>
       )}
-      {run.isSuccess && <StatementView response={run.data} />}
-    </section>
+      {run.isSuccess &&
+        (run.data.outcome === "refresh-required" ? (
+          <StatusMessage error>{run.data.notice}</StatusMessage>
+        ) : (
+          <StatementView response={run.data} />
+        ))}
+      </section>
+      {askOpen ? (
+        <AskPanel surface="docked" onCollapse={() => setAskOpen(false)} />
+      ) : (
+        <button className="ask-rail" type="button" onClick={() => setAskOpen(true)}>
+          <MessageSquareText size={17} aria-hidden="true" />
+          <span>Assistant</span>
+        </button>
+      )}
+    </div>
   );
+}
+
+function linkedStatementRequest(searchParams: URLSearchParams): MisStatementRunRequest | undefined {
+  const department = searchParams.get("department");
+  const functionName = searchParams.get("function");
+  const plant = searchParams.get("plant");
+  const period = searchParams.get("period");
+  if (!department || !functionName || !plant || !period) return undefined;
+  const pinnedBatches = parseActiveBatchIds(searchParams.get("activeBatchIds"));
+  return { department, function: functionName, plant, period, ...(pinnedBatches ? { pinnedBatches } : {}) };
 }
 
 function SelectField({
