@@ -1,0 +1,13 @@
+{
+  "topic": "assistant-exploration-api round-2 review fixes",
+  "lesson": "Four verified defects from round 2, all three lenses converging. (1) BLOCKING, saved.service.ts selectionStatus and the pins equivalent: the runnable check still omits ROW-LEVEL SCOPE. sqlBuilder.ts:90 THROWS missingScopeForScopedDomain when user.scope has no entry whose attribute equals domain.scopeColumn - it is a hard gate, not a row filter and not an empty result - and both governed domains set scopeColumn 'plant' (semanticLayer.ts:20,:78). So a caller whose plant scope was withdrawn is told runnable:true for a selection that throws on execution. Add the check mirroring the builder EXACTLY: only when domain.scopeColumn is set, refuse with reason 'grant_revoked' when user.scope.filter(s => s.attribute === domain.scopeColumn).length === 0. Do not invent a stricter rule than the builder's, or the listing will refuse selections that would actually run. (2) BLOCKING, pins.service.ts updateView: the dashboard_pins UPDATE commits BEFORE await auditRefusal, so if that audit insert throws the mutation has already happened - t-aea-c5 requires fail-closed. Read the row, compute the status and write the refusal audit BEFORE the update commits, or do both in one transaction. (3) saved.service.ts create returns a hard-coded {runnable:true} after validateSelectionForUser, which does not apply the composed-domain 'report' action or the scope check - so create and list disagree about the same selection. Call selectionStatus instead of hard-coding. (4) exploration-audit.filter.test.ts covers only the resource-spoofing direction (/api/saved?next=/api/pins). Add the other direction the classifier got wrong: a legitimate query-bearing /api/pins/reorder?foo=1 must still audit as action 'reorder', not 'update_view'.",
+  "source": ".factory/stories/assistant/tasks/assistant-exploration-api/reviews/quality.json",
+  "applies_to": [
+    "backend/src/saved/**",
+    "backend/src/pins/**",
+    "backend/src/common/exploration-audit.filter*"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-12T15:54:17+00:00"
+}

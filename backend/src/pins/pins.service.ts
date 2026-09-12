@@ -35,6 +35,8 @@ export class PinsService {
       submitted: req,
     });
     const selectedMeasures = validateSelectionForUser(this.semantic, user, req.selection);
+    const status = selectionStatus(this.semantic, user, req.selection);
+    await this.auditRefusal(user, sessionId, undefined, status, "create");
     const definitionVersion = computeDefinitionVersion(selectedMeasures);
     const title = req.title?.trim() || this.defaultTitle(req.selection, selectedMeasures);
 
@@ -55,7 +57,7 @@ export class PinsService {
       })
       .returning();
 
-    return toPin(inserted[0], { runnable: true }, false);
+    return toPin(inserted[0], status, false);
   }
 
   async list(user: AuthUser, sessionId: string): Promise<Pin[]> {
@@ -108,14 +110,20 @@ export class PinsService {
       action: "update_view",
       submitted: { id, view },
     });
+    const rows = await this.db
+      .select()
+      .from(dashboardPins)
+      .where(and(eq(dashboardPins.id, id), eq(dashboardPins.userId, user.id)));
+    if (rows.length === 0) throw new NotFoundException("Pin not found");
+    const status = selectionStatus(this.semantic, user, rows[0].selection);
+    await this.auditRefusal(user, sessionId, rows[0].id, status, "update_view");
+
     const updated = await this.db
       .update(dashboardPins)
       .set({ viewPrefs: view })
       .where(and(eq(dashboardPins.id, id), eq(dashboardPins.userId, user.id)))
       .returning();
     if (updated.length === 0) throw new NotFoundException("Pin not found");
-    const status = selectionStatus(this.semantic, user, updated[0].selection);
-    await this.auditRefusal(user, sessionId, updated[0].id, status, "update_view");
     return toPin(updated[0], status, this.definitionChanged(updated[0]));
   }
 
@@ -166,9 +174,9 @@ export class PinsService {
   private async auditRefusal(
     user: AuthUser,
     sessionId: string,
-    id: string,
+    id: string | undefined,
     status: ExplorationSelectionStatus,
-    action: "list" | "update_view",
+    action: "create" | "list" | "update_view",
   ): Promise<void> {
     if (status.runnable) return;
     await this.audit.writeExplorationRefusalEvent({
@@ -176,7 +184,7 @@ export class PinsService {
       sessionId,
       resource: "pins",
       action,
-      submitted: { id, reason: status.reason },
+      submitted: { ...(id ? { id } : {}), reason: status.reason },
     });
   }
 
@@ -242,6 +250,7 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
   }
   if (
     (domain.composed && !user.permissions.actions.includes("report")) ||
+    (domain.scopeColumn && !user.scope.some((scope) => scope.attribute === domain.scopeColumn)) ||
     !user.permissions.domains.includes(selection.domain) ||
     selection.measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
     [...dimensionIds].some((id) => !user.permissions.dimensionIds.includes(id))

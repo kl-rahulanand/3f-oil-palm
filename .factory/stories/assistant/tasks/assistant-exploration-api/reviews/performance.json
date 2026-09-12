@@ -1,17 +1,28 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-exploration-api",
-  "score": 9,
-  "summary": "performance lens over assistant-exploration-api (27 product path(s), eaf73d8..ca0e573, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The snapshot compatibility machinery is removed cleanly, but both list paths introduce deterministic, serial N+1 audit-write fanout when stored selections are refused. That is an actionable performance defect on newly registered public endpoints.",
-  "blocking_findings": [],
-  "non_blocking_findings": [
+  "score": 3,
+  "summary": "performance lens over assistant-exploration-api (27 product path(s), eaf73d8..9a04f17, Codex via the autoreview skill at --max-priority P2): 2 blocking, 1 non-blocking. The patch removes the snapshot machinery and fixes the serial refusal-audit inserts, with no compatibility leftovers visible in the bundle. However, stored selections are still declared runnable after required scope grants disappear, and pin mutations can commit before a mandatory refusal audit succeeds. The required second audit-classification regression case is also absent.",
+  "blocking_findings": [
     {
       "category": "bug",
       "area": "backend/src/saved",
-      "summary": "[P2] Batch refusal audits when listing saved selections (backend/src/saved/saved.service.ts:52): The diff directly shows one request-audit insert and one SELECT followed by an individually awaited audit insert for every refused saved query."
+      "summary": "Recheck scope grants before marking stored selections runnable (backend/src/saved/saved.service.ts:119): The authorization condition never verifies that the caller still has an entry for the domain's required `scopeColumn`."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/pins",
+      "summary": "Audit refusals before committing pin mutations (backend/src/pins/pins.service.ts:118): `updateView` commits the database update before calling `auditRefusal`."
     }
   ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "backend/src/common",
+      "summary": "Cover query-bearing reorder routes in the audit-classification regression test (backend/src/common/exploration-audit.filter.test.ts:28): The test covers only the attacker-controlled resource-spoofing case (`/api/saved?next=/api/pins`)."
+    }
+  ],
+  "recommendation": "request-changes",
   "reviewed_scope": [
     ".prettierignore",
     "backend/drizzle/0001_saved_and_pins.sql",
@@ -43,10 +54,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "8c0db21a016c4c78a373d7de1bc7febd42b79bad1ed98a7b7cbcb5fc94878566",
-  "brief_sha256": "90dd54982efed6e22f1119713e8189024358d5dad81ea3e482185571554fce09",
-  "branch_diff_digest": "462716c6ba4584fc6bca8224b65a80e5b0f670eb3ee73d43d92a2e4e0c516f62",
+  "review_run_id": "1780ec68056e544bfd1f55105f65c8ac658ed325b23447739e74d664a5adec16",
+  "brief_sha256": "fd9b08726d2aa44af25a58749387b988b6ee5f39a590f0e6bb3728a19e3e73d8",
+  "branch_diff_digest": "5445b3baf61fc6b498f9aff33b293d844b375817797406a7ecfad7f7f5aeeefa",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T14:46:51+00:00",
-  "commit": "ca0e573c72ede8a40aa41976a68d7cd525c8d72d"
+  "recorded_at": "2026-09-12T15:53:06+00:00",
+  "commit": "9a04f1726d9e830996d8cd43b6f9065809f5b5f6"
 }

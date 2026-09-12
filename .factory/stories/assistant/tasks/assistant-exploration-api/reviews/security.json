@@ -1,19 +1,24 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-exploration-api",
-  "score": 9,
-  "summary": "security lens over assistant-exploration-api (27 product path(s), eaf73d8..ca0e573, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The migration, route guards, snapshot removal, strict body schemas, and pre-operation request audits are consistent with the supplied contracts. However, current scope revocation is omitted from both runnable-status authorization decisions, and refusal audit classification can be manipulated through the raw URL. These are actionable security defects in two central requirements of the change.",
+  "score": 8,
+  "summary": "security lens over assistant-exploration-api (27 product path(s), eaf73d8..9a04f17, Codex via the autoreview skill at --max-priority P2): 0 blocking, 3 non-blocking. The routes are authenticated and tenant-scoped, but the new runnable-status logic does not consistently reproduce execution authorization, and pin mutations can persist after a required refusal-audit write fails. These are actionable authorization and fail-closed audit defects.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "security",
-      "area": "backend/src/saved",
-      "summary": "Re-authorize saved selections against the caller's current scope (backend/src/saved/saved.service.ts:114): The runnable-status check only compares domain, measure, and dimension IDs."
+      "area": "backend/src/pins",
+      "summary": "[P2] Audit refusals before committing pin mutations (backend/src/pins/pins.service.ts:118): `updateView` updates `dashboard_pins` before writing the required refusal event."
     },
     {
       "category": "security",
-      "area": "backend/src/common",
-      "summary": "Do not derive audit identity from attacker-controlled query text (backend/src/common/exploration-audit.filter.ts:25): The filter classifies a refusal as pins whenever `originalUrl` contains `/api/pins`."
+      "area": "backend/src/saved",
+      "summary": "[P2] Do not hard-code newly saved selections as runnable (backend/src/saved/saved.service.ts:40): Creation returns `{runnable: true}` immediately after `validateSelectionForUser`, even though composed-domain execution additionally requires the `report` action."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/saved",
+      "summary": "[P2] Include current row-level scope in selection reauthorization (backend/src/saved/saved.service.ts:121): The listing authorization check considers actions, domains, measures, and dimensions but never verifies that the user still has an entry for the domain's `scopeColumn`."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -48,10 +53,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "8c0db21a016c4c78a373d7de1bc7febd42b79bad1ed98a7b7cbcb5fc94878566",
-  "brief_sha256": "90dd54982efed6e22f1119713e8189024358d5dad81ea3e482185571554fce09",
-  "branch_diff_digest": "462716c6ba4584fc6bca8224b65a80e5b0f670eb3ee73d43d92a2e4e0c516f62",
+  "review_run_id": "1780ec68056e544bfd1f55105f65c8ac658ed325b23447739e74d664a5adec16",
+  "brief_sha256": "fd9b08726d2aa44af25a58749387b988b6ee5f39a590f0e6bb3728a19e3e73d8",
+  "branch_diff_digest": "5445b3baf61fc6b498f9aff33b293d844b375817797406a7ecfad7f7f5aeeefa",
   "residual_risks": [],
-  "recorded_at": "2026-09-12T14:46:51+00:00",
-  "commit": "ca0e573c72ede8a40aa41976a68d7cd525c8d72d"
+  "recorded_at": "2026-09-12T15:53:06+00:00",
+  "commit": "9a04f1726d9e830996d8cd43b6f9065809f5b5f6"
 }

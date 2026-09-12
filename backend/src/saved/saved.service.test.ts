@@ -11,7 +11,7 @@ test("listing refuses a saved selection the caller may no longer run instead of 
   const refusals: unknown[] = [];
   const service = new SavedService(listDb(savedRow(SELECTION)), new SemanticLayer(), audit({ refusals }));
 
-  const [saved] = await service.list({ ...USER, permissions: { ...USER.permissions, actions: ["save"] } }, SESSION_ID);
+  const [saved] = await service.list({ ...USER, scope: [] }, SESSION_ID);
 
   assert.deepEqual(saved.selection, SELECTION);
   assert.deepEqual(saved.status, {
@@ -41,6 +41,43 @@ test("a failing audit insert aborts a saved query write before it happens", asyn
 
   await assert.rejects(() => service.create(USER, SESSION_ID, { selection: SELECTION }), /audit unavailable/);
   assert.equal(databaseTouched, false);
+});
+
+test("creating a saved query reports and audits its current refusal status before writing", async () => {
+  const order: string[] = [];
+  const row = savedRow(SELECTION);
+  const db = {
+    insert: () => ({
+      values: () => ({
+        returning: async () => {
+          order.push("write");
+          return [row];
+        },
+      }),
+    }),
+  } as unknown as AppDb;
+  const trackingAudit = {
+    async writeExplorationRequestEvent() {
+      order.push("request");
+      return 1;
+    },
+    async writeExplorationRefusalEvent() {
+      order.push("refusal");
+      return 2;
+    },
+  } as unknown as AuditService;
+  const service = new SavedService(db, new SemanticLayer(), trackingAudit);
+
+  const saved = await service.create({ ...USER, permissions: { ...USER.permissions, actions: ["save"] } }, SESSION_ID, {
+    selection: SELECTION,
+  });
+
+  assert.deepEqual(saved.status, {
+    runnable: false,
+    reason: "grant_revoked",
+    message: "You no longer have permission to run this selection.",
+  });
+  assert.deepEqual(order, ["request", "refusal", "write"]);
 });
 
 function listDb(row: ReturnType<typeof savedRow>): AppDb {
@@ -93,5 +130,5 @@ const USER: AuthUser = {
     measureIds: ["governed-financial.actual"],
     dimensionIds: ["month"],
   },
-  scope: [],
+  scope: [{ attribute: "plant", value: "DUB" }],
 };

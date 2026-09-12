@@ -87,6 +87,39 @@ test("a refusal audit failure replaces the guard denial with a fail closed serve
   assert.equal(response.statusCode, 500);
 });
 
+test("a query-bearing reorder route is audited as reorder", async () => {
+  const events: unknown[] = [];
+  const audit = {
+    async writeExplorationRefusalEvent(event: unknown) {
+      events.push(event);
+      return 1;
+    },
+  } as AuditService;
+  const request = {
+    authUser: USER,
+    sessionId: SESSION_ID,
+    method: "PATCH",
+    originalUrl: "/api/pins/reorder?foo=1",
+    route: { path: "/api/pins/reorder" },
+    baseUrl: "",
+  } as unknown as AuthedRequest;
+
+  await new ExplorationAuditFilter(audit).catch(
+    new ForbiddenException("Requires 'pin' action"),
+    host(request, new FakeResponse([])),
+  );
+
+  assert.deepEqual(events, [
+    {
+      actorId: USER.id,
+      sessionId: SESSION_ID,
+      resource: "pins",
+      action: "reorder",
+      submitted: undefined,
+    },
+  ]);
+});
+
 class FakeResponse {
   statusCode = 0;
   constructor(private readonly order: string[]) {}

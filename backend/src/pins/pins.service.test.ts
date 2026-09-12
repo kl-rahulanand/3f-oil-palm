@@ -46,6 +46,33 @@ test("a selection naming a measure the semantic layer no longer registers is rep
   assert.equal(refusals.length, 1);
 });
 
+test("a pin without the current row scope is refused before a view update can commit", async () => {
+  let updated = false;
+  const row = pinRow(SELECTION);
+  const db = {
+    select: () => ({ from: () => ({ where: async () => [row] }) }),
+    update() {
+      updated = true;
+      throw new Error("update should not run");
+    },
+  } as unknown as AppDb;
+  const failingAudit = {
+    async writeExplorationRequestEvent() {
+      return 1;
+    },
+    async writeExplorationRefusalEvent() {
+      throw new Error("audit unavailable");
+    },
+  } as unknown as AuditService;
+  const service = new PinsService(db, new SemanticLayer(), failingAudit);
+
+  await assert.rejects(
+    () => service.updateView({ ...USER, scope: [] }, SESSION_ID, row.id, { chartType: "line" }),
+    /audit unavailable/,
+  );
+  assert.equal(updated, false);
+});
+
 function pinDb(row: ReturnType<typeof pinRow>, insertedTables: unknown[]): AppDb {
   return {
     insert: (table: unknown) => {
@@ -106,5 +133,5 @@ const USER: AuthUser = {
     measureIds: ["governed-financial.actual"],
     dimensionIds: ["month"],
   },
-  scope: [],
+  scope: [{ attribute: "plant", value: "DUB" }],
 };

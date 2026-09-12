@@ -26,6 +26,16 @@ export class SavedService {
       submitted: req,
     });
     validateSelectionForUser(this.semantic, user, req.selection);
+    const status = selectionStatus(this.semantic, user, req.selection);
+    if (!status.runnable) {
+      await this.audit.writeExplorationRefusalEvent({
+        actorId: user.id,
+        sessionId,
+        resource: "saved",
+        action: "create",
+        submitted: { reason: status.reason },
+      });
+    }
 
     const inserted = await this.db
       .insert(savedQueries)
@@ -36,7 +46,7 @@ export class SavedService {
       })
       .returning();
 
-    return toSavedQuery(inserted[0], { runnable: true });
+    return toSavedQuery(inserted[0], status);
   }
 
   async list(user: AuthUser, sessionId: string): Promise<SavedQuery[]> {
@@ -118,6 +128,7 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
   }
   if (
     (domain.composed && !user.permissions.actions.includes("report")) ||
+    (domain.scopeColumn && !user.scope.some((scope) => scope.attribute === domain.scopeColumn)) ||
     !user.permissions.domains.includes(selection.domain) ||
     selection.measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
     [...dimensionIds].some((id) => !user.permissions.dimensionIds.includes(id))
