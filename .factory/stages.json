@@ -4,22 +4,22 @@
     {
       "id": "assistant-governed-ask",
       "title": "Register and govern the vendored assistant, with the view-in-report contract on both sides",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "assistant-ask-surfaces",
       "title": "The docked Ask panel and the standalone Ask page",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "assistant-exploration-api",
       "title": "Saved selections and personal pins, with the snapshot behaviour removed",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "assistant-exploration-view",
       "title": "The Explore surface and pinned reports",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

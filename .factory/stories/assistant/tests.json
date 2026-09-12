@@ -1,0 +1,70 @@
+{
+  "commit": "ac1c187b7231f82c593b010494385e35b44b7092",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Story roll-up for assistant, re-run on the merged tree at ac1c187. python3 factory/scripts/verify.py passes across structural, typecheck, quality and test. The aggregate D-0008 host proof runs test:warehouse-proof 20/20 with 0 failures and 0 skipped, carrying forward every warehouse leaf from governed-joins, mis-selection, mis-statement and drill-down UNCHANGED - which is the evidence this story disturbed none of them - and the dead-port control at WAREHOUSE_PG_PORT=5599 fails 8 gated leaves with 16 ECONNREFUSED while the 12 ungated ones still pass, so the green run is real database work rather than skips. The app-DB migration proof this story introduced runs 1/1 on the host against an isolated scratch database. Each task's own automated and functional artifacts were recorded and CI-verified at its PR (#42, #43, #44, #45), every one closing at 10/approve on all three lenses.",
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "WAREHOUSE_PG_* set, npm --prefix backend run test:warehouse-proof -> tests 20 / pass 20 / fail 0 / skipped 0",
+      "negative control: the same command with WAREHOUSE_PG_PORT=5599 -> tests 20 / pass 12 / fail 8, 16 ECONNREFUSED",
+      "HOST app DB: junit-run backend/src/db/migrate.exploration.db.test.ts -> tests 1 / pass 1 / fail 0 / skipped 0"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/chat/* (route registration and the allow-list, the response matrix, the out-of-catalog refusal, the causal-guard classifier, the Bedrock input boundary asserted on the provider's arguments)",
+      "backend/src/db/migrate.exploration.db.test.ts and migrate.trim.test.ts (the two-table scope, proven both hermetically and against an isolated scratch database)",
+      "backend/src/saved/** and backend/src/pins/** (re-authorization refusals, no ResultTable in any payload, the fail-closed audit)",
+      "backend/src/common/exploration-audit.filter.test.ts (guard-level RequireAction denials audited, and the route classifier taken off attacker-shapeable text)",
+      "frontend/src/features/assistant/** and frontend/src/features/exploration/** (both Ask surfaces, Save/Pin controls, Explore, pinned reports, refusal rendering, re-run by stored selection)",
+      "frontend/src/lib/api.test.ts (the exact request body on the re-run: stored selection present, reportGrounding absent)"
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "D-0024 and D-0031 remain open, so every leaf in this story was verified by its junit testcase name and executed count rather than by an exit code.",
+      "The app-DB migration proof and the aggregate warehouse proof both remain host evidence under D-0008; CI has no Postgres service container, so neither test:db nor test:warehouse-proof runs there."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-12T18:18:12+00:00",
+    "commit": "ac1c187b7231f82c593b010494385e35b44b7092"
+  },
+  "updated_at": "2026-09-12T18:18:34+00:00",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "passed",
+    "score": 9,
+    "summary": "Story-level functional roll-up for assistant. The complete loop was exercised LIVE against real Bedrock during task 4's check, from this story's own servers after verifying their working directory: ask a governed question, save it, pin it, reopen either from Explore or the dashboard, and delete. Answers come back VERIFIED with provenance; a question the assistant must not answer is declined rather than guessed at; saved and pinned items open by RE-RUNNING, never by replaying, which is proven by two independent signals rather than asserted - the Bedrock ask took 1434ms while the re-run of the same stored selection took 38ms, and the re-run's audit row carries model_id NULL. Nothing durable holds an answer: the snapshot machinery was deleted outright and no payload carries a ResultTable. Each task's own functional check was recorded and CI-verified at its PR.",
+    "manual_validation_steps": [
+      "Task 1 (#42): a data question returns success with provenance.verified true; 'Why is labour high?' is declined rather than answered; 'capital of France?' returns not_supported; a greeting takes the deterministic path and never reaches the model.",
+      "Task 2 (#43): the docked Ask panel and the standalone /ask page render from the same component, the verified badge and provenance disclosure appear, and view-in-report shows its link only when the response carries one.",
+      "Task 3 (#44): the two-table migration applies to a database holding only 0000_auth_audit.sql, creating exactly saved_queries and dashboard_pins on an isolated scratch database, with a dead-port control failing the same leaf.",
+      "Task 4 (#45): Explore is reachable from the nav (it had no href before), saved rows are labelled from the shared catalog constant ('Actual \u00b7 Budget', not raw ids), Save view and Pin report create (POST /api/saved 201, POST /api/pins 201), opening re-runs and renders through the existing renderer, pinned cards are metadata-only and the dashboard performs no fan-out (exactly 2 /api/chat calls existed across the session), delete works and returns the empty state.",
+      "Audit trail confirmed in the database during the live run: exploration.pins.request x8 and exploration.saved.request x3, so the fail-closed audit fires on these surfaces.",
+      "Bedrock confirmed configured by BEHAVIOUR, never by reading secrets: provider bedrock, region ap-south-1, model id set, bearer token present, and a real call returning a selection rather than the mock provider's clarification."
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The exploration error copy is proven by unit leaf and source inspection rather than live: with the backend stopped the session guard intercepts first with its own message, so the exploration-specific copy is not reachable that way without changing code.",
+      "A missing migration surfaces as an unhandled 500 rather than anything diagnosable - observed live before the dev app DB was migrated. Already covered by D-0033 and D-0039.",
+      "Carried and still unanswered: no 3F location is recorded anywhere in docs/, so ap-south-1 rests on the code default plus decision 0003's India-residency line. Decision 0027 should be amended if a real residency requirement exists.",
+      "Carried: the configured Bedrock model is mistral.mistral-large-3-675b-instruct, not a Claude model. 0027 fixes provider and region, not model family, so this is compliant - but answer quality rides on it."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-12T18:18:34+00:00",
+    "commit": "ac1c187b7231f82c593b010494385e35b44b7092"
+  }
+}
