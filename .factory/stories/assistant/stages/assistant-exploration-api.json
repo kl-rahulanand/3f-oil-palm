@@ -1,46 +1,5 @@
 {
   "id": "assistant-exploration-api",
   "title": "Saved selections and personal pins, with the snapshot behaviour removed",
-  "status": "done",
-  "started_at": "2026-09-12T14:19:58+00:00",
-  "base_sha": "eaf73d8e80fa7f2f845d3fad95b52dec5aabbdcc",
-  "dirty_at_start": {
-    ".factory/stories/assistant/decomposition.json": {
-      "digest": "7a2604beec587a367c5811d384f114f612bbb0d98c3ea7a707b700ff1c8cb3b4",
-      "git": "1 .M N... 100644 100644 100644 1e8659eb90fe52ecad29a593d5a3e3227ef8d1a8 1e8659eb90fe52ecad29a593d5a3e3227ef8d1a8 .factory/stories/assistant/decomposition.json\u0000\u0000100644 1e8659eb90fe52ecad29a593d5a3e3227ef8d1a8 0\t.factory/stories/assistant/decomposition.json\u0000\u0000H .factory/stories/assistant/decomposition.json\u0000"
-    },
-    ".factory/stories/assistant/grills/tasks/assistant-exploration-api.json": {
-      "digest": "422208ab81f81d69fdb613f960dca6f95c6105ae305c76be2beb6281372dcfe0",
-      "git": "? .factory/stories/assistant/grills/tasks/assistant-exploration-api.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/assistant/task-plans/assistant-exploration-api.md": {
-      "digest": "dc32fc8a29a7cd7733972ae191c3eab49e806e10e2d7d6de2937fcfaadc02508",
-      "git": "? .factory/stories/assistant/task-plans/assistant-exploration-api.md\u0000\u0000\u0000"
-    }
-  },
-  "task_sha256": "391497a9fe4533daaa4490a872e626a287c90d5f50b52e01b0e2ad5f2e116d3e",
-  "local_review_stamp": {
-    "stage_id": "assistant-exploration-api",
-    "base_sha": "eaf73d8e80fa7f2f845d3fad95b52dec5aabbdcc",
-    "delta_id": "f50198b7bb539f0856edc1418897c5eba3df3952cc7e40bef3b6b47be787b3cc",
-    "contract_sha256": "391497a9fe4533daaa4490a872e626a287c90d5f50b52e01b0e2ad5f2e116d3e",
-    "recorded_at": "2026-09-12T16:16:50+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-12T16:16:52+00:00",
-  "measured": {
-    "strays": [],
-    "files": 27,
-    "lines": 2037,
-    "budget": {
-      "files": 27,
-      "lines": 2900
-    },
-    "test_id_misses": []
-  }
+  "status": "done"
 }

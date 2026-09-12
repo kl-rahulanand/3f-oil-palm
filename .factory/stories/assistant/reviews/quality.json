@@ -1,0 +1,168 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant",
+  "reviewed_scope": [
+    "backend/src/chat/**",
+    "backend/src/saved/**",
+    "backend/src/pins/**",
+    "backend/src/common/exploration-audit.filter.ts",
+    "backend/src/core/**",
+    "backend/src/semantic/semanticLayer.ts",
+    "backend/drizzle/0001_saved_and_pins.sql",
+    "contract/src/api.ts",
+    "frontend/src/features/assistant/**",
+    "frontend/src/features/exploration/**",
+    "frontend/app/(app)/ask/**",
+    "frontend/app/(app)/explore/**",
+    "frontend/app/(app)/dashboard/**",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/lib/api.ts",
+    "frontend/app/globals.css"
+  ],
+  "skills_used": [
+    "emil-design-eng",
+    "frontend-design"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-aas-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/components/shell/app-shell.tsx:15 and frontend/src/features/mis/mis-report-view.tsx:110 expose the shared AskPanel through live page and docked navigation."
+    },
+    {
+      "contract_id": "t-aas-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:125 renders verified provenance, response-owned results, honest chart fallbacks, and all supported chart types."
+    },
+    {
+      "contract_id": "t-aas-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:287 renders both report-link arms, while frontend/src/features/mis/mis-report-view.tsx:91 handles refresh-required responses."
+    },
+    {
+      "contract_id": "t-aas-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:89 branches across success, informational, clarification, and all message-bearing failure classes."
+    },
+    {
+      "contract_id": "t-aas-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:28 derives prior turns exclusively from successful selections, and frontend/src/lib/api.test.ts:78 verifies the exact request body and CSRF header."
+    },
+    {
+      "contract_id": "t-aas-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:78 and frontend/src/features/mis/mis-report-view.test.tsx:127 cover the required rendering, navigation, fallback, union, and stale-link behaviors."
+    },
+    {
+      "contract_id": "t-aea-c1",
+      "verdict": "implemented",
+      "evidence": "backend/drizzle/0001_saved_and_pins.sql:3 creates only the two scoped tables with FK indexes and timezone-aware timestamps."
+    },
+    {
+      "contract_id": "t-aea-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/app.routes.test.ts:17 verifies the strict route allow-list, action guards, and refresh-route absence."
+    },
+    {
+      "contract_id": "t-aea-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/pins/pins.service.ts:60 returns pins without refresh or snapshot machinery, with the service and its registrations deleted."
+    },
+    {
+      "contract_id": "t-aea-c4",
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:390 defines the required discriminated status, and backend/src/saved/saved.service.ts:107 re-authorizes stored selections."
+    },
+    {
+      "contract_id": "t-aea-c5",
+      "verdict": "implemented",
+      "evidence": "backend/src/common/exploration-audit.filter.ts:18 audits guard-level refusals, while the services write fail-closed request and refusal events before operations."
+    },
+    {
+      "contract_id": "t-aea-c6",
+      "verdict": "implemented",
+      "evidence": "backend/package.json:17 registers the new hermetic tests and backend/package.json:18 registers the isolated app-DB migration proof."
+    },
+    {
+      "contract_id": "t-aev-c1",
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:371 and backend/src/semantic/semanticLayer.ts:23 share the semantic labels, with frontend/src/features/exploration/selection-label.ts:9 providing the unavailable-id fallback."
+    },
+    {
+      "contract_id": "t-aev-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/components/shell/app-shell.tsx:17 enables Explore, and frontend/app/(app)/dashboard/page.tsx:4 renders pinned reports."
+    },
+    {
+      "contract_id": "t-aev-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:27 accepts stored selections, while frontend/src/lib/api.test.ts:116 verifies the exact chat body without reportGrounding."
+    },
+    {
+      "contract_id": "t-aev-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/exploration/saved-views.tsx:48 and frontend/src/features/exploration/pinned-reports.tsx:53 visibly render refusals while retaining Delete and withholding Open."
+    },
+    {
+      "contract_id": "t-aev-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:177 exposes Save and Pin only for successful selections, and both exploration surfaces provide failure-aware deletion."
+    },
+    {
+      "contract_id": "t-aev-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/exploration/saved-views.test.tsx:24, frontend/src/features/exploration/pinned-reports.test.tsx:34, and frontend/src/lib/api.test.ts:116 cover the required surface and request beh"
+    },
+    {
+      "contract_id": "t-aga-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/app.module.ts:15 registers ChatModule and backend/src/app.routes.test.ts:32 proves the governed route allow-list."
+    },
+    {
+      "contract_id": "t-aga-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.test.ts:13 verifies the provider input boundary, including permitted context and forbidden result data."
+    },
+    {
+      "contract_id": "t-aga-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/reconciliation-guard.ts:31 adds causal classification, with response-matrix coverage in backend/src/chat/chat.service.test.ts:61."
+    },
+    {
+      "contract_id": "t-aga-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.test.ts:106 proves out-of-catalog selections are refused without rendering a zero."
+    },
+    {
+      "contract_id": "t-aga-c5",
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:485 defines the discriminated report-link contract, while backend/src/mis/mis-statement.service.ts:92 validates pinned batches."
+    },
+    {
+      "contract_id": "t-aga-c6",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.ts:98 performs the fail-closed entry audit before routing or warehouse-backed lookups."
+    },
+    {
+      "contract_id": "t-aga-c7",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.schemas.ts:16 strictly rejects removed conversation fields and transports prior turns; backend/package.json:17 registers the new hermetic test."
+    }
+  ],
+  "blocking_findings": [],
+  "residual_risks": [],
+  "aspect": "quality",
+  "score": 10,
+  "recommendation": "approve",
+  "summary": "Story roll-up for assistant, re-reviewed on the merged tree at ac1c187. All 25 plan contracts across the four tasks verdict IMPLEMENTED, each carried from that task's own sealed review, and every one of those four reviews closed at 10/approve on all three lenses with zero findings (#42, #43, #44, #45). python3 factory/scripts/verify.py passes across structural, typecheck, quality and test on the merged tree. The story took 4 tasks and 10 review rounds in total; the recurring defect class was a surface disagreeing with what the governed path would actually do - the saved-selection runnable check omitting first the 'report' action and then row-level scope, and an Open handler navigating when the re-run had been rejected as pending. Each was caught by a lens, verified against the code before being acted on, and fixed.",
+  "non_blocking_findings": [
+    "D-0024 and D-0031 remain open, so every leaf in this story was judged by its junit testcase NAME and EXECUTED count rather than an exit code.",
+    "The mandatory design skills required orchestrator intervention on task 4: frontend-design showed zero occurrences across three delegate job logs while one run's summary claimed it was applied. The orchestrator read and applied it directly, which found a real defect (raw ApiError text rendered to users)."
+  ],
+  "review_run_id": "32f220f2721836bacbd184d2cd948ea75ff25cabb05d411b594ff01c80d6c7e5",
+  "brief_sha256": "72c32a64c5e575026d464c6ed4b41077320da6b6c9cd3a66ef7e4841feb3fcba",
+  "branch_diff_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "recorded_at": "2026-09-12T18:17:52+00:00",
+  "commit": "ac1c187b7231f82c593b010494385e35b44b7092"
+}
