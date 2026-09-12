@@ -1,0 +1,39 @@
+{
+  "commit": "5d83c16f5660dd6689f6c6d456721a6842a23bfe",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "passed",
+    "score": 9,
+    "summary": "Story-level live check of the whole drill-down capability, run against servers started from THIS story worktree (backend process cwd verified as 3oilpalm-drill-down/backend). Generated the Agriculture / Nursery / DUB / 2026-07-01 statement (106 rows) and drilled the leaf 'Petrol and Diesel Charges': four transaction lines across seven columns - Month, Posting date, Debit, Credit, Value, Reference, Memo - with the footer reading 22,500 exactly equal to that leaf's Actual cell on the statement, the exact paise beneath it, and the prototype's 'Matches the Actual in the report' note. Earlier in the same session the aggregate and Grand Total paths were exercised on the identical code: 37 descendant leaves under 9 Admin Expenses (first row a third-level GL leaf, proving the flatten does not stop at children), 81 flattened roots including unmapped-GL on the Grand Total footing to 1,00,50,136.29 Budget and 1,15,12,712.07 Actual, zero network calls on an aggregate open measured by wrapping window.fetch, an in-place body swap on the in-panel leaf drill with a single dialog in the DOM, and Back returning focus to the leaf row used.",
+    "manual_validation_steps": [
+      "Confirmed the backend process cwd resolves to this story worktree before trusting the check; re-authenticated with the mock OTP after the prior session expired.",
+      "Generated the July statement: 106 rows render.",
+      "Drilled 'Petrol and Diesel Charges' (GL 55010901): 4 lines, 7 columns, footer 22,500 equal to the statement cell, exact paise shown beneath.",
+      "Story verify passed, and the aggregate D-0008 warehouse proof is 20/20.",
+      "Dead-port negative control at 5599: 8 of 20 leaves FAIL, the drill's own footing proof among them, so the gated proofs genuinely reach the warehouse rather than passing vacuously."
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "At a 1024px viewport the seven-column table needs about 36px of horizontal scroll inside its own container; the memo wraps and the page body never scrolls, so nothing is lost.",
+      "The statement's S.No column shows '31' for the Land Levelling line - the workbook's own malformed value, ledgered as D-0034."
+    ],
+    "residual_risks": [
+      "Pagination, the pending policy and the replaced/stale pin states could not be exercised against client data: the July extract's largest (plant, cost centre, GL) group is 18 rows, so no real leaf reaches the server's fixed 100-row page, and no period was re-uploaded mid-session. All are proven by automated leaves against constructed fixtures, and the evidence says so rather than implying a live paged drill.",
+      "Roll-over stays visibly unpopulated pending Srihari's carry-forward rule, unchanged by this story."
+    ],
+    "recommendation": "approve",
+    "reviewed_scope": [
+      "frontend/src/features/mis/drill-panel.tsx",
+      "frontend/src/features/mis/statement-view.tsx",
+      "backend/src/mis/mis-drill.controller.ts",
+      "backend/src/mis/mis-drill.service.ts",
+      "backend/src/warehouse/drill-transactions.repository.ts"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-12T06:34:04+00:00",
+    "commit": "5d83c16f5660dd6689f6c6d456721a6842a23bfe"
+  },
+  "updated_at": "2026-09-12T06:34:04+00:00"
+}

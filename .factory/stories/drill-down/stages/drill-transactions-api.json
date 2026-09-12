@@ -1,33 +1,5 @@
 {
   "id": "drill-transactions-api",
   "title": "The pinned, audited, paginated leaf transactions read",
-  "status": "done",
-  "started_at": "2026-09-11T19:08:44+00:00",
-  "base_sha": "5a9ff14922e9e57120c107dca66d7a94a142de20",
-  "dirty_at_start": {},
-  "task_sha256": "4cd3a1f734316c44aad6c0c5a5b0bf0dcb7820a3f0b8f59d0c00028bd7d4d5e7",
-  "local_review_stamp": {
-    "stage_id": "drill-transactions-api",
-    "base_sha": "5a9ff14922e9e57120c107dca66d7a94a142de20",
-    "delta_id": "5b8a0f23194442b3741bef08e35288d27614e36598f1eee48709f49bfdfb75e7",
-    "contract_sha256": "4cd3a1f734316c44aad6c0c5a5b0bf0dcb7820a3f0b8f59d0c00028bd7d4d5e7",
-    "recorded_at": "2026-09-11T20:09:07+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-11T20:09:08+00:00",
-  "measured": {
-    "strays": [],
-    "files": 22,
-    "lines": 1540,
-    "budget": {
-      "files": 22,
-      "lines": 2600
-    },
-    "test_id_misses": []
-  }
+  "status": "done"
 }

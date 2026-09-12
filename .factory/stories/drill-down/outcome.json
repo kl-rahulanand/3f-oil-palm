@@ -1,0 +1,7 @@
+{
+  "generated_by": "implementer",
+  "outcome": "Finance can now click any Actual on the Financial MIS and see how it was built. Clicking a group - or the Grand Total - opens a flattened list of every descendant leaf beneath it, footing to the clicked figure in exact paise; clicking a leaf, including the unmapped-GL line, opens the SAP transaction lines behind it in seven columns with a footer that matches the number on the statement. The drill is pinned to the exact actuals and budget batches the displayed statement was built from, so a re-upload can never silently change the answer under the reader's finger: a replaced batch is read and named, and a pin that no longer covers the range is refused with instructions to generate the statement again. Every drill writes a typed audit record before a single row is read and fails closed if that write fails, and refused attempts are audited too - this is the system's only raw-row read path, the documented exception to the aggregate-only rules, so it is the one place where who read which transactions is recoverable. Proven against the client's July extract: a leaf and the unmapped bucket foot in exact paise, the Grand Total reaches 1,00,50,136.29 Budget and 1,15,12,712.07 Actual, and opening a group issues no network request at all.",
+  "issue": "drill-down",
+  "commit": "5d83c16f5660dd6689f6c6d456721a6842a23bfe",
+  "recorded_at": "2026-09-12T06:31:05+00:00"
+}

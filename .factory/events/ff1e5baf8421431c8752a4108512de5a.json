@@ -1,0 +1,1 @@
+{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-12T06:34:05+00:00", "story": "drill-down", "detail": "Finance can now click any Actual on the Financial MIS and see how it was built. Clicking a group - or the Grand Total - opens a flattened list of every descendant leaf beneath it, footing to the click"}

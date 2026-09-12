@@ -1,0 +1,128 @@
+{
+  "generated_by": "autoreview",
+  "contract_verdicts": [
+    {
+      "contract_id": "t-dta-c1",
+      "verdict": "implemented",
+      "evidence": "POST api/mis/statement/drill is registered unversioned with a raw response behind AuthGuard, RequireAction('report') and the global CsrfGuard, with typed 400/401/403/409 responses and its path added to the strict allow-list in backend/src/app.routes.test.ts; sealed under drill-transactions-api (PR #38)."
+    },
+    {
+      "contract_id": "t-dta-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-drill.service.ts derives the leaf, triples, month range and plant scope server-side on every request, handles the reserved unmapped-GL key the statement synthesises outside the outline, and mis-drill.dto.ts validates every pinned id as a UUID before SQL construction (PR #38)."
+    },
+    {
+      "contract_id": "t-dta-c3",
+      "verdict": "implemented",
+      "evidence": "mis-drill.service.ts binds the pinned set rather than trusting it: one actuals id per month in range, the outline taken from the budget batch whose period equals the block end, and per-batch status (current/replaced/gone) returned to the client - the refusal payload was fixed mid-review to carry those statuses (PR #38)."
+    },
+    {
+      "contract_id": "t-dta-c4",
+      "verdict": "implemented",
+      "evidence": "A typed drill audit event is written before any sap_transaction read and fails closed, with a route-scoped exception filter (mis-drill.audit.filter.ts) auditing authenticated guard-level refusals and skipping anonymous callers; a required test asserts no transaction query is issued when the audit insert throws (PR #38)."
+    },
+    {
+      "contract_id": "t-dta-c5",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/drill-transactions.repository.ts issues page and footer queries under one predicate through SqlValidator, warehouse.explain and the configured timeout, keeps money as fixed-scale strings and normalizes DATE columns away from toISOString (PR #38)."
+    },
+    {
+      "contract_id": "t-dta-c6",
+      "verdict": "implemented",
+      "evidence": "drill-transactions.db.test.ts proves exact-paise footing for a client July leaf and the unmapped-GL bucket against the real batch, and FY-YTD footing plus 101-row pagination against a constructed fixture, because the client extract is July-only and its largest leaf holds 18 rows; registered in test:warehouse-proof (PR #38)."
+    },
+    {
+      "contract_id": "t-dp-c1",
+      "verdict": "implemented",
+      "evidence": "statement-view.tsx renders non-leaf Actuals as buttons inside their gridcells while Budget, Roll-over and % expose no control; leaf Actuals and the 'Click any Actual' copy were deliberately held for task 3, verified live (PR #39)."
+    },
+    {
+      "contract_id": "t-dp-c2",
+      "verdict": "implemented",
+      "evidence": "drill-panel.tsx flattens all descendant leaves of the clicked node in the clicked measure block with zero network calls, proven by a required test spying the api client and confirmed live by wrapping window.fetch (PR #39)."
+    },
+    {
+      "contract_id": "t-dp-c3",
+      "verdict": "implemented",
+      "evidence": "The Grand Total special case flattens response.tree roots rather than grandTotal.children, which is empty; verified live at 81 roots including the unmapped-GL line (PR #39)."
+    },
+    {
+      "contract_id": "t-dp-c4",
+      "verdict": "implemented",
+      "evidence": "Totals are summed as integer paise via BigInt from FixedScaleMoney strings and compared to the clicked node as an equality, with the rupee figure through the statement's own formatter and the exact paise beneath; the percentage is derived by the statement's nil rules (PR #39)."
+    },
+    {
+      "contract_id": "t-dp-c5",
+      "verdict": "implemented",
+      "evidence": "The panel matches the approved prototype including the slidein/fadein motion the first implementation had dropped, and implements all five dialog behaviours - initial focus, Escape, scrim click, Tab trap at both boundaries, focus return - with prefers-reduced-motion honoured (PR #39)."
+    },
+    {
+      "contract_id": "t-dp-c6",
+      "verdict": "implemented",
+      "evidence": "Seven vitest leaves executed under their exact testcase names, plus a live functional check against this worktree's servers; recorded with skills_used attesting emil-design-eng and frontend-design, which found the dropped motion, the render-time throw with no error boundary, and the unformatted paise line (PR #39)."
+    },
+    {
+      "contract_id": "t-dtv-c1",
+      "verdict": "implemented",
+      "evidence": "Leaf Actuals are activatable in the statement and in the panel's own leaf rows, the held guidance copy is present, and drilling a leaf from inside the panel swaps the body in place with a breadcrumb Back control; focus continuity on the forward swap was fixed in review (PR #40)."
+    },
+    {
+      "contract_id": "t-dtv-c2",
+      "verdict": "implemented",
+      "evidence": "drill-panel.tsx builds the request from the resolved response's scope and passes provenance.activeBatchIds through verbatim, via the shared api client so it carries CSRF; a required leaf in frontend/src/lib/api.test.ts proves the route and untouched payload outside the mocked component tests (PR #40)."
+    },
+    {
+      "contract_id": "t-dtv-c3",
+      "verdict": "implemented",
+      "evidence": "The seven-column table renders the server's rows in server order with UTC-safe date-only formatting and its own column styling, and the footer is the server's full-result total with the exact paise beneath; verified live footing to 22,500 for GL 55010901 (PR #40)."
+    },
+    {
+      "contract_id": "t-dtv-c4",
+      "verdict": "implemented",
+      "evidence": "Pagination is server-side and 1-based at the server's fixed 100, with navigation disabled while pending, the previous page retained, and a terminal failure clearing rows, count and footer; the full-result footer proof was strengthened in review after its fabricated page rows summed to the footer value (PR #40)."
+    },
+    {
+      "contract_id": "t-dtv-c5",
+      "verdict": "implemented",
+      "evidence": "Replacement names every entry in the batchStatuses list rather than a find(); the 409 refuses, never substitutes, and tells the reader to generate the statement again. Naming which batch is gone on a 409 is impossible without changing the shared error envelope and is deferred as D-0039 (PR #40)."
+    },
+    {
+      "contract_id": "t-dtv-c6",
+      "verdict": "implemented",
+      "evidence": "Ten vitest leaves executed under their exact names, two deliberately outside the component tests (the api client, and task 2's zero-network proof re-asserted here), plus a live functional check; pagination and the pin states are proven against fabricated responses because no real leaf reaches a second page (PR #40)."
+    }
+  ],
+  "blocking_findings": [],
+  "reviewed_scope": [
+    "backend/src/mis/mis-drill.controller.ts",
+    "backend/src/mis/mis-drill.service.ts",
+    "backend/src/mis/mis-drill.dto.ts",
+    "backend/src/mis/mis-drill.audit.filter.ts",
+    "backend/src/warehouse/drill-transactions.repository.ts",
+    "backend/src/warehouse/statement-outline.repository.ts",
+    "backend/src/core/audit.service.ts",
+    "contract/src/api.ts",
+    "frontend/src/features/mis/drill-panel.tsx",
+    "frontend/src/features/mis/statement-view.tsx",
+    "frontend/src/lib/api.ts",
+    "frontend/app/globals.css"
+  ],
+  "skills_used": [
+    "emil-design-eng",
+    "frontend-design"
+  ],
+  "recommendation": "approve",
+  "score": 9,
+  "summary": "Performance roll-up for drill-down. The drill reads sap_transaction under a selective predicate covered by idx_sap_transaction_month_plant_cost_center_gl_code, issues exactly two statements per request - a bounded page and a single-row footer - under one identical predicate, and runs both through warehouse.explain and the configured query timeout. Page size is fixed server-side at 100 and is not client-settable, so a caller cannot widen the read toward maxRows. The aggregate drill issues NO request at all (decision 0024), proven by a test spying the api client and confirmed live by wrapping window.fetch. ORDER BY (debit - credit) DESC has no supporting index; it sorts a small filtered set and was checked with EXPLAIN against the real July batch, and it is carried as a named risk rather than a speculative index. Task-level performance lenses closed at 10, 10 and 9 with three non-blocking notes, of which in-flight request cancellation is the one worth revisiting.",
+  "residual_risks": [
+    "ORDER BY (debit - credit) DESC is unindexed. The filter is selective enough that this sorts a small set today; a plant with materially more lines per GL-month would want an expression index.",
+    "In-flight drill requests are not cancelled when the reader pages quickly or closes the panel; the non-blocking lens finding stands, and it needs API signal plumbing beyond this story."
+  ],
+  "aspect": "performance",
+  "non_blocking_findings": [],
+  "review_run_id": "76f1dad7c83a6bb6ed369f964c5137842241cf0dc7e460fb530dd581d854edb3",
+  "brief_sha256": "51faaabb7427e2e6c496427d7e54e40ae02d02a93800e926e63db540d93f5552",
+  "branch_diff_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "recorded_at": "2026-09-12T06:30:51+00:00",
+  "commit": "5d83c16f5660dd6689f6c6d456721a6842a23bfe"
+}

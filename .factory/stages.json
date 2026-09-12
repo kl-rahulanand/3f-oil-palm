@@ -4,17 +4,17 @@
     {
       "id": "drill-transactions-api",
       "title": "The pinned, audited, paginated leaf transactions read",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "drill-panel",
       "title": "The drill panel and the Actual-only affordance",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "drill-transactions-view",
       "title": "The transactions state of the drill panel",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
