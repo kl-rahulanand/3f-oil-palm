@@ -489,7 +489,7 @@ export interface AskResponse {
   /** Concrete dimension filters applied to the query, for editable value filters. */
   appliedFilters?: SelectionFilter[];
   /** Deterministic mapping back to the governed statement, or the reason no mapping exists. */
-  viewInReport?:
+  viewInReport:
     | {
         available: true;
         department: string;

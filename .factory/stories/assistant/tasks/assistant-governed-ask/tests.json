@@ -1,0 +1,48 @@
+{
+  "commit": "acb072a6efcf81edea401ee459c71e8c5cd3dc09",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All six verify commands pass and all ten required leaves execute under their exact testcase names with a passing count, read from the junit reports rather than exit codes (D-0024, D-0031). The leaves cover route registration with no unowned /api/help or /api/conversations route appearing, the provider input boundary asserting dimension values present and amounts and result rows absent, the data and definition branches, a causal question that is NOT discrepancy-shaped being declined before it reaches the provider, deterministic general chat with no data-value numeral, a selection outside the registered domains refused server-side and never rendered as a zero, the view-in-report discriminated union available only for a statement-domain answer resolving to one selector set, the statement route refusing a stale pinned batch while behaving unchanged with no pinned ids, a failing entry audit aborting before any warehouse read including the dimension-value lookup, and a conversationId being rejected with prior turns read from the request body.",
+    "pass_fail_summary": "backend 131 tests and frontend 43 tests pass with 0 failures; required leaves 10/10 executed under their exact testcase name; build:contract, build:backend, typecheck, lint and format:check all clean",
+    "commands_run": [
+      "npm run build:contract",
+      "npm run build:backend",
+      "npm run typecheck",
+      "npm run lint",
+      "npm run format:check",
+      "npm run test:hermetic"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/chat/chat.service.test.ts",
+      "backend/src/chat/smalltalk-guard.test.ts",
+      "backend/src/chat/chat.sse.test.ts",
+      "backend/src/mis/mis-statement.controller.test.ts",
+      "backend/src/app.routes.test.ts",
+      "tools/quality-gate.test.mjs"
+    ],
+    "blocking_findings": [],
+    "remaining_gaps": [
+      "The catalog rule is enforced only where it is enforceable: a SELECTION outside the registered domains is refused server-side, while an off-topic QUESTION that yields a valid governed selection is best-effort prompt behaviour. The human accepted that limit at the task grill and it is stated in the plan and the code rather than implied as a guarantee.",
+      "No live check was run here: this is a backend task, and the assistant cannot answer at all without LLM_PROVIDER=bedrock and a set BEDROCK_MODEL_ID, since the mock provider only ever returns a clarification. The story's functional check belongs to the user-facing surface tasks."
+    ],
+    "reviewed_scope": [
+      "backend/src/chat/chat.module.ts",
+      "backend/src/chat/chat.controller.ts",
+      "backend/src/chat/chat.service.ts",
+      "backend/src/chat/smalltalk-guard.ts",
+      "backend/src/chat/reconciliation-guard.ts",
+      "backend/src/mis/mis-statement.controller.ts",
+      "backend/src/mis/mis-statement.service.ts",
+      "backend/src/mis/mis-statement.dto.ts",
+      "backend/src/app.module.ts",
+      "contract/src/api.ts"
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-12T08:29:55+00:00",
+    "commit": "acb072a6efcf81edea401ee459c71e8c5cd3dc09"
+  },
+  "updated_at": "2026-09-12T08:29:55+00:00"
+}

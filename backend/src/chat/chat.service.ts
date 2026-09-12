@@ -74,9 +74,17 @@ export class ChatService {
     const cfg = loadConfig();
     let usedPriorContext = false;
     let llmUsage: LlmUsage | undefined;
-    const done = (r: Omit<AskResponse, "sessionId" | "latencyMs">): AskResponse => {
+    const done = (
+      r: Omit<AskResponse, "sessionId" | "latencyMs" | "viewInReport"> & {
+        viewInReport?: AskResponse["viewInReport"];
+      },
+    ): AskResponse => {
       const res: AskResponse = {
         ...r,
+        viewInReport: r.viewInReport ?? {
+          available: false,
+          reason: "This response cannot be opened in the MIS statement.",
+        },
         usedPriorContext,
         sessionId,
         latencyMs: Date.now() - started,
