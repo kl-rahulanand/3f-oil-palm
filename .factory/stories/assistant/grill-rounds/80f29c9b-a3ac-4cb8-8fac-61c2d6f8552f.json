@@ -1,0 +1,24 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "I promised \"a question outside the governed catalog is refused as unsupported, never answered zero\". The cold read shows only half of that is enforceable. Bedrock validates that an emitted **selection** uses allowed measure and dimension ids \u2014 it does **not** validate that the user's *question* was about your data. So a model can take \"how's the weather in Hyderabad?\" and emit a perfectly valid governed selection, returning real MIS numbers with real provenance under an irrelevant question. My proposed test (stubbing `unsupported`) would prove response mapping, not the guarantee.",
+      "options": [
+        "State the enforceable half honestly (Recommended)",
+        "Add a topicality gate before answering",
+        "Require a readback confirmation"
+      ],
+      "chosen": "State the enforceable half honestly (Recommended)"
+    },
+    {
+      "question": "Closing the assistant-governed-ask task grill. Seven findings, all real, six of which I'm settling from the repo \u2014 three were wrong in my own contract. `CoreModule` **already provides** `LLM_PROVIDER`, so the LLM module I scoped would shadow it and is dropped; the statement domain exposes **only** `leaf_key`, so there is no mechanical mapping to the four report selectors \u2014 the link is now available only when the answer used the `mis-statement` domain and resolves to exactly one selector set, and is a discriminated `{available:false, reason}` rather than an absent field; and `misSelectionRunRequestSchema` is parsed by **three** routes, so pinned ids go on a statement-only schema rather than silently changing `/api/mis/run` and export. Also fixed: the audit moves to request entry, before the warehouse vocabulary lookup that currently precedes it; `conversationId` is rejected and prior turns travel in the request, since the tables are deliberately absent and a client could otherwise trigger a missing-table failure; the causal guard gains a real classifier because today \"Why is labour high?\" reaches the model; and the numeral rule exempts brand tokens like \"3F\". Any remaining gap?",
+      "options": [
+        "No gaps \u2014 board it (Recommended)",
+        "Something else \u2014 I'll say what"
+      ],
+      "chosen": "No gaps \u2014 board it (Recommended)"
+    }
+  ],
+  "at": "2026-09-12T07:39:43.309995+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
