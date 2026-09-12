@@ -1,0 +1,13 @@
+{
+  "event": "open",
+  "id": "Q-0032-fcc8",
+  "profile": "degraded",
+  "reason": "The Codex sandbox has no npm registry access (ENOTFOUND) and cannot read the host npm cache at /Users/caw-dev-m4-5/.npm (ENOTCACHED persists even with --cache named explicitly, across three delegate attempts and signals S-0003/S-0004/S-0005). recharts is required by accepted decision 0007 for the assistant's charts and is in this task's write_scope. Bounded to installing that one dependency from the host: frontend/package.json and package-lock.json only. All feature code stays with the implementer.",
+  "started_at": "2026-09-12T10:58:49+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "kind": "degraded",
+  "task_id": "assistant-ask-surfaces",
+  "story": "assistant"
+}

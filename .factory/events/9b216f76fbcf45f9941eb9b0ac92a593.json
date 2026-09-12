@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-12T10:59:24+00:00", "story": "assistant", "detail": "S-0005-1a1e: Done - I installed it from the host under ledgered degraded window Q-0032-fcc8, which is now closed. frontend/package.json:21 carries recharts ^3.10.1, package-lock.json is updated, and require.resolv"}

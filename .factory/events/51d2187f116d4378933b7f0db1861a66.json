@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-12T10:58:01+00:00", "story": "assistant", "detail": "recharts@3.10.1 remains ENOTCACHED with the explicit host cache /Users/caw-dev-m4-5/.npm; npm config get cache also reports /Users/caw-dev-m4-5/.npm, so the orchestrator must install it from the host "}
