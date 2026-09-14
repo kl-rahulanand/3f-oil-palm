@@ -69,12 +69,13 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     setIsPending(true);
     setError(null);
     clearProgress();
+    const controller = (abortRef.current = new AbortController());
     try {
       const response = selection
-        ? await api.ask({ question: trimmed, selection })
+        ? await api.ask({ question: trimmed, selection }, { signal: controller.signal })
         : await api.ask(
             { question: trimmed, ...(priorTurns.length ? { priorTurns } : {}) },
-            { signal: (abortRef.current = new AbortController()).signal, onPhase: receivePhase },
+            { signal: controller.signal, onPhase: receivePhase },
           );
       clearProgress();
       setTurns((current) => [...current, { question: trimmed, response }]);

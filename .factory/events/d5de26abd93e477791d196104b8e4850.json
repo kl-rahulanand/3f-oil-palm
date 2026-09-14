@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-14T18:59:12+00:00", "story": "poc-responsiveness", "detail": "Cancellable stored-selection reruns add a signal options argument to api.ask, so hermetic tests in frontend/src/features/exploration/{saved-views,pinned-reports}.test.tsx must update their mock expect"}

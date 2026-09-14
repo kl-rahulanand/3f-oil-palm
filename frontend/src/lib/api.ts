@@ -45,7 +45,7 @@ function csrfCookie(): string {
 }
 
 async function postResponse(path: string, body: object, refreshOn401 = false, signal?: AbortSignal): Promise<Response> {
-  await request(CSRF_PATH);
+  await request(CSRF_PATH, false, signal);
   const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     credentials: "include",
@@ -58,15 +58,15 @@ async function postResponse(path: string, body: object, refreshOn401 = false, si
   });
 
   if (response.status === 401 && refreshOn401) {
-    await post<AuthRefreshResponse>("/api/auth/refresh", {});
+    await post<AuthRefreshResponse>("/api/auth/refresh", {}, false, signal);
     return postResponse(path, body, false, signal);
   }
   if (!response.ok) throw new ApiError(response.status);
   return response;
 }
 
-async function post<T>(path: string, body: object, refreshOn401 = false): Promise<T> {
-  const response = await postResponse(path, body, refreshOn401);
+async function post<T>(path: string, body: object, refreshOn401 = false, signal?: AbortSignal): Promise<T> {
+  const response = await postResponse(path, body, refreshOn401, signal);
   return response.json() as Promise<T>;
 }
 
@@ -115,11 +115,11 @@ function dispositionFilename(disposition: string): string {
   return filename;
 }
 
-async function request<T = unknown>(path: string, refreshOn401 = false): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, { credentials: "include" });
+async function request<T = unknown>(path: string, refreshOn401 = false, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, { credentials: "include", signal });
   if (response.status === 401 && refreshOn401) {
-    await post<AuthRefreshResponse>("/api/auth/refresh", {});
-    return request<T>(path);
+    await post<AuthRefreshResponse>("/api/auth/refresh", {}, false, signal);
+    return request<T>(path, false, signal);
   }
   if (!response.ok) throw new ApiError(response.status);
   return response.json() as Promise<T>;
@@ -152,7 +152,11 @@ export const api = {
   runMisStatement: (selection: MisSelectionRunRequest) =>
     post<MisStatementRouteResponse>("/api/mis/statement", selection, true),
   ask: (request: Pick<AskRequest, "question" | "priorTurns" | "selection">, options?: AskStreamOptions) =>
-    options ? askStream(request, options) : post<AskResponse>("/api/chat", boundedAskRequest(request), true),
+    request.selection
+      ? post<AskResponse>("/api/chat", boundedAskRequest(request), true, options?.signal)
+      : options
+        ? askStream(request, options)
+        : post<AskResponse>("/api/chat", boundedAskRequest(request), true),
   askStream,
   warehouseFreshness: () => request<WarehouseFreshnessResponse>("/api/warehouse/freshness", true),
   savedQueries: () => request<SavedQuery[]>("/api/saved", true),

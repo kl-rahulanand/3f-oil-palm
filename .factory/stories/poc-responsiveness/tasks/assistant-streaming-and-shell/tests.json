@@ -1,9 +1,9 @@
 {
-  "commit": "b9f216696984cf8ffed137d14231da3105bd4154",
+  "commit": "0e3c5ba337a61b695ed0590744060483b09452bc",
   "automated": {
     "generated_by": "implementer",
     "status": "passed",
-    "summary": "All nine required leaves execute and pass, each verified by its junit testcase NAME and EXECUTED count rather than an exit code (D-0024, D-0031). All five verify commands and the hermetic suite pass. Dock geometry is deliberately NOT unit-proven - jsdom does not compute flex layout, so it is proven in the live check instead, per the human's decision.",
+    "summary": "All nine required leaves execute and pass, each verified by its junit testcase NAME and EXECUTED count rather than an exit code (D-0024, D-0031), and the full hermetic suite is green. After round 1 the stored-selection rerun is cancellable on the same AbortController as the streamed path, and the CSRF bootstrap and 401 refresh forward the signal. Dock geometry is deliberately NOT unit-proven - jsdom does not compute flex layout - and was measured live instead.",
     "commands_run": [
       "npm run build:contract, build:frontend, typecheck, lint, format:check -> all PASS",
       "npm run test:hermetic -> PASS",
@@ -15,7 +15,8 @@
       "vitest ask-panel.test.tsx (stored-selection rerun stays on the buffered route) -> executed 1 / fail 0 / name matched",
       "vitest api.test.ts (CSRF header sent; one refresh on 401) -> executed 1 / fail 0 / name matched",
       "vitest api.test.ts (client trims prior turns so a ninth turn still succeeds) -> executed 1 / fail 0 / name matched",
-      "vitest app-shell.test.tsx (the pill renders each state and is no longer disabled) -> executed 1 / fail 0 / name matched"
+      "vitest app-shell.test.tsx (the pill renders each state and is no longer disabled) -> executed 1 / fail 0 / name matched",
+      "after the round-1 fixes: npm run test:hermetic -> PASS (81 tests). The cancellation fix added a second argument to api.ask, which broke two exploration tests from the previous story that assert exact call arguments; the implementer raised scope-change signal S-0009-ab50 rather than editing files outside its scope, the two files were added to write_scope, and the assertions were TIGHTENED to toHaveBeenCalledWith({question, selection}, {signal: expect.any(AbortSignal)}) rather than loosened to toHaveBeenCalled(), so they still prove the stored selection is sent."
     ],
     "tests_added_or_updated": [
       "frontend/src/features/assistant/ask-stream.test.ts (NEW: SSE framing across chunk boundaries including a split multi-byte character, malformed frames, EOF without a terminal event, no phase after terminal)",
@@ -25,6 +26,7 @@
     ],
     "blocking_findings": [],
     "non_blocking_findings": [
+      "Round 1 found a real gap both lenses raised independently: a stored-selection rerun was UNCANCELLABLE, because only the streamed branch created an AbortController, so abortRef.current stayed undefined and leaving the assistant mid-rerun did not cancel. Fixed by registering one controller before the branch. Also fixed: api.ts's CSRF bootstrap and 401 refresh did not forward the supplied signal, so those sub-requests kept running after the user left.",
       "Dock geometry is proven by the live functional check rather than a vitest leaf: frontend/vitest.config.ts uses jsdom, which does not compute flex layout, so such a leaf could only assert CSS source text and would be a false green. Human-decided 2026-09-14.",
       "frontend-design was NOT read by the delegate run - zero references to its SKILL.md in the job log, the third task in a row despite a lesson naming the exact path, which was verified to exist and be byte-identical at both known locations. The orchestrator read and applied it directly and found no defect this time: phase labels are active and specific, no system vocabulary leaks into the new copy, and the quality floor holds. emil-design-eng WAS genuinely read by the run (six real range reads).",
       "D-0044 was raised during this task: running the gated freshness leaf in isolation TRUNCATEs ingest_batch CASCADE and destroyed 4,113 sap_transaction and 960 mis_budget rows in the shared local warehouse. Data was restored by re-running the full test:warehouse-proof suite, which reseeds.",
@@ -39,10 +41,10 @@
     "residual_risks": [],
     "manual_validation_steps": [],
     "reviewed_scope": [],
-    "recorded_at": "2026-09-14T18:47:45+00:00",
-    "commit": "b9f216696984cf8ffed137d14231da3105bd4154"
+    "recorded_at": "2026-09-14T19:07:41+00:00",
+    "commit": "0e3c5ba337a61b695ed0590744060483b09452bc"
   },
-  "updated_at": "2026-09-14T18:48:13+00:00",
+  "updated_at": "2026-09-14T19:07:41+00:00",
   "functional": {
     "generated_by": "functional-checker",
     "status": "passed",

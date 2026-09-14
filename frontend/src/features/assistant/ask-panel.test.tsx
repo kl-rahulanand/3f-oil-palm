@@ -418,6 +418,7 @@ test("an answer resolving within the render delay shows no phase while a slower 
   renderAsk();
   submit("Fast answer");
   await act(async () => undefined);
+  expect(vi.getTimerCount()).toBe(0);
   await act(() => vi.advanceTimersByTimeAsync(250));
 
   expect(screen.queryByRole("list", { name: "Answer progress" })).not.toBeInTheDocument();
@@ -480,6 +481,26 @@ test("leaving the assistant aborts while collapsing the dock and moving to the a
   );
   await waitFor(() => expect(signal.aborted).toBe(true));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+  mounted.unmount();
+  mocks.pathname = "/ask";
+  const rerunMounted = render(
+    <AskProvider pathname={mocks.pathname}>
+      <RerunButton />
+    </AskProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
+  const rerunSignal = mocks.ask.mock.calls[1]?.[1]?.signal as AbortSignal;
+  expect(rerunSignal.aborted).toBe(false);
+
+  mocks.pathname = "/dashboard";
+  rerunMounted.rerender(
+    <AskProvider pathname={mocks.pathname}>
+      <RerunButton />
+    </AskProvider>,
+  );
+  await waitFor(() => expect(rerunSignal.aborted).toBe(true));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 test("a stored selection rerun stays on the buffered route while an ordinary ask streams", async () => {
@@ -494,9 +515,11 @@ test("a stored selection rerun stays on the buffered route while an ordinary ask
   submit("Ordinary question");
   await screen.findByRole("heading", { name: "Governed result" });
   fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
-  await waitFor(() => expect(mocks.ask).toHaveBeenCalledWith({ question: "Stored question", selection }));
+  await waitFor(() =>
+    expect(mocks.ask).toHaveBeenCalledWith({ question: "Stored question", selection }, expect.any(Object)),
+  );
   expect(mocks.ask).toHaveBeenNthCalledWith(1, { question: "Ordinary question" }, expect.any(Object));
-  expect(mocks.ask).toHaveBeenNthCalledWith(2, { question: "Stored question", selection });
+  expect(mocks.ask).toHaveBeenNthCalledWith(2, { question: "Stored question", selection }, expect.any(Object));
 });
 
 test("an ordinary streaming http error renders as the buffered client does", async () => {

@@ -1,0 +1,43 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-streaming-and-shell",
+  "score": 9,
+  "summary": "performance lens over assistant-streaming-and-shell (11 product path(s), b9f2166..0e3c5ba, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The streaming, framing, phase-delay, trimming, freshness, and desktop-height changes shown are otherwise consistent with the stated contracts. However, cancellation is incomplete: pre-stream authentication work ignores the signal, and buffered selection reruns have no controller at all. Both paths can leave the persistent Ask provider pending after the user leaves the assistant.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/lib",
+      "summary": "Abort the CSRF and refresh requests along with the stream request (frontend/src/lib/api.ts:49): `postResponse` waits for the CSRF bootstrap without forwarding the supplied `AbortSignal`, and the 401 refresh call is likewise unsignaled."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "Make buffered stored-selection reruns cancellable (frontend/src/features/assistant/use-ask.ts:74): The stored-selection branch starts the buffered request without creating or passing an `AbortController`, so `abortRef.current` remains empty."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/ask-stream.test.ts",
+    "frontend/src/features/assistant/ask-stream.ts",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/shell/use-freshness.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "79190da973b191de71b9aa5097315479b97a28cb4abbada425d2978cbec1bbb8",
+  "brief_sha256": "585b18d827900bf2699b2e9156b669a98dd9df62e8db728a24eb25215bb094e4",
+  "branch_diff_digest": "b784324aea259e461d9d0ff67ab29972928db254a513e2e155ef70a332bd58df",
+  "residual_risks": [],
+  "recorded_at": "2026-09-14T18:53:38+00:00",
+  "commit": "0e3c5ba337a61b695ed0590744060483b09452bc"
+}

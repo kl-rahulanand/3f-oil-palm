@@ -1,0 +1,146 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-streaming-and-shell",
+  "score": 6,
+  "summary": "quality lens over assistant-streaming-and-shell (11 product path(s), b9f2166..0e3c5ba, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The streaming parser, delayed progress display, freshness states, request trimming, and responsive dock sizing are present, but cancellation does not cover buffered selection reruns and the terminal-timer acceptance case is not actually tested. No compatibility leftovers are visible in the supplied diff.\nVERDICT t-ass-c1: implemented \u2014 frontend/src/features/assistant/ask-stream.ts:10 handles byte-stream framing, malformed input, EOF, and terminal events\nVERDICT t-ass-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:53 delays client-side phase rendering by 250ms\nVERDICT t-ass-c3: implemented \u2014 frontend/src/features/assistant/use-ask.ts:73 explicitly separates buffered selection reruns from streamed ordinary asks\nVERDICT t-ass-c4: partial \u2014 frontend/src/features/assistant/use-ask.ts:74 leaves buffered selection reruns outside the abort controller\nVERDICT t-ass-c5: implemented \u2014 frontend/src/features/shell/use-freshness.ts:7 fetches and distinctly renders the route and browser-failure states\nVERDICT t-ass-c6: implemented \u2014 frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores auto height\nVERDICT t-ass-c7: implemented \u2014 frontend/src/lib/api.ts:129 bounds entries, per-question length, and serialized size while retaining newest turns in oldest-first order\nVERDICT t-ass-c8: partial \u2014 frontend/src/features/assistant/ask-stream.test.ts:80 does not test clearing a previously scheduled phase timer after a terminal frame",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P1] Keep buffered reruns cancellable when leaving the assistant (frontend/src/features/assistant/use-ask.ts:74): The selection branch calls the buffered client without creating or passing an AbortController, while the route-change effect can only abort `abortRef.current`."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/assistant-responsiveness.md#behaviour",
+      "summary": "t-ass-c4: Leaving the assistant cancels the in-flight request, and the cancellation is BOUNDED as task 1 built it: the client aborts, the server stops writing frames and aborts the model call, and a query already running expires under statement_timeout rather than being cancelled. Collapsing the dock does NOT cancel, and moving between the dock and the Ask page does NOT cancel - one AskProvider holds one thread, so a valid transition must not discard a question in flight. The assistant area is exactly /ask and /mis-reports - human-decided 2026-09-14: navigation WITHIN that set never cancels, and any other authenticated route aborts. The routes must be NAMED because AskProvider lives in the persistent authenticated shell, so an unmounting panel cannot own the boundary. An expected abort is never rendered as an error: today it falls into the generic catch and surfaces as one, so it must be recognised and swallowed silently. Terminal SSE error frames must also be NORMALISED into the fields the seven-class AskResponse renderer requires, which they do not carry as emitted."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "frontend/src/features/assistant/use-ask.ts",
+      "summary": "t-ass-c8: The surfaces are proven by vitest leaves covering: an SSE frame split across chunks and several frames in one chunk; phases rendering in order; NO phase for an answer resolving within 250ms; a malformed frame and an EOF without a terminal event each resolving as a backend error rather than hanging; a 401 refreshing and retrying; leaving the assistant aborting while dock collapse and dock-to-Ask navigation do NOT; the pill rendering each of the five states plus the client 'could not check'; a stored-selection rerun staying on buffered /api/chat; an ordinary HTTP error rendering as the buffered client does; no phase after the terminal frame; a UTF-8 character split across chunks; and the client trimming to the shared limits on a ninth turn. DOCK GEOMETRY IS **NOT** UNIT-PROVEN: jsdom does not compute flex layout (frontend/vitest.config.ts uses it), so a vitest leaf could only assert CSS source text and would be a false green. It is proven by the LIVE functional check at desktop AND mobile breakpoints - human-decided 2026-09-14. The task is user_facing, so emil-design-eng AND frontend-design are loaded, USED and attested - the recorder REFUSES a user-facing automated artifact without both, and the orchestrator checks the job log for an actual read rather than taking the run's word for it. The functional check runs LIVE with BEDROCK_MODEL_ID set: ask, then ask a FOLLOW-UP and confirm phases appear and it returns in a FEW SECONDS - measured 1.0-5.4s after task 1, so the check expects a few seconds with occasional excursions, NOT a hard sub-5s bound. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031)."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P2] Exercise the pending phase timer in the terminal-frame test (frontend/src/features/assistant/ask-stream.test.ts:80): This assertion only proves that the parser ignores a phase frame placed after a result frame."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/ask-stream.test.ts",
+    "frontend/src/features/assistant/ask-stream.ts",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/shell/use-freshness.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-ass-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-stream.ts:10 handles byte-stream framing, malformed input, EOF, and terminal events"
+    },
+    {
+      "contract_id": "t-ass-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:53 delays client-side phase rendering by 250ms"
+    },
+    {
+      "contract_id": "t-ass-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:73 explicitly separates buffered selection reruns from streamed ordinary asks"
+    },
+    {
+      "contract_id": "t-ass-c4",
+      "verdict": "partial",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:74 leaves buffered selection reruns outside the abort controller"
+    },
+    {
+      "contract_id": "t-ass-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/shell/use-freshness.ts:7 fetches and distinctly renders the route and browser-failure states"
+    },
+    {
+      "contract_id": "t-ass-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores auto height"
+    },
+    {
+      "contract_id": "t-ass-c7",
+      "verdict": "implemented",
+      "evidence": "frontend/src/lib/api.ts:129 bounds entries, per-question length, and serialized size while retaining newest turns in oldest-first order"
+    },
+    {
+      "contract_id": "t-ass-c8",
+      "verdict": "partial",
+      "evidence": "frontend/src/features/assistant/ask-stream.test.ts:80 does not test clearing a previously scheduled phase timer after a terminal frame"
+    },
+    {
+      "contract_id": "t-abg-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-abg-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-abg-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-abg-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-abg-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "79190da973b191de71b9aa5097315479b97a28cb4abbada425d2978cbec1bbb8",
+  "brief_sha256": "585b18d827900bf2699b2e9156b669a98dd9df62e8db728a24eb25215bb094e4",
+  "branch_diff_digest": "b784324aea259e461d9d0ff67ab29972928db254a513e2e155ef70a332bd58df",
+  "residual_risks": [],
+  "recorded_at": "2026-09-14T18:53:38+00:00",
+  "commit": "0e3c5ba337a61b695ed0590744060483b09452bc"
+}

@@ -124,17 +124,19 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 **Write scope** (what `stage done` measures the diff against)
 
-- frontend/src/features/assistant/ask-stream.ts
-- frontend/src/features/assistant/ask-stream.test.ts
-- frontend/src/features/assistant/use-ask.ts
-- frontend/src/features/assistant/ask-panel.tsx
-- frontend/src/features/assistant/ask-panel.test.tsx
-- frontend/src/lib/api.ts
-- frontend/src/lib/api.test.ts
-- frontend/src/components/shell/app-shell.tsx
-- frontend/src/components/shell/app-shell.test.tsx
-- frontend/src/features/shell/use-freshness.ts
 - frontend/app/globals.css
+- frontend/src/components/shell/app-shell.test.tsx
+- frontend/src/components/shell/app-shell.tsx
+- frontend/src/features/assistant/ask-panel.test.tsx
+- frontend/src/features/assistant/ask-panel.tsx
+- frontend/src/features/assistant/ask-stream.test.ts
+- frontend/src/features/assistant/ask-stream.ts
+- frontend/src/features/assistant/use-ask.ts
+- frontend/src/features/exploration/pinned-reports.test.tsx
+- frontend/src/features/exploration/saved-views.test.tsx
+- frontend/src/features/shell/use-freshness.ts
+- frontend/src/lib/api.test.ts
+- frontend/src/lib/api.ts
 
 **Required tests** (run by `stage done`)
 
@@ -157,5 +159,5 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - `npm run format:check`
 - `npm run test:hermetic`
 
-**Review budget.** 12 files / 1800 lines -- An SSE client with byte-level chunk handling, terminal-failure normalisation and timer cleanup on a provider shared by two surfaces; a branch keeping stored-selection reruns on the buffered route; a client trim that fixes a live 400 on the ninth conversational turn; full transport parity including the 401 refresh; a cancellation boundary defined by route set; a six-state freshness pill; and the dock height. Nine required vitest leaves plus a live functional check that is also the geometry proof, and the two mandatory design skills.
+**Review budget.** 14 files / 1800 lines -- An SSE client with byte-level chunk handling, terminal-failure normalisation and timer cleanup on a provider shared by two surfaces; a branch keeping stored-selection reruns on the buffered route; a client trim that fixes a live 400 on the ninth conversational turn; full transport parity including the 401 refresh; a cancellation boundary defined by route set; a six-state freshness pill; and the dock height. Nine required vitest leaves plus a live functional check that is also the geometry proof, and the two mandatory design skills. Scope extended by the two exploration test files the cancellation fix mechanically implies: making a stored-selection rerun cancellable adds a second argument to api.ask, and those tests assert the exact call arguments, so they fail until updated.
 <!-- /forge:contract -->

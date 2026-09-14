@@ -153,7 +153,9 @@ test("the streaming client sends the csrf header and refreshes once on a 401", a
   });
   vi.stubGlobal("fetch", fetchMock);
 
-  await api.askStream({ question: "Define Actual" });
+  const signal = new AbortController().signal;
+
+  await api.askStream({ question: "Define Actual" }, { signal });
 
   const calls = fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/chat/stream"));
   expect(calls).toHaveLength(2);
@@ -163,6 +165,13 @@ test("the streaming client sends the csrf header and refreshes once on a 401", a
     "stream-token-3",
   ]);
   expect(calls.every(([, init]) => init?.credentials === "include")).toBe(true);
+  expect(
+    fetchMock.mock.calls
+      .filter(([input]) =>
+        ["/api/auth/csrf", "/api/auth/refresh", "/api/chat/stream"].some((path) => String(input).endsWith(path)),
+      )
+      .every(([, init]) => init?.signal === signal),
+  ).toBe(true);
 });
 
 test("the client trims prior turns to the shared limits so a ninth turn still succeeds", async () => {
@@ -224,7 +233,8 @@ test("opening a saved view posts the stored selection with no report grounding",
     filters: [],
   };
 
-  await api.ask({ question: "Actual", selection });
+  const signal = new AbortController().signal;
+  await api.ask({ question: "Actual", selection }, { signal });
 
   const [url, init] = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/api/chat"))!;
   expect(String(url)).toBe("http://127.0.0.1:4000/api/chat");
@@ -232,7 +242,9 @@ test("opening a saved view posts the stored selection with no report grounding",
     method: "POST",
     credentials: "include",
     body: JSON.stringify({ question: "Actual", selection }),
+    signal,
   });
+  expect(fetchMock.mock.calls.every(([, init]) => init?.signal === signal)).toBe(true);
   expect((init?.headers as Record<string, string>)["x-csrf-token"]).toBe("rerun-token");
   expect(Object.keys(JSON.parse(String(init?.body))).sort()).toEqual(["question", "selection"]);
   expect(JSON.parse(String(init?.body))).not.toHaveProperty("reportGrounding");

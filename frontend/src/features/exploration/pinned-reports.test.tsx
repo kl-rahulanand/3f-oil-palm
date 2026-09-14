@@ -51,7 +51,9 @@ test("a pinned row renders metadata only in position order with a changed defini
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
 
   fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]!);
-  await waitFor(() => expect(mocks.ask).toHaveBeenCalledWith({ question: "Budget", selection }));
+  await waitFor(() =>
+    expect(mocks.ask).toHaveBeenCalledWith({ question: "Budget", selection }, { signal: expect.any(AbortSignal) }),
+  );
   expect(mocks.push).toHaveBeenCalledWith("/ask");
 
   fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
