@@ -8,6 +8,7 @@ export function useFreshness(): string {
     queryKey: ["warehouse", "freshness"],
     queryFn: api.warehouseFreshness,
     retry: false,
+    refetchOnReconnect: false,
     refetchOnWindowFocus: false,
     gcTime: 0,
   });

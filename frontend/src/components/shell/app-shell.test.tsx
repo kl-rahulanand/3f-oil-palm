@@ -109,3 +109,19 @@ test("the freshness pill renders each of the five states and is no longer disabl
   expect(await screen.findByText("Load freshness · Could not check")).toBeInTheDocument();
   expect(screen.queryByText("Load freshness · Warehouse lookup failed")).not.toBeInTheDocument();
 });
+
+test("the freshness pill does not silently refetch when connectivity returns", async () => {
+  mocks.freshness.mockResolvedValue({ status: "unsupported", freshnessKind: "load" });
+  renderWithQuery(
+    <AppShell user={user}>
+      <div>Canvas</div>
+    </AppShell>,
+  );
+  await screen.findByText("Load freshness · Not reported by this warehouse");
+
+  window.dispatchEvent(new Event("offline"));
+  window.dispatchEvent(new Event("online"));
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(mocks.freshness).toHaveBeenCalledTimes(1);
+});

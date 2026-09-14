@@ -2,29 +2,19 @@
   "generated_by": "autoreview",
   "task_id": "assistant-streaming-and-shell",
   "score": 9,
-  "summary": "quality lens over assistant-streaming-and-shell (13 product path(s), b9f2166..8f43821, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The principal streaming, cancellation, freshness, layout, and history-bounding changes are present, but terminal stream handling can still delay or lose a completed result while awaiting cancellation, allowing the delayed phase timer to fire or leaving the shared provider pending.\nVERDICT t-ass-c1: partial \u2014 frontend/src/features/assistant/ask-stream.ts:37 awaits stream cancellation before resolving a terminal result.\nVERDICT t-ass-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:51 delays phase rendering by 250 ms on the client.\nVERDICT t-ass-c3: implemented \u2014 frontend/src/lib/api.ts:154 explicitly keeps selection reruns buffered while ordinary asks stream with preserved transport handling.\nVERDICT t-ass-c4: partial \u2014 frontend/src/features/assistant/use-ask.ts:32 implements the named route boundary, but terminal cleanup remains dependent on stream cancellation settling.\nVERDICT t-ass-c5: implemented \u2014 frontend/src/features/shell/use-freshness.ts:15 renders the distinct server and client failure states with explicit UTC labeling.\nVERDICT t-ass-c6: implemented \u2014 frontend/app/globals.css:1346 gives the desktop dock a viewport-filling height while the mobile rule restores auto height.\nVERDICT t-ass-c7: implemented \u2014 frontend/src/lib/api.ts:127 bounds prior-turn count, question length, and serialized size while retaining newest turns in oldest-first order.\nVERDICT t-ass-c8: partial \u2014 frontend/src/features/assistant/ask-panel.test.tsx:409 exercises delayed phases, but does not cover a terminal frame whose reader cancellation is asynchronous or rejects.",
+  "summary": "quality lens over assistant-streaming-and-shell (13 product path(s), b9f2166..b154186, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. VERDICT t-ass-c1: implemented \u2014 frontend/src/features/assistant/ask-stream.ts:14 parses buffered byte-decoded SSE frames and terminates all result/error/EOF paths\nVERDICT t-ass-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:51 delays phase rendering by 250ms and clears progress on completion\nVERDICT t-ass-c3: implemented \u2014 frontend/src/lib/api.ts:44 preserves CSRF, credentials, refresh, HTTP errors and the buffered selection branch\nVERDICT t-ass-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and suppresses AbortError\nVERDICT t-ass-c5: partial \u2014 frontend/src/features/shell/use-freshness.ts:7 leaves reconnect refetch enabled, allowing a silent retry\nVERDICT t-ass-c6: implemented \u2014 frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores auto height\nVERDICT t-ass-c7: implemented \u2014 frontend/src/lib/api.ts:128 trims newest prior turns against all shared limits while retaining oldest-first order\nVERDICT t-ass-c8: implemented \u2014 frontend/src/features/assistant/ask-stream.test.ts:29 and frontend/src/features/assistant/ask-panel.test.tsx:409 exercise the required streaming, phase, cancellation, and terminal behavior shown in the bundle\nThe streaming, cancellation, trimming, dock geometry, and six freshness render states are implemented, but the remaining automatic reconnect refetch violates the freshness transport contract.",
   "blocking_findings": [
     {
       "category": "plan-contract-partial",
-      "area": "contract/src/api.ts",
-      "summary": "t-ass-c1: Both Ask surfaces consume POST /api/chat/stream and render its ordered phases - routing, selecting, querying, summarizing (contract/src/api.ts:552) - instead of one static pending state. The client parses SSE correctly in both directions the transport actually produces: a single frame SPLIT ACROSS CHUNKS and SEVERAL frames arriving in ONE chunk. It also handles the stream's failure modes rather than hanging: a MALFORMED JSON frame and an EOF carrying neither result nor error each resolve the request as a backend error, because AskProvider is shared by the dock and the page and an unresolved promise leaves BOTH surfaces pending forever. A phase never renders after the terminal frame, and any pending render-delay timer is CLEARED on every terminal path. Chunk boundaries are handled at the BYTE level, not the character level: a multi-byte UTF-8 character split across two chunks must not corrupt the frame."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "docs/specs/assistant-responsiveness.md#behaviour",
-      "summary": "t-ass-c4: Leaving the assistant cancels the in-flight request, and the cancellation is BOUNDED as task 1 built it: the client aborts, the server stops writing frames and aborts the model call, and a query already running expires under statement_timeout rather than being cancelled. Collapsing the dock does NOT cancel, and moving between the dock and the Ask page does NOT cancel - one AskProvider holds one thread, so a valid transition must not discard a question in flight. The assistant area is exactly /ask and /mis-reports - human-decided 2026-09-14: navigation WITHIN that set never cancels, and any other authenticated route aborts. The routes must be NAMED because AskProvider lives in the persistent authenticated shell, so an unmounting panel cannot own the boundary. An expected abort is never rendered as an error: today it falls into the generic catch and surfaces as one, so it must be recognised and swallowed silently. Terminal SSE error frames must also be NORMALISED into the fields the seven-class AskResponse renderer requires, which they do not carry as emitted."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "frontend/src/features/assistant/use-ask.ts",
-      "summary": "t-ass-c8: The surfaces are proven by vitest leaves covering: an SSE frame split across chunks and several frames in one chunk; phases rendering in order; NO phase for an answer resolving within 250ms; a malformed frame and an EOF without a terminal event each resolving as a backend error rather than hanging; a 401 refreshing and retrying; leaving the assistant aborting while dock collapse and dock-to-Ask navigation do NOT; the pill rendering each of the five states plus the client 'could not check'; a stored-selection rerun staying on buffered /api/chat; an ordinary HTTP error rendering as the buffered client does; no phase after the terminal frame; a UTF-8 character split across chunks; and the client trimming to the shared limits on a ninth turn. DOCK GEOMETRY IS **NOT** UNIT-PROVEN: jsdom does not compute flex layout (frontend/vitest.config.ts uses it), so a vitest leaf could only assert CSS source text and would be a false green. It is proven by the LIVE functional check at desktop AND mobile breakpoints - human-decided 2026-09-14. The task is user_facing, so emil-design-eng AND frontend-design are loaded, USED and attested - the recorder REFUSES a user-facing automated artifact without both, and the orchestrator checks the job log for an actual read rather than taking the run's word for it. The functional check runs LIVE with BEDROCK_MODEL_ID set: ask, then ask a FOLLOW-UP and confirm phases appear and it returns in a FEW SECONDS - measured 1.0-5.4s after task 1, so the check expects a few seconds with occasional excursions, NOT a hard sub-5s bound. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031)."
+      "area": "frontend/src/components/shell/app-shell.tsx",
+      "summary": "t-ass-c5: The shell's freshness pill shows the real value from GET /api/warehouse/freshness and is no longer aria-disabled. app-shell.tsx:174 renders static text with aria-disabled=true today, beside a disabled search box. It renders all FIVE states the route distinguishes - available, no-active-batches, unsupported, unconfigured, lookup-failed - and never collapses them into one blank or one 'unavailable'. Each state gets DISTINCT copy - human-decided 2026-09-14 - with an EXPLICIT TIMEZONE on an available timestamp, plus a SEPARATE client-side 'could not check' state for a browser fetch failure, which must never be shown as the server's lookup-failed. It inherits the single 401 refresh and NEVER silently retries or shows an unqualified cached value. It is labelled as LOAD freshness, matching the payload's freshnessKind, because a September upload of July figures must not read as September data. provenance.dataAsOf remains null and untouched (D-0041); the pill is the only freshness surface this task ships. A PARTIALLY loaded warehouse - one source active, the other not - is D-0042 and out of scope: render what the route returns."
     }
   ],
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "frontend/src/features/assistant",
-      "summary": "[P2] Resolve terminal frames before waiting for stream cancellation (frontend/src/features/assistant/ask-stream.ts:37): After receiving a valid terminal result, this awaits `reader.cancel()` before resolving the request."
+      "area": "frontend/src/features/shell",
+      "summary": "[P2] Freshness silently retries when connectivity returns (frontend/src/features/shell/use-freshness.ts:7): This query disables normal retries and focus refetches but leaves TanStack Query's `refetchOnReconnect` at its default of `true`."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -49,43 +39,43 @@
   "contract_verdicts": [
     {
       "contract_id": "t-ass-c1",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/ask-stream.ts:37 awaits stream cancellation before resolving a terminal result."
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-stream.ts:14 parses buffered byte-decoded SSE frames and terminates all result/error/EOF paths"
     },
     {
       "contract_id": "t-ass-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:51 delays phase rendering by 250 ms on the client."
+      "evidence": "frontend/src/features/assistant/use-ask.ts:51 delays phase rendering by 250ms and clears progress on completion"
     },
     {
       "contract_id": "t-ass-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/lib/api.ts:154 explicitly keeps selection reruns buffered while ordinary asks stream with preserved transport handling."
+      "evidence": "frontend/src/lib/api.ts:44 preserves CSRF, credentials, refresh, HTTP errors and the buffered selection branch"
     },
     {
       "contract_id": "t-ass-c4",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:32 implements the named route boundary, but terminal cleanup remains dependent on stream cancellation settling."
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and suppresses AbortError"
     },
     {
       "contract_id": "t-ass-c5",
-      "verdict": "implemented",
-      "evidence": "frontend/src/features/shell/use-freshness.ts:15 renders the distinct server and client failure states with explicit UTC labeling."
+      "verdict": "partial",
+      "evidence": "frontend/src/features/shell/use-freshness.ts:7 leaves reconnect refetch enabled, allowing a silent retry"
     },
     {
       "contract_id": "t-ass-c6",
       "verdict": "implemented",
-      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-filling height while the mobile rule restores auto height."
+      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores auto height"
     },
     {
       "contract_id": "t-ass-c7",
       "verdict": "implemented",
-      "evidence": "frontend/src/lib/api.ts:127 bounds prior-turn count, question length, and serialized size while retaining newest turns in oldest-first order."
+      "evidence": "frontend/src/lib/api.ts:128 trims newest prior turns against all shared limits while retaining oldest-first order"
     },
     {
       "contract_id": "t-ass-c8",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:409 exercises delayed phases, but does not cover a terminal frame whose reader cancellation is asynchronous or rejects."
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-stream.test.ts:29 and frontend/src/features/assistant/ask-panel.test.tsx:409 exercise the required streaming, phase, cancellation, and terminal behavior shown in the bundle"
     },
     {
       "contract_id": "t-abg-c1",
@@ -139,10 +129,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "9d9b18860a67d71588f25440cc6e206df0453678aaab07528680519d224871f9",
-  "brief_sha256": "ddf4e48f4335be07d158cf3fb951275da37ed490fe2de2ab2dfc067ae6881a16",
-  "branch_diff_digest": "b51273834cf74f9434eda5b1879782b82c90d10951d22e89e2a57ef7d084e30c",
+  "review_run_id": "5871c2b18e8d9c14dc58837a3c809ccb28a94880d6c19bcef7338891747591b4",
+  "brief_sha256": "717479a201509439343bd6a5c13d9d1e8b1c90670268a15fe1da3ae5b72b1eaf",
+  "branch_diff_digest": "9cf823392ac481ff690f09cfd78d7acd0ab2609a60af49bbacc020b5c2e19fe3",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T19:12:39+00:00",
-  "commit": "8f438212fcc68097b1d549dbfacd61915075de7d"
+  "recorded_at": "2026-09-14T19:25:01+00:00",
+  "commit": "b154186ba113824c02d6159e70f333ab36d78a4c"
 }
