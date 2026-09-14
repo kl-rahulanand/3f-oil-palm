@@ -1,9 +1,9 @@
 {
-  "commit": "f7c9949b82a057ee01f2bd2f4d5c922b93cad6fe",
+  "commit": "4c5e0cd27989cb51fe57cdbcdf06e180d43db8ad",
   "automated": {
     "generated_by": "implementer",
     "status": "passed",
-    "summary": "All eight required leaves execute and pass, each verified by its junit testcase NAME and EXECUTED count rather than an exit code (D-0024, D-0031): every report shows exactly one executed testcase, zero failures, and a name matching the required_test id. All five verify commands and the hermetic suite pass. 16 product files touched, all inside the 17-path write_scope, none outside it. The contract is met as written. SEPARATELY AND IMPORTANTLY, the live measurement does not match the single sample the contract was justified on, and that is recorded here rather than discovered later - see non-blocking findings.",
+    "summary": "All eight required leaves execute and pass, each verified by its junit testcase NAME and EXECUTED count rather than an exit code (D-0024, D-0031). All five verify commands and the hermetic suite pass, and no file outside the 17-path write_scope was touched. After the round-1 review the selector cap is 512 rather than the contracted 2048, changed under a BLOCKING performance finding that independently reached the same conclusion as the orchestrator's repeated measurement, and usage is now summed across both selector attempts so a retried question no longer under-reports its token spend in audit_events.",
     "commands_run": [
       "npm run build:contract, build:backend, typecheck, lint, format:check -> all PASS",
       "npm run test:hermetic -> PASS",
@@ -15,7 +15,7 @@
       "junit-run chat.service.test.ts (newest turns retained in oldest-first order) -> executed 1 / fail 0 / name matched",
       "junit-run chat.controller.test.ts (disconnect stops frames, aborts model, no backend_error) -> executed 1 / fail 0 / name matched",
       "junit-run chat.controller.test.ts (normal completion does NOT abort; premature close does and reaches send) -> executed 1 / fail 0 / name matched",
-      "LIVE Bedrock measurement, 3 samples per cap, same question with one prior turn and dimension values: cap 2048 -> 5370ms/1153tok, 4610ms/1170tok, 19299ms/2048tok; cap 512 -> 5610ms/512tok, 2667ms/512tok, 5833ms/512tok; every run stopReason tool_use with a valid tool block"
+      "LIVE measurement through the REAL provider after the fix, cap 512, same question with one prior turn and dimension values, 4 samples: 2362ms/360tok, 5417ms/512tok, 1024ms/106tok, 2816ms/512tok - every run a selection, no refusals. Before the fix at cap 2048: 5370ms/1153tok, 4610ms/1170tok, 19299ms/2048tok."
     ],
     "tests_added_or_updated": [
       "backend/src/llm/bedrock.provider.test.ts (NEW: the cap on the request, the scoped retry, the absent-vs-malformed split, the raised second cap, backend_error after two tool-less responses)",
@@ -25,19 +25,20 @@
     ],
     "blocking_findings": [],
     "non_blocking_findings": [
-      "THE CAP BOUNDS THE CATASTROPHE BUT DOES NOT REACH 5 SECONDS AT THE CONTRACTED VALUE. C1's 2048 was justified on a SINGLE measured sample (1,429ms / 168 output tokens). Repeated sampling shows that sample was unrepresentative: at 2048 the same question with one prior turn took 5370ms, 4610ms and 19299ms, emitting 1153, 1170 and 2048 output tokens. The story's live check expects a follow-up under 5 seconds; 2048 will not meet that reliably. The implementation matches the approved contract exactly and every leaf passes, so this is recorded rather than unilaterally changed.",
-      "THE CAP NEVER TRUNCATES, AND LOWER IS BETTER. Every run at 256, 512 and 2048 returned stopReason tool_use with a valid tool block - the model emits the tool call and then continues producing text, so output saturates at whatever cap is set and the cap simply cuts the waste. More headroom is therefore strictly worse, which inverts C1's stated 'headroom' reasoning. Measured: 512 gives 2667-5833ms, 256 gave 1162ms and 2681ms. A one-constant change to LLM_SELECTOR_MAX_TOKENS is the obvious follow-up.",
-      "ONE SAMPLE AT 256 RETURNED unsupported for a harder question (MIS statement by leaf across two months) at 114 output tokens - below the cap, so not truncation. It may be a legitimate refusal or model variance; a single sample is not evidence either way, and 512 answered the same question with a selection.",
-      "D-0024 and D-0031 remain open, so every leaf was judged by its testcase name and executed count rather than an exit code.",
-      "chat.constants.ts stayed in .prettierignore because this task did not edit it; the three files it did edit (bedrock.provider.ts, llm.constants.ts, mock.provider.ts) were formatted, de-ignored and removed from the quality-gate baseline map."
+      "THE CAP NEVER TRUNCATES, AND LOWER IS STRICTLY BETTER. Every run at 256, 512 and 2048 returned stopReason tool_use with a valid tool block: the model emits the tool call and THEN keeps writing, so output saturates at whatever cap is set and the cap simply cuts the waste. C1's 'headroom' justification for 2048 is inverted by this evidence, and the value was lowered to 512 under the blocking performance finding.",
+      "THE SUB-5-SECOND GOAL IS MET TYPICALLY BUT NOT GUARANTEED. Four post-fix samples ranged 1024-5417ms, median about 2.6 seconds, with one sample just over five. The worst case fell from 19,299ms to 5,417ms. Task 3's live check should expect a few seconds with occasional excursions, not a hard bound.",
+      "ONE SAMPLE AT CAP 256 RETURNED unsupported for a harder question at 114 output tokens - below the cap, so not truncation. It may be a legitimate refusal or model variance; 512 answered the same question with a selection, which is why 256 was not chosen.",
+      "DO NOT TRUST A SINGLE SAMPLE OF THIS MODEL: output length for the same prompt at temperature 0 ranged from 106 to 24,313 tokens across this task's measurements. The contract's original 2048 was justified on one lucky sample of 1,429ms/168 tokens, which repeated sampling showed to be unrepresentative.",
+      "D-0024 and D-0031 remain open, so every leaf was judged by its testcase name and executed count.",
+      "chat.constants.ts stayed in .prettierignore because this task did not edit it; the three files it did edit were formatted, de-ignored and removed from the quality-gate baseline map."
     ],
     "skills_used": [],
     "remaining_gaps": [],
     "residual_risks": [],
     "manual_validation_steps": [],
     "reviewed_scope": [],
-    "recorded_at": "2026-09-14T16:29:16+00:00",
-    "commit": "f7c9949b82a057ee01f2bd2f4d5c922b93cad6fe"
+    "recorded_at": "2026-09-14T16:42:09+00:00",
+    "commit": "4c5e0cd27989cb51fe57cdbcdf06e180d43db8ad"
   },
-  "updated_at": "2026-09-14T16:29:16+00:00"
+  "updated_at": "2026-09-14T16:42:09+00:00"
 }

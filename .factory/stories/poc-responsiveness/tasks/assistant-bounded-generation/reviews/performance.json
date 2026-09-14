@@ -1,0 +1,41 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-bounded-generation",
+  "score": 7,
+  "summary": "performance lens over assistant-bounded-generation (16 product path(s), f7c9949..4c5e0cd, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The patch adds the requested bounds, retry behavior, ingress limits, and cancellation wiring, but its primary selector cap is demonstrably too high to satisfy the responsiveness objective. Repeated evidence supplied with the review shows severe latency remains at 2,048 tokens despite much lower caps preserving valid tool selection.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/llm",
+      "summary": "[P1] Lower the selector token cap to meet the responsiveness target (backend/src/llm/llm.constants.ts:3): The configured 2,048-token cap does not reliably achieve the task's sub-five-second selector goal."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/chat.controller.test.ts",
+    "backend/src/chat/chat.controller.ts",
+    "backend/src/chat/chat.schemas.test.ts",
+    "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.service.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/llm/bedrock.provider.test.ts",
+    "backend/src/llm/bedrock.provider.ts",
+    "backend/src/llm/llm.constants.ts",
+    "backend/src/llm/llm.interface.ts",
+    "backend/src/llm/mock.provider.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "76e88eee577b2d237d2264de3f28529b8040c1adb18c9848ef5b11ffa2870ba8",
+  "brief_sha256": "e3beea0dd4f97e317a0a8b62dd8a7a288dd5db4a439f1c53f69f8e953d5e023e",
+  "branch_diff_digest": "d13bcb46f70645d80cde23cf42442a97a2a98529cd2b686e4cd5e27fc8d81956",
+  "residual_risks": [],
+  "recorded_at": "2026-09-14T16:34:16+00:00",
+  "commit": "4c5e0cd27989cb51fe57cdbcdf06e180d43db8ad"
+}

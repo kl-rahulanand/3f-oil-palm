@@ -1,4 +1,36 @@
-# Branch-wide plan-contract review brief
+# Review brief — assistant-bounded-generation — quality lens
+
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
+
+LENS: QUALITY. Correctness, regressions, gaps in the implementer's tests,
+API/contract drift, and maintainability. Check approved-deliverable presence and
+reachability FIRST: every deliverable a plan contract, acceptance criterion, or
+the reviewer focus names must be genuinely implemented AND reachable (registered,
+invoked — not merely defined in a file nothing imports); an absent or unreachable
+deliverable is a blocking finding even when the rest is clean. Flag
+single-responsibility violations and incoherent file/folder organisation against
+the reviewer focus (never a mandated layout). Structure-for-growth in shared
+infrastructure is NOT over-engineering; reserve that finding for speculative
+abstraction. Enforce the minimal-diff discipline (a new dependency where the
+stdlib suffices, reimplementing an existing helper, sprawl where a surgical
+change would do) — but a diff that drops validation, error handling, security, or
+accessibility to look smaller is the OPPOSITE finding. The constitution's coding
+standards are law: flag deviations you can see in the diff. Assess cyclomatic
+complexity of every changed function; genuinely knotted control flow (roughly
+>10 independent paths) is blocking and must name its decomposition.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
+CONTRACT VERDICTS (mandatory, machine-parsed). In overall_explanation, emit ONE
+line per plan contract listed under "Plan contracts" below, exactly in this form:
+
+VERDICT <contract-id>: implemented|partial|missing — <file:line evidence>
+
+Every listed contract must get a line. Do not rename contract ids.
 
 For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
 
@@ -87,49 +119,3 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 - [high] node_modules is materialised in assistant-exploration-view: node_modules is fully installed in THIS worktree as of 2026-09-12, BEFORE delegation: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host, because forge task start always cuts a fresh worktree without node_modules and the sandbox can neither reach the registry nor read the host cache. Verified after installing: tsc resolves and npm run test:frontend passes 56 tests across 14 files. No product file changed - node_modules is gitignored, so no degraded window was needed. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry; those fail in the sandbox and are not yours to fix. If a package is genuinely missing, raise a signal naming it rather than trying to install it.
 - [high] node_modules is materialised in assistant-bounded-generation: node_modules is fully installed in THIS worktree as of 2026-09-14: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host before delegating, because forge task start always cuts a fresh worktree without node_modules and the sandbox can neither reach the registry nor read the host cache. No product file changed - node_modules is gitignored. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry; those fail in the sandbox and are not yours to fix. If a package is genuinely missing, raise a signal naming it.
 - [high] the selector cap bounds the runaway but 2048 does not reach 5 seconds: MEASURED on 2026-09-14 with repeated sampling, correcting a single-sample claim in the approved contract. The cap NEVER truncates: at 256, 512 and 2048 every run returned stopReason tool_use with a valid tool block. The model emits the tool call and THEN keeps producing text, so output saturates at whatever cap is set - which means a LOWER cap is strictly better and C1's 'headroom' justification for 2048 is inverted. Latency with one prior turn: cap 2048 -> 5370ms, 4610ms, 19299ms (1153, 1170, 2048 output tokens); cap 512 -> 5610ms, 2667ms, 5833ms (512 every time); cap 256 -> 1162ms and 2681ms. The story's live check expects a follow-up under 5 SECONDS, which 2048 will not meet reliably. Task 3's functional check must therefore expect 5-20s unless LLM_SELECTOR_MAX_TOKENS is lowered - a one-constant change. Do NOT conclude anything from a single sample of this model: run-to-run output length varies from 124 to 24,313 tokens for the same prompt at temperature 0, which is exactly how the orchestrator's original 1,429ms claim came to be wrong.
-
-## Task shell-freshness-api
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-Every active decision is attested in the frontmatter. Load-bearing here: **0027** (Bedrock in
-`ap-south-1` — explicitly *not* amended; the model is exonerated by measurement), **0028**
-(selections not snapshots — untouched), **0019** (house style binds the new freshness route),
-**0009** (required tests name a real leaf and pin `TS_NODE_PROJECT`), **0012**, **0011**. **No new
-decision is required**: the cap is a defect fix, the freshness rule is in the confirmed spec, and
-the cancellation boundary is recorded here as a human-decided scope limit.
-
-## Task assistant-streaming-and-shell
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-Every active decision is attested in the frontmatter. Load-bearing here: **0027** (Bedrock in
-`ap-south-1` — explicitly *not* amended; the model is exonerated by measurement), **0028**
-(selections not snapshots — untouched), **0019** (house style binds the new freshness route),
-**0009** (required tests name a real leaf and pin `TS_NODE_PROJECT`), **0012**, **0011**. **No new
-decision is required**: the cap is a defect fix, the freshness rule is in the confirmed spec, and
-the cancellation boundary is recorded here as a human-decided scope limit.

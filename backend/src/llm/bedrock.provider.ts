@@ -399,13 +399,22 @@ export class BedrockLlmProvider implements LlmProvider {
 
       signal?.throwIfAborted();
       const second = await selectOnce(LLM_SELECTOR_RETRY_MAX_TOKENS);
+      const usage =
+        first.usage && second.usage
+          ? {
+              model: second.usage.model,
+              inputTokens: first.usage.inputTokens + second.usage.inputTokens,
+              outputTokens: first.usage.outputTokens + second.usage.outputTokens,
+              totalTokens: first.usage.totalTokens + second.usage.totalTokens,
+            }
+          : (second.usage ?? first.usage);
       return second.kind === "no_tool_block"
         ? {
             kind: "backend_error",
             reason: LLM_MESSAGES.incompleteModelResponse,
-            ...(second.usage ? { usage: second.usage } : {}),
+            ...(usage ? { usage } : {}),
           }
-        : second;
+        : { ...second, ...(usage ? { usage } : {}) };
     } catch (error) {
       if (signal?.aborted) throw signal.reason;
       const message = error instanceof Error ? error.message : String(error);

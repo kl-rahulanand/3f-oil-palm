@@ -11,7 +11,7 @@ test("the selector converse request carries an explicit max tokens cap", async (
   await fixture.provider.select(selectionInput());
 
   assert.equal(fixture.requests.length, 1);
-  assert.equal(fixture.requests[0]?.inferenceConfig?.maxTokens, 2048);
+  assert.equal(fixture.requests[0]?.inferenceConfig?.maxTokens, 512);
 });
 
 test("a response with no tool block retries once while a malformed input and a mark unsupported never retry", async () => {
@@ -23,7 +23,7 @@ test("a response with no tool block retries once while a malformed input and a m
   assert.equal(recovered.kind, "clarify");
   assert.deepEqual(
     retried.requests.map((request) => request.inferenceConfig?.maxTokens),
-    [2048, 4096],
+    [512, 4096],
   );
 
   const malformed = providerWith([toolResponse(undefined, {})]);
@@ -71,12 +71,33 @@ test("a no tool block followed by a mark unsupported returns that refusal rather
   assert.equal(fixture.requests.length, 2);
 });
 
+test("a retried selector response preserves usage from both attempts", async () => {
+  const fixture = providerWith([
+    noToolResponse({ inputTokens: 10, outputTokens: 20, totalTokens: 30 }),
+    toolResponse(
+      "mark_unsupported",
+      { reason: "The requested figure is not available" },
+      { inputTokens: 40, outputTokens: 50, totalTokens: 90 },
+    ),
+  ]);
+
+  const result = await fixture.provider.select(selectionInput());
+
+  assert.deepEqual(result.usage, {
+    model: "test-model",
+    inputTokens: 50,
+    outputTokens: 70,
+    totalTokens: 120,
+  });
+});
+
 type ConverseRequest = {
   inferenceConfig?: { temperature?: number; topP?: number; maxTokens?: number };
 };
 
 type ConverseOutput = {
   output?: { message?: { content?: Array<{ toolUse?: { name?: string; input?: unknown } }> } };
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
 };
 
 function providerWith(outputs: ConverseOutput[], onSend?: () => void) {
@@ -108,10 +129,10 @@ function selectionInput() {
   return { question: "Show Actual", allowedDomains: [domain] };
 }
 
-function noToolResponse(): ConverseOutput {
-  return { output: { message: { content: [{}] } } };
+function noToolResponse(usage?: ConverseOutput["usage"]): ConverseOutput {
+  return { output: { message: { content: [{}] } }, usage };
 }
 
-function toolResponse(name: string | undefined, input: unknown): ConverseOutput {
-  return { output: { message: { content: [{ toolUse: { name, input } }] } } };
+function toolResponse(name: string | undefined, input: unknown, usage?: ConverseOutput["usage"]): ConverseOutput {
+  return { output: { message: { content: [{ toolUse: { name, input } }] } }, usage };
 }

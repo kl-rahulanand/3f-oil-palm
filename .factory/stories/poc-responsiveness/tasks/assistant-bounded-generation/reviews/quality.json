@@ -1,0 +1,68 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-bounded-generation",
+  "score": 9,
+  "summary": "quality lens over assistant-bounded-generation (16 product path(s), f7c9949..4c5e0cd, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The requested bounds, retry semantics, ingress validation, cancellation wiring, and registered tests are present, but retry usage accounting drops an entire billable model invocation.\nVERDICT t-abg-c1: implemented \u2014 backend/src/llm/bedrock.provider.ts:388 builds the request with the explicit selector cap\nVERDICT t-abg-c2: implemented \u2014 backend/src/llm/bedrock.provider.ts:395 retries only no-tool outcomes with a raised cap, with explicit handling at backend/src/chat/chat.service.ts:207\nVERDICT t-abg-c3: implemented \u2014 backend/src/chat/chat.schemas.ts:18 applies the exported entry, serialized-size, and question limits at schema ingress\nVERDICT t-abg-c4: implemented \u2014 backend/src/chat/chat.controller.ts:63 wires premature-close cancellation, and backend/src/chat/selectionExecutor.ts:153 checks it before execution\nVERDICT t-abg-c5: implemented \u2014 backend/package.json:17 registers the new hermetic tests, with matching quality-gate registration in tools/quality-gate.test.mjs:15",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/llm",
+      "summary": "[P2] Preserve usage from both selector attempts (backend/src/llm/bedrock.provider.ts:400): When the first call returns `no_tool_block` and the retry succeeds, the provider returns `second` unchanged, discarding `first.usage`."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/chat.controller.test.ts",
+    "backend/src/chat/chat.controller.ts",
+    "backend/src/chat/chat.schemas.test.ts",
+    "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.service.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/llm/bedrock.provider.test.ts",
+    "backend/src/llm/bedrock.provider.ts",
+    "backend/src/llm/llm.constants.ts",
+    "backend/src/llm/llm.interface.ts",
+    "backend/src/llm/mock.provider.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-abg-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/llm/bedrock.provider.ts:388 builds the request with the explicit selector cap"
+    },
+    {
+      "contract_id": "t-abg-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/llm/bedrock.provider.ts:395 retries only no-tool outcomes with a raised cap, with explicit handling at backend/src/chat/chat.service.ts:207"
+    },
+    {
+      "contract_id": "t-abg-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.schemas.ts:18 applies the exported entry, serialized-size, and question limits at schema ingress"
+    },
+    {
+      "contract_id": "t-abg-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.controller.ts:63 wires premature-close cancellation, and backend/src/chat/selectionExecutor.ts:153 checks it before execution"
+    },
+    {
+      "contract_id": "t-abg-c5",
+      "verdict": "implemented",
+      "evidence": "backend/package.json:17 registers the new hermetic tests, with matching quality-gate registration in tools/quality-gate.test.mjs:15"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "76e88eee577b2d237d2264de3f28529b8040c1adb18c9848ef5b11ffa2870ba8",
+  "brief_sha256": "e3beea0dd4f97e317a0a8b62dd8a7a288dd5db4a439f1c53f69f8e953d5e023e",
+  "branch_diff_digest": "d13bcb46f70645d80cde23cf42442a97a2a98529cd2b686e4cd5e27fc8d81956",
+  "residual_risks": [],
+  "recorded_at": "2026-09-14T16:34:15+00:00",
+  "commit": "4c5e0cd27989cb51fe57cdbcdf06e180d43db8ad"
+}
