@@ -1,4 +1,4 @@
-# Cold-read grill — gate: spec — spec assistant-responsiveness.md
+# Cold-read grill — gate: task — task plan assistant-streaming-and-shell
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -374,7 +374,82 @@ A `pass` with unresolved findings is refused by the recorder. Grill hard;
 downstream implementation inherits whatever you let through.
 
 
+## Lessons already in force for these paths
 
+The plan must design AROUND these. A plan that ignores one is not merely unlucky later — it is wrong now, and saying so is part of this read.
+
+- A warehouse DATE column read through pg and JSON-serialized arrives at the browser as an IST-shifted UTC timestamp (2026-07-01 becomes 2026-06-30T18:30:00.000Z), so a user-facing table shows the WRONG MONTH. Normalize month/date cells to a date-only YYYY-MM-DD string on the server before they enter a result row, and format them for display on the client.
+- The governed-financial percentage measure deliberately returns LABELS ('over-budget', 'credit / negative actual') when the budget is zero, so a renderer that pushes every numeric/percent cell through Number() turns the designed semantics into NaN. A cell formatter must render a non-numeric measure value verbatim.
+- Measured against docs/design/3F-Financial-MIS/3F Financial MIS.dc.html, the live MIS Reports filter row drifts from the prototype in four ways: (1) the Generate button uses the shared shell Button's font-h2 (16px) and rounded-md (10px) beside 13px/6px selects, where the prototype's filter-bar Generate is 12.5px type on a 6px radius at the same 34px height; (2) the four filter labels render at 13px ink instead of the prototype's 11px --kl-slate, so a label reads as loudly as its value; (3) the empty state is a single sentence, dropping the prototype's 44px ruled icon block, its 19px deep-forest title and its 13px slate supporting line ('Actuals are read from SAP for the selected period. Nothing is written back - this report is read-only.'); (4) the prototype hides the native select arrow with appearance:none. A filter row and its action button are ONE control group - match their height, radius and type size to each other and to the prototype, and keep .eyebrow at 10px/.22em mono.
+- RULING (settles the autoreview P1 and signals S-0021/S-0023): the bucket list must emit ONE row per unmapped GL CODE, never one per master bucket ENTRY, because GL/month is the grain of the only amounts that exist - do NOT add a warehouse query path and do NOT touch sqlBuilder.ts or selectionExecutor.ts to recover triple grain. Fold the master's bucket entries by gl_code in mis-selection.service.ts: costCentre keeps the single cost centre when that GL has exactly one bucket entry and is null when it has several (a GL booked across cost centres is no longer a triple, just as a Budget-only GL is not); provisional is true if any folded entry is provisional; reason names each folded entry's cost centre and reason so the list still says WHICH cost centre is wrong; actual and budget are that GL's totals assigned EXACTLY ONCE. This keeps the settled decision (both an Actual and a Budget amount per row, costCentre null where there is no single cost centre), keeps the gap visible rather than absorbed (decision 0018 as amended), and makes the list reconcilable against the slice totals because no amount is ever copied onto two rows. Acceptance criterion 3's word 'triples' means the reviewable identity of the gap, not one row per cost centre. Prove it in mis-selection.controller.test.ts with a master where ONE GL carries TWO bucket entries: expect a single row, costCentre null, and the GL total counted once.
+- RULING (settles the autoreview P2/performance blocker at frontend/src/features/mis/mis-report-view.tsx:233): after folding the bucket to GL grain, costCentre === null means THREE different things - a Budget-only GL, a GL absent from the mapping master but carrying real Actual spend, and a GL whose master entries span several cost centres - so any UI label inferred from null (today 'Budget only') mislabels two of the three. FIX IN THE CONTRACT, not the renderer: replace MisSelectionBucketRow.costCentre (string | null) with costCentres: string[] - the master's cost centres for that GL, empty when the master names none. mis-selection.service.ts populates it (one entry when a single bucket entry, several when folded, empty for a Budget-only or master-absent GL) and the view renders exactly what it is given: the single name when there is one, 'N cost centres' when there are several (the reason line already names each), and 'No cost centre in master' when there are none. Never infer a row's kind from an absent field. Update mis-selection.controller.test.ts and mis-report-view.test.tsx accordingly, including the multi-cost-centre case with nonzero Actual.
+- TWO fixes. (1) BLOCKING - dead API surface: the page now imports useMisStatement (mis-report-view.tsx:7,11), so use-mis-selection.ts and the runMisSelection client method it wraps are orphaned, still exposing the replaced /api/mis/run flow. Remove the client method and the dead hook, and drop their now-pointless api.test.ts case. Leave the BACKEND route alone - /api/mis/run is mis-selection's shipped contract and drill-down may consume it; this is about the frontend's dead entry point only. Note use-mis-selection.ts also wrapped the options query, so move nothing: useMisStatement already provides options. (2) P2, and it was observed live during the functional check: when the first statement request rejects, mis-report-view.tsx:71 renders the 'could not be generated' error AND the 'Select Department, Function and Plant, then Generate' empty state together, because run.data is absent and isPending is false. A failure and an invitation to start are contradictory on screen - render the error state INSTEAD of the empty state, per constitution/07-exception-handling.md's one-clear-state rule.
+- frontend/src/features/mis/use-mis-selection.ts is the sole caller of the orphaned runMisSelection client method - the page now uses useMisStatement - so it is AUTHORIZED in scope for statement-view and must be DELETED together with the method and its api.test.ts case; removing the method alone will not compile. Do not touch the backend /api/mis/run route: it is mis-selection's shipped contract and drill-down may consume it. This is the frontend's dead entry point only.
+- BLOCKING (contract verdict t-sv-c3). formatBlockHeading in statement-view.tsx:161 branches on the block KEY - treating anything keyed 'selected' as a single month and formatting only its 'to'. That breaks the exact degenerate case the human ruled on: when the selected period IS the FY-YTD, the route returns ONE block keyed 'selected' whose from/to span April to July, and the view heads four months as 'July 2026'. Derive the heading from the RANGE, as the criterion says: when from and to fall in the same month, 'July 2026'; when they span months, 'FY 26-27 (YTD to <last month>)'. The block key says which slot it is, not what period it covers. Extend the single-block required leaf to assert the heading of that deduped block, not just that one block renders - the existing leaf passed while the heading was wrong, which is why this reached review.
+- tools/junit-run.mjs exits 0 and emits a testcase named after the FILE PATH when --name matches no leaf (D-0024), so a missing-name negative control cannot fail and is not the gate. The gate is that each report's testcase name equals the required leaf id verbatim - a report naming the file path asserted nothing. Verified both halves by hand: a real leaf name yields a testcase named for the leaf, a bogus one yields a testcase named backend/src/mis/mis-drill.service.test.ts. junit-run.mjs stays out of scope for feature tasks; fixing it is D-0024's own trigger.
+- t-dp-c5 requires matching the approved prototype, and the prototype's drill overlay carries motion the implementation omitted: the scrim has 'animation: fadein .2s ease' (from opacity 0) and the panel has 'animation: slidein .25s cubic-bezier(.4,0,.2,1)' where slidein is 'from { transform: translateX(24px); opacity: 0 }' - both defined in docs/design/3F-Financial-MIS/3F Financial MIS.dc.html. .mis-drill-scrim and .mis-drill-panel currently have no transition or animation at all, so a drawer covering 86 percent of the viewport simply appears. Add BOTH, using the prototype's own values and keyframe shapes rather than invented ones, and add .mis-drill-scrim and .mis-drill-panel to the existing prefers-reduced-motion block at globals.css:1075 with animation: none, as login-enter already does - the static prototype cannot express reduced motion, so that part is ours. Do not animate from scale(0) and do not use transition: all. The rest of the panel's craft is already right: scale(0.97) on :active, the strong ease-out curve, hover gated behind (hover: hover) and (pointer: fine), named transition properties and focus-visible rings.
+- globals.css:768 gives .mis-drill-pagination button the same :active transform scale(0.97) as .mis-actual-action, .mis-drill-close and .mis-drill-back, but .mis-drill-pagination button (globals.css:1041) declares no transition, so its press feedback jumps instantly while every other pressable in the same panel eases. Add the transform transition the close button already uses - transform 140ms cubic-bezier(0.23, 1, 0.32, 1) - naming the property explicitly, never transition: all. Press feedback belongs in the 100-160ms band; an un-eased snap next to eased neighbours reads as an unfinished control.
+- The sandbox has no npm registry access (ENOTFOUND), but the orchestrator warmed the shared npm cache from the host on 2026-09-12: recharts@3.10.1 and its full 42-package closure are present, and 'npm install recharts@3.10.1 --offline' was verified to succeed in 675ms from cache alone. Install with the --offline (or --prefer-offline) flag and it will resolve without touching the network. Pin 3.10.1: its peerDependencies accept react ^19, which frontend/package.json:19 sets to 19.0.0. Do not switch charting libraries, hand-roll SVG charts, or treat the dependency as unavailable - decision 0007 names recharts specifically, and frontend/package.json plus the root lockfile are already in this task's write_scope.
+- ENOTCACHED in the sandbox is a cache-PATH problem, not a missing package. Verified on the host 2026-09-12: 'npm install recharts@3.10.1 --offline --dry-run -w @3f/frontend' succeeds and resolves 565 packages, so the whole workspace tree including recharts@3.10.1 and its 42-package closure is present in the cache at /Users/caw-dev-m4-5/.npm. The sandbox evidently resolves a different cache directory. Run the install with the cache named explicitly: 'npm install recharts@3.10.1 --offline --cache /Users/caw-dev-m4-5/.npm -w @3f/frontend'. If that still reports ENOTCACHED the sandbox cannot read that path at all - say so in the signal and name the path it DID try (npm config get cache), and the orchestrator will install from the host instead. Do not switch charting libraries or hand-roll SVG: decision 0007 names recharts, and pin 3.10.1 for its react ^19 peer range.
+- recharts@3.10.1 is ALREADY INSTALLED and resolving. The orchestrator installed it from the host under ledgered degraded window Q-0032-fcc8 on 2026-09-12, because the sandbox has neither registry access nor a readable npm cache (signals S-0003, S-0004, S-0005). frontend/package.json:21 now carries "recharts": "^3.10.1" and package-lock.json is updated; require.resolve finds it from ./frontend. Do NOT run npm install for it, do not retry --offline, and do not treat the dependency as unavailable - just import and use it. Everything else in the task is untouched and remains yours: the two surfaces, the seven-class renderer, the view-in-report union and its statement-side branch, the in-memory thread, the api client method and its direct test, and the catalog-drawn seed chips.
+- node_modules is fully installed in this worktree as of 2026-09-12: zod, typescript-eslint, prettier and recharts all resolve. The orchestrator ran npm install from the host, because a freshly created task worktree starts without node_modules and the sandbox can neither reach the registry nor read the host cache. No product file changed - node_modules is gitignored. Run the five verify commands directly and do NOT attempt npm install, npm ci or any --offline retry; those will fail in the sandbox and are not yours to fix. If a package is genuinely missing, raise a signal naming it rather than trying to install it.
+- node_modules is fully installed in THIS worktree as of 2026-09-12, BEFORE delegation: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host, because forge task start always cuts a fresh worktree without node_modules and the sandbox can neither reach the registry nor read the host cache. Verified after installing: tsc resolves and npm run test:frontend passes 56 tests across 14 files. No product file changed - node_modules is gitignored, so no degraded window was needed. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry; those fail in the sandbox and are not yours to fix. If a package is genuinely missing, raise a signal naming it rather than trying to install it.
+- This task is user_facing, so harness.yaml requires emil-design-eng AND frontend-design to be loaded, USED and attested - the test recorder refuses a user-facing automated artifact without both in skills_used. The first run did neither: the job log shows frontend-design mentioned ZERO times anywhere, and emil-design-eng only reached by 'wc -l' on its SKILL.md, never read or applied. Do not attest a skill that was not used. READ both SKILL.md files in full and APPLY them to the two new surfaces - frontend/app/(app)/explore/page.tsx, the saved-views and pinned-reports components, their rules in frontend/app/globals.css, and the new Save view / Pin report controls in ask-panel.tsx - then fix what they find. Precedent from drill-panel: these skills find real defects (dropped prototype motion, a render-time throw with no error boundary, an unformatted paise line), so a pass that changes nothing is a sign the skills were not applied rather than evidence the UI was already right. The surfaces are already functionally verified end to end; this pass is about the design quality the contract promises.
+- TWO design skills are mandatory for this user_facing task and only ONE has been used across two runs. emil-design-eng was properly read in the second run (sed -n '321,760p'), but frontend-design has ZERO occurrences in both job logs. Read it explicitly by absolute path: /Users/caw-dev-m4-5/.codex/skills/frontend-design/SKILL.md - read the WHOLE file, then apply it to frontend/app/(app)/explore/page.tsx, frontend/src/features/exploration/*.tsx, the new Save view and Pin report controls in frontend/src/features/assistant/ask-panel.tsx, and the rules those surfaces use in frontend/app/globals.css. The test recorder REFUSES a user-facing automated artifact unless BOTH skill names appear in skills_used, and the orchestrator will not attest a skill whose SKILL.md was never opened - it checks the job log. If after reading it you genuinely find nothing to change, say so explicitly and name at least two specific rules from that file you checked the surfaces against, so the attestation rests on evidence rather than silence.
+- Three verified findings, all confirmed in the code. (1) BLOCKING, t-aev-c3: both Open handlers - pinned-reports.tsx:60 and the saved-views equivalent - call 'void rerun(...)' and then router.push('/ask') UNCONDITIONALLY, while use-ask.ts:29 early-returns 'if (!trimmed || isPending) return;'. So when another Ask request is already in flight the re-run silently never happens and the user is still navigated to /ask, landing on a page with no new answer - the open did not re-run, which is exactly what t-aev-c3 forbids. Make the re-run report whether it was accepted (return a boolean or await it) and navigate ONLY when it actually started; if it was rejected as pending, do not navigate and say so on the row. (2) P2, ask-panel.tsx:154: the Save/Pin notice uses 'error instanceof Error ? error.message : <good copy>' - the SAME inverted pattern already fixed in use-exploration.ts, so an ApiError renders 'API request failed with status 500' in the user-facing Ask panel while the correctly-written copy sits unused in the fallback branch. Put the human copy on the Error branch too, distinguishing save from pin, and do NOT change ApiError itself - it is shared by every surface and other tests assert on it. (3) Cover both in tests: a rerun rejected as pending must not navigate, and a failed save or pin must show human copy rather than the raw message.
+- MEASURED on 2026-09-14 with repeated sampling, correcting a single-sample claim in the approved contract. The cap NEVER truncates: at 256, 512 and 2048 every run returned stopReason tool_use with a valid tool block. The model emits the tool call and THEN keeps producing text, so output saturates at whatever cap is set - which means a LOWER cap is strictly better and C1's 'headroom' justification for 2048 is inverted. Latency with one prior turn: cap 2048 -> 5370ms, 4610ms, 19299ms (1153, 1170, 2048 output tokens); cap 512 -> 5610ms, 2667ms, 5833ms (512 every time); cap 256 -> 1162ms and 2681ms. The story's live check expects a follow-up under 5 SECONDS, which 2048 will not meet reliably. Task 3's functional check must therefore expect 5-20s unless LLM_SELECTOR_MAX_TOKENS is lowered - a one-constant change. Do NOT conclude anything from a single sample of this model: run-to-run output length varies from 124 to 24,313 tokens for the same prompt at temperature 0, which is exactly how the orchestrator's original 1,429ms claim came to be wrong.
+
+## The contract as recorded (authoritative over any copy in the plan)
+
+## Contract (recorded)
+
+Rendered by the harness from the recorded decomposition; edit the decomposition, not this block. It is excluded from the plan's approval and grill digests, so a re-render never stales either.
+
+**Objective.** Make a slow answer look like work rather than a hang, and stop the shell showing a dead control. Both Ask surfaces consume the already-built POST /api/chat/stream and render its ordered phases; the freshness pill renders the real load-freshness value; and the docked panel fills its column. Frontend only.
+
+**Acceptance criteria**
+
+- Both Ask surfaces consume POST /api/chat/stream and render its ordered phases - routing, selecting, querying, summarizing (contract/src/api.ts:552) - instead of one static pending state. The client parses SSE correctly in both directions the transport actually produces: a single frame SPLIT ACROSS CHUNKS and SEVERAL frames arriving in ONE chunk. It also handles the stream's failure modes rather than hanging: a MALFORMED JSON frame and an EOF carrying neither result nor error each resolve the request as a backend error, because AskProvider is shared by the dock and the page and an unresolved promise leaves BOTH surfaces pending forever. A phase never renders after the terminal frame.
+- An answer that resolves within 250ms renders NO PHASE AT ALL. This is a CLIENT render delay, not a producer change: chat.service.ts:103 emits routing BEFORE the deterministic classifiers run, so a greeting, a glossary definition and a policy refusal DO receive a phase today and do not resolve before the first one. Suppressing it server-side would mean not emitting a phase the server has already decided to emit; delaying it client-side leaves the producer untouched and still removes the flicker.
+- The streaming client preserves EVERYTHING the buffered client does, because pre-stream failures are ordinary HTTP responses and not SSE frames: the CSRF bootstrap and x-csrf-token header, credentials: include, the 401 refresh-and-retry path, and HTTP-error rendering (frontend/src/lib/api.ts:22-40 is the existing behaviour). A 401 on the stream must refresh and retry exactly as a buffered post does, not surface as a stream error. The buffered POST /api/chat route is UNCHANGED and still serves the stored-selection re-run, which bypasses the model and needs no progress display.
+- Leaving the assistant cancels the in-flight request, and the cancellation is BOUNDED as task 1 built it: the client aborts, the server stops writing frames and aborts the model call, and a query already running expires under statement_timeout rather than being cancelled. Collapsing the dock does NOT cancel, and moving between the dock and the Ask page does NOT cancel - one AskProvider holds one thread, so a valid transition must not discard a question in flight. Only leaving the assistant area does. An expected abort is never rendered as an error.
+- The shell's freshness pill shows the real value from GET /api/warehouse/freshness and is no longer aria-disabled. app-shell.tsx:174 renders static text with aria-disabled=true today, beside a disabled search box. It renders all FIVE states the route distinguishes - available, no-active-batches, unsupported, unconfigured, lookup-failed - and never collapses them into one blank or one 'unavailable'. It is labelled as LOAD freshness, matching the payload's freshnessKind, because a September upload of July figures must not read as September data. provenance.dataAsOf remains null and untouched (D-0041); the pill is the only freshness surface this task ships.
+- The docked Ask panel fills its column on desktop with the thread scrolling INSIDE it. globals.css:1346 sets max-height: calc(100vh - 98px) with align-self: flex-start - a CEILING, not a height - so a short thread leaves the visible gap the human reported. The composer stays reachable without scrolling the report. The existing mobile behaviour at the current breakpoint is unchanged: the panel stacks and takes its natural height.
+- The surfaces are proven by vitest leaves covering: an SSE frame split across chunks and several frames in one chunk; phases rendering in order; NO phase for an answer resolving within 250ms; a malformed frame and an EOF without a terminal event each resolving as a backend error rather than hanging; a 401 refreshing and retrying; leaving the assistant aborting while dock collapse and dock-to-Ask navigation do NOT; the pill rendering each of the five states; and the dock filling its column. The task is user_facing, so emil-design-eng AND frontend-design are loaded, USED and attested - the recorder REFUSES a user-facing automated artifact without both, and the orchestrator checks the job log for an actual read rather than taking the run's word for it. The functional check runs LIVE with BEDROCK_MODEL_ID set: ask, then ask a FOLLOW-UP and confirm phases appear and it returns in a FEW SECONDS - measured 1.0-5.4s after task 1, so the check expects a few seconds with occasional excursions, NOT a hard sub-5s bound. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031).
+
+**Write scope** (what `stage done` measures the diff against)
+
+- frontend/src/features/assistant/ask-stream.ts
+- frontend/src/features/assistant/ask-stream.test.ts
+- frontend/src/features/assistant/use-ask.ts
+- frontend/src/features/assistant/ask-panel.tsx
+- frontend/src/features/assistant/ask-panel.test.tsx
+- frontend/src/lib/api.ts
+- frontend/src/lib/api.test.ts
+- frontend/src/components/shell/app-shell.tsx
+- frontend/src/components/shell/app-shell.test.tsx
+- frontend/src/features/shell/use-freshness.ts
+- frontend/app/globals.css
+
+**Required tests** (run by `stage done`)
+
+- `an sse frame split across chunks and several frames in one chunk both parse` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/assistant/ask-stream.test.ts)
+- `a malformed frame and an eof without a terminal event resolve as a backend error instead of hanging` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/assistant/ask-stream.test.ts)
+- `an answer resolving within the render delay shows no phase while a slower one shows them in order` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/assistant/ask-panel.test.tsx)
+- `leaving the assistant aborts while collapsing the dock and moving to the ask page do not` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/assistant/ask-panel.test.tsx)
+- `the streaming client sends the csrf header and refreshes once on a 401` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/lib/api.test.ts)
+- `the freshness pill renders each of the five states and is no longer disabled` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/components/shell/app-shell.test.tsx)
+
+**Verify commands**
+
+- `npm run build:contract`
+- `npm run build:frontend`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run format:check`
+- `npm run test:hermetic`
+
+**Review budget.** 11 files / 1500 lines -- An SSE client with real framing edge cases and terminal-failure handling on a provider shared by two surfaces, a client-side render delay that removes phase flicker without touching the producer, full transport parity with the buffered client including the 401 refresh, cancellation that distinguishes leaving from valid in-app transitions, a five-state freshness pill, and the dock height. Six required vitest leaves plus a live functional check and the two mandatory design skills.
 
 ## Already answered on this story — verify, do not re-ask
 
@@ -457,212 +532,146 @@ These questions were put to the human and answered. Two obligations:
   A: Defer dataAsOf — ship only the shell route (Recommended)
 - Q: Closing the `shell-freshness-api` grill. Nine findings, all verified, and three would have stopped the work dead. **Fourteen** files implement the `Warehouse` interface — mostly typed test fakes outside this scope — so a required new method would have failed typecheck before any behaviour existed; it's now optional. (I'd also named the interface `WarehouseAdapter`; it's `Warehouse`.) The **gated DB proof would have skipped**: a bare `junit-run` without `WAREHOUSE_DB_TEST=1` skips and `stage done` rejects a skipped leaf — it now runs under `test:warehouse-proof`, which sets the flag. And **the route had no name**, which the exact-match allow-list and task 3 both need — it's `GET /api/warehouse/freshness` with a discriminated body keeping five states apart rather than collapsing to null. Your `dataAsOf` call is recorded as **D-0041**. Also folded in: D-0006 covers all three adapters, the DB proof must assert per-source values *and* the overall minimum across several active periods, and the allow-list leaf must prove the guard set and typed Swagger responses rather than mere presence.
   A: No gaps — board it (Recommended)
-- Q: **Where does "leaving the assistant" begin?** The `AskProvider` lives in the persistent authenticated shell, so the panel unmounting can't own cancellation — something has to define the boundary.
-  A: Abort only when leaving /ask and /mis-reports (Recommended)
-- Q: **What exactly does the freshness pill say?** The route distinguishes five server states, but nothing yet defines the visible copy, the timezone, or what happens when the *browser* fetch fails as opposed to the server reporting `lookup-failed`.
-  A: Distinct copy per state, explicit timezone, separate 'could not check' (Recommended)
-- Q: **How should the dock geometry be proven?** My contract promised a vitest leaf, but jsdom doesn't do layout — it cannot calculate flex sizing, so such a test would assert CSS source text and prove nothing about what a user sees.
-  A: Prove it in the live functional check (Recommended)
-- Q: **Which selector cap is governed, and what happens to the stale spec?** The confirmed spec still says `maxTokens: 2048` with a sub-5s live check, but task 1 shipped **512** after repeated measurement showed 2048 reaching 19.3s. The spec also still requires populating `provenance.dataAsOf`, which you deferred as **D-0041**. Amending a confirmed spec means another cold read and re-confirm — the third time this story.
-  A: 512 governs; amend and re-confirm the spec (Recommended)
 
-## The artifact under interrogation (spec assistant-responsiveness.md)
+## The artifact under interrogation (task plan assistant-streaming-and-shell)
 
----
-slug: assistant-responsiveness
-title: Assistant responsiveness and shell truth
-status: draft
-saved: 2026-09-14T18:06:59+00:00
----
+# Task plan — assistant-streaming-and-shell: show the work, tell the truth, fill the column
 
-# Assistant responsiveness and shell truth
+Story: `poc-responsiveness` · Task 3 of 3 · **user_facing: true** · frontend only
 
-## Why
-The assistant shipped and works, but live testing of the PoC found that a follow-up question could
-take **39s**, **57s**, and in reproduction **214s**. The cause is a single missing request field.
+## Objective
+Tasks 1 and 2 made the assistant fast and gave the shell something true to show. Neither is
+visible yet: the Ask surfaces still call the buffered route and show one static pending state, and
+the top bar still renders a hard-coded disabled chip. This task makes both real.
 
-`backend/src/llm/bedrock.provider.ts:394` sends `inferenceConfig: { temperature: 0, topP: 1 }` and
-**no `maxTokens`**. Measured against Bedrock with our real system prompt, our real three-tool
-schema and the same question and prior turn:
+## Acceptance criteria (plan_contracts)
+- **t-ass-c1** — both surfaces stream; SSE framing and terminal failures handled, never hanging.
+- **t-ass-c2** — no phase at all for an answer resolving within **250 ms** (a *client* rule).
+- **t-ass-c3** — full transport parity: CSRF, credentials, the **401 refresh**, HTTP errors.
+- **t-ass-c4** — leaving cancels; dock collapse and dock ↔ Ask do **not**.
+- **t-ass-c5** — the pill renders **all five** states, labelled **load** freshness.
+- **t-ass-c6** — the dock fills its column; mobile unchanged.
+- **t-ass-c7** — six vitest leaves, both design skills, a live check.
 
-| request | latency | output tokens | stopReason | tool block |
-| --- | --- | --- | --- | --- |
-| no `maxTokens` | 214,222 ms | 24,313 | - | - |
-| `maxTokens: 2048` | 4,610-19,299 ms | 1,153-2,048 | `tool_use` | yes |
-| `maxTokens: 512` | 1,024-5,417 ms | 106-512 | `tool_use` | yes |
+## What already exists (grounding, file:line)
+- `contract/src/api.ts:552` — `ChatStreamEvent` is `phase | token | result | error`; the phases are
+  `routing → selecting → querying → summarizing`.
+- `backend/src/chat/chat.service.ts:103` — `routing` is emitted **before** the deterministic
+  classifiers, so greetings, glossary answers and policy refusals **do** receive a phase today.
+  That is why no-flicker is a client delay, not a producer change.
+- `frontend/src/lib/api.ts:125` — `ask` posts to the **buffered** `/api/chat`; nothing references
+  `/api/chat/stream`. `:22-40` is the transport the stream client must match: the CSRF bootstrap,
+  the `x-csrf-token` header, `credentials: "include"`, and the **401 refresh-and-retry**.
+- `frontend/src/features/assistant/use-ask.ts:12` — one `AskContextValue` shared by the dock and
+  the page, with `ask` and `rerun`. A promise that never resolves hangs **both** surfaces.
+- `frontend/src/components/shell/app-shell.tsx:174` — the `Freshness unavailable` chip, static text
+  with `aria-disabled="true"`.
+- `GET /api/warehouse/freshness` (task 2, merged) — five states: `available`, `no-active-batches`,
+  `unsupported`, `unconfigured`, `lookup-failed`, each carrying `freshnessKind: "load"`.
+- `frontend/app/globals.css:1346` — `max-height: calc(100vh - 98px)` with `align-self: flex-start`:
+  a **ceiling**, not a height, which is the reported gap.
+- Task 1 measured the follow-up at **1.0–5.4s** after the cap change — the live check must expect a
+  few seconds with occasional excursions, **not** a hard sub-5s bound.
 
-**These figures replace an earlier single sample.** The first draft cited one 1,429 ms / 168-token run
-at 2048 and reasoned from it. Repeated sampling showed that run was unrepresentative: this model's
-output for the same prompt at temperature 0 ranges from 106 to 24,313 tokens. The cap never
-truncates - every run at 256, 512 and 2048 stopped at `tool_use` with a valid tool block - because
-the model emits the tool call and then keeps writing, so output SATURATES at whatever cap is set and
-a LOWER cap is strictly better. The 'headroom' argument for 2048 was therefore backwards.
+## Workflow
+```mermaid
+flowchart TD
+  A["ask() — dock or page, one shared AskProvider"] --> S["POST /api/chat/stream<br/>CSRF header · credentials · 401 refresh+retry"]
+  S --> P{"SSE frames"}
+  P -->|"split across chunks"| BUF["buffer and re-join"]
+  P -->|"several in one chunk"| SPL["split and emit each"]
+  BUF --> PH["phase events"]
+  SPL --> PH
+  PH --> D{"resolved within 250ms?"}
+  D -->|"yes — greeting, glossary, refusal"| NONE["render NO phase (no flicker)"]
+  D -->|"no"| SHOW["routing → selecting → querying → summarizing"]
+  P -->|"result"| R["render via the existing seven-class renderer"]
+  P -->|"error"| R
+  P -->|"malformed JSON"| BE["resolve as backend error — never hang"]
+  P -->|"EOF, no terminal event"| BE
+  X["leaving the assistant"] --> AB["abort — server stops frames, aborts the model;<br/>a running query expires under statement_timeout"]
+  Y["dock collapse · dock ↔ /ask"] --> KEEP["do NOT cancel — one provider, one thread"]
+  F["GET /api/warehouse/freshness"] --> PILL["pill: all 5 states, labelled LOAD freshness<br/>no longer aria-disabled"]
+  CSS["globals.css:1346 max-height + flex-start"] --> FILL["height, so the dock fills its column;<br/>thread scrolls INSIDE · mobile unchanged"]
+```
 
-A selection is about 110 output tokens. Uncapped, the model emitted 24,313. Capped, it emits ~170
-and stops at `tool_use` - **not** at `max_tokens` - so the cap does not truncate the answer; its
-presence alone ends the runaway generation. The model and the region are not at fault: with no
-prior turn the same call already returned in 0.8-1.3s.
+## Manual Verification
+1. Ask a question on the docked panel: phases appear in order and the answer renders through the
+   existing renderer.
+2. Ask a **follow-up** — the case that took 39s before task 1. It returns in **a few seconds**
+   (measured 1.0–5.4s) with phases visible. Report the number you observe; do not assert a bound.
+3. Say `hello`: it answers immediately and **no phase flashes** — the server still emits `routing`,
+   so this proves the client delay, not a server change.
+4. In DevTools → Network, confirm the request is `POST /api/chat/stream` and carries
+   `x-csrf-token` with credentials. Force a 401 and confirm it refreshes and retries rather than
+   rendering a stream error.
+5. Start a question, then **collapse the dock** and **navigate dock → /ask**: the question is still
+   running and its answer still arrives. Then **leave the assistant** mid-flight and confirm the
+   backend stops writing frames.
+6. Read the top bar: a real load-freshness value, not `aria-disabled`. Stop the warehouse and
+   confirm the pill shows the **specific** state rather than a blank.
+7. Open a report with the dock: the panel **fills the column**, the thread scrolls inside it, and
+   the composer is reachable without scrolling the report. Narrow to mobile: stacking is unchanged.
+8. `npm run build:contract && npm run build:frontend && npm run typecheck && npm run lint &&
+   npm run format:check && npm run test:hermetic` — six leaves, each confirmed by its junit
+   testcase **name** and **executed count**, never the exit code (D-0024, D-0031).
 
-**Two corrections to earlier drafts of this spec, both found by cold reads rather than by the
-author.** First, an earlier draft claimed the server never bounds prior turns and that this was the
-root cause. That is false: `trimPriorTurnsToTokenBudget` (`backend/src/chat/chat.service.ts:675`,
-called at `:153`) already drops oldest turns until the serialized turns fit
-`LLM_CONTEXT_CHAR_BUDGET`. Second, the reproduction used a SINGLE prior turn, well inside that
-budget - so trimming further cannot help, because a follow-up cannot have fewer than one prior
-turn. Bounding context is hardening, not the fix.
+## Out of scope
+`provenance.dataAsOf`, which stays null under **D-0041**. Changing the buffered `/api/chat` route,
+which still serves the stored-selection re-run. True Postgres query cancellation. The Pulse-inherited
+selector prompt examples and D-0040.
 
-Two further defects make the product read as broken. The Ask surfaces call the buffered JSON route
-and show one static pending state, so a slow answer is indistinguishable from a hang even though
-the backend already emits ordered progress phases that nothing consumes. And the shell's top bar
-renders a permanently disabled `Freshness unavailable` chip
-(`frontend/src/components/shell/app-shell.tsx:174`), static text that computes nothing - while
-`backend/src/warehouse/postgres.adapter.ts:56` returns null whenever no freshness column is
-supplied and **no domain declares one**, so `provenance.dataAsOf` has always been null too.
+<!-- forge:contract -->
+## Contract (recorded)
 
-## Behaviour
+Rendered by the harness from the recorded decomposition; edit the decomposition, not this block. It is excluded from the plan's approval and grill digests, so a re-render never stales either.
 
-### A bounded selector generation
-The Bedrock selector call carries an explicit `maxTokens`. This is the story's primary fix and the
-only change needed to make a follow-up fast. The cap is chosen to sit far above a real selection
-(~110 output tokens) and far below a runaway (24,313), so that a normal answer is never truncated
-and a spiral is impossible.
+**Objective.** Make a slow answer look like work rather than a hang, and stop the shell showing a dead control. Both Ask surfaces consume the already-built POST /api/chat/stream and render its ordered phases; the freshness pill renders the real load-freshness value; and the docked panel fills its column. Frontend only.
 
-### A retry that cannot hide a real refusal
-Because the response is Converse TOOL USE rather than parsed free text, a cap that ever did
-truncate before the tool block would yield no `toolUse`, which today maps to `unsupported`
-(`backend/src/llm/bedrock.provider.ts:227`) - a silent downgrade from a slow success to a wrong
-answer. The measured runs stop at `tool_use`, so this is a guard against a case not yet observed,
-and it is scoped so it cannot mask genuine outcomes:
+**Acceptance criteria**
 
-- It fires ONLY when the selector returned **no tool block at all**. A malformed tool input, and a
-  valid `mark_unsupported`, are NOT retried - retrying those would hide a real refusal.
-- The provider must therefore stop collapsing three different outcomes into one `unsupported`:
-  absent tool use, malformed tool input, and a genuine `mark_unsupported` must remain
-  distinguishable at the seam before any mapping.
-- It fires ONLY on the Bedrock selector path. `routing` precedes selection
-  (`backend/src/chat/chat.service.ts:103`), so deterministic smalltalk, glossary definitions,
-  causal refusals and out-of-catalog answers never reach it, and the settled "the LLM selects,
-  never authors" boundary is untouched.
-- At most **two** selector calls for one question. If the second also returns no tool block, the
-  answer is a `backend_error` naming an incomplete model response - NOT `not_supported`, which
-  would assert the untrue thing this story exists to stop.
-- A retry never repeats a governed warehouse query: selection precedes execution, so no data work
-  is duplicated and no audit record is doubled.
+- Both Ask surfaces consume POST /api/chat/stream and render its ordered phases - routing, selecting, querying, summarizing (contract/src/api.ts:552) - instead of one static pending state. The client parses SSE correctly in both directions the transport actually produces: a single frame SPLIT ACROSS CHUNKS and SEVERAL frames arriving in ONE chunk. It also handles the stream's failure modes rather than hanging: a MALFORMED JSON frame and an EOF carrying neither result nor error each resolve the request as a backend error, because AskProvider is shared by the dock and the page and an unresolved promise leaves BOTH surfaces pending forever. A phase never renders after the terminal frame.
+- An answer that resolves within 250ms renders NO PHASE AT ALL. This is a CLIENT render delay, not a producer change: chat.service.ts:103 emits routing BEFORE the deterministic classifiers run, so a greeting, a glossary definition and a policy refusal DO receive a phase today and do not resolve before the first one. Suppressing it server-side would mean not emitting a phase the server has already decided to emit; delaying it client-side leaves the producer untouched and still removes the flicker.
+- The streaming client preserves EVERYTHING the buffered client does, because pre-stream failures are ordinary HTTP responses and not SSE frames: the CSRF bootstrap and x-csrf-token header, credentials: include, the 401 refresh-and-retry path, and HTTP-error rendering (frontend/src/lib/api.ts:22-40 is the existing behaviour). A 401 on the stream must refresh and retry exactly as a buffered post does, not surface as a stream error. The buffered POST /api/chat route is UNCHANGED and still serves the stored-selection re-run, which bypasses the model and needs no progress display.
+- Leaving the assistant cancels the in-flight request, and the cancellation is BOUNDED as task 1 built it: the client aborts, the server stops writing frames and aborts the model call, and a query already running expires under statement_timeout rather than being cancelled. Collapsing the dock does NOT cancel, and moving between the dock and the Ask page does NOT cancel - one AskProvider holds one thread, so a valid transition must not discard a question in flight. Only leaving the assistant area does. An expected abort is never rendered as an error.
+- The shell's freshness pill shows the real value from GET /api/warehouse/freshness and is no longer aria-disabled. app-shell.tsx:174 renders static text with aria-disabled=true today, beside a disabled search box. It renders all FIVE states the route distinguishes - available, no-active-batches, unsupported, unconfigured, lookup-failed - and never collapses them into one blank or one 'unavailable'. It is labelled as LOAD freshness, matching the payload's freshnessKind, because a September upload of July figures must not read as September data. provenance.dataAsOf remains null and untouched (D-0041); the pill is the only freshness surface this task ships.
+- The docked Ask panel fills its column on desktop with the thread scrolling INSIDE it. globals.css:1346 sets max-height: calc(100vh - 98px) with align-self: flex-start - a CEILING, not a height - so a short thread leaves the visible gap the human reported. The composer stays reachable without scrolling the report. The existing mobile behaviour at the current breakpoint is unchanged: the panel stacks and takes its natural height.
+- The surfaces are proven by vitest leaves covering: an SSE frame split across chunks and several frames in one chunk; phases rendering in order; NO phase for an answer resolving within 250ms; a malformed frame and an EOF without a terminal event each resolving as a backend error rather than hanging; a 401 refreshing and retrying; leaving the assistant aborting while dock collapse and dock-to-Ask navigation do NOT; the pill rendering each of the five states; and the dock filling its column. The task is user_facing, so emil-design-eng AND frontend-design are loaded, USED and attested - the recorder REFUSES a user-facing automated artifact without both, and the orchestrator checks the job log for an actual read rather than taking the run's word for it. The functional check runs LIVE with BEDROCK_MODEL_ID set: ask, then ask a FOLLOW-UP and confirm phases appear and it returns in a FEW SECONDS - measured 1.0-5.4s after task 1, so the check expects a few seconds with occasional excursions, NOT a hard sub-5s bound. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031).
 
-### Prior turns bounded safely, order preserved
-The existing trim is kept and hardened. It retains the NEWEST turns while preserving **oldest-first
-transport order**, which must not change: `chat.service.ts:153` reads `priorTurns.at(-1)` to find
-the latest selection, so reversing the order would silently select the wrong turn. Two gaps are
-closed: `backend/src/chat/chat.schemas.ts:21` accepts an **unbounded** `priorTurns` array with
-unbounded per-question length, so the request schema gains explicit limits and rejects oversize
-input before any serialization; and the trim re-serializes the whole array on every iteration, so a
-large payload is bounded before that loop rather than inside it. This is server resource safety,
-not latency.
+**Write scope** (what `stage done` measures the diff against)
 
-### Progress the reader can see
-Both Ask surfaces consume the streaming route the backend already serves (`POST /api/chat/stream`,
-registered and allow-listed) and render its ordered phases - `routing`, `selecting`, `querying`,
-`summarizing` (`backend/src/chat/chat.sse.ts:5`).
+- frontend/src/features/assistant/ask-stream.ts
+- frontend/src/features/assistant/ask-stream.test.ts
+- frontend/src/features/assistant/use-ask.ts
+- frontend/src/features/assistant/ask-panel.tsx
+- frontend/src/features/assistant/ask-panel.test.tsx
+- frontend/src/lib/api.ts
+- frontend/src/lib/api.test.ts
+- frontend/src/components/shell/app-shell.tsx
+- frontend/src/components/shell/app-shell.test.tsx
+- frontend/src/features/shell/use-freshness.ts
+- frontend/app/globals.css
 
-- `routing` is emitted at `chat.service.ts:103` **before** the deterministic classifiers run, so a
-  greeting, a definition and a policy refusal DO receive a phase today. The client therefore
-  delays phase rendering by a short interval and skips it entirely for any answer that resolves
-  within it, rather than the server suppressing a phase it has already emitted. Deterministic
-  answers show no flicker; the producer is unchanged.
-- Phases render in the order received; a phase never appears after the terminal frame. The client
-  also handles the stream's failure modes rather than hanging: a **malformed JSON frame** and an
-  **EOF with no `result` or `error`** each resolve the request as a backend error, so the shared
-  provider can never be left indefinitely pending. Ordinary asks stream; the stored-selection re-run
-  stays on buffered `POST /api/chat` and is unchanged.
-- A terminal `error` frame renders through the SAME seven-class renderer as the buffered route, so
-  a failure reads identically whichever transport delivered it.
-- The streaming client preserves everything the buffered client does: the CSRF bootstrap, cookie
-  credentials, the 401 refresh path, and ordinary HTTP-error rendering - pre-stream auth, CSRF and
-  validation failures are HTTP responses, not SSE frames, and must not be mistaken for stream
-  errors.
-- Leaving the surface cancels the in-flight request, and the cancellation is **BOUNDED, not total** -
-  human-decided 2026-09-14. Today the controller observes no client disconnect and passes no abort
-  signal, so an abandoned request keeps selecting, querying and auditing. After this story: the
-  server detects a PREMATURE response/socket close (not `IncomingMessage`'s `close`, which Node also
-  emits on normal completion), stops writing frames, aborts the model call through an `AbortSignal`
-  that reaches the AWS transport, and does NOT START a governed query once aborted. The abort is also checked at the executor seam immediately before
-  `warehouse.execute()`: `SelectionExecutor.run` awaits `warehouse.explain()` first, so an abort
-  arriving during that await must prevent the query from STARTING rather than be noticed only after.
-  A query ALREADY IN FLIGHT is **not cancelled**: it expires under the existing Postgres `statement_timeout`, and a
-  comment at the seam says so, because true cancellation would need `pg_cancel_backend` on a side
-  connection and is deliberately out of scope. An expected abort is handled silently and is never
-  recorded as `backend_error`. Collapsing the dock, and moving between the dock and the Ask page,
-  share one provider and one thread and do NOT cancel; only leaving the assistant does.
-- The buffered `POST /api/chat` route is unchanged and still serves the stored-selection re-run,
-  which bypasses the model and needs no progress display.
+**Required tests** (run by `stage done`)
 
-### A freshness pill that tells the truth
-The pill reports **load freshness**: the oldest `uploaded_at_utc` among the ACTIVE ingest batches
-of the governed sources, labelled as when data was loaded rather than what period it covers.
-Both halves matter. Active batches are unique per **source and period**
-(`ingest_batch_active_source_period_unique` on `(source_kind, period)`), so many are active at once
-and "the oldest active batch" alone would drift to the oldest period ever loaded; and a September
-upload of July figures must not be announced as "data as of September" without saying it means the
-load. The conservative oldest across sources - human-decided 2026-09-14 - means the pill never
-claims the numbers are fresher than the stalest input behind them.
+- `an sse frame split across chunks and several frames in one chunk both parse` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/assistant/ask-stream.test.ts)
+- `a malformed frame and an eof without a terminal event resolve as a backend error instead of hanging` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/assistant/ask-stream.test.ts)
+- `an answer resolving within the render delay shows no phase while a slower one shows them in order` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/assistant/ask-panel.test.tsx)
+- `leaving the assistant aborts while collapsing the dock and moving to the ask page do not` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/assistant/ask-panel.test.tsx)
+- `the streaming client sends the csrf header and refreshes once on a 401` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/lib/api.test.ts)
+- `the freshness pill renders each of the five states and is no longer disabled` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/components/shell/app-shell.test.tsx)
 
-This is a definition, not a wire-up: the existing seam takes ONE domain and returns
-`MAX(freshness column)` (`selectionExecutor.ts:102`), while this needs a **cross-source minimum
-over ingest batches**, so the seam is extended rather than reused as-is. Period-scoped freshness
-belongs to a report, not to a global shell chip, and is out of scope here. When no batch is active,
-or the lookup fails, the pill says so plainly rather than showing a stale or invented timestamp -
-and a live pill stops announcing itself as disabled.
+**Verify commands**
 
-### A dock that fills its column
-The docked Ask panel fills the height of its column on desktop rather than stopping at its content:
-`frontend/app/globals.css:1342` sets `max-height` - a ceiling, not a height - with
-`align-self: flex-start`, so a short thread leaves a visible gap. The thread scrolls INSIDE the
-panel while the composer stays reachable without scrolling the report. The existing mobile
-behaviour at the current breakpoint is unchanged: the panel stacks and takes its natural height.
+- `npm run build:contract`
+- `npm run build:frontend`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run format:check`
+- `npm run test:hermetic`
 
-## Acceptance criteria
-- The selector call sends `maxTokens: **512**` - the governed value, measured rather than reasoned -
-  proven by a test asserting the field on the Converse REQUEST, never by timing: the uncapped call is
-  already fast when there is no prior turn. The live check REPORTS the observed follow-up latency
-  (measured 1.0-5.4 s) rather than enforcing a hard bound, because this model's run-to-run variance
-  makes a fixed threshold flake rather than inform.
-- A selector response with no tool block is retried at most once; a malformed tool input and a
-  genuine `mark_unsupported` are NOT retried; a second tool-less response answers `backend_error`
-  naming an incomplete model response, never `not_supported`.
-- `priorTurns` is rejected by the request schema above **8 entries**, a **16,000-character** payload
-  measured as `JSON.stringify(priorTurns)`, or **2,000 characters** in any single prior `question` -
-  evaluated at ingress, BEFORE the trim and before Bedrock-prompt construction. Nested `selection`
-  fields are inside that measured representation, so they cannot smuggle an oversized body past a
-  count-only cap. The CLIENT trims to the SAME contract, newest-first, before sending - otherwise the
-  ninth ask in a conversation becomes a 400 - and the retained order stays oldest-first so `at(-1)`
-  is the latest turn. The shared limits live in `@3f/contract`, the only package the frontend imports.
-- Both Ask surfaces render streamed phases in order, show NO phase for an answer that resolves
-  within a **250 ms** client render delay, render a terminal error through the existing renderer, preserve
-  CSRF/cookies/401-refresh/HTTP-error behaviour, and cancel on leaving the assistant - with the
-  abort reaching the AWS transport and preventing a not-yet-started query, while an already-running
-  query is bounded by `statement_timeout` rather than cancelled. Proof must distinguish a normal
-  completion (which must NOT abort) from client abandonment (which must).
-- The freshness pill shows the oldest active-batch `uploaded_at_utc` across governed sources,
-  labelled as load freshness, says so plainly when none is available, and is no longer marked
-  disabled; `provenance.dataAsOf` stops being null by using the SAME seam scoped to that answer's own domain and
-  batches - never the shell's global minimum.
-- The docked panel fills its column on desktop with the thread scrolling inside it, and the
-  existing mobile stacking is unchanged.
-- Every proof is judged by its junit testcase NAME and EXECUTED count, never an exit code
-  (D-0024, D-0031).
-
-## Out of scope (now)
-Changing the model or the region - decision 0027 stands, and the evidence shows the model is fast
-when the request is well formed. Durable conversation history (deferred at the assistant plan
-grill; 0028 stands). Period-scoped or report-scoped freshness. Re-planning any shipped assistant
-behaviour. The Pulse-inherited examples still in the selector system prompt ("leads and
-appointments booked", "by state") and D-0040's unregistered `state` dimension in HelpService
-suggestions.
-
-## Source
-Live testing of the shipped PoC on 2026-09-14, reproduced directly against Bedrock; the
-`poc-responsiveness` roadmap item; and the requirements and spec cold reads of the same date, which
-corrected the author's root-cause narrative twice.
+**Review budget.** 11 files / 1500 lines -- An SSE client with real framing edge cases and terminal-failure handling on a provider shared by two surfaces, a client-side render delay that removes phase flicker without touching the producer, full transport parity with the buffered client including the 401 refresh, cancellation that distinguishes leaving from valid in-app transitions, a five-state freshness pill, and the dock height. Six required vitest leaves plus a live functional check and the two mandatory design skills.
+<!-- /forge:contract -->
 
 
 ## What to return

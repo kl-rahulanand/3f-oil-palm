@@ -1,0 +1,17 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Closing the third spec grill. Seven findings: four were my amendment being **incomplete** — I replaced the Behaviour prose but left the stale acceptance criteria, so the spec still demanded `dataAsOf` be populated and still didn't name the five pill states, the `/ask` + `/mis-reports` boundary, or the retry's raised cap and summed usage. All now fixed. **Two were real gaps in already-merged code**, which I've recorded as deferrals rather than silently absorbing into a frontend-only task: **D-0042** — `postgres.adapter.ts` returns `available` when *either* source has an active batch, so the pill could show Budget's load time while Actuals has none, reading as \"the data is this fresh\" when half is missing; and **D-0043** — `chat.service.ts:170` starts `distinctValues` warehouse reads before checking the abort, so an abandoned stream can still start a pre-selection query, a hole in the promise task 1 made.",
+      "options": [
+        "Record, confirm, and board task 3 (Recommended)",
+        "Fix D-0043 in this story rather than deferring",
+        "Something else — I'll say what"
+      ],
+      "chosen": "Record, confirm, and board task 3 (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "at": "2026-09-14T18:15:33.567989+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
