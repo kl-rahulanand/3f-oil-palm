@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "assistant-streaming-and-shell",
   "score": 10,
-  "summary": "security lens over assistant-streaming-and-shell (11 product path(s), b9f2166..0e3c5ba, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows no actionable P0\u2013P2 security or correctness defect. Streaming preserves the existing CSRF, credential, 401-refresh, and HTTP-error behavior; cancellation is scoped to leaving the named assistant routes; SSE terminal and malformed-input paths resolve without exposing data; freshness remains authenticated through the existing API client; and no credentials, injection paths, authorization bypasses, or compatibility leftovers are introduced.",
+  "summary": "security lens over assistant-streaming-and-shell (13 product path(s), b9f2166..8f43821, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 defect. Streaming preserves CSRF, credentials, 401 refresh, HTTP-error behavior, byte-safe SSE parsing, terminal handling, delayed-phase cleanup, bounded prior turns, and route-aware cancellation. Stored-selection reruns remain buffered and cancellable, while freshness rendering distinguishes all required states without exposing credentials or weakening authorization.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -15,6 +15,8 @@
     "frontend/src/features/assistant/ask-stream.test.ts",
     "frontend/src/features/assistant/ask-stream.ts",
     "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
     "frontend/src/features/shell/use-freshness.ts",
     "frontend/src/lib/api.test.ts",
     "frontend/src/lib/api.ts"
@@ -23,10 +25,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "79190da973b191de71b9aa5097315479b97a28cb4abbada425d2978cbec1bbb8",
-  "brief_sha256": "585b18d827900bf2699b2e9156b669a98dd9df62e8db728a24eb25215bb094e4",
-  "branch_diff_digest": "b784324aea259e461d9d0ff67ab29972928db254a513e2e155ef70a332bd58df",
+  "review_run_id": "9d9b18860a67d71588f25440cc6e206df0453678aaab07528680519d224871f9",
+  "brief_sha256": "ddf4e48f4335be07d158cf3fb951275da37ed490fe2de2ab2dfc067ae6881a16",
+  "branch_diff_digest": "b51273834cf74f9434eda5b1879782b82c90d10951d22e89e2a57ef7d084e30c",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T18:53:38+00:00",
-  "commit": "0e3c5ba337a61b695ed0590744060483b09452bc"
+  "recorded_at": "2026-09-14T19:12:39+00:00",
+  "commit": "8f438212fcc68097b1d549dbfacd61915075de7d"
 }

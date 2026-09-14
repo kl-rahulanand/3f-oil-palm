@@ -1,13 +1,13 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-streaming-and-shell",
-  "score": 6,
-  "summary": "quality lens over assistant-streaming-and-shell (11 product path(s), b9f2166..0e3c5ba, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The streaming parser, delayed progress display, freshness states, request trimming, and responsive dock sizing are present, but cancellation does not cover buffered selection reruns and the terminal-timer acceptance case is not actually tested. No compatibility leftovers are visible in the supplied diff.\nVERDICT t-ass-c1: implemented \u2014 frontend/src/features/assistant/ask-stream.ts:10 handles byte-stream framing, malformed input, EOF, and terminal events\nVERDICT t-ass-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:53 delays client-side phase rendering by 250ms\nVERDICT t-ass-c3: implemented \u2014 frontend/src/features/assistant/use-ask.ts:73 explicitly separates buffered selection reruns from streamed ordinary asks\nVERDICT t-ass-c4: partial \u2014 frontend/src/features/assistant/use-ask.ts:74 leaves buffered selection reruns outside the abort controller\nVERDICT t-ass-c5: implemented \u2014 frontend/src/features/shell/use-freshness.ts:7 fetches and distinctly renders the route and browser-failure states\nVERDICT t-ass-c6: implemented \u2014 frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores auto height\nVERDICT t-ass-c7: implemented \u2014 frontend/src/lib/api.ts:129 bounds entries, per-question length, and serialized size while retaining newest turns in oldest-first order\nVERDICT t-ass-c8: partial \u2014 frontend/src/features/assistant/ask-stream.test.ts:80 does not test clearing a previously scheduled phase timer after a terminal frame",
+  "score": 9,
+  "summary": "quality lens over assistant-streaming-and-shell (13 product path(s), b9f2166..8f43821, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The principal streaming, cancellation, freshness, layout, and history-bounding changes are present, but terminal stream handling can still delay or lose a completed result while awaiting cancellation, allowing the delayed phase timer to fire or leaving the shared provider pending.\nVERDICT t-ass-c1: partial \u2014 frontend/src/features/assistant/ask-stream.ts:37 awaits stream cancellation before resolving a terminal result.\nVERDICT t-ass-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:51 delays phase rendering by 250 ms on the client.\nVERDICT t-ass-c3: implemented \u2014 frontend/src/lib/api.ts:154 explicitly keeps selection reruns buffered while ordinary asks stream with preserved transport handling.\nVERDICT t-ass-c4: partial \u2014 frontend/src/features/assistant/use-ask.ts:32 implements the named route boundary, but terminal cleanup remains dependent on stream cancellation settling.\nVERDICT t-ass-c5: implemented \u2014 frontend/src/features/shell/use-freshness.ts:15 renders the distinct server and client failure states with explicit UTC labeling.\nVERDICT t-ass-c6: implemented \u2014 frontend/app/globals.css:1346 gives the desktop dock a viewport-filling height while the mobile rule restores auto height.\nVERDICT t-ass-c7: implemented \u2014 frontend/src/lib/api.ts:127 bounds prior-turn count, question length, and serialized size while retaining newest turns in oldest-first order.\nVERDICT t-ass-c8: partial \u2014 frontend/src/features/assistant/ask-panel.test.tsx:409 exercises delayed phases, but does not cover a terminal frame whose reader cancellation is asynchronous or rejects.",
   "blocking_findings": [
     {
-      "category": "bug",
-      "area": "frontend/src/features/assistant",
-      "summary": "[P1] Keep buffered reruns cancellable when leaving the assistant (frontend/src/features/assistant/use-ask.ts:74): The selection branch calls the buffered client without creating or passing an AbortController, while the route-change effect can only abort `abortRef.current`."
+      "category": "plan-contract-partial",
+      "area": "contract/src/api.ts",
+      "summary": "t-ass-c1: Both Ask surfaces consume POST /api/chat/stream and render its ordered phases - routing, selecting, querying, summarizing (contract/src/api.ts:552) - instead of one static pending state. The client parses SSE correctly in both directions the transport actually produces: a single frame SPLIT ACROSS CHUNKS and SEVERAL frames arriving in ONE chunk. It also handles the stream's failure modes rather than hanging: a MALFORMED JSON frame and an EOF carrying neither result nor error each resolve the request as a backend error, because AskProvider is shared by the dock and the page and an unresolved promise leaves BOTH surfaces pending forever. A phase never renders after the terminal frame, and any pending render-delay timer is CLEARED on every terminal path. Chunk boundaries are handled at the BYTE level, not the character level: a multi-byte UTF-8 character split across two chunks must not corrupt the frame."
     },
     {
       "category": "plan-contract-partial",
@@ -22,12 +22,12 @@
   ],
   "non_blocking_findings": [
     {
-      "category": "test_gap",
+      "category": "bug",
       "area": "frontend/src/features/assistant",
-      "summary": "[P2] Exercise the pending phase timer in the terminal-frame test (frontend/src/features/assistant/ask-stream.test.ts:80): This assertion only proves that the parser ignores a phase frame placed after a result frame."
+      "summary": "[P2] Resolve terminal frames before waiting for stream cancellation (frontend/src/features/assistant/ask-stream.ts:37): After receiving a valid terminal result, this awaits `reader.cancel()` before resolving the request."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/components/shell/app-shell.test.tsx",
@@ -37,6 +37,8 @@
     "frontend/src/features/assistant/ask-stream.test.ts",
     "frontend/src/features/assistant/ask-stream.ts",
     "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
     "frontend/src/features/shell/use-freshness.ts",
     "frontend/src/lib/api.test.ts",
     "frontend/src/lib/api.ts"
@@ -47,43 +49,43 @@
   "contract_verdicts": [
     {
       "contract_id": "t-ass-c1",
-      "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-stream.ts:10 handles byte-stream framing, malformed input, EOF, and terminal events"
+      "verdict": "partial",
+      "evidence": "frontend/src/features/assistant/ask-stream.ts:37 awaits stream cancellation before resolving a terminal result."
     },
     {
       "contract_id": "t-ass-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:53 delays client-side phase rendering by 250ms"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:51 delays phase rendering by 250 ms on the client."
     },
     {
       "contract_id": "t-ass-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:73 explicitly separates buffered selection reruns from streamed ordinary asks"
+      "evidence": "frontend/src/lib/api.ts:154 explicitly keeps selection reruns buffered while ordinary asks stream with preserved transport handling."
     },
     {
       "contract_id": "t-ass-c4",
       "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:74 leaves buffered selection reruns outside the abort controller"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:32 implements the named route boundary, but terminal cleanup remains dependent on stream cancellation settling."
     },
     {
       "contract_id": "t-ass-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/shell/use-freshness.ts:7 fetches and distinctly renders the route and browser-failure states"
+      "evidence": "frontend/src/features/shell/use-freshness.ts:15 renders the distinct server and client failure states with explicit UTC labeling."
     },
     {
       "contract_id": "t-ass-c6",
       "verdict": "implemented",
-      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores auto height"
+      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-filling height while the mobile rule restores auto height."
     },
     {
       "contract_id": "t-ass-c7",
       "verdict": "implemented",
-      "evidence": "frontend/src/lib/api.ts:129 bounds entries, per-question length, and serialized size while retaining newest turns in oldest-first order"
+      "evidence": "frontend/src/lib/api.ts:127 bounds prior-turn count, question length, and serialized size while retaining newest turns in oldest-first order."
     },
     {
       "contract_id": "t-ass-c8",
       "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/ask-stream.test.ts:80 does not test clearing a previously scheduled phase timer after a terminal frame"
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:409 exercises delayed phases, but does not cover a terminal frame whose reader cancellation is asynchronous or rejects."
     },
     {
       "contract_id": "t-abg-c1",
@@ -137,10 +139,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "79190da973b191de71b9aa5097315479b97a28cb4abbada425d2978cbec1bbb8",
-  "brief_sha256": "585b18d827900bf2699b2e9156b669a98dd9df62e8db728a24eb25215bb094e4",
-  "branch_diff_digest": "b784324aea259e461d9d0ff67ab29972928db254a513e2e155ef70a332bd58df",
+  "review_run_id": "9d9b18860a67d71588f25440cc6e206df0453678aaab07528680519d224871f9",
+  "brief_sha256": "ddf4e48f4335be07d158cf3fb951275da37ed490fe2de2ab2dfc067ae6881a16",
+  "branch_diff_digest": "b51273834cf74f9434eda5b1879782b82c90d10951d22e89e2a57ef7d084e30c",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T18:53:38+00:00",
-  "commit": "0e3c5ba337a61b695ed0590744060483b09452bc"
+  "recorded_at": "2026-09-14T19:12:39+00:00",
+  "commit": "8f438212fcc68097b1d549dbfacd61915075de7d"
 }

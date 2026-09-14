@@ -23,6 +23,15 @@ function stream(...chunks: Uint8Array[]): ReadableStream<Uint8Array> {
   });
 }
 
+function cancellableStream(cancel: () => Promise<void>): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(frame({ type: "result", response: result }));
+    },
+    cancel,
+  });
+}
+
 test("an sse frame split across chunks and several frames in one chunk both parse", async () => {
   const phase = frame({ type: "phase", phase: "routing" });
   const combined = new Uint8Array([
@@ -78,4 +87,30 @@ test("a multi byte character split across chunks parses and no phase renders aft
     readAskStream(stream(bytes.slice(0, rupeeStart + 1), bytes.slice(rupeeStart + 1)), onPhase),
   ).resolves.toEqual(response);
   expect(onPhase).not.toHaveBeenCalled();
+});
+
+test("a terminal answer resolves without waiting for stream cancellation", async () => {
+  let finishCancellation!: () => void;
+  const slowCancellation = new Promise<void>((resolve) => {
+    finishCancellation = resolve;
+  });
+  const blocked = Symbol("blocked by cancellation");
+
+  await expect(
+    Promise.race([
+      readAskStream(
+        cancellableStream(() => slowCancellation),
+        vi.fn(),
+      ),
+      new Promise<typeof blocked>((resolve) => setTimeout(() => resolve(blocked), 0)),
+    ]),
+  ).resolves.toEqual(result);
+  finishCancellation();
+
+  await expect(
+    readAskStream(
+      cancellableStream(() => Promise.reject(new Error("cancel failed"))),
+      vi.fn(),
+    ),
+  ).resolves.toEqual(result);
 });

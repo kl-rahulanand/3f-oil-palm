@@ -30,16 +30,16 @@ export async function readAskStream(
       try {
         event = JSON.parse(data) as ChatStreamEvent;
       } catch {
-        await reader.cancel();
+        void reader.cancel().catch(() => undefined);
         return backendError("The streamed answer could not be read. Try again.");
       }
 
       if (event.type === "result") {
-        await reader.cancel();
+        void reader.cancel().catch(() => undefined);
         return event.response;
       }
       if (event.type === "error") {
-        await reader.cancel();
+        void reader.cancel().catch(() => undefined);
         return {
           responseClass: event.responseClass,
           sessionId: "stream",

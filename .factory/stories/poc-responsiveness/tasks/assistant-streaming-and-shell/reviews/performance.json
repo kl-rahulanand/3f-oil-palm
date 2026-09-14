@@ -2,18 +2,13 @@
   "generated_by": "autoreview",
   "task_id": "assistant-streaming-and-shell",
   "score": 9,
-  "summary": "performance lens over assistant-streaming-and-shell (11 product path(s), b9f2166..0e3c5ba, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The streaming, framing, phase-delay, trimming, freshness, and desktop-height changes shown are otherwise consistent with the stated contracts. However, cancellation is incomplete: pre-stream authentication work ignores the signal, and buffered selection reruns have no controller at all. Both paths can leave the persistent Ask provider pending after the user leaves the assistant.",
+  "summary": "performance lens over assistant-streaming-and-shell (13 product path(s), b9f2166..8f43821, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The functional streaming behavior shown by the diff is broadly sound, but the parser repeatedly scans and allocates the entire growing result frame for every network chunk. That introduces avoidable quadratic work in the primary streaming path and should be fixed before shipping.",
   "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "frontend/src/lib",
-      "summary": "Abort the CSRF and refresh requests along with the stream request (frontend/src/lib/api.ts:49): `postResponse` waits for the CSRF bootstrap without forwarding the supplied `AbortSignal`, and the 401 refresh call is likewise unsignaled."
-    },
-    {
-      "category": "bug",
       "area": "frontend/src/features/assistant",
-      "summary": "Make buffered stored-selection reruns cancellable (frontend/src/features/assistant/use-ask.ts:74): The stored-selection branch starts the buffered request without creating or passing an `AbortController`, so `abortRef.current` remains empty."
+      "summary": "[P2] Avoid rescanning the entire pending SSE frame for every chunk (frontend/src/features/assistant/ask-stream.ts:19): Until a frame delimiter arrives, `buffer` contains the full partial frame, and every new chunk runs both `replaceAll` and `split` across that entire growing string."
     }
   ],
   "recommendation": "approve-with-caveats",
@@ -26,6 +21,8 @@
     "frontend/src/features/assistant/ask-stream.test.ts",
     "frontend/src/features/assistant/ask-stream.ts",
     "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
     "frontend/src/features/shell/use-freshness.ts",
     "frontend/src/lib/api.test.ts",
     "frontend/src/lib/api.ts"
@@ -34,10 +31,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "79190da973b191de71b9aa5097315479b97a28cb4abbada425d2978cbec1bbb8",
-  "brief_sha256": "585b18d827900bf2699b2e9156b669a98dd9df62e8db728a24eb25215bb094e4",
-  "branch_diff_digest": "b784324aea259e461d9d0ff67ab29972928db254a513e2e155ef70a332bd58df",
+  "review_run_id": "9d9b18860a67d71588f25440cc6e206df0453678aaab07528680519d224871f9",
+  "brief_sha256": "ddf4e48f4335be07d158cf3fb951275da37ed490fe2de2ab2dfc067ae6881a16",
+  "branch_diff_digest": "b51273834cf74f9434eda5b1879782b82c90d10951d22e89e2a57ef7d084e30c",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T18:53:38+00:00",
-  "commit": "0e3c5ba337a61b695ed0590744060483b09452bc"
+  "recorded_at": "2026-09-14T19:12:39+00:00",
+  "commit": "8f438212fcc68097b1d549dbfacd61915075de7d"
 }
