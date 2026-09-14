@@ -238,8 +238,146 @@
         "shell-freshness-api"
       ],
       "acceptance_criteria": [
-        "Both Ask surfaces render streamed phases in order with no phase for an answer resolving within the render delay, preserve CSRF/cookie/401/HTTP-error behaviour, cancel on leaving the assistant, render the real load-freshness pill, and fill the docked column with the thread scrolling inside it."
-      ]
+        "Both Ask surfaces consume POST /api/chat/stream and render its ordered phases - routing, selecting, querying, summarizing (contract/src/api.ts:552) - instead of one static pending state. The client parses SSE correctly in both directions the transport actually produces: a single frame SPLIT ACROSS CHUNKS and SEVERAL frames arriving in ONE chunk. It also handles the stream's failure modes rather than hanging: a MALFORMED JSON frame and an EOF carrying neither result nor error each resolve the request as a backend error, because AskProvider is shared by the dock and the page and an unresolved promise leaves BOTH surfaces pending forever. A phase never renders after the terminal frame, and any pending render-delay timer is CLEARED on every terminal path. Chunk boundaries are handled at the BYTE level, not the character level: a multi-byte UTF-8 character split across two chunks must not corrupt the frame.",
+        "An answer that resolves within 250ms renders NO PHASE AT ALL. This is a CLIENT render delay, not a producer change: chat.service.ts:103 emits routing BEFORE the deterministic classifiers run, so a greeting, a glossary definition and a policy refusal DO receive a phase today and do not resolve before the first one. Suppressing it server-side would mean not emitting a phase the server has already decided to emit; delaying it client-side leaves the producer untouched and still removes the flicker.",
+        "The streaming client preserves EVERYTHING the buffered client does, because pre-stream failures are ordinary HTTP responses and not SSE frames: the CSRF bootstrap and x-csrf-token header, credentials: include, the 401 refresh-and-retry path, and HTTP-error rendering (frontend/src/lib/api.ts:22-40 is the existing behaviour). A 401 on the stream must refresh and retry exactly as a buffered post does, not surface as a stream error. THE SWITCH TO STREAMING IS NOT UNIVERSAL. use-ask.ts:27 has ONE run(question, selection?) serving both ask() and rerun(), so streaming everything would move the stored-selection re-run onto the stream as well - it bypasses the model, needs no progress display, and must stay on buffered POST /api/chat. The branch is explicit and proven by a leaf. Ordinary HTTP errors from the stream request - not SSE error frames - render exactly as the buffered client renders them.",
+        "Leaving the assistant cancels the in-flight request, and the cancellation is BOUNDED as task 1 built it: the client aborts, the server stops writing frames and aborts the model call, and a query already running expires under statement_timeout rather than being cancelled. Collapsing the dock does NOT cancel, and moving between the dock and the Ask page does NOT cancel - one AskProvider holds one thread, so a valid transition must not discard a question in flight. The assistant area is exactly /ask and /mis-reports - human-decided 2026-09-14: navigation WITHIN that set never cancels, and any other authenticated route aborts. The routes must be NAMED because AskProvider lives in the persistent authenticated shell, so an unmounting panel cannot own the boundary. An expected abort is never rendered as an error: today it falls into the generic catch and surfaces as one, so it must be recognised and swallowed silently. Terminal SSE error frames must also be NORMALISED into the fields the seven-class AskResponse renderer requires, which they do not carry as emitted.",
+        "The shell's freshness pill shows the real value from GET /api/warehouse/freshness and is no longer aria-disabled. app-shell.tsx:174 renders static text with aria-disabled=true today, beside a disabled search box. It renders all FIVE states the route distinguishes - available, no-active-batches, unsupported, unconfigured, lookup-failed - and never collapses them into one blank or one 'unavailable'. Each state gets DISTINCT copy - human-decided 2026-09-14 - with an EXPLICIT TIMEZONE on an available timestamp, plus a SEPARATE client-side 'could not check' state for a browser fetch failure, which must never be shown as the server's lookup-failed. It inherits the single 401 refresh and NEVER silently retries or shows an unqualified cached value. It is labelled as LOAD freshness, matching the payload's freshnessKind, because a September upload of July figures must not read as September data. provenance.dataAsOf remains null and untouched (D-0041); the pill is the only freshness surface this task ships. A PARTIALLY loaded warehouse - one source active, the other not - is D-0042 and out of scope: render what the route returns.",
+        "The docked Ask panel fills its column on desktop with the thread scrolling INSIDE it. globals.css:1346 sets max-height: calc(100vh - 98px) with align-self: flex-start - a CEILING, not a height - so a short thread leaves the visible gap the human reported. The composer stays reachable without scrolling the report. The existing mobile behaviour at the current breakpoint is unchanged: the panel stacks and takes its natural height.",
+        "The client TRIMS prior turns to the shared limits before sending, which is a LIVE DEFECT today: use-ask.ts:31 sends EVERY successful turn via turns.flatMap with no bound, while task 1 shipped chat.schemas.ts rejecting more than ASK_PRIOR_TURNS_MAX_ENTRIES (8). The NINTH successful question in a conversation therefore 400s against merged code right now. The client trims NEWEST-FIRST to the same exported constants from @3f/contract - entries, serialized characters and per-question length - so a long conversation degrades gracefully instead of failing, and the retained order stays oldest-first because the server reads at(-1) as the latest turn. Proven by a leaf that drives the client with nine qualifying turns and asserts the request body.",
+        "The surfaces are proven by vitest leaves covering: an SSE frame split across chunks and several frames in one chunk; phases rendering in order; NO phase for an answer resolving within 250ms; a malformed frame and an EOF without a terminal event each resolving as a backend error rather than hanging; a 401 refreshing and retrying; leaving the assistant aborting while dock collapse and dock-to-Ask navigation do NOT; the pill rendering each of the five states plus the client 'could not check'; a stored-selection rerun staying on buffered /api/chat; an ordinary HTTP error rendering as the buffered client does; no phase after the terminal frame; a UTF-8 character split across chunks; and the client trimming to the shared limits on a ninth turn. DOCK GEOMETRY IS **NOT** UNIT-PROVEN: jsdom does not compute flex layout (frontend/vitest.config.ts uses it), so a vitest leaf could only assert CSS source text and would be a false green. It is proven by the LIVE functional check at desktop AND mobile breakpoints - human-decided 2026-09-14. The task is user_facing, so emil-design-eng AND frontend-design are loaded, USED and attested - the recorder REFUSES a user-facing automated artifact without both, and the orchestrator checks the job log for an actual read rather than taking the run's word for it. The functional check runs LIVE with BEDROCK_MODEL_ID set: ask, then ask a FOLLOW-UP and confirm phases appear and it returns in a FEW SECONDS - measured 1.0-5.4s after task 1, so the check expects a few seconds with occasional excursions, NOT a hard sub-5s bound. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031)."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-ass-c1",
+          "statement": "Both Ask surfaces consume POST /api/chat/stream and render its ordered phases - routing, selecting, querying, summarizing (contract/src/api.ts:552) - instead of one static pending state. The client parses SSE correctly in both directions the transport actually produces: a single frame SPLIT ACROSS CHUNKS and SEVERAL frames arriving in ONE chunk. It also handles the stream's failure modes rather than hanging: a MALFORMED JSON frame and an EOF carrying neither result nor error each resolve the request as a backend error, because AskProvider is shared by the dock and the page and an unresolved promise leaves BOTH surfaces pending forever. A phase never renders after the terminal frame, and any pending render-delay timer is CLEARED on every terminal path. Chunk boundaries are handled at the BYTE level, not the character level: a multi-byte UTF-8 character split across two chunks must not corrupt the frame.",
+          "source": "contract/src/api.ts"
+        },
+        {
+          "id": "t-ass-c2",
+          "statement": "An answer that resolves within 250ms renders NO PHASE AT ALL. This is a CLIENT render delay, not a producer change: chat.service.ts:103 emits routing BEFORE the deterministic classifiers run, so a greeting, a glossary definition and a policy refusal DO receive a phase today and do not resolve before the first one. Suppressing it server-side would mean not emitting a phase the server has already decided to emit; delaying it client-side leaves the producer untouched and still removes the flicker.",
+          "source": "backend/src/chat/chat.service.ts"
+        },
+        {
+          "id": "t-ass-c3",
+          "statement": "The streaming client preserves EVERYTHING the buffered client does, because pre-stream failures are ordinary HTTP responses and not SSE frames: the CSRF bootstrap and x-csrf-token header, credentials: include, the 401 refresh-and-retry path, and HTTP-error rendering (frontend/src/lib/api.ts:22-40 is the existing behaviour). A 401 on the stream must refresh and retry exactly as a buffered post does, not surface as a stream error. THE SWITCH TO STREAMING IS NOT UNIVERSAL. use-ask.ts:27 has ONE run(question, selection?) serving both ask() and rerun(), so streaming everything would move the stored-selection re-run onto the stream as well - it bypasses the model, needs no progress display, and must stay on buffered POST /api/chat. The branch is explicit and proven by a leaf. Ordinary HTTP errors from the stream request - not SSE error frames - render exactly as the buffered client renders them.",
+          "source": "frontend/src/lib/api.ts"
+        },
+        {
+          "id": "t-ass-c4",
+          "statement": "Leaving the assistant cancels the in-flight request, and the cancellation is BOUNDED as task 1 built it: the client aborts, the server stops writing frames and aborts the model call, and a query already running expires under statement_timeout rather than being cancelled. Collapsing the dock does NOT cancel, and moving between the dock and the Ask page does NOT cancel - one AskProvider holds one thread, so a valid transition must not discard a question in flight. The assistant area is exactly /ask and /mis-reports - human-decided 2026-09-14: navigation WITHIN that set never cancels, and any other authenticated route aborts. The routes must be NAMED because AskProvider lives in the persistent authenticated shell, so an unmounting panel cannot own the boundary. An expected abort is never rendered as an error: today it falls into the generic catch and surfaces as one, so it must be recognised and swallowed silently. Terminal SSE error frames must also be NORMALISED into the fields the seven-class AskResponse renderer requires, which they do not carry as emitted.",
+          "source": "docs/specs/assistant-responsiveness.md#behaviour"
+        },
+        {
+          "id": "t-ass-c5",
+          "statement": "The shell's freshness pill shows the real value from GET /api/warehouse/freshness and is no longer aria-disabled. app-shell.tsx:174 renders static text with aria-disabled=true today, beside a disabled search box. It renders all FIVE states the route distinguishes - available, no-active-batches, unsupported, unconfigured, lookup-failed - and never collapses them into one blank or one 'unavailable'. Each state gets DISTINCT copy - human-decided 2026-09-14 - with an EXPLICIT TIMEZONE on an available timestamp, plus a SEPARATE client-side 'could not check' state for a browser fetch failure, which must never be shown as the server's lookup-failed. It inherits the single 401 refresh and NEVER silently retries or shows an unqualified cached value. It is labelled as LOAD freshness, matching the payload's freshnessKind, because a September upload of July figures must not read as September data. provenance.dataAsOf remains null and untouched (D-0041); the pill is the only freshness surface this task ships. A PARTIALLY loaded warehouse - one source active, the other not - is D-0042 and out of scope: render what the route returns.",
+          "source": "frontend/src/components/shell/app-shell.tsx"
+        },
+        {
+          "id": "t-ass-c6",
+          "statement": "The docked Ask panel fills its column on desktop with the thread scrolling INSIDE it. globals.css:1346 sets max-height: calc(100vh - 98px) with align-self: flex-start - a CEILING, not a height - so a short thread leaves the visible gap the human reported. The composer stays reachable without scrolling the report. The existing mobile behaviour at the current breakpoint is unchanged: the panel stacks and takes its natural height.",
+          "source": "frontend/app/globals.css"
+        },
+        {
+          "id": "t-ass-c7",
+          "statement": "The client TRIMS prior turns to the shared limits before sending, which is a LIVE DEFECT today: use-ask.ts:31 sends EVERY successful turn via turns.flatMap with no bound, while task 1 shipped chat.schemas.ts rejecting more than ASK_PRIOR_TURNS_MAX_ENTRIES (8). The NINTH successful question in a conversation therefore 400s against merged code right now. The client trims NEWEST-FIRST to the same exported constants from @3f/contract - entries, serialized characters and per-question length - so a long conversation degrades gracefully instead of failing, and the retained order stays oldest-first because the server reads at(-1) as the latest turn. Proven by a leaf that drives the client with nine qualifying turns and asserts the request body.",
+          "source": "docs/specs/assistant-responsiveness.md#acceptance-criteria"
+        },
+        {
+          "id": "t-ass-c8",
+          "statement": "The surfaces are proven by vitest leaves covering: an SSE frame split across chunks and several frames in one chunk; phases rendering in order; NO phase for an answer resolving within 250ms; a malformed frame and an EOF without a terminal event each resolving as a backend error rather than hanging; a 401 refreshing and retrying; leaving the assistant aborting while dock collapse and dock-to-Ask navigation do NOT; the pill rendering each of the five states plus the client 'could not check'; a stored-selection rerun staying on buffered /api/chat; an ordinary HTTP error rendering as the buffered client does; no phase after the terminal frame; a UTF-8 character split across chunks; and the client trimming to the shared limits on a ninth turn. DOCK GEOMETRY IS **NOT** UNIT-PROVEN: jsdom does not compute flex layout (frontend/vitest.config.ts uses it), so a vitest leaf could only assert CSS source text and would be a false green. It is proven by the LIVE functional check at desktop AND mobile breakpoints - human-decided 2026-09-14. The task is user_facing, so emil-design-eng AND frontend-design are loaded, USED and attested - the recorder REFUSES a user-facing automated artifact without both, and the orchestrator checks the job log for an actual read rather than taking the run's word for it. The functional check runs LIVE with BEDROCK_MODEL_ID set: ask, then ask a FOLLOW-UP and confirm phases appear and it returns in a FEW SECONDS - measured 1.0-5.4s after task 1, so the check expects a few seconds with occasional excursions, NOT a hard sub-5s bound. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031).",
+          "source": "frontend/src/features/assistant/use-ask.ts"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "an sse frame split across chunks and several frames in one chunk both parse",
+          "path": "frontend/src/features/assistant/ask-stream.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a malformed frame and an eof without a terminal event resolve as a backend error instead of hanging",
+          "path": "frontend/src/features/assistant/ask-stream.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "an answer resolving within the render delay shows no phase while a slower one shows them in order",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "leaving the assistant aborts while collapsing the dock and moving to the ask page do not",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the streaming client sends the csrf header and refreshes once on a 401",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the freshness pill renders each of the five states and is no longer disabled",
+          "path": "frontend/src/components/shell/app-shell.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a stored selection rerun stays on the buffered route while an ordinary ask streams",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the client trims prior turns to the shared limits so a ninth turn still succeeds",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a multi byte character split across chunks parses and no phase renders after the terminal frame",
+          "path": "frontend/src/features/assistant/ask-stream.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:frontend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "write_scope": [
+        "frontend/src/features/assistant/ask-stream.ts",
+        "frontend/src/features/assistant/ask-stream.test.ts",
+        "frontend/src/features/assistant/use-ask.ts",
+        "frontend/src/features/assistant/ask-panel.tsx",
+        "frontend/src/features/assistant/ask-panel.test.tsx",
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/api.test.ts",
+        "frontend/src/components/shell/app-shell.tsx",
+        "frontend/src/components/shell/app-shell.test.tsx",
+        "frontend/src/features/shell/use-freshness.ts",
+        "frontend/app/globals.css"
+      ],
+      "reviewer_focus": [
+        "THE NINTH TURN 400s TODAY. use-ask.ts:31 sends every successful turn; task 1's schema rejects more than 8. This task's client trim is a LIVE DEFECT FIX, not a nicety - check the leaf drives nine turns and asserts the body.",
+        "STREAMING IS NOT UNIVERSAL. use-ask.ts:27 has ONE run() behind both ask() and rerun(). Switching it wholesale moves the stored-selection re-run onto the stream, which must stay buffered because it bypasses the model entirely.",
+        "AN ABORT IS NOT AN ERROR. Today it falls into the generic catch and renders as one. And terminal SSE error frames do NOT carry the fields the seven-class renderer needs - they must be normalised, and delayed-phase timers cleared on EVERY terminal path.",
+        "THE SHARED PROVIDER MAKES A HANG WORSE THAN AN ERROR. One AskProvider serves the dock AND the page, so a malformed frame or an EOF with no terminal event leaves BOTH surfaces pending forever. Check that each resolves the request rather than merely logging.",
+        "SSE FRAMING IS THE BUG THAT HIDES. Test a frame SPLIT across chunks and SEVERAL frames in ONE chunk - naive splitting on a delimiter passes a happy-path test and drops data in production.",
+        "THE PILL HAS SIX STATES TO RENDER, not five: the route's five plus a client-side 'could not check' for a browser fetch failure, which must never be shown as the server's lookup-failed. Explicit timezone on the timestamp; no silent retry; no unqualified cached value.",
+        "DOCK GEOMETRY CANNOT BE UNIT-PROVEN. jsdom does not compute flex layout, so a vitest leaf asserting the CSS rule is a false green. The live functional check is the geometry proof, at desktop AND mobile.",
+        "NO-FLICKER IS A CLIENT RULE, NOT A PRODUCER CHANGE. chat.service.ts:103 emits routing BEFORE the deterministic classifiers, so greetings and refusals DO get a phase. The 250ms delay belongs in the client; changing the server to withhold a phase it already decided to emit is the wrong fix.",
+        "TRANSPORT PARITY IS NOT OPTIONAL. Pre-stream auth, CSRF and validation failures are ordinary HTTP responses, not SSE frames. A 401 must refresh and retry exactly as api.ts:34 does for a buffered post - not render as a stream error.",
+        "A VALID TRANSITION MUST NOT CANCEL. Dock collapse and dock-to-Ask navigation share one thread and must NOT abort a question in flight; only leaving the assistant does. Cancelling on a valid transition silently loses the user's question.",
+        "THE PILL HAS FIVE STATES, NOT TWO. The route distinguishes available, no-active-batches, unsupported, unconfigured and lookup-failed. Collapsing them to a blank or one generic 'unavailable' throws away the distinction task 2 was built to provide - and it must say LOAD freshness, matching freshnessKind.",
+        "max-height IS A CEILING, NOT A HEIGHT. globals.css:1346 pairs it with align-self: flex-start, which is why a short thread leaves a gap. Mobile stacking at the current breakpoint must not change.",
+        "USER-FACING MEANS BOTH DESIGN SKILLS ARE ACTUALLY READ. emil-design-eng and frontend-design must be loaded, used and attested; the orchestrator greps the job log for a real read of each SKILL.md, because a run has claimed a skill it never opened before on this project.",
+        "THE LIVE CHECK EXPECTS A FEW SECONDS, NOT A HARD BOUND. Measured 1.0-5.4s after task 1's cap. A check written as 'under 5s' will flake; report the measured range honestly."
+      ],
+      "review_budget": {
+        "max_changed_files": 12,
+        "max_changed_lines": 1800,
+        "reason": "An SSE client with byte-level chunk handling, terminal-failure normalisation and timer cleanup on a provider shared by two surfaces; a branch keeping stored-selection reruns on the buffered route; a client trim that fixes a live 400 on the ninth conversational turn; full transport parity including the 401 refresh; a cancellation boundary defined by route set; a six-state freshness pill; and the dock height. Nine required vitest leaves plus a live functional check that is also the geometry proof, and the two mandatory design skills."
+      }
     }
   ],
   "generated_by": "docs-decomposer",
@@ -249,5 +387,5 @@
   "epic": "assistant",
   "plan_file": "plans/active/poc-responsiveness-assistant-responsiveness-and-shell-truth.md",
   "plan_sha256": "527c6967152e727362b24ad66e399fb98766f4716d058f4a832f98bb93101f4c",
-  "commit": "309c7e21012f3346a23f10cca51e1fa19bad9b69"
+  "commit": "ed66912c4137193b50adf8439fd7cddfbe37670f"
 }

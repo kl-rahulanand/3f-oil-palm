@@ -2,7 +2,7 @@
 slug: assistant-responsiveness
 title: Assistant responsiveness and shell truth
 status: confirmed
-saved: 2026-09-14T15:54:16+00:00
+saved: 2026-09-14T18:14:00+00:00
 ---
 
 # Assistant responsiveness and shell truth
@@ -18,8 +18,15 @@ schema and the same question and prior turn:
 | request | latency | output tokens | stopReason | tool block |
 | --- | --- | --- | --- | --- |
 | no `maxTokens` | 214,222 ms | 24,313 | - | - |
-| `maxTokens: 2048` | 1,429 ms | 168 | `tool_use` | yes |
-| `maxTokens: 512` | 1,703 ms | 203 | `tool_use` | yes |
+| `maxTokens: 2048` | 4,610-19,299 ms | 1,153-2,048 | `tool_use` | yes |
+| `maxTokens: 512` | 1,024-5,417 ms | 106-512 | `tool_use` | yes |
+
+**These figures replace an earlier single sample.** The first draft cited one 1,429 ms / 168-token run
+at 2048 and reasoned from it. Repeated sampling showed that run was unrepresentative: this model's
+output for the same prompt at temperature 0 ranges from 106 to 24,313 tokens. The cap never
+truncates - every run at 256, 512 and 2048 stopped at `tool_use` with a valid tool block - because
+the model emits the tool call and then keeps writing, so output SATURATES at whatever cap is set and
+a LOWER cap is strictly better. The 'headroom' argument for 2048 was therefore backwards.
 
 A selection is about 110 output tokens. Uncapped, the model emitted 24,313. Capped, it emits ~170
 and stops at `tool_use` - **not** at `max_tokens` - so the cap does not truncate the answer; its
@@ -115,7 +122,10 @@ registered and allow-listed) and render its ordered phases - `routing`, `selecti
   comment at the seam says so, because true cancellation would need `pg_cancel_backend` on a side
   connection and is deliberately out of scope. An expected abort is handled silently and is never
   recorded as `backend_error`. Collapsing the dock, and moving between the dock and the Ask page,
-  share one provider and one thread and do NOT cancel; only leaving the assistant does.
+  share one provider and one thread and do NOT cancel. The assistant area is exactly **`/ask` and
+  `/mis-reports`**: navigation WITHIN that route set never cancels, and navigating to any other
+  authenticated route aborts the in-flight stream. Naming the routes matters because the provider
+  lives in the persistent shell, so an unmounting panel cannot own the boundary.
 - The buffered `POST /api/chat` route is unchanged and still serves the stored-selection re-run,
   which bypasses the model and needs no progress display.
 
@@ -144,11 +154,15 @@ panel while the composer stays reachable without scrolling the report. The exist
 behaviour at the current breakpoint is unchanged: the panel stacks and takes its natural height.
 
 ## Acceptance criteria
-- The selector call sends `maxTokens: **2048**` - about 18x a real ~110-token selection and ~8% of the
-  observed 24,313-token runaway - proven by a test asserting the field on the Converse REQUEST, never
-  by timing: the uncapped call is already fast when there is no prior turn. A follow-up completes in
-  **under 5 seconds** in the live check.
-- A selector response with no tool block is retried at most once; a malformed tool input and a
+- The selector call sends `maxTokens: **512**` - the governed value, measured rather than reasoned -
+  proven by a test asserting the field on the Converse REQUEST, never by timing: the uncapped call is
+  already fast when there is no prior turn. The live check REPORTS the observed follow-up latency
+  (measured 1.0-5.4 s) rather than enforcing a hard bound, because this model's run-to-run variance
+  makes a fixed threshold flake rather than inform.
+- A selector response with no tool block is retried at most once, and the second attempt uses a
+  **RAISED cap** (512 then 1,536) so it is not a deterministic repeat of the first, with the two
+  attempts' token usage **summed** so a retried question does not under-report its spend in
+  `audit_events`; a malformed tool input and a
   genuine `mark_unsupported` are NOT retried; a second tool-less response answers `backend_error`
   naming an incomplete model response, never `not_supported`.
 - `priorTurns` is rejected by the request schema above **8 entries**, a **16,000-character** payload
@@ -160,14 +174,20 @@ behaviour at the current breakpoint is unchanged: the panel stacks and takes its
   is the latest turn. The shared limits live in `@3f/contract`, the only package the frontend imports.
 - Both Ask surfaces render streamed phases in order, show NO phase for an answer that resolves
   within a **250 ms** client render delay, render a terminal error through the existing renderer, preserve
-  CSRF/cookies/401-refresh/HTTP-error behaviour, and cancel on leaving the assistant - with the
+  CSRF/cookies/401-refresh/HTTP-error behaviour, and cancel on leaving the assistant area (`/ask` and
+  `/mis-reports`) - with the
   abort reaching the AWS transport and preventing a not-yet-started query, while an already-running
   query is bounded by `statement_timeout` rather than cancelled. Proof must distinguish a normal
   completion (which must NOT abort) from client abandonment (which must).
 - The freshness pill shows the oldest active-batch `uploaded_at_utc` across governed sources,
-  labelled as load freshness, says so plainly when none is available, and is no longer marked
-  disabled; `provenance.dataAsOf` stops being null by using the SAME seam scoped to that answer's own domain and
-  batches - never the shell's global minimum.
+  labelled **load freshness** with an **explicit timezone**, and is no longer marked disabled. It
+  renders EACH of the route's five server states distinctly - `available`, `no-active-batches`,
+  `unsupported`, `unconfigured`, `lookup-failed` - plus a SEPARATE client-side "could not check"
+  state for a browser fetch failure, which must never be shown as the server's `lookup-failed`. It
+  inherits the single 401 refresh, and it never silently retries or shows an unqualified cached
+  value. **`provenance.dataAsOf` is NOT populated by this story** and stays null - deferred as
+  **D-0041**. A partially loaded warehouse, where one governed source has an active batch and the
+  other does not, is **D-0042** and out of scope here.
 - The docked panel fills its column on desktop with the thread scrolling inside it, and the
   existing mobile stacking is unchanged.
 - Every proof is judged by its junit testcase NAME and EXECUTED count, never an exit code

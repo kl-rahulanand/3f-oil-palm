@@ -24,15 +24,5 @@
       "security"
     ]
   },
-  "completed_at": "2026-09-14T17:34:59+00:00",
-  "measured": {
-    "strays": [],
-    "files": 17,
-    "lines": 351,
-    "budget": {
-      "files": 17,
-      "lines": 1500
-    },
-    "test_id_misses": []
-  }
+  "completed_at": "2026-09-14T17:34:59+00:00"
 }
