@@ -1,8 +1,8 @@
 ---
 slug: assistant-and-exploration
 title: Assistant & exploration
-status: confirmed
-saved: 2026-09-01T10:15:05+00:00
+status: draft
+saved: 2026-09-14T15:54:16+00:00
 ---
 
 # Assistant & exploration
@@ -83,11 +83,15 @@ human-decided and carry their own decision records.
 - **Every promised surface is acceptance-covered** — see Acceptance criteria below, which now
   name the docked panel, the standalone Ask page, the chart, provenance, the report link, saved
   queries and pinned dashboards, rather than proving one generic answer.
-- **The vendored Pulse assistant is NOT wired in, and this story owns wiring it.** `AppModule`
-  imports none of `chat`, `saved` or `pins`; the registered-route allow-list in
-  `backend/src/app.routes.test.ts` contains no `/api/chat`, `/api/saved` or `/api/pins`; and the
-  applied migration `backend/drizzle/0000_auth_audit.sql` creates auth and audit tables only.
-  The story owns the routes, the persistence and the UI, and must not assume any of it exists.
+- **DELIVERED 2026-09-12 - this paragraph described the pre-build state and is kept for the
+  record, not as current requirements.** At the time of writing `AppModule` imported none of
+  `chat`, `saved` or `pins`, the allow-list in `backend/src/app.routes.test.ts` contained no
+  `/api/chat`, `/api/saved` or `/api/pins`, and the only applied migration
+  `backend/drizzle/0000_auth_audit.sql` created auth and audit tables alone. **All of it now
+  exists and is shipped** (PRs #42-#45, story closeout #46): the modules are registered and
+  governed, the routes are allow-listed, and `backend/drizzle/0001_saved_and_pins.sql` adds
+  `saved_queries` and `dashboard_pins`. A new story must NOT re-create any of it. Remediation of
+  what shipped is specified separately in `docs/specs/assistant-responsiveness.md`.
 
 ## Rules
 - RBAC + append-only audit on every data answer.

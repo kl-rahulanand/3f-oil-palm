@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "**Correction to what I told you.** When I asked about the freshness pill I said the data already exists and just needs exposing. That was wrong. `postgres.adapter.ts:56` returns `null` when no freshness column is supplied, and **no domain declares one** \u2014 `grep -c freshnessColumn` in the semantic layer is **0**. So freshness is `null` everywhere today, and `dataAsOf` in answer provenance has always been null too. The grill also found there is no single truth to show: actuals and budget arrive as **separate ingest batches** with their own timestamps, so one pill cannot honestly imply one number without a rule. Wiring it means *defining* freshness first \u2014 bigger than the route-plus-render job I described.",
+      "options": [
+        "Define it from ingest batches, show the oldest (Recommended)",
+        "Show both sources separately",
+        "Drop freshness from this story, remove the dead pill"
+      ],
+      "chosen": "Define it from ingest batches, show the oldest (Recommended)"
+    }
+  ],
+  "at": "2026-09-14T13:05:14.559836+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
