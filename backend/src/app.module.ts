@@ -12,9 +12,20 @@ import { MisSelectionModule } from "./mis/mis-selection.module";
 import { MisModule } from "./mis/mis.module";
 import { PinsModule } from "./pins/pins.module";
 import { SavedModule } from "./saved/saved.module";
+import { WarehouseModule } from "./warehouse/warehouse.module";
 
 @Module({
-  imports: [CoreModule, HealthModule, IngestModule, MisSelectionModule, MisModule, ChatModule, SavedModule, PinsModule],
+  imports: [
+    CoreModule,
+    HealthModule,
+    IngestModule,
+    MisSelectionModule,
+    MisModule,
+    ChatModule,
+    SavedModule,
+    PinsModule,
+    WarehouseModule,
+  ],
   controllers: [AuthController],
   providers: [AuthGuard, LoginRateLimitService, { provide: APP_GUARD, useClass: CsrfGuard }],
 })

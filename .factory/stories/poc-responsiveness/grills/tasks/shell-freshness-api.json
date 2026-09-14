@@ -1,0 +1,134 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "issue": "poc-responsiveness",
+  "task_id": "shell-freshness-api",
+  "verdict": "pass",
+  "decision": "keep",
+  "questions_asked": 2,
+  "summary": "Cold read of the recorded shell-freshness-api contract and task plan returned NOT CONVERGED with nine findings, all verified and all held. Three would have stopped the work: a REQUIRED new method on the Warehouse port would have failed typecheck across the fourteen files that implement it; the gated DB proof would have SKIPPED because its command omitted WAREHOUSE_DB_TEST=1, and stage done rejects a skipped leaf; and the route had no exact path, which both the exact-match allow-list and task 3 require. One finding needed the human and removed work from the task: provenance.dataAsOf is not implementable as contracted and would mislabel existing UI, so it is deferred as D-0041.",
+  "criteria_map": {
+    "A new OPTIONAL method on the Warehouse port (backend/src/warehouse/warehouse.interface.ts:9 - the interface is named Warehouse, not WarehouseAdapter) reports LOAD FRESHNESS from active ingest batches. It MUST be optional: FOURTEEN files implement Warehouse, most of them typed test fakes outside this task's scope, and adding a REQUIRED method breaks every one of them and fails typecheck before a line of behaviour is written. The method returns, per governed source, the oldest uploaded_at_utc among rows where is_active is true, AND the overall minimum across sources. The existing freshness(goldObject, column?) at :15 cannot express this: it is domain-scoped and returns MAX(column), while this is a cross-source MINIMUM over ingest_batch. Active batches are unique per (source_kind, period), so many are active at once - the live warehouse holds 12 active budget batches and 1 actuals - which is why it is a minimum over ACTIVE batches and why it is LOAD freshness, never data currency: a September upload of July figures must not be announced as 'data as of September'.": "The port method, which as contracted would have failed typecheck everywhere. FOURTEEN files implement Warehouse, most of them typed test fakes outside this scope, so the method is now OPTIONAL; the contract had also named the interface WarehouseAdapter when it is Warehouse. The cross-source minimum over ingest_batch is restated as something the existing domain-scoped MAX(column) seam cannot express.",
+    "Postgres implements it; both starrocks adapters return a DELIBERATE, TYPED UNAVAILABLE rather than throwing, guessing, or being left unimplemented. The payload distinguishes the states a caller must tell apart - a value, NO ACTIVE BATCHES, an engine that does not report freshness, an unconfigured warehouse, and a lookup failure - so none of them silently collapses to null, which the spec forbids. Under D-0006 ALL THREE adapters are prettier-ignored and baseline-pinned - postgres.adapter.ts, starrocks.adapter.ts and starrocks-mysql.adapter.ts, not only Postgres - so each one this task edits is formatted, removed from .prettierignore, and has its quality-gate baseline entry removed in the SAME change.": "The adapters and their states. All THREE are prettier-ignored and baseline-pinned, not only Postgres, and the payload must keep five caller-visible states apart - a value, no active batches, unsupported engine, unconfigured warehouse, lookup failure - rather than collapsing any of them to null, which the spec forbids.",
+    "GET /api/warehouse/freshness serves it - an EXACT path, because backend/src/app.routes.test.ts matches exact strings and task 3 cannot consume an unnamed route. It follows decision 0019 as mis-selection.controller.ts:33-46 does: unversioned api/... path, raw typed body, a NAMED response DTO, and documented Swagger 400/401/403. It is added to the strict allow-list, which must fail on an UNEXPECTED route as well as a missing one. It sits behind AuthGuard ONLY with NO RequireAction grant: the shell chrome renders for every authenticated user, so a grant would 403 the pill for someone who can legitimately sign in, and the payload carries no governed value - only when data was loaded. The service is introduced with its INTERFACE alongside it, per constitution/pnp-coding-standards-modular-monolith.md's service-interface rule.": "The route, which had no name at all. app.routes.test.ts matches EXACT strings and task 3 cannot consume an unnamed payload, so it is GET /api/warehouse/freshness. The service gains its interface per the constitution's service-interface rule, and the AuthGuard-only choice is stated with its reasoning rather than left implicit.",
+    "provenance.dataAsOf is NOT touched by this task - human-decided 2026-09-14 and recorded as D-0041. It stays null. Two reasons the cold read established: both governed domains combine Actuals AND Budget while chat.service.ts:426 passes only a DomainSpec, so 'the answer's own source' is undefined for a percentage answer reading both; and contract/src/api.ts:470 is already rendered to users as 'Data as of', so filling it with LOAD time would present a September upload of July figures as September data, and relabelling reaches the report path (reports.service.ts:45) beyond this task. The shell route is the whole of this task's surface.": "provenance.dataAsOf, removed from this task entirely. The cold read showed 'the answer's own source' is undefined because both governed domains combine Actuals and Budget while chat.service.ts:426 passes only a DomainSpec, and that the field is rendered today as 'Data as of' so load time would be shown as data currency. The human chose to defer it; recorded as D-0041.",
+    "The behaviour is proven by hermetic leaves AND a gated host proof that actually executes. The allow-list leaf proves more than presence: that the route is behind AuthGuard with NO RequireAction, and that the named success DTO and typed 400/401/403 Swagger responses exist - the allow-list alone cannot prove C3. A second hermetic leaf proves both starrocks adapters return the typed unavailable. The DB-backed proof is registered in backend/package.json test:warehouse-proof, which SETS WAREHOUSE_DB_TEST=1 - a bare junit-run without that flag SKIPS, and stage done rejects a skipped leaf, which is the false-green this project has already been burned by. It asserts BOTH the per-source oldest timestamps AND their overall minimum with SEVERAL active periods present for a source, since a one-batch-per-source fixture would pass while the query is wrong, and is demonstrated on the host with a DEAD-PORT NEGATIVE CONTROL. New test files are registered in backend/package.json and tools/quality-gate.test.mjs in exactly one group. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031).": "The proof, which would have SKIPPED. A bare junit-run without WAREHOUSE_DB_TEST=1 skips and stage done rejects a skipped leaf - the false-green this project has already shipped once - so the gated proof is pinned to test:warehouse-proof, which sets the flag. It must also assert per-source values AND the overall minimum with SEVERAL active periods, since a one-batch-per-source fixture passes while the query is wrong, and the allow-list leaf must prove the guard set and typed Swagger responses rather than mere presence."
+  },
+  "current_flow": "Freshness is null everywhere: postgres.adapter.ts:56 returns null when no column is supplied and no domain declares one, so the shell shows a hard-coded disabled chip and every answer's provenance.dataAsOf has always been null. The data exists in ingest_batch - source_kind, period, uploaded_at_utc, is_active - but nothing reads it for freshness, and the only seam is domain-scoped MAX(column).",
+  "new_abstractions": [
+    "An optional capability on the Warehouse port: the first method that an adapter may legitimately not implement, with a typed unavailable rather than a throw or a guess.",
+    "A discriminated freshness payload that keeps five caller-visible states apart, so 'no active batches' and 'this engine does not report freshness' never both read as null.",
+    "Load freshness as a named concept distinct from data currency - the first place this product says WHEN data was loaded rather than what period it covers."
+  ],
+  "gaps": [
+    "The HTTP contract was unnamed: no exact GET path and no discriminated response for available, no-active-batches, unsupported engine, unconfigured Postgres and lookup failure, while the strict route test matches exact strings and task 3 cannot consume an unspecified payload.",
+    "Adding a REQUIRED method to the Warehouse interface would break the fourteen files that implement it, most of them typed fakes outside this task's scope, failing build and typecheck before any behaviour was written; the contract also called the interface WarehouseAdapter when it is named Warehouse.",
+    "D-0006 was incomplete: all three adapters are edited for C2 and all three are prettier-ignored and baseline-pinned, not only Postgres.",
+    "The required DB test would have SKIPPED: its recorded command did not set WAREHOUSE_DB_TEST=1, and a skipped JUnit leaf is rejected by stage done, so the proof had to be pinned through test:warehouse-proof rather than a bare runner invocation.",
+    "The DB proof's leaf name promised only one oldest value, while the criterion needs both the per-source oldest timestamps and their overall minimum.",
+    "The allow-list proof alone could not prove C3: it needed to also prove AuthGuard with no RequireAction, the named success DTO, and the typed Swagger 400/401/403 responses.",
+    "The scope created freshness.service.ts without freshness.interface.ts, conflicting with the constitution's service-interface rule."
+  ],
+  "contradictions": [
+    "'Answer-scoped freshness' was not implementable as written: both governed domains combine Actuals and Budget while chat.service.ts:426 passes only a DomainSpec, so the answer's own source is undefined for a percentage answer that reads both, and a per-source minimum across all active periods is not necessarily that answer's batches.",
+    "Populating provenance.dataAsOf with LOAD time contradicts how the field is already presented: contract/src/api.ts:470 is rendered to users as 'Data as of', and the report path uses the same null-producing helper, so the change would announce a September upload of July figures as September data."
+  ],
+  "resolutions": [
+    "REPO-ANSWERED - the new method is OPTIONAL on Warehouse, the interface is called by its real name, and the criterion states why: fourteen implementers, most of them out-of-scope typed fakes.",
+    "REPO-ANSWERED - the route is GET /api/warehouse/freshness with a discriminated body keeping five states apart and none collapsing to null, added to the exact-match allow-list, behind AuthGuard with no RequireAction and with that choice's reasoning recorded.",
+    "REPO-ANSWERED - D-0006 is restated across all three adapters, each formatted, de-ignored and cleared from the baseline map in the same change, and none this task does not edit.",
+    "REPO-ANSWERED - the gated proof is pinned to test:warehouse-proof, which SETS WAREHOUSE_DB_TEST=1, and asserts per-source values AND the overall minimum with several active periods present, demonstrated on the host with a dead-port negative control.",
+    "REPO-ANSWERED - the allow-list leaf is widened to prove the guard set and the typed Swagger responses, and the service is introduced with its interface per the constitution.",
+    "HUMAN (kl-rahulanand) - provenance.dataAsOf is removed from this task and deferred as D-0041, with the per-source rule for multi-source answers and the relabelling of 'Data as of' to be worked out in their own change. Chosen over populating it with a minimum across the sources the answer used, and over populating it without relabelling, which would have presented load time as data currency."
+  ],
+  "open_items": [
+    "D-0041 records the deferred provenance work and its revisit triggers.",
+    "The pill itself is task 3; this task ships no UI, so a reviewer seeing a still-disabled chip is seeing the contract honoured.",
+    "Carried, non-blocking: ap-south-1 rests on the code default plus decision 0003's India-residency line."
+  ],
+  "citations": [
+    {
+      "finding": "The HTTP contract was unnamed: no exact GET path and no discriminated response for available, no-active-batches, unsupported engine, unconfigured Postgres and lookup failure, while the strict route test matches exact strings and task 3 cannot consume an unspecified payload.",
+      "source": "backend/src/app.routes.test.ts:27 (exact-string allow-list) against a contract naming no path"
+    },
+    {
+      "finding": "Adding a REQUIRED method to the Warehouse interface would break the fourteen files that implement it, most of them typed fakes outside this task's scope, failing build and typecheck before any behaviour was written; the contract also called the interface WarehouseAdapter when it is named Warehouse.",
+      "source": "backend/src/warehouse/warehouse.interface.ts:9 (interface Warehouse) with fourteen implementers across backend/src"
+    },
+    {
+      "finding": "D-0006 was incomplete: all three adapters are edited for C2 and all three are prettier-ignored and baseline-pinned, not only Postgres.",
+      "source": ".prettierignore (all three warehouse adapters listed) against a criterion naming only postgres.adapter.ts"
+    },
+    {
+      "finding": "The required DB test would have SKIPPED: its recorded command did not set WAREHOUSE_DB_TEST=1, and a skipped JUnit leaf is rejected by stage done, so the proof had to be pinned through test:warehouse-proof rather than a bare runner invocation.",
+      "source": "backend/package.json:19 (test:warehouse-proof sets WAREHOUSE_DB_TEST=1) against the contract's bare junit-run command"
+    },
+    {
+      "finding": "The DB proof's leaf name promised only one oldest value, while the criterion needs both the per-source oldest timestamps and their overall minimum.",
+      "source": "the required_test leaf name against the criterion's per-source and overall-minimum requirement"
+    },
+    {
+      "finding": "The allow-list proof alone could not prove C3: it needed to also prove AuthGuard with no RequireAction, the named success DTO, and the typed Swagger 400/401/403 responses.",
+      "source": "backend/src/app.routes.test.ts:67 (guard assertions) against a leaf proving only route presence"
+    },
+    {
+      "finding": "The scope created freshness.service.ts without freshness.interface.ts, conflicting with the constitution's service-interface rule.",
+      "source": "constitution/pnp-coding-standards-modular-monolith.md:99 (service-interface rule) against a scope with freshness.service.ts and no interface"
+    },
+    {
+      "finding": "'Answer-scoped freshness' was not implementable as written: both governed domains combine Actuals and Budget while chat.service.ts:426 passes only a DomainSpec, so the answer's own source is undefined for a percentage answer that reads both, and a per-source minimum across all active periods is not necessarily that answer's batches.",
+      "source": "backend/src/semantic/semanticLayer.ts:11 (both domains combine Actuals and Budget) against backend/src/chat/chat.service.ts:426 (passes only a DomainSpec)"
+    },
+    {
+      "finding": "Populating provenance.dataAsOf with LOAD time contradicts how the field is already presented: contract/src/api.ts:470 is rendered to users as 'Data as of', and the report path uses the same null-producing helper, so the change would announce a September upload of July figures as September data.",
+      "source": "contract/src/api.ts:470 ('Data as of') and backend/src/reports/reports.service.ts:45 against filling the field with load time"
+    }
+  ],
+  "inspected_refs": [
+    ".factory/stories/poc-responsiveness/decomposition.json",
+    ".factory/stories/poc-responsiveness/task-plans/shell-freshness-api.md",
+    "docs/specs/assistant-responsiveness.md",
+    "backend/src/warehouse/warehouse.interface.ts",
+    "backend/src/warehouse/warehouse-schema.ts",
+    "backend/src/warehouse/postgres.adapter.ts",
+    "backend/src/warehouse/starrocks.adapter.ts",
+    "backend/src/warehouse/starrocks-mysql.adapter.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/mis/mis-selection.controller.ts",
+    "backend/src/app.routes.test.ts",
+    "backend/package.json",
+    "tools/quality-gate.test.mjs",
+    ".prettierignore",
+    "contract/src/api.ts",
+    "constitution/pnp-coding-standards-modular-monolith.md"
+  ],
+  "rounds": [
+    {
+      "question": "**Should this task touch `provenance.dataAsOf` at all?** The grill found my \"answer-scoped freshness\" isn't implementable as written, and that it would mislabel existing UI. Two problems: both governed domains combine **Actuals and Budget**, and `chat.service.ts:426` passes only a `DomainSpec`, so \"the answer's own source\" is undefined for a percentage answer that uses both. And `dataAsOf` is already rendered to users as **\"Data as of\"** \u2014 data currency \u2014 while this task would fill it with **load** time; the report path uses the same null-producing helper, so relabelling means touching consumers beyond this task.",
+      "options": [
+        "Defer dataAsOf \u2014 ship only the shell route (Recommended)",
+        "Include it, minimum across the sources the answer used",
+        "Include it, but leave the label alone"
+      ],
+      "chosen": "Defer dataAsOf \u2014 ship only the shell route (Recommended)"
+    },
+    {
+      "question": "Closing the `shell-freshness-api` grill. Nine findings, all verified, and three would have stopped the work dead. **Fourteen** files implement the `Warehouse` interface \u2014 mostly typed test fakes outside this scope \u2014 so a required new method would have failed typecheck before any behaviour existed; it's now optional. (I'd also named the interface `WarehouseAdapter`; it's `Warehouse`.) The **gated DB proof would have skipped**: a bare `junit-run` without `WAREHOUSE_DB_TEST=1` skips and `stage done` rejects a skipped leaf \u2014 it now runs under `test:warehouse-proof`, which sets the flag. And **the route had no name**, which the exact-match allow-list and task 3 both need \u2014 it's `GET /api/warehouse/freshness` with a discriminated body keeping five states apart rather than collapsing to null. Your `dataAsOf` call is recorded as **D-0041**. Also folded in: D-0006 covers all three adapters, the DB proof must assert per-source values *and* the overall minimum across several active periods, and the allow-list leaf must prove the guard set and typed Swagger responses rather than mere presence.",
+      "options": [
+        "No gaps \u2014 board it (Recommended)",
+        "Something else \u2014 I'll say what"
+      ],
+      "chosen": "No gaps \u2014 board it (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "e9bab73ba72f196204eb7866d5871f259b9d48a1f4698eba8766c33297107d1b",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "648f896b43f5c342a3b473610f40e0f46ef7610441094b99b6f3fb6764afb1f1",
+  "recorded_at": "2026-09-14T17:19:22+00:00",
+  "commit": "faa6de7f020e2837935df89185bcfec530987f9c",
+  "approved_task_plan_sha256": "648f896b43f5c342a3b473610f40e0f46ef7610441094b99b6f3fb6764afb1f1",
+  "approved_by": "kl-rahulanand",
+  "approved_at": "2026-09-14T17:19:25+00:00"
+}

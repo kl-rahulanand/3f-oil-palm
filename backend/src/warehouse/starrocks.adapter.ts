@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { WarehouseLoadFreshness } from "@3f/contract";
 import type { QueryResult, Warehouse } from "./warehouse.interface";
 import { type Config, loadConfig } from "../config";
 
@@ -58,6 +59,10 @@ export class StarRocksAdapter implements Warehouse {
     } catch {
       return null;
     }
+  }
+
+  async loadFreshness(): Promise<WarehouseLoadFreshness> {
+    return { status: "unsupported", freshnessKind: "load" };
   }
 
   async distinctValues(goldObject: string, column: string): Promise<string[]> {
@@ -138,18 +143,23 @@ export class StarRocksAdapter implements Warehouse {
     }));
     const rows = lines
       .filter((line): line is StarRocksLine & { data: unknown[] } => Array.isArray(line.data))
-      .map((line) =>
-        Object.fromEntries(columns.map((column, index) => [column.name, this.toCell(line.data[index])])) as Record<
-          string,
-          string | number | null
-        >,
+      .map(
+        (line) =>
+          Object.fromEntries(columns.map((column, index) => [column.name, this.toCell(line.data[index])])) as Record<
+            string,
+            string | number | null
+          >,
       );
     return { columns, rows };
   }
 
   private flattenExplain(value: unknown): string {
     if (value === undefined || value === null) return "";
-    if (Array.isArray(value)) return value.map((part) => this.flattenExplain(part)).filter(Boolean).join("\n");
+    if (Array.isArray(value))
+      return value
+        .map((part) => this.flattenExplain(part))
+        .filter(Boolean)
+        .join("\n");
     if (typeof value === "string") return value;
     return JSON.stringify(value);
   }

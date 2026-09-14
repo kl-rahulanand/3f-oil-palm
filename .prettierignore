@@ -54,9 +54,6 @@ backend/src/usage/usage.service.ts
 backend/src/users/users.constants.ts
 backend/src/users/users.controller.test.ts
 backend/src/users/users.controller.ts
-backend/src/warehouse/postgres.adapter.ts
-backend/src/warehouse/starrocks-mysql.adapter.ts
-backend/src/warehouse/starrocks.adapter.ts
 
 # Harness-owned workflows are re-vendored by forge upgrade; only product quality.yml is checked here.
 .github/workflows/factory-scaffold.yml

@@ -44,6 +44,24 @@ export interface ErrorEnvelope {
   error: ErrorPayload;
 }
 
+export type WarehouseLoadFreshness =
+  | {
+      status: "available";
+      freshnessKind: "load";
+      oldestUploadedAtUtc: string;
+      sources: Array<{
+        source: "actuals" | "budget";
+        oldestUploadedAtUtc: string;
+      }>;
+    }
+  | {
+      status: "no-active-batches" | "unsupported" | "unconfigured" | "lookup-failed";
+      freshnessKind: "load";
+    };
+
+/** GET /api/warehouse/freshness — load time, never the source period or data currency. */
+export type WarehouseFreshnessResponse = WarehouseLoadFreshness;
+
 /** POST /api/ingest/actuals */
 export interface IngestActualsResponse {
   batchId: string;
