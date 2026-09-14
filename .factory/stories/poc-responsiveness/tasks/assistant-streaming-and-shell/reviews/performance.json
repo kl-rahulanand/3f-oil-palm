@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-streaming-and-shell",
-  "score": 9,
-  "summary": "performance lens over assistant-streaming-and-shell (13 product path(s), b9f2166..b154186, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The streaming, cancellation, bounded-history, and rendering changes appear consistent with the supplied contracts. The freshness query still retains TanStack Query's automatic reconnect refetch behavior, causing an expressly prohibited silent repeat request and avoidable I/O amplification.",
+  "score": 10,
+  "summary": "performance lens over assistant-streaming-and-shell (13 product path(s), b9f2166..52d0234, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 performance or correctness defect. Streaming parsing is byte-safe and bounded by terminal handling, phase timers are cleared, cancellation propagates through transport setup and retries, prior-turn processing is bounded, freshness avoids automatic retry/refetch behavior, and the dock geometry change preserves the mobile override. No compatibility-only wrapper, alias, re-export, or legacy branch is present.",
   "blocking_findings": [],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/shell",
-      "summary": "Disable automatic reconnect refetches for freshness (frontend/src/features/shell/use-freshness.ts:7): `retry: false` disables TanStack Query's retry loop, but this query remains immediately stale and still inherits `refetchOnReconnect: true`."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/components/shell/app-shell.test.tsx",
@@ -31,10 +25,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "5871c2b18e8d9c14dc58837a3c809ccb28a94880d6c19bcef7338891747591b4",
-  "brief_sha256": "717479a201509439343bd6a5c13d9d1e8b1c90670268a15fe1da3ae5b72b1eaf",
-  "branch_diff_digest": "9cf823392ac481ff690f09cfd78d7acd0ab2609a60af49bbacc020b5c2e19fe3",
+  "review_run_id": "15cb119eb564901d5fa34db874361f0dd5561437324ad611ca6b261f9c9b3583",
+  "brief_sha256": "d5eb5d7b478204c6098c856a519398fadf38d9c693cdf9480c03fbe9c81c855e",
+  "branch_diff_digest": "36248f89eaeca3e1c65ce5a8d35687082e955d517790838f15d13509246ada4b",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T19:25:01+00:00",
-  "commit": "b154186ba113824c02d6159e70f333ab36d78a4c"
+  "recorded_at": "2026-09-14T19:35:30+00:00",
+  "commit": "52d0234ab3815eca0e46628752abe3f7a090e02f"
 }

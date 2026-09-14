@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "assistant-streaming-and-shell",
   "score": 10,
-  "summary": "security lens over assistant-streaming-and-shell (13 product path(s), b9f2166..b154186, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff satisfies the reviewed security and correctness contracts: streaming preserves CSRF, credentials, 401 refresh, and HTTP error behavior; SSE parsing handles chunk boundaries and terminal failures; terminal cleanup cannot delay or replace a delivered response; both streaming and buffered reruns are cancellable; phase timers are cleared; prior turns are bounded; and freshness states remain distinct. No P0\u2013P2 defect or compatibility leftover is demonstrated by the available evidence.",
+  "summary": "security lens over assistant-streaming-and-shell (13 product path(s), b9f2166..52d0234, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the required streaming, cancellation, request bounding, authentication/CSRF parity, freshness states, and dock geometry without exposing credentials or introducing a concrete security defect. The terminal stream paths normalize errors and perform non-blocking cleanup, abort signals are propagated through CSRF and refresh requests, and no compatibility-only wrappers, aliases, or legacy branches are present.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -25,10 +25,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "5871c2b18e8d9c14dc58837a3c809ccb28a94880d6c19bcef7338891747591b4",
-  "brief_sha256": "717479a201509439343bd6a5c13d9d1e8b1c90670268a15fe1da3ae5b72b1eaf",
-  "branch_diff_digest": "9cf823392ac481ff690f09cfd78d7acd0ab2609a60af49bbacc020b5c2e19fe3",
+  "review_run_id": "15cb119eb564901d5fa34db874361f0dd5561437324ad611ca6b261f9c9b3583",
+  "brief_sha256": "d5eb5d7b478204c6098c856a519398fadf38d9c693cdf9480c03fbe9c81c855e",
+  "branch_diff_digest": "36248f89eaeca3e1c65ce5a8d35687082e955d517790838f15d13509246ada4b",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T19:25:01+00:00",
-  "commit": "b154186ba113824c02d6159e70f333ab36d78a4c"
+  "recorded_at": "2026-09-14T19:35:30+00:00",
+  "commit": "52d0234ab3815eca0e46628752abe3f7a090e02f"
 }

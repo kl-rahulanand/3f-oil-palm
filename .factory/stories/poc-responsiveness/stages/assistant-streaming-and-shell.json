@@ -1,7 +1,7 @@
 {
   "id": "assistant-streaming-and-shell",
   "title": "Stream the answer, cancel on leave, and tell the truth in the shell",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-14T18:20:40+00:00",
   "base_sha": "b9f216696984cf8ffed137d14231da3105bd4154",
   "dirty_at_start": {
@@ -10,5 +10,34 @@
       "git": "1 .M N... 100644 100644 100644 9c09e5004baa4e384a61d477e164dcd0c9938193 9c09e5004baa4e384a61d477e164dcd0c9938193 .factory/stories/poc-responsiveness/grills/tasks/assistant-streaming-and-shell.json\u0000\u0000100644 9c09e5004baa4e384a61d477e164dcd0c9938193 0\t.factory/stories/poc-responsiveness/grills/tasks/assistant-streaming-and-shell.json\u0000\u0000H .factory/stories/poc-responsiveness/grills/tasks/assistant-streaming-and-shell.json\u0000"
     }
   },
-  "task_sha256": "b3b7f6199f5c35014a58088590d490a26e2f549fd320f96aa94d7499a956bffa"
+  "task_sha256": "28ffce91ed7bb28ddac71a39a6f17cdcaeea1d76cbba13ec222325ad5c02e08c",
+  "local_review_stamp": {
+    "stage_id": "assistant-streaming-and-shell",
+    "base_sha": "b9f216696984cf8ffed137d14231da3105bd4154",
+    "delta_id": "36248f89eaeca3e1c65ce5a8d35687082e955d517790838f15d13509246ada4b",
+    "contract_sha256": "28ffce91ed7bb28ddac71a39a6f17cdcaeea1d76cbba13ec222325ad5c02e08c",
+    "recorded_at": "2026-09-14T19:35:30+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-14T19:35:31+00:00",
+  "measured": {
+    "strays": [],
+    "files": 13,
+    "lines": 748,
+    "budget": {
+      "files": 14,
+      "lines": 1800
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-14T19:35:31+00:00",
+    "from": "b3b7f6199f5c35014a58088590d490a26e2f549fd320f96aa94d7499a956bffa",
+    "to": "28ffce91ed7bb28ddac71a39a6f17cdcaeea1d76cbba13ec222325ad5c02e08c"
+  }
 }

@@ -1,23 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-streaming-and-shell",
-  "score": 9,
-  "summary": "quality lens over assistant-streaming-and-shell (13 product path(s), b9f2166..b154186, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. VERDICT t-ass-c1: implemented \u2014 frontend/src/features/assistant/ask-stream.ts:14 parses buffered byte-decoded SSE frames and terminates all result/error/EOF paths\nVERDICT t-ass-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:51 delays phase rendering by 250ms and clears progress on completion\nVERDICT t-ass-c3: implemented \u2014 frontend/src/lib/api.ts:44 preserves CSRF, credentials, refresh, HTTP errors and the buffered selection branch\nVERDICT t-ass-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and suppresses AbortError\nVERDICT t-ass-c5: partial \u2014 frontend/src/features/shell/use-freshness.ts:7 leaves reconnect refetch enabled, allowing a silent retry\nVERDICT t-ass-c6: implemented \u2014 frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores auto height\nVERDICT t-ass-c7: implemented \u2014 frontend/src/lib/api.ts:128 trims newest prior turns against all shared limits while retaining oldest-first order\nVERDICT t-ass-c8: implemented \u2014 frontend/src/features/assistant/ask-stream.test.ts:29 and frontend/src/features/assistant/ask-panel.test.tsx:409 exercise the required streaming, phase, cancellation, and terminal behavior shown in the bundle\nThe streaming, cancellation, trimming, dock geometry, and six freshness render states are implemented, but the remaining automatic reconnect refetch violates the freshness transport contract.",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "frontend/src/components/shell/app-shell.tsx",
-      "summary": "t-ass-c5: The shell's freshness pill shows the real value from GET /api/warehouse/freshness and is no longer aria-disabled. app-shell.tsx:174 renders static text with aria-disabled=true today, beside a disabled search box. It renders all FIVE states the route distinguishes - available, no-active-batches, unsupported, unconfigured, lookup-failed - and never collapses them into one blank or one 'unavailable'. Each state gets DISTINCT copy - human-decided 2026-09-14 - with an EXPLICIT TIMEZONE on an available timestamp, plus a SEPARATE client-side 'could not check' state for a browser fetch failure, which must never be shown as the server's lookup-failed. It inherits the single 401 refresh and NEVER silently retries or shows an unqualified cached value. It is labelled as LOAD freshness, matching the payload's freshnessKind, because a September upload of July figures must not read as September data. provenance.dataAsOf remains null and untouched (D-0041); the pill is the only freshness surface this task ships. A PARTIALLY loaded warehouse - one source active, the other not - is D-0042 and out of scope: render what the route returns."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/shell",
-      "summary": "[P2] Freshness silently retries when connectivity returns (frontend/src/features/shell/use-freshness.ts:7): This query disables normal retries and focus refetches but leaves TanStack Query's `refetchOnReconnect` at its default of `true`."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "score": 10,
+  "summary": "quality lens over assistant-streaming-and-shell (13 product path(s), b9f2166..52d0234, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-ass-c1: implemented \u2014 frontend/src/features/assistant/ask-stream.ts:5 parses buffered SSE frames, preserves UTF-8 boundaries, normalizes terminal failures, and terminates cleanly.\nVERDICT t-ass-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:45 delays phase rendering by 250ms and clears progress on completion.\nVERDICT t-ass-c3: implemented \u2014 frontend/src/lib/api.ts:47 preserves CSRF, credentials, refresh-and-retry, HTTP errors, and the buffered selection branch.\nVERDICT t-ass-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and silently handles expected aborts.\nVERDICT t-ass-c5: implemented \u2014 frontend/src/features/shell/use-freshness.ts:6 renders the route\u2019s five states plus a distinct client failure state without automatic retries or cached display.\nVERDICT t-ass-c6: implemented \u2014 frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores natural height.\nVERDICT t-ass-c7: implemented \u2014 frontend/src/lib/api.ts:131 trims newest prior turns to all shared limits while retaining oldest-first transport order.\nVERDICT t-ass-c8: implemented \u2014 frontend/src/features/assistant/ask-stream.test.ts:38, frontend/src/features/assistant/ask-panel.test.tsx:409, frontend/src/components/shell/app-shell.test.tsx:78, and frontend/src/lib/api.test.ts:129 cover the reviewable automated acceptance cases; live-check and skill-attestation evidence is outside the supplied Git bundle.\nThe selected change shows no actionable P0\u2013P2 correctness, regression, security, or test defects.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/components/shell/app-shell.test.tsx",
@@ -40,42 +28,42 @@
     {
       "contract_id": "t-ass-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-stream.ts:14 parses buffered byte-decoded SSE frames and terminates all result/error/EOF paths"
+      "evidence": "frontend/src/features/assistant/ask-stream.ts:5 parses buffered SSE frames, preserves UTF-8 boundaries, normalizes terminal failures, and terminates cleanly."
     },
     {
       "contract_id": "t-ass-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:51 delays phase rendering by 250ms and clears progress on completion"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:45 delays phase rendering by 250ms and clears progress on completion."
     },
     {
       "contract_id": "t-ass-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/lib/api.ts:44 preserves CSRF, credentials, refresh, HTTP errors and the buffered selection branch"
+      "evidence": "frontend/src/lib/api.ts:47 preserves CSRF, credentials, refresh-and-retry, HTTP errors, and the buffered selection branch."
     },
     {
       "contract_id": "t-ass-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and suppresses AbortError"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and silently handles expected aborts."
     },
     {
       "contract_id": "t-ass-c5",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/shell/use-freshness.ts:7 leaves reconnect refetch enabled, allowing a silent retry"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/shell/use-freshness.ts:6 renders the route\u2019s five states plus a distinct client failure state without automatic retries or cached display."
     },
     {
       "contract_id": "t-ass-c6",
       "verdict": "implemented",
-      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores auto height"
+      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores natural height."
     },
     {
       "contract_id": "t-ass-c7",
       "verdict": "implemented",
-      "evidence": "frontend/src/lib/api.ts:128 trims newest prior turns against all shared limits while retaining oldest-first order"
+      "evidence": "frontend/src/lib/api.ts:131 trims newest prior turns to all shared limits while retaining oldest-first transport order."
     },
     {
       "contract_id": "t-ass-c8",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-stream.test.ts:29 and frontend/src/features/assistant/ask-panel.test.tsx:409 exercise the required streaming, phase, cancellation, and terminal behavior shown in the bundle"
+      "evidence": "frontend/src/features/assistant/ask-stream.test.ts:38, frontend/src/features/assistant/ask-panel.test.tsx:409, frontend/src/components/shell/app-shell.test.tsx:78, and frontend/src/lib/api.test.ts:129 cover the reviewable automated acceptance cases; live-check and skill-attestation evidence is outside the supplied Git bundle."
     },
     {
       "contract_id": "t-abg-c1",
@@ -129,10 +117,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "5871c2b18e8d9c14dc58837a3c809ccb28a94880d6c19bcef7338891747591b4",
-  "brief_sha256": "717479a201509439343bd6a5c13d9d1e8b1c90670268a15fe1da3ae5b72b1eaf",
-  "branch_diff_digest": "9cf823392ac481ff690f09cfd78d7acd0ab2609a60af49bbacc020b5c2e19fe3",
+  "review_run_id": "15cb119eb564901d5fa34db874361f0dd5561437324ad611ca6b261f9c9b3583",
+  "brief_sha256": "d5eb5d7b478204c6098c856a519398fadf38d9c693cdf9480c03fbe9c81c855e",
+  "branch_diff_digest": "36248f89eaeca3e1c65ce5a8d35687082e955d517790838f15d13509246ada4b",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T19:25:01+00:00",
-  "commit": "b154186ba113824c02d6159e70f333ab36d78a4c"
+  "recorded_at": "2026-09-14T19:35:30+00:00",
+  "commit": "52d0234ab3815eca0e46628752abe3f7a090e02f"
 }
