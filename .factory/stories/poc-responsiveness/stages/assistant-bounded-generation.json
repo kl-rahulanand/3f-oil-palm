@@ -1,5 +1,14 @@
 {
   "id": "assistant-bounded-generation",
   "title": "Cap the selector generation, scope its retry, and bound the request",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-14T16:03:58+00:00",
+  "base_sha": "f7c9949b82a057ee01f2bd2f4d5c922b93cad6fe",
+  "dirty_at_start": {
+    ".factory/stories/poc-responsiveness/grills/tasks/assistant-bounded-generation.json": {
+      "digest": "dd6006dce69ce1a7dc9b78cada44e3499abe0b82c191969cc796e8b90f508ee4",
+      "git": "1 .M N... 100644 100644 100644 c12de64832f394e534f2f20f388f3b04db1e5179 c12de64832f394e534f2f20f388f3b04db1e5179 .factory/stories/poc-responsiveness/grills/tasks/assistant-bounded-generation.json\u0000\u0000100644 c12de64832f394e534f2f20f388f3b04db1e5179 0\t.factory/stories/poc-responsiveness/grills/tasks/assistant-bounded-generation.json\u0000\u0000H .factory/stories/poc-responsiveness/grills/tasks/assistant-bounded-generation.json\u0000"
+    }
+  },
+  "task_sha256": "e5f17f69bdb2c6c28b4923899c895317f495bb683001965bc466e3fc754f282a"
 }

@@ -60,6 +60,12 @@ export class ChatController {
     response.setHeader("Connection", "keep-alive");
     response.flushHeaders();
 
+    const abort = new AbortController();
+    const abortOnPrematureClose = () => {
+      if (!response.writableEnded) abort.abort();
+    };
+    response.once("close", abortOnPrematureClose);
+
     try {
       await runChatStream(
         (onEvent) =>
@@ -71,11 +77,17 @@ export class ChatController {
             parsed.data.reportGrounding,
             parsed.data.priorTurns,
             onEvent,
+            abort.signal,
           ),
-        (event) => response.write(serializeSseFrame(event)),
+        (event) => {
+          if (!abort.signal.aborted && !response.destroyed) {
+            response.write(serializeSseFrame(event));
+          }
+        },
       );
     } finally {
-      response.end();
+      response.off("close", abortOnPrematureClose);
+      if (!response.writableEnded && !response.destroyed) response.end();
     }
   }
 }

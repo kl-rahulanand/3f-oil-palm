@@ -54,6 +54,7 @@ export class SelectionExecutor {
       beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>;
       resolvedScope?: GovernedSelectionScope;
       includeTotals?: boolean;
+      signal?: AbortSignal;
     } = {},
   ): Promise<SelectionExecutionResult> {
     const appliedTimeWindow = resolveTimeWindow(
@@ -81,10 +82,11 @@ export class SelectionExecutor {
       opts.beforeExecute,
       true,
       opts.resolvedScope,
+      opts.signal,
     );
     const totals =
       opts.includeTotals !== false && resolvedSelection.dimensionIds.length > 0
-        ? await this.totalsFor(user, domain, resolvedSelection, opts.beforeExecute, opts.resolvedScope)
+        ? await this.totalsFor(user, domain, resolvedSelection, opts.beforeExecute, opts.resolvedScope, opts.signal)
         : undefined;
 
     return {
@@ -122,6 +124,7 @@ export class SelectionExecutor {
     beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>,
     includeProvenance = true,
     resolvedScope?: GovernedSelectionScope,
+    signal?: AbortSignal,
   ): Promise<{
     result: ResultTable;
     sql: string;
@@ -150,6 +153,9 @@ export class SelectionExecutor {
     }
 
     await this.warehouse.explain(built.sql);
+    // Bounded cancellation: do not start a query after abandonment. A query already
+    // in flight is not cancelled here and expires under Postgres statement_timeout.
+    signal?.throwIfAborted();
     const raw = await withTimeout(this.warehouse.execute(built.sql), cfg.queryTimeoutMs);
     const activeBatchIds = collectActiveBatchIds(raw.rows);
     const budgetComponentLabels = collectBudgetComponentLabels(raw.rows);
@@ -217,6 +223,7 @@ export class SelectionExecutor {
     resolvedSelection: Selection,
     beforeExecute?: (built: { sql: string; objectsTouched: string[]; selection: Selection }) => Promise<void>,
     resolvedScope?: GovernedSelectionScope,
+    signal?: AbortSignal,
   ): Promise<Record<string, number> | undefined> {
     const ungrouped = await this.executeResolved(
       user,
@@ -228,6 +235,7 @@ export class SelectionExecutor {
       beforeExecute,
       false,
       resolvedScope,
+      signal,
     );
     const row = ungrouped.result.rows[0];
     if (!row) return undefined;

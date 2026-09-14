@@ -1,39 +1,35 @@
 export const LLM_CONTEXT_TOKEN_BUDGET = 2_000;
 export const LLM_CONTEXT_CHARS_PER_TOKEN = 4;
-export const LLM_CONTEXT_CHAR_BUDGET =
-  LLM_CONTEXT_TOKEN_BUDGET * LLM_CONTEXT_CHARS_PER_TOKEN;
+export const LLM_CONTEXT_CHAR_BUDGET = LLM_CONTEXT_TOKEN_BUDGET * LLM_CONTEXT_CHARS_PER_TOKEN;
+export const LLM_SELECTOR_MAX_TOKENS = 2_048;
+export const LLM_SELECTOR_RETRY_MAX_TOKENS = 4_096;
 
 export const LLM_MESSAGES = {
   emitSelectionDescription: "Emit a verified 3F semantic-layer selection. Do not include SQL.",
-  requestClarificationDescription:
-    "Ask the user to clarify when multiple valid semantic selections are possible.",
-  markUnsupportedDescription:
-    "Mark the question unsupported when it cannot be answered from the allowed vocabulary.",
+  requestClarificationDescription: "Ask the user to clarify when multiple valid semantic selections are possible.",
+  markUnsupportedDescription: "Mark the question unsupported when it cannot be answered from the allowed vocabulary.",
   noToolUse: "Bedrock response did not include a tool use",
+  incompleteModelResponse: "Incomplete model response: Bedrock did not include a tool block",
   malformedClarificationToolResponse: "Malformed clarification tool response",
   questionUnsupported: "Question is unsupported",
   unsupportedBedrockTool: (name: string): string => `Unsupported Bedrock tool: ${name}`,
   malformedSelectionToolResponse: "Malformed selection tool response",
   selectionDomainNotAllowed: "Selection domain is not in the allowed vocabulary",
   selectionMissingMeasureIds: "Selection is missing measureIds",
-  selectionMeasureNotAllowed: (id: string): string =>
-    `Selection measure is not in the allowed vocabulary: ${id}`,
+  selectionMeasureNotAllowed: (id: string): string => `Selection measure is not in the allowed vocabulary: ${id}`,
   selectionDimensionIdsMalformed: "Selection dimensionIds are malformed",
-  selectionDimensionNotAllowed: (id: string): string =>
-    `Selection dimension is not in the allowed vocabulary: ${id}`,
+  selectionDimensionNotAllowed: (id: string): string => `Selection dimension is not in the allowed vocabulary: ${id}`,
   selectionFiltersMalformed: "Selection filters are malformed",
   selectionFilterDimensionNotAllowed: (id: string): string =>
     `Selection filter dimension is not in the allowed vocabulary: ${id}`,
   selectionTimeWindowMalformed: "Selection timeWindow is malformed",
   selectionLimitMalformed: "Selection limit is malformed",
-  bedrockModelIdNotConfigured:
-    "Bedrock select failed: BEDROCK_MODEL_ID is not configured",
+  bedrockModelIdNotConfigured: "Bedrock select failed: BEDROCK_MODEL_ID is not configured",
   bedrockSelectFailed: (message: string): string => `Bedrock select failed: ${message}`,
   systemPromptBank: "3F selects verified metrics from configured data domains.",
   systemPromptToday: (dateIso: string): string =>
     `Today's date is ${dateIso} (UTC). Interpret relative/named dates against it.`,
-  systemPromptVocabulary:
-    "You must select only from the provided semantic-layer domain, measure, and dimension ids.",
+  systemPromptVocabulary: "You must select only from the provided semantic-layer domain, measure, and dimension ids.",
   systemPromptDimensionsOnly:
     "Include in dimensionIds ONLY the dimensions the user explicitly asks to break the metric down by (i.e. the 'by X' in the question). If the user asks for a single total with no breakdown, return an empty dimensionIds array.",
   systemPromptAnswerTotals:

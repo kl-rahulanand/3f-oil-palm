@@ -29,11 +29,13 @@ export type LlmUsage = {
 type LlmSelectionOutcome =
   | { kind: "selection"; selection: Selection }
   | { kind: "clarify"; prompt: string; options: string[]; defaultOption?: string }
-  | { kind: "unsupported"; reason: string };
+  | { kind: "unsupported"; reason: string }
+  | { kind: "no_tool_block"; reason: string }
+  | { kind: "backend_error"; reason: string };
 
 export type LlmSelectionResult = LlmSelectionOutcome & { usage?: LlmUsage };
 
 export interface LlmProvider {
   /** Map a question to a constrained selection (strict enums), clarify, or unsupported. */
-  select(input: LlmSelectionInput): Promise<LlmSelectionResult>;
+  select(input: LlmSelectionInput, signal?: AbortSignal): Promise<LlmSelectionResult>;
 }
