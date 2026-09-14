@@ -78,6 +78,23 @@ test("a client disconnect stops frame writes aborts the model call and records n
 });
 
 test("a normal completion does not abort while a premature close aborts and reaches the send call", async () => {
+  let alreadyDestroyedSignal: AbortSignal | undefined;
+  const alreadyDestroyedResponse = new FakeResponse();
+  alreadyDestroyedResponse.destroyed = true;
+  const alreadyDestroyedController = new ChatController({
+    ask: async (...args: unknown[]) => {
+      alreadyDestroyedSignal = args[7] as AbortSignal | undefined;
+      return informationalResponse();
+    },
+  } as never);
+  await alreadyDestroyedController.stream(
+    user,
+    "session",
+    { question: "Show Actual" },
+    alreadyDestroyedResponse as never,
+  );
+  assert.equal(alreadyDestroyedSignal?.aborted, true);
+
   const normalProvider = providerWithSend(async (_command, options) => {
     assert.equal(options?.abortSignal?.aborted, false);
     return toolResponse("mark_unsupported", { reason: "Outside the vocabulary" });

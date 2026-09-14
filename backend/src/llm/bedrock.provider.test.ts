@@ -23,7 +23,7 @@ test("a response with no tool block retries once while a malformed input and a m
   assert.equal(recovered.kind, "clarify");
   assert.deepEqual(
     retried.requests.map((request) => request.inferenceConfig?.maxTokens),
-    [512, 4096],
+    [512, 1536],
   );
 
   const malformed = providerWith([toolResponse(undefined, {})]);

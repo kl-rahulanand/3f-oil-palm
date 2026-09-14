@@ -65,6 +65,7 @@ export class ChatController {
       if (!response.writableEnded) abort.abort();
     };
     response.once("close", abortOnPrematureClose);
+    if (response.destroyed || response.writableEnded) abort.abort();
 
     try {
       await runChatStream(

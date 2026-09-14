@@ -2,7 +2,7 @@ export const LLM_CONTEXT_TOKEN_BUDGET = 2_000;
 export const LLM_CONTEXT_CHARS_PER_TOKEN = 4;
 export const LLM_CONTEXT_CHAR_BUDGET = LLM_CONTEXT_TOKEN_BUDGET * LLM_CONTEXT_CHARS_PER_TOKEN;
 export const LLM_SELECTOR_MAX_TOKENS = 512;
-export const LLM_SELECTOR_RETRY_MAX_TOKENS = 4_096;
+export const LLM_SELECTOR_RETRY_MAX_TOKENS = 1_536;
 
 export const LLM_MESSAGES = {
   emitSelectionDescription: "Emit a verified 3F semantic-layer selection. Do not include SQL.",

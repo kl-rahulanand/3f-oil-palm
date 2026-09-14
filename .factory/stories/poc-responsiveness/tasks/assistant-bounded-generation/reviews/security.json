@@ -1,11 +1,17 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-bounded-generation",
-  "score": 10,
-  "summary": "security lens over assistant-bounded-generation (16 product path(s), f7c9949..4c5e0cd, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements bounded selector requests and a single differentiated retry, distinguishes absent from malformed tool blocks, explicitly handles incomplete outcomes, bounds prior-turn input, and propagates premature-disconnect cancellation through the Bedrock transport and pre-execution warehouse seam. No actionable P0\u2013P2 security defect or prohibited compatibility leftover is demonstrated by the supplied change bundle.",
+  "score": 9,
+  "summary": "security lens over assistant-bounded-generation (16 product path(s), f7c9949..302173a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The new cancellation path generally reaches Bedrock and prevents a not-yet-started warehouse execution, but it misses clients whose response closed before listener registration. Such abandoned requests can still consume the expensive resources this change is intended to protect.",
   "blocking_findings": [],
-  "non_blocking_findings": [],
-  "recommendation": "approve",
+  "non_blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src/chat",
+      "summary": "[P2] Abort responses already destroyed before close-listener registration (backend/src/chat/chat.controller.ts:65): `once(\"close\")` only observes future events."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     ".prettierignore",
     "backend/package.json",
@@ -26,10 +32,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "76e88eee577b2d237d2264de3f28529b8040c1adb18c9848ef5b11ffa2870ba8",
-  "brief_sha256": "e3beea0dd4f97e317a0a8b62dd8a7a288dd5db4a439f1c53f69f8e953d5e023e",
-  "branch_diff_digest": "d13bcb46f70645d80cde23cf42442a97a2a98529cd2b686e4cd5e27fc8d81956",
+  "review_run_id": "283a761992f44aa2c34e26eb10a6a402d74aaeaed3c98ed4db17fb1609ad0abc",
+  "brief_sha256": "1b9b8cd0063b5871a926c3b19f21445aa84c930672f2562fc3ffb235dca25a39",
+  "branch_diff_digest": "62931a6f24d3febf2a5385d94bd8b9b2b55b47e23143f65114f4dbea7979c8f6",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T16:34:16+00:00",
-  "commit": "4c5e0cd27989cb51fe57cdbcdf06e180d43db8ad"
+  "recorded_at": "2026-09-14T16:45:57+00:00",
+  "commit": "302173ab602fae55cc503ba17e99a625f49bff3c"
 }

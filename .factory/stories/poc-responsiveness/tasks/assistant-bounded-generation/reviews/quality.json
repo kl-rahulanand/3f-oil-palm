@@ -1,17 +1,22 @@
 {
   "generated_by": "autoreview",
   "task_id": "assistant-bounded-generation",
-  "score": 9,
-  "summary": "quality lens over assistant-bounded-generation (16 product path(s), f7c9949..4c5e0cd, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The requested bounds, retry semantics, ingress validation, cancellation wiring, and registered tests are present, but retry usage accounting drops an entire billable model invocation.\nVERDICT t-abg-c1: implemented \u2014 backend/src/llm/bedrock.provider.ts:388 builds the request with the explicit selector cap\nVERDICT t-abg-c2: implemented \u2014 backend/src/llm/bedrock.provider.ts:395 retries only no-tool outcomes with a raised cap, with explicit handling at backend/src/chat/chat.service.ts:207\nVERDICT t-abg-c3: implemented \u2014 backend/src/chat/chat.schemas.ts:18 applies the exported entry, serialized-size, and question limits at schema ingress\nVERDICT t-abg-c4: implemented \u2014 backend/src/chat/chat.controller.ts:63 wires premature-close cancellation, and backend/src/chat/selectionExecutor.ts:153 checks it before execution\nVERDICT t-abg-c5: implemented \u2014 backend/package.json:17 registers the new hermetic tests, with matching quality-gate registration in tools/quality-gate.test.mjs:15",
-  "blocking_findings": [],
-  "non_blocking_findings": [
+  "score": 7,
+  "summary": "quality lens over assistant-bounded-generation (16 product path(s), f7c9949..302173a, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The functional implementation covers the generation cap, retry semantics, ingress bounds, and bounded cancellation, but the edited controller remains in the D-0006 ignore baseline, causing the quality gate to fail.\nVERDICT t-abg-c1: implemented \u2014 backend/src/llm/bedrock.provider.ts:387\nVERDICT t-abg-c2: implemented \u2014 backend/src/llm/bedrock.provider.ts:394\nVERDICT t-abg-c3: implemented \u2014 backend/src/chat/chat.schemas.ts:20\nVERDICT t-abg-c4: implemented \u2014 backend/src/chat/chat.controller.ts:63\nVERDICT t-abg-c5: partial \u2014 backend/src/chat/chat.controller.ts:63\nLEFTOVERS: none visible in the supplied diff.",
+  "blocking_findings": [
     {
       "category": "bug",
-      "area": "backend/src/llm",
-      "summary": "[P2] Preserve usage from both selector attempts (backend/src/llm/bedrock.provider.ts:400): When the first call returns `no_tool_block` and the retry succeeds, the provider returns `second` unchanged, discarding `first.usage`."
+      "area": "backend/src/chat",
+      "summary": "[P1] Remove the edited controller from the D-0006 ignore baseline (backend/src/chat/chat.controller.ts:63): `chat.controller.ts` is modified here, but the patch removes only the three LLM files from `.prettierignore` and `ignoredBaselineHashes`."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "docs/specs/assistant-responsiveness.md#acceptance-criteria",
+      "summary": "t-abg-c5: The behaviour is proven by hermetic leaves, each judged by its junit testcase NAME and EXECUTED count and never an exit code (D-0024, D-0031): the built Converse request contains maxTokens; a tool-less response retries once with a RAISED cap; a present-but-malformed tool block does NOT retry; a valid mark_unsupported does NOT retry; a no_tool_block followed by mark_unsupported or clarify returns THAT outcome rather than masking it - the sequence most likely to hide a genuine refusal; a second tool-less response yields backend_error and not not_supported; the schema rejects an oversize array, an oversize serialized payload and an oversize single question; retention keeps newest turns in oldest-first order; a NORMAL completion does NOT abort while a premature close DOES; the abort reaches send() and prevents a not-yet-started query. Under D-0006 FOUR scoped files are prettier-ignored and baseline-pinned - bedrock.provider.ts, llm.constants.ts, mock.provider.ts and chat.constants.ts - so every one this task edits is formatted, removed from .prettierignore, and has its entry removed from the quality-gate baseline map in the SAME change, or quality-gate fails. New backend test files are registered in backend/package.json test:hermetic AND tools/quality-gate.test.mjs, or CI runs none of them."
     }
   ],
-  "recommendation": "approve-with-caveats",
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
   "reviewed_scope": [
     ".prettierignore",
     "backend/package.json",
@@ -35,34 +40,34 @@
     {
       "contract_id": "t-abg-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/llm/bedrock.provider.ts:388 builds the request with the explicit selector cap"
+      "evidence": "backend/src/llm/bedrock.provider.ts:387"
     },
     {
       "contract_id": "t-abg-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/llm/bedrock.provider.ts:395 retries only no-tool outcomes with a raised cap, with explicit handling at backend/src/chat/chat.service.ts:207"
+      "evidence": "backend/src/llm/bedrock.provider.ts:394"
     },
     {
       "contract_id": "t-abg-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.schemas.ts:18 applies the exported entry, serialized-size, and question limits at schema ingress"
+      "evidence": "backend/src/chat/chat.schemas.ts:20"
     },
     {
       "contract_id": "t-abg-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.controller.ts:63 wires premature-close cancellation, and backend/src/chat/selectionExecutor.ts:153 checks it before execution"
+      "evidence": "backend/src/chat/chat.controller.ts:63"
     },
     {
       "contract_id": "t-abg-c5",
-      "verdict": "implemented",
-      "evidence": "backend/package.json:17 registers the new hermetic tests, with matching quality-gate registration in tools/quality-gate.test.mjs:15"
+      "verdict": "partial",
+      "evidence": "backend/src/chat/chat.controller.ts:63"
     }
   ],
   "aspect": "quality",
-  "review_run_id": "76e88eee577b2d237d2264de3f28529b8040c1adb18c9848ef5b11ffa2870ba8",
-  "brief_sha256": "e3beea0dd4f97e317a0a8b62dd8a7a288dd5db4a439f1c53f69f8e953d5e023e",
-  "branch_diff_digest": "d13bcb46f70645d80cde23cf42442a97a2a98529cd2b686e4cd5e27fc8d81956",
+  "review_run_id": "283a761992f44aa2c34e26eb10a6a402d74aaeaed3c98ed4db17fb1609ad0abc",
+  "brief_sha256": "1b9b8cd0063b5871a926c3b19f21445aa84c930672f2562fc3ffb235dca25a39",
+  "branch_diff_digest": "62931a6f24d3febf2a5385d94bd8b9b2b55b47e23143f65114f4dbea7979c8f6",
   "residual_risks": [],
-  "recorded_at": "2026-09-14T16:34:15+00:00",
-  "commit": "4c5e0cd27989cb51fe57cdbcdf06e180d43db8ad"
+  "recorded_at": "2026-09-14T16:45:57+00:00",
+  "commit": "302173ab602fae55cc503ba17e99a625f49bff3c"
 }
