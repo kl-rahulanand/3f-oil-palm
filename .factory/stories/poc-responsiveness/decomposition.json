@@ -135,8 +135,98 @@
       "user_facing": false,
       "dependencies": [],
       "acceptance_criteria": [
-        "A new authenticated route serves the oldest uploaded_at_utc across active ingest batches as LOAD freshness, the port is implemented for Postgres and returns a deliberate typed unavailable on both starrocks adapters, and provenance.dataAsOf stops being null."
-      ]
+        "A new OPTIONAL method on the Warehouse port (backend/src/warehouse/warehouse.interface.ts:9 - the interface is named Warehouse, not WarehouseAdapter) reports LOAD FRESHNESS from active ingest batches. It MUST be optional: FOURTEEN files implement Warehouse, most of them typed test fakes outside this task's scope, and adding a REQUIRED method breaks every one of them and fails typecheck before a line of behaviour is written. The method returns, per governed source, the oldest uploaded_at_utc among rows where is_active is true, AND the overall minimum across sources. The existing freshness(goldObject, column?) at :15 cannot express this: it is domain-scoped and returns MAX(column), while this is a cross-source MINIMUM over ingest_batch. Active batches are unique per (source_kind, period), so many are active at once - the live warehouse holds 12 active budget batches and 1 actuals - which is why it is a minimum over ACTIVE batches and why it is LOAD freshness, never data currency: a September upload of July figures must not be announced as 'data as of September'.",
+        "Postgres implements it; both starrocks adapters return a DELIBERATE, TYPED UNAVAILABLE rather than throwing, guessing, or being left unimplemented. The payload distinguishes the states a caller must tell apart - a value, NO ACTIVE BATCHES, an engine that does not report freshness, an unconfigured warehouse, and a lookup failure - so none of them silently collapses to null, which the spec forbids. Under D-0006 ALL THREE adapters are prettier-ignored and baseline-pinned - postgres.adapter.ts, starrocks.adapter.ts and starrocks-mysql.adapter.ts, not only Postgres - so each one this task edits is formatted, removed from .prettierignore, and has its quality-gate baseline entry removed in the SAME change.",
+        "GET /api/warehouse/freshness serves it - an EXACT path, because backend/src/app.routes.test.ts matches exact strings and task 3 cannot consume an unnamed route. It follows decision 0019 as mis-selection.controller.ts:33-46 does: unversioned api/... path, raw typed body, a NAMED response DTO, and documented Swagger 400/401/403. It is added to the strict allow-list, which must fail on an UNEXPECTED route as well as a missing one. It sits behind AuthGuard ONLY with NO RequireAction grant: the shell chrome renders for every authenticated user, so a grant would 403 the pill for someone who can legitimately sign in, and the payload carries no governed value - only when data was loaded. The service is introduced with its INTERFACE alongside it, per constitution/pnp-coding-standards-modular-monolith.md's service-interface rule.",
+        "provenance.dataAsOf is NOT touched by this task - human-decided 2026-09-14 and recorded as D-0041. It stays null. Two reasons the cold read established: both governed domains combine Actuals AND Budget while chat.service.ts:426 passes only a DomainSpec, so 'the answer's own source' is undefined for a percentage answer reading both; and contract/src/api.ts:470 is already rendered to users as 'Data as of', so filling it with LOAD time would present a September upload of July figures as September data, and relabelling reaches the report path (reports.service.ts:45) beyond this task. The shell route is the whole of this task's surface.",
+        "The behaviour is proven by hermetic leaves AND a gated host proof that actually executes. The allow-list leaf proves more than presence: that the route is behind AuthGuard with NO RequireAction, and that the named success DTO and typed 400/401/403 Swagger responses exist - the allow-list alone cannot prove C3. A second hermetic leaf proves both starrocks adapters return the typed unavailable. The DB-backed proof is registered in backend/package.json test:warehouse-proof, which SETS WAREHOUSE_DB_TEST=1 - a bare junit-run without that flag SKIPS, and stage done rejects a skipped leaf, which is the false-green this project has already been burned by. It asserts BOTH the per-source oldest timestamps AND their overall minimum with SEVERAL active periods present for a source, since a one-batch-per-source fixture would pass while the query is wrong, and is demonstrated on the host with a DEAD-PORT NEGATIVE CONTROL. New test files are registered in backend/package.json and tools/quality-gate.test.mjs in exactly one group. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031)."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-sfa-c1",
+          "statement": "A new OPTIONAL method on the Warehouse port (backend/src/warehouse/warehouse.interface.ts:9 - the interface is named Warehouse, not WarehouseAdapter) reports LOAD FRESHNESS from active ingest batches. It MUST be optional: FOURTEEN files implement Warehouse, most of them typed test fakes outside this task's scope, and adding a REQUIRED method breaks every one of them and fails typecheck before a line of behaviour is written. The method returns, per governed source, the oldest uploaded_at_utc among rows where is_active is true, AND the overall minimum across sources. The existing freshness(goldObject, column?) at :15 cannot express this: it is domain-scoped and returns MAX(column), while this is a cross-source MINIMUM over ingest_batch. Active batches are unique per (source_kind, period), so many are active at once - the live warehouse holds 12 active budget batches and 1 actuals - which is why it is a minimum over ACTIVE batches and why it is LOAD freshness, never data currency: a September upload of July figures must not be announced as 'data as of September'.",
+          "source": "backend/src/warehouse/warehouse-schema.ts"
+        },
+        {
+          "id": "t-sfa-c2",
+          "statement": "Postgres implements it; both starrocks adapters return a DELIBERATE, TYPED UNAVAILABLE rather than throwing, guessing, or being left unimplemented. The payload distinguishes the states a caller must tell apart - a value, NO ACTIVE BATCHES, an engine that does not report freshness, an unconfigured warehouse, and a lookup failure - so none of them silently collapses to null, which the spec forbids. Under D-0006 ALL THREE adapters are prettier-ignored and baseline-pinned - postgres.adapter.ts, starrocks.adapter.ts and starrocks-mysql.adapter.ts, not only Postgres - so each one this task edits is formatted, removed from .prettierignore, and has its quality-gate baseline entry removed in the SAME change.",
+          "source": "backend/src/warehouse/warehouse.interface.ts"
+        },
+        {
+          "id": "t-sfa-c3",
+          "statement": "GET /api/warehouse/freshness serves it - an EXACT path, because backend/src/app.routes.test.ts matches exact strings and task 3 cannot consume an unnamed route. It follows decision 0019 as mis-selection.controller.ts:33-46 does: unversioned api/... path, raw typed body, a NAMED response DTO, and documented Swagger 400/401/403. It is added to the strict allow-list, which must fail on an UNEXPECTED route as well as a missing one. It sits behind AuthGuard ONLY with NO RequireAction grant: the shell chrome renders for every authenticated user, so a grant would 403 the pill for someone who can legitimately sign in, and the payload carries no governed value - only when data was loaded. The service is introduced with its INTERFACE alongside it, per constitution/pnp-coding-standards-modular-monolith.md's service-interface rule.",
+          "source": "docs/decisions/0019-fresh-routes-follow-vendored-house-style.md"
+        },
+        {
+          "id": "t-sfa-c4",
+          "statement": "provenance.dataAsOf is NOT touched by this task - human-decided 2026-09-14 and recorded as D-0041. It stays null. Two reasons the cold read established: both governed domains combine Actuals AND Budget while chat.service.ts:426 passes only a DomainSpec, so 'the answer's own source' is undefined for a percentage answer reading both; and contract/src/api.ts:470 is already rendered to users as 'Data as of', so filling it with LOAD time would present a September upload of July figures as September data, and relabelling reaches the report path (reports.service.ts:45) beyond this task. The shell route is the whole of this task's surface.",
+          "source": "backend/src/chat/chat.service.ts"
+        },
+        {
+          "id": "t-sfa-c5",
+          "statement": "The behaviour is proven by hermetic leaves AND a gated host proof that actually executes. The allow-list leaf proves more than presence: that the route is behind AuthGuard with NO RequireAction, and that the named success DTO and typed 400/401/403 Swagger responses exist - the allow-list alone cannot prove C3. A second hermetic leaf proves both starrocks adapters return the typed unavailable. The DB-backed proof is registered in backend/package.json test:warehouse-proof, which SETS WAREHOUSE_DB_TEST=1 - a bare junit-run without that flag SKIPS, and stage done rejects a skipped leaf, which is the false-green this project has already been burned by. It asserts BOTH the per-source oldest timestamps AND their overall minimum with SEVERAL active periods present for a source, since a one-batch-per-source fixture would pass while the query is wrong, and is demonstrated on the host with a DEAD-PORT NEGATIVE CONTROL. New test files are registered in backend/package.json and tools/quality-gate.test.mjs in exactly one group. Every artifact is judged by its junit testcase NAME and EXECUTED count, never an exit code (D-0024, D-0031).",
+          "source": "docs/specs/assistant-responsiveness.md#acceptance-criteria"
+        }
+      ],
+      "required_tests": [
+        {
+          "id": "the freshness route is allow listed behind auth guard with no action grant and documents its typed responses",
+          "path": "backend/src/app.routes.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "both starrocks adapters report a typed unavailable rather than guessing or throwing",
+          "path": "backend/src/warehouse/freshness.adapters.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the postgres load freshness returns per source oldest active uploads and their overall minimum across several active periods",
+          "path": "backend/src/warehouse/load-freshness.db.test.ts",
+          "command": "WAREHOUSE_DB_TEST=1 TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "npm run build:contract",
+        "npm run build:backend",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run format:check",
+        "npm run test:hermetic"
+      ],
+      "write_scope": [
+        "backend/src/warehouse/warehouse.interface.ts",
+        "backend/src/warehouse/postgres.adapter.ts",
+        "backend/src/warehouse/starrocks.adapter.ts",
+        "backend/src/warehouse/starrocks-mysql.adapter.ts",
+        "backend/src/warehouse/freshness.adapters.test.ts",
+        "backend/src/warehouse/load-freshness.db.test.ts",
+        "backend/src/warehouse/freshness.interface.ts",
+        "backend/src/warehouse/freshness.service.ts",
+        "backend/src/warehouse/freshness.controller.ts",
+        "backend/src/warehouse/freshness.dto.ts",
+        "backend/src/warehouse/warehouse.module.ts",
+        "backend/src/app.module.ts",
+        "backend/src/app.routes.test.ts",
+        "contract/src/api.ts",
+        "backend/package.json",
+        "tools/quality-gate.test.mjs",
+        ".prettierignore"
+      ],
+      "reviewer_focus": [
+        "THE NEW METHOD MUST BE OPTIONAL ON Warehouse. FOURTEEN files implement that interface, most of them typed test fakes outside this scope. A required method fails typecheck everywhere before any behaviour is written. The interface is named Warehouse, not WarehouseAdapter.",
+        "THE EXISTING SEAM CANNOT DO THIS. warehouse.interface.ts:15 is domain-scoped and returns MAX(column); this is a cross-source MINIMUM over ingest_batch. Reusing it with a clever argument is the wrong shape.",
+        "MANY BATCHES ARE ACTIVE AT ONCE. The unique index is on (source_kind, period), and the live warehouse holds 12 active budget batches against 1 actuals. A fixture with one batch per source passes while the query is wrong - the gated proof must use SEVERAL active periods and assert per-source values AND the overall minimum.",
+        "THE GATED PROOF MUST EXECUTE, NOT SKIP. It belongs in test:warehouse-proof, which SETS WAREHOUSE_DB_TEST=1. A bare junit-run without the flag skips, and stage done rejects a skipped leaf - this project has already shipped that false-green once.",
+        "IT IS LOAD FRESHNESS, NOT DATA CURRENCY. Check the DTO's own wording, not just the number. A September upload of July figures must not read as September data.",
+        "dataAsOf IS DELIBERATELY UNTOUCHED (D-0041). Do not 'helpfully' populate it: the answer-scoped rule is undefined for a multi-source answer and the field is rendered as 'Data as of' today.",
+        "AuthGuard ONLY, AND ON PURPOSE. No RequireAction, because the shell renders for every authenticated user and the payload carries no governed value. The allow-list leaf must PROVE the guard set and the typed Swagger responses - presence alone does not prove C3.",
+        "D-0006 COVERS ALL THREE ADAPTERS, not only Postgres: postgres.adapter.ts, starrocks.adapter.ts and starrocks-mysql.adapter.ts are each ignored and baseline-pinned. Format, de-ignore and clear the baseline hash for every one this task edits - and none it does not."
+      ],
+      "review_budget": {
+        "max_changed_files": 17,
+        "max_changed_lines": 1500,
+        "reason": "An optional port method across three adapters with a deliberate typed unavailable on two, a discriminated payload that keeps five caller-visible states apart, a new authenticated route with its service interface, named DTOs, Swagger contracts and allow-list registration under 0019, three required leaves including a gated warehouse proof that must actually execute with a dead-port control, and D-0006 formatting across three prettier-ignored adapters. No UI, and provenance is untouched under D-0041."
+      }
     },
     {
       "id": "assistant-streaming-and-shell",
@@ -159,5 +249,5 @@
   "epic": "assistant",
   "plan_file": "plans/active/poc-responsiveness-assistant-responsiveness-and-shell-truth.md",
   "plan_sha256": "527c6967152e727362b24ad66e399fb98766f4716d058f4a832f98bb93101f4c",
-  "commit": "22b5cf4b553c694dce756ff63747c3cac1717345"
+  "commit": "309c7e21012f3346a23f10cca51e1fa19bad9b69"
 }
