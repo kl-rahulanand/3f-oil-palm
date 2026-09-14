@@ -1,0 +1,17 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Closing the spec grill for `assistant-responsiveness`. The cold read returned NOT CONVERGED with seven findings and caught **two factual errors in my own spec**, which I've now corrected: I claimed the server never bounds prior turns (it does — `trimPriorTurnsToTokenBudget` at `chat.service.ts:675`), and I'd written that turns should be kept \"most-recent-first\", which would have reversed transport order and made `priorTurns.at(-1)` select the wrong turn. The rewritten spec leads with the measured root cause instead: **no `maxTokens` on the Converse call** — 214,222ms/24,313 tokens uncapped versus 1,429ms/168 tokens at `maxTokens: 2048`, stopping at `tool_use` rather than truncating. Also fixed from the read: the `routing` phase is emitted *before* the deterministic classifiers, so \"no flicker\" is now a client render-delay rule rather than a false claim; cancellation must actually abort the model and query work (today nothing does); `priorTurns` has no array bound in the schema; and freshness is defined as **load freshness** — oldest `uploaded_at_utc` across active batches, labelled as load time — because active batches are unique per source *and period*, so a September upload of July data must not read as \"data as of September\".",
+      "options": [
+        "Record the pass and plan it (Recommended)",
+        "Drop the prior-turn hardening",
+        "Something else — I'll say what"
+      ],
+      "chosen": "Record the pass and plan it (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "at": "2026-09-14T13:22:13.465711+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

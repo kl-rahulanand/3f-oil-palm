@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "**How many tasks?** My plan proposed five after the grill forced backend and frontend apart, but the harness asks for the fewest that stay bounded \u2014 every extra task costs you a plan, a grill, an approval, a review and a PR. The work is: (a) backend LLM \u2014 `maxTokens`, the `no_tool_block` discriminant, provider-boundary retry, schema limits, abort signal, controller disconnect; (b) backend freshness \u2014 the port, three adapters, the new authenticated route, gated DB proof; (c) frontend \u2014 stream client with SSE parsing, render delay, cancel-on-leave, transport parity, plus the pill and the one-line dock fix. Task (a) alone fixes the slowness you reported.",
+      "options": [
+        "Three (Recommended)",
+        "Four",
+        "Five, as the plan proposes"
+      ],
+      "chosen": "Three (Recommended)"
+    }
+  ],
+  "at": "2026-09-14T15:31:23.155416+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

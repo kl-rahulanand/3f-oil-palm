@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft plan.md
+# Cold-read grill — gate: spec — spec assistant-responsiveness.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -439,21 +439,42 @@ These questions were put to the human and answered. Two obligations:
   A: Record the pass and plan it (Recommended)
 - Q: One more round purely to close the **requirements** gate — the harness consumes each ledgered answer against a single gate, and I spent the earlier ones on the spec gate, so this needs its own. Nothing new to decide; confirming the record before I write the plan. What it will state: the story had no contracting spec (its requirements lived only in the roadmap item), now fixed by `assistant-responsiveness.md`, which is confirmed and linked — spec debt cleared. The assistant spec's stale "this story owns wiring it" paragraph is marked DELIVERED so the shipped routes, migration and UI can't be re-created. Your freshness decision is recorded, along with the correction that I first put it to you on a false premise. And the root cause is the measured one: no `maxTokens` on the Converse call, 214,222ms → 1,429ms.
   A: Record it and write the plan (Recommended)
+- Q: **How far should cancellation go?** The grill found I promised it without a viable seam. Today: the stream controller observes no client disconnect, the LLM port takes no abort signal, and warehouse queries are bounded by Postgres `statement_timeout` (`postgres.adapter.ts:90`, error 57014) plus a `Promise.race` — a timeout, not a cancellation. Truly stopping an in-flight query means issuing `pg_cancel_backend` from a second connection, which is real design work for a polish story.
+  A: Bounded: stop the model call and the stream, let the query expire (Recommended)
+- Q: **Freshness is now a whole endpoint, not a wire-up.** The grill found the shell cannot consume a cross-source batch minimum without a new authenticated route with typed DTOs, Swagger contracts, allow-list registration, a client fetch/cache policy and tests — and the freshness port would need implementing or deliberately stubbing across **three** warehouse adapters (postgres, starrocks, starrocks-mysql). Plus `postgres.adapter.ts` is in `.prettierignore`, so D-0006 formatting comes with it. That is a bigger task than the latency fix you actually reported.
+  A: Keep it, as its own task (Recommended)
+- Q: Closing the plan grill. Eleven findings, all verified and folded in. The substantive ones: the plan wasn't saveable without frontmatter attesting all **28** active decisions; my task split put controller disconnect and query cancellation inside a task labelled *frontend*, so it's now **five single-runtime leaves** with explicit dependencies; and three limits I'd left silent are now named — `maxTokens: 2048`, `priorTurns` capped at 8 entries / 16,000 serialized chars / 2,000 chars per question, and a follow-up under **5s** in the live check. The retry moved **inside the provider boundary** so "no repeated governed query" is structural rather than promised, with a `no_tool_block` discriminant so it can't retry a genuine refusal. Your two calls are in: cancellation is bounded (model and stream stop; an in-flight query expires under `statement_timeout`, and the code says so), and freshness is its own backend task with the route, DTOs, allow-list and a deliberate *unavailable* on both starrocks adapters. D-0006 formatting for the two prettier-ignored files is now an explicit criterion rather than a surprise.
+  A: Record the pass and board it (Recommended)
+- Q: **How many tasks?** My plan proposed five after the grill forced backend and frontend apart, but the harness asks for the fewest that stay bounded — every extra task costs you a plan, a grill, an approval, a review and a PR. The work is: (a) backend LLM — `maxTokens`, the `no_tool_block` discriminant, provider-boundary retry, schema limits, abort signal, controller disconnect; (b) backend freshness — the port, three adapters, the new authenticated route, gated DB proof; (c) frontend — stream client with SSE parsing, render delay, cancel-on-leave, transport parity, plus the pill and the one-line dock fix. Task (a) alone fixes the slowness you reported.
+  A: Three (Recommended)
+- Q: **The confirmed spec now contradicts your cancellation decision.** `docs/specs/assistant-responsiveness.md:143` says cancellation must reach the query work and that the proof must demonstrate "model and query cancellation" — I wrote that *before* you chose bounded cancellation (model and stream stop; an in-flight query expires under `statement_timeout`). A future implementer reading the spec would build `pg_cancel_backend`. Amending a confirmed spec means another cold read and re-confirm, which is why I'm asking rather than just spending it. (Separately, the approved plan lists five tasks while the recorded decomposition has the three you chose — your choice is the later authority, so I'll record that supersession in the contract without re-opening the plan.)
+  A: Amend and re-confirm the spec now (Recommended)
 
-## The artifact under interrogation (plan draft plan.md)
+## The artifact under interrogation (spec assistant-responsiveness.md)
 
-# Plan — poc-responsiveness: Assistant responsiveness and shell truth
+---
+slug: assistant-responsiveness
+title: Assistant responsiveness and shell truth
+status: draft
+saved: 2026-09-14T15:45:35+00:00
+---
 
-Story: `poc-responsiveness` (roadmap 8) · spec: `docs/specs/assistant-responsiveness.md` (confirmed)
+---
+slug: assistant-responsiveness
+title: Assistant responsiveness and shell truth
+status: confirmed
+saved: 2026-09-14T13:21:30+00:00
+---
 
-## Problem
-The PoC shipped at 7/7 and the assistant answers correctly, but live testing found a follow-up
-question could take **39s**, **57s**, and in reproduction **214s**. The product looks hung.
+# Assistant responsiveness and shell truth
 
-The cause is one missing request field. `backend/src/llm/bedrock.provider.ts:394` sends
-`inferenceConfig: { temperature: 0, topP: 1 }` and **no `maxTokens`**. Measured directly against
-Bedrock with the real system prompt, the real three-tool schema, the same question and the same
-single prior turn:
+## Why
+The assistant shipped and works, but live testing of the PoC found that a follow-up question could
+take **39s**, **57s**, and in reproduction **214s**. The cause is a single missing request field.
+
+`backend/src/llm/bedrock.provider.ts:394` sends `inferenceConfig: { temperature: 0, topP: 1 }` and
+**no `maxTokens`**. Measured against Bedrock with our real system prompt, our real three-tool
+schema and the same question and prior turn:
 
 | request | latency | output tokens | stopReason | tool block |
 | --- | --- | --- | --- | --- |
@@ -461,173 +482,157 @@ single prior turn:
 | `maxTokens: 2048` | 1,429 ms | 168 | `tool_use` | yes |
 | `maxTokens: 512` | 1,703 ms | 203 | `tool_use` | yes |
 
-A selection is ~110 output tokens. Capped, the model stops at `tool_use` — **not** `max_tokens` —
-so the cap does not truncate; its presence alone ends the runaway. With no prior turn the same call
-already returned in 0.8–1.3s, so neither the model nor `ap-south-1` is at fault.
+A selection is about 110 output tokens. Uncapped, the model emitted 24,313. Capped, it emits ~170
+and stops at `tool_use` - **not** at `max_tokens` - so the cap does not truncate the answer; its
+presence alone ends the runaway generation. The model and the region are not at fault: with no
+prior turn the same call already returned in 0.8-1.3s.
 
-**Two earlier diagnoses of mine were wrong and were corrected by cold reads, not by me.** I first
-blamed the model family; the human disproved it from experience with the same model in Pulse. I
-then wrote that the server never bounds prior turns — it does, at
-`backend/src/chat/chat.service.ts:675` (`trimPriorTurnsToTokenBudget`, called at `:153`) — and the
-reproduction used a *single* prior turn well inside that budget, so trimming cannot be the fix.
-This plan records that history because the wrong fix (swap the model, or trim harder) is expensive
-and would not have worked.
+**Two corrections to earlier drafts of this spec, both found by cold reads rather than by the
+author.** First, an earlier draft claimed the server never bounds prior turns and that this was the
+root cause. That is false: `trimPriorTurnsToTokenBudget` (`backend/src/chat/chat.service.ts:675`,
+called at `:153`) already drops oldest turns until the serialized turns fit
+`LLM_CONTEXT_CHAR_BUDGET`. Second, the reproduction used a SINGLE prior turn, well inside that
+budget - so trimming further cannot help, because a follow-up cannot have fewer than one prior
+turn. Bounding context is hardening, not the fix.
 
-Two further defects make the product read as broken in a demo. The Ask surfaces call the buffered
-JSON route and show one static pending state, so a slow answer is indistinguishable from a hang —
-while `POST /api/chat/stream` is built, registered, allow-listed, and consumed by nothing. And the
-shell renders a permanently disabled `Freshness unavailable` chip
-(`frontend/src/components/shell/app-shell.tsx:174`) that computes nothing; underneath,
-`backend/src/warehouse/postgres.adapter.ts:56` returns null when no freshness column is supplied
-and **no domain declares one**, so `provenance.dataAsOf` has always been null too.
+Two further defects make the product read as broken. The Ask surfaces call the buffered JSON route
+and show one static pending state, so a slow answer is indistinguishable from a hang even though
+the backend already emits ordered progress phases that nothing consumes. And the shell's top bar
+renders a permanently disabled `Freshness unavailable` chip
+(`frontend/src/components/shell/app-shell.tsx:174`), static text that computes nothing - while
+`backend/src/warehouse/postgres.adapter.ts:56` returns null whenever no freshness column is
+supplied and **no domain declares one**, so `provenance.dataAsOf` has always been null too.
 
-## Scope / Non-goals
+## Behaviour
 
-**In scope**
-- `maxTokens` on the selector Converse call — the fix for the latency the human actually hit.
-- A no-tool-block retry that cannot mask a genuine refusal, which requires un-collapsing three
-  outcomes the provider currently maps to one `unsupported`.
-- Request-schema limits on `priorTurns` (server resource safety, explicitly **not** the latency fix).
-- Both Ask surfaces consuming the existing stream, with a phase rule that matches the producer,
-  real cancellation, and full transport parity with the buffered client.
-- Freshness **defined** (not merely exposed) and rendered; the docked panel filling its column.
+### A bounded selector generation
+The Bedrock selector call carries an explicit `maxTokens`. This is the story's primary fix and the
+only change needed to make a follow-up fast. The cap is chosen to sit far above a real selection
+(~110 output tokens) and far below a runaway (24,313), so that a normal answer is never truncated
+and a spiral is impossible.
 
-**Non-goals**
-- Changing the model or the region. Decision **0027** stands; the evidence shows the model is fast
-  when the request is well formed.
-- Durable conversation history (deferred at the assistant plan grill; **0028** stands).
-- Period-scoped or report-scoped freshness — the shell chip is global; per-report currency belongs
-  to the report.
-- Re-planning any shipped assistant behaviour, and the Pulse-inherited examples still in the
-  selector system prompt ("leads and appointments booked", "by state"), and D-0040.
+### A retry that cannot hide a real refusal
+Because the response is Converse TOOL USE rather than parsed free text, a cap that ever did
+truncate before the tool block would yield no `toolUse`, which today maps to `unsupported`
+(`backend/src/llm/bedrock.provider.ts:227`) - a silent downgrade from a slow success to a wrong
+answer. The measured runs stop at `tool_use`, so this is a guard against a case not yet observed,
+and it is scoped so it cannot mask genuine outcomes:
 
-## Acceptance Criteria
-- **C1** The selector Converse request carries an explicit `maxTokens`, asserted on the request the
-  provider builds — not inferred from timing. A follow-up completes in seconds, not minutes.
-- **C2** A selector response with **no tool block** is retried at most once; a **malformed** tool
-  input and a genuine **`mark_unsupported`** are never retried; a second tool-less response answers
-  `backend_error` naming an incomplete model response, **never `not_supported`** — which would
-  assert the untrue thing this story removes. The provider stops collapsing those three outcomes at
-  `bedrock.provider.ts:227` so the retry can tell them apart. No retry repeats a governed query.
-- **C3** `backend/src/chat/chat.schemas.ts:21` rejects an oversize `priorTurns` array and oversize
-  per-question length **before** serialization; retained order stays **oldest-first** so
-  `chat.service.ts:153`'s `priorTurns.at(-1)` is still the latest turn.
-- **C4** Both Ask surfaces render streamed phases in order; an answer resolving within the client's
-  render delay shows **no phase at all** (the server already emits `routing` at
-  `chat.service.ts:103` *before* the deterministic classifiers, so this is a client rule, not a
-  producer change); a terminal `error` frame renders through the existing seven-class renderer.
-- **C5** The streaming client preserves the buffered client's CSRF bootstrap, cookie credentials,
-  401 refresh and HTTP-error rendering — pre-stream auth/CSRF/validation failures are HTTP
-  responses, not SSE frames. Leaving the assistant cancels, and the cancellation **reaches the model
-  and query work**: `chat.controller.ts` observes no client disconnect today and passes no abort
-  signal, so an abandoned request keeps selecting, querying and auditing. Moving between the dock
-  and the Ask page shares one provider and one thread and does **not** cancel.
-- **C6** The freshness pill shows the oldest `uploaded_at_utc` among **active** ingest batches
-  across governed sources, labelled as **load** freshness, says so plainly when none is available,
-  and is no longer marked `aria-disabled`. `provenance.dataAsOf` stops being null by the same seam.
-- **C7** The docked panel fills its column on desktop with the thread scrolling **inside** it;
-  existing mobile stacking at the current breakpoint is unchanged.
-- **C8** Every proof is judged by its junit testcase **name** and **executed count**, never an exit
-  code (D-0024, D-0031).
+- It fires ONLY when the selector returned **no tool block at all**. A malformed tool input, and a
+  valid `mark_unsupported`, are NOT retried - retrying those would hide a real refusal.
+- The provider must therefore stop collapsing three different outcomes into one `unsupported`:
+  absent tool use, malformed tool input, and a genuine `mark_unsupported` must remain
+  distinguishable at the seam before any mapping.
+- It fires ONLY on the Bedrock selector path. `routing` precedes selection
+  (`backend/src/chat/chat.service.ts:103`), so deterministic smalltalk, glossary definitions,
+  causal refusals and out-of-catalog answers never reach it, and the settled "the LLM selects,
+  never authors" boundary is untouched.
+- At most **two** selector calls for one question. If the second also returns no tool block, the
+  answer is a `backend_error` naming an incomplete model response - NOT `not_supported`, which
+  would assert the untrue thing this story exists to stop.
+- A retry never repeats a governed warehouse query: selection precedes execution, so no data work
+  is duplicated and no audit record is doubled.
 
-## Technical Approach
+### Prior turns bounded safely, order preserved
+The existing trim is kept and hardened. It retains the NEWEST turns while preserving **oldest-first
+transport order**, which must not change: `chat.service.ts:153` reads `priorTurns.at(-1)` to find
+the latest selection, so reversing the order would silently select the wrong turn. Two gaps are
+closed: `backend/src/chat/chat.schemas.ts:21` accepts an **unbounded** `priorTurns` array with
+unbounded per-question length, so the request schema gains explicit limits and rejects oversize
+input before any serialization; and the trim re-serializes the whole array on every iteration, so a
+large payload is bounded before that loop rather than inside it. This is server resource safety,
+not latency.
 
-### The cap and the retry
-`maxTokens` is added to the single `inferenceConfig` the provider builds. The value sits far above
-a real selection (~110 tokens) and far below a runaway (24,313); both measured caps behaved
-identically, so the choice is about headroom, not tuning.
+### Progress the reader can see
+Both Ask surfaces consume the streaming route the backend already serves (`POST /api/chat/stream`,
+registered and allow-listed) and render its ordered phases - `routing`, `selecting`, `querying`,
+`summarizing` (`backend/src/chat/chat.sse.ts:5`).
 
-The retry exists because a cap *could* truncate before the tool block even though the measured runs
-stop at `tool_use`. Today that case is indistinguishable from a real refusal:
-`mapBedrockToolUseToSelectionResult` returns `{kind:"unsupported"}` for absent tool use, for
-malformed input, and for a genuine `mark_unsupported` alike. The seam must carry the three apart
-before mapping, or the retry cannot be scoped and would silently re-ask questions the model
-correctly refused. Routing precedes selection (`chat.service.ts:103`), so deterministic smalltalk,
-glossary, causal and out-of-catalog paths never reach the retry and the settled "the LLM selects,
-never authors" boundary is untouched.
+- `routing` is emitted at `chat.service.ts:103` **before** the deterministic classifiers run, so a
+  greeting, a definition and a policy refusal DO receive a phase today. The client therefore
+  delays phase rendering by a short interval and skips it entirely for any answer that resolves
+  within it, rather than the server suppressing a phase it has already emitted. Deterministic
+  answers show no flicker; the producer is unchanged.
+- Phases render in the order received; a phase never appears after the terminal frame.
+- A terminal `error` frame renders through the SAME seven-class renderer as the buffered route, so
+  a failure reads identically whichever transport delivered it.
+- The streaming client preserves everything the buffered client does: the CSRF bootstrap, cookie
+  credentials, the 401 refresh path, and ordinary HTTP-error rendering - pre-stream auth, CSRF and
+  validation failures are HTTP responses, not SSE frames, and must not be mistaken for stream
+  errors.
+- Leaving the surface cancels the in-flight request, and the cancellation is **BOUNDED, not total** -
+  human-decided 2026-09-14. Today the controller observes no client disconnect and passes no abort
+  signal, so an abandoned request keeps selecting, querying and auditing. After this story: the
+  server detects a PREMATURE response/socket close (not `IncomingMessage`'s `close`, which Node also
+  emits on normal completion), stops writing frames, aborts the model call through an `AbortSignal`
+  that reaches the AWS transport, and does NOT START a governed query once aborted. A query ALREADY
+  IN FLIGHT is **not cancelled**: it expires under the existing Postgres `statement_timeout`, and a
+  comment at the seam says so, because true cancellation would need `pg_cancel_backend` on a side
+  connection and is deliberately out of scope. An expected abort is handled silently and is never
+  recorded as `backend_error`. Collapsing the dock, and moving between the dock and the Ask page,
+  share one provider and one thread and do NOT cancel; only leaving the assistant does.
+- The buffered `POST /api/chat` route is unchanged and still serves the stored-selection re-run,
+  which bypasses the model and needs no progress display.
 
-### Prior turns
-`trimPriorTurnsToTokenBudget` is **kept**. Retention stays newest-turns-with-oldest-first-order —
-reversing it would break `priorTurns.at(-1)`. The schema gains explicit limits so oversize input is
-rejected before the trim loop, which re-serializes the whole array on every iteration.
+### A freshness pill that tells the truth
+The pill reports **load freshness**: the oldest `uploaded_at_utc` among the ACTIVE ingest batches
+of the governed sources, labelled as when data was loaded rather than what period it covers.
+Both halves matter. Active batches are unique per **source and period**
+(`ingest_batch_active_source_period_unique` on `(source_kind, period)`), so many are active at once
+and "the oldest active batch" alone would drift to the oldest period ever loaded; and a September
+upload of July figures must not be announced as "data as of September" without saying it means the
+load. The conservative oldest across sources - human-decided 2026-09-14 - means the pill never
+claims the numbers are fresher than the stalest input behind them.
 
-### Streaming
-The client moves to `POST /api/chat/stream` and renders `routing → selecting → querying →
-summarizing`. Because `routing` is emitted before the deterministic classifiers, the no-flicker
-rule lives in the client as a short render delay. The buffered route stays for the stored-selection
-re-run, which bypasses the model and needs no progress. Cancellation is wired end to end: an abort
-signal from the client, disconnect observation in the controller, and propagation into the model
-and query calls.
+This is a definition, not a wire-up: the existing seam takes ONE domain and returns
+`MAX(freshness column)` (`selectionExecutor.ts:102`), while this needs a **cross-source minimum
+over ingest batches**, so the seam is extended rather than reused as-is. Period-scoped freshness
+belongs to a report, not to a global shell chip, and is out of scope here. When no batch is active,
+or the lookup fails, the pill says so plainly rather than showing a stale or invented timestamp -
+and a live pill stops announcing itself as disabled.
 
-### Freshness
-A cross-source **minimum** over active ingest batches, which the current seam cannot express: it
-takes one domain and returns `MAX(column)` (`selectionExecutor.ts:102`). Active batches are unique
-per `(source_kind, period)` (`ingest_batch_active_source_period_unique`), so many are active and
-the value must be scoped to load time, not period — a September upload of July figures is not
-"data as of September".
+### A dock that fills its column
+The docked Ask panel fills the height of its column on desktop rather than stopping at its content:
+`frontend/app/globals.css:1342` sets `max-height` - a ceiling, not a height - with
+`align-self: flex-start`, so a short thread leaves a visible gap. The thread scrolls INSIDE the
+panel while the composer stays reachable without scrolling the report. The existing mobile
+behaviour at the current breakpoint is unchanged: the panel stacks and takes its natural height.
 
-## Decisions
-Attested, all active and unchanged by this story: **0027** (Bedrock in `ap-south-1` — explicitly
-*not* amended; the model is exonerated by measurement), **0028** (selections not snapshots; the
-re-run path and the absence of stored answers are untouched), **0026**, **0019** (house style for
-any route this story touches), **0016**, **0018**, **0011**, **0012**, **0009** (required tests name
-a real leaf and pin `TS_NODE_PROJECT`). No new decision is required: the cap is a defect fix, and
-the freshness definition is specified in the confirmed spec.
+## Acceptance criteria
+- The selector call sends an explicit `maxTokens`, proven by a test asserting the field is present
+  in the Converse request; a follow-up question completes in seconds rather than minutes.
+- A selector response with no tool block is retried at most once; a malformed tool input and a
+  genuine `mark_unsupported` are NOT retried; a second tool-less response answers `backend_error`
+  naming an incomplete model response, never `not_supported`.
+- `priorTurns` is rejected by the request schema when it exceeds explicit array and per-question
+  limits, before any serialization; the retained order stays oldest-first so `at(-1)` is the latest
+  turn.
+- Both Ask surfaces render streamed phases in order, show NO phase for an answer that resolves
+  within the client's render delay, render a terminal error through the existing renderer, preserve
+  CSRF/cookies/401-refresh/HTTP-error behaviour, and cancel on leaving the assistant - with the
+  abort reaching the AWS transport and preventing a not-yet-started query, while an already-running
+  query is bounded by `statement_timeout` rather than cancelled. Proof must distinguish a normal
+  completion (which must NOT abort) from client abandonment (which must).
+- The freshness pill shows the oldest active-batch `uploaded_at_utc` across governed sources,
+  labelled as load freshness, says so plainly when none is available, and is no longer marked
+  disabled; `provenance.dataAsOf` stops being null for the same reason.
+- The docked panel fills its column on desktop with the thread scrolling inside it, and the
+  existing mobile stacking is unchanged.
+- Every proof is judged by its junit testcase NAME and EXECUTED count, never an exit code
+  (D-0024, D-0031).
 
-## Risks
-- **A cap that truncates.** Measured runs stop at `tool_use`, not `max_tokens`, so truncation is
-  unobserved — but it is the failure this design must not hide. Mitigated by C2's retry and by
-  refusing to answer `not_supported` after a second tool-less response.
-- **Retry masking a real refusal.** The whole reason C2 forbids retrying malformed input and
-  `mark_unsupported`, and requires the provider seam to distinguish them first.
-- **Cancellation appearing to work.** Aborting the browser request while the server keeps querying
-  and auditing is the current behaviour and the easy non-fix; C5 requires the abort to reach the
-  work.
-- **A freshness pill that lies.** Announcing an upload timestamp as data currency would be worse
-  than the disabled chip it replaces. Mitigated by labelling it load freshness.
-- **The roadmap item's criteria predate the diagnosis** and name the cap-and-retry as the remedy
-  for slowness. Roadmap criteria are write-once (`fill` refuses to overwrite, `heal` takes no
-  arguments), so **this plan and the confirmed spec are authoritative**; the roadmap line is a
-  headline, not the contract.
+## Out of scope (now)
+Changing the model or the region - decision 0027 stands, and the evidence shows the model is fast
+when the request is well formed. Durable conversation history (deferred at the assistant plan
+grill; 0028 stands). Period-scoped or report-scoped freshness. Re-planning any shipped assistant
+behaviour. The Pulse-inherited examples still in the selector system prompt ("leads and
+appointments booked", "by state") and D-0040's unregistered `state` dimension in HelpService
+suggestions.
 
-## Verify Plan
-- **Backend unit** — the Converse request carries `maxTokens`; a tool-less response retries exactly
-  once; malformed input and `mark_unsupported` do **not** retry; a second tool-less response yields
-  `backend_error`, not `not_supported`; the schema rejects an oversize `priorTurns` array and an
-  oversize prior question; retained order remains oldest-first.
-- **Frontend unit** — phases render in order; an answer resolving within the delay renders no
-  phase; a terminal error renders through the existing renderer; leaving aborts; dock ↔ Ask does
-  not cancel; the pill renders the load-freshness value and its unavailable state.
-- **Backend DB-backed (gated, D-0008)** — the cross-source minimum over active ingest batches
-  returns the oldest `uploaded_at_utc` with several active periods present, demonstrated on the
-  host with a dead-port negative control.
-- **Functional (user-facing tasks)** — live against this worktree's servers with `BEDROCK_MODEL_ID`
-  set: ask, then ask a **follow-up**, and confirm it returns in seconds with phases visible; leave
-  mid-flight and confirm the backend stops; read the pill.
-- Every artifact records the **executed count and testcase name**, never the exit code.
-
-## Surface Impact
-| Surface | Change |
-| --- | --- |
-| `POST /api/chat` selector call | **Changed** — `maxTokens` added; retry on a tool-less response |
-| Bedrock provider mapping seam | **Changed** — absent / malformed / `mark_unsupported` no longer collapsed |
-| `POST /api/chat` request schema | **Changed** — explicit `priorTurns` limits |
-| `POST /api/chat/stream` | **Unchanged route**, newly consumed; gains disconnect observation |
-| Ask panel + Ask page | **Changed** — streamed phases, render delay, cancellation, transport parity |
-| Shell top bar | **Changed** — real load-freshness pill, no longer `aria-disabled` |
-| Freshness seam | **New** — cross-source minimum over active batches; also fixes `provenance.dataAsOf` |
-| Docked panel CSS | **Changed** — fills its column; mobile unchanged |
-| Model, region, stored data | **Unchanged** — 0027 and 0028 stand |
-
-## Task Decomposition
-1. **`assistant-bounded-generation`** (backend, `user_facing: false`) — C1, C2, C3. The cap, the
-   scoped retry, the provider seam that makes the retry safe, and the schema limits. Ships the fix
-   for the reported symptom on its own.
-2. **`assistant-streaming-ui`** (frontend, `user_facing: true`) — C4, C5. The stream client, the
-   phase render delay, cancellation end to end, and transport parity. Depends on nothing in task 1
-   but is sequenced after it so the live check exercises a fast follow-up.
-3. **`shell-freshness-and-dock`** (fullstack, `user_facing: true`) — C6, C7. The freshness
-   definition and seam, the pill, and the dock height. Independent of tasks 1 and 2.
+## Source
+Live testing of the shipped PoC on 2026-09-14, reproduced directly against Bedrock; the
+`poc-responsiveness` roadmap item; and the requirements and spec cold reads of the same date, which
+corrected the author's root-cause narrative twice.
 
 
 ## What to return

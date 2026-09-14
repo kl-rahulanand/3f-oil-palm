@@ -1,0 +1,17 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Closing the requirements grill for `poc-responsiveness`. The cold read returned **NOT CONVERGED** with two blockers and six under-specifications, and I've resolved them: a new spec `assistant-responsiveness.md` now contracts this story (it didn't exist — the story's requirements lived only in the roadmap item, so a plan could have satisfied the old spec and built none of it), and the assistant spec's stale \"NOT wired in, this story owns wiring it\" paragraph is marked **DELIVERED** so nobody re-creates shipped routes, migration and UI. Your freshness call is in. I also pinned the things the grill said were unfalsifiable: the retry is scoped to a selector call with **no tool block only**, at most **two calls total**, never on the deterministic smalltalk/definition/refusal paths (routing precedes selection), and never repeats a governed query; streaming specifies phase order, **no flicker** for answers that resolve without a model call, terminal errors through the existing renderer, and cancel-on-leave; \"fills its column\" means desktop full height with the thread scrolling inside, mobile stacking unchanged. Any gap before I write the plan?",
+      "options": [
+        "No gaps — write the plan (Recommended)",
+        "Reconsider the turn bound",
+        "Something else — I'll say what"
+      ],
+      "chosen": "No gaps — write the plan (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "at": "2026-09-14T13:07:27.465176+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
