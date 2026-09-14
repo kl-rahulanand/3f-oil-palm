@@ -31,9 +31,6 @@ backend/src/email/email.service.ts
 backend/src/grants/grants.controller.ts
 backend/src/help/glossary.ts
 backend/src/help/help.service.ts
-backend/src/llm/bedrock.provider.ts
-backend/src/llm/llm.constants.ts
-backend/src/llm/mock.provider.ts
 backend/src/measures/authored-measure.registry.test.ts
 backend/src/measures/authored-measure.registry.ts
 backend/src/measures/measure-authoring.catalog.ts

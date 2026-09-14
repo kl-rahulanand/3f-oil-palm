@@ -65,6 +65,7 @@ export class ChatService {
     reportGrounding?: AskReportGrounding,
     clientPriorTurns?: AskPriorTurn[],
     onEvent?: (event: ChatStreamEvent) => void,
+    signal?: AbortSignal,
   ): Promise<AskResponse> {
     const started = Date.now();
     const cfg = loadConfig();
@@ -167,12 +168,17 @@ export class ChatService {
         ? [domainScopedToReport(groundedReport.domain, groundedReport.selection)]
         : allowed;
       const dimensionValues = await this.dimensionValuesForAllowedDomains(llmAllowedDomains, cfg.dimensionEnumMax);
-      const sel = await this.llm.select({
-        question,
-        allowedDomains: llmAllowedDomains,
-        ...(priorTurns.length > 0 ? { priorTurns } : {}),
-        dimensionValues,
-      });
+      signal?.throwIfAborted();
+      const sel = await this.llm.select(
+        {
+          question,
+          allowedDomains: llmAllowedDomains,
+          ...(priorTurns.length > 0 ? { priorTurns } : {}),
+          dimensionValues,
+        },
+        signal,
+      );
+      signal?.throwIfAborted();
       llmUsage = sel.usage;
       if (sel.kind === "clarify") {
         const clarify = {
@@ -200,6 +206,9 @@ export class ChatService {
           responseClass: ResponseClass.NotSupported,
           message: unsupportedFallbackMessage(index),
         });
+      }
+      if (sel.kind === "no_tool_block" || sel.kind === "backend_error") {
+        return done({ responseClass: ResponseClass.BackendError, message: sel.reason });
       }
       selection = sel.selection;
       if (groundedReport) {
@@ -340,6 +349,7 @@ export class ChatService {
     onEvent?.({ type: "phase", phase: "querying" });
     try {
       const execution = await this.selectionExecutor.run(user, domain, selection, {
+        signal,
         ...(statementScope
           ? {
               resolvedScope: {
@@ -372,10 +382,12 @@ export class ChatService {
       activeBatchIds = execution.activeBatchIds;
       budgetComponentLabels = execution.budgetComponentLabels;
       rowSourcePresence = execution.rowSourcePresence;
+      signal?.throwIfAborted();
       // `numeric` means "value/measure column" for rendering (chart axis, headline,
       // alignment) — NOT the raw SQL type. An integer DIMENSION (e.g. activity_hour
       // 0-23) is categorical here, so classify columns by measure-role, not warehouse type.
     } catch (e) {
+      if (signal?.aborted) throw signal.reason;
       if (auditFailed) {
         return done({
           responseClass: ResponseClass.BackendError,

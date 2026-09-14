@@ -124,6 +124,10 @@ export interface AskPriorTurn {
   selection: Selection;
 }
 
+export const ASK_PRIOR_TURNS_MAX_ENTRIES = 8;
+export const ASK_PRIOR_TURNS_MAX_SERIALIZED_CHARS = 16_000;
+export const ASK_PRIOR_TURN_MAX_QUESTION_CHARS = 2_000;
+
 export interface AskRequest {
   question: string;
   /** Session id for multi-turn context (chips). Server-issued. */

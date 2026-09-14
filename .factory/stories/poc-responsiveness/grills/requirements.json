@@ -1,0 +1,66 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "issue": "poc-responsiveness",
+  "verdict": "pass",
+  "summary": "Cold read (Codex gpt-5.6-terra @ xhigh, read-only, --reread declared: the artifact changed SHAPE, from building the assistant to remediating the shipped one) returned NOT CONVERGED with two blockers and six under-specifications. Both blockers were verified and both held. The decisive one: the story had NO contracting spec - its requirements lived only in the roadmap item, so a plan could have satisfied the linked spec while building none of this story. Resolved by authoring docs/specs/assistant-responsiveness.md. The second: the assistant spec still asserted in the present tense that chat/saved/pins, the routes, the migration and the UI are ABSENT and 'this story owns' creating them - all shipped on 2026-09-12 - which invited duplicate work; that paragraph is now marked DELIVERED and points at the new spec. The six under-specifications (retry scope, streaming contract, freshness truth, dock geometry, retry-vs-general-chat conflict, and two older spec defects) are written into the new spec as falsifiable behaviour. One question needed the human, and it corrected an error of mine.",
+  "questions_asked": 1,
+  "gaps": [
+    "The story had no contracting spec: phase streaming, the bounded no-tool retry, truthful freshness and the full-height dock appeared only in the roadmap item, not in the linked spec's behaviour or acceptance criteria, so a plan could satisfy docs/specs/assistant-and-exploration.md and omit the entire story.",
+    "The linked spec asserted an obsolete repository state in the present tense - that AppModule imports none of chat, saved or pins, that the allow-list carries no /api/chat, /api/saved or /api/pins, and that the only migration creates auth and audit tables - all false since 2026-09-12, inviting duplicate routes, migration and UI work.",
+    "The retry rule was under-specified: no cap value, no statement of whether the identical selector input is reused, and no terminal outcome after a second tool-less response. Retrying malformed or genuinely unsupported tool responses would hide a real refusal.",
+    "Streaming had no user-facing contract: which phases show for early exits such as greetings and policy refusals, how a terminal error is presented, and whether navigating away cancels - so the docked panel and the page could each implement a different, misleading progress model.",
+    "'Real warehouse data-as-of' had no truth definition: actuals and budget carry separate active ingest batches, and the generic freshness path receives no configured freshness column, so a single pill cannot honestly imply one timestamp.",
+    "'The docked Ask panel fills its column' was not falsifiable: no breakpoints, no definition of 'fill' when the report exceeds the viewport, and no statement of where the thread versus the composer scrolls."
+  ],
+  "contradictions": [
+    "The spec says general chat is natural while the shipped implementation deliberately answers smalltalk, definitions and causal refusals with deterministic, numeral-free templates - so an unscoped no-tool retry could fire on those paths and violate the settled 'the LLM selects, never authors' boundary.",
+    "The roadmap item's own acceptance criteria name the cap-and-retry as the remedy for slowness, but the reproduction shows the cause is unbounded prior turns; the roadmap criteria are write-once (roadmap fill refuses to overwrite, heal takes no arguments), so the corrected and complete criteria live in the new spec and the plan, which are the artifacts that get grilled and approved."
+  ],
+  "resolutions": [
+    "REPO-ANSWERED - docs/specs/assistant-responsiveness.md was authored to contract this story, with Why, Behaviour and Acceptance criteria covering bounded context, the capped selector call with its scoped retry, the streaming contract, the freshness definition and the dock geometry. The roadmap item now has a spec that actually constrains the plan.",
+    "REPO-ANSWERED - the stale paragraph in docs/specs/assistant-and-exploration.md is rewritten as DELIVERED 2026-09-12, kept for the record rather than as requirements, naming PRs #42-#45 and closeout #46 and pointing at the new spec for remediation. A future reader can no longer mistake it for work to do.",
+    "REPO-ANSWERED - the retry is bound to a selector call that returned NO tool block, at most two selector calls total for one question, never on a malformed or genuinely unsupported tool response, never on the deterministic smalltalk/definition/causal/out-of-catalog paths (routing precedes selection at chat.service.ts:103), and never repeating a governed warehouse query since selection precedes execution.",
+    "REPO-ANSWERED - the streaming contract states phase ordering, NO phase flicker for answers that resolve without a model call, terminal errors rendered through the same seven-class renderer as the buffered route, cancellation on leaving the surface, and that the buffered route is unchanged for the stored-selection re-run that bypasses the model.",
+    "REPO-ANSWERED - 'fills its column' means desktop full column height with the thread scrolling INSIDE the panel and the composer reachable without scrolling the report; the existing mobile stacking at the current breakpoint is unchanged. The current rule is a max-height ceiling with align-self: flex-start, which is why a short thread leaves a gap.",
+    "HUMAN (kl-rahulanand) - freshness is DEFINED from each governed source's active ingest batch and the pill shows the CONSERVATIVE OLDEST across actuals and budget, so it never claims the numbers are fresher than the stalest input. Chosen over showing both sources separately and over dropping the pill. This also fixes provenance.dataAsOf, which has always been null.",
+    "ORCHESTRATOR-CORRECTED - the human's freshness choice was first put on an inaccurate premise: the orchestrator said the data existed and needed only exposing. postgres.adapter.ts:56 returns null when no freshness column is supplied and no domain declares one (grep -c freshnessColumn in the semantic layer is 0), so freshness is null everywhere. The question was re-put with the correction before the choice was recorded.",
+    "ORCHESTRATOR-VERIFIED - the earlier diagnosis that the model was at fault was wrong and was retracted to the human, who had challenged it from experience with the same model in Pulse. With the real prompt, the real three-tool schema and the same questions Bedrock returns in 0.8-1.3s at 53-126 output tokens; adding ONE prior turn produced 24,313 output tokens and 214s. Decision 0027 stands unamended and the model is out of scope."
+  ],
+  "open_items": [
+    "Carried from the assistant story, non-blocking: no 3F location is recorded in docs/, so ap-south-1 rests on the code default plus decision 0003's India-residency line; 0027 should be amended if a real residency requirement exists.",
+    "Named by the cold read, out of scope here: the spec calls the required BEDROCK_MODEL_ID non-blocking although no data answer can be demonstrated without it, and it does not state the stale-batch outcome for 'view in report' (the implementation refuses a refreshed link). Both belong to the assistant spec and are recorded rather than silently fixed.",
+    "Non-blocking: the selector system prompt still carries Pulse's vocabulary in its examples ('leads and appointments booked', 'by state', 'by bank'), and D-0040's unregistered state dimension in HelpService suggestions is unfixed. Named in the new spec's out-of-scope section."
+  ],
+  "inspected_refs": [
+    "docs/specs/assistant-and-exploration.md",
+    "docs/specs/assistant-responsiveness.md",
+    "plans/roadmap.json",
+    "contract/src/api.ts",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/app/globals.css",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/chat.sse.ts",
+    "backend/src/llm/bedrock.provider.ts",
+    "backend/src/warehouse/postgres.adapter.ts",
+    "backend/src/chat/selectionExecutor.ts",
+    "backend/src/semantic/semanticLayer.ts",
+    "backend/src/app.module.ts",
+    ".factory/stories/assistant/shipped.json"
+  ],
+  "rounds": [
+    {
+      "question": "One more round purely to close the **requirements** gate \u2014 the harness consumes each ledgered answer against a single gate, and I spent the earlier ones on the spec gate, so this needs its own. Nothing new to decide; confirming the record before I write the plan. What it will state: the story had no contracting spec (its requirements lived only in the roadmap item), now fixed by `assistant-responsiveness.md`, which is confirmed and linked \u2014 spec debt cleared. The assistant spec's stale \"this story owns wiring it\" paragraph is marked DELIVERED so the shipped routes, migration and UI can't be re-created. Your freshness decision is recorded, along with the correction that I first put it to you on a false premise. And the root cause is the measured one: no `maxTokens` on the Converse call, 214,222ms \u2192 1,429ms.",
+      "options": [
+        "Record it and write the plan (Recommended)",
+        "Something else \u2014 I'll say what"
+      ],
+      "chosen": "Record it and write the plan (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "4345c67adafa9f70576012fc1c1ebed90618980a3f89b823424e074ae0db93ba",
+  "recorded_at": "2026-09-14T13:26:18+00:00",
+  "commit": "22b5cf4b553c694dce756ff63747c3cac1717345"
+}

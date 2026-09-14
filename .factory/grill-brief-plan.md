@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft assistant.md
+# Cold-read grill — gate: plan — plan draft plan.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,269 +431,203 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: The confirmed spec says the assistant is "Included in the first PoC release". Your BRIEF calls the chatbot "sequenced as a fast-follow" and accepted decision **0002** says "the chatbot remain later phases". Those cannot all be true, and D-0032 already flags the BRIEF as drifted. A planner cannot size this story until you settle it.
-  A: Assistant ships in the PoC (Recommended)
-- Q: If the assistant ships with natural language: the only implemented provider is **Bedrock** (`bedrock.provider.ts`), and `MockLlmProvider` always returns "clarify" — it never selects, so it cannot answer a single question. Using a real model means the user's typed question, and conversation context, leave this machine. The spec parks LLM and data residency as "OPEN — decide later", and decision 0011 defers deployment readiness.
-  A: Bedrock, and I'll name the region (Recommended)
-- Q: The spec uses "saved queries", "saved report" and "pinned dashboards" interchangeably. The vendored contract already distinguishes a saved *selection* from a *snapshot* (`PinSnapshot` even carries an `access_revoked` status), so the code is more decided than the spec. These differ materially for confidentiality.
-  A: Selections only, personal, re-run under current RBAC (Recommended)
-- Q: The Bedrock region to record in the decision. `config.ts:180` already defaults `AWS_REGION` to **ap-south-1** (Mumbai), which keeps the question text in-country for an Indian client. `BEDROCK_MODEL_ID` has no default, so it must be set either way.
-  A: ap-south-1, Mumbai (Recommended)
-- Q: Closing the assistant requirements grill. Ten findings. Your three calls: the assistant ships in the PoC (I'll mint a decision superseding that clause of 0002 and amend the drifted BRIEF, closing D-0032); Bedrock as the provider; saves store selections only, personal, re-run under current RBAC. The seven I'm settling from the repo: the bounded data vocabulary is exactly what `semanticLayer.ts` registers (governed-financial + mis-statement) over the proven DUB slice, with out-of-catalog questions refused rather than answered zero; "no fabricated numbers" becomes falsifiable — every numeric character on screen, including prose and chart labels, is rendered from the deterministic result; the "view in report" deep link carries the selection *and* the answer's batch provenance, with a stated fallback when a question can't be represented as a statement; RBAC/audit inherit 0016's all-or-nothing with re-authorization on every ask, re-run and pin refresh, and a fail-closed audit as the chat path already does; the acceptance criteria are extended to cover every promised surface; a response matrix settles data / definition / ambiguous / causal / off-topic precedence; and the spec will state plainly that the vendored chat, saved and pin routes are **not registered** — `AppModule` imports none of them and the applied migration is auth/audit only — so this story owns restoring them. Any remaining gap?
-  A: No gaps — amend and record (Recommended)
+- Q: **Correction to what I told you.** When I asked about the freshness pill I said the data already exists and just needs exposing. That was wrong. `postgres.adapter.ts:56` returns `null` when no freshness column is supplied, and **no domain declares one** — `grep -c freshnessColumn` in the semantic layer is **0**. So freshness is `null` everywhere today, and `dataAsOf` in answer provenance has always been null too. The grill also found there is no single truth to show: actuals and budget arrive as **separate ingest batches** with their own timestamps, so one pill cannot honestly imply one number without a rule. Wiring it means *defining* freshness first — bigger than the route-plus-render job I described.
+  A: Define it from ingest batches, show the oldest (Recommended)
+- Q: Closing the requirements grill for `poc-responsiveness`. The cold read returned **NOT CONVERGED** with two blockers and six under-specifications, and I've resolved them: a new spec `assistant-responsiveness.md` now contracts this story (it didn't exist — the story's requirements lived only in the roadmap item, so a plan could have satisfied the old spec and built none of it), and the assistant spec's stale "NOT wired in, this story owns wiring it" paragraph is marked **DELIVERED** so nobody re-creates shipped routes, migration and UI. Your freshness call is in. I also pinned the things the grill said were unfalsifiable: the retry is scoped to a selector call with **no tool block only**, at most **two calls total**, never on the deterministic smalltalk/definition/refusal paths (routing precedes selection), and never repeats a governed query; streaming specifies phase order, **no flicker** for answers that resolve without a model call, terminal errors through the existing renderer, and cancel-on-leave; "fills its column" means desktop full height with the thread scrolling inside, mobile stacking unchanged. Any gap before I write the plan?
+  A: No gaps — write the plan (Recommended)
+- Q: Closing the spec grill for `assistant-responsiveness`. The cold read returned NOT CONVERGED with seven findings and caught **two factual errors in my own spec**, which I've now corrected: I claimed the server never bounds prior turns (it does — `trimPriorTurnsToTokenBudget` at `chat.service.ts:675`), and I'd written that turns should be kept "most-recent-first", which would have reversed transport order and made `priorTurns.at(-1)` select the wrong turn. The rewritten spec leads with the measured root cause instead: **no `maxTokens` on the Converse call** — 214,222ms/24,313 tokens uncapped versus 1,429ms/168 tokens at `maxTokens: 2048`, stopping at `tool_use` rather than truncating. Also fixed from the read: the `routing` phase is emitted *before* the deterministic classifiers, so "no flicker" is now a client render-delay rule rather than a false claim; cancellation must actually abort the model and query work (today nothing does); `priorTurns` has no array bound in the schema; and freshness is defined as **load freshness** — oldest `uploaded_at_utc` across active batches, labelled as load time — because active batches are unique per source *and period*, so a September upload of July data must not read as "data as of September".
+  A: Record the pass and plan it (Recommended)
+- Q: One more round purely to close the **requirements** gate — the harness consumes each ledgered answer against a single gate, and I spent the earlier ones on the spec gate, so this needs its own. Nothing new to decide; confirming the record before I write the plan. What it will state: the story had no contracting spec (its requirements lived only in the roadmap item), now fixed by `assistant-responsiveness.md`, which is confirmed and linked — spec debt cleared. The assistant spec's stale "this story owns wiring it" paragraph is marked DELIVERED so the shipped routes, migration and UI can't be re-created. Your freshness decision is recorded, along with the correction that I first put it to you on a false premise. And the root cause is the measured one: no `maxTokens` on the Converse call, 214,222ms → 1,429ms.
+  A: Record it and write the plan (Recommended)
 
-## The artifact under interrogation (plan draft assistant.md)
+## The artifact under interrogation (plan draft plan.md)
 
----
-story: assistant
-title: Assistant + exploration
-decisions_reviewed:
-  - 0001-poc-engagement-scope
-  - 0002-phase1-financial-mis
-  - 0003-mis-presentation-tool
-  - 0004-pulse-governed-joins
-  - 0005-client-signoff
-  - 0006-frontend-fresh-backend-vendor
-  - 0007-frontend-framework-nextjs
-  - 0008-pulse-vendored-snapshot
-  - 0009-required-tests-real-name-and-tsproject
-  - 0010-rebrand-pulse-to-3f
-  - 0011-deployment-readiness-poc-scope
-  - 0012-vendored-api-constitution-deviation
-  - 0013-backend-observability-built-in-poc
-  - 0014-sap-ingestion-poc-no-master
-  - 0015-warehouse-snake-case-deviation
-  - 0016-governed-joins-poc-scope
-  - 0017-mis-selection-composite-key-seam
-  - 0018-mis-selection-unmapped-gl-bucket
-  - 0019-fresh-routes-follow-vendored-house-style
-  - 0020-mis-budget-leaf-grain
-  - 0021-mis-statement-outline-snapshot
-  - 0022-mis-statement-governed-projection
-  - 0023-mis-statement-drift-reports-not-blocks
-  - 0024-drill-down-aggregate-client-projection
-  - 0025-drill-down-pinned-batch-raw-read
-  - 0026-assistant-ships-in-the-poc
-  - 0027-assistant-llm-bedrock-mumbai
-  - 0028-saved-selections-not-snapshots
----
+# Plan — poc-responsiveness: Assistant responsiveness and shell truth
 
-# Assistant + exploration
+Story: `poc-responsiveness` (roadmap 8) · spec: `docs/specs/assistant-responsiveness.md` (confirmed)
 
 ## Problem
-Six stories in, 3F can read the Financial MIS and trace any Actual to the transactions behind
-it. What they still cannot do is **ask**. The last roadmap story adds the conversational and
-exploration layer over the same governed measures — and closes the PoC.
+The PoC shipped at 7/7 and the assistant answers correctly, but live testing found a follow-up
+question could take **39s**, **57s**, and in reproduction **214s**. The product looks hung.
 
-Reading the system for this plan moved the problem twice, and both times away from "build an
-assistant" toward "make the one we already have reachable, and give it somewhere to write."
+The cause is one missing request field. `backend/src/llm/bedrock.provider.ts:394` sends
+`inferenceConfig: { temperature: 0, topP: 1 }` and **no `maxTokens`**. Measured directly against
+Bedrock with the real system prompt, the real three-tool schema, the same question and the same
+single prior turn:
 
-**The assistant is vendored, complete-looking, and entirely unreachable.** `backend/src/chat/`
-is 3,758 lines across eighteen files — `ChatService.ask()` with smalltalk classification,
-ambiguity and clarify handling, a reconciliation guard, verified-selection checks, SSE
-streaming, provenance assembly and a fail-closed audit write inside `beforeExecute`. Its
-collaborators all exist: `ConversationsService`, `ReportsService`, `HelpService`,
-`DimensionValuesService`. And **none of it is wired in**: `backend/src/app.module.ts` imports
-`CoreModule`, `HealthModule`, `IngestModule`, `MisSelectionModule` and `MisModule` — not chat,
-not saved, not pins. The registered-route allow-list in `backend/src/app.routes.test.ts` lists
-fourteen routes and contains no `/api/chat`, `/api/saved` or `/api/pins`. This story's first job
-is registration and governance, not authorship.
+| request | latency | output tokens | stopReason | tool block |
+| --- | --- | --- | --- | --- |
+| no `maxTokens` | 214,222 ms | 24,313 | - | - |
+| `maxTokens: 2048` | 1,429 ms | 168 | `tool_use` | yes |
+| `maxTokens: 512` | 1,703 ms | 203 | `tool_use` | yes |
 
-**The persistence it needs does not exist.** `backend/src/db/schema.ts` declares `conversations`,
-`conversation_turns`, `saved_queries`, `dashboard_pins` and `pin_snapshots`. `backend/drizzle/`
-contains exactly one migration, `0000_auth_audit.sql`, which creates `users`, `roles`,
-`user_roles`, `role_perms`, `user_scope`, `sessions`, `otp_codes`, `refresh_tokens` and
-`audit_events` — and `migrate.ts` runs that folder. So those five tables are **declared in
-Drizzle and absent from the database**. Registering the chat module without a migration produces
-an assistant that fails on its first durable turn. That is the single most load-bearing fact in
-this plan, and it is invisible from the schema file alone.
+A selection is ~110 output tokens. Capped, the model stops at `tool_use` — **not** `max_tokens` —
+so the cap does not truncate; its presence alone ends the runaway. With no prior turn the same call
+already returned in 0.8–1.3s, so neither the model nor `ap-south-1` is at fault.
 
-**A third thing, smaller but fatal to a demo:** `MockLlmProvider.select()` always returns
-`kind: "clarify"`. It never selects. Without `LLM_PROVIDER=bedrock` and a set `BEDROCK_MODEL_ID`
-the assistant cannot answer a single question — it can only ask one back. Decision **0027**
-settles the provider and region; the model id remains a deployment input with no default.
+**Two earlier diagnoses of mine were wrong and were corrected by cold reads, not by me.** I first
+blamed the model family; the human disproved it from experience with the same model in Pulse. I
+then wrote that the server never bounds prior turns — it does, at
+`backend/src/chat/chat.service.ts:675` (`trimPriorTurnsToTokenBudget`, called at `:153`) — and the
+reproduction used a *single* prior turn well inside that budget, so trimming cannot be the fix.
+This plan records that history because the wrong fix (swap the model, or trim harder) is expensive
+and would not have worked.
 
-What the vendored code **does** already give us is most of the answer contract. `AskResponse`
-carries `selection`, `result`, `totals`, `chartType`, `availableChartTypes`, `availableFields`,
-`provenance`, `appliedTimeWindow`, `appliedFilters`, `chips` and `clarify`; `Provenance` carries
-`verified`, the measure definitions, `readback`, `dataAsOf`, `sql` and — since `governed-joins` —
-`activeBatchIds`. The governed vocabulary is narrow and real: `semanticLayer.ts` registers
-exactly two domains, `governed-financial` and `mis-statement`.
-
-**The one output-side gap is "view in report".** `AskReportGrounding { reportId, timeWindow }`
-grounds a question *in* a report. Nothing carries an answer *back* to a statement: the MIS
-statement needs Department, Function, Plant and period, and the spec settled that the link must
-also preserve the answer's batch provenance so the statement it opens is the one the assistant
-was talking about. That field does not exist and this story adds it.
+Two further defects make the product read as broken in a demo. The Ask surfaces call the buffered
+JSON route and show one static pending state, so a slow answer is indistinguishable from a hang —
+while `POST /api/chat/stream` is built, registered, allow-listed, and consumed by nothing. And the
+shell renders a permanently disabled `Freshness unavailable` chip
+(`frontend/src/components/shell/app-shell.tsx:174`) that computes nothing; underneath,
+`backend/src/warehouse/postgres.adapter.ts:56` returns null when no freshness column is supplied
+and **no domain declares one**, so `provenance.dataAsOf` has always been null too.
 
 ## Scope / Non-goals
 
 **In scope**
-- Registering and governing the vendored chat, saved and pins modules, with their routes added to
-  the strict allow-list that is the only thing proving a route exists.
-- The **migration** creating the five declared-but-absent tables.
-- Bedrock wired per decision **0027**, with the boundary enforced: the question, prior turns and
-  governed vocabulary may leave; **warehouse rows never do**.
-- The **docked Ask panel** on the report and the **standalone Ask page**, from the approved
-  prototype, with suggested chips, the verified badge, provenance disclosure and **view in
-  report**.
-- **Saved selections** and **personal pins** per decision **0028**, re-authorizing on every open.
-- The response matrix: data / definition / ambiguous / causal-declined / general chat.
+- `maxTokens` on the selector Converse call — the fix for the latency the human actually hit.
+- A no-tool-block retry that cannot mask a genuine refusal, which requires un-collapsing three
+  outcomes the provider currently maps to one `unsupported`.
+- Request-schema limits on `priorTurns` (server resource safety, explicitly **not** the latency fix).
+- Both Ask surfaces consuming the existing stream, with a phase rule that matches the producer,
+  real cancellation, and full transport parity with the buffered client.
+- Freshness **defined** (not merely exposed) and rendered; the docked panel filling its column.
 
 **Non-goals**
-- **Answer snapshots and shareable pins** (decision **0028**) — `PinSnapshot` stays in the
-  contract unused rather than deleted.
-- Any write-back, any SQL authored by the model, any number produced by the model.
-- Causal "why" answers — declined by the response matrix, not attempted.
-- Widening the governed vocabulary beyond the two registered domains, or beyond the proven
-  Agriculture / Nursery / DUB slice.
-- A contractual retention or NDA position for model inputs — that rides with the production
-  pilot (decision **0011**).
-- Rewriting the BRIEF's Smart Palm / Yield / OER framing — the timing half of **D-0032** is
-  closed by decision 0026; that half stays open.
+- Changing the model or the region. Decision **0027** stands; the evidence shows the model is fast
+  when the request is well formed.
+- Durable conversation history (deferred at the assistant plan grill; **0028** stands).
+- Period-scoped or report-scoped freshness — the shell chip is global; per-report currency belongs
+  to the report.
+- Re-planning any shipped assistant behaviour, and the Pulse-inherited examples still in the
+  selector system prompt ("leads and appointments booked", "by state"), and D-0040.
 
 ## Acceptance Criteria
-1. **The routes exist and are governed.** `/api/chat`, `/api/chat/stream`, `/api/saved` and
-   `/api/pins` are registered, appear in `app.routes.test.ts`'s allow-list, and sit behind
-   `AuthGuard`, the global `CsrfGuard` and the governed grant — a user without it is refused.
-2. **The tables exist.** A migration creates `conversations`, `conversation_turns`,
-   `saved_queries`, `dashboard_pins` and `pin_snapshots`, and `db:migrate` applies cleanly on a
-   database that has only `0000_auth_audit.sql`.
-3. **A data question is answered from the governed measures**, with `provenance.verified` true,
-   and every visible numeric character — prose, labels, chart axes, annotations — rendered from
-   the deterministic result. The model emits no figure.
-4. **Out-of-catalog questions are refused as unsupported** and say so; they are never answered
-   with a zero, which decision **0018** established means something different.
-5. **The response matrix holds** in precedence order: data question answered with provenance;
-   definition answered from the semantic layer's labels; ambiguous gets one clarifying question;
-   causal "why" declined and redirected; general chat answered naturally, claiming nothing about
-   3F's data.
-6. **View in report** carries the selection's Department, Function, Plant, period **and** the
-   answer's `activeBatchIds`, so the statement it opens is the one the answer came from — and is
-   **absent with a reason** when a question has no statement representation.
-7. **Both surfaces work**: the docked panel beside the report and the standalone Ask page, with
-   suggested chips, the verified badge and provenance disclosure, per the approved prototype.
-8. **A saved selection re-runs under the current user's RBAC**, and a **pin opens by re-running**;
-   a revoked grant produces a refusal, never a cached figure. Nothing is stored that the user
-   could not re-derive by asking again.
-9. **Authorization and audit are per-request**: every ask, every saved re-run and every pin open
-   re-authorizes and writes its audit record **before** the read, failing closed; denials and
-   unsupported requests are audited too.
-10. **The Bedrock boundary is enforced and testable**: the provider receives the question, the
-    prior turns and the governed vocabulary, and **no warehouse row, measure value or batch
-    content** — proven by asserting the provider's input, not by inspection.
+- **C1** The selector Converse request carries an explicit `maxTokens`, asserted on the request the
+  provider builds — not inferred from timing. A follow-up completes in seconds, not minutes.
+- **C2** A selector response with **no tool block** is retried at most once; a **malformed** tool
+  input and a genuine **`mark_unsupported`** are never retried; a second tool-less response answers
+  `backend_error` naming an incomplete model response, **never `not_supported`** — which would
+  assert the untrue thing this story removes. The provider stops collapsing those three outcomes at
+  `bedrock.provider.ts:227` so the retry can tell them apart. No retry repeats a governed query.
+- **C3** `backend/src/chat/chat.schemas.ts:21` rejects an oversize `priorTurns` array and oversize
+  per-question length **before** serialization; retained order stays **oldest-first** so
+  `chat.service.ts:153`'s `priorTurns.at(-1)` is still the latest turn.
+- **C4** Both Ask surfaces render streamed phases in order; an answer resolving within the client's
+  render delay shows **no phase at all** (the server already emits `routing` at
+  `chat.service.ts:103` *before* the deterministic classifiers, so this is a client rule, not a
+  producer change); a terminal `error` frame renders through the existing seven-class renderer.
+- **C5** The streaming client preserves the buffered client's CSRF bootstrap, cookie credentials,
+  401 refresh and HTTP-error rendering — pre-stream auth/CSRF/validation failures are HTTP
+  responses, not SSE frames. Leaving the assistant cancels, and the cancellation **reaches the model
+  and query work**: `chat.controller.ts` observes no client disconnect today and passes no abort
+  signal, so an abandoned request keeps selecting, querying and auditing. Moving between the dock
+  and the Ask page shares one provider and one thread and does **not** cancel.
+- **C6** The freshness pill shows the oldest `uploaded_at_utc` among **active** ingest batches
+  across governed sources, labelled as **load** freshness, says so plainly when none is available,
+  and is no longer marked `aria-disabled`. `provenance.dataAsOf` stops being null by the same seam.
+- **C7** The docked panel fills its column on desktop with the thread scrolling **inside** it;
+  existing mobile stacking at the current breakpoint is unchanged.
+- **C8** Every proof is judged by its junit testcase **name** and **executed count**, never an exit
+  code (D-0024, D-0031).
 
 ## Technical Approach
 
-### Registration, not authorship
-`AppModule` gains `ChatModule`, `SavedModule` and `PinsModule` (creating the module files the
-vendored controllers lack), the routes join the allow-list, and the governed grant gates them the
-way `RequireAction("report")` gates the statement. The vendored services are used as they are;
-where they need to change it is to enforce this story's boundary, not to rewrite their behaviour.
+### The cap and the retry
+`maxTokens` is added to the single `inferenceConfig` the provider builds. The value sits far above
+a real selection (~110 tokens) and far below a runaway (24,313); both measured caps behaved
+identically, so the choice is about headroom, not tuning.
 
-### The migration
-One Drizzle migration for the five declared tables, generated from `schema.ts` so the declaration
-and the database stop disagreeing. It must apply on a database whose only prior migration is
-`0000_auth_audit.sql`, which is what every existing environment has.
+The retry exists because a cap *could* truncate before the tool block even though the measured runs
+stop at `tool_use`. Today that case is indistinguishable from a real refusal:
+`mapBedrockToolUseToSelectionResult` returns `{kind:"unsupported"}` for absent tool use, for
+malformed input, and for a genuine `mark_unsupported` alike. The seam must carry the three apart
+before mapping, or the retry cannot be scoped and would silently re-ask questions the model
+correctly refused. Routing precedes selection (`chat.service.ts:103`), so deterministic smalltalk,
+glossary, causal and out-of-catalog paths never reach the retry and the settled "the LLM selects,
+never authors" boundary is untouched.
 
-### The Bedrock boundary
-`LLM_PROVIDER=bedrock`, `AWS_REGION=ap-south-1`, `BEDROCK_MODEL_ID` set. The enforceable part is
-what `LlmSelectionInput` carries: the question, prior turns and the allowed domains' vocabulary.
-The test asserts the provider's **input**, so a future change that starts passing result rows
-fails rather than leaks.
+### Prior turns
+`trimPriorTurnsToTokenBudget` is **kept**. Retention stays newest-turns-with-oldest-first-order —
+reversing it would break `priorTurns.at(-1)`. The schema gains explicit limits so oversize input is
+rejected before the trim loop, which re-serializes the whole array on every iteration.
 
-### View in report
-A new optional field on the success response carrying the four statement selectors plus the
-answer's `activeBatchIds`, populated only when the selection maps to a statement, and absent —
-with a reason — otherwise. The client links from it; it never reconstructs a selection itself.
+### Streaming
+The client moves to `POST /api/chat/stream` and renders `routing → selecting → querying →
+summarizing`. Because `routing` is emitted before the deterministic classifiers, the no-flicker
+rule lives in the client as a short render delay. The buffered route stays for the stored-selection
+re-run, which bypasses the model and needs no progress. Cancellation is wired end to end: an abort
+signal from the client, disconnect observation in the controller, and propagation into the model
+and query calls.
 
-### The surfaces
-Both from `docs/design/3F-Financial-MIS`: the docked panel (eyebrow, "Ask about this report.
-Answers are verified against the source.", suggested chips, the `✓ Verified` badge, the
-collapsible provenance block, the "View in report" link and "⤢ Open in Ask") and the standalone
-Ask page it opens. Saved views and pins follow the prototype's Explore surface and the dashboard's
-"Pinned reports" list.
+### Freshness
+A cross-source **minimum** over active ingest batches, which the current seam cannot express: it
+takes one domain and returns `MAX(column)` (`selectionExecutor.ts:102`). Active batches are unique
+per `(source_kind, period)` (`ingest_batch_active_source_period_unique`), so many are active and
+the value must be scoped to load time, not period — a September upload of July figures is not
+"data as of September".
 
 ## Decisions
-- **0026** — the assistant ships in the PoC, superseding only 0002's chatbot clause.
-- **0027** — Bedrock in `ap-south-1`; question, prior turns and governed vocabulary may leave the
-  app, warehouse rows never do.
-- **0028** — saves store the selection, never the answer; pins are personal and re-authorize.
-- Inherited and load-bearing: **0016** (all-or-nothing governed access), **0018** (a zero is not
-  an absence — hence the out-of-catalog refusal), **0022** (the statement projection the answers
-  and the report link agree with), **0019** (house style for the routes), **0011** (retention and
-  residency contracts ride with the pilot), **0012** (the vendored API's constitution deviation
-  still covers these controllers).
+Attested, all active and unchanged by this story: **0027** (Bedrock in `ap-south-1` — explicitly
+*not* amended; the model is exonerated by measurement), **0028** (selections not snapshots; the
+re-run path and the absence of stored answers are untouched), **0026**, **0019** (house style for
+any route this story touches), **0016**, **0018**, **0011**, **0012**, **0009** (required tests name
+a real leaf and pin `TS_NODE_PROJECT`). No new decision is required: the cap is a defect fix, and
+the freshness definition is specified in the confirmed spec.
 
 ## Risks
-- **The vendored chat code is large and was written for a different product.** Its smalltalk,
-  ambiguity and reconciliation guards were tuned for Pulse's domains. They may misclassify 3F
-  questions, and the response matrix is the contract they must now satisfy.
-- **A demo cannot run without `BEDROCK_MODEL_ID`.** The mock provider only clarifies. This is a
-  deployment input with no default and no fallback — worth confirming before any client session.
-- **Model quality is not a gate we control.** The plan makes fabrication *structurally*
-  impossible — numbers come only from the governed result — but a poor selection still produces a
-  confidently wrong-looking answer to the right question. The clarify path is the mitigation.
-- **Five new tables on the app database.** The migration is additive, but it is the first schema
-  change to the app DB since platform-base, and it must apply to an environment that has only
-  ever seen `0000_auth_audit.sql`.
-- **Scope.** This is the largest remaining story: two backend module groups, a migration, a
-  provider boundary, and three UI surfaces. The decomposition splits it accordingly.
+- **A cap that truncates.** Measured runs stop at `tool_use`, not `max_tokens`, so truncation is
+  unobserved — but it is the failure this design must not hide. Mitigated by C2's retry and by
+  refusing to answer `not_supported` after a second tool-less response.
+- **Retry masking a real refusal.** The whole reason C2 forbids retrying malformed input and
+  `mark_unsupported`, and requires the provider seam to distinguish them first.
+- **Cancellation appearing to work.** Aborting the browser request while the server keeps querying
+  and auditing is the current behaviour and the easy non-fix; C5 requires the abort to reach the
+  work.
+- **A freshness pill that lies.** Announcing an upload timestamp as data currency would be worse
+  than the disabled chip it replaces. Mitigated by labelling it load freshness.
+- **The roadmap item's criteria predate the diagnosis** and name the cap-and-retry as the remedy
+  for slowness. Roadmap criteria are write-once (`fill` refuses to overwrite, `heal` takes no
+  arguments), so **this plan and the confirmed spec are authoritative**; the roadmap line is a
+  headline, not the contract.
 
 ## Verify Plan
-- **Backend unit** — route registration and the allow-list; the governed grant refusing an
-  ungranted user; the response matrix's five branches; the out-of-catalog refusal; the
-  view-in-report field present with batch ids and absent-with-a-reason; the Bedrock input
-  boundary asserted on the provider's arguments.
-- **Backend DB-backed** (gated, **D-0008**) — the migration applying to a database holding only
-  `0000_auth_audit.sql`; a saved selection re-running under a *revoked* grant producing a refusal
-  rather than a cached figure.
-- **Audit** — a failing audit insert aborts the read; denials and unsupported requests are
-  recorded.
-- **Frontend unit** — both surfaces render an answer with its verified badge and provenance; the
-  report link appears only when the response carries one; chips issue asks; saved and pinned items
-  re-run rather than replay.
-- **Functional check** (`user_facing` tasks) — live against this worktree's servers with Bedrock
-  configured: ask a real question of the July statement and confirm the answer matches the report,
-  follow "view in report" and confirm it lands on the same figures, save and re-open, pin and
-  re-open.
-- Every automated artifact records the **executed count and testcase name**, never the exit code
-  (D-0024, D-0031).
+- **Backend unit** — the Converse request carries `maxTokens`; a tool-less response retries exactly
+  once; malformed input and `mark_unsupported` do **not** retry; a second tool-less response yields
+  `backend_error`, not `not_supported`; the schema rejects an oversize `priorTurns` array and an
+  oversize prior question; retained order remains oldest-first.
+- **Frontend unit** — phases render in order; an answer resolving within the delay renders no
+  phase; a terminal error renders through the existing renderer; leaving aborts; dock ↔ Ask does
+  not cancel; the pill renders the load-freshness value and its unavailable state.
+- **Backend DB-backed (gated, D-0008)** — the cross-source minimum over active ingest batches
+  returns the oldest `uploaded_at_utc` with several active periods present, demonstrated on the
+  host with a dead-port negative control.
+- **Functional (user-facing tasks)** — live against this worktree's servers with `BEDROCK_MODEL_ID`
+  set: ask, then ask a **follow-up**, and confirm it returns in seconds with phases visible; leave
+  mid-flight and confirm the backend stops; read the pill.
+- Every artifact records the **executed count and testcase name**, never the exit code.
 
 ## Surface Impact
-- **New:** module files for chat, saved and pins; one Drizzle migration; the view-in-report
-  contract field; the docked Ask panel, the standalone Ask page, and the saved/pins surfaces in
-  `frontend/`.
-- **Changed:** `app.module.ts` (three imports), `app.routes.test.ts` (the allow-list),
-  `backend/src/db/migrate.ts` only if grant seeding is needed for a new action, and
-  `frontend/app/globals.css`.
-- **Unchanged:** the semantic layer, the statement and drill paths, the warehouse schema, and
-  every governed measure. The assistant reads what the report reads.
+| Surface | Change |
+| --- | --- |
+| `POST /api/chat` selector call | **Changed** — `maxTokens` added; retry on a tool-less response |
+| Bedrock provider mapping seam | **Changed** — absent / malformed / `mark_unsupported` no longer collapsed |
+| `POST /api/chat` request schema | **Changed** — explicit `priorTurns` limits |
+| `POST /api/chat/stream` | **Unchanged route**, newly consumed; gains disconnect observation |
+| Ask panel + Ask page | **Changed** — streamed phases, render delay, cancellation, transport parity |
+| Shell top bar | **Changed** — real load-freshness pill, no longer `aria-disabled` |
+| Freshness seam | **New** — cross-source minimum over active batches; also fixes `provenance.dataAsOf` |
+| Docked panel CSS | **Changed** — fills its column; mobile unchanged |
+| Model, region, stored data | **Unchanged** — 0027 and 0028 stand |
 
 ## Task Decomposition
-Five bounded tasks, sequential. No task spans backend and frontend — `WORKFLOW.md` forbids it,
-which is why exploration is two tasks rather than one.
-1. **assistant-persistence** (backend, `user_facing: false`) — the migration for the five
-   declared-but-absent tables, applied and proven against a database holding only the auth/audit
-   migration.
-2. **assistant-governed-ask** (backend, `user_facing: false`) — register and govern chat, wire
-   Bedrock with its boundary enforced, the response matrix, the out-of-catalog refusal, and the
-   view-in-report contract field.
-3. **assistant-surfaces** (frontend, `user_facing: true`) — the docked Ask panel and the
-   standalone Ask page from the prototype: chips, verified badge, provenance disclosure, view in
-   report.
-4. **assistant-exploration-api** (backend, `user_facing: false`) — the saved-selection and pin
-   routes, storing selections only and re-authorizing on every open, with a revoked grant
-   producing a refusal rather than a cached figure.
-5. **assistant-exploration-view** (frontend, `user_facing: true`) — the Explore / saved-views
-   surface and the dashboard's pinned-reports list, opening by re-running.
-
-**Why five.** The migration is the hard dependency everything else needs and is provable on its
-own. Registration-and-governance is where the security load sits and deserves its own review.
-The two Ask surfaces share a payload and a design language, so they are one task. Exploration
-splits in two only because `WORKFLOW.md` forbids a task spanning backend and frontend — and it
-is last because it is the part most likely to be cut if the PoC deadline bites, which is an
-argument for sequencing it late, not for skipping it.
+1. **`assistant-bounded-generation`** (backend, `user_facing: false`) — C1, C2, C3. The cap, the
+   scoped retry, the provider seam that makes the retry safe, and the schema limits. Ships the fix
+   for the reported symptom on its own.
+2. **`assistant-streaming-ui`** (frontend, `user_facing: true`) — C4, C5. The stream client, the
+   phase render delay, cancellation end to end, and transport parity. Depends on nothing in task 1
+   but is sequenced after it so the live check exercises a fast follow-up.
+3. **`shell-freshness-and-dock`** (fullstack, `user_facing: true`) — C6, C7. The freshness
+   definition and seam, the pill, and the dock height. Independent of tasks 1 and 2.
 
 
 ## What to return

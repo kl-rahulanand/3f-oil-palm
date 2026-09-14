@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { DomainSpec, Selection, SelectionFilter, TimeGrain } from "@3f/contract";
 import { loadConfig, type Config } from "../config";
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "./llm.interface";
-import { LLM_MESSAGES } from "./llm.constants";
+import { LLM_MESSAGES, LLM_SELECTOR_MAX_TOKENS, LLM_SELECTOR_RETRY_MAX_TOKENS } from "./llm.constants";
 
 type JsonSchema = Record<string, unknown>;
 
@@ -45,7 +45,7 @@ interface BedrockClientConfig {
 }
 
 interface BedrockClientLike {
-  send(command: unknown): Promise<BedrockConverseOutput>;
+  send(command: unknown, options?: { abortSignal?: AbortSignal }): Promise<BedrockConverseOutput>;
 }
 
 interface BedrockConverseInput {
@@ -53,7 +53,7 @@ interface BedrockConverseInput {
   system: Array<{ text: string }>;
   messages: Array<{ role: "user"; content: Array<{ text: string }> }>;
   toolConfig: BedrockSelectionToolSpec["toolConfig"];
-  inferenceConfig?: { temperature?: number; topP?: number };
+  inferenceConfig?: { temperature?: number; topP?: number; maxTokens?: number };
 }
 
 interface BedrockConverseOutput {
@@ -69,9 +69,7 @@ interface BedrockConverseOutput {
   };
 }
 
-export function buildBedrockSelectionToolSpec(
-  allowedDomains: DomainSpec[],
-): BedrockSelectionToolSpec {
+export function buildBedrockSelectionToolSpec(allowedDomains: DomainSpec[]): BedrockSelectionToolSpec {
   const vocabulary: BedrockSelectionVocabulary = {
     domains: allowedDomains.map((domain) => ({
       name: domain.name,
@@ -90,9 +88,7 @@ export function buildBedrockSelectionToolSpec(
 
   const domainNames = allowedDomains.map((domain) => domain.name);
   const measureIds = [...new Set(allowedDomains.flatMap((domain) => domain.measures.map((m) => m.id)))];
-  const dimensionIds = [
-    ...new Set(allowedDomains.flatMap((domain) => domain.dimensions.map((d) => d.id))),
-  ];
+  const dimensionIds = [...new Set(allowedDomains.flatMap((domain) => domain.dimensions.map((d) => d.id)))];
 
   const filterSchema: JsonSchema = {
     type: "object",
@@ -102,10 +98,7 @@ export function buildBedrockSelectionToolSpec(
       dimensionId: { type: "string", enum: dimensionIds },
       op: { type: "string", enum: ["eq", "in", "neq"] },
       value: {
-        anyOf: [
-          { type: "string" },
-          { type: "array", items: { type: "string" } },
-        ],
+        anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
       },
     },
   };
@@ -221,15 +214,20 @@ export function buildBedrockSelectionSystemPrompt(
     LLM_MESSAGES.systemPromptUnsupported,
     input.dimensionValues ? LLM_MESSAGES.allowedDimensionValues(input.dimensionValues) : "",
     LLM_MESSAGES.allowedVocabularyJson(JSON.stringify(vocabulary), conversationContext),
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export function mapBedrockToolUseToSelectionResult(
   toolUse: BedrockToolUseLike | undefined,
   allowedDomains: DomainSpec[],
 ): LlmSelectionResult {
-  if (!toolUse?.name) {
-    return { kind: "unsupported", reason: LLM_MESSAGES.noToolUse };
+  if (toolUse === undefined) {
+    return { kind: "no_tool_block", reason: LLM_MESSAGES.noToolUse };
+  }
+  if (!toolUse.name) {
+    return { kind: "unsupported", reason: LLM_MESSAGES.malformedSelectionToolResponse };
   }
 
   if (toolUse.name === "request_clarification") {
@@ -238,8 +236,7 @@ export function mapBedrockToolUseToSelectionResult(
     const options = Array.isArray(input?.options)
       ? input.options.filter((option): option is string => typeof option === "string").slice(0, 4)
       : undefined;
-    const defaultOption =
-      typeof input?.defaultOption === "string" ? input.defaultOption : undefined;
+    const defaultOption = typeof input?.defaultOption === "string" ? input.defaultOption : undefined;
 
     if (!prompt || !options?.length) {
       return { kind: "unsupported", reason: LLM_MESSAGES.malformedClarificationToolResponse };
@@ -286,9 +283,7 @@ export function mapBedrockToolUseToSelectionResult(
     return { kind: "unsupported", reason: LLM_MESSAGES.selectionDimensionIdsMalformed };
   }
   const allowedDimensionIds = new Set(domain.dimensions.map((dimension) => dimension.id));
-  const invalidDimensionId = dimensionIds.find(
-    (dimensionId) => !allowedDimensionIds.has(dimensionId),
-  );
+  const invalidDimensionId = dimensionIds.find((dimensionId) => !allowedDimensionIds.has(dimensionId));
   if (invalidDimensionId) {
     return {
       kind: "unsupported",
@@ -308,8 +303,7 @@ export function mapBedrockToolUseToSelectionResult(
     };
   }
 
-  const timeWindow =
-    input.timeWindow === undefined ? undefined : parseTimeWindow(input.timeWindow);
+  const timeWindow = input.timeWindow === undefined ? undefined : parseTimeWindow(input.timeWindow);
   if (input.timeWindow !== undefined && !timeWindow) {
     return { kind: "unsupported", reason: LLM_MESSAGES.selectionTimeWindowMalformed };
   }
@@ -371,7 +365,7 @@ export class BedrockLlmProvider implements LlmProvider {
     this.ConverseCommand = ConverseCommand;
   }
 
-  async select(input: LlmSelectionInput): Promise<LlmSelectionResult> {
+  async select(input: LlmSelectionInput, signal?: AbortSignal): Promise<LlmSelectionResult> {
     if (!this.cfg.bedrock.modelId) {
       throw new Error(LLM_MESSAGES.bedrockModelIdNotConfigured);
     }
@@ -380,26 +374,49 @@ export class BedrockLlmProvider implements LlmProvider {
     const systemPrompt = buildBedrockSelectionSystemPrompt(input, toolSpec.vocabulary);
 
     try {
-      const output = await this.client.send(
-        new this.ConverseCommand({
-          modelId: this.cfg.bedrock.modelId,
-          system: [{ text: systemPrompt }],
-          messages: [
-            {
-              role: "user",
-              content: [{ text: input.question }],
-            },
-          ],
-          toolConfig: toolSpec.toolConfig,
-          inferenceConfig: { temperature: 0, topP: 1 },
-        }),
-      );
-      return mapBedrockConverseOutputToSelectionResult(
-        output,
-        input.allowedDomains,
-        this.cfg.bedrock.modelId,
-      );
+      const selectOnce = async (maxTokens: number): Promise<LlmSelectionResult> => {
+        signal?.throwIfAborted();
+        const output = await this.client.send(
+          new this.ConverseCommand({
+            modelId: this.cfg.bedrock.modelId,
+            system: [{ text: systemPrompt }],
+            messages: [
+              {
+                role: "user",
+                content: [{ text: input.question }],
+              },
+            ],
+            toolConfig: toolSpec.toolConfig,
+            inferenceConfig: { temperature: 0, topP: 1, maxTokens },
+          }),
+          signal ? { abortSignal: signal } : undefined,
+        );
+        return mapBedrockConverseOutputToSelectionResult(output, input.allowedDomains, this.cfg.bedrock.modelId);
+      };
+
+      const first = await selectOnce(LLM_SELECTOR_MAX_TOKENS);
+      if (first.kind !== "no_tool_block") return first;
+
+      signal?.throwIfAborted();
+      const second = await selectOnce(LLM_SELECTOR_RETRY_MAX_TOKENS);
+      const usage =
+        first.usage && second.usage
+          ? {
+              model: second.usage.model,
+              inputTokens: first.usage.inputTokens + second.usage.inputTokens,
+              outputTokens: first.usage.outputTokens + second.usage.outputTokens,
+              totalTokens: first.usage.totalTokens + second.usage.totalTokens,
+            }
+          : (second.usage ?? first.usage);
+      return second.kind === "no_tool_block"
+        ? {
+            kind: "backend_error",
+            reason: LLM_MESSAGES.incompleteModelResponse,
+            ...(usage ? { usage } : {}),
+          }
+        : { ...second, ...(usage ? { usage } : {}) };
     } catch (error) {
+      if (signal?.aborted) throw signal.reason;
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(LLM_MESSAGES.bedrockSelectFailed(message));
     }
@@ -428,8 +445,7 @@ function parseFilters(value: unknown): SelectionFilter[] | undefined {
     if (!filter || typeof filter.dimensionId !== "string" || !isFilterOp(filter.op)) {
       return undefined;
     }
-    const parsedValue =
-      typeof filter.value === "string" ? filter.value : stringArray(filter.value);
+    const parsedValue = typeof filter.value === "string" ? filter.value : stringArray(filter.value);
     if (parsedValue === undefined) return undefined;
     filters.push({ dimensionId: filter.dimensionId, op: filter.op, value: parsedValue });
   }

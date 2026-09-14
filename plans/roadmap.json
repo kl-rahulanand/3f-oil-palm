@@ -146,6 +146,23 @@
       "completed_at": "2026-09-12T18:18:54+00:00",
       "history": ".factory/stories/assistant/",
       "outcome": "Srihari can now ask the 3F Financial MIS questions in plain English and get answers he can check. The assistant is registered and governed: every question runs through the same authorization, semantic layer and SQL guard as the reports, so an answer is either the governed numbers with a verified badge and its provenance - the readback, the measures, the scope and the data-as-of behind a disclosure - or an honest refusal that says why. It declines what it must not answer: a causal 'why is labour high' is refused rather than guessed at, a question outside the registered catalog returns not-supported rather than a plausible number, and a greeting is answered deterministically without ever reaching the model. Answers are asked and read in two places, the panel docked beside the MIS report and a standalone Ask page, and 'view in report' opens the statement the answer came from, or says plainly why it cannot. He can save a question and pin it to his dashboard, then reopen either from Explore or the dashboard - and reopening RE-RUNS the saved selection against current data rather than replaying a stored answer, because nothing at rest holds one: the vendored snapshot machinery was deleted outright. Every reopen re-authorizes as the current user against the current semantic layer, so a selection he may no longer run comes back as a refusal that says so rather than a stale figure or a silently missing row, and it stays visible and deletable. The model runs on Bedrock in ap-south-1, and the boundary is enforced by test on the provider's own arguments: his question, the prior turns and the governed vocabulary may leave the app; amounts, measure values, transaction lines and result rows never do."
+    },
+    {
+      "key": "poc-responsiveness",
+      "title": "Assistant responsiveness and shell truth",
+      "story": "As Srihari, I want the assistant to show me it is working and the shell to tell me the truth about the data, so that a 40-second answer does not look like a hang and a dead 'Freshness unavailable' chip does not make the product look broken.",
+      "acceptance_criteria": [
+        "Both Ask surfaces stream the backend's existing routing/selecting/querying/summarizing phases instead of showing a bare spinner",
+        "A model response that never emits a tool block is retried once under a bounded output cap, rather than silently returning noToolUse or running unbounded",
+        "The shell's freshness pill shows the real warehouse data-as-of, and the docked Ask panel fills its column"
+      ],
+      "order": 8,
+      "status": "active",
+      "epic": "assistant",
+      "skill": "fullstack",
+      "kind": "refactor",
+      "depends_on": [],
+      "spec": "docs/specs/assistant-responsiveness.md"
     }
   ],
   "epics": [
@@ -187,5 +204,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-12T18:18:54+00:00"
+  "updated_at": "2026-09-14T13:23:10+00:00"
 }

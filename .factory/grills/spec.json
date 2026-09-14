@@ -2,51 +2,49 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Grill of app-platform-base: vendor method, warehouse engine for the PoC, and auth. All resolved; production engine and LLM/residency parked as separate open decisions.",
-  "questions_asked": 3,
+  "summary": "Second cold read of docs/specs/assistant-responsiveness.md, declared as a shape change: the confirmed spec contradicted a human decision taken after it was written (cancellation reaching query work vs the settled BOUNDED cancellation). Seven findings, all verified and all held. One was a file the orchestrator corrupted: re-saving a spec that already carried frontmatter left TWO header blocks in each of the two amended specs, and the parser reads only the first, so digests were reviewing mixed revisions. Three findings would have shipped bugs: the retry's second attempt was specified as an identical capped temperature-zero request, which would deterministically reproduce the same tool-less result rather than recover it; 'do not start a governed query once aborted' had no enforceable seam, since SelectionExecutor.run awaits warehouse.explain() before warehouse.execute(); and freshness conflated the shell's global minimum with a single answer's provenance.dataAsOf, which would let an unrelated stale batch make a fresh answer look old.",
+  "questions_asked": 1,
   "gaps": [
-    "How Pulse's code is brought into the repo unspecified",
-    "Warehouse engine for the PoC unspecified",
-    "Auth approach for the PoC unspecified"
+    "The spec file carried two frontmatter blocks - an operative draft header followed by a stale confirmed one in the body - so readers and digests were reviewing mixed revisions; the same corruption affected docs/specs/assistant-and-exploration.md.",
+    "The settled limits lived only in the approved plan, so the spec no longer independently contracted the work: maxTokens 2048, the 8-turn / 16,000-character / 2,000-character caps, the 250ms phase delay and the under-5-second follow-up check were all absent, and 'explicit', 'short' and 'seconds' permit materially different implementations that still satisfy the prose.",
+    "'Reject serialized prior turns before any serialization' was internally undefined: measuring serialized length requires naming the representation and the point of evaluation, and nested selections were unbounded.",
+    "The retry's second request was unspecified, and repeating the same capped temperature-zero request would reproduce the same tool-less outcome rather than recover it; the contract also did not prohibit a second attempt after cancellation arrives.",
+    "'Do not start a governed query once aborted' had no enforceable seam: SelectionExecutor.run awaits warehouse.explain() and then calls warehouse.execute(), so an abort arriving during the first await could still start the query, and threading an abort only to Bedrock cannot meet the guarantee.",
+    "The stream contract lacked terminal failure semantics - malformed JSON frames and an EOF carrying neither result nor error - either of which could leave the shared provider indefinitely pending.",
+    "Freshness conflated two different truths: the shell's global minimum across all active batches cannot honestly serve as provenance.dataAsOf for a specific answer, which is computed per selected domain from the batches that answer actually read."
   ],
-  "contradictions": [],
+  "contradictions": [
+    "The confirmed spec required cancellation to reach the query work while the human had since settled on BOUNDED cancellation, in which an in-flight query expires under statement_timeout; a future implementer reading the spec would have built pg_cancel_backend.",
+    "The client sends every successful prior turn while the server was about to start rejecting more than eight, so the ninth conversational ask would have become a 400 unless the client trimmed to the same contract."
+  ],
   "resolutions": [
-    "Snapshot-copy Pulse's app into the repo as owned code (spec: Confirmed scope)",
-    "Postgres warehouse adapter for the PoC; production engine decision stays open (spec: Confirmed scope + Open items)",
-    "Keep Pulse's email+OTP passwordless auth/RBAC/session as-is (spec: Confirmed scope)"
+    "REPO-ANSWERED - both specs were rewritten from a frontmatter-stripped body so each carries exactly one canonical header. The corruption was introduced by the orchestrator re-saving files that already had frontmatter.",
+    "REPO-ANSWERED - the settled numbers are now stated in the spec's own acceptance criteria: maxTokens 2048 with its justification, 8 entries / 16,000 characters / 2,000 characters per question, a 250ms client render delay, and an under-5-second follow-up in the live check. The maxTokens assertion is explicitly required on the REQUEST rather than by timing, because the uncapped call is already fast with no prior turn.",
+    "REPO-ANSWERED - the measured representation is named as JSON.stringify(priorTurns), evaluated at ingress before the trim and before Bedrock-prompt construction, with nested selection fields inside that representation. The CLIENT trims to the same contract newest-first, and the shared limits live in @3f/contract, the only package the frontend imports.",
+    "REPO-ANSWERED - the second selector attempt must DIFFER from the first by raising the cap, and is not made at all if cancellation arrives after attempt one.",
+    "REPO-ANSWERED - the abort is checked at the executor seam immediately before warehouse.execute(), so an abort arriving during the explain() await prevents the query from starting rather than being noticed afterwards.",
+    "REPO-ANSWERED - the client resolves a malformed JSON frame and an EOF without result or error as a backend error, so the shared provider cannot hang; ordinary asks stream while the stored-selection re-run stays on buffered POST /api/chat.",
+    "REPO-ANSWERED - the shell pill and provenance.dataAsOf are separated explicitly: the pill is a global minimum across governed sources, while dataAsOf uses the same seam scoped to that answer's own domain and batches, never the global value.",
+    "HUMAN (kl-rahulanand) - the spec was amended and re-confirmed rather than leaving the contradiction recorded as a supersession, accepting the cost of this second cold read, because stale canon had already cost this project twice the same day."
   ],
   "open_items": [
-    "Production warehouse engine (Postgres vs BigQuery) \u2014 separate open decision",
-    "LLM/model + residency \u2014 deferred (assistant spec)"
+    "The approved plan lists five task leaves while the recorded decomposition has the three the human chose after approval; the plan's body is digest-locked, so the decomposition is the later authority and the task contract records that supersession.",
+    "docs/specs/assistant-and-exploration.md is a draft after its DELIVERED amendment and its frontmatter repair, and still needs its own spec grill to be re-confirmed; the shipped assistant story's evidence is unaffected.",
+    "Carried, non-blocking: ap-south-1 rests on the code default plus decision 0003's India-residency line, with no 3F location recorded in docs/."
   ],
   "rounds": [
     {
-      "question": "Platform base \u2014 how do we bring Pulse's code in?",
+      "question": "Closing the spec re-grill. It found a file I corrupted: re-saving a spec that already had frontmatter left **two header blocks** in each of the two specs I amended \u2014 the parser reads only the first, so digests were reviewing mixed revisions. Both are fixed. Six substantive findings are folded in, three of which would have shipped bugs: the **retry's second attempt was pointless as specified** (repeating an identical capped, temperature-zero request reproduces the same tool-less result, so attempt two now raises the cap); **\"don't start a query once aborted\" had no seam** (`SelectionExecutor.run` awaits `explain()` before `execute()`, so the abort must be checked immediately before the query starts); and **freshness conflated two truths** \u2014 the shell's global minimum is not the same as one answer's `provenance.dataAsOf`, and giving an answer the global value would let an unrelated stale batch make a fresh answer look old. The settled numbers (`maxTokens: 2048`, 8 turns / 16,000 chars / 2,000 per question, 250 ms, under 5s) are now in the spec rather than only the plan.",
       "options": [
-        "Snapshot-copy into the repo (own it)",
-        "git subtree / submodule"
+        "Record, confirm, and board task 1 (Recommended)",
+        "Enough ceremony \u2014 just ship the one-line cap",
+        "Something else \u2014 I'll say what"
       ],
-      "chosen": "Snapshot-copy into the repo (own it)"
-    },
-    {
-      "question": "Platform base \u2014 warehouse engine for the PoC?",
-      "options": [
-        "Postgres for the PoC",
-        "BigQuery now"
-      ],
-      "chosen": "Postgres for the PoC"
-    },
-    {
-      "question": "Platform base \u2014 auth for the PoC?",
-      "options": [
-        "Keep Pulse's email+OTP passwordless auth",
-        "Stub / simplify for the PoC"
-      ],
-      "chosen": "Keep Pulse's email+OTP passwordless auth",
+      "chosen": "Record, confirm, and board task 1 (Recommended)",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "ca4f7200db2588bad362d43cec1ba1ba8d22c742a1b5dff1c143d4840c32c3c6",
-  "recorded_at": "2026-09-01T10:31:50+00:00",
-  "commit": "91cd4ca284875989e7287c8c31c4e828e0092e86"
+  "input_sha256": "7a768167432b8646945d1dcef37f219ccfbe79f2aedb4cdaf30d4af742e41eb8",
+  "recorded_at": "2026-09-14T15:55:13+00:00",
+  "commit": "22b5cf4b553c694dce756ff63747c3cac1717345"
 }
