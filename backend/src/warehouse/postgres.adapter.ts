@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
+import type { WarehouseLoadFreshness } from "@3f/contract";
 import { Pool, type FieldDef, type PoolConfig } from "pg";
+import { StructuredLogger } from "../common/structured.logger";
 import { type Config, loadConfig } from "../config";
 import type { QueryResult, Warehouse } from "./warehouse.interface";
 
@@ -21,9 +23,8 @@ export function pgOidIsNumeric(oid: number): boolean {
 @Injectable()
 export class PostgresAdapter implements Warehouse {
   private readonly cfg: Config = loadConfig();
-  private readonly configured = Boolean(
-    this.cfg.warehouse.postgres.host && this.cfg.warehouse.postgres.database,
-  );
+  private readonly logger = new StructuredLogger(this.cfg);
+  private readonly configured = Boolean(this.cfg.warehouse.postgres.host && this.cfg.warehouse.postgres.database);
   private pool?: Pool;
 
   async explain(sql: string): Promise<void> {
@@ -65,6 +66,32 @@ export class PostgresAdapter implements Warehouse {
     }
   }
 
+  async loadFreshness(): Promise<WarehouseLoadFreshness> {
+    if (!this.configured) return { status: "unconfigured", freshnessKind: "load" };
+    try {
+      const result = await this.execute(
+        "SELECT source_kind, MIN(uploaded_at_utc) AS oldest_uploaded_at_utc FROM ingest_batch WHERE is_active GROUP BY source_kind ORDER BY source_kind",
+      );
+      if (result.rows.length === 0) return { status: "no-active-batches", freshnessKind: "load" };
+      const sources = result.rows.map((row) => ({
+        source: row.source_kind as "actuals" | "budget",
+        oldestUploadedAtUtc: String(row.oldest_uploaded_at_utc),
+      }));
+      return {
+        status: "available",
+        freshnessKind: "load",
+        oldestUploadedAtUtc: sources.reduce(
+          (oldest, source) => (source.oldestUploadedAtUtc < oldest ? source.oldestUploadedAtUtc : oldest),
+          sources[0].oldestUploadedAtUtc,
+        ),
+        sources,
+      };
+    } catch {
+      this.logger.log("error", "Warehouse load freshness lookup failed", { module: "PostgresAdapter" });
+      return { status: "lookup-failed", freshnessKind: "load" };
+    }
+  }
+
   async distinctValues(goldObject: string, column: string): Promise<string[]> {
     if (!this.configured) return [];
     const result = await this.execute(`SELECT DISTINCT ${column} FROM ${goldObject} LIMIT 1000`);
@@ -96,9 +123,10 @@ export class PostgresAdapter implements Warehouse {
   }
 
   private toRow(row: Record<string, unknown>, fields: FieldDef[]): Record<string, string | number | null> {
-    return Object.fromEntries(
-      fields.map((field) => [field.name, toPostgresCell(row[field.name])]),
-    ) as Record<string, string | number | null>;
+    return Object.fromEntries(fields.map((field) => [field.name, toPostgresCell(row[field.name])])) as Record<
+      string,
+      string | number | null
+    >;
   }
 
   private mapError(operation: "explain" | "execute", error: unknown): Error {

@@ -1,5 +1,14 @@
 {
   "id": "shell-freshness-api",
   "title": "Define load freshness and serve it from an authenticated route",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-14T17:19:39+00:00",
+  "base_sha": "faa6de7f020e2837935df89185bcfec530987f9c",
+  "dirty_at_start": {
+    ".factory/stories/poc-responsiveness/grills/tasks/shell-freshness-api.json": {
+      "digest": "13967aae1379ded7a1d3a2dc1cefcffcbb50160330c857cf799227cc1f063d1a",
+      "git": "1 .M N... 100644 100644 100644 492a7ee6721369fa2fc7aea4b13a4fed5584bfe5 492a7ee6721369fa2fc7aea4b13a4fed5584bfe5 .factory/stories/poc-responsiveness/grills/tasks/shell-freshness-api.json\u0000\u0000100644 492a7ee6721369fa2fc7aea4b13a4fed5584bfe5 0\t.factory/stories/poc-responsiveness/grills/tasks/shell-freshness-api.json\u0000\u0000H .factory/stories/poc-responsiveness/grills/tasks/shell-freshness-api.json\u0000"
+    }
+  },
+  "task_sha256": "a39c6409d1e5c4040312947ed0d284618d739a8c93c9ff78622f8d59d2f28521"
 }

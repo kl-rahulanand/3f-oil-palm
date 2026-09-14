@@ -9,12 +9,14 @@ import type { AuthUser } from "@3f/contract";
 import { AppModule } from "./app.module";
 import { type AuthedRequest, AuthGuard } from "./auth/auth.guard";
 import { ChatController } from "./chat/chat.controller";
+import { FreshnessController } from "./warehouse/freshness.controller";
+import { FreshnessErrorDto, FreshnessResponseDto } from "./warehouse/freshness.dto";
 import { AuthoredMeasureRegistry } from "./measures/authored-measure.registry";
 import { buildSwaggerConfig, configureApp } from "./main";
 import { PinsController } from "./pins/pins.controller";
 import { SavedController } from "./saved/saved.controller";
 
-test("the saved and pins routes are registered behind their existing grants and no refresh route remains in the allow list", async () => {
+test("the freshness route is allow listed behind auth guard with no action grant and documents its typed responses", async () => {
   const originalInit = AuthoredMeasureRegistry.prototype.onModuleInit;
   AuthoredMeasureRegistry.prototype.onModuleInit = async () => {};
   let app: INestApplication | undefined;
@@ -32,6 +34,7 @@ test("the saved and pins routes are registered behind their existing grants and 
       "GET /api/mis/options",
       "GET /api/pins",
       "GET /api/saved",
+      "GET /api/warehouse/freshness",
       "GET /health",
       "PATCH /api/pins/:id/view",
       "PATCH /api/pins/reorder",
@@ -68,8 +71,19 @@ test("the saved and pins routes are registered behind their existing grants and 
     assertActionGuard(SavedController, "save");
     assertActionGuard(PinsController, "pin");
 
-    const selectionSchema = SwaggerModule.createDocument(app, buildSwaggerConfig()).components?.schemas
-      ?.ExplorationSelectionDto as { properties?: Record<string, unknown> } | undefined;
+    const freshnessGuards = Reflect.getMetadata(GUARDS_METADATA, FreshnessController) as Function[];
+    assert.deepEqual(freshnessGuards, [AuthGuard]);
+    assert.equal(Reflect.getMetadata(GUARDS_METADATA, FreshnessController.prototype.freshness), undefined);
+
+    const swagger = SwaggerModule.createDocument(app, buildSwaggerConfig());
+    const freshnessResponses = swagger.paths["/api/warehouse/freshness"]?.get?.responses;
+    assert.equal(responseSchemaRef(freshnessResponses?.["200"]), `#/components/schemas/${FreshnessResponseDto.name}`);
+    for (const status of ["400", "401", "403"]) {
+      assert.equal(responseSchemaRef(freshnessResponses?.[status]), `#/components/schemas/${FreshnessErrorDto.name}`);
+    }
+
+    const selectionSchema = swagger.components?.schemas?.ExplorationSelectionDto as
+      { properties?: Record<string, unknown> } | undefined;
     assert.deepEqual(Object.keys(selectionSchema?.properties ?? {}).sort(), [
       "dimensionIds",
       "domain",
@@ -83,6 +97,12 @@ test("the saved and pins routes are registered behind their existing grants and 
     await app?.close();
   }
 });
+
+function responseSchemaRef(response: unknown): string | undefined {
+  return (response as { content?: { "application/json"?: { schema?: { $ref?: string } } } } | undefined)?.content?.[
+    "application/json"
+  ]?.schema?.$ref;
+}
 
 function registeredRoutes(app: INestApplication): string[] {
   const express = app.getHttpAdapter().getInstance() as {
