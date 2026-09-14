@@ -11,6 +11,19 @@ function response(status = 200, body: unknown = { ok: true }, headers: HeadersIn
   } as Response;
 }
 
+function streamResponse(status: number, events: string): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(events));
+        controller.close();
+      },
+    }),
+  } as Response;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -112,6 +125,86 @@ test("the ask client posts to the governed chat route with the csrf header and a
   expect((init?.headers as Record<string, string>)["x-csrf-token"]).toBe("ask-token");
   expect(Object.keys(JSON.parse(String(init?.body))).sort()).toEqual(["priorTurns", "question"]);
 });
+
+test("the streaming client sends the csrf header and refreshes once on a 401", async () => {
+  let cookie = "";
+  let csrfRequests = 0;
+  let streamRequests = 0;
+  Object.defineProperty(document, "cookie", { configurable: true, get: () => cookie });
+  const event = `data: ${JSON.stringify({
+    type: "result",
+    response: {
+      responseClass: "informational",
+      sessionId: "session",
+      title: "Actual",
+      viewInReport: { available: false, reason: "Definitions do not open a report." },
+    },
+  })}\n\n`;
+  const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/auth/csrf")) {
+      cookie = `3f_csrf=stream-token-${++csrfRequests}`;
+      return response();
+    }
+    if (url.endsWith("/api/auth/refresh")) return response();
+    if (url.endsWith("/api/chat/stream"))
+      return ++streamRequests === 1 ? streamResponse(401, "") : streamResponse(200, event);
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  await api.askStream({ question: "Define Actual" });
+
+  const calls = fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/chat/stream"));
+  expect(calls).toHaveLength(2);
+  expect(fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/auth/refresh"))).toHaveLength(1);
+  expect(calls.map(([, init]) => (init?.headers as Record<string, string>)["x-csrf-token"])).toEqual([
+    "stream-token-1",
+    "stream-token-3",
+  ]);
+  expect(calls.every(([, init]) => init?.credentials === "include")).toBe(true);
+});
+
+test("the client trims prior turns to the shared limits so a ninth turn still succeeds", async () => {
+  Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=ask-token" });
+  const event = `data: ${JSON.stringify({ type: "result", response: { ...resultForTrim(), sessionId: "session" } })}\n\n`;
+  const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) =>
+    String(input).endsWith("/api/chat/stream") ? streamResponse(200, event) : response(),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const priorTurns = Array.from({ length: 9 }, (_, index) => ({
+    question: `Question ${index + 1}`,
+    selection: {
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual"],
+      dimensionIds: [],
+      filters: [],
+    },
+  }));
+
+  await api.askStream({ question: "Question 10", priorTurns });
+
+  const [, init] = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/api/chat/stream"))!;
+  expect(JSON.parse(String(init?.body)).priorTurns.map((turn: { question: string }) => turn.question)).toEqual([
+    "Question 2",
+    "Question 3",
+    "Question 4",
+    "Question 5",
+    "Question 6",
+    "Question 7",
+    "Question 8",
+    "Question 9",
+  ]);
+});
+
+function resultForTrim() {
+  return {
+    responseClass: "informational",
+    title: "Actual",
+    definition: "The governed actual amount.",
+    viewInReport: { available: false, reason: "Definitions do not open a report." },
+  };
+}
 
 test("opening a saved view posts the stored selection with no report grounding", async () => {
   Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=rerun-token" });

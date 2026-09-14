@@ -13,9 +13,15 @@ const SEED_QUESTIONS = [
   "Show MIS statement Actual for Agriculture Nursery DUB this month",
 ];
 const CHART_COLORS = ["#1c6b49", "#0c3529", "#7aa889", "#c8922f"];
+const PHASE_LABELS = {
+  routing: "Routing question",
+  selecting: "Selecting governed measures",
+  querying: "Querying governed data",
+  summarizing: "Summarizing answer",
+} as const;
 
 export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>) {
-  const { turns, isPending, error, ask } = useAsk();
+  const { turns, phases, isPending, error, ask } = useAsk();
   const [draft, setDraft] = useState("");
   const suggestions = latestSuggestions(turns) ?? SEED_QUESTIONS;
 
@@ -64,7 +70,13 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
             <Answer response={turn.response} question={turn.question} onAsk={ask} />
           </div>
         ))}
-        {isPending && <p className="ask-pending">Checking the governed data…</p>}
+        {phases.length > 0 && (
+          <ol className="ask-progress" aria-label="Answer progress">
+            {phases.map((phase) => (
+              <li key={phase}>{PHASE_LABELS[phase]}</li>
+            ))}
+          </ol>
+        )}
         {error && (
           <p className="ask-failure" role="alert">
             {error}

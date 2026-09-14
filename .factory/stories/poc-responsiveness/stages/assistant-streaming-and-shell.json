@@ -1,5 +1,14 @@
 {
   "id": "assistant-streaming-and-shell",
   "title": "Stream the answer, cancel on leave, and tell the truth in the shell",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-14T18:20:40+00:00",
+  "base_sha": "b9f216696984cf8ffed137d14231da3105bd4154",
+  "dirty_at_start": {
+    ".factory/stories/poc-responsiveness/grills/tasks/assistant-streaming-and-shell.json": {
+      "digest": "7e1f08501aaca77104f9e96e967fc6ccf7382392041a09857dbcf38986279b8d",
+      "git": "1 .M N... 100644 100644 100644 9c09e5004baa4e384a61d477e164dcd0c9938193 9c09e5004baa4e384a61d477e164dcd0c9938193 .factory/stories/poc-responsiveness/grills/tasks/assistant-streaming-and-shell.json\u0000\u0000100644 9c09e5004baa4e384a61d477e164dcd0c9938193 0\t.factory/stories/poc-responsiveness/grills/tasks/assistant-streaming-and-shell.json\u0000\u0000H .factory/stories/poc-responsiveness/grills/tasks/assistant-streaming-and-shell.json\u0000"
+    }
+  },
+  "task_sha256": "b3b7f6199f5c35014a58088590d490a26e2f549fd320f96aa94d7499a956bffa"
 }

@@ -1,0 +1,79 @@
+{
+  "commit": "b9f216696984cf8ffed137d14231da3105bd4154",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All nine required leaves execute and pass, each verified by its junit testcase NAME and EXECUTED count rather than an exit code (D-0024, D-0031). All five verify commands and the hermetic suite pass. Dock geometry is deliberately NOT unit-proven - jsdom does not compute flex layout, so it is proven in the live check instead, per the human's decision.",
+    "commands_run": [
+      "npm run build:contract, build:frontend, typecheck, lint, format:check -> all PASS",
+      "npm run test:hermetic -> PASS",
+      "vitest ask-stream.test.ts (frame split across chunks and several frames in one chunk) -> executed 1 / fail 0 / name matched",
+      "vitest ask-stream.test.ts (malformed frame and EOF without terminal event resolve as backend error) -> executed 1 / fail 0 / name matched",
+      "vitest ask-stream.test.ts (multi-byte character split across chunks; no phase after the terminal frame) -> executed 1 / fail 0 / name matched",
+      "vitest ask-panel.test.tsx (no phase within the render delay; phases in order when slower) -> executed 1 / fail 0 / name matched",
+      "vitest ask-panel.test.tsx (leaving aborts; dock collapse and dock to Ask do not) -> executed 1 / fail 0 / name matched",
+      "vitest ask-panel.test.tsx (stored-selection rerun stays on the buffered route) -> executed 1 / fail 0 / name matched",
+      "vitest api.test.ts (CSRF header sent; one refresh on 401) -> executed 1 / fail 0 / name matched",
+      "vitest api.test.ts (client trims prior turns so a ninth turn still succeeds) -> executed 1 / fail 0 / name matched",
+      "vitest app-shell.test.tsx (the pill renders each state and is no longer disabled) -> executed 1 / fail 0 / name matched"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/assistant/ask-stream.test.ts (NEW: SSE framing across chunk boundaries including a split multi-byte character, malformed frames, EOF without a terminal event, no phase after terminal)",
+      "frontend/src/features/assistant/ask-panel.test.tsx (render delay suppressing phases, cancellation boundary, buffered rerun branch)",
+      "frontend/src/lib/api.test.ts (streaming transport parity and the client prior-turn trim)",
+      "frontend/src/components/shell/app-shell.test.tsx (the freshness pill's states, no longer aria-disabled)"
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "Dock geometry is proven by the live functional check rather than a vitest leaf: frontend/vitest.config.ts uses jsdom, which does not compute flex layout, so such a leaf could only assert CSS source text and would be a false green. Human-decided 2026-09-14.",
+      "frontend-design was NOT read by the delegate run - zero references to its SKILL.md in the job log, the third task in a row despite a lesson naming the exact path, which was verified to exist and be byte-identical at both known locations. The orchestrator read and applied it directly and found no defect this time: phase labels are active and specific, no system vocabulary leaks into the new copy, and the quality floor holds. emil-design-eng WAS genuinely read by the run (six real range reads).",
+      "D-0044 was raised during this task: running the gated freshness leaf in isolation TRUNCATEs ingest_batch CASCADE and destroyed 4,113 sap_transaction and 960 mis_budget rows in the shared local warehouse. Data was restored by re-running the full test:warehouse-proof suite, which reseeds.",
+      "D-0045 was raised during this task: a well-formed data question was answered as an informational glossary definition by the SHARED server path, which this frontend-only task does not touch; three direct selector calls returned a valid selection, so it is neither the cap nor the client.",
+      "D-0024 and D-0031 remain open, so every leaf was judged by its testcase name and executed count."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-14T18:47:45+00:00",
+    "commit": "b9f216696984cf8ffed137d14231da3105bd4154"
+  },
+  "updated_at": "2026-09-14T18:48:13+00:00",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "passed",
+    "score": 9,
+    "summary": "LIVE check against real Bedrock from THIS worktree's own servers, confirmed by process cwd before trusting anything. Both Ask surfaces stream, the phase-flicker rule holds, the freshness pill shows a real load timestamp, and the docked panel fills its column - the last measured in the browser because jsdom cannot compute flex layout, which is why this check is the geometry proof.",
+    "manual_validation_steps": [
+      "Servers confirmed to be THIS worktree by process cwd before any assertion.",
+      "Signed in; the shell pill reads 'Load freshness - 14 Sept 2026, 18:42 UTC' - a real value, no longer aria-disabled.",
+      "Asked 'hello': answered deterministically in 21ms via POST /api/chat/stream with NO phase flicker, even though the server still emits routing before its classifiers - which is exactly what the client render delay is for.",
+      "Asked a governed question: POST /api/chat/stream, model called and returned in 1,080ms with 94 output tokens.",
+      "DOCK GEOMETRY (desktop, 768px viewport): the docked panel measures 670px, exactly viewport minus 98, so it FILLS its column; .ask-thread has overflow-y auto and scrolls INSIDE the panel. The page surface measures the same 670px.",
+      "DOCK GEOMETRY (mobile, 375x812): position static, max-height none, natural height 556.9px, width 351px - stacking unchanged at the existing breakpoint.",
+      "A freshness value of '31 Aug 2099' was observed and investigated rather than assumed to be a rendering bug: the pill was faithfully reporting a warehouse whose real batches had been destroyed by the gated freshness leaf's TRUNCATE CASCADE. Data was restored and the pill then read correctly. Raised as D-0044."
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The live latency figure is REPORTED, not asserted: the governed question returned in 1,080ms here, and task 1 measured follow-ups at 1.0-5.4s. The spec deliberately requires reporting rather than a sub-5s bound, because this model's run-to-run output varies from 106 to 24,313 tokens for the same prompt.",
+      "D-0045: a well-formed data question was answered as an informational glossary definition by the shared server path. Not caused by this frontend-only task - three direct selector calls returned a valid selection - and recorded for a backend investigation.",
+      "D-0044: the gated freshness leaf destroys a developer's warehouse when run in isolation. Hit during this check; data restored by re-running the full warehouse-proof suite.",
+      "D-0040 remains visible: the suggested chips still offer 'Actual by state', naming a dimension the semantic layer does not register."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-14T18:48:13+00:00",
+    "commit": "b9f216696984cf8ffed137d14231da3105bd4154"
+  }
+}

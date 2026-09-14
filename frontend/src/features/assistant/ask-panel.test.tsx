@@ -1,18 +1,25 @@
 import type { AskResponse, AuthUser, Selection } from "@3f/contract";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import AskPage from "@/app/(app)/ask/page";
 import { AppShell } from "@/src/components/shell/app-shell";
 import { renderWithQuery } from "@/src/test/render";
 import { AskPanel } from "./ask-panel";
-import { AskProvider } from "./use-ask";
+import { AskProvider, useAsk } from "./use-ask";
 
-const mocks = vi.hoisted(() => ({ ask: vi.fn(), saveQuery: vi.fn(), createPin: vi.fn(), replace: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  ask: vi.fn(),
+  saveQuery: vi.fn(),
+  createPin: vi.fn(),
+  warehouseFreshness: vi.fn().mockResolvedValue({ status: "unsupported", freshnessKind: "load" }),
+  replace: vi.fn(),
+  pathname: "/ask",
+}));
 
 vi.mock("@/src/lib/api", () => ({ api: mocks }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/ask",
+  usePathname: () => mocks.pathname,
   useRouter: () => ({ replace: mocks.replace }),
 }));
 
@@ -84,6 +91,8 @@ afterEach(() => {
   mocks.ask.mockReset();
   mocks.saveQuery.mockReset();
   mocks.createPin.mockReset();
+  mocks.pathname = "/ask";
+  vi.useRealTimers();
 });
 
 test("a successful answer renders its result with the verified badge the provenance disclosure and no number the response did not carry", async () => {
@@ -323,7 +332,7 @@ test("a clarification renders its options selectably and does not read as an err
   expect(prompt.closest("article")).toHaveClass("ask-clarification");
   expect(prompt.closest("[role=alert]")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Actual" }));
-  await waitFor(() => expect(mocks.ask).toHaveBeenLastCalledWith({ question: "Actual" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenLastCalledWith({ question: "Actual" }, expect.any(Object)));
 });
 
 test("only successful turns become prior turns and the thread survives opening the ask page but not a reload", async () => {
@@ -360,10 +369,13 @@ test("only successful turns become prior turns and the thread survives opening t
   submit("Define Budget");
 
   await waitFor(() =>
-    expect(mocks.ask).toHaveBeenLastCalledWith({
-      question: "Define Budget",
-      priorTurns: [{ question: "Show governed Actual", selection }],
-    }),
+    expect(mocks.ask).toHaveBeenLastCalledWith(
+      {
+        question: "Define Budget",
+        priorTurns: [{ question: "Show governed Actual", selection }],
+      },
+      expect.any(Object),
+    ),
   );
 
   mounted.unmount();
@@ -397,6 +409,105 @@ test("the docked panel and the standalone ask page render from the same componen
   expect(screen.getByRole("link", { name: "Ask" })).toHaveAttribute("href", "/ask");
 });
 
+test("an answer resolving within the render delay shows no phase while a slower one shows them in order", async () => {
+  vi.useFakeTimers();
+  mocks.ask.mockImplementationOnce(async (_request, { onPhase }) => {
+    onPhase("routing");
+    return success;
+  });
+  renderAsk();
+  submit("Fast answer");
+  await act(async () => undefined);
+  await act(() => vi.advanceTimersByTimeAsync(250));
+
+  expect(screen.queryByRole("list", { name: "Answer progress" })).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Governed result" })).toBeInTheDocument();
+
+  cleanup();
+  let finish!: (response: AskResponse) => void;
+  mocks.ask.mockImplementationOnce(
+    (_request, { onPhase }) =>
+      new Promise<AskResponse>((resolve) => {
+        finish = resolve;
+        onPhase("routing");
+        onPhase("selecting");
+        onPhase("querying");
+        onPhase("summarizing");
+      }),
+  );
+  renderAsk();
+  submit("Slow answer");
+  await act(() => vi.advanceTimersByTimeAsync(250));
+
+  expect(screen.getByRole("list", { name: "Answer progress" })).toHaveTextContent(
+    "Routing questionSelecting governed measuresQuerying governed dataSummarizing answer",
+  );
+  await act(async () => finish(success));
+  expect(screen.queryByRole("list", { name: "Answer progress" })).not.toBeInTheDocument();
+});
+
+test("leaving the assistant aborts while collapsing the dock and moving to the ask page do not", async () => {
+  mocks.pathname = "/mis-reports";
+  mocks.ask.mockImplementation(
+    (_request, { signal }) =>
+      new Promise<AskResponse>((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+      }),
+  );
+  const mounted = render(
+    <AskProvider pathname={mocks.pathname}>
+      <CollapseHarness />
+    </AskProvider>,
+  );
+  submit("Keep this running");
+  const signal = mocks.ask.mock.calls[0]?.[1].signal as AbortSignal;
+
+  fireEvent.click(screen.getByRole("button", { name: "Collapse Ask" }));
+  expect(signal.aborted).toBe(false);
+  mocks.pathname = "/ask";
+  mounted.rerender(
+    <AskProvider pathname={mocks.pathname}>
+      <CollapseHarness />
+    </AskProvider>,
+  );
+  expect(signal.aborted).toBe(false);
+
+  mocks.pathname = "/dashboard";
+  mounted.rerender(
+    <AskProvider pathname={mocks.pathname}>
+      <CollapseHarness />
+    </AskProvider>,
+  );
+  await waitFor(() => expect(signal.aborted).toBe(true));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("a stored selection rerun stays on the buffered route while an ordinary ask streams", async () => {
+  mocks.ask.mockResolvedValue(success);
+  render(
+    <AskProvider>
+      <AskPanel surface="page" />
+      <RerunButton />
+    </AskProvider>,
+  );
+
+  submit("Ordinary question");
+  await screen.findByRole("heading", { name: "Governed result" });
+  fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledWith({ question: "Stored question", selection }));
+  expect(mocks.ask).toHaveBeenNthCalledWith(1, { question: "Ordinary question" }, expect.any(Object));
+  expect(mocks.ask).toHaveBeenNthCalledWith(2, { question: "Stored question", selection });
+});
+
+test("an ordinary streaming http error renders as the buffered client does", async () => {
+  mocks.ask.mockRejectedValue(new Error("API request failed with status 500"));
+  renderAsk();
+  submit("Fail over HTTP");
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("The question could not be sent. Try again.");
+  expect(screen.queryByText("API request failed with status 500")).not.toBeInTheDocument();
+});
+
 function renderAsk() {
   return render(
     <AskProvider>
@@ -423,5 +534,19 @@ function RouteHarness() {
     >
       {pathname === "/ask" ? <AskPage /> : <AskPanel surface="docked" />}
     </div>
+  );
+}
+
+function CollapseHarness() {
+  const [open, setOpen] = useState(true);
+  return open ? <AskPanel surface="docked" onCollapse={() => setOpen(false)} /> : <p>Ask collapsed</p>;
+}
+
+function RerunButton() {
+  const { rerun } = useAsk();
+  return (
+    <button type="button" onClick={() => void rerun("Stored question", selection)}>
+      Rerun stored selection
+    </button>
   );
 }
