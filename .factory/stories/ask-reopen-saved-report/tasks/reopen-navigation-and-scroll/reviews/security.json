@@ -1,0 +1,30 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "reopen-navigation-and-scroll",
+  "score": 10,
+  "summary": "security lens over reopen-navigation-and-scroll (9 product path(s), 71a05e1..0277891, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff introduces no actionable P0\u2013P2 security defect in the reviewed scope. It adds no route, authorization boundary, credential handling, injection surface, or over-broad data exposure, and it contains no compatibility shim or retained legacy surface prohibited by the review brief. The navigation, pending-turn rendering, and scroll-target changes use internal identifiers and React-rendered text without creating a concrete trust-boundary risk.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/pinned-reports.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
+    "frontend/src/features/exploration/saved-views.tsx"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "2d7fd0b37706b50a60d77ac5296facef635bf5cb1fe1cef4a2bb77e939ee28f1",
+  "brief_sha256": "f8780d6bceda21dad7b90405fa3e0593ad596dc71d474c029b4577dbb5ff1c4f",
+  "branch_diff_digest": "15afd2b2c77637dc15441b36f9a53fd471b271acfef0e01db0c53efbe8325885",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T18:21:04+00:00",
+  "commit": "0277891807aee8413000985061625f62ed72d3cc"
+}

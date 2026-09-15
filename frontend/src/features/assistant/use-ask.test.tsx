@@ -1,6 +1,6 @@
 import type { AskResponse, Selection } from "@3f/contract";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { AskPanel } from "./ask-panel";
 import { AskProvider, useAsk } from "./use-ask";
 
@@ -51,6 +51,10 @@ const resultSuccess: AskResponse = {
     rows: [{ actual: "12345.67" }],
   },
 };
+
+beforeEach(() => {
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+});
 
 afterEach(() => {
   cleanup();
@@ -136,6 +140,51 @@ test("a non success turn carrying a selection is not a candidate", async () => {
 
   await screen.findByText("Statement result");
   expect(screen.getByTestId("thread-length")).toHaveTextContent("2");
+});
+
+test("an unmatched open appends one pending turn before the response arrives", async () => {
+  mocks.ask.mockImplementation(() => new Promise(() => undefined));
+  renderReopenHarness();
+
+  fireEvent.click(screen.getByRole("button", { name: "Reopen saved report" }));
+
+  expect(await screen.findByTestId("turn-1")).toHaveTextContent("Actual · Budget");
+  expect(screen.getByTestId("turn-1")).toHaveTextContent("pending");
+  expect(screen.getByTestId("thread-length")).toHaveTextContent("1");
+});
+
+test("an unmatched open that fails leaves one turn carrying the error not two", async () => {
+  mocks.ask.mockRejectedValue(new Error("network down"));
+  renderReopenHarness();
+
+  fireEvent.click(screen.getByRole("button", { name: "Reopen saved report" }));
+
+  expect(await screen.findByText("This report could not be reopened. Try again.")).toBeInTheDocument();
+  expect(screen.getByTestId("thread-length")).toHaveTextContent("1");
+});
+
+test("an aborted unmatched open leaves no empty turn", async () => {
+  mocks.ask.mockImplementation(
+    (_body, options: { signal: AbortSignal }) =>
+      new Promise((_resolve, reject) => {
+        options.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+      }),
+  );
+  const view = render(
+    <AskProvider pathname="/ask">
+      <ReopenHarness />
+    </AskProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Reopen saved report" }));
+  await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("1"));
+  view.rerender(
+    <AskProvider pathname="/dashboard">
+      <ReopenHarness />
+    </AskProvider>,
+  );
+
+  await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("0"));
 });
 
 test("the most recent matching turn is the one rerun", async () => {
@@ -312,7 +361,7 @@ function ReopenHarness() {
       {turns.map((turn, index) => (
         <article key={turn.id} data-testid={`turn-${index + 1}`}>
           <p>{turn.question}</p>
-          <p>{turn.response.title ?? turn.response.message}</p>
+          <p>{turn.response?.title ?? turn.response?.message ?? (turn.isPending ? "pending" : undefined)}</p>
           {turn.error && <p>{turn.error}</p>}
         </article>
       ))}
@@ -329,19 +378,19 @@ function Harness() {
       </button>
       {turns.map((turn, index) => (
         <article key={turn.id} data-testid={`turn-${index + 1}`} data-turn-id={turn.id}>
-          {turn.response.periodChoice ? (
+          {turn.response!.periodChoice ? (
             <>
-              <p>{turn.response.periodChoice.prompt}</p>
+              <p>{turn.response!.periodChoice!.prompt}</p>
               <button
                 type="button"
                 disabled={turn.isPending}
                 onClick={() =>
                   void continueTurn(
                     turn.id,
-                    turn.response.periodChoice!.question,
+                    turn.response!.periodChoice!.question,
                     {
-                      ...turn.response.periodChoice!.selection,
-                      timeWindow: turn.response.periodChoice!.options[0]!.timeWindow,
+                      ...turn.response!.periodChoice!.selection,
+                      timeWindow: turn.response!.periodChoice!.options[0]!.timeWindow,
                     },
                     "retain",
                   )
@@ -351,7 +400,7 @@ function Harness() {
               </button>
             </>
           ) : (
-            <p>{turn.response.title}</p>
+            <p>{turn.response!.title}</p>
           )}
           {turn.error && <p role="alert">{turn.error}</p>}
         </article>

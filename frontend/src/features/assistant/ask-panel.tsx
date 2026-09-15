@@ -11,7 +11,7 @@ import {
 } from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/src/lib/api";
 import { formatMoney, formatPercentage } from "../mis/statement-view";
 import { useAsk, type AskTurn } from "./use-ask";
@@ -34,9 +34,18 @@ const PHASE_LABELS = {
 } as const;
 
 export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>) {
-  const { turns, phases, isPending, error, ask, continueTurn } = useAsk();
+  const { turns, phases, isPending, error, scrollTargetId, clearScrollTarget, ask, continueTurn } = useAsk();
   const [draft, setDraft] = useState("");
+  const threadRef = useRef<HTMLDivElement>(null);
   const suggestions = latestSuggestions(turns) ?? SEED_QUESTIONS;
+
+  useEffect(() => {
+    if (surface !== "page" || !scrollTargetId) return;
+    const target = threadRef.current?.querySelector<HTMLElement>(`#${CSS.escape(scrollTargetId)}`);
+    if (!target) return;
+    target.scrollIntoView({ block: "center" });
+    clearScrollTarget();
+  }, [clearScrollTarget, scrollTargetId, surface, turns]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -76,9 +85,9 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
         </div>
       </div>
 
-      <div className="ask-thread" aria-live="polite">
+      <div className="ask-thread" aria-live="polite" ref={threadRef}>
         {turns.map((turn) => (
-          <div className="ask-exchange" key={turn.id}>
+          <div className="ask-exchange" id={surface === "page" ? turn.id : undefined} key={turn.id}>
             <p className="ask-question">{turn.question}</p>
             <Answer turn={turn} isPending={isPending} onAsk={ask} onContinue={continueTurn} />
           </div>
@@ -132,8 +141,21 @@ function Answer({
   ) => Promise<boolean>;
 }>) {
   const { response, question } = turn;
+  if (!response) {
+    if (turn.error)
+      return (
+        <p className="ask-answer ask-failure" role="alert">
+          {turn.error}
+        </p>
+      );
+    return turn.isPending ? (
+      <p className="ask-answer ask-period-status" role="status">
+        Opening this report…
+      </p>
+    ) : null;
+  }
   if (response.responseClass === "success") {
-    return <SuccessAnswer turn={turn} isPending={isPending} onContinue={onContinue} />;
+    return <SuccessAnswer turn={turn} response={response} isPending={isPending} onContinue={onContinue} />;
   }
   if (response.responseClass === "informational") {
     return (
@@ -206,10 +228,12 @@ function Answer({
 
 function SuccessAnswer({
   turn,
+  response,
   isPending,
   onContinue,
 }: Readonly<{
   turn: AskTurn;
+  response: AskResponse;
   isPending: boolean;
   onContinue: (
     turnId: string,
@@ -218,7 +242,6 @@ function SuccessAnswer({
     failurePolicy: "retain" | "clear-on-refusal",
   ) => Promise<boolean>;
 }>) {
-  const { response } = turn;
   const [saving, setSaving] = useState<"save" | "pin">();
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string }>();
 
@@ -569,7 +592,7 @@ function formatForKey(result: ResultTable | undefined, key: string): MeasureForm
 
 function latestSuggestions(turns: AskTurn[]): string[] | undefined {
   for (let index = turns.length - 1; index >= 0; index -= 1) {
-    const suggestions = turns[index]?.response.suggestedQuestions;
+    const suggestions = turns[index]?.response?.suggestedQuestions;
     if (suggestions?.length) return suggestions;
   }
 }

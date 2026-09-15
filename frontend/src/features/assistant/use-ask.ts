@@ -1,14 +1,23 @@
 "use client";
 
 import type { AskPriorTurn, AskResponse, ChatStreamEvent, Selection } from "@3f/contract";
-import { createContext, createElement, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { api } from "@/src/lib/api";
 import { selectionsEqual } from "../exploration/selection-identity.helper";
 
 export interface AskTurn {
   id: string;
   question: string;
-  response: AskResponse;
+  response?: AskResponse;
   isPending?: boolean;
   error?: string;
 }
@@ -18,6 +27,8 @@ interface AskContextValue {
   phases: Array<Extract<ChatStreamEvent, { type: "phase" }>["phase"]>;
   isPending: boolean;
   error: string | null;
+  scrollTargetId: string | null;
+  clearScrollTarget: () => void;
   ask: (question: string) => Promise<void>;
   rerun: (question: string, selection: Selection) => Promise<boolean>;
   continueTurn: (
@@ -37,11 +48,13 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
   const [phases, setPhases] = useState<AskContextValue["phases"]>([]);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scrollTargetId, setScrollTargetId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | undefined>(undefined);
   const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingPhasesRef = useRef<AskContextValue["phases"]>([]);
   const phasesVisibleRef = useRef(false);
   const nextTurnIdRef = useRef(0);
+  const clearScrollTarget = useCallback(() => setScrollTargetId(null), []);
 
   useEffect(() => {
     if (pathname !== "/ask" && pathname !== "/mis-reports") abortRef.current?.abort();
@@ -70,18 +83,23 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     }
   }
 
-  async function run(question: string, selection?: Selection): Promise<boolean> {
+  async function run(question: string, selection?: Selection, reopen = false): Promise<boolean> {
     const trimmed = question.trim();
     if (!trimmed || isPending) return false;
 
     const priorTurns: AskPriorTurn[] = turns.flatMap((turn) =>
-      turn.response.responseClass === "success" && turn.response.selection
+      turn.response?.responseClass === "success" && turn.response.selection
         ? [{ question: turn.question, selection: turn.response.selection }]
         : [],
     );
+    const turnId = reopen ? `ask-turn-${++nextTurnIdRef.current}` : undefined;
     setIsPending(true);
     setError(null);
     clearProgress();
+    if (turnId) {
+      setTurns((current) => [...current, { id: turnId, question: trimmed, isPending: true }]);
+      setScrollTargetId(turnId);
+    }
     const controller = (abortRef.current = new AbortController());
     try {
       const response = selection
@@ -91,10 +109,26 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
             { signal: controller.signal, onPhase: receivePhase },
           );
       clearProgress();
-      setTurns((current) => [...current, { id: `ask-turn-${++nextTurnIdRef.current}`, question: trimmed, response }]);
+      setTurns((current) =>
+        turnId
+          ? current.map((turn) => (turn.id === turnId ? { id: turnId, question: trimmed, response } : turn))
+          : [...current, { id: `ask-turn-${++nextTurnIdRef.current}`, question: trimmed, response }],
+      );
     } catch (caught) {
       clearProgress();
-      if (!isAbort(caught)) setError("The question could not be sent. Try again.");
+      if (turnId) {
+        setTurns((current) =>
+          isAbort(caught)
+            ? current.filter((turn) => turn.id !== turnId)
+            : current.map((turn) =>
+                turn.id === turnId
+                  ? { ...turn, isPending: false, error: "This report could not be reopened. Try again." }
+                  : turn,
+              ),
+        );
+      } else if (!isAbort(caught)) {
+        setError("The question could not be sent. Try again.");
+      }
     } finally {
       abortRef.current = undefined;
       setIsPending(false);
@@ -119,11 +153,19 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     try {
       const response = await api.ask({ question, selection }, { signal: controller.signal });
       setTurns((current) =>
-        current.map((turn) => (turn.id === turnId ? resolveContinueResponse(turn, response, failurePolicy) : turn)),
+        current.map((turn) =>
+          turn.id === turnId && turn.response
+            ? resolveContinueResponse({ ...turn, response: turn.response }, response, failurePolicy)
+            : turn,
+        ),
       );
     } catch (caught) {
       setTurns((current) =>
-        current.map((turn) => (turn.id === turnId ? resolveContinueError(turn, caught, failurePolicy) : turn)),
+        current.map((turn) =>
+          turn.id === turnId && turn.response
+            ? resolveContinueError({ ...turn, response: turn.response }, caught, failurePolicy)
+            : turn,
+        ),
       );
     } finally {
       abortRef.current = undefined;
@@ -140,21 +182,24 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
         phases,
         isPending,
         error,
+        scrollTargetId,
+        clearScrollTarget,
         ask: async (question) => {
           await run(question);
         },
         rerun: (question, selection) => {
+          if (!question.trim() || isPending) return Promise.resolve(false);
           const match = [...turns]
             .reverse()
             .find(
               (turn) =>
-                turn.response.responseClass === "success" &&
+                turn.response?.responseClass === "success" &&
                 turn.response.selection &&
                 selectionsEqual(turn.response.selection, selection),
             );
-          return match
-            ? continueTurn(match.id, match.question, selection, "clear-on-refusal")
-            : run(question, selection);
+          if (!match) return run(question, selection, true);
+          setScrollTargetId(match.id);
+          return continueTurn(match.id, match.question, selection, "clear-on-refusal");
         },
         continueTurn,
       },
@@ -164,7 +209,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
 }
 
 function resolveContinueResponse(
-  turn: AskTurn,
+  turn: AskTurn & { response: AskResponse },
   response: AskResponse,
   failurePolicy: ContinueTurnFailurePolicy,
 ): AskTurn {
@@ -182,7 +227,11 @@ function resolveContinueResponse(
   };
 }
 
-function resolveContinueError(turn: AskTurn, error: unknown, failurePolicy: ContinueTurnFailurePolicy): AskTurn {
+function resolveContinueError(
+  turn: AskTurn & { response: AskResponse },
+  error: unknown,
+  failurePolicy: ContinueTurnFailurePolicy,
+): AskTurn {
   if (failurePolicy === "clear-on-refusal" && isAccessRefusal(error)) {
     return {
       id: turn.id,
@@ -207,7 +256,7 @@ function resolveContinueError(turn: AskTurn, error: unknown, failurePolicy: Cont
 }
 
 function isAbort(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
+  return typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
 }
 
 function isAccessRefusal(error: unknown): boolean {

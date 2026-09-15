@@ -1,0 +1,7 @@
+{
+  "task_id": "reopen-navigation-and-scroll",
+  "branch": "feat/ask-reopen-saved-report-reopen-navigation-and-scroll",
+  "base_main_sha": "71a05e19159b8abd1313ca44d611eb06dfd902a6",
+  "commit": "74a64136ab008b1efa8acb891d7b73f4238a5e0c",
+  "sealed_at": "2026-09-15T18:31:15+00:00"
+}
