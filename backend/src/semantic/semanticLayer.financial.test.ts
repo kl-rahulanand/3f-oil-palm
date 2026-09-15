@@ -39,7 +39,7 @@ test("the governed financial domain registers over the composed actual and budge
         allowedDimensions: ["gl_code", "month"],
         timeColumn: "month",
         defaultTimeGrain: "month",
-        format: undefined,
+        format: "money",
       },
       {
         id: "governed-financial.budget",
@@ -48,7 +48,7 @@ test("the governed financial domain registers over the composed actual and budge
         allowedDimensions: ["gl_code", "month"],
         timeColumn: "month",
         defaultTimeGrain: "month",
-        format: undefined,
+        format: "money",
       },
       {
         id: "governed-financial.percentage",

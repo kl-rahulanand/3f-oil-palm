@@ -1,0 +1,9 @@
+{
+  "event": "done",
+  "id": "Q-0036-464c",
+  "profile": "quickfix",
+  "reason": "Ask renders money measures as raw warehouse strings ('11512712.07') where the MIS Reports screens show the same amounts as Rupees ('Rs 1,15,12,712.07') via formatMoney in statement-view.tsx. MeasureSpec.format and ResultTable.column.format already carry a 'percent' value end to end; widen that union to 'money', declare it on the five amount measures (governed-financial actual/budget, mis-statement actual_net/budget_net/rollover_net) and widen selectionExecutor's formatByKey. Backend half; the Ask rendering follows in a second window.",
+  "started_at": "2026-09-15T04:41:57+00:00",
+  "completed_at": "2026-09-15T04:43:20+00:00",
+  "files": []
+}

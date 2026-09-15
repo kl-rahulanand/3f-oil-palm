@@ -1,7 +1,7 @@
 // Gate 0 — the HTTP API contract shared by frontend + backend.
 
 import { z } from "zod";
-import type { Selection, SelectionFilter } from "./measure";
+import type { MeasureFormat, Selection, SelectionFilter } from "./measure";
 import { authUserSchema } from "./rbac";
 import type { ScopeAttr } from "./rbac";
 
@@ -169,7 +169,7 @@ export interface Chip {
 export type SourcePresence = "matched" | "budget-only" | "actual-only";
 
 export interface ResultTable {
-  columns: { key: string; label: string; numeric: boolean; format?: "percent" }[];
+  columns: { key: string; label: string; numeric: boolean; format?: MeasureFormat }[];
   rows: Array<Record<string, string | number | null>>;
   /** Cells blanked by k-anonymity suppression; corresponding row values are null. */
   suppressedCells?: Array<{ row: number; key: string }>;

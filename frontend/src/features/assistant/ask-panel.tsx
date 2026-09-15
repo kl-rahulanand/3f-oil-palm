@@ -1,11 +1,18 @@
 "use client";
 
-import { type AskResponse, type ChartType, type ProvenanceBatch, type ResultTable } from "@3f/contract";
+import {
+  type AskResponse,
+  type ChartType,
+  type FixedScaleMoney,
+  type MeasureFormat,
+  type ProvenanceBatch,
+  type ResultTable,
+} from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/src/lib/api";
-import { formatPercentage } from "../mis/statement-view";
+import { formatMoney, formatPercentage } from "../mis/statement-view";
 import { useAsk, type AskTurn } from "./use-ask";
 
 const SEED_QUESTIONS = [
@@ -424,16 +431,30 @@ function isNumeric(value: string | number | null): boolean {
   );
 }
 
-function cell(value: string | number | null | undefined, format?: "percent"): string | number {
+function cell(value: string | number | null | undefined, format?: MeasureFormat): string | number {
   if (value === null || value === undefined) return "—";
   // A percent measure is a RATIO in the payload, and it may also carry a sentinel string
   // ("over-budget", "credit / negative actual") that formatPercentage passes through intact.
   if (format === "percent") return formatPercentage(String(value));
+  if (format === "money") return formatAskMoney(value);
   return value;
 }
 
+/**
+ * Ask receives amounts in two shapes the MIS payload never produces: table cells arrive as
+ * numeric(18,2) strings, totals as JS numbers. formatMoney needs a fixed-scale string and
+ * throws on anything else, so normalise first and hand back anything that is not an amount
+ * rather than risk a render crash on a value shape we did not anticipate.
+ */
+function formatAskMoney(value: string | number): string {
+  const text = typeof value === "number" ? (Number.isFinite(value) ? value.toFixed(2) : "") : value.trim();
+  if (!/^-?\d+(\.\d{1,2})?$/.test(text)) return String(value);
+  const [whole, fraction = ""] = text.split(".");
+  return formatMoney(`${whole}.${`${fraction}00`.slice(0, 2)}` as FixedScaleMoney);
+}
+
 /** A total is keyed by its measure key, so its format is the matching column's format. */
-function formatForKey(result: ResultTable | undefined, key: string): "percent" | undefined {
+function formatForKey(result: ResultTable | undefined, key: string): MeasureFormat | undefined {
   return result?.columns.find((column) => column.key === key)?.format;
 }
 
