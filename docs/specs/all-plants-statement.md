@@ -160,11 +160,17 @@ authoritative master.
   configured renders zeros plus the notice.
 
 ## Settled by the task grill (2026-09-15)
-- **The wire carries null, and the frontend lands first.** `MisStatementMeasureBlock.budget`
-  becomes nullable and every block carries `budgetState`; the frontend task widens the
-  contract and renders the dash before the backend task starts sending null, so neither task
-  ever ships a placeholder amount and "never ₹0" holds on the wire as well as on screen.
-  Human-decided.
+- **The wire carries null, and the frontend lands first.** The frontend task adds an
+  optional `budgetState` to the measure block and guards every budget access on it; the
+  backend task then turns the block into a discriminated union (`not-loaded` ⇒ `budget: null`)
+  and adapts the export, so neither task breaks the other side's build, no task ever ships a
+  placeholder amount, and "never ₹0" holds on the wire as well as on screen. Valid wire pairs:
+  loaded or absent state with money; not-loaded with null; a mismatch is a DTO validation
+  error. Human-decided (frontend first); the additive-then-union split settled at the
+  frontend task grill.
+- **The live dash is observed at story closeout.** The backend task carries no functional
+  check, so the story's closeout functional check (required: the decomposition is
+  user-facing) generates H.O, CK and DUB, drills an H.O leaf and exports H.O.
 - **Reading versus returning.** The governed projection already joins the format's budget rows
   for any user granted DUB; for a non-owner plant the service discards them before the
   response and returns no budget amount. A user not granted DUB never receives budget rows
