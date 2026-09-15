@@ -26,7 +26,8 @@
     "The roadmap row is reclassified as a pre-plan baseline change made in commit 39c60bd, owned by no task.",
     "The filename becomes a regression assertion in the controller test; no implementation work.",
     "HUMAN ROUND: the human approved the two-task plan for recording and decomposition.",
-    "HUMAN (task grill, 2026-09-15): widening the statement's Budget field to null breaks the frontend build if the backend does it alone, so the human chose frontend-first ordering \u2014 the frontend task widens the contract and renders the dash, the backend task then sends null. The story plan's Task Decomposition was reordered accordingly; this record is re-bound to the reordered digest."
+    "HUMAN (task grill, 2026-09-15): widening the statement's Budget field to null breaks the frontend build if the backend does it alone, so the human chose frontend-first ordering \u2014 the frontend task widens the contract and renders the dash, the backend task then sends null. The story plan's Task Decomposition was reordered accordingly; this record is re-bound to the reordered digest.",
+    "FRONTEND TASK GRILL (2026-09-15): widening budget in the frontend task would break the backend export typecheck too, so the contract change is split additive-then-union (frontend adds optional budgetState and guards; backend introduces the union with null and adapts export and DTO); the story closeout's functional check is named as the place the live dash is observed. Plan Task Decomposition and C4 amended; re-bound."
   ],
   "open_items": [
     "Non-blocking: the deferred set rides decision 0033's trigger; plant-aware Ask rides decision 0036."
@@ -62,7 +63,7 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "d370d78d144970d4be73b5b537a58453625f30d9a251ae66628ed6412fc5f249",
-  "recorded_at": "2026-09-15T10:19:34+00:00",
-  "commit": "36bd5b0f0faef801dcac31984f6fc6114544d810"
+  "input_sha256": "7ab45aabb07b78f02c91be8be689f8ce254305139bf56114a54d4bd73ed2f406",
+  "recorded_at": "2026-09-15T10:30:42+00:00",
+  "commit": "a399fc4bcd7657784119eceb9e18bb3e9f894edc"
 }

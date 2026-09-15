@@ -2,7 +2,7 @@
 issue: multi-plant
 title: All plants in the MIS statement
 status: approved
-saved: 2026-09-15T10:20:00+00:00
+saved: 2026-09-15T10:30:42+00:00
 story: multi-plant
 decisions_reviewed:
   - 0001-poc-engagement-scope
@@ -101,7 +101,8 @@ DUB's budget off every other plant's statement.
   fails validation. The validator's duplicate-pair rule (`mapping-master.ts:100`) is re-keyed
   to `(plant_canonical, cost_center, gl_code)`, since the same 95 pairs recur per plant.
 - **C4** A non-owner plant's statement carries `budgetState: "not-loaded"` on every block;
-  its Budget, Roll-over and % are null on every row including the Grand Total; no over-budget
+  its Budget, Roll-over and % are null on every row including the Grand Total (valid wire pairs:
+  loaded or absent state → money; not-loaded → null; the two mismatches are rejected by the DTO); no over-budget
   or credit label is computed; the Excel export writes `–` in those cells with a "Budget not
   loaded for this plant" note; the filename already names the plant
   (`mis-statement.controller.ts:145`) and is asserted as a regression, not changed. H.O renders 100% of its
@@ -219,17 +220,26 @@ Budget field to null breaks the frontend build if the backend does it alone, so 
 task widens the contract and renders the dash, and the backend task then sends null.
 
 1. **`all-plants-statement-ui`** (frontend, `user_facing: true`) — C5, C6(client), C7(client)
-   and the contract. Widen `MisStatementMeasureBlock.budget` to nullable and add
-   `budgetState`; add `provisional` / `plantDisplay` to the scope readout and `provisional` to
-   the plant option record; render dash cells with the accessible label and no drill
-   affordance; make the client aggregate drill null-safe; show the provisional mark on header
-   and options. DUB's rendering unchanged. Depends on nothing. Its functional check confirms
-   DUB renders unchanged; the dash is seen live at task 2's close.
+   and the additive half of the contract. Add an OPTIONAL `budgetState` to the measure block
+   (no widening of `budget` yet — widening breaks the backend export's typecheck, found by the
+   task grill), optional `provisional` / `plantDisplay` on the scope readout and optional
+   `provisional` on the plant option; guard EVERY budget access on `budgetState` so the
+   not-loaded branch never touches the amount; render dash cells with the accessible label and
+   no drill affordance; make the aggregate drill null-safe under the same guard; render the
+   header from `plantDisplay ?? plant` with a styled "Provisional labels" mark, and a plain
+   text suffix on the native plant options. DUB's rendering unchanged. Depends on nothing. Its
+   functional check confirms DUB renders unchanged.
 2. **`all-plants-backend`** (backend, `user_facing: false`) — C1, C2, C3, C4, C6(server), C7,
    C8, C9. The generator, classification table, shared outline helper, regenerated master with
-   owner and re-keyed validator, the fixtures, the budget-owner rule sending null with
-   `budgetState`, the grant-independent outline pin through the outline repository, the export
-   dash, the `SEED_USERS` plant field, the warehouse-backed proofs. Depends on task 1.
+   owner and re-keyed validator, the fixtures, the budget-owner rule, and the second half of
+   the contract: the measure block becomes a discriminated union (`budgetState?: "loaded"`
+   with money, or `budgetState: "not-loaded"` with `budget: null`), the export and DTOs adapt,
+   and the frontend already narrows on the discriminant so its build stays green; the
+   grant-independent outline pin through the outline repository, the `SEED_USERS` plant field,
+   the warehouse-backed proofs. Depends on task 1. Because a backend task carries no
+   functional check, the **story closeout's functional check** (the decomposition is
+   `user_facing: true`) is where the live dash, H.O and the drill are observed; it is
+   required, not optional, and named in the closeout.
 
 ## Risks
 - **The backend task is one session by design.** It spans the generator, the master and the

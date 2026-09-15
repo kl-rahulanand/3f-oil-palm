@@ -33,7 +33,8 @@
     "Ledger: decision 0027 governs residency unchanged; the stale 'decide later' line is not re-opened.",
     "HUMAN RE-SCOPE (after plan approval, before decomposition): the human asked why the story was so large and chose 'small plus the Ask plant fix'. Decision 0033 (budget owner plant, not-loaded state; supersedes 0030) and decision 0034 (plant from statementGrounding or the question; supersedes 0032) were accepted, confirmed by Rahul Anand, and the spec was amended in place: the deferred set is named under Open items with a trigger, the drill and upload sections describe the shipped contracts, and the acceptance criteria were reduced accordingly.",
     "HUMAN RE-SCOPE 2 (2026-09-15): the human cut the story to its minimum \u2014 seed the master for every plant, show a dash for Budget and % on every non-owner plant, leave transactions and drill-down as they are, no assistant changes. Decision 0035 (supersedes 0029) and 0036 (supersedes 0034; assistant untouched) accepted, confirmed by Rahul Anand; the spec's Ask section and criterion 8 reduced accordingly and the roadmap item's criteria cut to match.",
-    "TASK GRILL SETTLEMENTS (2026-09-15) recorded in the spec: the wire carries null and the frontend task lands first (human-decided); 'no amount is returned' replaces 'no amount is read'; decision 0036 governs the Ask view's DUB literal; the proof split between hermetic resolution leaves and the warehouse-backed statement proof. Re-bound to the spec digest after that in-place amendment."
+    "TASK GRILL SETTLEMENTS (2026-09-15) recorded in the spec: the wire carries null and the frontend task lands first (human-decided); 'no amount is returned' replaces 'no amount is read'; decision 0036 governs the Ask view's DUB literal; the proof split between hermetic resolution leaves and the warehouse-backed statement proof. Re-bound to the spec digest after that in-place amendment.",
+    "FRONTEND TASK GRILL (2026-09-15): spec settled notes refined \u2014 additive-then-union contract split and the closeout functional check; re-bound to the spec digest."
   ],
   "open_items": [
     "Non-blocking: whether DHS, DHS2 and Belagum in the format's Plant list are DMHS and two plants not yet in the extract \u2014 display names only.",
@@ -73,7 +74,7 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "a35b1e14aedcdf500a47021ac5dd6a9685abfc9cb99b9517aa000fc5968361c6",
-  "recorded_at": "2026-09-15T10:19:59+00:00",
-  "commit": "89d14fdc680b1ea6c0a0e68e9d8d6655baa3e964"
+  "input_sha256": "e9681c454c3a99c39ca1f1619f431061e4aadf7a9d8031065c4926608c4d6001",
+  "recorded_at": "2026-09-15T10:30:42+00:00",
+  "commit": "a399fc4bcd7657784119eceb9e18bb3e9f894edc"
 }

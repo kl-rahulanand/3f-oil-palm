@@ -31,49 +31,66 @@ first seen live at the backend task's close.
 ## Read before you write
 - `contract/src/api.ts:236` (`MisSelectionScopeReadout`), `:232` (plant option record),
   `:285` (`MisStatementMeasureBlock`). The backend's DTO classes `implements` these
-  interfaces, so every NEW field must be **optional** and `budget` widens to
-  `FixedScaleMoney | null` (a class property typed `FixedScaleMoney` still satisfies it). The
-  backend build must stay green without any backend edit — run `npm run typecheck` for all
-  three workspaces.
+  interfaces and `mis-statement-export.service.ts:80` passes `block.budget` to
+  `writeMoney(FixedScaleMoney)`, so every NEW field must be **optional** and `budget` must NOT
+  be widened here. The backend build must stay green without any backend edit — run
+  `npm run typecheck` for all three workspaces.
 - `frontend/src/features/mis/statement-view.tsx:241-270` — `MeasureCells` renders
   `formatMoney(measure.budget)`, the empty Roll-over cell (`aria-label="Roll-over
   unavailable"`), the Actual button and `formatPercentage`. `:286` — `formatMoney` takes a
   non-null `FixedScaleMoney`; keep it that way and branch above it.
 - `frontend/src/features/mis/drill-panel.tsx:394,438-445` — the aggregate view formats
   `measure.budget` per leaf and sums `toPaise(measure.budget)`; `foots` compares budget paise.
-- `frontend/src/features/mis/mis-report-view.tsx:64-68` — plant options rendered from
-  `{ value, label }`.
+- `frontend/src/features/mis/mis-report-view.tsx:64-68,154` — plant options rendered as native
+  `<option>` elements from `{ value, label }`; `statement-view.tsx:47` — the header renders
+  `scope.plant` today and gains `plantDisplay`.
 
 ## Contract
 
-### The contract change (this task owns `contract/src/api.ts`)
-- `MisStatementMeasureBlock.budget: FixedScaleMoney | null`; new optional
-  `budgetState?: "loaded" | "not-loaded"`. A missing `budgetState` means loaded (every
-  response today).
+### The contract change (this task owns `contract/src/api.ts`) — additive only
+- `MisStatementMeasureBlock` gains `budgetState?: "loaded" | "not-loaded"`. **`budget` is NOT
+  widened here**: the backend export passes it to `writeMoney(FixedScaleMoney)` and the
+  backend DTO class implements the interface, so widening would break the backend typecheck
+  that `verify.py` runs. The backend task turns the block into a discriminated union
+  (`{ budgetState?: "loaded"; budget: FixedScaleMoney }` | `{ budgetState: "not-loaded";
+  budget: null }`) and adapts its own call sites; this task's job is to make the frontend
+  narrow correctly NOW so that later widening compiles unchanged.
 - `MisSelectionScopeReadout` gains optional `provisional?: boolean` and `plantDisplay?: string`.
-- The plant option record gains optional `provisional?: boolean`.
+  The plant option record gains optional `provisional?: boolean`.
 - No other contract change; no backend file is touched.
 
+### Guard, never touch
+- One shared helper `isBudgetNotLoaded(block)` (`block.budgetState === "not-loaded"`) is the
+  only way the frontend decides. Every read of `budget`, and every `percentage` render for a
+  block, happens in the `else` branch of that guard, so when the backend task narrows the
+  union the loaded branch still sees `FixedScaleMoney`. Interim test fixtures for a not-loaded
+  block are built through a small factory that casts (`as unknown as MisStatementMeasureBlock`)
+  with a comment naming the backend task that removes the cast; the guard makes the amount
+  irrelevant.
+- Wire invariant, tested: absent or `"loaded"` state renders money; `"not-loaded"` renders the
+  dash whatever the amount field holds; the backend task adds the DTO-side rejection of the
+  two mismatches.
+
 ### Dash cells
-- When a block's `budgetState` is `"not-loaded"` (or `budget` is null), Budget, Roll-over and
-  % cells render `–` with `aria-label="Budget not loaded for this plant"`; they carry no
-  button and no pointer affordance. This applies to leaf rows, parent rows and the Grand Total
-  row alike. Actual cells are untouched: same button, same label, same drill.
+- When `isBudgetNotLoaded(block)`, Budget, Roll-over and % cells render `–` with
+  `aria-label="Budget not loaded for this plant"`; they carry no button and no pointer
+  affordance. This applies to leaf rows, parent rows and the Grand Total row alike, proven
+  separately for each. Actual cells are untouched: same button, same label, same drill.
 - A loaded block, and a block with no `budgetState`, render exactly as today — the existing
   statement-view tests must pass unchanged.
 
 ### Null-safe aggregate drill
-- In the aggregate view, a null budget renders as `–` per leaf; the footer's Budget and %
-  render as `–`; no `toPaise` is called on a null; `foots` compares Actual paise only when the
-  clicked block is not-loaded. Clicking any Actual on a not-loaded block opens the panel
-  without throwing. The transactions view is unchanged.
+- Under the same guard the aggregate view renders `–` per leaf for Budget and %, the footer's
+  Budget and % render `–`, no `toPaise` runs on the budget, and `foots` compares Actual paise
+  only. Proven for a parent Actual (aggregate path) and the Grand Total (flattened roots);
+  the leaf Actual (transactions path) is unchanged and asserted unchanged.
 
-### Provisional mark
-- The statement header shows a small mark reading "Provisional labels" next to the
-  function / plant line when `scope.provisional` is true; the plant option label appends the
-  same mark when the option's `provisional` is true. DUB (provisional false or absent) shows
-  nothing. The mark reads as "awaiting the client's names", never as an error (no error
-  colour, no icon that reads as a warning).
+### Provisional labels
+- Header: renders `scope.plantDisplay ?? scope.plant` and, when `scope.provisional` is true, a
+  small styled mark "Provisional labels" beside the function / plant line (no error colour, no
+  warning icon; a token class in `globals.css`). A native `<option>` cannot host a styled
+  element, so the plant option label gets a plain text suffix ` — Provisional labels` when the
+  option's `provisional` is true. DUB (false or absent) shows neither.
 
 ### Design
 `user_facing: true`: load `emil-design-eng` and `frontend-design` and attest both in the test
@@ -83,7 +100,9 @@ assistive tech, and the provisional mark matches the surrounding type weight. Re
 existing tokens in `frontend/app/globals.css`; add a class, not inline styles.
 
 ## Manual Verification
-1. `npm run typecheck` (contract, backend, frontend) green with no backend edit.
+1. `npm run typecheck` (contract, backend, frontend) green with no backend edit; then, as a
+   local experiment only (not committed), widen `budget` to nullable in the contract and
+   confirm the FRONTEND still typechecks — that is what the guard buys the backend task.
 2. Generate the DUB statement on `/mis-reports`: byte-identical rendering to before.
 3. With a fixture-driven story (vitest), a not-loaded block shows dashes on every row
    including Grand total and the Actual buttons still open the drill.
@@ -100,15 +119,16 @@ name and executed count. None of the files in scope is in `.prettierignore` (che
 
 Rendered by the harness from the recorded decomposition; edit the decomposition, not this block. It is excluded from the plan's approval and grill digests, so a re-render never stales either.
 
-**Objective.** Widen the shared contract so a statement block can carry a null Budget with a budgetState flag, and render that state: Budget, Roll-over and % show a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no drill affordance on those cells, while Actual cells stay drillable and unchanged. Make the client-side aggregate drill null-safe. Show the provisional mark for non-DUB selections in the statement header and on the plant options. Lands first (human-decided) so the backend task can send null without breaking the build; DUB renders exactly as today.
+**Objective.** Add the additive half of the contract (an optional budgetState on the measure block, optional provisional/plantDisplay on the scope readout, optional provisional on the plant option) and make the frontend guard every budget access on budgetState, so the backend task can later turn the block into a discriminated union with budget null without breaking either build. Render the not-loaded state: Budget, Roll-over and % show a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no drill affordance on those cells, while Actual cells stay drillable and unchanged; make the aggregate drill null-safe under the same guard; render the header from plantDisplay with a styled 'Provisional labels' mark and a plain text suffix on the native plant options. Lands first (human-decided); DUB renders exactly as today.
 
 **Acceptance criteria**
 
-- contract/src/api.ts: MisStatementMeasureBlock.budget becomes FixedScaleMoney | null with an optional budgetState ('loaded' | 'not-loaded', absent means loaded); MisSelectionScopeReadout gains optional provisional and plantDisplay; the plant option record gains optional provisional. No backend file changes and npm run typecheck stays green for all three workspaces.
-- On a not-loaded block, Budget, Roll-over and % render a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no button and no pointer affordance on those cells; Actual cells are unchanged and stay drillable; a loaded block and a block without budgetState render exactly as before and the existing statement-view tests pass unchanged.
-- The client-side aggregate drill renders null budgets as dashes, shows a dashed Budget and % footer, calls no paise arithmetic on null, and foots Actual only for a not-loaded block, so clicking any Actual on a not-loaded block opens the panel without throwing; the transactions view is unchanged.
-- The statement header and the plant option labels show a 'Provisional labels' mark when the scope readout or the option carries provisional true, nothing for DUB, styled to read as awaiting the client's names rather than as an error; emil-design-eng and frontend-design are loaded and attested.
-- Vitest leaves cover the dash cells and label, the absent pointer affordance, the unchanged loaded rendering, the null-safe aggregate drill and the provisional mark, each judged by testcase name and executed count; the functional check confirms DUB renders unchanged (the dash is seen live at the backend task's close).
+- contract/src/api.ts: MisStatementMeasureBlock gains optional budgetState ('loaded' | 'not-loaded'); budget is NOT widened (the backend export and DTO would fail to typecheck); MisSelectionScopeReadout gains optional provisional and plantDisplay; the plant option record gains optional provisional. No backend file changes and npm run typecheck stays green for all three workspaces.
+- One shared guard (budgetState === 'not-loaded') is the only way the frontend decides; every read of budget and every percentage render sits in its else-branch, so when the backend task narrows the union the loaded branch still sees FixedScaleMoney. Wire invariant tested: absent or loaded state renders money; not-loaded renders the dash whatever the amount field holds.
+- On a not-loaded block, Budget, Roll-over and % render a dash with the accessible label 'Budget not loaded for this plant' with no button and no pointer affordance, proven separately for a leaf row, a parent row and the Grand Total row; Actual cells are unchanged and stay drillable; a loaded block and a block without budgetState render exactly as before and the existing statement-view tests pass unchanged.
+- Under the same guard the aggregate drill renders dashes for Budget and %, shows a dashed Budget and % footer, calls no paise arithmetic on the budget and foots Actual only, proven for a parent Actual and for the Grand Total; the leaf Actual transactions path is asserted unchanged.
+- The header renders scope.plantDisplay ?? scope.plant and, when scope.provisional is true, a styled 'Provisional labels' mark (token class, no error colour, no warning icon); a native plant option whose provisional is true gets the plain text suffix ' — Provisional labels'; DUB shows neither; emil-design-eng and frontend-design are loaded and attested.
+- Vitest leaves cover each of the above, judged by testcase name and executed count; the functional check confirms DUB renders unchanged; the live dash is observed at the story closeout's functional check after the backend task.
 
 **Write scope** (what `stage done` measures the diff against)
 
@@ -118,15 +138,17 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 **Required tests** (run by `stage done`)
 
-- `a not loaded block renders a dash with the not loaded label in budget rollover and percentage on every row including the grand total with no drill affordance on those cells` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
-- `a loaded block and a block without a budget state render exactly as before` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
-- `the statement header shows the provisional labels mark from the scope readout and nothing for DUB` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
-- `the aggregate drill renders null budgets as dashes with a dashed footer and performs no paise arithmetic on null` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/drill-panel.test.tsx)
-- `a plant option carrying provisional renders the provisional labels mark in its label` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/mis-report-view.test.tsx)
+- `a not loaded leaf row renders a dash with the not loaded label in budget rollover and percentage with no drill affordance on those cells while the actual stays a drill button` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
+- `a not loaded parent row and the grand total row render the same dashes and labels` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
+- `a loaded block and a block without a budget state render exactly as before whatever the amount holds only the state decides` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
+- `the header renders the plant display name and the provisional labels mark from the scope readout and nothing for DUB` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/statement-view.test.tsx)
+- `the aggregate drill on a not loaded parent and on the grand total renders dashed budgets and a dashed footer and performs no paise arithmetic on the budget` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/drill-panel.test.tsx)
+- `the leaf actual transactions path is unchanged for a not loaded block` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/drill-panel.test.tsx)
+- `a plant option carrying provisional renders the plain text provisional labels suffix` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}` (frontend/src/features/mis/mis-report-view.test.tsx)
 
 **Verify commands**
 
 - `python3 factory/scripts/verify.py`
 
-**Review budget.** 8 files / 700 lines -- One additive contract change, a branch in MeasureCells, a null-safe aggregate drill, one small mark component with a class, five vitest leaves. No backend.
+**Review budget.** 9 files / 800 lines -- One additive contract change, one guard helper, a branch in MeasureCells and in the aggregate drill, the header display name and mark, the option suffix, a token class, seven vitest leaves. No backend.
 <!-- /forge:contract -->
