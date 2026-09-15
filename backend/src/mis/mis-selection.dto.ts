@@ -66,10 +66,10 @@ class MisSelectionPlantOptionDto {
   @ApiProperty({ example: false })
   provisional!: boolean;
 
-  @ApiPropertyOptional({ example: "Agriculture" })
+  @ApiPropertyOptional({ example: "Agriculture", description: "Optional department classification for this plant." })
   department?: string;
 
-  @ApiPropertyOptional({ example: "Nursery" })
+  @ApiPropertyOptional({ example: "Nursery", description: "Optional function classification for this plant." })
   function?: string;
 }
 

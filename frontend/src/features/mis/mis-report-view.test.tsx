@@ -275,6 +275,30 @@ test("changing a department or function clears a plant that no longer matches", 
   expect(screen.getByLabelText("Plant")).toHaveValue("");
 });
 
+test("metadata-free plants leave the other selectors editable and generate", async () => {
+  mocks.misOptions.mockResolvedValue({
+    ...options,
+    plants: [{ value: "DUB", label: "DUB", aliases: [] }],
+  });
+  mocks.runMisStatement.mockResolvedValue(statement);
+  renderWithQuery(<MisReportView />);
+
+  fireEvent.change(await screen.findByLabelText("Plant"), { target: { value: "DUB" } });
+  fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Agriculture" } });
+  fireEvent.change(screen.getByLabelText("Function"), { target: { value: "Nursery" } });
+  fireEvent.change(screen.getByLabelText("Period"), { target: { value: "2026-07-01" } });
+  fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+
+  await waitFor(() =>
+    expect(mocks.runMisStatement).toHaveBeenCalledWith({
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+    }),
+  );
+});
+
 function chooseSelection() {
   fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Agriculture" } });
   fireEvent.change(screen.getByLabelText("Function"), { target: { value: "Nursery" } });
