@@ -1,7 +1,7 @@
 {
   "id": "ask-period-continuation",
   "title": "Render the period choice and continue deterministically",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-15T07:35:31+00:00",
   "base_sha": "8242f1bcd844a72ce99b93ee8158ee2d844878e3",
   "dirty_at_start": {
@@ -18,5 +18,29 @@
       "git": "? .factory/stories/ask-period-control/task-plans/ask-period-continuation.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "91fd6e3bfd62971b8efe971a62bdfa36c7b20fea6bf4319223baa3035954d4a0"
+  "task_sha256": "91fd6e3bfd62971b8efe971a62bdfa36c7b20fea6bf4319223baa3035954d4a0",
+  "local_review_stamp": {
+    "stage_id": "ask-period-continuation",
+    "base_sha": "8242f1bcd844a72ce99b93ee8158ee2d844878e3",
+    "delta_id": "47ed09d8bc4a8955f3ed211a6b482c0e043dfe54b2766caae472095ada19ed92",
+    "contract_sha256": "91fd6e3bfd62971b8efe971a62bdfa36c7b20fea6bf4319223baa3035954d4a0",
+    "recorded_at": "2026-09-15T07:49:55+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-15T07:49:56+00:00",
+  "measured": {
+    "strays": [],
+    "files": 5,
+    "lines": 338,
+    "budget": {
+      "files": 5,
+      "lines": 600
+    },
+    "test_id_misses": []
+  }
 }

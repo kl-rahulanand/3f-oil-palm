@@ -1,0 +1,118 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "ask-period-continuation",
+  "score": 10,
+  "summary": "quality lens over ask-period-continuation (5 product path(s), 8242f1b..8c41d83, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-apc-c1: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:129 renders periodChoice while preserving the clarify.options branch\nVERDICT t-apc-c2: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:143 constructs a selection with the chosen timeWindow\nVERDICT t-apc-c3: implemented \u2014 frontend/src/features/assistant/use-ask.ts:105 sends the supplied question without trimming it\nVERDICT t-apc-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:86 assigns stable turn ids and ask-panel.tsx:75 uses them\nVERDICT t-apc-c5: implemented \u2014 frontend/src/features/assistant/use-ask.ts:108 replaces only on success and retains the clarification for other responses or failures\nVERDICT t-apc-c6: implemented \u2014 frontend/src/features/assistant/use-ask.ts:95 preserves the global isPending concurrency guard while tracking presentation state per turn\nVERDICT t-apc-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:370 and frontend/src/features/assistant/use-ask.test.tsx:52 cover the required frontend behaviors with named tests\nVERDICT t-apc-c8: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:131 and frontend/app/globals.css:1497 provide compact, legible pending and failure states; external skill-recorder evidence is outside the supplied diff\nThe supplied change implements the continuation flow without retyping the question, preserves stable turn targeting and existing global concurrency, and keeps recoverable clarifications available after non-success and transport outcomes. No actionable P0\u2013P2 defect is demonstrated by the provided evidence.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-apc-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:129 renders periodChoice while preserving the clarify.options branch"
+    },
+    {
+      "contract_id": "t-apc-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:143 constructs a selection with the chosen timeWindow"
+    },
+    {
+      "contract_id": "t-apc-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:105 sends the supplied question without trimming it"
+    },
+    {
+      "contract_id": "t-apc-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:86 assigns stable turn ids and ask-panel.tsx:75 uses them"
+    },
+    {
+      "contract_id": "t-apc-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:108 replaces only on success and retains the clarification for other responses or failures"
+    },
+    {
+      "contract_id": "t-apc-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:95 preserves the global isPending concurrency guard while tracking presentation state per turn"
+    },
+    {
+      "contract_id": "t-apc-c7",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:370 and frontend/src/features/assistant/use-ask.test.tsx:52 cover the required frontend behaviors with named tests"
+    },
+    {
+      "contract_id": "t-apc-c8",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:131 and frontend/app/globals.css:1497 provide compact, legible pending and failure states; external skill-recorder evidence is outside the supplied diff"
+    },
+    {
+      "contract_id": "t-apcb-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c7",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c8",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c9",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c10",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "2a725e2cd1b8ba2a4717254304cc22589e1f0ad8189961ae55dec60782dbe6f2",
+  "brief_sha256": "89d22132adc7f6dfa84175ffb76367bce847ad62d77de5b919a3664fad9931cd",
+  "branch_diff_digest": "47ed09d8bc4a8955f3ed211a6b482c0e043dfe54b2766caae472095ada19ed92",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T07:49:54+00:00",
+  "commit": "8c41d83cb0f005aa5d25d75e597d02b0bf3e3f28"
+}
