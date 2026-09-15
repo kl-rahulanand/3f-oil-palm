@@ -1,22 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "all-plants-backend",
-  "score": 4,
-  "summary": "security lens over all-plants-backend (34 product path(s), 6cd492d..995598f, Codex via the autoreview skill at --max-priority P2): 2 blocking, 0 non-blocking. The statement service has a TOCTOU race between pinning the outline batch and querying statement amounts, so a concurrent budget replacement can produce an internally inconsistent financial response. The diff also retains an explicitly forbidden legacy test path. Both are blocking defects under the supplied contracts.",
-  "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "[P1] Execute statement data against the atomically pinned budget batch (backend/src/mis/mis-statement.service.ts:90): The outline and its batch ID are read first, but each block is then executed independently against whichever budget batch is active at that later instant."
-    },
-    {
-      "category": "maintainability",
-      "area": "backend/src/mis",
-      "summary": "[P1] Remove the retained legacy outline path from the test double (backend/src/mis/mis-statement.service.test.ts:468): `FakeOutlines` still implements the superseded `findByBudgetPeriod` path solely to throw when the service calls it, supported by the `legacyOutlineForbidden` branch and legacy-named fixture option."
-    }
-  ],
+  "score": 10,
+  "summary": "security lens over all-plants-backend (35 product path(s), 6cd492d..87a05be, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defects are demonstrated by the change bundle. Plant authorization remains enforced at the service seam, seeded plant grants are validated and reconciled, non-owner responses suppress budget amounts and derived labels, the outline query escapes interpolated values, and the destructive warehouse proof checks for a local host before setup. No real credentials or compatibility leftovers are present.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "README.md",
     "backend/package.json",
@@ -43,6 +32,7 @@
     "backend/src/mis/mis-statement.dto.ts",
     "backend/src/mis/mis-statement.service.test.ts",
     "backend/src/mis/mis-statement.service.ts",
+    "backend/src/warehouse/__fixtures__/dub-statement-baseline.json",
     "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
     "backend/src/warehouse/selection-slice.db.test.ts",
     "backend/src/warehouse/statement-outline.interface.ts",
@@ -55,10 +45,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "156c7e46bc870b18eff7b3ef0af2e2ff42970765e92f42f59572eeeab97d699c",
-  "brief_sha256": "0a16f049d30c68e16aa9a610f4ec0160ee3b1a4743d206548c757bd7d88f4f2e",
-  "branch_diff_digest": "325f84322e8540c2b733ef34fd60f2fa55b3649292ff6b4101edefb3bfb3f28c",
+  "review_run_id": "bef7d96d803d3cce7bb8fa6affb49451ed0967863d35901f70e3ee1bbbf8f6d6",
+  "brief_sha256": "790a680e48a84b408a6cd4923b24ad10086a7bd45a5ce89847fd63c3963831cb",
+  "branch_diff_digest": "638b1aa013ad929ecda7e4bf294c42179acec8f7029053436aea25813754d1e8",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T13:44:25+00:00",
-  "commit": "995598f0f071621d2e9ad4a5727501e2dca7b815"
+  "recorded_at": "2026-09-15T14:04:02+00:00",
+  "commit": "87a05be7a71859c37c349203818f96df2d2b78f1"
 }
