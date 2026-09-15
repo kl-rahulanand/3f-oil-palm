@@ -80,7 +80,7 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
         {turns.map((turn) => (
           <div className="ask-exchange" key={turn.id}>
             <p className="ask-question">{turn.question}</p>
-            <Answer turn={turn} onAsk={ask} onContinue={continueTurn} />
+            <Answer turn={turn} isPending={isPending} onAsk={ask} onContinue={continueTurn} />
           </div>
         ))}
         {phases.length > 0 && (
@@ -117,15 +117,19 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
 
 function Answer({
   turn,
+  isPending,
   onAsk,
   onContinue,
 }: Readonly<{
   turn: AskTurn;
+  isPending: boolean;
   onAsk: (question: string) => Promise<void>;
   onContinue: (turnId: string, question: string, selection: Selection) => Promise<boolean>;
 }>) {
   const { response, question } = turn;
-  if (response.responseClass === "success") return <SuccessAnswer response={response} />;
+  if (response.responseClass === "success") {
+    return <SuccessAnswer turn={turn} isPending={isPending} onContinue={onContinue} />;
+  }
   if (response.responseClass === "informational") {
     return (
       <article className="ask-answer ask-information">
@@ -190,7 +194,16 @@ function Answer({
   return <p className="ask-answer ask-failure">{response.message}</p>;
 }
 
-function SuccessAnswer({ response }: Readonly<{ response: AskResponse }>) {
+function SuccessAnswer({
+  turn,
+  isPending,
+  onContinue,
+}: Readonly<{
+  turn: AskTurn;
+  isPending: boolean;
+  onContinue: (turnId: string, question: string, selection: Selection) => Promise<boolean>;
+}>) {
+  const { response } = turn;
   const [saving, setSaving] = useState<"save" | "pin">();
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string }>();
 
@@ -225,7 +238,7 @@ function SuccessAnswer({ response }: Readonly<{ response: AskResponse }>) {
   }
 
   return (
-    <article className="ask-answer ask-success">
+    <article className="ask-answer ask-success" aria-busy={turn.isPending || undefined}>
       {response.provenance?.verified && <span className="ask-verified">✓ Verified</span>}
       {response.title && <h2>{response.title}</h2>}
       {response.totals && (
@@ -241,6 +254,43 @@ function SuccessAnswer({ response }: Readonly<{ response: AskResponse }>) {
       {response.result && <ResultVisual result={response.result} chartType={response.chartType} />}
       {response.provenance && <ProvenanceDisclosure provenance={response.provenance} />}
       <ViewInReport response={response} />
+      {response.periodControl &&
+        (response.periodControl.current === null ? (
+          <p className="ask-period-coverage">{response.periodControl.coverage}</p>
+        ) : (
+          <label className="ask-period-control">
+            <span>Period</span>
+            <select
+              value={response.periodControl.current}
+              disabled={isPending}
+              onChange={(event) => {
+                const option = response.periodControl?.options.find(({ value }) => value === event.target.value);
+                if (option && response.selection) {
+                  void onContinue(turn.id, turn.question, {
+                    ...response.selection,
+                    timeWindow: option.timeWindow,
+                  });
+                }
+              }}
+            >
+              {response.periodControl.options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      {turn.isPending && (
+        <p className="ask-period-status" role="status">
+          Loading the selected period…
+        </p>
+      )}
+      {turn.error && (
+        <p className="ask-period-error" role="alert">
+          {turn.error}
+        </p>
+      )}
       {response.selection && (
         <div className="ask-preserve-actions">
           <button
