@@ -8,7 +8,7 @@ import { usePinnedReports } from "./use-exploration";
 
 export function PinnedReports() {
   const router = useRouter();
-  const { rerun } = useAsk();
+  const { isPending: isAskPending, rerun } = useAsk();
   const { items, isPending, loadError, deleteError, deletingId, remove } = usePinnedReports();
   const pins = [...items].sort((left, right) => left.position - right.position);
   const [openErrorId, setOpenErrorId] = useState<string>();
@@ -62,10 +62,14 @@ export function PinnedReports() {
                         <button
                           className="exploration-open"
                           type="button"
-                          onClick={async () => {
+                          onClick={() => {
                             setOpenErrorId(undefined);
-                            if (await rerun(label.title, pin.selection)) router.push("/ask");
-                            else setOpenErrorId(pin.id);
+                            if (isAskPending) {
+                              setOpenErrorId(pin.id);
+                              return;
+                            }
+                            router.push("/ask");
+                            void rerun(label.title, pin.selection);
                           }}
                         >
                           Open

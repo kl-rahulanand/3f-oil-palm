@@ -1,0 +1,138 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "reopen-navigation-and-scroll",
+  "score": 7,
+  "summary": "quality lens over reopen-navigation-and-scroll (9 product path(s), 71a05e1..0277891, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The navigation, immediate placeholder, busy-path, and refusal behavior are implemented, but target scrolling remains unreliable when the docked panel precedes the page panel in the DOM.\nVERDICT t-rns-c1: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:71 and frontend/src/features/exploration/saved-views.tsx:68 push before invoking rerun\nVERDICT t-rns-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:96 appends one pending turn which is later replaced or settled\nVERDICT t-rns-c3: implemented \u2014 frontend/src/features/assistant/use-ask.ts:202 delegates matched opens to continueTurn without appending\nVERDICT t-rns-c4: partial \u2014 frontend/src/features/assistant/ask-panel.tsx:43 uses a document-wide lookup that can select the docked duplicate\nVERDICT t-rns-c5: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:67 rejects the busy path before navigation, with equivalent saved-view handling\nVERDICT t-rns-c6: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:71 and frontend/src/features/exploration/saved-views.tsx:68 share the navigate-first behavior\nVERDICT t-rns-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:143 renders the reopened turn's own error\nVERDICT t-rns-c8: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:755 adds coverage without changing the existing leaf bodies\nNo compatibility leftovers are introduced by the shown diff.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "[P1] Scope the scroll lookup to the page panel (frontend/src/features/assistant/ask-panel.tsx:43): When page and docked panels coexist, both render turns with the same DOM ids."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria",
+      "summary": "t-rns-c4: The panel scrolls the target turn into view, reused or new. AskTurn.id is the handle and already exists. A leaf asserts scrollIntoView is called for the target - it must be mocked, as jsdom does not implement it."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/pinned-reports.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
+    "frontend/src/features/exploration/saved-views.tsx"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-rns-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:71 and frontend/src/features/exploration/saved-views.tsx:68 push before invoking rerun"
+    },
+    {
+      "contract_id": "t-rns-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:96 appends one pending turn which is later replaced or settled"
+    },
+    {
+      "contract_id": "t-rns-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:202 delegates matched opens to continueTurn without appending"
+    },
+    {
+      "contract_id": "t-rns-c4",
+      "verdict": "partial",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:43 uses a document-wide lookup that can select the docked duplicate"
+    },
+    {
+      "contract_id": "t-rns-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:67 rejects the busy path before navigation, with equivalent saved-view handling"
+    },
+    {
+      "contract_id": "t-rns-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:71 and frontend/src/features/exploration/saved-views.tsx:68 share the navigate-first behavior"
+    },
+    {
+      "contract_id": "t-rns-c7",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:143 renders the reopened turn's own error"
+    },
+    {
+      "contract_id": "t-rns-c8",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:755 adds coverage without changing the existing leaf bodies"
+    },
+    {
+      "contract_id": "t-rip-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c7",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c8",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c9",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c10",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-rip-c12",
+      "verdict": "implemented",
+      "evidence": "shipped under reopen-identity-and-policy at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "2d7fd0b37706b50a60d77ac5296facef635bf5cb1fe1cef4a2bb77e939ee28f1",
+  "brief_sha256": "f8780d6bceda21dad7b90405fa3e0593ad596dc71d474c029b4577dbb5ff1c4f",
+  "branch_diff_digest": "15afd2b2c77637dc15441b36f9a53fd471b271acfef0e01db0c53efbe8325885",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T18:21:03+00:00",
+  "commit": "0277891807aee8413000985061625f62ed72d3cc"
+}

@@ -1,0 +1,77 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "reopen-navigation-and-scroll",
+  "verdict": "pass",
+  "current_flow": "Task 1 shipped the seam: rerun (use-ask.ts:146) finds the most recent successful turn whose response.selection is structurally equal via selectionsEqual and routes it to continueTurn with the 'clear-on-refusal' policy, otherwise falls back to run(). What remains untouched is the VISIBLE half: both Open handlers still do `if (await rerun(...)) router.push('/ask')` (pinned-reports.tsx:67, saved-views.tsx:64), so the user waits on the Dashboard with no feedback; run() appends a turn only once the response resolves; and there is still no scrollIntoView anywhere in ask-panel.tsx. AskProvider wraps children in the authenticated layout, so it survives the navigation.",
+  "summary": "Cold read of the reopen-navigation-and-scroll contract. Three findings, all structural rather than behavioural: the required visible pending row had no representation, because AskTurn.response is mandatory and the panel renders only response-based states; the scroll had no way to learn its target, since rerun returns a boolean; and navigate-first as written would have navigated even when useAsk was about to refuse the request. The human settled that the scroll always happens, including when the target is already on screen.",
+  "questions_asked": 1,
+  "gaps": [
+    "The pending turn had no representation. AskTurn.response is MANDATORY (use-ask.ts:8) and the panel renders only response-based states (ask-panel.tsx:134), so an unmatched reopen has nothing to draw before the request resolves - the required visible pending row could not be built as specified.",
+    "The target-scroll handoff was unspecified: rerun returns Promise<boolean> and no component learns which turn to scroll to, so the destination could not know its target.",
+    "The contract said navigate-first but did not say where the busy guard moves. Navigating before firing rerun would navigate even when useAsk was going to refuse the request, breaking the busy-state rule in the same breath as the navigation rule."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "The turn carries a dedicated RESULT-FREE client pending state with a role='status' message, and the same turn id is settled when the response arrives. Explicitly NOT a fabricated AskResponse: inventing a responseClass the server never sent puts a lie in the client model that the next reader cannot distinguish from a real one. Confined to reopens so ordinary typed questions are unchanged.",
+    "rerun stays the single seam and records the target id inside AskProvider as a ONE-SHOT; the page Ask panel consumes it once the node exists, calls scrollIntoView, and clears it. Verified that AskProvider wraps children in the authenticated layout (app-shell.tsx:182), so it survives /dashboard to /ask and no URL parameter or storage is needed. HUMAN ROUND: the scroll happens ALWAYS, even when the target is already on screen - one rule, no visibility check, which is both easier to describe and less likely to be subtly wrong at the two panel widths.",
+    "The handlers guard isPending themselves, then push, then fire rerun without awaiting. The contract states that the guard is what preserves the busy-state rule."
+  ],
+  "citations": [
+    {
+      "finding": "The pending turn had no representation. AskTurn.response is MANDATORY (use-ask.ts:8) and the panel renders only response-based states (ask-panel.tsx:134), so an unmatched reopen has nothing to draw before the request resolves - the required visible pending row could not be built as specified.",
+      "source": "frontend/src/features/assistant/use-ask.ts:8; frontend/src/features/assistant/ask-panel.tsx:134"
+    },
+    {
+      "finding": "The target-scroll handoff was unspecified: rerun returns Promise<boolean> and no component learns which turn to scroll to, so the destination could not know its target.",
+      "source": "frontend/src/features/assistant/use-ask.ts:22; frontend/src/components/shell/app-shell.tsx:182"
+    },
+    {
+      "finding": "The contract said navigate-first but did not say where the busy guard moves. Navigating before firing rerun would navigate even when useAsk was going to refuse the request, breaking the busy-state rule in the same breath as the navigation rule.",
+      "source": "frontend/src/features/exploration/pinned-reports.tsx:67; frontend/src/features/assistant/use-ask.ts:111"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "When you reopen a pin whose answer is ALREADY visible on screen \u2014 say it's the last thing in the thread \u2014 should the panel still scroll to it?",
+      "options": [
+        "Always scroll to it (Recommended)",
+        "Only scroll if it's off-screen"
+      ],
+      "chosen": "Always scroll to it (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "criteria_map": {
+    "router.push('/ask') happens BEFORE the request completes, not after it. Today both handlers run `if (await rerun(...)) router.push('/ask')` (pinned-reports.tsx:67, saved-views.tsx:64), which is why a slow click looks inert and why nothing can be scrolled to - no Ask panel is mounted while the request runs.": "Navigate before the await.",
+    "An unmatched open appends ONE turn IMMEDIATELY, already pending, then settles it: replaced on success, carrying the reason on a refusal, carrying an error on a transport failure. run() appends only once the response resolves, so an unmatched open otherwise has nothing to scroll to or show working. One turn, not two.": "One pending turn, appended eagerly.",
+    "A matched open needs no new turn: task 1's rerun (use-ask.ts:146) already routes it through continueTurn, which marks that turn pending. Matching and the failure policy are NOT reimplemented here.": "Matching stays task 1's.",
+    "The panel scrolls the target turn into view, reused or new. AskTurn.id is the handle and already exists. A leaf asserts scrollIntoView is called for the target - it must be mocked, as jsdom does not implement it.": "Scroll always, via a one-shot target id.",
+    "An Open clicked while another request runs keeps today's behaviour EXACTLY: the row shows its existing 'Another question is still running' message and there is NO navigation, because there would be no target to start or scroll to. An explicit exception to navigate-first.": "Busy refuses without navigating.",
+    "Pins and saved views are both covered; they share the defect and must share the fix.": "Both entry points.",
+    "A refused reopen shows its own reason on that turn and NOT continueTurn's period-specific copy. Task 1 wired it; this task is where it becomes visible.": "The refusal copy becomes visible.",
+    "Task 1's fifteen leaves all still pass UNMODIFIED. If one needs editing, this task changed behaviour it was told not to touch.": "Task 1's leaves pass unmodified."
+  },
+  "decision": "keep",
+  "new_abstractions": [
+    "A result-free pending turn - the thread's first state that is neither an answer nor a never-run turn, and deliberately not a fabricated server response.",
+    "A one-shot scroll target held by AskProvider, so a destination page can act on something a different page started without a URL parameter."
+  ],
+  "inspected_refs": [
+    "frontend/src/features/assistant/use-ask.ts:8,22,86,111,146",
+    "frontend/src/features/assistant/ask-panel.tsx:134",
+    "frontend/src/components/shell/app-shell.tsx:182",
+    "frontend/src/features/exploration/pinned-reports.tsx:67",
+    "frontend/src/features/exploration/saved-views.tsx:64",
+    "frontend/src/features/exploration/selection-identity.helper.ts"
+  ],
+  "input_sha256": "0b5919dea57f5da48d77c6f99250cbfa1ba5ca53fd00fdb9643cd71a7c1c9d9b",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "ede5e970c1ec47b4714d3b856e512c2348cf3a6595109069a7a13ec94d28b3a8",
+  "recorded_at": "2026-09-15T17:25:25+00:00",
+  "commit": "6d70e278a39934b54cd294686a66cf2eb274ed98",
+  "approved_task_plan_sha256": "ede5e970c1ec47b4714d3b856e512c2348cf3a6595109069a7a13ec94d28b3a8",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-15T17:25:25+00:00"
+}

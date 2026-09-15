@@ -1,0 +1,11 @@
+{
+  "topic": "keep the action's verb through the flow",
+  "lesson": "The control is labelled 'Open', so its progress copy must not switch verbs: ask-panel.tsx:152 says 'Reopening report\u2026' where it should read 'Opening this report\u2026'. An action keeps the same name from button to progress to result, which is how people learn the interface.",
+  "source": ".factory/stories/ask-reopen-saved-report/stages/reopen-navigation-and-scroll.json",
+  "applies_to": [
+    "frontend/src/features/assistant/ask-panel.tsx"
+  ],
+  "severity": "low",
+  "generated_by": "implementer",
+  "added_at": "2026-09-15T17:45:53+00:00"
+}
