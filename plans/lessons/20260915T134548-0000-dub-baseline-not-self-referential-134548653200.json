@@ -1,0 +1,11 @@
+{
+  "topic": "dub-baseline-not-self-referential",
+  "lesson": "Review P1: the DUB regression must compare against the SHIPPED baseline, not two outputs of the new code. Use the frozen fixtures that predate this task \u2014 statement-projection.db.test.ts's per-leaf expectations and __fixtures__/july-dub-reconciliation.json for amounts/tree/percentages, and the shipped export test's cell expectations for the workbook \u2014 and add a committed backend/src/warehouse/__fixtures__/dub-statement-baseline.json (amounts, percentages, node keys, source presence; NO batch ids, which change on every reload) captured from those fixtures with sourceCommit d532693 noted. Provenance is compared by source and period, never by id.",
+  "source": ".factory/stories/multi-plant/tasks/all-plants-backend/reviews/quality.json",
+  "applies_to": [
+    "backend/src/warehouse/all-plants-reconciliation.db.test.ts"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-15T13:45:48+00:00"
+}
