@@ -18,12 +18,11 @@ export function MisReportView() {
   const [selection, setSelection] = useState<MisSelectionRunRequest>(editableSelection(linked.request));
   const [askOpen, setAskOpen] = useState(false);
   const plants = options.data?.plants ?? [];
-  const departments = metadataOrFallback(plants.map((plant) => plant.department), options.data?.departments ?? []);
-  const functions = metadataOrFallback(
+  const departments = distinct(plants.map((plant) => plant.department));
+  const functions = distinct(
     plants
-      .filter((plant) => !selection.department || !plant.department || plant.department === selection.department)
+      .filter((plant) => !selection.department || plant.department === selection.department)
       .map((plant) => plant.function),
-    options.data?.functions ?? [],
   );
   const selectablePlants = plants.filter(
     (plant) =>
@@ -236,11 +235,6 @@ function isComplete(selection: MisSelectionRunRequest): boolean {
 
 function distinct(values: Array<string | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
-}
-
-function metadataOrFallback(values: Array<string | undefined>, fallback: string[]): string[] {
-  const metadata = distinct(values);
-  return metadata.length ? metadata : fallback;
 }
 
 function matchesTuple(

@@ -247,7 +247,7 @@ test("choosing a plant first fills its department and function", async () => {
 });
 
 test("choosing a department first filters its functions and plants", async () => {
-  mocks.misOptions.mockResolvedValue(tupleOptions());
+  mocks.misOptions.mockResolvedValue({ ...tupleOptions(), functions: ["Nursery", "Flat-list-only"] });
   renderWithQuery(<MisReportView />);
 
   const department = await screen.findByLabelText("Department");
@@ -255,6 +255,7 @@ test("choosing a department first filters its functions and plants", async () =>
 
   expect(within(screen.getByLabelText("Function")).getByRole("option", { name: "Nursery" })).toBeInTheDocument();
   expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Office" })).not.toBeInTheDocument();
+  expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
   expect(within(screen.getByLabelText("Plant")).getByRole("option", { name: "Agri - Nursery - DUB" })).toBeInTheDocument();
   expect(within(screen.getByLabelText("Plant")).queryByRole("option", { name: "Corporate - Office - Head Office" })).not.toBeInTheDocument();
 });
@@ -275,28 +276,24 @@ test("changing a department or function clears a plant that no longer matches", 
   expect(screen.getByLabelText("Plant")).toHaveValue("");
 });
 
-test("metadata-free plants leave the other selectors editable and generate", async () => {
+test("metadata-free plants stay selectable without contributing flat selector values", async () => {
   mocks.misOptions.mockResolvedValue({
     ...options,
-    plants: [{ value: "DUB", label: "DUB", aliases: [] }],
+    departments: ["Flat-list-only"],
+    functions: ["Flat-list-only"],
+    plants: [
+      { value: "DUB", label: "DUB", aliases: [] },
+      { value: "VJA", label: "Agri - Nursery - VJA", aliases: [], department: "Agriculture", function: "Nursery" },
+    ],
   });
-  mocks.runMisStatement.mockResolvedValue(statement);
   renderWithQuery(<MisReportView />);
 
-  fireEvent.change(await screen.findByLabelText("Plant"), { target: { value: "DUB" } });
-  fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Agriculture" } });
-  fireEvent.change(screen.getByLabelText("Function"), { target: { value: "Nursery" } });
-  fireEvent.change(screen.getByLabelText("Period"), { target: { value: "2026-07-01" } });
-  fireEvent.click(screen.getByRole("button", { name: "Generate" }));
-
-  await waitFor(() =>
-    expect(mocks.runMisStatement).toHaveBeenCalledWith({
-      department: "Agriculture",
-      function: "Nursery",
-      plant: "DUB",
-      period: "2026-07-01",
-    }),
-  );
+  const plant = await screen.findByLabelText("Plant");
+  expect(within(plant).getByRole("option", { name: "DUB" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Department")).getByRole("option", { name: "Agriculture" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Department")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
+  expect(within(screen.getByLabelText("Function")).getByRole("option", { name: "Nursery" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
 });
 
 function chooseSelection() {
