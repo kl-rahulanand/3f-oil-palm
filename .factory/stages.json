@@ -4,7 +4,8 @@
     {
       "id": "all-plants-statement-ui",
       "title": "Render the not-loaded budget as a dash and mark provisional selections",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "62f9a90ec164f3181597e8b9214fc283be558285c02a343dd8992d3c6e2c1006"
     },
     {
       "id": "all-plants-backend",
