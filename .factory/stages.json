@@ -4,12 +4,14 @@
     {
       "id": "ask-period-contract-and-branch",
       "title": "Two typed carriers and a four-way ordered branch",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "993d26794e7b65d3557b593ca3ae25a197ec2f3243d743a7491042d8d2bc09d6"
     },
     {
       "id": "ask-period-continuation",
       "title": "Render the period choice and continue deterministically",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "91fd6e3bfd62971b8efe971a62bdfa36c7b20fea6bf4319223baa3035954d4a0"
     },
     {
       "id": "ask-period-control-on-answers",

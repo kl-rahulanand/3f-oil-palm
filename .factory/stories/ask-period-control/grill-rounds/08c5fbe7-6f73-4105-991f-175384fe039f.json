@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The grill found my \"question stays exactly as typed\" claim is already false: use-ask.ts:86 stores the TRIMMED input on the turn, so leading/trailing whitespace is dropped the moment anyone asks anything. What should the guarantee actually be?",
+      "options": [
+        "Narrow the claim to what's true (Recommended)",
+        "Preserve the raw question end-to-end"
+      ],
+      "chosen": "Narrow the claim to what's true (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T08:20:55.670047+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
