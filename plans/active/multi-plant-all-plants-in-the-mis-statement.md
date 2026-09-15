@@ -2,7 +2,7 @@
 issue: multi-plant
 title: All plants in the MIS statement
 status: approved
-saved: 2026-09-15T09:55:05+00:00
+saved: 2026-09-15T10:20:00+00:00
 story: multi-plant
 decisions_reviewed:
   - 0001-poc-engagement-scope
@@ -213,24 +213,28 @@ statement and export routes un-audited (D-0036).
 | Deferred set (plant-keyed budgets, outline object, upload field, partial-YTD, cascade, upload reporting, D-0038, plant-aware Ask) | **Deferred** — decision 0033's trigger; 0036 | — |
 
 ## Task Decomposition
-Two leaves, the minimum the harness allows (backend and frontend never share a task).
+Two leaves, the minimum the harness allows (backend and frontend never share a task). The
+frontend lands FIRST (human-decided at the task grill, 2026-09-15): widening the statement's
+Budget field to null breaks the frontend build if the backend does it alone, so the frontend
+task widens the contract and renders the dash, and the backend task then sends null.
 
-1. **`all-plants-backend`** (backend, `user_facing: false`) — C1, C2, C3, C4, C6(server), C7,
+1. **`all-plants-statement-ui`** (frontend, `user_facing: true`) — C5, C6(client), C7(client)
+   and the contract. Widen `MisStatementMeasureBlock.budget` to nullable and add
+   `budgetState`; add `provisional` / `plantDisplay` to the scope readout and `provisional` to
+   the plant option record; render dash cells with the accessible label and no drill
+   affordance; make the client aggregate drill null-safe; show the provisional mark on header
+   and options. DUB's rendering unchanged. Depends on nothing. Its functional check confirms
+   DUB renders unchanged; the dash is seen live at task 2's close.
+2. **`all-plants-backend`** (backend, `user_facing: false`) — C1, C2, C3, C4, C6(server), C7,
    C8, C9. The generator, classification table, shared outline helper, regenerated master with
-   owner and re-keyed validator, the drift / exactly-once / classification fixtures, the
-   budget-owner rule, `budgetState` and the grant-independent outline pin in the statement
-   service and DTOs (shared with the run endpoint), the export dash, the `SEED_USERS` plant
-   field and seeded grants, the 31-plant reconciliation fixture, the DUB regression, controller
-   and export tests. Depends on nothing.
-2. **`all-plants-statement-ui`** (frontend, `user_facing: true`) — C5, C6(client), C7(client).
-   Dash cells with the accessible label and no drill affordance, the provisional mark on header
-   and options, and the client aggregate drill made null-safe (dashed Budget and %, dashed
-   footer, no paise arithmetic on null). Depends on task 1.
+   owner and re-keyed validator, the fixtures, the budget-owner rule sending null with
+   `budgetState`, the grant-independent outline pin through the outline repository, the export
+   dash, the `SEED_USERS` plant field, the warehouse-backed proofs. Depends on task 1.
 
 ## Risks
-- **Task 1 is one session by design.** It spans the generator, the master and the statement
-  service, all backend. If the task grill judges it unbounded, the split is the generator plus
-  master first and the statement rule second — still no assistant work.
+- **The backend task is one session by design.** It spans the generator, the master and the
+  statement service, all backend. If the task grill judges it unbounded, the split is the
+  generator plus master first and the statement rule second — still no assistant work.
 - **Leaf-key resolution for the 95 sheet pairs.** A GL under several S.No rows (50001201 under
   1.1, 2.1, 10.1, 11.1) must resolve by the cost centre → section rule; the exactly-once fixture
   proves it.

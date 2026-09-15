@@ -32,7 +32,8 @@
     "HUMAN ROUND: decisions 0030, 0031 and 0032 accepted, confirmed by Rahul Anand, recorded with forge decision accept before this pass.",
     "Ledger: decision 0027 governs residency unchanged; the stale 'decide later' line is not re-opened.",
     "HUMAN RE-SCOPE (after plan approval, before decomposition): the human asked why the story was so large and chose 'small plus the Ask plant fix'. Decision 0033 (budget owner plant, not-loaded state; supersedes 0030) and decision 0034 (plant from statementGrounding or the question; supersedes 0032) were accepted, confirmed by Rahul Anand, and the spec was amended in place: the deferred set is named under Open items with a trigger, the drill and upload sections describe the shipped contracts, and the acceptance criteria were reduced accordingly.",
-    "HUMAN RE-SCOPE 2 (2026-09-15): the human cut the story to its minimum \u2014 seed the master for every plant, show a dash for Budget and % on every non-owner plant, leave transactions and drill-down as they are, no assistant changes. Decision 0035 (supersedes 0029) and 0036 (supersedes 0034; assistant untouched) accepted, confirmed by Rahul Anand; the spec's Ask section and criterion 8 reduced accordingly and the roadmap item's criteria cut to match."
+    "HUMAN RE-SCOPE 2 (2026-09-15): the human cut the story to its minimum \u2014 seed the master for every plant, show a dash for Budget and % on every non-owner plant, leave transactions and drill-down as they are, no assistant changes. Decision 0035 (supersedes 0029) and 0036 (supersedes 0034; assistant untouched) accepted, confirmed by Rahul Anand; the spec's Ask section and criterion 8 reduced accordingly and the roadmap item's criteria cut to match.",
+    "TASK GRILL SETTLEMENTS (2026-09-15) recorded in the spec: the wire carries null and the frontend task lands first (human-decided); 'no amount is returned' replaces 'no amount is read'; decision 0036 governs the Ask view's DUB literal; the proof split between hermetic resolution leaves and the warehouse-backed statement proof. Re-bound to the spec digest after that in-place amendment."
   ],
   "open_items": [
     "Non-blocking: whether DHS, DHS2 and Belagum in the format's Plant list are DMHS and two plants not yet in the extract \u2014 display names only.",
@@ -72,7 +73,7 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "ca536296946091aad643a1fe15ce17fe232af2ed779e91448d3b689cee3f6293",
-  "recorded_at": "2026-09-15T09:35:21+00:00",
-  "commit": "39c60bd62e1050299c2f84425cdfd0f8e9b86018"
+  "input_sha256": "a35b1e14aedcdf500a47021ac5dd6a9685abfc9cb99b9517aa000fc5968361c6",
+  "recorded_at": "2026-09-15T10:19:59+00:00",
+  "commit": "89d14fdc680b1ea6c0a0e68e9d8d6655baa3e964"
 }

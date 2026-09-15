@@ -3,7 +3,7 @@
   "gate": "plan",
   "verdict": "pass",
   "issue": "multi-plant",
-  "summary": "Third plan version (two tasks) after two human re-scopes. Three Codex cold reads in total on this gate (task-mu2d9k5m on six tasks, task-mu2ewfya on four, task-mu2h7msv on two, the last two as --reread after shape changes). The final read returned eight findings: three blocking (client drill throws on null budgets; a non-DUB user gets no budget pin and cannot drill; the seeder cannot express a DUB-only user) and five contract gaps (shared scope-readout DTO on the run endpoint; generator executable boundary; bucket-reason literals; roadmap row ownership; filename already plant-specific). One went to the human (the outline pin for non-owner plants); the rest were resolved from the repository. The plan was amended once and this pass is bound to the amended digest. The human also confirmed approval of the two-task plan in the same round.",
+  "summary": "Third plan version (two tasks) after two human re-scopes. Three Codex cold reads in total on this gate (task-mu2d9k5m on six tasks, task-mu2ewfya on four, task-mu2h7msv on two, the last two as --reread after shape changes). The final read returned eight findings: three blocking (client drill throws on null budgets; a non-DUB user gets no budget pin and cannot drill; the seeder cannot express a DUB-only user) and five contract gaps (shared scope-readout DTO on the run endpoint; generator executable boundary; bucket-reason literals; roadmap row ownership; filename already plant-specific). One went to the human (the outline pin for non-owner plants); the rest were resolved from the repository. The plan was amended once and this pass is bound to the amended digest. The human also confirmed approval of the two-task plan in the same round. RE-RECORDED after the task grill: task order swapped to frontend-first (human-decided) with the plan's Task Decomposition amended; nothing else changed.",
   "questions_asked": 2,
   "gaps": [
     "The client aggregate drill formats and sums measure.budget (drill-panel.tsx:394,438) and would throw on the null budgets C4 introduces.",
@@ -25,7 +25,8 @@
     "C3 now reuses the two existing reason literals (GL absent from Sheet1; Sheet1 says Tertiary while SAP books Primary) for every plant, so DUB's rows are unchanged and no new literal exists.",
     "The roadmap row is reclassified as a pre-plan baseline change made in commit 39c60bd, owned by no task.",
     "The filename becomes a regression assertion in the controller test; no implementation work.",
-    "HUMAN ROUND: the human approved the two-task plan for recording and decomposition."
+    "HUMAN ROUND: the human approved the two-task plan for recording and decomposition.",
+    "HUMAN (task grill, 2026-09-15): widening the statement's Budget field to null breaks the frontend build if the backend does it alone, so the human chose frontend-first ordering \u2014 the frontend task widens the contract and renders the dash, the backend task then sends null. The story plan's Task Decomposition was reordered accordingly; this record is re-bound to the reordered digest."
   ],
   "open_items": [
     "Non-blocking: the deferred set rides decision 0033's trigger; plant-aware Ask rides decision 0036."
@@ -61,7 +62,7 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "73a85e8e0720899c64d1f45bb5023d2c88b9d5c9f1a81997bfb604ae0a2be9ea",
-  "recorded_at": "2026-09-15T09:55:05+00:00",
-  "commit": "39c60bd62e1050299c2f84425cdfd0f8e9b86018"
+  "input_sha256": "d370d78d144970d4be73b5b537a58453625f30d9a251ae66628ed6412fc5f249",
+  "recorded_at": "2026-09-15T10:19:34+00:00",
+  "commit": "36bd5b0f0faef801dcac31984f6fc6114544d810"
 }

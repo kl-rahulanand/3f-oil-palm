@@ -14,38 +14,115 @@
   ],
   "tasks": [
     {
+      "id": "all-plants-statement-ui",
+      "title": "Render the not-loaded budget as a dash and mark provisional selections",
+      "objective": "Widen the shared contract so a statement block can carry a null Budget with a budgetState flag, and render that state: Budget, Roll-over and % show a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no drill affordance on those cells, while Actual cells stay drillable and unchanged. Make the client-side aggregate drill null-safe. Show the provisional mark for non-DUB selections in the statement header and on the plant options. Lands first (human-decided) so the backend task can send null without breaking the build; DUB renders exactly as today.",
+      "user_facing": true,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "contract/src/api.ts: MisStatementMeasureBlock.budget becomes FixedScaleMoney | null with an optional budgetState ('loaded' | 'not-loaded', absent means loaded); MisSelectionScopeReadout gains optional provisional and plantDisplay; the plant option record gains optional provisional. No backend file changes and npm run typecheck stays green for all three workspaces.",
+        "On a not-loaded block, Budget, Roll-over and % render a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no button and no pointer affordance on those cells; Actual cells are unchanged and stay drillable; a loaded block and a block without budgetState render exactly as before and the existing statement-view tests pass unchanged.",
+        "The client-side aggregate drill renders null budgets as dashes, shows a dashed Budget and % footer, calls no paise arithmetic on null, and foots Actual only for a not-loaded block, so clicking any Actual on a not-loaded block opens the panel without throwing; the transactions view is unchanged.",
+        "The statement header and the plant option labels show a 'Provisional labels' mark when the scope readout or the option carries provisional true, nothing for DUB, styled to read as awaiting the client's names rather than as an error; emil-design-eng and frontend-design are loaded and attested.",
+        "Vitest leaves cover the dash cells and label, the absent pointer affordance, the unchanged loaded rendering, the null-safe aggregate drill and the provisional mark, each judged by testcase name and executed count; the functional check confirms DUB renders unchanged (the dash is seen live at the backend task's close)."
+      ],
+      "write_scope": [
+        "contract/src/api.ts",
+        "frontend/src/features/mis",
+        "frontend/app/globals.css"
+      ],
+      "required_tests": [
+        {
+          "id": "a not loaded block renders a dash with the not loaded label in budget rollover and percentage on every row including the grand total with no drill affordance on those cells",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a loaded block and a block without a budget state render exactly as before",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the statement header shows the provisional labels mark from the scope readout and nothing for DUB",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "the aggregate drill renders null budgets as dashes with a dashed footer and performs no paise arithmetic on null",
+          "path": "frontend/src/features/mis/drill-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        },
+        {
+          "id": "a plant option carrying provisional renders the provisional labels mark in its label",
+          "path": "frontend/src/features/mis/mis-report-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts {path} -t {id} --reporter=junit --outputFile={report}"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "Constitution first: pnp-coding-standards-modular-monolith.md for component and helper separation; the contract change must be additive and optional except the one widening (budget nullable) so the backend DTO classes still implement the interfaces without edits \u2014 verify npm run typecheck for backend passes with no backend diff.",
+        "Branch on budgetState above formatMoney; do not widen formatMoney or toPaise to accept null \u2014 a null reaching money arithmetic is the defect this task prevents.",
+        "Dash cells must carry the accessible label and no button; Actual cells must be byte-identical in markup to today so the drill tests pass unchanged.",
+        "The provisional mark is one small component reused by header and option label, styled through an existing token class; no error colour, no warning icon.",
+        "user_facing: design skills attested in the test artifact; the recorder refuses it otherwise."
+      ],
+      "review_budget": {
+        "max_changed_files": 8,
+        "max_changed_lines": 700,
+        "reason": "One additive contract change, a branch in MeasureCells, a null-safe aggregate drill, one small mark component with a class, five vitest leaves. No backend."
+      },
+      "plan_contracts": [
+        {
+          "id": "t-apsu-c1",
+          "statement": "contract/src/api.ts: MisStatementMeasureBlock.budget becomes FixedScaleMoney | null with an optional budgetState ('loaded' | 'not-loaded', absent means loaded); MisSelectionScopeReadout gains optional provisional and plantDisplay; the plant option record gains optional provisional. No backend file changes and npm run typecheck stays green for all three workspaces.",
+          "source": "plans/active/multi-plant-all-plants-in-the-mis-statement.md \u2014 Task Decomposition"
+        },
+        {
+          "id": "t-apsu-c2",
+          "statement": "On a not-loaded block, Budget, Roll-over and % render a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no button and no pointer affordance on those cells; Actual cells are unchanged and stay drillable; a loaded block and a block without budgetState render exactly as before and the existing statement-view tests pass unchanged.",
+          "source": "plans/active/multi-plant-all-plants-in-the-mis-statement.md \u2014 Task Decomposition"
+        },
+        {
+          "id": "t-apsu-c3",
+          "statement": "The client-side aggregate drill renders null budgets as dashes, shows a dashed Budget and % footer, calls no paise arithmetic on null, and foots Actual only for a not-loaded block, so clicking any Actual on a not-loaded block opens the panel without throwing; the transactions view is unchanged.",
+          "source": "plans/active/multi-plant-all-plants-in-the-mis-statement.md \u2014 Task Decomposition"
+        },
+        {
+          "id": "t-apsu-c4",
+          "statement": "The statement header and the plant option labels show a 'Provisional labels' mark when the scope readout or the option carries provisional true, nothing for DUB, styled to read as awaiting the client's names rather than as an error; emil-design-eng and frontend-design are loaded and attested.",
+          "source": "plans/active/multi-plant-all-plants-in-the-mis-statement.md \u2014 Task Decomposition"
+        },
+        {
+          "id": "t-apsu-c5",
+          "statement": "Vitest leaves cover the dash cells and label, the absent pointer affordance, the unchanged loaded rendering, the null-safe aggregate drill and the provisional mark, each judged by testcase name and executed count; the functional check confirms DUB renders unchanged (the dash is seen live at the backend task's close).",
+          "source": "plans/active/multi-plant-all-plants-in-the-mis-statement.md \u2014 Task Decomposition"
+        }
+      ]
+    },
+    {
       "id": "all-plants-backend",
       "title": "Every plant in the master, DUB owns the budget, non-owner plants report a not-loaded budget",
-      "objective": "Seed the mapping master for all 31 SAP plants from the client's mapping sheet through a committed generator and classification table, so the plant dropdown offers every plant with provisional Department / Function labels. Add the one rule the data cannot express: the format's budget belongs to DUB, so a statement for any other plant carries a not-loaded budget state (Budget, Roll-over and % null, no over-budget label), the Excel export writes a dash, and every statement pins the period's active budget batch as its outline source regardless of the user's grants so the shipped drill keeps working. Grant the demo admin every plant, with an optional per-user plant list in SEED_USERS so a DUB-only user can be seeded. Ingestion, the batch model, the drill service and the assistant are not edited (decisions 0033, 0035, 0036).",
+      "objective": "Seed the mapping master for all 31 SAP plants from the client's mapping sheet through a committed generator and classification table, so the plant dropdown offers every plant with provisional Department / Function labels. Add the one rule the data cannot express: the format's budget belongs to DUB, so a statement for any other plant carries budgetState 'not-loaded' with Budget, Roll-over and % null on the wire (the contract was widened by the frontend task) and no over-budget label, the Excel export writes a dash, and every statement pins the period's active budget batch as its outline source regardless of the user's grants so the shipped drill keeps working. Grant the demo admin every plant, with an optional per-user plant list in SEED_USERS so a DUB-only user can be seeded. Ingestion, the batch model, the drill service and the assistant are not edited (decisions 0033, 0035, 0036).",
       "user_facing": false,
-      "dependencies": [],
+      "dependencies": [
+        "all-plants-statement-ui"
+      ],
       "acceptance_criteria": [
         "Against the pinned July actuals batch, all 31 SAP plant codes are offered to a fully granted user, each renders a statement, and the 31 Grand Total Actuals sum to \u20b911,02,73,718.00 in exact paise, proven by a gated warehouse fixture run per plant.",
         "DUB is unchanged: Actual \u20b91,15,12,712.07 and Budget \u20b91,00,50,136.29 for July 2026, every parent footing, unmapped-GL carrying its own Actual, the export matching; the existing statement-projection and golden proofs keep passing.",
         "Every (plant, cost centre, GL) triple in the July extract resolves exactly once via the generated master (version 3); classification is a pure function of the committed table and the extract's cost centres (fourteen July nursery codes Agriculture / Nursery, H.O Corporate / Office, the rest Operations / Unit); the eleven unnamed pairs resolve to unmapped-GL reusing the two existing reason literals so DUB's nine bucket rows are byte-for-byte unchanged; every new row is provisional with a reason; a hermetic test proves the checked-in master equals the generator's output; the format names DUB as budget owner and a format without an owner fails validation; the validator's duplicate-pair rule is re-keyed to (plant_canonical, cost_center, gl_code).",
         "A non-owner plant's statement carries budgetState 'not-loaded' on every block with Budget, Roll-over and % null on every row including the Grand Total and no over-budget or credit label computed; the Excel export writes a dash in those cells with a 'Budget not loaded for this plant' note; H.O renders 100% of its July net inside sections 8 Manpower and 9 Admin and \u20b90 Actual on every nursery-only section; DUB carries budgetState 'loaded' with cells unchanged; the plant-specific filename is asserted as a regression.",
-        "MisSelectionScopeReadout gains provisional and plantDisplay, populated by both POST /api/mis/statement and POST /api/mis/run, with the DTO and Swagger updated once and both routes' response tests covering them.",
-        "Every statement pins the period's active budget batch in provenance as the outline source regardless of the user's grants, taken from the batch table rather than the scope-gated SQL; for a non-owner plant no budget amount is read or returned; drill-down foots in exact paise for a leaf and for unmapped-GL on a non-owner plant for a user granted that plant alone; the drill service and its pin contract are not edited.",
+        "MisSelectionScopeReadout's provisional and plantDisplay and the plant option's provisional (contract widened by the frontend task) are populated by GET /api/mis/options, POST /api/mis/statement and POST /api/mis/run, with the DTOs and Swagger updated and each route's response tests covering them.",
+        "Every statement pins the period's active budget batch in provenance as the outline source regardless of the user's grants, read through the outline repository (a new method on its interface), so no budget AMOUNT is returned for a non-owner plant (the projection may still read the format's budget rows for a user granted DUB; it never returns them); the warehouse-backed proof shows drill-down footing in exact paise for a leaf and for unmapped-GL on a non-owner plant for a user granted that plant alone; the drill service and its pin contract are not edited.",
         "SEED_USERS gains an optional fourth field listing canonical plant codes; absent, an admin is granted every plant in the master; seeding is idempotent and reconciles scope to the configured list; README documents it; a user granted only DUB sees only DUB in options and drill with no row leaking; the assistant's hermetic suite passes unchanged.",
-        "The two zero states and the three nil states stay distinct from the not-loaded state in hermetic tests; every proof is judged by junit testcase name and executed count (D-0024, D-0031); new test files are registered in backend/package.json and tools/quality-gate.test.mjs; no D-0006-listed file is edited."
-      ]
-    },
-    {
-      "id": "all-plants-statement-ui",
-      "title": "Render the not-loaded budget as a dash and mark provisional selections",
-      "objective": "Show the not-loaded budget state on screen: Budget, Roll-over and % cells render a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no drill affordance on those cells, while Actual cells stay drillable and unchanged. Make the client-side aggregate drill null-safe (dashed Budget and %, dashed footer, no paise arithmetic on null). Show the provisional mark from the scope readout in the statement header and on the plant option labels. No Ask surface changes (decision 0036).",
-      "user_facing": true,
-      "dependencies": [
-        "all-plants-backend"
-      ],
-      "acceptance_criteria": [
-        "On a not-loaded block, Budget, Roll-over and % render a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no button and no pointer affordance on those cells; Actual cells are unchanged and stay drillable; DUB's rendering is unchanged.",
-        "The client-side aggregate drill renders null budgets as dashes, shows a dashed Budget and % footer, and performs no paise arithmetic on null, so clicking any Actual on a non-owner plant opens the drill without throwing.",
-        "The statement header and the plant option labels show a visible 'provisional' mark for every non-DUB selection, read from the scope readout and the options response, and the mark reads as awaiting the client's names rather than as an error.",
-        "Vitest covers the dash cells and label, the absent pointer affordance, the null-safe aggregate drill and the provisional mark; the functional check generates H.O, CK and DUB statements, drills an H.O leaf, exports H.O and confirms DUB is unchanged."
+        "The two zero states and the three nil states stay distinct from the not-loaded state in hermetic tests; every proof is judged by junit testcase name and executed count (D-0024, D-0031); new test files are registered in backend/package.json and tools/quality-gate.test.mjs; no D-0006-listed file is edited.",
+        "Decision 0036 governs the Ask view: actual_by_gl_month keeps its DUB literal; decision 0033's consequence about that view is deferred with the plant-aware assistant.",
+        "Proof split: exactly-once resolution, the 31-plant sum (\u20b911,02,73,718.00) and H.O's sections are proven hermetically from the July extract through the master; the 31 rendered statements, DUB's unchanged output and the non-owner drill footing are proven by backend/src/warehouse/all-plants-reconciliation.db.test.ts under WAREHOUSE_DB_TEST=1, registered in test:warehouse-proof and the self-skipping hermetic list (never test:db), and recorded in tests.json with executed counts."
       ]
     }
   ],
-  "plan_sha256": "73a85e8e0720899c64d1f45bb5023d2c88b9d5c9f1a81997bfb604ae0a2be9ea",
-  "commit": "39c60bd62e1050299c2f84425cdfd0f8e9b86018"
+  "plan_sha256": "d370d78d144970d4be73b5b537a58453625f30d9a251ae66628ed6412fc5f249",
+  "commit": "89d14fdc680b1ea6c0a0e68e9d8d6655baa3e964"
 }
