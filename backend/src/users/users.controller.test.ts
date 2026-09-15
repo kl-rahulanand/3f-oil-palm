@@ -37,9 +37,7 @@ after(async () => {
 
 test("create then list returns email admin user view without password fields", async () => {
   const email = uniqueEmail();
-  const created = await createViaController(email, ["analyst"], [
-    { attribute: "plant", value: "DUB" },
-  ]);
+  const created = await createViaController(email, ["analyst"], [{ attribute: "plant", value: "DUB" }]);
 
   const user = (await controller.list()).find((u) => u.id === created.id);
 
@@ -60,9 +58,7 @@ test("create then list returns email admin user view without password fields", a
 
 test("patch replaces roles and scope, and is_active=false revokes refresh tokens", async () => {
   const email = uniqueEmail();
-  const { id } = await createViaController(email, ["analyst"], [
-    { attribute: "plant", value: "DUB" },
-  ]);
+  const { id } = await createViaController(email, ["analyst"], [{ attribute: "plant", value: "DUB" }]);
   const token = await sessions.create(id);
   assert.ok(await sessions.rotate(token.refreshToken));
 
@@ -82,9 +78,7 @@ test("patch replaces roles and scope, and is_active=false revokes refresh tokens
     },
     actor,
   );
-  assert.deepEqual(scopeUpdated.scope, [
-    { attribute: "gl_code", value: "50001201" },
-  ]);
+  assert.deepEqual(scopeUpdated.scope, [{ attribute: "gl_code", value: "50001201" }]);
 
   const deactivated = await controller.update(id, { is_active: false }, actor);
   assert.equal(deactivated.is_active, false);
@@ -153,12 +147,7 @@ test("create with a non-existent role errors and rolls back the user row", async
 
 test("create rolls back the user row when the audit write fails", async () => {
   const email = uniqueEmail();
-  const failingController = new UsersController(
-    db,
-    rbac,
-    sessions,
-    failingAuditService(),
-  );
+  const failingController = new UsersController(db, rbac, sessions, failingAuditService());
 
   const error = await captureHttpException(() =>
     failingController.create(
@@ -202,9 +191,7 @@ test("patch with a non-existent role errors and preserves existing roles", async
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], []);
 
-  const error = await captureHttpException(() =>
-    controller.update(id, { roles: ["role-that-does-not-exist"] }, actor),
-  );
+  const error = await captureHttpException(() => controller.update(id, { roles: ["role-that-does-not-exist"] }, actor));
 
   assert.ok(error.status === 400 || error.status === 409);
   const user = (await controller.list()).find((u) => u.id === id);
@@ -231,20 +218,12 @@ test("patch with an unknown scope value keeps the safe validation 400", async ()
 test("deactivate preserves an active user when the audit write fails", async () => {
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], []);
-  const failingController = new UsersController(
-    db,
-    rbac,
-    sessions,
-    failingAuditService(),
-  );
+  const failingController = new UsersController(db, rbac, sessions, failingAuditService());
 
   const error = await captureHttpException(() => failingController.deactivate(id, actor));
 
   assert.deepEqual(error, { status: 500, message: USERS_MESSAGES.internalError });
-  const rows = await db
-    .select({ isActive: users.isActive })
-    .from(users)
-    .where(eq(users.id, id));
+  const rows = await db.select({ isActive: users.isActive }).from(users).where(eq(users.id, id));
   assert.deepEqual(rows, [{ isActive: true }]);
 });
 
@@ -252,20 +231,12 @@ test("deactivate rolls back the active flag and audit when session revocation fa
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], []);
   const auditCountBefore = await countAdminEvents();
-  const failingController = new UsersController(
-    db,
-    rbac,
-    failingSessionService(),
-    audit,
-  );
+  const failingController = new UsersController(db, rbac, failingSessionService(), audit);
 
   const error = await captureHttpException(() => failingController.deactivate(id, actor));
 
   assert.deepEqual(error, { status: 500, message: USERS_MESSAGES.internalError });
-  const rows = await db
-    .select({ isActive: users.isActive })
-    .from(users)
-    .where(eq(users.id, id));
+  const rows = await db.select({ isActive: users.isActive }).from(users).where(eq(users.id, id));
   assert.deepEqual(rows, [{ isActive: true }]);
   assert.equal(await countAdminEvents(), auditCountBefore);
 });
@@ -274,22 +245,12 @@ test("patch deactivation rolls back the active flag and audit when session revoc
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], []);
   const auditCountBefore = await countAdminEvents();
-  const failingController = new UsersController(
-    db,
-    rbac,
-    failingSessionService(),
-    audit,
-  );
+  const failingController = new UsersController(db, rbac, failingSessionService(), audit);
 
-  const error = await captureHttpException(() =>
-    failingController.update(id, { is_active: false }, actor),
-  );
+  const error = await captureHttpException(() => failingController.update(id, { is_active: false }, actor));
 
   assert.deepEqual(error, { status: 500, message: USERS_MESSAGES.internalError });
-  const rows = await db
-    .select({ isActive: users.isActive })
-    .from(users)
-    .where(eq(users.id, id));
+  const rows = await db.select({ isActive: users.isActive }).from(users).where(eq(users.id, id));
   assert.deepEqual(rows, [{ isActive: true }]);
   assert.equal(await countAdminEvents(), auditCountBefore);
 });
@@ -319,10 +280,7 @@ async function createViaController(
   roles: string[],
   scope: Array<{ attribute: string; value: string }>,
 ): Promise<{ id: string }> {
-  const created = await controller.create(
-    { email, display_name: "Test User", roles, scope },
-    actor,
-  );
+  const created = await controller.create({ email, display_name: "Test User", roles, scope }, actor);
   createdEmails.push(email);
   return created;
 }
@@ -338,10 +296,7 @@ async function countUsers(email: string): Promise<number> {
 }
 
 async function countAdminEvents(): Promise<number> {
-  const rows = await db
-    .select({ count: count() })
-    .from(auditEvents)
-    .where(eq(auditEvents.userId, actor.id));
+  const rows = await db.select({ count: count() }).from(auditEvents).where(eq(auditEvents.userId, actor.id));
   return Number(rows[0].count);
 }
 
@@ -372,9 +327,7 @@ function makeContext(req: AuthedRequest): ExecutionContext {
   } as ExecutionContext;
 }
 
-async function captureHttpException(
-  fn: () => Promise<unknown>,
-): Promise<{ status: number; message: string }> {
+async function captureHttpException(fn: () => Promise<unknown>): Promise<{ status: number; message: string }> {
   try {
     await fn();
   } catch (err) {
@@ -382,10 +335,7 @@ async function captureHttpException(
     const response = err.getResponse();
     return {
       status: err.getStatus(),
-      message:
-        typeof response === "string"
-          ? response
-          : String((response as { message?: unknown }).message),
+      message: typeof response === "string" ? response : String((response as { message?: unknown }).message),
     };
   }
   assert.fail("expected HttpException");

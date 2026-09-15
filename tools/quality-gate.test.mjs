@@ -214,7 +214,6 @@ bf87de09ae5d480823d3f7cc3d45f625e2903594afeaf7eaa13a866321c811d6 backend/src/sql
 4961bd904aadc46f001c57a6c08a4704931c1eabfcdae2c3c99792cfebad0a90 backend/src/usage/usage.service.test.ts
 84b00e97a0fc507b8a6391a51718bef685726c2a9372e22c1013e3b1d0b5d8a2 backend/src/usage/usage.service.ts
 89dbea46e702c9dc8838f3401687ec0902e2706b53dd8e5843644021783a3f90 backend/src/users/users.constants.ts
-49645942fb8eee08f5f2a2ab155f668928a0499795f9759e0025ac374a92dccf backend/src/users/users.controller.test.ts
 570020b0c167290b0da56180c6edb9250e29d4bcfe9bb67cdfc4a093709a98e6 backend/src/users/users.controller.ts`
     .split("\n")
     .map((line) => line.split(" "))
