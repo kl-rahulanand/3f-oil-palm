@@ -17,7 +17,7 @@
 import type { AskResponse, AuthUser, Selection } from "@3f/contract";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import AskPage from "@/app/(app)/ask/page";
 import { AppShell } from "@/src/components/shell/app-shell";
 import { renderWithQuery } from "@/src/test/render";
@@ -142,6 +142,10 @@ const success: AskResponse = {
   },
   viewInReport: { available: false, reason: "This answer is not a statement selection." },
 };
+
+beforeEach(() => {
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+});
 
 afterEach(() => {
   cleanup();
@@ -749,6 +753,64 @@ test("a matched stored selection rerun stays buffered and sends the turn questio
   );
   expect(mocks.ask).toHaveBeenNthCalledWith(1, { question: "Ordinary question" }, expect.any(Object));
   expect(mocks.ask).toHaveBeenNthCalledWith(2, { question: "Ordinary question", selection }, expect.any(Object));
+});
+
+test("the target turn is scrolled into view for a matched open", async () => {
+  const scrollIntoView = vi.fn();
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
+  mocks.ask.mockResolvedValue(success);
+  render(
+    <AskProvider>
+      <AskPanel surface="page" />
+      <RerunButton />
+    </AskProvider>,
+  );
+  submit("Ordinary question");
+  await screen.findByRole("heading", { name: "Governed result" });
+
+  fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
+
+  await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" }));
+});
+
+test("the target turn is scrolled into view for an unmatched open", async () => {
+  const scrollIntoView = vi.fn();
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
+  mocks.ask.mockImplementation(() => new Promise(() => undefined));
+  render(
+    <AskProvider>
+      <AskPanel surface="page" />
+      <RerunButton />
+    </AskProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
+
+  const status = await screen.findByText("Opening this report…");
+  expect(status).toHaveClass("ask-answer", "ask-period-status");
+  await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" }));
+});
+
+test("a refused reopen shows its own reason and not the period copy", async () => {
+  mocks.ask.mockResolvedValueOnce(success).mockResolvedValueOnce({
+    responseClass: "blocked_by_policy" as AskResponse["responseClass"],
+    sessionId: "session",
+    message: "You no longer have access to this report.",
+    viewInReport: { available: false, reason: "Access changed." },
+  });
+  render(
+    <AskProvider>
+      <AskPanel surface="page" />
+      <RerunButton />
+    </AskProvider>,
+  );
+  submit("Ordinary question");
+  await screen.findByRole("heading", { name: "Governed result" });
+
+  fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
+
+  expect(await screen.findByText("You no longer have access to this report.")).toBeInTheDocument();
+  expect(screen.queryByText("That period could not be loaded. Choose a period to try again.")).not.toBeInTheDocument();
 });
 
 test("an ordinary streaming http error renders as the buffered client does", async () => {

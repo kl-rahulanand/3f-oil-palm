@@ -1,0 +1,12 @@
+{
+  "topic": "descendant selector does not match a compound class",
+  "lesson": "CORRECTS the earlier 'status line class scoping' lesson, which named the wrong fix: '.ask-answer .ask-period-status' (globals.css:1518) is a DESCENDANT selector, so an element carrying BOTH classes does not match it \u2014 measured live, the reopen pending line now computes 12px ink (inherited from .ask-answer alone) where its two sibling status lines are 11px slate. Fix it in CSS, not JSX: extend that rule to '.ask-answer .ask-period-status, .ask-answer.ask-period-status'. Leave ask-panel.tsx:151 exactly as it is.",
+  "source": "live getComputedStyle on the held-open pending turn at /ask",
+  "applies_to": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.tsx"
+  ],
+  "severity": "medium",
+  "generated_by": "implementer",
+  "added_at": "2026-09-15T17:54:34+00:00"
+}

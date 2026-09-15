@@ -110,6 +110,18 @@ test("a saved rerun rejected while another question is pending stays on the row"
   expect(mocks.push).not.toHaveBeenCalled();
 });
 
+test("opening a saved view navigates before the request resolves", async () => {
+  mocks.savedQueries.mockResolvedValue([saved("known", selection, { runnable: true })]);
+  mocks.ask.mockImplementation(() => new Promise(() => undefined));
+  renderSaved();
+
+  await screen.findByRole("heading", { name: "Actual" });
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  expect(mocks.push).toHaveBeenCalledWith("/ask");
+  expect(mocks.ask).toHaveBeenCalledTimes(1);
+});
+
 test("opening a saved view that matches an existing turn reruns it rather than appending", async () => {
   mocks.savedQueries.mockResolvedValue([saved("known", selection, { runnable: true })]);
   mocks.ask

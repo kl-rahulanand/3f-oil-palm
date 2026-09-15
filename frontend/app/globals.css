@@ -1515,7 +1515,8 @@ button {
 .ask-answer p {
   margin: 0;
 }
-.ask-answer .ask-period-status {
+.ask-answer .ask-period-status,
+.ask-answer.ask-period-status {
   color: var(--kl-slate);
   font-size: 11px;
 }

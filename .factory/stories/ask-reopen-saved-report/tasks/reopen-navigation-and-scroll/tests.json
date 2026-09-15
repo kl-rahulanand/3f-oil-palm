@@ -1,0 +1,53 @@
+{
+  "commit": "71a05e19159b8abd1313ca44d611eb06dfd902a6",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All 8 required leaves executed and passed under the vitest discriminator (testcase present in the junit report, not <skipped/>, not <failure/>) - the discriminator matters because vitest exits 0 and marks unmatched leaves skipped (D-0031). Task 1's fifteen leaves pass with their bodies byte-identical; selection-identity.helper.test.ts is untouched, and the only deletions in use-ask.test.tsx are in the shared Harness fixtures adapting to AskTurn.response now being optional while a turn is pending, which criterion c2 requires. 17 tests green across the two task-1 files. verify.py passes. Live on this worktree (backend :4000, frontend :3000): three in-app Open cycles each reached /ask within 80ms of the click - navigate-first, c1 - with cycle 0 appending exactly one turn (unmatched, c2) and cycles 1-2 reusing that same turn so the thread length stayed at 1 (matched, c3, and the duplicate-turn bug this story exists to fix); the target turn was in view after every cycle (c4). The pending turn was measured directly by holding /api/chat open: it renders 'Opening this report...' at 11px slate, matching its sibling status lines. Design pass (both mandatory skills genuinely applied, not merely attested) found two real defects, both fixed and both re-measured live: the pending status line rendered 16px near-black - the loudest text in the thread for a transient loading state - because .ask-period-status has exactly one rule and it is the DESCENDANT selector '.ask-answer .ask-period-status', which a single element carrying both classes does not match; extending that rule to '.ask-answer.ask-period-status' took it 16px ink -> 12px ink -> 11px slate, each step measured with getComputedStyle on the real element. And the progress copy said 'Reopening report...' after a control labelled 'Open', so the action changed verbs mid-flow; it now reads 'Opening this report...'.",
+    "blocking_findings": [],
+    "commands_run": [
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/exploration/pinned-reports.test.tsx -t opening a pin navigates before the request resolves",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/exploration/saved-views.test.tsx -t opening a saved view navigates before the request resolves",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/use-ask.test.tsx -t an unmatched open appends one pending turn before the response arrives",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/use-ask.test.tsx -t an unmatched open that fails leaves one turn carrying the error not two",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/ask-panel.test.tsx -t the target turn is scrolled into view for a matched open",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/ask-panel.test.tsx -t the target turn is scrolled into view for an unmatched open",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/exploration/pinned-reports.test.tsx -t opening while another request runs shows the busy message and does not navigate",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/ask-panel.test.tsx -t a refused reopen shows its own reason and not the period copy",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts frontend/src/features/assistant/use-ask.test.tsx frontend/src/features/exploration/selection-identity.helper.test.ts",
+      "python3 factory/scripts/verify.py"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/exploration/pinned-reports.test.tsx",
+      "frontend/src/features/exploration/saved-views.test.tsx",
+      "frontend/src/features/assistant/use-ask.test.tsx",
+      "frontend/src/features/assistant/ask-panel.test.tsx"
+    ],
+    "pass_fail_summary": "8/8 required leaves executed and passed; 17/17 task-1 leaves pass; verify.py green.",
+    "reviewed_scope": [
+      "frontend/app/globals.css",
+      "frontend/src/features/assistant/ask-panel.test.tsx",
+      "frontend/src/features/assistant/ask-panel.tsx",
+      "frontend/src/features/assistant/use-ask.test.tsx",
+      "frontend/src/features/assistant/use-ask.ts",
+      "frontend/src/features/exploration/pinned-reports.test.tsx",
+      "frontend/src/features/exploration/pinned-reports.tsx",
+      "frontend/src/features/exploration/saved-views.test.tsx",
+      "frontend/src/features/exploration/saved-views.tsx"
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [
+      "D-0049: the three reopen FAILURE strings still read 'This report could not be reopened' while the control and its progress line now say Open/Opening. Two of the three (use-ask.ts:227,:255) are task 1's shipped refusal copy, asserted verbatim by task 1's leaves, so changing them here would violate criterion c8.",
+      "The pending line's role=\"status\" sits inside the thread's aria-live=\"polite\" container, a nested live region. Left as-is because the two pre-existing status lines already do exactly this; changing it would be an unrequested edit to task 1's surface."
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-15T18:03:47+00:00",
+    "commit": "71a05e19159b8abd1313ca44d611eb06dfd902a6"
+  },
+  "updated_at": "2026-09-15T18:03:47+00:00"
+}

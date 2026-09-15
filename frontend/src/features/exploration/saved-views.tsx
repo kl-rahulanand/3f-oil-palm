@@ -8,7 +8,7 @@ import { useSavedViews } from "./use-exploration";
 
 export function SavedViews() {
   const router = useRouter();
-  const { rerun } = useAsk();
+  const { isPending: isAskPending, rerun } = useAsk();
   const { items, isPending, loadError, deleteError, deletingId, remove } = useSavedViews();
   const [openErrorId, setOpenErrorId] = useState<string>();
 
@@ -59,10 +59,14 @@ export function SavedViews() {
                         <button
                           className="exploration-open"
                           type="button"
-                          onClick={async () => {
+                          onClick={() => {
                             setOpenErrorId(undefined);
-                            if (await rerun(label.title, item.selection)) router.push("/ask");
-                            else setOpenErrorId(item.id);
+                            if (isAskPending) {
+                              setOpenErrorId(item.id);
+                              return;
+                            }
+                            router.push("/ask");
+                            void rerun(label.title, item.selection);
                           }}
                         >
                           Open

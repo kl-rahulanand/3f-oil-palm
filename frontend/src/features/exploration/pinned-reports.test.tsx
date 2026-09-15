@@ -121,6 +121,39 @@ test("a pinned rerun rejected while another question is pending stays on the row
   expect(mocks.push).not.toHaveBeenCalled();
 });
 
+test("opening a pin navigates before the request resolves", async () => {
+  mocks.pins.mockResolvedValue([pin("pin", "Pinned budget", 0, false)]);
+  mocks.ask.mockImplementation(() => new Promise(() => undefined));
+  renderPins();
+
+  await screen.findByRole("heading", { name: "Pinned budget" });
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  expect(mocks.push).toHaveBeenCalledWith("/ask");
+  expect(mocks.ask).toHaveBeenCalledTimes(1);
+});
+
+test("opening while another request runs shows the busy message and does not navigate", async () => {
+  mocks.pins.mockResolvedValue([pin("pin", "Pinned budget", 0, false)]);
+  mocks.ask.mockImplementation(() => new Promise(() => undefined));
+  renderWithQuery(
+    <AskProvider>
+      <PendingQuestion />
+      <PinnedReports />
+    </AskProvider>,
+  );
+
+  await screen.findByRole("heading", { name: "Pinned budget" });
+  fireEvent.click(screen.getByRole("button", { name: "Start question" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Another question is still running. Try opening this report when it finishes.",
+  );
+  expect(mocks.push).not.toHaveBeenCalled();
+});
+
 test("opening a pin that matches an existing turn reruns it rather than appending", async () => {
   mocks.pins.mockResolvedValue([pin("pin", "Pinned budget", 0, false)]);
   mocks.ask
