@@ -26,7 +26,12 @@ still rendered.
 
 The human decided (2026-09-15) to offer every plant now, on the nursery format, with
 provisional Department / Function labels, and to show an absent budget as a dash rather
-than a zero. The client has supplied a budget for the nursery only.
+than a zero. The client has supplied a budget for the nursery only. Later the same day,
+after the first plan was approved, the human re-scoped the story to the smallest shape
+(decision 0035, superseding 0029; 0033 superseding 0030; 0036 superseding 0032 and 0034: the
+assistant is untouched): the three
+earlier grill answers that chose cascading selection tuples, the partial-FY-YTD rule and
+upload plant reporting now describe the deferred follow-up story, not this one.
 
 ## Users
 Finance and management at 3F reviewing any plant's Financial MIS; the demo audience;
@@ -132,20 +137,13 @@ authoritative master.
   `unmapped-GL` line of a no-budget plant. Pinning the mapping-master version stays deferral
   D-0038; the drill's audit record names the incremented version as today.
 
-### Ask covers every granted plant
-- The governed-financial relation is no longer fixed to DUB: it carries `plant` as a
-  dimension, scoped by the user's plant grants on both sides of the join (decision 0016's
-  surviving clauses in 0029), so "Show Actual by plant for July 2026" answers with one row per
-  granted plant and a total equal to the company-wide net for a fully granted user.
-- A statement question resolves its plant, in order, from a typed `statementGrounding`
-  (department, function, plant, period) the docked panel takes from the rendered statement
-  and the server re-resolves through the master and current grants on every ask, or from a
-  plant the selector named in the question; department and function come from the master's
-  selection for that plant, never from user scope (decision 0034). With several granted
-  plants and no plant named, the answer is a plain "name a plant" message listing the granted
-  plants; the typed `plantChoice` continuation of decision 0032 is **deferred to
-  `ask-period-control`**, which builds the pattern once for periods and plants (0034
-  supersedes 0032 for this story). A user granted exactly one plant is unchanged.
+### The assistant is untouched (decision 0036)
+- No assistant code changes in this story. The governed Ask relation stays DUB-only as
+  shipped and a statement question still needs a user granted exactly one plant. A user
+  granted every plant therefore gets "not supported" for statement questions in Ask while
+  GL-code questions keep answering for DUB; a demo that needs both uses a second user granted
+  DUB only. The plant-aware assistant (plant dimension, grounding from the docked report,
+  plant named in the question, typed plant choice) is the follow-up story.
 - The demo user is granted every plant present in the master.
 
 ### What does not change
@@ -161,7 +159,7 @@ authoritative master.
 - The two existing zero states stay distinct: no transactions renders zeros; no mapping
   configured renders zeros plus the notice.
 
-## Supersedes (clauses of earlier confirmed docs overridden by decisions 0029 and 0030)
+## Supersedes (clauses of earlier confirmed docs overridden by decisions 0035 and 0033)
 Decision records win over older docs (`docs/architecture/README.md`); this section names
 the clauses so a planner does not inherit both:
 - `mis-selection-and-master`: "one selection, Agriculture / Nursery / DUB" and the
@@ -217,14 +215,8 @@ the clauses so a planner does not inherit both:
    statement carries `loaded`; the budget upload and batch model are unchanged.
 7. Drill-down foots in exact paise for a leaf and for the `unmapped-GL` line of a
    no-budget plant with the shipped pin contract; its audit record names master version 3.
-8. Ask: "Show Actual by plant for July 2026" returns one row per granted plant summing to
-   the company-wide net for a fully granted user; a user granted only DUB gets only DUB
-   in MIS Reports options, in Ask answers and in drill-down, with no row leaking. A
-   statement question beside a report resolves the report's plant through
-   `statementGrounding`; one naming a granted plant resolves it; on the standalone page a
-   multi-plant user with no plant named receives a "name a plant" message listing the granted
-   plants, never a zero and never DUB by default. For a non-owner plant the Ask Budget
-   measure is null and rendered as the labelled dash.
+8. The assistant is unchanged: its hermetic suite passes untouched, and a user granted only
+   DUB sees only DUB in MIS Reports options and drill-down with no row leaking.
 9. The two existing zero states and the three existing nil states are each still
    reachable and distinct from the new absent-budget state, proven by hermetic tests over a
    fake warehouse, judged by junit testcase name and executed count (D-0024, D-0031).
@@ -243,8 +235,9 @@ the clauses so a planner does not inherit both:
   format outline object (0030's model), the `plant` upload field, the partial-FY-YTD rule
   (Budget over loaded months, % dashed), cascading selection tuples, unknown / missing plant
   reporting on the actuals upload, and the master-version pin (D-0038).
-- The typed `plantChoice` continuation, built by `ask-period-control` on decision 0032's
-  pattern.
+- The plant-aware assistant (decision 0036): plant dimension, grounding from the docked
+  report, plant named in the question, and the typed `plantChoice` continuation on decision
+  0032's pattern.
 - Whether the format's `Plant list` names `DHS`, `DHS2` and `Belagum` are the SAP plants
   `DMHS` and two not yet in the extract — a naming question for Srihari that affects
   display names only, since classification never reads that list.

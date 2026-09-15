@@ -1,9 +1,10 @@
 ---
-status: accepted
+status: superseded
 confirmed_by: "Rahul Anand"
 date: 2026-09-15
 stories: [multi-plant]
 supersedes: 0032-ask-typed-choice-continuation
+superseded_by: 0036-ask-untouched-in-multi-plant
 ---
 
 # A statement question takes its plant from the docked report or the question; the typed choice continuation is deferred to ask-period-control
