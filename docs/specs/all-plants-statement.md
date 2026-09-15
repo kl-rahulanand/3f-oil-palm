@@ -28,7 +28,7 @@ The human decided (2026-09-15) to offer every plant now, on the nursery format, 
 provisional Department / Function labels, and to show an absent budget as a dash rather
 than a zero. The client has supplied a budget for the nursery only. Later the same day,
 after the first plan was approved, the human re-scoped the story to the smallest shape
-(decision 0035, superseding 0029; 0033 superseding 0030; 0036 superseding 0032 and 0034: the
+(decision 0036, superseding 0030; 0034 superseding 0031; 0037 superseding 0033 and 0035: the
 assistant is untouched): the three
 earlier grill answers that chose cascading selection tuples, the partial-FY-YTD rule and
 upload plant reporting now describe the deferred follow-up story, not this one.
@@ -52,7 +52,7 @@ authoritative master.
   surfaced as provisional wherever the selection is shown, so the client can rename them
   without a schema change:
   - classification is keyed on the **SAP plant code alone**, through a committed plant
-    classification table (decision 0031); the format workbook's `Plant list` is never used
+    classification table (decision 0032); the format workbook's `Plant list` is never used
     for matching, so `DHS` / `DHS2` versus `DMHS` cannot misclassify anything;
   - a plant is a **nursery** when the loaded extract books any of the cost centres
     Primary, secondary, Tertiary or Imported Sprouts for it, unless the table overrides
@@ -92,7 +92,7 @@ authoritative master.
 - All new master rows are provisional, carrying their reason, as decision 0018 requires.
   The master version increments so audit records and drill pins distinguish the two.
 
-### The budget belongs to the plant the master names (PoC rule, decision 0033)
+### The budget belongs to the plant the master names (PoC rule, decision 0034)
 - Budget batches stay as shipped: one active per period, carrying the workbook's outline
   snapshot (decision 0021) and DUB's amounts. The master's format entry names the **budget
   owner plant** (`nursery-mis-financial-v1` → `DUB`). A statement for the owner plant reads
@@ -100,8 +100,8 @@ authoritative master.
   same active budget batch and treats its budget as **not loaded**. Nothing is inferred,
   allocated or copied (decision 0014 stands).
 - Plant-keyed budget batches, the format outline as its own ingest object, and a `plant` field
-  on the budget upload (decision 0030's model) are **deferred until a second plant's budget
-  exists** (decision 0033 supersedes 0030 for the PoC). Uploading a non-nursery budget is not
+  on the budget upload (decision 0031's model) are **deferred until a second plant's budget
+  exists** (decision 0034 supersedes 0031 for the PoC). Uploading a non-nursery budget is not
   possible in this story and is refused by the absence of the field, not by silent
   misattribution.
 
@@ -137,7 +137,7 @@ authoritative master.
   `unmapped-GL` line of a no-budget plant. Pinning the mapping-master version stays deferral
   D-0038; the drill's audit record names the incremented version as today.
 
-### The assistant is untouched (decision 0036)
+### The assistant is untouched (decision 0037)
 - No assistant code changes in this story. The governed Ask relation stays DUB-only as
   shipped and a statement question still needs a user granted exactly one plant. A user
   granted every plant therefore gets "not supported" for statement questions in Ask while
@@ -148,11 +148,11 @@ authoritative master.
 
 ### What does not change
 - Read-only; Actual = Σ(Debit − Credit); composite key mandatory (decision 0017); the
-  governed join key stays GL code + month, now within each granted plant (decision 0029,
+  governed join key stays GL code + month, now within each granted plant (decision 0030,
   which supersedes 0016); the assistant boundary of decision 0027 is unchanged (plant,
   cost-centre and GL vocabulary may reach the model, amounts and rows never); the drill
   and every Ask data answer stay audit-before-read and fail-closed, while the statement and
-  export routes stay **un-audited as shipped** (deferral D-0036 stands and is not closed
+  export routes stay **un-audited as shipped** (deferral D-0037 stands and is not closed
   here);
   one governed query path; parents derived, never read (decision 0020); Indian grouping,
   rupee rounding after aggregation; all-or-nothing governed access.
@@ -175,8 +175,8 @@ authoritative master.
   for any user granted DUB; for a non-owner plant the service discards them before the
   response and returns no budget amount. A user not granted DUB never receives budget rows
   from the SQL. "No amount is returned" is the guarantee; "no amount is read" is not claimed.
-- **Decision 0036 governs the Ask view.** Decision 0033's consequence that `actual_by_gl_month`
-  drops its DUB literal belongs to the plant-aware assistant, which 0036 defers; the literal
+- **Decision 0037 governs the Ask view.** Decision 0034's consequence that `actual_by_gl_month`
+  drops its DUB literal belongs to the plant-aware assistant, which 0037 defers; the literal
   stays until that story.
 - **Proof split.** The exactly-once resolution and the 31-plant sum are proven hermetically
   from the July extract through the master (a pure function); the 31 rendered statements, the
@@ -184,20 +184,20 @@ authoritative master.
   under `test:warehouse-proof`, recorded with executed counts, never as required hermetic
   leaves.
 
-## Supersedes (clauses of earlier confirmed docs overridden by decisions 0035 and 0033)
+## Supersedes (clauses of earlier confirmed docs overridden by decisions 0036 and 0034)
 Decision records win over older docs (`docs/architecture/README.md`); this section names
 the clauses so a planner does not inherit both:
 - `mis-selection-and-master`: "one selection, Agriculture / Nursery / DUB" and the
   provisional master "seeded from the SAP Entries Mapping sheet + 7 GLs" → one generated
-  selection per plant (0031); its Master Table open item is unchanged.
-- `sap-financial-ingestion`: unchanged in this story; plant-keyed budgets wait on 0033's
+  selection per plant (0032); its Master Table open item is unchanged.
+- `sap-financial-ingestion`: unchanged in this story; plant-keyed budgets wait on 0034's
   trigger.
 - `financial-mis-statement`: "Budget = 0 & Actual = 0 → NA" and the over-budget rule apply
-  only where a budget batch exists; the absent-budget dash is a fourth state (0029).
+  only where a budget batch exists; the absent-budget dash is a fourth state (0030).
 - `actuals-drill-down`: unchanged in this story.
 - `docs/architecture/20-financial-mis-data-model.md` and `30-…build-plan.md`: the
   "Nursery (DUB) only" scope statements. The BRIEF's Smart Palm / Yield / OER framing is
-  deferral D-0032 and stays deferred; it does not conflict with this story.
+  deferral D-0033 and stays deferred; it does not conflict with this story.
 
 ## Rules
 - The SAP plant code is canonical; display names and Department / Function are
@@ -244,7 +244,7 @@ the clauses so a planner does not inherit both:
    DUB sees only DUB in MIS Reports options and drill-down with no row leaking.
 9. The two existing zero states and the three existing nil states are each still
    reachable and distinct from the new absent-budget state, proven by hermetic tests over a
-   fake warehouse, judged by junit testcase name and executed count (D-0024, D-0031).
+   fake warehouse, judged by junit testcase name and executed count (D-0024, D-0032).
 10. The selection options endpoint offers only master-configured selections within the
    user's grants; a plant code present in an actuals upload but absent from the master
    never appears in the dropdowns.
@@ -255,20 +255,20 @@ the clauses so a planner does not inherit both:
 ## Open items (non-blocking)
 - The client's authoritative Department / Function names and Master Table, which will
   rename the provisional labels and empty the bucket as data changes.
-- Budgets for plants other than the nursery. When one arrives, decision 0033's trigger
+- Budgets for plants other than the nursery. When one arrives, decision 0034's trigger
   fires and the deferred set lands as its own story: plant-keyed budget batches and the
-  format outline object (0030's model), the `plant` upload field, the partial-FY-YTD rule
+  format outline object (0031's model), the `plant` upload field, the partial-FY-YTD rule
   (Budget over loaded months, % dashed), cascading selection tuples, unknown / missing plant
   reporting on the actuals upload, and the master-version pin (D-0038).
-- The plant-aware assistant (decision 0036): plant dimension, grounding from the docked
+- The plant-aware assistant (decision 0037): plant dimension, grounding from the docked
   report, plant named in the question, and the typed `plantChoice` continuation on decision
-  0032's pattern.
+  0033's pattern.
 - Whether the format's `Plant list` names `DHS`, `DHS2` and `Belagum` are the SAP plants
   `DMHS` and two not yet in the extract — a naming question for Srihari that affects
   display names only, since classification never reads that list.
 
 ## Source
-Human decisions 2026-09-15 (this session, recorded as decision 0029); decision 0018 (unmapped-GL bucket), 0014,
+Human decisions 2026-09-15 (this session, recorded as decision 0030); decision 0018 (unmapped-GL bucket), 0014,
 0016, 0017, 0020, 0021, 0024, 0025; `docs/context/2026-08-20-srihari-phase1-data/`
 (both workbooks and Srihari's email); measured coverage analysis of the July extract
 against Sheet1 of `SAP Entries Mapping.xlsx`.

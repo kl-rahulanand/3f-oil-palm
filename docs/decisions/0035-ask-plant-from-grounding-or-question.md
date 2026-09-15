@@ -3,14 +3,14 @@ status: superseded
 confirmed_by: "Rahul Anand"
 date: 2026-09-15
 stories: [multi-plant]
-supersedes: 0032-ask-typed-choice-continuation
-superseded_by: 0036-ask-untouched-in-multi-plant
+supersedes: 0033-ask-typed-choice-continuation
+superseded_by: 0037-ask-untouched-in-multi-plant
 ---
 
 # A statement question takes its plant from the docked report or the question; the typed choice continuation is deferred to ask-period-control
 
 ## Context
-Decision 0032 set the typed-continuation pattern for Ask clarifications and named `plantChoice`
+Decision 0033 set the typed-continuation pattern for Ask clarifications and named `plantChoice`
 as this story's first instance. After the plan was approved the human re-scoped the story
 (2026-09-15) to the smallest shape that still lets the docked assistant work beside any plant's
 statement. A typed plant picker is a clarification carrier plus panel work whose only user today
@@ -28,7 +28,7 @@ no plant named, the answer is a plain **"name a plant"** message that lists the 
 never a zero, never DUB by default. A user granted exactly one plant is unchanged.
 
 The typed `plantChoice` continuation is **deferred to `ask-period-control`**, which builds
-0032's pattern once for periods and plants. This record supersedes 0032 for this story; the
+0033's pattern once for periods and plants. This record supersedes 0033 for this story; the
 pattern itself stands and is restated here: a clarification that resumes a selection carries the
 base selection plus typed choices, and the pick posts a selection, not a sentence.
 

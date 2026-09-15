@@ -4,7 +4,7 @@ confirmed_by: "Rahul Anand"
 date: 2026-09-15
 stories: [multi-plant]
 supersedes: 0016-governed-joins-poc-scope
-superseded_by: 0035-all-plants-scope-for-the-poc
+superseded_by: 0036-all-plants-scope-for-the-poc
 ---
 
 # Every SAP plant is selectable on the nursery format with provisional labels, and an absent budget renders as a dash

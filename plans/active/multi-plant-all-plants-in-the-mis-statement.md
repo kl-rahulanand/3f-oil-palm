@@ -32,10 +32,10 @@ decisions_reviewed:
   - 0026-assistant-ships-in-the-poc
   - 0027-assistant-llm-bedrock-mumbai
   - 0028-saved-selections-not-snapshots
-  - 0031-master-generated-from-workbook
-  - 0033-poc-budget-owner-plant
-  - 0035-all-plants-scope-for-the-poc
-  - 0036-ask-untouched-in-multi-plant
+  - 0032-master-generated-from-workbook
+  - 0034-poc-budget-owner-plant
+  - 0036-all-plants-scope-for-the-poc
+  - 0037-ask-untouched-in-multi-plant
 ---
 
 # Plan — multi-plant: All plants in the MIS statement
@@ -44,7 +44,7 @@ Story: `multi-plant` (roadmap 9, epic reporting) · spec: `docs/specs/all-plants
 (confirmed 2026-09-15, re-scoped twice the same day at the human's request). This is the
 **third** saved version: the six-task plan was approved and then cut, first to four tasks, then
 to the minimum the human named — "for other plants show `–` on Budget and %, everything else
-stays as it is". Decisions 0035, 0033 and 0036 supersede 0029, 0030 and 0032/0034; the roadmap
+stays as it is". Decisions 0036, 0034 and 0037 supersede 0030, 0031 and 0033/0035; the roadmap
 item's acceptance criteria were reduced in the same change.
 
 ## Problem
@@ -65,20 +65,20 @@ DUB's budget off every other plant's statement.
 ## Scope / Non-goals
 
 **In scope**
-- A generated master covering every SAP plant in the July extract (0031): the full mapping
+- A generated master covering every SAP plant in the July extract (0032): the full mapping
   sheet applied per plant, bucket rows for the eleven unnamed pairs, provisional Department /
   Function labels from the classification table, and the format's budget owner (`DUB`).
 - The not-loaded budget state for non-owner plants in the statement response and the Excel
-  export, rendered as `–` with a label on screen (0033, 0035).
+  export, rendered as `–` with a label on screen (0034, 0036).
 - The demo admin granted every plant in the master.
 
-**Non-goals (deferred with decision 0033's trigger, and decision 0036)**
+**Non-goals (deferred with decision 0034's trigger, and decision 0037)**
 - Everything assistant-side: the plant dimension, grounding from the docked report, plant
   named in the question, the typed plant choice. Ask is untouched; a fully granted user gets
-  "not supported" for statement questions in Ask (0036 says so plainly).
+  "not supported" for statement questions in Ask (0037 says so plainly).
 - Plant-keyed budget batches, the outline object, the `plant` upload field, the
   partial-FY-YTD rule, cascading selection tuples, upload plant reporting, the master-version
-  pin (D-0038), audit on the statement route (D-0036).
+  pin (D-0038), audit on the statement route (D-0037).
 - A trimmed office or mill format; Table-1 and Table-3; roll-over; live SAP; a master editor.
 
 ## Acceptance Criteria
@@ -127,23 +127,23 @@ DUB's budget off every other plant's statement.
 - **C8** `SEED_USERS` gains an optional fourth field, a `+`-separated list of canonical plant
   codes (`email|name|roles|plants`); absent, an admin is granted every plant in the master.
   Seeding is idempotent and reconciles scope to the configured list. The default seed carries
-  the all-plants admin; a DUB-only second user is one more entry, which is what decision 0036's
+  the all-plants admin; a DUB-only second user is one more entry, which is what decision 0037's
   demo workaround needs. A user granted only DUB sees only DUB in options and drill with no
-  row leaking; the assistant's hermetic suite passes unchanged (0036). `README.md` documents
+  row leaking; the assistant's hermetic suite passes unchanged (0037). `README.md` documents
   the field.
 - **C10** `MisSelectionScopeReadout` is shared with `POST /api/mis/run`
   (`mis-selection.service.ts:89`): its `provisional` and `plantDisplay` fields are populated
   there too, the DTO and Swagger are updated once, and both routes' response tests cover them.
 - **C9** The two zero states and the three nil states stay distinct from the not-loaded state
   in hermetic tests; every proof is judged by junit testcase name and executed count
-  (D-0024, D-0031); new test files are registered in `backend/package.json` and
+  (D-0024, D-0032); new test files are registered in `backend/package.json` and
   `tools/quality-gate.test.mjs`. No D-0006-listed file is edited (`.prettierignore` checked:
   `mis-statement.service.ts`, `mis-statement-export.service.ts`, `migrate.ts`,
   `mapping-master.ts` and the statement view are not listed).
 
 ## Technical Approach
 
-### The master is generated, not typed (0031)
+### The master is generated, not typed (0032)
 `backend/src/mapping/generate-mapping-master.ts`, run as `npm -w @3f/backend run master:generate`
 (ts-node, like `db:migrate` and `warehouse:migrate`), reads Sheet1 and the SAP Report of
 `docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx`, the Table-2 outline of
@@ -161,7 +161,7 @@ carried from the classification table. The master schema gains `provisional_labe
 selection and a `formats` map naming `budget_owner_plant`; validation re-keys the duplicate-pair
 guard per plant and refuses a format without an owner.
 
-### Budget owner and the not-loaded state (0033)
+### Budget owner and the not-loaded state (0034)
 `MisStatementService` asks the master for the format's owner; when the selection's plant is not
 the owner, every block's `budgetState` is `"not-loaded"`, Budget and Roll-over are null, % is
 null, and the over-budget / credit labels are not computed. `MisStatementRunResponse` gains
@@ -181,17 +181,17 @@ No Ask surface changes.
 
 ### What stays exactly as built
 Ingestion and the batch model; one governed path (0017); parents derived (0020); the statement
-projection (0022); the drill (0024, 0025); the assistant (0036); the two zero states; the
-statement and export routes un-audited (D-0036).
+projection (0022); the drill (0024, 0025); the assistant (0037); the two zero states; the
+statement and export routes un-audited (D-0037).
 
 ## Decisions
-- `docs/decisions/0035-all-plants-scope-for-the-poc.md` — supersedes 0029; restates the product
+- `docs/decisions/0036-all-plants-scope-for-the-poc.md` — supersedes 0030; restates the product
   call with the PoC budget rule and the assistant left untouched.
-- `docs/decisions/0031-master-generated-from-workbook.md` — accepted; generator plus
+- `docs/decisions/0032-master-generated-from-workbook.md` — accepted; generator plus
   classification table. Rejected: hand-authoring ~3,000 entries; a runtime master (0014).
-- `docs/decisions/0033-poc-budget-owner-plant.md` — supersedes 0030. Rejected: plant-keyed
+- `docs/decisions/0034-poc-budget-owner-plant.md` — supersedes 0031. Rejected: plant-keyed
   batches and an outline object for a budget that does not exist.
-- `docs/decisions/0036-ask-untouched-in-multi-plant.md` — supersedes 0034. Rejected: any
+- `docs/decisions/0037-ask-untouched-in-multi-plant.md` — supersedes 0035. Rejected: any
   assistant work in this story; the demo cost is stated in the record.
 - Tooling: no new dependency; `exceljs` reads the workbooks; the generator is a ts-node script
   in the backend workspace so it shares the TypeScript outline helper without a loader. No
@@ -208,10 +208,10 @@ statement and export routes un-audited (D-0036).
 | App-DB seed (`migrate.ts`) + `SEED_USERS` grammar + README | **Changed** — per-user optional plant list; default all plants | 1 |
 | `backend/package.json`, `tools/quality-gate.test.mjs` | **Changed** — new test registration | 1 |
 | Statement view + options labels + client aggregate drill | **Changed** — dash cells with label, no drill affordance, provisional mark, null-safe aggregate drill | 2 |
-| Drill service, pins, audit; ingestion; batch model; warehouse schema | **Unchanged by design** — 0033, 0035 | — |
-| Assistant (chat, semantic layer, SQL builder, Ask panel) | **Unchanged by design** — 0036 | — |
+| Drill service, pins, audit; ingestion; batch model; warehouse schema | **Unchanged by design** — 0034, 0036 | — |
+| Assistant (chat, semantic layer, SQL builder, Ask panel) | **Unchanged by design** — 0037 | — |
 | `plans/roadmap.json` item `multi-plant` | **Pre-plan baseline change** — criteria reduced in commit 39c60bd before this plan; no task owns it | — |
-| Deferred set (plant-keyed budgets, outline object, upload field, partial-YTD, cascade, upload reporting, D-0038, plant-aware Ask) | **Deferred** — decision 0033's trigger; 0036 | — |
+| Deferred set (plant-keyed budgets, outline object, upload field, partial-YTD, cascade, upload reporting, D-0038, plant-aware Ask) | **Deferred** — decision 0034's trigger; 0037 | — |
 
 ## Task Decomposition
 Two leaves, the minimum the harness allows (backend and frontend never share a task). The
@@ -249,7 +249,7 @@ task widens the contract and renders the dash, and the backend task then sends n
   1.1, 2.1, 10.1, 11.1) must resolve by the cost centre → section rule; the exactly-once fixture
   proves it.
 - **Demo-visible Ask cost.** A fully granted user cannot ask statement questions in Ask until
-  the follow-up; 0036 names the second-user workaround.
+  the follow-up; 0037 names the second-user workaround.
 - **Provisional labels on screen.** The mark must read as "awaiting the client's names", not as
   an error; the functional check on task 2 covers the copy.
 

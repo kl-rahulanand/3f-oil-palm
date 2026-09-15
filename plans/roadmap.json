@@ -174,13 +174,13 @@
       "acceptance_criteria": [
         "Every SAP plant code in the July actuals batch (31) is offered to a fully granted user, each renders a statement, and the 31 Grand Total Actuals sum to the batch's company-wide net of ₹11,02,73,718.00 in exact paise, proven by a warehouse fixture.",
         "The DUB nursery statement is unchanged: Actual ₹1,15,12,712.07 and Budget ₹1,00,50,136.29 for July 2026, parents footing to leaves, the unmapped-GL line carrying its own Actual, and the Excel export matching.",
-        "Every (plant, cost centre, GL) triple in the July extract resolves exactly once via a master generated from the full mapping sheet (decision 0031), nothing dropped or fanned out, the eleven unnamed pairs bucketed with a reason, every new master row flagged provisional, and the format naming DUB as its budget owner.",
-        "A plant other than the budget owner carries a not-loaded budget state (decision 0033) and renders a dash with the label 'Budget not loaded for this plant' in Budget, Roll-over and % on every row including Grand Total, on screen and in Excel, with no over-budget or credit flag; H.O shows 100% of its net inside Manpower and Admin.",
+        "Every (plant, cost centre, GL) triple in the July extract resolves exactly once via a master generated from the full mapping sheet (decision 0032), nothing dropped or fanned out, the eleven unnamed pairs bucketed with a reason, every new master row flagged provisional, and the format naming DUB as its budget owner.",
+        "A plant other than the budget owner carries a not-loaded budget state (decision 0034) and renders a dash with the label 'Budget not loaded for this plant' in Budget, Roll-over and % on every row including Grand Total, on screen and in Excel, with no over-budget or credit flag; H.O shows 100% of its net inside Manpower and Admin.",
         "Department and Function labels follow the classification rule (nursery plants Agriculture / Nursery, H.O Corporate / Office, others Operations / Unit), stored and displayed as provisional.",
         "Drill-down foots in exact paise for a leaf and the unmapped-GL line of a non-owner plant with the shipped pin contract; Budget and % stay inert.",
-        "The assistant is untouched: its hermetic suite passes unchanged; a user granted only DUB sees only DUB in MIS Reports options and drill-down with no row leaking (decision 0036).",
+        "The assistant is untouched: its hermetic suite passes unchanged; a user granted only DUB sees only DUB in MIS Reports options and drill-down with no row leaking (decision 0037).",
         "The demo user is granted every canonical plant; the two zero states and three nil states stay distinct from the not-loaded state, all proven by hermetic tests judged by junit testcase name and executed count.",
-        "Plant-keyed budget batches, the outline object, the plant upload field, the partial-FY-YTD rule, cascading selection tuples, upload plant reporting, the master-version pin and the plant-aware assistant are deferred together with decision 0033's trigger and are not part of this story."
+        "Plant-keyed budget batches, the outline object, the plant upload field, the partial-FY-YTD rule, cascading selection tuples, upload plant reporting, the master-version pin and the plant-aware assistant are deferred together with decision 0034's trigger and are not part of this story."
       ],
       "order": 9,
       "status": "active",
