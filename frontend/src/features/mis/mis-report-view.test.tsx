@@ -294,6 +294,34 @@ test("metadata-free plants stay selectable without contributing flat selector va
   expect(within(screen.getByLabelText("Department")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
   expect(within(screen.getByLabelText("Function")).getByRole("option", { name: "Nursery" })).toBeInTheDocument();
   expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
+
+  fireEvent.change(plant, { target: { value: "VJA" } });
+  expect(screen.getByLabelText("Department")).toHaveValue("Agriculture");
+  expect(screen.getByLabelText("Function")).toHaveValue("Nursery");
+  fireEvent.change(plant, { target: { value: "DUB" } });
+  expect(screen.getByLabelText("Department")).toHaveValue("");
+  expect(screen.getByLabelText("Function")).toHaveValue("");
+});
+
+test("metadata-free plants do not preserve a function across an incompatible department", async () => {
+  mocks.misOptions.mockResolvedValue({
+    ...options,
+    plants: [
+      { value: "DUB", label: "DUB", aliases: [] },
+      { value: "VJA", label: "Agri - Nursery - VJA", aliases: [], department: "Agriculture", function: "Nursery" },
+      { value: "H.O", label: "Corporate - Office - Head Office", aliases: [], department: "Corporate", function: "Office" },
+    ],
+  });
+  renderWithQuery(<MisReportView />);
+
+  const plant = await screen.findByLabelText("Plant");
+  fireEvent.change(plant, { target: { value: "VJA" } });
+  fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Corporate" } });
+
+  expect(screen.getByLabelText("Function")).toHaveValue("");
+  expect(
+    within(screen.getByLabelText("Plant")).getByRole("option", { name: "Corporate - Office - Head Office" }),
+  ).toBeInTheDocument();
 });
 
 function chooseSelection() {

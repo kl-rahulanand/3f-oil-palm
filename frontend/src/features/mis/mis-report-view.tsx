@@ -26,8 +26,8 @@ export function MisReportView() {
   );
   const selectablePlants = plants.filter(
     (plant) =>
-      (!selection.department || !plant.department || plant.department === selection.department) &&
-      (!selection.function || !plant.function || plant.function === selection.function),
+      (!selection.department || plant.department === selection.department) &&
+      (!selection.function || plant.function === selection.function),
   );
 
   useEffect(() => {
@@ -49,8 +49,8 @@ export function MisReportView() {
         return {
           ...current,
           plant: value,
-          ...(plant?.department ? { department: plant.department } : {}),
-          ...(plant?.function ? { function: plant.function } : {}),
+          department: plant?.department ?? "",
+          function: plant?.function ?? "",
         };
       }
 
@@ -245,8 +245,8 @@ function matchesTuple(
 ): boolean {
   return plants.some(
     (option) =>
-      (!department || !option.department || option.department === department) &&
-      (!functionName || !option.function || option.function === functionName) &&
+      (!department || option.department === department) &&
+      (!functionName || option.function === functionName) &&
       (!plant || option.value === plant),
   );
 }
