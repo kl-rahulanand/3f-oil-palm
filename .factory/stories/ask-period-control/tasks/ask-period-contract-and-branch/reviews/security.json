@@ -1,0 +1,29 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "ask-period-contract-and-branch",
+  "score": 10,
+  "summary": "security lens over ask-period-contract-and-branch (10 product path(s), e73e07c..d7d2872, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements ordered, fail-closed statement scope and mapping checks; derives eligible periods from the existing resolver options; preserves the existing clarification contract; avoids selector calls when a selection is supplied; and attaches server-built period controls to successful answers. No concrete P0\u2013P2 security or correctness defect is demonstrated by the supplied evidence, and no compatibility-only leftover is present.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/ask-period.test.ts",
+    "backend/src/chat/chat.constants.ts",
+    "backend/src/chat/chat.service.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/mapping/selection-resolver.service.test.ts",
+    "backend/src/mapping/selection-resolver.service.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "security",
+  "review_run_id": "5a71a0648de50c3a49a442a81b7603583f88a43814da4c5f21e8b38f46248e18",
+  "brief_sha256": "949b3da413720d3a633281c0464c33bf024d9a852ccf21789fb5045ba3836885",
+  "branch_diff_digest": "636d9c96bab47ac93121ab8aba92748c98ea09ad24eac02d0c429a5e7fc95e32",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T07:04:35+00:00",
+  "commit": "d7d28725a37f8e32d147c220a7d0e4279395fd1e"
+}

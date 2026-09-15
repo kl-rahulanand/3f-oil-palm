@@ -780,7 +780,8 @@ async function statementRequest(
   if (!period) return { kind: "period", options };
 
   try {
-    const resolution = await resolver.resolve({ ...mapping, period: period.value });
+    // `periods` is already loaded above; hand it back so resolve() does not repeat that query.
+    const resolution = await resolver.resolve({ ...mapping, period: period.value }, periods);
     return resolution.outcome === "resolved" ? { kind: "resolved", resolution, options } : { kind: "no-mapping" };
   } catch (error) {
     if (error instanceof SelectionPeriodUnavailableError) return { kind: "period", options };

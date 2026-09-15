@@ -1,0 +1,81 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "ask-period-contract-and-branch",
+  "score": 10,
+  "summary": "quality lens over ask-period-contract-and-branch (10 product path(s), e73e07c..d7d2872, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-apcb-c1: implemented \u2014 contract/src/api.ts:493 defines distinct periodChoice and periodControl carriers using AskPeriodOption.\nVERDICT t-apcb-c2: implemented \u2014 contract/src/api.ts:493 requires value, label, and a complete grain/column/from/to timeWindow.\nVERDICT t-apcb-c3: implemented \u2014 backend/src/chat/ask-period.test.ts:39 verifies an edited selection leaves the fake provider's call count unchanged.\nVERDICT t-apcb-c4: implemented \u2014 backend/src/chat/chat.service.ts:759 implements the ordered scope, mapping, loaded-period, and period-choice outcomes.\nVERDICT t-apcb-c5: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:57 shares mappingSelection with resolve, while backend/src/chat/chat.service.ts:743 returns discriminated precondition results.\nVERDICT t-apcb-c6: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:152 filters statement periods derived from options(), excluding multi-month ranges.\nVERDICT t-apcb-c7: implemented \u2014 backend/src/chat/ask-period.test.ts:178 verifies rerun responses retain the active batch IDs used for the answer.\nVERDICT t-apcb-c8: implemented \u2014 backend/src/chat/ask-period.test.ts:10 contains the required hermetic scope, period, mapping, statement, and governed-answer matrix.\nVERDICT t-apcb-c9: implemented \u2014 backend/package.json:17 and tools/quality-gate.test.mjs:18 register the new test; .prettierignore:15 and the baseline map remove chat.constants.ts.\nVERDICT t-apcb-c10: implemented \u2014 backend/src/chat/chat.service.ts:474 attaches server-built periodControl to the centralized successful data response.\nLEFTOVERS: none \u2014 the diff contains no compatibility wrappers, retained aliases, deprecated branches, or legacy exports.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/ask-period.test.ts",
+    "backend/src/chat/chat.constants.ts",
+    "backend/src/chat/chat.service.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/mapping/selection-resolver.service.test.ts",
+    "backend/src/mapping/selection-resolver.service.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-apcb-c1",
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:493 defines distinct periodChoice and periodControl carriers using AskPeriodOption."
+    },
+    {
+      "contract_id": "t-apcb-c2",
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:493 requires value, label, and a complete grain/column/from/to timeWindow."
+    },
+    {
+      "contract_id": "t-apcb-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/ask-period.test.ts:39 verifies an edited selection leaves the fake provider's call count unchanged."
+    },
+    {
+      "contract_id": "t-apcb-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.ts:759 implements the ordered scope, mapping, loaded-period, and period-choice outcomes."
+    },
+    {
+      "contract_id": "t-apcb-c5",
+      "verdict": "implemented",
+      "evidence": "backend/src/mapping/selection-resolver.service.ts:57 shares mappingSelection with resolve, while backend/src/chat/chat.service.ts:743 returns discriminated precondition results."
+    },
+    {
+      "contract_id": "t-apcb-c6",
+      "verdict": "implemented",
+      "evidence": "backend/src/mapping/selection-resolver.service.ts:152 filters statement periods derived from options(), excluding multi-month ranges."
+    },
+    {
+      "contract_id": "t-apcb-c7",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/ask-period.test.ts:178 verifies rerun responses retain the active batch IDs used for the answer."
+    },
+    {
+      "contract_id": "t-apcb-c8",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/ask-period.test.ts:10 contains the required hermetic scope, period, mapping, statement, and governed-answer matrix."
+    },
+    {
+      "contract_id": "t-apcb-c9",
+      "verdict": "implemented",
+      "evidence": "backend/package.json:17 and tools/quality-gate.test.mjs:18 register the new test; .prettierignore:15 and the baseline map remove chat.constants.ts."
+    },
+    {
+      "contract_id": "t-apcb-c10",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.ts:474 attaches server-built periodControl to the centralized successful data response."
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "5a71a0648de50c3a49a442a81b7603583f88a43814da4c5f21e8b38f46248e18",
+  "brief_sha256": "949b3da413720d3a633281c0464c33bf024d9a852ccf21789fb5045ba3836885",
+  "branch_diff_digest": "636d9c96bab47ac93121ab8aba92748c98ea09ad24eac02d0c429a5e7fc95e32",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T07:04:35+00:00",
+  "commit": "d7d28725a37f8e32d147c220a7d0e4279395fd1e"
+}

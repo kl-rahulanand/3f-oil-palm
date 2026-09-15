@@ -1,7 +1,20 @@
-# Branch-wide plan-contract review brief
+# Review brief — ask-period-contract-and-branch — performance lens
 
-For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
 
+LENS: PERFORMANCE. Hot paths, algorithmic complexity, query fanout (N+1),
+I/O amplification, memory churn, concurrency bottlenecks, missing pagination or
+bounds, work repeated per request that could be done once. Distinguish measured
+evidence from inference and say which each finding is. Use category `bug` for a
+performance defect that will bite in production and `maintainability` for a cost
+worth reducing.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
 ## Task ask-period-contract-and-branch
 
 ### Plan contracts
@@ -102,53 +115,3 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 - [high] node_modules is materialised in assistant-bounded-generation: node_modules is fully installed in THIS worktree as of 2026-09-14: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host before delegating, because forge task start always cuts a fresh worktree without node_modules and the sandbox can neither reach the registry nor read the host cache. No product file changed - node_modules is gitignored. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry; those fail in the sandbox and are not yours to fix. If a package is genuinely missing, raise a signal naming it.
 - [high] rejected-review-finding: chat.controller.ts is NOT D-0006 ignored: NOT A DEFECT, raised as BLOCKING by both the quality and performance lenses in round 2 of assistant-bounded-generation: 'chat.controller.ts is modified here, but the patch removes only the three LLM files from .prettierignore and ignoredBaselineHashes'. Verified three independent ways and false in all three: (1) grep of .prettierignore for chat.controller returns nothing - the file was never ignored; (2) grep of tools/quality-gate.test.mjs for chat.controller matches ONLY 'backend/src/chat/chat.controller.test.ts' in the hermetic test registration, never the source file in any baseline map; (3) 'npx prettier --config .prettierrc.json --ignore-path .prettierignore --check backend/src/chat/chat.controller.ts' reports 'All matched files use Prettier code style' - so the file IS covered by the formatter and IS clean, which is also why npm run format:check passes. There is nothing to remove. The .prettierignore diff correctly removes exactly the three LLM files this task edited that WERE ignored (bedrock.provider.ts, llm.constants.ts, mock.provider.ts). Two lenses agreeing on the same misreading is not corroboration: check .prettierignore and the baseline map directly before acting on a D-0006 finding.
 - [high] node_modules is materialised in shell-freshness-api: node_modules is fully installed in THIS worktree as of 2026-09-14: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host before delegating, because forge task start always cuts a fresh worktree without node_modules and the sandbox can neither reach the registry nor read the host cache. No product file changed - node_modules is gitignored. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry. If a package is genuinely missing, raise a signal naming it.
-
-## Task ask-period-continuation
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-No new decisions. The story is governed by **0028** (a rerun re-authorizes and reads current active
-batches, so it is not a snapshot), **0016** (scope attributes are provisioned, not user-selectable —
-why an ambiguous triple explains rather than offers), **0019** (house style for any touched route),
-**0006** (prettier-ignored files are formatted and de-listed by the task that edits them), and
-**0024/0031** (proofs judged by junit testcase name and executed count).
-
-The requirements grill flagged the brief's "LLM/data residency: decide later" line as stale:
-decision **0027** fixes Bedrock in `ap-south-1` and its data boundary. Corrected, not re-opened.
-
-## Task ask-period-control-on-answers
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-No new decisions. The story is governed by **0028** (a rerun re-authorizes and reads current active
-batches, so it is not a snapshot), **0016** (scope attributes are provisioned, not user-selectable —
-why an ambiguous triple explains rather than offers), **0019** (house style for any touched route),
-**0006** (prettier-ignored files are formatted and de-listed by the task that edits them), and
-**0024/0031** (proofs judged by junit testcase name and executed count).
-
-The requirements grill flagged the brief's "LLM/data residency: decide later" line as stale:
-decision **0027** fixes Bedrock in `ap-south-1` and its data boundary. Corrected, not re-opened.
