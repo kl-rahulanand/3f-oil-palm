@@ -1,8 +1,9 @@
 ---
-status: accepted
+status: superseded
 confirmed_by: "Rahul Anand"
 date: 2026-09-15
 stories: [multi-plant]
+superseded_by: 0034-ask-plant-from-grounding-or-question
 ---
 
 # Ask clarifications that resume a selection carry a typed continuation, never a re-asked sentence

@@ -1,8 +1,9 @@
 ---
-status: accepted
+status: superseded
 confirmed_by: "Rahul Anand"
 date: 2026-09-15
 stories: [multi-plant]
+superseded_by: 0033-poc-budget-owner-plant
 ---
 
 # The statement format's outline is its own ingest object, pinned separately from any plant's budget amounts
