@@ -154,7 +154,6 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - CLEARING MEANS THE RESULT IS GONE, NOT HIDDEN. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and the old numbers still render - the leak would survive the fix. A cleared turn carries a result-free renderable state, and a leaf asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.
 - continueTurn's policy argument is REQUIRED, so ask-panel.tsx is in scope and its two shipped period-control calls pass 'retain' explicitly. A mandatory argument with the existing callers untouched would not type-check, and a defaulted one would recreate the implicit policy this task removes. Their behaviour does not change.
 - The helper is named selection-identity.helper.ts, per the constitution's Helper convention for stateless, IO-free utility logic (pnp-coding-standards-modular-monolith.md section 3.2).
-- user_facing: true - the Open flow and the displayed refusal both change - so emil-design-eng and frontend-design are loaded and the work done with them; the recorder refuses the test artifact unless skills_used attests both.
 - A terminal 401/403 clears the numbers and shows generic sign-in copy ON THAT TURN, and does NOT redirect to login. The session is gone, but a redirect would discard the whole thread because one report came back unauthorized; the rest of what the user had on screen survives.
 
 **Write scope** (what `stage done` measures the diff against)
@@ -186,6 +185,7 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - `opening a pin that matches an existing turn reruns it rather than appending` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}` (frontend/src/features/exploration/pinned-reports.test.tsx)
 - `opening a saved view that matches an existing turn reruns it rather than appending` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}` (frontend/src/features/exploration/saved-views.test.tsx)
 - `a terminal unauthorized does not navigate away from the thread` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}` (frontend/src/features/assistant/use-ask.test.tsx)
+- `opening two reports that share a label title but differ produces two distinct turns` -- `npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}` (frontend/src/features/exploration/pinned-reports.test.tsx)
 
 **Verify commands**
 

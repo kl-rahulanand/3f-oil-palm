@@ -1,7 +1,19 @@
-# Branch-wide plan-contract review brief
+# Review brief — reopen-identity-and-policy — security lens
 
-For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
 
+LENS: SECURITY. OWASP-style trust boundaries, authentication and authorization
+(every new route/handler: who may call it, with what scope), secrets and
+credential handling, injection (SQL/command/template), data exposure and
+over-broad responses, unsafe defaults, privilege escalation, and abuse paths.
+Use category `security` for these findings.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
 ## Task reopen-identity-and-policy
 
 ### Plan contracts
@@ -95,29 +107,3 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] assistant-streaming-and-shell round-1 review fixes: Three verified findings; the first is BLOCKING and was raised independently by quality AND performance. (1) A stored-selection rerun is UNCANCELLABLE. use-ask.ts:73-77 branches: the selection path calls api.ask({question, selection}) with NO AbortController and NO signal, while only the streamed path does '(abortRef.current = new AbortController()).signal'. So abortRef.current stays undefined for a rerun and the route-change effect has nothing to abort - leaving the assistant mid-rerun does not cancel, which contradicts t-ass-c4. Create and register the controller on BOTH branches, pass its signal to the buffered call, and cover it with a leaf that leaves the assistant during a rerun. (2) api.ts:48 'await request(CSRF_PATH)' and api.ts:61 'await post(/api/auth/refresh)' do NOT forward the supplied signal, so those sub-requests keep running after the user leaves; note the 401 RETRY at :62 already forwards it correctly, so only those two calls need threading. (3) ask-stream.test.ts:80 proves only that the parser ignores a phase frame arriving after a result frame - it does not prove the PENDING RENDER-DELAY TIMER is cleared on a terminal path, which is the thing that would otherwise fire a phase after the answer. Exercise a pending timer: start a request, let the delay be pending, deliver the terminal frame, advance timers, and assert no phase ever rendered.
 - [high] the rerun cancellation fix breaks two exploration test assertions: Making the stored-selection rerun cancellable changed the call from api.ask({question, selection}) to api.ask({question, selection}, {signal}), and two tests from the previous story assert the EXACT arguments with toHaveBeenCalledWith: frontend/src/features/exploration/saved-views.test.tsx ('a saved row is labelled from the shared catalog...') and frontend/src/features/exploration/pinned-reports.test.tsx ('a pinned row renders metadata only...'). Both now fail with 'expected spy to be called with arguments: [{question: Actual}]' / '[{question: Budget}]'. Both files are added to write_scope because the work mechanically implies them. Update the assertions to match the new two-argument call - assert the FIRST argument still carries question and selection, and that a signal is passed - do NOT loosen them to toHaveBeenCalled(), which would stop proving the stored selection is sent.
 - [high] assistant-streaming-and-shell round-2 fix: resolve before cleanup: ONE defect behind all three partial contract verdicts (t-ass-c1, c4, c8). ask-stream.ts awaits reader.cancel() BEFORE returning on every terminal path - the malformed-JSON path at :32, the result path at :37 and the error path at :41. Cleanup therefore gates the answer: if cancel() is slow the answer is delayed, and if it REJECTS the answer is lost and surfaces as a failure even though the server delivered it correctly. Fix: capture the response first, then resolve, and perform the cancellation WITHOUT awaiting it - fire it and swallow its rejection (void reader.cancel().catch(() => {})) so cleanup can never delay or fail a delivered answer. Apply it to all three terminal paths. Add a leaf proving the answer still resolves when reader.cancel() REJECTS and when it resolves slowly; ask-panel.test.tsx:409 currently exercises delayed phases but never an asynchronous or rejecting cancellation.
-
-## Task reopen-navigation-and-scroll
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-No new decisions. Governed by **0028** (a save is a selection, never a snapshot, and re-running
-re-authorizes - the reason an access refusal must clear), **0019** (house style for touched code). Two further constraints are **deferrals, not decisions**,
-and the first draft mis-cited them as decisions: **D-0006** (a prettier-ignored file is formatted
-and de-listed by the task that edits it) and **D-0024 / D-0031** (proofs judged by testcase name and
-executed count, never an exit code).
-
-The grill brief's already-answered ledger cited decisions **0035** and **0036**; the active corpus
-ends at **0029**, and it called `ask-period-control` unplanned although the roadmap records it done.
-Stale, corrected rather than adopted.

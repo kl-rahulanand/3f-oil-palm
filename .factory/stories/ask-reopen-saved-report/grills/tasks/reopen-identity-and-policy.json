@@ -14,7 +14,9 @@
     "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
     "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
     "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation.",
-    "A terminal 401/403 means the SESSION is gone, not just that one report, and the contract said only 'show the refusal on that turn' - leaving unstated whether the app should send the user to sign in."
+    "A terminal 401/403 means the SESSION is gone, not just that one report, and the contract said only 'show the refusal on that turn' - leaving unstated whether the app should send the user to sign in.",
+    "The same-title criterion demanded an OPEN-FLOW proof - two reports sharing a selectionLabel title but differing in dimensions producing TWO distinct turns - but the implemented leaf only called selectionsEqual directly, a helper unit test. The criterion was therefore unproven where it actually matters.",
+    "A design-skill attestation criterion was PROCESS, not product: its evidence lives in .factory/tests.json, which review excludes as harness bookkeeping, so it could only ever read as partial."
   ],
   "contradictions": [
     "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand."
@@ -28,7 +30,9 @@
     "user_facing is set to TRUE, which brings the functional check and makes emil-design-eng and frontend-design mandatory; a criterion records it.",
     "The helper is renamed selection-identity.helper.ts per constitution section 3.2, and the contract cites the convention.",
     "HUMAN ROUND: decision 0028 is AMENDED rather than the behaviour changed or the deferral left to override it. The amendment records that re-authorization still happens server-side, but the client can only act on refusals it can recognise, and states the consequence plainly - after losing a single grant an answer can remain on screen until reload, a display-lifetime limit rather than a cached figure at rest. D-0048's trigger reopens the amendment.",
-    "HUMAN ROUND: show it on the turn and do NOT redirect. Clearing the numbers and saying 'sign in again' there leaves everything else the user had on screen intact, where a redirect would discard a whole thread's worth of answers because one report came back unauthorized. A criterion and a leaf pin the no-navigation behaviour."
+    "HUMAN ROUND: show it on the turn and do NOT redirect. Clearing the numbers and saying 'sign in again' there leaves everything else the user had on screen intact, where a redirect would discard a whole thread's worth of answers because one report came back unauthorized. A criterion and a leaf pin the no-navigation behaviour.",
+    "A fifteenth leaf is required at the open-flow level in pinned-reports.test.tsx, asserting two distinct turns for two reports that share a title.",
+    "The design-skill criterion is removed from acceptance_criteria and plan_contracts. Nothing is lost: record_test_from_json.py already REFUSES a user_facing artifact whose skills_used omits emil-design-eng or frontend-design, so the harness enforces it where it belongs. Same correction as ask-period-control task 3."
   ],
   "citations": [
     {
@@ -66,6 +70,14 @@
     {
       "finding": "A terminal 401/403 means the SESSION is gone, not just that one report, and the contract said only 'show the refusal on that turn' - leaving unstated whether the app should send the user to sign in.",
       "source": "frontend/src/lib/api.ts (ApiError retains status only)"
+    },
+    {
+      "finding": "The same-title criterion demanded an OPEN-FLOW proof - two reports sharing a selectionLabel title but differing in dimensions producing TWO distinct turns - but the implemented leaf only called selectionsEqual directly, a helper unit test. The criterion was therefore unproven where it actually matters.",
+      "source": "frontend/src/features/exploration/selection-identity.helper.test.ts:47"
+    },
+    {
+      "finding": "A design-skill attestation criterion was PROCESS, not product: its evidence lives in .factory/tests.json, which review excludes as harness bookkeeping, so it could only ever read as partial.",
+      "source": "factory/scripts/record_test_from_json.py (required_skills)"
     }
   ],
   "rounds": [
@@ -90,7 +102,6 @@
     "CLEARING MEANS THE RESULT IS GONE, NOT HIDDEN. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and the old numbers still render - the leak would survive the fix. A cleared turn carries a result-free renderable state, and a leaf asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.": "Clearing removes the result, not just adds an error.",
     "continueTurn's policy argument is REQUIRED, so ask-panel.tsx is in scope and its two shipped period-control calls pass 'retain' explicitly. A mandatory argument with the existing callers untouched would not type-check, and a defaulted one would recreate the implicit policy this task removes. Their behaviour does not change.": "A required policy argument, hence ask-panel.tsx in scope.",
     "The helper is named selection-identity.helper.ts, per the constitution's Helper convention for stateless, IO-free utility logic (pnp-coding-standards-modular-monolith.md section 3.2).": "The constitution Helper naming.",
-    "user_facing: true - the Open flow and the displayed refusal both change - so emil-design-eng and frontend-design are loaded and the work done with them; the recorder refuses the test artifact unless skills_used attests both.": "user_facing true, design skills mandatory.",
     "A terminal 401/403 clears the numbers and shows generic sign-in copy ON THAT TURN, and does NOT redirect to login. The session is gone, but a redirect would discard the whole thread because one report came back unauthorized; the rest of what the user had on screen survives.": "Carried from the recorded cold read."
   },
   "decision": "keep",
@@ -110,13 +121,13 @@
     "docs/decisions/0028-saved-selections-not-snapshots.md",
     "constitution/pnp-coding-standards-modular-monolith.md:81"
   ],
-  "input_sha256": "89b25a5458b69406b973789d40333cf4558ab9c3563e3b0bf0bc08f341c31838",
+  "input_sha256": "4dceb3cfa29a2fad0162e586e2e9f1d4dda25ae012cd9820139aa7960ae57f0e",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "5cf6611ac2020bfedac505cc0b9a86106b1c4dbcb9e8d0e96e59bb7fd37136a8",
-  "recorded_at": "2026-09-15T16:15:44+00:00",
-  "commit": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b",
+  "recorded_at": "2026-09-15T16:29:17+00:00",
+  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391",
   "approved_task_plan_sha256": "5cf6611ac2020bfedac505cc0b9a86106b1c4dbcb9e8d0e96e59bb7fd37136a8",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-15T16:15:47+00:00"
+  "approved_at": "2026-09-15T16:29:19+00:00"
 }

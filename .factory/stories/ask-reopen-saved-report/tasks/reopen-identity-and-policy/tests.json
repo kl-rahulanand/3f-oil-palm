@@ -1,10 +1,10 @@
 {
-  "commit": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b",
+  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391",
   "automated": {
     "generated_by": "implementer",
     "status": "passed",
-    "summary": "Fourteen required leaves verified individually by the vitest discriminator - present AND NOT skipped AND NOT failed - not by name, which proves nothing for vitest. The negative control confirmed the discriminator: a -t filter matching nothing still lists all 12 testcases under their real names, every one skipped. verify.py passes. The shipped ask-period-control leaf passes UNMODIFIED, which is criterion 8 - had the failure policy leaked instead of being stated by the caller, it would have needed editing. The only edit to ask-panel.test.tsx is the one authorized under signal S-0018-93e2: its harness reruns the SAME selection as the turn it just created, so the matched rerun now correctly sends that turn's own question; toHaveBeenNthCalledWith is retained, so it still proves the selection is sent rather than being loosened to toHaveBeenCalled().",
-    "pass_fail_summary": "14/14 required leaves executed; verify.py pass; shipped period-control leaf unmodified and passing",
+    "summary": "Fifteen required leaves verified individually by the vitest discriminator - present AND NOT skipped AND NOT failed - not by name, which proves nothing for vitest. The negative control confirmed the discriminator: a -t filter matching nothing still lists all 12 testcases under their real names, every one skipped. verify.py passes. The shipped ask-period-control leaf passes UNMODIFIED, which is criterion 8 - had the failure policy leaked instead of being stated by the caller, it would have needed editing. The only edit to ask-panel.test.tsx is the one authorized under signal S-0018-93e2: its harness reruns the SAME selection as the turn it just created, so the matched rerun now correctly sends that turn's own question; toHaveBeenNthCalledWith is retained, so it still proves the selection is sent rather than being loosened to toHaveBeenCalled(). A second round added the fifteenth: the quality lens was right that the same-title criterion demanded an OPEN-FLOW proof - two reports sharing a selectionLabel title producing TWO distinct turns - while the leaf only called selectionsEqual directly, proving the helper rather than the behaviour.",
+    "pass_fail_summary": "15/15 required leaves executed; verify.py pass; shipped period-control leaf unmodified and passing",
     "blocking_findings": [],
     "commands_run": [
       "python3 factory/scripts/verify.py",
@@ -30,8 +30,8 @@
     "residual_risks": [],
     "manual_validation_steps": [],
     "reviewed_scope": [],
-    "recorded_at": "2026-09-15T16:23:26+00:00",
-    "commit": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b"
+    "recorded_at": "2026-09-15T16:34:33+00:00",
+    "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391"
   },
-  "updated_at": "2026-09-15T16:23:26+00:00"
+  "updated_at": "2026-09-15T16:34:33+00:00"
 }

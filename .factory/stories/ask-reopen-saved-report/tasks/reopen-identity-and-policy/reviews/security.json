@@ -1,0 +1,29 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "reopen-identity-and-policy",
+  "score": 10,
+  "summary": "security lens over reopen-identity-and-policy (8 product path(s), af447d4..ee6cfa1, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements strict selection-based matching, reruns the most recent successful matching turn with its original question, and preserves thread length. Access refusals replace the prior response with a result-free state for blocked_by_policy and terminal 401/403 outcomes, while other failures retain the answer as required. Period-control callers explicitly retain prior results, both Open entry points cover matched turns, and no credentials, authorization bypasses, injection risks, or compatibility leftovers are present in the supplied change.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
+    "frontend/src/features/exploration/selection-identity.helper.test.ts",
+    "frontend/src/features/exploration/selection-identity.helper.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "dc61ae5231b14b047a542a49414247bde326bca3db36c89ac3c0ce5eaadcf0f2",
+  "brief_sha256": "bbdd821331c6c39cf932bf34de074c8aecdbb04bfe81aabc8e0eaa0947857f32",
+  "branch_diff_digest": "712f1672a5dd25986aca90554ef93b94dcad2b55c5e333a1249cfda2cda7194e",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T16:28:24+00:00",
+  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391"
+}
