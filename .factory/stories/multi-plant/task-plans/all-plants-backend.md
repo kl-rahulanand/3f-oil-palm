@@ -239,6 +239,13 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - tools/quality-gate.test.mjs
 - README.md
 
+**Scope amendments** (measured paths the scope did not name, recorded with `forge stage amend-scope`)
+
+- backend/src/warehouse/selection-slice.db.test.ts -- Fixture-only edits mechanically implied by the contract: four frontend test fixtures gain the now-required budgetState (signal S-0014) and selection-slice.db.test.ts's resolver stub gains plantDisplay, provisional and budgetOwnerPlant (signal S-0013). No component, behaviour or proof-expectation changes; frontend typecheck and vitest green.
+- frontend/src/features/mis/drill-panel.test.tsx -- Fixture-only edits mechanically implied by the contract: four frontend test fixtures gain the now-required budgetState (signal S-0014) and selection-slice.db.test.ts's resolver stub gains plantDisplay, provisional and budgetOwnerPlant (signal S-0013). No component, behaviour or proof-expectation changes; frontend typecheck and vitest green.
+- frontend/src/features/mis/mis-report-view.test.tsx -- Fixture-only edits mechanically implied by the contract: four frontend test fixtures gain the now-required budgetState (signal S-0014) and selection-slice.db.test.ts's resolver stub gains plantDisplay, provisional and budgetOwnerPlant (signal S-0013). No component, behaviour or proof-expectation changes; frontend typecheck and vitest green.
+- frontend/src/features/mis/statement-view.test.tsx -- Fixture-only edits mechanically implied by the contract: four frontend test fixtures gain the now-required budgetState (signal S-0014) and selection-slice.db.test.ts's resolver stub gains plantDisplay, provisional and budgetOwnerPlant (signal S-0013). No component, behaviour or proof-expectation changes; frontend typecheck and vitest green.
+
 **Required tests** (run by `stage done`)
 
 - `the generated master equals the checked in master and names every SAP plant in the July extract with provisional labels and DUB as the budget owner` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mapping/mapping-master.test.ts)
