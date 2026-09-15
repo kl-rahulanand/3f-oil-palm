@@ -1,0 +1,210 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "issue": "ask-reopen-saved-report",
+  "story": "ask-reopen-saved-report",
+  "epic": "assistant",
+  "project": "3oilpalm",
+  "plan_file": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md",
+  "user_facing": true,
+  "tasks": [
+    {
+      "id": "reopen-identity-and-policy",
+      "title": "Match a turn by its selection, and let the caller state the failure policy",
+      "objective": "Stop appending a duplicate turn every time a saved report is opened. Find the existing turn by its resolved Selection - never the displayed title, which is only the measure names - re-run it in place, and give continueTurn a caller-stated failure policy so a reopen can clear on access refusals without changing the period control's shipped retain-on-refusal behaviour. No visual change; the navigation and scroll are task 2.",
+      "user_facing": true,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Opening a saved report whose resolved Selection already has a SUCCESSFUL turn re-runs that turn and appends nothing; thread length unchanged. Candidates are successful turns carrying response.selection - nothing else holds a selection to compare.",
+        "Identity is STRICT STRUCTURAL EQUALITY over domain, measureIds, dimensionIds, filters, timeWindow and limit, including optional fields and array order - never the displayed title. selectionLabel().title is only measures.join(' \u00b7 '), so a pin by GL code and a pin by month are both 'Actual \u00b7 Budget'. A leaf opens two reports sharing a title but differing in dimensions and asserts TWO distinct turns.",
+        "A pin whose selection predates a normalised timeWindow is NOT equal and opens as a new turn. The spec's first draft claimed it would still match; that is unsupportable with the data the client holds - only pin.selection and a turn's response.selection - and ignoring the window to force a match would match the WRONG period.",
+        "When several successful turns carry that selection, the MOST RECENT is the one re-run.",
+        "A matched turn re-runs with turn.question, asserted on the REQUEST BODY. The existing paths pass selectionLabel().title, so auditing 'Actual \u00b7 Budget' while displaying the user's real wording would put a question in the record nobody asked. A new turn uses the label, because no better text exists.",
+        "A reopen refused for access clears the stale result and shows the reason, and the ONLY two signals that qualify are blocked_by_policy and a terminal HTTP 401/403 - the only refusals the client can recognise. Everything else KEEPS the answer, INCLUDING not_supported: a revoked domain or measure grant returns it (chat.service.ts:245) but so do 'No mapping configured' (:337) and 'no periods loaded', and the response carries no reason code (contract/src/api.ts:515). The display-lifetime limit this creates is recorded in the 2026-09-15 AMENDMENT to decision 0028 and tracked as D-0048 - a deferral alone could not override an accepted decision.",
+        "THE PERIOD CONTROL IS UNCHANGED. ask-period-control requires a refused period switch to RETAIN the previous answer and proves it with a shipped leaf that must pass UNMODIFIED. Both paths use the same continueTurn seam, so the CALLER states which failure policy it wants rather than one silently overriding the other.",
+        "CLEARING MEANS THE RESULT IS GONE, NOT HIDDEN. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and the old numbers still render - the leak would survive the fix. A cleared turn carries a result-free renderable state, and a leaf asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.",
+        "continueTurn's policy argument is REQUIRED, so ask-panel.tsx is in scope and its two shipped period-control calls pass 'retain' explicitly. A mandatory argument with the existing callers untouched would not type-check, and a defaulted one would recreate the implicit policy this task removes. Their behaviour does not change.",
+        "The helper is named selection-identity.helper.ts, per the constitution's Helper convention for stateless, IO-free utility logic (pnp-coding-standards-modular-monolith.md section 3.2).",
+        "A terminal 401/403 clears the numbers and shows generic sign-in copy ON THAT TURN, and does NOT redirect to login. The session is gone, but a redirect would discard the whole thread because one report came back unauthorized; the rest of what the user had on screen survives."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-rip-c1",
+          "statement": "Opening a saved report whose resolved Selection already has a SUCCESSFUL turn re-runs that turn and appends nothing; thread length unchanged. Candidates are successful turns carrying response.selection - nothing else holds a selection to compare.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c2",
+          "statement": "Identity is STRICT STRUCTURAL EQUALITY over domain, measureIds, dimensionIds, filters, timeWindow and limit, including optional fields and array order - never the displayed title. selectionLabel().title is only measures.join(' \u00b7 '), so a pin by GL code and a pin by month are both 'Actual \u00b7 Budget'. A leaf opens two reports sharing a title but differing in dimensions and asserts TWO distinct turns.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c3",
+          "statement": "A pin whose selection predates a normalised timeWindow is NOT equal and opens as a new turn. The spec's first draft claimed it would still match; that is unsupportable with the data the client holds - only pin.selection and a turn's response.selection - and ignoring the window to force a match would match the WRONG period.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c4",
+          "statement": "When several successful turns carry that selection, the MOST RECENT is the one re-run.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c5",
+          "statement": "A matched turn re-runs with turn.question, asserted on the REQUEST BODY. The existing paths pass selectionLabel().title, so auditing 'Actual \u00b7 Budget' while displaying the user's real wording would put a question in the record nobody asked. A new turn uses the label, because no better text exists.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c6",
+          "statement": "A reopen refused for access clears the stale result and shows the reason, and the ONLY two signals that qualify are blocked_by_policy and a terminal HTTP 401/403 - the only refusals the client can recognise. Everything else KEEPS the answer, INCLUDING not_supported: a revoked domain or measure grant returns it (chat.service.ts:245) but so do 'No mapping configured' (:337) and 'no periods loaded', and the response carries no reason code (contract/src/api.ts:515). The display-lifetime limit this creates is recorded in the 2026-09-15 AMENDMENT to decision 0028 and tracked as D-0048 - a deferral alone could not override an accepted decision.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c7",
+          "statement": "THE PERIOD CONTROL IS UNCHANGED. ask-period-control requires a refused period switch to RETAIN the previous answer and proves it with a shipped leaf that must pass UNMODIFIED. Both paths use the same continueTurn seam, so the CALLER states which failure policy it wants rather than one silently overriding the other.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c8",
+          "statement": "CLEARING MEANS THE RESULT IS GONE, NOT HIDDEN. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and the old numbers still render - the leak would survive the fix. A cleared turn carries a result-free renderable state, and a leaf asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c9",
+          "statement": "continueTurn's policy argument is REQUIRED, so ask-panel.tsx is in scope and its two shipped period-control calls pass 'retain' explicitly. A mandatory argument with the existing callers untouched would not type-check, and a defaulted one would recreate the implicit policy this task removes. Their behaviour does not change.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c10",
+          "statement": "The helper is named selection-identity.helper.ts, per the constitution's Helper convention for stateless, IO-free utility logic (pnp-coding-standards-modular-monolith.md section 3.2).",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c12",
+          "statement": "A terminal 401/403 clears the numbers and shows generic sign-in copy ON THAT TURN, and does NOT redirect to login. The session is gone, but a redirect would discard the whole thread because one report came back unauthorized; the rest of what the user had on screen survives.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        }
+      ],
+      "write_scope": [
+        "frontend/src/features/assistant/ask-panel.test.tsx",
+        "frontend/src/features/assistant/ask-panel.tsx",
+        "frontend/src/features/assistant/use-ask.test.tsx",
+        "frontend/src/features/assistant/use-ask.ts",
+        "frontend/src/features/exploration/pinned-reports.test.tsx",
+        "frontend/src/features/exploration/pinned-reports.tsx",
+        "frontend/src/features/exploration/saved-views.test.tsx",
+        "frontend/src/features/exploration/saved-views.tsx",
+        "frontend/src/features/exploration/selection-identity.helper.test.ts",
+        "frontend/src/features/exploration/selection-identity.helper.ts"
+      ],
+      "required_tests": [
+        {
+          "id": "selections differing in any single field are not equal",
+          "path": "frontend/src/features/exploration/selection-identity.helper.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "selections differing only in array order are not equal",
+          "path": "frontend/src/features/exploration/selection-identity.helper.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "two reports sharing a label title but differing in dimensions are not the same selection",
+          "path": "frontend/src/features/exploration/selection-identity.helper.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "reopening a report already answered reruns that turn and appends nothing",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a non success turn carrying a selection is not a candidate",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the most recent matching turn is the one rerun",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a matched rerun sends the turn question not the report label",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a reopen blocked by policy removes the numbers from the turn",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a terminal unauthorized and a terminal forbidden both clear with generic copy",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "not supported and a transport failure both keep the previous answer",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a refused period switch still retains the previous answer",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "opening a pin that matches an existing turn reruns it rather than appending",
+          "path": "frontend/src/features/exploration/pinned-reports.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "opening a saved view that matches an existing turn reruns it rather than appending",
+          "path": "frontend/src/features/exploration/saved-views.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a terminal unauthorized does not navigate away from the thread",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "opening two reports that share a label title but differ produces two distinct turns",
+          "path": "frontend/src/features/exploration/pinned-reports.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "Identity must be the SELECTION and must compare EVERY field including array order. Any comparison touching selectionLabel().title is the defect this task removes - two unrelated pins share that string.",
+        "not_supported must KEEP the answer. It looks like an omission and is not: the 2026-09-15 amendment to decision 0028 and D-0048 record why. 'Fixing' it breaks the rule the human chose.",
+        "Clearing must remove the RESULT, not just add an error. turn.error alone leaves the response and the numbers still render, so the leak would survive - check the leaf asserts absence from the DOM.",
+        "The period control's shipped leaf must pass UNMODIFIED. If it needed editing, the policy leaked instead of being stated by the caller.",
+        "Both Open entry points must be proven against a MATCHED turn; hook leaves can pass while one route bypasses matching entirely."
+      ],
+      "review_budget": {
+        "max_changed_files": 10,
+        "max_changed_lines": 900,
+        "reason": "A pure equality helper, a required failure-policy argument threaded through one seam and its two shipped call sites, and rewiring two Open handlers. Thirteen hermetic leaves, several of which exist only to pin deliberate non-obvious choices: not_supported keeps the answer, clearing removes the result rather than hiding it, and the period control is untouched. UI, so design skills are mandatory. No backend, no contract change. Scope extended mid-stage by one file: ask-panel.test.tsx asserts a stored-selection rerun sends 'Stored question', but its harness reruns the SAME selection as an existing successful turn, so under this task's contract the matched rerun correctly sends that turn's own question instead. The work mechanically implies the update; the test's actual purpose - proving a stored-selection rerun stays on the buffered route while an ordinary ask streams - is unaffected and must be preserved."
+      }
+    },
+    {
+      "id": "reopen-navigation-and-scroll",
+      "title": "Navigate first, show it working, scroll to it",
+      "objective": "Make the click have an instant visible effect. Navigate to Ask before the request completes, append an already-pending turn when there is no match, scroll the target into view, and show the refusal reason on that turn instead of the period control's copy.",
+      "user_facing": true,
+      "dependencies": [
+        "reopen-identity-and-policy"
+      ],
+      "acceptance_criteria": [
+        "An unmatched open appends ONE turn IMMEDIATELY, already pending - it cannot wait for the response or there is nothing to scroll to or show working. It is replaced on success, carries the reason on a refusal, and carries an error on a transport failure. One turn, not two.",
+        "Open navigates to Ask BEFORE the request completes; the target turn is scrolled into view and shown pending. Today both handlers await the whole re-run before router.push('/ask'), so no Ask panel is on screen while it runs and a slow click looks inert.",
+        "Open while another request is running is REFUSED with the existing row message and does NOT navigate - an explicit exception, since there would be no target to start or scroll to. useAsk permits one request at a time; queueing is out of scope.",
+        "Pins and saved views are both covered; a leaf set exercising only one leaves the other unproven. Both call the same path today and both have the defect.",
+        "The refusal reason is visible on the target turn, and neither path shows continueTurn's period-specific copy ('That period could not be loaded. Choose a period to try again.'), which is wrong for a saved report."
+      ]
+    }
+  ],
+  "plan_sha256": "a876c2afbf926fcb9c2f670ca980218bc0cb8d7c25c8ad4de902697839108f72",
+  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391"
+}

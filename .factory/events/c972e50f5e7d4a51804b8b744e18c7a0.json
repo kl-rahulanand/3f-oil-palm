@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-15T16:13:23+00:00", "story": "ask-reopen-saved-report", "detail": "frontend/src/features/assistant/ask-panel.test.tsx is outside write scope but its stored-selection rerun assertion expects the report label; the new binding contract requires a matched rerun to send t"}

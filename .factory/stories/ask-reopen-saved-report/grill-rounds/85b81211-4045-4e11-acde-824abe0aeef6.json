@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The grill is right that I've created a governance problem. Decision 0028 says plainly: \"a revoked grant produces a refusal rather than a cached figure.\" D-0048 permits exactly that cached figure for a revoked domain or measure grant. A deferral can't override an accepted decision \u2014 so one of them has to give. Which?",
+      "options": [
+        "Amend 0028 to record the limit (Recommended)",
+        "Honour 0028 \u2014 clear on not_supported too",
+        "Add the typed reason after all"
+      ],
+      "chosen": "Amend 0028 to record the limit (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T15:56:20.951311+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

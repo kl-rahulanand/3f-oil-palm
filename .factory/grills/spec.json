@@ -2,72 +2,94 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu2anfk4-8pabuq) of docs/specs/all-plants-statement.md against the built repo. Three factual corrections and five questions. Four of the five were settled from the repository (plant identity keeps the shipped DUB canonical id; the budget upload takes an explicit plant field because the client's workbook names no owning plant; the format outline becomes a pinnable object separate from any plant budget; only master-configured selections are offered). Two went to the human in one round: acceptance of decision 0029 with its supersession of 0016, and the partial-FY-YTD Budget/% rule. The spec was amended once and this pass is bound to the amended digest.",
-  "questions_asked": 2,
+  "summary": "Cold read of the reopen-identity-and-policy contract. Eight findings, two of them P0 and both mine. The governing one: D-0048 let a revoked grant leave a cached figure on screen, which accepted decision 0028 forbids - and a deferral cannot override a decision. The human chose to AMEND 0028 to record the limit honestly rather than let the deferral quietly contradict it. The second: I amended the plan's refusal rule and left the CONFIRMED SPEC saying the opposite, so an implementer had two authorities. The read also caught that clearing via turn.error alone would leave the numbers rendering - the leak surviving the fix - that the policy could not be caller-stated without ask-panel.tsx in scope, and that the task was misclassified as not user-facing.",
+  "questions_asked": 1,
   "gaps": [
-    "Company-wide July net is \u20b911,02,73,718.00 in exact paise, not .07 as the draft's acceptance criterion 1 stated (the .07 belongs to DUB alone); coverage is 92.7% and the eleven unmatched cost-centre-plus-GL pairs include Primary/50001802 and Tertiary/50001904, which DUB never books and were therefore never bucketed for DUB.",
-    "Decision 0029 was still proposed while accepted decision 0016 restricts the governed join to the single plant DUB; the spec cannot be confirmed against a live corpus that contradicts it.",
-    "Plant identity was ambiguous: the draft said the SAP plant code is canonical yet called DUB-NUR an alias of DUB, while the shipped master, seeded scopes, budget ownership and drill pins key on DUB.",
-    "The budget upload's plant had no falsifiable source: the format workbook's Plant list names sixteen plants, the parser hard-codes DUB, and 'the workbook names its plant' named no field and no mismatch rule.",
-    "The outline for a no-budget plant was not an object that exists: outlines live only under a budget batch (decision 0021) and the drill requires a pinned budget batch, so 'the format's active outline' could not be pinned.",
-    "Partial FY-YTD budgets were underspecified: summing the loaded budget months left open whether % compares a partial budget to full-block actuals.",
-    "The draft said a plant absent from the master renders 'no mapping configured', but such a plant can never appear in the cascading dropdowns, and independent Department/Function/Plant lists could form combinations the master does not hold."
+    "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
+    "The write scope could not deliver a caller-stated failure policy: continueTurn's two shipped period-control calls and their callback typings live in ask-panel.tsx, which was OUTSIDE scope. A required argument would not type-check with those callers untouched, and a defaulted one recreates the implicit policy the task exists to remove.",
+    "Clearing on a terminal 401/403 had no state contract. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and THE OLD NUMBERS STILL RENDER - the leak would have survived the fix.",
+    "The proof was materially incomplete: the identity leaves covered only dimensions and an absent/present time window, not domain, measures, filters, limit, optional time-window fields or array order; nothing proved that non-success responses carrying a selection are excluded as candidates; the auth leaf exercised only one of 401/403; and only not_supported represented the whole 'everything else retains' set.",
+    "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
+    "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
+    "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation."
   ],
   "contradictions": [
-    "Spec versus accepted decision 0016: the governed relation is DUB-only in 0016 while the spec carries plant as a scoped dimension across every granted plant.",
-    "Spec versus itself on plant identity: 'SAP plant code is canonical' contradicted 'DUB-NUR keeps its alias to DUB'."
+    "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand."
   ],
   "resolutions": [
-    "Why and acceptance criterion 1 now carry the exact-paise figures: \u20b911,02,73,718.00 company-wide, \u20b910,21,80,290.32 matched (92.7%), \u20b980,93,427.68 unmatched, and the eleven pairs are described as nine already bucketed for DUB plus the two DUB never books.",
-    "HUMAN ROUND: decision 0029 accepted, confirmed by Rahul Anand, with an explicit supersedes pointer to 0016 and a clause restating what 0016 keeps (join key gl_code + month, full-outer zero-fill, two-sided scope, the deferred mapping master and its trigger) now within each granted plant. Recorded with `forge decision accept` before this pass.",
-    "Repository-resolved: the master's plant_canonical is the identity. DUB stays DUB with SAP alias DUB-NUR exactly as shipped (mis-selection, seeded scope, budget, pins all key on it); every other plant's canonical id is its SAP code with no alias. Written into Behaviour and decision 0029 clause 6.",
-    "Repository-resolved: the budget upload takes an explicit canonical plant id as a request field, validated against the master, and the parser stops assuming DUB; the current nursery workbook is re-imported once with plant DUB. Acceptance criterion 6 refuses a missing or unknown plant and an outline mismatch.",
-    "Repository-resolved: the format outline becomes a pinnable object independent of any plant's budget amounts; plant budgets attach to it and must match it leaf-for-leaf by stable leaf key; the statement and the drill pin it explicitly and separately from any plant budget batch. Persistence shape is left to the plan. Acceptance criterion 7 names the pinned outline object.",
-    "HUMAN ROUND: partial FY-YTD renders Budget as the sum over months that have a budget batch, naming them in the block heading, and % as the dash whenever any month with actuals in the block lacks a budget. Written into Behaviour, decision 0029 clause 4, and acceptance criterion 9's two-month fixture.",
-    "Repository-resolved: dropdowns cascade from the master's configured selections filtered by grants (SelectionResolverService.options() already does this); a plant in a later actuals upload but absent from the master is not offered, is named in the upload's validation result, and is added as master data; a direct unconfigured request fails closed with the existing no-mapping outcome. New acceptance criterion 10.",
-    "Residency: decision 0027 governs unchanged; the spec's 'what does not change' list now cites it so the model boundary (vocabulary yes, amounts and rows never) is not re-opened by adding plants."
+    "The spec is amended to match: not_supported now sits explicitly on the KEEPS side with the reasoning written in, and criterion 7 names only blocked_by_policy and a terminal 401/403 as the refusals the client can recognise.",
+    "ask-panel.tsx is added to write_scope and the policy argument is REQUIRED; the two shipped period-control calls pass 'retain' explicitly. Their behaviour does not change - only the call sites become explicit. A new criterion pins this.",
+    "A new criterion requires a result-free renderable state and a leaf that asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.",
+    "The leaf matrix grows from nine to thirteen: every identity field including array order, a leaf proving non-success turns carrying a selection are excluded, both 401 and 403 in one leaf, and not_supported plus a transport failure together representing the retains set.",
+    "Component leaves are added for BOTH pinned-reports and saved-views against a matched turn, and both test files enter write_scope.",
+    "user_facing is set to TRUE, which brings the functional check and makes emil-design-eng and frontend-design mandatory; a criterion records it.",
+    "The helper is renamed selection-identity.helper.ts per constitution section 3.2, and the contract cites the convention.",
+    "HUMAN ROUND: decision 0028 is AMENDED rather than the behaviour changed or the deferral left to override it. The amendment records that re-authorization still happens server-side, but the client can only act on refusals it can recognise, and states the consequence plainly - after losing a single grant an answer can remain on screen until reload, a display-lifetime limit rather than a cached figure at rest. D-0048's trigger reopens the amendment."
   ],
-  "open_items": [
-    "Non-blocking: the client's authoritative Department / Function names and Master Table (renames the provisional labels, empties the bucket as data).",
-    "Non-blocking: budgets for plants other than the nursery.",
-    "Non-blocking: format Plant list names that do not match SAP (DHS, DHS2 versus DMHS; Belagum absent from July) \u2014 to confirm with Srihari."
-  ],
-  "inspected_refs": [
-    "docs/specs/all-plants-statement.md:60",
-    "docs/decisions/0029-all-plants-provisional-scope.md:2",
-    "docs/decisions/0016-governed-joins-poc-scope.md:23",
-    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md:27",
-    "backend/src/mis/mis-drill.service.ts:57",
-    "backend/src/mapping/selection-resolver.service.ts:35",
-    "backend/src/mapping/mis-mapping-master.ts",
-    "backend/src/ingest/mis-budget.parser.ts:8",
-    "backend/src/warehouse/warehouse-schema.ts:43,185",
-    "docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx",
-    "docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx"
+  "citations": [
+    {
+      "finding": "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
+      "source": "docs/specs/ask-reopen-saved-report.md:84"
+    },
+    {
+      "finding": "The write scope could not deliver a caller-stated failure policy: continueTurn's two shipped period-control calls and their callback typings live in ask-panel.tsx, which was OUTSIDE scope. A required argument would not type-check with those callers untouched, and a defaulted one recreates the implicit policy the task exists to remove.",
+      "source": "frontend/src/features/assistant/ask-panel.tsx:153"
+    },
+    {
+      "finding": "Clearing on a terminal 401/403 had no state contract. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and THE OLD NUMBERS STILL RENDER - the leak would have survived the fix.",
+      "source": "frontend/src/features/assistant/use-ask.ts:7; frontend/src/features/assistant/ask-panel.tsx:129"
+    },
+    {
+      "finding": "The proof was materially incomplete: the identity leaves covered only dimensions and an absent/present time window, not domain, measures, filters, limit, optional time-window fields or array order; nothing proved that non-success responses carrying a selection are excluded as candidates; the auth leaf exercised only one of 401/403; and only not_supported represented the whole 'everything else retains' set.",
+      "source": ".factory/stories/ask-reopen-saved-report/task-plans/reopen-identity-and-policy.md"
+    },
+    {
+      "finding": "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
+      "source": "frontend/src/features/exploration/pinned-reports.tsx:65; frontend/src/features/exploration/saved-views.tsx:62"
+    },
+    {
+      "finding": "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
+      "source": ".factory/stories/ask-reopen-saved-report/decomposition.json"
+    },
+    {
+      "finding": "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation.",
+      "source": "constitution/pnp-coding-standards-modular-monolith.md:81"
+    },
+    {
+      "finding": "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand.",
+      "source": "docs/decisions/0028-saved-selections-not-snapshots.md:20; plans/deferrals.md:56"
+    }
   ],
   "rounds": [
     {
-      "question": "Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?",
+      "question": "The grill is right that I've created a governance problem. Decision 0028 says plainly: \"a revoked grant produces a refusal rather than a cached figure.\" D-0048 permits exactly that cached figure for a revoked domain or measure grant. A deferral can't override an accepted decision \u2014 so one of them has to give. Which?",
       "options": [
-        "Accept, confirmed by Rahul Anand (Recommended)",
-        "Accept under a different name",
-        "Do not accept yet"
+        "Amend 0028 to record the limit (Recommended)",
+        "Honour 0028 \u2014 clear on not_supported too",
+        "Add the typed reason after all"
       ],
-      "chosen": "Accept, confirmed by Rahul Anand (Recommended)",
-      "frontier_empty": false
-    },
-    {
-      "question": "FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)",
-      "options": [
-        "Budget = loaded months, % = not loaded (Recommended)",
-        "Budget and % both over loaded months only",
-        "Whole block is 'not loaded'"
-      ],
-      "chosen": "Budget = loaded months, % = not loaded (Recommended)",
+      "chosen": "Amend 0028 to record the limit (Recommended)",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "5d479ad7f9083d4c2f138e9b3bea13943043ecfc91b36268e7a46610456c9bac",
-  "recorded_at": "2026-09-15T07:24:15+00:00",
-  "commit": "df7d5689e8f91dfdaafe0dc9a7ac30c7e3b5e338"
+  "decision": "keep",
+  "new_abstractions": [
+    "A shared selection-identity helper - the first time two surfaces agree in code on when two governed selections are the same question.",
+    "A caller-stated failure policy on continueTurn, so one seam can serve two callers whose refusal semantics differ by design rather than by accident.",
+    "A result-free renderable turn state, which the thread has never had: until now a turn either held an answer or had never run."
+  ],
+  "inspected_refs": [
+    "frontend/src/features/assistant/use-ask.ts:7,86,97-130,147",
+    "frontend/src/features/assistant/ask-panel.tsx:129,153",
+    "frontend/src/features/exploration/pinned-reports.tsx:65",
+    "frontend/src/features/exploration/saved-views.tsx:62",
+    "frontend/src/features/exploration/selection-label.ts",
+    "backend/src/chat/chat.service.ts:245,337",
+    "contract/src/api.ts:515",
+    "docs/decisions/0028-saved-selections-not-snapshots.md",
+    "constitution/pnp-coding-standards-modular-monolith.md:81"
+  ],
+  "input_sha256": "18a03e838ee621b4b2cf9dc87c77bb5024a09ea2a18a40ef32ad1103ff21dc32",
+  "recorded_at": "2026-09-15T15:59:03+00:00",
+  "commit": "ce7f985978b18879104f3767a1db4252f409cf24"
 }

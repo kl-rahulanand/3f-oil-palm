@@ -1,0 +1,51 @@
+{
+  "id": "reopen-identity-and-policy",
+  "title": "Match a turn by its selection, and let the caller state the failure policy",
+  "status": "done",
+  "started_at": "2026-09-15T16:07:50+00:00",
+  "base_sha": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b",
+  "dirty_at_start": {
+    ".factory/events/54cafa184f634c56ba44f7537ef45817.json": {
+      "digest": "311291927dc5369b205d6a36ced2224ec354ce97d72acade90b703e39f5ee900",
+      "git": "? .factory/events/54cafa184f634c56ba44f7537ef45817.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/ask-reopen-saved-report/grills/tasks/reopen-identity-and-policy.json": {
+      "digest": "3a6850d4ad1e1f8f8f22e6d8a3ac559fc5a24df16396acbd32b3d1408b7a8dbf",
+      "git": "1 .M N... 100644 100644 100644 59d52db81f26d9287cfa8094bead9810880271b0 59d52db81f26d9287cfa8094bead9810880271b0 .factory/stories/ask-reopen-saved-report/grills/tasks/reopen-identity-and-policy.json\u0000\u0000100644 59d52db81f26d9287cfa8094bead9810880271b0 0\t.factory/stories/ask-reopen-saved-report/grills/tasks/reopen-identity-and-policy.json\u0000\u0000H .factory/stories/ask-reopen-saved-report/grills/tasks/reopen-identity-and-policy.json\u0000"
+    },
+    ".factory/stories/ask-reopen-saved-report/tasks/reopen-identity-and-policy/verify.json": {
+      "digest": "a4f427fc0291bf146bd85cd704d0472749dc79c76d957b582e476ef50a1c8c5c",
+      "git": "? .factory/stories/ask-reopen-saved-report/tasks/reopen-identity-and-policy/verify.json\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "a4b88c9e5ab3d83326d4a603efb1507879a01e2f4b5b4770e2a2719506473a43",
+  "local_review_stamp": {
+    "stage_id": "reopen-identity-and-policy",
+    "base_sha": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b",
+    "delta_id": "74f88573cf7809475d4c4505877e7a1e889f6b1772209e54626bf09e9fe5bd49",
+    "contract_sha256": "a4b88c9e5ab3d83326d4a603efb1507879a01e2f4b5b4770e2a2719506473a43",
+    "recorded_at": "2026-09-15T16:45:42+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-15T16:45:44+00:00",
+  "measured": {
+    "strays": [],
+    "files": 8,
+    "lines": 588,
+    "budget": {
+      "files": 10,
+      "lines": 900
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-15T16:45:44+00:00",
+    "from": "c5fa92836ecf22e78da954a8437ac70a32edabeacf97468299afd6eb49578b63",
+    "to": "a4b88c9e5ab3d83326d4a603efb1507879a01e2f4b5b4770e2a2719506473a43"
+  }
+}

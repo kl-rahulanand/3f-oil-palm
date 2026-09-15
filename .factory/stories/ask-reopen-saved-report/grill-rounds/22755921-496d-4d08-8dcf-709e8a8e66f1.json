@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "When a reopen fails with a terminal 401/403, the session itself is gone \u2014 not just that one report. The contract currently says show the refusal on that turn and stop. Should it do more?",
+      "options": [
+        "Show it on the turn, stay put (Recommended)",
+        "Redirect to the login page"
+      ],
+      "chosen": "Show it on the turn, stay put (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T16:00:40.590872+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-15T16:14:51+00:00", "story": "ask-reopen-saved-report", "detail": "S-0018-93e2: Correct call, and the scope is extended for you: frontend/src/features/assistant/ask-panel.test.tsx is ADDED to write_scope and the review budget raised to 10 files. Your description was slightly off "}

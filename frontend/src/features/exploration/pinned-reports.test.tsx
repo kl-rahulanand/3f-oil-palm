@@ -121,17 +121,72 @@ test("a pinned rerun rejected while another question is pending stays on the row
   expect(mocks.push).not.toHaveBeenCalled();
 });
 
+test("opening a pin that matches an existing turn reruns it rather than appending", async () => {
+  mocks.pins.mockResolvedValue([pin("pin", "Pinned budget", 0, false)]);
+  mocks.ask
+    .mockResolvedValueOnce(success("Original budget", selection))
+    .mockResolvedValueOnce(success("Fresh budget", selection));
+  renderWithQuery(
+    <AskProvider>
+      <SeedTurn />
+      <ThreadLength />
+      <PinnedReports />
+    </AskProvider>,
+  );
+
+  await screen.findByRole("heading", { name: "Pinned budget" });
+  fireEvent.click(screen.getByRole("button", { name: "Seed answered turn" }));
+  await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("1"));
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "What was the budget?", selection });
+  expect(screen.getByTestId("thread-length")).toHaveTextContent("1");
+  expect(mocks.push).toHaveBeenCalledWith("/ask");
+});
+
+test("opening two reports that share a label title but differ produces two distinct turns", async () => {
+  const byMonth = {
+    ...selection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+  };
+  const byGlCode = { ...byMonth, dimensionIds: ["gl_code"] };
+  mocks.pins.mockResolvedValue([
+    pin("month", "By month", 0, false, { runnable: true }, byMonth),
+    pin("gl-code", "By GL code", 1, false, { runnable: true }, byGlCode),
+  ]);
+  mocks.ask.mockResolvedValueOnce(success("By month", byMonth)).mockResolvedValueOnce(success("By GL code", byGlCode));
+  renderWithQuery(
+    <AskProvider>
+      <ThreadLength />
+      <PinnedReports />
+    </AskProvider>,
+  );
+
+  await screen.findByRole("heading", { name: "By month" });
+  fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]!);
+  await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("1"));
+  fireEvent.click(screen.getAllByRole("button", { name: "Open" })[1]!);
+
+  await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("2"));
+  expect(mocks.ask.mock.calls.map(([request]) => request)).toEqual([
+    { question: "Actual · Budget", selection: byMonth },
+    { question: "Actual · Budget", selection: byGlCode },
+  ]);
+});
+
 function pin(
   id: string,
   title: string,
   position: number,
   definitionChanged: boolean,
   status: Pin["status"] = { runnable: true },
+  value: Selection = selection,
 ): Pin {
   return {
     id,
     title,
-    selection,
+    selection: value,
     status,
     definitionVersion: "version",
     definitionChanged,
@@ -155,4 +210,28 @@ function PendingQuestion() {
       Start question
     </button>
   );
+}
+
+function SeedTurn() {
+  const { ask } = useAsk();
+  return (
+    <button type="button" onClick={() => void ask("What was the budget?")}>
+      Seed answered turn
+    </button>
+  );
+}
+
+function ThreadLength() {
+  const { turns } = useAsk();
+  return <output data-testid="thread-length">{turns.length}</output>;
+}
+
+function success(title: string, value: Selection) {
+  return {
+    responseClass: "success" as const,
+    sessionId: "session",
+    title,
+    selection: value,
+    viewInReport: { available: false as const, reason: "Not available." },
+  };
 }

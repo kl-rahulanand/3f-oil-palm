@@ -1,0 +1,133 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "reopen-identity-and-policy",
+  "verdict": "pass",
+  "current_flow": "Today: pinned-reports.tsx:67 and saved-views.tsx:64 both call rerun(label.title, selection), which is run(question, selection) (use-ask.ts:147), and use-ask.ts:86 appends a turn unconditionally - no lookup, no reuse. continueTurn (use-ask.ts:97) exists from ask-period-control and replaces a turn on success while RETAINING the previous answer on any failure, with period-specific copy. AskTurn is {id, question, response, isPending?, error?} and ask-panel.tsx:129 renders from response. selectionLabel().title is measures.join(' \u00b7 '), so unrelated reports share it. There is no scrollIntoView anywhere in the panel.",
+  "summary": "Cold read of the reopen-identity-and-policy contract. Eight findings, two of them P0 and both mine. The governing one: D-0048 let a revoked grant leave a cached figure on screen, which accepted decision 0028 forbids - and a deferral cannot override a decision. The human chose to AMEND 0028 to record the limit honestly rather than let the deferral quietly contradict it. The second: I amended the plan's refusal rule and left the CONFIRMED SPEC saying the opposite, so an implementer had two authorities. The read also caught that clearing via turn.error alone would leave the numbers rendering - the leak surviving the fix - that the policy could not be caller-stated without ask-panel.tsx in scope, and that the task was misclassified as not user-facing. RE-GROUNDED against current master after PR #63 merged a multi-plant story: every factual claim in the contract was re-verified rather than assumed - use-ask.ts:86 still appends unconditionally, :97 is still continueTurn, ask-panel.tsx still holds the period-control call sites, selectionLabel().title is still measures.join(' \u00b7 '), and a revoked domain grant still returns NotSupported at chat.service.ts:245. multi-plant touched only backend mapping, ingest and selection-resolver code; none of this task's files changed. Scope extended mid-stage by one file after signal S-0018-93e2: ask-panel.test.tsx asserts a stored-selection rerun sends 'Stored question', but its harness reruns the SAME selection as the turn it just created, so under this contract the rerun matches and must send that turn's own question. The work mechanically implies the update.",
+  "questions_asked": 1,
+  "gaps": [
+    "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
+    "The write scope could not deliver a caller-stated failure policy: continueTurn's two shipped period-control calls and their callback typings live in ask-panel.tsx, which was OUTSIDE scope. A required argument would not type-check with those callers untouched, and a defaulted one recreates the implicit policy the task exists to remove.",
+    "Clearing on a terminal 401/403 had no state contract. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and THE OLD NUMBERS STILL RENDER - the leak would have survived the fix.",
+    "The proof was materially incomplete: the identity leaves covered only dimensions and an absent/present time window, not domain, measures, filters, limit, optional time-window fields or array order; nothing proved that non-success responses carrying a selection are excluded as candidates; the auth leaf exercised only one of 401/403; and only not_supported represented the whole 'everything else retains' set.",
+    "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
+    "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
+    "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation.",
+    "A terminal 401/403 means the SESSION is gone, not just that one report, and the contract said only 'show the refusal on that turn' - leaving unstated whether the app should send the user to sign in.",
+    "The same-title criterion demanded an OPEN-FLOW proof - two reports sharing a selectionLabel title but differing in dimensions producing TWO distinct turns - but the implemented leaf only called selectionsEqual directly, a helper unit test. The criterion was therefore unproven where it actually matters.",
+    "A design-skill attestation criterion was PROCESS, not product: its evidence lives in .factory/tests.json, which review excludes as harness bookkeeping, so it could only ever read as partial."
+  ],
+  "contradictions": [
+    "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand."
+  ],
+  "resolutions": [
+    "The spec is amended to match: not_supported now sits explicitly on the KEEPS side with the reasoning written in, and criterion 7 names only blocked_by_policy and a terminal 401/403 as the refusals the client can recognise.",
+    "ask-panel.tsx is added to write_scope and the policy argument is REQUIRED; the two shipped period-control calls pass 'retain' explicitly. Their behaviour does not change - only the call sites become explicit. A new criterion pins this.",
+    "A new criterion requires a result-free renderable state and a leaf that asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.",
+    "The leaf matrix grows from nine to thirteen: every identity field including array order, a leaf proving non-success turns carrying a selection are excluded, both 401 and 403 in one leaf, and not_supported plus a transport failure together representing the retains set.",
+    "Component leaves are added for BOTH pinned-reports and saved-views against a matched turn, and both test files enter write_scope.",
+    "user_facing is set to TRUE, which brings the functional check and makes emil-design-eng and frontend-design mandatory; a criterion records it.",
+    "The helper is renamed selection-identity.helper.ts per constitution section 3.2, and the contract cites the convention.",
+    "HUMAN ROUND: decision 0028 is AMENDED rather than the behaviour changed or the deferral left to override it. The amendment records that re-authorization still happens server-side, but the client can only act on refusals it can recognise, and states the consequence plainly - after losing a single grant an answer can remain on screen until reload, a display-lifetime limit rather than a cached figure at rest. D-0048's trigger reopens the amendment.",
+    "HUMAN ROUND: show it on the turn and do NOT redirect. Clearing the numbers and saying 'sign in again' there leaves everything else the user had on screen intact, where a redirect would discard a whole thread's worth of answers because one report came back unauthorized. A criterion and a leaf pin the no-navigation behaviour.",
+    "A fifteenth leaf is required at the open-flow level in pinned-reports.test.tsx, asserting two distinct turns for two reports that share a title.",
+    "The design-skill criterion is removed from acceptance_criteria and plan_contracts. Nothing is lost: record_test_from_json.py already REFUSES a user_facing artifact whose skills_used omits emil-design-eng or frontend-design, so the harness enforces it where it belongs. Same correction as ask-period-control task 3."
+  ],
+  "citations": [
+    {
+      "finding": "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
+      "source": "docs/specs/ask-reopen-saved-report.md:84"
+    },
+    {
+      "finding": "The write scope could not deliver a caller-stated failure policy: continueTurn's two shipped period-control calls and their callback typings live in ask-panel.tsx, which was OUTSIDE scope. A required argument would not type-check with those callers untouched, and a defaulted one recreates the implicit policy the task exists to remove.",
+      "source": "frontend/src/features/assistant/ask-panel.tsx:153"
+    },
+    {
+      "finding": "Clearing on a terminal 401/403 had no state contract. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and THE OLD NUMBERS STILL RENDER - the leak would have survived the fix.",
+      "source": "frontend/src/features/assistant/use-ask.ts:7; frontend/src/features/assistant/ask-panel.tsx:129"
+    },
+    {
+      "finding": "The proof was materially incomplete: the identity leaves covered only dimensions and an absent/present time window, not domain, measures, filters, limit, optional time-window fields or array order; nothing proved that non-success responses carrying a selection are excluded as candidates; the auth leaf exercised only one of 401/403; and only not_supported represented the whole 'everything else retains' set.",
+      "source": ".factory/stories/ask-reopen-saved-report/task-plans/reopen-identity-and-policy.md"
+    },
+    {
+      "finding": "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
+      "source": "frontend/src/features/exploration/pinned-reports.tsx:65; frontend/src/features/exploration/saved-views.tsx:62"
+    },
+    {
+      "finding": "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
+      "source": ".factory/stories/ask-reopen-saved-report/decomposition.json"
+    },
+    {
+      "finding": "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation.",
+      "source": "constitution/pnp-coding-standards-modular-monolith.md:81"
+    },
+    {
+      "finding": "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand.",
+      "source": "docs/decisions/0028-saved-selections-not-snapshots.md:20; plans/deferrals.md:56"
+    },
+    {
+      "finding": "A terminal 401/403 means the SESSION is gone, not just that one report, and the contract said only 'show the refusal on that turn' - leaving unstated whether the app should send the user to sign in.",
+      "source": "frontend/src/lib/api.ts (ApiError retains status only)"
+    },
+    {
+      "finding": "The same-title criterion demanded an OPEN-FLOW proof - two reports sharing a selectionLabel title but differing in dimensions producing TWO distinct turns - but the implemented leaf only called selectionsEqual directly, a helper unit test. The criterion was therefore unproven where it actually matters.",
+      "source": "frontend/src/features/exploration/selection-identity.helper.test.ts:47"
+    },
+    {
+      "finding": "A design-skill attestation criterion was PROCESS, not product: its evidence lives in .factory/tests.json, which review excludes as harness bookkeeping, so it could only ever read as partial.",
+      "source": "factory/scripts/record_test_from_json.py (required_skills)"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "When a reopen fails with a terminal 401/403, the session itself is gone \u2014 not just that one report. The contract currently says show the refusal on that turn and stop. Should it do more?",
+      "options": [
+        "Show it on the turn, stay put (Recommended)",
+        "Redirect to the login page"
+      ],
+      "chosen": "Show it on the turn, stay put (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "criteria_map": {
+    "Opening a saved report whose resolved Selection already has a SUCCESSFUL turn re-runs that turn and appends nothing; thread length unchanged. Candidates are successful turns carrying response.selection - nothing else holds a selection to compare.": "Reuse by selection.",
+    "Identity is STRICT STRUCTURAL EQUALITY over domain, measureIds, dimensionIds, filters, timeWindow and limit, including optional fields and array order - never the displayed title. selectionLabel().title is only measures.join(' \u00b7 '), so a pin by GL code and a pin by month are both 'Actual \u00b7 Budget'. A leaf opens two reports sharing a title but differing in dimensions and asserts TWO distinct turns.": "Every identity field, including order.",
+    "A pin whose selection predates a normalised timeWindow is NOT equal and opens as a new turn. The spec's first draft claimed it would still match; that is unsupportable with the data the client holds - only pin.selection and a turn's response.selection - and ignoring the window to force a match would match the WRONG period.": "The withdrawn legacy-match claim.",
+    "When several successful turns carry that selection, the MOST RECENT is the one re-run.": "Most-recent wins.",
+    "A matched turn re-runs with turn.question, asserted on the REQUEST BODY. The existing paths pass selectionLabel().title, so auditing 'Actual \u00b7 Budget' while displaying the user's real wording would put a question in the record nobody asked. A new turn uses the label, because no better text exists.": "turn.question on the request body.",
+    "A reopen refused for access clears the stale result and shows the reason, and the ONLY two signals that qualify are blocked_by_policy and a terminal HTTP 401/403 - the only refusals the client can recognise. Everything else KEEPS the answer, INCLUDING not_supported: a revoked domain or measure grant returns it (chat.service.ts:245) but so do 'No mapping configured' (:337) and 'no periods loaded', and the response carries no reason code (contract/src/api.ts:515). The display-lifetime limit this creates is recorded in the 2026-09-15 AMENDMENT to decision 0028 and tracked as D-0048 - a deferral alone could not override an accepted decision.": "The narrowed refusal rule and the 0028 amendment.",
+    "THE PERIOD CONTROL IS UNCHANGED. ask-period-control requires a refused period switch to RETAIN the previous answer and proves it with a shipped leaf that must pass UNMODIFIED. Both paths use the same continueTurn seam, so the CALLER states which failure policy it wants rather than one silently overriding the other.": "The period control untouched.",
+    "CLEARING MEANS THE RESULT IS GONE, NOT HIDDEN. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and the old numbers still render - the leak would survive the fix. A cleared turn carries a result-free renderable state, and a leaf asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.": "Clearing removes the result, not just adds an error.",
+    "continueTurn's policy argument is REQUIRED, so ask-panel.tsx is in scope and its two shipped period-control calls pass 'retain' explicitly. A mandatory argument with the existing callers untouched would not type-check, and a defaulted one would recreate the implicit policy this task removes. Their behaviour does not change.": "A required policy argument, hence ask-panel.tsx in scope.",
+    "The helper is named selection-identity.helper.ts, per the constitution's Helper convention for stateless, IO-free utility logic (pnp-coding-standards-modular-monolith.md section 3.2).": "The constitution Helper naming.",
+    "A terminal 401/403 clears the numbers and shows generic sign-in copy ON THAT TURN, and does NOT redirect to login. The session is gone, but a redirect would discard the whole thread because one report came back unauthorized; the rest of what the user had on screen survives.": "Carried from the recorded cold read."
+  },
+  "decision": "keep",
+  "new_abstractions": [
+    "A shared selection-identity helper - the first time two surfaces agree in code on when two governed selections are the same question.",
+    "A caller-stated failure policy on continueTurn, so one seam can serve two callers whose refusal semantics differ by design rather than by accident.",
+    "A result-free renderable turn state, which the thread has never had: until now a turn either held an answer or had never run."
+  ],
+  "inspected_refs": [
+    "frontend/src/features/assistant/use-ask.ts:7,86,97-130,147",
+    "frontend/src/features/assistant/ask-panel.tsx:129,153",
+    "frontend/src/features/exploration/pinned-reports.tsx:65",
+    "frontend/src/features/exploration/saved-views.tsx:62",
+    "frontend/src/features/exploration/selection-label.ts",
+    "backend/src/chat/chat.service.ts:245,337",
+    "contract/src/api.ts:515",
+    "docs/decisions/0028-saved-selections-not-snapshots.md",
+    "constitution/pnp-coding-standards-modular-monolith.md:81"
+  ],
+  "input_sha256": "4dceb3cfa29a2fad0162e586e2e9f1d4dda25ae012cd9820139aa7960ae57f0e",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "5cf6611ac2020bfedac505cc0b9a86106b1c4dbcb9e8d0e96e59bb7fd37136a8",
+  "recorded_at": "2026-09-15T16:29:17+00:00",
+  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391",
+  "approved_task_plan_sha256": "5cf6611ac2020bfedac505cc0b9a86106b1c4dbcb9e8d0e96e59bb7fd37136a8",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-15T16:29:19+00:00"
+}

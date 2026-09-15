@@ -732,7 +732,7 @@ test("leaving the assistant aborts while collapsing the dock and moving to the a
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
-test("a stored selection rerun stays on the buffered route while an ordinary ask streams", async () => {
+test("a matched stored selection rerun stays buffered and sends the turn question", async () => {
   mocks.ask.mockResolvedValue(success);
   render(
     <AskProvider>
@@ -745,10 +745,10 @@ test("a stored selection rerun stays on the buffered route while an ordinary ask
   await screen.findByRole("heading", { name: "Governed result" });
   fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
   await waitFor(() =>
-    expect(mocks.ask).toHaveBeenCalledWith({ question: "Stored question", selection }, expect.any(Object)),
+    expect(mocks.ask).toHaveBeenCalledWith({ question: "Ordinary question", selection }, expect.any(Object)),
   );
   expect(mocks.ask).toHaveBeenNthCalledWith(1, { question: "Ordinary question" }, expect.any(Object));
-  expect(mocks.ask).toHaveBeenNthCalledWith(2, { question: "Stored question", selection }, expect.any(Object));
+  expect(mocks.ask).toHaveBeenNthCalledWith(2, { question: "Ordinary question", selection }, expect.any(Object));
 });
 
 test("an ordinary streaming http error renders as the buffered client does", async () => {

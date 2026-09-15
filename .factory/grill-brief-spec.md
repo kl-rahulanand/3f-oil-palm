@@ -1,4 +1,4 @@
-# Cold-read grill — gate: spec — spec all-plants-statement.md
+# Cold-read grill — gate: spec — spec ask-reopen-saved-report.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,205 +431,123 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
+- Q: If someone asks "...for July 2026" and then switches the period control to August, the question on screen says July while the answer shows August. That's a visible contradiction in an audited transcript. How should it read?
+  A: Keep their words, label the answer (Recommended)
+- Q: The grill found that batch ids already travel in the API but the Ask panel never renders them — its provenance section shows only readback, measures, scope and freshness. My criterion says "provenance reports the batch ids". Should this story make them visible?
+  A: Out of scope — reword the criterion (Recommended)
+- Q: The grill found that /api/chat documents its request body and error statuses but has no typed response DTO — its 201 carries only a description. Decision 0019 makes typed response DTOs mandatory for fresh routes; decision 0012 time-bounds the vendored deviation to the PoC. This story adds two new fields to that response. Pay the debt down now, or keep it inside the recorded deviation?
+  A: Keep the deviation, log a deferral (Recommended)
+- Q: Which statement format should the office and mill plants use (H.O, AP-AGRI, AY-*, YG-*, C G, KA-RAM, NK, SK, VJM)? They book only Admin and Manpower cost centres.
+  A: Nursery format, all rows (Recommended)
+- Q: How should Department and Function be labelled for plants the client has not named? Nursery plants are clearly Agriculture / Nursery.
+  A: Provisional labels, flagged (Recommended)
+- Q: The active story is 'Recoverable periods in Ask' (planning, no plan yet). Where does the multi-plant story go?
+  A: Multi-plant first, period control after (Recommended)
+- Q: Task 1 needs a period-free mapping lookup on SelectionResolverService. chat.service.ts:56 injects the CONCRETE class, but ISelectionResolverService is the declared port and 6+ test fakes implement it. Where should the new method live?
+  A: Concrete class only, record the gap (Recommended)
+- Q: While a clicked period is being fetched, should the rest of Ask stay usable — i.e. can someone type a new question before the continuation comes back?
+  A: Lock the panel while it runs (Recommended)
+- Q: A clicked period can come back as something other than a data answer — for example another clarification, or an informational glossary reply. Which of those should take over the turn?
+  A: Only a successful answer (Recommended)
+- Q: Re-asking only because a stale pointer filed your last answers into another repo. While a clicked period is being fetched, should the rest of Ask stay usable?
+  A: Lock the panel while it runs (Recommended)
+- Q: If a clicked period fails (server refuses it, or the network drops), what should the user be left looking at?
+  A: Keep the buttons, show why (Recommended)
+- Q: A clicked period can come back as something other than a data answer — another clarification, or an informational glossary reply. Which should take over the turn?
+  A: Only a successful answer (Recommended)
+- Q: The grill found my "question stays exactly as typed" claim is already false: use-ask.ts:86 stores the TRIMMED input on the turn, so leading/trailing whitespace is dropped the moment anyone asks anything. What should the guarantee actually be?
+  A: Narrow the claim to what's true (Recommended)
+- Q: How should the multi-plant story be scoped?
+  A: Small plus the Ask plant fix
+- Q: Two decision records carry the reduced scope: 0033 (for the PoC the format's budget belongs to the plant the master names, DUB; non-owner plants get the not-loaded dash; plant-keyed budgets and the outline object are deferred until a second plant's budget arrives; supersedes 0030) and 0034 (a statement question takes its plant from the docked report's scope or from the question, department and function come from the master, otherwise a 'name a plant' message; the typed plant picker is deferred to ask-period-control; supersedes 0032). Accept both, confirmed by Rahul Anand?
+  A: Accept both (Recommended)
+- Q: Two decision records carry the two-task scope: 0035 (supersedes 0029; every SAP plant selectable on the nursery format with provisional labels, full mapping sheet per plant, DUB owns the nursery budget and every other plant shows a dash; the rest deferred with a trigger) and 0036 (supersedes 0034; the assistant is untouched in this story, so a user granted every plant gets 'not supported' for statement questions in Ask until the follow-up; a second DUB-only user is the demo workaround). Accept both, confirmed by Rahul Anand?
+  A: Accept both (Recommended)
 
-## The artifact under interrogation (spec all-plants-statement.md)
+## The artifact under interrogation (spec ask-reopen-saved-report.md)
 
 ---
-slug: all-plants-statement
-title: All plants in the Financial MIS statement
+slug: ask-reopen-saved-report
+title: Reopening a saved report returns to its answer
 status: draft
-saved: 2026-09-15T06:31:20+00:00
+saved: 2026-09-15T13:19:45+00:00
 ---
 
-# All plants in the Financial MIS statement
+# Reopening a saved report returns to its answer
 
 ## Why
-The shipped statement offers one selection, Agriculture / Nursery / DUB, because the
-Mapping Master carries one selection and the budget loader is fixed to the nursery. The
-July SAP extract already holds 4,113 lines across 31 plants, and a measured read of the
-client's two workbooks (2026-09-15) shows the nursery mapping generalises: the chart of
-accounts is company-wide (54 distinct GL codes in July, 45 of them named in the mapping
-sheet), every plant books only the cost centres the nursery uses (Admin, Manpower,
-Primary, secondary, Tertiary, Imported Sprouts, Transportation Charges), and the mapping
-sheet's cost-centre-plus-GL dictionary classifies 93% of company spend (₹10,21,80,290 of
-₹11,02,73,718). The remaining ₹80,93,428 sits in eleven cost-centre-plus-GL pairs the
-sheet never names, the same secondary-nursery and labour GLs already bucketed for DUB.
-Srihari's delivery note asks for exactly this: sheets generated "based on the same format
-and logic" for every Plant + Cost Center + GL combination, with zero-valued combinations
-still rendered.
 
-The human decided (2026-09-15) to offer every plant now, on the nursery format, with
-provisional Department / Function labels, and to show an absent budget as a dash rather
-than a zero. The client has supplied a budget for the nursery only.
+Opening a pinned report from the Dashboard appends a brand-new turn to the Ask thread every
+time, even when that exact report is already answered further up, and the panel does not move.
+Open the same pin five times and you get five identical answers; open it once on a long thread
+and it looks like nothing happened, because the answer lands below the fold.
 
-## Users
-Finance and management at 3F reviewing any plant's Financial MIS; the demo audience;
-Srihari, who will use the provisional labels and the unmapped-GL bucket to tell us the
-authoritative master.
+Both halves are visible in the code. `pinned-reports.tsx:67` calls `rerun(...)`, which is
+`run(question, selection)` (`use-ask.ts:147`), and `use-ask.ts:86` appends unconditionally:
+
+```ts
+setTurns((current) => [...current, { id: ..., question: trimmed, response }]);
+```
+
+Nothing looks for an existing turn. And `grep` for `scrollIntoView` or `scrollTo` across
+`ask-panel.tsx` returns **nothing** - there is no scroll logic in the panel at all.
+
+`saved-views.tsx:64` does the identical thing, so this is not a pins-only defect.
+
+**The obvious fix is wrong.** Matching an existing turn by its question text would collapse
+unrelated reports into one, because the text is not the question - it is
+`selectionLabel(selection).title`, which is only the measure names joined:
+
+```ts
+title: measures.join(" · ")
+```
+
+A pin of Actual and Budget by GL code for July and a pin of Actual and Budget by month are both
+titled `Actual · Budget`. Identity has to come from the **selection**, never the title.
+
+The machinery to do this correctly already shipped. `continueTurn(turnId, question, selection)`
+(`use-ask.ts:97`) marks only its own turn pending, keeps the previous answer visible while it
+runs, attaches a typed refusal or a transport failure to that turn, and replaces **only** on
+success. It was built for the period control and is proven by six hermetic leaves.
 
 ## Behaviour
 
-### Every plant in the loaded actuals is selectable
-- The Mapping Master carries one selection per SAP plant code present in the client's
-  data, not one. The SAP plant code is the canonical plant identifier; `DUB-NUR` keeps
-  its existing alias to `DUB`. The MIS Reports Plant dropdown offers every plant the
-  signed-in user is granted, and the Department and Function dropdowns offer the labels
-  those plants carry.
-- Department and Function are **provisional labels**, flagged as such in the master and
-  surfaced as provisional wherever the selection is shown, so the client can rename them
-  without a schema change:
-  - a plant is a **nursery** when it appears in the format workbook's `Plant list`
-    sheet (name-normalised) or books any of the cost centres Primary, secondary,
-    Tertiary or Imported Sprouts; nursery plants are labelled **Agriculture / Nursery**;
-  - `H.O` is labelled **Corporate / Office**;
-  - every other plant is labelled **Operations / Unit**.
-- Adding a plant that appears in a later SAP upload but not in the master is a master
-  data change, never a runtime inference (decision 0018 stands): such a plant renders
-  the existing "no mapping configured" state until the master names it.
+**Reopening a report that is already in the thread re-runs that turn in place.** The existing
+turn is found by comparing the stored `Selection`, not the displayed title. It is re-run through
+`continueTurn`, so the numbers are current - under decision 0028 a re-run re-authorizes and reads
+the currently active batches, and a saved report is a selection, never a snapshot.
 
-### One format, one mapping dictionary, applied per plant
-- Every plant renders the confirmed nursery format (`nursery-mis-financial-v1`): the
-  same outline, S.No, Budget Component and GL code columns, the same period blocks and
-  the same derived subtotals and Grand Total. Office and unit plants populate sections 8
-  Manpower and 9 Admin and show ₹0 Actual on the nursery-only sections. This is the
-  human's choice over a trimmed format.
-- The master's cost-centre-plus-GL entries are the **full mapping sheet** (all 95 pairs
-  of Sheet1, keyed on its second `Cost Center` column and GL code), applied to every
-  plant, because the chart of accounts and cost-centre vocabulary are company-wide. The
-  shipped master carries only the 28 pairs DUB used in July, which resolves 33% of H.O
-  spend where the full sheet resolves 100%; that gap closes here.
-- Every `(plant, cost centre, GL)` triple present in the actuals resolves **exactly once**:
-  to a leaf of the format outline, or to the visible `unmapped-GL` bucket (decision 0018).
-  Pairs the mapping sheet does not name go to the bucket with reason "not in the mapping
-  sheet"; DUB's existing bucket rows and reasons are unchanged. No row is dropped and no
-  row fans out; the sum of every plant's Grand Total Actual equals the company-wide net of
-  the active actuals batch, in exact paise.
-- All new master rows are provisional, carrying their reason, as decision 0018 requires.
-  The master version increments so audit records and drill pins distinguish the two.
+**Opening a report that is not in the thread appends one turn, as today.**
 
-### The statement outline belongs to the format, the budget to the plant
-- The outline snapshot (decision 0021) is the **format's** row structure. A plant with
-  no budget batch of its own renders the format's active outline; a plant with a budget
-  batch renders that batch's outline, as today.
-- Budget batches are keyed by **plant and period** as well as source kind, so a second
-  plant's July budget can be active alongside the nursery's. The budget upload names its
-  plant explicitly rather than assuming DUB. Actuals batches stay keyed by period alone
-  because the SAP extract is company-wide. Re-upload semantics (replace per key, no
-  duplicates, old batch retained) are unchanged.
-- The nursery budget stays attached to DUB only. No budget is inferred, allocated or
-  copied to any other plant (decision 0014 stands).
+**Either way the panel scrolls that turn into view**, so the click always has a visible effect.
 
-### An absent budget is a dash, never a zero
-- When the selected plant has **no active budget batch** for a period block, that block's
-  Budget, Roll-over Budget and % cells render a dash (`–`) on every row, including
-  subtotals and the Grand Total, with an accessible label "Budget not loaded for this
-  plant". Actual renders normally and stays drillable.
-- This is a **fourth state**, distinct from the three that exist: ₹0 (a budget line
-  with no amount), NA (0 ÷ 0), and the over-budget / credit flags (Budget 0 with a
-  non-zero Actual). None of the over-budget or credit flags appear when the budget is
-  absent, and the governed % measure yields "not loaded" rather than a division.
-- The Excel export renders the same dash and label; its filename and title name the
-  plant. When the FY-YTD block spans months with and without a budget batch, the block is
-  treated as budget-absent only if **no** month in its range has one; otherwise the
-  present months sum and the absent months contribute nothing, and the statement says
-  which months carry a budget.
-- Governed-financial answers (Ask by GL code) follow the same rule: for a plant and
-  period with no budget batch the Budget measure is absent and % is not computed; the
-  full-outer, zero-filled join semantics of decision 0016 apply only where a budget
-  batch exists.
+**A failed reopen leaves the previous answer in place** with the failure shown against that turn,
+which is what `continueTurn` already does. Nothing is reimplemented here.
 
-### Drill-down is unchanged in behaviour and pins what the statement used
-- Clicking any Actual works for every plant exactly as shipped (decisions 0024, 0025).
-  The drill pins the actuals batch ids and **the outline source** the statement was built
-  from: a plant budget batch where one exists, otherwise the format's outline batch. The
-  footing proofs hold for a no-budget plant and for the `unmapped-GL` line of any plant.
-
-### Ask covers every granted plant
-- The governed-financial relation is no longer fixed to DUB: it carries `plant` as a
-  dimension, scoped by the user's plant grants on both sides of the join (decision 0016),
-  so "Show Actual by plant for July 2026" answers with one row per granted plant and a
-  total equal to the company-wide net for a fully granted user.
-- A statement question resolves its plant from the docked report's grounding when asked
-  beside a report, or from a plant named in the question. On the standalone Ask page, a
-  statement question from a user granted more than one plant, with no plant named, returns
-  a clarification listing the granted plants, in the same shape the period clarification
-  uses; the chosen plant re-runs without a further selector call. A user granted exactly
-  one plant is unchanged.
-- The demo user is granted every plant present in the master, plus the provisional
-  department and function labels those plants carry.
-
-### What does not change
-- Read-only; Actual = Σ(Debit − Credit); composite key mandatory (decision 0017);
-  one governed query path; parents derived, never read (decision 0020); Indian grouping,
-  rupee rounding after aggregation; audit-before-read, fail-closed; all-or-nothing
-  governed access.
-- The two existing zero states stay distinct: no transactions renders zeros; no mapping
-  configured renders zeros plus the notice.
-
-## Rules
-- The SAP plant code is canonical; display names and Department / Function are
-  provisional master data, flagged, never inferred at runtime.
-- Exactly-once resolution of every actuals triple is a proven invariant, not a goal.
-- Absent budget is a distinct state and never collapses into ₹0, NA or over-budget.
-- Budget is never inferred or allocated across plants.
-
-## Out of scope (now)
-- A trimmed office or mill format; Table-1 and Table-3; per-plant budgets for any plant
-  other than the nursery until the client supplies them.
-- An in-app editor for the master; the authoritative Master Table reconciliation
-  (spec `mis-selection-and-master` open item, still owned there).
-- Roll-over calculation; live SAP; months other than those uploaded.
-- The recoverable-period clarification (`ask-period-control`), which follows this story.
+**Pins and saved views behave identically**, because both call the same path today and both have
+the same defect.
 
 ## Acceptance criteria
-1. Against the pinned July actuals batch, every one of the 31 SAP plant codes is
-   offered in MIS Reports to a fully granted user, each renders a statement, and the
-   sum of the 31 Grand Total Actuals equals the batch's company-wide net
-   (₹11,02,73,718.07 as measured) in exact paise. Proven by a warehouse fixture, not by
-   inspection.
-2. The DUB nursery statement is unchanged: Actual ₹1,15,12,712.07 and Budget
-   ₹1,00,50,136.29 for July 2026, every parent footing to its leaves, the unmapped-GL
-   line carrying its own Actual, and the Excel export matching.
-3. Every `(plant, cost centre, GL)` triple in the July extract resolves exactly once,
-   with nothing dropped and nothing fanned out, proven by a master validation fixture;
-   the eleven pairs the mapping sheet does not name resolve to `unmapped-GL` with
-   their reason, and every new master row is flagged provisional with a reason.
-4. H.O renders 100% of its July net inside sections 8 Manpower and 9 Admin, with ₹0
-   Actual on every nursery-only section, and its Budget, Roll-over and % show the dash
-   with the "Budget not loaded for this plant" label on every row including the Grand
-   Total; no over-budget or credit flag appears anywhere on a no-budget plant. The Excel
-   export shows the same dash and names the plant.
-5. Department and Function labels follow the stated classification rule (nursery plants
-   Agriculture / Nursery; H.O Corporate / Office; others Operations / Unit), are stored
-   flagged as provisional, and the flag is visible wherever the selection is displayed.
-6. A second plant's July budget batch can be active alongside the nursery's; uploading
-   it does not deactivate the nursery batch; re-uploading it replaces only itself. The
-   budget upload refuses a workbook that does not name its plant.
-7. Drill-down foots in exact paise for a leaf and for the `unmapped-GL` line of a
-   no-budget plant, and the drill's audit record names the outline source it pinned and
-   the incremented master version.
-8. Ask: "Show Actual by plant for July 2026" returns one row per granted plant summing to
-   the company-wide net for a fully granted user; a user granted only DUB gets only DUB
-   in MIS Reports options, in Ask answers and in drill-down, with no row leaking. A
-   statement question beside a report resolves the report's plant; on the standalone page
-   a multi-plant user with no plant named receives a plant clarification, and the chosen
-   plant re-runs with zero further selector calls.
-9. The two existing zero states and the three existing nil states are each still
-   reachable and distinct from the new absent-budget state, proven by hermetic tests over
-   a fake warehouse, judged by junit testcase name and executed count (D-0024, D-0031).
 
-## Open items (non-blocking)
-- The client's authoritative Department / Function names and Master Table, which will
-  rename the provisional labels and empty the bucket as data changes.
-- Budgets for plants other than the nursery.
-- Plant names in the format's `Plant list` that do not match SAP (`DHS`, `DHS2` versus
-  `DMHS`; `Belagum` absent from July), to confirm with Srihari.
+1. Opening a saved report whose `Selection` already has a turn re-runs **that** turn through
+   `continueTurn` and appends nothing; the thread length is unchanged.
+2. Turn identity is the `Selection`, never the displayed title. A test pins two reports that share
+   a `selectionLabel().title` but differ in dimensions or filters, opens both, and asserts two
+   distinct turns.
+3. Opening a report that is not in the thread appends exactly one turn.
+4. After opening - reused or new - the panel scrolls that turn into view.
+5. A reopen that fails or is refused leaves the previous answer in place with the failure against
+   that turn, and the thread length is unchanged.
+6. Pins and saved views are both covered; a leaf set that exercises only one leaves the other
+   unproven.
+7. Every criterion is proven by hermetic tests judged by the vitest discriminator - the testcase
+   present AND NOT skipped AND NOT failed - because a matching name proves nothing for vitest.
 
-## Source
-Human decision 2026-09-15 (this session); decision 0018 (unmapped-GL bucket), 0014,
-0016, 0017, 0020, 0021, 0024, 0025; `docs/context/2026-08-20-srihari-phase1-data/`
-(both workbooks and Srihari's email); measured coverage analysis of the July extract
-against Sheet1 of `SAP Entries Mapping.xlsx`.
+## Out of scope
+
+- Scrolling behaviour for ordinary typed questions.
+- Deduplicating turns the user created by asking the same thing twice by hand.
+- Any change to `continueTurn`'s pending, failure or replacement semantics.
 
 
 ## What to return

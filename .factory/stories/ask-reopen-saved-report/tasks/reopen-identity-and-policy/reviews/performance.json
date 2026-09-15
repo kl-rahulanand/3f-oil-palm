@@ -1,0 +1,29 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "reopen-identity-and-policy",
+  "score": 10,
+  "summary": "performance lens over reopen-identity-and-policy (8 product path(s), af447d4..c96ae08, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance defects are demonstrated by the supplied diff. Matching performs a linear backward search with a shallow array copy, but this user-triggered work is bounded by the in-memory thread and the evidence does not establish production-impacting latency or memory pressure. Selection comparison short-circuits and performs no I/O. The diff also contains no compatibility wrappers, aliases, deprecated branches, or other prohibited leftovers.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
+    "frontend/src/features/exploration/selection-identity.helper.test.ts",
+    "frontend/src/features/exploration/selection-identity.helper.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "6934364c81456429f1d0a8fe9770bccdce54935a8622ff15933d127a7e9fb0d0",
+  "brief_sha256": "3f068259b1557f86d79d1c94b50d9c06a36dc61c53a294d22b16e8f92022a086",
+  "branch_diff_digest": "e0f6267355b71eb9096713205eaaf0a2376e23141eeb4a3f3224d05ab718b967",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T16:45:42+00:00",
+  "commit": "c96ae0872b39ff2ac3927631b967a4ce64032580"
+}

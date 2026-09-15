@@ -1,0 +1,37 @@
+{
+  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Fifteen required leaves verified individually by the vitest discriminator - present AND NOT skipped AND NOT failed - not by name, which proves nothing for vitest. The negative control confirmed the discriminator: a -t filter matching nothing still lists all 12 testcases under their real names, every one skipped. verify.py passes. The shipped ask-period-control leaf passes UNMODIFIED, which is criterion 8 - had the failure policy leaked instead of being stated by the caller, it would have needed editing. The only edit to ask-panel.test.tsx is the one authorized under signal S-0018-93e2: its harness reruns the SAME selection as the turn it just created, so the matched rerun now correctly sends that turn's own question; toHaveBeenNthCalledWith is retained, so it still proves the selection is sent rather than being loosened to toHaveBeenCalled(). A second round added the fifteenth: the quality lens was right that the same-title criterion demanded an OPEN-FLOW proof - two reports sharing a selectionLabel title producing TWO distinct turns - while the leaf only called selectionsEqual directly, proving the helper rather than the behaviour.",
+    "pass_fail_summary": "15/15 required leaves executed; verify.py pass; shipped period-control leaf unmodified and passing",
+    "blocking_findings": [],
+    "commands_run": [
+      "python3 factory/scripts/verify.py",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=/tmp/riplfN.xml <path> -t <each of 14 leaf ids>",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=/tmp/ripneg.xml frontend/src/features/assistant/use-ask.test.tsx -t 'a name that does not exist'  # negative control"
+    ],
+    "tests_added_or_updated": [
+      "frontend/src/features/exploration/selection-identity.helper.test.ts",
+      "frontend/src/features/assistant/use-ask.test.tsx",
+      "frontend/src/features/exploration/pinned-reports.test.tsx",
+      "frontend/src/features/exploration/saved-views.test.tsx",
+      "frontend/src/features/assistant/ask-panel.test.tsx"
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [
+      "Navigation order, the immediate pending turn and scrollIntoView are task 2; the visible half of the reported bug is not fixed until that ships.",
+      "Losing a single domain or measure grant still leaves stale numbers until reload - not_supported is indistinguishable from non-access refusals. Recorded in the 2026-09-15 amendment to decision 0028 and tracked as D-0048."
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-15T16:34:33+00:00",
+    "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391"
+  },
+  "updated_at": "2026-09-15T16:34:33+00:00"
+}
