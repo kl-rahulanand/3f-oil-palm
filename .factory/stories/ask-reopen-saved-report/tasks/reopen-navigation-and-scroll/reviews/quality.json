@@ -1,22 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "reopen-navigation-and-scroll",
-  "score": 7,
-  "summary": "quality lens over reopen-navigation-and-scroll (9 product path(s), 71a05e1..0277891, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The navigation, immediate placeholder, busy-path, and refusal behavior are implemented, but target scrolling remains unreliable when the docked panel precedes the page panel in the DOM.\nVERDICT t-rns-c1: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:71 and frontend/src/features/exploration/saved-views.tsx:68 push before invoking rerun\nVERDICT t-rns-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:96 appends one pending turn which is later replaced or settled\nVERDICT t-rns-c3: implemented \u2014 frontend/src/features/assistant/use-ask.ts:202 delegates matched opens to continueTurn without appending\nVERDICT t-rns-c4: partial \u2014 frontend/src/features/assistant/ask-panel.tsx:43 uses a document-wide lookup that can select the docked duplicate\nVERDICT t-rns-c5: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:67 rejects the busy path before navigation, with equivalent saved-view handling\nVERDICT t-rns-c6: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:71 and frontend/src/features/exploration/saved-views.tsx:68 share the navigate-first behavior\nVERDICT t-rns-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:143 renders the reopened turn's own error\nVERDICT t-rns-c8: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:755 adds coverage without changing the existing leaf bodies\nNo compatibility leftovers are introduced by the shown diff.",
-  "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/assistant",
-      "summary": "[P1] Scope the scroll lookup to the page panel (frontend/src/features/assistant/ask-panel.tsx:43): When page and docked panels coexist, both render turns with the same DOM ids."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria",
-      "summary": "t-rns-c4: The panel scrolls the target turn into view, reused or new. AskTurn.id is the handle and already exists. A leaf asserts scrollIntoView is called for the target - it must be mocked, as jsdom does not implement it."
-    }
-  ],
+  "score": 10,
+  "summary": "quality lens over reopen-navigation-and-scroll (9 product path(s), 71a05e1..74a6413, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-rns-c1: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:70 and frontend/src/features/exploration/saved-views.tsx:67 navigate before starting the asynchronous rerun.\nVERDICT t-rns-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:98 appends one pending turn immediately and settles that same turn.\nVERDICT t-rns-c3: implemented \u2014 frontend/src/features/assistant/use-ask.ts:199 routes a match through continueTurn without appending another turn.\nVERDICT t-rns-c4: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:42 scopes lookup to the page thread and scrolls the target, with assertions in frontend/src/features/assistant/ask-panel.test.tsx:760.\nVERDICT t-rns-c5: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:66 and frontend/src/features/exploration/saved-views.tsx:63 reject the busy path before navigation.\nVERDICT t-rns-c6: implemented \u2014 frontend/src/features/exploration/pinned-reports.tsx:62 and frontend/src/features/exploration/saved-views.tsx:59 apply the fix to both entry points.\nVERDICT t-rns-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:145 renders the reopen's turn-local reason, verified at frontend/src/features/assistant/ask-panel.test.tsx:817.\nVERDICT t-rns-c8: implemented \u2014 frontend/src/features/assistant/use-ask.test.tsx:378 preserves the existing period-control expectations while adapting only to the optional pending response state.\nLEFTOVERS: none \u2014 the diff adds no compatibility wrapper, alias, deprecated branch, or retained replacement.\nNo actionable P0-P2 defect is demonstrated by the supplied diff.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/features/assistant/ask-panel.test.tsx",
@@ -35,42 +24,42 @@
     {
       "contract_id": "t-rns-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:71 and frontend/src/features/exploration/saved-views.tsx:68 push before invoking rerun"
+      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:70 and frontend/src/features/exploration/saved-views.tsx:67 navigate before starting the asynchronous rerun."
     },
     {
       "contract_id": "t-rns-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:96 appends one pending turn which is later replaced or settled"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:98 appends one pending turn immediately and settles that same turn."
     },
     {
       "contract_id": "t-rns-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:202 delegates matched opens to continueTurn without appending"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:199 routes a match through continueTurn without appending another turn."
     },
     {
       "contract_id": "t-rns-c4",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:43 uses a document-wide lookup that can select the docked duplicate"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:42 scopes lookup to the page thread and scrolls the target, with assertions in frontend/src/features/assistant/ask-panel.test.tsx:760."
     },
     {
       "contract_id": "t-rns-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:67 rejects the busy path before navigation, with equivalent saved-view handling"
+      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:66 and frontend/src/features/exploration/saved-views.tsx:63 reject the busy path before navigation."
     },
     {
       "contract_id": "t-rns-c6",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:71 and frontend/src/features/exploration/saved-views.tsx:68 share the navigate-first behavior"
+      "evidence": "frontend/src/features/exploration/pinned-reports.tsx:62 and frontend/src/features/exploration/saved-views.tsx:59 apply the fix to both entry points."
     },
     {
       "contract_id": "t-rns-c7",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:143 renders the reopened turn's own error"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:145 renders the reopen's turn-local reason, verified at frontend/src/features/assistant/ask-panel.test.tsx:817."
     },
     {
       "contract_id": "t-rns-c8",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:755 adds coverage without changing the existing leaf bodies"
+      "evidence": "frontend/src/features/assistant/use-ask.test.tsx:378 preserves the existing period-control expectations while adapting only to the optional pending response state."
     },
     {
       "contract_id": "t-rip-c1",
@@ -129,10 +118,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "2d7fd0b37706b50a60d77ac5296facef635bf5cb1fe1cef4a2bb77e939ee28f1",
-  "brief_sha256": "f8780d6bceda21dad7b90405fa3e0593ad596dc71d474c029b4577dbb5ff1c4f",
-  "branch_diff_digest": "15afd2b2c77637dc15441b36f9a53fd471b271acfef0e01db0c53efbe8325885",
+  "review_run_id": "93ddd4ea7ba710a30abfabe1e83eaf95c44049b908cc1b254510845e62b3c094",
+  "brief_sha256": "1ebcac675ecf6fc897bec9e8c83a916cbcc8c632b8765ee8953bf14dfc0f17a4",
+  "branch_diff_digest": "4dd59757718018d4f529585f3fb62438a758dd8b99400f4a776f22ce7658d2e6",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T18:21:03+00:00",
-  "commit": "0277891807aee8413000985061625f62ed72d3cc"
+  "recorded_at": "2026-09-15T18:31:06+00:00",
+  "commit": "74a64136ab008b1efa8acb891d7b73f4238a5e0c"
 }
