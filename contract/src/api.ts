@@ -284,18 +284,29 @@ type DecimalDigit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
 export type FixedScaleMoney = `${bigint}.${DecimalDigit}${DecimalDigit}`;
 
-export interface MisStatementMeasureBlock {
+interface MisStatementMeasureBlockBase {
   key: "selected" | "fy26-27-ytd";
   label: string;
   from: string;
   to: string;
-  budget: FixedScaleMoney;
   rollover: null;
   actual: FixedScaleMoney;
-  percentage: string | null;
   sourcePresence: SourcePresence[];
-  budgetState?: "loaded" | "not-loaded";
 }
+
+export interface MisStatementLoadedMeasureBlock extends MisStatementMeasureBlockBase {
+  budgetState: "loaded";
+  budget: FixedScaleMoney;
+  percentage: string | null;
+}
+
+export interface MisStatementNotLoadedMeasureBlock extends MisStatementMeasureBlockBase {
+  budgetState: "not-loaded";
+  budget: null;
+  percentage: null;
+}
+
+export type MisStatementMeasureBlock = MisStatementLoadedMeasureBlock | MisStatementNotLoadedMeasureBlock;
 
 export interface MisStatementNode {
   nodeKey: string;

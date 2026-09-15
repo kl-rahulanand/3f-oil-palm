@@ -23,6 +23,7 @@ import type {
   IMisStatementService,
   MisStatementBlockDefinition,
 } from "./mis-statement.interface";
+import { misStatementResponseSchema } from "./mis-statement.dto";
 
 const FY_START = "2026-04-01";
 const MEASURE_IDS = [
@@ -44,6 +45,7 @@ interface BlockResult {
   definition: Pick<MisStatementMeasureBlock, "key" | "label" | "from" | "to">;
   byLeaf: Map<string, Amounts>;
   activeBatchIds: ProvenanceBatch[];
+  budgetState: "loaded" | "not-loaded";
 }
 
 interface MutableNode extends StatementOutlineNode {
@@ -75,30 +77,38 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
       throw error;
     }
     if (resolution.outcome === "unresolvable") {
-      return {
+      return misStatementResponseSchema.parse({
         outcome: "unresolvable",
         notice: "No mapping configured",
         tree: [],
         grandTotal: null,
         provenance: { activeBatchIds: [] },
-      };
+      });
     }
 
+    const outline = await this.outlines.findActiveBudgetOutline(resolution.period.to);
     const blocks = await Promise.all(
       this.blocks(resolution).map((definition) => this.executeBlock(user, domain, selection, resolution, definition)),
     );
-    const outline = await this.outlines.findByBudgetPeriod(resolution.period.to);
-    const { tree, grandTotal } = buildTree(outline, blocks);
-    const activeBatchIds = uniqueBatches(blocks.flatMap((block) => block.activeBatchIds));
+    const { tree, grandTotal } = buildTree(outline.nodes, blocks);
+    const activeBatchIds = uniqueBatches([
+      ...blocks.flatMap((block) => block.activeBatchIds),
+      { source: "budget", period: resolution.period.to, batchId: outline.batchId },
+    ]);
     if (request.pinnedBatches && !batchesStillActive(request.pinnedBatches, activeBatchIds)) {
-      return { outcome: "refresh-required", notice: "The data was refreshed - ask again" };
+      return misStatementResponseSchema.parse({
+        outcome: "refresh-required",
+        notice: "The data was refreshed - ask again",
+      });
     }
-    return {
+    return misStatementResponseSchema.parse({
       outcome: "resolved",
       scope: {
         department: resolution.department,
         function: resolution.function,
         plant: resolution.plant,
+        plantDisplay: resolution.plantDisplay,
+        provisional: resolution.provisional,
         period: resolution.period.value,
         costCentres: resolution.costCentres,
         glCodes: resolution.glCodes,
@@ -107,7 +117,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
       tree,
       grandTotal,
       provenance: { activeBatchIds },
-    };
+    });
   }
 
   authorize(user: AuthUser): { domain: DomainSpec; selection: Selection } {
@@ -154,17 +164,28 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
     if (execution.result.rows.length >= loadConfig().maxRows) {
       throw new SelectionExecutionBlockedError("MIS statement exceeded the configured row limit");
     }
+    const budgetLoaded = resolution.plant === resolution.budgetOwnerPlant;
     const byLeaf = new Map<string, Amounts>();
     execution.result.rows.forEach((row, index) => {
       if (typeof row.leaf_key !== "string") return;
       const current = byLeaf.get(row.leaf_key) ?? emptyAmounts();
       current.actual += toPaise(row.actual_net);
-      current.budget += toPaise(row.budget_net);
-      if (typeof row.percentage === "string" && !isNumeric(row.percentage)) current.labels.push(row.percentage);
-      current.sourcePresence = mergePresence(current.sourcePresence, execution.rowSourcePresence[index]);
+      if (budgetLoaded) {
+        current.budget += toPaise(row.budget_net);
+        if (typeof row.percentage === "string" && !isNumeric(row.percentage)) current.labels.push(row.percentage);
+      }
+      current.sourcePresence = mergePresence(
+        current.sourcePresence,
+        budgetLoaded ? execution.rowSourcePresence[index] : "actual-only",
+      );
       byLeaf.set(row.leaf_key, current);
     });
-    return { definition, byLeaf, activeBatchIds: execution.activeBatchIds };
+    return {
+      definition,
+      byLeaf,
+      activeBatchIds: execution.activeBatchIds,
+      budgetState: budgetLoaded ? "loaded" : "not-loaded",
+    };
   }
 }
 
@@ -247,7 +268,9 @@ function toWireNode(node: MutableNode, blocks: BlockResult[]): MisStatementNode 
     sNo: node.sNo,
     budgetComponent: node.label,
     glCode: node.glCode,
-    measures: blocks.map(({ definition }, index) => toMeasureBlock(definition, node.amounts[index])),
+    measures: blocks.map(({ definition, budgetState }, index) =>
+      toMeasureBlock(definition, node.amounts[index], budgetState),
+    ),
     children: node.children.map((child) => toWireNode(child, blocks)),
   };
 }
@@ -255,9 +278,22 @@ function toWireNode(node: MutableNode, blocks: BlockResult[]): MisStatementNode 
 function toMeasureBlock(
   definition: BlockResult["definition"],
   amounts: Amounts = emptyAmounts(),
+  budgetState: BlockResult["budgetState"] = "loaded",
 ): MisStatementMeasureBlock {
+  if (budgetState === "not-loaded") {
+    return {
+      ...definition,
+      budgetState,
+      budget: null,
+      rollover: null,
+      actual: formatMoney(amounts.actual),
+      percentage: null,
+      sourcePresence: amounts.sourcePresence,
+    };
+  }
   return {
     ...definition,
+    budgetState,
     budget: formatMoney(amounts.budget),
     rollover: null,
     actual: formatMoney(amounts.actual),

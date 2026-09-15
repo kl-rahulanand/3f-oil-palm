@@ -44,7 +44,7 @@ export interface Config {
   scopeValueCacheTtlMs: number;
   dimensionEnumMax: number;
   bcryptRounds: number;
-  seedUsers: Array<{ email: string; displayName: string; roles: string[] }>;
+  seedUsers: Array<{ email: string; displayName: string; roles: string[]; plants?: string[] }>;
   starrocks: {
     host: string;
     mysqlPort: number;
@@ -90,14 +90,14 @@ export function mapEnvironment(value: string | undefined): Environment {
 
 export const DEFAULT_SEED_USERS = "admin@example.invalid|3F Admin|admin";
 
-function parseSeedUsers(value: string | undefined): Config["seedUsers"] {
-  // SEED_USERS format: email|display_name|role1+role2;email|display_name|role
+export function parseSeedUsers(value: string | undefined): Config["seedUsers"] {
+  // SEED_USERS format: email|display_name|role1+role2|plant1+plant2
   if (!value) return parseSeedUsers(DEFAULT_SEED_USERS);
 
   const parsed = value
     .split(";")
     .map((entry) => {
-      const [emailValue, displayNameValue, rolesValue] = entry.split("|");
+      const [emailValue, displayNameValue, rolesValue, plantsValue] = entry.split("|");
 
       const email = emailValue?.trim().toLowerCase();
       const displayName = displayNameValue?.trim();
@@ -107,7 +107,11 @@ function parseSeedUsers(value: string | undefined): Config["seedUsers"] {
         .filter(Boolean);
       if (!email || !displayName || !roles?.length) return null;
 
-      return { email, displayName, roles };
+      const plants = plantsValue
+        ?.split("+")
+        .map((plant) => plant.trim())
+        .filter(Boolean);
+      return { email, displayName, roles, ...(plants?.length ? { plants } : {}) };
     })
     .filter((entry): entry is Config["seedUsers"][number] => entry !== null);
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { MAPPING_MASTER, budgetLeafKeysForFormat } from "../mapping/mapping-master";
 import type { MisBudgetInput, MisBudgetOutlineInput } from "../warehouse/ingestion.repository";
 import { MAX_ACTUALS_ROWS } from "./ingest.schemas";
+import { misFormatSlug, stableMisLeafKey } from "./mis-format-outline";
 import { assertWorkbookArchiveWithinLimits, WorkbookArchiveLimitError, WorkbookRowLimitError } from "./workbook-guard";
 
 export const MIS_BUDGET_FORMAT_ID = "nursery-mis-financial-v1";
@@ -103,8 +104,8 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
       issues.push(issue(["rows", row.number, "sNo"], "Leaf requires an S. No. or a numbered parent"));
       continue;
     }
-    const leafKey = subtotal ? undefined : stableLeafKey(identitySNo!, glCode, label);
-    const nodeKey = leafKey ? `leaf:${leafKey}` : `node:${identitySNo ?? "root"}|${slug(label)}`;
+    const leafKey = subtotal ? undefined : stableMisLeafKey(identitySNo!, glCode, label);
+    const nodeKey = leafKey ? `leaf:${leafKey}` : `node:${identitySNo ?? "root"}|${misFormatSlug(label)}`;
     if (outlineKeys.has(nodeKey)) {
       issues.push(issue(["rows", row.number, "outline"], "Outline node identity is duplicated"));
       continue;
@@ -194,19 +195,6 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
 
 function assertRowLimit(outlineCount: number, glRowCount: number, periodCount: number, rowLimit: number): void {
   if ((outlineCount + glRowCount) * periodCount > rowLimit) throw new WorkbookRowLimitError(rowLimit);
-}
-
-function stableLeafKey(sNo: string, glCode: string, label: string): string {
-  return `${sNo}|${glCode}|${slug(label)}`;
-}
-
-function slug(value: string): string {
-  return value
-    .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/^-|-$/g, "");
 }
 
 function findTable(worksheets: Worksheet[]): LocatedTable | undefined {

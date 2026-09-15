@@ -19,9 +19,15 @@ export class MisStatementExportService implements IMisStatementExportService {
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet("Financial MIS");
     const blocks = statement.grandTotal.measures;
+    const budgetNotLoaded = blocks.some(({ budgetState }) => budgetState === "not-loaded");
+    const headerRow = budgetNotLoaded ? 3 : 2;
 
-    writeHeaders(worksheet, blocks);
-    let rowNumber = 3;
+    writeHeaders(worksheet, blocks, headerRow);
+    if (budgetNotLoaded) {
+      worksheet.mergeCells(2, 1, 2, 3 + blocks.length * 4);
+      worksheet.getCell(2, 1).value = "Budget not loaded for this plant";
+    }
+    let rowNumber = headerRow + 1;
     const writeNode = (node: MisStatementNode, depth: number): void => {
       writeStatementRow(worksheet.getRow(rowNumber++), node, depth + 1);
       node.children.forEach((child) => writeNode(child, depth + 1));
@@ -33,11 +39,11 @@ export class MisStatementExportService implements IMisStatementExportService {
   }
 }
 
-function writeHeaders(worksheet: Worksheet, blocks: MisStatementMeasureBlock[]): void {
+function writeHeaders(worksheet: Worksheet, blocks: MisStatementMeasureBlock[], headerRow: number): void {
   worksheet.mergeCells(1, 1, 1, 3);
   worksheet.getCell(1, 1).value = "Financial MIS";
   ["S. No.", "Budget Component", "GL Code"].forEach((value, index) => {
-    worksheet.getCell(2, index + 1).value = value;
+    worksheet.getCell(headerRow, index + 1).value = value;
   });
 
   blocks.forEach((block, index) => {
@@ -45,7 +51,7 @@ function writeHeaders(worksheet: Worksheet, blocks: MisStatementMeasureBlock[]):
     worksheet.mergeCells(1, firstColumn, 1, firstColumn + 3);
     worksheet.getCell(1, firstColumn).value = formatBlockHeading(block);
     ["Budget", "Roll-over", "Actual", "%"].forEach((value, offset) => {
-      worksheet.getCell(2, firstColumn + offset).value = value;
+      worksheet.getCell(headerRow, firstColumn + offset).value = value;
     });
   });
 }
@@ -77,6 +83,13 @@ function writeGrandTotal(worksheet: Worksheet, rowNumber: number, grandTotal: Mi
 function writeMeasures(row: Row, blocks: MisStatementMeasureBlock[]): void {
   blocks.forEach((block, index) => {
     const firstColumn = 4 + index * 4;
+    if (block.budgetState === "not-loaded") {
+      row.getCell(firstColumn).value = "–";
+      row.getCell(firstColumn + 1).value = "–";
+      writeMoney(row, firstColumn + 2, block.actual);
+      row.getCell(firstColumn + 3).value = "–";
+      return;
+    }
     writeMoney(row, firstColumn, block.budget);
     row.getCell(firstColumn + 1).value = null;
     writeMoney(row, firstColumn + 2, block.actual);

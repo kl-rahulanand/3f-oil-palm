@@ -75,6 +75,9 @@ test("the resolved bucket folds repeated GL entries and assigns actual and budge
     department: "Agriculture",
     function: "Nursery",
     plant: "DUB",
+    plantDisplay: "Agri - Nursery - DUB",
+    provisional: false,
+    budgetOwnerPlant: "DUB",
     costCentres: ["Primary", "Secondary"],
     glCodes: ["50001701"],
     misFormat: "nursery-mis-financial-v1",
@@ -163,6 +166,52 @@ test("the resolved bucket folds repeated GL entries and assigns actual and budge
       },
     ],
   );
+});
+
+test("the run response scope readout and the plant options carry provisional and plant display", async () => {
+  const service = {
+    async options() {
+      return {
+        departments: ["Agriculture"],
+        functions: ["Nursery"],
+        plants: [{ value: "DUB", label: "Agri - Nursery - DUB", aliases: ["DUB"], provisional: false }],
+        periods: [],
+      };
+    },
+    async run() {
+      return {
+        outcome: "resolved" as const,
+        scope: {
+          department: "Agriculture",
+          function: "Nursery",
+          plant: "DUB",
+          plantDisplay: "Agri - Nursery - DUB",
+          provisional: false,
+          period: "2026-07-01",
+          costCentres: [],
+          glCodes: [],
+          misFormat: "nursery-mis-financial-v1",
+        },
+        result: { columns: [], rows: [] },
+        totals: { actual: 0, budget: 0, percentage: null },
+        bucketRows: [],
+      };
+    },
+  };
+  const controller = new MisSelectionController(service);
+  const options = await controller.options(user(["report"]));
+  assert.equal(options.plants[0].provisional, false);
+  const response = await controller.run(user(["report"]), {
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+  });
+  assert.equal(response.outcome, "resolved");
+  if (response.outcome === "resolved") {
+    assert.equal(response.scope.plantDisplay, "Agri - Nursery - DUB");
+    assert.equal(response.scope.provisional, false);
+  }
 });
 
 class FakeMisSelectionService {

@@ -59,6 +59,24 @@ test("resolve reuses a caller's period list instead of repeating the ingest_batc
   assert.equal(queries, queriesAfterOptions + 1, "resolve still loads the list when given none");
 });
 
+test("a user granted only DUB is offered only DUB in the selection options and the resolution carries the budget owner plant", async () => {
+  const resolver = new SelectionResolverService(new PeriodWarehouse(["2026-07-01"]));
+  const options = await resolver.options(["DUB"]);
+  assert.deepEqual(
+    options.plants.map(({ value }) => value),
+    ["DUB"],
+  );
+  assert.equal(options.plants[0].provisional, false);
+  const resolved = await resolver.resolve({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+  });
+  assert.equal(resolved.outcome, "resolved");
+  if (resolved.outcome === "resolved") assert.equal(resolved.budgetOwnerPlant, "DUB");
+});
+
 test("resolving a department function plant and period through the mapping master returns the cost centres the GL set the MIS format and the bucket rows, returns an unresolvable outcome for a selection the master does not cover so the no mapping configured notice never depends on whether the query returned rows, and derives the financial year to date period from the latest active loaded month rather than the wall clock", async () => {
   const resolver = new SelectionResolverService(new PeriodWarehouse(["2026-07-01"]));
 

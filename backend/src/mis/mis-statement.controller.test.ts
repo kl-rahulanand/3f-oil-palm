@@ -96,6 +96,15 @@ test("the statement route refuses an unauthorized plant but returns the unresolv
   assert.equal(new ReportGuard().canActivate(context(user)), true);
 });
 
+test("the statement response scope readout carries provisional and plant display", async () => {
+  const response = await statementController().controller.run(user, request("DUB"));
+  assert.equal(response.outcome, "resolved");
+  if (response.outcome === "resolved") {
+    assert.equal(response.scope.plantDisplay, "DUB");
+    assert.equal(response.scope.provisional, false);
+  }
+});
+
 function statementController(activeBatchIds: ProvenanceBatch[] = []): {
   controller: MisStatementController;
   service: MisStatementService;
@@ -125,6 +134,9 @@ class RouteResolver implements ISelectionResolverService {
       department: request.department,
       function: request.function,
       plant: request.plant,
+      plantDisplay: request.plant,
+      provisional: request.plant !== "DUB",
+      budgetOwnerPlant: "DUB",
       costCentres: ["Primary"],
       glCodes: ["5001"],
       misFormat: "nursery-mis-financial-v1",
@@ -152,6 +164,13 @@ class EmptyExecutor {
 }
 
 class OneLeafOutline implements IStatementOutlineRepository {
+  async findActiveBudgetOutline() {
+    return {
+      batchId: "00000000-0000-0000-0000-000000000100",
+      nodes: await this.findByBudgetPeriod(),
+    };
+  }
+
   async findByBudgetPeriod() {
     return [
       {

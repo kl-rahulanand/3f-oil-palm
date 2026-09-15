@@ -42,6 +42,11 @@ Auth is email + OTP. For local dev, `AUTH_OTP_MOCK` accepts code `000000`; a
 successful login sets the `3f_access` / `3f_refresh` / `3f_csrf` cookies (JWT issuer
 `3f-api`, audience `3f`) and seeds a "3F Admin" user.
 
+`SEED_USERS` accepts semicolon-separated `email|display name|role1+role2|plant1+plant2`
+records. The fourth field is optional and uses canonical plant codes (for example `DUB`);
+each listed user's plant grants are reconciled on every migration. An admin without that
+field receives every master plant, while a non-admin without it receives none.
+
 ## Working in this repo — Symphony Forge
 
 This repo runs on the [Symphony Forge](https://github.com/knacklabs/symphony-forge)
