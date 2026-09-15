@@ -8,7 +8,14 @@ import type {
   MisStatementResolvedResponse,
 } from "@3f/contract";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { formatBlockHeading, formatExactMoney, formatMoney, formatPercentage } from "./statement-view";
+import {
+  BUDGET_NOT_LOADED_LABEL,
+  formatBlockHeading,
+  formatExactMoney,
+  formatMoney,
+  formatPercentage,
+  isBudgetNotLoaded,
+} from "./statement-view";
 import { useMisDrill } from "./use-mis-statement";
 
 export interface DrillPanelSelection {
@@ -193,6 +200,7 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
           <AggregateBody
             leaves={leaves}
             blockKey={selection.blockKey}
+            totalMeasure={clickedMeasure}
             totals={aggregateTotals}
             leafButtons={leafButtons.current}
             onOpen={openLeaf}
@@ -355,12 +363,14 @@ function MoneyTotal({ value }: Readonly<{ value: FixedScaleMoney }>) {
 function AggregateBody({
   leaves,
   blockKey,
+  totalMeasure,
   totals,
   leafButtons,
   onOpen,
 }: Readonly<{
   leaves: MisStatementNode[];
   blockKey: MisStatementMeasureBlock["key"];
+  totalMeasure: MisStatementMeasureBlock;
   totals: ReturnType<typeof aggregateTotal>;
   leafButtons: Map<string, HTMLButtonElement>;
   onOpen: (node: MisStatementNode) => void;
@@ -386,12 +396,15 @@ function AggregateBody({
           <tbody>
             {leaves.map((leaf) => {
               const measure = measureFor(leaf, blockKey);
+              const budgetNotLoaded = isBudgetNotLoaded(measure);
               return (
                 <tr key={leaf.nodeKey}>
                   <td>{leaf.sNo}</td>
                   <th scope="row">{leaf.budgetComponent}</th>
                   <td>{leaf.glCode}</td>
-                  <td data-numeric="true">{formatMoney(measure.budget)}</td>
+                  <td data-numeric="true" aria-label={budgetNotLoaded ? BUDGET_NOT_LOADED_LABEL : undefined}>
+                    {budgetNotLoaded ? "–" : formatMoney(measure.budget)}
+                  </td>
                   <td data-numeric="true">
                     <button
                       ref={(button) =>
@@ -404,7 +417,9 @@ function AggregateBody({
                       {formatMoney(measure.actual)}
                     </button>
                   </td>
-                  <td data-numeric="true">{formatPercentage(measure.percentage)}</td>
+                  <td data-numeric="true" aria-label={budgetNotLoaded ? BUDGET_NOT_LOADED_LABEL : undefined}>
+                    {budgetNotLoaded ? "–" : formatPercentage(measure.percentage)}
+                  </td>
                 </tr>
               );
             })}
@@ -413,7 +428,21 @@ function AggregateBody({
                 {totals.foots ? "Total" : "Total withheld"}
               </th>
               <td />
-              {totals.foots ? (
+              {isBudgetNotLoaded(totalMeasure) ? (
+                <>
+                  <td data-numeric="true" aria-label={BUDGET_NOT_LOADED_LABEL}>
+                    –
+                  </td>
+                  {totals.foots ? (
+                    <MoneyTotal value={fromPaise(totals.actualPaise)} />
+                  ) : (
+                    <td data-numeric="true">Total withheld</td>
+                  )}
+                  <td data-numeric="true" aria-label={BUDGET_NOT_LOADED_LABEL}>
+                    –
+                  </td>
+                </>
+              ) : totals.foots && totals.budgetPaise !== null ? (
                 <>
                   <MoneyTotal value={fromPaise(totals.budgetPaise)} />
                   <MoneyTotal value={fromPaise(totals.actualPaise)} />
@@ -435,9 +464,19 @@ function AggregateBody({
 
 function aggregateTotal(selection: DrillPanelSelection, leaves: MisStatementNode[]) {
   const measures = leaves.map((leaf) => measureFor(leaf, selection.blockKey));
-  const budgetPaise = measures.reduce((total, measure) => total + toPaise(measure.budget), ZERO);
   const actualPaise = measures.reduce((total, measure) => total + toPaise(measure.actual), ZERO);
   const clicked = measureFor(selection.node, selection.blockKey);
+  if (isBudgetNotLoaded(clicked)) {
+    return {
+      budgetPaise: null,
+      actualPaise,
+      foots: actualPaise === toPaise(clicked.actual),
+    };
+  }
+  const budgetPaise = measures.reduce(
+    (total, measure) => (isBudgetNotLoaded(measure) ? total : total + toPaise(measure.budget)),
+    ZERO,
+  );
   return {
     budgetPaise,
     actualPaise,

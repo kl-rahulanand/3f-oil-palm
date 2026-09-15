@@ -1,0 +1,1 @@
+{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-15T10:45:25+00:00", "story": "multi-plant", "detail": "Deterministic verify is blocked by pre-existing duplicate decision number 0029 in docs/decisions/0029-bind-host-explicit-network-exposure.md and docs/decisions/0029-all-plants-provisional-scope.md, ou"}

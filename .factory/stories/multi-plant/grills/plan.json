@@ -1,0 +1,69 @@
+{
+  "generated_by": "griller",
+  "gate": "plan",
+  "verdict": "pass",
+  "issue": "multi-plant",
+  "summary": "Third plan version (two tasks) after two human re-scopes. Three Codex cold reads in total on this gate (task-mu2d9k5m on six tasks, task-mu2ewfya on four, task-mu2h7msv on two, the last two as --reread after shape changes). The final read returned eight findings: three blocking (client drill throws on null budgets; a non-DUB user gets no budget pin and cannot drill; the seeder cannot express a DUB-only user) and five contract gaps (shared scope-readout DTO on the run endpoint; generator executable boundary; bucket-reason literals; roadmap row ownership; filename already plant-specific). One went to the human (the outline pin for non-owner plants); the rest were resolved from the repository. The plan was amended once and this pass is bound to the amended digest. The human also confirmed approval of the two-task plan in the same round. RE-RECORDED after the task grill: task order swapped to frontend-first (human-decided) with the plan's Task Decomposition amended; nothing else changed.",
+  "questions_asked": 2,
+  "gaps": [
+    "The client aggregate drill formats and sums measure.budget (drill-panel.tsx:394,438) and would throw on the null budgets C4 introduces.",
+    "The statement pins the budget batch only when DUB is in the user's grants (sqlBuilder.ts:216), so a user granted a non-owner plant alone would have no pin and the drill would refuse.",
+    "SEED_USERS carries only email, name and roles (config.ts:91), so the DUB-only second user decision 0037 relies on could not be seeded.",
+    "MisSelectionScopeReadout is shared with POST /api/mis/run; the new fields and their tests had no owner there.",
+    "A .mjs generator under tools/ cannot import the TypeScript outline helper from the CommonJS backend without a loader, so the drift proof was not reproducible.",
+    "C3 asked for one new bucket reason while also preserving DUB's two existing reason literals.",
+    "The roadmap row was marked Changed with no owning task.",
+    "The plan planned a filename change the controller already has (mis-statement.controller.ts:145)."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "The frontend task owns the client aggregate drill's null handling: dashed Budget and % cells, a dashed footer, no toPaise on null; C7 and the Verify Plan name the tests.",
+    "HUMAN ROUND: every statement pins the period's active budget batch as its outline source regardless of grants, taken from the batch table rather than the scope-gated SQL; for a non-owner plant no budget amount is read or returned. The drill service and pin contract stay unedited. C7 and the Technical Approach amended.",
+    "SEED_USERS gains an optional fourth field listing canonical plant codes; absent, an admin gets every plant; seeding is idempotent and reconciles scope; README documents it. C8 amended; task 1 owns config, docs and tests.",
+    "New C10: the run endpoint populates the same readout fields; DTO and Swagger updated once; both routes' response tests cover them.",
+    "The generator is a ts-node script in the backend workspace (npm -w @3f/backend run master:generate), importing the shared outline helper natively.",
+    "C3 now reuses the two existing reason literals (GL absent from Sheet1; Sheet1 says Tertiary while SAP books Primary) for every plant, so DUB's rows are unchanged and no new literal exists.",
+    "The roadmap row is reclassified as a pre-plan baseline change made in commit 39c60bd, owned by no task.",
+    "The filename becomes a regression assertion in the controller test; no implementation work.",
+    "HUMAN ROUND: the human approved the two-task plan for recording and decomposition.",
+    "HUMAN (task grill, 2026-09-15): widening the statement's Budget field to null breaks the frontend build if the backend does it alone, so the human chose frontend-first ordering \u2014 the frontend task widens the contract and renders the dash, the backend task then sends null. The story plan's Task Decomposition was reordered accordingly; this record is re-bound to the reordered digest.",
+    "FRONTEND TASK GRILL (2026-09-15): widening budget in the frontend task would break the backend export typecheck too, so the contract change is split additive-then-union (frontend adds optional budgetState and guards; backend introduces the union with null and adapts export and DTO); the story closeout's functional check is named as the place the live dash is observed. Plan Task Decomposition and C4 amended; re-bound."
+  ],
+  "open_items": [
+    "Non-blocking: the deferred set rides decision 0034's trigger; plant-aware Ask rides decision 0037."
+  ],
+  "inspected_refs": [
+    "frontend/src/features/mis/drill-panel.tsx:394,438",
+    "backend/src/sql/sqlBuilder.ts:216",
+    "backend/src/mis/mis-drill.service.ts:139",
+    "backend/src/config.ts:45,91",
+    "backend/src/db/migrate.ts:43",
+    "contract/src/api.ts:236",
+    "backend/src/mis/mis-selection.service.ts:89",
+    "backend/src/mis/mis-statement.controller.ts:145",
+    "backend/src/mapping/mis-mapping-master.ts:3"
+  ],
+  "rounds": [
+    {
+      "question": "The re-read found that a user granted a non-nursery plant but not DUB could not drill: the statement only pins the budget batch when DUB is in the user's grants, and the drill refuses without that pin (it needs the batch for the row outline). How should non-owner plants get their outline pin?",
+      "options": [
+        "Always pin the outline batch (Recommended)",
+        "Restrict non-owner drill to users also granted DUB"
+      ],
+      "chosen": "Always pin the outline batch (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "The other seven findings are repository-resolved (client drill projection handles null budgets in the frontend task; the seeder gains an optional per-user plant list so a DUB-only demo user can be seeded; the generator becomes a TypeScript script run through ts-node; bucket reasons reuse the existing literals; the shared scope readout DTO and the run endpoint are owned and tested; the roadmap edit is cited as a baseline change; the filename becomes a regression assertion). Once folded in and recorded, do you approve the two-task plan so decomposition can start?",
+      "options": [
+        "Yes, record and approve (Recommended)",
+        "Not yet"
+      ],
+      "chosen": "Yes, record and approve (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "dd90852b70e1dcb967d2d7f272877668e27b69693fc63eeb47916d978acb0305",
+  "recorded_at": "2026-09-15T10:48:09+00:00",
+  "commit": "13584f39c9c597d79372fef55965bc015eda525d"
+}

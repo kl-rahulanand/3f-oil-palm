@@ -1,20 +1,15 @@
 {
-  "issue": "ask-period-control",
+  "issue": "multi-plant",
   "stages": [
     {
-      "id": "ask-period-contract-and-branch",
-      "title": "Two typed carriers and a four-way ordered branch",
-      "status": "done"
+      "id": "all-plants-statement-ui",
+      "title": "Render the not-loaded budget as a dash and mark provisional selections",
+      "status": "pending"
     },
     {
-      "id": "ask-period-continuation",
-      "title": "Render the period choice and continue deterministically",
-      "status": "done"
-    },
-    {
-      "id": "ask-period-control-on-answers",
-      "title": "A period control on every successful answer",
-      "status": "done"
+      "id": "all-plants-backend",
+      "title": "Every plant in the master, DUB owns the budget, non-owner plants report a not-loaded budget",
+      "status": "pending"
     }
   ]
 }

@@ -64,7 +64,7 @@ export function MisReportView() {
           <SelectField
             label="Plant"
             value={selection.plant}
-            options={options.data?.plants.map(({ value, label }) => ({ value, label })) ?? []}
+            options={options.data?.plants.map(({ value, label, provisional }) => ({ value, label, provisional })) ?? []}
             onChange={(value) => update("plant", value)}
           />
           <SelectField
@@ -159,7 +159,7 @@ function SelectField({
 }: Readonly<{
   label: string;
   value: string;
-  options: Array<{ value: string; label: string }>;
+  options: Array<{ value: string; label: string; provisional?: boolean }>;
   onChange: (value: string) => void;
 }>) {
   const id = `mis-${label.toLowerCase()}`;
@@ -171,6 +171,7 @@ function SelectField({
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
+            {option.provisional ? " — Provisional labels" : ""}
           </option>
         ))}
       </select>

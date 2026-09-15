@@ -1,4 +1,4 @@
-# Cold-read grill — gate: spec — spec ask-period-control.md
+# Cold-read grill — gate: spec — spec all-plants-statement.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,148 +431,205 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: **Correction to what I told you.** When I asked about the freshness pill I said the data already exists and just needs exposing. That was wrong. `postgres.adapter.ts:56` returns `null` when no freshness column is supplied, and **no domain declares one** — `grep -c freshnessColumn` in the semantic layer is **0**. So freshness is `null` everywhere today, and `dataAsOf` in answer provenance has always been null too. The grill also found there is no single truth to show: actuals and budget arrive as **separate ingest batches** with their own timestamps, so one pill cannot honestly imply one number without a rule. Wiring it means *defining* freshness first — bigger than the route-plus-render job I described.
-  A: Define it from ingest batches, show the oldest (Recommended)
-- Q: Closing the requirements grill for `poc-responsiveness`. The cold read returned **NOT CONVERGED** with two blockers and six under-specifications, and I've resolved them: a new spec `assistant-responsiveness.md` now contracts this story (it didn't exist — the story's requirements lived only in the roadmap item, so a plan could have satisfied the old spec and built none of it), and the assistant spec's stale "NOT wired in, this story owns wiring it" paragraph is marked **DELIVERED** so nobody re-creates shipped routes, migration and UI. Your freshness call is in. I also pinned the things the grill said were unfalsifiable: the retry is scoped to a selector call with **no tool block only**, at most **two calls total**, never on the deterministic smalltalk/definition/refusal paths (routing precedes selection), and never repeats a governed query; streaming specifies phase order, **no flicker** for answers that resolve without a model call, terminal errors through the existing renderer, and cancel-on-leave; "fills its column" means desktop full height with the thread scrolling inside, mobile stacking unchanged. Any gap before I write the plan?
-  A: No gaps — write the plan (Recommended)
-- Q: Closing the spec grill for `assistant-responsiveness`. The cold read returned NOT CONVERGED with seven findings and caught **two factual errors in my own spec**, which I've now corrected: I claimed the server never bounds prior turns (it does — `trimPriorTurnsToTokenBudget` at `chat.service.ts:675`), and I'd written that turns should be kept "most-recent-first", which would have reversed transport order and made `priorTurns.at(-1)` select the wrong turn. The rewritten spec leads with the measured root cause instead: **no `maxTokens` on the Converse call** — 214,222ms/24,313 tokens uncapped versus 1,429ms/168 tokens at `maxTokens: 2048`, stopping at `tool_use` rather than truncating. Also fixed from the read: the `routing` phase is emitted *before* the deterministic classifiers, so "no flicker" is now a client render-delay rule rather than a false claim; cancellation must actually abort the model and query work (today nothing does); `priorTurns` has no array bound in the schema; and freshness is defined as **load freshness** — oldest `uploaded_at_utc` across active batches, labelled as load time — because active batches are unique per source *and period*, so a September upload of July data must not read as "data as of September".
-  A: Record the pass and plan it (Recommended)
-- Q: One more round purely to close the **requirements** gate — the harness consumes each ledgered answer against a single gate, and I spent the earlier ones on the spec gate, so this needs its own. Nothing new to decide; confirming the record before I write the plan. What it will state: the story had no contracting spec (its requirements lived only in the roadmap item), now fixed by `assistant-responsiveness.md`, which is confirmed and linked — spec debt cleared. The assistant spec's stale "this story owns wiring it" paragraph is marked DELIVERED so the shipped routes, migration and UI can't be re-created. Your freshness decision is recorded, along with the correction that I first put it to you on a false premise. And the root cause is the measured one: no `maxTokens` on the Converse call, 214,222ms → 1,429ms.
-  A: Record it and write the plan (Recommended)
-- Q: **How far should cancellation go?** The grill found I promised it without a viable seam. Today: the stream controller observes no client disconnect, the LLM port takes no abort signal, and warehouse queries are bounded by Postgres `statement_timeout` (`postgres.adapter.ts:90`, error 57014) plus a `Promise.race` — a timeout, not a cancellation. Truly stopping an in-flight query means issuing `pg_cancel_backend` from a second connection, which is real design work for a polish story.
-  A: Bounded: stop the model call and the stream, let the query expire (Recommended)
-- Q: **Freshness is now a whole endpoint, not a wire-up.** The grill found the shell cannot consume a cross-source batch minimum without a new authenticated route with typed DTOs, Swagger contracts, allow-list registration, a client fetch/cache policy and tests — and the freshness port would need implementing or deliberately stubbing across **three** warehouse adapters (postgres, starrocks, starrocks-mysql). Plus `postgres.adapter.ts` is in `.prettierignore`, so D-0006 formatting comes with it. That is a bigger task than the latency fix you actually reported.
-  A: Keep it, as its own task (Recommended)
-- Q: Closing the plan grill. Eleven findings, all verified and folded in. The substantive ones: the plan wasn't saveable without frontmatter attesting all **28** active decisions; my task split put controller disconnect and query cancellation inside a task labelled *frontend*, so it's now **five single-runtime leaves** with explicit dependencies; and three limits I'd left silent are now named — `maxTokens: 2048`, `priorTurns` capped at 8 entries / 16,000 serialized chars / 2,000 chars per question, and a follow-up under **5s** in the live check. The retry moved **inside the provider boundary** so "no repeated governed query" is structural rather than promised, with a `no_tool_block` discriminant so it can't retry a genuine refusal. Your two calls are in: cancellation is bounded (model and stream stop; an in-flight query expires under `statement_timeout`, and the code says so), and freshness is its own backend task with the route, DTOs, allow-list and a deliberate *unavailable* on both starrocks adapters. D-0006 formatting for the two prettier-ignored files is now an explicit criterion rather than a surprise.
-  A: Record the pass and board it (Recommended)
-- Q: **How many tasks?** My plan proposed five after the grill forced backend and frontend apart, but the harness asks for the fewest that stay bounded — every extra task costs you a plan, a grill, an approval, a review and a PR. The work is: (a) backend LLM — `maxTokens`, the `no_tool_block` discriminant, provider-boundary retry, schema limits, abort signal, controller disconnect; (b) backend freshness — the port, three adapters, the new authenticated route, gated DB proof; (c) frontend — stream client with SSE parsing, render delay, cancel-on-leave, transport parity, plus the pill and the one-line dock fix. Task (a) alone fixes the slowness you reported.
-  A: Three (Recommended)
-- Q: **The confirmed spec now contradicts your cancellation decision.** `docs/specs/assistant-responsiveness.md:143` says cancellation must reach the query work and that the proof must demonstrate "model and query cancellation" — I wrote that *before* you chose bounded cancellation (model and stream stop; an in-flight query expires under `statement_timeout`). A future implementer reading the spec would build `pg_cancel_backend`. Amending a confirmed spec means another cold read and re-confirm, which is why I'm asking rather than just spending it. (Separately, the approved plan lists five tasks while the recorded decomposition has the three you chose — your choice is the later authority, so I'll record that supersession in the contract without re-opening the plan.)
-  A: Amend and re-confirm the spec now (Recommended)
-- Q: Closing the spec re-grill. It found a file I corrupted: re-saving a spec that already had frontmatter left **two header blocks** in each of the two specs I amended — the parser reads only the first, so digests were reviewing mixed revisions. Both are fixed. Six substantive findings are folded in, three of which would have shipped bugs: the **retry's second attempt was pointless as specified** (repeating an identical capped, temperature-zero request reproduces the same tool-less result, so attempt two now raises the cap); **"don't start a query once aborted" had no seam** (`SelectionExecutor.run` awaits `explain()` before `execute()`, so the abort must be checked immediately before the query starts); and **freshness conflated two truths** — the shell's global minimum is not the same as one answer's `provenance.dataAsOf`, and giving an answer the global value would let an unrelated stale batch make a fresh answer look old. The settled numbers (`maxTokens: 2048`, 8 turns / 16,000 chars / 2,000 per question, 250 ms, under 5s) are now in the spec rather than only the plan.
-  A: Record, confirm, and board task 1 (Recommended)
-- Q: Closing the task grill for `assistant-bounded-generation`. All nine findings verified and folded in — four would have shipped bugs. The port literally couldn't express the contract (`LlmSelectionOutcome` has no backend-error arm, and `chat.service.ts:177` treats anything that isn't clarify/unsupported as a *selection*), `!toolUse?.name` conflates an **absent** tool block with a **malformed** one so the retry could fire on exactly the case it must not, the retry as specified was a **no-op** (temperature 0, so repeating an identical capped request reproduces the same result — attempt two now raises the cap), and `request.on("close")` would have aborted **healthy** SSE requests because Node emits it on normal completion too. Also corrected: the abort must reach `send()` (the real seam passes no options, so a fake would false-green), a query must not *start* after an abort (`explain()` is awaited before `execute()`), D-0006 covers **four** prettier-ignored files rather than one, and two of my manual checks were impossible — `latency_ms`/`output_tokens` live in `audit_events`, not the log. Required leaves 6→8, scope 15→17 paths.
-  A: No gaps — board it (Recommended)
-- Q: **Should this task touch `provenance.dataAsOf` at all?** The grill found my "answer-scoped freshness" isn't implementable as written, and that it would mislabel existing UI. Two problems: both governed domains combine **Actuals and Budget**, and `chat.service.ts:426` passes only a `DomainSpec`, so "the answer's own source" is undefined for a percentage answer that uses both. And `dataAsOf` is already rendered to users as **"Data as of"** — data currency — while this task would fill it with **load** time; the report path uses the same null-producing helper, so relabelling means touching consumers beyond this task.
-  A: Defer dataAsOf — ship only the shell route (Recommended)
-- Q: Closing the `shell-freshness-api` grill. Nine findings, all verified, and three would have stopped the work dead. **Fourteen** files implement the `Warehouse` interface — mostly typed test fakes outside this scope — so a required new method would have failed typecheck before any behaviour existed; it's now optional. (I'd also named the interface `WarehouseAdapter`; it's `Warehouse`.) The **gated DB proof would have skipped**: a bare `junit-run` without `WAREHOUSE_DB_TEST=1` skips and `stage done` rejects a skipped leaf — it now runs under `test:warehouse-proof`, which sets the flag. And **the route had no name**, which the exact-match allow-list and task 3 both need — it's `GET /api/warehouse/freshness` with a discriminated body keeping five states apart rather than collapsing to null. Your `dataAsOf` call is recorded as **D-0041**. Also folded in: D-0006 covers all three adapters, the DB proof must assert per-source values *and* the overall minimum across several active periods, and the allow-list leaf must prove the guard set and typed Swagger responses rather than mere presence.
-  A: No gaps — board it (Recommended)
-- Q: **Where does "leaving the assistant" begin?** The `AskProvider` lives in the persistent authenticated shell, so the panel unmounting can't own cancellation — something has to define the boundary.
-  A: Abort only when leaving /ask and /mis-reports (Recommended)
-- Q: **What exactly does the freshness pill say?** The route distinguishes five server states, but nothing yet defines the visible copy, the timezone, or what happens when the *browser* fetch fails as opposed to the server reporting `lookup-failed`.
-  A: Distinct copy per state, explicit timezone, separate 'could not check' (Recommended)
-- Q: **How should the dock geometry be proven?** My contract promised a vitest leaf, but jsdom doesn't do layout — it cannot calculate flex sizing, so such a test would assert CSS source text and prove nothing about what a user sees.
-  A: Prove it in the live functional check (Recommended)
-- Q: **Which selector cap is governed, and what happens to the stale spec?** The confirmed spec still says `maxTokens: 2048` with a sub-5s live check, but task 1 shipped **512** after repeated measurement showed 2048 reaching 19.3s. The spec also still requires populating `provenance.dataAsOf`, which you deferred as **D-0041**. Amending a confirmed spec means another cold read and re-confirm — the third time this story.
-  A: 512 governs; amend and re-confirm the spec (Recommended)
-- Q: Closing the third spec grill. Seven findings: four were my amendment being **incomplete** — I replaced the Behaviour prose but left the stale acceptance criteria, so the spec still demanded `dataAsOf` be populated and still didn't name the five pill states, the `/ask` + `/mis-reports` boundary, or the retry's raised cap and summed usage. All now fixed. **Two were real gaps in already-merged code**, which I've recorded as deferrals rather than silently absorbing into a frontend-only task: **D-0042** — `postgres.adapter.ts` returns `available` when *either* source has an active batch, so the pill could show Budget's load time while Actuals has none, reading as "the data is this fresh" when half is missing; and **D-0043** — `chat.service.ts:170` starts `distinctValues` warehouse reads before checking the abort, so an abandoned stream can still start a pre-selection query, a hole in the promise task 1 made.
-  A: Record, confirm, and board task 3 (Recommended)
-- Q: Closing the `assistant-streaming-and-shell` grill — the last task. Six repo findings folded in, and one is a **live defect in merged code**: `use-ask.ts:31` sends every successful turn while task 1's schema rejects more than 8, so **the ninth question in a conversation 400s right now**. This task's client trim fixes it. Also caught: streaming everything would have moved the stored-selection re-run off the buffered route it must stay on (one `run()` serves both `ask()` and `rerun()`); an abort currently renders as an **error** via the generic catch; terminal SSE error frames don't carry the fields the seven-class renderer needs; and a multi-byte UTF-8 character split across chunks would corrupt a frame. Your four decisions are in — including that **dock geometry is proven by the live check**, since jsdom can't compute flex layout and a vitest leaf would just assert CSS text. Criteria 7→8, leaves 6→9.
-  A: No gaps — board it (Recommended)
 
-## The artifact under interrogation (spec ask-period-control.md)
+## The artifact under interrogation (spec all-plants-statement.md)
 
 ---
-slug: ask-period-control
-title: Recoverable periods in Ask
+slug: all-plants-statement
+title: All plants in the Financial MIS statement
 status: draft
-saved: 2026-09-15T05:31:35+00:00
+saved: 2026-09-15T06:31:20+00:00
 ---
 
-# Recoverable periods in Ask
+# All plants in the Financial MIS statement
 
 ## Why
+The shipped statement offers one selection, Agriculture / Nursery / DUB, because the
+Mapping Master carries one selection and the budget loader is fixed to the nursery. The
+July SAP extract already holds 4,113 lines across 31 plants, and a measured read of the
+client's two workbooks (2026-09-15) shows the nursery mapping generalises: the chart of
+accounts is company-wide (54 distinct GL codes in July, 45 of them named in the mapping
+sheet), every plant books only the cost centres the nursery uses (Admin, Manpower,
+Primary, secondary, Tertiary, Imported Sprouts, Transportation Charges), and the mapping
+sheet's cost-centre-plus-GL dictionary classifies 93% of company spend (₹10,21,80,290 of
+₹11,02,73,718). The remaining ₹80,93,428 sits in eleven cost-centre-plus-GL pairs the
+sheet never names, the same secondary-nursery and labour GLs already bucketed for DUB.
+Srihari's delivery note asks for exactly this: sheets generated "based on the same format
+and logic" for every Plant + Cost Center + GL combination, with zero-valued combinations
+still rendered.
 
-Live PoC testing asked a well-formed statement question with no period:
+The human decided (2026-09-15) to offer every plant now, on the nursery format, with
+provisional Department / Function labels, and to show an absent budget as a dash rather
+than a zero. The client has supplied a budget for the nursery only.
 
-> Show the MIS statement Actual by statement leaf
-
-and got a flat red failure: *"The answer does not resolve to one statement selector set and offered
-period."* Measured 4/4 `not_supported`. Adding a period makes the same question work 6/6 with 81
-rows, so the answer was one word away and the product said no instead of asking.
-
-The refusal is a dead end in a surface that already knows how to recover. `chat.service.ts`
-returns `ResponseClass.NotSupported` when `statementRequest` cannot build a request, even though
-the reason is always knowable: either the signed-in user's scope does not pin exactly one
-department, function and plant, or the question named no single whole calendar month.
-`ClarificationNeeded` exists for exactly this, is already rendered by the Ask panel as clickable
-option buttons (`ask-panel.tsx:131-147`), and is already used elsewhere in the same method.
-
-Two measurements decide the design, and both contradict the obvious implementation.
-
-**Re-asking through the model is unreliable.** The existing clarify UI appends the chosen option to
-the question (`resumesQuestion`) and sends it back through the selector. Measured, 4 samples each:
-
-| re-asked question | result |
-| --- | --- |
-| `Show the MIS statement Actual by statement leaf (2026-07-01)` | success 2/4, informational 2/4 |
-| `Show the MIS statement Actual by statement leaf (July 2026)` | success 3/4, informational 1/4 |
-
-A period the user has explicitly clicked must not then be re-guessed. The recovery has to be
-deterministic.
-
-**The MIS Reports period list contains an option that cannot answer a statement Ask.** Its
-`periods` include `FY 26-27 YTD`, a twelve-month range. `statementPeriod` accepts only a window
-naming one whole calendar month, so:
-
-| re-asked question | result |
-| --- | --- |
-| `Show the MIS statement Actual by statement leaf (FY 26-27 YTD)` | `not_supported` 4/4 |
-
-Offering the raw list would present a choice that is guaranteed to fail. Offered periods must be
-filtered to those that can actually answer the question being recovered.
-
-Separately, an answer gives the user no way to move it to another period. The backend already
-sends interpretation `chips` with every answer - including a `timeWindow` chip - and the Ask panel
-renders none of them. Re-running a period therefore means retyping the whole question, and the
-retype goes back through the model with the reliability shown above.
-
-A third measurement bounds the feature. A governed-financial question with no period succeeds 4/4
-and returns **no time window at all**: `Show Actual and Budget by GL code` sums every loaded month
-(budget 32,000,000 against July's 8,000,000) and its readback carries no period clause. Such an
-answer has no period to default a control to, and nothing may invent one for it.
+## Users
+Finance and management at 3F reviewing any plant's Financial MIS; the demo audience;
+Srihari, who will use the provisional labels and the unmapped-GL bucket to tell us the
+authoritative master.
 
 ## Behaviour
 
-**A statement question that cannot resolve a period asks instead of refusing.** The response names
-which part is missing - the period, or the scope triple - and offers only choices that can answer
-that question.
+### Every plant in the loaded actuals is selectable
+- The Mapping Master carries one selection per SAP plant code present in the client's
+  data, not one. The SAP plant code is the canonical plant identifier; `DUB-NUR` keeps
+  its existing alias to `DUB`. The MIS Reports Plant dropdown offers every plant the
+  signed-in user is granted, and the Department and Function dropdowns offer the labels
+  those plants carry.
+- Department and Function are **provisional labels**, flagged as such in the master and
+  surfaced as provisional wherever the selection is shown, so the client can rename them
+  without a schema change:
+  - a plant is a **nursery** when it appears in the format workbook's `Plant list`
+    sheet (name-normalised) or books any of the cost centres Primary, secondary,
+    Tertiary or Imported Sprouts; nursery plants are labelled **Agriculture / Nursery**;
+  - `H.O` is labelled **Corporate / Office**;
+  - every other plant is labelled **Operations / Unit**.
+- Adding a plant that appears in a later SAP upload but not in the master is a master
+  data change, never a runtime inference (decision 0018 stands): such a plant renders
+  the existing "no mapping configured" state until the master names it.
 
-**Choosing an offered period answers deterministically.** The chosen period reaches the warehouse
-as an explicit selection, not as words re-parsed by the model. `AskRequest.selection` already
-carries an edited `Selection` that `chat.service.ts` runs verbatim, skipping the selector, so the
-mechanism exists and is already exercised by the edited-chips path.
+### One format, one mapping dictionary, applied per plant
+- Every plant renders the confirmed nursery format (`nursery-mis-financial-v1`): the
+  same outline, S.No, Budget Component and GL code columns, the same period blocks and
+  the same derived subtotals and Grand Total. Office and unit plants populate sections 8
+  Manpower and 9 Admin and show ₹0 Actual on the nursery-only sections. This is the
+  human's choice over a trimmed format.
+- The master's cost-centre-plus-GL entries are the **full mapping sheet** (all 95 pairs
+  of Sheet1, keyed on its second `Cost Center` column and GL code), applied to every
+  plant, because the chart of accounts and cost-centre vocabulary are company-wide. The
+  shipped master carries only the 28 pairs DUB used in July, which resolves 33% of H.O
+  spend where the full sheet resolves 100%; that gap closes here.
+- Every `(plant, cost centre, GL)` triple present in the actuals resolves **exactly once**:
+  to a leaf of the format outline, or to the visible `unmapped-GL` bucket (decision 0018).
+  Pairs the mapping sheet does not name go to the bucket with reason "not in the mapping
+  sheet"; DUB's existing bucket rows and reasons are unchanged. No row is dropped and no
+  row fans out; the sum of every plant's Grand Total Actual equals the company-wide net of
+  the active actuals batch, in exact paise.
+- All new master rows are provisional, carrying their reason, as decision 0018 requires.
+  The master version increments so audit records and drill pins distinguish the two.
 
-**Every answer that resolved to a period shows that period, and lets the user change it.** The
-control defaults to the period the answer was computed on, and changing it re-runs through the same
-deterministic path. An answer that resolved to no period says so plainly rather than showing an
-empty control or a guessed default.
+### The statement outline belongs to the format, the budget to the plant
+- The outline snapshot (decision 0021) is the **format's** row structure. A plant with
+  no budget batch of its own renders the format's active outline; a plant with a budget
+  batch renders that batch's outline, as today.
+- Budget batches are keyed by **plant and period** as well as source kind, so a second
+  plant's July budget can be active alongside the nursery's. The budget upload names its
+  plant explicitly rather than assuming DUB. Actuals batches stay keyed by period alone
+  because the SAP extract is company-wide. Re-upload semantics (replace per key, no
+  duplicates, old batch retained) are unchanged.
+- The nursery budget stays attached to DUB only. No budget is inferred, allocated or
+  copied to any other plant (decision 0014 stands).
+
+### An absent budget is a dash, never a zero
+- When the selected plant has **no active budget batch** for a period block, that block's
+  Budget, Roll-over Budget and % cells render a dash (`–`) on every row, including
+  subtotals and the Grand Total, with an accessible label "Budget not loaded for this
+  plant". Actual renders normally and stays drillable.
+- This is a **fourth state**, distinct from the three that exist: ₹0 (a budget line
+  with no amount), NA (0 ÷ 0), and the over-budget / credit flags (Budget 0 with a
+  non-zero Actual). None of the over-budget or credit flags appear when the budget is
+  absent, and the governed % measure yields "not loaded" rather than a division.
+- The Excel export renders the same dash and label; its filename and title name the
+  plant. When the FY-YTD block spans months with and without a budget batch, the block is
+  treated as budget-absent only if **no** month in its range has one; otherwise the
+  present months sum and the absent months contribute nothing, and the statement says
+  which months carry a budget.
+- Governed-financial answers (Ask by GL code) follow the same rule: for a plant and
+  period with no budget batch the Budget measure is absent and % is not computed; the
+  full-outer, zero-filled join semantics of decision 0016 apply only where a budget
+  batch exists.
+
+### Drill-down is unchanged in behaviour and pins what the statement used
+- Clicking any Actual works for every plant exactly as shipped (decisions 0024, 0025).
+  The drill pins the actuals batch ids and **the outline source** the statement was built
+  from: a plant budget batch where one exists, otherwise the format's outline batch. The
+  footing proofs hold for a no-budget plant and for the `unmapped-GL` line of any plant.
+
+### Ask covers every granted plant
+- The governed-financial relation is no longer fixed to DUB: it carries `plant` as a
+  dimension, scoped by the user's plant grants on both sides of the join (decision 0016),
+  so "Show Actual by plant for July 2026" answers with one row per granted plant and a
+  total equal to the company-wide net for a fully granted user.
+- A statement question resolves its plant from the docked report's grounding when asked
+  beside a report, or from a plant named in the question. On the standalone Ask page, a
+  statement question from a user granted more than one plant, with no plant named, returns
+  a clarification listing the granted plants, in the same shape the period clarification
+  uses; the chosen plant re-runs without a further selector call. A user granted exactly
+  one plant is unchanged.
+- The demo user is granted every plant present in the master, plus the provisional
+  department and function labels those plants carry.
+
+### What does not change
+- Read-only; Actual = Σ(Debit − Credit); composite key mandatory (decision 0017);
+  one governed query path; parents derived, never read (decision 0020); Indian grouping,
+  rupee rounding after aggregation; audit-before-read, fail-closed; all-or-nothing
+  governed access.
+- The two existing zero states stay distinct: no transactions renders zeros; no mapping
+  configured renders zeros plus the notice.
+
+## Rules
+- The SAP plant code is canonical; display names and Department / Function are
+  provisional master data, flagged, never inferred at runtime.
+- Exactly-once resolution of every actuals triple is a proven invariant, not a goal.
+- Absent budget is a distinct state and never collapses into ₹0, NA or over-budget.
+- Budget is never inferred or allocated across plants.
+
+## Out of scope (now)
+- A trimmed office or mill format; Table-1 and Table-3; per-plant budgets for any plant
+  other than the nursery until the client supplies them.
+- An in-app editor for the master; the authoritative Master Table reconciliation
+  (spec `mis-selection-and-master` open item, still owned there).
+- Roll-over calculation; live SAP; months other than those uploaded.
+- The recoverable-period clarification (`ask-period-control`), which follows this story.
 
 ## Acceptance criteria
+1. Against the pinned July actuals batch, every one of the 31 SAP plant codes is
+   offered in MIS Reports to a fully granted user, each renders a statement, and the
+   sum of the 31 Grand Total Actuals equals the batch's company-wide net
+   (₹11,02,73,718.07 as measured) in exact paise. Proven by a warehouse fixture, not by
+   inspection.
+2. The DUB nursery statement is unchanged: Actual ₹1,15,12,712.07 and Budget
+   ₹1,00,50,136.29 for July 2026, every parent footing to its leaves, the unmapped-GL
+   line carrying its own Actual, and the Excel export matching.
+3. Every `(plant, cost centre, GL)` triple in the July extract resolves exactly once,
+   with nothing dropped and nothing fanned out, proven by a master validation fixture;
+   the eleven pairs the mapping sheet does not name resolve to `unmapped-GL` with
+   their reason, and every new master row is flagged provisional with a reason.
+4. H.O renders 100% of its July net inside sections 8 Manpower and 9 Admin, with ₹0
+   Actual on every nursery-only section, and its Budget, Roll-over and % show the dash
+   with the "Budget not loaded for this plant" label on every row including the Grand
+   Total; no over-budget or credit flag appears anywhere on a no-budget plant. The Excel
+   export shows the same dash and names the plant.
+5. Department and Function labels follow the stated classification rule (nursery plants
+   Agriculture / Nursery; H.O Corporate / Office; others Operations / Unit), are stored
+   flagged as provisional, and the flag is visible wherever the selection is displayed.
+6. A second plant's July budget batch can be active alongside the nursery's; uploading
+   it does not deactivate the nursery batch; re-uploading it replaces only itself. The
+   budget upload refuses a workbook that does not name its plant.
+7. Drill-down foots in exact paise for a leaf and for the `unmapped-GL` line of a
+   no-budget plant, and the drill's audit record names the outline source it pinned and
+   the incremented master version.
+8. Ask: "Show Actual by plant for July 2026" returns one row per granted plant summing to
+   the company-wide net for a fully granted user; a user granted only DUB gets only DUB
+   in MIS Reports options, in Ask answers and in drill-down, with no row leaking. A
+   statement question beside a report resolves the report's plant; on the standalone page
+   a multi-plant user with no plant named receives a plant clarification, and the chosen
+   plant re-runs with zero further selector calls.
+9. The two existing zero states and the three existing nil states are each still
+   reachable and distinct from the new absent-budget state, proven by hermetic tests over
+   a fake warehouse, judged by junit testcase name and executed count (D-0024, D-0031).
 
-1. A statement question whose period cannot be resolved returns `ClarificationNeeded`, never
-   `NotSupported`, and its prompt names the missing part in the user's words.
-2. The offered options contain only periods that can answer that question - whole calendar months
-   for a statement ask - and never an option that is guaranteed to fail, such as a multi-month
-   range.
-3. Choosing an offered period produces the answer without a second selector call, so the same
-   choice always yields the same answer.
-4. When the unresolvable part is the scope triple rather than the period, the response says which
-   attribute is missing and does not offer periods, which cannot help.
-5. An answer that resolved to a period displays that period and offers the other periods that could
-   answer the same question; changing it re-runs deterministically and the new answer displays the
-   new period.
-6. An answer that resolved to no period states that it covers all loaded data, and offers no
-   defaulted period control.
-7. Every path above is proven by repeated sampling, not a single run, because this surface's
-   failures are intermittent.
+## Open items (non-blocking)
+- The client's authoritative Department / Function names and Master Table, which will
+  rename the provisional labels and empty the bucket as data changes.
+- Budgets for plants other than the nursery.
+- Plant names in the format's `Plant list` that do not match SAP (`DHS`, `DHS2` versus
+  `DMHS`; `Belagum` absent from July), to confirm with Srihari.
 
-## Out of scope
-
-- Changing which periods the warehouse offers, or the FY-YTD definition.
-- Rendering the measure and dimension chips, or making them editable.
-- The existing `requiredTimeWindowClarify` day-range options, which are wrong for a monthly
-   statement but belong to a different gate.
+## Source
+Human decision 2026-09-15 (this session); decision 0018 (unmapped-GL bucket), 0014,
+0016, 0017, 0020, 0021, 0024, 0025; `docs/context/2026-08-20-srihari-phase1-data/`
+(both workbooks and Srihari's email); measured coverage analysis of the July extract
+against Sheet1 of `SAP Entries Mapping.xlsx`.
 
 
 ## What to return

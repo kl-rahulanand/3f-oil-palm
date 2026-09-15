@@ -1,8 +1,9 @@
 ---
-status: accepted
+status: superseded
 confirmed_by: "Rahul Anand"
 date: 2026-09-10
 stories: [governed-joins]
+superseded_by: 0030-all-plants-provisional-scope
 ---
 
 # Governed Joins PoC Scope
