@@ -3,20 +3,20 @@ status: accepted
 confirmed_by: "Rahul Anand"
 date: 2026-09-15
 stories: [multi-plant]
-supersedes: 0030-format-outline-object
+supersedes: 0031-format-outline-object
 ---
 
 # PoC: the format's budget belongs to the plant the master names; plant-keyed budget batches and the outline object wait for a second plant's budget
 
 ## Context
-Decision 0030 designed the correct long-term model for many plants with their own budgets: the
+Decision 0031 designed the correct long-term model for many plants with their own budgets: the
 format outline as its own ingest object and budget batches keyed by plant and period. After the
 plan was approved the human asked why showing 31 plants was such a big task, and re-scoped
 (2026-09-15): the client has supplied exactly one budget, the nursery's, and no second budget is
 in sight before the PoC demo. Building plant-keyed batches, a new source kind, a migration and a
 plant field on the upload for a budget that does not exist is work ahead of demonstrated demand.
 
-What cannot wait is the misattribution 0030 also prevented: the shipped budget batch is global
+What cannot wait is the misattribution 0031 also prevented: the shipped budget batch is global
 per month, so a non-nursery statement would silently show DUB's budget on every line.
 
 ## Decision
@@ -29,7 +29,7 @@ flag. The governed Ask relation joins Budget only for the owner plant; every oth
 measure is null with the same label. The batch model, the budget upload, the drill's pin contract
 and decision 0021's outline snapshot are unchanged.
 
-This record **supersedes 0030 for the PoC** and carries its model forward as a named deferral
+This record **supersedes 0031 for the PoC** and carries its model forward as a named deferral
 with a trigger: **when a second plant's budget workbook arrives**, plant-keyed budget batches,
 the format outline object, the `plant` upload field, the partial-FY-YTD rule and the
 master-version pin (D-0038) land together as their own story.

@@ -108,7 +108,7 @@ existing tokens in `frontend/app/globals.css`; add a class, not inline styles.
    including Grand total and the Actual buttons still open the drill.
 
 ## Out of scope
-- Any backend or DTO file; the Ask panel; cascading selectors; anything deferred by 0033/0036.
+- Any backend or DTO file; the Ask panel; cascading selectors; anything deferred by 0034/0037.
 
 ## Proof
 `python3 factory/scripts/verify.py` plus the required vitest leaves below, judged by testcase
