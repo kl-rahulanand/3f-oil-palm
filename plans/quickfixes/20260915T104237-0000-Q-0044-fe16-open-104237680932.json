@@ -1,0 +1,10 @@
+{
+  "event": "open",
+  "id": "Q-0044-fe16",
+  "profile": "quickfix",
+  "reason": "The EC2 compose file does not forward AWS_BEARER_TOKEN_BEDROCK, so Bedrock API-key auth cannot work in the container: bedrock.provider.ts:361 reads that variable and the AWS SDK also reads it natively, but the environment block only passes AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY. Live symptom on the server: 'Bedrock select failed: Could not load credentials from any providers' with the token correctly present in deployment/ec2/.env. Also forward AWS_SESSION_TOKEN for temporary credentials, and add SEED_USERS so additional users survive a re-run of the migrate service.",
+  "started_at": "2026-09-15T10:42:37+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false
+}
