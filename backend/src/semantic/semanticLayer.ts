@@ -49,6 +49,10 @@ export class SemanticLayer {
         {
           id: "governed-financial.percentage",
           label: SEMANTIC_LABELS.measures["governed-financial.percentage"],
+          // The expression yields a RATIO (1.1455 = 114.6% of budget), so surfaces must be
+          // told to render it as a percentage - without this the raw ratio reached the screen
+          // at full database precision.
+          format: "percent",
           synonyms: [
             "percentage",
             "percent",
@@ -161,6 +165,8 @@ function statementMeasure(id: string, label: string, synonyms: string[], expr: s
   return {
     id: `mis-statement.${id}`,
     label,
+    // Same ratio-not-number problem as governed-financial.percentage.
+    ...(id === "percentage" ? { format: "percent" as const } : {}),
     // The governed-financial domain publishes measures under the SAME labels ("Actual",
     // "Budget", "%"), so an unqualified "Actual" was ambiguous and the selector could not
     // choose - it degraded to a glossary definition roughly one ask in three. These
