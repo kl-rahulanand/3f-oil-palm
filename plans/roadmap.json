@@ -166,6 +166,29 @@
       "completed_at": "2026-09-15T03:35:52+00:00",
       "history": ".factory/stories/poc-responsiveness/",
       "outcome": "A follow-up question used to take 39 seconds, then 57, and looked like the product had hung. It now comes back in one to five seconds, and while it works you can see it working: both Ask surfaces stream the backend's own progress phases - routing, selecting, querying, summarizing - instead of one silent spinner, and an answer that arrives immediately shows no flicker at all. The cause turned out to be a single missing request field: the selector call to Bedrock set no output limit, so on a follow-up the model would emit up to twenty-four thousand tokens of preamble around a hundred-token answer. Capping it ended the runaway without truncating anything. Leaving the assistant now actually stops the work rather than abandoning it, and asking a ninth question in one conversation no longer fails - the client sends only as much history as the server accepts. The shell's top bar stops lying: where it showed a permanently greyed-out 'Freshness unavailable' chip, it now shows when the governed data was last loaded, taken from the oldest active batch across actuals and budget so it never claims the numbers are fresher than the stalest input behind them, and it says plainly which kind of unavailable it is when there is nothing to show. The docked Ask panel fills its column instead of stopping halfway down the page."
+    },
+    {
+      "key": "ask-period-control",
+      "title": "Recoverable periods in Ask",
+      "story": "As someone asking a statement question, I want the assistant to ask me which period it should use instead of refusing, and to let me move any answer to another period, so that a missing word costs me a click rather than a retype.",
+      "acceptance_criteria": [
+        "A statement question whose period is missing, not offered, or spans more than one period returns ClarificationNeeded naming the missing part, never NotSupported.",
+        "Offered options contain only periods that can answer that question, and never one that is guaranteed to fail, such as a multi-month range for a statement.",
+        "Choosing an offered period issues exactly zero selector calls, proven by a hermetic test that counts calls on a fake provider: one for the original question, none for the continuation.",
+        "An unresolvable or ambiguous scope triple returns a message naming the attribute and directing the user to an administrator, offers no period options, and is reported ahead of period.",
+        "No mapping configured and no periods loaded each keep their own distinct outcome and message, and neither is reported as a missing period.",
+        "A successful data answer in either domain displays the period or window it ran on and offers the other periods that could answer it; choosing one replaces that answer in place and the replacement displays the new period.",
+        "A successful answer that resolved to no window states that it covers all loaded data and offers no defaulted period control; informational, clarification and failure responses offer none.",
+        "A re-run's provenance reports the active batch ids that produced the displayed values, and the determinism claim is about selector calls, not about values being stable across reloads.",
+        "Every criterion is proven by hermetic tests over a fake provider and warehouse; any claim made against the live PoC names its sample count and no live claim rests on a single run."
+      ],
+      "order": 9,
+      "status": "active",
+      "epic": "assistant",
+      "skill": "fullstack",
+      "kind": "feature",
+      "depends_on": [],
+      "spec": "docs/specs/ask-period-control.md"
     }
   ],
   "epics": [
@@ -207,5 +230,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-15T03:35:52+00:00"
+  "updated_at": "2026-09-15T06:03:51+00:00"
 }

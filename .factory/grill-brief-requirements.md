@@ -1,4 +1,4 @@
-# Cold-read grill — gate: requirements — requirements for poc-responsiveness (docs/specs/assistant-and-exploration.md)
+# Cold-read grill — gate: requirements — requirements for ask-period-control (docs/specs/ask-period-control.md)
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -432,134 +432,128 @@ These questions were put to the human and answered. Two obligations:
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
 
-## The artifact under interrogation (requirements for poc-responsiveness (docs/specs/assistant-and-exploration.md))
+## The artifact under interrogation (requirements for ask-period-control (docs/specs/ask-period-control.md))
 
 ---
-slug: assistant-and-exploration
-title: Assistant & exploration
+slug: ask-period-control
+title: Recoverable periods in Ask
 status: confirmed
-saved: 2026-09-01T10:15:05+00:00
+saved: 2026-09-15T05:44:48+00:00
 ---
 
-# Assistant & exploration
+# Recoverable periods in Ask
 
 ## Why
-Beyond the fixed statement, people ask ad-hoc questions and want a natural way to
-interrogate the data. A trustworthy assistant over the same governed layer answers
-those without a developer, and reinforces the trust story (verified, provenanced).
 
-## Users
-Finance / management asking questions; analysts exploring beyond the fixed MIS.
+Live PoC testing asked a well-formed statement question with no period:
+
+> Show the MIS statement Actual by statement leaf
+
+and got a flat red failure: *"The answer does not resolve to one statement selector set and offered
+period."* Measured 4/4 `not_supported`. Adding a period makes the same question work 6/6 with 81
+rows, so the answer was one word away and the product said no instead of asking.
+
+`ClarificationNeeded` exists for exactly this, is already rendered by the Ask panel as clickable
+option buttons (`ask-panel.tsx:131-147`), and is already used elsewhere in the same method.
+
+Four measurements decide the design. Three of them contradict the obvious implementation.
+
+**Re-asking through the model is unreliable.** Today's clarify carries `options: string[]` and the
+panel appends the chosen string to the question, which goes back through the selector. 4 samples each:
+
+| re-asked question | result |
+| --- | --- |
+| `Show the MIS statement Actual by statement leaf (2026-07-01)` | success 2/4, informational 2/4 |
+| `Show the MIS statement Actual by statement leaf (July 2026)` | success 3/4, informational 1/4 |
+
+A period the user has explicitly clicked must never be re-guessed.
+
+**The MIS Reports period list contains an option that cannot answer a statement Ask.** Its
+`periods` include `FY 26-27 YTD`, a twelve-month range, while `statementPeriod` needs a single
+period point. Measured: `... (FY 26-27 YTD)` is `not_supported` 4/4.
+
+**A governed-financial answer can legitimately have no period at all.** `Show Actual and Budget by
+GL code` succeeds 4/4 with **no time window**, summing every loaded month (budget 32,000,000
+against July's 8,000,000); its readback carries no period clause. Nothing may invent a period for
+such an answer.
+
+**Three different failures share one dead end.** `chat.service.ts` returns `NotSupported` at
+`:322` (no selector set or no period), `:331` (`SelectionPeriodUnavailableError` - the period is
+not among the offered ones) and `:335` (no mapping configured). Only the first is a missing period,
+and only some of that one is recoverable by the person asking.
 
 ## Behaviour
-- Natural-language questions → a **verified answer (+ chart)**, grounded in the
-  governed measures, with **provenance** and a **"view in report"** link.
-- Two surfaces: a **docked assistant** beside the report and a **standalone Ask
-  page**; plus **saved queries + pinned dashboards** for self-serve exploration.
-- **Converses like a normal agent** for general chat.
-- **Strict on numbers:** figures come **only from the governed measures**; the LLM
-  **selects, never authors SQL**; it **never fabricates a number**; and it is
-  **read-only (SELECT only)**.
-- If the user **diverges** from the report/data scope, it answers naturally but
-  **guides them back** to the report.
-- **Included in the first PoC release.**
 
-## Confirmed scope (grilled 2026-09-01)
-- **Timing:** in the first PoC release (not a fast-follow).
-- **LLM & residency:** settled 2026-09-12 — Bedrock, `ap-south-1` (decision **0027**).
-- **Guardrail:** conversational for chat; numbers only from governed measures
-  (select-only, never authors SQL, never fabricates); guide back when diverging.
+**A statement question whose period cannot be resolved asks instead of refusing**, and the offered
+options are only periods that can actually answer it.
 
-## Settled by the requirements grill (2026-09-12)
-A cold read against the built repo found ten gaps. All are settled here; three were
-human-decided and carry their own decision records.
+**The offered period reaches the warehouse as data, not as words.** `clarify` gains a typed
+continuation carrying the base `Selection` the selector already produced plus each option's
+canonical `{ value, label, from, to }`. The client clones that selection with the chosen window and
+posts it as `AskRequest.selection`, which `chat.service.ts:146` runs verbatim, skipping the
+selector. Today's `options: string[]` / `resumesQuestion` path is untouched for its existing users.
 
-- **Timing is settled, and the contradiction is closed.** The assistant **ships in the PoC** as
-  story 7 of 7 (decision **0026**), superseding only the chatbot clause of decision 0002 and
-  amending the chatbot-timing clause of `docs/product/BRIEF.md`. That closes only the **timing
-  half** of **D-0032** — the BRIEF still frames Smart Palm, Yield/ha and OER as v1's headline
-  metrics, and that half stays open. 0002's Operational MIS deferral stands. **Human-decided this grill.**
-- **LLM and residency are no longer open.** AWS **Bedrock in `ap-south-1` (Mumbai)** (decision
-  **0027**). Only the **question, the prior turns, and the governed vocabulary** may leave the
-  app — names, labels, **and dimension distinct values** (capped by `dimensionEnumMax`), so 3F's
-  plant, cost-centre and GL identifiers do reach AWS. **Amounts, transaction lines, batch
-  contents and result rows never do**, and a test asserts the provider's input so the boundary is
-  a control rather than a sentence. `MockLlmProvider`
-  always returns `clarify` and never selects, so it is development-only and not a shippable
-  fallback. **Human-decided this grill.**
-- **A save stores the selection, never the answer** (decision **0028**): pins are personal and
-  **re-authorize on every open**, so a revoked grant yields a refusal rather than a cached
-  figure. Answer snapshots and shareable pins are out of scope. **Human-decided this grill.**
-- **The data vocabulary is bounded and named.** The assistant may select only from the domains
-  the semantic layer actually registers — **`governed-financial`** and **`mis-statement`** —
-  over the proven Agriculture / Nursery / DUB slice and the periods the statement offers. A
-  question outside that catalog is **refused as unsupported and says so**; it is never answered
-  with a zero, which decision **0018** already established is a different and meaningful value.
-- **"Verified" and "no fabricated numbers" are falsifiable.** **Every numeric character the user
-  can see** — in prose, labels, chart axes and annotations, and follow-ups — is rendered from the
-  deterministic governed result. The model never emits a figure. Rounding follows the statement's
-  rules (Indian grouping, ₹, display-rounded after aggregation). An empty result says it is
-  empty; an ambiguous question asks one clarifying question rather than guessing; and when no
-  chart suits the shape of the answer, none is drawn.
-- **"View in report" has a contract.** The link carries the selection's Department, Function,
-  Plant and period **and the batch provenance of the answer that produced it**, so the statement
-  it opens is the one the assistant was talking about. When a question cannot be represented as a
-  statement selection, the link is **absent with a reason**, never a link to something else.
-- **RBAC and audit have failure semantics.** The assistant inherits the all-or-nothing governed
-  access of decision **0016** and **re-authorizes on every ask, every saved re-run and every pin
-  open** — never on the strength of an earlier authorization. Every data answer writes its audit
-  record **before** the read and **fails closed**, as the vendored chat path already does; denials
-  and unsupported requests are audited too, following the drill-down precedent.
-- **The response matrix is explicit**, in precedence order: a **data question** is answered from
-  the governed measures with provenance; a **definition question** is answered from the semantic
-  layer's own labels; an **ambiguous** question gets one clarifying question; a **causal "why"**
-  is declined as out of scope (it stays out) and redirected to what the numbers do show; and
-  **general chat** is answered naturally but claims nothing about 3F's data and guides back to
-  the report.
-- **Every promised surface is acceptance-covered** — see Acceptance criteria below, which now
-  name the docked panel, the standalone Ask page, the chart, provenance, the report link, saved
-  queries and pinned dashboards, rather than proving one generic answer.
-- **The vendored Pulse assistant is NOT wired in, and this story owns wiring it.** `AppModule`
-  imports none of `chat`, `saved` or `pins`; the registered-route allow-list in
-  `backend/src/app.routes.test.ts` contains no `/api/chat`, `/api/saved` or `/api/pins`; and the
-  applied migration `backend/drizzle/0000_auth_audit.sql` creates auth and audit tables only.
-  The story owns the routes, the persistence and the UI, and must not assume any of it exists.
+**Scope problems explain rather than offer.** `statementRequest` cannot distinguish "no department"
+from "several departments", and department and function are provisioned scope attributes, not
+selectable semantic dimensions. Both cases therefore return a plain message naming the attribute
+and saying an administrator must set it. Scope is evaluated before period, so a user missing both
+is told about the one they cannot fix themselves.
 
-## Rules
-- RBAC + append-only audit on every data answer.
-- Read-only: only SELECT against the warehouse, through the governed layer.
+**Accepted period inputs are named, and each failure keeps its own outcome.** A period point
+(`from == to`) and a whole calendar month are both accepted, as today. A same-day window on a day
+that is not an offered period - `2026-07-15` - is a recoverable clarification, not a refusal. A
+partial or multi-month range is a recoverable clarification. No mapping configured stays a refusal.
+An empty period list stays a refusal that says no periods are loaded.
 
-## Out of scope (now)
-- Open-ended causal "why"; any write-back; the exact docked-panel placement is a
-  nice-to-have, not a gate.
+**Eligible periods are exactly the ones MIS Reports offers, minus any that cannot resolve the
+question at hand.** The source is unchanged (`selection-resolver.service.ts:40`, active Actuals
+batches), so Ask and the report screen never disagree about which periods exist. A month with
+actuals but no budget is eligible; the statement already zero-fills the missing side.
+
+**Every successful data answer shows the period it ran on and lets the user change it**, in both
+domains. A statement answer offers the loaded months. A governed-financial answer offers the same
+months plus the window it actually ran on. An answer that resolved to no window states that it
+covers all loaded data and offers no defaulted control. Informational, clarification and failure
+responses carry no control at all.
+
+**Changing the period replaces that answer in place** rather than appending a turn, and goes
+through the same deterministic path.
+
+**A re-run is a fresh governed query, not a snapshot.** It re-authorizes, audits and reads the
+currently active batches, so under decision 0028 an identical choice may legitimately return
+different values after a reload; provenance shows the batch ids that produced what is on screen.
 
 ## Acceptance criteria
-- An NL data question returns a **verified, provenanced** answer matching the report — **no
-  fabricated numbers**, read-only only — with every visible numeric character traceable to the
-  governed result.
-- The answer is reachable from **both** surfaces: the **docked assistant** beside the report and
-  the **standalone Ask page**.
-- A **chart** is drawn when the answer's shape suits one, from the same result, and omitted
-  rather than forced when it does not.
-- **Provenance** is shown with the answer, and **"view in report"** opens the statement for that
-  selection carrying the answer's batch provenance — or is absent with a reason when the question
-  has no statement representation.
-- A **saved query** stores the selection and **re-runs correctly under the current user's RBAC**;
-  a **pinned dashboard** opens by re-running, and a revoked grant produces a refusal rather than
-  a cached figure.
-- A question **outside the governed catalog** is refused as unsupported, never answered zero.
-- General chit-chat is handled naturally; off-topic questions get a helpful nudge back to the
-  report; a causal **"why"** is declined rather than answered.
-- Every data answer is **authorized and audited fail-closed**; a denial is audited too.
 
-## Open items (non-blocking)
-- The **Bedrock model id** (`BEDROCK_MODEL_ID`) is a deployment input with no default; the region
-  is settled as `ap-south-1` by decision **0027**.
-- A contractual **retention and NDA position** for model inputs rides with the production pilot
-  (decision **0011**), not with this story.
+1. A statement question whose period is missing, not offered, or spans more than one period returns
+   `ClarificationNeeded` naming the missing part, never `NotSupported`.
+2. Offered options contain only periods that can answer that question, and never one that is
+   guaranteed to fail, such as a multi-month range for a statement.
+3. Choosing an offered period issues exactly zero selector calls, proven by a hermetic test that
+   counts calls on a fake provider: one for the original question, none for the continuation.
+4. An unresolvable or ambiguous scope triple returns a message naming the attribute and directing
+   the user to an administrator, and offers no period options; scope is reported ahead of period.
+5. "No mapping configured" and "no periods are loaded" each keep their own distinct outcome and
+   message, and neither is reported as a missing period.
+6. A successful data answer in either domain displays the period or window it ran on and offers the
+   other periods that could answer it; choosing one replaces that answer in place and the
+   replacement displays the new period.
+7. A successful answer that resolved to no window states that it covers all loaded data and offers
+   no defaulted period control; informational, clarification and failure responses offer none.
+8. A re-run's provenance reports the active batch ids that produced the displayed values, and the
+   spec's determinism claim is about selector calls, not about values being stable across reloads.
+9. Every criterion above is proven by hermetic tests over a fake provider and warehouse. Any claim
+   made against the live PoC additionally names its sample count, and no live claim rests on a
+   single run.
 
-## Source
-Decision 0003; Pulse README (Metabot, saved queries, pin-to-dashboard).
+## Out of scope
+
+- Changing which periods the warehouse offers, or the FY-YTD definition.
+- Letting a user choose among several granted plants, departments or functions - a new authorized
+  selector capability that no current data exercises.
+- Rendering the measure and dimension chips, or making them editable.
+- `requiredTimeWindowClarify`'s day-range options, which are wrong for a monthly statement but
+  belong to a different gate.
 
 
 ## What to return

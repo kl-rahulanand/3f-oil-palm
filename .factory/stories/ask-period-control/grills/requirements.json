@@ -1,6 +1,6 @@
 {
   "generated_by": "griller",
-  "gate": "spec",
+  "gate": "requirements",
   "verdict": "pass",
   "summary": "Cold read of the CONFIRMED docs/specs/ask-period-control.md against repo reality. Eight findings. The sharpest two were self-inflicted contract holes: the spec argued that re-asking through the model is unreliable and then failed to define any field by which a clicked period could avoid it, and its option shape could not clone a Selection at all because a period-less base has no timeWindow while the type requires a grain. It also left four collapsed failure causes without an order, overclaimed 'all loaded data' against the scope injection, and wrote a proof criterion a backend-only implementation could satisfy. Two went to the human: whether a period switch may rewrite the asked question, and whether making batch ids visible belongs in this story.",
   "questions_asked": 1,
@@ -62,12 +62,12 @@
   ],
   "rounds": [
     {
-      "question": "The grill found that batch ids already travel in the API but the Ask panel never renders them \u2014 its provenance section shows only readback, measures, scope and freshness. My criterion says \"provenance reports the batch ids\". Should this story make them visible?",
+      "question": "If someone asks \"...for July 2026\" and then switches the period control to August, the question on screen says July while the answer shows August. That's a visible contradiction in an audited transcript. How should it read?",
       "options": [
-        "Out of scope \u2014 reword the criterion (Recommended)",
-        "In scope \u2014 show them under \"How this was calculated\""
+        "Keep their words, label the answer (Recommended)",
+        "Rewrite the question to match"
       ],
-      "chosen": "Out of scope \u2014 reword the criterion (Recommended)",
+      "chosen": "Keep their words, label the answer (Recommended)",
       "frontier_empty": true
     }
   ],
@@ -82,7 +82,8 @@
     "docs/decisions/0027-assistant-llm-bedrock-mumbai.md",
     "docs/decisions/0028-saved-selections-not-snapshots.md"
   ],
-  "input_sha256": "f23a43635b21cae48ea143d53fd7f6174e00a725e6420a941f50fb2f047a59c5",
-  "recorded_at": "2026-09-15T06:03:40+00:00",
+  "issue": "ask-period-control",
+  "input_sha256": "4bee45b3a32b0163e08e94bd8d7816ae98a926348f995ea4d05883a78d43d496",
+  "recorded_at": "2026-09-15T06:03:47+00:00",
   "commit": "d02b60f95236c9beb6131ad5c8664e316d4a90d3"
 }

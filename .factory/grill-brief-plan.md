@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft plan.md
+# Cold-read grill — gate: plan — plan draft plan-draft.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,203 +431,223 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: **Correction to what I told you.** When I asked about the freshness pill I said the data already exists and just needs exposing. That was wrong. `postgres.adapter.ts:56` returns `null` when no freshness column is supplied, and **no domain declares one** — `grep -c freshnessColumn` in the semantic layer is **0**. So freshness is `null` everywhere today, and `dataAsOf` in answer provenance has always been null too. The grill also found there is no single truth to show: actuals and budget arrive as **separate ingest batches** with their own timestamps, so one pill cannot honestly imply one number without a rule. Wiring it means *defining* freshness first — bigger than the route-plus-render job I described.
-  A: Define it from ingest batches, show the oldest (Recommended)
-- Q: Closing the requirements grill for `poc-responsiveness`. The cold read returned **NOT CONVERGED** with two blockers and six under-specifications, and I've resolved them: a new spec `assistant-responsiveness.md` now contracts this story (it didn't exist — the story's requirements lived only in the roadmap item, so a plan could have satisfied the old spec and built none of it), and the assistant spec's stale "NOT wired in, this story owns wiring it" paragraph is marked **DELIVERED** so nobody re-creates shipped routes, migration and UI. Your freshness call is in. I also pinned the things the grill said were unfalsifiable: the retry is scoped to a selector call with **no tool block only**, at most **two calls total**, never on the deterministic smalltalk/definition/refusal paths (routing precedes selection), and never repeats a governed query; streaming specifies phase order, **no flicker** for answers that resolve without a model call, terminal errors through the existing renderer, and cancel-on-leave; "fills its column" means desktop full height with the thread scrolling inside, mobile stacking unchanged. Any gap before I write the plan?
-  A: No gaps — write the plan (Recommended)
-- Q: Closing the spec grill for `assistant-responsiveness`. The cold read returned NOT CONVERGED with seven findings and caught **two factual errors in my own spec**, which I've now corrected: I claimed the server never bounds prior turns (it does — `trimPriorTurnsToTokenBudget` at `chat.service.ts:675`), and I'd written that turns should be kept "most-recent-first", which would have reversed transport order and made `priorTurns.at(-1)` select the wrong turn. The rewritten spec leads with the measured root cause instead: **no `maxTokens` on the Converse call** — 214,222ms/24,313 tokens uncapped versus 1,429ms/168 tokens at `maxTokens: 2048`, stopping at `tool_use` rather than truncating. Also fixed from the read: the `routing` phase is emitted *before* the deterministic classifiers, so "no flicker" is now a client render-delay rule rather than a false claim; cancellation must actually abort the model and query work (today nothing does); `priorTurns` has no array bound in the schema; and freshness is defined as **load freshness** — oldest `uploaded_at_utc` across active batches, labelled as load time — because active batches are unique per source *and period*, so a September upload of July data must not read as "data as of September".
-  A: Record the pass and plan it (Recommended)
-- Q: One more round purely to close the **requirements** gate — the harness consumes each ledgered answer against a single gate, and I spent the earlier ones on the spec gate, so this needs its own. Nothing new to decide; confirming the record before I write the plan. What it will state: the story had no contracting spec (its requirements lived only in the roadmap item), now fixed by `assistant-responsiveness.md`, which is confirmed and linked — spec debt cleared. The assistant spec's stale "this story owns wiring it" paragraph is marked DELIVERED so the shipped routes, migration and UI can't be re-created. Your freshness decision is recorded, along with the correction that I first put it to you on a false premise. And the root cause is the measured one: no `maxTokens` on the Converse call, 214,222ms → 1,429ms.
-  A: Record it and write the plan (Recommended)
+- Q: If someone asks "...for July 2026" and then switches the period control to August, the question on screen says July while the answer shows August. That's a visible contradiction in an audited transcript. How should it read?
+  A: Keep their words, label the answer (Recommended)
+- Q: The grill found that batch ids already travel in the API but the Ask panel never renders them — its provenance section shows only readback, measures, scope and freshness. My criterion says "provenance reports the batch ids". Should this story make them visible?
+  A: Out of scope — reword the criterion (Recommended)
 
-## The artifact under interrogation (plan draft plan.md)
+## The artifact under interrogation (plan draft plan-draft.md)
 
-# Plan — poc-responsiveness: Assistant responsiveness and shell truth
+---
+issue: ask-period-control
+title: Recoverable periods in Ask
+status: draft
+story: ask-period-control
+decisions_reviewed:
+  - 0001-poc-engagement-scope
+  - 0002-phase1-financial-mis
+  - 0003-mis-presentation-tool
+  - 0004-pulse-governed-joins
+  - 0005-client-signoff
+  - 0006-frontend-fresh-backend-vendor
+  - 0007-frontend-framework-nextjs
+  - 0008-pulse-vendored-snapshot
+  - 0009-required-tests-real-name-and-tsproject
+  - 0010-rebrand-pulse-to-3f
+  - 0011-deployment-readiness-poc-scope
+  - 0012-vendored-api-constitution-deviation
+  - 0013-backend-observability-built-in-poc
+  - 0014-sap-ingestion-poc-no-master
+  - 0015-warehouse-snake-case-deviation
+  - 0016-governed-joins-poc-scope
+  - 0017-mis-selection-composite-key-seam
+  - 0018-mis-selection-unmapped-gl-bucket
+  - 0019-fresh-routes-follow-vendored-house-style
+  - 0020-mis-budget-leaf-grain
+  - 0021-mis-statement-outline-snapshot
+  - 0022-mis-statement-governed-projection
+  - 0023-mis-statement-drift-reports-not-blocks
+  - 0024-drill-down-aggregate-client-projection
+  - 0025-drill-down-pinned-batch-raw-read
+  - 0026-assistant-ships-in-the-poc
+  - 0027-assistant-llm-bedrock-mumbai
+  - 0028-saved-selections-not-snapshots
+---
 
-Story: `poc-responsiveness` (roadmap 8) · spec: `docs/specs/assistant-responsiveness.md` (confirmed)
+# Plan — ask-period-control: Recoverable periods in Ask
+
+Story: `ask-period-control` (roadmap 9) · spec: `docs/specs/ask-period-control.md` (confirmed)
 
 ## Problem
-The PoC shipped at 7/7 and the assistant answers correctly, but live testing found a follow-up
-question could take **39s**, **57s**, and in reproduction **214s**. The product looks hung.
+A well-formed statement question with no period is a dead end. Measured 4/4 against the running
+PoC, `Show the MIS statement Actual by statement leaf` returns a red
+`The answer does not resolve to one statement selector set and offered period.` The same question
+with a period works 6/6 with 81 rows. The answer was one word away and the product said no.
 
-The cause is one missing request field. `backend/src/llm/bedrock.provider.ts:394` sends
-`inferenceConfig: { temperature: 0, topP: 1 }` and **no `maxTokens`**. Measured directly against
-Bedrock with the real system prompt, the real three-tool schema, the same question and the same
-single prior turn:
+`ClarificationNeeded` exists for exactly this, is already rendered by the Ask panel as clickable
+buttons (`ask-panel.tsx:131-147`), and is already used elsewhere in the same method. The refusal is
+not a missing capability; it is the wrong response class.
 
-| request | latency | output tokens | stopReason | tool block |
-| --- | --- | --- | --- | --- |
-| no `maxTokens` | 214,222 ms | 24,313 | - | - |
-| `maxTokens: 2048` | 1,429 ms | 168 | `tool_use` | yes |
-| `maxTokens: 512` | 1,703 ms | 203 | `tool_use` | yes |
+Three measurements decide the design, and each rules out the obvious implementation.
 
-A selection is ~110 output tokens. Capped, the model stops at `tool_use` — **not** `max_tokens` —
-so the cap does not truncate; its presence alone ends the runaway. With no prior turn the same call
-already returned in 0.8–1.3s, so neither the model nor `ap-south-1` is at fault.
+**Re-asking through the model is unreliable.** Today's clarify carries `options: string[]` and the
+panel appends the chosen string to the question, which goes back through the selector. 4 samples each:
 
-**Two earlier diagnoses of mine were wrong and were corrected by cold reads, not by me.** I first
-blamed the model family; the human disproved it from experience with the same model in Pulse. I
-then wrote that the server never bounds prior turns — it does, at
-`backend/src/chat/chat.service.ts:675` (`trimPriorTurnsToTokenBudget`, called at `:153`) — and the
-reproduction used a *single* prior turn well inside that budget, so trimming cannot be the fix.
-This plan records that history because the wrong fix (swap the model, or trim harder) is expensive
-and would not have worked.
+| re-asked question | result |
+| --- | --- |
+| `... by statement leaf (2026-07-01)` | success 2/4, informational 2/4 |
+| `... by statement leaf (July 2026)` | success 3/4, informational 1/4 |
 
-Two further defects make the product read as broken in a demo. The Ask surfaces call the buffered
-JSON route and show one static pending state, so a slow answer is indistinguishable from a hang —
-while `POST /api/chat/stream` is built, registered, allow-listed, and consumed by nothing. And the
-shell renders a permanently disabled `Freshness unavailable` chip
-(`frontend/src/components/shell/app-shell.tsx:174`) that computes nothing; underneath,
-`backend/src/warehouse/postgres.adapter.ts:56` returns null when no freshness column is supplied
-and **no domain declares one**, so `provenance.dataAsOf` has always been null too.
+A period the user has explicitly clicked must never be re-guessed. That kills `resumesQuestion` as
+the continuation for this feature.
+
+**The MIS Reports period list contains an option that cannot answer a statement ask.** `periods`
+includes `FY 26-27 YTD`, a twelve-month range, while `statementPeriod` needs a single period point.
+Measured: `... (FY 26-27 YTD)` is `not_supported` 4/4. Offering the raw list would present a choice
+guaranteed to fail.
+
+**A governed-financial answer can legitimately have no period at all.** `Show Actual and Budget by
+GL code` succeeds 4/4 with **no time window**, summing every loaded month (budget 32,000,000 against
+July's 8,000,000), and its readback carries no period clause. Nothing may invent a period for such
+an answer, and its coverage must be stated rather than left implied.
+
+**Four distinct causes share one dead end.** `chat.service.ts` returns `NotSupported` at `:322` (no
+selector set OR no period), `:331` (`SelectionPeriodUnavailableError`) and `:335` (no mapping), and
+`statementRequest` (`:726`) collapses missing *and ambiguous* department, function, plant and period
+into one `undefined`. Only some of one of those is recoverable by the person asking.
 
 ## Scope / Non-goals
 
 **In scope**
-- `maxTokens` on the selector Converse call — the fix for the latency the human actually hit.
-- A no-tool-block retry that cannot mask a genuine refusal, which requires un-collapsing three
-  outcomes the provider currently maps to one `unsupported`.
-- Request-schema limits on `priorTurns` (server resource safety, explicitly **not** the latency fix).
-- Both Ask surfaces consuming the existing stream, with a phase rule that matches the producer,
-  real cancellation, and full transport parity with the buffered client.
-- Freshness **defined** (not merely exposed) and rendered; the docked panel filling its column.
+- A typed period choice on `ClarificationNeeded` and a typed period control on a successful data
+  answer — two carriers, so a recovery and a settled answer never share one field.
+- A deterministic continuation: the chosen period posts as `AskRequest.selection`, which
+  `chat.service.ts:146` runs verbatim, skipping the selector entirely.
+- A total, first-match-wins failure order across the four collapsed causes, each with its own
+  response class and message.
+- The period control in **both** semantic domains (human round 1), replacing the answer in place
+  (human round 2) without rewriting the asked question (human round 3 of the requirements grill).
 
 **Non-goals**
-- Changing the model or the region. Decision **0027** stands; the evidence shows the model is fast
-  when the request is well formed.
-- Durable conversation history (deferred at the assistant plan grill; **0028** stands).
-- Period-scoped or report-scoped freshness — the shell chip is global; per-report currency belongs
-  to the report.
-- Re-planning any shipped assistant behaviour, and the Pulse-inherited examples still in the
-  selector system prompt ("leads and appointments booked", "by state"), and D-0040.
+- Changing which periods the warehouse offers, or the FY-YTD definition.
+- Letting a user choose among several granted plants, departments or functions — a new authorized
+  selector capability no current data exercises (human round 3 of the spec grill).
+- Rendering the measure and dimension chips, or making them editable.
+- Showing batch ids in the provenance disclosure (human round 2 of the requirements grill). They
+  travel in the response and C8 checks them there.
+- `requiredTimeWindowClarify`'s day-range options, wrong for a monthly statement but a different gate.
 
 ## Acceptance Criteria
-- **C1** The selector Converse request carries an explicit `maxTokens`, asserted on the request the
-  provider builds — not inferred from timing. A follow-up completes in seconds, not minutes.
-- **C2** A selector response with **no tool block** is retried at most once; a **malformed** tool
-  input and a genuine **`mark_unsupported`** are never retried; a second tool-less response answers
-  `backend_error` naming an incomplete model response, **never `not_supported`** — which would
-  assert the untrue thing this story removes. The provider stops collapsing those three outcomes at
-  `bedrock.provider.ts:227` so the retry can tell them apart. No retry repeats a governed query.
-- **C3** `backend/src/chat/chat.schemas.ts:21` rejects an oversize `priorTurns` array and oversize
-  per-question length **before** serialization; retained order stays **oldest-first** so
-  `chat.service.ts:153`'s `priorTurns.at(-1)` is still the latest turn.
-- **C4** Both Ask surfaces render streamed phases in order; an answer resolving within the client's
-  render delay shows **no phase at all** (the server already emits `routing` at
-  `chat.service.ts:103` *before* the deterministic classifiers, so this is a client rule, not a
-  producer change); a terminal `error` frame renders through the existing seven-class renderer.
-- **C5** The streaming client preserves the buffered client's CSRF bootstrap, cookie credentials,
-  401 refresh and HTTP-error rendering — pre-stream auth/CSRF/validation failures are HTTP
-  responses, not SSE frames. Leaving the assistant cancels, and the cancellation **reaches the model
-  and query work**: `chat.controller.ts` observes no client disconnect today and passes no abort
-  signal, so an abandoned request keeps selecting, querying and auditing. Moving between the dock
-  and the Ask page shares one provider and one thread and does **not** cancel.
-- **C6** The freshness pill shows the oldest `uploaded_at_utc` among **active** ingest batches
-  across governed sources, labelled as **load** freshness, says so plainly when none is available,
-  and is no longer marked `aria-disabled`. `provenance.dataAsOf` stops being null by the same seam.
-- **C7** The docked panel fills its column on desktop with the thread scrolling **inside** it;
-  existing mobile stacking at the current breakpoint is unchanged.
-- **C8** Every proof is judged by its junit testcase **name** and **executed count**, never an exit
-  code (D-0024, D-0031).
+- **C1** A statement question whose period is missing, not among the offered periods, or spanning
+  more than one of them returns `ClarificationNeeded` naming the missing part, never `NotSupported`.
+- **C2** The clarification carries a typed period choice — the base `Selection` the selector already
+  produced, the original question verbatim, and one entry per offered period with a **complete**
+  `timeWindow` (`grain`, `column`, `from`, `to`) plus `value` and `label`. The complete window is
+  required because a period-less base selection has no `timeWindow` while
+  `Selection.timeWindow` (`contract/src/measure.ts:155`) requires a `grain`, so the client would
+  otherwise have to invent both that and the time column. Entries contain only periods that can
+  answer that question — never a multi-month range for a statement.
+- **C3** Choosing an offered period issues **exactly zero** selector calls, proven by a hermetic test
+  that counts calls on a fake `LlmProvider`: one for the original question, none for the continuation.
+- **C4** The four causes resolve in a fixed, first-match-wins order, each with its own response class
+  and message: **scope** (`BlockedByPolicy`, naming the first offending attribute in the order
+  department, function, plant, no period options) → **no mapping** (`NotSupported`) → **no periods
+  loaded** (`NotSupported`, distinct message) → **period** (`ClarificationNeeded`). The resolver's
+  existing mapping-before-period order (`selection-resolver.service.ts:58,67`) is preserved.
+- **C5** A successful data answer in either domain carries a period control whose current entry is
+  the window the answer ran on; choosing another **replaces that answer in place**, the replacement's
+  control shows the new period, and **the asked question is unchanged** — the transcript records
+  what the user typed plus the period they chose, never a question they did not write.
+- **C6** A successful answer that resolved to no window states it covers all loaded data **within the
+  asker's access scope and any filters the question applied** — governed queries inject plant scope
+  at `sqlBuilder.ts:88`, so bare "all loaded data" overclaims. Informational, clarification and
+  failure responses carry no period control.
+- **C7** A replacement in flight leaves the previous answer readable under a pending state; one that
+  fails or is refused leaves the previous answer in place with the failure shown against it, never
+  blanking it.
+- **C8** A re-run's response carries the active batch ids that produced the displayed values. The
+  determinism claim is about **selector calls**, not about values being stable across reloads —
+  under decision 0028 a rerun re-authorizes and reads the currently active batches.
+- **C9** Hermetic tests over a fake provider and warehouse cover the whole matrix, not a sample:
+  missing period; a same-day period that is not offered; a partial-month range; a multi-month range;
+  an empty period list; each of department, function and plant absent **and** ambiguous; no mapping;
+  a successful statement answer; a successful governed answer with a window; a successful governed
+  answer with no window; and a failed replacement. Any live-PoC claim names its sample count and no
+  live claim rests on a single run (D-0024, D-0031: judged by junit testcase name and executed count).
+- **C10** New backend test files are registered in `backend/package.json` and
+  `tools/quality-gate.test.mjs`, or CI runs none of them. Any file this story edits that is still in
+  `.prettierignore` is formatted and removed from it, with the `ignoredBaselineHashes` entry dropped
+  in the same change (D-0006).
 
 ## Technical Approach
 
-### The cap and the retry
-`maxTokens` is added to the single `inferenceConfig` the provider builds. The value sits far above
-a real selection (~110 tokens) and far below a runaway (24,313); both measured caps behaved
-identically, so the choice is about headroom, not tuning.
+### The two carriers
+`AskResponse` gains one optional `periodChoice` on the clarification path and one optional
+`periodControl` on the success path, sharing an entry shape. The existing
+`clarify: { options: string[], resumesQuestion }` is untouched — `requiredTimeWindowClarify` and
+`domainRoutingAmbiguity` still use it, and this story must not regress them.
 
-The retry exists because a cap *could* truncate before the tool block even though the measured runs
-stop at `tool_use`. Today that case is indistinguishable from a real refusal:
-`mapBedrockToolUseToSelectionResult` returns `{kind:"unsupported"}` for absent tool use, for
-malformed input, and for a genuine `mark_unsupported` alike. The seam must carry the three apart
-before mapping, or the retry cannot be scoped and would silently re-ask questions the model
-correctly refused. Routing precedes selection (`chat.service.ts:103`), so deterministic smalltalk,
-glossary, causal and out-of-catalog paths never reach the retry and the settled "the LLM selects,
-never authors" boundary is untouched.
+### Where the branch lives
+`statementRequest` currently answers a boolean question ("can I build a request?"). It becomes a
+discriminated result naming *which* precondition failed, so `chat.service.ts:318-338` can map each
+to its own class. Period eligibility is computed from `SelectionResolverService.options()` — the
+same source as the MIS Reports dropdown (`selection-resolver.service.ts:40`), so Ask and the report
+screen can never disagree about which periods exist — filtered to those a statement can resolve.
 
-### Prior turns
-`trimPriorTurnsToTokenBudget` is **kept**. Retention stays newest-turns-with-oldest-first-order —
-reversing it would break `priorTurns.at(-1)`. The schema gains explicit limits so oversize input is
-rejected before the trim loop, which re-serializes the whole array on every iteration.
+### The continuation
+`AskRequest.selection` already exists and `chat.service.ts:146` already runs it verbatim. The client
+clones the base selection with the chosen entry's window. No new route, no new execution path.
 
-### Streaming
-The client moves to `POST /api/chat/stream` and renders `routing → selecting → querying →
-summarizing`. Because `routing` is emitted before the deterministic classifiers, the no-flicker
-rule lives in the client as a short render delay. The buffered route stays for the stored-selection
-re-run, which bypasses the model and needs no progress. Cancellation is wired end to end: an abort
-signal from the client, disconnect observation in the controller, and propagation into the model
-and query calls.
-
-### Freshness
-A cross-source **minimum** over active ingest batches, which the current seam cannot express: it
-takes one domain and returns `MAX(column)` (`selectionExecutor.ts:102`). Active batches are unique
-per `(source_kind, period)` (`ingest_batch_active_source_period_unique`), so many are active and
-the value must be scoped to load time, not period — a September upload of July figures is not
-"data as of September".
+### Replace in place
+`use-ask.ts:84` appends unconditionally. A rerun carrying a period choice targets an existing turn
+index instead, leaving the question string untouched.
 
 ## Decisions
-Attested, all active and unchanged by this story: **0027** (Bedrock in `ap-south-1` — explicitly
-*not* amended; the model is exonerated by measurement), **0028** (selections not snapshots; the
-re-run path and the absence of stored answers are untouched), **0026**, **0019** (house style for
-any route this story touches), **0016**, **0018**, **0011**, **0012**, **0009** (required tests name
-a real leaf and pin `TS_NODE_PROJECT`). No new decision is required: the cap is a defect fix, and
-the freshness definition is specified in the confirmed spec.
+No new decisions. The story is governed by **0028** (a rerun re-authorizes and reads current active
+batches, so it is not a snapshot), **0016** (scope attributes are provisioned, not user-selectable —
+why an ambiguous triple explains rather than offers), **0019** (house style for any touched route),
+**0006** (prettier-ignored files are formatted and de-listed by the task that edits them), and
+**0024/0031** (proofs judged by junit testcase name and executed count).
+
+The requirements grill flagged the brief's "LLM/data residency: decide later" line as stale:
+decision **0027** fixes Bedrock in `ap-south-1` and its data boundary. Corrected, not re-opened.
 
 ## Risks
-- **A cap that truncates.** Measured runs stop at `tool_use`, not `max_tokens`, so truncation is
-  unobserved — but it is the failure this design must not hide. Mitigated by C2's retry and by
-  refusing to answer `not_supported` after a second tool-less response.
-- **Retry masking a real refusal.** The whole reason C2 forbids retrying malformed input and
-  `mark_unsupported`, and requires the provider seam to distinguish them first.
-- **Cancellation appearing to work.** Aborting the browser request while the server keeps querying
-  and auditing is the current behaviour and the easy non-fix; C5 requires the abort to reach the
-  work.
-- **A freshness pill that lies.** Announcing an upload timestamp as data currency would be worse
-  than the disabled chip it replaces. Mitigated by labelling it load freshness.
-- **The roadmap item's criteria predate the diagnosis** and name the cap-and-retry as the remedy
-  for slowness. Roadmap criteria are write-once (`fill` refuses to overwrite, `heal` takes no
-  arguments), so **this plan and the confirmed spec are authoritative**; the roadmap line is a
-  headline, not the contract.
+- **The period control doubles the surface.** Human round 1 chose both domains; the governed side
+  has no period concept of its own, so C6's no-window wording is the load-bearing part. Mitigated by
+  C9 requiring both governed variants explicitly.
+- **Replace-in-place can strand a user** if a replacement fails and the old answer is gone. C7 makes
+  keeping it a criterion, not an implementation detail.
+- **The eligible-period filter could drift from MIS Reports.** Mitigated by reading the same
+  `options()` source rather than re-deriving months.
 
 ## Verify Plan
-- **Backend unit** — the Converse request carries `maxTokens`; a tool-less response retries exactly
-  once; malformed input and `mark_unsupported` do **not** retry; a second tool-less response yields
-  `backend_error`, not `not_supported`; the schema rejects an oversize `priorTurns` array and an
-  oversize prior question; retained order remains oldest-first.
-- **Frontend unit** — phases render in order; an answer resolving within the delay renders no
-  phase; a terminal error renders through the existing renderer; leaving aborts; dock ↔ Ask does
-  not cancel; the pill renders the load-freshness value and its unavailable state.
-- **Backend DB-backed (gated, D-0008)** — the cross-source minimum over active ingest batches
-  returns the oldest `uploaded_at_utc` with several active periods present, demonstrated on the
-  host with a dead-port negative control.
-- **Functional (user-facing tasks)** — live against this worktree's servers with `BEDROCK_MODEL_ID`
-  set: ask, then ask a **follow-up**, and confirm it returns in seconds with phases visible; leave
-  mid-flight and confirm the backend stops; read the pill.
-- Every artifact records the **executed count and testcase name**, never the exit code.
+`python3 factory/scripts/verify.py` per task. Hermetic backend tests for C1–C4, C8 and the backend
+half of C9 over a fake provider and warehouse; frontend tests for C5–C7 and the client half of C9.
+The live functional check re-runs the three seed chips plus one recovery flow with a named sample
+count, from this worktree against the documented `WAREHOUSE_PG_*` env.
 
 ## Surface Impact
-| Surface | Change |
-| --- | --- |
-| `POST /api/chat` selector call | **Changed** — `maxTokens` added; retry on a tool-less response |
-| Bedrock provider mapping seam | **Changed** — absent / malformed / `mark_unsupported` no longer collapsed |
-| `POST /api/chat` request schema | **Changed** — explicit `priorTurns` limits |
-| `POST /api/chat/stream` | **Unchanged route**, newly consumed; gains disconnect observation |
-| Ask panel + Ask page | **Changed** — streamed phases, render delay, cancellation, transport parity |
-| Shell top bar | **Changed** — real load-freshness pill, no longer `aria-disabled` |
-| Freshness seam | **New** — cross-source minimum over active batches; also fixes `provenance.dataAsOf` |
-| Docked panel CSS | **Changed** — fills its column; mobile unchanged |
-| Model, region, stored data | **Unchanged** — 0027 and 0028 stand |
+`contract/src/api.ts` (two optional response fields, one shared entry type);
+`backend/src/chat/chat.service.ts` (`statementRequest` result type, the four-way branch, period
+eligibility); `backend/src/mapping/selection-resolver.service.ts` (read-only use of `options()`);
+`frontend/src/features/assistant/ask-panel.tsx` (period choice buttons, period control, no-window
+copy); `frontend/src/features/assistant/use-ask.ts` (targeted replace); `frontend/app/globals.css`.
 
 ## Task Decomposition
-1. **`assistant-bounded-generation`** (backend, `user_facing: false`) — C1, C2, C3. The cap, the
-   scoped retry, the provider seam that makes the retry safe, and the schema limits. Ships the fix
-   for the reported symptom on its own.
-2. **`assistant-streaming-ui`** (frontend, `user_facing: true`) — C4, C5. The stream client, the
-   phase render delay, cancellation end to end, and transport parity. Depends on nothing in task 1
-   but is sequenced after it so the live check exercises a fast follow-up.
-3. **`shell-freshness-and-dock`** (fullstack, `user_facing: true`) — C6, C7. The freshness
-   definition and seam, the pill, and the dock height. Independent of tasks 1 and 2.
+Sequential; each leaf is single-runtime with explicit dependencies.
+
+1. **`ask-period-contract-and-branch`** (backend, `user_facing: false`) — C1, C2, C4, C8, C9(backend),
+   C10. The shared entry type and the two optional response fields; `statementRequest` becomes a
+   discriminated result; the four-way branch with its own class and message per cause; eligible-period
+   filtering from `options()`. Depends on nothing. **Ships the recoverable clarification on its own.**
+2. **`ask-period-continuation`** (frontend, `user_facing: true`) — C3, C5(clarification half), C7,
+   C9(client half). Render the typed period choice, clone the base selection with the chosen window,
+   post it as `AskRequest.selection`, and hold the previous answer through pending and failure.
+   Depends on task 1.
+3. **`ask-period-control-on-answers`** (frontend, `user_facing: true`) — C5(success half), C6.
+   The period control on successful answers in both domains, replace-in-place against the existing
+   turn without rewriting the question, and the no-window coverage copy. Depends on task 2.
 
 
 ## What to return
