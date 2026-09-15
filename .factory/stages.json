@@ -1,20 +1,20 @@
 {
-  "issue": "poc-responsiveness",
+  "issue": "ask-period-control",
   "stages": [
     {
-      "id": "assistant-bounded-generation",
-      "title": "Cap the selector generation, scope its retry, and bound the request",
-      "status": "done"
+      "id": "ask-period-contract-and-branch",
+      "title": "Two typed carriers and a four-way ordered branch",
+      "status": "pending"
     },
     {
-      "id": "shell-freshness-api",
-      "title": "Define load freshness and serve it from an authenticated route",
-      "status": "done"
+      "id": "ask-period-continuation",
+      "title": "Render the period choice and continue deterministically",
+      "status": "pending"
     },
     {
-      "id": "assistant-streaming-and-shell",
-      "title": "Stream the answer, cancel on leave, and tell the truth in the shell",
-      "status": "done"
+      "id": "ask-period-control-on-answers",
+      "title": "A period control on every successful answer",
+      "status": "pending"
     }
   ]
 }

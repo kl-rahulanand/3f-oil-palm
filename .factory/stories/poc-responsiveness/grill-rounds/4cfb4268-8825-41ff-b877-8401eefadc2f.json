@@ -1,0 +1,31 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "You said \"every answer\" should get a period selector. Statement answers and governed-financial answers use different period concepts \u2014 a statement needs one exact month, governed answers use a free time window and often have none at all. How wide should v1 be?",
+      "options": [
+        "Both domains (Recommended)",
+        "Statement answers only"
+      ],
+      "chosen": "Both domains (Recommended)"
+    },
+    {
+      "question": "When someone changes the period on an existing answer, what should happen to the answer on screen?",
+      "options": [
+        "Replace that answer in place (Recommended)",
+        "Append a new answer below"
+      ],
+      "chosen": "Replace that answer in place (Recommended)"
+    },
+    {
+      "question": "A statement needs exactly one department, function and plant. It fails both when the user has NONE and when they have SEVERAL. Only the second is something the user could fix by choosing. Should v1 handle that?",
+      "options": [
+        "No \u2014 explain, don't offer (Recommended)",
+        "Yes \u2014 let them choose among their own"
+      ],
+      "chosen": "No \u2014 explain, don't offer (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T05:42:23.990839+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

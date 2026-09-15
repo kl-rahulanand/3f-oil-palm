@@ -2,45 +2,87 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Third cold read of docs/specs/assistant-responsiveness.md, declared as a shape change: the confirmed spec contradicted SHIPPED code and a human decision in three places - it mandated maxTokens 2048 while task 1 shipped 512, required a sub-5s live check this model's variance cannot support, and required populating provenance.dataAsOf which the human deferred as D-0041. Seven findings, all verified. FOUR were the orchestrator's amendment being incomplete: the Behaviour prose was rewritten while the ACCEPTANCE CRITERIA still carried the stale dataAsOf requirement and still omitted the five pill states, the /ask and /mis-reports boundary, and the retry's raised cap and summed usage. TWO were genuine gaps in already-merged code and are recorded as deferrals rather than absorbed into a frontend-only task.",
+  "summary": "Cold read of the CONFIRMED docs/specs/ask-period-control.md against repo reality. Eight findings. The sharpest two were self-inflicted contract holes: the spec argued that re-asking through the model is unreliable and then failed to define any field by which a clicked period could avoid it, and its option shape could not clone a Selection at all because a period-less base has no timeWindow while the type requires a grain. It also left four collapsed failure causes without an order, overclaimed 'all loaded data' against the scope injection, and wrote a proof criterion a backend-only implementation could satisfy. Two went to the human: whether a period switch may rewrite the asked question, and whether making batch ids visible belongs in this story.",
   "questions_asked": 1,
   "gaps": [
-    "The spec's acceptance criteria still required provenance.dataAsOf to stop being null, directly contradicting open deferral D-0041 and the completed freshness task's contract - the amendment had changed only the Behaviour section.",
-    "The pill's settled display contract was absent from the criteria: distinct copy for all five server states, an explicit timezone, and a browser-fetch failure shown separately from the server's lookup-failed, so unsupported, unconfigured and client-network failures could collapse into one misleading state.",
-    "Freshness had no policy for a PARTIALLY loaded warehouse: postgres.adapter.ts returns 'available' when EITHER governed source has an active batch, so the pill can display Budget's timestamp while Actuals has none, and 'oldest across governed sources' does not say whether that is honest, unavailable, or a distinct partial state.",
-    "'Leaving the assistant' named no routes, while the settled boundary is leaving both /ask and /mis-reports; with the provider held in the persistent shell an implementer cannot otherwise distinguish allowed in-area navigation from departure.",
-    "Cancellation had an uncovered query seam: dimensionValuesForAllowedDomains() starts warehouse distinctValues reads BEFORE the abort check, so an abandoned stream can still start that pre-selection query - the SelectionExecutor guard protects only the later governed execution.",
-    "The retry contract omitted the load-bearing requirements that make it useful and auditable: it said only 'retry once', without the second request's RAISED cap or the combined usage accounting, so a conforming rewrite could repeat the deterministic request and under-report the two calls' token spend."
+    "The response contract contradicted itself: the spec required period options inside ClarificationNeeded and then said clarification responses carry no control, and it never defined any field by which a SUCCESSFUL answer would carry period options at all - leaving the unreliable word-resume path as the only continuation or successful answers with nothing to click.",
+    "The option shape {value,label,from,to} cannot safely clone a Selection: a period-less base selection has no timeWindow, Selection.timeWindow requires a grain, and the option omitted the time column, so the client would have had to invent both fields.",
+    "Failure precedence was underspecified. statementRequest collapses missing and ambiguous department, function, plant AND period into one undefined, and the resolver checks mapping before period availability, so the spec had to fix a total order, a per-attribute order, and the exact ResponseClass for scope misconfiguration, no mapping, and no loaded periods.",
+    "'Replace in place' had no correctness semantics: nothing was said about the pending state, about a replacement that fails or is refused, or about a displayed question that says July above an answer now showing August - a visible contradiction in an audited transcript.",
+    "'Provenance shows the batch ids' was satisfiable backend-only: the Ask panel's provenance disclosure renders readback, measures, scope and freshness but never batch ids, so a user could not inspect what the criterion claimed.",
+    "'All loaded data' overclaimed: governed queries inject the asker's plant scope at sqlBuilder.ts:88, so a no-window answer covers all loaded data WITHIN that scope and any filters the question applied, not the warehouse's entire contents.",
+    "The proof requirement was too coarse to prevent partial coverage: 'every criterion' named no matrix, so the selector-call test could pass while the new response and UI branches regressed."
   ],
   "contradictions": [
-    "The confirmed spec mandated maxTokens 2048 and a sub-5s live check while the shipped predecessor uses 512 and repeated measurement showed 2048 reaching 19,299ms, so the governing document and the running code disagreed on the story's central value."
+    "The grill brief's already-answered ledger recorded LLM and data residency as 'Decide later', which contradicts accepted decision 0027 fixing Bedrock in ap-south-1 and its data boundary. A stale settled answer, to be corrected rather than re-asked."
   ],
   "resolutions": [
-    "HUMAN (kl-rahulanand) - 512 is the governed cap and the spec is amended to match, with the live check REPORTING observed latency (measured 1.0-5.4s) rather than enforcing a hard bound this model's run-to-run variance cannot support. The old single-sample table is replaced by the repeated-sampling ranges, with an explicit note that the earlier 1,429ms figure was unrepresentative and that the cap never truncates, so a LOWER cap is strictly better.",
-    "REPO-ANSWERED - the stale dataAsOf requirement is removed from the acceptance criteria and replaced by an explicit statement that it stays null under D-0041.",
-    "HUMAN (kl-rahulanand) - the pill's criterion now requires distinct copy for all five server states, an explicit timezone, a SEPARATE client 'could not check' state that must never be shown as the server's lookup-failed, the inherited single 401 refresh, and no silent retry or unqualified cached value.",
-    "HUMAN (kl-rahulanand) - the assistant area is named as exactly /ask and /mis-reports: navigation within that set never cancels, any other authenticated route aborts, and the spec says why the routes must be named - the provider lives in the persistent shell, so an unmounting panel cannot own the boundary.",
-    "REPO-ANSWERED - the retry criterion now carries the raised second cap (512 then 1,536) and the summed usage, matching what task 1 actually shipped, so a rewrite cannot regress to a deterministic repeat or lose the token accounting.",
-    "ORCHESTRATOR-DEFERRED - the partially loaded warehouse is D-0042 and the unguarded pre-selection query is D-0043, both recorded against merged code with explicit revisit triggers rather than absorbed into a frontend-only task, which would have broken the single-runtime split the plan grill required."
+    "Behaviour now defines TWO carriers so a recovery and a settled answer never share a field: ClarificationNeeded gains a typed period choice, and a successful data response gains a period control of the same shape with the current entry marked. The existing options/resumesQuestion path is left untouched for its current users.",
+    "Each option now carries a COMPLETE timeWindow - grain, column, from, to - plus value and label, alongside the base selection and the original question verbatim, so the client clones rather than invents. Criterion 2 pins the shape.",
+    "Behaviour now fixes a total, first-match-wins order: scope (BlockedByPolicy, naming the first offending attribute in the order department, function, plant), then no mapping (NotSupported), then no periods loaded (NotSupported, its own message), then period (ClarificationNeeded). The resolver's existing mapping-before-period order is preserved. Criterion 4 pins it.",
+    "HUMAN ROUND 1: the asked question is never rewritten. Behaviour states that the user's words stay exactly as typed and the answer carries the period it now shows, and adds the pending and failure semantics - a replacement in flight leaves the previous answer readable, and one that fails or is refused leaves it in place with the failure shown against it. Criteria 5 and 7 pin both.",
+    "HUMAN ROUND 2: showing batch ids in the provenance disclosure is named in Out of scope, and criterion 8 now checks that the RESPONSE carries them rather than implying a UI that this story does not build.",
+    "Behaviour and criterion 6 now say 'all loaded data within the asker's access scope and any filters the question applied', citing the scope injection at sqlBuilder.ts:88.",
+    "Criterion 9 now names the whole matrix explicitly - missing period, an unoffered same-day period, a partial-month range, a multi-month range, an empty period list, each of department/function/plant absent and ambiguous, no mapping, a successful statement answer, a successful governed answer with and without a window, and a failed replacement - and requires any live claim to name its sample count.",
+    "Decision 0027 governs: Bedrock in ap-south-1 with the boundary it records. The brief's 'decide later' line is stale and is not re-opened by this story."
   ],
-  "open_items": [
-    "D-0041 (provenance.dataAsOf), D-0042 (partially loaded warehouse), D-0043 (unguarded pre-selection query) are open with triggers.",
-    "docs/specs/assistant-and-exploration.md remains a draft after its DELIVERED amendment and needs its own spec grill to be re-confirmed.",
-    "Carried, non-blocking: ap-south-1 rests on the code default plus decision 0003's India-residency line."
+  "citations": [
+    {
+      "finding": "The response contract contradicted itself: the spec required period options inside ClarificationNeeded and then said clarification responses carry no control, and it never defined any field by which a SUCCESSFUL answer would carry period options at all - leaving the unreliable word-resume path as the only continuation or successful answers with nothing to click.",
+      "ref": "contract/src/api.ts:496,547"
+    },
+    {
+      "finding": "The option shape {value,label,from,to} cannot safely clone a Selection: a period-less base selection has no timeWindow, Selection.timeWindow requires a grain, and the option omitted the time column, so the client would have had to invent both fields.",
+      "ref": "contract/src/measure.ts:151"
+    },
+    {
+      "finding": "Failure precedence was underspecified. statementRequest collapses missing and ambiguous department, function, plant AND period into one undefined, and the resolver checks mapping before period availability, so the spec had to fix a total order, a per-attribute order, and the exact ResponseClass for scope misconfiguration, no mapping, and no loaded periods.",
+      "ref": "backend/src/chat/chat.service.ts:322,331,335,726; backend/src/mapping/selection-resolver.service.ts:58"
+    },
+    {
+      "finding": "'Replace in place' had no correctness semantics: nothing was said about the pending state, about a replacement that fails or is refused, or about a displayed question that says July above an answer now showing August - a visible contradiction in an audited transcript.",
+      "ref": "frontend/src/features/assistant/use-ask.ts:74,85"
+    },
+    {
+      "finding": "'Provenance shows the batch ids' was satisfiable backend-only: the Ask panel's provenance disclosure renders readback, measures, scope and freshness but never batch ids, so a user could not inspect what the criterion claimed.",
+      "ref": "frontend/src/features/assistant/ask-panel.tsx:345"
+    },
+    {
+      "finding": "'All loaded data' overclaimed: governed queries inject the asker's plant scope at sqlBuilder.ts:88, so a no-window answer covers all loaded data WITHIN that scope and any filters the question applied, not the warehouse's entire contents.",
+      "ref": "backend/src/sql/sqlBuilder.ts:88"
+    },
+    {
+      "finding": "The proof requirement was too coarse to prevent partial coverage: 'every criterion' named no matrix, so the selector-call test could pass while the new response and UI branches regressed.",
+      "ref": "docs/specs/ask-period-control.md"
+    },
+    {
+      "finding": "The grill brief's already-answered ledger recorded LLM and data residency as 'Decide later', which contradicts accepted decision 0027 fixing Bedrock in ap-south-1 and its data boundary. A stale settled answer, to be corrected rather than re-asked.",
+      "ref": "docs/decisions/0027-assistant-llm-bedrock-mumbai.md:25"
+    }
   ],
   "rounds": [
     {
-      "question": "Closing the third spec grill. Seven findings: four were my amendment being **incomplete** \u2014 I replaced the Behaviour prose but left the stale acceptance criteria, so the spec still demanded `dataAsOf` be populated and still didn't name the five pill states, the `/ask` + `/mis-reports` boundary, or the retry's raised cap and summed usage. All now fixed. **Two were real gaps in already-merged code**, which I've recorded as deferrals rather than silently absorbing into a frontend-only task: **D-0042** \u2014 `postgres.adapter.ts` returns `available` when *either* source has an active batch, so the pill could show Budget's load time while Actuals has none, reading as \"the data is this fresh\" when half is missing; and **D-0043** \u2014 `chat.service.ts:170` starts `distinctValues` warehouse reads before checking the abort, so an abandoned stream can still start a pre-selection query, a hole in the promise task 1 made.",
+      "question": "The grill found that batch ids already travel in the API but the Ask panel never renders them \u2014 its provenance section shows only readback, measures, scope and freshness. My criterion says \"provenance reports the batch ids\". Should this story make them visible?",
       "options": [
-        "Record, confirm, and board task 3 (Recommended)",
-        "Fix D-0043 in this story rather than deferring",
-        "Something else \u2014 I'll say what"
+        "Out of scope \u2014 reword the criterion (Recommended)",
+        "In scope \u2014 show them under \"How this was calculated\""
       ],
-      "chosen": "Record, confirm, and board task 3 (Recommended)",
+      "chosen": "Out of scope \u2014 reword the criterion (Recommended)",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "33bdf7f68752109f8ea7c7deaed261ec258a6e10feeb46d8aedcd4453e3d2eb7",
-  "recorded_at": "2026-09-14T18:16:02+00:00",
-  "commit": "ed66912c4137193b50adf8439fd7cddfbe37670f"
+  "inspected_refs": [
+    "contract/src/api.ts:496,547",
+    "contract/src/measure.ts:151",
+    "backend/src/chat/chat.service.ts:146,322,331,335,726",
+    "backend/src/mapping/selection-resolver.service.ts:58,67",
+    "backend/src/sql/sqlBuilder.ts:88",
+    "frontend/src/features/assistant/ask-panel.tsx:345",
+    "frontend/src/features/assistant/use-ask.ts:74,85",
+    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md",
+    "docs/decisions/0028-saved-selections-not-snapshots.md"
+  ],
+  "input_sha256": "f23a43635b21cae48ea143d53fd7f6174e00a725e6420a941f50fb2f047a59c5",
+  "recorded_at": "2026-09-15T06:03:40+00:00",
+  "commit": "d02b60f95236c9beb6131ad5c8664e316d4a90d3"
 }

@@ -14,29 +14,7 @@ import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
 import { askSchema } from "./chat.schemas";
-import { ChatService, statementPeriod, trimPriorTurnsToTokenBudget } from "./chat.service";
-
-test("a statement period resolves from one whole calendar month and from nothing wider or narrower", () => {
-  const window = (from: string, to: string) => ({ from, to, column: "month" });
-
-  // A named month ("July 2026") arrives as the full month - the same period the MIS Reports
-  // dropdown sends - and must resolve. A strict from === to check rejected it, which left the
-  // statement unreachable from Ask by any natural-language period.
-  assert.equal(statementPeriod(window("2026-07-01", "2026-07-31")), "2026-07-01");
-  // February, and a leap February, prove the last day is derived and not assumed to be 31.
-  assert.equal(statementPeriod(window("2026-02-01", "2026-02-28")), "2026-02-01");
-  assert.equal(statementPeriod(window("2028-02-01", "2028-02-29")), "2028-02-01");
-  // An explicit single point is already a period.
-  assert.equal(statementPeriod(window("2026-07-01", "2026-07-01")), "2026-07-01");
-
-  // A PARTIAL month has no statement period of its own and must not be widened to the month.
-  assert.equal(statementPeriod(window("2026-07-01", "2026-07-15")), undefined);
-  assert.equal(statementPeriod(window("2026-07-02", "2026-07-31")), undefined);
-  // A wrong last day is not the month either.
-  assert.equal(statementPeriod(window("2026-02-01", "2026-02-29")), undefined);
-  // A multi-month window has no single period.
-  assert.equal(statementPeriod(window("2026-07-01", "2026-08-31")), undefined);
-});
+import { ChatService, trimPriorTurnsToTokenBudget } from "./chat.service";
 
 test("trimming retains the newest turns in oldest first order", () => {
   const turns = ["oldest", "middle", "newest"].map((question) => ({
@@ -394,6 +372,19 @@ class FakeHelp {
 }
 
 class FakeSelectionResolver {
+  hasMapping() {
+    return true;
+  }
+
+  async options() {
+    return {
+      departments: ["Agriculture"],
+      functions: ["Nursery"],
+      plants: [{ value: "DUB", label: "DUB", aliases: ["DUB"] }],
+      periods: [{ value: "2026-07-01", label: "July 2026", from: "2026-07-01", to: "2026-07-01" }],
+    };
+  }
+
   async resolve(request: { department: string; function: string; plant: string; period: string }) {
     return {
       outcome: "resolved" as const,

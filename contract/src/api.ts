@@ -1,7 +1,7 @@
 // Gate 0 — the HTTP API contract shared by frontend + backend.
 
 import { z } from "zod";
-import type { MeasureFormat, Selection, SelectionFilter } from "./measure";
+import type { MeasureFormat, Selection, SelectionFilter, TimeGrain } from "./measure";
 import { authUserSchema } from "./rbac";
 import type { ScopeAttr } from "./rbac";
 
@@ -493,6 +493,25 @@ export interface Provenance {
   rowSourcePresence?: Array<SourcePresence | SourcePresence[]>;
 }
 
+export interface AskPeriodOption {
+  value: string;
+  label: string;
+  timeWindow: { grain: TimeGrain; column: string; from: string; to: string };
+}
+
+export interface AskPeriodChoice {
+  prompt: string;
+  selection: Selection;
+  question: string;
+  options: AskPeriodOption[];
+}
+
+export interface AskPeriodControl {
+  current: string | null;
+  options: AskPeriodOption[];
+  coverage?: string;
+}
+
 export interface AskResponse {
   responseClass: ResponseClass;
   sessionId: string;
@@ -530,6 +549,10 @@ export interface AskResponse {
   appliedTimeWindow?: { from: string; to: string; column: string };
   /** Concrete dimension filters applied to the query, for editable value filters. */
   appliedFilters?: SelectionFilter[];
+  /** Offered only when a statement period needs clarification. */
+  periodChoice?: AskPeriodChoice;
+  /** Present on successful data answers. */
+  periodControl?: AskPeriodControl;
   /** Deterministic mapping back to the governed statement, or the reason no mapping exists. */
   viewInReport:
     | {

@@ -9,10 +9,14 @@ export const CHAT_MESSAGES = {
   noDataScopeAssigned: "No data scope assigned for your account.",
   invalidDateRange: "Invalid date range: the start date is after the end date.",
   reportGroundingSelectionMismatch: "That question cannot be answered within this report's fields.",
+  statementScope: (attribute: string): string =>
+    `Your statement ${attribute} scope is missing or ambiguous. Ask an administrator to assign exactly one ${attribute}.`,
+  statementMappingMissing: "No statement mapping is configured for your assigned scope.",
+  statementPeriodsMissing: "No statement periods are loaded.",
+  statementPeriodPrompt: "Which statement period should this answer use?",
   auditNotRecorded: "Could not record audit; query not run.",
   measureNotAvailable: (measureId: string): string => `Measure not available: ${measureId}`,
-  dimensionNotAvailable: (dimensionId: string): string =>
-    `Dimension not available: ${dimensionId}`,
+  dimensionNotAvailable: (dimensionId: string): string => `Dimension not available: ${dimensionId}`,
   queryBlocked: (reason: string | undefined): string => `Query blocked: ${reason}`,
 } as const;
 

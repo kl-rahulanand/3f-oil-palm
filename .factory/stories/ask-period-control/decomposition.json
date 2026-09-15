@@ -1,0 +1,200 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "issue": "ask-period-control",
+  "story": "ask-period-control",
+  "epic": "assistant",
+  "project": "3oilpalm",
+  "plan_file": "plans/active/ask-period-control-recoverable-periods-in-ask.md",
+  "user_facing": true,
+  "tasks": [
+    {
+      "id": "ask-period-contract-and-branch",
+      "title": "Two typed carriers and a four-way ordered branch",
+      "objective": "Turn a dead-end refusal into a recoverable clarification, on the server. Today four different causes - an absent or ambiguous scope triple, no mapping, no loaded periods, and a missing period - all collapse into one undefined in statementRequest and one NotSupported message, so the product cannot say which one happened. Add the two typed response carriers, the period-free mapping lookup the ordering needs, and the four ordered outcomes. Ships the recoverable clarification on its own; the UI is tasks 2 and 3.",
+      "user_facing": false,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "AskResponse gains TWO optional fields sharing one entry type: periodChoice on a ClarificationNeeded response and periodControl on a successful data response. Two carriers, never one, so a recovery and a settled answer cannot be confused. The existing clarify { options: string[], resumesQuestion } at contract/src/api.ts:547 is UNTOUCHED - requiredTimeWindowClarify (ambiguity.ts:15) and domainRoutingAmbiguity still use it and must not regress.",
+        "Each period entry carries a COMPLETE timeWindow - grain, column, from, to - plus value and label. The complete window is required, not a nicety: a period-less base selection has no timeWindow at all, and Selection.timeWindow (contract/src/measure.ts:155) requires grain, so an entry of only {value,label,from,to} would force the client to invent both the grain and the time column. periodChoice also carries the base Selection the selector already produced and the original question verbatim.",
+        "Choosing an offered period issues EXACTLY ZERO selector calls, proven on the SERVER where the claim lives: a hermetic ChatService test over a fake LlmProvider counts one select() call for the original question and ZERO for a request carrying AskRequest.selection. chat.service.ts:146 already runs an edited selection verbatim; this task proves it, and a frontend test could never carry this claim.",
+        "The four causes that today collapse into one undefined resolve in a fixed, first-match-wins order, each with its own response class and message, and ONLY THE LAST offers period options: (1) scope - any of department, function, plant absent OR ambiguous - BlockedByPolicy naming the first offending attribute in that order; (2) no mapping for the resolved triple - NotSupported, its own message; (3) no periods loaded at all - NotSupported, a message DISTINCT from a missing period; (4) period missing, unoffered, or spanning more than one - ClarificationNeeded carrying periodChoice.",
+        "That order needs a seam the resolver does not have. SelectionResolverService.resolve() (selection-resolver.service.ts:57) finds the mapping first but is only reachable with a period supplied, and throws SelectionPeriodUnavailableError at :68 before it can report anything else - so today 'no mapping' and 'no periods loaded' are indistinguishable. This task adds a PERIOD-FREE mapping lookup over the same master data resolve() already uses, and chat.service.ts calls it before consulting periods. statementRequest (chat.service.ts:726) stops returning a bare undefined and returns a discriminated result naming which precondition failed.",
+        "Eligible periods come from SelectionResolverService.options() (selection-resolver.service.ts:40) - the SAME source as the MIS Reports period dropdown, so Ask and the report screen can never disagree about which periods exist - filtered to those the asked question can actually resolve. Measured: offering the raw list would include FY 26-27 YTD, a twelve-month range, which is not_supported 4/4 for a statement because statementPeriod needs a single period point.",
+        "A re-run's response carries the active batch ids that produced the displayed values. The determinism claim is about SELECTOR CALLS, not about values being stable across reloads: under decision 0028 a re-run re-authorizes and reads the currently active batches, so an identical choice may legitimately return different numbers after a batch replacement.",
+        "Hermetic tests over a fake provider and warehouse cover the backend half of the whole matrix, not a sample: missing period; a same-day period that is NOT among the offered ones; a partial-month range; a multi-month range; an empty period list; each of department, function and plant absent AND ambiguous; no mapping; a successful statement answer; a successful governed answer with a window; a successful governed answer with no window. Judged by junit testcase NAME and executed count, never an exit code (D-0024, D-0031).",
+        "New backend test files are registered in backend/package.json and tools/quality-gate.test.mjs, or CI runs none of them. The new failure messages belong in backend/src/chat/chat.constants.ts, which IS listed in .prettierignore, so under D-0006 this task formats it, removes the path, and drops its ignoredBaselineHashes entry in the same change. chat.service.ts, contract/src/api.ts and selection-resolver.service.ts are NOT ignored - checked against .prettierignore, not assumed.",
+        "Every successful data answer in BOTH domains carries periodControl built by the SERVER - statement and governed-financial - including current: null plus the coverage line for an answer that resolved to no window. The story plan's 'server half / client half' split for C5 and C6 means the server half is THIS task: a frontend task cannot create data the API does not send. Task 3 renders it, replaces in place, and owns the copy."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-apcb-c1",
+          "statement": "AskResponse gains TWO optional fields sharing one entry type: periodChoice on a ClarificationNeeded response and periodControl on a successful data response. Two carriers, never one, so a recovery and a settled answer cannot be confused. The existing clarify { options: string[], resumesQuestion } at contract/src/api.ts:547 is UNTOUCHED - requiredTimeWindowClarify (ambiguity.ts:15) and domainRoutingAmbiguity still use it and must not regress.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c2",
+          "statement": "Each period entry carries a COMPLETE timeWindow - grain, column, from, to - plus value and label. The complete window is required, not a nicety: a period-less base selection has no timeWindow at all, and Selection.timeWindow (contract/src/measure.ts:155) requires grain, so an entry of only {value,label,from,to} would force the client to invent both the grain and the time column. periodChoice also carries the base Selection the selector already produced and the original question verbatim.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c3",
+          "statement": "Choosing an offered period issues EXACTLY ZERO selector calls, proven on the SERVER where the claim lives: a hermetic ChatService test over a fake LlmProvider counts one select() call for the original question and ZERO for a request carrying AskRequest.selection. chat.service.ts:146 already runs an edited selection verbatim; this task proves it, and a frontend test could never carry this claim.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c4",
+          "statement": "The four causes that today collapse into one undefined resolve in a fixed, first-match-wins order, each with its own response class and message, and ONLY THE LAST offers period options: (1) scope - any of department, function, plant absent OR ambiguous - BlockedByPolicy naming the first offending attribute in that order; (2) no mapping for the resolved triple - NotSupported, its own message; (3) no periods loaded at all - NotSupported, a message DISTINCT from a missing period; (4) period missing, unoffered, or spanning more than one - ClarificationNeeded carrying periodChoice.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c5",
+          "statement": "That order needs a seam the resolver does not have. SelectionResolverService.resolve() (selection-resolver.service.ts:57) finds the mapping first but is only reachable with a period supplied, and throws SelectionPeriodUnavailableError at :68 before it can report anything else - so today 'no mapping' and 'no periods loaded' are indistinguishable. This task adds a PERIOD-FREE mapping lookup over the same master data resolve() already uses, and chat.service.ts calls it before consulting periods. statementRequest (chat.service.ts:726) stops returning a bare undefined and returns a discriminated result naming which precondition failed.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c6",
+          "statement": "Eligible periods come from SelectionResolverService.options() (selection-resolver.service.ts:40) - the SAME source as the MIS Reports period dropdown, so Ask and the report screen can never disagree about which periods exist - filtered to those the asked question can actually resolve. Measured: offering the raw list would include FY 26-27 YTD, a twelve-month range, which is not_supported 4/4 for a statement because statementPeriod needs a single period point.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c7",
+          "statement": "A re-run's response carries the active batch ids that produced the displayed values. The determinism claim is about SELECTOR CALLS, not about values being stable across reloads: under decision 0028 a re-run re-authorizes and reads the currently active batches, so an identical choice may legitimately return different numbers after a batch replacement.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c8",
+          "statement": "Hermetic tests over a fake provider and warehouse cover the backend half of the whole matrix, not a sample: missing period; a same-day period that is NOT among the offered ones; a partial-month range; a multi-month range; an empty period list; each of department, function and plant absent AND ambiguous; no mapping; a successful statement answer; a successful governed answer with a window; a successful governed answer with no window. Judged by junit testcase NAME and executed count, never an exit code (D-0024, D-0031).",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c9",
+          "statement": "New backend test files are registered in backend/package.json and tools/quality-gate.test.mjs, or CI runs none of them. The new failure messages belong in backend/src/chat/chat.constants.ts, which IS listed in .prettierignore, so under D-0006 this task formats it, removes the path, and drops its ignoredBaselineHashes entry in the same change. chat.service.ts, contract/src/api.ts and selection-resolver.service.ts are NOT ignored - checked against .prettierignore, not assumed.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apcb-c10",
+          "statement": "Every successful data answer in BOTH domains carries periodControl built by the SERVER - statement and governed-financial - including current: null plus the coverage line for an answer that resolved to no window. The story plan's 'server half / client half' split for C5 and C6 means the server half is THIS task: a frontend task cannot create data the API does not send. Task 3 renders it, replaces in place, and owns the copy.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        }
+      ],
+      "write_scope": [
+        ".prettierignore",
+        "backend/package.json",
+        "backend/src/chat/ask-period.test.ts",
+        "backend/src/chat/chat.constants.ts",
+        "backend/src/chat/chat.service.test.ts",
+        "backend/src/chat/chat.service.ts",
+        "backend/src/mapping/selection-resolver.service.test.ts",
+        "backend/src/mapping/selection-resolver.service.ts",
+        "contract/src/api.ts",
+        "tools/quality-gate.test.mjs"
+      ],
+      "required_tests": [
+        {
+          "id": "a statement question with no period clarifies with the offered periods instead of refusing",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the period choice carries the base selection the original question and a complete time window per entry",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a request carrying an edited selection makes zero selector calls",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an unoffered same day period a partial month and a multi month range each clarify",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "each of department function and plant absent or ambiguous blocks by policy naming the first offender",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "no mapping and no periods loaded keep distinct outcomes and neither reads as a missing period",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a successful answer carries a period control whose current entry is the window it ran on",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a governed answer with no window carries no defaulted period control",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a rerun response carries the active batch ids that produced its values",
+          "path": "backend/src/chat/ask-period.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the period free mapping lookup reports a mapped triple without being given a period",
+          "path": "backend/src/mapping/selection-resolver.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "eligible periods exclude a multi month range that a statement cannot resolve",
+          "path": "backend/src/mapping/selection-resolver.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "The four outcomes must be mutually exclusive and totally ordered. Check there is no input that reaches two of them, and none that still falls through to the old collapsed NotSupported.",
+        "The period-free mapping lookup must read the SAME master data as resolve(), not a second copy of the rule. A divergent lookup would let Ask and MIS Reports disagree about whether a triple is mapped.",
+        "Eligible-period filtering must derive from options(), not re-derive months. Re-derivation is how Ask and the report screen drift apart.",
+        "The zero-selector-calls test must count calls on the fake provider. A test that only asserts the response shape proves nothing about whether the model was consulted.",
+        "clarify.options / resumesQuestion must be untouched: requiredTimeWindowClarify and domainRoutingAmbiguity still depend on it."
+      ],
+      "review_budget": {
+        "max_changed_files": 10,
+        "max_changed_lines": 900,
+        "reason": "Two optional response fields and one shared entry type in the contract, statementRequest becoming a discriminated result, a period-free mapping lookup on the resolver so 'no mapping' and 'no periods loaded' can be told apart, the four-way ordered branch with its own message per cause in chat.constants.ts, and eligible-period filtering from options(). Eleven hermetic leaves. No UI. D-0006 de-listing of chat.constants.ts accounts for part of the line count because formatting an ignored file rewrites it."
+      }
+    },
+    {
+      "id": "ask-period-continuation",
+      "title": "Render the period choice and continue deterministically",
+      "objective": "Let a clicked period reach the warehouse as data rather than as words. Render the typed periodChoice, clone its base selection with the chosen window, post it as AskRequest.selection, and give use-ask.ts the per-turn state that holding a previous answer through pending and failure requires.",
+      "user_facing": true,
+      "dependencies": [
+        "ask-period-contract-and-branch"
+      ],
+      "acceptance_criteria": [
+        "The Ask panel renders a ClarificationNeeded response's periodChoice as selectable periods, distinct from today's clarify.options path which stays exactly as it is for requiredTimeWindowClarify and domainRoutingAmbiguity.",
+        "Choosing a period clones periodChoice.selection with that entry's COMPLETE timeWindow and posts it as AskRequest.selection - never by appending words to the question. Measured, the word-append route is unreliable: re-asking '... (2026-07-01)' succeeded 2/4 and '... (July 2026)' 3/4, so a period the user explicitly clicked would be re-guessed. A test asserts the exact request body: the cloned selection, the chosen window, and no mutation of the question string.",
+        "use-ask.ts gains per-turn state. Today it appends unconditionally (use-ask.ts:84) and holds ONE global isPending and ONE global error, so a failed rerun would blank the answer or surface its failure away from the turn it belongs to. A rerun names the turn it is replacing; only that turn is marked pending; its previous successful response is retained throughout; and BOTH a typed refusal (a ResponseClass the server returned) and a thrown transport failure attach to that turn rather than to the panel.",
+        "A replacement in flight leaves the previous answer readable under a pending state. A replacement that fails or is refused leaves the previous answer IN PLACE with the failure shown against it, never blanking it.",
+        "Frontend tests cover the client half of the matrix: rendering a periodChoice, the exact continuation request body, a pending replacement, a replacement that returns a typed refusal, and a replacement whose transport throws."
+      ]
+    },
+    {
+      "id": "ask-period-control-on-answers",
+      "title": "A period control on every successful answer",
+      "objective": "Let any settled answer move to another period without retyping the question. Show the period each successful answer ran on in both domains, replace in place on change without rewriting the asked question, and state honest coverage for an answer that resolved to no window at all.",
+      "user_facing": true,
+      "dependencies": [
+        "ask-period-continuation"
+      ],
+      "acceptance_criteria": [
+        "Every successful data answer in BOTH semantic domains carries a period control whose current entry is the window the answer actually ran on. A statement answer offers the loaded months; a governed-financial answer offers the same months plus the window it ran on, marked current.",
+        "Choosing another period REPLACES that answer in place rather than appending a turn, and the replacement's control shows the new period.",
+        "The asked question is NEVER rewritten. If someone asks 'for July 2026' and switches to August, their words stay exactly as typed and the answer carries the period it is now showing - the transcript records what they asked plus the period they chose, never a question they did not write.",
+        "A successful answer that resolved to NO window states that it covers all loaded data WITHIN THE ASKER'S ACCESS SCOPE and any filters the question applied, and offers no defaulted period control. Bare 'all loaded data' would overclaim: governed queries inject the user's plant scope at sqlBuilder.ts:88. Measured, this case is real - 'Show Actual and Budget by GL code' succeeds 4/4 with no time window, summing every loaded month.",
+        "Informational, clarification and failure responses carry NO period control; a clarification's periodChoice is the recovery, not a control."
+      ]
+    }
+  ],
+  "plan_sha256": "12877c45b331dc6c989da6babd35167fc25ae8d7355600984ba326c1923618f3",
+  "commit": "e0e7ce74456d315250bc205c5d37c6dfa1298cd0"
+}

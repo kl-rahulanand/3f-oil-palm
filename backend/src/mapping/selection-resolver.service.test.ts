@@ -6,7 +6,58 @@ import { MisSelectionService } from "../mis/mis-selection.service";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import type { QueryResult, Warehouse } from "../warehouse/warehouse.interface";
 import { MAPPING_MASTER, type MappingMaster } from "./mapping-master";
-import { SelectionResolverService } from "./selection-resolver.service";
+import { SelectionResolverService, statementPeriodOptions } from "./selection-resolver.service";
+
+test("the period free mapping lookup reports a mapped triple without being given a period", () => {
+  const resolver = new SelectionResolverService(new PeriodWarehouse([]));
+
+  assert.equal(resolver.hasMapping({ department: "Agriculture", function: "Nursery", plant: "DUB-NUR" }), true);
+  assert.equal(resolver.hasMapping({ department: "Agriculture", function: "Mill", plant: "DUB" }), false);
+});
+
+test("eligible periods exclude a multi month range that a statement cannot resolve", async () => {
+  const periods = (await new SelectionResolverService(new PeriodWarehouse(["2026-07-01"])).options()).periods;
+
+  assert.deepEqual(
+    periods.map(({ value }) => value),
+    ["2026-07-01", "fy26-27-ytd"],
+  );
+  assert.deepEqual(
+    statementPeriodOptions(periods).map(({ value }) => value),
+    ["2026-07-01"],
+  );
+});
+
+test("resolve reuses a caller's period list instead of repeating the ingest_batch query", async () => {
+  // The Ask statement path validates the asked period against options() before resolving, so
+  // without this the same SELECT ran twice on every statement answer. Counting the warehouse
+  // calls is the only way to prove it: the outcome is identical either way.
+  let queries = 0;
+  const warehouse = {
+    async execute() {
+      queries += 1;
+      return { columns: [{ name: "period", numeric: false }], rows: [{ period: "2026-07-01" }] };
+    },
+    async explain() {},
+    async freshness() {
+      return null;
+    },
+    async distinctValues() {
+      return [];
+    },
+  } as unknown as Warehouse;
+
+  const service = new SelectionResolverService(warehouse);
+  const request = { department: "Agriculture", function: "Nursery", plant: "DUB", period: "2026-07-01" };
+
+  const periods = (await service.options()).periods;
+  const queriesAfterOptions = queries;
+  await service.resolve(request, periods);
+  assert.equal(queries, queriesAfterOptions, "resolve must not re-query when given the period list");
+
+  await service.resolve(request);
+  assert.equal(queries, queriesAfterOptions + 1, "resolve still loads the list when given none");
+});
 
 test("resolving a department function plant and period through the mapping master returns the cost centres the GL set the MIS format and the bucket rows, returns an unresolvable outcome for a selection the master does not cover so the no mapping configured notice never depends on whether the query returned rows, and derives the financial year to date period from the latest active loaded month rather than the wall clock", async () => {
   const resolver = new SelectionResolverService(new PeriodWarehouse(["2026-07-01"]));

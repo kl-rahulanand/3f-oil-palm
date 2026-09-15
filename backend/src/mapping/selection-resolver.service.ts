@@ -54,17 +54,28 @@ export class SelectionResolverService implements ISelectionResolverService {
     return canonicalPlantFromMaster(plant, this.master);
   }
 
-  async resolve(request: MisSelectionRunRequest): Promise<MasterSelectionResolution> {
-    const canonicalPlant = this.canonicalPlant(request.plant);
-    const selection = this.master.selections.find(
-      (candidate) =>
-        candidate.department === request.department &&
-        candidate.function === request.function &&
-        candidate.plant_canonical === canonicalPlant,
-    );
+  hasMapping(request: Omit<MisSelectionRunRequest, "period">): boolean {
+    return this.mappingSelection(request) !== undefined;
+  }
+
+  /**
+   * `knownPeriods` lets a caller that has ALREADY loaded the period list hand it back, instead of
+   * this method re-running the same `ingest_batch` query. The Ask statement path validates the
+   * asked period against `options()` before it gets here, so without this it paid for that query
+   * twice on every statement answer. It is deliberately NOT a cache: a cached month list would go
+   * stale after an ingest and offer periods that no longer exist, which is exactly the kind of
+   * wrong answer this surface must not give. Passing nothing keeps the original behaviour, so
+   * MIS Reports and every test fake are unaffected.
+   */
+  async resolve(
+    request: MisSelectionRunRequest,
+    knownPeriods?: MisSelectionPeriodOption[],
+  ): Promise<MasterSelectionResolution> {
+    const selection = this.mappingSelection(request);
     if (!selection) return { outcome: "unresolvable" };
 
-    const period = periodOptions(await this.loadedActualMonths()).find(({ value }) => value === request.period);
+    const available = knownPeriods ?? periodOptions(await this.loadedActualMonths());
+    const period = available.find(({ value }) => value === request.period);
     if (!period) throw new SelectionPeriodUnavailableError();
 
     const entries = resolveEntries(selection, this.master);
@@ -96,6 +107,16 @@ export class SelectionResolverService implements ISelectionResolverService {
       ),
       period: { value: period.value, from: period.from, to: period.to },
     };
+  }
+
+  private mappingSelection(request: Omit<MisSelectionRunRequest, "period">): MappingSelection | undefined {
+    const canonicalPlant = this.canonicalPlant(request.plant);
+    return this.master.selections.find(
+      (candidate) =>
+        candidate.department === request.department &&
+        candidate.function === request.function &&
+        candidate.plant_canonical === canonicalPlant,
+    );
   }
 
   private async loadedActualMonths(): Promise<string[]> {
@@ -142,6 +163,10 @@ function periodOptions(loadedMonths: string[]): MisSelectionPeriodOption[] {
     to: latest > FY_LAST_MONTH ? FY_END : latest,
   });
   return options;
+}
+
+export function statementPeriodOptions(periods: MisSelectionPeriodOption[]): MisSelectionPeriodOption[] {
+  return periods.filter(({ from, to }) => from === to);
 }
 
 function unique(values: string[]): string[] {
