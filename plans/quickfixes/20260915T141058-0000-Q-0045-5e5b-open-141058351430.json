@@ -1,0 +1,12 @@
+{
+  "event": "open",
+  "id": "Q-0045-5e5b",
+  "profile": "lite",
+  "reason": "Human-requested UX fix after checking PR #61 live: MIS Reports selectors must be dependent (pick a plant and its department/function fill in; pick a department and only its functions and plants remain). Five product files, no schema or contract widening beyond two optional fields on the plant option.",
+  "started_at": "2026-09-15T14:10:58+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "by": "Rahul Anand",
+  "base_sha": "e29ab97feeb5a9a646d7a6fae490ff715f30dc6c"
+}
