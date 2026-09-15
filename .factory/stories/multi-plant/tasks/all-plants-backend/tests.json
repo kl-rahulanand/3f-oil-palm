@@ -1,16 +1,17 @@
 {
-  "commit": "7daee2d5cc15e1339608eb34a7c3f2074796ddbd",
+  "commit": "e49cb351a16dc2412b1f88e9b68f9d10d3a941d0",
   "automated": {
     "generated_by": "implementer",
     "status": "passed",
-    "summary": "Sixteen required hermetic leaves were run by the implementer through the recorded junit command, each judged by testcase name present and executed with a negative control (implementer report: 16/16, backend hermetic 173 passed with 16 self-skipping DB cases, frontend 103 passed). verify.py passed on the product tree (structural build, typecheck, quality, hermetic tests). The gated warehouse proof was EXECUTED on the host by the orchestrator against the documented local warehouse (WAREHOUSE_DB_TEST=1, WAREHOUSE_PG_HOST=127.0.0.1:5433): 25 tests, 25 pass, 0 fail, 0 skipped, including the three named all-plants leaves \u2014 'WAREHOUSE_DB_TEST renders all thirty one plant statements and their grand totals sum to the company net in exact paise', 'WAREHOUSE_DB_TEST keeps the DUB statement values tree provenance and export identical to the shipped output', 'WAREHOUSE_DB_TEST foots a non owner leaf and unmapped GL drill for a user granted that plant alone' \u2014 plus 'the destructive all plants reconciliation proof refuses a non-local warehouse host'. The generator is byte-stable (regeneration produces no diff). Fixture-only edits to four frontend tests and selection-slice.db.test.ts were authorized by signals S-0013 and S-0014 and adopted into the scope.",
-    "pass_fail_summary": "16/16 required hermetic leaves; verify.py pass; warehouse proof 25/25 on the host with the three named all-plants leaves and the loopback-refusal leaf",
+    "summary": "Sixteen required hermetic leaves were run by the implementer through the recorded junit command, each judged by testcase name present and executed with a negative control (implementer report: 16/16, backend hermetic 173 passed with 16 self-skipping DB cases, frontend 103 passed). verify.py passed on the product tree (structural build, typecheck, quality, hermetic tests). After review round 1 (statement races now return refresh-required; the DUB regression compares against a frozen d532693 baseline fixture with no batch ids), the gated warehouse proof was EXECUTED AGAIN on the host on the final tree by the orchestrator against the documented local warehouse (WAREHOUSE_DB_TEST=1, WAREHOUSE_PG_HOST=127.0.0.1:5433): 25 tests, 25 pass, 0 fail, 0 skipped, including the three named all-plants leaves \u2014 'WAREHOUSE_DB_TEST renders all thirty one plant statements and their grand totals sum to the company net in exact paise', 'WAREHOUSE_DB_TEST keeps the DUB statement values tree provenance and export identical to the shipped output', 'WAREHOUSE_DB_TEST foots a non owner leaf and unmapped GL drill for a user granted that plant alone' \u2014 plus 'the destructive all plants reconciliation proof refuses a non-local warehouse host'. The generator is byte-stable (regeneration produces no diff). Fixture-only edits to four frontend tests and selection-slice.db.test.ts were authorized by signals S-0013 and S-0014 and adopted into the scope.",
+    "pass_fail_summary": "16/16 required hermetic leaves; verify.py pass; warehouse proof 25/25 on the host on the final tree, with the three named all-plants leaves (including the frozen-baseline DUB comparison) and the loopback-refusal leaf",
     "blocking_findings": [],
     "commands_run": [
       "python3 factory/scripts/verify.py",
       "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file <path> --name <each of 16 leaf ids> --report <report> --require ts-node/register",
       "WAREHOUSE_DB_TEST=1 WAREHOUSE_DRIVER=postgres WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433 WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_DATABASE=warehouse npm -w @3f/backend run test:warehouse-proof  # host run, 25/25",
-      "npm -w @3f/backend run master:generate  # byte-stable"
+      "npm -w @3f/backend run master:generate  # byte-stable",
+      "WAREHOUSE_DB_TEST=1 ... npm -w @3f/backend run test:warehouse-proof  # host re-run after review fixes, 25/25"
     ],
     "tests_added_or_updated": [
       "backend/src/mapping/mapping-master.test.ts",
@@ -20,7 +21,8 @@
       "backend/src/mis/mis-statement.controller.test.ts",
       "backend/src/mis/mis-selection.controller.test.ts",
       "backend/src/db/seed-users.test.ts",
-      "backend/src/warehouse/all-plants-reconciliation.db.test.ts"
+      "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+      "backend/src/warehouse/__fixtures__/dub-statement-baseline.json"
     ],
     "remaining_gaps": [
       "The host run of the warehouse proof re-ingested the July batches into the local warehouse; the demo servers must be restarted from this worktree and the seed re-run (db:migrate) before the human check so the admin holds every plant."
@@ -35,8 +37,8 @@
     "non_blocking_findings": [],
     "residual_risks": [],
     "manual_validation_steps": [],
-    "recorded_at": "2026-09-15T13:38:31+00:00",
-    "commit": "7daee2d5cc15e1339608eb34a7c3f2074796ddbd"
+    "recorded_at": "2026-09-15T13:59:04+00:00",
+    "commit": "e49cb351a16dc2412b1f88e9b68f9d10d3a941d0"
   },
-  "updated_at": "2026-09-15T13:38:31+00:00"
+  "updated_at": "2026-09-15T13:59:04+00:00"
 }
