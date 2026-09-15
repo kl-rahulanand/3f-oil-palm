@@ -1,0 +1,7 @@
+{
+  "task_id": "ask-period-continuation",
+  "branch": "feat/ask-period-control-ask-period-continuation",
+  "base_main_sha": "8242f1bcd844a72ce99b93ee8158ee2d844878e3",
+  "commit": "8c41d83cb0f005aa5d25d75e597d02b0bf3e3f28",
+  "sealed_at": "2026-09-15T07:50:05+00:00"
+}
