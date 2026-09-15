@@ -1,8 +1,8 @@
 ---
 slug: ask-reopen-saved-report
 title: Reopening a saved report returns to its answer
-status: confirmed
-saved: 2026-09-15T15:35:35+00:00
+status: draft
+saved: 2026-09-15T15:56:52+00:00
 ---
 
 # Reopening a saved report returns to its answer
@@ -86,10 +86,16 @@ holds, while reopening a saved report is the moment access is re-checked, which 
 | clears the stale result | keeps it |
 | --- | --- |
 | `blocked_by_policy` | `clarification_needed` |
-| `not_supported` **during a reopen** - how a lost domain or measure grant actually arrives | `execution_failed`, `backend_error` |
-| a terminal HTTP **401/403** | rate limiting, timeout, network failure, abort |
+| a terminal HTTP **401/403** | `not_supported`, `execution_failed`, `backend_error` |
+| | rate limiting, timeout, network failure, abort |
 
-The three on the left are the ways "you may not see this" reaches the client. Everything on the
+**`not_supported` sits on the RIGHT deliberately.** A revoked domain or measure grant returns it
+(`chat.service.ts:245`) - but so do "No mapping configured" (`:337`) and "no periods loaded", and
+the response carries no reason code to tell them apart (`contract/src/api.ts:515`). Clearing on it
+would wipe good answers for reasons that say nothing about entitlement. The consequence - losing one
+grant leaves an answer on screen until reload - is recorded in the **2026-09-15 amendment to
+decision 0028** and tracked as **D-0048**. The two on the left are the refusals the client can
+actually recognise. Everything on the
 right says nothing about entitlement, so wiping a good answer for a network blip would be a worse
 experience for a problem that is not about access.
 
@@ -112,7 +118,8 @@ the same defect.
 5. Opening a report that is not in the thread appends exactly one turn.
 6. Clicking Open navigates to Ask **before** the request completes, and the target turn is scrolled
    into view and shown pending.
-7. A reopen refused for **access** - `blocked_by_policy`, `not_supported`, or a terminal 401/403 -
+7. A reopen refused for **access** - `blocked_by_policy` or a terminal 401/403, the only two the
+   client can recognise -
    clears the stale result and shows the reason; the thread length is unchanged. Every other
    outcome, including transport failure, keeps the previous answer. Neither shows period-specific
    copy. **The period control's retain-on-refusal behaviour is unchanged** and its shipped leaf

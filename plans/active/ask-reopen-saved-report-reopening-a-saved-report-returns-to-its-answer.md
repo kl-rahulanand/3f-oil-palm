@@ -1,8 +1,8 @@
 ---
 issue: ask-reopen-saved-report
 title: Reopening a saved report returns to its answer
-status: awaiting-approval
-saved: 2026-09-15T15:44:55+00:00
+status: approved
+saved: 2026-09-15T15:45:52+00:00
 story: ask-reopen-saved-report
 decisions_reviewed:
   - 0001-poc-engagement-scope
