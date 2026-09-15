@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-15T13:48:07+00:00", "story": "multi-plant", "detail": "The accepted DUB-baseline lesson explicitly requires backend/src/warehouse/__fixtures__/dub-statement-baseline.json, but that mechanically required fixture path is absent from the task write scope; ad"}
