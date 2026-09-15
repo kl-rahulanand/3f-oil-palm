@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "reopen-identity-and-policy",
-  "score": 7,
-  "summary": "quality lens over reopen-identity-and-policy (8 product path(s), af447d4..dc17ebe, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The required behavior is present and reachable, and the diff contains no compatibility wrappers, aliases, or legacy leftovers. However, the newly expanded `continueTurn` violates the brief\u2019s blocking complexity rule.\nVERDICT t-rip-c1: implemented \u2014 frontend/src/features/assistant/use-ask.ts:187 matches successful turns and delegates to in-place continuation\nVERDICT t-rip-c2: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:3 compares every specified selection field without using the title\nVERDICT t-rip-c3: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:20 includes every time-window component in identity\nVERDICT t-rip-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:188 searches a reversed copy of the turns\nVERDICT t-rip-c5: implemented \u2014 frontend/src/features/assistant/use-ask.ts:197 passes the matched turn\u2019s question\nVERDICT t-rip-c6: implemented \u2014 frontend/src/features/assistant/use-ask.ts:127 clears only blocked-by-policy responses while other response classes retain the result\nVERDICT t-rip-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:159 passes the retain policy for period changes\nVERDICT t-rip-c8: implemented \u2014 frontend/src/features/assistant/use-ask.ts:128 replaces a refused turn instead of retaining its successful response\nVERDICT t-rip-c9: implemented \u2014 frontend/src/features/assistant/use-ask.ts:105 requires the failure-policy argument\nVERDICT t-rip-c10: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:1 provides the required helper module\nVERDICT t-rip-c12: implemented \u2014 frontend/src/features/assistant/use-ask.ts:143 replaces terminal 401/403 failures with generic sign-in copy on the affected turn",
-  "blocking_findings": [
-    {
-      "category": "maintainability",
-      "area": "frontend/src/features/assistant",
-      "summary": "Decompose the continuation policy\u2019s nested state transitions (frontend/src/features/assistant/use-ask.ts:123): `continueTurn` now combines its multi-condition guard with two deeply nested turn-mapping decision trees for response and exception handling."
-    }
-  ],
+  "score": 10,
+  "summary": "quality lens over reopen-identity-and-policy (8 product path(s), af447d4..c96ae08, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-rip-c1: implemented \u2014 frontend/src/features/assistant/use-ask.ts:146 finds a successful matching turn and continues it instead of appending\nVERDICT t-rip-c2: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:3 compares every specified Selection field with order-sensitive arrays\nVERDICT t-rip-c3: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:21 includes every timeWindow field, so an absent pre-normalization window does not match\nVERDICT t-rip-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:146 reverses the turns before selecting the first match\nVERDICT t-rip-c5: implemented \u2014 frontend/src/features/assistant/use-ask.ts:157 reruns a match with match.question while unmatched reports retain the supplied label\nVERDICT t-rip-c6: implemented \u2014 frontend/src/features/assistant/use-ask.ts:169 clears only blocked_by_policy responses, while lines 190-211 distinguish terminal 401/403 from retained failures\nVERDICT t-rip-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:159 explicitly passes retain for the period-choice path\nVERDICT t-rip-c8: implemented \u2014 frontend/src/features/assistant/use-ask.ts:171 replaces the complete turn response on refusal, removing the prior result\nVERDICT t-rip-c9: implemented \u2014 frontend/src/features/assistant/use-ask.ts:23 makes failurePolicy required, and frontend/src/features/assistant/ask-panel.tsx:159 and 284 pass retain explicitly\nVERDICT t-rip-c10: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:1 provides the required stateless helper under the prescribed filename\nVERDICT t-rip-c12: implemented \u2014 frontend/src/features/assistant/use-ask.ts:190 converts terminal 401/403 failures to result-free sign-in copy without navigation\nNo compatibility wrappers, aliases, deprecated branches, or other blocking leftovers appear in the supplied diff.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "frontend/src/features/assistant/ask-panel.test.tsx",
     "frontend/src/features/assistant/ask-panel.tsx",
@@ -29,64 +23,64 @@
     {
       "contract_id": "t-rip-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:187 matches successful turns and delegates to in-place continuation"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:146 finds a successful matching turn and continues it instead of appending"
     },
     {
       "contract_id": "t-rip-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:3 compares every specified selection field without using the title"
+      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:3 compares every specified Selection field with order-sensitive arrays"
     },
     {
       "contract_id": "t-rip-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:20 includes every time-window component in identity"
+      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:21 includes every timeWindow field, so an absent pre-normalization window does not match"
     },
     {
       "contract_id": "t-rip-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:188 searches a reversed copy of the turns"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:146 reverses the turns before selecting the first match"
     },
     {
       "contract_id": "t-rip-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:197 passes the matched turn\u2019s question"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:157 reruns a match with match.question while unmatched reports retain the supplied label"
     },
     {
       "contract_id": "t-rip-c6",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:127 clears only blocked-by-policy responses while other response classes retain the result"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:169 clears only blocked_by_policy responses, while lines 190-211 distinguish terminal 401/403 from retained failures"
     },
     {
       "contract_id": "t-rip-c7",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:159 passes the retain policy for period changes"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:159 explicitly passes retain for the period-choice path"
     },
     {
       "contract_id": "t-rip-c8",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:128 replaces a refused turn instead of retaining its successful response"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:171 replaces the complete turn response on refusal, removing the prior result"
     },
     {
       "contract_id": "t-rip-c9",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:105 requires the failure-policy argument"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:23 makes failurePolicy required, and frontend/src/features/assistant/ask-panel.tsx:159 and 284 pass retain explicitly"
     },
     {
       "contract_id": "t-rip-c10",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:1 provides the required helper module"
+      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:1 provides the required stateless helper under the prescribed filename"
     },
     {
       "contract_id": "t-rip-c12",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:143 replaces terminal 401/403 failures with generic sign-in copy on the affected turn"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:190 converts terminal 401/403 failures to result-free sign-in copy without navigation"
     }
   ],
   "aspect": "quality",
-  "review_run_id": "9d100a24bedbbf169ed0322131b39026f665e275167a077370b157d11a15adf5",
+  "review_run_id": "6934364c81456429f1d0a8fe9770bccdce54935a8622ff15933d127a7e9fb0d0",
   "brief_sha256": "3f068259b1557f86d79d1c94b50d9c06a36dc61c53a294d22b16e8f92022a086",
-  "branch_diff_digest": "2ddb84c02137d842a9ce48bbc46dc8dab8964571deb827ecf92385ef9ffc717d",
+  "branch_diff_digest": "e0f6267355b71eb9096713205eaaf0a2376e23141eeb4a3f3224d05ab718b967",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T16:38:47+00:00",
-  "commit": "dc17ebe8d95d9860f8f2f09c032fcf98cf5b6367"
+  "recorded_at": "2026-09-15T16:45:42+00:00",
+  "commit": "c96ae0872b39ff2ac3927631b967a4ce64032580"
 }

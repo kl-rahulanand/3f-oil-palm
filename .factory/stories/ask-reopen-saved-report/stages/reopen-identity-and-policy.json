@@ -1,7 +1,7 @@
 {
   "id": "reopen-identity-and-policy",
   "title": "Match a turn by its selection, and let the caller state the failure policy",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-15T16:07:50+00:00",
   "base_sha": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b",
   "dirty_at_start": {
@@ -18,5 +18,34 @@
       "git": "? .factory/stories/ask-reopen-saved-report/tasks/reopen-identity-and-policy/verify.json\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "c5fa92836ecf22e78da954a8437ac70a32edabeacf97468299afd6eb49578b63"
+  "task_sha256": "a4b88c9e5ab3d83326d4a603efb1507879a01e2f4b5b4770e2a2719506473a43",
+  "local_review_stamp": {
+    "stage_id": "reopen-identity-and-policy",
+    "base_sha": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b",
+    "delta_id": "74f88573cf7809475d4c4505877e7a1e889f6b1772209e54626bf09e9fe5bd49",
+    "contract_sha256": "a4b88c9e5ab3d83326d4a603efb1507879a01e2f4b5b4770e2a2719506473a43",
+    "recorded_at": "2026-09-15T16:45:42+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-15T16:45:44+00:00",
+  "measured": {
+    "strays": [],
+    "files": 8,
+    "lines": 588,
+    "budget": {
+      "files": 10,
+      "lines": 900
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-15T16:45:44+00:00",
+    "from": "c5fa92836ecf22e78da954a8437ac70a32edabeacf97468299afd6eb49578b63",
+    "to": "a4b88c9e5ab3d83326d4a603efb1507879a01e2f4b5b4770e2a2719506473a43"
+  }
 }

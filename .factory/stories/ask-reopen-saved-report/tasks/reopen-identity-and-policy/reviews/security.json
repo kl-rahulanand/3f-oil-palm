@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "reopen-identity-and-policy",
   "score": 10,
-  "summary": "security lens over reopen-identity-and-policy (8 product path(s), af447d4..dc17ebe, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The change implements strict selection-based matching, reruns the most recent successful matching turn without appending, preserves the original turn question, and applies caller-selected failure handling. Access refusals replace the successful response so stale result data is removed, while non-refusal failures retain it; period-control callers explicitly retain their prior behavior. The diff also covers both saved-view and pinned-report entry points and contains no apparent compatibility leftovers or concrete security defects at the requested severity threshold.",
+  "summary": "security lens over reopen-identity-and-policy (8 product path(s), af447d4..c96ae08, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements strict field-by-field selection identity, chooses the most recent successful matching turn, preserves the original turn question, and reuses that turn without appending. Access refusals replace the successful response with a result-free state for blocked_by_policy and terminal HTTP 401/403, while other failures retain the prior answer. Period-control callers explicitly retain their existing failure policy, both saved-view and pinned-report Open paths are covered, and no compatibility leftovers or concrete security defects are shown.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -20,10 +20,10 @@
     "review-animations"
   ],
   "aspect": "security",
-  "review_run_id": "9d100a24bedbbf169ed0322131b39026f665e275167a077370b157d11a15adf5",
+  "review_run_id": "6934364c81456429f1d0a8fe9770bccdce54935a8622ff15933d127a7e9fb0d0",
   "brief_sha256": "3f068259b1557f86d79d1c94b50d9c06a36dc61c53a294d22b16e8f92022a086",
-  "branch_diff_digest": "2ddb84c02137d842a9ce48bbc46dc8dab8964571deb827ecf92385ef9ffc717d",
+  "branch_diff_digest": "e0f6267355b71eb9096713205eaaf0a2376e23141eeb4a3f3224d05ab718b967",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T16:38:47+00:00",
-  "commit": "dc17ebe8d95d9860f8f2f09c032fcf98cf5b6367"
+  "recorded_at": "2026-09-15T16:45:42+00:00",
+  "commit": "c96ae0872b39ff2ac3927631b967a4ce64032580"
 }
