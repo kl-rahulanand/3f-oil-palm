@@ -2,6 +2,7 @@ import { ForbiddenException, Inject, Injectable } from "@nestjs/common";
 import type {
   AuthUser,
   DomainSpec,
+  MeasureFormat,
   MeasureSpec,
   ProvenanceBatch,
   ResultTable,
@@ -166,13 +167,13 @@ export class SelectionExecutor {
     // `numeric` means "measure output" for rendering, not raw warehouse type.
     const measureOutputKeys = new Set(resolvedSelection.measureIds.map((id) => id.split(".").pop()!));
     const labelByKey = new Map<string, string>();
-    const formatByKey = new Map<string, "percent">();
+    const formatByKey = new Map<string, MeasureFormat>();
     for (const measureId of resolvedSelection.measureIds) {
       const measure = domain.measures.find((candidate) => candidate.id === measureId);
       const key = measureId.split(".").pop();
       if (!measure || !key) continue;
       labelByKey.set(key, measure.label);
-      if (measure.format === "percent") formatByKey.set(key, measure.format);
+      if (measure.format) formatByKey.set(key, measure.format);
     }
     for (const dimensionId of resolvedSelection.dimensionIds) {
       const dimension = domain.dimensions.find((candidate) => candidate.id === dimensionId);

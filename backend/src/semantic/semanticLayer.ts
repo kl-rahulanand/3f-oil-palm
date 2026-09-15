@@ -23,6 +23,7 @@ export class SemanticLayer {
         {
           id: "governed-financial.actual",
           label: SEMANTIC_LABELS.measures["governed-financial.actual"],
+          format: "money",
           synonyms: ["actual", "actuals", "actual spend", "actual net", "spend"],
           goldObject: "actual_by_gl_month",
           expr: "SUM(actual_net)",
@@ -36,6 +37,7 @@ export class SemanticLayer {
         {
           id: "governed-financial.budget",
           label: SEMANTIC_LABELS.measures["governed-financial.budget"],
+          format: "money",
           synonyms: ["budget", "budgeted", "budget net", "plan"],
           goldObject: "budget_by_gl_month",
           expr: "SUM(budget_net)",
@@ -165,8 +167,9 @@ function statementMeasure(id: string, label: string, synonyms: string[], expr: s
   return {
     id: `mis-statement.${id}`,
     label,
-    // Same ratio-not-number problem as governed-financial.percentage.
-    ...(id === "percentage" ? { format: "percent" as const } : {}),
+    // Same ratio-not-number problem as governed-financial.percentage; every other
+    // statement measure is a fixed-scale Rupee amount.
+    format: id === "percentage" ? ("percent" as const) : ("money" as const),
     // The governed-financial domain publishes measures under the SAME labels ("Actual",
     // "Budget", "%"), so an unqualified "Actual" was ambiguous and the selector could not
     // choose - it degraded to a glossary definition roughly one ask in three. These

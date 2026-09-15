@@ -1351,7 +1351,11 @@ button {
   box-shadow: var(--shadow-card);
 }
 .ask-panel[data-surface="page"] {
-  width: min(100%, 760px);
+  /* The page surface is table-heavy - 67 GL-code rows, 81 statement-leaf rows whose keys are
+     long composite strings - so a prose-width column left wide empty gutters and squeezed the
+     content it exists to show. Fill the shell, with a bound so an ultrawide monitor does not
+     stretch the conversation into unreadable lines. The 360px docked surface is unaffected. */
+  width: min(100%, 1440px);
   min-height: calc(100vh - 98px);
   margin: 0 auto;
   border-radius: var(--radius-md);
@@ -1579,6 +1583,12 @@ button {
   height: 220px;
 }
 .ask-table-wrap {
+  /* Size to the table's own width, not the card's. With the page surface now filling the
+     shell, a two-column result stretched its last column to the far edge and left a long
+     blank run between the leaf key and its amount. Still clamped to the card, and still
+     scrolls when a result is wider than that. */
+  width: max-content;
+  max-width: 100%;
   overflow: auto;
   border: 1px solid var(--kl-line);
   border-radius: var(--radius-sm);
