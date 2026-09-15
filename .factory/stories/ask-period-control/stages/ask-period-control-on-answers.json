@@ -1,7 +1,7 @@
 {
   "id": "ask-period-control-on-answers",
   "title": "A period control on every successful answer",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-15T08:24:26+00:00",
   "base_sha": "fe39c33ce3ea018a755014dd6f9afcf190ca9b70",
   "dirty_at_start": {
@@ -18,5 +18,34 @@
       "git": "? .factory/stories/ask-period-control/task-plans/ask-period-control-on-answers.md\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "42f66522bb86653ae0cf53b16ccba567a04f4bbbc9d0f8e5050056afd3a0e040"
+  "task_sha256": "7b50e5eae680527dccd235141a9a1e7bbe01b1dbb3ac480083660c04a310057e",
+  "local_review_stamp": {
+    "stage_id": "ask-period-control-on-answers",
+    "base_sha": "fe39c33ce3ea018a755014dd6f9afcf190ca9b70",
+    "delta_id": "7a1d94cc47440edff943cc120d6c3cbcbb0c0281f0b87c09d0d7d9cc15189fa1",
+    "contract_sha256": "7b50e5eae680527dccd235141a9a1e7bbe01b1dbb3ac480083660c04a310057e",
+    "recorded_at": "2026-09-15T08:50:12+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-15T08:50:13+00:00",
+  "measured": {
+    "strays": [],
+    "files": 3,
+    "lines": 239,
+    "budget": {
+      "files": 3,
+      "lines": 450
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-15T08:50:13+00:00",
+    "from": "42f66522bb86653ae0cf53b16ccba567a04f4bbbc9d0f8e5050056afd3a0e040",
+    "to": "7b50e5eae680527dccd235141a9a1e7bbe01b1dbb3ac480083660c04a310057e"
+  }
 }

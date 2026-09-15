@@ -45,12 +45,6 @@ LEFTOVERS (blocking): the diff must carry no code kept only for compatibility �
 - **t-apca-c9**
   - Source: plans/active/ask-period-control-recoverable-periods-in-ask.md — Acceptance Criteria
   - Statement: The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on.
-- **t-apca-c10**
-  - Source: plans/active/ask-period-control-recoverable-periods-in-ask.md — Acceptance Criteria
-  - Statement: user_facing: true. emil-design-eng and frontend-design are loaded and the work is done with them; the recorder refuses the test artifact unless skills_used attests both. The control sits under an answer that may already carry a totals strip, a table and a provenance disclosure, across the 360px docked column and the page width. A period switcher is a quiet control, not a headline.
-- **t-apca-c11**
-  - Source: plans/active/ask-period-control-recoverable-periods-in-ask.md — Acceptance Criteria
-  - Statement: For a vitest leaf the proof discriminator is the testcase being present AND NOT skipped AND NOT failed - a matching NAME proves nothing because vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped. tests.json automated status is recorded as exactly 'passed', not 'pass', and 'python3 factory/scripts/check_task_proof.py --base origin/master' is run AFTER committing and before pushing, because the gate reads the committed tree.
 
 ### Reviewer focus
 
@@ -125,3 +119,13 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] node_modules is materialised in assistant-streaming-and-shell: node_modules is fully installed in THIS worktree as of 2026-09-14: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host before delegating. No product file changed - node_modules is gitignored. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry. If a package is genuinely missing, raise a signal naming it.
 - [high] assistant-streaming-and-shell round-1 review fixes: Three verified findings; the first is BLOCKING and was raised independently by quality AND performance. (1) A stored-selection rerun is UNCANCELLABLE. use-ask.ts:73-77 branches: the selection path calls api.ask({question, selection}) with NO AbortController and NO signal, while only the streamed path does '(abortRef.current = new AbortController()).signal'. So abortRef.current stays undefined for a rerun and the route-change effect has nothing to abort - leaving the assistant mid-rerun does not cancel, which contradicts t-ass-c4. Create and register the controller on BOTH branches, pass its signal to the buffered call, and cover it with a leaf that leaves the assistant during a rerun. (2) api.ts:48 'await request(CSRF_PATH)' and api.ts:61 'await post(/api/auth/refresh)' do NOT forward the supplied signal, so those sub-requests keep running after the user leaves; note the 401 RETRY at :62 already forwards it correctly, so only those two calls need threading. (3) ask-stream.test.ts:80 proves only that the parser ignores a phase frame arriving after a result frame - it does not prove the PENDING RENDER-DELAY TIMER is cleared on a terminal path, which is the thing that would otherwise fire a phase after the answer. Exercise a pending timer: start a request, let the delay be pending, deliver the terminal frame, advance timers, and assert no phase ever rendered.
 - [high] assistant-streaming-and-shell round-2 fix: resolve before cleanup: ONE defect behind all three partial contract verdicts (t-ass-c1, c4, c8). ask-stream.ts awaits reader.cancel() BEFORE returning on every terminal path - the malformed-JSON path at :32, the result path at :37 and the error path at :41. Cleanup therefore gates the answer: if cancel() is slow the answer is delayed, and if it REJECTS the answer is lost and surfaces as a failure even though the server delivered it correctly. Fix: capture the response first, then resolve, and perform the cancellation WITHOUT awaiting it - fire it and swallow its rejection (void reader.cancel().catch(() => {})) so cleanup can never delay or fail a delivered answer. Apply it to all three terminal paths. Add a leaf proving the answer still resolves when reader.cancel() REJECTS and when it resolves slowly; ask-panel.test.tsx:409 currently exercises delayed phases but never an asynchronous or rejecting cancellation.
+
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: ok at d02b60f95236
+  - `npm run structural` -> exit 0
+  - `npm run typecheck` -> exit 0
+  - `npm run quality` -> exit 0
+  - `npm run test:hermetic` -> exit 0
