@@ -1,6 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
   ResponseClass,
+  type AskPeriodControl,
+  type AskPeriodOption,
   type AskPriorTurn,
   type AskReportGrounding,
   type AskResponse,
@@ -22,7 +24,11 @@ import { AuditService } from "../core/audit.service";
 import { DimensionValuesService } from "../core/dimension-values.service";
 import { ReportsService } from "../reports/reports.service";
 import { HelpService } from "../help/help.service";
-import { SelectionPeriodUnavailableError, SelectionResolverService } from "../mapping/selection-resolver.service";
+import {
+  SelectionPeriodUnavailableError,
+  SelectionResolverService,
+  statementPeriodOptions,
+} from "../mapping/selection-resolver.service";
 import type { MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { classifyMeta, glossaryLookup, unsupportedFallbackMessage } from "../help/glossary";
 import { CHAT_MESSAGES } from "./chat.constants";
@@ -256,7 +262,7 @@ export class ChatService {
         });
 
     // 3. Fail-closed row scope: a row-scoped domain requires the user to have a scope value.
-    if (domain.scopeColumn) {
+    if (domain.scopeColumn && domain.name !== "mis-statement") {
       const hasScope = user.scope.some((s) => s.attribute === domain.scopeColumn);
       if (!hasScope)
         return done({
@@ -315,27 +321,36 @@ export class ChatService {
       });
 
     let statementScope: MasterResolvedSelection | undefined;
+    let answerPeriodOptions: AskPeriodOption[] | undefined;
     if (domain.name === "mis-statement") {
-      const request = statementRequest(user, appliedTimeWindow);
-      if (!request) {
+      const request = await statementRequest(
+        user,
+        appliedTimeWindow,
+        selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
+        this.selectionResolver,
+      );
+      if (request.kind === "scope")
         return done({
-          responseClass: ResponseClass.NotSupported,
-          message: "The answer does not resolve to one statement selector set and offered period.",
+          responseClass: ResponseClass.BlockedByPolicy,
+          message: CHAT_MESSAGES.statementScope(request.attribute),
         });
-      }
-      let resolution;
-      try {
-        resolution = await this.selectionResolver.resolve(request);
-      } catch (error) {
-        if (error instanceof SelectionPeriodUnavailableError) {
-          return done({ responseClass: ResponseClass.NotSupported, message: "The statement period is not available." });
-        }
-        throw error;
-      }
-      if (resolution.outcome === "unresolvable") {
-        return done({ responseClass: ResponseClass.NotSupported, message: "No mapping configured." });
-      }
-      statementScope = resolution;
+      if (request.kind === "no-mapping")
+        return done({ responseClass: ResponseClass.NotSupported, message: CHAT_MESSAGES.statementMappingMissing });
+      if (request.kind === "no-periods")
+        return done({ responseClass: ResponseClass.NotSupported, message: CHAT_MESSAGES.statementPeriodsMissing });
+      if (request.kind === "period")
+        return done({
+          responseClass: ResponseClass.ClarificationNeeded,
+          message: CHAT_MESSAGES.statementPeriodPrompt,
+          periodChoice: {
+            prompt: CHAT_MESSAGES.statementPeriodPrompt,
+            selection: withoutTimeWindow(selection),
+            question,
+            options: request.options,
+          },
+        });
+      statementScope = request.resolution;
+      answerPeriodOptions = request.options;
     }
 
     let sql: string;
@@ -441,6 +456,10 @@ export class ChatService {
       availableChartTypes: chart.availableChartTypes,
       availableFields,
     };
+    answerPeriodOptions ??= askPeriodOptions(
+      (await this.selectionResolver.options()).periods,
+      appliedTimeWindow?.column ?? selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
+    );
 
     const successResponse: Omit<AskResponse, "sessionId" | "latencyMs"> = {
       responseClass: ResponseClass.Success,
@@ -455,6 +474,7 @@ export class ChatService {
       provenance,
       appliedTimeWindow,
       appliedFilters: selection.filters,
+      periodControl: buildPeriodControl(selection, appliedTimeWindow, answerPeriodOptions),
       viewInReport: buildViewInReport(domain, statementScope, activeBatchIds),
       ...answerMetadata,
     };
@@ -723,18 +743,113 @@ function buildViewInReport(
   };
 }
 
-function statementRequest(user: AuthUser, window: AppliedTimeWindow | undefined) {
-  const value = (attribute: string) => {
+type StatementRequestResult =
+  | { kind: "scope"; attribute: "department" | "function" | "plant" }
+  | { kind: "no-mapping" }
+  | { kind: "no-periods" }
+  | { kind: "period"; options: AskPeriodOption[] }
+  | { kind: "resolved"; resolution: MasterResolvedSelection; options: AskPeriodOption[] };
+
+async function statementRequest(
+  user: AuthUser,
+  window: AppliedTimeWindow | undefined,
+  timeColumn: string,
+  resolver: SelectionResolverService,
+): Promise<StatementRequestResult> {
+  const value = (attribute: "department" | "function" | "plant") => {
     const values = [
       ...new Set(user.scope.filter((scope) => scope.attribute === attribute).map((scope) => scope.value)),
     ];
     return values.length === 1 ? values[0] : undefined;
   };
-  const department = value("department");
-  const businessFunction = value("function");
-  const plant = value("plant");
-  if (!department || !businessFunction || !plant || !window || window.from !== window.to) return undefined;
-  return { department, function: businessFunction, plant, period: window.from };
+  const attributes = ["department", "function", "plant"] as const;
+  const scope = Object.fromEntries(attributes.map((attribute) => [attribute, value(attribute)])) as Record<
+    (typeof attributes)[number],
+    string | undefined
+  >;
+  const offender = attributes.find((attribute) => !scope[attribute]);
+  if (offender) return { kind: "scope", attribute: offender };
+
+  const mapping = { department: scope.department!, function: scope.function!, plant: scope.plant! };
+  if (!resolver.hasMapping(mapping)) return { kind: "no-mapping" };
+
+  const periods = (await resolver.options()).periods;
+  if (periods.length === 0) return { kind: "no-periods" };
+  const options = askPeriodOptions(statementPeriodOptions(periods), timeColumn);
+  const period = window && options.find((option) => windowMatchesPeriod(window, option));
+  if (!period) return { kind: "period", options };
+
+  try {
+    const resolution = await resolver.resolve({ ...mapping, period: period.value });
+    return resolution.outcome === "resolved" ? { kind: "resolved", resolution, options } : { kind: "no-mapping" };
+  } catch (error) {
+    if (error instanceof SelectionPeriodUnavailableError) return { kind: "period", options };
+    throw error;
+  }
+}
+
+function askPeriodOptions(
+  periods: Array<{ value: string; label: string; from: string; to: string }>,
+  column: string,
+): AskPeriodOption[] {
+  return periods.map(({ value, label, from, to }) => ({
+    value,
+    label,
+    timeWindow: { grain: "month", column, from, to: monthEnd(to) },
+  }));
+}
+
+function monthEnd(first: string): string {
+  const date = new Date(`${first}T00:00:00Z`);
+  date.setUTCMonth(date.getUTCMonth() + 1);
+  date.setUTCDate(0);
+  return date.toISOString().slice(0, 10);
+}
+
+function windowMatchesPeriod(window: AppliedTimeWindow, option: AskPeriodOption): boolean {
+  return (
+    window.from === option.timeWindow.from &&
+    (window.to === option.timeWindow.from || window.to === option.timeWindow.to)
+  );
+}
+
+function withoutTimeWindow(selection: Selection): Selection {
+  const { timeWindow: _timeWindow, ...base } = selection;
+  return base;
+}
+
+function buildPeriodControl(
+  selection: Selection,
+  window: AppliedTimeWindow | undefined,
+  options: AskPeriodOption[],
+): AskPeriodControl {
+  if (!window)
+    return {
+      current: null,
+      options,
+      coverage: "All loaded data within your access scope and any filters applied by this question.",
+    };
+
+  const current = options.find((option) => windowMatchesPeriod(window, option));
+  if (current) return { current: current.value, options };
+
+  const value = window.from === window.to ? window.from : `${window.from}:${window.to}`;
+  return {
+    current: value,
+    options: [
+      {
+        value,
+        label: window.from === window.to ? window.from : `${window.from} – ${window.to}`,
+        timeWindow: {
+          grain: selection.timeWindow?.grain ?? "day",
+          column: window.column,
+          from: window.from,
+          to: window.to,
+        },
+      },
+      ...options,
+    ],
+  };
 }
 
 export function buildReadback(

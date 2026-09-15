@@ -372,6 +372,19 @@ class FakeHelp {
 }
 
 class FakeSelectionResolver {
+  hasMapping() {
+    return true;
+  }
+
+  async options() {
+    return {
+      departments: ["Agriculture"],
+      functions: ["Nursery"],
+      plants: [{ value: "DUB", label: "DUB", aliases: ["DUB"] }],
+      periods: [{ value: "2026-07-01", label: "July 2026", from: "2026-07-01", to: "2026-07-01" }],
+    };
+  }
+
   async resolve(request: { department: string; function: string; plant: string; period: string }) {
     return {
       outcome: "resolved" as const,

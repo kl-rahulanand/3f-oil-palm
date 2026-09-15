@@ -6,7 +6,27 @@ import { MisSelectionService } from "../mis/mis-selection.service";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import type { QueryResult, Warehouse } from "../warehouse/warehouse.interface";
 import { MAPPING_MASTER, type MappingMaster } from "./mapping-master";
-import { SelectionResolverService } from "./selection-resolver.service";
+import { SelectionResolverService, statementPeriodOptions } from "./selection-resolver.service";
+
+test("the period free mapping lookup reports a mapped triple without being given a period", () => {
+  const resolver = new SelectionResolverService(new PeriodWarehouse([]));
+
+  assert.equal(resolver.hasMapping({ department: "Agriculture", function: "Nursery", plant: "DUB-NUR" }), true);
+  assert.equal(resolver.hasMapping({ department: "Agriculture", function: "Mill", plant: "DUB" }), false);
+});
+
+test("eligible periods exclude a multi month range that a statement cannot resolve", async () => {
+  const periods = (await new SelectionResolverService(new PeriodWarehouse(["2026-07-01"])).options()).periods;
+
+  assert.deepEqual(
+    periods.map(({ value }) => value),
+    ["2026-07-01", "fy26-27-ytd"],
+  );
+  assert.deepEqual(
+    statementPeriodOptions(periods).map(({ value }) => value),
+    ["2026-07-01"],
+  );
+});
 
 test("resolving a department function plant and period through the mapping master returns the cost centres the GL set the MIS format and the bucket rows, returns an unresolvable outcome for a selection the master does not cover so the no mapping configured notice never depends on whether the query returned rows, and derives the financial year to date period from the latest active loaded month rather than the wall clock", async () => {
   const resolver = new SelectionResolverService(new PeriodWarehouse(["2026-07-01"]));

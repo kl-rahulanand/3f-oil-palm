@@ -54,14 +54,12 @@ export class SelectionResolverService implements ISelectionResolverService {
     return canonicalPlantFromMaster(plant, this.master);
   }
 
+  hasMapping(request: Omit<MisSelectionRunRequest, "period">): boolean {
+    return this.mappingSelection(request) !== undefined;
+  }
+
   async resolve(request: MisSelectionRunRequest): Promise<MasterSelectionResolution> {
-    const canonicalPlant = this.canonicalPlant(request.plant);
-    const selection = this.master.selections.find(
-      (candidate) =>
-        candidate.department === request.department &&
-        candidate.function === request.function &&
-        candidate.plant_canonical === canonicalPlant,
-    );
+    const selection = this.mappingSelection(request);
     if (!selection) return { outcome: "unresolvable" };
 
     const period = periodOptions(await this.loadedActualMonths()).find(({ value }) => value === request.period);
@@ -96,6 +94,16 @@ export class SelectionResolverService implements ISelectionResolverService {
       ),
       period: { value: period.value, from: period.from, to: period.to },
     };
+  }
+
+  private mappingSelection(request: Omit<MisSelectionRunRequest, "period">): MappingSelection | undefined {
+    const canonicalPlant = this.canonicalPlant(request.plant);
+    return this.master.selections.find(
+      (candidate) =>
+        candidate.department === request.department &&
+        candidate.function === request.function &&
+        candidate.plant_canonical === canonicalPlant,
+    );
   }
 
   private async loadedActualMonths(): Promise<string[]> {
@@ -142,6 +150,10 @@ function periodOptions(loadedMonths: string[]): MisSelectionPeriodOption[] {
     to: latest > FY_LAST_MONTH ? FY_END : latest,
   });
   return options;
+}
+
+export function statementPeriodOptions(periods: MisSelectionPeriodOption[]): MisSelectionPeriodOption[] {
+  return periods.filter(({ from, to }) => from === to);
 }
 
 function unique(values: string[]): string[] {

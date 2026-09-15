@@ -89,13 +89,13 @@
     "A period-free mapping lookup on SelectionResolverService - the first way to ask whether a triple is mapped without also supplying a period, which is what makes 'no mapping' and 'no periods loaded' distinguishable at all.",
     "statementRequest becomes a discriminated result naming which precondition failed, replacing a bare undefined that four different causes shared."
   ],
-  "input_sha256": "3764bd95bcf6669188ce37a601efef623c430cb7a5759e29347dd3fdb2d0e3d9",
+  "input_sha256": "3af75866c8e45d4968369dcd6507f276c0b777bc3ce4f5dcea3209eceacd739a",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "5fad9608953f08bebff12078cd6c54b802666827d6d242e53fd896a7467443af",
-  "recorded_at": "2026-09-15T06:32:07+00:00",
-  "commit": "e0e7ce74456d315250bc205c5d37c6dfa1298cd0",
+  "recorded_at": "2026-09-15T06:34:14+00:00",
+  "commit": "e73e07cc7b2d6ed97aa2c401211af87520b8317a",
   "approved_task_plan_sha256": "5fad9608953f08bebff12078cd6c54b802666827d6d242e53fd896a7467443af",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-15T06:32:16+00:00"
+  "approved_at": "2026-09-15T06:34:17+00:00"
 }

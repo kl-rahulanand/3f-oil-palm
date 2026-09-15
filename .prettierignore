@@ -15,7 +15,6 @@ backend/src/auth/auth.schemas.ts
 backend/src/auth/cookies.ts
 backend/src/auth/rate-limit.service.ts
 backend/src/chat/ambiguity.ts
-backend/src/chat/chat.constants.ts
 backend/src/chat/chat.sse.ts
 backend/src/chat/suppression.ts
 backend/src/chat/timeWindowParse.ts
