@@ -144,6 +144,7 @@ const success: AskResponse = {
 };
 
 beforeEach(() => {
+  vi.stubGlobal("CSS", { escape: (value: string) => value });
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
 });
 
@@ -153,6 +154,7 @@ afterEach(() => {
   mocks.saveQuery.mockReset();
   mocks.createPin.mockReset();
   mocks.pathname = "/ask";
+  vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
@@ -791,22 +793,30 @@ test("the target turn is scrolled into view for an unmatched open", async () => 
   await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" }));
 });
 
-test("a docked panel mounted alongside does not consume the scroll target", async () => {
+test("a docked panel mounted before the page panel does not consume its scroll target", async () => {
   const scrollIntoView = vi.fn();
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
   mocks.ask.mockImplementation(() => new Promise(() => undefined));
   render(
     <AskProvider>
-      <AskPanel surface="page" />
       <AskPanel surface="docked" />
+      <AskPanel surface="page" />
       <RerunButton />
     </AskProvider>,
   );
 
   fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
 
+  const pagePanel = screen.getByRole("region", { name: "Ask" });
+  const pageTarget = (await within(pagePanel).findByText("Opening this report…")).closest(".ask-exchange");
   await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
-  expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+  expect(scrollIntoView.mock.contexts[0]).toBe(pageTarget);
+  expect(pageTarget).toHaveAttribute("id");
+  expect(
+    within(screen.getByRole("region", { name: "Ask panel" }))
+      .getByText("Opening this report…")
+      .closest(".ask-exchange"),
+  ).not.toHaveAttribute("id");
 });
 
 test("a refused reopen shows its own reason and not the period copy", async () => {

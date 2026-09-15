@@ -11,7 +11,7 @@ import {
 } from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/src/lib/api";
 import { formatMoney, formatPercentage } from "../mis/statement-view";
 import { useAsk, type AskTurn } from "./use-ask";
@@ -36,11 +36,12 @@ const PHASE_LABELS = {
 export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>) {
   const { turns, phases, isPending, error, scrollTargetId, clearScrollTarget, ask, continueTurn } = useAsk();
   const [draft, setDraft] = useState("");
+  const threadRef = useRef<HTMLDivElement>(null);
   const suggestions = latestSuggestions(turns) ?? SEED_QUESTIONS;
 
   useEffect(() => {
     if (surface !== "page" || !scrollTargetId) return;
-    const target = document.getElementById(scrollTargetId);
+    const target = threadRef.current?.querySelector<HTMLElement>(`#${CSS.escape(scrollTargetId)}`);
     if (!target) return;
     target.scrollIntoView({ block: "center" });
     clearScrollTarget();
@@ -84,9 +85,9 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
         </div>
       </div>
 
-      <div className="ask-thread" aria-live="polite">
+      <div className="ask-thread" aria-live="polite" ref={threadRef}>
         {turns.map((turn) => (
-          <div className="ask-exchange" id={turn.id} key={turn.id}>
+          <div className="ask-exchange" id={surface === "page" ? turn.id : undefined} key={turn.id}>
             <p className="ask-question">{turn.question}</p>
             <Answer turn={turn} isPending={isPending} onAsk={ask} onContinue={continueTurn} />
           </div>

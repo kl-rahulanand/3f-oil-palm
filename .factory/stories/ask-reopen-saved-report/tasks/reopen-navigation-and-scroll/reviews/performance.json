@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "reopen-navigation-and-scroll",
   "score": 10,
-  "summary": "performance lens over reopen-navigation-and-scroll (9 product path(s), 71a05e1..c1ba573, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff shows no actionable P0\u2013P2 performance or security defect. Reopen work remains bounded to a single request and turn update, scrolling performs one targeted DOM lookup before clearing its target, and the change introduces no compatibility wrapper, legacy alias, repeated I/O, or query fanout. The busy path also avoids navigation before starting any work.",
+  "summary": "performance lens over reopen-navigation-and-scroll (9 product path(s), 71a05e1..0277891, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The change satisfies the stated navigation, pending-turn, refusal, busy-state, and scrolling contracts. Navigation precedes the rerun request, unmatched opens create and settle a single pending turn, matched opens reuse the existing continuation path, aborts remove unmatched placeholders, and scrolling is restricted to the page surface with explicit coverage. No P0\u2013P2 performance defect, compatibility leftover, or concrete security risk is demonstrated by the provided diff.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -21,10 +21,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "1123f9ee6c7c1a5752be4c374b93d60ca9089aa112dc77e6159bb8b6aab2ae79",
-  "brief_sha256": "bc78a7d8cc536ea09d5b475fccddb0c75fb5bb3dedc3b3d3b4cbe5009d697dd6",
-  "branch_diff_digest": "baae4c3d18f81744b54baaaddb738781c2823310f28d9839abcb4b39ad6a080d",
+  "review_run_id": "2d7fd0b37706b50a60d77ac5296facef635bf5cb1fe1cef4a2bb77e939ee28f1",
+  "brief_sha256": "f8780d6bceda21dad7b90405fa3e0593ad596dc71d474c029b4577dbb5ff1c4f",
+  "branch_diff_digest": "15afd2b2c77637dc15441b36f9a53fd471b271acfef0e01db0c53efbe8325885",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T18:09:05+00:00",
-  "commit": "c1ba573669fe0798989a8ca2ff523f71dbf80821"
+  "recorded_at": "2026-09-15T18:21:04+00:00",
+  "commit": "0277891807aee8413000985061625f62ed72d3cc"
 }
