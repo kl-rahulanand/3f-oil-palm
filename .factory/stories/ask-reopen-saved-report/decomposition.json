@@ -24,7 +24,8 @@
         "CLEARING MEANS THE RESULT IS GONE, NOT HIDDEN. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and the old numbers still render - the leak would survive the fix. A cleared turn carries a result-free renderable state, and a leaf asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.",
         "continueTurn's policy argument is REQUIRED, so ask-panel.tsx is in scope and its two shipped period-control calls pass 'retain' explicitly. A mandatory argument with the existing callers untouched would not type-check, and a defaulted one would recreate the implicit policy this task removes. Their behaviour does not change.",
         "The helper is named selection-identity.helper.ts, per the constitution's Helper convention for stateless, IO-free utility logic (pnp-coding-standards-modular-monolith.md section 3.2).",
-        "user_facing: true - the Open flow and the displayed refusal both change - so emil-design-eng and frontend-design are loaded and the work done with them; the recorder refuses the test artifact unless skills_used attests both."
+        "user_facing: true - the Open flow and the displayed refusal both change - so emil-design-eng and frontend-design are loaded and the work done with them; the recorder refuses the test artifact unless skills_used attests both.",
+        "A terminal 401/403 clears the numbers and shows generic sign-in copy ON THAT TURN, and does NOT redirect to login. The session is gone, but a redirect would discard the whole thread because one report came back unauthorized; the rest of what the user had on screen survives."
       ],
       "plan_contracts": [
         {
@@ -80,6 +81,11 @@
         {
           "id": "t-rip-c11",
           "statement": "user_facing: true - the Open flow and the displayed refusal both change - so emil-design-eng and frontend-design are loaded and the work done with them; the recorder refuses the test artifact unless skills_used attests both.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rip-c12",
+          "statement": "A terminal 401/403 clears the numbers and shows generic sign-in copy ON THAT TURN, and does NOT redirect to login. The session is gone, but a redirect would discard the whole thread because one report came back unauthorized; the rest of what the user had on screen survives.",
           "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
         }
       ],
@@ -159,6 +165,11 @@
           "id": "opening a saved view that matches an existing turn reruns it rather than appending",
           "path": "frontend/src/features/exploration/saved-views.test.tsx",
           "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a terminal unauthorized does not navigate away from the thread",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
         }
       ],
       "verify_commands": [
@@ -195,5 +206,5 @@
     }
   ],
   "plan_sha256": "a876c2afbf926fcb9c2f670ca980218bc0cb8d7c25c8ad4de902697839108f72",
-  "commit": "0291f3ab02a13338b311af978cfa63c88e869546"
+  "commit": "ce7f985978b18879104f3767a1db4252f409cf24"
 }

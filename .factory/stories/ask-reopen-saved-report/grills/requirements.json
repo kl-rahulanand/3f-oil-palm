@@ -62,7 +62,7 @@
     "docs/decisions/0028-saved-selections-not-snapshots.md"
   ],
   "issue": "ask-reopen-saved-report",
-  "input_sha256": "b5f0e70ba31912918dcae6301575c60ce535169f5a9da1e4e842085abe17640c",
-  "recorded_at": "2026-09-15T15:45:52+00:00",
-  "commit": "0291f3ab02a13338b311af978cfa63c88e869546"
+  "input_sha256": "ed3e0a60cab5891303b49ab712ea95c99cb3a317f39dd5bee077f166abc3ddbb",
+  "recorded_at": "2026-09-15T15:59:10+00:00",
+  "commit": "ce7f985978b18879104f3767a1db4252f409cf24"
 }

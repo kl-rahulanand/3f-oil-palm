@@ -1,7 +1,7 @@
 ---
 slug: ask-reopen-saved-report
 title: Reopening a saved report returns to its answer
-status: draft
+status: confirmed
 saved: 2026-09-15T15:56:52+00:00
 ---
 
