@@ -433,7 +433,11 @@ function AggregateBody({
                   <td data-numeric="true" aria-label={BUDGET_NOT_LOADED_LABEL}>
                     –
                   </td>
-                  <MoneyTotal value={fromPaise(totals.actualPaise)} />
+                  {totals.foots ? (
+                    <MoneyTotal value={fromPaise(totals.actualPaise)} />
+                  ) : (
+                    <td data-numeric="true">Total withheld</td>
+                  )}
                   <td data-numeric="true" aria-label={BUDGET_NOT_LOADED_LABEL}>
                     –
                   </td>

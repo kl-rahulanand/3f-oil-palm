@@ -1,0 +1,30 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "all-plants-statement-ui",
+  "score": 10,
+  "summary": "security lens over all-plants-statement-ui (9 product path(s), d1c8457..d823b4c, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defect is demonstrated by the provided diff. It adds no route, handler, authorization boundary, credential handling, injection surface, or over-broad response. The new display values are rendered through React text nodes, and the shared budget-state guard prevents not-loaded budget values and percentages from being displayed or used in budget arithmetic. No blocking compatibility wrapper, shim, alias, re-export, or dead legacy branch is introduced.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "contract/src/api.ts",
+    "docs/specs/all-plants-statement.md",
+    "frontend/app/globals.css",
+    "frontend/src/features/mis/drill-panel.test.tsx",
+    "frontend/src/features/mis/drill-panel.tsx",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "frontend/src/features/mis/statement-view.tsx"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "8095d3037db8ce113aee0391109401f46be5c1c657ba962296adab39dcc9d7b7",
+  "brief_sha256": "451ba68aadd1893584327a13625218fdda428a418397d52a0af79bd43d7e0c2a",
+  "branch_diff_digest": "b4ac38fba6fa2f2fdcc392c42694ff8120710217abc910b33b0dea8abcbd5526",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T11:00:30+00:00",
+  "commit": "d823b4c14ecedc56fb9e18355aee4f52ae667aa3"
+}

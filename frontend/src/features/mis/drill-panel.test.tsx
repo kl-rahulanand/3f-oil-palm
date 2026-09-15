@@ -356,25 +356,35 @@ test("drilling a leaf inside the aggregate panel replaces the body in place and 
 test("the aggregate drill on a not loaded parent and on the grand total renders dashed budgets and a dashed footer and performs no paise arithmetic on the budget", () => {
   const notLoadedResponse = {
     ...response,
-    tree: response.tree.map(notLoadedNode),
-    grandTotal: notLoadedNode(response.grandTotal),
+    tree: response.tree.map((statementNode) =>
+      statementNode.nodeKey === "admin"
+        ? notLoadedNode({
+            ...statementNode,
+            measures: [measure("selected", "60.06", "30.07"), statementNode.measures[1]],
+          })
+        : notLoadedNode(statementNode),
+    ),
+    grandTotal: notLoadedNode({
+      ...response.grandTotal,
+      measures: [measure("selected", "60.06", "32.08"), response.grandTotal.measures[1]],
+    }),
   };
   renderWithQuery(<StatementView response={notLoadedResponse} />);
   openActual("Admin Expenses", 0);
 
   let dialog = screen.getByRole("dialog", { name: "Admin Expenses" });
   expect(within(dialog).getByRole("row", { name: /Diesel/ })).toHaveTextContent("–₹5");
-  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("–₹30₹30.06exact–");
+  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("–Total withheld–");
   expect(within(dialog).getAllByLabelText("Budget not loaded for this plant")).toHaveLength(8);
-  expect(within(dialog).queryByText("Total withheld")).not.toBeInTheDocument();
+  expect(within(dialog).queryByText("₹30.06exact")).not.toBeInTheDocument();
 
   cleanup();
   renderWithQuery(<StatementView response={notLoadedResponse} />);
   fireEvent.click(within(screen.getByRole("row", { name: "Grand total" })).getAllByRole("button")[0]);
   dialog = screen.getByRole("dialog", { name: "Grand Total" });
   expect(within(dialog).getByRole("row", { name: /unmapped-GL/ })).toHaveTextContent("–₹2–");
-  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("–₹32₹32.07exact–");
-  expect(within(dialog).queryByText("Total withheld")).not.toBeInTheDocument();
+  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("–Total withheld–");
+  expect(within(dialog).queryByText("₹32.07exact")).not.toBeInTheDocument();
 });
 
 test("the leaf actual transactions path is unchanged for a not loaded block", async () => {

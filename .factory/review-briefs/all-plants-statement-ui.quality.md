@@ -1,4 +1,36 @@
-# Branch-wide plan-contract review brief
+# Review brief — all-plants-statement-ui — quality lens
+
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
+
+LENS: QUALITY. Correctness, regressions, gaps in the implementer's tests,
+API/contract drift, and maintainability. Check approved-deliverable presence and
+reachability FIRST: every deliverable a plan contract, acceptance criterion, or
+the reviewer focus names must be genuinely implemented AND reachable (registered,
+invoked — not merely defined in a file nothing imports); an absent or unreachable
+deliverable is a blocking finding even when the rest is clean. Flag
+single-responsibility violations and incoherent file/folder organisation against
+the reviewer focus (never a mandated layout). Structure-for-growth in shared
+infrastructure is NOT over-engineering; reserve that finding for speculative
+abstraction. Enforce the minimal-diff discipline (a new dependency where the
+stdlib suffices, reimplementing an existing helper, sprawl where a surgical
+change would do) — but a diff that drops validation, error handling, security, or
+accessibility to look smaller is the OPPOSITE finding. The constitution's coding
+standards are law: flag deviations you can see in the diff. Assess cyclomatic
+complexity of every changed function; genuinely knotted control flow (roughly
+>10 independent paths) is blocking and must name its decomposition.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
+CONTRACT VERDICTS (mandatory, machine-parsed). In overall_explanation, emit ONE
+line per plan contract listed under "Plan contracts" below, exactly in this form:
+
+VERDICT <contract-id>: implemented|partial|missing — <file:line evidence>
+
+Every listed contract must get a line. Do not rename contract ids.
 
 For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
 
@@ -86,32 +118,3 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] node_modules is materialised in shell-freshness-api: node_modules is fully installed in THIS worktree as of 2026-09-14: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host before delegating, because forge task start always cuts a fresh worktree without node_modules and the sandbox can neither reach the registry nor read the host cache. No product file changed - node_modules is gitignored. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry. If a package is genuinely missing, raise a signal naming it.
 - [high] assistant-streaming-and-shell: both design skills must be READ, not claimed: This task is user_facing, so harness.yaml requires emil-design-eng AND frontend-design to be loaded, USED and attested; the recorder refuses a user-facing automated artifact without both in skills_used. On the assistant story a delegate run CLAIMED 'Applied emil-design-eng and frontend-design' while its job log contained ZERO occurrences of frontend-design and only a 'wc -l' of the other, and it took three runs before either was genuinely read. The orchestrator greps the job log for an actual read (sed/cat of the SKILL.md at /Users/caw-dev-m4-5/.codex/skills/<name>/SKILL.md) and will not attest a skill whose file was never opened. Read BOTH files in full and apply them to the streamed phase states, the six-state freshness pill and the docked panel; if you genuinely find nothing to change, say so and name at least two specific rules you checked against.
 - [high] node_modules is materialised in assistant-streaming-and-shell: node_modules is fully installed in THIS worktree as of 2026-09-14: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host before delegating. No product file changed - node_modules is gitignored. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry. If a package is genuinely missing, raise a signal naming it.
-
-## Task all-plants-backend
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-- `docs/decisions/0036-all-plants-scope-for-the-poc.md` — supersedes 0030; restates the product
-  call with the PoC budget rule and the assistant left untouched.
-- `docs/decisions/0032-master-generated-from-workbook.md` — accepted; generator plus
-  classification table. Rejected: hand-authoring ~3,000 entries; a runtime master (0014).
-- `docs/decisions/0034-poc-budget-owner-plant.md` — supersedes 0031. Rejected: plant-keyed
-  batches and an outline object for a budget that does not exist.
-- `docs/decisions/0037-ask-untouched-in-multi-plant.md` — supersedes 0035. Rejected: any
-  assistant work in this story; the demo cost is stated in the record.
-- Tooling: no new dependency; `exceljs` reads the workbooks; the generator is a ts-node script
-  in the backend workspace so it shares the TypeScript outline helper without a loader. No
-  migration of any kind.
-- Contradicted lesson, deliberately: none.
