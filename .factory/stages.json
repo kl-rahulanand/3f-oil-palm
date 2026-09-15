@@ -4,13 +4,12 @@
     {
       "id": "all-plants-statement-ui",
       "title": "Render the not-loaded budget as a dash and mark provisional selections",
-      "status": "done",
-      "task_sha256": "62f9a90ec164f3181597e8b9214fc283be558285c02a343dd8992d3c6e2c1006"
+      "status": "done"
     },
     {
       "id": "all-plants-backend",
       "title": "Every plant in the master, DUB owns the budget, non-owner plants report a not-loaded budget",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

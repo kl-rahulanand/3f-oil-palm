@@ -1,33 +1,5 @@
 {
   "id": "all-plants-backend",
   "title": "Every plant in the master, DUB owns the budget, non-owner plants report a not-loaded budget",
-  "status": "done",
-  "started_at": "2026-09-15T12:53:37+00:00",
-  "base_sha": "6cd492db16ad5be14dc8b11d0aa625de3ca7fe7d",
-  "dirty_at_start": {},
-  "task_sha256": "2e8741d16914c2022a25d300d487dcc6401dc582a138e59c5a6f2e0cf9218a7c",
-  "local_review_stamp": {
-    "stage_id": "all-plants-backend",
-    "base_sha": "6cd492db16ad5be14dc8b11d0aa625de3ca7fe7d",
-    "delta_id": "638b1aa013ad929ecda7e4bf294c42179acec8f7029053436aea25813754d1e8",
-    "contract_sha256": "2e8741d16914c2022a25d300d487dcc6401dc582a138e59c5a6f2e0cf9218a7c",
-    "recorded_at": "2026-09-15T14:04:02+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-15T14:04:04+00:00",
-  "measured": {
-    "strays": [],
-    "files": 35,
-    "lines": 2213,
-    "budget": {
-      "files": 30,
-      "lines": 2600
-    },
-    "test_id_misses": []
-  }
+  "status": "done"
 }
