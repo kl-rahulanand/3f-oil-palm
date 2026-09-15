@@ -1,0 +1,1 @@
+{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-15T08:57:58+00:00", "story": "ask-period-control", "detail": "A statement question that names no period now asks which period to use instead of refusing, and every settled answer carries a control that moves it to another period without retyping the question. Me"}

@@ -70,6 +70,15 @@ decision **0027** fixes Bedrock in `ap-south-1` and its data boundary. Corrected
 - **t-apc-c6** (ask-period-continuation): Concurrency is UNCHANGED: use-ask.ts:62 still rejects a second request while one runs and ask-panel.tsx:66 still disables suggestions and the composer from the global isPending. Per-turn pending is presentation only. Per-request controllers would rewrite cancellation and streamed-phase ownership, which is where the behaviour proven by ask-panel.test.tsx:450 lives; that test must still pass unchanged.
 - **t-apc-c7** (ask-period-continuation): Frontend leaves cover: rendering a periodChoice; the exact continuation request body including untrimmed whitespace; the untouched clarify.options path; a non-success typed response keeping the buttons; and a thrown transport failure keeping the buttons. Each judged by its testcase NAME, never its executed count - a --name matching nothing still exits 0 reporting 'tests 1' with the FILE PATH as the testcase name.
 - **t-apc-c8** (ask-period-continuation): user_facing: true. emil-design-eng and frontend-design are loaded and the work is done with them; the recorder refuses this task's test artifact unless skills_used attests both. The buttons live in an existing dense panel - match the surrounding weight rather than introduce a new visual idiom, and keep the pending and failure states legible at the 360px docked width as well as the page width.
+- **t-apca-c1** (ask-period-control-on-answers): A response whose responseClass is success and which carries periodControl renders it as a compact labelled native <select> ('Period') with value bound to periodControl.current. NOT the .ask-options pill buttons task 2 uses for the recovery: those style an unselected pill and have no selected state, while a settled answer must SHOW which period it is on. A native select also gives keyboard and screen-reader behaviour for free and fits the 360px dock.
+- **t-apca-c2** (ask-period-control-on-answers): Informational, clarification and failure responses render NO period control, and the leaf proving it uses fixtures that DELIBERATELY carry a periodControl - AskResponse is a flat optional interface, so a renderer that ignores responseClass passes a fixture that merely omits the field.
+- **t-apca-c3** (ask-period-control-on-answers): When periodControl.current is null the answer renders periodControl.coverage as plain text and NO defaulted control. Measured: 'Show Actual and Budget by GL code' succeeds with no time window at all and sums every loaded month, so defaulting a control there would invent a period the answer never used.
+- **t-apca-c4** (ask-period-control-on-answers): Picking another option calls continueTurn(turn.id, turn.question, { ...response.selection, timeWindow: option.timeWindow }) and nothing else. continueTurn (use-ask.ts:97) already marks only that turn pending, keeps the previous response through the flight, attaches a typed refusal or a thrown transport failure to that turn, and replaces ONLY on success - task 2 shipped and proved it, so none of it is reimplemented.
+- **t-apca-c5** (ask-period-control-on-answers): A period switch NEVER CHANGES the question: turn.question passes to continueTurn untouched - not trimmed, rebuilt or appended to. The contract's first draft claimed the question stays 'exactly as typed'; that was already false because use-ask.ts:86 stores question: trimmed on every path. Human round narrowed the claim to what is true rather than widening this task into the shared ask path.
+- **t-apca-c6** (ask-period-control-on-answers): SuccessAnswer renders turn.isPending and turn.error. It takes only `response` today (ask-panel.tsx:193), so the state continueTurn already sets reaches it nowhere and a period switch would show neither that it was working nor why it failed. This is presentation of existing state, mirroring the clarification branch at ask-panel.tsx:141-167.
+- **t-apca-c7** (ask-period-control-on-answers): The period control is disabled while the panel is globally pending, as the suggestions and composer already are (ask-panel.tsx:72,110). Otherwise a control on a second answer stays clickable during another request, continueTurn silently returns false (use-ask.ts:98), and the user gets no feedback.
+- **t-apca-c8** (ask-period-control-on-answers): The click leaf does not assert only on the eventual API request - that cannot distinguish continueTurn from a prohibited direct api.ask call. It also proves the continuation behaviour reaches the screen: targeted in-place pending, the previous answer retained, and a visible failure.
+- **t-apca-c9** (ask-period-control-on-answers): The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on.
 
 ### Lessons in force
 
@@ -118,11 +127,14 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at d02b60f95236
+- verify.py: ok at 19cd453d68e7
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - Story-level roll-up for ask-period-control across three shipped tasks (PRs #54, #55, #56). 24 required leaves in total - 11 backend, 6 then 7 frontend - each verified individually by the discriminator its runner actually needs, not by exit code. For node's junit-run that is the testcase NAME (a --name matching nothing still reports 'tests 1', with the FILE PATH as the testcase name). For vitest it is present AND NOT skipped AND NOT failed (vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped, so a NAME match proves nothing). Both false-green mechanisms were found by running a negative control, and both are ledgered as lessons. Nine review lenses across the three tasks all finished at 10/approve with zero blocking findings outstanding.
+  - 1 command(s) recorded, e.g. `python3 factory/scripts/verify.py`
 
 ## Task ask-period-continuation
 
@@ -188,6 +200,15 @@ decision **0027** fixes Bedrock in `ap-south-1` and its data boundary. Corrected
 - **t-apcb-c8** (ask-period-contract-and-branch): Hermetic tests over a fake provider and warehouse cover the backend half of the whole matrix, not a sample: missing period; a same-day period that is NOT among the offered ones; a partial-month range; a multi-month range; an empty period list; each of department, function and plant absent AND ambiguous; no mapping; a successful statement answer; a successful governed answer with a window; a successful governed answer with no window. Judged by junit testcase NAME and executed count, never an exit code (D-0024, D-0031).
 - **t-apcb-c9** (ask-period-contract-and-branch): New backend test files are registered in backend/package.json and tools/quality-gate.test.mjs, or CI runs none of them. The new failure messages belong in backend/src/chat/chat.constants.ts, which IS listed in .prettierignore, so under D-0006 this task formats it, removes the path, and drops its ignoredBaselineHashes entry in the same change. chat.service.ts, contract/src/api.ts and selection-resolver.service.ts are NOT ignored - checked against .prettierignore, not assumed.
 - **t-apcb-c10** (ask-period-contract-and-branch): Every successful data answer in BOTH domains carries periodControl built by the SERVER - statement and governed-financial - including current: null plus the coverage line for an answer that resolved to no window. The story plan's 'server half / client half' split for C5 and C6 means the server half is THIS task: a frontend task cannot create data the API does not send. Task 3 renders it, replaces in place, and owns the copy.
+- **t-apca-c1** (ask-period-control-on-answers): A response whose responseClass is success and which carries periodControl renders it as a compact labelled native <select> ('Period') with value bound to periodControl.current. NOT the .ask-options pill buttons task 2 uses for the recovery: those style an unselected pill and have no selected state, while a settled answer must SHOW which period it is on. A native select also gives keyboard and screen-reader behaviour for free and fits the 360px dock.
+- **t-apca-c2** (ask-period-control-on-answers): Informational, clarification and failure responses render NO period control, and the leaf proving it uses fixtures that DELIBERATELY carry a periodControl - AskResponse is a flat optional interface, so a renderer that ignores responseClass passes a fixture that merely omits the field.
+- **t-apca-c3** (ask-period-control-on-answers): When periodControl.current is null the answer renders periodControl.coverage as plain text and NO defaulted control. Measured: 'Show Actual and Budget by GL code' succeeds with no time window at all and sums every loaded month, so defaulting a control there would invent a period the answer never used.
+- **t-apca-c4** (ask-period-control-on-answers): Picking another option calls continueTurn(turn.id, turn.question, { ...response.selection, timeWindow: option.timeWindow }) and nothing else. continueTurn (use-ask.ts:97) already marks only that turn pending, keeps the previous response through the flight, attaches a typed refusal or a thrown transport failure to that turn, and replaces ONLY on success - task 2 shipped and proved it, so none of it is reimplemented.
+- **t-apca-c5** (ask-period-control-on-answers): A period switch NEVER CHANGES the question: turn.question passes to continueTurn untouched - not trimmed, rebuilt or appended to. The contract's first draft claimed the question stays 'exactly as typed'; that was already false because use-ask.ts:86 stores question: trimmed on every path. Human round narrowed the claim to what is true rather than widening this task into the shared ask path.
+- **t-apca-c6** (ask-period-control-on-answers): SuccessAnswer renders turn.isPending and turn.error. It takes only `response` today (ask-panel.tsx:193), so the state continueTurn already sets reaches it nowhere and a period switch would show neither that it was working nor why it failed. This is presentation of existing state, mirroring the clarification branch at ask-panel.tsx:141-167.
+- **t-apca-c7** (ask-period-control-on-answers): The period control is disabled while the panel is globally pending, as the suggestions and composer already are (ask-panel.tsx:72,110). Otherwise a control on a second answer stays clickable during another request, continueTurn silently returns false (use-ask.ts:98), and the user gets no feedback.
+- **t-apca-c8** (ask-period-control-on-answers): The click leaf does not assert only on the eventual API request - that cannot distinguish continueTurn from a prohibited direct api.ask call. It also proves the continuation behaviour reaches the screen: targeted in-place pending, the previous answer retained, and a visible failure.
+- **t-apca-c9** (ask-period-control-on-answers): The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on.
 
 ### Lessons in force
 
@@ -222,11 +243,14 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at d02b60f95236
+- verify.py: ok at 19cd453d68e7
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - Story-level roll-up for ask-period-control across three shipped tasks (PRs #54, #55, #56). 24 required leaves in total - 11 backend, 6 then 7 frontend - each verified individually by the discriminator its runner actually needs, not by exit code. For node's junit-run that is the testcase NAME (a --name matching nothing still reports 'tests 1', with the FILE PATH as the testcase name). For vitest it is present AND NOT skipped AND NOT failed (vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped, so a NAME match proves nothing). Both false-green mechanisms were found by running a negative control, and both are ledgered as lessons. Nine review lenses across the three tasks all finished at 10/approve with zero blocking findings outstanding.
+  - 1 command(s) recorded, e.g. `python3 factory/scripts/verify.py`
 
 ## Task ask-period-control-on-answers
 
@@ -338,8 +362,11 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at d02b60f95236
+- verify.py: ok at 19cd453d68e7
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
   - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - Story-level roll-up for ask-period-control across three shipped tasks (PRs #54, #55, #56). 24 required leaves in total - 11 backend, 6 then 7 frontend - each verified individually by the discriminator its runner actually needs, not by exit code. For node's junit-run that is the testcase NAME (a --name matching nothing still reports 'tests 1', with the FILE PATH as the testcase name). For vitest it is present AND NOT skipped AND NOT failed (vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped, so a NAME match proves nothing). Both false-green mechanisms were found by running a negative control, and both are ledgered as lessons. Nine review lenses across the three tasks all finished at 10/approve with zero blocking findings outstanding.
+  - 1 command(s) recorded, e.g. `python3 factory/scripts/verify.py`

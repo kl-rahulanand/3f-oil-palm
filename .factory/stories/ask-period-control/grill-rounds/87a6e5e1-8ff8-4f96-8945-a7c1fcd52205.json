@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Two decision records carry the reduced scope: 0033 (for the PoC the format's budget belongs to the plant the master names, DUB; non-owner plants get the not-loaded dash; plant-keyed budgets and the outline object are deferred until a second plant's budget arrives; supersedes 0030) and 0034 (a statement question takes its plant from the docked report's scope or from the question, department and function come from the master, otherwise a 'name a plant' message; the typed plant picker is deferred to ask-period-control; supersedes 0032). Accept both, confirmed by Rahul Anand?",
+      "options": [
+        "Accept both (Recommended)",
+        "Do not accept yet"
+      ],
+      "chosen": "Accept both (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T08:30:04.322332+00:00",
+  "session_id": "1fef63e6-aeb7-4446-a7f8-a3df59d2fae0"
+}

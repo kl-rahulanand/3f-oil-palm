@@ -1,0 +1,10 @@
+{
+  "event": "open",
+  "id": "Q-0042-f56f",
+  "profile": "quickfix",
+  "reason": "ask-period-control story closeout (reconcile-as-shipped): all three tasks are merged (#54, #55, #56) and each carried its own clean three-lens pass, but the story-level gate needs reviews/{quality,performance,security}.json carrying contract verdicts for all 27 plan contracts, plus a functional record. Roll the per-task verdicts up rather than re-reviewing shipped code, and record the live functional evidence honestly including the one case that could not be exercised.",
+  "started_at": "2026-09-15T08:56:39+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false
+}
