@@ -37,9 +37,7 @@ after(async () => {
 
 test("create then list returns email admin user view without password fields", async () => {
   const email = uniqueEmail();
-  const created = await createViaController(email, ["analyst"], [
-    { attribute: "state", value: "NSW" },
-  ]);
+  const created = await createViaController(email, ["analyst"], [{ attribute: "plant", value: "DUB" }]);
 
   const user = (await controller.list()).find((u) => u.id === created.id);
 
@@ -48,7 +46,7 @@ test("create then list returns email admin user view without password fields", a
   assert.equal(user.display_name, "Test User");
   assert.equal(user.is_active, true);
   assert.deepEqual(user.roles, ["analyst"]);
-  assert.deepEqual(user.scope, [{ attribute: "state", value: "NSW" }]);
+  assert.deepEqual(user.scope, [{ attribute: "plant", value: "DUB" }]);
   assert.equal("passwordHash" in (user as unknown as Record<string, unknown>), false);
   assert.equal("mustReset" in (user as unknown as Record<string, unknown>), false);
   assert.deepEqual(await latestAdminEvent(), {
@@ -60,9 +58,7 @@ test("create then list returns email admin user view without password fields", a
 
 test("patch replaces roles and scope, and is_active=false revokes refresh tokens", async () => {
   const email = uniqueEmail();
-  const { id } = await createViaController(email, ["analyst"], [
-    { attribute: "state", value: "NSW" },
-  ]);
+  const { id } = await createViaController(email, ["analyst"], [{ attribute: "plant", value: "DUB" }]);
   const token = await sessions.create(id);
   assert.ok(await sessions.rotate(token.refreshToken));
 
@@ -78,13 +74,11 @@ test("patch replaces roles and scope, and is_active=false revokes refresh tokens
   const scopeUpdated = await controller.update(
     id,
     {
-      scope: [{ attribute: "serviceability", value: "serviceable" }],
+      scope: [{ attribute: "gl_code", value: "50001201" }],
     },
     actor,
   );
-  assert.deepEqual(scopeUpdated.scope, [
-    { attribute: "serviceability", value: "serviceable" },
-  ]);
+  assert.deepEqual(scopeUpdated.scope, [{ attribute: "gl_code", value: "50001201" }]);
 
   const deactivated = await controller.update(id, { is_active: false }, actor);
   assert.equal(deactivated.is_active, false);
@@ -153,12 +147,7 @@ test("create with a non-existent role errors and rolls back the user row", async
 
 test("create rolls back the user row when the audit write fails", async () => {
   const email = uniqueEmail();
-  const failingController = new UsersController(
-    db,
-    rbac,
-    sessions,
-    failingAuditService(),
-  );
+  const failingController = new UsersController(db, rbac, sessions, failingAuditService());
 
   const error = await captureHttpException(() =>
     failingController.create(
@@ -185,7 +174,10 @@ test("create with an unknown scope value returns 400", async () => {
         email,
         display_name: "Test User",
         roles: ["analyst"],
-        scope: [{ attribute: "state", value: "not-a-state" }],
+        // The attribute is a REAL one (the create test above proves plant/DUB is accepted),
+        // so the 400 comes from VALUE validation. The old state/not-a-state fixture failed
+        // at attribute resolution instead, and would have passed with value validation gone.
+        scope: [{ attribute: "plant", value: "not-a-plant" }],
       },
       actor,
     ),
@@ -199,9 +191,7 @@ test("patch with a non-existent role errors and preserves existing roles", async
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], []);
 
-  const error = await captureHttpException(() =>
-    controller.update(id, { roles: ["role-that-does-not-exist"] }, actor),
-  );
+  const error = await captureHttpException(() => controller.update(id, { roles: ["role-that-does-not-exist"] }, actor));
 
   assert.ok(error.status === 400 || error.status === 409);
   const user = (await controller.list()).find((u) => u.id === id);
@@ -216,7 +206,8 @@ test("patch with an unknown scope value keeps the safe validation 400", async ()
   const error = await captureHttpException(() =>
     controller.update(
       id,
-      { scope: [{ attribute: "state", value: "not-a-state" }] },
+      // Real attribute, unknown value - see the create-side note above.
+      { scope: [{ attribute: "plant", value: "not-a-plant" }] },
       actor,
     ),
   );
@@ -227,20 +218,12 @@ test("patch with an unknown scope value keeps the safe validation 400", async ()
 test("deactivate preserves an active user when the audit write fails", async () => {
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], []);
-  const failingController = new UsersController(
-    db,
-    rbac,
-    sessions,
-    failingAuditService(),
-  );
+  const failingController = new UsersController(db, rbac, sessions, failingAuditService());
 
   const error = await captureHttpException(() => failingController.deactivate(id, actor));
 
   assert.deepEqual(error, { status: 500, message: USERS_MESSAGES.internalError });
-  const rows = await db
-    .select({ isActive: users.isActive })
-    .from(users)
-    .where(eq(users.id, id));
+  const rows = await db.select({ isActive: users.isActive }).from(users).where(eq(users.id, id));
   assert.deepEqual(rows, [{ isActive: true }]);
 });
 
@@ -248,20 +231,12 @@ test("deactivate rolls back the active flag and audit when session revocation fa
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], []);
   const auditCountBefore = await countAdminEvents();
-  const failingController = new UsersController(
-    db,
-    rbac,
-    failingSessionService(),
-    audit,
-  );
+  const failingController = new UsersController(db, rbac, failingSessionService(), audit);
 
   const error = await captureHttpException(() => failingController.deactivate(id, actor));
 
   assert.deepEqual(error, { status: 500, message: USERS_MESSAGES.internalError });
-  const rows = await db
-    .select({ isActive: users.isActive })
-    .from(users)
-    .where(eq(users.id, id));
+  const rows = await db.select({ isActive: users.isActive }).from(users).where(eq(users.id, id));
   assert.deepEqual(rows, [{ isActive: true }]);
   assert.equal(await countAdminEvents(), auditCountBefore);
 });
@@ -270,22 +245,12 @@ test("patch deactivation rolls back the active flag and audit when session revoc
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], []);
   const auditCountBefore = await countAdminEvents();
-  const failingController = new UsersController(
-    db,
-    rbac,
-    failingSessionService(),
-    audit,
-  );
+  const failingController = new UsersController(db, rbac, failingSessionService(), audit);
 
-  const error = await captureHttpException(() =>
-    failingController.update(id, { is_active: false }, actor),
-  );
+  const error = await captureHttpException(() => failingController.update(id, { is_active: false }, actor));
 
   assert.deepEqual(error, { status: 500, message: USERS_MESSAGES.internalError });
-  const rows = await db
-    .select({ isActive: users.isActive })
-    .from(users)
-    .where(eq(users.id, id));
+  const rows = await db.select({ isActive: users.isActive }).from(users).where(eq(users.id, id));
   assert.deepEqual(rows, [{ isActive: true }]);
   assert.equal(await countAdminEvents(), auditCountBefore);
 });
@@ -315,10 +280,7 @@ async function createViaController(
   roles: string[],
   scope: Array<{ attribute: string; value: string }>,
 ): Promise<{ id: string }> {
-  const created = await controller.create(
-    { email, display_name: "Test User", roles, scope },
-    actor,
-  );
+  const created = await controller.create({ email, display_name: "Test User", roles, scope }, actor);
   createdEmails.push(email);
   return created;
 }
@@ -334,10 +296,7 @@ async function countUsers(email: string): Promise<number> {
 }
 
 async function countAdminEvents(): Promise<number> {
-  const rows = await db
-    .select({ count: count() })
-    .from(auditEvents)
-    .where(eq(auditEvents.userId, actor.id));
+  const rows = await db.select({ count: count() }).from(auditEvents).where(eq(auditEvents.userId, actor.id));
   return Number(rows[0].count);
 }
 
@@ -368,9 +327,7 @@ function makeContext(req: AuthedRequest): ExecutionContext {
   } as ExecutionContext;
 }
 
-async function captureHttpException(
-  fn: () => Promise<unknown>,
-): Promise<{ status: number; message: string }> {
+async function captureHttpException(fn: () => Promise<unknown>): Promise<{ status: number; message: string }> {
   try {
     await fn();
   } catch (err) {
@@ -378,10 +335,7 @@ async function captureHttpException(
     const response = err.getResponse();
     return {
       status: err.getStatus(),
-      message:
-        typeof response === "string"
-          ? response
-          : String((response as { message?: unknown }).message),
+      message: typeof response === "string" ? response : String((response as { message?: unknown }).message),
     };
   }
   assert.fail("expected HttpException");
@@ -397,8 +351,11 @@ function makeUsersTestWarehouse(): Warehouse {
       return null;
     },
     async distinctValues(_goldObject: string, column: string): Promise<string[]> {
-      if (column === "state") return ["NSW"];
-      if (column === "serviceable_pincode") return ["serviceable"];
+      // This app scopes rows by plant (governed-financial.scopeColumn); it has no "state"
+      // dimension, so a state-scoped fixture never even reached this stub - it failed in
+      // resolveScopeAttribute, which made the negative tests below pass for the wrong reason.
+      if (column === "plant") return ["DUB"];
+      if (column === "gl_code") return ["50001201"];
       return [];
     },
   };

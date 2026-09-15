@@ -1,0 +1,10 @@
+{
+  "event": "open",
+  "id": "Q-0037-8387",
+  "profile": "quickfix",
+  "reason": "Ask does not render the money format the backend now declares: cell() only handles 'percent', so amount columns and the totals strip still show raw warehouse strings ('11512712.07'). Reuse formatMoney from statement-view rather than adding a second formatter, guarding the shapes Ask can receive that the MIS payload cannot - totals arrive as JS numbers, cells as numeric(18,2) strings - and leaving anything that is not a fixed-scale amount untouched. Frontend half of Q-0036-464c.",
+  "started_at": "2026-09-15T04:43:20+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false
+}

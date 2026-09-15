@@ -69,7 +69,17 @@ export async function seedConfiguredUsers(
       await db.insert(userRoles).values({ userId, role }).onConflictDoNothing();
     }
     if (seedUser.roles.includes("admin")) {
-      await db.insert(userScope).values({ userId, attribute: "plant", value: "DUB" }).onConflictDoNothing();
+      // The MIS statement is scoped to ONE selector set, so statementRequest requires exactly
+      // one department, one function and one plant on the signed-in user. Granting only the
+      // plant left every statement question unanswerable from Ask. These are the canonical
+      // values in mis-mapping-master, i.e. the same triple the MIS Reports dropdowns resolve.
+      for (const [attribute, value] of [
+        ["department", "Agriculture"],
+        ["function", "Nursery"],
+        ["plant", "DUB"],
+      ] as const) {
+        await db.insert(userScope).values({ userId, attribute, value }).onConflictDoNothing();
+      }
     }
   }
 
