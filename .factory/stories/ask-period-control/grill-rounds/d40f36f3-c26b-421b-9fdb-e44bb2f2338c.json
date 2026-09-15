@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Task 1 needs a period-free mapping lookup on SelectionResolverService. chat.service.ts:56 injects the CONCRETE class, but ISelectionResolverService is the declared port and 6+ test fakes implement it. Where should the new method live?",
+      "options": [
+        "Concrete class only, record the gap (Recommended)",
+        "Extend the port and update every fake"
+      ],
+      "chosen": "Concrete class only, record the gap (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T06:29:27.602465+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

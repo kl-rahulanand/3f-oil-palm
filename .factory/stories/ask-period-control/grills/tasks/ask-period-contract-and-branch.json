@@ -1,0 +1,101 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "ask-period-contract-and-branch",
+  "verdict": "pass",
+  "summary": "Cold read of the ask-period-contract-and-branch contract. Six findings. The two that would have cost a paused worker: the wire shape was described in prose but never declared, so tasks 2 and 3 would have guessed it; and the two period sources genuinely disagree - the resolver emits from == to == the first of the month while a natural-language July arrives as a full-month range - so 'current' had no equality rule. The read also caught that this task's own required_tests already demanded server behaviour the plan had assigned to frontend task 3, that the new lookup would break DUB-NUR aliases unless it reuses canonicalPlant(), and that junit-run reports success on a name filter matching nothing, so the proof plan needed a negative control rather than a nominal one.",
+  "questions_asked": 1,
+  "gaps": [
+    "The response carrier was not specified enough to implement compatibly: AskResponse is a flat optional-field interface, yet the contract claimed the two carriers are mutually exclusive and that periodControl has a 'marked current' entry without naming the carrier fields, the entry-list field, the current marker, or whether exclusivity is type-enforced or merely tested. Tasks 2 and 3 would have had to guess the wire shape.",
+    "Period-window canonicalization was unstated, and the two sources genuinely disagree: the resolver's monthly options carry from == to == the first of the month (selection-resolver.service.ts:133) while a natural-language 'July 2026' reaches statementPeriod as 2026-07-01..2026-07-31. With no canonical form there is no self-evident equality rule for 'current'.",
+    "The scope and period messages under-specified settled story requirements: the roadmap requires a scope failure to direct the user to an administrator, but the leaf proved only that it names an attribute, and periodChoice had no prompt or message field at all, so an implementation could satisfy the task while failing the approved story.",
+    "The new resolver seam had an unresolved standards decision - whether ISelectionResolverService and its six-plus test fakes must change - and, more dangerously, no requirement to reuse canonicalPlant(). resolve() canonicalises the plant before matching, so a lookup comparing raw strings would report 'no mapping' for DUB-NUR and the display aliases that work today, and a leaf testing only an already-canonical DUB would pass while that regressed.",
+    "The proof plan named no negative control. tools/junit-run.mjs reports success when its --name filter matches NOTHING, so a typo in a leaf id is indistinguishable from a pass and 'check name and count' is not a procedure."
+  ],
+  "contradictions": [
+    "C5/C6 ownership contradicted the task split: the story plan assigns them to frontend-only task 3, while this task's recorded required_tests already demand the SERVER prove both a successful period control and no control for a no-window governed answer. A frontend task cannot create data the API does not send."
+  ],
+  "resolutions": [
+    "The contract now gives the exact wire shape - AskPeriodOption, AskPeriodChoice and AskPeriodControl in TypeScript, with periodChoice carrying prompt, base selection, verbatim question and options, and periodControl carrying current (nullable), options and an optional coverage line - and states that exclusivity is asserted BY TEST because AskResponse is a flat optional-field interface, not by the type.",
+    "The contract defines one canonical emitted window - grain month, the domain's timeColumn, first to LAST day of the month, not the resolver's from == to point, because the client posts it back as a real query window - and defines 'current' as a comparison BY MONTH, requiring both a clicked single-day period and a natural-language whole month to resolve to the same current entry.",
+    "The outcome table now requires the scope message to name the first offender AND direct the user to an administrator, and periodChoice.prompt is a contract field that must name the missing part.",
+    "HUMAN ROUND: the lookup goes on the concrete SelectionResolverService only; chat.service.ts:56 injects the concrete class so no fake breaks, and the port gap is recorded as deferral D-0047 with a trigger. The contract separately REQUIRES the lookup to reuse canonicalPlant() and requires an alias to be tested, not just a canonical DUB.",
+    "The Proof section now requires a reproducible negative control before any green is trusted: for each of the eleven leaves, run once with a deliberately wrong --name and confirm ZERO executed, then with the real name and confirm a non-zero count and the testcase name, because a leaf whose executed count is zero has not run whatever the exit code says (D-0024, D-0031).",
+    "A tenth acceptance criterion and plan contract are added to the frontier task: the server builds periodControl for BOTH domains including the current: null plus coverage case, and task 3 renders it, replaces in place and owns the copy. The contract carries a section naming the ownership explicitly so the plan's 'server half / client half' wording cannot be read two ways."
+  ],
+  "citations": [
+    {
+      "finding": "The response carrier was not specified enough to implement compatibly: AskResponse is a flat optional-field interface, yet the contract claimed the two carriers are mutually exclusive and that periodControl has a 'marked current' entry without naming the carrier fields, the entry-list field, the current marker, or whether exclusivity is type-enforced or merely tested. Tasks 2 and 3 would have had to guess the wire shape.",
+      "source": "contract/src/api.ts:496"
+    },
+    {
+      "finding": "Period-window canonicalization was unstated, and the two sources genuinely disagree: the resolver's monthly options carry from == to == the first of the month (selection-resolver.service.ts:133) while a natural-language 'July 2026' reaches statementPeriod as 2026-07-01..2026-07-31. With no canonical form there is no self-evident equality rule for 'current'.",
+      "source": "backend/src/mapping/selection-resolver.service.ts:35,133; backend/src/chat/chat.service.ts:750"
+    },
+    {
+      "finding": "The scope and period messages under-specified settled story requirements: the roadmap requires a scope failure to direct the user to an administrator, but the leaf proved only that it names an attribute, and periodChoice had no prompt or message field at all, so an implementation could satisfy the task while failing the approved story.",
+      "source": "plans/roadmap.json:175"
+    },
+    {
+      "finding": "The new resolver seam had an unresolved standards decision - whether ISelectionResolverService and its six-plus test fakes must change - and, more dangerously, no requirement to reuse canonicalPlant(). resolve() canonicalises the plant before matching, so a lookup comparing raw strings would report 'no mapping' for DUB-NUR and the display aliases that work today, and a leaf testing only an already-canonical DUB would pass while that regressed.",
+      "source": "backend/src/mapping/selection-resolver.interface.ts:32; backend/src/mapping/selection-resolver.service.ts:53"
+    },
+    {
+      "finding": "The proof plan named no negative control. tools/junit-run.mjs reports success when its --name filter matches NOTHING, so a typo in a leaf id is indistinguishable from a pass and 'check name and count' is not a procedure.",
+      "source": "tools/junit-run.mjs:104"
+    },
+    {
+      "finding": "C5/C6 ownership contradicted the task split: the story plan assigns them to frontend-only task 3, while this task's recorded required_tests already demand the SERVER prove both a successful period control and no control for a no-window governed answer. A frontend task cannot create data the API does not send.",
+      "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md:236"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "Task 1 needs a period-free mapping lookup on SelectionResolverService. chat.service.ts:56 injects the CONCRETE class, but ISelectionResolverService is the declared port and 6+ test fakes implement it. Where should the new method live?",
+      "options": [
+        "Concrete class only, record the gap (Recommended)",
+        "Extend the port and update every fake"
+      ],
+      "chosen": "Concrete class only, record the gap (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "inspected_refs": [
+    "contract/src/api.ts:221,496,547",
+    "contract/src/measure.ts:155",
+    "backend/src/mapping/selection-resolver.service.ts:35,53,57,68,133",
+    "backend/src/mapping/selection-resolver.interface.ts:32",
+    "backend/src/chat/chat.service.ts:56,318-338,726,750",
+    "tools/junit-run.mjs:104",
+    "plans/roadmap.json:175"
+  ],
+  "current_flow": "Today: POST /api/chat -> classifiers -> selector produces a Selection -> chat.service.ts:318 sees domain mis-statement -> statementRequest (chat.service.ts:726) reads user.scope for exactly one department, function and plant and calls statementPeriod on the applied window; ANY of those four failing returns a bare undefined -> :322 answers NotSupported with one message covering all four. If a request IS built, selectionResolver.resolve() (selection-resolver.service.ts:57) matches the canonicalised triple against this.master.selections, then looks the period up in periodOptions(loadedActualMonths()) and throws SelectionPeriodUnavailableError at :68 if it is absent - answered at :331 - and :335 answers 'No mapping configured.' A successful answer carries chips including a timeWindow chip, and the Ask panel renders none of them. AskRequest.selection already exists and chat.service.ts:146 runs an edited selection verbatim, skipping the selector entirely; nothing in the UI uses that path today.",
+  "criteria_map": {
+    "AskResponse gains TWO optional fields sharing one entry type: periodChoice on a ClarificationNeeded response and periodControl on a successful data response. Two carriers, never one, so a recovery and a settled answer cannot be confused. The existing clarify { options: string[], resumesQuestion } at contract/src/api.ts:547 is UNTOUCHED - requiredTimeWindowClarify (ambiguity.ts:15) and domainRoutingAmbiguity still use it and must not regress.": "The two carriers. Verified AskResponse (contract/src/api.ts:496) is a flat optional-field interface, so exclusivity cannot be type-enforced - the contract now declares the exact TypeScript and requires a test asserting no response carries both. clarify at :547 is confirmed still used by requiredTimeShareWindowClarify and domainRoutingAmbiguity and is left untouched.",
+    "Each period entry carries a COMPLETE timeWindow - grain, column, from, to - plus value and label. The complete window is required, not a nicety: a period-less base selection has no timeWindow at all, and Selection.timeWindow (contract/src/measure.ts:155) requires grain, so an entry of only {value,label,from,to} would force the client to invent both the grain and the time column. periodChoice also carries the base Selection the selector already produced and the original question verbatim.": "The complete timeWindow. Verified Selection.timeWindow (contract/src/measure.ts:155) requires grain, and a period-less base selection has none - so {value,label,from,to} alone would force the client to invent grain and column. The contract now also fixes the canonical window as the WHOLE month, not the resolver's from == to point at selection-resolver.service.ts:133.",
+    "Choosing an offered period issues EXACTLY ZERO selector calls, proven on the SERVER where the claim lives: a hermetic ChatService test over a fake LlmProvider counts one select() call for the original question and ZERO for a request carrying AskRequest.selection. chat.service.ts:146 already runs an edited selection verbatim; this task proves it, and a frontend test could never carry this claim.": "Zero selector calls. Verified chat.service.ts:146 already runs an edited selection verbatim; the claim is therefore about whether the model was consulted, which only a call-counting fake provider on the SERVER can prove.",
+    "The four causes that today collapse into one undefined resolve in a fixed, first-match-wins order, each with its own response class and message, and ONLY THE LAST offers period options: (1) scope - any of department, function, plant absent OR ambiguous - BlockedByPolicy naming the first offending attribute in that order; (2) no mapping for the resolved triple - NotSupported, its own message; (3) no periods loaded at all - NotSupported, a message DISTINCT from a missing period; (4) period missing, unoffered, or spanning more than one - ClarificationNeeded carrying periodChoice.": "The four ordered outcomes. Verified all four collapse into one undefined at chat.service.ts:726 and one message at :322. The scope case uses BlockedByPolicy, not NotSupported, because scope attributes are provisioned (decision 0016); the contract now also requires it to direct the user to an administrator, which the roadmap criterion demands and the leaf did not prove.",
+    "That order needs a seam the resolver does not have. SelectionResolverService.resolve() (selection-resolver.service.ts:57) finds the mapping first but is only reachable with a period supplied, and throws SelectionPeriodUnavailableError at :68 before it can report anything else - so today 'no mapping' and 'no periods loaded' are indistinguishable. This task adds a PERIOD-FREE mapping lookup over the same master data resolve() already uses, and chat.service.ts calls it before consulting periods. statementRequest (chat.service.ts:726) stops returning a bare undefined and returns a discriminated result naming which precondition failed.": "The period-free lookup. Verified resolve() (selection-resolver.service.ts:57) finds the mapping first but is only reachable with a period and throws at :68, so outcomes 2 and 3 are indistinguishable today. Human round put the method on the concrete class only (D-0047); the contract additionally requires it to reuse canonicalPlant() at :53 and to test an alias, since a raw-string compare would break DUB-NUR.",
+    "Eligible periods come from SelectionResolverService.options() (selection-resolver.service.ts:40) - the SAME source as the MIS Reports period dropdown, so Ask and the report screen can never disagree about which periods exist - filtered to those the asked question can actually resolve. Measured: offering the raw list would include FY 26-27 YTD, a twelve-month range, which is not_supported 4/4 for a statement because statementPeriod needs a single period point.": "Eligible periods from options(). Verified options() at :40 is the same source as the MIS Reports dropdown, and that its raw list includes FY 26-27 YTD - measured not_supported 4/4 for a statement, because statementPeriod needs a single period point.",
+    "A re-run's response carries the active batch ids that produced the displayed values. The determinism claim is about SELECTOR CALLS, not about values being stable across reloads: under decision 0028 a re-run re-authorizes and reads the currently active batches, so an identical choice may legitimately return different numbers after a batch replacement.": "Batch ids, not stable values. Verified decision 0028: a rerun re-authorizes and reads currently active batches, so the contract forbids a test asserting values are stable across reloads.",
+    "Hermetic tests over a fake provider and warehouse cover the backend half of the whole matrix, not a sample: missing period; a same-day period that is NOT among the offered ones; a partial-month range; a multi-month range; an empty period list; each of department, function and plant absent AND ambiguous; no mapping; a successful statement answer; a successful governed answer with a window; a successful governed answer with no window. Judged by junit testcase NAME and executed count, never an exit code (D-0024, D-0031).": "The backend matrix. Enumerated rather than sampled, and the Proof section now carries a reproducible negative control because tools/junit-run.mjs:104 reports success when its --name filter matches nothing.",
+    "New backend test files are registered in backend/package.json and tools/quality-gate.test.mjs, or CI runs none of them. The new failure messages belong in backend/src/chat/chat.constants.ts, which IS listed in .prettierignore, so under D-0006 this task formats it, removes the path, and drops its ignoredBaselineHashes entry in the same change. chat.service.ts, contract/src/api.ts and selection-resolver.service.ts are NOT ignored - checked against .prettierignore, not assumed.": "Registration and D-0006. Verified backend/src/chat/chat.constants.ts IS in .prettierignore with a pinned baseline hash, and that chat.service.ts, contract/src/api.ts and selection-resolver.service.ts are NOT - checked against the file rather than assumed, after an earlier cold read asserted the opposite about chat.service.ts.",
+    "Every successful data answer in BOTH domains carries periodControl built by the SERVER - statement and governed-financial - including current: null plus the coverage line for an answer that resolved to no window. The story plan's 'server half / client half' split for C5 and C6 means the server half is THIS task: a frontend task cannot create data the API does not send. Task 3 renders it, replaces in place, and owns the copy.": "Server ownership of periodControl. The plan's 'server half / client half' split for C5 and C6 was ambiguous enough that the cold read read it as frontend-only; this criterion and a contract section fix the server half here, since a frontend task cannot create data the API does not send."
+  },
+  "decision": "keep",
+  "new_abstractions": [
+    "Three contract types - AskPeriodOption, AskPeriodChoice, AskPeriodControl - and the first response fields that let the server hand the client a set of runnable alternatives rather than words to re-parse.",
+    "A canonical period window shared by the resolver's point-valued options and the selector's range-valued windows, with 'current' defined as a comparison by MONTH. This is the first place the two period representations in the codebase are reconciled.",
+    "A period-free mapping lookup on SelectionResolverService - the first way to ask whether a triple is mapped without also supplying a period, which is what makes 'no mapping' and 'no periods loaded' distinguishable at all.",
+    "statementRequest becomes a discriminated result naming which precondition failed, replacing a bare undefined that four different causes shared."
+  ],
+  "input_sha256": "3764bd95bcf6669188ce37a601efef623c430cb7a5759e29347dd3fdb2d0e3d9",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "5fad9608953f08bebff12078cd6c54b802666827d6d242e53fd896a7467443af",
+  "recorded_at": "2026-09-15T06:32:07+00:00",
+  "commit": "e0e7ce74456d315250bc205c5d37c6dfa1298cd0",
+  "approved_task_plan_sha256": "5fad9608953f08bebff12078cd6c54b802666827d6d242e53fd896a7467443af",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-15T06:32:16+00:00"
+}

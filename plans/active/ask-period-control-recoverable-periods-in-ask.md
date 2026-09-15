@@ -1,8 +1,8 @@
 ---
 issue: ask-period-control
 title: Recoverable periods in Ask
-status: awaiting-approval
-saved: 2026-09-15T06:14:48+00:00
+status: approved
+saved: 2026-09-15T06:16:16+00:00
 story: ask-period-control
 decisions_reviewed:
   - 0001-poc-engagement-scope

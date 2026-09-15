@@ -1,0 +1,34 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Which statement format should the office and mill plants use (H.O, AP-AGRI, AY-*, YG-*, C G, KA-RAM, NK, SK, VJM)? They book only Admin and Manpower cost centres.",
+      "options": [
+        "Nursery format, all rows (Recommended)",
+        "Trimmed format: Manpower + Admin only",
+        "Nursery plants only for now"
+      ],
+      "chosen": "Nursery format, all rows (Recommended)"
+    },
+    {
+      "question": "How should Department and Function be labelled for plants the client has not named? Nursery plants are clearly Agriculture / Nursery.",
+      "options": [
+        "Provisional labels, flagged (Recommended)",
+        "Single department, function = plant type",
+        "I will supply the names"
+      ],
+      "chosen": "Provisional labels, flagged (Recommended)"
+    },
+    {
+      "question": "The active story is 'Recoverable periods in Ask' (planning, no plan yet). Where does the multi-plant story go?",
+      "options": [
+        "Multi-plant first, period control after (Recommended)",
+        "Period control first, then multi-plant",
+        "Run both in parallel worktrees"
+      ],
+      "chosen": "Multi-plant first, period control after (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T06:26:20.582289+00:00",
+  "session_id": "1fef63e6-aeb7-4446-a7f8-a3df59d2fae0"
+}
