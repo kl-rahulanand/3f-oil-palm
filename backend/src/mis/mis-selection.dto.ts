@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import type {
   Environment,
   ErrorEnvelope,
@@ -65,6 +65,12 @@ class MisSelectionPlantOptionDto {
 
   @ApiProperty({ example: false })
   provisional!: boolean;
+
+  @ApiPropertyOptional({ example: "Agriculture", description: "Optional department classification for this plant." })
+  department?: string;
+
+  @ApiPropertyOptional({ example: "Nursery", description: "Optional function classification for this plant." })
+  function?: string;
 }
 
 export class MisSelectionOptionsResponseDto implements MisSelectionOptionsResponse {

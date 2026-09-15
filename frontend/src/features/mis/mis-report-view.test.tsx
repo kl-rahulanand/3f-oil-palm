@@ -17,7 +17,9 @@ vi.mock("next/navigation", () => ({ useSearchParams: () => mocks.searchParams })
 const options = {
   departments: ["Agriculture"],
   functions: ["Nursery"],
-  plants: [{ value: "DUB", label: "Agri - Nursery - DUB", aliases: ["DUB-NUR"] }],
+  plants: [
+    { value: "DUB", label: "Agri - Nursery - DUB", aliases: ["DUB-NUR"], department: "Agriculture", function: "Nursery" },
+  ],
   periods: [{ value: "2026-07-01", label: "Jul 2026", from: "2026-07-01", to: "2026-07-01" }],
 };
 
@@ -215,7 +217,14 @@ test("a plant option carrying provisional renders the plain text provisional lab
     ...options,
     plants: [
       ...options.plants,
-      { value: "H.O", label: "Corporate - Office - Head Office", aliases: [], provisional: true },
+      {
+        value: "H.O",
+        label: "Corporate - Office - Head Office",
+        aliases: [],
+        provisional: true,
+        department: "Corporate",
+        function: "Office",
+      },
     ],
   });
   renderWithQuery(<MisReportView />);
@@ -225,6 +234,94 @@ test("a plant option carrying provisional renders the plain text provisional lab
   expect(
     within(plant).getByRole("option", { name: "Corporate - Office - Head Office — Provisional labels" }),
   ).toHaveValue("H.O");
+});
+
+test("choosing a plant first fills its department and function", async () => {
+  mocks.misOptions.mockResolvedValue(tupleOptions());
+  renderWithQuery(<MisReportView />);
+
+  fireEvent.change(await screen.findByLabelText("Plant"), { target: { value: "H.O" } });
+
+  expect(screen.getByLabelText("Department")).toHaveValue("Corporate");
+  expect(screen.getByLabelText("Function")).toHaveValue("Office");
+});
+
+test("choosing a department first filters its functions and plants", async () => {
+  mocks.misOptions.mockResolvedValue({ ...tupleOptions(), functions: ["Nursery", "Flat-list-only"] });
+  renderWithQuery(<MisReportView />);
+
+  const department = await screen.findByLabelText("Department");
+  fireEvent.change(department, { target: { value: "Agriculture" } });
+
+  expect(within(screen.getByLabelText("Function")).getByRole("option", { name: "Nursery" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Office" })).not.toBeInTheDocument();
+  expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
+  expect(within(screen.getByLabelText("Plant")).getByRole("option", { name: "Agri - Nursery - DUB" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Plant")).queryByRole("option", { name: "Corporate - Office - Head Office" })).not.toBeInTheDocument();
+});
+
+test("changing a department or function clears a plant that no longer matches", async () => {
+  mocks.misOptions.mockResolvedValue(tupleOptions());
+  renderWithQuery(<MisReportView />);
+
+  const plant = await screen.findByLabelText("Plant");
+  fireEvent.change(plant, { target: { value: "DUB" } });
+  fireEvent.change(screen.getByLabelText("Function"), { target: { value: "Field" } });
+  expect(screen.getByLabelText("Plant")).toHaveValue("");
+
+  fireEvent.change(screen.getByLabelText("Function"), { target: { value: "Nursery" } });
+  fireEvent.change(screen.getByLabelText("Plant"), { target: { value: "DUB" } });
+  fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Corporate" } });
+  expect(screen.getByLabelText("Function")).toHaveValue("");
+  expect(screen.getByLabelText("Plant")).toHaveValue("");
+});
+
+test("metadata-free plants stay selectable without contributing flat selector values", async () => {
+  mocks.misOptions.mockResolvedValue({
+    ...options,
+    departments: ["Flat-list-only"],
+    functions: ["Flat-list-only"],
+    plants: [
+      { value: "DUB", label: "DUB", aliases: [] },
+      { value: "VJA", label: "Agri - Nursery - VJA", aliases: [], department: "Agriculture", function: "Nursery" },
+    ],
+  });
+  renderWithQuery(<MisReportView />);
+
+  const plant = await screen.findByLabelText("Plant");
+  expect(within(plant).getByRole("option", { name: "DUB" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Department")).getByRole("option", { name: "Agriculture" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Department")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
+  expect(within(screen.getByLabelText("Function")).getByRole("option", { name: "Nursery" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
+
+  fireEvent.change(plant, { target: { value: "VJA" } });
+  expect(screen.getByLabelText("Department")).toHaveValue("Agriculture");
+  expect(screen.getByLabelText("Function")).toHaveValue("Nursery");
+  fireEvent.change(plant, { target: { value: "DUB" } });
+  expect(screen.getByLabelText("Department")).toHaveValue("");
+  expect(screen.getByLabelText("Function")).toHaveValue("");
+});
+
+test("metadata-free plants do not preserve a function across an incompatible department", async () => {
+  mocks.misOptions.mockResolvedValue({
+    ...options,
+    plants: [
+      { value: "DUB", label: "DUB", aliases: [] },
+      { value: "VJA", label: "Agri - Nursery - VJA", aliases: [], department: "Agriculture", function: "Nursery" },
+      { value: "H.O", label: "Corporate - Office - Head Office", aliases: [], department: "Corporate", function: "Office" },
+    ],
+  });
+  renderWithQuery(<MisReportView />);
+
+  const plant = await screen.findByLabelText("Plant");
+  fireEvent.change(plant, { target: { value: "VJA" } });
+  fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Corporate" } });
+
+  expect(screen.getByLabelText("Function")).toHaveValue("");
+  expect(
+    within(screen.getByLabelText("Plant")).getByRole("option", { name: "Corporate - Office - Head Office" }),
+  ).toBeInTheDocument();
 });
 
 function chooseSelection() {
@@ -242,6 +339,17 @@ function reportParams(activeBatchIds: unknown): URLSearchParams {
     period: "2026-07-01",
     activeBatchIds: typeof activeBatchIds === "string" ? activeBatchIds : JSON.stringify(activeBatchIds),
   });
+}
+
+function tupleOptions() {
+  return {
+    ...options,
+    plants: [
+      ...options.plants,
+      { value: "VJA", label: "Agri - Field - VJA", aliases: [], department: "Agriculture", function: "Field" },
+      { value: "H.O", label: "Corporate - Office - Head Office", aliases: [], department: "Corporate", function: "Office" },
+    ],
+  };
 }
 
 function NavigationHarness() {
