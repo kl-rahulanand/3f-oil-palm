@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "How should the multi-plant story be scoped?",
+      "options": [
+        "Small: plants + mapping + dash, no Ask changes (Recommended)",
+        "Small plus the Ask plant fix",
+        "Keep the approved six-task plan"
+      ],
+      "chosen": "Small plus the Ask plant fix"
+    }
+  ],
+  "at": "2026-09-15T08:21:48.484993+00:00",
+  "session_id": "1fef63e6-aeb7-4446-a7f8-a3df59d2fae0"
+}

@@ -1,0 +1,161 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "ask-period-control-on-answers",
+  "score": 10,
+  "summary": "quality lens over ask-period-control-on-answers (3 product path(s), fe39c33..d604888, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-apca-c1: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:257 renders a labelled native select bound to periodControl.current.\nVERDICT t-apca-c2: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:131 gates SuccessAnswer by responseClass; frontend/src/features/assistant/ask-panel.test.tsx:443 uses non-success fixtures carrying periodControl.\nVERDICT t-apca-c3: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:258 renders coverage text instead of a select when current is null.\nVERDICT t-apca-c4: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:266 delegates the selected complete time window directly to onContinue with a cloned response selection.\nVERDICT t-apca-c5: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:269 passes turn.question unchanged.\nVERDICT t-apca-c6: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:285 renders the target turn's pending and error states while retaining its success response.\nVERDICT t-apca-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:265 disables the select from the panel-wide pending state.\nVERDICT t-apca-c8: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:468 verifies targeted pending state, retained content, the continuation request, and visible transport failure.\nVERDICT t-apca-c9: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:412 and frontend/src/features/assistant/ask-panel.test.tsx:421 cover statement and governed-financial success responses.\nLEFTOVERS: none shown in the supplied diff.\nThe implementation is reachable from AskPanel, keeps period controls exclusive to successful responses, and the recorded structural, typecheck, quality, and hermetic verification all passed.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-apca-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:257 renders a labelled native select bound to periodControl.current."
+    },
+    {
+      "contract_id": "t-apca-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:131 gates SuccessAnswer by responseClass; frontend/src/features/assistant/ask-panel.test.tsx:443 uses non-success fixtures carrying periodControl."
+    },
+    {
+      "contract_id": "t-apca-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:258 renders coverage text instead of a select when current is null."
+    },
+    {
+      "contract_id": "t-apca-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:266 delegates the selected complete time window directly to onContinue with a cloned response selection."
+    },
+    {
+      "contract_id": "t-apca-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:269 passes turn.question unchanged."
+    },
+    {
+      "contract_id": "t-apca-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:285 renders the target turn's pending and error states while retaining its success response."
+    },
+    {
+      "contract_id": "t-apca-c7",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:265 disables the select from the panel-wide pending state."
+    },
+    {
+      "contract_id": "t-apca-c8",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:468 verifies targeted pending state, retained content, the continuation request, and visible transport failure."
+    },
+    {
+      "contract_id": "t-apca-c9",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:412 and frontend/src/features/assistant/ask-panel.test.tsx:421 cover statement and governed-financial success responses."
+    },
+    {
+      "contract_id": "t-apcb-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c7",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c8",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c9",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c10",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c7",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c8",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "2d33530b9b12a01338de4818d1e3e3eae9d811f23eb49dfdc5b735550564ce51",
+  "brief_sha256": "31f503bd8820f613c8a491b5b44ad1319993043d928413fa8651872e58b96a12",
+  "branch_diff_digest": "7a1d94cc47440edff943cc120d6c3cbcbb0c0281f0b87c09d0d7d9cc15189fa1",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T08:50:12+00:00",
+  "commit": "d604888aaf1218c39592acff70d300259e8c246e"
+}

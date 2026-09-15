@@ -286,14 +286,123 @@
         "ask-period-continuation"
       ],
       "acceptance_criteria": [
-        "Every successful data answer in BOTH semantic domains carries a period control whose current entry is the window the answer actually ran on. A statement answer offers the loaded months; a governed-financial answer offers the same months plus the window it ran on, marked current.",
-        "Choosing another period REPLACES that answer in place rather than appending a turn, and the replacement's control shows the new period.",
-        "The asked question is NEVER rewritten. If someone asks 'for July 2026' and switches to August, their words stay exactly as typed and the answer carries the period it is now showing - the transcript records what they asked plus the period they chose, never a question they did not write.",
-        "A successful answer that resolved to NO window states that it covers all loaded data WITHIN THE ASKER'S ACCESS SCOPE and any filters the question applied, and offers no defaulted period control. Bare 'all loaded data' would overclaim: governed queries inject the user's plant scope at sqlBuilder.ts:88. Measured, this case is real - 'Show Actual and Budget by GL code' succeeds 4/4 with no time window, summing every loaded month.",
-        "Informational, clarification and failure responses carry NO period control; a clarification's periodChoice is the recovery, not a control."
-      ]
+        "A response whose responseClass is success and which carries periodControl renders it as a compact labelled native <select> ('Period') with value bound to periodControl.current. NOT the .ask-options pill buttons task 2 uses for the recovery: those style an unselected pill and have no selected state, while a settled answer must SHOW which period it is on. A native select also gives keyboard and screen-reader behaviour for free and fits the 360px dock.",
+        "Informational, clarification and failure responses render NO period control, and the leaf proving it uses fixtures that DELIBERATELY carry a periodControl - AskResponse is a flat optional interface, so a renderer that ignores responseClass passes a fixture that merely omits the field.",
+        "When periodControl.current is null the answer renders periodControl.coverage as plain text and NO defaulted control. Measured: 'Show Actual and Budget by GL code' succeeds with no time window at all and sums every loaded month, so defaulting a control there would invent a period the answer never used.",
+        "Picking another option calls continueTurn(turn.id, turn.question, { ...response.selection, timeWindow: option.timeWindow }) and nothing else. continueTurn (use-ask.ts:97) already marks only that turn pending, keeps the previous response through the flight, attaches a typed refusal or a thrown transport failure to that turn, and replaces ONLY on success - task 2 shipped and proved it, so none of it is reimplemented.",
+        "A period switch NEVER CHANGES the question: turn.question passes to continueTurn untouched - not trimmed, rebuilt or appended to. The contract's first draft claimed the question stays 'exactly as typed'; that was already false because use-ask.ts:86 stores question: trimmed on every path. Human round narrowed the claim to what is true rather than widening this task into the shared ask path.",
+        "SuccessAnswer renders turn.isPending and turn.error. It takes only `response` today (ask-panel.tsx:193), so the state continueTurn already sets reaches it nowhere and a period switch would show neither that it was working nor why it failed. This is presentation of existing state, mirroring the clarification branch at ask-panel.tsx:141-167.",
+        "The period control is disabled while the panel is globally pending, as the suggestions and composer already are (ask-panel.tsx:72,110). Otherwise a control on a second answer stays clickable during another request, continueTurn silently returns false (use-ask.ts:98), and the user gets no feedback.",
+        "The click leaf does not assert only on the eventual API request - that cannot distinguish continueTurn from a prohibited direct api.ask call. It also proves the continuation behaviour reaches the screen: targeted in-place pending, the previous answer retained, and a visible failure.",
+        "The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-apca-c1",
+          "statement": "A response whose responseClass is success and which carries periodControl renders it as a compact labelled native <select> ('Period') with value bound to periodControl.current. NOT the .ask-options pill buttons task 2 uses for the recovery: those style an unselected pill and have no selected state, while a settled answer must SHOW which period it is on. A native select also gives keyboard and screen-reader behaviour for free and fits the 360px dock.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apca-c2",
+          "statement": "Informational, clarification and failure responses render NO period control, and the leaf proving it uses fixtures that DELIBERATELY carry a periodControl - AskResponse is a flat optional interface, so a renderer that ignores responseClass passes a fixture that merely omits the field.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apca-c3",
+          "statement": "When periodControl.current is null the answer renders periodControl.coverage as plain text and NO defaulted control. Measured: 'Show Actual and Budget by GL code' succeeds with no time window at all and sums every loaded month, so defaulting a control there would invent a period the answer never used.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apca-c4",
+          "statement": "Picking another option calls continueTurn(turn.id, turn.question, { ...response.selection, timeWindow: option.timeWindow }) and nothing else. continueTurn (use-ask.ts:97) already marks only that turn pending, keeps the previous response through the flight, attaches a typed refusal or a thrown transport failure to that turn, and replaces ONLY on success - task 2 shipped and proved it, so none of it is reimplemented.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apca-c5",
+          "statement": "A period switch NEVER CHANGES the question: turn.question passes to continueTurn untouched - not trimmed, rebuilt or appended to. The contract's first draft claimed the question stays 'exactly as typed'; that was already false because use-ask.ts:86 stores question: trimmed on every path. Human round narrowed the claim to what is true rather than widening this task into the shared ask path.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apca-c6",
+          "statement": "SuccessAnswer renders turn.isPending and turn.error. It takes only `response` today (ask-panel.tsx:193), so the state continueTurn already sets reaches it nowhere and a period switch would show neither that it was working nor why it failed. This is presentation of existing state, mirroring the clarification branch at ask-panel.tsx:141-167.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apca-c7",
+          "statement": "The period control is disabled while the panel is globally pending, as the suggestions and composer already are (ask-panel.tsx:72,110). Otherwise a control on a second answer stays clickable during another request, continueTurn silently returns false (use-ask.ts:98), and the user gets no feedback.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apca-c8",
+          "statement": "The click leaf does not assert only on the eventual API request - that cannot distinguish continueTurn from a prohibited direct api.ask call. It also proves the continuation behaviour reaches the screen: targeted in-place pending, the previous answer retained, and a visible failure.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apca-c9",
+          "statement": "The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        }
+      ],
+      "write_scope": [
+        "frontend/src/features/assistant/ask-panel.tsx",
+        "frontend/src/features/assistant/ask-panel.test.tsx",
+        "frontend/app/globals.css"
+      ],
+      "required_tests": [
+        {
+          "id": "a successful statement answer renders its period select with the period it ran on selected",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a successful governed answer with a window renders its period select",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a successful answer with no window shows its coverage and no period select",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a non success response carrying a period control still renders no period select",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "picking another period calls continue turn with the cloned selection and the unchanged question",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a pending period switch shows on its own answer and a failed one keeps the answer and shows why",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the period select is disabled while the panel is globally pending",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "The control must render ONLY on success, proven with fixtures that deliberately CARRY a periodControl on non-success classes.",
+        "current: null must produce coverage text and NO control. A control defaulted to the first option invents a period the answer never used.",
+        "Picking an option must call continueTurn and nothing else - no second pending flag, no local replacement, no direct api.ask.",
+        "turn.question must reach continueTurn untouched. The guarantee is 'never changed by the switch', not 'as typed' - the turn was already trimmed at ask time.",
+        "SuccessAnswer must receive and render turn.isPending and turn.error; without them a failed switch is silent.",
+        "Both domains must be covered. A leaf set that only exercises the statement leaves the governed half unproven."
+      ],
+      "review_budget": {
+        "max_changed_files": 3,
+        "max_changed_lines": 450,
+        "reason": "Rendering one payload that already arrives, wired to a continuation API that already exists and is already proven. Five hermetic leaves. UI, so design skills are mandatory, across two panel widths. No backend, no contract change, and no new state machinery - tasks 1 and 2 shipped both."
+      }
     }
   ],
   "plan_sha256": "12877c45b331dc6c989da6babd35167fc25ae8d7355600984ba326c1923618f3",
-  "commit": "8242f1bcd844a72ce99b93ee8158ee2d844878e3"
+  "commit": "b5249cd130fd165ee591b8f0f8014a2d8166e14c"
 }

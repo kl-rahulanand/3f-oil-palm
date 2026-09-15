@@ -1,5 +1,51 @@
 {
   "id": "ask-period-control-on-answers",
   "title": "A period control on every successful answer",
-  "status": "pending"
+  "status": "done",
+  "started_at": "2026-09-15T08:24:26+00:00",
+  "base_sha": "fe39c33ce3ea018a755014dd6f9afcf190ca9b70",
+  "dirty_at_start": {
+    ".factory/stories/ask-period-control/decomposition.json": {
+      "digest": "b2d1d4230abb9153f0da7a116673367204d1f4133d3f1ff08fb9c4b831703e4e",
+      "git": "1 .M N... 100644 100644 100644 f48ba900d2f16871b159fc45c1c69ae465b0d9cf f48ba900d2f16871b159fc45c1c69ae465b0d9cf .factory/stories/ask-period-control/decomposition.json\u0000\u0000100644 f48ba900d2f16871b159fc45c1c69ae465b0d9cf 0\t.factory/stories/ask-period-control/decomposition.json\u0000\u0000H .factory/stories/ask-period-control/decomposition.json\u0000"
+    },
+    ".factory/stories/ask-period-control/grills/tasks/ask-period-control-on-answers.json": {
+      "digest": "98e725d23839fb25f0c0d4a93638e16cdfc60b1d43b1bf3eeb1b69ce9d9a469e",
+      "git": "? .factory/stories/ask-period-control/grills/tasks/ask-period-control-on-answers.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/ask-period-control/task-plans/ask-period-control-on-answers.md": {
+      "digest": "72e4261519c16d1fde442411b1d926744d44d085155ffd0e2f9ceb7215b6cfc1",
+      "git": "? .factory/stories/ask-period-control/task-plans/ask-period-control-on-answers.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "7b50e5eae680527dccd235141a9a1e7bbe01b1dbb3ac480083660c04a310057e",
+  "local_review_stamp": {
+    "stage_id": "ask-period-control-on-answers",
+    "base_sha": "fe39c33ce3ea018a755014dd6f9afcf190ca9b70",
+    "delta_id": "7a1d94cc47440edff943cc120d6c3cbcbb0c0281f0b87c09d0d7d9cc15189fa1",
+    "contract_sha256": "7b50e5eae680527dccd235141a9a1e7bbe01b1dbb3ac480083660c04a310057e",
+    "recorded_at": "2026-09-15T08:50:12+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-15T08:50:13+00:00",
+  "measured": {
+    "strays": [],
+    "files": 3,
+    "lines": 239,
+    "budget": {
+      "files": 3,
+      "lines": 450
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-15T08:50:13+00:00",
+    "from": "42f66522bb86653ae0cf53b16ccba567a04f4bbbc9d0f8e5050056afd3a0e040",
+    "to": "7b50e5eae680527dccd235141a9a1e7bbe01b1dbb3ac480083660c04a310057e"
+  }
 }

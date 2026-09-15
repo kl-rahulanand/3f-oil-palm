@@ -1,3 +1,19 @@
+// How the period-control leaves in this file are proven, and why it is not obvious.
+//
+// A vitest leaf is NOT proven by its testcase NAME appearing in the junit report. Vitest lists
+// EVERY test in the file under its real name and marks the ones its `-t` filter missed as
+// <skipped/>, so a filter matching nothing still produces a report full of matching names. A
+// control run confirmed it. The discriminator is: present AND NOT <skipped/> AND NOT <failure/>.
+// (This differs from tools/junit-run.mjs, where a non-matching --name yields ONE testcase named
+// after the FILE PATH - a checker written for one runner is wrong for the other.)
+//
+// Two leaves here are deliberately ADVERSARIAL rather than merely positive:
+//   - the "no period select" leaf builds informational, clarification and failure fixtures that
+//     DELIBERATELY CARRY a periodControl, because AskResponse is a flat optional interface and a
+//     renderer that ignores responseClass passes any fixture that simply omits the field;
+//   - the picking leaf asserts the on-screen continuation behaviour, not just the eventual API
+//     request, because a request assertion alone cannot tell continueTurn from a direct api.ask.
+
 import type { AskResponse, AuthUser, Selection } from "@3f/contract";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
@@ -73,6 +89,12 @@ const periodClarification: AskResponse = {
   sessionId: "session",
   periodChoice,
   viewInReport: { available: false, reason: "Choose a period first." },
+};
+
+const periodControl = {
+  current: "2026-07-01",
+  coverage: "July 2026",
+  options: periodChoice.options,
 };
 
 const success: AskResponse = {
@@ -381,6 +403,125 @@ test("a period choice renders its prompt and one button per offered period", asy
   expect(within(answer).getAllByRole("button")).toHaveLength(2);
   expect(within(answer).getByRole("button", { name: "July 2026" })).toBeInTheDocument();
   expect(within(answer).getByRole("button", { name: "August 2026" })).toBeInTheDocument();
+});
+
+test("a successful statement answer renders its period select with the period it ran on selected", async () => {
+  mocks.ask.mockResolvedValue({ ...success, periodControl });
+  renderAsk();
+
+  submit("Show the statement for July");
+
+  expect(await screen.findByRole("combobox", { name: "Period" })).toHaveValue("2026-07-01");
+});
+
+test("a successful governed answer with a window renders its period select", async () => {
+  mocks.ask.mockResolvedValue({
+    ...success,
+    selection: { ...selection, domain: "governed-financial" },
+    periodControl,
+  });
+  renderAsk();
+
+  submit("Show Actual and Budget by GL code for July");
+
+  expect(await screen.findByRole("combobox", { name: "Period" })).toHaveValue("2026-07-01");
+});
+
+test("a successful answer with no window shows its coverage and no period select", async () => {
+  mocks.ask.mockResolvedValue({
+    ...success,
+    periodControl: { ...periodControl, current: null, coverage: "All loaded months" },
+  });
+  renderAsk();
+
+  submit("Show Actual and Budget by GL code");
+
+  expect(await screen.findByText("All loaded months")).toBeInTheDocument();
+  expect(screen.queryByRole("combobox", { name: "Period" })).not.toBeInTheDocument();
+});
+
+test("a non success response carrying a period control still renders no period select", async () => {
+  const responses: AskResponse[] = [
+    {
+      responseClass: "informational" as AskResponse["responseClass"],
+      sessionId: "session",
+      definition: "A definition.",
+      periodControl,
+      viewInReport: { available: false, reason: "Not available." },
+    },
+    { ...periodClarification, periodControl },
+    ...(["blocked_by_policy", "not_supported", "execution_failed", "backend_error"] as const).map(
+      (responseClass): AskResponse => ({
+        responseClass: responseClass as AskResponse["responseClass"],
+        sessionId: "session",
+        message: responseClass,
+        periodControl,
+        viewInReport: { available: false, reason: "Not available." },
+      }),
+    ),
+  ];
+  renderAsk();
+
+  for (const [index, response] of responses.entries()) {
+    mocks.ask.mockResolvedValueOnce(response);
+    submit(`Non-success ${index}`);
+    await screen.findByText(response.definition ?? response.message ?? periodChoice.prompt);
+    expect(screen.queryByRole("combobox", { name: "Period" })).not.toBeInTheDocument();
+  }
+});
+
+test("picking another period calls continue turn with the cloned selection and the unchanged question", async () => {
+  let rejectSwitch!: (error: Error) => void;
+  mocks.ask
+    .mockResolvedValueOnce({ ...success, periodControl })
+    .mockImplementationOnce(() => new Promise<AskResponse>((_resolve, reject) => (rejectSwitch = reject)));
+  renderAsk();
+  submit("Show the statement for July 2026");
+
+  fireEvent.change(await screen.findByRole("combobox", { name: "Period" }), { target: { value: "2026-08-01" } });
+
+  expect(await screen.findByRole("status")).toHaveTextContent("Loading the selected period…");
+  expect(screen.getByRole("heading", { name: "Governed result" })).toBeInTheDocument();
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({
+    question: "Show the statement for July 2026",
+    selection: { ...selection, timeWindow: periodChoice.options[1]!.timeWindow },
+  });
+  rejectSwitch(new Error("transport failed"));
+  expect(await screen.findByRole("alert")).toHaveTextContent("The period could not be loaded. Try again.");
+});
+
+test("a pending period switch shows on its own answer and a failed one keeps the answer and shows why", async () => {
+  let rejectSwitch!: (error: Error) => void;
+  mocks.ask
+    .mockResolvedValueOnce({ ...success, title: "First answer", periodControl })
+    .mockResolvedValueOnce({ ...success, title: "Second answer", periodControl })
+    .mockImplementationOnce(() => new Promise<AskResponse>((_resolve, reject) => (rejectSwitch = reject)));
+  renderAsk();
+  submit("First question");
+  await screen.findByRole("heading", { name: "First answer" });
+  submit("Second question");
+  const second = (await screen.findByRole("heading", { name: "Second answer" })).closest("article")!;
+
+  fireEvent.change(within(second).getByRole("combobox", { name: "Period" }), { target: { value: "2026-08-01" } });
+
+  expect(await within(second).findByRole("status")).toHaveTextContent("Loading the selected period…");
+  expect(
+    within(screen.getByRole("heading", { name: "First answer" }).closest("article")!).queryByRole("status"),
+  ).toBeNull();
+  rejectSwitch(new Error("transport failed"));
+  expect(await within(second).findByRole("alert")).toHaveTextContent("The period could not be loaded. Try again.");
+  expect(within(second).getByRole("heading", { name: "Second answer" })).toBeInTheDocument();
+});
+
+test("the period select is disabled while the panel is globally pending", async () => {
+  mocks.ask.mockResolvedValueOnce({ ...success, periodControl }).mockImplementationOnce(() => new Promise(() => {}));
+  renderAsk();
+  submit("First question");
+  const period = await screen.findByRole("combobox", { name: "Period" });
+
+  submit("Second question");
+
+  expect(period).toBeDisabled();
 });
 
 test("clicking a period posts the cloned selection and the question untrimmed", async () => {
