@@ -1,0 +1,80 @@
+{
+  "commit": "fd7c007bf4713e1ae91da3a7d1198572ab62c31d",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "passed",
+    "score": 9,
+    "summary": "Live check of reopen-identity-and-policy against this story worktree (frontend on :3000 from /Users/caw-dev-m4-5/code/3oilpalm-assistant, backend on :4000, signed in as the seeded admin). Asked 'Show actual and budget by GL code for July 2026' on /ask, pinned the answer, then reopened it from the Dashboard. AC1 CONFIRMED: the thread stayed at 2 turns - the matching turn was re-run in place and nothing was appended. AC5 CONFIRMED on the REQUEST BODY, which is where the criterion says to assert it: the reopen posted question='Show actual and budget by GL code for July 2026', the user's own wording, NOT the pin label 'Actual \u00b7 Budget'; one POST /api/chat per Open was confirmed in the network log. AC2 and AC3 were demonstrated by accident and then deliberately: the account holds THREE pins whose titles are byte-identical ('actual, budget - Governed financial') but whose selections differ - one with no dimensions and no timeWindow, one with a month filter and a last:1 window, one with gl_code and a July 2026 window. Opening the first appended a NEW turn rather than matching the existing one, which is exactly what AC3 requires of a pin whose selection lacks the normalised timeWindow, and proves identity is structural rather than title-based. Opening the third matched and reused. AC7 is covered by ask-period-control's shipped leaf passing unmodified in the suite.",
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The three pins are INDISTINGUISHABLE on the Dashboard: all render the title 'actual, budget - Governed financial' with no dimension, period or filter shown, so a user choosing between them is guessing. This is the user-facing face of the very collision AC2 exists to handle - identity is now correct underneath, but the surface gives the user nothing to tell one pin from another. Opening the wrong one is silent and costs a full round trip.",
+      "Pin titles render RAW MEASURE KEYS ('actual, budget') rather than the human measure labels, so the list reads like internal identifiers."
+    ],
+    "manual_validation_steps": [
+      "Sign in at http://127.0.0.1:3000 as the seeded admin.",
+      "On /ask, ask 'Show actual and budget by GL code for July 2026' and wait for the answer.",
+      "Click Pin report on that answer.",
+      "Navigate to Dashboard via the in-app nav and click Open on that pin.",
+      "Confirm the thread length is unchanged and the reopened turn is the existing one, not a new one.",
+      "Confirm in the network log that POST /api/chat carries the original question text, not the pin's title."
+    ],
+    "residual_risks": [
+      "The access-refusal criteria (AC6, AC8, AC11 - a refused reopen clears the numbers from the DOM and shows the reason, and a terminal 401/403 shows sign-in copy on that turn without redirecting) were NOT forced live, because doing so needs a domain or measure grant revoked mid-session against the shared warehouse. They are covered by the task's shipped leaves, which assert the numbers are absent from the DOM rather than merely that an error string appeared.",
+      "D-0048 stands: the client cannot distinguish a grant-loss not_supported from a data or mapping not_supported, so that case deliberately KEEPS the previous answer."
+    ],
+    "recommendation": "approve",
+    "reviewed_scope": [
+      "frontend/src/features/assistant/use-ask.ts",
+      "frontend/src/features/exploration/selection-identity.helper.ts",
+      "frontend/src/features/exploration/pinned-reports.tsx",
+      "frontend/src/features/exploration/saved-views.tsx",
+      "frontend/src/features/assistant/ask-panel.tsx"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-15T19:16:01+00:00",
+    "commit": "a4139a5867020d8acfc2b4cb185bf3b0d18aa2b0"
+  },
+  "updated_at": "2026-09-15T19:20:41+00:00",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Story roll-up for ask-reopen-saved-report, run in the story worktree after merging both sealed task branches. Full frontend suite: 133 tests across 20 files, all passing. verify.py passes. Both tasks' required leaves were executed and proven individually under the vitest discriminator (testcase present in the junit report, not <skipped/>, not <failure/>) - which matters because vitest exits 0 and marks an unmatched -t leaf skipped (D-0031), so a name drift would otherwise report green having asserted nothing. Task 1 (reopen-identity-and-policy) contributed fifteen leaves covering structural selection identity, most-recent-match, re-running with the user's own question text, the caller-stated failure policy, and a cleared turn whose numbers are absent from the DOM rather than merely overlaid with an error. Task 2 (reopen-navigation-and-scroll) contributed eight more covering navigate-before-resolve on both pins and saved views, one eager pending turn on an unmatched open, one turn carrying the error on transport failure, scrollIntoView asserted for matched and unmatched targets, the busy path showing its message without navigating, and a refused reopen showing its own reason rather than the period control's copy. Task 2's contract required task 1's fifteen leaves to pass UNMODIFIED and they do - their bodies are byte-identical, and the only edits to that file are the new leaves plus the shared Harness fixtures adapting to AskTurn.response becoming optional while a turn is pending.",
+    "blocking_findings": [],
+    "commands_run": [
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts",
+      "python3 factory/scripts/verify.py"
+    ],
+    "pass_fail_summary": "133/133 frontend tests across 20 files; verify.py green; 23 required leaves proven executed across the two tasks.",
+    "tests_added_or_updated": [
+      "frontend/src/features/assistant/use-ask.test.tsx",
+      "frontend/src/features/assistant/ask-panel.test.tsx",
+      "frontend/src/features/exploration/pinned-reports.test.tsx",
+      "frontend/src/features/exploration/saved-views.test.tsx",
+      "frontend/src/features/exploration/selection-identity.helper.test.ts"
+    ],
+    "reviewed_scope": [
+      "frontend/app/globals.css",
+      "frontend/src/features/assistant/ask-panel.tsx",
+      "frontend/src/features/assistant/use-ask.ts",
+      "frontend/src/features/exploration/pinned-reports.tsx",
+      "frontend/src/features/exploration/saved-views.tsx",
+      "frontend/src/features/exploration/selection-identity.helper.ts"
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [
+      "D-0048: the client cannot distinguish a grant-loss not_supported from a data or mapping one, so that case deliberately keeps the previous answer.",
+      "D-0049: the reopen FAILURE copy still says 'could not be reopened' while the control and its progress line now say Open/Opening.",
+      "D-0050: pins whose titles collide are indistinguishable in the Dashboard and Explore lists, found by the functional check."
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-15T19:20:41+00:00",
+    "commit": "fd7c007bf4713e1ae91da3a7d1198572ab62c31d"
+  }
+}

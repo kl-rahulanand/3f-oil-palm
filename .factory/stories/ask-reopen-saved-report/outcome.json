@@ -1,0 +1,7 @@
+{
+  "generated_by": "implementer",
+  "outcome": "Opening a saved report or pinned report now returns you to its existing answer instead of stacking a duplicate copy of it. The Ask panel opens immediately on the click rather than after the answer arrives, the target turn is scrolled into view and shows 'Opening this report...' while it runs, and the answer it re-runs is re-asked in your own original wording rather than the pin's measure-name label - so the audit record carries the question someone actually asked. Which turn a report belongs to is decided by strict structural comparison of the resolved selection, not the displayed title, so two pins that both read 'Actual - Budget' but cover different dimensions or periods stay separate answers. A reopen refused because access was withdrawn clears the stale numbers from the screen and says why, while the period control's shipped behaviour of keeping the previous answer is untouched - the caller now states which it wants.",
+  "issue": "ask-reopen-saved-report",
+  "commit": "fd7c007bf4713e1ae91da3a7d1198572ab62c31d",
+  "recorded_at": "2026-09-15T19:23:22+00:00"
+}

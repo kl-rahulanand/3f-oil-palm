@@ -1,46 +1,5 @@
 {
   "id": "reopen-navigation-and-scroll",
   "title": "Navigate first, show it working, scroll to it",
-  "status": "done",
-  "started_at": "2026-09-15T17:26:07+00:00",
-  "base_sha": "71a05e19159b8abd1313ca44d611eb06dfd902a6",
-  "dirty_at_start": {
-    ".factory/stories/ask-reopen-saved-report/decomposition.json": {
-      "digest": "83dbfcd6512b55536f47ae22596f8c2264053958a4e5b3215733aee0dc6e4d48",
-      "git": "1 .M N... 100644 100644 100644 5d00361fe4b28fc083459b9340787cc3cd3265d6 5d00361fe4b28fc083459b9340787cc3cd3265d6 .factory/stories/ask-reopen-saved-report/decomposition.json\u0000\u0000100644 5d00361fe4b28fc083459b9340787cc3cd3265d6 0\t.factory/stories/ask-reopen-saved-report/decomposition.json\u0000\u0000H .factory/stories/ask-reopen-saved-report/decomposition.json\u0000"
-    },
-    ".factory/stories/ask-reopen-saved-report/grills/tasks/reopen-navigation-and-scroll.json": {
-      "digest": "6822d1786529ab13c5d04e81697fc20e10dcad36252cb77c835957dfe8caeac2",
-      "git": "? .factory/stories/ask-reopen-saved-report/grills/tasks/reopen-navigation-and-scroll.json\u0000\u0000\u0000"
-    },
-    ".factory/stories/ask-reopen-saved-report/task-plans/reopen-navigation-and-scroll.md": {
-      "digest": "442b9047ae02505665746f3cd55754aaef97f407d171d94ac0e98aabc31a3692",
-      "git": "? .factory/stories/ask-reopen-saved-report/task-plans/reopen-navigation-and-scroll.md\u0000\u0000\u0000"
-    }
-  },
-  "task_sha256": "a4691f4104649f9d6b86cf18c03707eab9082ee49de924d219db10fe398290b8",
-  "local_review_stamp": {
-    "stage_id": "reopen-navigation-and-scroll",
-    "base_sha": "71a05e19159b8abd1313ca44d611eb06dfd902a6",
-    "delta_id": "4dd59757718018d4f529585f3fb62438a758dd8b99400f4a776f22ce7658d2e6",
-    "contract_sha256": "a4691f4104649f9d6b86cf18c03707eab9082ee49de924d219db10fe398290b8",
-    "recorded_at": "2026-09-15T18:31:06+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-15T18:31:07+00:00",
-  "measured": {
-    "strays": [],
-    "files": 9,
-    "lines": 345,
-    "budget": {
-      "files": 9,
-      "lines": 700
-    },
-    "test_id_misses": []
-  }
+  "status": "done"
 }

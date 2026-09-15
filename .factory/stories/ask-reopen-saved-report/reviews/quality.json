@@ -1,0 +1,133 @@
+{
+  "generated_by": "autoreview",
+  "score": 9,
+  "summary": "Story roll-up for ask-reopen-saved-report across both sealed tasks. Each already carried its own clean three-lens pass; reopen-navigation-and-scroll finished at quality 10 / performance 10 / security 10 after a three-round loop that retired an aborted-reopen empty turn and a document-wide scroll lookup. All nineteen task contracts are implemented; 133/133 frontend tests and verify.py pass in the story worktree; the live functional check confirmed reuse-not-append and the user's own question text on the request body. Scored 9 rather than 10 for one story-level problem the per-task lenses could not see, because it only appears once the feature is used end to end: the functional check found the account holding THREE pins with byte-identical titles and different selections. Reopen identity is now correct underneath, but the Dashboard and Explore lists show only the measure names - as raw keys ('actual, budget') rather than human labels - so the user picks between them blind and opening the wrong one is silent. The story's promise that reopening a saved report returns to ITS answer holds mechanically while the surface still makes it hard to tell WHICH report you are reopening. Out of scope for both tasks; ledgered as D-0050.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    "Pins with colliding titles are indistinguishable in the Dashboard and Explore lists (D-0050).",
+    "Pin titles render raw measure keys rather than human labels (D-0050).",
+    "Reopen failure copy still says 'could not be reopened' while the flow says Open/Opening (D-0049)."
+  ],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.tsx",
+    "frontend/src/features/exploration/saved-views.tsx",
+    "frontend/src/features/exploration/selection-identity.helper.ts"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-rip-c1",
+      "verdict": "implemented",
+      "evidence": "Live: reopening a pin whose selection structurally matched an existing turn left the thread at 2 turns - re-run in place, nothing appended."
+    },
+    {
+      "contract_id": "t-rip-c2",
+      "verdict": "implemented",
+      "evidence": "Live: three pins share the byte-identical title 'actual, budget - Governed financial' with differing selections and produce distinct turns; selection-identity.helper.ts is strict structural equality including array order."
+    },
+    {
+      "contract_id": "t-rip-c3",
+      "verdict": "implemented",
+      "evidence": "Live: the pin carrying no dimensionIds and no timeWindow did NOT match the gl_code/July turn and opened a new one, exactly as the criterion requires."
+    },
+    {
+      "contract_id": "t-rip-c4",
+      "verdict": "implemented",
+      "evidence": "use-ask.ts reverses the turn list before selecting a candidate, so the most recent match is re-run; covered by a shipped leaf."
+    },
+    {
+      "contract_id": "t-rip-c5",
+      "verdict": "implemented",
+      "evidence": "Live on the REQUEST BODY, where the criterion says to assert it: the reopen posted question='Show actual and budget by GL code for July 2026' - the user's own wording - not the pin label 'Actual - Budget'. One POST /api/chat per Open confirmed in the network log."
+    },
+    {
+      "contract_id": "t-rip-c6",
+      "verdict": "implemented",
+      "evidence": "Only blocked_by_policy and a terminal 401/403 clear; everything else including not_supported retains, per the 2026-09-15 amendment to decision 0028. The residual gap is ledgered as D-0048. NOT forced live - it needs a grant revoked mid-session against the shared warehouse - and is covered by leaves."
+    },
+    {
+      "contract_id": "t-rip-c7",
+      "verdict": "implemented",
+      "evidence": "ask-period-control's shipped retain-on-refusal leaf passes UNMODIFIED in the 133-test suite."
+    },
+    {
+      "contract_id": "t-rip-c8",
+      "verdict": "implemented",
+      "evidence": "A cleared turn carries a result-free renderable state and the leaf asserts the numbers are ABSENT FROM THE DOM rather than merely that an error string appeared."
+    },
+    {
+      "contract_id": "t-rip-c9",
+      "verdict": "implemented",
+      "evidence": "continueTurn's policy argument is required and ask-panel.tsx's two period-control calls pass 'retain' explicitly; the suite type-checks under verify.py."
+    },
+    {
+      "contract_id": "t-rip-c10",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts exists under the constitution's Helper convention and is stateless and IO-free."
+    },
+    {
+      "contract_id": "t-rip-c12",
+      "verdict": "implemented",
+      "evidence": "A terminal 401/403 clears the numbers and shows generic sign-in copy on that turn without redirecting, so one unauthorized report cannot discard the thread. Covered by leaves; not forced live."
+    },
+    {
+      "contract_id": "t-rns-c1",
+      "verdict": "implemented",
+      "evidence": "Live: three in-app Open cycles each reached /ask within 80ms of the click, before the request resolved."
+    },
+    {
+      "contract_id": "t-rns-c2",
+      "verdict": "implemented",
+      "evidence": "use-ask.ts appends exactly one pending turn on the unmatched path and settles it in place; the abort path REMOVES the placeholder rather than leaving a question with nothing under it."
+    },
+    {
+      "contract_id": "t-rns-c3",
+      "verdict": "implemented",
+      "evidence": "A matched open routes through task 1's continueTurn and appends no turn; live cycles held the thread at one turn."
+    },
+    {
+      "contract_id": "t-rns-c4",
+      "verdict": "implemented",
+      "evidence": "The thread container carries a ref and the target is resolved inside it, so a panel can only scroll its OWN turn; the docked surface emits no id. Live: the target was in view after every cycle."
+    },
+    {
+      "contract_id": "t-rns-c5",
+      "verdict": "implemented",
+      "evidence": "Both Open handlers check isAskPending first, show the existing row message and do NOT navigate."
+    },
+    {
+      "contract_id": "t-rns-c6",
+      "verdict": "implemented",
+      "evidence": "pinned-reports.tsx and saved-views.tsx share the identical navigate-first flow."
+    },
+    {
+      "contract_id": "t-rns-c7",
+      "verdict": "implemented",
+      "evidence": "A refused reopen renders its own reason on that turn rather than continueTurn's period-specific copy."
+    },
+    {
+      "contract_id": "t-rns-c8",
+      "verdict": "implemented",
+      "evidence": "Task 1's fifteen leaves pass with their bodies byte-identical; selection-identity.helper.test.ts is untouched and the only deletions in use-ask.test.tsx are its shared Harness fixtures adapting to AskTurn.response becoming optional while pending."
+    }
+  ],
+  "skills_used": [
+    "emil-design-eng",
+    "frontend-design"
+  ],
+  "residual_risks": [
+    "D-0048: a revoked domain or measure grant returns not_supported, indistinguishable from a missing mapping, so the previous answer is deliberately retained.",
+    "D-0049: reopen failure copy still says 'reopened' where the flow now says Open/Opening; two of the three strings are task 1's and asserted by its leaves.",
+    "D-0050: pins with colliding titles are indistinguishable in the Dashboard and Explore lists.",
+    "The access-refusal criteria were proven by leaves, not live, because forcing them needs a grant revoked mid-session against the shared warehouse."
+  ],
+  "aspect": "quality",
+  "review_run_id": "8ad86f60000cac1500bebd66093e61c0012a5c4039aad3967cb6e45e995262d9",
+  "brief_sha256": "a8afb57c61cc3a1b5c1c33659e8aede896c1e9046e67f612d0b180a7431b5ddb",
+  "branch_diff_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "recorded_at": "2026-09-15T19:23:06+00:00",
+  "commit": "fd7c007bf4713e1ae91da3a7d1198572ab62c31d"
+}

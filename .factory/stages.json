@@ -4,13 +4,12 @@
     {
       "id": "reopen-identity-and-policy",
       "title": "Match a turn by its selection, and let the caller state the failure policy",
-      "status": "done",
-      "task_sha256": "a4b88c9e5ab3d83326d4a603efb1507879a01e2f4b5b4770e2a2719506473a43"
+      "status": "done"
     },
     {
       "id": "reopen-navigation-and-scroll",
       "title": "Navigate first, show it working, scroll to it",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
