@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "When you reopen a pin whose answer is ALREADY visible on screen \u2014 say it's the last thing in the thread \u2014 should the panel still scroll to it?",
+      "options": [
+        "Always scroll to it (Recommended)",
+        "Only scroll if it's off-screen"
+      ],
+      "chosen": "Always scroll to it (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T17:24:15.375972+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

@@ -197,14 +197,128 @@
         "reopen-identity-and-policy"
       ],
       "acceptance_criteria": [
-        "An unmatched open appends ONE turn IMMEDIATELY, already pending - it cannot wait for the response or there is nothing to scroll to or show working. It is replaced on success, carries the reason on a refusal, and carries an error on a transport failure. One turn, not two.",
-        "Open navigates to Ask BEFORE the request completes; the target turn is scrolled into view and shown pending. Today both handlers await the whole re-run before router.push('/ask'), so no Ask panel is on screen while it runs and a slow click looks inert.",
-        "Open while another request is running is REFUSED with the existing row message and does NOT navigate - an explicit exception, since there would be no target to start or scroll to. useAsk permits one request at a time; queueing is out of scope.",
-        "Pins and saved views are both covered; a leaf set exercising only one leaves the other unproven. Both call the same path today and both have the defect.",
-        "The refusal reason is visible on the target turn, and neither path shows continueTurn's period-specific copy ('That period could not be loaded. Choose a period to try again.'), which is wrong for a saved report."
-      ]
+        "router.push('/ask') happens BEFORE the request completes, not after it. Today both handlers run `if (await rerun(...)) router.push('/ask')` (pinned-reports.tsx:67, saved-views.tsx:64), which is why a slow click looks inert and why nothing can be scrolled to - no Ask panel is mounted while the request runs.",
+        "An unmatched open appends ONE turn IMMEDIATELY, already pending, then settles it: replaced on success, carrying the reason on a refusal, carrying an error on a transport failure. run() appends only once the response resolves, so an unmatched open otherwise has nothing to scroll to or show working. One turn, not two.",
+        "A matched open needs no new turn: task 1's rerun (use-ask.ts:146) already routes it through continueTurn, which marks that turn pending. Matching and the failure policy are NOT reimplemented here.",
+        "The panel scrolls the target turn into view, reused or new. AskTurn.id is the handle and already exists. A leaf asserts scrollIntoView is called for the target - it must be mocked, as jsdom does not implement it.",
+        "An Open clicked while another request runs keeps today's behaviour EXACTLY: the row shows its existing 'Another question is still running' message and there is NO navigation, because there would be no target to start or scroll to. An explicit exception to navigate-first.",
+        "Pins and saved views are both covered; they share the defect and must share the fix.",
+        "A refused reopen shows its own reason on that turn and NOT continueTurn's period-specific copy. Task 1 wired it; this task is where it becomes visible.",
+        "Task 1's fifteen leaves all still pass UNMODIFIED. If one needs editing, this task changed behaviour it was told not to touch."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-rns-c1",
+          "statement": "router.push('/ask') happens BEFORE the request completes, not after it. Today both handlers run `if (await rerun(...)) router.push('/ask')` (pinned-reports.tsx:67, saved-views.tsx:64), which is why a slow click looks inert and why nothing can be scrolled to - no Ask panel is mounted while the request runs.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rns-c2",
+          "statement": "An unmatched open appends ONE turn IMMEDIATELY, already pending, then settles it: replaced on success, carrying the reason on a refusal, carrying an error on a transport failure. run() appends only once the response resolves, so an unmatched open otherwise has nothing to scroll to or show working. One turn, not two.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rns-c3",
+          "statement": "A matched open needs no new turn: task 1's rerun (use-ask.ts:146) already routes it through continueTurn, which marks that turn pending. Matching and the failure policy are NOT reimplemented here.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rns-c4",
+          "statement": "The panel scrolls the target turn into view, reused or new. AskTurn.id is the handle and already exists. A leaf asserts scrollIntoView is called for the target - it must be mocked, as jsdom does not implement it.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rns-c5",
+          "statement": "An Open clicked while another request runs keeps today's behaviour EXACTLY: the row shows its existing 'Another question is still running' message and there is NO navigation, because there would be no target to start or scroll to. An explicit exception to navigate-first.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rns-c6",
+          "statement": "Pins and saved views are both covered; they share the defect and must share the fix.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rns-c7",
+          "statement": "A refused reopen shows its own reason on that turn and NOT continueTurn's period-specific copy. Task 1 wired it; this task is where it becomes visible.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-rns-c8",
+          "statement": "Task 1's fifteen leaves all still pass UNMODIFIED. If one needs editing, this task changed behaviour it was told not to touch.",
+          "source": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria"
+        }
+      ],
+      "write_scope": [
+        "frontend/app/globals.css",
+        "frontend/src/features/assistant/ask-panel.test.tsx",
+        "frontend/src/features/assistant/ask-panel.tsx",
+        "frontend/src/features/assistant/use-ask.test.tsx",
+        "frontend/src/features/assistant/use-ask.ts",
+        "frontend/src/features/exploration/pinned-reports.test.tsx",
+        "frontend/src/features/exploration/pinned-reports.tsx",
+        "frontend/src/features/exploration/saved-views.test.tsx",
+        "frontend/src/features/exploration/saved-views.tsx"
+      ],
+      "required_tests": [
+        {
+          "id": "opening a pin navigates before the request resolves",
+          "path": "frontend/src/features/exploration/pinned-reports.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "opening a saved view navigates before the request resolves",
+          "path": "frontend/src/features/exploration/saved-views.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "an unmatched open appends one pending turn before the response arrives",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "an unmatched open that fails leaves one turn carrying the error not two",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the target turn is scrolled into view for a matched open",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the target turn is scrolled into view for an unmatched open",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "opening while another request runs shows the busy message and does not navigate",
+          "path": "frontend/src/features/exploration/pinned-reports.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a refused reopen shows its own reason and not the period copy",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "Navigation must happen BEFORE the await. An `if (await ...) push()` anywhere in the Open handlers is the defect this task exists to remove.",
+        "The unmatched path must append exactly ONE turn. A pending placeholder plus a settled turn is two, and the thread length leaf must catch it.",
+        "Matching and the failure policy are task 1's. Any new selection comparison or refusal branching here is duplicated logic that will drift.",
+        "scrollIntoView must be asserted, not assumed - jsdom does not implement it, so an unmocked call silently does nothing and a test can pass without it.",
+        "The busy path must NOT navigate; check a leaf covers it, since navigate-first makes it easy to navigate unconditionally.",
+        "Task 1's fifteen leaves must pass unmodified."
+      ],
+      "review_budget": {
+        "max_changed_files": 9,
+        "max_changed_lines": 700,
+        "reason": "Reordering two Open handlers, an eager pending turn in run(), a scroll effect keyed on turn id, and the refusal copy becoming visible. Eight hermetic leaves. UI, so design skills are mandatory. No backend, no contract change, and no new matching or policy logic - task 1 shipped both and its fifteen leaves must pass untouched."
+      }
     }
   ],
   "plan_sha256": "a876c2afbf926fcb9c2f670ca980218bc0cb8d7c25c8ad4de902697839108f72",
-  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391"
+  "commit": "71a05e19159b8abd1313ca44d611eb06dfd902a6"
 }

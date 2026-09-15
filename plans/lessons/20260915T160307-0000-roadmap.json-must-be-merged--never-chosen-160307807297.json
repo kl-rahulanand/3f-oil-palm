@@ -1,0 +1,11 @@
+{
+  "topic": "roadmap.json must be merged, never chosen",
+  "lesson": "plans/roadmap.json is shared state between concurrent sessions. Resolving a conflict in it with 'git checkout --ours/--theirs' silently DELETES the other session's stories - it looks clean and the item count can even stay the same, so nothing flags it. Union the items from both sides and re-run 'forge roadmap heal'. The other .factory bookkeeping files in the same conflict set (grill briefs, grills/*.json) are per-run and may be chosen; roadmap.json may not.",
+  "source": "ask-reopen-saved-report branch rebuild: a blanket --theirs dropped the merged multi-plant story while leaving 10 items, so the count gave no warning",
+  "applies_to": [
+    "orchestrator"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-15T16:03:07+00:00"
+}
