@@ -90,6 +90,19 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
     const blocks = await Promise.all(
       this.blocks(resolution).map((definition) => this.executeBlock(user, domain, selection, resolution, definition)),
     );
+    const currentOutline = await this.outlines.findActiveBudgetOutline(resolution.period.to);
+    const blockBudgetMismatch = blocks.some((block) =>
+      block.activeBatchIds.some(
+        ({ source, period, batchId }) =>
+          source === "budget" && period === resolution.period.to && batchId !== outline.batchId,
+      ),
+    );
+    if (currentOutline.batchId !== outline.batchId || blockBudgetMismatch) {
+      return misStatementResponseSchema.parse({
+        outcome: "refresh-required",
+        notice: "The data was refreshed - ask again",
+      });
+    }
     const { tree, grandTotal } = buildTree(outline.nodes, blocks);
     const activeBatchIds = uniqueBatches([
       ...blocks.flatMap((block) => block.activeBatchIds),

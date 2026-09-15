@@ -111,18 +111,34 @@ test("the response schema rejects a not loaded block with money and a loaded blo
 });
 
 test("every statement pins the active budget batch through the atomic outline read so provenance and outline agree even when the batch is replaced between calls", async () => {
-  const budgetBatch: ProvenanceBatch = {
+  const pinnedBudget: ProvenanceBatch = {
     source: "budget",
     period: "2026-07-01",
     batchId: "00000000-0000-0000-0000-000000000077",
   };
-  const { service, outlines } = fixture({ outlineBatch: budgetBatch, legacyOutlineForbidden: true });
-  const response = await service.run(user, request("fy26-27-ytd"));
+  const replacementBudget: ProvenanceBatch = {
+    ...pinnedBudget,
+    batchId: "00000000-0000-0000-0000-000000000078",
+  };
+  const blockRace = fixture({
+    activeBatchIds: [replacementBudget],
+    outlineBatches: [pinnedBudget, pinnedBudget],
+  });
+  const blockRaceResponse = await blockRace.service.run(user, request("fy26-27-ytd"));
 
-  assert.equal(response.outcome, "resolved");
-  if (response.outcome !== "resolved") return;
-  assert.equal(outlines.activeReads, 1);
-  assert.deepEqual(response.provenance.activeBatchIds, [budgetBatch]);
+  assert.deepEqual(blockRaceResponse, {
+    outcome: "refresh-required",
+    notice: "The data was refreshed - ask again",
+  });
+  assert.equal(blockRace.outlines.activeReads, 2);
+
+  const outlineRace = fixture({ outlineBatches: [pinnedBudget, replacementBudget] });
+  const outlineRaceResponse = await outlineRace.service.run(user, request("fy26-27-ytd"));
+  assert.deepEqual(outlineRaceResponse, {
+    outcome: "refresh-required",
+    notice: "The data was refreshed - ask again",
+  });
+  assert.equal(outlineRace.outlines.activeReads, 2);
 });
 
 test("a user granted only DUB is refused a statement for another plant at the service seam", async () => {
@@ -172,7 +188,7 @@ test("the statement service builds the tree from the outline of the budget batch
 
   assert.equal(response.outcome, "resolved");
   if (response.outcome !== "resolved") return;
-  assert.deepEqual(outlines.periods, ["2026-07-01"]);
+  assert.deepEqual(outlines.periods, ["2026-07-01", "2026-07-01"]);
   assert.deepEqual(
     response.tree.map(({ nodeKey }) => nodeKey),
     ["materials", "admin"],
@@ -307,7 +323,7 @@ function fixture(
     mixedZeroBudget?: boolean;
     plant?: string;
     outlineBatch?: ProvenanceBatch;
-    legacyOutlineForbidden?: boolean;
+    outlineBatches?: ProvenanceBatch[];
   } = {},
 ) {
   const resolver = new FakeResolver(options.plant ?? "DUB");
@@ -317,7 +333,9 @@ function fixture(
     options.rowCount,
     options.mixedZeroBudget ?? false,
   );
-  const outlines = new FakeOutlines(options.outlineBatch, options.legacyOutlineForbidden);
+  const outlines = new FakeOutlines(
+    options.outlineBatches ?? (options.outlineBatch ? [options.outlineBatch] : undefined),
+  );
   const service = new MisStatementService(
     resolver,
     new SemanticLayer(),
@@ -457,24 +475,20 @@ class FakeOutlines implements IStatementOutlineRepository {
   activeReads = 0;
 
   constructor(
-    private readonly outlineBatch: ProvenanceBatch = {
-      source: "budget",
-      period: "2026-07-01",
-      batchId: "00000000-0000-0000-0000-000000000002",
-    },
-    private readonly legacyOutlineForbidden = false,
+    private readonly outlineBatches: ProvenanceBatch[] = [
+      {
+        source: "budget",
+        period: "2026-07-01",
+        batchId: "00000000-0000-0000-0000-000000000002",
+      },
+    ],
   ) {}
-
-  async findByBudgetPeriod(period: string): Promise<StatementOutlineNode[]> {
-    if (this.legacyOutlineForbidden) throw new Error("legacy outline read used");
-    this.periods.push(period);
-    return this.nodes();
-  }
 
   async findActiveBudgetOutline(period: string) {
     this.activeReads += 1;
     this.periods.push(period);
-    return { batchId: this.outlineBatch.batchId, nodes: this.nodes() };
+    const outlineBatch = this.outlineBatches[Math.min(this.activeReads - 1, this.outlineBatches.length - 1)];
+    return { batchId: outlineBatch.batchId, nodes: this.nodes() };
   }
 
   private nodes(): StatementOutlineNode[] {

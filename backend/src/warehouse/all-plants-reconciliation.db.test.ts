@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import type { AuthUser, MisStatementNode, MisStatementResolvedResponse } from "@3f/contract";
+import { Workbook } from "exceljs";
 import { SelectionExecutor } from "../chat/selectionExecutor";
 import { IngestService, type UploadedWorkbook } from "../ingest/ingest.service";
 import { MAPPING_MASTER } from "../mapping/mapping-master";
@@ -22,6 +23,9 @@ const ENABLED = process.env.WAREHOUSE_DB_TEST === "1";
 const JULY = "2026-07-01";
 const ACTUALS = join(__dirname, "../../../docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx");
 const BUDGET = join(__dirname, "../../../docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx");
+const DUB_BASELINE = JSON.parse(
+  readFileSync(join(__dirname, "__fixtures__/dub-statement-baseline.json"), "utf8"),
+) as DubStatementBaseline;
 let pool: Awaited<ReturnType<typeof createWarehouseWritePool>>;
 let statements: MisStatementService;
 let resolver: SelectionResolverService;
@@ -83,9 +87,35 @@ test(
     assert.equal(canonical.grandTotal.measures[0].actual, "11512712.07");
     assert.equal(canonical.grandTotal.measures[0].budget, "10050136.29");
     assert.ok(allBlocks(canonical).every(({ budgetState }) => budgetState === "loaded"));
+    assert.equal(DUB_BASELINE.sourceCommit, "d532693");
+    assert.deepEqual(toBaseline(canonical), {
+      plant: DUB_BASELINE.plant,
+      period: DUB_BASELINE.period,
+      provenance: DUB_BASELINE.provenance,
+      tree: DUB_BASELINE.tree,
+      grandTotal: DUB_BASELINE.grandTotal,
+    });
     assert.deepEqual(alias, canonical);
     const exporter = new MisStatementExportService();
-    assert.deepEqual(await exporter.write(alias), await exporter.write(canonical));
+    const canonicalExport = await exporter.write(canonical);
+    assert.deepEqual(await exporter.write(alias), canonicalExport);
+    const workbook = new Workbook();
+    await workbook.xlsx.load(canonicalExport as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+    const worksheet = workbook.getWorksheet("Financial MIS")!;
+    const baselineRows = [...flattenBaseline(DUB_BASELINE.tree), DUB_BASELINE.grandTotal];
+    assert.equal(worksheet.rowCount, baselineRows.length + 2);
+    baselineRows.forEach(({ measures }, index) => {
+      const row = worksheet.getRow(index + 3);
+      assert.deepEqual(
+        measures.flatMap(({ budget, rollover, actual, percentage }) => [
+          roundedRupees(budget),
+          rollover,
+          roundedRupees(actual),
+          percentage === null ? "NA" : Number.isFinite(Number(percentage)) ? Number(percentage) : percentage,
+        ]),
+        Array.from({ length: measures.length * 4 }, (_, column) => row.getCell(column + 4).value),
+      );
+    });
   },
 );
 
@@ -175,6 +205,65 @@ function flatten(nodes: MisStatementNode[]): MisStatementNode[] {
 
 function allBlocks(statement: MisStatementResolvedResponse) {
   return [...flatten(statement.tree).flatMap(({ measures }) => measures), ...statement.grandTotal.measures];
+}
+
+interface BaselineMeasure {
+  key: string;
+  budget: string;
+  rollover: null;
+  actual: string;
+  percentage: string | null;
+  sourcePresence: string[];
+}
+
+interface BaselineNode {
+  nodeKey: string;
+  measures: BaselineMeasure[];
+  children?: BaselineNode[];
+}
+
+interface DubStatementBaseline {
+  sourceCommit: string;
+  plant: string;
+  period: string;
+  provenance: Array<{ source: string; period: string }>;
+  tree: BaselineNode[];
+  grandTotal: BaselineNode;
+}
+
+function toBaseline(statement: MisStatementResolvedResponse) {
+  const node = ({ nodeKey, measures, children }: MisStatementNode): BaselineNode => ({
+    nodeKey,
+    measures: measures.map((measure) => {
+      if (measure.budgetState !== "loaded") throw new Error("DUB baseline requires a loaded budget");
+      const { key, budget, rollover, actual, percentage, sourcePresence } = measure;
+      return { key, budget, rollover, actual, percentage, sourcePresence };
+    }),
+    ...(children.length ? { children: children.map(node) } : { children: [] }),
+  });
+  const { children: _children, ...grandTotal } = node(statement.grandTotal);
+  return {
+    plant: statement.scope.plant,
+    period: statement.scope.period,
+    provenance: [
+      ...new Map(
+        statement.provenance.activeBatchIds.map(({ source, period }) => [`${source}\0${period}`, { source, period }]),
+      ).values(),
+    ].sort((left, right) => `${left.source}\0${left.period}`.localeCompare(`${right.source}\0${right.period}`)),
+    tree: statement.tree.map(node),
+    grandTotal,
+  };
+}
+
+function flattenBaseline(nodes: BaselineNode[]): BaselineNode[] {
+  return nodes.flatMap((node) => [node, ...flattenBaseline(node.children ?? [])]);
+}
+
+function roundedRupees(value: string): number {
+  const negative = value.startsWith("-");
+  const [whole, fraction] = value.replace("-", "").split(".");
+  const rounded = BigInt(whole) + (Number(fraction) >= 50 ? 1n : 0n);
+  return Number(negative ? -rounded : rounded);
 }
 
 function paise(value: string): bigint {
