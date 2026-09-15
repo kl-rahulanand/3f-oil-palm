@@ -1,0 +1,89 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "verdict": "pass",
+  "summary": "Cold read of the CONFIRMED docs/specs/ask-period-control.md against repo reality. Eight findings. The sharpest two were self-inflicted contract holes: the spec argued that re-asking through the model is unreliable and then failed to define any field by which a clicked period could avoid it, and its option shape could not clone a Selection at all because a period-less base has no timeWindow while the type requires a grain. It also left four collapsed failure causes without an order, overclaimed 'all loaded data' against the scope injection, and wrote a proof criterion a backend-only implementation could satisfy. Two went to the human: whether a period switch may rewrite the asked question, and whether making batch ids visible belongs in this story.",
+  "questions_asked": 1,
+  "gaps": [
+    "The response contract contradicted itself: the spec required period options inside ClarificationNeeded and then said clarification responses carry no control, and it never defined any field by which a SUCCESSFUL answer would carry period options at all - leaving the unreliable word-resume path as the only continuation or successful answers with nothing to click.",
+    "The option shape {value,label,from,to} cannot safely clone a Selection: a period-less base selection has no timeWindow, Selection.timeWindow requires a grain, and the option omitted the time column, so the client would have had to invent both fields.",
+    "Failure precedence was underspecified. statementRequest collapses missing and ambiguous department, function, plant AND period into one undefined, and the resolver checks mapping before period availability, so the spec had to fix a total order, a per-attribute order, and the exact ResponseClass for scope misconfiguration, no mapping, and no loaded periods.",
+    "'Replace in place' had no correctness semantics: nothing was said about the pending state, about a replacement that fails or is refused, or about a displayed question that says July above an answer now showing August - a visible contradiction in an audited transcript.",
+    "'Provenance shows the batch ids' was satisfiable backend-only: the Ask panel's provenance disclosure renders readback, measures, scope and freshness but never batch ids, so a user could not inspect what the criterion claimed.",
+    "'All loaded data' overclaimed: governed queries inject the asker's plant scope at sqlBuilder.ts:88, so a no-window answer covers all loaded data WITHIN that scope and any filters the question applied, not the warehouse's entire contents.",
+    "The proof requirement was too coarse to prevent partial coverage: 'every criterion' named no matrix, so the selector-call test could pass while the new response and UI branches regressed."
+  ],
+  "contradictions": [
+    "The grill brief's already-answered ledger recorded LLM and data residency as 'Decide later', which contradicts accepted decision 0027 fixing Bedrock in ap-south-1 and its data boundary. A stale settled answer, to be corrected rather than re-asked."
+  ],
+  "resolutions": [
+    "Behaviour now defines TWO carriers so a recovery and a settled answer never share a field: ClarificationNeeded gains a typed period choice, and a successful data response gains a period control of the same shape with the current entry marked. The existing options/resumesQuestion path is left untouched for its current users.",
+    "Each option now carries a COMPLETE timeWindow - grain, column, from, to - plus value and label, alongside the base selection and the original question verbatim, so the client clones rather than invents. Criterion 2 pins the shape.",
+    "Behaviour now fixes a total, first-match-wins order: scope (BlockedByPolicy, naming the first offending attribute in the order department, function, plant), then no mapping (NotSupported), then no periods loaded (NotSupported, its own message), then period (ClarificationNeeded). The resolver's existing mapping-before-period order is preserved. Criterion 4 pins it.",
+    "HUMAN ROUND 1: the asked question is never rewritten. Behaviour states that the user's words stay exactly as typed and the answer carries the period it now shows, and adds the pending and failure semantics - a replacement in flight leaves the previous answer readable, and one that fails or is refused leaves it in place with the failure shown against it. Criteria 5 and 7 pin both.",
+    "HUMAN ROUND 2: showing batch ids in the provenance disclosure is named in Out of scope, and criterion 8 now checks that the RESPONSE carries them rather than implying a UI that this story does not build.",
+    "Behaviour and criterion 6 now say 'all loaded data within the asker's access scope and any filters the question applied', citing the scope injection at sqlBuilder.ts:88.",
+    "Criterion 9 now names the whole matrix explicitly - missing period, an unoffered same-day period, a partial-month range, a multi-month range, an empty period list, each of department/function/plant absent and ambiguous, no mapping, a successful statement answer, a successful governed answer with and without a window, and a failed replacement - and requires any live claim to name its sample count.",
+    "Decision 0027 governs: Bedrock in ap-south-1 with the boundary it records. The brief's 'decide later' line is stale and is not re-opened by this story."
+  ],
+  "citations": [
+    {
+      "finding": "The response contract contradicted itself: the spec required period options inside ClarificationNeeded and then said clarification responses carry no control, and it never defined any field by which a SUCCESSFUL answer would carry period options at all - leaving the unreliable word-resume path as the only continuation or successful answers with nothing to click.",
+      "ref": "contract/src/api.ts:496,547"
+    },
+    {
+      "finding": "The option shape {value,label,from,to} cannot safely clone a Selection: a period-less base selection has no timeWindow, Selection.timeWindow requires a grain, and the option omitted the time column, so the client would have had to invent both fields.",
+      "ref": "contract/src/measure.ts:151"
+    },
+    {
+      "finding": "Failure precedence was underspecified. statementRequest collapses missing and ambiguous department, function, plant AND period into one undefined, and the resolver checks mapping before period availability, so the spec had to fix a total order, a per-attribute order, and the exact ResponseClass for scope misconfiguration, no mapping, and no loaded periods.",
+      "ref": "backend/src/chat/chat.service.ts:322,331,335,726; backend/src/mapping/selection-resolver.service.ts:58"
+    },
+    {
+      "finding": "'Replace in place' had no correctness semantics: nothing was said about the pending state, about a replacement that fails or is refused, or about a displayed question that says July above an answer now showing August - a visible contradiction in an audited transcript.",
+      "ref": "frontend/src/features/assistant/use-ask.ts:74,85"
+    },
+    {
+      "finding": "'Provenance shows the batch ids' was satisfiable backend-only: the Ask panel's provenance disclosure renders readback, measures, scope and freshness but never batch ids, so a user could not inspect what the criterion claimed.",
+      "ref": "frontend/src/features/assistant/ask-panel.tsx:345"
+    },
+    {
+      "finding": "'All loaded data' overclaimed: governed queries inject the asker's plant scope at sqlBuilder.ts:88, so a no-window answer covers all loaded data WITHIN that scope and any filters the question applied, not the warehouse's entire contents.",
+      "ref": "backend/src/sql/sqlBuilder.ts:88"
+    },
+    {
+      "finding": "The proof requirement was too coarse to prevent partial coverage: 'every criterion' named no matrix, so the selector-call test could pass while the new response and UI branches regressed.",
+      "ref": "docs/specs/ask-period-control.md"
+    },
+    {
+      "finding": "The grill brief's already-answered ledger recorded LLM and data residency as 'Decide later', which contradicts accepted decision 0027 fixing Bedrock in ap-south-1 and its data boundary. A stale settled answer, to be corrected rather than re-asked.",
+      "ref": "docs/decisions/0027-assistant-llm-bedrock-mumbai.md:25"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "If someone asks \"...for July 2026\" and then switches the period control to August, the question on screen says July while the answer shows August. That's a visible contradiction in an audited transcript. How should it read?",
+      "options": [
+        "Keep their words, label the answer (Recommended)",
+        "Rewrite the question to match"
+      ],
+      "chosen": "Keep their words, label the answer (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "inspected_refs": [
+    "contract/src/api.ts:496,547",
+    "contract/src/measure.ts:151",
+    "backend/src/chat/chat.service.ts:146,322,331,335,726",
+    "backend/src/mapping/selection-resolver.service.ts:58,67",
+    "backend/src/sql/sqlBuilder.ts:88",
+    "frontend/src/features/assistant/ask-panel.tsx:345",
+    "frontend/src/features/assistant/use-ask.ts:74,85",
+    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md",
+    "docs/decisions/0028-saved-selections-not-snapshots.md"
+  ],
+  "issue": "ask-period-control",
+  "input_sha256": "42d185ac0a3f63f0f5f5f042340b27f424eae58241612dfc40a07e917f71f7c2",
+  "recorded_at": "2026-09-15T06:16:16+00:00",
+  "commit": "e0e7ce74456d315250bc205c5d37c6dfa1298cd0"
+}

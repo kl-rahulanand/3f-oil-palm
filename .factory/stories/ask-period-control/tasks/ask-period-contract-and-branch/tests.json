@@ -1,0 +1,32 @@
+{
+  "commit": "d7d28725a37f8e32d147c220a7d0e4279395fd1e",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "pass",
+    "summary": "Eleven required leaves added and verified individually, each judged by its junit testcase NAME rather than its executed count. A negative control run first proved the count is not a valid discriminator: tools/junit-run.mjs --name matching NOTHING still exits 0 and reports 'tests 1', but that testcase's name is the FILE PATH (backend/src/chat/ask-period.test.ts) rather than a test name. All eleven reports carry a testcase name equal to their required leaf id and none is a file-level placeholder, so all eleven genuinely ran. python3 factory/scripts/verify.py passes; npm run test:hermetic exits 0 with 18 frontend files / 83 tests and the backend suite green.",
+    "pass_fail_summary": "11/11 required leaves executed by name, 0 failures; verify.py pass; test:hermetic exit 0",
+    "blocking_findings": [],
+    "commands_run": [
+      "python3 factory/scripts/verify.py",
+      "npm run test:hermetic",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/chat/ask-period.test.ts --name <each of 9 leaf ids> --report /tmp/leafN.xml --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/mapping/selection-resolver.service.test.ts --name <each of 2 leaf ids> --report /tmp/leafN.xml --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/chat/ask-period.test.ts --name 'a name that does not exist anywhere' --report /tmp/neg.xml --require ts-node/register  # negative control"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/chat/ask-period.test.ts",
+      "backend/src/chat/chat.service.test.ts",
+      "backend/src/mapping/selection-resolver.service.test.ts"
+    ],
+    "remaining_gaps": [
+      "The live PoC check in the task contract's Manual Verification is not run here: it requires LLM_PROVIDER=bedrock and would need the running backend repointed at this worktree. The UI half is tasks 2 and 3, so the end-to-end flow is not observable yet."
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-15T06:59:34+00:00",
+    "commit": "d7d28725a37f8e32d147c220a7d0e4279395fd1e"
+  },
+  "updated_at": "2026-09-15T06:59:34+00:00"
+}

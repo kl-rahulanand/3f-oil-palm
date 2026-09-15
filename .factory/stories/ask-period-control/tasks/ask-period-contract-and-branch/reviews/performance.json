@@ -1,0 +1,35 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "ask-period-contract-and-branch",
+  "score": 9,
+  "summary": "performance lens over ask-period-contract-and-branch (10 product path(s), e73e07c..14fb861, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The new resolver path avoids the duplicate period query and introduces no clear P0-P2 performance regression or compatibility leftover. However, its date-only option matching accepts a period at the wrong grain and can misrepresent or widen the executed window, violating the period contract.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "[P2] Include the requested grain when matching a period option (backend/src/chat/chat.service.ts:812): `windowMatchesPeriod` compares only dates."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    ".prettierignore",
+    "backend/package.json",
+    "backend/src/chat/ask-period.test.ts",
+    "backend/src/chat/chat.constants.ts",
+    "backend/src/chat/chat.service.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/mapping/selection-resolver.service.test.ts",
+    "backend/src/mapping/selection-resolver.service.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "d0752ac5a16e1b817bfb20a740a7ba43999ef4bc8198550a5c2aa2ca9e4a17e5",
+  "brief_sha256": "949b3da413720d3a633281c0464c33bf024d9a852ccf21789fb5045ba3836885",
+  "branch_diff_digest": "9a31b24110889b3f9e884023b4bad61eeaefcb23ba0c60938bea6512ae3750b8",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T07:12:03+00:00",
+  "commit": "14fb861620f7cb382e321e05edfb26e9f66fcd46"
+}

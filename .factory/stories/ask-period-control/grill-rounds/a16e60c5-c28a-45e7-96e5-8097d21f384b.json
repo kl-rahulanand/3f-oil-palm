@@ -1,0 +1,23 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "If someone asks \"...for July 2026\" and then switches the period control to August, the question on screen says July while the answer shows August. That's a visible contradiction in an audited transcript. How should it read?",
+      "options": [
+        "Keep their words, label the answer (Recommended)",
+        "Rewrite the question to match"
+      ],
+      "chosen": "Keep their words, label the answer (Recommended)"
+    },
+    {
+      "question": "The grill found that batch ids already travel in the API but the Ask panel never renders them \u2014 its provenance section shows only readback, measures, scope and freshness. My criterion says \"provenance reports the batch ids\". Should this story make them visible?",
+      "options": [
+        "Out of scope \u2014 reword the criterion (Recommended)",
+        "In scope \u2014 show them under \"How this was calculated\""
+      ],
+      "chosen": "Out of scope \u2014 reword the criterion (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T06:02:07.278975+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}
