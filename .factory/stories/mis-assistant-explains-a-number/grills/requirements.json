@@ -1,10 +1,10 @@
 {
   "generated_by": "griller",
-  "gate": "spec",
+  "gate": "requirements",
   "verdict": "pass",
   "issue": "mis-assistant-explains-a-number",
-  "summary": "Requirements re-grill of the confirmed spec against repo reality. Eleven findings, and the two that mattered most were criteria of mine that were simply FALSE about the code. C7 had the server deriving subtotal composition from the mapping master, but parent/child structure lives in the pinned OUTLINE SNAPSHOT and decision 0024 requires aggregate behaviour to be a client projection - so aggregates now project the attested statement payload and name descendant lines WITH THEIR VALUES, which is also a better answer. And C9's absolute 'no amount reaches the model' was unimplementable, because the user's own question carries the number - 'how is this 85000' is the motivating example - so C9 now binds SERVER-SOURCED data only. The read also showed the existing causal guard does not classify 'how is this' as causal at all, so the boundary is a fixture table the tests own rather than prose. The human chose an attested statement context over a weaker scope-only check, which is what finally makes C14's tamper refusal honest, and chose to keep /ask isolated in RENDERING as well as sending - the shared AskProvider would otherwise have shown a grounded turn on the screen they froze. Recorded at the spec gate against the amended spec, whose delivery route for the attested context the human settled: it is an additive field on the existing statement response rather than a second endpoint that could drift from the screen.",
-  "questions_asked": 1,
+  "summary": "Requirements re-grill of the confirmed spec against repo reality. Eleven findings, and the two that mattered most were criteria of mine that were simply FALSE about the code. C7 had the server deriving subtotal composition from the mapping master, but parent/child structure lives in the pinned OUTLINE SNAPSHOT and decision 0024 requires aggregate behaviour to be a client projection - so aggregates now project the attested statement payload and name descendant lines WITH THEIR VALUES, which is also a better answer. And C9's absolute 'no amount reaches the model' was unimplementable, because the user's own question carries the number - 'how is this 85000' is the motivating example - so C9 now binds SERVER-SOURCED data only. The read also showed the existing causal guard does not classify 'how is this' as causal at all, so the boundary is a fixture table the tests own rather than prose. The human chose an attested statement context over a weaker scope-only check, which is what finally makes C14's tamper refusal honest, and chose to keep /ask isolated in RENDERING as well as sending - the shared AskProvider would otherwise have shown a grounded turn on the screen they froze.",
+  "questions_asked": 2,
   "gaps": [
     "Nothing in the request proved it was about the RENDERED statement. C14 required a tampered node, block or pin set to be refused, but a client-held request cannot distinguish tampering from another valid on-screen leaf or a valid historical batch - re-derivation protects scope, it does not prove screen identity - so C1, C2 and C14 could not all hold.",
     "C7 said the server derives subtotal composition from the mapping master with no warehouse read. That cannot work: parent/child structure lives in the pinned OUTLINE SNAPSHOT, not the mapping master, and decision 0024 requires aggregate drill behaviour to be a client projection of the statement payload. A labels-only answer would also have failed the stated purpose of showing which amounts add up to the figure.",
@@ -16,8 +16,7 @@
     "Ownership of focus, block and the 'open full drill' action was unassigned. StatementView owns the drill internally while AskPanel is its sibling, there is no report-wide selected-block control - the block is known only once an Actual is clicked - and the spec required both a shared focus and an assistant control that opens the existing panel.",
     "'/ask untouched' covered only what /ask SENDS. The dock and /ask share an AskProvider and turns survive navigation, so a grounded explanation could have rendered on /ask - a turn type it has never displayed - breaking the constraint in a way no leaf was asked to catch.",
     "C14 mandated a vitest discriminator for every criterion, but the security, audit, provider-payload and tamper proofs are BACKEND leaves and this repo runs those under Node's test runner. A vitest-only criterion could not prove the server guarantees at all.",
-    "REPOSITORY-ONLY: the derived roadmap item did not carry C8, C12, C13 or C14's proof matrix, so planning could have satisfied the roadmap while silently omitting confirmed requirements.",
-    "The attested context had no delivery route. It must reach the client somehow, and the choice has real blast radius: adding it to the shipped MIS statement response touches a contract the report screen, the export and their leaves already depend on, while a separate endpoint would re-derive the statement scope a second time and could drift from the statement actually on screen - defeating the point of attestation."
+    "REPOSITORY-ONLY: the derived roadmap item did not carry C8, C12, C13 or C14's proof matrix, so planning could have satisfied the roadmap while silently omitting confirmed requirements."
   ],
   "contradictions": [],
   "resolutions": [
@@ -31,8 +30,7 @@
     "RESOLVED: the MIS report view owns the shared statement context and the focused nodeKey/block. There is no independent selected block before focus, so the block always comes from the focused node; clicking an Actual both opens today's drill and sets focus, so drill-down does not regress; and the assistant's action opens that same panel.",
     "RESOLVED by the human: /ask stays fully isolated in rendering as well as sending. Grounded turns are partitioned to the docked panel and are not shown on /ask, and C14 requires a leaf proving both halves.",
     "RESOLVED: each leaf is judged by the discriminator for its own runner - frontend by vitest (present AND NOT skipped AND NOT failed, D-0031) and backend by Node/JUnit, where a non-matching name yields a testcase named for the FILE PATH (D-0024). No test-runner migration is implied.",
-    "RESOLVED: the roadmap item's acceptance criteria are extended to carry the attested context, the budget state, the typed response union and the per-runner proof matrix, so the roadmap and the confirmed spec say the same thing.",
-    "RESOLVED by the human: the context is an ADDITIVE field on the existing statement response. The statement already computes everything the context binds - scope, outline, pins, master version - so it signs and returns it in the same round trip with no extra call and no second derivation. Existing consumers keep working; the shipped contract's leaves are re-proven as part of the story."
+    "RESOLVED: the roadmap item's acceptance criteria are extended to carry the attested context, the budget state, the typed response union and the per-runner proof matrix, so the roadmap and the confirmed spec say the same thing."
   ],
   "citations": [
     {
@@ -78,20 +76,26 @@
     {
       "finding": "REPOSITORY-ONLY: the derived roadmap item did not carry C8, C12, C13 or C14's proof matrix, so planning could have satisfied the roadmap while silently omitting confirmed requirements.",
       "source": "plans/roadmap.json"
-    },
-    {
-      "finding": "The attested context had no delivery route. It must reach the client somehow, and the choice has real blast radius: adding it to the shipped MIS statement response touches a contract the report screen, the export and their leaves already depend on, while a separate endpoint would re-derive the statement scope a second time and could drift from the statement actually on screen - defeating the point of attestation.",
-      "source": "contract/src/api.ts:331"
     }
   ],
   "rounds": [
     {
-      "question": "The attested context has to reach the client somehow. Adding it to the existing MIS statement response touches a contract the shipped report screen, its export and its tests already depend on. Where should it come from?",
+      "question": "C14 says a tampered node/block/pin set must be refused. But the request is client-held, so the server cannot tell tampering from another perfectly valid line in the same statement. Re-deriving scope proves the user is allowed the data; it does NOT prove the question is about the screen. How strong should that guarantee be?",
       "options": [
-        "Add it to the statement response (Recommended)",
-        "Separate endpoint the dock calls"
+        "Attested statement context (Recommended)",
+        "Weaken C14 to scope-only",
+        "Per-click server focus token"
       ],
-      "chosen": "Add it to the statement response (Recommended)",
+      "chosen": "Attested statement context (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "The docked assistant and /ask share one AskProvider, so turns survive navigation. A grounded explanation could therefore appear on /ask \u2014 which you said must stay exactly as today. What should happen to grounded turns when the user leaves the MIS screen?",
+      "options": [
+        "Keep /ask fully isolated (Recommended)",
+        "Let grounded turns stay visible in the thread"
+      ],
+      "chosen": "Keep /ask fully isolated (Recommended)",
       "frontier_empty": true
     }
   ],
@@ -105,7 +109,7 @@
     "frontend/src/features/assistant/use-ask.ts",
     "tools/junit-run.mjs"
   ],
-  "input_sha256": "20252512a4fabcd3d7e7219d79fefea7a81c7cd0b6592cd6183b0ad485cafaf8",
-  "recorded_at": "2026-09-15T22:29:43+00:00",
+  "input_sha256": "29e9ed288c665fc6722f2295a83e2cfd2330b108ec60c4cbb999d0c9201d479a",
+  "recorded_at": "2026-09-15T22:29:48+00:00",
   "commit": "896f7714a79bd6d65d62b87cea656b0ae8126991"
 }

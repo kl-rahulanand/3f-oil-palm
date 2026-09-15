@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft plan2-draft.md
+# Cold-read grill — gate: plan — plan draft plan.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,18 +431,24 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: Conflict with shipped code. The period control's contract says a refused period switch KEEPS the previous answer — you chose that two stories ago, and it's proven by a passing test. This story says a refusal CLEARS it. Both go through the same `continueTurn`. How should that be resolved?
-  A: Clear only on saved-report reopens (Recommended)
-- Q: Which kinds of refusal should wipe the old numbers? A lost domain grant doesn't come back as `blocked_by_policy` — it returns `not_supported`. An expired login is an HTTP 401/403. Others are plainly not access problems.
-  A: Access-related only (Recommended)
+- Q: Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?
+  A: Accept, confirmed by Rahul Anand (Recommended)
+- Q: FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)
+  A: Budget = loaded months, % = not loaded (Recommended)
+- Q: C14 says a tampered node/block/pin set must be refused. But the request is client-held, so the server cannot tell tampering from another perfectly valid line in the same statement. Re-deriving scope proves the user is allowed the data; it does NOT prove the question is about the screen. How strong should that guarantee be?
+  A: Attested statement context (Recommended)
+- Q: The docked assistant and /ask share one AskProvider, so turns survive navigation. A grounded explanation could therefore appear on /ask — which you said must stay exactly as today. What should happen to grounded turns when the user leaves the MIS screen?
+  A: Keep /ask fully isolated (Recommended)
+- Q: The attested context has to reach the client somehow. Adding it to the existing MIS statement response touches a contract the shipped report screen, its export and its tests already depend on. Where should it come from?
+  A: Add it to the statement response (Recommended)
 
-## The artifact under interrogation (plan draft plan2-draft.md)
+## The artifact under interrogation (plan draft plan.md)
 
 ---
-issue: ask-reopen-saved-report
-title: Reopening a saved report returns to its answer
+issue: mis-assistant-explains-a-number
+title: The on-screen assistant explains a number on the MIS statement
 status: draft
-story: ask-reopen-saved-report
+story: mis-assistant-explains-a-number
 decisions_reviewed:
   - 0001-poc-engagement-scope
   - 0002-phase1-financial-mis
@@ -459,7 +465,6 @@ decisions_reviewed:
   - 0013-backend-observability-built-in-poc
   - 0014-sap-ingestion-poc-no-master
   - 0015-warehouse-snake-case-deviation
-  - 0016-governed-joins-poc-scope
   - 0017-mis-selection-composite-key-seam
   - 0018-mis-selection-unmapped-gl-bucket
   - 0019-fresh-routes-follow-vendored-house-style
@@ -473,142 +478,167 @@ decisions_reviewed:
   - 0027-assistant-llm-bedrock-mumbai
   - 0028-saved-selections-not-snapshots
   - 0029-bind-host-explicit-network-exposure
+  - 0032-master-generated-from-workbook
+  - 0034-poc-budget-owner-plant
+  - 0036-all-plants-scope-for-the-poc
+  - 0037-ask-untouched-in-multi-plant
+  - 0038-mis-assistant-explains-without-touching-ask
 ---
 
-# Plan — ask-reopen-saved-report: Reopening a saved report returns to its answer
+# Plan — mis-assistant-explains-a-number: The on-screen assistant explains a number on the MIS statement
 
-Story: `ask-reopen-saved-report` (roadmap 10) · spec: `docs/specs/ask-reopen-saved-report.md` (confirmed)
+This plan binds the **confirmed spec**, `docs/specs/mis-assistant-explains-a-number.md`, not the
+roadmap card. The card carries 7 of the spec's 14 criteria because `roadmap fill` refuses to amend
+an active card; binding the spec is what keeps the extra criteria from being silently dropped.
 
 ## Problem
-Opening a pinned report appends a fresh turn every time, even when that exact report is already
-answered further up the thread, and the panel never moves. Open the same pin five times and you get
-five identical answers; open it once on a long thread and it looks like the click did nothing.
 
-Both halves are in the code. `pinned-reports.tsx:67` calls `rerun(...)`, which is
-`run(question, selection)` (`use-ask.ts:147`), and `use-ask.ts:86` appends unconditionally.
-`grep` for `scrollIntoView` or `scrollTo` across `ask-panel.tsx` returns **nothing**.
-`saved-views.tsx:64` does the same thing, so it is not a pins-only defect.
+The docked assistant on the MIS Reports screen knows nothing about the report on screen. `AskPanel`
+takes only `surface` and `onCollapse`, and `ask()` posts `{ question }` - so asking "how is this
+85000" in front of Agriculture Nursery DUB for July is byte-for-byte the same request as asking it
+on `/ask` with nothing rendered.
 
-Three things the cold reads found that the obvious fix gets wrong.
+And the assistant refuses the question outright. `classifyCausalQuestion`
+(`backend/src/chat/reconciliation-guard.ts:31`) answers "Causal analysis is not configured." That
+guard is right with no context - it stops the model inventing causes - but it answers the wrong
+question. "How is this 85000" is **composition**, not cause, and the product already computes it:
+the drill returns the transactions behind a leaf with a footer that foots, audited under decision
+0025, and the pinned outline snapshot plus the mapping master already know which lines and which
+GL/cost-centre triples build a figure.
 
-**Matching on the displayed title would merge unrelated reports.** That text is not a question - it
-is `selectionLabel(selection).title`, which is `measures.join(" · ")`. A pin of Actual and Budget by
-GL code and a pin of Actual and Budget by month are both `Actual · Budget`.
-
-**The spec's own refusal rule leaked.** It required a refused reopen to keep the previous answer,
-which contradicts decision **0028**: a revoked grant must produce a refusal, not a cached figure.
-`continueTurn` preserves the old response on every failure, so a revoked user would keep reading
-numbers they may no longer see.
-
-**And clearing globally would break shipped code.** `ask-period-control` requires a refused *period
-switch* to RETAIN the previous answer and proves it with a passing leaf. Both paths use the same
-seam.
+Decision 0037 named this capability as its follow-up. Decision 0038 scopes it: the grounded
+explanation ships, `/ask` is frozen, and 0035's plant-from-question half stays deferred.
 
 ## Scope / Non-goals
 
-**In scope**
-- Reuse an existing turn, identified by its resolved `Selection`, and re-run it in place.
-- Navigate to Ask **before** the request completes, and scroll the target turn into view.
-- Split `continueTurn`'s failure handling so a reopen clears on access refusals while a period
-  switch keeps its shipped behaviour.
-- Both pins and saved views.
+**In scope.** An attested statement context; `statementGrounding` on `AskRequest`; server-side
+re-derivation and typed refusals; a three-arm intent enum; leaf explanations (roll-up path +
+transactions) and aggregate explanations (client projection); a typed response union; the drill's
+governed-read protections on the leaf read; staleness per decision 0025; `budgetState`.
 
-**Non-goals**
-- Scrolling for ordinary typed questions.
-- Deduplicating turns the user created by asking the same thing twice by hand.
-- Queueing an Open while another request runs - it stays refused, as today.
-- `continueTurn`'s pending and replace-on-success semantics, unchanged.
+**Explicit non-goals.** `/ask` behaviour, in **sending and rendering** (0038). Plant-from-question
+and the "name a plant" clarification (0035's deferred half). Threading pinned batches through
+`SelectionExecutor` so ordinary grounded data questions inherit pin and budget guarantees - grounding
+means **explanation only**, and that gap is deferred with a trigger. Closing D-0038's mapping-version
+detection: C12 is attribution only. Answering causal questions. Making Budget focusable.
 
 ## Acceptance Criteria
-- **C1** Opening a saved report whose resolved `Selection` already has a **successful** turn re-runs
-  that turn and appends nothing; thread length unchanged. Candidates are successful turns carrying
-  `response.selection`; nothing else holds a selection to compare.
-- **C2** Identity is **strict structural equality** over domain, measureIds, dimensionIds, filters,
-  timeWindow and limit, including optional fields and array order - never the displayed title. A
-  leaf opens two reports sharing a `selectionLabel().title` but differing in dimensions and asserts
-  two distinct turns. A pin whose selection predates a normalised `timeWindow` is **not** equal and
-  opens as a new turn; the spec's earlier "will still match" claim was unsupportable with the data
-  the client holds and is withdrawn.
-- **C3** When several successful turns carry that selection, the **most recent** is re-run.
-- **C4** A matched turn re-runs with **`turn.question`**, asserted on the request body. A new turn
-  uses the label, because no better text exists.
-- **C5** An unmatched open appends **one** turn **immediately, already pending** - it cannot wait
-  for the response or there is nothing to scroll to. It is replaced on success, carries the reason
-  on a refusal, and carries an error on a transport failure. One turn, not two.
-- **C6** Open navigates to Ask **before** the request completes; the target turn is scrolled into
-  view and shown pending.
-- **C7** A reopen refused for **access** clears the stale result and shows the reason:
-  `blocked_by_policy`, `not_supported`, or a terminal **401/403**. Everything else keeps the answer -
-  `clarification_needed`, `execution_failed`, `backend_error`, rate limiting, timeout, network
-  failure, abort. Neither path shows period-specific copy.
-- **C8** **The period control is unchanged.** Its refused switch still retains the previous answer
-  and its shipped leaf still passes unmodified. The caller states which behaviour it wants.
-- **C9** Open while another request is running is refused with the existing row message and does
-  **not** navigate - an explicit exception to C6, since there would be no target to start.
-- **C10** Pins and saved views are both covered. Every criterion is proven by hermetic tests judged
-  by the vitest discriminator - present AND NOT skipped AND NOT failed - because a matching testcase
-  name proves nothing for vitest.
+
+C1-C14 of the confirmed spec, reproduced there in full. The four that a reader is most likely to
+soften, and must not:
+
+- **C9** binds **server-sourced** data only. The user's own question carries the number - "how is
+  this 85000" is the motivating example - so an absolute "no number reaches the model" would forbid
+  the feature. What must never be sent is what the server read from the warehouse.
+- **C7** is a **client projection of the attested statement payload** (decision 0024), naming
+  descendant lines **with their values**. Structure comes from the pinned outline snapshot, not the
+  mapping master, which knows GL-to-leaf mapping and not the tree. A labels-only answer fails it.
+- **C11** follows decision 0025 exactly: a **replaced but present** batch is read and reported;
+  only a **gone** batch is refused. The same pinned line must not behave one way in the drill panel
+  and another in the assistant.
+- **C6** asserts footing in **paise against the statement payload**. The statement displays rupees
+  and the shipped drill contract permits the exact footer to differ from the displayed cell by up
+  to Rs 1; the assistant inherits that rule rather than contradicting it.
 
 ## Technical Approach
 
-### Identity
-A pure `sameSelection(a, b)` helper beside `selection-label.ts`, so both callers and the tests share
-one definition. Strict structural equality; no normalisation, no field skipping.
+### Attestation
+The statement response gains an **additive** attested-context field binding scope, outline, pins,
+master version, user/session and expiry. The statement already computes all of it, so it signs and
+returns it in the same round trip - a second endpoint would re-derive the scope and could drift
+from the statement actually on screen, defeating the point. Focus may be any valid Actual inside
+that attested statement, so there is no per-click round trip.
+
+### Re-derivation
+The server trusts nothing from the client. Department and function come from the master's selection
+for that plant; the plant is checked against current grants on every ask; pins are validated before
+any read. Client copies of department and function are **verified context, never authority** - a
+mismatch is a typed refusal, not a silent substitution.
+
+### Intent
+A closed enum - `composition`, `causal`, `data` - resolved against a **fixture table the tests
+own**. Today's guard does not classify "how is this" as causal at all, so this boundary is built,
+not assumed. A causal cue **wins** when both appear.
+
+### The two answer shapes
+A **leaf** is a governed read: the drill's protections, the audit written before the query, the
+roll-up path, transactions, paise footing, 20 rows inline, true total count, a control that opens
+the shipped drill panel. An **aggregate** runs **no query at all**: a client projection of the
+attested payload, no governed-read audit.
 
 ### The seam
-`continueTurn` grows an explicit failure policy from its caller rather than a second code path -
-period switches keep today's retain-on-refusal, reopens clear on the C7 access set. One seam, one
-behaviour per caller, no duplicate continuation logic.
-
-### Navigation and scroll
-The Open handlers navigate first, then run. The panel scrolls a target turn into view; the turn id
-is the handle, which `AskTurn.id` already provides from ask-period-control.
-
-### Copy
-`continueTurn`'s period-specific failure strings move behind the caller's policy so a reopen can
-carry the server's reason.
+Grounding is a branch the caller opts into - the same shape `continueTurn`'s caller-stated failure
+policy took in `ask-reopen-saved-report` - never a change to shared classification. That is what
+keeps `/ask` frozen while the dock gains behaviour.
 
 ## Decisions
-No new decisions. Governed by **0028** (a save is a selection, never a snapshot, and re-running
-re-authorizes - the reason an access refusal must clear), **0019** (house style for touched code),
-**0006** (prettier-ignored files are formatted and de-listed by the task that edits them) and
-**0024/0031** (proofs judged by testcase name and executed count).
-
-The grill brief's already-answered ledger cited decisions **0035** and **0036**; the active corpus
-ends at **0029**, and it called `ask-period-control` unplanned although the roadmap records it done.
-Stale, corrected rather than adopted.
+Governed by **0038** (this story's scope), **0037** (which named it), **0024** (aggregate is a
+client projection), **0025** (pinned-batch raw read and the replaced/gone rule), **0027** (what may
+reach Bedrock), **0034**/**0036** (budget owner and all-plants), **0017**/**0022** (governed
+projection and the composite-key seam), **0021** (the outline snapshot). All active decisions are
+attested in the front matter.
 
 ## Risks
-- **The shared seam.** C8 exists because a careless change breaks a shipped, approved contract. The
-  period-control leaf must pass unmodified, not be updated to suit.
-- **Immediate pending turns** change what the thread looks like mid-flight; C5 pins the lifecycle so
-  a failure cannot leave a phantom turn.
+- **The attested context touches a shipped contract.** Additive, but the statement's existing
+  consumers and leaves must be re-proven. Task 1 owns that.
+- **Re-deriving scope is not the same as proving screen identity.** This is exactly why attestation
+  exists; without it C14's tamper refusal is unprovable.
+- **A weaker second raw-row route.** The leaf read must carry the drill's protections, not the
+  ordinary chat audit, or this becomes a way around decisions 0017, 0022 and 0025.
+- **Silent divergence from the drill panel.** If the assistant refuses a replaced batch while the
+  panel reads it, the same line answers two ways. C11 is the guard.
 
 ## Verify Plan
-`python3 factory/scripts/verify.py`. Hermetic frontend tests for every criterion. The live check
-re-opens a pin twice from the Dashboard and confirms one turn, current numbers and a visible scroll,
-with `LLM_PROVIDER=bedrock` declared - the mock provider always clarifies and would prove nothing.
+`python3 factory/scripts/verify.py`. Leaves are judged by the discriminator for their own runner -
+frontend by vitest (present AND NOT skipped AND NOT failed, D-0031), backend by Node/JUnit, where a
+non-matching name yields a testcase named for the FILE PATH (D-0024). Named because each can pass
+by accident:
+
+- the **provider payload**, not the rendered answer, proving no server-sourced row reaches the model;
+- an **invalid, expired or other-user** context, and a node or block **absent from the attested
+  outline**, each refused;
+- **department or function disagreeing** with the master's selection, refused;
+- the **intent fixture table**, including mixed wording where the causal cue wins;
+- **replaced-but-present** read and reported versus **gone** refused, for actual and for budget;
+- a failed audit returning the safe refusal **without ever querying**;
+- an aggregate answering with **child values** and running **no query**;
+- **`/ask` neither sending grounding nor rendering a grounded turn**;
+- **paise-exact footing** against the statement payload with the true total count.
+
+The live check renders a statement, clicks an Actual, asks a composition question and a causal one,
+and confirms the explanation foots to the screen - with `LLM_PROVIDER=bedrock` declared, since the
+mock provider always clarifies and would prove nothing.
 
 ## Surface Impact
 | Surface | Classification | Notes |
 | --- | --- | --- |
-| Runtime behavior | **Changed** | Reopen reuses a turn, navigates first, and clears on access refusals. |
-| API | **Unchanged by design** | No route, request or response change; this is entirely client-side. |
-| Data/schema | **N-A** | No storage change; pins and saved queries are untouched. |
+| Runtime behavior | **Changed** | The docked assistant answers composition questions about a focused figure. |
+| API | **Changed** | `AskRequest` gains `statementGrounding`; the statement response gains an additive attested context; the chat response gains a typed explanation union. |
+| Data/schema | **Unchanged by design** | No storage change; the drill and the outline snapshot are read as they ship. |
 | CLI/ops | **N-A** | No CLI or deployment surface. |
-| UI | **Changed** | Scroll-into-view, immediate pending turn, refusal copy, Open handlers. |
-| Docs | **Changed** | The confirmed spec is the contract. |
-| Tests | **Changed** | New frontend leaves; the ask-period-control leaf must pass unmodified. |
+| UI | **Changed** | Focus lifts to the report view, the dock renders explanations, `/ask` is isolated. |
+| Docs | **Changed** | The confirmed spec and decision 0038 land with this story. |
+| Tests | **Changed** | New backend and frontend leaves; the shipped statement and `/ask` leaves must pass unmodified. |
 
 ## Task Decomposition
-Sequential; one runtime, explicit dependencies.
+Sequential; explicit dependencies. Three tasks.
 
-1. **`reopen-identity-and-policy`** (frontend, `user_facing: false`) — C1, C2, C3, C4, C7, C8.
-   `sameSelection`, the caller-stated failure policy on `continueTurn`, and the reopen wiring in
-   `use-ask`. No visual change. Depends on nothing.
-2. **`reopen-navigation-and-scroll`** (frontend, `user_facing: true`) — C5, C6, C9, C10.
-   Navigate-first from both Open handlers, the immediate pending turn, scroll-into-view, and the
-   refusal copy on screen. Depends on task 1.
+1. **`explain-grounding-and-attestation`** (backend + contract, `user_facing: false`) — C1, C2.
+   The attested context on the statement response, `statementGrounding` on `AskRequest`, server-side
+   re-derivation, and the typed refusals for an invalid/expired/other-user context, a node or block
+   outside the attested outline, a plant outside grants, and a department/function mismatch. No UI
+   and no explanation yet. The shipped statement leaves must pass unmodified. Depends on nothing.
+
+2. **`explain-the-number`** (backend, `user_facing: false`) — C3, C4, C6, C9, C10, C11, C12, C12a,
+   C13. The intent fixture table; the leaf explanation carrying the roll-up path and transactions
+   with paise footing, 20 rows and the true count; the typed response union; the drill's
+   governed-read protections with the predicate audited before the query and failing closed;
+   staleness per decision 0025; `budgetState`. Depends on task 1.
+
+3. **`explain-on-screen`** (frontend, `user_facing: true`) — C5, C7, C8, C14's frontend half.
+   Focus ownership lifted to the MIS report view, the dock wired to send the context, the
+   **aggregate client projection** with child values, the control that opens the shipped drill, and
+   `/ask` isolated in sending **and** rendering. Depends on task 2.
 
 
 ## What to return
