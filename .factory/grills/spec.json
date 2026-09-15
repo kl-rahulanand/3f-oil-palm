@@ -2,87 +2,72 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Cold read of the CONFIRMED docs/specs/ask-period-control.md against repo reality. Eight findings. The sharpest two were self-inflicted contract holes: the spec argued that re-asking through the model is unreliable and then failed to define any field by which a clicked period could avoid it, and its option shape could not clone a Selection at all because a period-less base has no timeWindow while the type requires a grain. It also left four collapsed failure causes without an order, overclaimed 'all loaded data' against the scope injection, and wrote a proof criterion a backend-only implementation could satisfy. Two went to the human: whether a period switch may rewrite the asked question, and whether making batch ids visible belongs in this story.",
-  "questions_asked": 1,
+  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu2anfk4-8pabuq) of docs/specs/all-plants-statement.md against the built repo. Three factual corrections and five questions. Four of the five were settled from the repository (plant identity keeps the shipped DUB canonical id; the budget upload takes an explicit plant field because the client's workbook names no owning plant; the format outline becomes a pinnable object separate from any plant budget; only master-configured selections are offered). Two went to the human in one round: acceptance of decision 0029 with its supersession of 0016, and the partial-FY-YTD Budget/% rule. The spec was amended once and this pass is bound to the amended digest.",
+  "questions_asked": 2,
   "gaps": [
-    "The response contract contradicted itself: the spec required period options inside ClarificationNeeded and then said clarification responses carry no control, and it never defined any field by which a SUCCESSFUL answer would carry period options at all - leaving the unreliable word-resume path as the only continuation or successful answers with nothing to click.",
-    "The option shape {value,label,from,to} cannot safely clone a Selection: a period-less base selection has no timeWindow, Selection.timeWindow requires a grain, and the option omitted the time column, so the client would have had to invent both fields.",
-    "Failure precedence was underspecified. statementRequest collapses missing and ambiguous department, function, plant AND period into one undefined, and the resolver checks mapping before period availability, so the spec had to fix a total order, a per-attribute order, and the exact ResponseClass for scope misconfiguration, no mapping, and no loaded periods.",
-    "'Replace in place' had no correctness semantics: nothing was said about the pending state, about a replacement that fails or is refused, or about a displayed question that says July above an answer now showing August - a visible contradiction in an audited transcript.",
-    "'Provenance shows the batch ids' was satisfiable backend-only: the Ask panel's provenance disclosure renders readback, measures, scope and freshness but never batch ids, so a user could not inspect what the criterion claimed.",
-    "'All loaded data' overclaimed: governed queries inject the asker's plant scope at sqlBuilder.ts:88, so a no-window answer covers all loaded data WITHIN that scope and any filters the question applied, not the warehouse's entire contents.",
-    "The proof requirement was too coarse to prevent partial coverage: 'every criterion' named no matrix, so the selector-call test could pass while the new response and UI branches regressed."
+    "Company-wide July net is \u20b911,02,73,718.00 in exact paise, not .07 as the draft's acceptance criterion 1 stated (the .07 belongs to DUB alone); coverage is 92.7% and the eleven unmatched cost-centre-plus-GL pairs include Primary/50001802 and Tertiary/50001904, which DUB never books and were therefore never bucketed for DUB.",
+    "Decision 0029 was still proposed while accepted decision 0016 restricts the governed join to the single plant DUB; the spec cannot be confirmed against a live corpus that contradicts it.",
+    "Plant identity was ambiguous: the draft said the SAP plant code is canonical yet called DUB-NUR an alias of DUB, while the shipped master, seeded scopes, budget ownership and drill pins key on DUB.",
+    "The budget upload's plant had no falsifiable source: the format workbook's Plant list names sixteen plants, the parser hard-codes DUB, and 'the workbook names its plant' named no field and no mismatch rule.",
+    "The outline for a no-budget plant was not an object that exists: outlines live only under a budget batch (decision 0021) and the drill requires a pinned budget batch, so 'the format's active outline' could not be pinned.",
+    "Partial FY-YTD budgets were underspecified: summing the loaded budget months left open whether % compares a partial budget to full-block actuals.",
+    "The draft said a plant absent from the master renders 'no mapping configured', but such a plant can never appear in the cascading dropdowns, and independent Department/Function/Plant lists could form combinations the master does not hold."
   ],
   "contradictions": [
-    "The grill brief's already-answered ledger recorded LLM and data residency as 'Decide later', which contradicts accepted decision 0027 fixing Bedrock in ap-south-1 and its data boundary. A stale settled answer, to be corrected rather than re-asked."
+    "Spec versus accepted decision 0016: the governed relation is DUB-only in 0016 while the spec carries plant as a scoped dimension across every granted plant.",
+    "Spec versus itself on plant identity: 'SAP plant code is canonical' contradicted 'DUB-NUR keeps its alias to DUB'."
   ],
   "resolutions": [
-    "Behaviour now defines TWO carriers so a recovery and a settled answer never share a field: ClarificationNeeded gains a typed period choice, and a successful data response gains a period control of the same shape with the current entry marked. The existing options/resumesQuestion path is left untouched for its current users.",
-    "Each option now carries a COMPLETE timeWindow - grain, column, from, to - plus value and label, alongside the base selection and the original question verbatim, so the client clones rather than invents. Criterion 2 pins the shape.",
-    "Behaviour now fixes a total, first-match-wins order: scope (BlockedByPolicy, naming the first offending attribute in the order department, function, plant), then no mapping (NotSupported), then no periods loaded (NotSupported, its own message), then period (ClarificationNeeded). The resolver's existing mapping-before-period order is preserved. Criterion 4 pins it.",
-    "HUMAN ROUND 1: the asked question is never rewritten. Behaviour states that the user's words stay exactly as typed and the answer carries the period it now shows, and adds the pending and failure semantics - a replacement in flight leaves the previous answer readable, and one that fails or is refused leaves it in place with the failure shown against it. Criteria 5 and 7 pin both.",
-    "HUMAN ROUND 2: showing batch ids in the provenance disclosure is named in Out of scope, and criterion 8 now checks that the RESPONSE carries them rather than implying a UI that this story does not build.",
-    "Behaviour and criterion 6 now say 'all loaded data within the asker's access scope and any filters the question applied', citing the scope injection at sqlBuilder.ts:88.",
-    "Criterion 9 now names the whole matrix explicitly - missing period, an unoffered same-day period, a partial-month range, a multi-month range, an empty period list, each of department/function/plant absent and ambiguous, no mapping, a successful statement answer, a successful governed answer with and without a window, and a failed replacement - and requires any live claim to name its sample count.",
-    "Decision 0027 governs: Bedrock in ap-south-1 with the boundary it records. The brief's 'decide later' line is stale and is not re-opened by this story."
+    "Why and acceptance criterion 1 now carry the exact-paise figures: \u20b911,02,73,718.00 company-wide, \u20b910,21,80,290.32 matched (92.7%), \u20b980,93,427.68 unmatched, and the eleven pairs are described as nine already bucketed for DUB plus the two DUB never books.",
+    "HUMAN ROUND: decision 0029 accepted, confirmed by Rahul Anand, with an explicit supersedes pointer to 0016 and a clause restating what 0016 keeps (join key gl_code + month, full-outer zero-fill, two-sided scope, the deferred mapping master and its trigger) now within each granted plant. Recorded with `forge decision accept` before this pass.",
+    "Repository-resolved: the master's plant_canonical is the identity. DUB stays DUB with SAP alias DUB-NUR exactly as shipped (mis-selection, seeded scope, budget, pins all key on it); every other plant's canonical id is its SAP code with no alias. Written into Behaviour and decision 0029 clause 6.",
+    "Repository-resolved: the budget upload takes an explicit canonical plant id as a request field, validated against the master, and the parser stops assuming DUB; the current nursery workbook is re-imported once with plant DUB. Acceptance criterion 6 refuses a missing or unknown plant and an outline mismatch.",
+    "Repository-resolved: the format outline becomes a pinnable object independent of any plant's budget amounts; plant budgets attach to it and must match it leaf-for-leaf by stable leaf key; the statement and the drill pin it explicitly and separately from any plant budget batch. Persistence shape is left to the plan. Acceptance criterion 7 names the pinned outline object.",
+    "HUMAN ROUND: partial FY-YTD renders Budget as the sum over months that have a budget batch, naming them in the block heading, and % as the dash whenever any month with actuals in the block lacks a budget. Written into Behaviour, decision 0029 clause 4, and acceptance criterion 9's two-month fixture.",
+    "Repository-resolved: dropdowns cascade from the master's configured selections filtered by grants (SelectionResolverService.options() already does this); a plant in a later actuals upload but absent from the master is not offered, is named in the upload's validation result, and is added as master data; a direct unconfigured request fails closed with the existing no-mapping outcome. New acceptance criterion 10.",
+    "Residency: decision 0027 governs unchanged; the spec's 'what does not change' list now cites it so the model boundary (vocabulary yes, amounts and rows never) is not re-opened by adding plants."
   ],
-  "citations": [
-    {
-      "finding": "The response contract contradicted itself: the spec required period options inside ClarificationNeeded and then said clarification responses carry no control, and it never defined any field by which a SUCCESSFUL answer would carry period options at all - leaving the unreliable word-resume path as the only continuation or successful answers with nothing to click.",
-      "ref": "contract/src/api.ts:496,547"
-    },
-    {
-      "finding": "The option shape {value,label,from,to} cannot safely clone a Selection: a period-less base selection has no timeWindow, Selection.timeWindow requires a grain, and the option omitted the time column, so the client would have had to invent both fields.",
-      "ref": "contract/src/measure.ts:151"
-    },
-    {
-      "finding": "Failure precedence was underspecified. statementRequest collapses missing and ambiguous department, function, plant AND period into one undefined, and the resolver checks mapping before period availability, so the spec had to fix a total order, a per-attribute order, and the exact ResponseClass for scope misconfiguration, no mapping, and no loaded periods.",
-      "ref": "backend/src/chat/chat.service.ts:322,331,335,726; backend/src/mapping/selection-resolver.service.ts:58"
-    },
-    {
-      "finding": "'Replace in place' had no correctness semantics: nothing was said about the pending state, about a replacement that fails or is refused, or about a displayed question that says July above an answer now showing August - a visible contradiction in an audited transcript.",
-      "ref": "frontend/src/features/assistant/use-ask.ts:74,85"
-    },
-    {
-      "finding": "'Provenance shows the batch ids' was satisfiable backend-only: the Ask panel's provenance disclosure renders readback, measures, scope and freshness but never batch ids, so a user could not inspect what the criterion claimed.",
-      "ref": "frontend/src/features/assistant/ask-panel.tsx:345"
-    },
-    {
-      "finding": "'All loaded data' overclaimed: governed queries inject the asker's plant scope at sqlBuilder.ts:88, so a no-window answer covers all loaded data WITHIN that scope and any filters the question applied, not the warehouse's entire contents.",
-      "ref": "backend/src/sql/sqlBuilder.ts:88"
-    },
-    {
-      "finding": "The proof requirement was too coarse to prevent partial coverage: 'every criterion' named no matrix, so the selector-call test could pass while the new response and UI branches regressed.",
-      "ref": "docs/specs/ask-period-control.md"
-    },
-    {
-      "finding": "The grill brief's already-answered ledger recorded LLM and data residency as 'Decide later', which contradicts accepted decision 0027 fixing Bedrock in ap-south-1 and its data boundary. A stale settled answer, to be corrected rather than re-asked.",
-      "ref": "docs/decisions/0027-assistant-llm-bedrock-mumbai.md:25"
-    }
+  "open_items": [
+    "Non-blocking: the client's authoritative Department / Function names and Master Table (renames the provisional labels, empties the bucket as data).",
+    "Non-blocking: budgets for plants other than the nursery.",
+    "Non-blocking: format Plant list names that do not match SAP (DHS, DHS2 versus DMHS; Belagum absent from July) \u2014 to confirm with Srihari."
+  ],
+  "inspected_refs": [
+    "docs/specs/all-plants-statement.md:60",
+    "docs/decisions/0029-all-plants-provisional-scope.md:2",
+    "docs/decisions/0016-governed-joins-poc-scope.md:23",
+    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md:27",
+    "backend/src/mis/mis-drill.service.ts:57",
+    "backend/src/mapping/selection-resolver.service.ts:35",
+    "backend/src/mapping/mis-mapping-master.ts",
+    "backend/src/ingest/mis-budget.parser.ts:8",
+    "backend/src/warehouse/warehouse-schema.ts:43,185",
+    "docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx",
+    "docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx"
   ],
   "rounds": [
     {
-      "question": "The grill found that batch ids already travel in the API but the Ask panel never renders them \u2014 its provenance section shows only readback, measures, scope and freshness. My criterion says \"provenance reports the batch ids\". Should this story make them visible?",
+      "question": "Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?",
       "options": [
-        "Out of scope \u2014 reword the criterion (Recommended)",
-        "In scope \u2014 show them under \"How this was calculated\""
+        "Accept, confirmed by Rahul Anand (Recommended)",
+        "Accept under a different name",
+        "Do not accept yet"
       ],
-      "chosen": "Out of scope \u2014 reword the criterion (Recommended)",
+      "chosen": "Accept, confirmed by Rahul Anand (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)",
+      "options": [
+        "Budget = loaded months, % = not loaded (Recommended)",
+        "Budget and % both over loaded months only",
+        "Whole block is 'not loaded'"
+      ],
+      "chosen": "Budget = loaded months, % = not loaded (Recommended)",
       "frontier_empty": true
     }
   ],
-  "inspected_refs": [
-    "contract/src/api.ts:496,547",
-    "contract/src/measure.ts:151",
-    "backend/src/chat/chat.service.ts:146,322,331,335,726",
-    "backend/src/mapping/selection-resolver.service.ts:58,67",
-    "backend/src/sql/sqlBuilder.ts:88",
-    "frontend/src/features/assistant/ask-panel.tsx:345",
-    "frontend/src/features/assistant/use-ask.ts:74,85",
-    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md",
-    "docs/decisions/0028-saved-selections-not-snapshots.md"
-  ],
-  "input_sha256": "f23a43635b21cae48ea143d53fd7f6174e00a725e6420a941f50fb2f047a59c5",
-  "recorded_at": "2026-09-15T06:03:40+00:00",
-  "commit": "d02b60f95236c9beb6131ad5c8664e316d4a90d3"
+  "input_sha256": "5d479ad7f9083d4c2f138e9b3bea13943043ecfc91b36268e7a46610456c9bac",
+  "recorded_at": "2026-09-15T07:24:15+00:00",
+  "commit": "df7d5689e8f91dfdaafe0dc9a7ac30c7e3b5e338"
 }

@@ -1,4 +1,5 @@
 {
+  "generated_by": "human",
   "items": [
     {
       "key": "platform-base",
@@ -192,6 +193,29 @@
       "completed_at": "2026-09-15T08:57:58+00:00",
       "history": ".factory/stories/ask-period-control/",
       "outcome": "A statement question that names no period now asks which period to use instead of refusing, and every settled answer carries a control that moves it to another period without retyping the question. Measured before: 'Show the MIS statement Actual by statement leaf' returned a red refusal 4/4. Measured after: it returns the prompt and the loaded periods, and clicking one returns 81 verified rows with zero selector calls - the chosen period reaches the warehouse as data, never as words re-guessed by the model. Four failure causes that shared one dead-end message now resolve in a fixed order, each saying what is actually wrong: an unresolvable scope triple points at an administrator, a missing mapping and an empty period list keep their own messages, and only a missing period clarifies. An answer that covers no single period says so - 'All loaded data within your access scope and any filters applied by this question' - rather than defaulting a control to a period it never used."
+    },
+    {
+      "key": "multi-plant",
+      "title": "All plants in the MIS statement",
+      "story": "As Srihari, I want to pick any of 3F's plants and get its Financial MIS on the same format, with a dash where no budget has been loaded, so that the report covers the whole company and not only the nursery.",
+      "acceptance_criteria": [
+        "Every SAP plant code in the July actuals batch (31) is offered to a fully granted user, each renders a statement, and the 31 Grand Total Actuals sum to the batch's company-wide net of \u20b911,02,73,718.00 in exact paise, proven by a warehouse fixture.",
+        "The DUB nursery statement is unchanged: Actual \u20b91,15,12,712.07 and Budget \u20b91,00,50,136.29 for July 2026, parents footing to leaves, the unmapped-GL line carrying its own Actual, and the Excel export matching.",
+        "Every (plant, cost centre, GL) triple in the July extract resolves exactly once via a master generated from the full mapping sheet (decision 0031), nothing dropped or fanned out, the eleven unnamed pairs bucketed with a reason, every new master row flagged provisional, and the format naming DUB as its budget owner.",
+        "A plant other than the budget owner carries a not-loaded budget state (decision 0033) and renders a dash with the label 'Budget not loaded for this plant' in Budget, Roll-over and % on every row including Grand Total, on screen and in Excel, with no over-budget or credit flag; H.O shows 100% of its net inside Manpower and Admin.",
+        "Department and Function labels follow the classification rule (nursery plants Agriculture / Nursery, H.O Corporate / Office, others Operations / Unit), stored and displayed as provisional.",
+        "Drill-down foots in exact paise for a leaf and the unmapped-GL line of a non-owner plant with the shipped pin contract; Budget and % stay inert.",
+        "The assistant is untouched: its hermetic suite passes unchanged; a user granted only DUB sees only DUB in MIS Reports options and drill-down with no row leaking (decision 0036).",
+        "The demo user is granted every canonical plant; the two zero states and three nil states stay distinct from the not-loaded state, all proven by hermetic tests judged by junit testcase name and executed count.",
+        "Plant-keyed budget batches, the outline object, the plant upload field, the partial-FY-YTD rule, cascading selection tuples, upload plant reporting, the master-version pin and the plant-aware assistant are deferred together with decision 0033's trigger and are not part of this story."
+      ],
+      "order": 9,
+      "status": "active",
+      "epic": "reporting",
+      "skill": "fullstack",
+      "kind": "feature",
+      "depends_on": [],
+      "spec": "docs/specs/all-plants-statement.md"
     }
   ],
   "epics": [
@@ -232,6 +256,5 @@
       ]
     }
   ],
-  "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-15T08:57:58+00:00"
+  "updated_at": "2026-09-15T10:33:04+00:00"
 }

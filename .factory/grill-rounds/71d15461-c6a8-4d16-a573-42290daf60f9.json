@@ -1,0 +1,25 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?",
+      "options": [
+        "Accept, confirmed by Rahul Anand (Recommended)",
+        "Accept under a different name",
+        "Do not accept yet"
+      ],
+      "chosen": "Accept, confirmed by Rahul Anand (Recommended)"
+    },
+    {
+      "question": "FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)",
+      "options": [
+        "Budget = loaded months, % = not loaded (Recommended)",
+        "Budget and % both over loaded months only",
+        "Whole block is 'not loaded'"
+      ],
+      "chosen": "Budget = loaded months, % = not loaded (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T07:20:41.735613+00:00",
+  "session_id": "1fef63e6-aeb7-4446-a7f8-a3df59d2fae0"
+}
