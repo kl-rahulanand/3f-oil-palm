@@ -40,7 +40,14 @@ export const LLM_MESSAGES = {
     "Do NOT add a date or time dimension unless the question explicitly refers to time -- e.g. 'over time', 'trend', 'by day/week/month', 'daily', 'monthly'. Example: 'lead count by state' -> dimensionIds ['state'] ONLY (do not add date).",
   systemPromptNoSql: "Never write SQL. Never invent measures, dimensions, filters, or columns.",
   systemPromptFilterValues:
-    "For any enumerated dimension values listed below, filter values must use EXACTLY one of the provided real values, including casing.",
+    "For any enumerated dimension values listed below, filter values must use EXACTLY one of the provided real values, including casing. " +
+    // The tool schema lists the UNION of every domain's dimensions, but a selection is
+    // validated against the ONE domain it names, so borrowing another domain's dimension
+    // fails the whole question. Periods are the common case: a month is a time column, not
+    // a dimension, in some domains, so a month put in filters made every dated question
+    // about those domains come back unanswerable.
+    "Every id in dimensionIds and every filter dimensionId MUST be a dimension of the domain you selected in this same call; the list below spans all domains, and borrowing one from another domain makes the question unanswerable. " +
+    "Express EVERY period -- a month, quarter, year, a named month such as 'July 2026', 'last 30 days', 'this month' -- ONLY in timeWindow. NEVER put a date, month, or period value in filters.",
   systemPromptUnsupported:
     "If the question needs something outside this vocabulary, call request_clarification or mark_unsupported.",
   systemPromptConversational:

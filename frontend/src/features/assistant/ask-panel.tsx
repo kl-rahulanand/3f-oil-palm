@@ -8,9 +8,15 @@ import { api } from "@/src/lib/api";
 import { useAsk, type AskTurn } from "./use-ask";
 
 const SEED_QUESTIONS = [
-  "Show Actual and Budget for Agriculture Nursery DUB this month",
-  "Show percentage for Agriculture Nursery DUB this month",
-  "Show MIS statement Actual for Agriculture Nursery DUB this month",
+  // These name only things the selector can actually resolve. The plant is NOT a dimension -
+  // it comes from the signed-in user's scope - so naming one in the question left the model
+  // with unmappable text and it either invented a filter or marked the ask unsupported.
+  // The period is named explicitly because "this month" resolves to a month with no actuals.
+  // No MIS-statement seed here: a statement ask needs a single department, function and plant
+  // on the signed-in user plus a single-point period, so it cannot be a general seed question.
+  "Show Actual and Budget by GL code for July 2026",
+  "Show percentage of budget by GL code for July 2026",
+  "Show Actual by month",
 ];
 const CHART_COLORS = ["#1c6b49", "#0c3529", "#7aa889", "#c8922f"];
 const PHASE_LABELS = {

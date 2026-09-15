@@ -6,7 +6,7 @@ import { AppModule } from "../app.module";
 import { SelectionExecutor } from "../chat/selectionExecutor";
 import { WAREHOUSE } from "../config";
 import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
-import { pgOidIsNumeric, PostgresAdapter } from "./postgres.adapter";
+import { pgOidIsCalendarDate, pgOidIsNumeric, PostgresAdapter, toPostgresCell } from "./postgres.adapter";
 import type { Warehouse } from "./warehouse.interface";
 
 test("Postgres numeric field OIDs map without database access", () => {
@@ -16,6 +16,22 @@ test("Postgres numeric field OIDs map without database access", () => {
   for (const oid of [16, 25, 1043, 1082, 1114, 2950]) {
     assert.equal(pgOidIsNumeric(oid), false, `expected OID ${oid} not to be numeric`);
   }
+});
+
+test("Postgres date cells keep the calendar day the database stored", () => {
+  // node-postgres materialises a `date` at LOCAL midnight. Under a positive UTC offset,
+  // toISOString() on that Date reports the PREVIOUS day, which is what made July rows read
+  // as 30 June and made an equality filter on month match nothing.
+  const julyFirstLocalMidnight = new Date(2026, 6, 1, 0, 0, 0, 0);
+  assert.equal(pgOidIsCalendarDate(1082), true);
+  assert.equal(pgOidIsCalendarDate(1114), false);
+  assert.equal(pgOidIsCalendarDate(1184), false);
+  assert.equal(toPostgresCell(julyFirstLocalMidnight, 1082), "2026-07-01");
+  // A true instant (timestamptz) still serialises as an instant.
+  const instant = new Date(Date.UTC(2026, 6, 1, 18, 30, 0));
+  assert.equal(toPostgresCell(instant, 1184), "2026-07-01T18:30:00.000Z");
+  assert.equal(toPostgresCell(null, 1082), null);
+  assert.equal(toPostgresCell("2026-07-01", 1082), "2026-07-01");
 });
 
 test(

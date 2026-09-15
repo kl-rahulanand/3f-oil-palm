@@ -20,6 +20,13 @@ export function pgOidIsNumeric(oid: number): boolean {
   return NUMERIC_FIELD_OIDS.has(oid);
 }
 
+/** Postgres `date` - a calendar day with no time and no zone. */
+const DATE_FIELD_OID = 1082;
+
+export function pgOidIsCalendarDate(oid: number): boolean {
+  return oid === DATE_FIELD_OID;
+}
+
 @Injectable()
 export class PostgresAdapter implements Warehouse {
   private readonly cfg: Config = loadConfig();
@@ -123,10 +130,9 @@ export class PostgresAdapter implements Warehouse {
   }
 
   private toRow(row: Record<string, unknown>, fields: FieldDef[]): Record<string, string | number | null> {
-    return Object.fromEntries(fields.map((field) => [field.name, toPostgresCell(row[field.name])])) as Record<
-      string,
-      string | number | null
-    >;
+    return Object.fromEntries(
+      fields.map((field) => [field.name, toPostgresCell(row[field.name], field.dataTypeID)]),
+    ) as Record<string, string | number | null>;
   }
 
   private mapError(operation: "explain" | "execute", error: unknown): Error {
@@ -137,11 +143,28 @@ export class PostgresAdapter implements Warehouse {
   }
 }
 
-function toPostgresCell(value: unknown): string | number | null {
+export function toPostgresCell(value: unknown, oid?: number): string | number | null {
   if (value === undefined || value === null) return null;
-  if (value instanceof Date) return value.toISOString();
+  if (value instanceof Date) {
+    // A Postgres `date` carries no time and no zone, but node-postgres materialises it as a
+    // JS Date at LOCAL midnight. Calling toISOString() on that re-reads it in UTC, so east of
+    // Greenwich every calendar day came back as the previous day: 2026-07-01 surfaced as
+    // "2026-06-30T18:30:00.000Z". That wrong string reached three places - the month column
+    // users read, the distinctValues list the selector is given as allowed filter values, and
+    // the equality filter the selector then emitted, which could never match the date column.
+    // Keep the calendar day the database actually stored; only true instants get an ISO one.
+    if (oid !== undefined && pgOidIsCalendarDate(oid)) return toLocalCalendarDate(value);
+    return value.toISOString();
+  }
   if (typeof value === "string" || typeof value === "number") return value;
   return String(value);
+}
+
+function toLocalCalendarDate(value: Date): string {
+  const year = String(value.getFullYear()).padStart(4, "0");
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function toIsoString(value: string | number | null | undefined): string | null {
