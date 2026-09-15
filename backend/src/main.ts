@@ -45,10 +45,16 @@ type AppListener = (app: INestApplication, port: number, host?: string) => Promi
 
 export async function listenForRequests(
   app: INestApplication,
-  cfg: Pick<Config, "port" | "authOtpMock">,
+  cfg: Pick<Config, "port" | "authOtpMock" | "bindHost">,
   listen: AppListener = (target, port, host) => (host ? target.listen(port, host) : target.listen(port)),
 ): Promise<void> {
-  await listen(app, cfg.port, cfg.authOtpMock ? "127.0.0.1" : undefined);
+  // BIND_HOST wins when set, because a container MUST listen on 0.0.0.0 - a
+  // process on the container's own loopback is unreachable even through a
+  // published port. Unset, the original rule stands: mock OTP means loopback
+  // only, so an instance where anyone signs in with 000000 is never exposed by
+  // accident. Making the exposure explicit is the point (decision 0029).
+  const host = cfg.bindHost ?? (cfg.authOtpMock ? "127.0.0.1" : undefined);
+  await listen(app, cfg.port, host);
 }
 
 async function bootstrap() {

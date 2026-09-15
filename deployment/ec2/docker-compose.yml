@@ -1,0 +1,114 @@
+# The 3F Oil Palm MIS PoC on one EC2 instance, in one command.
+#
+#   cp deployment/ec2/.env.example deployment/ec2/.env   # then edit it
+#   docker compose -f deployment/ec2/docker-compose.yml --env-file deployment/ec2/.env up -d --build
+#
+# READ THIS FIRST. BIND_HOST=0.0.0.0 below deliberately switches off a guard.
+# The backend normally listens on loopback ONLY while mock OTP is on, so that an
+# app where ANYONE signs in as admin with 000000 can never be reached over a
+# network by accident. A container cannot work that way, so this file turns it
+# off on purpose - which means whoever can reach port 3000 IS your admin.
+# Lock the security group to your own IP. Decision 0011 still defers real OTP,
+# HTTPS, secret ownership, audit retention and data residency.
+
+name: 3f-oil-palm
+
+x-backend-env: &backend-env
+  NODE_ENV: development
+  PORT: 4000
+  BIND_HOST: 0.0.0.0
+  AUTH_OTP_MOCK: ${AUTH_OTP_MOCK:-1}
+  AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET in deployment/ec2/.env}
+  FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:?set FRONTEND_ORIGIN to the address you browse to}
+  PGHOST: db
+  PGPORT: 5432
+  PGUSER: ${PGUSER:-threef}
+  PGPASSWORD: ${PGPASSWORD:?set PGPASSWORD}
+  PGDATABASE: ${PGDATABASE:-threef}
+  WAREHOUSE_DRIVER: postgres
+  WAREHOUSE_PG_HOST: warehouse-db
+  WAREHOUSE_PG_PORT: 5432
+  WAREHOUSE_PG_USER: ${WAREHOUSE_PG_USER:-warehouse}
+  WAREHOUSE_PG_PASSWORD: ${WAREHOUSE_PG_PASSWORD:?set WAREHOUSE_PG_PASSWORD}
+  WAREHOUSE_PG_DATABASE: ${WAREHOUSE_PG_DATABASE:-warehouse}
+  LLM_PROVIDER: ${LLM_PROVIDER:-bedrock}
+  AWS_REGION: ${AWS_REGION:-ap-south-1}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+  BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-}
+
+x-image: &image
+  build:
+    context: ../..
+    dockerfile: deployment/ec2/Dockerfile
+    target: backend
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${PGUSER:-threef}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?set PGPASSWORD}
+      POSTGRES_DB: ${PGDATABASE:-threef}
+    volumes: [app-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-threef} -d ${PGDATABASE:-threef}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # A SEPARATE server, not another database in the same one: config.ts:228
+  # refuses to start when the warehouse resolves to the same address as the
+  # application database on the same port.
+  warehouse-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${WAREHOUSE_PG_USER:-warehouse}
+      POSTGRES_PASSWORD: ${WAREHOUSE_PG_PASSWORD:?set WAREHOUSE_PG_PASSWORD}
+      POSTGRES_DB: ${WAREHOUSE_PG_DATABASE:-warehouse}
+    volumes: [warehouse-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WAREHOUSE_PG_USER:-warehouse} -d ${WAREHOUSE_PG_DATABASE:-warehouse}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # One-shot, and the backend waits for it to SUCCEED - a failed migration stops
+  # the app starting rather than leaving it half-configured. There are two
+  # migration sets: the application database and the warehouse.
+  migrate:
+    <<: *image
+    environment: *backend-env
+    depends_on:
+      db: {condition: service_healthy}
+      warehouse-db: {condition: service_healthy}
+    command: sh -c "node dist/db/migrate.js && node dist/warehouse/warehouse-migrate.js"
+    restart: "no"
+
+  backend:
+    <<: *image
+    environment: *backend-env
+    ports: ["${BACKEND_PORT:-4000}:4000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: deployment/ec2/Dockerfile
+      target: frontend
+      args:
+        # BUILD-time: Next inlines NEXT_PUBLIC_* into the browser bundle, so this
+        # is the address YOUR BROWSER uses, never a container name. Changing it
+        # means rebuilding this image, not restarting it.
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?set it to http://<your EC2 public IP>:4000}
+    ports: ["${FRONTEND_PORT:-3000}:3000"]
+    depends_on: [backend]
+    restart: unless-stopped
+
+volumes:
+  app-db:
+  warehouse-db:
