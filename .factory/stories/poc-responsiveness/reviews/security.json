@@ -1,0 +1,128 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "poc-responsiveness",
+  "reviewed_scope": [
+    "backend/src/llm/**",
+    "backend/src/chat/**",
+    "backend/src/warehouse/**",
+    "contract/src/api.ts",
+    "frontend/src/features/assistant/**",
+    "frontend/src/features/shell/**",
+    "frontend/src/components/shell/**",
+    "frontend/src/lib/api.ts",
+    "frontend/app/globals.css",
+    ".prettierignore",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [
+    "emil-design-eng",
+    "frontend-design"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-abg-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/llm/bedrock.provider.ts:390"
+    },
+    {
+      "contract_id": "t-abg-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/llm/bedrock.provider.ts:398"
+    },
+    {
+      "contract_id": "t-abg-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.schemas.ts:21"
+    },
+    {
+      "contract_id": "t-abg-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.controller.ts:63"
+    },
+    {
+      "contract_id": "t-abg-c5",
+      "verdict": "implemented",
+      "evidence": "backend/package.json:17"
+    },
+    {
+      "contract_id": "t-ass-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-stream.ts:5 parses buffered SSE frames, preserves UTF-8 boundaries, normalizes terminal failures, and terminates cleanly."
+    },
+    {
+      "contract_id": "t-ass-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:45 delays phase rendering by 250ms and clears progress on completion."
+    },
+    {
+      "contract_id": "t-ass-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/lib/api.ts:47 preserves CSRF, credentials, refresh-and-retry, HTTP errors, and the buffered selection branch."
+    },
+    {
+      "contract_id": "t-ass-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and silently handles expected aborts."
+    },
+    {
+      "contract_id": "t-ass-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/shell/use-freshness.ts:6 renders the route\u2019s five states plus a distinct client failure state without automatic retries or cached display."
+    },
+    {
+      "contract_id": "t-ass-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores natural height."
+    },
+    {
+      "contract_id": "t-ass-c7",
+      "verdict": "implemented",
+      "evidence": "frontend/src/lib/api.ts:131 trims newest prior turns to all shared limits while retaining oldest-first transport order."
+    },
+    {
+      "contract_id": "t-ass-c8",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-stream.test.ts:38, frontend/src/features/assistant/ask-panel.test.tsx:409, frontend/src/components/shell/app-shell.test.tsx:78, and frontend/src"
+    },
+    {
+      "contract_id": "t-sfa-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/warehouse.interface.ts:17 declares the optional seam, and backend/src/warehouse/postgres.adapter.ts:69 computes per-source active-batch minima."
+    },
+    {
+      "contract_id": "t-sfa-c2",
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:44 defines distinct typed states, with deliberate StarRocks unsupported results at backend/src/warehouse/starrocks.adapter.ts:64 and backend/src/warehouse/starr"
+    },
+    {
+      "contract_id": "t-sfa-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/freshness.controller.ts:10 registers the exact authenticated route without an action grant, verified by backend/src/app.routes.test.ts:74."
+    },
+    {
+      "contract_id": "t-sfa-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.ts:426 remains unchanged by the supplied diff, leaving provenance.dataAsOf outside this route's surface."
+    },
+    {
+      "contract_id": "t-sfa-c5",
+      "verdict": "implemented",
+      "evidence": "backend/package.json:17 registers the flag-setting warehouse proof, while backend/src/warehouse/load-freshness.db.test.ts:6 exercises multiple active periods, per-source minima, an"
+    }
+  ],
+  "blocking_findings": [],
+  "residual_risks": [],
+  "aspect": "security",
+  "score": 10,
+  "recommendation": "approve",
+  "summary": "Story roll-up for poc-responsiveness. The governed boundary is unchanged and the new surfaces do not widen it: the freshness route carries no governed value - only when data was loaded - and sits behind AuthGuard with no action grant by deliberate choice, since the shell chrome renders for every authenticated user. The retry cannot mask a refusal: absent, malformed and mark_unsupported outcomes were collapsed into one result and are now distinguished before any retry decision, and a second tool-less response answers backend_error rather than not_supported, which would assert a falsehood. Ingress limits on priorTurns are enforced before serialization, and the client trims to the same shared constants - which closed a live defect where the ninth question in a conversation returned 400. Cancellation is bounded and honestly labelled: the model call and stream stop, while a running query expires under statement_timeout, stated at the seam so it is not later mistaken for full cancellation.",
+  "non_blocking_findings": [
+    "Carried, non-blocking: no 3F location is recorded in docs/, so ap-south-1 rests on the code default plus decision 0003's India-residency line. Decision 0027 should be amended if a real residency requirement exists.",
+    "D-0043 records a hole in the cancellation promise found after task 1 merged: chat.service.ts:170 starts distinctValues warehouse reads before the abort check, so an abandoned stream can still start a pre-selection query."
+  ],
+  "review_run_id": "3ada330eef1e24a3426bf3b88c68db8869ae6defd687faa56934d2bc170966c5",
+  "brief_sha256": "c70ff51865ec3f0328e42f726617f64ab9a6d869a46cb0fe8789a23558acbde3",
+  "branch_diff_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "recorded_at": "2026-09-15T03:34:56+00:00",
+  "commit": "87cb839ea06aa02b2125ec6ecac11a2a2ac6b651"
+}

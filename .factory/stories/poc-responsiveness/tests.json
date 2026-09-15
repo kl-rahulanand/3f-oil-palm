@@ -1,0 +1,72 @@
+{
+  "commit": "87cb839ea06aa02b2125ec6ecac11a2a2ac6b651",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Story roll-up for poc-responsiveness, re-run on the merged tree. python3 factory/scripts/verify.py passes across structural, typecheck, quality and test. The aggregate D-0008 host proof runs test:warehouse-proof 21/21 with 0 failures and 0 skipped - up from 20 before this story, the extra leaf being the load-freshness proof - and every warehouse leaf from the five earlier stories still passes UNCHANGED, which is the evidence this story disturbed none of them. The dead-port control at WAREHOUSE_PG_PORT=5599 fails 9 gated leaves with 18 ECONNREFUSED while the 12 ungated ones still pass, so the green run is real database work rather than skips. Each task's own automated and, where user-facing, functional artifacts were recorded and CI-verified at its PR (#47, #48, #49), all three closing at 10/approve on every lens.",
+    "commands_run": [
+      "python3 factory/scripts/verify.py -> Verification passed",
+      "WAREHOUSE_PG_* set, npm --prefix backend run test:warehouse-proof -> tests 21 / pass 21 / fail 0 / skipped 0",
+      "negative control: the same command with WAREHOUSE_PG_PORT=5599 -> tests 21 / pass 12 / fail 9, 18 ECONNREFUSED",
+      "warehouse data restored after the control, since the freshness leaf TRUNCATEs CASCADE (D-0044): sap_transaction 4113, mis_budget 960, 13 active batches"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/llm/bedrock.provider.test.ts (the maxTokens cap on the request, the scoped retry, absent vs malformed tool blocks, the raised second cap, backend_error after two tool-less responses)",
+      "backend/src/chat/chat.schemas.test.ts and chat.controller.test.ts (ingress limits before serialization; a premature close aborts while a normal completion does not)",
+      "backend/src/warehouse/load-freshness.db.test.ts and freshness.adapters.test.ts (gated cross-source minimum over several active periods; typed unavailable on both starrocks adapters)",
+      "frontend/src/features/assistant/ask-stream.test.ts (SSE framing across chunk boundaries including a split multi-byte character, malformed frames, EOF without a terminal event)",
+      "frontend/src/features/assistant/ask-panel.test.tsx and lib/api.test.ts (render delay, cancellation boundary, buffered rerun branch, transport parity, the client prior-turn trim)",
+      "frontend/src/components/shell/app-shell.test.tsx (the freshness pill's states, no longer aria-disabled)"
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "D-0024 and D-0031 remain open, so every leaf was verified by its junit testcase name and executed count rather than by an exit code.",
+      "D-0044: the gated freshness leaf runs TRUNCATE ingest_batch CASCADE and destroys a developer's warehouse when run in isolation - it emptied 4,113 sap_transaction and 960 mis_budget rows twice during this story, both times restored by re-running the full warehouse-proof suite, which reseeds.",
+      "D-0041, D-0042, D-0043 and D-0045 are open with triggers: provenance.dataAsOf is deliberately still null, a partially loaded warehouse can show one source's load time as if it covered both, an abandoned stream can still start a pre-selection query, and a well-formed data question was once answered as a glossary definition by the shared server path.",
+      "The aggregate proof remains host evidence under D-0008; CI has no warehouse service container, so test:warehouse-proof does not run there."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-15T03:35:17+00:00",
+    "commit": "87cb839ea06aa02b2125ec6ecac11a2a2ac6b651"
+  },
+  "updated_at": "2026-09-15T03:35:45+00:00",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "passed",
+    "score": 9,
+    "summary": "Story-level functional roll-up for poc-responsiveness. The defect the human reported - a follow-up question taking 39s then 57s, looking like a hang - is fixed and the fix is visible. Measured live through the real provider after the change: 1,024ms, 2,362ms, 2,816ms and 5,417ms, against 4,610ms, 5,370ms and 19,299ms at the originally contracted cap. Both Ask surfaces now stream the backend's existing phases, the shell shows a real load-freshness value instead of a hard-coded disabled chip, and the docked panel fills its column. Each task's own check was recorded at its PR.",
+    "manual_validation_steps": [
+      "Task 1 (#47): a follow-up question returns in seconds rather than minutes; the Converse request carries maxTokens, asserted on the request object rather than inferred from timing, because the uncapped call is fast when there is no prior turn.",
+      "Task 2 (#48): GET /api/warehouse/freshness returns the oldest uploaded_at_utc across active ingest batches, proven on the host against several active periods with a dead-port control failing the same leaf.",
+      "Task 3 (#49), live from this story's own servers after confirming their working directory: 'hello' answers in 21ms via POST /api/chat/stream with NO phase flicker, even though the server still emits routing before its classifiers - which is exactly what the client render delay is for.",
+      "Task 3: the shell pill reads 'Load freshness - 14 Sept 2026, 18:42 UTC', a real value, no longer aria-disabled.",
+      "Task 3 DOCK GEOMETRY, measured in the browser because jsdom cannot compute flex layout: the docked panel is 670px against a 768px viewport - exactly viewport minus 98 - with the thread scrolling inside it; at 375x812 it is position static with max-height none and a natural 556.9px height, so mobile stacking is unchanged.",
+      "A freshness value of '31 Aug 2099' was investigated rather than assumed to be a rendering bug: the pill was faithfully reporting a warehouse the gated freshness leaf had just destroyed. Raised as D-0044, data restored, and the pill then read correctly."
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "Latency is REPORTED, not asserted: 1.0-5.4s measured, with one sample just over five seconds. The spec deliberately forbids a hard sub-5s bound because this model's output for the same prompt at temperature 0 ranged from 106 to 24,313 tokens across this story.",
+      "D-0045: a well-formed data question was once answered as an informational glossary definition by the shared server path - not caused by the frontend task, since three direct selector calls returned a valid selection.",
+      "D-0040 remains visible: the suggested chips still offer 'Actual by state', naming a dimension the semantic layer does not register.",
+      "Carried and still unanswered: no 3F location is recorded anywhere in docs/, so ap-south-1 rests on the code default plus decision 0003's India-residency line."
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [],
+    "residual_risks": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-15T03:35:45+00:00",
+    "commit": "87cb839ea06aa02b2125ec6ecac11a2a2ac6b651"
+  }
+}

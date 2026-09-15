@@ -4,17 +4,17 @@
     {
       "id": "assistant-bounded-generation",
       "title": "Cap the selector generation, scope its retry, and bound the request",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "shell-freshness-api",
       "title": "Define load freshness and serve it from an authenticated route",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "assistant-streaming-and-shell",
       "title": "Stream the answer, cancel on leave, and tell the truth in the shell",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
