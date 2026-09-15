@@ -2,7 +2,7 @@
 slug: ask-reopen-saved-report
 title: Reopening a saved report returns to its answer
 status: confirmed
-saved: 2026-09-15T13:41:40+00:00
+saved: 2026-09-15T15:35:35+00:00
 ---
 
 # Reopening a saved report returns to its answer
@@ -49,10 +49,14 @@ is found by comparing the stored `Selection`, never the displayed title.
 
 - **Candidates** are turns whose response was a `success` and which carry a `response.selection`.
   Nothing else can be a match, because nothing else holds a selection to compare.
-- **Comparison is structural** over the resolved `Selection` the server returned - domain,
-  measureIds, dimensionIds, filters, timeWindow and limit - in the order the server produced it.
-  Comparing what the server resolved, rather than what the pin stored, is what makes a pin saved
-  before a period was normalised still match its own answer.
+- **Comparison is strict structural equality** over domain, measureIds, dimensionIds, filters,
+  timeWindow and limit, including optional fields and array order.
+  **Correcting this spec's first draft:** it claimed a pin saved before a period was normalised
+  would still match its own answer. It will not, and cannot - the client holds only
+  `pin.selection` and a turn's `response.selection`, so a pin with no `timeWindow` is simply not
+  equal to a turn that has one, and ignoring the window to force a match would match the WRONG
+  period. Such a pin opens as a new turn and gets a fresh resolved selection. That is the honest
+  behaviour, not a gap.
 - **When several turns match** - the user asked the same thing twice by hand - the **most recent**
   one wins, so reopening always lands on the freshest.
 
@@ -69,21 +73,29 @@ effect: the thread appears, the target turn is scrolled into view, and it shows 
 
 **Either way the panel scrolls that turn into view**, reused or new.
 
-**A refused reopen clears the stale answer; a transport failure keeps it** (human round). These
-are different situations and must not share one outcome:
+**A refused reopen clears the stale answer; a transport failure keeps it** (human round) - and
+**only for reopens** (human round). `ask-period-control` shipped the opposite rule for the period
+control, proven by a passing leaf: a refused period switch RETAINS the previous answer. Both go
+through the same seam, so the caller states which it wants rather than one silently overriding the
+other. The distinction holds on the merits: a period switch explores within data the user already
+holds, while reopening a saved report is the moment access is re-checked, which is what decision
+**0028** is about.
 
-- An **authorization or policy refusal** - `blocked_by_policy`, or any response whose selection is
-  no longer runnable - **clears the result** and shows why. Decision **0028** requires a revoked
-  grant to produce a refusal rather than a cached figure, and today `continueTurn` keeps the old
-  answer visible under the failure line, so a revoked user goes on reading numbers they may no
-  longer see.
-- A **transport failure or timeout** keeps the previous answer, because nothing has said the user
-  may not see it.
+**What clears, and what does not** (human round) - access-related outcomes only:
 
-This **changes `continueTurn`'s failure handling**, which an earlier draft of this spec wrongly
-placed out of scope. Its copy is also period-specific today - *"That period could not be loaded.
-Choose a period to try again."* - which is wrong for a saved report and must become a message that
-fits the reason.
+| clears the stale result | keeps it |
+| --- | --- |
+| `blocked_by_policy` | `clarification_needed` |
+| `not_supported` **during a reopen** - how a lost domain or measure grant actually arrives | `execution_failed`, `backend_error` |
+| a terminal HTTP **401/403** | rate limiting, timeout, network failure, abort |
+
+The three on the left are the ways "you may not see this" reaches the client. Everything on the
+right says nothing about entitlement, so wiping a good answer for a network blip would be a worse
+experience for a problem that is not about access.
+
+`continueTurn`'s copy is period-specific today - *"That period could not be loaded. Choose a period
+to try again."* - for every non-success including transport failures. It must carry the returned
+reason, or a generic one, on the target turn.
 
 **Pins and saved views behave identically**, because both call the same path today and both have
 the same defect.
@@ -100,9 +112,11 @@ the same defect.
 5. Opening a report that is not in the thread appends exactly one turn.
 6. Clicking Open navigates to Ask **before** the request completes, and the target turn is scrolled
    into view and shown pending.
-7. A reopen refused for **authorization or policy** clears the stale result and shows the reason;
-   the thread length is unchanged. A **transport** failure keeps the previous answer. The two are
-   proven by separate leaves, and neither shows period-specific copy.
+7. A reopen refused for **access** - `blocked_by_policy`, `not_supported`, or a terminal 401/403 -
+   clears the stale result and shows the reason; the thread length is unchanged. Every other
+   outcome, including transport failure, keeps the previous answer. Neither shows period-specific
+   copy. **The period control's retain-on-refusal behaviour is unchanged** and its shipped leaf
+   still passes.
 8. Pins and saved views are both covered; a leaf set exercising only one leaves the other unproven.
 9. Every criterion is proven by hermetic tests judged by the vitest discriminator - the testcase
    present AND NOT skipped AND NOT failed - because a matching name proves nothing for vitest.

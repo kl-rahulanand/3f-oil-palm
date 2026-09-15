@@ -1,6 +1,6 @@
 {
   "generated_by": "griller",
-  "gate": "spec",
+  "gate": "requirements",
   "verdict": "pass",
   "summary": "Cold read of the confirmed spec against repo reality. Five findings, and the sharpest is a direct conflict with code shipped two stories ago: ask-period-control requires a refused period switch to RETAIN the previous answer and proves it with a passing leaf, while this spec required a refusal to CLEAR it - through the same seam. The human scoped the clearing rule to reopens only. The read also showed the unmatched-open path could not satisfy its own scroll criterion, since the turn does not exist until the request resolves, and that the spec's legacy-selection promise was unsupportable with the data the client holds.",
   "questions_asked": 1,
@@ -44,12 +44,12 @@
   ],
   "rounds": [
     {
-      "question": "Conflict with shipped code. The period control's contract says a refused period switch KEEPS the previous answer \u2014 you chose that two stories ago, and it's proven by a passing test. This story says a refusal CLEARS it. Both go through the same `continueTurn`. How should that be resolved?",
+      "question": "Which kinds of refusal should wipe the old numbers? A lost domain grant doesn't come back as `blocked_by_policy` \u2014 it returns `not_supported`. An expired login is an HTTP 401/403. Others are plainly not access problems.",
       "options": [
-        "Clear only on saved-report reopens (Recommended)",
-        "Clear on refusal everywhere"
+        "Access-related only (Recommended)",
+        "Clear on any non-success"
       ],
-      "chosen": "Clear only on saved-report reopens (Recommended)",
+      "chosen": "Access-related only (Recommended)",
       "frontier_empty": true
     }
   ],
@@ -61,7 +61,8 @@
     "contract/src/api.ts",
     "docs/decisions/0028-saved-selections-not-snapshots.md"
   ],
-  "input_sha256": "6a4fdb8390336b27acdb4482a0876d235283f756cad135be93f6b7fa201c1e37",
-  "recorded_at": "2026-09-15T15:36:16+00:00",
+  "issue": "ask-reopen-saved-report",
+  "input_sha256": "d3218c2e957f5d105c93666b00063d7b2591a1894cf1481a913ae33aeb0c7a84",
+  "recorded_at": "2026-09-15T15:36:17+00:00",
   "commit": "075e7dee2097f6aba9a495066ea8dbb30c3ffb74"
 }

@@ -209,7 +209,7 @@
         "Every criterion is proven by hermetic tests judged by the vitest discriminator - present AND NOT skipped AND NOT failed."
       ],
       "order": 10,
-      "status": "pending",
+      "status": "active",
       "epic": "assistant",
       "skill": "frontend",
       "kind": "feature",
@@ -256,5 +256,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-15T13:42:45+00:00"
+  "updated_at": "2026-09-15T15:36:23+00:00"
 }
