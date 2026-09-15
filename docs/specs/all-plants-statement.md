@@ -159,6 +159,25 @@ authoritative master.
 - The two existing zero states stay distinct: no transactions renders zeros; no mapping
   configured renders zeros plus the notice.
 
+## Settled by the task grill (2026-09-15)
+- **The wire carries null, and the frontend lands first.** `MisStatementMeasureBlock.budget`
+  becomes nullable and every block carries `budgetState`; the frontend task widens the
+  contract and renders the dash before the backend task starts sending null, so neither task
+  ever ships a placeholder amount and "never ₹0" holds on the wire as well as on screen.
+  Human-decided.
+- **Reading versus returning.** The governed projection already joins the format's budget rows
+  for any user granted DUB; for a non-owner plant the service discards them before the
+  response and returns no budget amount. A user not granted DUB never receives budget rows
+  from the SQL. "No amount is returned" is the guarantee; "no amount is read" is not claimed.
+- **Decision 0036 governs the Ask view.** Decision 0033's consequence that `actual_by_gl_month`
+  drops its DUB literal belongs to the plant-aware assistant, which 0036 defers; the literal
+  stays until that story.
+- **Proof split.** The exactly-once resolution and the 31-plant sum are proven hermetically
+  from the July extract through the master (a pure function); the 31 rendered statements, the
+  non-owner drill footing and DUB's unchanged output are proven by the warehouse-backed proof
+  under `test:warehouse-proof`, recorded with executed counts, never as required hermetic
+  leaves.
+
 ## Supersedes (clauses of earlier confirmed docs overridden by decisions 0035 and 0033)
 Decision records win over older docs (`docs/architecture/README.md`); this section names
 the clauses so a planner does not inherit both:
