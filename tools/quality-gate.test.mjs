@@ -15,6 +15,8 @@ const expectedCommands = {
 const hermeticTests = [
   "backend/src/app.routes.test.ts",
   "backend/src/branding.identifiers.test.ts",
+  "backend/src/chat/chat.controller.test.ts",
+  "backend/src/chat/chat.schemas.test.ts",
   "backend/src/chat/chat.service.test.ts",
   "backend/src/chat/chat.sse.test.ts",
   "backend/src/chat/reconciliation-guard.test.ts",
@@ -33,6 +35,7 @@ const hermeticTests = [
   "backend/src/ingest/mis-budget.parser.test.ts",
   "backend/src/ingest/sap-actuals.parser.test.ts",
   "backend/src/loopback-profile.test.ts",
+  "backend/src/llm/bedrock.provider.test.ts",
   "backend/src/mapping/mapping-master.db.test.ts",
   "backend/src/mapping/mapping-master.test.ts",
   "backend/src/mapping/selection-resolver.service.test.ts",
@@ -61,8 +64,10 @@ const hermeticTests = [
   "backend/src/warehouse/composed-relation.db.test.ts",
   "backend/src/warehouse/drill-transactions.db.test.ts",
   "backend/src/warehouse/drill-transactions.repository.test.ts",
+  "backend/src/warehouse/freshness.adapters.test.ts",
   "backend/src/warehouse/gl-month-rollups.db.test.ts",
   "backend/src/warehouse/golden-financial.db.test.ts",
+  "backend/src/warehouse/load-freshness.db.test.ts",
   "backend/src/warehouse/postgres.adapter.oid.test.ts",
   "backend/src/warehouse/reconciliation.repository.test.ts",
   "backend/src/warehouse/selection-slice.db.test.ts",
@@ -120,7 +125,7 @@ const expectedWorkspaceScripts = {
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts",
+      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts backend/src/warehouse/load-freshness.db.test.ts",
   },
   contract: {
     build: "tsc -p tsconfig.json",
@@ -188,9 +193,6 @@ fdd5b42a8c71a4ae157087975610d937c371c2e9ed32399478f3f61fb8db6d69 backend/src/ema
 96b9245a12b5beba3a4a566481760658363ba82bc02f7bfe037a8e6b8848bd60 backend/src/grants/grants.controller.ts
 21329c9cd7465e056e914be589f1105116539b9befc7c56fa825c51572ead0b7 backend/src/help/glossary.ts
 4f9ac5199d07e84223bc727ebb31037f3f16001c7f4fb37971e9385705621424 backend/src/help/help.service.ts
-76bfd5a54a1947da24481243c21af244f641e0a0214c1718e0fe1ad0b1ba9679 backend/src/llm/bedrock.provider.ts
-684382267df35bf107bdf2d12e36f875b38a9260e621e58c47e494794378dd46 backend/src/llm/llm.constants.ts
-7a2e8e7d1ac2d269b35027209f5cc450a3d775c0e7ea8961f936471fb33a8aee backend/src/llm/mock.provider.ts
 f97f5a40ebac02d0c31e0adb3cfc1ed19d1c134e0e943623714824594a44bf2b backend/src/measures/authored-measure.registry.test.ts
 96d894688cfebd5a2b8b54d3b53b1324ff9cec8d15ca6e01887de97fb6d89d9d backend/src/measures/authored-measure.registry.ts
 0dfcb8c559afbec03ba57263bdb948ad28b582a555bf8d8cf60b579fce0ab4b3 backend/src/measures/measure-authoring.catalog.ts
@@ -213,10 +215,7 @@ bf87de09ae5d480823d3f7cc3d45f625e2903594afeaf7eaa13a866321c811d6 backend/src/sql
 84b00e97a0fc507b8a6391a51718bef685726c2a9372e22c1013e3b1d0b5d8a2 backend/src/usage/usage.service.ts
 89dbea46e702c9dc8838f3401687ec0902e2706b53dd8e5843644021783a3f90 backend/src/users/users.constants.ts
 49645942fb8eee08f5f2a2ab155f668928a0499795f9759e0025ac374a92dccf backend/src/users/users.controller.test.ts
-570020b0c167290b0da56180c6edb9250e29d4bcfe9bb67cdfc4a093709a98e6 backend/src/users/users.controller.ts
-ad391ca0c38ad2e1a35c8e8a2555da7da1cee15a1642b19b4fca71b2163a8dbd backend/src/warehouse/postgres.adapter.ts
-421bc6e5fd0d27a8461b7915d0a62c83c8b59c3c026f0388263275722413eded backend/src/warehouse/starrocks-mysql.adapter.ts
-00636557c707ef81f7ce24efa1e82f3ef653c41810ada48a6435f4e475c4b89b backend/src/warehouse/starrocks.adapter.ts`
+570020b0c167290b0da56180c6edb9250e29d4bcfe9bb67cdfc4a093709a98e6 backend/src/users/users.controller.ts`
     .split("\n")
     .map((line) => line.split(" "))
     .map(([hash, path]) => [path, hash]),

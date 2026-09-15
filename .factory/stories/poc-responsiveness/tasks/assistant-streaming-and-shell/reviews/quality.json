@@ -1,0 +1,126 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-streaming-and-shell",
+  "score": 10,
+  "summary": "quality lens over assistant-streaming-and-shell (13 product path(s), b9f2166..52d0234, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-ass-c1: implemented \u2014 frontend/src/features/assistant/ask-stream.ts:5 parses buffered SSE frames, preserves UTF-8 boundaries, normalizes terminal failures, and terminates cleanly.\nVERDICT t-ass-c2: implemented \u2014 frontend/src/features/assistant/use-ask.ts:45 delays phase rendering by 250ms and clears progress on completion.\nVERDICT t-ass-c3: implemented \u2014 frontend/src/lib/api.ts:47 preserves CSRF, credentials, refresh-and-retry, HTTP errors, and the buffered selection branch.\nVERDICT t-ass-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and silently handles expected aborts.\nVERDICT t-ass-c5: implemented \u2014 frontend/src/features/shell/use-freshness.ts:6 renders the route\u2019s five states plus a distinct client failure state without automatic retries or cached display.\nVERDICT t-ass-c6: implemented \u2014 frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores natural height.\nVERDICT t-ass-c7: implemented \u2014 frontend/src/lib/api.ts:131 trims newest prior turns to all shared limits while retaining oldest-first transport order.\nVERDICT t-ass-c8: implemented \u2014 frontend/src/features/assistant/ask-stream.test.ts:38, frontend/src/features/assistant/ask-panel.test.tsx:409, frontend/src/components/shell/app-shell.test.tsx:78, and frontend/src/lib/api.test.ts:129 cover the reviewable automated acceptance cases; live-check and skill-attestation evidence is outside the supplied Git bundle.\nThe selected change shows no actionable P0\u2013P2 correctness, regression, security, or test defects.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/ask-stream.test.ts",
+    "frontend/src/features/assistant/ask-stream.ts",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
+    "frontend/src/features/shell/use-freshness.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-ass-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-stream.ts:5 parses buffered SSE frames, preserves UTF-8 boundaries, normalizes terminal failures, and terminates cleanly."
+    },
+    {
+      "contract_id": "t-ass-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:45 delays phase rendering by 250ms and clears progress on completion."
+    },
+    {
+      "contract_id": "t-ass-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/lib/api.ts:47 preserves CSRF, credentials, refresh-and-retry, HTTP errors, and the buffered selection branch."
+    },
+    {
+      "contract_id": "t-ass-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/use-ask.ts:31 aborts only outside the named assistant routes and silently handles expected aborts."
+    },
+    {
+      "contract_id": "t-ass-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/shell/use-freshness.ts:6 renders the route\u2019s five states plus a distinct client failure state without automatic retries or cached display."
+    },
+    {
+      "contract_id": "t-ass-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/app/globals.css:1346 gives the desktop dock a viewport-derived height while the mobile rule restores natural height."
+    },
+    {
+      "contract_id": "t-ass-c7",
+      "verdict": "implemented",
+      "evidence": "frontend/src/lib/api.ts:131 trims newest prior turns to all shared limits while retaining oldest-first transport order."
+    },
+    {
+      "contract_id": "t-ass-c8",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-stream.test.ts:38, frontend/src/features/assistant/ask-panel.test.tsx:409, frontend/src/components/shell/app-shell.test.tsx:78, and frontend/src/lib/api.test.ts:129 cover the reviewable automated acceptance cases; live-check and skill-attestation evidence is outside the supplied Git bundle."
+    },
+    {
+      "contract_id": "t-abg-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-abg-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-abg-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-abg-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-abg-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under assistant-bounded-generation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-sfa-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under shell-freshness-api at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "15cb119eb564901d5fa34db874361f0dd5561437324ad611ca6b261f9c9b3583",
+  "brief_sha256": "d5eb5d7b478204c6098c856a519398fadf38d9c693cdf9480c03fbe9c81c855e",
+  "branch_diff_digest": "36248f89eaeca3e1c65ce5a8d35687082e955d517790838f15d13509246ada4b",
+  "residual_risks": [],
+  "recorded_at": "2026-09-14T19:35:30+00:00",
+  "commit": "52d0234ab3815eca0e46628752abe3f7a090e02f"
+}

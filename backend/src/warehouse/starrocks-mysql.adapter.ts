@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { WarehouseLoadFreshness } from "@3f/contract";
 import { createPool, type Pool } from "mysql2/promise";
 import type { QueryResult, Warehouse } from "./warehouse.interface";
 import { type Config, loadConfig } from "../config";
@@ -85,6 +86,10 @@ export class StarRocksMysqlAdapter implements Warehouse {
     }
   }
 
+  async loadFreshness(): Promise<WarehouseLoadFreshness> {
+    return { status: "unsupported", freshnessKind: "load" };
+  }
+
   async distinctValues(goldObject: string, column: string): Promise<string[]> {
     if (!this.configured) return ["NZ", "SZ", "EZ", "WZ"]; // mock regions
     const result = await this.execute(`SELECT DISTINCT ${column} FROM ${goldObject} LIMIT 1000`);
@@ -134,10 +139,11 @@ export class StarRocksMysqlAdapter implements Warehouse {
     const rowArray = Array.isArray(rows) ? (rows as Array<Record<string, unknown>>) : [];
     return {
       columns,
-      rows: rowArray.map((row) =>
-        Object.fromEntries(
-          columns.map((column) => [column.name, toStarRocksMysqlCell(row[column.name], column.numeric)]),
-        ) as Record<string, string | number | null>,
+      rows: rowArray.map(
+        (row) =>
+          Object.fromEntries(
+            columns.map((column) => [column.name, toStarRocksMysqlCell(row[column.name], column.numeric)]),
+          ) as Record<string, string | number | null>,
       ),
     };
   }

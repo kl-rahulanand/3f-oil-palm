@@ -14,7 +14,53 @@ import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
 import { askSchema } from "./chat.schemas";
-import { ChatService } from "./chat.service";
+import { ChatService, trimPriorTurnsToTokenBudget } from "./chat.service";
+
+test("trimming retains the newest turns in oldest first order", () => {
+  const turns = ["oldest", "middle", "newest"].map((question) => ({
+    question,
+    selection: financialSelection,
+  }));
+  const budget = JSON.stringify(turns.slice(1)).length;
+
+  assert.deepEqual(
+    trimPriorTurnsToTokenBudget(turns, budget).map((turn) => turn.question),
+    ["middle", "newest"],
+  );
+});
+
+test("incomplete selector outcomes are handled explicitly as backend errors before execution", async () => {
+  for (const kind of ["no_tool_block", "backend_error"] as const) {
+    const fixture = makeFixture({ kind });
+    const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show Actual");
+
+    assert.equal(response.responseClass, ResponseClass.BackendError);
+    assert.match(response.message ?? "", /incomplete model response/i);
+    assert.equal(fixture.executor.calls, 0);
+  }
+});
+
+test("an expected abort is not recorded as a backend error", async () => {
+  const fixture = makeFixture({ selection: financialSelection });
+  const abort = new AbortController();
+  abort.abort();
+
+  await assert.rejects(
+    fixture.service.ask(
+      userFor("governed-financial"),
+      "session",
+      "Show Actual",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      abort.signal,
+    ),
+    (error: unknown) => error instanceof DOMException && error.name === "AbortError",
+  );
+  assert.equal(fixture.audit.results, 0);
+  assert.equal(fixture.executor.calls, 0);
+});
 
 test("the llm provider receives the question prior turns and dimension values and never an amount or a result row", async () => {
   const fixture = makeFixture({
@@ -221,16 +267,18 @@ const ACTUAL_BATCH_ID = "00000000-0000-0000-0000-000000000001";
 
 function makeFixture(options: {
   selection?: Selection;
-  kind?: "selection" | "clarify";
+  kind?: "selection" | "clarify" | "no_tool_block" | "backend_error";
   result?: ResultTable;
   activeBatchIds?: ProvenanceBatch[];
   failEntryAudit?: boolean;
 }) {
-  const llm = new FakeLlm(
+  const llmResult: LlmSelectionResult =
     options.kind === "clarify"
       ? { kind: "clarify", prompt: "Which metric?", options: ["Actual"] }
-      : { kind: "selection", selection: options.selection! },
-  );
+      : options.kind === "no_tool_block" || options.kind === "backend_error"
+        ? { kind: options.kind, reason: "Incomplete model response" }
+        : { kind: "selection", selection: options.selection! };
+  const llm = new FakeLlm(llmResult);
   const executor = new FakeExecutor(options.result ?? RESULT, options.activeBatchIds ?? []);
   const audit = new FakeAudit(options.failEntryAudit ?? false);
   const dimensions = new FakeDimensions();
@@ -286,13 +334,16 @@ class FakeExecutor {
 
 class FakeAudit {
   requests = 0;
+  results = 0;
   constructor(private readonly failEntry: boolean) {}
   async writeRequestEvent(input: { selection?: Selection }) {
     this.requests += 1;
     if (this.failEntry && !input.selection) throw new Error("audit unavailable");
     return this.requests;
   }
-  async writeResultEvent() {}
+  async writeResultEvent() {
+    this.results += 1;
+  }
 }
 
 class FakeDimensions {

@@ -1,0 +1,11 @@
+{
+  "topic": "freshness must not refetch on reconnect",
+  "lesson": "use-freshness.ts:7 sets retry: false and refetchOnWindowFocus: false but leaves TanStack Query's refetchOnReconnect at its DEFAULT of true, so the pill silently refetches when connectivity returns - exactly the silent retry t-ass-c5 forbids ('never silently retries or shows an unqualified cached value'). Raised by both the quality and performance lenses. Add refetchOnReconnect: false. Cover it with an assertion on the query options so the default cannot creep back, and keep gcTime: 0 so no unqualified cached value survives.",
+  "source": ".factory/stories/poc-responsiveness/tasks/assistant-streaming-and-shell/reviews/quality.json",
+  "applies_to": [
+    "frontend/src/features/shell/**"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-14T19:25:42+00:00"
+}

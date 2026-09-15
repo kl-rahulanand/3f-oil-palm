@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { sessionQueryKey } from "@/src/features/auth/session";
 import { AskProvider } from "@/src/features/assistant/use-ask";
+import { useFreshness } from "@/src/features/shell/use-freshness";
 import { ApiError, api } from "@/src/lib/api";
 
 const navItems = [
@@ -35,6 +36,7 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
   const viewportRef = useRef<boolean | null>(null);
   const [mobile, setMobile] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const freshness = useFreshness();
   const logout = useMutation({
     mutationFn: api.logout,
     // Land on /login only once the session is actually gone: on a confirmed
@@ -171,16 +173,14 @@ export function AppShell({ user, children }: Readonly<{ user: AuthUser; children
             </label>
           </div>
           <div className="top-bar-right">
-            <span className="freshness-pill" aria-disabled="true">
-              Freshness unavailable
-            </span>
+            <span className="freshness-pill">{freshness}</span>
             <span className="avatar top-avatar" aria-label={user.display_name}>
               {initials(user.display_name)}
             </span>
           </div>
         </header>
         <main className="app-canvas">
-          <AskProvider>{children}</AskProvider>
+          <AskProvider pathname={pathname}>{children}</AskProvider>
         </main>
       </div>
     </div>

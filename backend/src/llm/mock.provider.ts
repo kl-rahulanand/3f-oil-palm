@@ -7,10 +7,8 @@ import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "./llm.i
  */
 @Injectable()
 export class MockLlmProvider implements LlmProvider {
-  async select(input: LlmSelectionInput): Promise<LlmSelectionResult> {
-    const options = input.allowedDomains
-      .slice(0, 3)
-      .map((domain) => `Show me a ${domain.label} metric`);
+  async select(input: LlmSelectionInput, _signal?: AbortSignal): Promise<LlmSelectionResult> {
+    const options = input.allowedDomains.slice(0, 3).map((domain) => `Show me a ${domain.label} metric`);
 
     return {
       kind: "clarify",

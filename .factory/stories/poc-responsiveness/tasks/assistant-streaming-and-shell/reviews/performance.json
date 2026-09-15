@@ -1,0 +1,34 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "assistant-streaming-and-shell",
+  "score": 10,
+  "summary": "performance lens over assistant-streaming-and-shell (13 product path(s), b9f2166..52d0234, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 performance or correctness defect. Streaming parsing is byte-safe and bounded by terminal handling, phase timers are cleared, cancellation propagates through transport setup and retries, prior-turn processing is bounded, freshness avoids automatic retry/refetch behavior, and the dock geometry change preserves the mobile override. No compatibility-only wrapper, alias, re-export, or legacy branch is present.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/components/shell/app-shell.test.tsx",
+    "frontend/src/components/shell/app-shell.tsx",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/ask-stream.test.ts",
+    "frontend/src/features/assistant/ask-stream.ts",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
+    "frontend/src/features/shell/use-freshness.ts",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "15cb119eb564901d5fa34db874361f0dd5561437324ad611ca6b261f9c9b3583",
+  "brief_sha256": "d5eb5d7b478204c6098c856a519398fadf38d9c693cdf9480c03fbe9c81c855e",
+  "branch_diff_digest": "36248f89eaeca3e1c65ce5a8d35687082e955d517790838f15d13509246ada4b",
+  "residual_risks": [],
+  "recorded_at": "2026-09-14T19:35:30+00:00",
+  "commit": "52d0234ab3815eca0e46628752abe3f7a090e02f"
+}

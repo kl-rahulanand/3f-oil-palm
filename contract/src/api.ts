@@ -44,6 +44,24 @@ export interface ErrorEnvelope {
   error: ErrorPayload;
 }
 
+export type WarehouseLoadFreshness =
+  | {
+      status: "available";
+      freshnessKind: "load";
+      oldestUploadedAtUtc: string;
+      sources: Array<{
+        source: "actuals" | "budget";
+        oldestUploadedAtUtc: string;
+      }>;
+    }
+  | {
+      status: "no-active-batches" | "unsupported" | "unconfigured" | "lookup-failed";
+      freshnessKind: "load";
+    };
+
+/** GET /api/warehouse/freshness — load time, never the source period or data currency. */
+export type WarehouseFreshnessResponse = WarehouseLoadFreshness;
+
 /** POST /api/ingest/actuals */
 export interface IngestActualsResponse {
   batchId: string;
@@ -123,6 +141,10 @@ export interface AskPriorTurn {
   question: string;
   selection: Selection;
 }
+
+export const ASK_PRIOR_TURNS_MAX_ENTRIES = 8;
+export const ASK_PRIOR_TURNS_MAX_SERIALIZED_CHARS = 16_000;
+export const ASK_PRIOR_TURN_MAX_QUESTION_CHARS = 2_000;
 
 export interface AskRequest {
   question: string;

@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-14T19:02:09+00:00", "story": "poc-responsiveness", "detail": "S-0009-ab50: Correct call, and the scope is now extended for you. frontend/src/features/exploration/saved-views.test.tsx and pinned-reports.test.tsx are ADDED to write_scope and the review budget raised to 14 file"}

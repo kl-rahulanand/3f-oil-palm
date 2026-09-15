@@ -49,7 +49,9 @@ test("a saved row is labelled from the shared catalog and an unregistered defini
   expect(screen.getByText("This selection uses a definition that is no longer registered.")).toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: "Open" })).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: "Open" }));
-  await waitFor(() => expect(mocks.ask).toHaveBeenCalledWith({ question: "Actual", selection }));
+  await waitFor(() =>
+    expect(mocks.ask).toHaveBeenCalledWith({ question: "Actual", selection }, { signal: expect.any(AbortSignal) }),
+  );
   expect(mocks.push).toHaveBeenCalledWith("/ask");
 });
 
