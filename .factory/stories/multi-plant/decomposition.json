@@ -1,0 +1,51 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "issue": "multi-plant",
+  "story": "multi-plant",
+  "epic": "reporting",
+  "project": "3oilpalm",
+  "plan_file": "plans/active/multi-plant-all-plants-in-the-mis-statement.md",
+  "user_facing": true,
+  "doc_roots": [
+    "docs/product",
+    "docs/architecture",
+    "docs/decisions",
+    "docs/specs"
+  ],
+  "tasks": [
+    {
+      "id": "all-plants-backend",
+      "title": "Every plant in the master, DUB owns the budget, non-owner plants report a not-loaded budget",
+      "objective": "Seed the mapping master for all 31 SAP plants from the client's mapping sheet through a committed generator and classification table, so the plant dropdown offers every plant with provisional Department / Function labels. Add the one rule the data cannot express: the format's budget belongs to DUB, so a statement for any other plant carries a not-loaded budget state (Budget, Roll-over and % null, no over-budget label), the Excel export writes a dash, and every statement pins the period's active budget batch as its outline source regardless of the user's grants so the shipped drill keeps working. Grant the demo admin every plant, with an optional per-user plant list in SEED_USERS so a DUB-only user can be seeded. Ingestion, the batch model, the drill service and the assistant are not edited (decisions 0033, 0035, 0036).",
+      "user_facing": false,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Against the pinned July actuals batch, all 31 SAP plant codes are offered to a fully granted user, each renders a statement, and the 31 Grand Total Actuals sum to \u20b911,02,73,718.00 in exact paise, proven by a gated warehouse fixture run per plant.",
+        "DUB is unchanged: Actual \u20b91,15,12,712.07 and Budget \u20b91,00,50,136.29 for July 2026, every parent footing, unmapped-GL carrying its own Actual, the export matching; the existing statement-projection and golden proofs keep passing.",
+        "Every (plant, cost centre, GL) triple in the July extract resolves exactly once via the generated master (version 3); classification is a pure function of the committed table and the extract's cost centres (fourteen July nursery codes Agriculture / Nursery, H.O Corporate / Office, the rest Operations / Unit); the eleven unnamed pairs resolve to unmapped-GL reusing the two existing reason literals so DUB's nine bucket rows are byte-for-byte unchanged; every new row is provisional with a reason; a hermetic test proves the checked-in master equals the generator's output; the format names DUB as budget owner and a format without an owner fails validation; the validator's duplicate-pair rule is re-keyed to (plant_canonical, cost_center, gl_code).",
+        "A non-owner plant's statement carries budgetState 'not-loaded' on every block with Budget, Roll-over and % null on every row including the Grand Total and no over-budget or credit label computed; the Excel export writes a dash in those cells with a 'Budget not loaded for this plant' note; H.O renders 100% of its July net inside sections 8 Manpower and 9 Admin and \u20b90 Actual on every nursery-only section; DUB carries budgetState 'loaded' with cells unchanged; the plant-specific filename is asserted as a regression.",
+        "MisSelectionScopeReadout gains provisional and plantDisplay, populated by both POST /api/mis/statement and POST /api/mis/run, with the DTO and Swagger updated once and both routes' response tests covering them.",
+        "Every statement pins the period's active budget batch in provenance as the outline source regardless of the user's grants, taken from the batch table rather than the scope-gated SQL; for a non-owner plant no budget amount is read or returned; drill-down foots in exact paise for a leaf and for unmapped-GL on a non-owner plant for a user granted that plant alone; the drill service and its pin contract are not edited.",
+        "SEED_USERS gains an optional fourth field listing canonical plant codes; absent, an admin is granted every plant in the master; seeding is idempotent and reconciles scope to the configured list; README documents it; a user granted only DUB sees only DUB in options and drill with no row leaking; the assistant's hermetic suite passes unchanged.",
+        "The two zero states and the three nil states stay distinct from the not-loaded state in hermetic tests; every proof is judged by junit testcase name and executed count (D-0024, D-0031); new test files are registered in backend/package.json and tools/quality-gate.test.mjs; no D-0006-listed file is edited."
+      ]
+    },
+    {
+      "id": "all-plants-statement-ui",
+      "title": "Render the not-loaded budget as a dash and mark provisional selections",
+      "objective": "Show the not-loaded budget state on screen: Budget, Roll-over and % cells render a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no drill affordance on those cells, while Actual cells stay drillable and unchanged. Make the client-side aggregate drill null-safe (dashed Budget and %, dashed footer, no paise arithmetic on null). Show the provisional mark from the scope readout in the statement header and on the plant option labels. No Ask surface changes (decision 0036).",
+      "user_facing": true,
+      "dependencies": [
+        "all-plants-backend"
+      ],
+      "acceptance_criteria": [
+        "On a not-loaded block, Budget, Roll-over and % render a dash with the accessible label 'Budget not loaded for this plant' on every row including the Grand Total, with no button and no pointer affordance on those cells; Actual cells are unchanged and stay drillable; DUB's rendering is unchanged.",
+        "The client-side aggregate drill renders null budgets as dashes, shows a dashed Budget and % footer, and performs no paise arithmetic on null, so clicking any Actual on a non-owner plant opens the drill without throwing.",
+        "The statement header and the plant option labels show a visible 'provisional' mark for every non-DUB selection, read from the scope readout and the options response, and the mark reads as awaiting the client's names rather than as an error.",
+        "Vitest covers the dash cells and label, the absent pointer affordance, the null-safe aggregate drill and the provisional mark; the functional check generates H.O, CK and DUB statements, drills an H.O leaf, exports H.O and confirms DUB is unchanged."
+      ]
+    }
+  ],
+  "plan_sha256": "73a85e8e0720899c64d1f45bb5023d2c88b9d5c9f1a81997bfb604ae0a2be9ea",
+  "commit": "39c60bd62e1050299c2f84425cdfd0f8e9b86018"
+}

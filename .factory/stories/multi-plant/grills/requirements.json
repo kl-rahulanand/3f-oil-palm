@@ -3,7 +3,7 @@
   "gate": "requirements",
   "verdict": "pass",
   "issue": "multi-plant",
-  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu2cktur-l2bkmf) of the confirmed docs/specs/all-plants-statement.md against the built repo. Nine findings: one policy contradiction with accepted decision 0023, four underspecified contracts (master-version pin, drill pins for no-budget and partial-YTD plants, the cell state table, plant classification determinism), one false claim (statement audit-before-read), one hidden lifecycle assumption (partial actuals uploads), one stale-docs handover hazard, and one stale ledger line. Seven were settled from the repository and its decisions; the actuals-upload policy and the acceptance of decisions 0030-0032 went to the human in one round. The spec was amended once, in place, and this pass is bound to the amended digest.",
+  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu2cktur-l2bkmf) of the confirmed docs/specs/all-plants-statement.md against the built repo. Nine findings: one policy contradiction with accepted decision 0023, four underspecified contracts (master-version pin, drill pins for no-budget and partial-YTD plants, the cell state table, plant classification determinism), one false claim (statement audit-before-read), one hidden lifecycle assumption (partial actuals uploads), one stale-docs handover hazard, and one stale ledger line. Seven were settled from the repository and its decisions; the actuals-upload policy and the acceptance of decisions 0030-0032 went to the human in one round. The spec was amended once, in place, and this pass is bound to the amended digest. RE-RECORDED after the human re-scoped the story (2026-09-15, after plan approval): decisions 0033 and 0034 supersede 0030 and 0032 for the PoC; the spec's plant-keyed budgets, outline object, upload field, partial-FY-YTD rule, cascading tuples, upload reporting and master-version pin moved to open items with 0033's trigger; the drill and upload sections reverted to the shipped contracts. The findings and rounds below are unchanged; this record binds the pass to the re-scoped digest.",
   "questions_asked": 2,
   "gaps": [
     "Budget-upload policy contradicted accepted decision 0023: the spec refused a plant budget whose leaves did not match the format outline, while 0023 requires drift to load and be reported.",
@@ -30,7 +30,9 @@
     "Repository-resolved: the full cell state table is written \u2014 budget-present blocks keep the shipped Budget/% states and Roll-over's shipped 'unavailable' state; budget-absent blocks show the dash with the 'not loaded' label in all three; Ask renders an absent Budget as a null measure in a present column with the same label.",
     "Repository-resolved: a 'Supersedes' section names the exact clauses of mis-selection-and-master, sap-financial-ingestion, financial-mis-statement, actuals-drill-down and the two architecture docs that decisions 0029/0030 override, citing decision precedence; D-0032's BRIEF reconciliation stays deferred as not in conflict.",
     "HUMAN ROUND: decisions 0030, 0031 and 0032 accepted, confirmed by Rahul Anand, recorded with forge decision accept before this pass.",
-    "Ledger: decision 0027 governs residency unchanged; the stale 'decide later' line is not re-opened."
+    "Ledger: decision 0027 governs residency unchanged; the stale 'decide later' line is not re-opened.",
+    "HUMAN RE-SCOPE (after plan approval, before decomposition): the human asked why the story was so large and chose 'small plus the Ask plant fix'. Decision 0033 (budget owner plant, not-loaded state; supersedes 0030) and decision 0034 (plant from statementGrounding or the question; supersedes 0032) were accepted, confirmed by Rahul Anand, and the spec was amended in place: the deferred set is named under Open items with a trigger, the drill and upload sections describe the shipped contracts, and the acceptance criteria were reduced accordingly.",
+    "HUMAN RE-SCOPE 2 (2026-09-15): the human cut the story to its minimum \u2014 seed the master for every plant, show a dash for Budget and % on every non-owner plant, leave transactions and drill-down as they are, no assistant changes. Decision 0035 (supersedes 0029) and 0036 (supersedes 0034; assistant untouched) accepted, confirmed by Rahul Anand; the spec's Ask section and criterion 8 reduced accordingly and the roadmap item's criteria cut to match."
   ],
   "open_items": [
     "Non-blocking: whether DHS, DHS2 and Belagum in the format's Plant list are DMHS and two plants not yet in the extract \u2014 display names only.",
@@ -70,7 +72,7 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "6b501fccd49b1b7cd3b93029638903b7ccae46c5813f50a27e5409b3f969d30a",
-  "recorded_at": "2026-09-15T07:46:51+00:00",
-  "commit": "14f8647091f9c5090edda902101632368b6c5097"
+  "input_sha256": "ca536296946091aad643a1fe15ce17fe232af2ed779e91448d3b689cee3f6293",
+  "recorded_at": "2026-09-15T09:35:21+00:00",
+  "commit": "39c60bd62e1050299c2f84425cdfd0f8e9b86018"
 }

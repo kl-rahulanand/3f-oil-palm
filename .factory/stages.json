@@ -1,0 +1,15 @@
+{
+  "issue": "multi-plant",
+  "stages": [
+    {
+      "id": "all-plants-backend",
+      "title": "Every plant in the master, DUB owns the budget, non-owner plants report a not-loaded budget",
+      "status": "pending"
+    },
+    {
+      "id": "all-plants-statement-ui",
+      "title": "Render the not-loaded budget as a dash and mark provisional selections",
+      "status": "pending"
+    }
+  ]
+}

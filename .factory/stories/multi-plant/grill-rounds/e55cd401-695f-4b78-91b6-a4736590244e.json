@@ -1,0 +1,23 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The re-read found that a user granted a non-nursery plant but not DUB could not drill: the statement only pins the budget batch when DUB is in the user's grants, and the drill refuses without that pin (it needs the batch for the row outline). How should non-owner plants get their outline pin?",
+      "options": [
+        "Always pin the outline batch (Recommended)",
+        "Restrict non-owner drill to users also granted DUB"
+      ],
+      "chosen": "Always pin the outline batch (Recommended)"
+    },
+    {
+      "question": "The other seven findings are repository-resolved (client drill projection handles null budgets in the frontend task; the seeder gains an optional per-user plant list so a DUB-only demo user can be seeded; the generator becomes a TypeScript script run through ts-node; bucket reasons reuse the existing literals; the shared scope readout DTO and the run endpoint are owned and tested; the roadmap edit is cited as a baseline change; the filename becomes a regression assertion). Once folded in and recorded, do you approve the two-task plan so decomposition can start?",
+      "options": [
+        "Yes, record and approve (Recommended)",
+        "Not yet"
+      ],
+      "chosen": "Yes, record and approve (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T09:53:48.075666+00:00",
+  "session_id": "1fef63e6-aeb7-4446-a7f8-a3df59d2fae0"
+}
