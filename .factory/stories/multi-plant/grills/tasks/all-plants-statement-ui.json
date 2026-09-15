@@ -1,0 +1,105 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "issue": "multi-plant",
+  "task_id": "all-plants-statement-ui",
+  "verdict": "pass",
+  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu2ith23-hqvv2g) of the all-plants-statement-ui contract. Six findings: two P0 (widening budget in the frontend task breaks the backend export typecheck; the backend task's prose still carried a wire placeholder), three P1 (native <option> cannot host a styled mark; plantDisplay had no consumer; no functional check observes the live dash), one P2 (the nullable-state invariant and the parent / Grand Total / leaf paths were underspecified). All resolved from the repository into the contract, the backend contract, the plan and the spec; the human's earlier frontend-first choice stands and is the ledgered round for this gate.",
+  "questions_asked": 1,
+  "gaps": [
+    "Widening MisStatementMeasureBlock.budget to nullable in the frontend task breaks backend typecheck at mis-statement-export.service.ts:80 (writeMoney(FixedScaleMoney)) and the DTO class, and verify.py runs the workspace typecheck.",
+    "The backend task plan's prose still mandated a '0.00' placeholder on the wire while the approved plan and spec require null and never \u20b90.",
+    "A styled reusable mark cannot be placed in a native <option>; the select renders text-only options.",
+    "plantDisplay was added and populated but never rendered.",
+    "No required functional check observes the real dash: the frontend task can only see unchanged DUB and the backend task is not user-facing.",
+    "The nullable-state invariant was underspecified (absent = loaded vs dash on null) and 'any Actual' spans the aggregate and the transaction-drill paths without separate proof."
+  ],
+  "contradictions": [
+    "Backend task plan prose (placeholder amount) versus the approved plan and spec (null, never \u20b90)."
+  ],
+  "resolutions": [
+    "Additive-then-union: the frontend task adds only an optional budgetState and guards every budget access on it through one helper; the backend task introduces the discriminated union with budget null and adapts export and DTO, so neither side's build breaks. Story plan Task Decomposition, C4, the spec's settled notes and both task contracts amended.",
+    "The backend task contract re-authored: union with null, DTO validation of the two valid pairs, export branching on the discriminant, never a placeholder; the outline pin through a new repository method; 0036 governing the Ask view; warehouse proof registration in test:warehouse-proof and the self-skipping hermetic list; compact generated layout for the review budget.",
+    "Header gets the styled 'Provisional labels' mark; native plant options get a plain text suffix ' \u2014 Provisional labels'; the header renders scope.plantDisplay ?? scope.plant and a leaf proves it.",
+    "The story closeout's functional check (decomposition user_facing: true) is named in the plan and spec as the place the live dash, H.O and the drill are observed after the backend task; the backend task stays user_facing: false.",
+    "Wire invariant stated and tested: absent or loaded state renders money; not-loaded renders the dash whatever the amount holds; the backend DTO rejects the two mismatches. Leaf row, parent row and Grand Total row proven separately; the aggregate drill proven for a parent and the Grand Total; the leaf transactions path asserted unchanged.",
+    "HUMAN ROUND (carried from the backend task read): frontend first with the contract change rather than a placeholder on the wire."
+  ],
+  "open_items": [
+    "Non-blocking: the backend task's own grill runs fresh when it reaches the frontier (--reread, since this gate has been read once for it)."
+  ],
+  "inspected_refs": [
+    "backend/src/mis/mis-statement-export.service.ts:80",
+    "backend/src/mis/mis-statement.dto.ts:39-62",
+    "frontend/src/features/mis/statement-view.tsx:47,241-270,286",
+    "frontend/src/features/mis/drill-panel.tsx:394,438-445",
+    "frontend/src/features/mis/mis-report-view.tsx:64-68,154",
+    "contract/src/api.ts:232,236,285",
+    "factory/scripts/forge_cli/phase.py:657"
+  ],
+  "rounds": [
+    {
+      "question": "The task cold read flagged a transport detail: widening the statement's Budget field to null would break the frontend build, so the backend task cannot do it alone. Two honest ways out. Which one?",
+      "options": [
+        "Placeholder on the wire, dash on screen (Recommended)",
+        "Frontend first, nullable contract"
+      ],
+      "chosen": "Frontend first, nullable contract",
+      "frontier_empty": true
+    }
+  ],
+  "current_flow": "Today: POST /api/mis/statement returns MisStatementRunResponse whose every measure block carries budget: FixedScaleMoney, rollover: null, actual, percentage: string | null (contract/src/api.ts:285); statement-view.tsx MeasureCells (:241-270) renders formatMoney(measure.budget), an empty Roll-over cell, the Actual as a drill button and formatPercentage(measure.percentage); the header (:47) renders scope.function \u2014 scope.plant; the aggregate drill (drill-panel.tsx:394,438) formats every leaf budget and sums toPaise(measure.budget) into a footer that foots against the clicked node; mis-report-view.tsx (:64-68,154) renders plant options as native <option> from {value,label}. The backend export (mis-statement-export.service.ts:80) passes block.budget to writeMoney(FixedScaleMoney) and the DTO class (mis-statement.dto.ts:39) implements the block interface, so widening budget in the contract breaks the backend typecheck that verify.py runs. After this task: the block carries an optional budgetState; one frontend guard decides not-loaded and every budget read sits in its else-branch; dash cells with the accessible label replace money on not-loaded blocks; the aggregate drill is null-safe under the guard; the header renders plantDisplay ?? plant with a styled provisional mark; native options get a text suffix. The backend task then introduces the union with budget null.",
+  "criteria_map": {
+    "contract/src/api.ts: MisStatementMeasureBlock gains optional budgetState ('loaded' | 'not-loaded'); budget is NOT widened (the backend export and DTO would fail to typecheck); MisSelectionScopeReadout gains optional provisional and plantDisplay; the plant option record gains optional provisional. No backend file changes and npm run typecheck stays green for all three workspaces.": "Additive only. Verified contract/src/api.ts:285 and mis-statement.dto.ts:39 (class implements the interface) and mis-statement-export.service.ts:80 (writeMoney takes FixedScaleMoney): widening budget breaks the backend typecheck, so the contract adds optional budgetState, provisional and plantDisplay on the readout, provisional on the option, and nothing else. Manual step 1 and the typecheck in verify.py prove the three workspaces stay green with no backend diff.",
+    "One shared guard (budgetState === 'not-loaded') is the only way the frontend decides; every read of budget and every percentage render sits in its else-branch, so when the backend task narrows the union the loaded branch still sees FixedScaleMoney. Wire invariant tested: absent or loaded state renders money; not-loaded renders the dash whatever the amount field holds.": "One guard helper. Verified that TypeScript narrows a discriminated union on an optional discriminant, so code written as if (isBudgetNotLoaded(block)) {...} else { formatMoney(block.budget) } keeps compiling when the backend task turns the block into the union. Interim fixtures cast through a factory; leaf 3 proves the state decides, not the amount.",
+    "On a not-loaded block, Budget, Roll-over and % render a dash with the accessible label 'Budget not loaded for this plant' with no button and no pointer affordance, proven separately for a leaf row, a parent row and the Grand Total row; Actual cells are unchanged and stay drillable; a loaded block and a block without budgetState render exactly as before and the existing statement-view tests pass unchanged.": "Dash cells per row kind. Leaves 1 and 2 cover a leaf row, a parent row and the Grand Total row (statement-view.test.tsx), asserting the label, the absence of a button and pointer affordance, and the untouched Actual button; the existing statement-view tests are the unchanged-rendering regression.",
+    "Under the same guard the aggregate drill renders dashes for Budget and %, shows a dashed Budget and % footer, calls no paise arithmetic on the budget and foots Actual only, proven for a parent Actual and for the Grand Total; the leaf Actual transactions path is asserted unchanged.": "Aggregate drill. Leaf 5 covers a parent Actual and the Grand Total under the guard (dashes, dashed footer, no toPaise on the budget, foots on Actual only); leaf 6 asserts the leaf transactions path unchanged (drill-panel.test.tsx:394,438 call sites).",
+    "The header renders scope.plantDisplay ?? scope.plant and, when scope.provisional is true, a styled 'Provisional labels' mark (token class, no error colour, no warning icon); a native plant option whose provisional is true gets the plain text suffix ' \u2014 Provisional labels'; DUB shows neither; emil-design-eng and frontend-design are loaded and attested.": "Header and options. Leaf 4 proves plantDisplay ?? plant and the styled mark from scope.provisional with nothing for DUB; leaf 7 proves the plain text suffix on a native option (a styled element cannot live inside <option>, mis-report-view.tsx:154). Design skills attested in the test artifact.",
+    "Vitest leaves cover each of the above, judged by testcase name and executed count; the functional check confirms DUB renders unchanged; the live dash is observed at the story closeout's functional check after the backend task.": "Seven vitest leaves judged by name and executed count; the functional check at this task's close confirms DUB unchanged; the plan and spec name the story closeout's functional check as where the live dash is observed after the backend task."
+  },
+  "decision": "keep",
+  "new_abstractions": [
+    "An optional budgetState discriminant on the statement measure block \u2014 the first field that lets a block say 'no budget exists for this plant' without carrying a placeholder amount, and the hook the backend task's union narrows on.",
+    "One frontend guard helper (isBudgetNotLoaded) as the single decision point for the not-loaded state, so the loaded branch is the only place money is read.",
+    "A plant display name and provisional flag on the scope readout and the plant option \u2014 the first user-visible carrier of 'these labels await the client's names'."
+  ],
+  "citations": [
+    {
+      "finding": "Widening MisStatementMeasureBlock.budget to nullable in the frontend task breaks backend typecheck at mis-statement-export.service.ts:80 (writeMoney(FixedScaleMoney)) and the DTO class, and verify.py runs the workspace typecheck.",
+      "source": "backend/src/mis/mis-statement-export.service.ts:80; backend/src/mis/mis-statement.dto.ts:39"
+    },
+    {
+      "finding": "The backend task plan's prose still mandated a '0.00' placeholder on the wire while the approved plan and spec require null and never \u20b90.",
+      "source": ".factory/stories/multi-plant/task-plans/all-plants-backend.md; plans/active/multi-plant-all-plants-in-the-mis-statement.md"
+    },
+    {
+      "finding": "A styled reusable mark cannot be placed in a native <option>; the select renders text-only options.",
+      "source": "frontend/src/features/mis/mis-report-view.tsx:154"
+    },
+    {
+      "finding": "plantDisplay was added and populated but never rendered.",
+      "source": "frontend/src/features/mis/statement-view.tsx:47"
+    },
+    {
+      "finding": "No required functional check observes the real dash: the frontend task can only see unchanged DUB and the backend task is not user-facing.",
+      "source": "factory/scripts/forge_cli/phase.py:657"
+    },
+    {
+      "finding": "The nullable-state invariant was underspecified (absent = loaded vs dash on null) and 'any Actual' spans the aggregate and the transaction-drill paths without separate proof.",
+      "source": "frontend/src/features/mis/drill-panel.tsx:394,438; contract/src/api.ts:285"
+    },
+    {
+      "finding": "Backend task plan prose (placeholder amount) versus the approved plan and spec (null, never \u20b90).",
+      "source": ".factory/stories/multi-plant/task-plans/all-plants-backend.md:91"
+    }
+  ],
+  "input_sha256": "e77fdbe5b73358a25c3d8cbb242450c68545027fea5e7a9436129e1ca91505f5",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "35af4f2610bb604cfc85b7bcf871bd91e0beb6dd9aff8f1fd0cb1816fabb5035",
+  "recorded_at": "2026-09-15T10:31:57+00:00",
+  "commit": "a399fc4bcd7657784119eceb9e18bb3e9f894edc",
+  "approved_task_plan_sha256": "35af4f2610bb604cfc85b7bcf871bd91e0beb6dd9aff8f1fd0cb1816fabb5035",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-15T10:31:57+00:00"
+}
