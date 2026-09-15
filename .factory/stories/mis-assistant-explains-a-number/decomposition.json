@@ -1,0 +1,193 @@
+{
+  "generated_by": "docs-decomposer",
+  "project": "3oilpalm",
+  "story": "mis-assistant-explains-a-number",
+  "epic": "assistant",
+  "user_facing": true,
+  "plan_file": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md",
+  "tasks": [
+    {
+      "id": "explain-grounding-and-attestation",
+      "title": "Attest the statement, and let the dock ground a question against it",
+      "objective": "Make a grounded question provably about the statement on screen. The statement response gains a signed attested context and a readable node-metadata projection; AskRequest gains statementGrounding; the server re-derives every input and refuses what does not verify. No explanation is produced yet and no UI changes.",
+      "user_facing": false,
+      "dependencies": [],
+      "acceptance_criteria": [
+        "The statement response carries an ADDITIVE attested context: base64url canonical-JSON claims plus an HMAC-SHA256 signature. Claims are department, function, plant, period, a DIGEST of the outline (leaf keys and their blocks, not the outline itself), the pinned batch ids with their sources, the mapping-master version, the user id, and exp. Existing statement and export consumers keep working and their shipped leaves pass UNMODIFIED.",
+        "The context is bound to the USER ID, not the session: the statement route receives no session id today (mis-statement.controller.ts:81) and a session binding would die on refresh. Plumbing the user id into the statement service is this task's work.",
+        "The signing secret is REQUIRED configuration and its absence is a STARTUP FAILURE. A silently unsigned or unverified token is the failure mode this whole task exists to prevent, so there is no development fallback. The verifier accepts an ordered list of keys and signs with the first, so a key can rotate without invalidating live statements. TTL defaults to 30 minutes.",
+        "The statement response also carries a READABLE node-metadata projection - the approved GL codes and cost centres per leaf - covered by the same attestation digest. C7's aggregate explanation needs it and statement nodes do not carry it today; an opaque token cannot hand a browser what it does not contain.",
+        "AskRequest gains statementGrounding: the attested context, plus the UNSIGNED node and block, plus the client's department and function as VERIFIED CONTEXT. chat.schemas.ts is .strict(), so it is extended deliberately and a leaf proves an unknown key is still rejected.",
+        "The server re-derives everything and trusts nothing: department and function from the master's selection for that plant, the plant against the user's CURRENT grants, the pins validated. Each of these is a TYPED REFUSAL, never a silent substitution and never an ordinary 'no mapping' answer: an invalid signature, an expired context, a context whose user id is not the caller, a node or block absent from the attested outline digest, a plant outside grants, and a department or function disagreeing with the master.",
+        "Decision 0019: the extended chat request and the statement response's new fields carry typed Zod schemas and Swagger documentation.",
+        "Decision 0038's front matter names ask-reopen-saved-report because it was minted during that run; it governs THIS story and the stories field is corrected here.",
+        "Every new backend test file is added to backend/package.json's test:hermetic ALLOW-LIST. It is an allow-list, so an unlisted leaf never runs and the gate goes green having asserted nothing."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-ega-c1",
+          "statement": "The statement response carries an additive attested context binding scope, an outline digest, pin ids and sources, master version, user id and exp, signed HMAC-SHA256 over canonical JSON; existing statement and export leaves pass unmodified.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-ega-c2",
+          "statement": "The context is bound to the user id rather than the session, because the statement route receives no session id and a session binding would expire on refresh.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-ega-c3",
+          "statement": "The signing secret is required configuration whose absence is a startup failure; the verifier accepts an ordered key list and signs with the first; TTL defaults to 30 minutes.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-ega-c4",
+          "statement": "The statement response carries a readable per-leaf node-metadata projection (approved GL codes and cost centres) covered by the same attestation digest.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-ega-c5",
+          "statement": "AskRequest gains statementGrounding carrying the attested context, the unsigned node and block, and the client's department and function as verified context; the .strict() chat schema is extended deliberately and still rejects unknown keys.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-ega-c6",
+          "statement": "An invalid signature, expired context, other-user context, node or block outside the attested outline, plant outside grants, or department/function mismatch each produce a TYPED REFUSAL rather than a silent substitution or an ordinary no-mapping answer.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-ega-c7",
+          "statement": "The extended chat request and the statement response's new fields carry typed Zod schemas and Swagger documentation, per decision 0019.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-ega-c8",
+          "statement": "Every new backend test file is added to backend/package.json's test:hermetic allow-list, because an unlisted leaf silently never runs.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        }
+      ],
+      "write_scope": [
+        "contract/src/api.ts",
+        "backend/package.json",
+        "backend/src/config.ts",
+        "backend/src/chat/chat.controller.ts",
+        "backend/src/chat/chat.schemas.ts",
+        "backend/src/chat/chat.schemas.test.ts",
+        "backend/src/chat/chat.service.ts",
+        "backend/src/mis/mis-statement.controller.ts",
+        "backend/src/mis/mis-statement.controller.test.ts",
+        "backend/src/mis/mis-statement.service.ts",
+        "backend/src/mis/mis-statement.service.test.ts",
+        "backend/src/mis/statement-attestation.ts",
+        "backend/src/mis/statement-attestation.test.ts",
+        "docs/decisions/0038-mis-assistant-explains-without-touching-ask.md"
+      ],
+      "required_tests": [
+        {
+          "id": "a statement response carries an attested context whose claims bind scope outline pins master version user and expiry",
+          "path": "backend/src/mis/statement-attestation.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a tampered claim fails verification because the signature no longer matches the canonical encoding",
+          "path": "backend/src/mis/statement-attestation.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an expired context and a context issued to another user are both refused",
+          "path": "backend/src/mis/statement-attestation.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a missing signing secret fails startup rather than issuing an unsigned context",
+          "path": "backend/src/mis/statement-attestation.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the verifier accepts a context signed by a rotated older key while signing new ones with the first key",
+          "path": "backend/src/mis/statement-attestation.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a node or block absent from the attested outline digest is refused rather than answered",
+          "path": "backend/src/chat/chat.schemas.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a department or function disagreeing with the master selection for that plant is a typed refusal not a silent substitution",
+          "path": "backend/src/chat/chat.schemas.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the strict chat schema accepts statementGrounding and still rejects an unknown key",
+          "path": "backend/src/chat/chat.schemas.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the statement response carries per leaf approved gl codes and cost centres",
+          "path": "backend/src/mis/mis-statement.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "The secret must have NO development fallback. An unsigned or unverified context defeats the entire task; absence must fail startup.",
+        "Canonical encoding must be deterministic (sorted keys, no insignificant whitespace) or verification is flaky rather than secure.",
+        "The outline DIGEST, not the outline, belongs in the claims - check the token does not grow with the statement.",
+        "Every refusal must be TYPED. A generic 400 or a silent substitution is the defect this task exists to remove.",
+        "The shipped statement and export leaves must pass unmodified - this field is additive.",
+        "New test files must appear in backend/package.json's test:hermetic list, or they never ran."
+      ],
+      "review_budget": {
+        "max_changed_files": 14,
+        "max_changed_lines": 900,
+        "reason": "A signed context module with its own leaves, an additive statement field, a node-metadata projection, the chat schema extension and its refusals. No UI, no explanation logic."
+      }
+    },
+    {
+      "id": "explain-the-number",
+      "title": "Answer a composition question about the focused figure",
+      "objective": "Turn an attested, grounded question into an explanation. Extract the drill's raw-read seam so the assistant and the drill controller share one sensitive query, classify intent deterministically, and answer a leaf with its roll-up path and transactions through a typed response union. Still no UI.",
+      "user_facing": false,
+      "dependencies": [
+        "explain-grounding-and-attestation"
+      ],
+      "acceptance_criteria": [
+        "A domain seam is EXTRACTED from MisDrillService returning typed outcomes - ok, replaced, gone, audit-failed - instead of throwing HTTP exceptions, and takes the row limit as an argument. MisDrillService today is controller-oriented and unavailable to ChatModule (mis-drill.service.ts:27), so without this the task would either duplicate the sensitive query or lose the typed outcomes to the global error filter. The drill controller and the assistant both call it; the assistant asks for 20 rows and the panel keeps its 100.",
+        "Intent is a closed enum - composition, causal, data - resolved against a FIXTURE TABLE the tests own, with a causal cue WINNING when both appear. Today's guard does not classify 'how is this 85000' as causal at all (reconciliation-guard.ts:31); it matches why, reason and explain. Composition is answered, causal is still declined with today's copy, and data falls through to the existing ungrounded path with NO pin or budget promise attached.",
+        "A LEAF explanation names the roll-up path - the GL codes and cost centres the master folds into that leaf, and the bucket they arrive through - and lists transactions with an exact footer, the true total count, and the first 20 rows.",
+        "Footing is asserted in PAISE against the statement payload, not the rendered cell. The statement displays rupees and the shipped drill contract permits the exact footer to differ from the displayed cell by up to Rs 1 with paise equality underneath; a leaf asserts paise equality, not rupee equality.",
+        "The leaf read carries the drill's governed-read protections, not the ordinary chat audit: inputs re-derived, pins validated, current scope applied, the exact predicate audited BEFORE the query runs, and a failed audit returning a SAFE TYPED REFUSAL having never queried.",
+        "Staleness follows decision 0025 exactly: a REPLACED but still present batch is READ AND REPORTED as replaced; only a GONE batch is refused. Both are typed, naming source, period and batch status. The shipped drill PANEL diverges from this (it hides the lines) - that divergence is ledgered as D-0051 and is deliberately NOT fixed here.",
+        "Budget is refused as a subject IN THE BACKEND. A crafted focus on a Budget cell cannot be a client-side rule.",
+        "Every grounded explanation carries a distinct budgetState of not-loaded when the plant is not the budget owner (decision 0034), kept distinct from a replaced or gone batch. An unmapped-GL line is described as provisional, not as an approved mapping.",
+        "The explanation is an in-band TYPED RESPONSE UNION on the existing chat transport with a variant per outcome: focus-required, leaf, aggregate, replaced, gone and safe audit-failure. 'No focus' is a SERVER outcome returning focus-required, not a local guess.",
+        "No SERVER-SOURCED transaction row, amount, batch identifier, measure value or result row reaches the model. A leaf asserts the PROVIDER PAYLOAD, not the rendered answer. The user's own question and prior-turn text may carry figures - the motivating question does - so the rule binds what the server read.",
+        "The union is schema'd and documented on BOTH the buffered and streamed chat routes (decision 0019); they are separate routes and must not drift. Hermetic leaves use a deterministic classifier and a FAKE provider - never Bedrock. New test files are added to backend/package.json's test:hermetic allow-list."
+      ]
+    },
+    {
+      "id": "explain-on-screen",
+      "title": "Click a figure, ask, and see the explanation",
+      "objective": "Put the capability on screen: lift focus to the report view, wire the dock to send the attested context, project aggregates client-side, render every outcome, and keep /ask isolated by owning turns rather than branching on render.",
+      "user_facing": true,
+      "dependencies": [
+        "explain-the-number"
+      ],
+      "acceptance_criteria": [
+        "The MIS report view OWNS the shared statement context and the focused {nodeKey, block}. StatementView owns the drill internally today (statement-view.tsx:22) while AskPanel is its sibling, so focus must lift. There is NO independent selected block before focus - the block always comes from the focused node.",
+        "Clicking an Actual STILL opens the drill panel exactly as today. Focus is set as a SIDE EFFECT, never a replacement, so drill-down does not regress. The user may ask with the panel open or closed.",
+        "An AGGREGATE explanation is a CLIENT PROJECTION of the attested statement payload, per decision 0024: the browser derives the descendant lines and THEIR VALUES from the statement it already holds, driven by the aggregate variant as an INSTRUCTION. No new server projection crosses the network per aggregate ask, and a labels-only answer does not satisfy this.",
+        "The assistant renders EVERY outcome variant: leaf, aggregate, focus-required, replaced, gone, audit-failure and budget not-loaded. A variant that falls through to generic copy is a defect.",
+        "/ask is isolated by TURN OWNERSHIP, not a rendering branch. Both panels share one AskProvider, every turn renders from it, and successful turns feed the next request's priorTurns (use-ask.ts:86) - so each turn is tagged with its origin and grounded turns are partitioned out of BOTH /ask's rendering AND the priorTurns /ask sends. Leaves prove both halves.",
+        "The frontend request types admit grounding on the buffered AND streamed paths.",
+        "The assistant offers a declared control that opens the shipped drill panel on the focused node for full paging beyond the inline 20 rows.",
+        "With no rendered statement or no mapping for the scope, the dock says so LOCALLY and submits no grounded ask - that is the only local case; 'no focus' is a server outcome.",
+        "The shipped /ask leaves and the statement view's shipped leaves pass UNMODIFIED."
+      ]
+    }
+  ],
+  "plan_sha256": "6be426e55d3f7fd6f9acf34d7d7c8b3581448cb763ed2bd8f1df5b7cd0334eb2",
+  "commit": "48afe945650ed3943ddddcfa01a33f003d48b6fd"
+}

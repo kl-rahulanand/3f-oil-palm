@@ -109,7 +109,7 @@
     "frontend/src/features/assistant/use-ask.ts",
     "tools/junit-run.mjs"
   ],
-  "input_sha256": "29e9ed288c665fc6722f2295a83e2cfd2330b108ec60c4cbb999d0c9201d479a",
-  "recorded_at": "2026-09-15T22:29:48+00:00",
-  "commit": "896f7714a79bd6d65d62b87cea656b0ae8126991"
+  "input_sha256": "b6393f62ad8e00dba39e67c33b61b44f1b0e4194ad30a1877e8d901ecbec4608",
+  "recorded_at": "2026-09-15T23:51:39+00:00",
+  "commit": "48afe945650ed3943ddddcfa01a33f003d48b6fd"
 }

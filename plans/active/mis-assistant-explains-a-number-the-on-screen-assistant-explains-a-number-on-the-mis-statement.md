@@ -1,8 +1,8 @@
 ---
 issue: mis-assistant-explains-a-number
 title: The on-screen assistant explains a number on the MIS statement
-status: awaiting-approval
-saved: 2026-09-15T23:37:41+00:00
+status: approved
+saved: 2026-09-15T23:51:44+00:00
 story: mis-assistant-explains-a-number
 decisions_reviewed:
   - 0001-poc-engagement-scope
