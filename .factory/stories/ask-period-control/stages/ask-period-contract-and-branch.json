@@ -11,12 +11,24 @@
     }
   },
   "task_sha256": "993d26794e7b65d3557b593ca3ae25a197ec2f3243d743a7491042d8d2bc09d6",
+  "measured": {
+    "strays": [],
+    "files": 10,
+    "lines": 642,
+    "budget": {
+      "files": 10,
+      "lines": 900
+    },
+    "test_id_misses": []
+  },
+  "review_fix_reopened_at": "2026-09-15T07:08:10+00:00",
+  "review_fix_count": 1,
   "local_review_stamp": {
     "stage_id": "ask-period-contract-and-branch",
     "base_sha": "e73e07cc7b2d6ed97aa2c401211af87520b8317a",
-    "delta_id": "c3eace95707d4c7812d5665f0501b8fbaab32b80e2092c5e9806a2edbdc1a8f0",
+    "delta_id": "c34cc45ea704835211434e435c12621217742d910c9b45e874097a7ef78c7ebb",
     "contract_sha256": "993d26794e7b65d3557b593ca3ae25a197ec2f3243d743a7491042d8d2bc09d6",
-    "recorded_at": "2026-09-15T07:04:35+00:00",
+    "recorded_at": "2026-09-15T07:12:03+00:00",
     "generated_by": "autoreview",
     "lenses": [
       "quality",
@@ -24,15 +36,5 @@
       "security"
     ]
   },
-  "completed_at": "2026-09-15T07:04:36+00:00",
-  "measured": {
-    "strays": [],
-    "files": 10,
-    "lines": 593,
-    "budget": {
-      "files": 10,
-      "lines": 900
-    },
-    "test_id_misses": []
-  }
+  "completed_at": "2026-09-15T07:12:05+00:00"
 }

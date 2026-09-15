@@ -807,8 +807,17 @@ function monthEnd(first: string): string {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * Deliberately compares DATES and the time column, never a grain. AppliedTimeWindow carries no
+ * grain, and forcing one in would break the case this exists for: a clicked single-day period and
+ * a natural-language whole month are the SAME period and must both match the same entry, which is
+ * why `to` is allowed to equal either end of the option. The column check is belt-and-braces -
+ * options are built with the answer own time column today - so a future caller cannot match a
+ * window against a period measured on a different column.
+ */
 function windowMatchesPeriod(window: AppliedTimeWindow, option: AskPeriodOption): boolean {
   return (
+    window.column === option.timeWindow.column &&
     window.from === option.timeWindow.from &&
     (window.to === option.timeWindow.from || window.to === option.timeWindow.to)
   );

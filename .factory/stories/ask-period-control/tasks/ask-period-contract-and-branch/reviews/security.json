@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "ask-period-contract-and-branch",
   "score": 10,
-  "summary": "security lens over ask-period-contract-and-branch (10 product path(s), e73e07c..d7d2872, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements ordered, fail-closed statement scope and mapping checks; derives eligible periods from the existing resolver options; preserves the existing clarification contract; avoids selector calls when a selection is supplied; and attaches server-built period controls to successful answers. No concrete P0\u2013P2 security or correctness defect is demonstrated by the supplied evidence, and no compatibility-only leftover is present.",
+  "summary": "security lens over ask-period-contract-and-branch (10 product path(s), e73e07c..14fb861, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the ordered statement preconditions, scope enforcement, period-free mapping lookup, eligible-period filtering, zero-selector rerun path, and distinct clarification/success period carriers without exposing credentials or introducing a concrete authorization bypass. The existing clarify contract is untouched, test registration and formatting-baseline updates are present, and no blocking compatibility leftovers are shown.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -20,10 +20,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "5a71a0648de50c3a49a442a81b7603583f88a43814da4c5f21e8b38f46248e18",
+  "review_run_id": "d0752ac5a16e1b817bfb20a740a7ba43999ef4bc8198550a5c2aa2ca9e4a17e5",
   "brief_sha256": "949b3da413720d3a633281c0464c33bf024d9a852ccf21789fb5045ba3836885",
-  "branch_diff_digest": "636d9c96bab47ac93121ab8aba92748c98ea09ad24eac02d0c429a5e7fc95e32",
+  "branch_diff_digest": "9a31b24110889b3f9e884023b4bad61eeaefcb23ba0c60938bea6512ae3750b8",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T07:04:35+00:00",
-  "commit": "d7d28725a37f8e32d147c220a7d0e4279395fd1e"
+  "recorded_at": "2026-09-15T07:12:03+00:00",
+  "commit": "14fb861620f7cb382e321e05edfb26e9f66fcd46"
 }
