@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The harness asks you to set the task count before decomposition. The approved plan proposes six sequential tasks (backend and frontend never share a task). How many tasks should this story split into?",
+      "options": [
+        "Six, as planned (Recommended)",
+        "Five: merge the two frontend tasks",
+        "Four: merge master into ingestion, and Ask backend into statement"
+      ],
+      "chosen": null
+    }
+  ],
+  "at": "2026-09-15T08:19:20.790084+00:00",
+  "session_id": "1fef63e6-aeb7-4446-a7f8-a3df59d2fae0"
+}

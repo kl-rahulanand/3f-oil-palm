@@ -1,0 +1,97 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "ask-period-control-on-answers",
+  "verdict": "pass",
+  "current_flow": "Today: task 1 emits periodControl on every successful data answer and task 2 built continueTurn(turnId, question, selection) plus per-turn id/isPending/error, and PROVED the deterministic continuation. ask-panel.tsx renders periodChoice for a clarification (:141-167, including turn.isPending and turn.error) but has ZERO references to periodControl, and SuccessAnswer (:193) receives only `response`. The panel locks suggestions and composer from the global isPending; use-ask.run trims the question before storing it on the turn (:86); continueTurn refuses while isPending by returning false (:98).",
+  "summary": "Cold read of the ask-period-control-on-answers contract. Six findings, five of them mine to fix and one put to the human. The sharpest was that my own 'exactly as typed' guarantee was already false - use-ask.ts:86 trims on every path - so the criterion could never have failed honestly. The read also found the contract assigned nobody to render the pending and failure state continueTurn already sets, which would have made a failed period switch silent, and that two of the proposed leaves could pass against the wrong implementation: a click leaf asserting only the API request cannot tell continueTurn from a direct api.ask, and a no-control leaf whose fixtures omit periodControl passes a renderer that ignores responseClass entirely.",
+  "questions_asked": 1,
+  "gaps": [
+    "The exact-question guarantee was already false: use-ask.ts:86 stores question: trimmed on EVERY path, so 'stays exactly as typed' could never hold and the criterion was unfalsifiable as written.",
+    "C7 had no UI owner for settled answers: continueTurn sets turn.isPending and turn.error, but SuccessAnswer (ask-panel.tsx:193) takes only `response`, so a period switch would have shown neither that it was working nor why it failed.",
+    "The settled global-lock decision was not carried into nested controls: the panel disables suggestions and the composer from the global isPending (ask-panel.tsx:72,110), but a control on a second answer would have stayed clickable, been silently rejected by continueTurn (use-ask.ts:98 returns false), and given the user no feedback.",
+    "The click leaf could falsely prove the wrong implementation: an assertion only on the eventual API request cannot distinguish continueTurn from a prohibited direct api.ask call.",
+    "The 'no control' leaf needed adversarial fixtures: AskResponse is a flat optional interface, so a renderer that ignores responseClass passes any fixture that merely omits periodControl.",
+    "The control's UI shape was unspecified and accessibility-critical: .ask-options styles only unselected pill buttons and offers no selected state, while a settled answer must show WHICH period it is on."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "HUMAN ROUND: narrow the claim to what is true. The guarantee is now 'a period switch never CHANGES the question' - turn.question passes to continueTurn untouched - and the contract states plainly that the turn was trimmed once at ask time, so nobody later believes a stronger promise. Preserving the raw question end-to-end was rejected as widening this task into the shared ask path for a whitespace difference.",
+    "A criterion now requires SuccessAnswer to receive the turn and render turn.isPending and turn.error, mirroring the clarification branch at ask-panel.tsx:141-167. This is presentation of state that already exists, not new state, so it stays inside the three-file scope and task 2's sealed stage is not reopened.",
+    "A criterion now requires the control to be disabled while the panel is globally pending, matching ask-panel.tsx:72,110.",
+    "The click leaf must also prove the continuation behaviour reaches the SCREEN - targeted in-place pending, the previous answer retained, and a visible failure - which a direct api.ask call cannot produce. Split across two leaves so each failure mode is named.",
+    "The no-control leaf must use fixtures that DELIBERATELY carry a periodControl on informational, clarification and failure classes.",
+    "The control is specified as a compact labelled native <select> ('Period') bound to periodControl.current - a real selected entry, keyboard and screen-reader behaviour for free, and it fits the 360px dock without competing with the result. Decided here rather than asked: emil-design-eng and frontend-design are mandatory on this task precisely to make that call."
+  ],
+  "citations": [
+    {
+      "finding": "The exact-question guarantee was already false: use-ask.ts:86 stores question: trimmed on EVERY path, so 'stays exactly as typed' could never hold and the criterion was unfalsifiable as written.",
+      "source": "frontend/src/features/assistant/use-ask.ts:86"
+    },
+    {
+      "finding": "C7 had no UI owner for settled answers: continueTurn sets turn.isPending and turn.error, but SuccessAnswer (ask-panel.tsx:193) takes only `response`, so a period switch would have shown neither that it was working nor why it failed.",
+      "source": "frontend/src/features/assistant/ask-panel.tsx:193 against use-ask.ts:97-125"
+    },
+    {
+      "finding": "The settled global-lock decision was not carried into nested controls: the panel disables suggestions and the composer from the global isPending (ask-panel.tsx:72,110), but a control on a second answer would have stayed clickable, been silently rejected by continueTurn (use-ask.ts:98 returns false), and given the user no feedback.",
+      "source": "frontend/src/features/assistant/ask-panel.tsx:72,110; use-ask.ts:98"
+    },
+    {
+      "finding": "The click leaf could falsely prove the wrong implementation: an assertion only on the eventual API request cannot distinguish continueTurn from a prohibited direct api.ask call.",
+      "source": ".factory/stories/ask-period-control/task-plans/ask-period-control-on-answers.md"
+    },
+    {
+      "finding": "The 'no control' leaf needed adversarial fixtures: AskResponse is a flat optional interface, so a renderer that ignores responseClass passes any fixture that merely omits periodControl.",
+      "source": "contract/src/api.ts AskResponse (flat optional fields)"
+    },
+    {
+      "finding": "The control's UI shape was unspecified and accessibility-critical: .ask-options styles only unselected pill buttons and offers no selected state, while a settled answer must show WHICH period it is on.",
+      "source": "frontend/app/globals.css"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "How should the multi-plant story be scoped?",
+      "options": [
+        "Small: plants + mapping + dash, no Ask changes (Recommended)",
+        "Small plus the Ask plant fix",
+        "Keep the approved six-task plan"
+      ],
+      "chosen": "Small plus the Ask plant fix",
+      "frontier_empty": true
+    }
+  ],
+  "criteria_map": {
+    "A response whose responseClass is success and which carries periodControl renders it as a compact labelled native <select> ('Period') with value bound to periodControl.current. NOT the .ask-options pill buttons task 2 uses for the recovery: those style an unselected pill and have no selected state, while a settled answer must SHOW which period it is on. A native select also gives keyboard and screen-reader behaviour for free and fits the 360px dock.": "The control shape, decided rather than asked.",
+    "Informational, clarification and failure responses render NO period control, and the leaf proving it uses fixtures that DELIBERATELY carry a periodControl - AskResponse is a flat optional interface, so a renderer that ignores responseClass passes a fixture that merely omits the field.": "Adversarial fixtures for the no-control rule.",
+    "When periodControl.current is null the answer renders periodControl.coverage as plain text and NO defaulted control. Measured: 'Show Actual and Budget by GL code' succeeds with no time window at all and sums every loaded month, so defaulting a control there would invent a period the answer never used.": "The measured no-window case.",
+    "Picking another option calls continueTurn(turn.id, turn.question, { ...response.selection, timeWindow: option.timeWindow }) and nothing else. continueTurn (use-ask.ts:97) already marks only that turn pending, keeps the previous response through the flight, attaches a typed refusal or a thrown transport failure to that turn, and replaces ONLY on success - task 2 shipped and proved it, so none of it is reimplemented.": "Delegation to task 2's proven continueTurn.",
+    "A period switch NEVER CHANGES the question: turn.question passes to continueTurn untouched - not trimmed, rebuilt or appended to. The contract's first draft claimed the question stays 'exactly as typed'; that was already false because use-ask.ts:86 stores question: trimmed on every path. Human round narrowed the claim to what is true rather than widening this task into the shared ask path.": "The narrowed question guarantee (human round).",
+    "SuccessAnswer renders turn.isPending and turn.error. It takes only `response` today (ask-panel.tsx:193), so the state continueTurn already sets reaches it nowhere and a period switch would show neither that it was working nor why it failed. This is presentation of existing state, mirroring the clarification branch at ask-panel.tsx:141-167.": "Pending and failure on a settled answer.",
+    "The period control is disabled while the panel is globally pending, as the suggestions and composer already are (ask-panel.tsx:72,110). Otherwise a control on a second answer stays clickable during another request, continueTurn silently returns false (use-ask.ts:98), and the user gets no feedback.": "Global locking carried into the nested control.",
+    "The click leaf does not assert only on the eventual API request - that cannot distinguish continueTurn from a prohibited direct api.ask call. It also proves the continuation behaviour reaches the screen: targeted in-place pending, the previous answer retained, and a visible failure.": "The click leaf strengthened past the request assertion.",
+    "The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on.": "Both domains.",
+    "user_facing: true. emil-design-eng and frontend-design are loaded and the work is done with them; the recorder refuses the test artifact unless skills_used attests both. The control sits under an answer that may already carry a totals strip, a table and a provenance disclosure, across the 360px docked column and the page width. A period switcher is a quiet control, not a headline.": "Mandatory design skills across two widths.",
+    "For a vitest leaf the proof discriminator is the testcase being present AND NOT skipped AND NOT failed - a matching NAME proves nothing because vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped. tests.json automated status is recorded as exactly 'passed', not 'pass', and 'python3 factory/scripts/check_task_proof.py --base origin/master' is run AFTER committing and before pushing, because the gate reads the committed tree.": "The vitest and proof-status discriminators, both ledgered lessons."
+  },
+  "decision": "keep",
+  "new_abstractions": [
+    "The first selected-state control in the Ask panel; every existing control there is an unselected pill or a submit button.",
+    "Turn-scoped pending and failure surfaced on a SETTLED answer, which until now only the clarification branch rendered."
+  ],
+  "inspected_refs": [
+    "frontend/src/features/assistant/ask-panel.tsx:72,110,128,141-167,193",
+    "frontend/src/features/assistant/use-ask.ts:7-13,86,97-125",
+    "frontend/app/globals.css",
+    "contract/src/api.ts:496-513"
+  ],
+  "input_sha256": "0681a45bfe92322ed3e30ea67bf98d14eabf6838e78e4f84d0e7d1bab4129962",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "2ec250652896db4017b1874890bb146c955d63c4c1bd19329c51a59925eb388c",
+  "recorded_at": "2026-09-15T08:23:37+00:00",
+  "commit": "42de9b55c2bbab496f760a7bd5f4cd7bffe7255f",
+  "approved_task_plan_sha256": "2ec250652896db4017b1874890bb146c955d63c4c1bd19329c51a59925eb388c",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-15T08:23:37+00:00"
+}
