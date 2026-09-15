@@ -1,0 +1,11 @@
+{
+  "topic": "task proof status must be passed not pass",
+  "lesson": "check_task_proof.py requires tests.json automated status to be exactly 'passed'. Recording 'pass' is accepted by record_test_from_json.py but refused by the shipped-task proof gate, so the PR fails pr-contract with 'a PR that ships a task must carry that task's recorded proof (0049)' even though verify, every required leaf and three clean review lenses are all recorded. The gate also reads the COMMITTED tree, so re-recording without committing changes nothing. Run 'python3 factory/scripts/check_task_proof.py --base origin/master' locally after committing, before pushing.",
+  "source": "ask-period-continuation PR #55 pr-contract failure; check_task_proof.py reported status='pass', not 'passed'",
+  "applies_to": [
+    "implementer"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-15T08:03:47+00:00"
+}

@@ -1501,6 +1501,14 @@ button {
 .ask-answer p {
   margin: 0;
 }
+.ask-answer .ask-period-status {
+  color: var(--kl-slate);
+  font-size: 11px;
+}
+.ask-answer .ask-period-error {
+  color: var(--kl-error);
+  font-size: 11px;
+}
 .ask-information,
 .ask-clarification,
 .ask-success {
@@ -1742,6 +1750,7 @@ button {
   transform: scale(0.97);
 }
 .ask-suggestions button:disabled,
+.ask-options button:disabled,
 .ask-composer > button:disabled {
   cursor: not-allowed;
   opacity: 0.55;

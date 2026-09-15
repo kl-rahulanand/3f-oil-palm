@@ -1,5 +1,46 @@
 {
   "id": "ask-period-continuation",
   "title": "Render the period choice and continue deterministically",
-  "status": "pending"
+  "status": "done",
+  "started_at": "2026-09-15T07:35:31+00:00",
+  "base_sha": "8242f1bcd844a72ce99b93ee8158ee2d844878e3",
+  "dirty_at_start": {
+    ".factory/stories/ask-period-control/decomposition.json": {
+      "digest": "fbcea7aa1692ed554c3a9e4b0da3628356e275c98416ed4f87b68fe2301de797",
+      "git": "1 .M N... 100644 100644 100644 b1795db70605297624674cfdaf032e965371b1b5 b1795db70605297624674cfdaf032e965371b1b5 .factory/stories/ask-period-control/decomposition.json\u0000\u0000100644 b1795db70605297624674cfdaf032e965371b1b5 0\t.factory/stories/ask-period-control/decomposition.json\u0000\u0000H .factory/stories/ask-period-control/decomposition.json\u0000"
+    },
+    ".factory/stories/ask-period-control/grills/tasks/ask-period-continuation.json": {
+      "digest": "e736c1a876e6fd8760e2207d4f6b33a18a2be78699344402879dbd73745d5b01",
+      "git": "? .factory/stories/ask-period-control/grills/tasks/ask-period-continuation.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/ask-period-control/task-plans/ask-period-continuation.md": {
+      "digest": "540024658e8b8a0880c82c52bc16ceb2f95595df19d05a160a029ab4a510f4cf",
+      "git": "? .factory/stories/ask-period-control/task-plans/ask-period-continuation.md\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "91fd6e3bfd62971b8efe971a62bdfa36c7b20fea6bf4319223baa3035954d4a0",
+  "local_review_stamp": {
+    "stage_id": "ask-period-continuation",
+    "base_sha": "8242f1bcd844a72ce99b93ee8158ee2d844878e3",
+    "delta_id": "47ed09d8bc4a8955f3ed211a6b482c0e043dfe54b2766caae472095ada19ed92",
+    "contract_sha256": "91fd6e3bfd62971b8efe971a62bdfa36c7b20fea6bf4319223baa3035954d4a0",
+    "recorded_at": "2026-09-15T07:49:55+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-15T07:49:56+00:00",
+  "measured": {
+    "strays": [],
+    "files": 5,
+    "lines": 338,
+    "budget": {
+      "files": 5,
+      "lines": 600
+    },
+    "test_id_misses": []
+  }
 }

@@ -7,6 +7,7 @@ import {
   type MeasureFormat,
   type ProvenanceBatch,
   type ResultTable,
+  type Selection,
 } from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
@@ -33,7 +34,7 @@ const PHASE_LABELS = {
 } as const;
 
 export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>) {
-  const { turns, phases, isPending, error, ask } = useAsk();
+  const { turns, phases, isPending, error, ask, continueTurn } = useAsk();
   const [draft, setDraft] = useState("");
   const suggestions = latestSuggestions(turns) ?? SEED_QUESTIONS;
 
@@ -76,10 +77,10 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
       </div>
 
       <div className="ask-thread" aria-live="polite">
-        {turns.map((turn, index) => (
-          <div className="ask-exchange" key={`${turn.question}-${index}`}>
+        {turns.map((turn) => (
+          <div className="ask-exchange" key={turn.id}>
             <p className="ask-question">{turn.question}</p>
-            <Answer response={turn.response} question={turn.question} onAsk={ask} />
+            <Answer turn={turn} onAsk={ask} onContinue={continueTurn} />
           </div>
         ))}
         {phases.length > 0 && (
@@ -115,10 +116,15 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
 }
 
 function Answer({
-  response,
-  question,
+  turn,
   onAsk,
-}: Readonly<{ response: AskResponse; question: string; onAsk: (question: string) => Promise<void> }>) {
+  onContinue,
+}: Readonly<{
+  turn: AskTurn;
+  onAsk: (question: string) => Promise<void>;
+  onContinue: (turnId: string, question: string, selection: Selection) => Promise<boolean>;
+}>) {
+  const { response, question } = turn;
   if (response.responseClass === "success") return <SuccessAnswer response={response} />;
   if (response.responseClass === "informational") {
     return (
@@ -129,6 +135,41 @@ function Answer({
     );
   }
   if (response.responseClass === "clarification_needed") {
+    const choice = response.periodChoice;
+    if (choice) {
+      return (
+        <article className="ask-answer ask-clarification" aria-busy={turn.isPending || undefined}>
+          <p>{choice.prompt}</p>
+          <div className="ask-options">
+            {choice.options.map((option) => (
+              <button
+                type="button"
+                key={option.value}
+                disabled={turn.isPending}
+                onClick={() =>
+                  void onContinue(turn.id, choice.question, {
+                    ...choice.selection,
+                    timeWindow: option.timeWindow,
+                  })
+                }
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {turn.isPending && (
+            <p className="ask-period-status" role="status">
+              Loading the selected period…
+            </p>
+          )}
+          {turn.error && (
+            <p className="ask-period-error" role="alert">
+              {turn.error}
+            </p>
+          )}
+        </article>
+      );
+    }
     return (
       <article className="ask-answer ask-clarification">
         <p>{response.clarify?.prompt}</p>
