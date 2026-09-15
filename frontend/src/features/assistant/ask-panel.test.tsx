@@ -40,6 +40,41 @@ const selection: Selection = {
   filters: [],
 };
 
+const periodChoice = {
+  prompt: "Which statement period should this answer use?",
+  question: "  Show the MIS statement Actual by statement leaf  ",
+  selection,
+  options: [
+    {
+      value: "2026-07-01",
+      label: "July 2026",
+      timeWindow: {
+        grain: "month" as const,
+        column: "month",
+        from: "2026-07-01",
+        to: "2026-07-01",
+      },
+    },
+    {
+      value: "2026-08-01",
+      label: "August 2026",
+      timeWindow: {
+        grain: "month" as const,
+        column: "month",
+        from: "2026-08-01",
+        to: "2026-08-01",
+      },
+    },
+  ],
+};
+
+const periodClarification: AskResponse = {
+  responseClass: "clarification_needed" as AskResponse["responseClass"],
+  sessionId: "session",
+  periodChoice,
+  viewInReport: { available: false, reason: "Choose a period first." },
+};
+
 const success: AskResponse = {
   responseClass: "success" as AskResponse["responseClass"],
   sessionId: "session",
@@ -333,6 +368,59 @@ test("a clarification renders its options selectably and does not read as an err
   expect(prompt.closest("[role=alert]")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Actual" }));
   await waitFor(() => expect(mocks.ask).toHaveBeenLastCalledWith({ question: "Actual" }, expect.any(Object)));
+});
+
+test("a period choice renders its prompt and one button per offered period", async () => {
+  mocks.ask.mockResolvedValue(periodClarification);
+  renderAsk();
+
+  submit("Show the statement");
+
+  const prompt = await screen.findByText(periodChoice.prompt);
+  const answer = prompt.closest("article")!;
+  expect(within(answer).getAllByRole("button")).toHaveLength(2);
+  expect(within(answer).getByRole("button", { name: "July 2026" })).toBeInTheDocument();
+  expect(within(answer).getByRole("button", { name: "August 2026" })).toBeInTheDocument();
+});
+
+test("clicking a period posts the cloned selection and the question untrimmed", async () => {
+  mocks.ask.mockResolvedValueOnce(periodClarification).mockResolvedValueOnce(success);
+  renderAsk();
+  submit("Show the statement");
+
+  fireEvent.click(await screen.findByRole("button", { name: "July 2026" }));
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({
+    question: "  Show the MIS statement Actual by statement leaf  ",
+    selection: {
+      ...selection,
+      timeWindow: {
+        grain: "month",
+        column: "month",
+        from: "2026-07-01",
+        to: "2026-07-01",
+      },
+    },
+  });
+});
+
+test("the untouched clarify options path still appends the chosen words", async () => {
+  mocks.ask
+    .mockResolvedValueOnce({
+      responseClass: "clarification_needed" as AskResponse["responseClass"],
+      sessionId: "session",
+      clarify: { prompt: "Which period?", options: ["July 2026"], resumesQuestion: true },
+      viewInReport: { available: false, reason: "Choose a period first." },
+    })
+    .mockResolvedValueOnce(success);
+  renderAsk();
+  submit("Show Actual");
+
+  fireEvent.click(await screen.findByRole("button", { name: "July 2026" }));
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "Show Actual (July 2026)" });
 });
 
 test("only successful turns become prior turns and the thread survives opening the ask page but not a reload", async () => {

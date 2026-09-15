@@ -171,12 +171,111 @@
         "ask-period-contract-and-branch"
       ],
       "acceptance_criteria": [
-        "The Ask panel renders a ClarificationNeeded response's periodChoice as selectable periods, distinct from today's clarify.options path which stays exactly as it is for requiredTimeWindowClarify and domainRoutingAmbiguity.",
-        "Choosing a period clones periodChoice.selection with that entry's COMPLETE timeWindow and posts it as AskRequest.selection - never by appending words to the question. Measured, the word-append route is unreliable: re-asking '... (2026-07-01)' succeeded 2/4 and '... (July 2026)' 3/4, so a period the user explicitly clicked would be re-guessed. A test asserts the exact request body: the cloned selection, the chosen window, and no mutation of the question string.",
-        "use-ask.ts gains per-turn state. Today it appends unconditionally (use-ask.ts:84) and holds ONE global isPending and ONE global error, so a failed rerun would blank the answer or surface its failure away from the turn it belongs to. A rerun names the turn it is replacing; only that turn is marked pending; its previous successful response is retained throughout; and BOTH a typed refusal (a ResponseClass the server returned) and a thrown transport failure attach to that turn rather than to the panel.",
-        "A replacement in flight leaves the previous answer readable under a pending state. A replacement that fails or is refused leaves the previous answer IN PLACE with the failure shown against it, never blanking it.",
-        "Frontend tests cover the client half of the matrix: rendering a periodChoice, the exact continuation request body, a pending replacement, a replacement that returns a typed refusal, and a replacement whose transport throws."
-      ]
+        "A clarification_needed response carrying periodChoice renders periodChoice.prompt and one button per option, labelled option.label. The existing clarify.options / resumesQuestion path at ask-panel.tsx:131-141 is UNCHANGED - requiredTimeWindowClarify and domainRoutingAmbiguity still produce it and its word-appending behaviour is correct for them. Which to render is decided by which field is present; task 1 asserts server-side that a response never carries both.",
+        "Clicking an option posts AskRequest.selection built as { ...periodChoice.selection, timeWindow: option.timeWindow } with question = periodChoice.question. Never a string like '<question> (July 2026)': measured, that route succeeds only 2/4 and 3/4 because it sends a period the user explicitly clicked back through the model to be re-guessed. A test asserts the EXACT request body.",
+        "The question reaches the request BYTE-IDENTICAL. use-ask.ts:61 calls question.trim() on every send, so the exact-body leaf MUST use a periodChoice.question carrying leading and trailing whitespace - otherwise it passes while the trim is still corrupting the audit record with a question the user did not ask.",
+        "A turn gains a STABLE ID and the continuation targets it by that id. AskTurn (use-ask.ts:7) is {question, response} with no identity, so two identical questions are indistinguishable and index targeting is unsafe.",
+        "ONLY a success response replaces the clarification turn. Every other typed response - another clarification, informational, blocked, not-supported - and every transport failure is shown as THAT TURN'S failure with the prompt and period buttons still present and re-enabled, so the user can pick again or retry. A clicked period that returns a glossary definition is a failed click however well-typed the response is. An AbortError clears that turn's pending state and is NOT shown as a failure.",
+        "Concurrency is UNCHANGED: use-ask.ts:62 still rejects a second request while one runs and ask-panel.tsx:66 still disables suggestions and the composer from the global isPending. Per-turn pending is presentation only. Per-request controllers would rewrite cancellation and streamed-phase ownership, which is where the behaviour proven by ask-panel.test.tsx:450 lives; that test must still pass unchanged.",
+        "Frontend leaves cover: rendering a periodChoice; the exact continuation request body including untrimmed whitespace; the untouched clarify.options path; a non-success typed response keeping the buttons; and a thrown transport failure keeping the buttons. Each judged by its testcase NAME, never its executed count - a --name matching nothing still exits 0 reporting 'tests 1' with the FILE PATH as the testcase name.",
+        "user_facing: true. emil-design-eng and frontend-design are loaded and the work is done with them; the recorder refuses this task's test artifact unless skills_used attests both. The buttons live in an existing dense panel - match the surrounding weight rather than introduce a new visual idiom, and keep the pending and failure states legible at the 360px docked width as well as the page width."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-apc-c1",
+          "statement": "A clarification_needed response carrying periodChoice renders periodChoice.prompt and one button per option, labelled option.label. The existing clarify.options / resumesQuestion path at ask-panel.tsx:131-141 is UNCHANGED - requiredTimeWindowClarify and domainRoutingAmbiguity still produce it and its word-appending behaviour is correct for them. Which to render is decided by which field is present; task 1 asserts server-side that a response never carries both.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apc-c2",
+          "statement": "Clicking an option posts AskRequest.selection built as { ...periodChoice.selection, timeWindow: option.timeWindow } with question = periodChoice.question. Never a string like '<question> (July 2026)': measured, that route succeeds only 2/4 and 3/4 because it sends a period the user explicitly clicked back through the model to be re-guessed. A test asserts the EXACT request body.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apc-c3",
+          "statement": "The question reaches the request BYTE-IDENTICAL. use-ask.ts:61 calls question.trim() on every send, so the exact-body leaf MUST use a periodChoice.question carrying leading and trailing whitespace - otherwise it passes while the trim is still corrupting the audit record with a question the user did not ask.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apc-c4",
+          "statement": "A turn gains a STABLE ID and the continuation targets it by that id. AskTurn (use-ask.ts:7) is {question, response} with no identity, so two identical questions are indistinguishable and index targeting is unsafe.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apc-c5",
+          "statement": "ONLY a success response replaces the clarification turn. Every other typed response - another clarification, informational, blocked, not-supported - and every transport failure is shown as THAT TURN'S failure with the prompt and period buttons still present and re-enabled, so the user can pick again or retry. A clicked period that returns a glossary definition is a failed click however well-typed the response is. An AbortError clears that turn's pending state and is NOT shown as a failure.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apc-c6",
+          "statement": "Concurrency is UNCHANGED: use-ask.ts:62 still rejects a second request while one runs and ask-panel.tsx:66 still disables suggestions and the composer from the global isPending. Per-turn pending is presentation only. Per-request controllers would rewrite cancellation and streamed-phase ownership, which is where the behaviour proven by ask-panel.test.tsx:450 lives; that test must still pass unchanged.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apc-c7",
+          "statement": "Frontend leaves cover: rendering a periodChoice; the exact continuation request body including untrimmed whitespace; the untouched clarify.options path; a non-success typed response keeping the buttons; and a thrown transport failure keeping the buttons. Each judged by its testcase NAME, never its executed count - a --name matching nothing still exits 0 reporting 'tests 1' with the FILE PATH as the testcase name.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-apc-c8",
+          "statement": "user_facing: true. emil-design-eng and frontend-design are loaded and the work is done with them; the recorder refuses this task's test artifact unless skills_used attests both. The buttons live in an existing dense panel - match the surrounding weight rather than introduce a new visual idiom, and keep the pending and failure states legible at the 360px docked width as well as the page width.",
+          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
+        }
+      ],
+      "write_scope": [
+        "frontend/src/features/assistant/ask-panel.tsx",
+        "frontend/src/features/assistant/ask-panel.test.tsx",
+        "frontend/src/features/assistant/use-ask.ts",
+        "frontend/src/features/assistant/use-ask.test.tsx",
+        "frontend/app/globals.css"
+      ],
+      "required_tests": [
+        {
+          "id": "a period choice renders its prompt and one button per offered period",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "clicking a period posts the cloned selection and the question untrimmed",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the untouched clarify options path still appends the chosen words",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a continuation targets its turn by a stable id not by question or index",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a non success typed response keeps the clarification and its period buttons",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a continuation whose transport throws keeps the clarification and its period buttons",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "The continuation must post a SELECTION, never a re-typed question. Any string concatenation of the question with a period label is the defect this task exists to prevent.",
+        "The exact-body leaf must use an UNTRIMMED question. use-ask.ts:61 trims, so a leaf using a clean string passes while the audit record is still wrong.",
+        "Targeting must use the new stable id. Question-or-index targeting is silently wrong for two identical questions.",
+        "Only success may replace the turn. Check that an informational or a second clarification leaves the buttons in place - a clicked period degrading to a definition is the exact failure this story removes.",
+        "The existing concurrency and abort behaviour must be untouched: ask-panel.test.tsx:450 passes unchanged, and there is still one in-flight request at a time."
+      ],
+      "review_budget": {
+        "max_changed_files": 5,
+        "max_changed_lines": 600,
+        "reason": "Rendering one new payload, one request-body change, and per-turn state in a provider that today holds a single global pending flag. Six hermetic leaves. UI, so design skills are mandatory, but the surface is small: buttons in an existing panel plus a pending state. No backend, no contract change - task 1 shipped both."
+      }
     },
     {
       "id": "ask-period-control-on-answers",
@@ -196,5 +295,5 @@
     }
   ],
   "plan_sha256": "12877c45b331dc6c989da6babd35167fc25ae8d7355600984ba326c1923618f3",
-  "commit": "e0e7ce74456d315250bc205c5d37c6dfa1298cd0"
+  "commit": "8242f1bcd844a72ce99b93ee8158ee2d844878e3"
 }
