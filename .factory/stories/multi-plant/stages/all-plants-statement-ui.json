@@ -1,7 +1,7 @@
 {
   "id": "all-plants-statement-ui",
   "title": "Render the not-loaded budget as a dash and mark provisional selections",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-15T10:35:01+00:00",
   "base_sha": "d1c845726bf8afec47ed438b93fc089a64f4a380",
   "dirty_at_start": {
@@ -14,5 +14,29 @@
       "git": "1 .M N... 100644 100644 100644 fb81b06de17eaba7e6592b9f6667434e9920ddfc fb81b06de17eaba7e6592b9f6667434e9920ddfc plans/roadmap.json\u0000\u0000100644 fb81b06de17eaba7e6592b9f6667434e9920ddfc 0\tplans/roadmap.json\u0000\u0000H plans/roadmap.json\u0000"
     }
   },
-  "task_sha256": "62f9a90ec164f3181597e8b9214fc283be558285c02a343dd8992d3c6e2c1006"
+  "task_sha256": "62f9a90ec164f3181597e8b9214fc283be558285c02a343dd8992d3c6e2c1006",
+  "local_review_stamp": {
+    "stage_id": "all-plants-statement-ui",
+    "base_sha": "d1c845726bf8afec47ed438b93fc089a64f4a380",
+    "delta_id": "853e8752ec510658dfe8f8606a659d9f5adca506af69955d7da85cc255ebcafb",
+    "contract_sha256": "62f9a90ec164f3181597e8b9214fc283be558285c02a343dd8992d3c6e2c1006",
+    "recorded_at": "2026-09-15T11:08:39+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-15T11:08:41+00:00",
+  "measured": {
+    "strays": [],
+    "files": 8,
+    "lines": 307,
+    "budget": {
+      "files": 9,
+      "lines": 800
+    },
+    "test_id_misses": []
+  }
 }

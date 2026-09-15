@@ -1,28 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "all-plants-statement-ui",
-  "score": 9,
-  "summary": "quality lens over all-plants-statement-ui (9 product path(s), d1c8457..d823b4c, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The statement and selector changes largely implement the requested not-loaded and provisional-label behavior, but the aggregate drill loses its existing fail-closed footer behavior whenever a not-loaded block's visible Actual leaves do not reconcile with the selected aggregate.\nVERDICT t-apsu-c1: implemented \u2014 contract/src/api.ts:229 adds the optional plant metadata and contract/src/api.ts:294 adds optional budgetState without widening budget\nVERDICT t-apsu-c2: implemented \u2014 frontend/src/features/mis/statement-view.tsx:299 defines the shared discriminator used by both statement and drill rendering\nVERDICT t-apsu-c3: implemented \u2014 frontend/src/features/mis/statement-view.tsx:265 renders the three labeled dash cells while retaining the Actual cell\nVERDICT t-apsu-c4: partial \u2014 frontend/src/features/mis/drill-panel.tsx:428 renders the dashed footer but fails to honor the Actual reconciliation result\nVERDICT t-apsu-c5: implemented \u2014 frontend/src/features/mis/statement-view.tsx:49 consumes plantDisplay/provisional and frontend/src/features/mis/mis-report-view.tsx:174 adds the native-option suffix\nVERDICT t-apsu-c6: partial \u2014 frontend/src/features/mis/drill-panel.test.tsx:353 covers reconciling not-loaded aggregates but has no non-reconciling Actual case to protect the footer invariant",
-  "blocking_findings": [
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/multi-plant-all-plants-in-the-mis-statement.md \u2014 Task Decomposition",
-      "summary": "t-apsu-c4: Under the same guard the aggregate drill renders dashes for Budget and %, shows a dashed Budget and % footer, calls no paise arithmetic on the budget and foots Actual only, proven for a parent Actual and for the Grand Total; the leaf Actual transactions path is asserted unchanged."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/multi-plant-all-plants-in-the-mis-statement.md \u2014 Task Decomposition",
-      "summary": "t-apsu-c6: Vitest leaves cover each of the above, judged by testcase name and executed count; the functional check confirms DUB renders unchanged; the live dash is observed at the story closeout's functional check after the backend task."
-    }
-  ],
-  "non_blocking_findings": [
-    {
-      "category": "regression",
-      "area": "frontend/src/features/mis",
-      "summary": "[P2] Preserve the aggregate reconciliation guard for not-loaded budgets (frontend/src/features/mis/drill-panel.tsx:428): The not-loaded footer branch bypasses `totals.foots` and always labels the summed leaf Actual as \u201cTotal.\u201d When the clicked parent or Grand Total Actual does not equal the visible leaves, loaded blocks correctly show \u201cTotal withheld,\u201d but the new not-loaded path presents a conflicting financial total."
-    }
-  ],
-  "recommendation": "approve-with-caveats",
+  "score": 10,
+  "summary": "quality lens over all-plants-statement-ui (9 product path(s), d1c8457..c0c768c, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 defect is demonstrated by the supplied diff. The implementation uses one shared not-loaded predicate, preserves Actual drill actions, renders inaccessible-budget cells without controls, and consumes the new provisional display metadata. Runtime test execution, workspace typechecks, and external design-skill attestations are not independently verifiable from this bundle, but their omission from the provided evidence is not itself a defect.\nVERDICT t-apsu-c1: implemented \u2014 contract/src/api.ts:232 adds optional plant provisional metadata, contract/src/api.ts:244 adds optional scope metadata, and contract/src/api.ts:297 adds budgetState without widening budget\nVERDICT t-apsu-c2: implemented \u2014 frontend/src/features/mis/statement-view.tsx:299 defines the shared guard used by statement and drill rendering\nVERDICT t-apsu-c3: implemented \u2014 frontend/src/features/mis/statement-view.tsx:264 renders labelled dashes while retaining the unchanged Actual action\nVERDICT t-apsu-c4: implemented \u2014 frontend/src/features/mis/drill-panel.tsx:467 bypasses budget arithmetic for not-loaded aggregate drills and frontend/src/features/mis/drill-panel.tsx:431 renders dashed totals\nVERDICT t-apsu-c5: implemented \u2014 frontend/src/features/mis/statement-view.tsx:49 consumes plantDisplay and provisional, while frontend/src/features/mis/mis-report-view.tsx:174 adds the native-option suffix\nVERDICT t-apsu-c6: implemented \u2014 frontend/src/features/mis/statement-view.test.tsx:324 and frontend/src/features/mis/drill-panel.test.tsx:356 cover leaf, parent, Grand Total, loaded/default, header, and drill behavior",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
   "reviewed_scope": [
     "contract/src/api.ts",
     "docs/specs/all-plants-statement.md",
@@ -41,39 +24,39 @@
     {
       "contract_id": "t-apsu-c1",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:229 adds the optional plant metadata and contract/src/api.ts:294 adds optional budgetState without widening budget"
+      "evidence": "contract/src/api.ts:232 adds optional plant provisional metadata, contract/src/api.ts:244 adds optional scope metadata, and contract/src/api.ts:297 adds budgetState without widening budget"
     },
     {
       "contract_id": "t-apsu-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:299 defines the shared discriminator used by both statement and drill rendering"
+      "evidence": "frontend/src/features/mis/statement-view.tsx:299 defines the shared guard used by statement and drill rendering"
     },
     {
       "contract_id": "t-apsu-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:265 renders the three labeled dash cells while retaining the Actual cell"
+      "evidence": "frontend/src/features/mis/statement-view.tsx:264 renders labelled dashes while retaining the unchanged Actual action"
     },
     {
       "contract_id": "t-apsu-c4",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/mis/drill-panel.tsx:428 renders the dashed footer but fails to honor the Actual reconciliation result"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/drill-panel.tsx:467 bypasses budget arithmetic for not-loaded aggregate drills and frontend/src/features/mis/drill-panel.tsx:431 renders dashed totals"
     },
     {
       "contract_id": "t-apsu-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.tsx:49 consumes plantDisplay/provisional and frontend/src/features/mis/mis-report-view.tsx:174 adds the native-option suffix"
+      "evidence": "frontend/src/features/mis/statement-view.tsx:49 consumes plantDisplay and provisional, while frontend/src/features/mis/mis-report-view.tsx:174 adds the native-option suffix"
     },
     {
       "contract_id": "t-apsu-c6",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/mis/drill-panel.test.tsx:353 covers reconciling not-loaded aggregates but has no non-reconciling Actual case to protect the footer invariant"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/statement-view.test.tsx:324 and frontend/src/features/mis/drill-panel.test.tsx:356 cover leaf, parent, Grand Total, loaded/default, header, and drill behavior"
     }
   ],
   "aspect": "quality",
-  "review_run_id": "8095d3037db8ce113aee0391109401f46be5c1c657ba962296adab39dcc9d7b7",
+  "review_run_id": "d7e93cf655c67dfc804471b77f7f729816fbe74301bfe4f0aa131c411010efd3",
   "brief_sha256": "451ba68aadd1893584327a13625218fdda428a418397d52a0af79bd43d7e0c2a",
-  "branch_diff_digest": "b4ac38fba6fa2f2fdcc392c42694ff8120710217abc910b33b0dea8abcbd5526",
+  "branch_diff_digest": "4702c1c9f4d5e6999e5e39d13308b127f8ae2366c9b06e17393a3ad04cb56fc3",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T11:00:30+00:00",
-  "commit": "d823b4c14ecedc56fb9e18355aee4f52ae667aa3"
+  "recorded_at": "2026-09-15T11:08:39+00:00",
+  "commit": "c0c768cd118ce83d8a39813ee2b2137454cc4caa"
 }

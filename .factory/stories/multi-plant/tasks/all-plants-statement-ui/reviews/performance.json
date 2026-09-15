@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "all-plants-statement-ui",
   "score": 10,
-  "summary": "performance lens over all-plants-statement-ui (9 product path(s), d1c8457..d823b4c, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 performance defect is demonstrated by the supplied diff. The new rendering checks are constant-time per cell, aggregate work remains linear in the already-rendered leaf set, and the not-loaded aggregate path avoids budget paise conversion and summation as intended. No new query fanout, unbounded I/O, concurrency bottleneck, or material memory amplification is introduced.",
+  "summary": "performance lens over all-plants-statement-ui (9 product path(s), d1c8457..c0c768c, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff shows no actionable P0\u2013P2 defect. The not-loaded path consistently avoids budget arithmetic and percentage formatting, preserves Actual drill behavior, and introduces no apparent hot-path, fanout, memory, or concurrency regression. The contract changes are additive and optional, and no compatibility wrapper, shim, alias, or other blocking leftover is introduced.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -21,10 +21,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "8095d3037db8ce113aee0391109401f46be5c1c657ba962296adab39dcc9d7b7",
+  "review_run_id": "d7e93cf655c67dfc804471b77f7f729816fbe74301bfe4f0aa131c411010efd3",
   "brief_sha256": "451ba68aadd1893584327a13625218fdda428a418397d52a0af79bd43d7e0c2a",
-  "branch_diff_digest": "b4ac38fba6fa2f2fdcc392c42694ff8120710217abc910b33b0dea8abcbd5526",
+  "branch_diff_digest": "4702c1c9f4d5e6999e5e39d13308b127f8ae2366c9b06e17393a3ad04cb56fc3",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T11:00:30+00:00",
-  "commit": "d823b4c14ecedc56fb9e18355aee4f52ae667aa3"
+  "recorded_at": "2026-09-15T11:08:39+00:00",
+  "commit": "c0c768cd118ce83d8a39813ee2b2137454cc4caa"
 }
