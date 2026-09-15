@@ -10,9 +10,10 @@ export interface StatementOutlineNode {
 }
 
 export interface IStatementOutlineRepository {
-  findByBudgetPeriod(period: string): Promise<StatementOutlineNode[]>;
+  findActiveBudgetOutline(period: string): Promise<{ batchId: string; nodes: StatementOutlineNode[] }>;
 }
 
-export interface IPinnedStatementOutlineRepository extends IStatementOutlineRepository {
+export interface IPinnedStatementOutlineRepository {
+  findByBudgetPeriod(period: string): Promise<StatementOutlineNode[]>;
   findByBudgetBatchId(batchId: string): Promise<StatementOutlineNode[]>;
 }

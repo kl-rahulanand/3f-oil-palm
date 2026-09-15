@@ -30,6 +30,7 @@ const hermeticTests = [
   "backend/src/common/request-logging.test.ts",
   "backend/src/core/dimension-values.service.test.ts",
   "backend/src/db/migrate.trim.test.ts",
+  "backend/src/db/seed-users.test.ts",
   "backend/src/health/health.controller.test.ts",
   "backend/src/ingest/ingest.controller.test.ts",
   "backend/src/ingest/ingest.service.test.ts",
@@ -62,6 +63,7 @@ const hermeticTests = [
   "backend/src/sql/sqlValidator.pii.test.ts",
   "backend/src/swagger-production.test.ts",
   "backend/src/swagger.test.ts",
+  "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
   "backend/src/warehouse/composed-relation.db.test.ts",
   "backend/src/warehouse/drill-transactions.db.test.ts",
   "backend/src/warehouse/drill-transactions.repository.test.ts",
@@ -126,7 +128,8 @@ const expectedWorkspaceScripts = {
     "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts backend/src/warehouse/load-freshness.db.test.ts",
+      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts backend/src/warehouse/load-freshness.db.test.ts backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+    "master:generate": "ts-node -T src/mapping/generate-mapping-master.ts",
   },
   contract: {
     build: "tsc -p tsconfig.json",

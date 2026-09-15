@@ -1,8 +1,11 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
 import type {
   FixedScaleMoney,
+  MisStatementLoadedMeasureBlock,
+  MisStatementNotLoadedMeasureBlock,
   MisStatementMeasureBlock,
   MisStatementNode,
+  MisStatementRouteResponse,
   MisStatementProvenance,
   MisStatementRefreshRequiredResponse,
   MisStatementResolvedResponse,
@@ -31,12 +34,81 @@ export const misStatementRunRequestSchema = misSelectionRunRequestSchema.extend(
     .optional(),
 });
 
+const fixedScaleMoneySchema = z.custom<FixedScaleMoney>(
+  (value) => typeof value === "string" && /^-?\d+\.\d{2}$/.test(value),
+);
+const measureBaseSchema = z.object({
+  key: z.enum(["selected", "fy26-27-ytd"]),
+  label: z.string(),
+  from: z.string(),
+  to: z.string(),
+  rollover: z.null(),
+  actual: fixedScaleMoneySchema,
+  sourcePresence: z.array(z.enum(["matched", "budget-only", "actual-only"])),
+});
+const measureSchema: z.ZodType<MisStatementMeasureBlock> = z.discriminatedUnion("budgetState", [
+  measureBaseSchema
+    .extend({ budgetState: z.literal("loaded"), budget: fixedScaleMoneySchema, percentage: z.string().nullable() })
+    .strict(),
+  measureBaseSchema.extend({ budgetState: z.literal("not-loaded"), budget: z.null(), percentage: z.null() }).strict(),
+]);
+const statementNodeSchema: z.ZodType<MisStatementNode> = z.lazy(() =>
+  z
+    .object({
+      nodeKey: z.string(),
+      sNo: z.string().nullable(),
+      budgetComponent: z.string(),
+      glCode: z.string().nullable(),
+      measures: z.array(measureSchema),
+      children: z.array(statementNodeSchema),
+    })
+    .strict(),
+);
+const statementScopeSchema = z
+  .object({
+    department: z.string(),
+    function: z.string(),
+    plant: z.string(),
+    plantDisplay: z.string(),
+    provisional: z.boolean(),
+    period: z.string(),
+    costCentres: z.array(z.string()),
+    glCodes: z.array(z.string()),
+    misFormat: z.string(),
+  })
+  .strict();
+const provenanceSchema = z.object({ activeBatchIds: z.array(provenanceBatchSchema) }).strict();
+
+export const misStatementResponseSchema: z.ZodType<MisStatementRouteResponse> = z.discriminatedUnion("outcome", [
+  z
+    .object({
+      outcome: z.literal("resolved"),
+      scope: statementScopeSchema,
+      tree: z.array(statementNodeSchema),
+      grandTotal: statementNodeSchema,
+      provenance: provenanceSchema,
+    })
+    .strict(),
+  z
+    .object({
+      outcome: z.literal("unresolvable"),
+      notice: z.literal("No mapping configured"),
+      tree: z.tuple([]),
+      grandTotal: z.null(),
+      provenance: provenanceSchema,
+    })
+    .strict(),
+  z
+    .object({ outcome: z.literal("refresh-required"), notice: z.literal("The data was refreshed - ask again") })
+    .strict(),
+]);
+
 export class MisStatementRunRequestDto extends MisSelectionRunRequestDto implements MisStatementRunRequest {
   @ApiProperty({ type: () => [MisStatementProvenanceBatchDto], required: false })
   pinnedBatches?: ProvenanceBatch[];
 }
 
-class MisStatementMeasureBlockDto implements MisStatementMeasureBlock {
+class MisStatementMeasureBlockBaseDto {
   @ApiProperty({ enum: ["selected", "fy26-27-ytd"] })
   key!: "selected" | "fy26-27-ytd";
 
@@ -49,22 +121,45 @@ class MisStatementMeasureBlockDto implements MisStatementMeasureBlock {
   @ApiProperty({ example: "2026-07-01" })
   to!: string;
 
-  @ApiProperty({ example: "10050136.29" })
-  budget!: FixedScaleMoney;
-
   @ApiProperty({ type: String, example: null, nullable: true })
   rollover: null = null;
 
   @ApiProperty({ example: "11512712.07" })
   actual!: FixedScaleMoney;
 
-  @ApiProperty({ type: String, example: "1.1455", nullable: true })
-  percentage!: string | null;
-
   @ApiProperty({ enum: ["matched", "budget-only", "actual-only"], isArray: true })
   sourcePresence!: SourcePresence[];
 }
 
+class MisStatementLoadedMeasureBlockDto
+  extends MisStatementMeasureBlockBaseDto
+  implements MisStatementLoadedMeasureBlock
+{
+  @ApiProperty({ enum: ["loaded"] })
+  budgetState: "loaded" = "loaded";
+
+  @ApiProperty({ example: "10050136.29" })
+  budget!: FixedScaleMoney;
+
+  @ApiProperty({ type: String, example: "1.1455", nullable: true })
+  percentage!: string | null;
+}
+
+class MisStatementNotLoadedMeasureBlockDto
+  extends MisStatementMeasureBlockBaseDto
+  implements MisStatementNotLoadedMeasureBlock
+{
+  @ApiProperty({ enum: ["not-loaded"] })
+  budgetState: "not-loaded" = "not-loaded";
+
+  @ApiProperty({ type: String, example: null, nullable: true })
+  budget: null = null;
+
+  @ApiProperty({ type: String, example: null, nullable: true })
+  percentage: null = null;
+}
+
+@ApiExtraModels(MisStatementLoadedMeasureBlockDto, MisStatementNotLoadedMeasureBlockDto)
 class MisStatementNodeDto implements MisStatementNode {
   @ApiProperty({ example: "9|admin-expenses" })
   nodeKey!: string;
@@ -78,8 +173,14 @@ class MisStatementNodeDto implements MisStatementNode {
   @ApiProperty({ type: String, example: "55011101", nullable: true })
   glCode!: string | null;
 
-  @ApiProperty({ type: [MisStatementMeasureBlockDto] })
-  measures!: MisStatementMeasureBlockDto[];
+  @ApiProperty({
+    isArray: true,
+    oneOf: [
+      { $ref: "#/components/schemas/MisStatementLoadedMeasureBlockDto" },
+      { $ref: "#/components/schemas/MisStatementNotLoadedMeasureBlockDto" },
+    ],
+  })
+  measures!: Array<MisStatementLoadedMeasureBlockDto | MisStatementNotLoadedMeasureBlockDto>;
 
   @ApiProperty({ type: () => [MisStatementNodeDto] })
   children!: MisStatementNodeDto[];
@@ -118,6 +219,12 @@ class MisStatementScopeReadoutDto {
 
   @ApiProperty({ example: "DUB" })
   plant!: string;
+
+  @ApiProperty({ example: "Agri - Nursery - DUB" })
+  plantDisplay!: string;
+
+  @ApiProperty({ example: false })
+  provisional!: boolean;
 
   @ApiProperty({ example: "2026-07-01" })
   period!: string;

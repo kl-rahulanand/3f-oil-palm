@@ -1,0 +1,141 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "all-plants-backend",
+  "score": 10,
+  "summary": "quality lens over all-plants-backend (35 product path(s), 6cd492d..87a05be, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-apb-c1: implemented \u2014 backend/src/warehouse/all-plants-reconciliation.db.test.ts:58 proves 31 rendered statements and the exact company total.\nVERDICT t-apb-c2: implemented \u2014 backend/src/warehouse/all-plants-reconciliation.db.test.ts:80 compares DUB against the frozen shipped baseline and export values.\nVERDICT t-apb-c3: implemented \u2014 backend/src/mapping/mapping-master.test.ts:126 proves generated-master equality, exact triple resolution, classifications, provisional reasons, ownership and duplicate validation.\nVERDICT t-apb-c4: implemented \u2014 backend/src/mis/mis-statement.dto.ts:37 defines and validates the required discriminated union; backend/src/mis/mis-statement.service.ts:180 applies the owner rule.\nVERDICT t-apb-c5: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:46 and backend/src/mis/mis-selection.service.ts:92 populate provisional and display metadata used by the three routes and their DTOs.\nVERDICT t-apb-c6: implemented \u2014 backend/src/warehouse/statement-outline.repository.ts:14 atomically returns the active budget batch ID with its outline; backend/src/mis/mis-statement.service.ts:82 pins and verifies it.\nVERDICT t-apb-c7: implemented \u2014 backend/src/db/migrate.ts:46 validates and authoritatively reconciles plant grants for configured users; README.md:45 documents the format.\nVERDICT t-apb-c8: implemented \u2014 backend/src/mis/mis-statement.service.test.ts:146 distinguishes loaded zero/nil cases from not-loaded, and backend/package.json:16 registers the new proofs.\nVERDICT t-apb-c9: implemented \u2014 backend/package.json:16 retains the unchanged Ask hermetic proofs while the product diff makes no Ask-view change.\nVERDICT t-apb-c10: implemented \u2014 backend/src/warehouse/all-plants-reconciliation.db.test.ts:58 contains the three gated warehouse leaves and backend/package.json:18 provides the flag-setting serialized proof command.\nVERDICT t-apb-c11: implemented \u2014 backend/src/mapping/selection-resolver.service.ts:89 carries the format owner into the resolution and backend/src/mis/mis-statement.service.ts:180 is the sole runtime ownership decision.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "README.md",
+    "backend/package.json",
+    "backend/src/config.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/db/seed-users.test.ts",
+    "backend/src/ingest/mis-budget.parser.ts",
+    "backend/src/ingest/mis-format-outline.ts",
+    "backend/src/mapping/generate-mapping-master.ts",
+    "backend/src/mapping/mapping-master.test.ts",
+    "backend/src/mapping/mapping-master.ts",
+    "backend/src/mapping/mis-mapping-master.ts",
+    "backend/src/mapping/plant-classification.ts",
+    "backend/src/mapping/selection-resolver.interface.ts",
+    "backend/src/mapping/selection-resolver.service.test.ts",
+    "backend/src/mapping/selection-resolver.service.ts",
+    "backend/src/mis/mis-drill.service.test.ts",
+    "backend/src/mis/mis-selection.controller.test.ts",
+    "backend/src/mis/mis-selection.dto.ts",
+    "backend/src/mis/mis-selection.service.ts",
+    "backend/src/mis/mis-statement-export.service.ts",
+    "backend/src/mis/mis-statement-export.test.ts",
+    "backend/src/mis/mis-statement.controller.test.ts",
+    "backend/src/mis/mis-statement.dto.ts",
+    "backend/src/mis/mis-statement.service.test.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/warehouse/__fixtures__/dub-statement-baseline.json",
+    "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+    "backend/src/warehouse/selection-slice.db.test.ts",
+    "backend/src/warehouse/statement-outline.interface.ts",
+    "backend/src/warehouse/statement-outline.repository.ts",
+    "contract/src/api.ts",
+    "frontend/src/features/mis/drill-panel.test.tsx",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-apb-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/all-plants-reconciliation.db.test.ts:58 proves 31 rendered statements and the exact company total."
+    },
+    {
+      "contract_id": "t-apb-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/all-plants-reconciliation.db.test.ts:80 compares DUB against the frozen shipped baseline and export values."
+    },
+    {
+      "contract_id": "t-apb-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/mapping/mapping-master.test.ts:126 proves generated-master equality, exact triple resolution, classifications, provisional reasons, ownership and duplicate validation."
+    },
+    {
+      "contract_id": "t-apb-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.dto.ts:37 defines and validates the required discriminated union; backend/src/mis/mis-statement.service.ts:180 applies the owner rule."
+    },
+    {
+      "contract_id": "t-apb-c5",
+      "verdict": "implemented",
+      "evidence": "backend/src/mapping/selection-resolver.service.ts:46 and backend/src/mis/mis-selection.service.ts:92 populate provisional and display metadata used by the three routes and their DTOs."
+    },
+    {
+      "contract_id": "t-apb-c6",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/statement-outline.repository.ts:14 atomically returns the active budget batch ID with its outline; backend/src/mis/mis-statement.service.ts:82 pins and verifies it."
+    },
+    {
+      "contract_id": "t-apb-c7",
+      "verdict": "implemented",
+      "evidence": "backend/src/db/migrate.ts:46 validates and authoritatively reconciles plant grants for configured users; README.md:45 documents the format."
+    },
+    {
+      "contract_id": "t-apb-c8",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.service.test.ts:146 distinguishes loaded zero/nil cases from not-loaded, and backend/package.json:16 registers the new proofs."
+    },
+    {
+      "contract_id": "t-apb-c9",
+      "verdict": "implemented",
+      "evidence": "backend/package.json:16 retains the unchanged Ask hermetic proofs while the product diff makes no Ask-view change."
+    },
+    {
+      "contract_id": "t-apb-c10",
+      "verdict": "implemented",
+      "evidence": "backend/src/warehouse/all-plants-reconciliation.db.test.ts:58 contains the three gated warehouse leaves and backend/package.json:18 provides the flag-setting serialized proof command."
+    },
+    {
+      "contract_id": "t-apb-c11",
+      "verdict": "implemented",
+      "evidence": "backend/src/mapping/selection-resolver.service.ts:89 carries the format owner into the resolution and backend/src/mis/mis-statement.service.ts:180 is the sole runtime ownership decision."
+    },
+    {
+      "contract_id": "t-apsu-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under all-plants-statement-ui at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apsu-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under all-plants-statement-ui at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apsu-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under all-plants-statement-ui at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apsu-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under all-plants-statement-ui at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apsu-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under all-plants-statement-ui at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apsu-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under all-plants-statement-ui at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "bef7d96d803d3cce7bb8fa6affb49451ed0967863d35901f70e3ee1bbbf8f6d6",
+  "brief_sha256": "790a680e48a84b408a6cd4923b24ad10086a7bd45a5ce89847fd63c3963831cb",
+  "branch_diff_digest": "638b1aa013ad929ecda7e4bf294c42179acec8f7029053436aea25813754d1e8",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T14:04:02+00:00",
+  "commit": "87a05be7a71859c37c349203818f96df2d2b78f1"
+}

@@ -92,6 +92,8 @@ export class MisSelectionService implements IMisSelectionService {
         department: resolution.department,
         function: resolution.function,
         plant: resolution.plant,
+        plantDisplay: resolution.plantDisplay,
+        provisional: resolution.provisional,
         period: resolution.period.value,
         costCentres: resolution.costCentres,
         glCodes: resolution.glCodes,

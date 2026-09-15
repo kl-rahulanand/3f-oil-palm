@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-15T13:47:56+00:00", "story": "multi-plant", "detail": "Fixing the accepted P1 requires adding backend/src/sql/sqlBuilder.ts to write scope: MisStatementService can pass the atomic outline batch id through its existing resolvedScope, but only SqlBuilder ow"}

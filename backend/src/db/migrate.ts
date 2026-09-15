@@ -1,12 +1,13 @@
 // Idempotent migration: apply Drizzle migrations, seed base roles, and seed
 // configured email-based users. Run: npm run db:migrate
 import { join } from "path";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import type { AppDb } from "./pool";
 import { createDb, createPool } from "./pool";
 import { rolePerms, roles, userRoles, users, userScope } from "./schema";
 import { loadConfig } from "../config";
+import { MAPPING_MASTER } from "../mapping/mapping-master";
 
 const baseRoles = [
   { name: "admin", label: "Administrator" },
@@ -42,9 +43,10 @@ export const baseRolePerms = [
 
 export async function seedConfiguredUsers(
   db: AppDb,
-  seedUsers: Array<{ email: string; displayName: string; roles: string[] }>,
+  seedUsers: Array<{ email: string; displayName: string; roles: string[]; plants?: string[] }>,
 ): Promise<number> {
   for (const seedUser of seedUsers) {
+    const plants = desiredSeedPlants(seedUser);
     const email = seedUser.email.trim().toLowerCase();
     const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
 
@@ -68,15 +70,16 @@ export async function seedConfiguredUsers(
     for (const role of seedUser.roles) {
       await db.insert(userRoles).values({ userId, role }).onConflictDoNothing();
     }
+    await db.delete(userScope).where(and(eq(userScope.userId, userId), eq(userScope.attribute, "plant")));
+    for (const value of plants) {
+      await db.insert(userScope).values({ userId, attribute: "plant", value });
+    }
     if (seedUser.roles.includes("admin")) {
-      // The MIS statement is scoped to ONE selector set, so statementRequest requires exactly
-      // one department, one function and one plant on the signed-in user. Granting only the
-      // plant left every statement question unanswerable from Ask. These are the canonical
-      // values in mis-mapping-master, i.e. the same triple the MIS Reports dropdowns resolve.
+      // Ask still needs its existing canonical department/function scope in addition to the
+      // reconciled plant grants. Plant-aware Ask remains deferred by decision 0037.
       for (const [attribute, value] of [
         ["department", "Agriculture"],
         ["function", "Nursery"],
-        ["plant", "DUB"],
       ] as const) {
         await db.insert(userScope).values({ userId, attribute, value }).onConflictDoNothing();
       }
@@ -84,6 +87,20 @@ export async function seedConfiguredUsers(
   }
 
   return seedUsers.length;
+}
+
+export class SeedUserPlantScopeError extends Error {
+  constructor(plant: string) {
+    super(`SEED_USERS contains unknown canonical plant ${plant}`);
+    this.name = "SeedUserPlantScopeError";
+  }
+}
+
+export function desiredSeedPlants(seedUser: { roles: string[]; plants?: string[] }): string[] {
+  const canonicalPlants = new Set(MAPPING_MASTER.selections.map(({ plant_canonical }) => plant_canonical));
+  const requested = seedUser.plants ?? (seedUser.roles.includes("admin") ? [...canonicalPlants] : []);
+  for (const plant of requested) if (!canonicalPlants.has(plant)) throw new SeedUserPlantScopeError(plant);
+  return [...new Set(requested)].sort();
 }
 
 async function main() {

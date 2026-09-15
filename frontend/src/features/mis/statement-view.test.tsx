@@ -417,6 +417,7 @@ function measure(
     label: key === "selected" ? "raw selected label" : "raw ytd label",
     from: key === "selected" ? "2026-07-01" : "2026-04-01",
     to: "2026-07-01",
+    budgetState: "loaded",
     budget,
     rollover: null,
     actual,

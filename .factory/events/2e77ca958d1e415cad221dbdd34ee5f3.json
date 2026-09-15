@@ -1,0 +1,1 @@
+{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-15T13:29:57+00:00", "story": "multi-plant", "detail": "Required MisStatementMeasureBlock.budgetState makes four existing frontend test fixtures fail typecheck, but frontend is outside this task's write scope and acceptance also requires frontend typecheck"}
