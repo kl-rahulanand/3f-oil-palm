@@ -118,15 +118,13 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
       clearProgress();
       if (turnId) {
         setTurns((current) =>
-          current.map((turn) =>
-            turn.id === turnId
-              ? {
-                  ...turn,
-                  isPending: false,
-                  ...(!isAbort(caught) ? { error: "This report could not be reopened. Try again." } : {}),
-                }
-              : turn,
-          ),
+          isAbort(caught)
+            ? current.filter((turn) => turn.id !== turnId)
+            : current.map((turn) =>
+                turn.id === turnId
+                  ? { ...turn, isPending: false, error: "This report could not be reopened. Try again." }
+                  : turn,
+              ),
         );
       } else if (!isAbort(caught)) {
         setError("The question could not be sent. Try again.");
@@ -258,7 +256,7 @@ function resolveContinueError(
 }
 
 function isAbort(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
+  return typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
 }
 
 function isAccessRefusal(error: unknown): boolean {

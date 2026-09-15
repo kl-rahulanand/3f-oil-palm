@@ -791,6 +791,24 @@ test("the target turn is scrolled into view for an unmatched open", async () => 
   await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" }));
 });
 
+test("a docked panel mounted alongside does not consume the scroll target", async () => {
+  const scrollIntoView = vi.fn();
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
+  mocks.ask.mockImplementation(() => new Promise(() => undefined));
+  render(
+    <AskProvider>
+      <AskPanel surface="page" />
+      <AskPanel surface="docked" />
+      <RerunButton />
+    </AskProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Rerun stored selection" }));
+
+  await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+  expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+});
+
 test("a refused reopen shows its own reason and not the period copy", async () => {
   mocks.ask.mockResolvedValueOnce(success).mockResolvedValueOnce({
     responseClass: "blocked_by_policy" as AskResponse["responseClass"],

@@ -39,12 +39,12 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
   const suggestions = latestSuggestions(turns) ?? SEED_QUESTIONS;
 
   useEffect(() => {
-    if (!scrollTargetId) return;
+    if (surface !== "page" || !scrollTargetId) return;
     const target = document.getElementById(scrollTargetId);
     if (!target) return;
     target.scrollIntoView({ block: "center" });
     clearScrollTarget();
-  }, [clearScrollTarget, scrollTargetId, turns]);
+  }, [clearScrollTarget, scrollTargetId, surface, turns]);
 
   function submit(event: FormEvent) {
     event.preventDefault();

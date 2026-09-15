@@ -163,6 +163,30 @@ test("an unmatched open that fails leaves one turn carrying the error not two", 
   expect(screen.getByTestId("thread-length")).toHaveTextContent("1");
 });
 
+test("an aborted unmatched open leaves no empty turn", async () => {
+  mocks.ask.mockImplementation(
+    (_body, options: { signal: AbortSignal }) =>
+      new Promise((_resolve, reject) => {
+        options.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+      }),
+  );
+  const view = render(
+    <AskProvider pathname="/ask">
+      <ReopenHarness />
+    </AskProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Reopen saved report" }));
+  await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("1"));
+  view.rerender(
+    <AskProvider pathname="/dashboard">
+      <ReopenHarness />
+    </AskProvider>,
+  );
+
+  await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("0"));
+});
+
 test("the most recent matching turn is the one rerun", async () => {
   mocks.ask
     .mockResolvedValueOnce({ ...success, title: "Older answer" })

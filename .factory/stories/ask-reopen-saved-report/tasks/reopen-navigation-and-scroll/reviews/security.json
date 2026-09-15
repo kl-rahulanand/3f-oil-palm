@@ -1,0 +1,30 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "reopen-navigation-and-scroll",
+  "score": 10,
+  "summary": "security lens over reopen-navigation-and-scroll (9 product path(s), 71a05e1..c1ba573, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff introduces no new route, authorization boundary, credential handling, injection surface, or over-broad response. Reopens continue through the existing API path that re-authorizes selections, refusal and transport failures are rendered without exposing sensitive details, and no compatibility wrappers, aliases, deprecated branches, or other prohibited leftovers are present. The navigation, pending-turn, busy-path, and scroll behavior shown in the bundle is consistent with the stated contracts.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/exploration/pinned-reports.test.tsx",
+    "frontend/src/features/exploration/pinned-reports.tsx",
+    "frontend/src/features/exploration/saved-views.test.tsx",
+    "frontend/src/features/exploration/saved-views.tsx"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "1123f9ee6c7c1a5752be4c374b93d60ca9089aa112dc77e6159bb8b6aab2ae79",
+  "brief_sha256": "bc78a7d8cc536ea09d5b475fccddb0c75fb5bb3dedc3b3d3b4cbe5009d697dd6",
+  "branch_diff_digest": "baae4c3d18f81744b54baaaddb738781c2823310f28d9839abcb4b39ad6a080d",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T18:09:05+00:00",
+  "commit": "c1ba573669fe0798989a8ca2ff523f71dbf80821"
+}
