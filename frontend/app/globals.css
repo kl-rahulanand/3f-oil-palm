@@ -1343,6 +1343,7 @@ button {
   position: sticky;
   top: 0;
   width: 360px;
+  height: calc(100vh - 98px);
   max-height: calc(100vh - 98px);
   flex: none;
   align-self: flex-start;
@@ -1518,10 +1519,27 @@ button {
   background: var(--kl-error-tint);
   color: var(--kl-error);
 }
-.ask-pending {
+.ask-progress {
+  display: grid;
+  gap: 6px;
   margin: 0;
   color: var(--kl-slate);
+  list-style: none;
+  padding: var(--space-2) 0;
   font-size: 12px;
+}
+.ask-progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ask-progress li::before {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--kl-emerald);
+  content: "";
 }
 .ask-totals,
 .ask-kpis {
@@ -1775,6 +1793,7 @@ button {
   .ask-panel[data-surface="docked"] {
     position: static;
     width: 100%;
+    height: auto;
     max-height: none;
   }
   .ask-rail {

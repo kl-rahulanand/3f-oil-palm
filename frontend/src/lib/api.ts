@@ -1,4 +1,8 @@
-import type {
+import {
+  ASK_PRIOR_TURN_MAX_QUESTION_CHARS,
+  ASK_PRIOR_TURNS_MAX_ENTRIES,
+  ASK_PRIOR_TURNS_MAX_SERIALIZED_CHARS,
+  type AskPriorTurn,
   AskRequest,
   AskResponse,
   AuthLogoutResponse,
@@ -16,7 +20,9 @@ import type {
   Pin,
   SaveQueryRequest,
   SavedQuery,
+  type WarehouseFreshnessResponse,
 } from "@3f/contract";
+import { readAskStream } from "@/src/features/assistant/ask-stream";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:4000";
 const CSRF_PATH = "/api/auth/csrf";
@@ -38,8 +44,8 @@ function csrfCookie(): string {
   return value ? decodeURIComponent(value) : "";
 }
 
-async function postResponse(path: string, body: object, refreshOn401 = false): Promise<Response> {
-  await request(CSRF_PATH);
+async function postResponse(path: string, body: object, refreshOn401 = false, signal?: AbortSignal): Promise<Response> {
+  await request(CSRF_PATH, false, signal);
   const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     credentials: "include",
@@ -48,18 +54,19 @@ async function postResponse(path: string, body: object, refreshOn401 = false): P
       "x-csrf-token": csrfCookie(),
     },
     body: JSON.stringify(body),
+    signal,
   });
 
   if (response.status === 401 && refreshOn401) {
-    await post<AuthRefreshResponse>("/api/auth/refresh", {});
-    return postResponse(path, body);
+    await post<AuthRefreshResponse>("/api/auth/refresh", {}, false, signal);
+    return postResponse(path, body, false, signal);
   }
   if (!response.ok) throw new ApiError(response.status);
   return response;
 }
 
-async function post<T>(path: string, body: object, refreshOn401 = false): Promise<T> {
-  const response = await postResponse(path, body, refreshOn401);
+async function post<T>(path: string, body: object, refreshOn401 = false, signal?: AbortSignal): Promise<T> {
+  const response = await postResponse(path, body, refreshOn401, signal);
   return response.json() as Promise<T>;
 }
 
@@ -108,22 +115,50 @@ function dispositionFilename(disposition: string): string {
   return filename;
 }
 
-async function request<T = unknown>(path: string, refreshOn401 = false): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, { credentials: "include" });
+async function request<T = unknown>(path: string, refreshOn401 = false, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, { credentials: "include", signal });
   if (response.status === 401 && refreshOn401) {
-    await post<AuthRefreshResponse>("/api/auth/refresh", {});
-    return request<T>(path);
+    await post<AuthRefreshResponse>("/api/auth/refresh", {}, false, signal);
+    return request<T>(path, false, signal);
   }
   if (!response.ok) throw new ApiError(response.status);
   return response.json() as Promise<T>;
+}
+
+function boundedAskRequest(request: Pick<AskRequest, "question" | "priorTurns" | "selection">) {
+  if (!request.priorTurns?.length) return request;
+  const priorTurns: AskPriorTurn[] = request.priorTurns.slice(-ASK_PRIOR_TURNS_MAX_ENTRIES).map((turn) => ({
+    ...turn,
+    question: turn.question.slice(0, ASK_PRIOR_TURN_MAX_QUESTION_CHARS),
+  }));
+  while (priorTurns.length && JSON.stringify(priorTurns).length > ASK_PRIOR_TURNS_MAX_SERIALIZED_CHARS) {
+    priorTurns.shift();
+  }
+  return { ...request, ...(priorTurns.length ? { priorTurns } : { priorTurns: undefined }) };
+}
+
+type AskStreamOptions = { signal?: AbortSignal; onPhase?: Parameters<typeof readAskStream>[1] };
+
+async function askStream(
+  request: Pick<AskRequest, "question" | "priorTurns">,
+  options: AskStreamOptions = {},
+): Promise<AskResponse> {
+  const response = await postResponse("/api/chat/stream", boundedAskRequest(request), true, options.signal);
+  return readAskStream(response.body, options.onPhase ?? (() => undefined));
 }
 
 export const api = {
   misOptions: () => request<MisSelectionOptionsResponse>("/api/mis/options", true),
   runMisStatement: (selection: MisSelectionRunRequest) =>
     post<MisStatementRouteResponse>("/api/mis/statement", selection, true),
-  ask: (request: Pick<AskRequest, "question" | "priorTurns" | "selection">) =>
-    post<AskResponse>("/api/chat", request, true),
+  ask: (request: Pick<AskRequest, "question" | "priorTurns" | "selection">, options?: AskStreamOptions) =>
+    request.selection
+      ? post<AskResponse>("/api/chat", boundedAskRequest(request), true, options?.signal)
+      : options
+        ? askStream(request, options)
+        : post<AskResponse>("/api/chat", boundedAskRequest(request), true),
+  askStream,
+  warehouseFreshness: () => request<WarehouseFreshnessResponse>("/api/warehouse/freshness", true),
   savedQueries: () => request<SavedQuery[]>("/api/saved", true),
   saveQuery: (body: SaveQueryRequest) => post<SavedQuery>("/api/saved", body, true),
   deleteSavedQuery: (id: string) => remove(`/api/saved/${id}`, true),

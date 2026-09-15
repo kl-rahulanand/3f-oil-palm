@@ -2,49 +2,45 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Second cold read of docs/specs/assistant-responsiveness.md, declared as a shape change: the confirmed spec contradicted a human decision taken after it was written (cancellation reaching query work vs the settled BOUNDED cancellation). Seven findings, all verified and all held. One was a file the orchestrator corrupted: re-saving a spec that already carried frontmatter left TWO header blocks in each of the two amended specs, and the parser reads only the first, so digests were reviewing mixed revisions. Three findings would have shipped bugs: the retry's second attempt was specified as an identical capped temperature-zero request, which would deterministically reproduce the same tool-less result rather than recover it; 'do not start a governed query once aborted' had no enforceable seam, since SelectionExecutor.run awaits warehouse.explain() before warehouse.execute(); and freshness conflated the shell's global minimum with a single answer's provenance.dataAsOf, which would let an unrelated stale batch make a fresh answer look old.",
+  "summary": "Third cold read of docs/specs/assistant-responsiveness.md, declared as a shape change: the confirmed spec contradicted SHIPPED code and a human decision in three places - it mandated maxTokens 2048 while task 1 shipped 512, required a sub-5s live check this model's variance cannot support, and required populating provenance.dataAsOf which the human deferred as D-0041. Seven findings, all verified. FOUR were the orchestrator's amendment being incomplete: the Behaviour prose was rewritten while the ACCEPTANCE CRITERIA still carried the stale dataAsOf requirement and still omitted the five pill states, the /ask and /mis-reports boundary, and the retry's raised cap and summed usage. TWO were genuine gaps in already-merged code and are recorded as deferrals rather than absorbed into a frontend-only task.",
   "questions_asked": 1,
   "gaps": [
-    "The spec file carried two frontmatter blocks - an operative draft header followed by a stale confirmed one in the body - so readers and digests were reviewing mixed revisions; the same corruption affected docs/specs/assistant-and-exploration.md.",
-    "The settled limits lived only in the approved plan, so the spec no longer independently contracted the work: maxTokens 2048, the 8-turn / 16,000-character / 2,000-character caps, the 250ms phase delay and the under-5-second follow-up check were all absent, and 'explicit', 'short' and 'seconds' permit materially different implementations that still satisfy the prose.",
-    "'Reject serialized prior turns before any serialization' was internally undefined: measuring serialized length requires naming the representation and the point of evaluation, and nested selections were unbounded.",
-    "The retry's second request was unspecified, and repeating the same capped temperature-zero request would reproduce the same tool-less outcome rather than recover it; the contract also did not prohibit a second attempt after cancellation arrives.",
-    "'Do not start a governed query once aborted' had no enforceable seam: SelectionExecutor.run awaits warehouse.explain() and then calls warehouse.execute(), so an abort arriving during the first await could still start the query, and threading an abort only to Bedrock cannot meet the guarantee.",
-    "The stream contract lacked terminal failure semantics - malformed JSON frames and an EOF carrying neither result nor error - either of which could leave the shared provider indefinitely pending.",
-    "Freshness conflated two different truths: the shell's global minimum across all active batches cannot honestly serve as provenance.dataAsOf for a specific answer, which is computed per selected domain from the batches that answer actually read."
+    "The spec's acceptance criteria still required provenance.dataAsOf to stop being null, directly contradicting open deferral D-0041 and the completed freshness task's contract - the amendment had changed only the Behaviour section.",
+    "The pill's settled display contract was absent from the criteria: distinct copy for all five server states, an explicit timezone, and a browser-fetch failure shown separately from the server's lookup-failed, so unsupported, unconfigured and client-network failures could collapse into one misleading state.",
+    "Freshness had no policy for a PARTIALLY loaded warehouse: postgres.adapter.ts returns 'available' when EITHER governed source has an active batch, so the pill can display Budget's timestamp while Actuals has none, and 'oldest across governed sources' does not say whether that is honest, unavailable, or a distinct partial state.",
+    "'Leaving the assistant' named no routes, while the settled boundary is leaving both /ask and /mis-reports; with the provider held in the persistent shell an implementer cannot otherwise distinguish allowed in-area navigation from departure.",
+    "Cancellation had an uncovered query seam: dimensionValuesForAllowedDomains() starts warehouse distinctValues reads BEFORE the abort check, so an abandoned stream can still start that pre-selection query - the SelectionExecutor guard protects only the later governed execution.",
+    "The retry contract omitted the load-bearing requirements that make it useful and auditable: it said only 'retry once', without the second request's RAISED cap or the combined usage accounting, so a conforming rewrite could repeat the deterministic request and under-report the two calls' token spend."
   ],
   "contradictions": [
-    "The confirmed spec required cancellation to reach the query work while the human had since settled on BOUNDED cancellation, in which an in-flight query expires under statement_timeout; a future implementer reading the spec would have built pg_cancel_backend.",
-    "The client sends every successful prior turn while the server was about to start rejecting more than eight, so the ninth conversational ask would have become a 400 unless the client trimmed to the same contract."
+    "The confirmed spec mandated maxTokens 2048 and a sub-5s live check while the shipped predecessor uses 512 and repeated measurement showed 2048 reaching 19,299ms, so the governing document and the running code disagreed on the story's central value."
   ],
   "resolutions": [
-    "REPO-ANSWERED - both specs were rewritten from a frontmatter-stripped body so each carries exactly one canonical header. The corruption was introduced by the orchestrator re-saving files that already had frontmatter.",
-    "REPO-ANSWERED - the settled numbers are now stated in the spec's own acceptance criteria: maxTokens 2048 with its justification, 8 entries / 16,000 characters / 2,000 characters per question, a 250ms client render delay, and an under-5-second follow-up in the live check. The maxTokens assertion is explicitly required on the REQUEST rather than by timing, because the uncapped call is already fast with no prior turn.",
-    "REPO-ANSWERED - the measured representation is named as JSON.stringify(priorTurns), evaluated at ingress before the trim and before Bedrock-prompt construction, with nested selection fields inside that representation. The CLIENT trims to the same contract newest-first, and the shared limits live in @3f/contract, the only package the frontend imports.",
-    "REPO-ANSWERED - the second selector attempt must DIFFER from the first by raising the cap, and is not made at all if cancellation arrives after attempt one.",
-    "REPO-ANSWERED - the abort is checked at the executor seam immediately before warehouse.execute(), so an abort arriving during the explain() await prevents the query from starting rather than being noticed afterwards.",
-    "REPO-ANSWERED - the client resolves a malformed JSON frame and an EOF without result or error as a backend error, so the shared provider cannot hang; ordinary asks stream while the stored-selection re-run stays on buffered POST /api/chat.",
-    "REPO-ANSWERED - the shell pill and provenance.dataAsOf are separated explicitly: the pill is a global minimum across governed sources, while dataAsOf uses the same seam scoped to that answer's own domain and batches, never the global value.",
-    "HUMAN (kl-rahulanand) - the spec was amended and re-confirmed rather than leaving the contradiction recorded as a supersession, accepting the cost of this second cold read, because stale canon had already cost this project twice the same day."
+    "HUMAN (kl-rahulanand) - 512 is the governed cap and the spec is amended to match, with the live check REPORTING observed latency (measured 1.0-5.4s) rather than enforcing a hard bound this model's run-to-run variance cannot support. The old single-sample table is replaced by the repeated-sampling ranges, with an explicit note that the earlier 1,429ms figure was unrepresentative and that the cap never truncates, so a LOWER cap is strictly better.",
+    "REPO-ANSWERED - the stale dataAsOf requirement is removed from the acceptance criteria and replaced by an explicit statement that it stays null under D-0041.",
+    "HUMAN (kl-rahulanand) - the pill's criterion now requires distinct copy for all five server states, an explicit timezone, a SEPARATE client 'could not check' state that must never be shown as the server's lookup-failed, the inherited single 401 refresh, and no silent retry or unqualified cached value.",
+    "HUMAN (kl-rahulanand) - the assistant area is named as exactly /ask and /mis-reports: navigation within that set never cancels, any other authenticated route aborts, and the spec says why the routes must be named - the provider lives in the persistent shell, so an unmounting panel cannot own the boundary.",
+    "REPO-ANSWERED - the retry criterion now carries the raised second cap (512 then 1,536) and the summed usage, matching what task 1 actually shipped, so a rewrite cannot regress to a deterministic repeat or lose the token accounting.",
+    "ORCHESTRATOR-DEFERRED - the partially loaded warehouse is D-0042 and the unguarded pre-selection query is D-0043, both recorded against merged code with explicit revisit triggers rather than absorbed into a frontend-only task, which would have broken the single-runtime split the plan grill required."
   ],
   "open_items": [
-    "The approved plan lists five task leaves while the recorded decomposition has the three the human chose after approval; the plan's body is digest-locked, so the decomposition is the later authority and the task contract records that supersession.",
-    "docs/specs/assistant-and-exploration.md is a draft after its DELIVERED amendment and its frontmatter repair, and still needs its own spec grill to be re-confirmed; the shipped assistant story's evidence is unaffected.",
-    "Carried, non-blocking: ap-south-1 rests on the code default plus decision 0003's India-residency line, with no 3F location recorded in docs/."
+    "D-0041 (provenance.dataAsOf), D-0042 (partially loaded warehouse), D-0043 (unguarded pre-selection query) are open with triggers.",
+    "docs/specs/assistant-and-exploration.md remains a draft after its DELIVERED amendment and needs its own spec grill to be re-confirmed.",
+    "Carried, non-blocking: ap-south-1 rests on the code default plus decision 0003's India-residency line."
   ],
   "rounds": [
     {
-      "question": "Closing the spec re-grill. It found a file I corrupted: re-saving a spec that already had frontmatter left **two header blocks** in each of the two specs I amended \u2014 the parser reads only the first, so digests were reviewing mixed revisions. Both are fixed. Six substantive findings are folded in, three of which would have shipped bugs: the **retry's second attempt was pointless as specified** (repeating an identical capped, temperature-zero request reproduces the same tool-less result, so attempt two now raises the cap); **\"don't start a query once aborted\" had no seam** (`SelectionExecutor.run` awaits `explain()` before `execute()`, so the abort must be checked immediately before the query starts); and **freshness conflated two truths** \u2014 the shell's global minimum is not the same as one answer's `provenance.dataAsOf`, and giving an answer the global value would let an unrelated stale batch make a fresh answer look old. The settled numbers (`maxTokens: 2048`, 8 turns / 16,000 chars / 2,000 per question, 250 ms, under 5s) are now in the spec rather than only the plan.",
+      "question": "Closing the third spec grill. Seven findings: four were my amendment being **incomplete** \u2014 I replaced the Behaviour prose but left the stale acceptance criteria, so the spec still demanded `dataAsOf` be populated and still didn't name the five pill states, the `/ask` + `/mis-reports` boundary, or the retry's raised cap and summed usage. All now fixed. **Two were real gaps in already-merged code**, which I've recorded as deferrals rather than silently absorbing into a frontend-only task: **D-0042** \u2014 `postgres.adapter.ts` returns `available` when *either* source has an active batch, so the pill could show Budget's load time while Actuals has none, reading as \"the data is this fresh\" when half is missing; and **D-0043** \u2014 `chat.service.ts:170` starts `distinctValues` warehouse reads before checking the abort, so an abandoned stream can still start a pre-selection query, a hole in the promise task 1 made.",
       "options": [
-        "Record, confirm, and board task 1 (Recommended)",
-        "Enough ceremony \u2014 just ship the one-line cap",
+        "Record, confirm, and board task 3 (Recommended)",
+        "Fix D-0043 in this story rather than deferring",
         "Something else \u2014 I'll say what"
       ],
-      "chosen": "Record, confirm, and board task 1 (Recommended)",
+      "chosen": "Record, confirm, and board task 3 (Recommended)",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "7a768167432b8646945d1dcef37f219ccfbe79f2aedb4cdaf30d4af742e41eb8",
-  "recorded_at": "2026-09-14T15:55:13+00:00",
-  "commit": "22b5cf4b553c694dce756ff63747c3cac1717345"
+  "input_sha256": "33bdf7f68752109f8ea7c7deaed261ec258a6e10feeb46d8aedcd4453e3d2eb7",
+  "recorded_at": "2026-09-14T18:16:02+00:00",
+  "commit": "ed66912c4137193b50adf8439fd7cddfbe37670f"
 }

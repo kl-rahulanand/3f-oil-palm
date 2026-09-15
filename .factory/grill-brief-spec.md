@@ -449,6 +449,22 @@ These questions were put to the human and answered. Two obligations:
   A: Three (Recommended)
 - Q: **The confirmed spec now contradicts your cancellation decision.** `docs/specs/assistant-responsiveness.md:143` says cancellation must reach the query work and that the proof must demonstrate "model and query cancellation" — I wrote that *before* you chose bounded cancellation (model and stream stop; an in-flight query expires under `statement_timeout`). A future implementer reading the spec would build `pg_cancel_backend`. Amending a confirmed spec means another cold read and re-confirm, which is why I'm asking rather than just spending it. (Separately, the approved plan lists five tasks while the recorded decomposition has the three you chose — your choice is the later authority, so I'll record that supersession in the contract without re-opening the plan.)
   A: Amend and re-confirm the spec now (Recommended)
+- Q: Closing the spec re-grill. It found a file I corrupted: re-saving a spec that already had frontmatter left **two header blocks** in each of the two specs I amended — the parser reads only the first, so digests were reviewing mixed revisions. Both are fixed. Six substantive findings are folded in, three of which would have shipped bugs: the **retry's second attempt was pointless as specified** (repeating an identical capped, temperature-zero request reproduces the same tool-less result, so attempt two now raises the cap); **"don't start a query once aborted" had no seam** (`SelectionExecutor.run` awaits `explain()` before `execute()`, so the abort must be checked immediately before the query starts); and **freshness conflated two truths** — the shell's global minimum is not the same as one answer's `provenance.dataAsOf`, and giving an answer the global value would let an unrelated stale batch make a fresh answer look old. The settled numbers (`maxTokens: 2048`, 8 turns / 16,000 chars / 2,000 per question, 250 ms, under 5s) are now in the spec rather than only the plan.
+  A: Record, confirm, and board task 1 (Recommended)
+- Q: Closing the task grill for `assistant-bounded-generation`. All nine findings verified and folded in — four would have shipped bugs. The port literally couldn't express the contract (`LlmSelectionOutcome` has no backend-error arm, and `chat.service.ts:177` treats anything that isn't clarify/unsupported as a *selection*), `!toolUse?.name` conflates an **absent** tool block with a **malformed** one so the retry could fire on exactly the case it must not, the retry as specified was a **no-op** (temperature 0, so repeating an identical capped request reproduces the same result — attempt two now raises the cap), and `request.on("close")` would have aborted **healthy** SSE requests because Node emits it on normal completion too. Also corrected: the abort must reach `send()` (the real seam passes no options, so a fake would false-green), a query must not *start* after an abort (`explain()` is awaited before `execute()`), D-0006 covers **four** prettier-ignored files rather than one, and two of my manual checks were impossible — `latency_ms`/`output_tokens` live in `audit_events`, not the log. Required leaves 6→8, scope 15→17 paths.
+  A: No gaps — board it (Recommended)
+- Q: **Should this task touch `provenance.dataAsOf` at all?** The grill found my "answer-scoped freshness" isn't implementable as written, and that it would mislabel existing UI. Two problems: both governed domains combine **Actuals and Budget**, and `chat.service.ts:426` passes only a `DomainSpec`, so "the answer's own source" is undefined for a percentage answer that uses both. And `dataAsOf` is already rendered to users as **"Data as of"** — data currency — while this task would fill it with **load** time; the report path uses the same null-producing helper, so relabelling means touching consumers beyond this task.
+  A: Defer dataAsOf — ship only the shell route (Recommended)
+- Q: Closing the `shell-freshness-api` grill. Nine findings, all verified, and three would have stopped the work dead. **Fourteen** files implement the `Warehouse` interface — mostly typed test fakes outside this scope — so a required new method would have failed typecheck before any behaviour existed; it's now optional. (I'd also named the interface `WarehouseAdapter`; it's `Warehouse`.) The **gated DB proof would have skipped**: a bare `junit-run` without `WAREHOUSE_DB_TEST=1` skips and `stage done` rejects a skipped leaf — it now runs under `test:warehouse-proof`, which sets the flag. And **the route had no name**, which the exact-match allow-list and task 3 both need — it's `GET /api/warehouse/freshness` with a discriminated body keeping five states apart rather than collapsing to null. Your `dataAsOf` call is recorded as **D-0041**. Also folded in: D-0006 covers all three adapters, the DB proof must assert per-source values *and* the overall minimum across several active periods, and the allow-list leaf must prove the guard set and typed Swagger responses rather than mere presence.
+  A: No gaps — board it (Recommended)
+- Q: **Where does "leaving the assistant" begin?** The `AskProvider` lives in the persistent authenticated shell, so the panel unmounting can't own cancellation — something has to define the boundary.
+  A: Abort only when leaving /ask and /mis-reports (Recommended)
+- Q: **What exactly does the freshness pill say?** The route distinguishes five server states, but nothing yet defines the visible copy, the timezone, or what happens when the *browser* fetch fails as opposed to the server reporting `lookup-failed`.
+  A: Distinct copy per state, explicit timezone, separate 'could not check' (Recommended)
+- Q: **How should the dock geometry be proven?** My contract promised a vitest leaf, but jsdom doesn't do layout — it cannot calculate flex sizing, so such a test would assert CSS source text and prove nothing about what a user sees.
+  A: Prove it in the live functional check (Recommended)
+- Q: **Which selector cap is governed, and what happens to the stale spec?** The confirmed spec still says `maxTokens: 2048` with a sub-5s live check, but task 1 shipped **512** after repeated measurement showed 2048 reaching 19.3s. The spec also still requires populating `provenance.dataAsOf`, which you deferred as **D-0041**. Amending a confirmed spec means another cold read and re-confirm — the third time this story.
+  A: 512 governs; amend and re-confirm the spec (Recommended)
 
 ## The artifact under interrogation (spec assistant-responsiveness.md)
 
@@ -456,14 +472,7 @@ These questions were put to the human and answered. Two obligations:
 slug: assistant-responsiveness
 title: Assistant responsiveness and shell truth
 status: draft
-saved: 2026-09-14T15:45:35+00:00
----
-
----
-slug: assistant-responsiveness
-title: Assistant responsiveness and shell truth
-status: confirmed
-saved: 2026-09-14T13:21:30+00:00
+saved: 2026-09-14T18:06:59+00:00
 ---
 
 # Assistant responsiveness and shell truth
@@ -479,8 +488,15 @@ schema and the same question and prior turn:
 | request | latency | output tokens | stopReason | tool block |
 | --- | --- | --- | --- | --- |
 | no `maxTokens` | 214,222 ms | 24,313 | - | - |
-| `maxTokens: 2048` | 1,429 ms | 168 | `tool_use` | yes |
-| `maxTokens: 512` | 1,703 ms | 203 | `tool_use` | yes |
+| `maxTokens: 2048` | 4,610-19,299 ms | 1,153-2,048 | `tool_use` | yes |
+| `maxTokens: 512` | 1,024-5,417 ms | 106-512 | `tool_use` | yes |
+
+**These figures replace an earlier single sample.** The first draft cited one 1,429 ms / 168-token run
+at 2048 and reasoned from it. Repeated sampling showed that run was unrepresentative: this model's
+output for the same prompt at temperature 0 ranges from 106 to 24,313 tokens. The cap never
+truncates - every run at 256, 512 and 2048 stopped at `tool_use` with a valid tool block - because
+the model emits the tool call and then keeps writing, so output SATURATES at whatever cap is set and
+a LOWER cap is strictly better. The 'headroom' argument for 2048 was therefore backwards.
 
 A selection is about 110 output tokens. Uncapped, the model emitted 24,313. Capped, it emits ~170
 and stops at `tool_use` - **not** at `max_tokens` - so the cap does not truncate the answer; its
@@ -553,7 +569,11 @@ registered and allow-listed) and render its ordered phases - `routing`, `selecti
   delays phase rendering by a short interval and skips it entirely for any answer that resolves
   within it, rather than the server suppressing a phase it has already emitted. Deterministic
   answers show no flicker; the producer is unchanged.
-- Phases render in the order received; a phase never appears after the terminal frame.
+- Phases render in the order received; a phase never appears after the terminal frame. The client
+  also handles the stream's failure modes rather than hanging: a **malformed JSON frame** and an
+  **EOF with no `result` or `error`** each resolve the request as a backend error, so the shared
+  provider can never be left indefinitely pending. Ordinary asks stream; the stored-selection re-run
+  stays on buffered `POST /api/chat` and is unchanged.
 - A terminal `error` frame renders through the SAME seven-class renderer as the buffered route, so
   a failure reads identically whichever transport delivered it.
 - The streaming client preserves everything the buffered client does: the CSRF bootstrap, cookie
@@ -565,8 +585,10 @@ registered and allow-listed) and render its ordered phases - `routing`, `selecti
   signal, so an abandoned request keeps selecting, querying and auditing. After this story: the
   server detects a PREMATURE response/socket close (not `IncomingMessage`'s `close`, which Node also
   emits on normal completion), stops writing frames, aborts the model call through an `AbortSignal`
-  that reaches the AWS transport, and does NOT START a governed query once aborted. A query ALREADY
-  IN FLIGHT is **not cancelled**: it expires under the existing Postgres `statement_timeout`, and a
+  that reaches the AWS transport, and does NOT START a governed query once aborted. The abort is also checked at the executor seam immediately before
+  `warehouse.execute()`: `SelectionExecutor.run` awaits `warehouse.explain()` first, so an abort
+  arriving during that await must prevent the query from STARTING rather than be noticed only after.
+  A query ALREADY IN FLIGHT is **not cancelled**: it expires under the existing Postgres `statement_timeout`, and a
   comment at the seam says so, because true cancellation would need `pg_cancel_backend` on a side
   connection and is deliberately out of scope. An expected abort is handled silently and is never
   recorded as `backend_error`. Collapsing the dock, and moving between the dock and the Ask page,
@@ -599,23 +621,31 @@ panel while the composer stays reachable without scrolling the report. The exist
 behaviour at the current breakpoint is unchanged: the panel stacks and takes its natural height.
 
 ## Acceptance criteria
-- The selector call sends an explicit `maxTokens`, proven by a test asserting the field is present
-  in the Converse request; a follow-up question completes in seconds rather than minutes.
+- The selector call sends `maxTokens: **512**` - the governed value, measured rather than reasoned -
+  proven by a test asserting the field on the Converse REQUEST, never by timing: the uncapped call is
+  already fast when there is no prior turn. The live check REPORTS the observed follow-up latency
+  (measured 1.0-5.4 s) rather than enforcing a hard bound, because this model's run-to-run variance
+  makes a fixed threshold flake rather than inform.
 - A selector response with no tool block is retried at most once; a malformed tool input and a
   genuine `mark_unsupported` are NOT retried; a second tool-less response answers `backend_error`
   naming an incomplete model response, never `not_supported`.
-- `priorTurns` is rejected by the request schema when it exceeds explicit array and per-question
-  limits, before any serialization; the retained order stays oldest-first so `at(-1)` is the latest
-  turn.
+- `priorTurns` is rejected by the request schema above **8 entries**, a **16,000-character** payload
+  measured as `JSON.stringify(priorTurns)`, or **2,000 characters** in any single prior `question` -
+  evaluated at ingress, BEFORE the trim and before Bedrock-prompt construction. Nested `selection`
+  fields are inside that measured representation, so they cannot smuggle an oversized body past a
+  count-only cap. The CLIENT trims to the SAME contract, newest-first, before sending - otherwise the
+  ninth ask in a conversation becomes a 400 - and the retained order stays oldest-first so `at(-1)`
+  is the latest turn. The shared limits live in `@3f/contract`, the only package the frontend imports.
 - Both Ask surfaces render streamed phases in order, show NO phase for an answer that resolves
-  within the client's render delay, render a terminal error through the existing renderer, preserve
+  within a **250 ms** client render delay, render a terminal error through the existing renderer, preserve
   CSRF/cookies/401-refresh/HTTP-error behaviour, and cancel on leaving the assistant - with the
   abort reaching the AWS transport and preventing a not-yet-started query, while an already-running
   query is bounded by `statement_timeout` rather than cancelled. Proof must distinguish a normal
   completion (which must NOT abort) from client abandonment (which must).
 - The freshness pill shows the oldest active-batch `uploaded_at_utc` across governed sources,
   labelled as load freshness, says so plainly when none is available, and is no longer marked
-  disabled; `provenance.dataAsOf` stops being null for the same reason.
+  disabled; `provenance.dataAsOf` stops being null by using the SAME seam scoped to that answer's own domain and
+  batches - never the shell's global minimum.
 - The docked panel fills its column on desktop with the thread scrolling inside it, and the
   existing mobile stacking is unchanged.
 - Every proof is judged by its junit testcase NAME and EXECUTED count, never an exit code
