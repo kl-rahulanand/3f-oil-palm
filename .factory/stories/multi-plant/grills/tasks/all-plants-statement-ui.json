@@ -93,13 +93,13 @@
       "source": ".factory/stories/multi-plant/task-plans/all-plants-backend.md:91"
     }
   ],
-  "input_sha256": "e77fdbe5b73358a25c3d8cbb242450c68545027fea5e7a9436129e1ca91505f5",
+  "input_sha256": "28e256fdef26f31f0f2065671e9283f8880c29ee636265fb1ad561d2b42c653c",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "35af4f2610bb604cfc85b7bcf871bd91e0beb6dd9aff8f1fd0cb1816fabb5035",
-  "recorded_at": "2026-09-15T10:31:57+00:00",
-  "commit": "a399fc4bcd7657784119eceb9e18bb3e9f894edc",
+  "recorded_at": "2026-09-15T10:34:49+00:00",
+  "commit": "d1c845726bf8afec47ed438b93fc089a64f4a380",
   "approved_task_plan_sha256": "35af4f2610bb604cfc85b7bcf871bd91e0beb6dd9aff8f1fd0cb1816fabb5035",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-15T10:31:57+00:00"
+  "approved_at": "2026-09-15T10:34:51+00:00"
 }

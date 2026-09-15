@@ -1,5 +1,18 @@
 {
   "id": "all-plants-statement-ui",
   "title": "Render the not-loaded budget as a dash and mark provisional selections",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-15T10:35:01+00:00",
+  "base_sha": "d1c845726bf8afec47ed438b93fc089a64f4a380",
+  "dirty_at_start": {
+    ".factory/stories/multi-plant/grills/tasks/all-plants-statement-ui.json": {
+      "digest": "d22bc05f2d99bea880e34aa210b92dea18339dc0b017086ef84781efa7f9a21f",
+      "git": "1 .M N... 100644 100644 100644 82644f3d74ced066dffe6c6d9635846831ab8d48 82644f3d74ced066dffe6c6d9635846831ab8d48 .factory/stories/multi-plant/grills/tasks/all-plants-statement-ui.json\u0000\u0000100644 82644f3d74ced066dffe6c6d9635846831ab8d48 0\t.factory/stories/multi-plant/grills/tasks/all-plants-statement-ui.json\u0000\u0000H .factory/stories/multi-plant/grills/tasks/all-plants-statement-ui.json\u0000"
+    },
+    "plans/roadmap.json": {
+      "digest": "a8c3799f7ba236ab1ea704798a85b417320f31e5efe818bda4f296f2d643c1fd",
+      "git": "1 .M N... 100644 100644 100644 fb81b06de17eaba7e6592b9f6667434e9920ddfc fb81b06de17eaba7e6592b9f6667434e9920ddfc plans/roadmap.json\u0000\u0000100644 fb81b06de17eaba7e6592b9f6667434e9920ddfc 0\tplans/roadmap.json\u0000\u0000H plans/roadmap.json\u0000"
+    }
+  },
+  "task_sha256": "62f9a90ec164f3181597e8b9214fc283be558285c02a343dd8992d3c6e2c1006"
 }
