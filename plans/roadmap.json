@@ -235,12 +235,15 @@
         "Every criterion is proven by hermetic tests judged by the vitest discriminator - present AND NOT skipped AND NOT failed."
       ],
       "order": 11,
-      "status": "active",
+      "status": "done",
       "epic": "assistant",
       "skill": "frontend",
       "kind": "feature",
       "depends_on": [],
-      "spec": "docs/specs/ask-reopen-saved-report.md"
+      "spec": "docs/specs/ask-reopen-saved-report.md",
+      "completed_at": "2026-09-15T19:23:29+00:00",
+      "history": ".factory/stories/ask-reopen-saved-report/",
+      "outcome": "Opening a saved report or pinned report now returns you to its existing answer instead of stacking a duplicate copy of it. The Ask panel opens immediately on the click rather than after the answer arrives, the target turn is scrolled into view and shows 'Opening this report...' while it runs, and the answer it re-runs is re-asked in your own original wording rather than the pin's measure-name label - so the audit record carries the question someone actually asked. Which turn a report belongs to is decided by strict structural comparison of the resolved selection, not the displayed title, so two pins that both read 'Actual - Budget' but cover different dimensions or periods stay separate answers. A reopen refused because access was withdrawn clears the stale numbers from the screen and says why, while the period control's shipped behaviour of keeping the previous answer is untouched - the caller now states which it wants."
     }
   ],
   "epics": [
@@ -282,5 +285,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-15T16:02:54+00:00"
+  "updated_at": "2026-09-15T19:23:29+00:00"
 }

@@ -4,12 +4,12 @@
     {
       "id": "reopen-identity-and-policy",
       "title": "Match a turn by its selection, and let the caller state the failure policy",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "reopen-navigation-and-scroll",
       "title": "Navigate first, show it working, scroll to it",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
