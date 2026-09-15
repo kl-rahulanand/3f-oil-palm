@@ -18,7 +18,13 @@ const options = {
   departments: ["Agriculture"],
   functions: ["Nursery"],
   plants: [
-    { value: "DUB", label: "Agri - Nursery - DUB", aliases: ["DUB-NUR"], department: "Agriculture", function: "Nursery" },
+    {
+      value: "DUB",
+      label: "Agri - Nursery - DUB",
+      aliases: ["DUB-NUR"],
+      department: "Agriculture",
+      function: "Nursery",
+    },
   ],
   periods: [{ value: "2026-07-01", label: "Jul 2026", from: "2026-07-01", to: "2026-07-01" }],
 };
@@ -255,9 +261,15 @@ test("choosing a department first filters its functions and plants", async () =>
 
   expect(within(screen.getByLabelText("Function")).getByRole("option", { name: "Nursery" })).toBeInTheDocument();
   expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Office" })).not.toBeInTheDocument();
-  expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
-  expect(within(screen.getByLabelText("Plant")).getByRole("option", { name: "Agri - Nursery - DUB" })).toBeInTheDocument();
-  expect(within(screen.getByLabelText("Plant")).queryByRole("option", { name: "Corporate - Office - Head Office" })).not.toBeInTheDocument();
+  expect(
+    within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" }),
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByLabelText("Plant")).getByRole("option", { name: "Agri - Nursery - DUB" }),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getByLabelText("Plant")).queryByRole("option", { name: "Corporate - Office - Head Office" }),
+  ).not.toBeInTheDocument();
 });
 
 test("changing a department or function clears a plant that no longer matches", async () => {
@@ -291,9 +303,13 @@ test("metadata-free plants stay selectable without contributing flat selector va
   const plant = await screen.findByLabelText("Plant");
   expect(within(plant).getByRole("option", { name: "DUB" })).toBeInTheDocument();
   expect(within(screen.getByLabelText("Department")).getByRole("option", { name: "Agriculture" })).toBeInTheDocument();
-  expect(within(screen.getByLabelText("Department")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
+  expect(
+    within(screen.getByLabelText("Department")).queryByRole("option", { name: "Flat-list-only" }),
+  ).not.toBeInTheDocument();
   expect(within(screen.getByLabelText("Function")).getByRole("option", { name: "Nursery" })).toBeInTheDocument();
-  expect(within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" })).not.toBeInTheDocument();
+  expect(
+    within(screen.getByLabelText("Function")).queryByRole("option", { name: "Flat-list-only" }),
+  ).not.toBeInTheDocument();
 
   fireEvent.change(plant, { target: { value: "VJA" } });
   expect(screen.getByLabelText("Department")).toHaveValue("Agriculture");
@@ -309,7 +325,13 @@ test("metadata-free plants do not preserve a function across an incompatible dep
     plants: [
       { value: "DUB", label: "DUB", aliases: [] },
       { value: "VJA", label: "Agri - Nursery - VJA", aliases: [], department: "Agriculture", function: "Nursery" },
-      { value: "H.O", label: "Corporate - Office - Head Office", aliases: [], department: "Corporate", function: "Office" },
+      {
+        value: "H.O",
+        label: "Corporate - Office - Head Office",
+        aliases: [],
+        department: "Corporate",
+        function: "Office",
+      },
     ],
   });
   renderWithQuery(<MisReportView />);
@@ -347,7 +369,13 @@ function tupleOptions() {
     plants: [
       ...options.plants,
       { value: "VJA", label: "Agri - Field - VJA", aliases: [], department: "Agriculture", function: "Field" },
-      { value: "H.O", label: "Corporate - Office - Head Office", aliases: [], department: "Corporate", function: "Office" },
+      {
+        value: "H.O",
+        label: "Corporate - Office - Head Office",
+        aliases: [],
+        department: "Corporate",
+        function: "Office",
+      },
     ],
   };
 }

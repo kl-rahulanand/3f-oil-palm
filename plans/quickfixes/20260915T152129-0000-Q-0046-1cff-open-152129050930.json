@@ -1,0 +1,12 @@
+{
+  "event": "open",
+  "id": "Q-0046-1cff",
+  "profile": "lite",
+  "reason": "multi-plant story closeout (reconcile-as-shipped): both tasks merged (#60, #61) plus the dependent-selector window (#62), each with its own clean three-lens pass. The story gate needs the roll-up reviews with contract verdicts for all 17 plan contracts, the story-level automated and functional records, the outcome, and one prettier fix to the selector test file that CI flagged on #62 after merge.",
+  "started_at": "2026-09-15T15:21:29+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "by": "Rahul Anand",
+  "base_sha": "7975f42d45ae91a05016962e3427605a81deb955"
+}

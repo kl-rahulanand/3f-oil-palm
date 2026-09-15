@@ -102,6 +102,19 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 - [high] node_modules is materialised in assistant-streaming-and-shell: node_modules is fully installed in THIS worktree as of 2026-09-14: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host before delegating. No product file changed - node_modules is gitignored. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry. If a package is genuinely missing, raise a signal naming it.
 - [high] frontend-fixtures-budget-state: For all-plants-backend: making MisStatementMeasureBlock.budgetState required is the approved contract; the four frontend test fixtures that build blocks without it get budgetState: 'loaded' added — a FIXTURE-ONLY edit to frontend/src/features/mis/*.test.tsx, authorized (signal S-0014 resolved) and adopted by stage amend-scope at close. No frontend component or behaviour changes; frontend typecheck must be green.
 
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: ok at 5bbaf43b85a1
+  - `npm run structural` -> exit 0
+  - `npm run typecheck` -> exit 0
+  - `npm run quality` -> exit 0
+  - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - Story-level roll-up for multi-plant across two shipped tasks and one lite window (PRs #60, #61, #62). all-plants-statement-ui: 7/7 required vitest leaves verified individually by testcase name present, not skipped, not failed, with a negative control; verify.py pass at b932fa1. all-plants-backend: 16/16 required hermetic leaves through the junit runner, plus the gated warehouse proof EXECUTED on the host against the documented local warehouse (WAREHOUSE_DB_TEST=1, 127.0.0.1:5433): 25/25 including the three named all-plants leaves (31 statements sum to the company net in exact paise; DUB identical to the frozen d532693 baseline in values, tree, provenance and export; a non-owner leaf and unmapped GL drill for a single-plant user) and the loopback-refusal leaf; the master generator is byte-stable. Lite window Q-0045-5e5b (dependent selectors): 11/11 vitest leaves in mis-report-view.test.tsx and frontend typecheck green at 25bbd92, three lenses clean. Story closeout: verify.py re-run on the synced story tree after the prettier-only fix that CI flagged on #62 (structural build, typecheck, quality, hermetic tests). Nine task lenses plus three window lenses all finished with zero blocking findings outstanding; two P2 performance caveats are carried in the roll-up review.
+  - 6 command(s) recorded, e.g. `python3 factory/scripts/verify.py  # story tree after merge of #60, #61, #62`
+
 ## Task all-plants-backend
 
 ### Plan contracts
@@ -244,3 +257,16 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 - [high] frontend-fixtures-budget-state: For all-plants-backend: making MisStatementMeasureBlock.budgetState required is the approved contract; the four frontend test fixtures that build blocks without it get budgetState: 'loaded' added — a FIXTURE-ONLY edit to frontend/src/features/mis/*.test.tsx, authorized (signal S-0014 resolved) and adopted by stage amend-scope at close. No frontend component or behaviour changes; frontend typecheck must be green.
 - [high] dub-baseline-not-self-referential: Review P1: the DUB regression must compare against the SHIPPED baseline, not two outputs of the new code. Use the frozen fixtures that predate this task — statement-projection.db.test.ts's per-leaf expectations and __fixtures__/july-dub-reconciliation.json for amounts/tree/percentages, and the shipped export test's cell expectations for the workbook — and add a committed backend/src/warehouse/__fixtures__/dub-statement-baseline.json (amounts, percentages, node keys, source presence; NO batch ids, which change on every reload) captured from those fixtures with sourceCommit d532693 noted. Provenance is compared by source and period, never by id.
 - [medium] dub-baseline-fixture-in-scope: For all-plants-backend the new fixture backend/src/warehouse/__fixtures__/dub-statement-baseline.json is AUTHORIZED (signal S-0016 resolved) — it is mechanically required by the DUB-baseline ruling; stage amend-scope adopts the path at close. Create it; do not pause on it again.
+
+### Recorded evidence
+
+Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
+
+- verify.py: ok at 5bbaf43b85a1
+  - `npm run structural` -> exit 0
+  - `npm run typecheck` -> exit 0
+  - `npm run quality` -> exit 0
+  - `npm run test:hermetic` -> exit 0
+- automated tests: passed
+  - Story-level roll-up for multi-plant across two shipped tasks and one lite window (PRs #60, #61, #62). all-plants-statement-ui: 7/7 required vitest leaves verified individually by testcase name present, not skipped, not failed, with a negative control; verify.py pass at b932fa1. all-plants-backend: 16/16 required hermetic leaves through the junit runner, plus the gated warehouse proof EXECUTED on the host against the documented local warehouse (WAREHOUSE_DB_TEST=1, 127.0.0.1:5433): 25/25 including the three named all-plants leaves (31 statements sum to the company net in exact paise; DUB identical to the frozen d532693 baseline in values, tree, provenance and export; a non-owner leaf and unmapped GL drill for a single-plant user) and the loopback-refusal leaf; the master generator is byte-stable. Lite window Q-0045-5e5b (dependent selectors): 11/11 vitest leaves in mis-report-view.test.tsx and frontend typecheck green at 25bbd92, three lenses clean. Story closeout: verify.py re-run on the synced story tree after the prettier-only fix that CI flagged on #62 (structural build, typecheck, quality, hermetic tests). Nine task lenses plus three window lenses all finished with zero blocking findings outstanding; two P2 performance caveats are carried in the roll-up review.
+  - 6 command(s) recorded, e.g. `python3 factory/scripts/verify.py  # story tree after merge of #60, #61, #62`
