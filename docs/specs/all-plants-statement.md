@@ -1,7 +1,7 @@
 ---
 slug: all-plants-statement
 title: All plants in the Financial MIS statement
-status: draft
+status: confirmed
 saved: 2026-09-15T07:21:44+00:00
 ---
 

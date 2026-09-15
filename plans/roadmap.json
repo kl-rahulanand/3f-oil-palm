@@ -166,6 +166,30 @@
       "completed_at": "2026-09-15T03:35:52+00:00",
       "history": ".factory/stories/poc-responsiveness/",
       "outcome": "A follow-up question used to take 39 seconds, then 57, and looked like the product had hung. It now comes back in one to five seconds, and while it works you can see it working: both Ask surfaces stream the backend's own progress phases - routing, selecting, querying, summarizing - instead of one silent spinner, and an answer that arrives immediately shows no flicker at all. The cause turned out to be a single missing request field: the selector call to Bedrock set no output limit, so on a follow-up the model would emit up to twenty-four thousand tokens of preamble around a hundred-token answer. Capping it ended the runaway without truncating anything. Leaving the assistant now actually stops the work rather than abandoning it, and asking a ninth question in one conversation no longer fails - the client sends only as much history as the server accepts. The shell's top bar stops lying: where it showed a permanently greyed-out 'Freshness unavailable' chip, it now shows when the governed data was last loaded, taken from the oldest active batch across actuals and budget so it never claims the numbers are fresher than the stalest input behind them, and it says plainly which kind of unavailable it is when there is nothing to show. The docked Ask panel fills its column instead of stopping halfway down the page."
+    },
+    {
+      "key": "multi-plant",
+      "title": "All plants in the MIS statement",
+      "story": "As Srihari, I want to pick any of 3F's plants and get its Financial MIS on the same format, with a dash where no budget has been loaded, so that the report covers the whole company and not only the nursery.",
+      "acceptance_criteria": [
+        "Every SAP plant code in the July actuals batch (31) is offered to a fully granted user, each renders a statement, and the 31 Grand Total Actuals sum to the batch's company-wide net of \u20b911,02,73,718.00 in exact paise, proven by a warehouse fixture.",
+        "The DUB nursery statement is unchanged: Actual \u20b91,15,12,712.07 and Budget \u20b91,00,50,136.29 for July 2026, parents footing to leaves, the unmapped-GL line carrying its own Actual, and the Excel export matching.",
+        "Every (plant, cost centre, GL) triple in the July extract resolves exactly once via a master built from the full mapping sheet, nothing dropped or fanned out, the eleven unnamed pairs bucketed with a reason, every new master row flagged provisional.",
+        "A plant with no budget batch renders a dash with the label 'Budget not loaded for this plant' in Budget, Roll-over and % on every row including Grand Total, on screen and in Excel, with no over-budget or credit flag; H.O shows 100% of its net inside Manpower and Admin.",
+        "Department and Function labels follow the classification rule (nursery plants Agriculture / Nursery, H.O Corporate / Office, others Operations / Unit), stored and displayed as provisional.",
+        "Budget batches are keyed by plant and period, the upload takes an explicit canonical plant id and refuses a missing or unknown plant or an outline mismatch, and a second plant's July budget coexists with the nursery's.",
+        "The format outline is a pinnable object separate from any plant budget; drill-down foots in exact paise for a leaf and the unmapped-GL line of a no-budget plant, and its audit record names the pinned outline, budget batch if any, and master version.",
+        "Ask answers 'Show Actual by plant for July 2026' with one row per granted plant summing to the company net; a user granted only DUB sees only DUB everywhere; a multi-plant user's statement question resolves the plant from report grounding or the question, else receives a plant clarification that re-runs with zero further selector calls.",
+        "Partial FY-YTD renders Budget over loaded months (named) and a dashed %; the two zero states, three nil states and the absent-budget state stay distinct, all proven by hermetic tests judged by junit testcase name and executed count.",
+        "Selection options offer only master-configured selections within the user's grants; a plant code present in an upload but absent from the master is named in the validation result and never appears in the dropdowns."
+      ],
+      "order": 9,
+      "status": "active",
+      "epic": "reporting",
+      "skill": "fullstack",
+      "kind": "feature",
+      "depends_on": [],
+      "spec": "docs/specs/all-plants-statement.md"
     }
   ],
   "epics": [
@@ -207,5 +231,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-15T03:35:52+00:00"
+  "updated_at": "2026-09-15T07:25:22+00:00"
 }

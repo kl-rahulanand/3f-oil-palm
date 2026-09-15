@@ -2,45 +2,72 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Third cold read of docs/specs/assistant-responsiveness.md, declared as a shape change: the confirmed spec contradicted SHIPPED code and a human decision in three places - it mandated maxTokens 2048 while task 1 shipped 512, required a sub-5s live check this model's variance cannot support, and required populating provenance.dataAsOf which the human deferred as D-0041. Seven findings, all verified. FOUR were the orchestrator's amendment being incomplete: the Behaviour prose was rewritten while the ACCEPTANCE CRITERIA still carried the stale dataAsOf requirement and still omitted the five pill states, the /ask and /mis-reports boundary, and the retry's raised cap and summed usage. TWO were genuine gaps in already-merged code and are recorded as deferrals rather than absorbed into a frontend-only task.",
-  "questions_asked": 1,
+  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu2anfk4-8pabuq) of docs/specs/all-plants-statement.md against the built repo. Three factual corrections and five questions. Four of the five were settled from the repository (plant identity keeps the shipped DUB canonical id; the budget upload takes an explicit plant field because the client's workbook names no owning plant; the format outline becomes a pinnable object separate from any plant budget; only master-configured selections are offered). Two went to the human in one round: acceptance of decision 0029 with its supersession of 0016, and the partial-FY-YTD Budget/% rule. The spec was amended once and this pass is bound to the amended digest.",
+  "questions_asked": 2,
   "gaps": [
-    "The spec's acceptance criteria still required provenance.dataAsOf to stop being null, directly contradicting open deferral D-0041 and the completed freshness task's contract - the amendment had changed only the Behaviour section.",
-    "The pill's settled display contract was absent from the criteria: distinct copy for all five server states, an explicit timezone, and a browser-fetch failure shown separately from the server's lookup-failed, so unsupported, unconfigured and client-network failures could collapse into one misleading state.",
-    "Freshness had no policy for a PARTIALLY loaded warehouse: postgres.adapter.ts returns 'available' when EITHER governed source has an active batch, so the pill can display Budget's timestamp while Actuals has none, and 'oldest across governed sources' does not say whether that is honest, unavailable, or a distinct partial state.",
-    "'Leaving the assistant' named no routes, while the settled boundary is leaving both /ask and /mis-reports; with the provider held in the persistent shell an implementer cannot otherwise distinguish allowed in-area navigation from departure.",
-    "Cancellation had an uncovered query seam: dimensionValuesForAllowedDomains() starts warehouse distinctValues reads BEFORE the abort check, so an abandoned stream can still start that pre-selection query - the SelectionExecutor guard protects only the later governed execution.",
-    "The retry contract omitted the load-bearing requirements that make it useful and auditable: it said only 'retry once', without the second request's RAISED cap or the combined usage accounting, so a conforming rewrite could repeat the deterministic request and under-report the two calls' token spend."
+    "Company-wide July net is \u20b911,02,73,718.00 in exact paise, not .07 as the draft's acceptance criterion 1 stated (the .07 belongs to DUB alone); coverage is 92.7% and the eleven unmatched cost-centre-plus-GL pairs include Primary/50001802 and Tertiary/50001904, which DUB never books and were therefore never bucketed for DUB.",
+    "Decision 0029 was still proposed while accepted decision 0016 restricts the governed join to the single plant DUB; the spec cannot be confirmed against a live corpus that contradicts it.",
+    "Plant identity was ambiguous: the draft said the SAP plant code is canonical yet called DUB-NUR an alias of DUB, while the shipped master, seeded scopes, budget ownership and drill pins key on DUB.",
+    "The budget upload's plant had no falsifiable source: the format workbook's Plant list names sixteen plants, the parser hard-codes DUB, and 'the workbook names its plant' named no field and no mismatch rule.",
+    "The outline for a no-budget plant was not an object that exists: outlines live only under a budget batch (decision 0021) and the drill requires a pinned budget batch, so 'the format's active outline' could not be pinned.",
+    "Partial FY-YTD budgets were underspecified: summing the loaded budget months left open whether % compares a partial budget to full-block actuals.",
+    "The draft said a plant absent from the master renders 'no mapping configured', but such a plant can never appear in the cascading dropdowns, and independent Department/Function/Plant lists could form combinations the master does not hold."
   ],
   "contradictions": [
-    "The confirmed spec mandated maxTokens 2048 and a sub-5s live check while the shipped predecessor uses 512 and repeated measurement showed 2048 reaching 19,299ms, so the governing document and the running code disagreed on the story's central value."
+    "Spec versus accepted decision 0016: the governed relation is DUB-only in 0016 while the spec carries plant as a scoped dimension across every granted plant.",
+    "Spec versus itself on plant identity: 'SAP plant code is canonical' contradicted 'DUB-NUR keeps its alias to DUB'."
   ],
   "resolutions": [
-    "HUMAN (kl-rahulanand) - 512 is the governed cap and the spec is amended to match, with the live check REPORTING observed latency (measured 1.0-5.4s) rather than enforcing a hard bound this model's run-to-run variance cannot support. The old single-sample table is replaced by the repeated-sampling ranges, with an explicit note that the earlier 1,429ms figure was unrepresentative and that the cap never truncates, so a LOWER cap is strictly better.",
-    "REPO-ANSWERED - the stale dataAsOf requirement is removed from the acceptance criteria and replaced by an explicit statement that it stays null under D-0041.",
-    "HUMAN (kl-rahulanand) - the pill's criterion now requires distinct copy for all five server states, an explicit timezone, a SEPARATE client 'could not check' state that must never be shown as the server's lookup-failed, the inherited single 401 refresh, and no silent retry or unqualified cached value.",
-    "HUMAN (kl-rahulanand) - the assistant area is named as exactly /ask and /mis-reports: navigation within that set never cancels, any other authenticated route aborts, and the spec says why the routes must be named - the provider lives in the persistent shell, so an unmounting panel cannot own the boundary.",
-    "REPO-ANSWERED - the retry criterion now carries the raised second cap (512 then 1,536) and the summed usage, matching what task 1 actually shipped, so a rewrite cannot regress to a deterministic repeat or lose the token accounting.",
-    "ORCHESTRATOR-DEFERRED - the partially loaded warehouse is D-0042 and the unguarded pre-selection query is D-0043, both recorded against merged code with explicit revisit triggers rather than absorbed into a frontend-only task, which would have broken the single-runtime split the plan grill required."
+    "Why and acceptance criterion 1 now carry the exact-paise figures: \u20b911,02,73,718.00 company-wide, \u20b910,21,80,290.32 matched (92.7%), \u20b980,93,427.68 unmatched, and the eleven pairs are described as nine already bucketed for DUB plus the two DUB never books.",
+    "HUMAN ROUND: decision 0029 accepted, confirmed by Rahul Anand, with an explicit supersedes pointer to 0016 and a clause restating what 0016 keeps (join key gl_code + month, full-outer zero-fill, two-sided scope, the deferred mapping master and its trigger) now within each granted plant. Recorded with `forge decision accept` before this pass.",
+    "Repository-resolved: the master's plant_canonical is the identity. DUB stays DUB with SAP alias DUB-NUR exactly as shipped (mis-selection, seeded scope, budget, pins all key on it); every other plant's canonical id is its SAP code with no alias. Written into Behaviour and decision 0029 clause 6.",
+    "Repository-resolved: the budget upload takes an explicit canonical plant id as a request field, validated against the master, and the parser stops assuming DUB; the current nursery workbook is re-imported once with plant DUB. Acceptance criterion 6 refuses a missing or unknown plant and an outline mismatch.",
+    "Repository-resolved: the format outline becomes a pinnable object independent of any plant's budget amounts; plant budgets attach to it and must match it leaf-for-leaf by stable leaf key; the statement and the drill pin it explicitly and separately from any plant budget batch. Persistence shape is left to the plan. Acceptance criterion 7 names the pinned outline object.",
+    "HUMAN ROUND: partial FY-YTD renders Budget as the sum over months that have a budget batch, naming them in the block heading, and % as the dash whenever any month with actuals in the block lacks a budget. Written into Behaviour, decision 0029 clause 4, and acceptance criterion 9's two-month fixture.",
+    "Repository-resolved: dropdowns cascade from the master's configured selections filtered by grants (SelectionResolverService.options() already does this); a plant in a later actuals upload but absent from the master is not offered, is named in the upload's validation result, and is added as master data; a direct unconfigured request fails closed with the existing no-mapping outcome. New acceptance criterion 10.",
+    "Residency: decision 0027 governs unchanged; the spec's 'what does not change' list now cites it so the model boundary (vocabulary yes, amounts and rows never) is not re-opened by adding plants."
   ],
   "open_items": [
-    "D-0041 (provenance.dataAsOf), D-0042 (partially loaded warehouse), D-0043 (unguarded pre-selection query) are open with triggers.",
-    "docs/specs/assistant-and-exploration.md remains a draft after its DELIVERED amendment and needs its own spec grill to be re-confirmed.",
-    "Carried, non-blocking: ap-south-1 rests on the code default plus decision 0003's India-residency line."
+    "Non-blocking: the client's authoritative Department / Function names and Master Table (renames the provisional labels, empties the bucket as data).",
+    "Non-blocking: budgets for plants other than the nursery.",
+    "Non-blocking: format Plant list names that do not match SAP (DHS, DHS2 versus DMHS; Belagum absent from July) \u2014 to confirm with Srihari."
+  ],
+  "inspected_refs": [
+    "docs/specs/all-plants-statement.md:60",
+    "docs/decisions/0029-all-plants-provisional-scope.md:2",
+    "docs/decisions/0016-governed-joins-poc-scope.md:23",
+    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md:27",
+    "backend/src/mis/mis-drill.service.ts:57",
+    "backend/src/mapping/selection-resolver.service.ts:35",
+    "backend/src/mapping/mis-mapping-master.ts",
+    "backend/src/ingest/mis-budget.parser.ts:8",
+    "backend/src/warehouse/warehouse-schema.ts:43,185",
+    "docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx",
+    "docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx"
   ],
   "rounds": [
     {
-      "question": "Closing the third spec grill. Seven findings: four were my amendment being **incomplete** \u2014 I replaced the Behaviour prose but left the stale acceptance criteria, so the spec still demanded `dataAsOf` be populated and still didn't name the five pill states, the `/ask` + `/mis-reports` boundary, or the retry's raised cap and summed usage. All now fixed. **Two were real gaps in already-merged code**, which I've recorded as deferrals rather than silently absorbing into a frontend-only task: **D-0042** \u2014 `postgres.adapter.ts` returns `available` when *either* source has an active batch, so the pill could show Budget's load time while Actuals has none, reading as \"the data is this fresh\" when half is missing; and **D-0043** \u2014 `chat.service.ts:170` starts `distinctValues` warehouse reads before checking the abort, so an abandoned stream can still start a pre-selection query, a hole in the promise task 1 made.",
+      "question": "Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?",
       "options": [
-        "Record, confirm, and board task 3 (Recommended)",
-        "Fix D-0043 in this story rather than deferring",
-        "Something else \u2014 I'll say what"
+        "Accept, confirmed by Rahul Anand (Recommended)",
+        "Accept under a different name",
+        "Do not accept yet"
       ],
-      "chosen": "Record, confirm, and board task 3 (Recommended)",
+      "chosen": "Accept, confirmed by Rahul Anand (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)",
+      "options": [
+        "Budget = loaded months, % = not loaded (Recommended)",
+        "Budget and % both over loaded months only",
+        "Whole block is 'not loaded'"
+      ],
+      "chosen": "Budget = loaded months, % = not loaded (Recommended)",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "33bdf7f68752109f8ea7c7deaed261ec258a6e10feeb46d8aedcd4453e3d2eb7",
-  "recorded_at": "2026-09-14T18:16:02+00:00",
-  "commit": "ed66912c4137193b50adf8439fd7cddfbe37670f"
+  "input_sha256": "5d479ad7f9083d4c2f138e9b3bea13943043ecfc91b36268e7a46610456c9bac",
+  "recorded_at": "2026-09-15T07:24:15+00:00",
+  "commit": "df7d5689e8f91dfdaafe0dc9a7ac30c7e3b5e338"
 }
