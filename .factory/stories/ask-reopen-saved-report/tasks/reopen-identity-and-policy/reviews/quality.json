@@ -2,22 +2,12 @@
   "generated_by": "autoreview",
   "task_id": "reopen-identity-and-policy",
   "score": 7,
-  "summary": "quality lens over reopen-identity-and-policy (8 product path(s), af447d4..ee6cfa1, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The implementation shown follows the intended selection matching and refusal policies, but the mandatory same-title/different-selection Open-flow leaf is absent, making t-rip-c2 only partial and blocking completion.\nVERDICT t-rip-c1: implemented \u2014 frontend/src/features/assistant/use-ask.test.tsx:107 proves a matched reopen preserves thread length\nVERDICT t-rip-c2: partial \u2014 frontend/src/features/exploration/selection-identity.helper.test.ts:47 tests only the helper, not the required two-report Open flow\nVERDICT t-rip-c3: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.test.ts:27 proves a missing prior timeWindow does not match\nVERDICT t-rip-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:188 searches turns in reverse order\nVERDICT t-rip-c5: implemented \u2014 frontend/src/features/assistant/use-ask.ts:200 reruns the match with match.question\nVERDICT t-rip-c6: implemented \u2014 frontend/src/features/assistant/use-ask.ts:128 clears only resolved blocked_by_policy refusals while retaining other responses\nVERDICT t-rip-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:156 passes retain explicitly for the period control\nVERDICT t-rip-c8: implemented \u2014 frontend/src/features/assistant/use-ask.test.tsx:173 asserts that prior result numbers leave the DOM\nVERDICT t-rip-c9: implemented \u2014 frontend/src/features/assistant/use-ask.ts:102 makes the failure policy argument required\nVERDICT t-rip-c10: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:1 supplies the required helper file\nVERDICT t-rip-c11: partial \u2014 frontend/src/features/assistant/ask-panel.tsx:124 shows the user-facing surface, but skill usage and recorder attestation are not verifiable from this diff bundle\nVERDICT t-rip-c12: implemented \u2014 frontend/src/features/assistant/use-ask.ts:145 replaces terminal 401/403 results with generic sign-in copy on the same turn\nNo compatibility leftovers are visible in the supplied diff.",
+  "summary": "quality lens over reopen-identity-and-policy (8 product path(s), af447d4..dc17ebe, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The required behavior is present and reachable, and the diff contains no compatibility wrappers, aliases, or legacy leftovers. However, the newly expanded `continueTurn` violates the brief\u2019s blocking complexity rule.\nVERDICT t-rip-c1: implemented \u2014 frontend/src/features/assistant/use-ask.ts:187 matches successful turns and delegates to in-place continuation\nVERDICT t-rip-c2: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:3 compares every specified selection field without using the title\nVERDICT t-rip-c3: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:20 includes every time-window component in identity\nVERDICT t-rip-c4: implemented \u2014 frontend/src/features/assistant/use-ask.ts:188 searches a reversed copy of the turns\nVERDICT t-rip-c5: implemented \u2014 frontend/src/features/assistant/use-ask.ts:197 passes the matched turn\u2019s question\nVERDICT t-rip-c6: implemented \u2014 frontend/src/features/assistant/use-ask.ts:127 clears only blocked-by-policy responses while other response classes retain the result\nVERDICT t-rip-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:159 passes the retain policy for period changes\nVERDICT t-rip-c8: implemented \u2014 frontend/src/features/assistant/use-ask.ts:128 replaces a refused turn instead of retaining its successful response\nVERDICT t-rip-c9: implemented \u2014 frontend/src/features/assistant/use-ask.ts:105 requires the failure-policy argument\nVERDICT t-rip-c10: implemented \u2014 frontend/src/features/exploration/selection-identity.helper.ts:1 provides the required helper module\nVERDICT t-rip-c12: implemented \u2014 frontend/src/features/assistant/use-ask.ts:143 replaces terminal 401/403 failures with generic sign-in copy on the affected turn",
   "blocking_findings": [
     {
-      "category": "test_gap",
-      "area": "frontend/src/features/exploration",
-      "summary": "[P1] Add the required same-title open-flow identity leaf (frontend/src/features/exploration/selection-identity.helper.test.ts:47): This test only calls `selectionsEqual` directly."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria",
-      "summary": "t-rip-c2: Identity is STRICT STRUCTURAL EQUALITY over domain, measureIds, dimensionIds, filters, timeWindow and limit, including optional fields and array order - never the displayed title. selectionLabel().title is only measures.join(' \u00b7 '), so a pin by GL code and a pin by month are both 'Actual \u00b7 Budget'. A leaf opens two reports sharing a title but differing in dimensions and asserts TWO distinct turns."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md \u2014 Acceptance Criteria",
-      "summary": "t-rip-c11: user_facing: true - the Open flow and the displayed refusal both change - so emil-design-eng and frontend-design are loaded and the work done with them; the recorder refuses the test artifact unless skills_used attests both."
+      "category": "maintainability",
+      "area": "frontend/src/features/assistant",
+      "summary": "Decompose the continuation policy\u2019s nested state transitions (frontend/src/features/assistant/use-ask.ts:123): `continueTurn` now combines its multi-condition guard with two deeply nested turn-mapping decision trees for response and exception handling."
     }
   ],
   "non_blocking_findings": [],
@@ -39,69 +29,64 @@
     {
       "contract_id": "t-rip-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.test.tsx:107 proves a matched reopen preserves thread length"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:187 matches successful turns and delegates to in-place continuation"
     },
     {
       "contract_id": "t-rip-c2",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/exploration/selection-identity.helper.test.ts:47 tests only the helper, not the required two-report Open flow"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:3 compares every specified selection field without using the title"
     },
     {
       "contract_id": "t-rip-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/selection-identity.helper.test.ts:27 proves a missing prior timeWindow does not match"
+      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:20 includes every time-window component in identity"
     },
     {
       "contract_id": "t-rip-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:188 searches turns in reverse order"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:188 searches a reversed copy of the turns"
     },
     {
       "contract_id": "t-rip-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:200 reruns the match with match.question"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:197 passes the matched turn\u2019s question"
     },
     {
       "contract_id": "t-rip-c6",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:128 clears only resolved blocked_by_policy refusals while retaining other responses"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:127 clears only blocked-by-policy responses while other response classes retain the result"
     },
     {
       "contract_id": "t-rip-c7",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:156 passes retain explicitly for the period control"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:159 passes the retain policy for period changes"
     },
     {
       "contract_id": "t-rip-c8",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.test.tsx:173 asserts that prior result numbers leave the DOM"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:128 replaces a refused turn instead of retaining its successful response"
     },
     {
       "contract_id": "t-rip-c9",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:102 makes the failure policy argument required"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:105 requires the failure-policy argument"
     },
     {
       "contract_id": "t-rip-c10",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:1 supplies the required helper file"
-    },
-    {
-      "contract_id": "t-rip-c11",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:124 shows the user-facing surface, but skill usage and recorder attestation are not verifiable from this diff bundle"
+      "evidence": "frontend/src/features/exploration/selection-identity.helper.ts:1 provides the required helper module"
     },
     {
       "contract_id": "t-rip-c12",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:145 replaces terminal 401/403 results with generic sign-in copy on the same turn"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:143 replaces terminal 401/403 failures with generic sign-in copy on the affected turn"
     }
   ],
   "aspect": "quality",
-  "review_run_id": "dc61ae5231b14b047a542a49414247bde326bca3db36c89ac3c0ce5eaadcf0f2",
-  "brief_sha256": "bbdd821331c6c39cf932bf34de074c8aecdbb04bfe81aabc8e0eaa0947857f32",
-  "branch_diff_digest": "712f1672a5dd25986aca90554ef93b94dcad2b55c5e333a1249cfda2cda7194e",
+  "review_run_id": "9d100a24bedbbf169ed0322131b39026f665e275167a077370b157d11a15adf5",
+  "brief_sha256": "3f068259b1557f86d79d1c94b50d9c06a36dc61c53a294d22b16e8f92022a086",
+  "branch_diff_digest": "2ddb84c02137d842a9ce48bbc46dc8dab8964571deb827ecf92385ef9ffc717d",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T16:28:24+00:00",
-  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391"
+  "recorded_at": "2026-09-15T16:38:47+00:00",
+  "commit": "dc17ebe8d95d9860f8f2f09c032fcf98cf5b6367"
 }

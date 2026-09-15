@@ -119,52 +119,11 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     try {
       const response = await api.ask({ question, selection }, { signal: controller.signal });
       setTurns((current) =>
-        current.map((turn) =>
-          turn.id !== turnId
-            ? turn
-            : response.responseClass === "success"
-              ? { id: turn.id, question: turn.question, response }
-              : failurePolicy === "clear-on-refusal" && response.responseClass === "blocked_by_policy"
-                ? { id: turn.id, question: turn.question, response }
-                : {
-                    ...turn,
-                    isPending: false,
-                    error:
-                      failurePolicy === "clear-on-refusal"
-                        ? (response.message ?? "This report could not be reopened. Try again.")
-                        : "That period could not be loaded. Choose a period to try again.",
-                  },
-        ),
+        current.map((turn) => (turn.id === turnId ? resolveContinueResponse(turn, response, failurePolicy) : turn)),
       );
     } catch (caught) {
       setTurns((current) =>
-        current.map((turn) =>
-          turn.id !== turnId
-            ? turn
-            : failurePolicy === "clear-on-refusal" && isAccessRefusal(caught)
-              ? {
-                  id: turn.id,
-                  question: turn.question,
-                  response: {
-                    responseClass: "blocked_by_policy" as AskResponse["responseClass"],
-                    sessionId: turn.response.sessionId,
-                    message: "Sign in again to reopen this report.",
-                    viewInReport: { available: false, reason: "Sign in again to reopen this report." },
-                  },
-                }
-              : {
-                  ...turn,
-                  isPending: false,
-                  ...(isAbort(caught)
-                    ? { error: undefined }
-                    : {
-                        error:
-                          failurePolicy === "clear-on-refusal"
-                            ? "This report could not be reopened. Try again."
-                            : "The period could not be loaded. Try again.",
-                      }),
-                },
-        ),
+        current.map((turn) => (turn.id === turnId ? resolveContinueError(turn, caught, failurePolicy) : turn)),
       );
     } finally {
       abortRef.current = undefined;
@@ -202,6 +161,49 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     },
     children,
   );
+}
+
+function resolveContinueResponse(
+  turn: AskTurn,
+  response: AskResponse,
+  failurePolicy: ContinueTurnFailurePolicy,
+): AskTurn {
+  if (response.responseClass === "success") return { id: turn.id, question: turn.question, response };
+  if (failurePolicy === "clear-on-refusal" && response.responseClass === "blocked_by_policy") {
+    return { id: turn.id, question: turn.question, response };
+  }
+  return {
+    ...turn,
+    isPending: false,
+    error:
+      failurePolicy === "clear-on-refusal"
+        ? (response.message ?? "This report could not be reopened. Try again.")
+        : "That period could not be loaded. Choose a period to try again.",
+  };
+}
+
+function resolveContinueError(turn: AskTurn, error: unknown, failurePolicy: ContinueTurnFailurePolicy): AskTurn {
+  if (failurePolicy === "clear-on-refusal" && isAccessRefusal(error)) {
+    return {
+      id: turn.id,
+      question: turn.question,
+      response: {
+        responseClass: "blocked_by_policy" as AskResponse["responseClass"],
+        sessionId: turn.response.sessionId,
+        message: "Sign in again to reopen this report.",
+        viewInReport: { available: false, reason: "Sign in again to reopen this report." },
+      },
+    };
+  }
+  if (isAbort(error)) return { ...turn, isPending: false, error: undefined };
+  return {
+    ...turn,
+    isPending: false,
+    error:
+      failurePolicy === "clear-on-refusal"
+        ? "This report could not be reopened. Try again."
+        : "The period could not be loaded. Try again.",
+  };
 }
 
 function isAbort(error: unknown): boolean {

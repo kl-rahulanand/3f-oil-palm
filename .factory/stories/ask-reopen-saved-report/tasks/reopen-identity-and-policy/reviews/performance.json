@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "reopen-identity-and-policy",
   "score": 10,
-  "summary": "performance lens over reopen-identity-and-policy (8 product path(s), af447d4..ee6cfa1, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements bounded linear-time structural selection comparison and a reverse search for the most recent matching successful turn. Although reopening copies the turn array before scanning it, this is a single O(n) in-memory operation per explicit reopen and the bundle provides no evidence that it creates a production-impacting performance defect. No P0-P2 performance, security, regression, or compatibility-leftover issue is demonstrated by the provided change.",
+  "summary": "performance lens over reopen-identity-and-policy (8 product path(s), af447d4..dc17ebe, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements strict ordered selection comparison, searches successful turns from most recent to oldest, reuses the matched turn without growing the thread, and explicitly separates retain versus clear-on-refusal behavior. The linear reverse search is proportionate to thread length and does not constitute an actionable P2 performance defect. No compatibility shims, dead aliases, or other blocking leftovers are present in the shown change.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -20,10 +20,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "dc61ae5231b14b047a542a49414247bde326bca3db36c89ac3c0ce5eaadcf0f2",
-  "brief_sha256": "bbdd821331c6c39cf932bf34de074c8aecdbb04bfe81aabc8e0eaa0947857f32",
-  "branch_diff_digest": "712f1672a5dd25986aca90554ef93b94dcad2b55c5e333a1249cfda2cda7194e",
+  "review_run_id": "9d100a24bedbbf169ed0322131b39026f665e275167a077370b157d11a15adf5",
+  "brief_sha256": "3f068259b1557f86d79d1c94b50d9c06a36dc61c53a294d22b16e8f92022a086",
+  "branch_diff_digest": "2ddb84c02137d842a9ce48bbc46dc8dab8964571deb827ecf92385ef9ffc717d",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T16:28:24+00:00",
-  "commit": "ee6cfa101eb6d2067bfa27b89311e5fa4906a391"
+  "recorded_at": "2026-09-15T16:38:47+00:00",
+  "commit": "dc17ebe8d95d9860f8f2f09c032fcf98cf5b6367"
 }

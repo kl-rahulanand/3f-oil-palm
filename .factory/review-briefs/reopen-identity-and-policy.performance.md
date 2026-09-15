@@ -49,9 +49,6 @@ LEFTOVERS (blocking): the diff must carry no code kept only for compatibility �
 - **t-rip-c10**
   - Source: plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md — Acceptance Criteria
   - Statement: The helper is named selection-identity.helper.ts, per the constitution's Helper convention for stateless, IO-free utility logic (pnp-coding-standards-modular-monolith.md section 3.2).
-- **t-rip-c11**
-  - Source: plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md — Acceptance Criteria
-  - Statement: user_facing: true - the Open flow and the displayed refusal both change - so emil-design-eng and frontend-design are loaded and the work done with them; the recorder refuses the test artifact unless skills_used attests both.
 - **t-rip-c12**
   - Source: plans/active/ask-reopen-saved-report-reopening-a-saved-report-returns-to-its-answer.md — Acceptance Criteria
   - Statement: A terminal 401/403 clears the numbers and shows generic sign-in copy ON THAT TURN, and does NOT redirect to login. The session is gone, but a redirect would discard the whole thread because one report came back unauthorized; the rest of what the user had on screen survives.
