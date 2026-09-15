@@ -2,72 +2,81 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu2anfk4-8pabuq) of docs/specs/all-plants-statement.md against the built repo. Three factual corrections and five questions. Four of the five were settled from the repository (plant identity keeps the shipped DUB canonical id; the budget upload takes an explicit plant field because the client's workbook names no owning plant; the format outline becomes a pinnable object separate from any plant budget; only master-configured selections are offered). Two went to the human in one round: acceptance of decision 0029 with its supersession of 0016, and the partial-FY-YTD Budget/% rule. The spec was amended once and this pass is bound to the amended digest.",
+  "summary": "Cold read of docs/specs/ask-reopen-saved-report.md. Six findings, and the sharpest is a security one the spec had actively got wrong: it required a refused reopen to KEEP the previous answer, which contradicts decision 0028 - a revoked grant must produce a refusal, not a cached figure - and continueTurn preserves the old response on every failure, so a revoked user would go on reading numbers they may no longer see. The read also showed the spec's scroll and pending promises are unreachable under the current navigation order, since both entry points await the whole re-run before navigating to Ask, and that continueTurn's failure copy is period-specific for every non-success - so the spec's 'no change to continueTurn' clause could not stand. Two questions went to the human: how a refusal should treat the stale answer, and whether to navigate before running.",
   "questions_asked": 2,
   "gaps": [
-    "Company-wide July net is \u20b911,02,73,718.00 in exact paise, not .07 as the draft's acceptance criterion 1 stated (the .07 belongs to DUB alone); coverage is 92.7% and the eleven unmatched cost-centre-plus-GL pairs include Primary/50001802 and Tertiary/50001904, which DUB never books and were therefore never bucketed for DUB.",
-    "Decision 0029 was still proposed while accepted decision 0016 restricts the governed join to the single plant DUB; the spec cannot be confirmed against a live corpus that contradicts it.",
-    "Plant identity was ambiguous: the draft said the SAP plant code is canonical yet called DUB-NUR an alias of DUB, while the shipped master, seeded scopes, budget ownership and drill pins key on DUB.",
-    "The budget upload's plant had no falsifiable source: the format workbook's Plant list names sixteen plants, the parser hard-codes DUB, and 'the workbook names its plant' named no field and no mismatch rule.",
-    "The outline for a no-budget plant was not an object that exists: outlines live only under a budget batch (decision 0021) and the drill requires a pinned budget batch, so 'the format's active outline' could not be pinned.",
-    "Partial FY-YTD budgets were underspecified: summing the loaded budget months left open whether % compares a partial budget to full-block actuals.",
-    "The draft said a plant absent from the master renders 'no mapping configured', but such a plant can never appear in the cascading dropdowns, and independent Department/Function/Plant lists could form combinations the master does not hold."
+    "Turn identity was undefined: Selection carries ordered arrays, filters, optional timeWindow fields and limit, and the spec said neither structural nor semantic equality, nor which turns are even eligible candidates, nor which wins when the user has manually created two turns with that selection.",
+    "The re-run's question and audit text was unspecified. Both open paths pass selectionLabel(selection).title - only the measure names - while continueTurn displays the turn's own question but SENDS the question it is given, so a naive implementation would display the user's wording and audit 'Actual \u00b7 Budget'.",
+    "The 'previous answer stays visible' and scroll promises could not happen under the current navigation order: pinned-reports.tsx:67 and saved-views.tsx:64 both AWAIT the whole re-run before router.push('/ask'), so there is no Ask panel on screen while it runs and a slow click still looks inert.",
+    "The stated continuation capability was inaccurate and self-contradictory: continueTurn discards the server's refusal and shows period-specific copy ('That period could not be loaded. Choose a period to try again.') for ANY typed non-success and for transport failures alike, so it can neither explain why a saved report was refused nor support an authorization distinction - while the spec declared its failure behaviour out of scope.",
+    "The grill brief's already-answered ledger cites accepted decisions 0035 and 0036, but the active corpus ends at 0029, and it describes ask-period-control as unplanned although the roadmap records it done."
   ],
   "contradictions": [
-    "Spec versus accepted decision 0016: the governed relation is DUB-only in 0016 while the spec carries plant as a scoped dimension across every granted plant.",
-    "Spec versus itself on plant identity: 'SAP plant code is canonical' contradicted 'DUB-NUR keeps its alias to DUB'."
+    "The spec required a refused reopen to retain the previous answer, which contradicts accepted decision 0028: a revoked grant must produce a refusal rather than a cached figure. continueTurn preserves the old response on every failure, so a user whose access had been revoked would keep reading numbers they may no longer see."
   ],
   "resolutions": [
-    "Why and acceptance criterion 1 now carry the exact-paise figures: \u20b911,02,73,718.00 company-wide, \u20b910,21,80,290.32 matched (92.7%), \u20b980,93,427.68 unmatched, and the eleven pairs are described as nine already bucketed for DUB plus the two DUB never books.",
-    "HUMAN ROUND: decision 0029 accepted, confirmed by Rahul Anand, with an explicit supersedes pointer to 0016 and a clause restating what 0016 keeps (join key gl_code + month, full-outer zero-fill, two-sided scope, the deferred mapping master and its trigger) now within each granted plant. Recorded with `forge decision accept` before this pass.",
-    "Repository-resolved: the master's plant_canonical is the identity. DUB stays DUB with SAP alias DUB-NUR exactly as shipped (mis-selection, seeded scope, budget, pins all key on it); every other plant's canonical id is its SAP code with no alias. Written into Behaviour and decision 0029 clause 6.",
-    "Repository-resolved: the budget upload takes an explicit canonical plant id as a request field, validated against the master, and the parser stops assuming DUB; the current nursery workbook is re-imported once with plant DUB. Acceptance criterion 6 refuses a missing or unknown plant and an outline mismatch.",
-    "Repository-resolved: the format outline becomes a pinnable object independent of any plant's budget amounts; plant budgets attach to it and must match it leaf-for-leaf by stable leaf key; the statement and the drill pin it explicitly and separately from any plant budget batch. Persistence shape is left to the plan. Acceptance criterion 7 names the pinned outline object.",
-    "HUMAN ROUND: partial FY-YTD renders Budget as the sum over months that have a budget batch, naming them in the block heading, and % as the dash whenever any month with actuals in the block lacks a budget. Written into Behaviour, decision 0029 clause 4, and acceptance criterion 9's two-month fixture.",
-    "Repository-resolved: dropdowns cascade from the master's configured selections filtered by grants (SelectionResolverService.options() already does this); a plant in a later actuals upload but absent from the master is not offered, is named in the upload's validation result, and is added as master data; a direct unconfigured request fails closed with the existing no-mapping outcome. New acceptance criterion 10.",
-    "Residency: decision 0027 governs unchanged; the spec's 'what does not change' list now cites it so the model boundary (vocabulary yes, amounts and rows never) is not re-opened by adding plants."
+    "Behaviour now defines candidates (successful turns carrying response.selection), structural comparison over the RESOLVED selection the server returned - so a pin saved before a period was normalised still matches its own answer - and a deterministic winner when several match: the most recent. Criteria 1-3 pin all three.",
+    "Criterion 4 requires a matched turn to re-run with turn.question and the REQUEST BODY to be asserted rather than inferred, and states that a new turn uses the label because no better text exists.",
+    "HUMAN ROUND 2: navigate to Ask FIRST, then run. The click gets an instant visible effect, and the pending state and scroll become observable at all. Criterion 6 requires navigation before the request completes.",
+    "HUMAN ROUND 1: an authorization or policy refusal CLEARS the stale result and shows why; a transport failure keeps it. The spec now states plainly that this changes continueTurn's failure handling - which an earlier draft wrongly placed out of scope - and that its period-specific copy must become a message that fits the reason. Its pending and replacement-on-success semantics stay as shipped.",
+    "The stale ledger assertions are recorded in Out of scope as stale and corrected rather than treated as constraints: the decision corpus ends at 0029 and ask-period-control is done.",
+    "CONTRADICTION with decision 0028 resolved by HUMAN ROUND 1 rather than by amending 0028: an authorization or policy refusal now CLEARS the stale result and shows why, so a revoked grant yields a refusal and not a cached figure, exactly as 0028 requires. A transport failure keeps the answer, because nothing has said the user may not see it. Criterion 7 proves the two separately."
   ],
-  "open_items": [
-    "Non-blocking: the client's authoritative Department / Function names and Master Table (renames the provisional labels, empties the bucket as data).",
-    "Non-blocking: budgets for plants other than the nursery.",
-    "Non-blocking: format Plant list names that do not match SAP (DHS, DHS2 versus DMHS; Belagum absent from July) \u2014 to confirm with Srihari."
-  ],
-  "inspected_refs": [
-    "docs/specs/all-plants-statement.md:60",
-    "docs/decisions/0029-all-plants-provisional-scope.md:2",
-    "docs/decisions/0016-governed-joins-poc-scope.md:23",
-    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md:27",
-    "backend/src/mis/mis-drill.service.ts:57",
-    "backend/src/mapping/selection-resolver.service.ts:35",
-    "backend/src/mapping/mis-mapping-master.ts",
-    "backend/src/ingest/mis-budget.parser.ts:8",
-    "backend/src/warehouse/warehouse-schema.ts:43,185",
-    "docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx",
-    "docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx"
+  "citations": [
+    {
+      "finding": "Turn identity was undefined: Selection carries ordered arrays, filters, optional timeWindow fields and limit, and the spec said neither structural nor semantic equality, nor which turns are even eligible candidates, nor which wins when the user has manually created two turns with that selection.",
+      "source": "contract/src/measure.ts:151"
+    },
+    {
+      "finding": "The re-run's question and audit text was unspecified. Both open paths pass selectionLabel(selection).title - only the measure names - while continueTurn displays the turn's own question but SENDS the question it is given, so a naive implementation would display the user's wording and audit 'Actual \u00b7 Budget'.",
+      "source": "frontend/src/features/exploration/pinned-reports.tsx:67; frontend/src/features/exploration/saved-views.tsx:64; frontend/src/features/assistant/use-ask.ts:97"
+    },
+    {
+      "finding": "The 'previous answer stays visible' and scroll promises could not happen under the current navigation order: pinned-reports.tsx:67 and saved-views.tsx:64 both AWAIT the whole re-run before router.push('/ask'), so there is no Ask panel on screen while it runs and a slow click still looks inert.",
+      "source": "frontend/src/features/exploration/pinned-reports.tsx:67; frontend/src/features/assistant/ask-panel.tsx:79"
+    },
+    {
+      "finding": "The stated continuation capability was inaccurate and self-contradictory: continueTurn discards the server's refusal and shows period-specific copy ('That period could not be loaded. Choose a period to try again.') for ANY typed non-success and for transport failures alike, so it can neither explain why a saved report was refused nor support an authorization distinction - while the spec declared its failure behaviour out of scope.",
+      "source": "frontend/src/features/assistant/use-ask.ts:111,124"
+    },
+    {
+      "finding": "The grill brief's already-answered ledger cites accepted decisions 0035 and 0036, but the active corpus ends at 0029, and it describes ask-period-control as unplanned although the roadmap records it done.",
+      "source": "docs/decisions/ (corpus ends at 0029); plans/roadmap.json"
+    },
+    {
+      "finding": "The spec required a refused reopen to retain the previous answer, which contradicts accepted decision 0028: a revoked grant must produce a refusal rather than a cached figure. continueTurn preserves the old response on every failure, so a user whose access had been revoked would keep reading numbers they may no longer see.",
+      "source": "docs/decisions/0028-saved-selections-not-snapshots.md:21 against frontend/src/features/assistant/use-ask.ts:107"
+    }
   ],
   "rounds": [
     {
-      "question": "Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?",
+      "question": "The grill found a leak. `continueTurn` keeps the previous answer visible on ANY failure. So if your access to that data has been revoked, reopening a pin shows a refusal message with the old numbers still on screen underneath \u2014 decision 0028 says a revoked grant must produce a refusal, not a cached figure. How should a refused reopen behave?",
       "options": [
-        "Accept, confirmed by Rahul Anand (Recommended)",
-        "Accept under a different name",
-        "Do not accept yet"
+        "Blank the answer when refused (Recommended)",
+        "Keep it visible for every failure"
       ],
-      "chosen": "Accept, confirmed by Rahul Anand (Recommended)",
-      "frontier_empty": false
+      "chosen": "Blank the answer when refused (Recommended)"
     },
     {
-      "question": "FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)",
+      "question": "Both Dashboard and Explore currently await the whole re-run BEFORE navigating to Ask, so you sit on the old page with no feedback and only then jump. That also makes 'the previous answer stays visible' and 'scroll to it' impossible \u2014 there's no Ask panel on screen yet. What should a click do?",
       "options": [
-        "Budget = loaded months, % = not loaded (Recommended)",
-        "Budget and % both over loaded months only",
-        "Whole block is 'not loaded'"
+        "Navigate first, then run (Recommended)",
+        "Keep awaiting, then navigate"
       ],
-      "chosen": "Budget = loaded months, % = not loaded (Recommended)",
+      "chosen": "Navigate first, then run (Recommended)",
       "frontier_empty": true
     }
   ],
-  "input_sha256": "5d479ad7f9083d4c2f138e9b3bea13943043ecfc91b36268e7a46610456c9bac",
-  "recorded_at": "2026-09-15T07:24:15+00:00",
-  "commit": "df7d5689e8f91dfdaafe0dc9a7ac30c7e3b5e338"
+  "inspected_refs": [
+    "frontend/src/features/assistant/use-ask.ts:86,97-130,147",
+    "frontend/src/features/exploration/pinned-reports.tsx:67",
+    "frontend/src/features/exploration/saved-views.tsx:64",
+    "frontend/src/features/exploration/selection-label.ts",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "contract/src/measure.ts:151",
+    "docs/decisions/0028-saved-selections-not-snapshots.md"
+  ],
+  "input_sha256": "5339dae44f99e6857e10f2bb250eae6df178caf571d574aeeb5aaab1cb4b48ef",
+  "recorded_at": "2026-09-15T13:42:35+00:00",
+  "commit": "801d405fbf1b0cfd4929ed36bb7119fca1fbb00c"
 }
