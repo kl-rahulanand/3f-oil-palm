@@ -1,0 +1,72 @@
+{
+  "generated_by": "griller",
+  "gate": "plan",
+  "verdict": "pass",
+  "issue": "multi-plant",
+  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu2d9k5m-p10e2u) of the multi-plant plan draft against the built repo. Two API-shape decisions went to the human in one round (docked Ask grounding; cascading selector contract); eight non-decision blockers were resolved from the repository into the plan: outline uniqueness per format, the shared drill/provenance contract, the absent-budget state on the governed Ask path, the provisional mark's carrier, plantChoice resolving to a master selection, the plant dimension grant, the generator's leaf-key source, and explicit route-contract test ownership. The plan was amended once; this pass is bound to the amended digest.",
+  "questions_asked": 2,
+  "gaps": [
+    "Statement grounding had no seam: the rendered MIS Report passes nothing to the Ask panel and AskReportGrounding accepts only a saved reportId, which MIS Reports never has.",
+    "The options contract returns independent department, function and plant arrays rendered as independent selects, so 31 selections could form impossible tuples, violating the spec's cascade rule.",
+    "Decision 0030 needs one active outline per format and period, but the proposed index and ingest_batch had no format_id, permitting only one global outline per period.",
+    "C7 was impossible under the shared contract: ProvenanceBatch.source admits only actuals|budget, the drill accepts only those, and its response carries one mandatory budgetBatchId; no task owned the contract, DTO, Swagger, repository, audit and client migration.",
+    "The absent-budget state was unowned on the governed Ask path, where an Actual-only full-outer row reaches the percentage expression as budget zero and becomes over-budget.",
+    "The provisional mark in the statement header had no carrier: MisSelectionScopeReadout has no provisional field.",
+    "plantChoice could not form a statement for a fully granted user: statementRequest requires exactly one department, function and plant from user scope, so adding a plant filter alone would still return nothing.",
+    "Task 5 added a plant semantic dimension without the baseRolePerms dimension grant the selector needs to emit it.",
+    "The generator description read the workbook's Plant list, but stable leaf keys come from the Financial MIS Table-2 outline; without the parser's identity logic duplicate GL codes could not be assigned hermetically.",
+    "Route-contract tests (controller, Swagger, SSE) for the changed options, ingest, statement, drill and chat contracts were not explicitly owned."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "HUMAN ROUND: AskRequest gains a typed statementGrounding {department, function, plant, period} taken from the rendered statement scope and re-resolved through the master and current grants on every ask; no report is persisted. Tasks 5 (contract, service) and 6 (panel) own it; task 4 hands the scope to the docked panel.",
+    "HUMAN ROUND: GET /api/mis/options returns the typed list of valid master selection tuples with the provisional flag and the client cascades each dropdown; the flat arrays are removed with their consumers. Tasks 1 and 4; criterion C10 amended.",
+    "Repository-resolved: ingest_batch gains format_id for outline and budget batches and the active-uniqueness index becomes (source_kind, period, COALESCE(format_id,''), COALESCE(plant,'')). Task 2.",
+    "Repository-resolved: task 3 explicitly owns ProvenanceBatch.source adding 'outline', the drill request accepting outline pins, the response's outlineBatchId plus budgetBatchIds replacing budgetBatchId, DTOs, Swagger, repository and audit payload; task 4 owns the drill panel. Surface Impact and Task Decomposition amended.",
+    "Repository-resolved: the composed CTE gains a budget_presence relation and the budget and percentage measures return null / not-loaded when no budget batch is active for that plant and month, keeping over-budget for a present batch with a zero or missing leaf row; task 5 owns it with golden cases, task 6 renders the labelled dash. C8 amended.",
+    "Repository-resolved: MisSelectionScopeReadout gains provisional and plantDisplay in the statement response (task 3); the header renders from it (task 4). C5 amended.",
+    "Repository-resolved: a plantChoice pick carries the canonical plant and the server resolves it to its unique master selection, taking department and function from the master and re-checking the grant. C8 and task 5 amended.",
+    "Repository-resolved: baseRolePerms grants the admin role the plant dimension in migrate.ts. C8 and task 5 amended.",
+    "Repository-resolved: the generator reads the format workbook's Table-2 outline through the budget parser's outline and stable-leaf-key logic, extracted into a shared module; the Plant list is not read; duplicate GLs are disambiguated by the sheet's cost-centre-to-section rule and an unresolvable entry is refused. Task 1 amended.",
+    "Repository-resolved: the Verify Plan names the controller, Swagger and SSE tests per changed route and the tasks that own them."
+  ],
+  "open_items": [
+    "Non-blocking: D-0036 (statement and export audit) stays deferred; D-0032 (BRIEF reconciliation) stays deferred."
+  ],
+  "inspected_refs": [
+    "contract/src/api.ts:53,135,236,475",
+    "backend/src/db/migrate.ts:25-33",
+    "backend/src/chat/chat.service.ts:143,726-737",
+    "backend/src/mis/mis-drill.service.ts:95-150",
+    "backend/src/ingest/mis-budget.parser.ts:140-195",
+    "backend/src/warehouse/warehouse-schema.ts:28-44",
+    "backend/src/mapping/selection-resolver.service.ts:35-57",
+    "frontend/src/features/mis/mis-report-view.tsx:52-75",
+    "docs/decisions/0030-format-outline-object.md"
+  ],
+  "rounds": [
+    {
+      "question": "The plan assumed a docked Ask question could use the on-screen report's plant, but the rendered MIS Report passes nothing to the Ask panel, and the existing grounding only accepts a saved report ID (MIS Reports has none). How should the docked assistant learn which statement it sits beside?",
+      "options": [
+        "Send the statement scope (Recommended)",
+        "Persist the report to get an ID",
+        "No grounding; user names the plant"
+      ],
+      "chosen": "Send the statement scope (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "The options API returns independent department, function and plant lists, and the UI renders four independent selects, so with 31 plants a user could pick an impossible combination such as Corporate / Office / DUB. Which contract should the plan adopt?",
+      "options": [
+        "Return valid tuples, cascade client-side (Recommended)",
+        "Keep flat lists, validate on Generate",
+        "Server-side cascade endpoints"
+      ],
+      "chosen": "Return valid tuples, cascade client-side (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "input_sha256": "e1f2fb493e82e022eb6e2cbc5da384f19f7a54d0c79237a86791ec5da857ce14",
+  "recorded_at": "2026-09-15T08:09:40+00:00",
+  "commit": "379002aa9112ecc164ef3419fa7f23fb4319ea42"
+}
