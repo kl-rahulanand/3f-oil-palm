@@ -13,10 +13,6 @@
 //     renderer that ignores responseClass passes any fixture that simply omits the field;
 //   - the picking leaf asserts the on-screen continuation behaviour, not just the eventual API
 //     request, because a request assertion alone cannot tell continueTurn from a direct api.ask.
-//
-// UI work on this file and ask-panel.tsx was done with emil-design-eng and frontend-design, which
-// are mandatory for a user_facing task; the period switcher is a quiet labelled native select
-// chosen for its real selected state and keyboard behaviour at both panel widths.
 
 import type { AskResponse, AuthUser, Selection } from "@3f/contract";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";

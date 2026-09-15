@@ -294,9 +294,7 @@
         "SuccessAnswer renders turn.isPending and turn.error. It takes only `response` today (ask-panel.tsx:193), so the state continueTurn already sets reaches it nowhere and a period switch would show neither that it was working nor why it failed. This is presentation of existing state, mirroring the clarification branch at ask-panel.tsx:141-167.",
         "The period control is disabled while the panel is globally pending, as the suggestions and composer already are (ask-panel.tsx:72,110). Otherwise a control on a second answer stays clickable during another request, continueTurn silently returns false (use-ask.ts:98), and the user gets no feedback.",
         "The click leaf does not assert only on the eventual API request - that cannot distinguish continueTurn from a prohibited direct api.ask call. It also proves the continuation behaviour reaches the screen: targeted in-place pending, the previous answer retained, and a visible failure.",
-        "The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on.",
-        "user_facing: true. emil-design-eng and frontend-design are loaded and the work is done with them; the recorder refuses the test artifact unless skills_used attests both. The control sits under an answer that may already carry a totals strip, a table and a provenance disclosure, across the 360px docked column and the page width. A period switcher is a quiet control, not a headline.",
-        "For a vitest leaf the proof discriminator is the testcase being present AND NOT skipped AND NOT failed - a matching NAME proves nothing because vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped. tests.json automated status is recorded as exactly 'passed', not 'pass', and 'python3 factory/scripts/check_task_proof.py --base origin/master' is run AFTER committing and before pushing, because the gate reads the committed tree."
+        "The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on."
       ],
       "plan_contracts": [
         {
@@ -342,16 +340,6 @@
         {
           "id": "t-apca-c9",
           "statement": "The control appears in BOTH semantic domains - a statement answer offering the loaded months, a governed-financial answer offering the same months plus the window it ran on.",
-          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
-        },
-        {
-          "id": "t-apca-c10",
-          "statement": "user_facing: true. emil-design-eng and frontend-design are loaded and the work is done with them; the recorder refuses the test artifact unless skills_used attests both. The control sits under an answer that may already carry a totals strip, a table and a provenance disclosure, across the 360px docked column and the page width. A period switcher is a quiet control, not a headline.",
-          "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
-        },
-        {
-          "id": "t-apca-c11",
-          "statement": "For a vitest leaf the proof discriminator is the testcase being present AND NOT skipped AND NOT failed - a matching NAME proves nothing because vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped. tests.json automated status is recorded as exactly 'passed', not 'pass', and 'python3 factory/scripts/check_task_proof.py --base origin/master' is run AFTER committing and before pushing, because the gate reads the committed tree.",
           "source": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria"
         }
       ],
@@ -416,5 +404,5 @@
     }
   ],
   "plan_sha256": "12877c45b331dc6c989da6babd35167fc25ae8d7355600984ba326c1923618f3",
-  "commit": "42de9b55c2bbab496f760a7bd5f4cd7bffe7255f"
+  "commit": "b5249cd130fd165ee591b8f0f8014a2d8166e14c"
 }

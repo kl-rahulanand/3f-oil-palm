@@ -1,9 +1,14 @@
 {
   "generated_by": "autoreview",
   "task_id": "ask-period-control-on-answers",
-  "score": 10,
-  "summary": "quality lens over ask-period-control-on-answers (3 product path(s), fe39c33..2392a5e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-apca-c1: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:258 renders a labelled native select bound to periodControl.current\nVERDICT t-apca-c2: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:130 restricts SuccessAnswer, and therefore the control, to success responses\nVERDICT t-apca-c3: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:256 renders coverage text instead of a select when current is null\nVERDICT t-apca-c4: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:265 invokes onContinue with the cloned selection and selected timeWindow\nVERDICT t-apca-c5: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:266 passes turn.question unchanged\nVERDICT t-apca-c6: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:277 renders per-turn pending state and line 282 renders its error\nVERDICT t-apca-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:261 disables the control from the panel's global pending state\nVERDICT t-apca-c8: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:460 proves targeted pending state, retained content, continuation request data, and visible failure\nVERDICT t-apca-c9: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:398 and line 408 exercise statement and governed-financial responses\nVERDICT t-apca-c10: partial \u2014 frontend/app/globals.css:1665 supplies the compact responsive presentation, but skill-use attestation is not included in the supplied evidence\nVERDICT t-apca-c11: partial \u2014 frontend/src/features/assistant/ask-panel.test.tsx:392 contains enabled named Vitest leaves, but execution status and the post-commit proof command are outside the supplied evidence\nLEFTOVERS: none visible in the supplied diff.\nNo actionable P0-P2 defect is demonstrated by the change bundle. The two partial verdicts reflect unverifiable process artifacts, not evidence of faulty code or a missing in-scope implementation.",
+  "score": 7,
+  "summary": "quality lens over ask-period-control-on-answers (3 product path(s), fe39c33..b5249cd, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The UI implementation shown satisfies the functional period-control contracts, but the mandatory committed proof and skill attestation are absent from the selected change.\nVERDICT t-apca-c1: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:263 renders a labelled native select bound to current.\nVERDICT t-apca-c2: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:130 makes SuccessAnswer reachable only for success responses, with adversarial coverage at frontend/src/features/assistant/ask-panel.test.tsx:445.\nVERDICT t-apca-c3: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:258 renders coverage instead of a control when current is null.\nVERDICT t-apca-c4: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:269 delegates the cloned selection exclusively to onContinue.\nVERDICT t-apca-c5: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:269 passes turn.question unchanged.\nVERDICT t-apca-c6: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:284 renders per-turn pending state and frontend/src/features/assistant/ask-panel.tsx:289 renders its error.\nVERDICT t-apca-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:265 disables the control from global pending state.\nVERDICT t-apca-c8: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:476 proves targeted pending, retained content, the continuation request, and visible failure.\nVERDICT t-apca-c9: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:409 and frontend/src/features/assistant/ask-panel.test.tsx:418 cover statement and governed-financial answers.\nVERDICT t-apca-c10: partial \u2014 frontend/src/features/assistant/ask-panel.test.tsx:18 contains only a prose claim; no recorder artifact attests both required skills.\nVERDICT t-apca-c11: partial \u2014 frontend/src/features/assistant/ask-panel.test.tsx:1 documents proof rules and adds active tests, but the selected change contains no required tests.json status or post-commit checker record.\nLEFTOVERS: no compatibility wrappers, aliases, legacy branches, or deprecated symbols are visible in the diff.",
   "blocking_findings": [
+    {
+      "category": "test_gap",
+      "area": "frontend/src/features/assistant",
+      "summary": "Required test proof and design-skill attestation are not committed (frontend/src/features/assistant/ask-panel.test.tsx:18): The change adds only a source comment claiming the design skills were used."
+    },
     {
       "category": "plan-contract-partial",
       "area": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria",
@@ -16,7 +21,7 @@
     }
   ],
   "non_blocking_findings": [],
-  "recommendation": "approve",
+  "recommendation": "request-changes",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/features/assistant/ask-panel.test.tsx",
@@ -29,57 +34,57 @@
     {
       "contract_id": "t-apca-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:258 renders a labelled native select bound to periodControl.current"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:263 renders a labelled native select bound to current."
     },
     {
       "contract_id": "t-apca-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:130 restricts SuccessAnswer, and therefore the control, to success responses"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:130 makes SuccessAnswer reachable only for success responses, with adversarial coverage at frontend/src/features/assistant/ask-panel.test.tsx:445."
     },
     {
       "contract_id": "t-apca-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:256 renders coverage text instead of a select when current is null"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:258 renders coverage instead of a control when current is null."
     },
     {
       "contract_id": "t-apca-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:265 invokes onContinue with the cloned selection and selected timeWindow"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:269 delegates the cloned selection exclusively to onContinue."
     },
     {
       "contract_id": "t-apca-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:266 passes turn.question unchanged"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:269 passes turn.question unchanged."
     },
     {
       "contract_id": "t-apca-c6",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:277 renders per-turn pending state and line 282 renders its error"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:284 renders per-turn pending state and frontend/src/features/assistant/ask-panel.tsx:289 renders its error."
     },
     {
       "contract_id": "t-apca-c7",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:261 disables the control from the panel's global pending state"
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:265 disables the control from global pending state."
     },
     {
       "contract_id": "t-apca-c8",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:460 proves targeted pending state, retained content, continuation request data, and visible failure"
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:476 proves targeted pending, retained content, the continuation request, and visible failure."
     },
     {
       "contract_id": "t-apca-c9",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:398 and line 408 exercise statement and governed-financial responses"
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:409 and frontend/src/features/assistant/ask-panel.test.tsx:418 cover statement and governed-financial answers."
     },
     {
       "contract_id": "t-apca-c10",
       "verdict": "partial",
-      "evidence": "frontend/app/globals.css:1665 supplies the compact responsive presentation, but skill-use attestation is not included in the supplied evidence"
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:18 contains only a prose claim; no recorder artifact attests both required skills."
     },
     {
       "contract_id": "t-apca-c11",
       "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:392 contains enabled named Vitest leaves, but execution status and the post-commit proof command are outside the supplied evidence"
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:1 documents proof rules and adds active tests, but the selected change contains no required tests.json status or post-commit checker record."
     },
     {
       "contract_id": "t-apcb-c1",
@@ -173,10 +178,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "279d338058a66b75ef0d491877df2fd54d378ef4b254d3536c1970d642a84df5",
+  "review_run_id": "090480b3e17f6559602fc0f6acf544aa18a1b42856fbbf409b6c24f5492c4a0d",
   "brief_sha256": "0b008680df5c3e2c6a96bb5245af0babcbf54f99bf0317be5677d29fde7f7013",
-  "branch_diff_digest": "33e074a556c06125a25bad17c9b1e4f95435b8ecc598fa5e18f494615a9d16ed",
+  "branch_diff_digest": "c7b8a23ffc5f025603b8b715d789ac82cc30775b21cec7f84c4ad6071d4a34a6",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T08:39:26+00:00",
-  "commit": "2392a5e577d7b344d0692ab7dcfee71176de7871"
+  "recorded_at": "2026-09-15T08:44:52+00:00",
+  "commit": "b5249cd130fd165ee591b8f0f8014a2d8166e14c"
 }

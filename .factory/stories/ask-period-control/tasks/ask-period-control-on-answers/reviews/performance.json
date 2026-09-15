@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "ask-period-control-on-answers",
   "score": 10,
-  "summary": "performance lens over ask-period-control-on-answers (3 product path(s), fe39c33..2392a5e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff satisfies the stated period-control contracts: rendering is restricted to successful responses, null current values show coverage without a control, changes delegate to continueTurn with the unchanged question and cloned selection, pending/error state is surfaced in place, and the control is globally disabled during requests. The added work is bounded per answer and introduces no actionable performance defect or compatibility leftover at P2 or higher.",
+  "summary": "performance lens over ask-period-control-on-answers (3 product path(s), fe39c33..b5249cd, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The diff implements the period control on successful answers only, preserves the server-selected current value, renders coverage without a control for null periods, delegates changes through the existing continuation path, exposes per-turn pending/error state, and disables controls during global pending work. The added rendering performs only a bounded lookup over the control's option list on user interaction and introduces no material hot-path, I/O, memory, concurrency, or compatibility-leftover concern. No P0-P2 defect is demonstrated by the provided bundle.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -15,10 +15,10 @@
     "review-animations"
   ],
   "aspect": "performance",
-  "review_run_id": "279d338058a66b75ef0d491877df2fd54d378ef4b254d3536c1970d642a84df5",
+  "review_run_id": "090480b3e17f6559602fc0f6acf544aa18a1b42856fbbf409b6c24f5492c4a0d",
   "brief_sha256": "0b008680df5c3e2c6a96bb5245af0babcbf54f99bf0317be5677d29fde7f7013",
-  "branch_diff_digest": "33e074a556c06125a25bad17c9b1e4f95435b8ecc598fa5e18f494615a9d16ed",
+  "branch_diff_digest": "c7b8a23ffc5f025603b8b715d789ac82cc30775b21cec7f84c4ad6071d4a34a6",
   "residual_risks": [],
-  "recorded_at": "2026-09-15T08:39:27+00:00",
-  "commit": "2392a5e577d7b344d0692ab7dcfee71176de7871"
+  "recorded_at": "2026-09-15T08:44:52+00:00",
+  "commit": "b5249cd130fd165ee591b8f0f8014a2d8166e14c"
 }
