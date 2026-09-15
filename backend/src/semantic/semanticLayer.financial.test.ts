@@ -57,7 +57,8 @@ test("the governed financial domain registers over the composed actual and budge
         allowedDimensions: ["gl_code", "month"],
         timeColumn: "month",
         defaultTimeGrain: "month",
-        format: undefined,
+        // The expression yields a ratio, so every surface must render it as a percentage.
+        format: "percent",
       },
     ],
   );
