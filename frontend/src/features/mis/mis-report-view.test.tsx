@@ -208,6 +208,23 @@ test("a malformed pinned-batch report link is refused instead of running an unpi
   expect(screen.queryByText("Select Department, Function and Plant, then Generate")).not.toBeInTheDocument();
 });
 
+test("a plant option carrying provisional renders the plain text provisional labels suffix", async () => {
+  mocks.misOptions.mockResolvedValue({
+    ...options,
+    plants: [
+      ...options.plants,
+      { value: "H.O", label: "Corporate - Office - Head Office", aliases: [], provisional: true },
+    ],
+  });
+  renderWithQuery(<MisReportView />);
+
+  const plant = await screen.findByLabelText("Plant");
+  expect(within(plant).getByRole("option", { name: "Agri - Nursery - DUB" })).toBeInTheDocument();
+  expect(
+    within(plant).getByRole("option", { name: "Corporate - Office - Head Office — Provisional labels" }),
+  ).toHaveValue("H.O");
+});
+
 function chooseSelection() {
   fireEvent.change(screen.getByLabelText("Department"), { target: { value: "Agriculture" } });
   fireEvent.change(screen.getByLabelText("Function"), { target: { value: "Nursery" } });

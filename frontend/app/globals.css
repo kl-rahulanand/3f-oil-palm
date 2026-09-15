@@ -728,6 +728,20 @@ button {
   color: var(--kl-deep-forest);
   font-size: var(--text-lead);
 }
+.mis-provisional-label {
+  display: inline-flex;
+  margin-inline-start: var(--space-2);
+  border: 1px solid var(--kl-line);
+  border-radius: var(--radius-pill);
+  background: var(--kl-off-white);
+  color: var(--kl-emerald);
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: var(--text-mono-label);
+  font-weight: var(--weight-h2);
+  letter-spacing: 0;
+  vertical-align: middle;
+}
 .mis-statement-actions {
   display: flex;
   align-items: center;

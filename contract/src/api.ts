@@ -229,7 +229,7 @@ export interface MisSelectionPeriodOption {
 export interface MisSelectionOptionsResponse {
   departments: string[];
   functions: string[];
-  plants: Array<{ value: string; label: string; aliases: string[] }>;
+  plants: Array<{ value: string; label: string; aliases: string[]; provisional?: boolean }>;
   periods: MisSelectionPeriodOption[];
 }
 
@@ -241,6 +241,8 @@ export interface MisSelectionScopeReadout {
   costCentres: string[];
   glCodes: string[];
   misFormat: string;
+  provisional?: boolean;
+  plantDisplay?: string;
 }
 
 export interface MisSelectionBucketRow {
@@ -292,6 +294,7 @@ export interface MisStatementMeasureBlock {
   actual: FixedScaleMoney;
   percentage: string | null;
   sourcePresence: SourcePresence[];
+  budgetState?: "loaded" | "not-loaded";
 }
 
 export interface MisStatementNode {

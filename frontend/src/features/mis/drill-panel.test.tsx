@@ -353,6 +353,41 @@ test("drilling a leaf inside the aggregate panel replaces the body in place and 
   await waitFor(() => expect(within(returnedLeaf).getByRole("button")).toHaveFocus());
 });
 
+test("the aggregate drill on a not loaded parent and on the grand total renders dashed budgets and a dashed footer and performs no paise arithmetic on the budget", () => {
+  const notLoadedResponse = {
+    ...response,
+    tree: response.tree.map(notLoadedNode),
+    grandTotal: notLoadedNode(response.grandTotal),
+  };
+  renderWithQuery(<StatementView response={notLoadedResponse} />);
+  openActual("Admin Expenses", 0);
+
+  let dialog = screen.getByRole("dialog", { name: "Admin Expenses" });
+  expect(within(dialog).getByRole("row", { name: /Diesel/ })).toHaveTextContent("–₹5");
+  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("–₹30₹30.06exact–");
+  expect(within(dialog).getAllByLabelText("Budget not loaded for this plant")).toHaveLength(8);
+  expect(within(dialog).queryByText("Total withheld")).not.toBeInTheDocument();
+
+  cleanup();
+  renderWithQuery(<StatementView response={notLoadedResponse} />);
+  fireEvent.click(within(screen.getByRole("row", { name: "Grand total" })).getAllByRole("button")[0]);
+  dialog = screen.getByRole("dialog", { name: "Grand Total" });
+  expect(within(dialog).getByRole("row", { name: /unmapped-GL/ })).toHaveTextContent("–₹2–");
+  expect(within(dialog).getByRole("row", { name: "Total" })).toHaveTextContent("–₹32₹32.07exact–");
+  expect(within(dialog).queryByText("Total withheld")).not.toBeInTheDocument();
+});
+
+test("the leaf actual transactions path is unchanged for a not loaded block", async () => {
+  mocks.runMisDrill.mockResolvedValue(drillResponse());
+  const leaf = notLoadedNode(diesel);
+  renderWithQuery(<StatementView response={{ ...response, tree: [leaf], grandTotal: leaf }} />);
+  openActual("Diesel", 0);
+
+  await waitFor(() => expect(mocks.runMisDrill).toHaveBeenCalledTimes(1));
+  expect(await screen.findByRole("table")).toHaveTextContent("REF-1Diesel");
+  expect(mocks.runMisDrill).toHaveBeenCalledWith(expect.objectContaining({ nodeKey: "diesel", block: "selected" }));
+});
+
 function drillResponse(overrides: Partial<MisDrillResponse> = {}): MisDrillResponse {
   return {
     nodeKey: "diesel",
@@ -420,4 +455,17 @@ function measure(
     percentage: budget === "0.00" ? (actual === "0.00" ? null : "over-budget") : "0.5",
     sourcePresence: ["matched"],
   };
+}
+
+function notLoadedNode(statementNode: MisStatementNode): MisStatementNode {
+  return {
+    ...statementNode,
+    measures: statementNode.measures.map((measureBlock) => notLoaded(measureBlock)),
+    children: statementNode.children.map(notLoadedNode),
+  };
+}
+
+function notLoaded(measureBlock: MisStatementMeasureBlock): MisStatementMeasureBlock {
+  // The all-plants backend task removes this cast when it makes the wire contract a discriminated union.
+  return { ...measureBlock, budgetState: "not-loaded", budget: null } as unknown as MisStatementMeasureBlock;
 }

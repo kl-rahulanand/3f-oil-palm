@@ -321,6 +321,91 @@ test("leaf actuals are activatable in the statement and in the panel while budge
   expect(within(panelLeaf).getAllByRole("button")).toHaveLength(1);
 });
 
+test("a not loaded leaf row renders a dash with the not loaded label in budget rollover and percentage with no drill affordance on those cells while the actual stays a drill button", () => {
+  const leaf = {
+    ...resolved.tree[0],
+    measures: [notLoaded(selected("999.00", "444.00", "0.444"), "999.00")],
+    children: [],
+  };
+  renderWithQuery(
+    <StatementView
+      response={{ ...resolved, tree: [leaf], grandTotal: { ...resolved.grandTotal, measures: leaf.measures } }}
+    />,
+  );
+
+  const cells = within(screen.getByRole("row", { name: /Materials/ })).getAllByRole("gridcell");
+  for (const index of [2, 3, 5]) {
+    expect(cells[index]).toHaveTextContent("–");
+    expect(cells[index]).toHaveAccessibleName("Budget not loaded for this plant");
+    expect(within(cells[index]).queryByRole("button")).not.toBeInTheDocument();
+  }
+  expect(within(cells[4]).getByRole("button", { name: /Drill down Actual ₹444/ })).toBeInTheDocument();
+});
+
+test("a not loaded parent row and the grand total row render the same dashes and labels", () => {
+  const parent = {
+    ...resolved.tree[0],
+    measures: [notLoaded(selected("999.00", "444.00", "0.444"))],
+    children: [
+      {
+        ...resolved.tree[0].children[0],
+        measures: [notLoaded(selected("10.00", "5.00", "0.5"))],
+      },
+    ],
+  };
+  const grandTotal = { ...resolved.grandTotal, measures: [notLoaded(selected("1500.00", "449.00", "0.299"))] };
+  renderWithQuery(<StatementView response={{ ...resolved, tree: [parent], grandTotal }} />);
+
+  for (const row of [
+    screen.getByRole("row", { name: /Materials/ }),
+    screen.getByRole("row", { name: "Grand total" }),
+  ]) {
+    expect(within(row).getAllByLabelText("Budget not loaded for this plant")).toHaveLength(3);
+    expect(within(row).getAllByRole("button")).toHaveLength(1);
+  }
+});
+
+test("a loaded block and a block without a budget state render exactly as before whatever the amount holds only the state decides", () => {
+  const response = {
+    ...resolved,
+    tree: [
+      {
+        ...resolved.tree[0],
+        measures: [selected("123.00", "61.00", "0.5"), loaded(ytd("987.00", "493.00", "0.5"))],
+        children: [],
+      },
+    ],
+  };
+  renderWithQuery(<StatementView response={response} />);
+
+  const row = screen.getByRole("row", { name: /Materials/ });
+  expect(row).toHaveTextContent("₹123");
+  expect(row).toHaveTextContent("₹987");
+  expect(within(row).getAllByText("50%")).toHaveLength(2);
+  expect(within(row).queryByLabelText("Budget not loaded for this plant")).not.toBeInTheDocument();
+  expect(within(row).getAllByLabelText("Roll-over unavailable")).toHaveLength(2);
+});
+
+test("the header renders the plant display name and the provisional labels mark from the scope readout and nothing for DUB", () => {
+  renderWithQuery(
+    <StatementView
+      response={{
+        ...resolved,
+        scope: { ...resolved.scope, plant: "H.O", plantDisplay: "Head Office", provisional: true },
+      }}
+    />,
+  );
+
+  expect(screen.getByRole("heading", { name: /Nursery — Head Office/ })).toBeInTheDocument();
+  expect(screen.getByText("Provisional labels")).toHaveClass("mis-provisional-label");
+  expect(screen.queryByText(/Nursery — H\.O/)).not.toBeInTheDocument();
+
+  cleanup();
+  renderWithQuery(<StatementView response={resolved} />);
+  expect(screen.getByRole("heading", { name: "Nursery — DUB" })).toBeInTheDocument();
+  expect(screen.queryByText("Provisional labels")).not.toBeInTheDocument();
+});
+
 function measure(
   key: MisStatementMeasureBlock["key"],
   budget: FixedScaleMoney,
@@ -338,4 +423,16 @@ function measure(
     percentage,
     sourcePresence: ["matched"],
   };
+}
+
+function notLoaded(
+  measureBlock: MisStatementMeasureBlock,
+  budget: FixedScaleMoney | null = null,
+): MisStatementMeasureBlock {
+  // The all-plants backend task removes this cast when it makes the wire contract a discriminated union.
+  return { ...measureBlock, budgetState: "not-loaded", budget } as unknown as MisStatementMeasureBlock;
+}
+
+function loaded(measureBlock: MisStatementMeasureBlock): MisStatementMeasureBlock {
+  return { ...measureBlock, budgetState: "loaded" } as MisStatementMeasureBlock;
 }

@@ -15,6 +15,7 @@ import { useMisStatementExport } from "./use-mis-statement";
 const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
 const shortMonthFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "UTC" });
 const percentageFormatter = new Intl.NumberFormat("en-IN", { style: "percent", maximumFractionDigits: 1 });
+export const BUDGET_NOT_LOADED_LABEL = "Budget not loaded for this plant";
 
 export function StatementView({ response }: Readonly<{ response: MisStatementRunResponse }>) {
   const download = useMisStatementExport();
@@ -45,7 +46,8 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
         <div>
           <p className="mis-eyebrow">Financial statement</p>
           <h2 id="mis-statement-title">
-            {response.scope.function} — {response.scope.plant}
+            {response.scope.function} — {response.scope.plantDisplay ?? response.scope.plant}
+            {response.scope.provisional && <span className="mis-provisional-label">Provisional labels</span>}
           </h2>
         </div>
         <div className="mis-statement-actions">
@@ -243,31 +245,61 @@ function MeasureCells({
   measure,
   onOpen,
 }: Readonly<{ measure: MisStatementMeasureBlock; onOpen?: (opener: HTMLButtonElement) => void }>) {
+  const actual = (
+    <td role="gridcell" data-numeric="true">
+      {onOpen ? (
+        <button
+          className="mis-actual-action"
+          type="button"
+          aria-label={`Drill down Actual ${formatMoney(measure.actual)} for ${measure.label}`}
+          onClick={(event) => onOpen(event.currentTarget)}
+        >
+          {formatMoney(measure.actual)}
+        </button>
+      ) : (
+        formatMoney(measure.actual)
+      )}
+    </td>
+  );
+  if (isBudgetNotLoaded(measure)) {
+    return (
+      <>
+        <td role="gridcell" data-numeric="true" aria-label={BUDGET_NOT_LOADED_LABEL}>
+          –
+        </td>
+        <td role="gridcell" data-numeric="true" aria-label={BUDGET_NOT_LOADED_LABEL}>
+          –
+        </td>
+        {actual}
+        <td
+          role="gridcell"
+          className="mis-statement-block-end"
+          data-numeric="true"
+          aria-label={BUDGET_NOT_LOADED_LABEL}
+        >
+          –
+        </td>
+      </>
+    );
+  }
   return (
     <>
       <td role="gridcell" data-numeric="true">
         {formatMoney(measure.budget)}
       </td>
       <td role="gridcell" data-numeric="true" aria-label="Roll-over unavailable" />
-      <td role="gridcell" data-numeric="true">
-        {onOpen ? (
-          <button
-            className="mis-actual-action"
-            type="button"
-            aria-label={`Drill down Actual ${formatMoney(measure.actual)} for ${measure.label}`}
-            onClick={(event) => onOpen(event.currentTarget)}
-          >
-            {formatMoney(measure.actual)}
-          </button>
-        ) : (
-          formatMoney(measure.actual)
-        )}
-      </td>
+      {actual}
       <td role="gridcell" className="mis-statement-block-end" data-numeric="true">
         {formatPercentage(measure.percentage)}
       </td>
     </>
   );
+}
+
+export function isBudgetNotLoaded(
+  block: MisStatementMeasureBlock,
+): block is MisStatementMeasureBlock & { budgetState: "not-loaded" } {
+  return block.budgetState === "not-loaded";
 }
 
 export function formatBlockHeading(block: MisStatementMeasureBlock): string {
