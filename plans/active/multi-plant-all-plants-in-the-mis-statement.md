@@ -2,7 +2,7 @@
 issue: multi-plant
 title: All plants in the MIS statement
 status: approved
-saved: 2026-09-15T10:30:42+00:00
+saved: 2026-09-15T10:48:10+00:00
 story: multi-plant
 decisions_reviewed:
   - 0001-poc-engagement-scope

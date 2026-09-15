@@ -8,7 +8,7 @@
   "gaps": [
     "The client aggregate drill formats and sums measure.budget (drill-panel.tsx:394,438) and would throw on the null budgets C4 introduces.",
     "The statement pins the budget batch only when DUB is in the user's grants (sqlBuilder.ts:216), so a user granted a non-owner plant alone would have no pin and the drill would refuse.",
-    "SEED_USERS carries only email, name and roles (config.ts:91), so the DUB-only second user decision 0036 relies on could not be seeded.",
+    "SEED_USERS carries only email, name and roles (config.ts:91), so the DUB-only second user decision 0037 relies on could not be seeded.",
     "MisSelectionScopeReadout is shared with POST /api/mis/run; the new fields and their tests had no owner there.",
     "A .mjs generator under tools/ cannot import the TypeScript outline helper from the CommonJS backend without a loader, so the drift proof was not reproducible.",
     "C3 asked for one new bucket reason while also preserving DUB's two existing reason literals.",
@@ -30,7 +30,7 @@
     "FRONTEND TASK GRILL (2026-09-15): widening budget in the frontend task would break the backend export typecheck too, so the contract change is split additive-then-union (frontend adds optional budgetState and guards; backend introduces the union with null and adapts export and DTO); the story closeout's functional check is named as the place the live dash is observed. Plan Task Decomposition and C4 amended; re-bound."
   ],
   "open_items": [
-    "Non-blocking: the deferred set rides decision 0033's trigger; plant-aware Ask rides decision 0036."
+    "Non-blocking: the deferred set rides decision 0034's trigger; plant-aware Ask rides decision 0037."
   ],
   "inspected_refs": [
     "frontend/src/features/mis/drill-panel.tsx:394,438",
@@ -63,7 +63,7 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "7ab45aabb07b78f02c91be8be689f8ce254305139bf56114a54d4bd73ed2f406",
-  "recorded_at": "2026-09-15T10:30:42+00:00",
-  "commit": "a399fc4bcd7657784119eceb9e18bb3e9f894edc"
+  "input_sha256": "dd90852b70e1dcb967d2d7f272877668e27b69693fc63eeb47916d978acb0305",
+  "recorded_at": "2026-09-15T10:48:09+00:00",
+  "commit": "13584f39c9c597d79372fef55965bc015eda525d"
 }
