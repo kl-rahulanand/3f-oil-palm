@@ -1638,6 +1638,14 @@ button {
   color: var(--kl-slate);
   font-size: 11px;
 }
+.ask-report-reason-label {
+  display: block;
+  color: var(--kl-caption-ui);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .ask-preserve-actions {
   display: flex;
   align-items: center;

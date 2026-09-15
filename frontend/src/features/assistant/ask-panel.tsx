@@ -5,6 +5,7 @@ import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/src/lib/api";
+import { formatPercentage } from "../mis/statement-view";
 import { useAsk, type AskTurn } from "./use-ask";
 
 const SEED_QUESTIONS = [
@@ -186,7 +187,7 @@ function SuccessAnswer({ response }: Readonly<{ response: AskResponse }>) {
           {Object.entries(response.totals).map(([label, value]) => (
             <div key={label}>
               <dt>{label}</dt>
-              <dd>{value}</dd>
+              <dd>{cell(value, formatForKey(response.result, label))}</dd>
             </div>
           ))}
         </dl>
@@ -336,7 +337,7 @@ function ResultTableView({ result }: Readonly<{ result: ResultTable }>) {
             <tr key={result.columns.map((column) => String(row[column.key])).join("|")}>
               {result.columns.map((column) => (
                 <td key={column.key} data-numeric={column.numeric || undefined}>
-                  {suppressed.has(`${rowIndex}:${column.key}`) ? "—" : cell(row[column.key])}
+                  {suppressed.has(`${rowIndex}:${column.key}`) ? "—" : cell(row[column.key], column.format)}
                 </td>
               ))}
             </tr>
@@ -374,7 +375,15 @@ function ProvenanceDisclosure({ provenance }: Readonly<{ provenance: NonNullable
 }
 
 function ViewInReport({ response }: Readonly<{ response: AskResponse }>) {
-  if (!response.viewInReport.available) return <p className="ask-report-reason">{response.viewInReport.reason}</p>;
+  // Label the reason. Unlabelled, a sentence explaining why ONE LINK is unavailable sits
+  // directly under the result and reads as a caveat about whether the answer is trustworthy.
+  if (!response.viewInReport.available)
+    return (
+      <p className="ask-report-reason">
+        <span className="ask-report-reason-label">View in report unavailable</span>
+        {response.viewInReport.reason}
+      </p>
+    );
   return (
     <Link className="ask-report-link" href={reportHref(response.viewInReport)} prefetch={false}>
       View in report
@@ -415,8 +424,17 @@ function isNumeric(value: string | number | null): boolean {
   );
 }
 
-function cell(value: string | number | null | undefined): string | number {
-  return value ?? "—";
+function cell(value: string | number | null | undefined, format?: "percent"): string | number {
+  if (value === null || value === undefined) return "—";
+  // A percent measure is a RATIO in the payload, and it may also carry a sentinel string
+  // ("over-budget", "credit / negative actual") that formatPercentage passes through intact.
+  if (format === "percent") return formatPercentage(String(value));
+  return value;
+}
+
+/** A total is keyed by its measure key, so its format is the matching column's format. */
+function formatForKey(result: ResultTable | undefined, key: string): "percent" | undefined {
+  return result?.columns.find((column) => column.key === key)?.format;
 }
 
 function latestSuggestions(turns: AskTurn[]): string[] | undefined {
