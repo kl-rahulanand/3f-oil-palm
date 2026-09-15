@@ -1,4 +1,4 @@
-# Cold-read grill — gate: plan — plan draft plan.md
+# Cold-read grill — gate: plan — plan draft plan-multi-plant.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,203 +431,333 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: **Correction to what I told you.** When I asked about the freshness pill I said the data already exists and just needs exposing. That was wrong. `postgres.adapter.ts:56` returns `null` when no freshness column is supplied, and **no domain declares one** — `grep -c freshnessColumn` in the semantic layer is **0**. So freshness is `null` everywhere today, and `dataAsOf` in answer provenance has always been null too. The grill also found there is no single truth to show: actuals and budget arrive as **separate ingest batches** with their own timestamps, so one pill cannot honestly imply one number without a rule. Wiring it means *defining* freshness first — bigger than the route-plus-render job I described.
-  A: Define it from ingest batches, show the oldest (Recommended)
-- Q: Closing the requirements grill for `poc-responsiveness`. The cold read returned **NOT CONVERGED** with two blockers and six under-specifications, and I've resolved them: a new spec `assistant-responsiveness.md` now contracts this story (it didn't exist — the story's requirements lived only in the roadmap item, so a plan could have satisfied the old spec and built none of it), and the assistant spec's stale "NOT wired in, this story owns wiring it" paragraph is marked **DELIVERED** so nobody re-creates shipped routes, migration and UI. Your freshness call is in. I also pinned the things the grill said were unfalsifiable: the retry is scoped to a selector call with **no tool block only**, at most **two calls total**, never on the deterministic smalltalk/definition/refusal paths (routing precedes selection), and never repeats a governed query; streaming specifies phase order, **no flicker** for answers that resolve without a model call, terminal errors through the existing renderer, and cancel-on-leave; "fills its column" means desktop full height with the thread scrolling inside, mobile stacking unchanged. Any gap before I write the plan?
-  A: No gaps — write the plan (Recommended)
-- Q: Closing the spec grill for `assistant-responsiveness`. The cold read returned NOT CONVERGED with seven findings and caught **two factual errors in my own spec**, which I've now corrected: I claimed the server never bounds prior turns (it does — `trimPriorTurnsToTokenBudget` at `chat.service.ts:675`), and I'd written that turns should be kept "most-recent-first", which would have reversed transport order and made `priorTurns.at(-1)` select the wrong turn. The rewritten spec leads with the measured root cause instead: **no `maxTokens` on the Converse call** — 214,222ms/24,313 tokens uncapped versus 1,429ms/168 tokens at `maxTokens: 2048`, stopping at `tool_use` rather than truncating. Also fixed from the read: the `routing` phase is emitted *before* the deterministic classifiers, so "no flicker" is now a client render-delay rule rather than a false claim; cancellation must actually abort the model and query work (today nothing does); `priorTurns` has no array bound in the schema; and freshness is defined as **load freshness** — oldest `uploaded_at_utc` across active batches, labelled as load time — because active batches are unique per source *and period*, so a September upload of July data must not read as "data as of September".
-  A: Record the pass and plan it (Recommended)
-- Q: One more round purely to close the **requirements** gate — the harness consumes each ledgered answer against a single gate, and I spent the earlier ones on the spec gate, so this needs its own. Nothing new to decide; confirming the record before I write the plan. What it will state: the story had no contracting spec (its requirements lived only in the roadmap item), now fixed by `assistant-responsiveness.md`, which is confirmed and linked — spec debt cleared. The assistant spec's stale "this story owns wiring it" paragraph is marked DELIVERED so the shipped routes, migration and UI can't be re-created. Your freshness decision is recorded, along with the correction that I first put it to you on a false premise. And the root cause is the measured one: no `maxTokens` on the Converse call, 214,222ms → 1,429ms.
-  A: Record it and write the plan (Recommended)
+- Q: Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?
+  A: Accept, confirmed by Rahul Anand (Recommended)
+- Q: FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)
+  A: Budget = loaded months, % = not loaded (Recommended)
+- Q: While a clicked period is being fetched, should the rest of Ask stay usable — i.e. can someone type a new question before the continuation comes back?
+  A: Lock the panel while it runs (Recommended)
+- Q: If a clicked period fails (server refuses it, or the network drops), what should the user be left looking at?
+  A: Keep the buttons, show why (Recommended)
+- Q: A clicked period can come back as something other than a data answer — for example another clarification, or an informational glossary reply. Which of those should take over the turn?
+  A: Only a successful answer (Recommended)
 
-## The artifact under interrogation (plan draft plan.md)
+## The artifact under interrogation (plan draft plan-multi-plant.md)
 
-# Plan — poc-responsiveness: Assistant responsiveness and shell truth
+---
+decisions_reviewed:
+  - 0001-poc-engagement-scope
+  - 0002-phase1-financial-mis
+  - 0003-mis-presentation-tool
+  - 0004-pulse-governed-joins
+  - 0005-client-signoff
+  - 0006-frontend-fresh-backend-vendor
+  - 0007-frontend-framework-nextjs
+  - 0008-pulse-vendored-snapshot
+  - 0009-required-tests-real-name-and-tsproject
+  - 0010-rebrand-pulse-to-3f
+  - 0011-deployment-readiness-poc-scope
+  - 0012-vendored-api-constitution-deviation
+  - 0013-backend-observability-built-in-poc
+  - 0014-sap-ingestion-poc-no-master
+  - 0015-warehouse-snake-case-deviation
+  - 0017-mis-selection-composite-key-seam
+  - 0018-mis-selection-unmapped-gl-bucket
+  - 0019-fresh-routes-follow-vendored-house-style
+  - 0020-mis-budget-leaf-grain
+  - 0021-mis-statement-outline-snapshot
+  - 0022-mis-statement-governed-projection
+  - 0023-mis-statement-drift-reports-not-blocks
+  - 0024-drill-down-aggregate-client-projection
+  - 0025-drill-down-pinned-batch-raw-read
+  - 0026-assistant-ships-in-the-poc
+  - 0027-assistant-llm-bedrock-mumbai
+  - 0028-saved-selections-not-snapshots
+  - 0029-all-plants-provisional-scope
+  - 0030-format-outline-object
+  - 0031-master-generated-from-workbook
+  - 0032-ask-typed-choice-continuation
+---
 
-Story: `poc-responsiveness` (roadmap 8) · spec: `docs/specs/assistant-responsiveness.md` (confirmed)
+# Plan — multi-plant: All plants in the MIS statement
+
+Story: `multi-plant` (roadmap 9, epic reporting) · spec: `docs/specs/all-plants-statement.md`
+(confirmed 2026-09-15; spec grill and requirements grill both recorded against its amended
+digest). Decisions 0029-0032 are accepted.
 
 ## Problem
-The PoC shipped at 7/7 and the assistant answers correctly, but live testing found a follow-up
-question could take **39s**, **57s**, and in reproduction **214s**. The product looks hung.
+The shipped statement offers exactly one selection, Agriculture / Nursery / DUB, because the
+product is pinned to the nursery in five places, each verified by reading the file:
 
-The cause is one missing request field. `backend/src/llm/bedrock.provider.ts:394` sends
-`inferenceConfig: { temperature: 0, topP: 1 }` and **no `maxTokens`**. Measured directly against
-Bedrock with the real system prompt, the real three-tool schema, the same question and the same
-single prior turn:
+1. `backend/src/mapping/mis-mapping-master.ts` holds one selection and the 28
+   cost-centre-plus-GL pairs DUB used in July; the full mapping sheet has 95.
+2. `backend/src/ingest/mis-budget.parser.ts:8-9` hard-codes the format id and `plant = "DUB"`.
+3. `backend/src/warehouse/warehouse-schema.ts:43` makes exactly one budget batch active per
+   period, with no plant on `ingest_batch`, so a second plant's July budget would deactivate
+   the nursery's.
+4. `warehouse-schema.ts:180-185` defines `actual_by_gl_month` with `'DUB'::text AS plant …
+   WHERE plant = 'DUB'`, so Ask answers by GL code can never show another plant.
+5. `backend/src/chat/chat.service.ts:726-737` (`statementRequest`) requires exactly one
+   department, function and plant on the user, so a multi-plant user's statement question
+   from Ask resolves to nothing.
 
-| request | latency | output tokens | stopReason | tool block |
-| --- | --- | --- | --- | --- |
-| no `maxTokens` | 214,222 ms | 24,313 | - | - |
-| `maxTokens: 2048` | 1,429 ms | 168 | `tool_use` | yes |
-| `maxTokens: 512` | 1,703 ms | 203 | `tool_use` | yes |
-
-A selection is ~110 output tokens. Capped, the model stops at `tool_use` — **not** `max_tokens` —
-so the cap does not truncate; its presence alone ends the runaway. With no prior turn the same call
-already returned in 0.8–1.3s, so neither the model nor `ap-south-1` is at fault.
-
-**Two earlier diagnoses of mine were wrong and were corrected by cold reads, not by me.** I first
-blamed the model family; the human disproved it from experience with the same model in Pulse. I
-then wrote that the server never bounds prior turns — it does, at
-`backend/src/chat/chat.service.ts:675` (`trimPriorTurnsToTokenBudget`, called at `:153`) — and the
-reproduction used a *single* prior turn well inside that budget, so trimming cannot be the fix.
-This plan records that history because the wrong fix (swap the model, or trim harder) is expensive
-and would not have worked.
-
-Two further defects make the product read as broken in a demo. The Ask surfaces call the buffered
-JSON route and show one static pending state, so a slow answer is indistinguishable from a hang —
-while `POST /api/chat/stream` is built, registered, allow-listed, and consumed by nothing. And the
-shell renders a permanently disabled `Freshness unavailable` chip
-(`frontend/src/components/shell/app-shell.tsx:174`) that computes nothing; underneath,
-`backend/src/warehouse/postgres.adapter.ts:56` returns null when no freshness column is supplied
-and **no domain declares one**, so `provenance.dataAsOf` has always been null too.
+The July extract already holds 4,113 lines across 31 plants, all retained. A measured read of
+the client's two workbooks shows the nursery mapping generalises: one company-wide chart of
+accounts (54 GL codes, 45 in the sheet), one cost-centre vocabulary everywhere, and the sheet's
+dictionary classifying ₹10,21,80,290.32 of ₹11,02,73,718.00 (92.7%). The human decided
+(decision 0029) to offer every plant on the nursery format with provisional labels, and to
+show an absent budget as a dash.
 
 ## Scope / Non-goals
 
 **In scope**
-- `maxTokens` on the selector Converse call — the fix for the latency the human actually hit.
-- A no-tool-block retry that cannot mask a genuine refusal, which requires un-collapsing three
-  outcomes the provider currently maps to one `unsupported`.
-- Request-schema limits on `priorTurns` (server resource safety, explicitly **not** the latency fix).
-- Both Ask surfaces consuming the existing stream, with a phase rule that matches the producer,
-  real cancellation, and full transport parity with the buffered client.
-- Freshness **defined** (not merely exposed) and rendered; the docked panel filling its column.
+- A generated master covering every SAP plant in the data (decision 0031), the full mapping
+  sheet applied per plant, bucket rows for the eleven unnamed pairs, provisional labels.
+- The format outline as its own ingest object; plant-keyed budget batches; the budget upload
+  taking an explicit plant (decision 0030).
+- The absent-budget state through the statement, its export, the governed measures and the
+  drill pins; the partial-FY-YTD rule.
+- Ask across granted plants: `plant` as a governed-financial dimension, statement plant from
+  report grounding or the question, a typed plant clarification (decision 0032); the demo
+  user granted every plant.
+- The MIS Reports and Ask surfaces rendering the above.
 
 **Non-goals**
-- Changing the model or the region. Decision **0027** stands; the evidence shows the model is fast
-  when the request is well formed.
-- Durable conversation history (deferred at the assistant plan grill; **0028** stands).
-- Period-scoped or report-scoped freshness — the shell chip is global; per-report currency belongs
-  to the report.
-- Re-planning any shipped assistant behaviour, and the Pulse-inherited examples still in the
-  selector system prompt ("leads and appointments booked", "by state"), and D-0040.
+- A trimmed office or mill format (rejected by the human, 0029); Table-1 and Table-3.
+- Budgets for any plant but the nursery; roll-over; live SAP; months beyond those uploaded.
+- An in-app master editor; the authoritative Master Table reconciliation (still owned by
+  `mis-selection-and-master`'s open item).
+- The recoverable-period clarification: `ask-period-control` follows this story and builds
+  `periodChoice` on the pattern 0032 sets.
+- Re-planning shipped drill or statement behaviour beyond what the outline object requires.
 
 ## Acceptance Criteria
-- **C1** The selector Converse request carries an explicit `maxTokens`, asserted on the request the
-  provider builds — not inferred from timing. A follow-up completes in seconds, not minutes.
-- **C2** A selector response with **no tool block** is retried at most once; a **malformed** tool
-  input and a genuine **`mark_unsupported`** are never retried; a second tool-less response answers
-  `backend_error` naming an incomplete model response, **never `not_supported`** — which would
-  assert the untrue thing this story removes. The provider stops collapsing those three outcomes at
-  `bedrock.provider.ts:227` so the retry can tell them apart. No retry repeats a governed query.
-- **C3** `backend/src/chat/chat.schemas.ts:21` rejects an oversize `priorTurns` array and oversize
-  per-question length **before** serialization; retained order stays **oldest-first** so
-  `chat.service.ts:153`'s `priorTurns.at(-1)` is still the latest turn.
-- **C4** Both Ask surfaces render streamed phases in order; an answer resolving within the client's
-  render delay shows **no phase at all** (the server already emits `routing` at
-  `chat.service.ts:103` *before* the deterministic classifiers, so this is a client rule, not a
-  producer change); a terminal `error` frame renders through the existing seven-class renderer.
-- **C5** The streaming client preserves the buffered client's CSRF bootstrap, cookie credentials,
-  401 refresh and HTTP-error rendering — pre-stream auth/CSRF/validation failures are HTTP
-  responses, not SSE frames. Leaving the assistant cancels, and the cancellation **reaches the model
-  and query work**: `chat.controller.ts` observes no client disconnect today and passes no abort
-  signal, so an abandoned request keeps selecting, querying and auditing. Moving between the dock
-  and the Ask page shares one provider and one thread and does **not** cancel.
-- **C6** The freshness pill shows the oldest `uploaded_at_utc` among **active** ingest batches
-  across governed sources, labelled as **load** freshness, says so plainly when none is available,
-  and is no longer marked `aria-disabled`. `provenance.dataAsOf` stops being null by the same seam.
-- **C7** The docked panel fills its column on desktop with the thread scrolling **inside** it;
-  existing mobile stacking at the current breakpoint is unchanged.
-- **C8** Every proof is judged by its junit testcase **name** and **executed count**, never an exit
-  code (D-0024, D-0031).
+- **C1** Against the pinned July actuals batch, all 31 SAP plant codes are offered to a fully
+  granted user, each renders, and the 31 Grand Total Actuals sum to ₹11,02,73,718.00 in exact
+  paise. Proven by a gated warehouse fixture over the client extract, not by inspection.
+- **C2** DUB is unchanged: Actual ₹1,15,12,712.07 and Budget ₹1,00,50,136.29 for July 2026,
+  every parent footing to its leaves, `unmapped-GL` carrying its own Actual, the export
+  matching. The existing statement-projection and golden proofs keep passing.
+- **C3** Every `(plant, cost centre, GL)` triple in the July extract resolves exactly once via
+  the generated master; classification is a pure function of the committed table and the
+  extract's cost centres (the fourteen July nursery codes, `H.O` Corporate / Office, the rest
+  Operations / Unit), proven hermetically; nothing dropped or fanned out; the eleven unnamed pairs resolve to
+  `unmapped-GL` with reason "not in the mapping sheet"; DUB's nine existing bucket rows keep
+  their reasons; every new row is `provisional: true` with a reason; the master version is 3;
+  a hermetic test proves the checked-in master equals the generator's output.
+- **C4** A plant with no active budget batch for a block renders `–` with the accessible label
+  "Budget not loaded for this plant" in Budget, Roll-over and % on every row including the Grand
+  Total, on screen and in the Excel export, with no over-budget or credit flag anywhere. H.O
+  renders 100% of its July net inside sections 8 Manpower and 9 Admin and ₹0 Actual on every
+  nursery-only section.
+- **C5** Department and Function follow the classification rule (nursery plants Agriculture /
+  Nursery; `H.O` Corporate / Office; others Operations / Unit), are stored `provisional` in the
+  master, and the selection options and the statement header show a visible "provisional" mark.
+- **C6** Budget batches are keyed by plant and period; the upload takes a canonical `plant`
+  field and refuses a missing or unknown plant; leaves that differ from the active format
+  outline **load and are named** in the validation result (0023), and only matching leaves
+  attach; a second plant's July budget coexists with DUB's and re-uploading it replaces only
+  itself. The nursery workbook re-imported with `plant=DUB` yields the format outline batch and
+  DUB's budget batch in one transaction.
+- **C7** The statement's provenance carries the outline batch under source `outline` and the
+  mapping-master version; the drill requires exactly one outline pin covering the block end,
+  accepts zero or more plant budget pins (one per loaded month), and refuses a master-version
+  mismatch as "statement out of date" (closing D-0038); it foots in exact paise for a leaf and
+  for `unmapped-GL` on a no-budget plant; its audit record names the pinned outline batch, the
+  budget batches if any, and the master version.
+- **C8** Ask: `plant` is a `governed-financial` dimension scoped by grants on both sides of the
+  join, so "Show Actual by plant for July 2026" returns one row per granted plant summing to
+  the company net for the seeded user; a user granted only DUB gets only DUB in options, Ask
+  and drill with no row leaking. A statement question beside a report resolves the report's
+  plant; one naming a granted plant resolves it; on the standalone page a multi-plant user with
+  no plant named receives a `plantChoice` clarification whose pick re-runs with zero further
+  selector calls, proven by counting `select()` on a fake provider.
+- **C9** Partial FY-YTD: Budget sums the months that have a budget batch and the block heading
+  names them; % renders the dash whenever any month with actuals in the block lacks a budget;
+  a two-month fixture proves it. The two zero states, the three nil states and the absent
+  state stay distinct in hermetic tests.
+- **C10** `GET /api/mis/options` offers only master-configured selections within the user's
+  grants; an actuals upload always activates (replace-per-period, human-decided) and its
+  validation result names unknown plant codes and plants present in the previously active
+  batch but absent from the new one; unknown plants never appear in the dropdowns.
+- **C11** Every proof is judged by junit testcase name and executed count (D-0024, D-0031); new
+  test files are registered in `backend/package.json` and `tools/quality-gate.test.mjs`; a
+  D-0006-ignored file edited by this story (`backend/src/chat/chat.service.ts`,
+  `backend/src/db/migrate.ts` is not ignored) is formatted and de-ignored in the same task.
 
 ## Technical Approach
 
-### The cap and the retry
-`maxTokens` is added to the single `inferenceConfig` the provider builds. The value sits far above
-a real selection (~110 tokens) and far below a runaway (24,313); both measured caps behaved
-identically, so the choice is about headroom, not tuning.
+### The master is generated, not typed (0031)
+`tools/generate-mapping-master.mjs` reads Sheet1 and the SAP Report of
+`docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx`, the `Plant list` of
+`Nursery MIS Format.xlsx`, and a committed table `backend/src/mapping/plant-classification.ts`
+(SAP code → canonical id, display, department, function, nursery flag, provisional). For each
+plant it emits one selection: `plant_canonical` = SAP code (DUB keeps `DUB` + alias `DUB-NUR`),
+`mis_format: "nursery-mis-financial-v1"`, `budget_gl_codes` = the format's leaf GL codes, and
+entries = the 95 sheet pairs as `leaf` targets resolved to stable leaf keys via the format
+outline's `S.No|GL|slug` identity (the same resolution `mis-budget.parser.ts` performs), plus a
+`bucket` entry for every `(cost centre, GL)` pair the SAP Report books for that plant and the
+sheet does not name. DUB's nine bucket rows and their two reasons are carried from the
+classification table so nothing shipped changes. The generated file keeps the existing
+`MappingMasterDefinition` shape; `mapping-master.ts` validation (duplicate keys, alias reuse,
+provisional-without-reason) is unchanged and now guards 31 selections. `provisional_labels:
+true` is added to the selection schema so the options response can surface the mark.
 
-The retry exists because a cap *could* truncate before the tool block even though the measured runs
-stop at `tool_use`. Today that case is indistinguishable from a real refusal:
-`mapBedrockToolUseToSelectionResult` returns `{kind:"unsupported"}` for absent tool use, for
-malformed input, and for a genuine `mark_unsupported` alike. The seam must carry the three apart
-before mapping, or the retry cannot be scoped and would silently re-ask questions the model
-correctly refused. Routing precedes selection (`chat.service.ts:103`), so deterministic smalltalk,
-glossary, causal and out-of-catalog paths never reach the retry and the settled "the LLM selects,
-never authors" boundary is untouched.
+### The outline is an object; budgets belong to a plant (0030)
+Migration `0004_outline_object_and_plant_budgets.sql`: `source_kind` check admits `outline`;
+`ingest_batch.plant text NULL` with a check that it is set exactly when `source_kind = 'budget'`,
+and `ingest_batch.outline_batch_id uuid NULL` naming the format outline a budget batch was
+compared against; the partial unique index becomes `(source_kind, period, COALESCE(plant, ''))`;
+the `mis_budget` → `mis_budget_outline` foreign key is unchanged; `budget_by_leaf_month` and
+`budget_by_gl_month` add `plant`; `actual_by_gl_month` drops the DUB literal and groups by
+`plant`. The actuals validation result gains `unknownPlants` and `missingPlants` (versus the
+previously active batch for the period); activation is unchanged. Existing budget batches are deactivated by the migration (the
+0003 precedent) and the nursery workbook is re-imported once. `IngestionRepository` gains
+`replaceOutlineBatch` and `replaceBudgetBatch(metadata{plant, outlineBatchId}, rows, outline)`;
+the budget batch keeps its own workbook outline snapshot (0021 unchanged) so its rows always
+have a referential home, and the service compares its leaf keys with the active format outline,
+naming unattached leaves in the validation result — never refusing (0023). The nursery workbook
+upload (plant `DUB`) is the one that also writes the format outline batch; the statement
+attaches budget rows to the format outline by leaf key.
 
-### Prior turns
-`trimPriorTurnsToTokenBudget` is **kept**. Retention stays newest-turns-with-oldest-first-order —
-reversing it would break `priorTurns.at(-1)`. The schema gains explicit limits so oversize input is
-rejected before the trim loop, which re-serializes the whole array on every iteration.
+### Absent budget is a fourth state
+`MisStatementRunResponse` measures become `budget: FixedScaleMoney | null`,
+`percentage: string | null | "not-loaded"` is avoided in favour of a typed
+`budgetState: "loaded" | "not-loaded"` per block in the response, so the renderer never infers
+from null. `buildStatementProjection` keeps the full-outer join; the service decides
+`budgetState` from the active budget batches for `(plant, period range)`: none → `not-loaded`
+for the block; some months missing → Budget summed over loaded months, heading carries
+`budgetMonths`, `%` null with `percentageState: "not-loaded"`. Export writes `–` and the label
+row; filename includes the canonical plant. Provenance adds `mappingMasterVersion`. Drill: `bindPins` requires one `outline` pin whose
+period covers the block end, accepts zero or more budget pins (one per loaded month), and
+refuses when the request's master version differs from the running master (409, the existing
+"statement out of date" class). The statement and export routes stay un-audited (D-0036 stands).
 
-### Streaming
-The client moves to `POST /api/chat/stream` and renders `routing → selecting → querying →
-summarizing`. Because `routing` is emitted before the deterministic classifiers, the no-flicker
-rule lives in the client as a short render delay. The buffered route stays for the stored-selection
-re-run, which bypasses the model and needs no progress. Cancellation is wired end to end: an abort
-signal from the client, disconnect observation in the controller, and propagation into the model
-and query calls.
+### Ask across plants
+`semanticLayer.ts` adds dimension `plant` (column `plant`) to `governed-financial`; the composed
+CTEs already inject the scope predicate on both sides (`sqlBuilder.ts:92,133`), so grants hold.
+`statementRequest` resolves the plant in this order: report grounding, an explicit plant filter
+the selector emitted (the `plant` dimension is enumerable, so the model can select it), then the
+user's single plant; several granted plants and no plant → `ClarificationNeeded` with
+`plantChoice` (0032), whose pick posts `AskRequest.selection` and runs verbatim at
+`chat.service.ts:146`. `migrate.ts` seeds the admin's plant scope from the generated master's
+canonical ids. `chat.service.ts` is D-0006-ignored: the task formats it and drops its
+`.prettierignore` and baseline entries.
 
-### Freshness
-A cross-source **minimum** over active ingest batches, which the current seam cannot express: it
-takes one domain and returns `MAX(column)` (`selectionExecutor.ts:102`). Active batches are unique
-per `(source_kind, period)` (`ingest_batch_active_source_period_unique`), so many are active and
-the value must be scoped to load time, not period — a September upload of July figures is not
-"data as of September".
+### What stays exactly as built
+One governed path (0017); parents derived (0020); statement projection at leaf grain (0022);
+aggregate drill client-side (0024); raw drill under pinned predicate (0025); audit before read;
+0027's model boundary; the two zero states.
 
 ## Decisions
-Attested, all active and unchanged by this story: **0027** (Bedrock in `ap-south-1` — explicitly
-*not* amended; the model is exonerated by measurement), **0028** (selections not snapshots; the
-re-run path and the absence of stored answers are untouched), **0026**, **0019** (house style for
-any route this story touches), **0016**, **0018**, **0011**, **0012**, **0009** (required tests name
-a real leaf and pin `TS_NODE_PROJECT`). No new decision is required: the cap is a defect fix, and
-the freshness definition is specified in the confirmed spec.
-
-## Risks
-- **A cap that truncates.** Measured runs stop at `tool_use`, not `max_tokens`, so truncation is
-  unobserved — but it is the failure this design must not hide. Mitigated by C2's retry and by
-  refusing to answer `not_supported` after a second tool-less response.
-- **Retry masking a real refusal.** The whole reason C2 forbids retrying malformed input and
-  `mark_unsupported`, and requires the provider seam to distinguish them first.
-- **Cancellation appearing to work.** Aborting the browser request while the server keeps querying
-  and auditing is the current behaviour and the easy non-fix; C5 requires the abort to reach the
-  work.
-- **A freshness pill that lies.** Announcing an upload timestamp as data currency would be worse
-  than the disabled chip it replaces. Mitigated by labelling it load freshness.
-- **The roadmap item's criteria predate the diagnosis** and name the cap-and-retry as the remedy
-  for slowness. Roadmap criteria are write-once (`fill` refuses to overwrite, `heal` takes no
-  arguments), so **this plan and the confirmed spec are authoritative**; the roadmap line is a
-  headline, not the contract.
-
-## Verify Plan
-- **Backend unit** — the Converse request carries `maxTokens`; a tool-less response retries exactly
-  once; malformed input and `mark_unsupported` do **not** retry; a second tool-less response yields
-  `backend_error`, not `not_supported`; the schema rejects an oversize `priorTurns` array and an
-  oversize prior question; retained order remains oldest-first.
-- **Frontend unit** — phases render in order; an answer resolving within the delay renders no
-  phase; a terminal error renders through the existing renderer; leaving aborts; dock ↔ Ask does
-  not cancel; the pill renders the load-freshness value and its unavailable state.
-- **Backend DB-backed (gated, D-0008)** — the cross-source minimum over active ingest batches
-  returns the oldest `uploaded_at_utc` with several active periods present, demonstrated on the
-  host with a dead-port negative control.
-- **Functional (user-facing tasks)** — live against this worktree's servers with `BEDROCK_MODEL_ID`
-  set: ask, then ask a **follow-up**, and confirm it returns in seconds with phases visible; leave
-  mid-flight and confirm the backend stops; read the pill.
-- Every artifact records the **executed count and testcase name**, never the exit code.
+- `docs/decisions/0029-all-plants-provisional-scope.md` — accepted; the product call.
+- `docs/decisions/0030-format-outline-object.md` — accepted; the outline as an ingest object,
+  plant-keyed budgets, drift reported per 0023. Rejected simpler shape: reuse DUB's budget batch as every plant's
+  outline. It couples 30 plants' rows to one plant's budget upload and makes an H.O drill pin
+  a DUB budget batch, which the spec grill called unpinnable.
+- `docs/decisions/0031-master-generated-from-workbook.md` — accepted; generator plus
+  classification table. Rejected: hand-authoring ~3,000 entries (misattribution risk) and a
+  runtime master read from the warehouse (contradicts 0014 for the PoC).
+- `docs/decisions/0032-ask-typed-choice-continuation.md` — accepted; typed `plantChoice`.
+  Rejected: re-asking through the model with the plant appended (measured unreliable in the
+  period-control spec) and refusing multi-plant users outright (fails C8).
+- Tooling: no new dependency. `exceljs` (present) reads the workbooks; the generator is a Node
+  script under `tools/` like the existing quality-gate tooling; migrations follow the
+  generate-once, apply-only drizzle pattern of 0001-0003.
+- Contradicted lesson, deliberately: "ingest_batch has no plant column — do not act on it
+  again" described the old shape; 0030 changes it.
 
 ## Surface Impact
-| Surface | Change |
-| --- | --- |
-| `POST /api/chat` selector call | **Changed** — `maxTokens` added; retry on a tool-less response |
-| Bedrock provider mapping seam | **Changed** — absent / malformed / `mark_unsupported` no longer collapsed |
-| `POST /api/chat` request schema | **Changed** — explicit `priorTurns` limits |
-| `POST /api/chat/stream` | **Unchanged route**, newly consumed; gains disconnect observation |
-| Ask panel + Ask page | **Changed** — streamed phases, render delay, cancellation, transport parity |
-| Shell top bar | **Changed** — real load-freshness pill, no longer `aria-disabled` |
-| Freshness seam | **New** — cross-source minimum over active batches; also fixes `provenance.dataAsOf` |
-| Docked panel CSS | **Changed** — fills its column; mobile unchanged |
-| Model, region, stored data | **Unchanged** — 0027 and 0028 stand |
+| Surface | Change | Owning task |
+| --- | --- | --- |
+| Mapping master constant + generator + classification table | **New / Changed** — 31 selections, version 3 | 1 |
+| `GET /api/mis/options` | **Changed** — many plants, provisional mark, unknown plants never offered | 1 |
+| Actuals upload validation result | **Changed** — names unknown plant codes | 1 |
+| Warehouse schema + migration 0004 + views | **Changed** — outline source kind, batch plant, plant in GL views | 2 |
+| `POST /api/ingest/budget` + DTOs + Swagger | **Changed** — `plant` field; outline comparison reported in the validation result | 2 |
+| `POST /api/ingest/actuals` validation result | **Changed** — `unknownPlants`, `missingPlants`; activation unchanged | 2 |
+| `IngestionRepository`, budget parser | **Changed** — outline batch, plant-keyed budget | 2 |
+| Statement service, DTOs, projection, export | **Changed** — budgetState, partial-YTD, outline pin, master version, plant in filename | 3 |
+| Drill service pins + audit payload | **Changed** — outline pin required, budget pins optional, master-version refusal | 3 |
+| Statement/export audit | **Deferred** — D-0036 stands; out of this story's scope | — |
+| MIS Reports selection UI + statement view + drill panel | **Changed** — provisional mark, dash cells, heading months, outline pin | 4 |
+| Semantic layer, SQL builder, chat service, contract | **Changed** — plant dimension, plantChoice, plant resolution | 5 |
+| App-DB seed (`migrate.ts`) | **Changed** — admin granted every canonical plant | 5 |
+| Ask panel | **Changed** — plantChoice buttons post a selection; answer names the plant | 6 |
+| `.prettierignore` + quality-gate baseline | **Changed** — D-0006 for `chat.service.ts` | 5 |
+| `backend/package.json`, `tools/quality-gate.test.mjs` | **Changed** — new test registration | 1, 2, 3, 5 |
+| `docs/specs/all-plants-statement.md` | **Unchanged** — confirmed contract | — |
+| Model, region, audit shape, RBAC model | **Unchanged by design** — 0027, 0016's surviving clauses in 0029 | — |
+| Roll-over calculation, Table-1/3, master editor | **Deferred** — out of scope per spec; existing deferrals stand | — |
 
 ## Task Decomposition
-1. **`assistant-bounded-generation`** (backend, `user_facing: false`) — C1, C2, C3. The cap, the
-   scoped retry, the provider seam that makes the retry safe, and the schema limits. Ships the fix
-   for the reported symptom on its own.
-2. **`assistant-streaming-ui`** (frontend, `user_facing: true`) — C4, C5. The stream client, the
-   phase render delay, cancellation end to end, and transport parity. Depends on nothing in task 1
-   but is sequenced after it so the live check exercises a fast follow-up.
-3. **`shell-freshness-and-dock`** (fullstack, `user_facing: true`) — C6, C7. The freshness
-   definition and seam, the pill, and the dock height. Independent of tasks 1 and 2.
+Sequential leaves, backend and frontend separate, each single-runtime.
+
+1. **`master-all-plants`** (backend, `user_facing: false`) — C3, C5(server), C10. The generator,
+   the classification table, the regenerated master (version 3), the drift test, the
+   exactly-once and classification fixtures over the July extract, options filtered to
+   configured selections with the provisional mark. Depends on nothing.
+2. **`outline-object-and-plant-budgets`** (backend, `user_facing: false`) — C6, C1(data). The
+   migration, the schema and views, the repository and parser changes, the `plant` upload field,
+   outline comparison reported per 0023, the actuals validation result's `unknownPlants` and
+   `missingPlants`, the nursery re-import proof, the second-plant coexistence proof. Depends on
+   task 1 (canonical plant ids validate the upload).
+3. **`statement-all-plants`** (backend, `user_facing: false`) — C1, C2, C4(server), C7, C9.
+   `budgetState` and partial-YTD in the statement service and DTOs, the export dash and
+   filename, the outline pin and master version in provenance and drill (D-0038 closed), the
+   31-plant reconciliation fixture, the DUB regression, the two-month fixture. Depends on task 2.
+4. **`statement-ui-all-plants`** (frontend, `user_facing: true`) — C4(client), C5(client).
+   Dash cells with the accessible label, no drill affordance on dashed Budget/%, block heading
+   with budget months, the provisional mark on options and header, drill panel sending the
+   outline pin. Depends on task 3.
+5. **`ask-all-plants`** (backend, `user_facing: false`) — C8(server), C11(D-0006). The `plant`
+   dimension, plant resolution order in `statementRequest`, the `plantChoice` carrier in the
+   contract and service, the zero-selector-call proof, the seeded scopes. Depends on task 1
+   (canonical ids) and task 3 (statement response shape); sequenced after 4 so the report ships
+   whole first.
+6. **`ask-plant-ui`** (frontend, `user_facing: true`) — C8(client). `plantChoice` buttons that
+   post the patched selection; the answer header naming the plant. Depends on task 5.
+
+## Risks
+- **Leaf-key resolution for the 95 sheet pairs.** Sheet1 names GLs the nursery outline lists
+  under several S.No rows (e.g. 50001201 under 1.1, 2.1, 10.1, 11.1). The generator must apply
+  the same disambiguation the shipped master used (cost centre → section) and refuse to emit an
+  entry it cannot resolve to exactly one leaf; task 1's fixture proves exactly-once.
+- **Row cap.** 31 plants × the format's leaves is far under the projection's `maxRows`, but the
+  reconciliation fixture runs 31 statements; it must run per plant, not one 31-plant query.
+- **Migration on live data.** 0004 deactivates existing budget batches; the re-import is a
+  recorded proof step, as 0021 required, and the demo environment must run it before the demo.
+- **Coordination with `ask-period-control`.** Its saved plan touches `statementRequest` and
+  the clarification carriers. This story lands first; that plan re-grills against the new
+  shape (0032 names the pattern it should follow).
+- **Provisional labels on screen.** The mark must read as "awaiting the client's names", not as
+  an error; the functional check on task 4 covers the copy.
+
+## Verify Plan
+- **Hermetic backend** — `mapping-master.test.ts` (31 selections validate; generator output
+  equals the checked-in file; exactly-once over the July extract from `docs/context`),
+  `selection-resolver.service.test.ts` (options filtered, provisional mark, unknown plant
+  absent), `mis-budget.parser.test.ts` (plant required, outline fingerprint), `ingest.service.test.ts`
+  (attach, drift reported, unknown and missing plants reported), `mis-statement.service.test.ts` (budgetState, partial-YTD
+  two-month fixture, DUB unchanged), `mis-statement-export.test.ts` (dash, label, filename),
+  `mis-drill.service.test.ts` (outline pin required, budget pins optional, master-version
+  mismatch refused),
+  `semanticLayer.financial.test.ts` + `sqlBuilder.composed.test.ts` (plant dimension, scope on
+  both sides), `chat.service.test.ts` (plant resolution order; plantChoice; zero selector calls
+  on the pick), `chat.schemas.test.ts`, `migrate.trim.test.ts` (seeded scopes).
+- **Gated DB proofs (`test:db` / `test:warehouse-proof`, D-0008)** — migration 0004 applies;
+  `statement-projection.db.test.ts` and `golden-financial.db.test.ts` unchanged and green;
+  new `all-plants-reconciliation.db.test.ts` (31 statements sum to ₹11,02,73,718.00);
+  `drill-transactions.db.test.ts` extended for a no-budget plant leaf and `unmapped-GL`.
+- **Frontend (vitest)** — statement view dash cells and label, no pointer affordance on dashed
+  cells, block heading months, provisional mark, drill panel pin payload; Ask panel plantChoice
+  buttons post a selection.
+- **Functional (tasks 4 and 6)** — live: generate H.O, CK and DUB statements; drill an H.O
+  leaf; export H.O; ask "Show Actual by plant for July 2026"; ask a statement question on
+  `/ask` and pick a plant.
+- Commands: `npm run typecheck`, `npm run quality`, `npm run test:hermetic`, `npm run test:db`,
+  `npm -w @3f/backend run test:warehouse-proof`; every artifact records the executed count and
+  testcase name.
 
 
 ## What to return

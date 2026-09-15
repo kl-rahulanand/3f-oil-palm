@@ -1,4 +1,4 @@
-# Cold-read grill — gate: requirements — requirements for poc-responsiveness (docs/specs/assistant-and-exploration.md)
+# Cold-read grill — gate: requirements — requirements for multi-plant (docs/specs/all-plants-statement.md)
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,135 +431,235 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
+- Q: Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?
+  A: Accept, confirmed by Rahul Anand (Recommended)
+- Q: FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)
+  A: Budget = loaded months, % = not loaded (Recommended)
 
-## The artifact under interrogation (requirements for poc-responsiveness (docs/specs/assistant-and-exploration.md))
+## The artifact under interrogation (requirements for multi-plant (docs/specs/all-plants-statement.md))
 
 ---
-slug: assistant-and-exploration
-title: Assistant & exploration
+slug: all-plants-statement
+title: All plants in the Financial MIS statement
 status: confirmed
-saved: 2026-09-01T10:15:05+00:00
+saved: 2026-09-15T07:21:44+00:00
 ---
 
-# Assistant & exploration
+# All plants in the Financial MIS statement
 
 ## Why
-Beyond the fixed statement, people ask ad-hoc questions and want a natural way to
-interrogate the data. A trustworthy assistant over the same governed layer answers
-those without a developer, and reinforces the trust story (verified, provenanced).
+The shipped statement offers one selection, Agriculture / Nursery / DUB, because the
+Mapping Master carries one selection and the budget loader is fixed to the nursery. The
+July SAP extract already holds 4,113 lines across 31 plants, and a measured read of the
+client's two workbooks (2026-09-15) shows the nursery mapping generalises: the chart of
+accounts is company-wide (54 distinct GL codes in July, 45 of them named in the mapping
+sheet), every plant books only the cost centres the nursery uses (Admin, Manpower,
+Primary, secondary, Tertiary, Imported Sprouts, Transportation Charges), and the mapping
+sheet's cost-centre-plus-GL dictionary classifies 92.7% of company spend (₹10,21,80,290.32
+of ₹11,02,73,718.00, exact paise). The remaining ₹80,93,427.68 sits in eleven
+cost-centre-plus-GL pairs the sheet never names: nine are the secondary-nursery and labour
+GLs already bucketed for DUB, and two (`Primary / 50001802`, `Tertiary / 50001904`) DUB
+never books.
+Srihari's delivery note asks for exactly this: sheets generated "based on the same format
+and logic" for every Plant + Cost Center + GL combination, with zero-valued combinations
+still rendered.
+
+The human decided (2026-09-15) to offer every plant now, on the nursery format, with
+provisional Department / Function labels, and to show an absent budget as a dash rather
+than a zero. The client has supplied a budget for the nursery only.
 
 ## Users
-Finance / management asking questions; analysts exploring beyond the fixed MIS.
+Finance and management at 3F reviewing any plant's Financial MIS; the demo audience;
+Srihari, who will use the provisional labels and the unmapped-GL bucket to tell us the
+authoritative master.
 
 ## Behaviour
-- Natural-language questions → a **verified answer (+ chart)**, grounded in the
-  governed measures, with **provenance** and a **"view in report"** link.
-- Two surfaces: a **docked assistant** beside the report and a **standalone Ask
-  page**; plus **saved queries + pinned dashboards** for self-serve exploration.
-- **Converses like a normal agent** for general chat.
-- **Strict on numbers:** figures come **only from the governed measures**; the LLM
-  **selects, never authors SQL**; it **never fabricates a number**; and it is
-  **read-only (SELECT only)**.
-- If the user **diverges** from the report/data scope, it answers naturally but
-  **guides them back** to the report.
-- **Included in the first PoC release.**
 
-## Confirmed scope (grilled 2026-09-01)
-- **Timing:** in the first PoC release (not a fast-follow).
-- **LLM & residency:** settled 2026-09-12 — Bedrock, `ap-south-1` (decision **0027**).
-- **Guardrail:** conversational for chat; numbers only from governed measures
-  (select-only, never authors SQL, never fabricates); guide back when diverging.
+### Every plant in the loaded actuals is selectable
+- The Mapping Master carries one selection per SAP plant code present in the client's
+  data, not one. The master's `plant_canonical` is the identity that keys grants, budget
+  ownership, drill pins and audit: DUB stays `DUB` with its SAP alias `DUB-NUR`, exactly
+  as shipped, and every other plant's canonical id is its SAP plant code (no alias). The
+  MIS Reports dropdowns cascade from the master's configured selections filtered to the
+  signed-in user's plant grants, as `SelectionResolverService.options()` already does, so
+  Department, Function and Plant can never form a combination the master does not hold.
+- Department and Function are **provisional labels**, flagged as such in the master and
+  surfaced as provisional wherever the selection is shown, so the client can rename them
+  without a schema change:
+  - a plant is a **nursery** when it appears in the format workbook's `Plant list`
+    sheet (name-normalised) or books any of the cost centres Primary, secondary,
+    Tertiary or Imported Sprouts; nursery plants are labelled **Agriculture / Nursery**;
+  - `H.O` is labelled **Corporate / Office**;
+  - every other plant is labelled **Operations / Unit**.
+- A plant that appears in a later SAP upload but not in the master is **not offered**:
+  the actuals upload's validation result names every plant code the master does not
+  know, and adding it is a master data change, never a runtime inference (decision 0018
+  stands). A direct statement request for an unconfigured plant fails closed with the
+  existing "no mapping configured" outcome. The unmapped-GL bucket is for unresolved
+  cost-centre-plus-GL pairs of a configured plant, not for unconfigured plants.
 
-## Settled by the requirements grill (2026-09-12)
-A cold read against the built repo found ten gaps. All are settled here; three were
-human-decided and carry their own decision records.
+### One format, one mapping dictionary, applied per plant
+- Every plant renders the confirmed nursery format (`nursery-mis-financial-v1`): the
+  same outline, S.No, Budget Component and GL code columns, the same period blocks and
+  the same derived subtotals and Grand Total. Office and unit plants populate sections 8
+  Manpower and 9 Admin and show ₹0 Actual on the nursery-only sections. This is the
+  human's choice over a trimmed format.
+- The master's cost-centre-plus-GL entries are the **full mapping sheet** (all 95 pairs
+  of Sheet1, keyed on its second `Cost Center` column and GL code), applied to every
+  plant, because the chart of accounts and cost-centre vocabulary are company-wide. The
+  shipped master carries only the 28 pairs DUB used in July, which resolves 33% of H.O
+  spend where the full sheet resolves 100%; that gap closes here.
+- Every `(plant, cost centre, GL)` triple present in the actuals resolves **exactly once**:
+  to a leaf of the format outline, or to the visible `unmapped-GL` bucket (decision 0018).
+  Pairs the mapping sheet does not name go to the bucket with reason "not in the mapping
+  sheet"; DUB's existing bucket rows and reasons are unchanged. No row is dropped and no
+  row fans out; the sum of every plant's Grand Total Actual equals the company-wide net of
+  the active actuals batch, in exact paise.
+- All new master rows are provisional, carrying their reason, as decision 0018 requires.
+  The master version increments so audit records and drill pins distinguish the two.
 
-- **Timing is settled, and the contradiction is closed.** The assistant **ships in the PoC** as
-  story 7 of 7 (decision **0026**), superseding only the chatbot clause of decision 0002 and
-  amending the chatbot-timing clause of `docs/product/BRIEF.md`. That closes only the **timing
-  half** of **D-0032** — the BRIEF still frames Smart Palm, Yield/ha and OER as v1's headline
-  metrics, and that half stays open. 0002's Operational MIS deferral stands. **Human-decided this grill.**
-- **LLM and residency are no longer open.** AWS **Bedrock in `ap-south-1` (Mumbai)** (decision
-  **0027**). Only the **question, the prior turns, and the governed vocabulary** may leave the
-  app — names, labels, **and dimension distinct values** (capped by `dimensionEnumMax`), so 3F's
-  plant, cost-centre and GL identifiers do reach AWS. **Amounts, transaction lines, batch
-  contents and result rows never do**, and a test asserts the provider's input so the boundary is
-  a control rather than a sentence. `MockLlmProvider`
-  always returns `clarify` and never selects, so it is development-only and not a shippable
-  fallback. **Human-decided this grill.**
-- **A save stores the selection, never the answer** (decision **0028**): pins are personal and
-  **re-authorize on every open**, so a revoked grant yields a refusal rather than a cached
-  figure. Answer snapshots and shareable pins are out of scope. **Human-decided this grill.**
-- **The data vocabulary is bounded and named.** The assistant may select only from the domains
-  the semantic layer actually registers — **`governed-financial`** and **`mis-statement`** —
-  over the proven Agriculture / Nursery / DUB slice and the periods the statement offers. A
-  question outside that catalog is **refused as unsupported and says so**; it is never answered
-  with a zero, which decision **0018** already established is a different and meaningful value.
-- **"Verified" and "no fabricated numbers" are falsifiable.** **Every numeric character the user
-  can see** — in prose, labels, chart axes and annotations, and follow-ups — is rendered from the
-  deterministic governed result. The model never emits a figure. Rounding follows the statement's
-  rules (Indian grouping, ₹, display-rounded after aggregation). An empty result says it is
-  empty; an ambiguous question asks one clarifying question rather than guessing; and when no
-  chart suits the shape of the answer, none is drawn.
-- **"View in report" has a contract.** The link carries the selection's Department, Function,
-  Plant and period **and the batch provenance of the answer that produced it**, so the statement
-  it opens is the one the assistant was talking about. When a question cannot be represented as a
-  statement selection, the link is **absent with a reason**, never a link to something else.
-- **RBAC and audit have failure semantics.** The assistant inherits the all-or-nothing governed
-  access of decision **0016** and **re-authorizes on every ask, every saved re-run and every pin
-  open** — never on the strength of an earlier authorization. Every data answer writes its audit
-  record **before** the read and **fails closed**, as the vendored chat path already does; denials
-  and unsupported requests are audited too, following the drill-down precedent.
-- **The response matrix is explicit**, in precedence order: a **data question** is answered from
-  the governed measures with provenance; a **definition question** is answered from the semantic
-  layer's own labels; an **ambiguous** question gets one clarifying question; a **causal "why"**
-  is declined as out of scope (it stays out) and redirected to what the numbers do show; and
-  **general chat** is answered naturally but claims nothing about 3F's data and guides back to
-  the report.
-- **Every promised surface is acceptance-covered** — see Acceptance criteria below, which now
-  name the docked panel, the standalone Ask page, the chart, provenance, the report link, saved
-  queries and pinned dashboards, rather than proving one generic answer.
-- **The vendored Pulse assistant is NOT wired in, and this story owns wiring it.** `AppModule`
-  imports none of `chat`, `saved` or `pins`; the registered-route allow-list in
-  `backend/src/app.routes.test.ts` contains no `/api/chat`, `/api/saved` or `/api/pins`; and the
-  applied migration `backend/drizzle/0000_auth_audit.sql` creates auth and audit tables only.
-  The story owns the routes, the persistence and the UI, and must not assume any of it exists.
+### The statement outline belongs to the format, the budget to the plant
+- The outline snapshot (decision 0021) becomes the **format's** row structure, a
+  pinnable object in its own right, independent of any plant's budget amounts. A plant
+  budget attaches its amounts to the format outline and must match it leaf-for-leaf
+  (by stable leaf key) or the upload is refused. Every plant, with or without a budget,
+  renders the format's active outline. How the outline object is persisted (its own
+  batch kind, or a snapshot keyed by format and period) is a plan decision; the
+  requirement is that the statement and the drill pin it explicitly and separately from
+  any plant budget batch.
+- Budget batches are keyed by **plant and period** as well as source kind, so a second
+  plant's July budget can be active alongside the nursery's. The client's format workbook
+  carries no owning plant (its `Plant list` sheet names sixteen), so the budget upload
+  takes an explicit canonical plant id as a request field, validated against the master,
+  and the parser stops assuming DUB; the current nursery workbook is re-imported once
+  with plant `DUB`. Actuals batches stay keyed by period alone because the SAP extract is
+  company-wide. Re-upload semantics (replace per key, no duplicates, old batch retained)
+  are unchanged.
+- The nursery budget stays attached to DUB only. No budget is inferred, allocated or
+  copied to any other plant (decision 0014 stands).
+
+### An absent budget is a dash, never a zero
+- When the selected plant has **no active budget batch** for a period block, that block's
+  Budget, Roll-over Budget and % cells render a dash (`–`) on every row, including
+  subtotals and the Grand Total, with an accessible label "Budget not loaded for this
+  plant". Actual renders normally and stays drillable.
+- This is a **fourth state**, distinct from the three that exist: ₹0 (a budget line
+  with no amount), NA (0 ÷ 0), and the over-budget / credit flags (Budget 0 with a
+  non-zero Actual). None of the over-budget or credit flags appear when the budget is
+  absent, and the governed % measure yields "not loaded" rather than a division.
+- The Excel export renders the same dash and label; its filename and title name the
+  plant. When the FY-YTD block spans months with and without a budget batch
+  (human-decided this grill): Budget shows the sum over the months that have a budget
+  batch and the block heading names those months; **%** shows the dash whenever any
+  month in the block that has actuals lacks a budget, so a partial budget is never
+  compared to full actuals. A block with no budget month at all is the plain absent state.
+- Governed-financial answers (Ask by GL code) follow the same rule: for a plant and
+  period with no budget batch the Budget measure is absent and % is not computed; the
+  full-outer, zero-filled join semantics of decision 0016 apply only where a budget
+  batch exists.
+
+### Drill-down is unchanged in behaviour and pins what the statement used
+- Clicking any Actual works for every plant exactly as shipped (decisions 0024, 0025).
+  The drill pins the actuals batch ids, **the format outline object** the statement was
+  built from, and the plant budget batch where one exists; a vanished pin is refused and a
+  replaced pin reported, as today. The footing proofs hold for a no-budget plant and for
+  the `unmapped-GL` line of any plant.
+
+### Ask covers every granted plant
+- The governed-financial relation is no longer fixed to DUB: it carries `plant` as a
+  dimension, scoped by the user's plant grants on both sides of the join (decision 0016),
+  so "Show Actual by plant for July 2026" answers with one row per granted plant and a
+  total equal to the company-wide net for a fully granted user.
+- A statement question resolves its plant from the docked report's grounding when asked
+  beside a report, or from a plant named in the question. On the standalone Ask page, a
+  statement question from a user granted more than one plant, with no plant named, returns
+  a clarification listing the granted plants, in the same shape the period clarification
+  uses; the chosen plant re-runs without a further selector call. A user granted exactly
+  one plant is unchanged.
+- The demo user is granted every plant present in the master, plus the provisional
+  department and function labels those plants carry.
+
+### What does not change
+- Read-only; Actual = Σ(Debit − Credit); composite key mandatory (decision 0017); the
+  governed join key stays GL code + month, now within each granted plant (decision 0029,
+  which supersedes 0016); the assistant boundary of decision 0027 is unchanged (plant,
+  cost-centre and GL vocabulary may reach the model, amounts and rows never);
+  one governed query path; parents derived, never read (decision 0020); Indian grouping,
+  rupee rounding after aggregation; audit-before-read, fail-closed; all-or-nothing
+  governed access.
+- The two existing zero states stay distinct: no transactions renders zeros; no mapping
+  configured renders zeros plus the notice.
 
 ## Rules
-- RBAC + append-only audit on every data answer.
-- Read-only: only SELECT against the warehouse, through the governed layer.
+- The SAP plant code is canonical; display names and Department / Function are
+  provisional master data, flagged, never inferred at runtime.
+- Exactly-once resolution of every actuals triple is a proven invariant, not a goal.
+- Absent budget is a distinct state and never collapses into ₹0, NA or over-budget.
+- Budget is never inferred or allocated across plants.
 
 ## Out of scope (now)
-- Open-ended causal "why"; any write-back; the exact docked-panel placement is a
-  nice-to-have, not a gate.
+- A trimmed office or mill format; Table-1 and Table-3; per-plant budgets for any plant
+  other than the nursery until the client supplies them.
+- An in-app editor for the master; the authoritative Master Table reconciliation
+  (spec `mis-selection-and-master` open item, still owned there).
+- Roll-over calculation; live SAP; months other than those uploaded.
+- The recoverable-period clarification (`ask-period-control`), which follows this story.
 
 ## Acceptance criteria
-- An NL data question returns a **verified, provenanced** answer matching the report — **no
-  fabricated numbers**, read-only only — with every visible numeric character traceable to the
-  governed result.
-- The answer is reachable from **both** surfaces: the **docked assistant** beside the report and
-  the **standalone Ask page**.
-- A **chart** is drawn when the answer's shape suits one, from the same result, and omitted
-  rather than forced when it does not.
-- **Provenance** is shown with the answer, and **"view in report"** opens the statement for that
-  selection carrying the answer's batch provenance — or is absent with a reason when the question
-  has no statement representation.
-- A **saved query** stores the selection and **re-runs correctly under the current user's RBAC**;
-  a **pinned dashboard** opens by re-running, and a revoked grant produces a refusal rather than
-  a cached figure.
-- A question **outside the governed catalog** is refused as unsupported, never answered zero.
-- General chit-chat is handled naturally; off-topic questions get a helpful nudge back to the
-  report; a causal **"why"** is declined rather than answered.
-- Every data answer is **authorized and audited fail-closed**; a denial is audited too.
+1. Against the pinned July actuals batch, every one of the 31 SAP plant codes is
+   offered in MIS Reports to a fully granted user, each renders a statement, and the
+   sum of the 31 Grand Total Actuals equals the batch's company-wide net
+   (₹11,02,73,718.00 as measured) in exact paise. Proven by a warehouse fixture, not by
+   inspection.
+2. The DUB nursery statement is unchanged: Actual ₹1,15,12,712.07 and Budget
+   ₹1,00,50,136.29 for July 2026, every parent footing to its leaves, the unmapped-GL
+   line carrying its own Actual, and the Excel export matching.
+3. Every `(plant, cost centre, GL)` triple in the July extract resolves exactly once,
+   with nothing dropped and nothing fanned out, proven by a master validation fixture;
+   the eleven pairs the mapping sheet does not name resolve to `unmapped-GL` with
+   their reason, and every new master row is flagged provisional with a reason.
+4. H.O renders 100% of its July net inside sections 8 Manpower and 9 Admin, with ₹0
+   Actual on every nursery-only section, and its Budget, Roll-over and % show the dash
+   with the "Budget not loaded for this plant" label on every row including the Grand
+   Total; no over-budget or credit flag appears anywhere on a no-budget plant. The Excel
+   export shows the same dash and names the plant.
+5. Department and Function labels follow the stated classification rule (nursery plants
+   Agriculture / Nursery; H.O Corporate / Office; others Operations / Unit), are stored
+   flagged as provisional, and the flag is visible wherever the selection is displayed.
+6. A second plant's July budget batch can be active alongside the nursery's; uploading
+   it does not deactivate the nursery batch; re-uploading it replaces only itself. The
+   budget upload refuses a request with no plant, with a plant the master does not know,
+   or whose leaves do not match the format outline.
+7. Drill-down foots in exact paise for a leaf and for the `unmapped-GL` line of a
+   no-budget plant, and the drill's audit record names the format outline object it
+   pinned, the plant budget batch if any, and the incremented master version.
+8. Ask: "Show Actual by plant for July 2026" returns one row per granted plant summing to
+   the company-wide net for a fully granted user; a user granted only DUB gets only DUB
+   in MIS Reports options, in Ask answers and in drill-down, with no row leaking. A
+   statement question beside a report resolves the report's plant; on the standalone page
+   a multi-plant user with no plant named receives a plant clarification, and the chosen
+   plant re-runs with zero further selector calls.
+9. The two existing zero states and the three existing nil states are each still
+   reachable and distinct from the new absent-budget state, and the partial-YTD rule
+   (Budget over loaded months, % dashed) is proven with a two-month fixture, all by
+   hermetic tests over a fake warehouse, judged by junit testcase name and executed count
+   (D-0024, D-0031).
+10. The selection options endpoint offers only master-configured selections within the
+   user's grants; a plant code present in an actuals upload but absent from the master
+   is named in that upload's validation result and never appears in the dropdowns.
 
 ## Open items (non-blocking)
-- The **Bedrock model id** (`BEDROCK_MODEL_ID`) is a deployment input with no default; the region
-  is settled as `ap-south-1` by decision **0027**.
-- A contractual **retention and NDA position** for model inputs rides with the production pilot
-  (decision **0011**), not with this story.
+- The client's authoritative Department / Function names and Master Table, which will
+  rename the provisional labels and empty the bucket as data changes.
+- Budgets for plants other than the nursery.
+- Plant names in the format's `Plant list` that do not match SAP (`DHS`, `DHS2` versus
+  `DMHS`; `Belagum` absent from July), to confirm with Srihari.
 
 ## Source
-Decision 0003; Pulse README (Metabot, saved queries, pin-to-dashboard).
+Human decisions 2026-09-15 (this session, recorded as decision 0029); decision 0018 (unmapped-GL bucket), 0014,
+0016, 0017, 0020, 0021, 0024, 0025; `docs/context/2026-08-20-srihari-phase1-data/`
+(both workbooks and Srihari's email); measured coverage analysis of the July extract
+against Sheet1 of `SAP Entries Mapping.xlsx`.
 
 
 ## What to return
