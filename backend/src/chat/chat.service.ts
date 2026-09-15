@@ -733,8 +733,29 @@ function statementRequest(user: AuthUser, window: AppliedTimeWindow | undefined)
   const department = value("department");
   const businessFunction = value("function");
   const plant = value("plant");
-  if (!department || !businessFunction || !plant || !window || window.from !== window.to) return undefined;
-  return { department, function: businessFunction, plant, period: window.from };
+  if (!department || !businessFunction || !plant || !window) return undefined;
+  const period = statementPeriod(window);
+  if (!period) return undefined;
+  return { department, function: businessFunction, plant, period };
+}
+
+/**
+ * A statement is a MONTHLY artifact keyed by the first day of its month, so a window
+ * resolves to a period only when it names one WHOLE calendar month. A named month such as
+ * "July 2026" arrives as 2026-07-01..2026-07-31 - exactly the period the MIS Reports period
+ * dropdown sends - and a strict from === to check rejected it, so no natural-language period
+ * could ever reach the statement. A PARTIAL month has no statement period of its own and must
+ * not be silently widened to the whole month; a multi-month window has none either.
+ */
+export function statementPeriod(window: AppliedTimeWindow): string | undefined {
+  if (window.from === window.to) return window.from;
+  const month = window.from.slice(0, 7);
+  if (!window.from.endsWith("-01") || month !== window.to.slice(0, 7)) return undefined;
+  // Day 0 of the NEXT month is the last day of this one.
+  const lastDayOfMonth = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
+    .toISOString()
+    .slice(0, 10);
+  return window.to === lastDayOfMonth ? window.from : undefined;
 }
 
 export function buildReadback(

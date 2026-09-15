@@ -20,11 +20,9 @@ const SEED_QUESTIONS = [
   // it comes from the signed-in user's scope - so naming one in the question left the model
   // with unmappable text and it either invented a filter or marked the ask unsupported.
   // The period is named explicitly because "this month" resolves to a month with no actuals.
-  // No MIS-statement seed here: a statement ask needs a single department, function and plant
-  // on the signed-in user plus a single-point period, so it cannot be a general seed question.
   "Show Actual and Budget by GL code for July 2026",
   "Show percentage of budget by GL code for July 2026",
-  "Show Actual by month",
+  "Show the MIS statement Actual by statement leaf for July 2026",
 ];
 const CHART_COLORS = ["#1c6b49", "#0c3529", "#7aa889", "#c8922f"];
 const PHASE_LABELS = {
