@@ -31,11 +31,28 @@ x-backend-env: &backend-env
   WAREHOUSE_PG_USER: ${WAREHOUSE_PG_USER:-warehouse}
   WAREHOUSE_PG_PASSWORD: ${WAREHOUSE_PG_PASSWORD:?set WAREHOUSE_PG_PASSWORD}
   WAREHOUSE_PG_DATABASE: ${WAREHOUSE_PG_DATABASE:-warehouse}
+  # Who may sign in. Additive - the seeder never deletes - but it REPLACES the
+  # default, so keep the admin entry if you still want it maintained.
+  # Format: email|Display Name|role1+role2;email|Display Name|role
+  SEED_USERS: ${SEED_USERS:-}
   LLM_PROVIDER: ${LLM_PROVIDER:-bedrock}
   AWS_REGION: ${AWS_REGION:-ap-south-1}
+  BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-}
+  # THREE ways to authenticate to Bedrock, and the SDK tries them in this order.
+  # All must be forwarded or the container sees none of them and fails with
+  # "Could not load credentials from any providers" even when the value is sitting
+  # in the env file.
+  #   1. Bedrock API key (bearer). bedrock.provider.ts:361 reads it, and the SDK
+  #      reads it natively too.
+  AWS_BEARER_TOKEN_BEDROCK: ${AWS_BEARER_TOKEN_BEDROCK:-}
+  #   2. Long-lived or temporary access keys. SESSION_TOKEN is required for STS
+  #      credentials and silently breaks auth when omitted.
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
   AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-  BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-}
+  AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+  #   3. An IAM instance role, if all of the above are empty. Note that a
+  #      container is one extra network hop from instance metadata, so IMDSv2's
+  #      default hop limit of 1 blocks it - raise it to 2 on the instance first.
 
 x-image: &image
   build:
