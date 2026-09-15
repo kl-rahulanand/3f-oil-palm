@@ -38,7 +38,7 @@ after(async () => {
 test("create then list returns email admin user view without password fields", async () => {
   const email = uniqueEmail();
   const created = await createViaController(email, ["analyst"], [
-    { attribute: "state", value: "NSW" },
+    { attribute: "plant", value: "DUB" },
   ]);
 
   const user = (await controller.list()).find((u) => u.id === created.id);
@@ -48,7 +48,7 @@ test("create then list returns email admin user view without password fields", a
   assert.equal(user.display_name, "Test User");
   assert.equal(user.is_active, true);
   assert.deepEqual(user.roles, ["analyst"]);
-  assert.deepEqual(user.scope, [{ attribute: "state", value: "NSW" }]);
+  assert.deepEqual(user.scope, [{ attribute: "plant", value: "DUB" }]);
   assert.equal("passwordHash" in (user as unknown as Record<string, unknown>), false);
   assert.equal("mustReset" in (user as unknown as Record<string, unknown>), false);
   assert.deepEqual(await latestAdminEvent(), {
@@ -61,7 +61,7 @@ test("create then list returns email admin user view without password fields", a
 test("patch replaces roles and scope, and is_active=false revokes refresh tokens", async () => {
   const email = uniqueEmail();
   const { id } = await createViaController(email, ["analyst"], [
-    { attribute: "state", value: "NSW" },
+    { attribute: "plant", value: "DUB" },
   ]);
   const token = await sessions.create(id);
   assert.ok(await sessions.rotate(token.refreshToken));
@@ -78,12 +78,12 @@ test("patch replaces roles and scope, and is_active=false revokes refresh tokens
   const scopeUpdated = await controller.update(
     id,
     {
-      scope: [{ attribute: "serviceability", value: "serviceable" }],
+      scope: [{ attribute: "gl_code", value: "50001201" }],
     },
     actor,
   );
   assert.deepEqual(scopeUpdated.scope, [
-    { attribute: "serviceability", value: "serviceable" },
+    { attribute: "gl_code", value: "50001201" },
   ]);
 
   const deactivated = await controller.update(id, { is_active: false }, actor);
@@ -185,7 +185,10 @@ test("create with an unknown scope value returns 400", async () => {
         email,
         display_name: "Test User",
         roles: ["analyst"],
-        scope: [{ attribute: "state", value: "not-a-state" }],
+        // The attribute is a REAL one (the create test above proves plant/DUB is accepted),
+        // so the 400 comes from VALUE validation. The old state/not-a-state fixture failed
+        // at attribute resolution instead, and would have passed with value validation gone.
+        scope: [{ attribute: "plant", value: "not-a-plant" }],
       },
       actor,
     ),
@@ -216,7 +219,8 @@ test("patch with an unknown scope value keeps the safe validation 400", async ()
   const error = await captureHttpException(() =>
     controller.update(
       id,
-      { scope: [{ attribute: "state", value: "not-a-state" }] },
+      // Real attribute, unknown value - see the create-side note above.
+      { scope: [{ attribute: "plant", value: "not-a-plant" }] },
       actor,
     ),
   );
@@ -397,8 +401,11 @@ function makeUsersTestWarehouse(): Warehouse {
       return null;
     },
     async distinctValues(_goldObject: string, column: string): Promise<string[]> {
-      if (column === "state") return ["NSW"];
-      if (column === "serviceable_pincode") return ["serviceable"];
+      // This app scopes rows by plant (governed-financial.scopeColumn); it has no "state"
+      // dimension, so a state-scoped fixture never even reached this stub - it failed in
+      // resolveScopeAttribute, which made the negative tests below pass for the wrong reason.
+      if (column === "plant") return ["DUB"];
+      if (column === "gl_code") return ["50001201"];
       return [];
     },
   };
