@@ -46,9 +46,14 @@ authoritative master.
 - Department and Function are **provisional labels**, flagged as such in the master and
   surfaced as provisional wherever the selection is shown, so the client can rename them
   without a schema change:
-  - a plant is a **nursery** when it appears in the format workbook's `Plant list`
-    sheet (name-normalised) or books any of the cost centres Primary, secondary,
-    Tertiary or Imported Sprouts; nursery plants are labelled **Agriculture / Nursery**;
+  - classification is keyed on the **SAP plant code alone**, through a committed plant
+    classification table (decision 0031); the format workbook's `Plant list` is never used
+    for matching, so `DHS` / `DHS2` versus `DMHS` cannot misclassify anything;
+  - a plant is a **nursery** when the loaded extract books any of the cost centres
+    Primary, secondary, Tertiary or Imported Sprouts for it, unless the table overrides
+    the flag; nursery plants are labelled **Agriculture / Nursery** (fourteen in July:
+    DUB-NUR, CK, TPTY, Krishna, DMHS, ROING, LKMP, NLR, Nandyal, TMK-NK, CHIR, GLIM, Pend,
+    S.Kota);
   - `H.O` is labelled **Corporate / Office**;
   - every other plant is labelled **Operations / Unit**.
 - A plant that appears in a later SAP upload but not in the master is **not offered**:
@@ -57,6 +62,12 @@ authoritative master.
   stands). A direct statement request for an unconfigured plant fails closed with the
   existing "no mapping configured" outcome. The unmapped-GL bucket is for unresolved
   cost-centre-plus-GL pairs of a configured plant, not for unconfigured plants.
+- **Actuals uploads stay replace-per-period and always activate** (human-decided this
+  grill): the SAP Base Report is a company-wide extract, and the previous batch is
+  retained and re-uploadable. The upload's validation result additionally names every
+  plant present in the previously active batch for that period but absent from the new
+  one, so a partial extract is visible rather than silently shrinking the company. Unknown
+  plant codes are stored raw and reported, never offered.
 
 ### One format, one mapping dictionary, applied per plant
 - Every plant renders the confirmed nursery format (`nursery-mis-financial-v1`): the
@@ -80,13 +91,13 @@ authoritative master.
 
 ### The statement outline belongs to the format, the budget to the plant
 - The outline snapshot (decision 0021) becomes the **format's** row structure, a
-  pinnable object in its own right, independent of any plant's budget amounts. A plant
-  budget attaches its amounts to the format outline and must match it leaf-for-leaf
-  (by stable leaf key) or the upload is refused. Every plant, with or without a budget,
-  renders the format's active outline. How the outline object is persisted (its own
-  batch kind, or a snapshot keyed by format and period) is a plan decision; the
-  requirement is that the statement and the drill pin it explicitly and separately from
-  any plant budget batch.
+  pinnable object in its own right, independent of any plant's budget amounts (decision
+  0030). A plant budget attaches its amounts to the format outline by stable leaf key.
+  Leaves that do not match the active format outline **load and are reported** in the
+  upload's validation result (decision 0023: drift is reported, never blocked); they do
+  not attach, and the report names them. Every plant, with or without a budget, renders
+  the format's active outline. The statement and the drill pin the outline object
+  explicitly and separately from any plant budget batch.
 - Budget batches are keyed by **plant and period** as well as source kind, so a second
   plant's July budget can be active alongside the nursery's. The client's format workbook
   carries no owning plant (its `Plant list` sheet names sixteen), so the budget upload
@@ -107,6 +118,13 @@ authoritative master.
   with no amount), NA (0 ÷ 0), and the over-budget / credit flags (Budget 0 with a
   non-zero Actual). None of the over-budget or credit flags appear when the budget is
   absent, and the governed % measure yields "not loaded" rather than a division.
+- The full cell state table, so nothing collapses: in a block **with** a budget batch,
+  Budget and % keep their shipped states (₹0, NA, over-budget, credit) and Roll-over keeps
+  its shipped "unavailable" unpopulated state; in a block **without** one, Budget,
+  Roll-over and % all show the dash with the "not loaded" label. In Ask, an absent Budget
+  is a **null measure value** rendered as the same dash with the same label in a column
+  that is still present, and % is null with the "not loaded" label; a column is never
+  silently omitted.
 - The Excel export renders the same dash and label; its filename and title name the
   plant. When the FY-YTD block spans months with and without a budget batch
   (human-decided this grill): Budget shows the sum over the months that have a budget
@@ -120,10 +138,17 @@ authoritative master.
 
 ### Drill-down is unchanged in behaviour and pins what the statement used
 - Clicking any Actual works for every plant exactly as shipped (decisions 0024, 0025).
-  The drill pins the actuals batch ids, **the format outline object** the statement was
-  built from, and the plant budget batch where one exists; a vanished pin is refused and a
-  replaced pin reported, as today. The footing proofs hold for a no-budget plant and for
-  the `unmapped-GL` line of any plant.
+  The drill's pin contract is: the actuals batch ids the statement was built from;
+  **exactly one format outline batch** whose period covers the block end; and **zero or
+  more plant budget batches**, one for each month in the block that has one (a no-budget
+  plant sends none, a partial-YTD block sends only the loaded months). A vanished pin is
+  refused and a replaced pin reported, as today.
+- **The mapping-master version is pinned, not merely named.** The statement's provenance
+  carries the master version it resolved against; the drill sends it back and the server
+  refuses with the existing "statement out of date" outcome when the running master's
+  version differs, rather than resolving triples against a newer master and showing a
+  footer that does not foot. This closes deferral D-0038. The footing proofs hold for a
+  no-budget plant and for the `unmapped-GL` line of any plant.
 
 ### Ask covers every granted plant
 - The governed-financial relation is no longer fixed to DUB: it carries `plant` as a
@@ -143,12 +168,31 @@ authoritative master.
 - Read-only; Actual = Σ(Debit − Credit); composite key mandatory (decision 0017); the
   governed join key stays GL code + month, now within each granted plant (decision 0029,
   which supersedes 0016); the assistant boundary of decision 0027 is unchanged (plant,
-  cost-centre and GL vocabulary may reach the model, amounts and rows never);
+  cost-centre and GL vocabulary may reach the model, amounts and rows never); the drill
+  and every Ask data answer stay audit-before-read and fail-closed, while the statement and
+  export routes stay **un-audited as shipped** (deferral D-0036 stands and is not closed
+  here);
   one governed query path; parents derived, never read (decision 0020); Indian grouping,
-  rupee rounding after aggregation; audit-before-read, fail-closed; all-or-nothing
-  governed access.
+  rupee rounding after aggregation; all-or-nothing governed access.
 - The two existing zero states stay distinct: no transactions renders zeros; no mapping
   configured renders zeros plus the notice.
+
+## Supersedes (clauses of earlier confirmed docs overridden by decisions 0029 and 0030)
+Decision records win over older docs (`docs/architecture/README.md`); this section names
+the clauses so a planner does not inherit both:
+- `mis-selection-and-master`: "one selection, Agriculture / Nursery / DUB" and the
+  provisional master "seeded from the SAP Entries Mapping sheet + 7 GLs" → one generated
+  selection per plant (0031); its Master Table open item is unchanged.
+- `sap-financial-ingestion`: "re-loads are idempotent per period" → per period for actuals,
+  per plant and period for budgets; the outline is its own object (0030).
+- `financial-mis-statement`: "Budget = 0 & Actual = 0 → NA" and the over-budget rule apply
+  only where a budget batch exists; the absent-budget dash is a fourth state (0029).
+- `actuals-drill-down`: "exactly one budget batch covers the block end" → exactly one
+  outline batch, zero or more plant budget batches; the master version is pinned (0030,
+  this spec).
+- `docs/architecture/20-financial-mis-data-model.md` and `30-…build-plan.md`: the
+  "Nursery (DUB) only" scope statements. The BRIEF's Smart Palm / Yield / OER framing is
+  deferral D-0032 and stays deferred; it does not conflict with this story.
 
 ## Rules
 - The SAP plant code is canonical; display names and Department / Function are
@@ -188,11 +232,14 @@ authoritative master.
    flagged as provisional, and the flag is visible wherever the selection is displayed.
 6. A second plant's July budget batch can be active alongside the nursery's; uploading
    it does not deactivate the nursery batch; re-uploading it replaces only itself. The
-   budget upload refuses a request with no plant, with a plant the master does not know,
-   or whose leaves do not match the format outline.
+   budget upload refuses a request with no plant or with a plant the master does not
+   know; a workbook whose leaves differ from the active format outline loads and its
+   validation result names the unattached leaves (decision 0023).
 7. Drill-down foots in exact paise for a leaf and for the `unmapped-GL` line of a
-   no-budget plant, and the drill's audit record names the format outline object it
-   pinned, the plant budget batch if any, and the incremented master version.
+   no-budget plant; the drill requires exactly one outline pin covering the block end and
+   accepts zero or more plant budget pins; a master-version mismatch between statement and
+   server is refused as "statement out of date"; the audit record names the pinned outline
+   batch, the budget batches if any, and the master version.
 8. Ask: "Show Actual by plant for July 2026" returns one row per granted plant summing to
    the company-wide net for a fully granted user; a user granted only DUB gets only DUB
    in MIS Reports options, in Ask answers and in drill-down, with no row leaking. A
@@ -206,14 +253,20 @@ authoritative master.
    (D-0024, D-0031).
 10. The selection options endpoint offers only master-configured selections within the
    user's grants; a plant code present in an actuals upload but absent from the master
-   is named in that upload's validation result and never appears in the dropdowns.
+   is named in that upload's validation result and never appears in the dropdowns; an
+   actuals upload missing plants that the previously active batch for that period held
+   still activates and names those plants in its validation result.
+11. Classification is a pure function of the committed table and the extract's cost
+   centres, proven by a hermetic test over the July extract that yields the fourteen
+   nursery codes above, `H.O` as Corporate / Office, and the rest as Operations / Unit.
 
 ## Open items (non-blocking)
 - The client's authoritative Department / Function names and Master Table, which will
   rename the provisional labels and empty the bucket as data changes.
 - Budgets for plants other than the nursery.
-- Plant names in the format's `Plant list` that do not match SAP (`DHS`, `DHS2` versus
-  `DMHS`; `Belagum` absent from July), to confirm with Srihari.
+- Whether the format's `Plant list` names `DHS`, `DHS2` and `Belagum` are the SAP plants
+  `DMHS` and two not yet in the extract — a naming question for Srihari that affects
+  display names only, since classification never reads that list.
 
 ## Source
 Human decisions 2026-09-15 (this session, recorded as decision 0029); decision 0018 (unmapped-GL bucket), 0014,
