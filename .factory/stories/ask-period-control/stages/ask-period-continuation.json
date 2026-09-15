@@ -1,6 +1,5 @@
 {
   "id": "ask-period-continuation",
   "title": "Render the period choice and continue deterministically",
-  "status": "done",
-  "task_sha256": "91fd6e3bfd62971b8efe971a62bdfa36c7b20fea6bf4319223baa3035954d4a0"
+  "status": "done"
 }

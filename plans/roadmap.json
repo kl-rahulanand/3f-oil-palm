@@ -183,12 +183,15 @@
         "Every criterion is proven by hermetic tests over a fake provider and warehouse; any claim made against the live PoC names its sample count and no live claim rests on a single run."
       ],
       "order": 9,
-      "status": "active",
+      "status": "done",
       "epic": "assistant",
       "skill": "fullstack",
       "kind": "feature",
       "depends_on": [],
-      "spec": "docs/specs/ask-period-control.md"
+      "spec": "docs/specs/ask-period-control.md",
+      "completed_at": "2026-09-15T08:57:58+00:00",
+      "history": ".factory/stories/ask-period-control/",
+      "outcome": "A statement question that names no period now asks which period to use instead of refusing, and every settled answer carries a control that moves it to another period without retyping the question. Measured before: 'Show the MIS statement Actual by statement leaf' returned a red refusal 4/4. Measured after: it returns the prompt and the loaded periods, and clicking one returns 81 verified rows with zero selector calls - the chosen period reaches the warehouse as data, never as words re-guessed by the model. Four failure causes that shared one dead-end message now resolve in a fixed order, each saying what is actually wrong: an unresolvable scope triple points at an administrator, a missing mapping and an empty period list keep their own messages, and only a missing period clarifies. An answer that covers no single period says so - 'All loaded data within your access scope and any filters applied by this question' - rather than defaulting a control to a period it never used."
     }
   ],
   "epics": [
@@ -230,5 +233,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-15T08:13:01+00:00"
+  "updated_at": "2026-09-15T08:57:58+00:00"
 }

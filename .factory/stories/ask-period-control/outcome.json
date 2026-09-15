@@ -1,0 +1,7 @@
+{
+  "generated_by": "implementer",
+  "outcome": "A statement question that names no period now asks which period to use instead of refusing, and every settled answer carries a control that moves it to another period without retyping the question. Measured before: 'Show the MIS statement Actual by statement leaf' returned a red refusal 4/4. Measured after: it returns the prompt and the loaded periods, and clicking one returns 81 verified rows with zero selector calls - the chosen period reaches the warehouse as data, never as words re-guessed by the model. Four failure causes that shared one dead-end message now resolve in a fixed order, each saying what is actually wrong: an unresolvable scope triple points at an administrator, a missing mapping and an empty period list keep their own messages, and only a missing period clarifies. An answer that covers no single period says so - 'All loaded data within your access scope and any filters applied by this question' - rather than defaulting a control to a period it never used.",
+  "issue": "ask-period-control",
+  "commit": "19cd453d68e7e810cdbb2cdf4214e67acb22d66d",
+  "recorded_at": "2026-09-15T08:55:50+00:00"
+}

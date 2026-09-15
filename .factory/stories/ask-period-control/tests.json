@@ -1,0 +1,69 @@
+{
+  "commit": "19cd453d68e7e810cdbb2cdf4214e67acb22d66d",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Story-level roll-up for ask-period-control across three shipped tasks (PRs #54, #55, #56). 24 required leaves in total - 11 backend, 6 then 7 frontend - each verified individually by the discriminator its runner actually needs, not by exit code. For node's junit-run that is the testcase NAME (a --name matching nothing still reports 'tests 1', with the FILE PATH as the testcase name). For vitest it is present AND NOT skipped AND NOT failed (vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped, so a NAME match proves nothing). Both false-green mechanisms were found by running a negative control, and both are ledgered as lessons. Nine review lenses across the three tasks all finished at 10/approve with zero blocking findings outstanding.",
+    "pass_fail_summary": "24/24 required leaves executed; verify.py pass on each task and at story level; 9/9 review lenses clean",
+    "blocking_findings": [],
+    "commands_run": [
+      "python3 factory/scripts/verify.py"
+    ],
+    "tests_added_or_updated": [
+      "backend/src/chat/ask-period.test.ts",
+      "backend/src/chat/chat.service.test.ts",
+      "backend/src/mapping/selection-resolver.service.test.ts",
+      "frontend/src/features/assistant/ask-panel.test.tsx",
+      "frontend/src/features/assistant/use-ask.test.tsx"
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [
+      "A live period SWITCH is proven hermetically only: the warehouse has exactly one loaded actuals month, so the control offers a single option and there is nothing to switch to. A second loaded month would exercise it end to end.",
+      "Letting a user choose among several granted plants, departments or functions is out of scope for this story - a new authorized-selector capability no current data exercises."
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "reviewed_scope": [],
+    "recorded_at": "2026-09-15T08:55:11+00:00",
+    "commit": "19cd453d68e7e810cdbb2cdf4214e67acb22d66d"
+  },
+  "updated_at": "2026-09-15T08:57:53+00:00",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "passed",
+    "score": 9,
+    "recommendation": "approve",
+    "summary": "Story-level functional check for ask-period-control, run LIVE in the browser against real Bedrock (LLM_PROVIDER=bedrock, ap-south-1) and the Postgres warehouse, from each task's own worktree servers. NOT against the mock provider, which always returns clarify and would have made the clarification criteria appear to pass while proving nothing. Three of the four behaviours the story promises were exercised end to end; the fourth cannot be with the data currently loaded, and is scored accordingly rather than claimed.",
+    "manual_validation_steps": [
+      "BEFORE (task 1 baseline, API, 4 samples): 'Show the MIS statement Actual by statement leaf' returned not_supported 4/4 with the single message 'The answer does not resolve to one statement selector set and offered period.'",
+      "AFTER (task 1, API, 3 samples): the same question returns clarification_needed 3/3, prompt 'Which statement period should this answer use?', options ['2026-07-01'] - and FY 26-27 YTD correctly EXCLUDED, since a statement cannot resolve a twelve-month range.",
+      "Task 1 continuation (API): posting the cloned selection with the July window returns success, 81 rows, periodControl.current 2026-07-01.",
+      "Task 2 (browser, /ask): the clarification renders its prompt and a 2026-07-01 button; clicking it replaces the clarification IN PLACE with a VERIFIED 81-row answer and the asked question is unchanged above it.",
+      "Task 3 (browser, /ask): a successful statement answer carries a labelled PERIOD select showing 2026-07-01, the period it actually ran on, below the provenance disclosure.",
+      "Task 3 no-window case (browser, /ask): 'Show Actual and Budget by GL code' resolves to NO time window, renders NO defaulted period select, and states 'All loaded data within your access scope and any filters applied by this question.' - the scoped wording, not a bare 'all loaded data'."
+    ],
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "{'category': 'coverage', 'area': 'frontend/src/features/assistant', 'summary': 'The period SWITCH itself was not exercised live. The warehouse holds exactly one loaded actuals month, so the select offers a single option and there is nothing to switch to. Three hermetic leaves cover the switch, its in-place pending, its failure handling and the global-pending disable.'}"
+    ],
+    "residual_risks": [
+      "A second loaded month is needed before the switch can be demonstrated to a client.",
+      "Statement asks depend on the signed-in user carrying exactly one department, function and plant. The seeded admin now does; a real user with several granted plants would be told to contact an administrator rather than offered a choice, which is deliberate and out of this story's scope."
+    ],
+    "reviewed_scope": [
+      "frontend/src/features/assistant",
+      "backend/src/chat",
+      "backend/src/mapping",
+      "contract/src"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-15T08:57:53+00:00",
+    "commit": "19cd453d68e7e810cdbb2cdf4214e67acb22d66d"
+  }
+}
