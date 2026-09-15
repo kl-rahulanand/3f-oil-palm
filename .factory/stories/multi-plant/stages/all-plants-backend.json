@@ -1,5 +1,9 @@
 {
   "id": "all-plants-backend",
   "title": "Every plant in the master, DUB owns the budget, non-owner plants report a not-loaded budget",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-15T12:53:37+00:00",
+  "base_sha": "6cd492db16ad5be14dc8b11d0aa625de3ca7fe7d",
+  "dirty_at_start": {},
+  "task_sha256": "2e8741d16914c2022a25d300d487dcc6401dc582a138e59c5a6f2e0cf9218a7c"
 }
