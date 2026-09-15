@@ -5,6 +5,42 @@ import type { INestApplication } from "@nestjs/common";
 import { loadConfig } from "./config";
 import { listenForRequests } from "./main";
 
+test("BIND_HOST overrides the mock-OTP loopback default, and its absence does not", async () => {
+  const environment = { ...process.env };
+  process.env.NODE_ENV = "development";
+  process.env.AUTH_OTP_MOCK = "true";
+
+  try {
+    // Unset: the guard stands. A mock-OTP instance stays off the network.
+    delete process.env.BIND_HOST;
+    const guarded: Array<[number, string | undefined]> = [];
+    await listenForRequests({} as INestApplication, loadConfig(), async (_app, port, host) => {
+      guarded.push([port, host]);
+    });
+    assert.deepEqual(guarded, [[4000, "127.0.0.1"]]);
+
+    // Set: a deliberate, explicit exposure. A container cannot work without it -
+    // Docker's publisher cannot reach a process on the container's own loopback.
+    process.env.BIND_HOST = "0.0.0.0";
+    const exposed: Array<[number, string | undefined]> = [];
+    await listenForRequests({} as INestApplication, loadConfig(), async (_app, port, host) => {
+      exposed.push([port, host]);
+    });
+    assert.deepEqual(exposed, [[4000, "0.0.0.0"]]);
+
+    // Blank is not a bind address; it must fall back to the guard rather than
+    // listening everywhere because someone left BIND_HOST= in an env file.
+    process.env.BIND_HOST = "   ";
+    const blank: Array<[number, string | undefined]> = [];
+    await listenForRequests({} as INestApplication, loadConfig(), async (_app, port, host) => {
+      blank.push([port, host]);
+    });
+    assert.deepEqual(blank, [[4000, "127.0.0.1"]]);
+  } finally {
+    process.env = environment;
+  }
+});
+
 test("the mock-OTP profile resolves loopback defaults for listen host CORS PGHOST and compose ports", async () => {
   const environment = { ...process.env };
   process.env.NODE_ENV = "development";

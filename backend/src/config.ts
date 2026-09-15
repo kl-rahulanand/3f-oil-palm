@@ -24,6 +24,8 @@ export interface Config {
   authOtpMock: boolean;
   authJwtSecret: string;
   frontendOrigin: string;
+  /** Explicit listen interface; undefined keeps the mock-OTP loopback default. */
+  bindHost?: string;
   pg: {
     host: string;
     port: number;
@@ -131,6 +133,12 @@ export function loadConfig(): Config {
     authOtpMock,
     authJwtSecret,
     frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://127.0.0.1:3000",
+    // Which interface the HTTP server binds. Unset keeps the original rule: a
+    // mock-OTP instance listens on loopback ONLY, so an app where anyone signs in
+    // with 000000 is never reachable over a network by accident. Setting it is a
+    // deliberate, greppable choice - a container needs 0.0.0.0 or Docker's
+    // publisher cannot reach the process at all (decision 0029).
+    bindHost: process.env.BIND_HOST?.trim() || undefined,
     pg: {
       host: process.env.PGHOST ?? "127.0.0.1",
       port: num(process.env.PGPORT, 5432),

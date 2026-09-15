@@ -1,0 +1,10 @@
+{
+  "event": "open",
+  "id": "Q-0043-8255",
+  "profile": "quickfix",
+  "reason": "Docker image and compose so the PoC runs on an EC2 box. Decision 0011 deferred '/deployment/<environment> and any hosting/CD pipeline' to a dedicated post-PoC story, so this is scoped as a DEMO deployment and does not close that decision: NODE_ENV stays non-production because config.ts:118 throws when AUTH_OTP_MOCK is set in production and no real OTP transport is wired, so a production-mode container could authenticate nobody. Secrets stay out of the image and out of git. Two separate Postgres services, because config.ts:228 refuses a warehouse sharing an address with the app database.",
+  "started_at": "2026-09-15T09:16:25+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false
+}
