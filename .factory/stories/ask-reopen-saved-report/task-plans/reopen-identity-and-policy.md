@@ -159,15 +159,16 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 **Write scope** (what `stage done` measures the diff against)
 
+- frontend/src/features/assistant/ask-panel.test.tsx
 - frontend/src/features/assistant/ask-panel.tsx
-- frontend/src/features/assistant/use-ask.ts
 - frontend/src/features/assistant/use-ask.test.tsx
-- frontend/src/features/exploration/pinned-reports.tsx
+- frontend/src/features/assistant/use-ask.ts
 - frontend/src/features/exploration/pinned-reports.test.tsx
-- frontend/src/features/exploration/saved-views.tsx
+- frontend/src/features/exploration/pinned-reports.tsx
 - frontend/src/features/exploration/saved-views.test.tsx
-- frontend/src/features/exploration/selection-identity.helper.ts
+- frontend/src/features/exploration/saved-views.tsx
 - frontend/src/features/exploration/selection-identity.helper.test.ts
+- frontend/src/features/exploration/selection-identity.helper.ts
 
 **Required tests** (run by `stage done`)
 
@@ -190,5 +191,5 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 - `python3 factory/scripts/verify.py`
 
-**Review budget.** 9 files / 900 lines -- A pure equality helper, a required failure-policy argument threaded through one seam and its two shipped call sites, and rewiring two Open handlers. Thirteen hermetic leaves, several of which exist only to pin deliberate non-obvious choices: not_supported keeps the answer, clearing removes the result rather than hiding it, and the period control is untouched. UI, so design skills are mandatory. No backend, no contract change.
+**Review budget.** 10 files / 900 lines -- A pure equality helper, a required failure-policy argument threaded through one seam and its two shipped call sites, and rewiring two Open handlers. Thirteen hermetic leaves, several of which exist only to pin deliberate non-obvious choices: not_supported keeps the answer, clearing removes the result rather than hiding it, and the period control is untouched. UI, so design skills are mandatory. No backend, no contract change. Scope extended mid-stage by one file: ask-panel.test.tsx asserts a stored-selection rerun sends 'Stored question', but its harness reruns the SAME selection as an existing successful turn, so under this task's contract the matched rerun correctly sends that turn's own question instead. The work mechanically implies the update; the test's actual purpose - proving a stored-selection rerun stays on the buffered route while an ordinary ask streams - is unaffected and must be preserved.
 <!-- /forge:contract -->

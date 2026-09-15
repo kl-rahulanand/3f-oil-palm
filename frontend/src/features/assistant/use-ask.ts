@@ -3,6 +3,7 @@
 import type { AskPriorTurn, AskResponse, ChatStreamEvent, Selection } from "@3f/contract";
 import { createContext, createElement, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "@/src/lib/api";
+import { selectionsEqual } from "../exploration/selection-identity.helper";
 
 export interface AskTurn {
   id: string;
@@ -19,8 +20,15 @@ interface AskContextValue {
   error: string | null;
   ask: (question: string) => Promise<void>;
   rerun: (question: string, selection: Selection) => Promise<boolean>;
-  continueTurn: (turnId: string, question: string, selection: Selection) => Promise<boolean>;
+  continueTurn: (
+    turnId: string,
+    question: string,
+    selection: Selection,
+    failurePolicy: ContinueTurnFailurePolicy,
+  ) => Promise<boolean>;
 }
+
+type ContinueTurnFailurePolicy = "retain" | "clear-on-refusal";
 
 const AskContext = createContext<AskContextValue | null>(null);
 
@@ -94,7 +102,12 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     return true;
   }
 
-  async function continueTurn(turnId: string, question: string, selection: Selection): Promise<boolean> {
+  async function continueTurn(
+    turnId: string,
+    question: string,
+    selection: Selection,
+    failurePolicy: ContinueTurnFailurePolicy,
+  ): Promise<boolean> {
     if (!question.trim() || isPending || !turns.some((turn) => turn.id === turnId)) return false;
 
     setIsPending(true);
@@ -107,23 +120,50 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
       const response = await api.ask({ question, selection }, { signal: controller.signal });
       setTurns((current) =>
         current.map((turn) =>
-          turn.id === turnId
-            ? response.responseClass === "success"
+          turn.id !== turnId
+            ? turn
+            : response.responseClass === "success"
               ? { id: turn.id, question: turn.question, response }
-              : { ...turn, isPending: false, error: "That period could not be loaded. Choose a period to try again." }
-            : turn,
+              : failurePolicy === "clear-on-refusal" && response.responseClass === "blocked_by_policy"
+                ? { id: turn.id, question: turn.question, response }
+                : {
+                    ...turn,
+                    isPending: false,
+                    error:
+                      failurePolicy === "clear-on-refusal"
+                        ? (response.message ?? "This report could not be reopened. Try again.")
+                        : "That period could not be loaded. Choose a period to try again.",
+                  },
         ),
       );
     } catch (caught) {
       setTurns((current) =>
         current.map((turn) =>
-          turn.id === turnId
-            ? {
-                ...turn,
-                isPending: false,
-                ...(isAbort(caught) ? { error: undefined } : { error: "The period could not be loaded. Try again." }),
-              }
-            : turn,
+          turn.id !== turnId
+            ? turn
+            : failurePolicy === "clear-on-refusal" && isAccessRefusal(caught)
+              ? {
+                  id: turn.id,
+                  question: turn.question,
+                  response: {
+                    responseClass: "blocked_by_policy" as AskResponse["responseClass"],
+                    sessionId: turn.response.sessionId,
+                    message: "Sign in again to reopen this report.",
+                    viewInReport: { available: false, reason: "Sign in again to reopen this report." },
+                  },
+                }
+              : {
+                  ...turn,
+                  isPending: false,
+                  ...(isAbort(caught)
+                    ? { error: undefined }
+                    : {
+                        error:
+                          failurePolicy === "clear-on-refusal"
+                            ? "This report could not be reopened. Try again."
+                            : "The period could not be loaded. Try again.",
+                      }),
+                },
         ),
       );
     } finally {
@@ -144,7 +184,19 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
         ask: async (question) => {
           await run(question);
         },
-        rerun: (question, selection) => run(question, selection),
+        rerun: (question, selection) => {
+          const match = [...turns]
+            .reverse()
+            .find(
+              (turn) =>
+                turn.response.responseClass === "success" &&
+                turn.response.selection &&
+                selectionsEqual(turn.response.selection, selection),
+            );
+          return match
+            ? continueTurn(match.id, match.question, selection, "clear-on-refusal")
+            : run(question, selection);
+        },
         continueTurn,
       },
     },
@@ -154,6 +206,12 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
 
 function isAbort(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
+}
+
+function isAccessRefusal(error: unknown): boolean {
+  return (
+    typeof error === "object" && error !== null && "status" in error && (error.status === 401 || error.status === 403)
+  );
 }
 
 export function useAsk(): AskContextValue {

@@ -4,7 +4,7 @@
   "task_id": "reopen-identity-and-policy",
   "verdict": "pass",
   "current_flow": "Today: pinned-reports.tsx:67 and saved-views.tsx:64 both call rerun(label.title, selection), which is run(question, selection) (use-ask.ts:147), and use-ask.ts:86 appends a turn unconditionally - no lookup, no reuse. continueTurn (use-ask.ts:97) exists from ask-period-control and replaces a turn on success while RETAINING the previous answer on any failure, with period-specific copy. AskTurn is {id, question, response, isPending?, error?} and ask-panel.tsx:129 renders from response. selectionLabel().title is measures.join(' \u00b7 '), so unrelated reports share it. There is no scrollIntoView anywhere in the panel.",
-  "summary": "Cold read of the reopen-identity-and-policy contract. Eight findings, two of them P0 and both mine. The governing one: D-0048 let a revoked grant leave a cached figure on screen, which accepted decision 0028 forbids - and a deferral cannot override a decision. The human chose to AMEND 0028 to record the limit honestly rather than let the deferral quietly contradict it. The second: I amended the plan's refusal rule and left the CONFIRMED SPEC saying the opposite, so an implementer had two authorities. The read also caught that clearing via turn.error alone would leave the numbers rendering - the leak surviving the fix - that the policy could not be caller-stated without ask-panel.tsx in scope, and that the task was misclassified as not user-facing.",
+  "summary": "Cold read of the reopen-identity-and-policy contract. Eight findings, two of them P0 and both mine. The governing one: D-0048 let a revoked grant leave a cached figure on screen, which accepted decision 0028 forbids - and a deferral cannot override a decision. The human chose to AMEND 0028 to record the limit honestly rather than let the deferral quietly contradict it. The second: I amended the plan's refusal rule and left the CONFIRMED SPEC saying the opposite, so an implementer had two authorities. The read also caught that clearing via turn.error alone would leave the numbers rendering - the leak surviving the fix - that the policy could not be caller-stated without ask-panel.tsx in scope, and that the task was misclassified as not user-facing. RE-GROUNDED against current master after PR #63 merged a multi-plant story: every factual claim in the contract was re-verified rather than assumed - use-ask.ts:86 still appends unconditionally, :97 is still continueTurn, ask-panel.tsx still holds the period-control call sites, selectionLabel().title is still measures.join(' \u00b7 '), and a revoked domain grant still returns NotSupported at chat.service.ts:245. multi-plant touched only backend mapping, ingest and selection-resolver code; none of this task's files changed. Scope extended mid-stage by one file after signal S-0018-93e2: ask-panel.test.tsx asserts a stored-selection rerun sends 'Stored question', but its harness reruns the SAME selection as the turn it just created, so under this contract the rerun matches and must send that turn's own question. The work mechanically implies the update.",
   "questions_asked": 1,
   "gaps": [
     "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
@@ -110,13 +110,13 @@
     "docs/decisions/0028-saved-selections-not-snapshots.md",
     "constitution/pnp-coding-standards-modular-monolith.md:81"
   ],
-  "input_sha256": "38966a14882f0acf23ddff15146e1646b931f0cae136dcaba2875ed3dab82093",
+  "input_sha256": "89b25a5458b69406b973789d40333cf4558ab9c3563e3b0bf0bc08f341c31838",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "5cf6611ac2020bfedac505cc0b9a86106b1c4dbcb9e8d0e96e59bb7fd37136a8",
-  "recorded_at": "2026-09-15T16:01:13+00:00",
-  "commit": "ce7f985978b18879104f3767a1db4252f409cf24",
+  "recorded_at": "2026-09-15T16:15:44+00:00",
+  "commit": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b",
   "approved_task_plan_sha256": "5cf6611ac2020bfedac505cc0b9a86106b1c4dbcb9e8d0e96e59bb7fd37136a8",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-15T16:01:13+00:00"
+  "approved_at": "2026-09-15T16:15:47+00:00"
 }

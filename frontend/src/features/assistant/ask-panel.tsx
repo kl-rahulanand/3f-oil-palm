@@ -124,7 +124,12 @@ function Answer({
   turn: AskTurn;
   isPending: boolean;
   onAsk: (question: string) => Promise<void>;
-  onContinue: (turnId: string, question: string, selection: Selection) => Promise<boolean>;
+  onContinue: (
+    turnId: string,
+    question: string,
+    selection: Selection,
+    failurePolicy: "retain" | "clear-on-refusal",
+  ) => Promise<boolean>;
 }>) {
   const { response, question } = turn;
   if (response.responseClass === "success") {
@@ -151,10 +156,15 @@ function Answer({
                 key={option.value}
                 disabled={turn.isPending}
                 onClick={() =>
-                  void onContinue(turn.id, choice.question, {
-                    ...choice.selection,
-                    timeWindow: option.timeWindow,
-                  })
+                  void onContinue(
+                    turn.id,
+                    choice.question,
+                    {
+                      ...choice.selection,
+                      timeWindow: option.timeWindow,
+                    },
+                    "retain",
+                  )
                 }
               >
                 {option.label}
@@ -201,7 +211,12 @@ function SuccessAnswer({
 }: Readonly<{
   turn: AskTurn;
   isPending: boolean;
-  onContinue: (turnId: string, question: string, selection: Selection) => Promise<boolean>;
+  onContinue: (
+    turnId: string,
+    question: string,
+    selection: Selection,
+    failurePolicy: "retain" | "clear-on-refusal",
+  ) => Promise<boolean>;
 }>) {
   const { response } = turn;
   const [saving, setSaving] = useState<"save" | "pin">();
@@ -266,10 +281,15 @@ function SuccessAnswer({
               onChange={(event) => {
                 const option = response.periodControl?.options.find(({ value }) => value === event.target.value);
                 if (option && response.selection) {
-                  void onContinue(turn.id, turn.question, {
-                    ...response.selection,
-                    timeWindow: option.timeWindow,
-                  });
+                  void onContinue(
+                    turn.id,
+                    turn.question,
+                    {
+                      ...response.selection,
+                      timeWindow: option.timeWindow,
+                    },
+                    "retain",
+                  );
                 }
               }}
             >

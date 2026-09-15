@@ -90,15 +90,16 @@
         }
       ],
       "write_scope": [
+        "frontend/src/features/assistant/ask-panel.test.tsx",
         "frontend/src/features/assistant/ask-panel.tsx",
-        "frontend/src/features/assistant/use-ask.ts",
         "frontend/src/features/assistant/use-ask.test.tsx",
-        "frontend/src/features/exploration/pinned-reports.tsx",
+        "frontend/src/features/assistant/use-ask.ts",
         "frontend/src/features/exploration/pinned-reports.test.tsx",
-        "frontend/src/features/exploration/saved-views.tsx",
+        "frontend/src/features/exploration/pinned-reports.tsx",
         "frontend/src/features/exploration/saved-views.test.tsx",
-        "frontend/src/features/exploration/selection-identity.helper.ts",
-        "frontend/src/features/exploration/selection-identity.helper.test.ts"
+        "frontend/src/features/exploration/saved-views.tsx",
+        "frontend/src/features/exploration/selection-identity.helper.test.ts",
+        "frontend/src/features/exploration/selection-identity.helper.ts"
       ],
       "required_tests": [
         {
@@ -183,9 +184,9 @@
         "Both Open entry points must be proven against a MATCHED turn; hook leaves can pass while one route bypasses matching entirely."
       ],
       "review_budget": {
-        "max_changed_files": 9,
+        "max_changed_files": 10,
         "max_changed_lines": 900,
-        "reason": "A pure equality helper, a required failure-policy argument threaded through one seam and its two shipped call sites, and rewiring two Open handlers. Thirteen hermetic leaves, several of which exist only to pin deliberate non-obvious choices: not_supported keeps the answer, clearing removes the result rather than hiding it, and the period control is untouched. UI, so design skills are mandatory. No backend, no contract change."
+        "reason": "A pure equality helper, a required failure-policy argument threaded through one seam and its two shipped call sites, and rewiring two Open handlers. Thirteen hermetic leaves, several of which exist only to pin deliberate non-obvious choices: not_supported keeps the answer, clearing removes the result rather than hiding it, and the period control is untouched. UI, so design skills are mandatory. No backend, no contract change. Scope extended mid-stage by one file: ask-panel.test.tsx asserts a stored-selection rerun sends 'Stored question', but its harness reruns the SAME selection as an existing successful turn, so under this task's contract the matched rerun correctly sends that turn's own question instead. The work mechanically implies the update; the test's actual purpose - proving a stored-selection rerun stays on the buffered route while an ordinary ask streams - is unaffected and must be preserved."
       }
     },
     {
@@ -206,5 +207,5 @@
     }
   ],
   "plan_sha256": "a876c2afbf926fcb9c2f670ca980218bc0cb8d7c25c8ad4de902697839108f72",
-  "commit": "ce7f985978b18879104f3767a1db4252f409cf24"
+  "commit": "af447d484f496c86bb2ad1c4a6631e8423fdfb9b"
 }

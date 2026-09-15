@@ -110,6 +110,30 @@ test("a saved rerun rejected while another question is pending stays on the row"
   expect(mocks.push).not.toHaveBeenCalled();
 });
 
+test("opening a saved view that matches an existing turn reruns it rather than appending", async () => {
+  mocks.savedQueries.mockResolvedValue([saved("known", selection, { runnable: true })]);
+  mocks.ask
+    .mockResolvedValueOnce(success("Original actual", selection))
+    .mockResolvedValueOnce(success("Fresh actual", selection));
+  renderWithQuery(
+    <AskProvider>
+      <SeedTurn />
+      <ThreadLength />
+      <SavedViews />
+    </AskProvider>,
+  );
+
+  await screen.findByRole("heading", { name: "Actual" });
+  fireEvent.click(screen.getByRole("button", { name: "Seed answered turn" }));
+  await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("1"));
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "What was the actual?", selection });
+  expect(screen.getByTestId("thread-length")).toHaveTextContent("1");
+  expect(mocks.push).toHaveBeenCalledWith("/ask");
+});
+
 function saved(id: string, value: Selection, status: SavedQuery["status"]): SavedQuery {
   return { id, selection: value, status, createdAt: "2026-09-12T00:00:00.000Z" };
 }
@@ -129,4 +153,28 @@ function PendingQuestion() {
       Start question
     </button>
   );
+}
+
+function SeedTurn() {
+  const { ask } = useAsk();
+  return (
+    <button type="button" onClick={() => void ask("What was the actual?")}>
+      Seed answered turn
+    </button>
+  );
+}
+
+function ThreadLength() {
+  const { turns } = useAsk();
+  return <output data-testid="thread-length">{turns.length}</output>;
+}
+
+function success(title: string, value: Selection) {
+  return {
+    responseClass: "success" as const,
+    sessionId: "session",
+    title,
+    selection: value,
+    viewInReport: { available: false as const, reason: "Not available." },
+  };
 }
