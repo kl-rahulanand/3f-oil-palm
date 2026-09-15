@@ -1,8 +1,8 @@
 {
-  "commit": "8242f1bcd844a72ce99b93ee8158ee2d844878e3",
+  "commit": "dc1a74538a9c5f760246fb8980d1f27823e9b10c",
   "automated": {
     "generated_by": "implementer",
-    "status": "pass",
+    "status": "passed",
     "summary": "Six required leaves verified individually. The FIRST verification pass was WRONG and is recorded as such: it checked only that a matching testcase NAME appeared in the junit report, and a control proved that insufficient for vitest - running with -t 'a name that does not exist' still emits every testcase in the file under its real name, each marked <skipped/>. The correct discriminator for vitest is present AND NOT skipped AND NOT failed; all six leaves satisfy it and the control's matching testcase is skipped=True. This is a DIFFERENT false-green mechanism from tools/junit-run.mjs, where a non-matching --name yields one testcase named after the FILE PATH. Both are ledgered as lessons. verify.py passes. Live flow confirmed in the browser against Bedrock and the Postgres warehouse: a statement ask with no period renders the prompt and a 2026-07-01 button, clicking it replaces the clarification in place with a VERIFIED 81-row answer, and the asked question is unchanged.",
     "pass_fail_summary": "6/6 required leaves present, not skipped, not failed; verify.py pass; live clarification-to-answer flow confirmed",
     "blocking_findings": [],
@@ -27,8 +27,8 @@
     "residual_risks": [],
     "manual_validation_steps": [],
     "reviewed_scope": [],
-    "recorded_at": "2026-09-15T07:46:40+00:00",
-    "commit": "8242f1bcd844a72ce99b93ee8158ee2d844878e3"
+    "recorded_at": "2026-09-15T08:03:23+00:00",
+    "commit": "dc1a74538a9c5f760246fb8980d1f27823e9b10c"
   },
-  "updated_at": "2026-09-15T07:46:40+00:00"
+  "updated_at": "2026-09-15T08:03:23+00:00"
 }
