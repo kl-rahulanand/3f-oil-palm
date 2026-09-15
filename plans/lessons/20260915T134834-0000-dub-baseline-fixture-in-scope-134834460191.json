@@ -1,0 +1,12 @@
+{
+  "topic": "dub-baseline-fixture-in-scope",
+  "lesson": "For all-plants-backend the new fixture backend/src/warehouse/__fixtures__/dub-statement-baseline.json is AUTHORIZED (signal S-0016 resolved) \u2014 it is mechanically required by the DUB-baseline ruling; stage amend-scope adopts the path at close. Create it; do not pause on it again.",
+  "source": "S-0016-bf94",
+  "applies_to": [
+    "backend/src/warehouse/__fixtures__/dub-statement-baseline.json",
+    "backend/src/warehouse/all-plants-reconciliation.db.test.ts"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-15T13:48:34+00:00"
+}
