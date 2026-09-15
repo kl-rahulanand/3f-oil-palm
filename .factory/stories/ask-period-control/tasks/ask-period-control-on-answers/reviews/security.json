@@ -1,0 +1,24 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "ask-period-control-on-answers",
+  "score": 10,
+  "summary": "security lens over ask-period-control-on-answers (3 product path(s), fe39c33..2392a5e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff implements the period control only for successful responses, preserves the existing selection and question when continuing, handles null current periods without inventing a selection, exposes per-turn pending and failure states, and disables controls during global pending work. No concrete P0\u2013P2 security or correctness defect, credential exposure, or compatibility leftover is demonstrated by the available evidence.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "279d338058a66b75ef0d491877df2fd54d378ef4b254d3536c1970d642a84df5",
+  "brief_sha256": "0b008680df5c3e2c6a96bb5245af0babcbf54f99bf0317be5677d29fde7f7013",
+  "branch_diff_digest": "33e074a556c06125a25bad17c9b1e4f95435b8ecc598fa5e18f494615a9d16ed",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T08:39:27+00:00",
+  "commit": "2392a5e577d7b344d0692ab7dcfee71176de7871"
+}

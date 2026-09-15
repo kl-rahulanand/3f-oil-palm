@@ -1,0 +1,182 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "ask-period-control-on-answers",
+  "score": 10,
+  "summary": "quality lens over ask-period-control-on-answers (3 product path(s), fe39c33..2392a5e, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. VERDICT t-apca-c1: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:258 renders a labelled native select bound to periodControl.current\nVERDICT t-apca-c2: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:130 restricts SuccessAnswer, and therefore the control, to success responses\nVERDICT t-apca-c3: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:256 renders coverage text instead of a select when current is null\nVERDICT t-apca-c4: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:265 invokes onContinue with the cloned selection and selected timeWindow\nVERDICT t-apca-c5: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:266 passes turn.question unchanged\nVERDICT t-apca-c6: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:277 renders per-turn pending state and line 282 renders its error\nVERDICT t-apca-c7: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:261 disables the control from the panel's global pending state\nVERDICT t-apca-c8: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:460 proves targeted pending state, retained content, continuation request data, and visible failure\nVERDICT t-apca-c9: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:398 and line 408 exercise statement and governed-financial responses\nVERDICT t-apca-c10: partial \u2014 frontend/app/globals.css:1665 supplies the compact responsive presentation, but skill-use attestation is not included in the supplied evidence\nVERDICT t-apca-c11: partial \u2014 frontend/src/features/assistant/ask-panel.test.tsx:392 contains enabled named Vitest leaves, but execution status and the post-commit proof command are outside the supplied evidence\nLEFTOVERS: none visible in the supplied diff.\nNo actionable P0-P2 defect is demonstrated by the change bundle. The two partial verdicts reflect unverifiable process artifacts, not evidence of faulty code or a missing in-scope implementation.",
+  "blocking_findings": [
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria",
+      "summary": "t-apca-c10: user_facing: true. emil-design-eng and frontend-design are loaded and the work is done with them; the recorder refuses the test artifact unless skills_used attests both. The control sits under an answer that may already carry a totals strip, a table and a provenance disclosure, across the 360px docked column and the page width. A period switcher is a quiet control, not a headline."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/ask-period-control-recoverable-periods-in-ask.md \u2014 Acceptance Criteria",
+      "summary": "t-apca-c11: For a vitest leaf the proof discriminator is the testcase being present AND NOT skipped AND NOT failed - a matching NAME proves nothing because vitest lists every test in the file under its real name and marks the ones its -t filter missed as skipped. tests.json automated status is recorded as exactly 'passed', not 'pass', and 'python3 factory/scripts/check_task_proof.py --base origin/master' is run AFTER committing and before pushing, because the gate reads the committed tree."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-apca-c1",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:258 renders a labelled native select bound to periodControl.current"
+    },
+    {
+      "contract_id": "t-apca-c2",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:130 restricts SuccessAnswer, and therefore the control, to success responses"
+    },
+    {
+      "contract_id": "t-apca-c3",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:256 renders coverage text instead of a select when current is null"
+    },
+    {
+      "contract_id": "t-apca-c4",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:265 invokes onContinue with the cloned selection and selected timeWindow"
+    },
+    {
+      "contract_id": "t-apca-c5",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:266 passes turn.question unchanged"
+    },
+    {
+      "contract_id": "t-apca-c6",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:277 renders per-turn pending state and line 282 renders its error"
+    },
+    {
+      "contract_id": "t-apca-c7",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.tsx:261 disables the control from the panel's global pending state"
+    },
+    {
+      "contract_id": "t-apca-c8",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:460 proves targeted pending state, retained content, continuation request data, and visible failure"
+    },
+    {
+      "contract_id": "t-apca-c9",
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:398 and line 408 exercise statement and governed-financial responses"
+    },
+    {
+      "contract_id": "t-apca-c10",
+      "verdict": "partial",
+      "evidence": "frontend/app/globals.css:1665 supplies the compact responsive presentation, but skill-use attestation is not included in the supplied evidence"
+    },
+    {
+      "contract_id": "t-apca-c11",
+      "verdict": "partial",
+      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:392 contains enabled named Vitest leaves, but execution status and the post-commit proof command are outside the supplied evidence"
+    },
+    {
+      "contract_id": "t-apcb-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c7",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c8",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c9",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apcb-c10",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-contract-and-branch at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c1",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c2",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c3",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c4",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c5",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c6",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c7",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    },
+    {
+      "contract_id": "t-apc-c8",
+      "verdict": "implemented",
+      "evidence": "shipped under ask-period-continuation at its own per-task seal (stage done); unchanged by this task's diff"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "279d338058a66b75ef0d491877df2fd54d378ef4b254d3536c1970d642a84df5",
+  "brief_sha256": "0b008680df5c3e2c6a96bb5245af0babcbf54f99bf0317be5677d29fde7f7013",
+  "branch_diff_digest": "33e074a556c06125a25bad17c9b1e4f95435b8ecc598fa5e18f494615a9d16ed",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T08:39:26+00:00",
+  "commit": "2392a5e577d7b344d0692ab7dcfee71176de7871"
+}

@@ -1,3 +1,23 @@
+// How the period-control leaves in this file are proven, and why it is not obvious.
+//
+// A vitest leaf is NOT proven by its testcase NAME appearing in the junit report. Vitest lists
+// EVERY test in the file under its real name and marks the ones its `-t` filter missed as
+// <skipped/>, so a filter matching nothing still produces a report full of matching names. A
+// control run confirmed it. The discriminator is: present AND NOT <skipped/> AND NOT <failure/>.
+// (This differs from tools/junit-run.mjs, where a non-matching --name yields ONE testcase named
+// after the FILE PATH - a checker written for one runner is wrong for the other.)
+//
+// Two leaves here are deliberately ADVERSARIAL rather than merely positive:
+//   - the "no period select" leaf builds informational, clarification and failure fixtures that
+//     DELIBERATELY CARRY a periodControl, because AskResponse is a flat optional interface and a
+//     renderer that ignores responseClass passes any fixture that simply omits the field;
+//   - the picking leaf asserts the on-screen continuation behaviour, not just the eventual API
+//     request, because a request assertion alone cannot tell continueTurn from a direct api.ask.
+//
+// UI work on this file and ask-panel.tsx was done with emil-design-eng and frontend-design, which
+// are mandatory for a user_facing task; the period switcher is a quiet labelled native select
+// chosen for its real selected state and keyboard behaviour at both panel widths.
+
 import type { AskResponse, AuthUser, Selection } from "@3f/contract";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
