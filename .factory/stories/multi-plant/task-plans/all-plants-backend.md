@@ -10,7 +10,7 @@ belongs to DUB — so a statement for any other plant carries a **not-loaded** b
 Excel export writes a dash, and every statement pins the period's active budget batch as its
 outline source regardless of the user's grants. Grant the demo admin every plant, with an
 optional per-user plant list in `SEED_USERS`. Nothing in ingestion, the batch model, the drill
-service or the assistant is edited (decisions 0033, 0035, 0036).
+service or the assistant is edited (decisions 0034, 0036, 0037).
 
 ## Workflow
 
@@ -39,6 +39,8 @@ export, provenance and the seeded grants. It does not render anything (task 2) a
 touch ingestion, the drill service or the assistant.
 
 ## Read before you write
+- `contract/src/api.ts:287` — `MisStatementMeasureBlock` after PR #60: optional `budgetState`,
+  `budget` still non-null. This task turns it into the discriminated union (in scope now).
 - `backend/src/mapping/mis-mapping-master.ts` — the shipped one-selection master and its
   `entry()` / `bucket()` helpers with the two reason literals (`ABSENT_GL_REASON`,
   `CONFLICT_REASON`). Your generated file replaces it and MUST keep DUB's 28 entries and nine
@@ -65,7 +67,7 @@ touch ingestion, the drill service or the assistant.
 
 ## Contract
 
-### The generator and the classification table (0031)
+### The generator and the classification table (0032)
 - `backend/src/mapping/generate-mapping-master.ts`, run by a new backend script
   `master:generate` (`ts-node -T`, like `db:migrate`). Inputs: `docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx`
   (Sheet1 pairs on its **second** `Cost Center` column + GL; the SAP Report's observed
@@ -87,42 +89,69 @@ touch ingestion, the drill service or the assistant.
   a format without an owner.
 - A hermetic test regenerates in memory and asserts deep equality with the checked-in constant.
 
-### Budget owner and the not-loaded state (0033)
-- `MisStatementMeasureBlock` gains `budgetState: "loaded" | "not-loaded"`. **The wire types of
-  `budget`, `rollover`, `actual` and `percentage` do not change** — widening `budget` to null
-  breaks the frontend build (`statement-view.tsx:286` types `formatMoney(FixedScaleMoney)`), and
-  this task cannot touch the frontend. For a not-loaded block the service emits `budget: "0.00"`,
-  `percentage: null`, and no over-budget / credit label; the frontend task switches on
-  `budgetState` and never renders those placeholders. Say so in a code comment at the seam.
-- The owner comes from the master (`formats[...].budget_owner_plant`). The service decides per
-  statement: selection plant ≠ owner → every block `not-loaded`, the budget side of the
-  projection result discarded before `buildTree` (row structure, zero-fill and DUB's output are
-  unchanged). DUB → `loaded`, identical output to today (the existing service tests prove it).
+### Budget owner and the not-loaded state (0034)
+- **Contract, second half (this task owns `contract/src/api.ts`):** `MisStatementMeasureBlock`
+  becomes a discriminated union — `{ budgetState: "loaded"; budget: FixedScaleMoney; rollover:
+  null; percentage: string | null }` or `{ budgetState: "not-loaded"; budget: null; rollover:
+  null; percentage: null }`. `budgetState` becomes REQUIRED on both members (the frontend
+  already treats it as the discriminant and typechecks unchanged; if it does not, raise a
+  signal rather than editing frontend files). **Never a placeholder amount on the wire.**
+- **DUB unchanged means values, not bytes** (human-decided at this grill): DUB blocks now carry
+  `budgetState: "loaded"` explicitly; the regression proves identical amounts, percentages,
+  tree, provenance batch ids and Excel export bytes against the shipped output, and additionally
+  the new fields.
+- **Runtime enforcement of the union, not decorator typing.** The statement service parses its
+  own result through a zod response schema (`misStatementResponseSchema.parse(...)`, the
+  pattern `ingest.service.ts:41,79` already uses) before returning it; the schema accepts only
+  the two valid pairs and a negative test proves that `not-loaded` with money and `loaded` with
+  null are rejected. The controller keeps returning the service result (`mis-statement.controller.ts:86`).
+- **The owner reaches the service through the resolver, never global config.** The master
+  gains `formats: { <formatId>: { budget_owner_plant } }`; the loader validates that the owner
+  is a canonical selection carrying that format (a format without a valid owner fails
+  `loadMappingMaster`). `MasterResolvedSelection` gains `budgetOwnerPlant`, so
+  `MisStatementService` decides `selection.plant === resolution.budgetOwnerPlant` from the
+  injected master its tests already control. **The service is the sole owner-rule authority**:
+  it discards the budget side before `buildTree` for non-owners (row structure, zero-fill and
+  DUB's values unchanged) and stamps `budgetState`; the export and every other consumer render
+  from `budgetState` alone and never re-derive ownership.
 - Export: on a not-loaded block write `–` into Budget, Roll-over and % cells and add one note
   row under the title: "Budget not loaded for this plant". The filename already carries the
   plant (`mis-statement.controller.ts:145`); assert it, do not change it.
+- Decision 0037 governs the Ask view: `actual_by_gl_month` keeps its DUB literal; decision
+  0034's consequence about that view belongs to the plant-aware assistant and is deferred, as
+  the spec's "Settled by the task grill" section records — cite that section in the code
+  comment at the view, since neither accepted record can be edited.
 
-### The outline pin for every plant
-- `run()` adds the period's active budget batch to `provenance.activeBatchIds`
-  (`source: "budget"`, the block-end period) from the batch table (a repository read, not the
-  scope-gated SQL), de-duplicated against what the blocks already reported. For a non-owner
-  plant this is the only budget entry and no amount is read. The drill's pin contract
-  (`mis-drill.service.ts:139`, exactly one budget batch covering the block end) is unchanged and
-  the drill service is NOT edited.
+### The outline pin for every plant — atomic, not two reads
+- `StatementOutlineRepository` (and its interface) gains ONE method,
+  `findActiveBudgetOutline(period)`, returning `{ batchId, nodes }` from a single query over
+  the active budget batch for the block-end period, so the outline the tree is built from and
+  the batch id pinned in provenance can never come from two different batches. `run()` uses
+  it instead of `findByBudgetPeriod`, adds `{ source: "budget", period, batchId }` to
+  `provenance.activeBatchIds` for EVERY plant (de-duplicated against what the blocks already
+  reported), and never reads a budget amount for a non-owner. A race-shaped hermetic test
+  (the fake repository swaps the active batch between the tree build and a second call) proves
+  provenance and outline agree. The drill's pin contract (`mis-drill.service.ts:139`) is
+  unchanged and the drill service is NOT edited.
 
 ### Scope readout (both routes)
-- `MisSelectionScopeReadout` gains `provisional?: boolean` and `plantDisplay?: string`
-  (optional in the contract so the frontend build is untouched; always populated by both
-  `POST /api/mis/statement` and `POST /api/mis/run`). DTOs and Swagger updated once, in
+- The contract's `provisional` / `plantDisplay` on the scope readout and `provisional` on the
+  plant option (added by the frontend task) are always populated by `GET /api/mis/options`,
+  `POST /api/mis/statement` and `POST /api/mis/run`. DTOs and Swagger updated once, in
   `mis-selection.dto.ts` and `mis-statement.dto.ts`.
 
-### Seeding
+### Seeding — the list is authoritative for listed users (human-decided at this grill)
 - `SEED_USERS` grammar: `email|display_name|role1+role2|PLANT1+PLANT2` — the fourth field is
-  optional. An admin with no plant list is granted every `plant_canonical` in the master;
-  a listed user is granted exactly those plants (validated against the master; an unknown code
-  fails migrate loudly). Seeding reconciles `user_scope` plant rows to the list on every run
-  (idempotent: re-running changes nothing). Department / function scope seeding is unchanged.
-  Document the field in `README.md` next to the existing `SEED_USERS` sentence.
+  optional and validated against the master's canonical plant ids (an unknown code fails
+  migrate loudly). For EVERY user named in `SEED_USERS`, plant scope is reconciled to the
+  list on every run: missing grants added, extra grants removed, so a re-run is idempotent
+  and a revoked demo grant does not survive. An admin with no list is granted every
+  `plant_canonical` in the master; a non-admin with no list is granted none (as today).
+  Users not named in `SEED_USERS` are never touched. Department / function scope seeding is
+  unchanged. `README.md` documents the field next to the existing `SEED_USERS` sentence.
+- Proof of no-row-leak at the service seam, not only options: a user granted only DUB is
+  refused a statement for `H.O` (`SelectionExecutionBlockedError`, the existing check at
+  `mis-statement.service.ts:66`) and sees only DUB in options.
 
 ### Design (code shape, constitution)
 `constitution/pnp-coding-standards-modular-monolith.md` and `03-modular-monolith-structure.md`
@@ -148,16 +177,28 @@ statement service and the export both call; the export must not re-derive it.
 ## Out of scope
 - Any frontend file; the assistant; ingestion; the drill service; a migration of any kind.
 - Cascading selection tuples, plant-keyed budgets, the outline object, partial-YTD, upload
-  reporting, the master-version pin (deferred, decision 0033); plant-aware Ask (0036).
+  reporting, the master-version pin (deferred, decision 0034); plant-aware Ask (0037).
 
 ## Proof
 `python3 factory/scripts/verify.py`, plus the required hermetic leaves below, each judged by its
 testcase **name** and executed count (a `--name` matching nothing still exits 0 — run the
-negative control once per leaf). The 31-plant reconciliation and the non-owner drill footing
-are warehouse-backed (`WAREHOUSE_DB_TEST=1`, `test:warehouse-proof`) and are recorded in the
-task's tests.json with their executed counts; register the new DB file in `test:db`,
-`test:warehouse-proof` and the db list of `tools/quality-gate.test.mjs`, and the new hermetic
-file in `test:hermetic` and the hermetic list. None of the files in scope is in
+negative control once per leaf). The exactly-once resolution, the 31-plant sum and H.O's
+sections are hermetic leaves computed from the July extract through the master; the 31
+rendered statements, DUB's unchanged output and the non-owner drill footing live in the new
+`backend/src/warehouse/all-plants-reconciliation.db.test.ts` under `WAREHOUSE_DB_TEST=1`,
+registered in `test:warehouse-proof` and the SELF-SKIPPING hermetic list (never `test:db`).
+**That proof MUST be executed on the host before this task closes** — `WAREHOUSE_DB_TEST=1
+npm -w @3f/backend run test:warehouse-proof` against the documented local warehouse — and
+recorded in tests.json with its three testcase NAMES verbatim ("WAREHOUSE_DB_TEST renders all
+thirty one plant statements and their grand totals sum to the company net in exact paise",
+"WAREHOUSE_DB_TEST keeps the DUB statement values tree provenance and export identical to the
+shipped output", "WAREHOUSE_DB_TEST foots a non owner leaf and unmapped GL drill for a user
+granted that plant alone") and executed counts; a tests.json without them is refused at
+review. Like every destructive warehouse proof it refuses a non-loopback
+`WAREHOUSE_PG_HOST` before any migrate or truncate (the `assertLocalWarehouseHost` pattern of
+`drill-transactions.db.test.ts:220`) and carries that refusal as its own named negative leaf. The generated master uses a compact layout
+(a shared pair table plus per-plant bucket lists expanded by a small builder at import) so
+the checked-in constant stays a few hundred lines. None of the files in scope is in
 `.prettierignore` (checked).
 
 <!-- forge:contract -->
@@ -170,25 +211,56 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 **Acceptance criteria**
 
 - Against the pinned July actuals batch, all 31 SAP plant codes are offered to a fully granted user, each renders a statement, and the 31 Grand Total Actuals sum to ₹11,02,73,718.00 in exact paise, proven by a gated warehouse fixture run per plant.
-- DUB is unchanged: Actual ₹1,15,12,712.07 and Budget ₹1,00,50,136.29 for July 2026, every parent footing, unmapped-GL carrying its own Actual, the export matching; the existing statement-projection and golden proofs keep passing.
+- DUB is unchanged in values: identical amounts, percentages, tree, provenance batch ids and Excel export bytes against the shipped output, now with budgetState 'loaded' on every block (human-decided: values, not bytes); the existing statement-projection and golden proofs keep passing.
 - Every (plant, cost centre, GL) triple in the July extract resolves exactly once via the generated master (version 3); classification is a pure function of the committed table and the extract's cost centres (fourteen July nursery codes Agriculture / Nursery, H.O Corporate / Office, the rest Operations / Unit); the eleven unnamed pairs resolve to unmapped-GL reusing the two existing reason literals so DUB's nine bucket rows are byte-for-byte unchanged; every new row is provisional with a reason; a hermetic test proves the checked-in master equals the generator's output; the format names DUB as budget owner and a format without an owner fails validation; the validator's duplicate-pair rule is re-keyed to (plant_canonical, cost_center, gl_code).
-- The measure block becomes a discriminated union (loaded with money, or not-loaded with budget null, rollover null, percentage null) validated by the DTO; a non-owner plant's statement carries not-loaded on every block including the Grand Total with no over-budget or credit label; the Excel export writes a dash in those cells with a 'Budget not loaded for this plant' note; H.O renders 100% of its July net inside sections 8 Manpower and 9 Admin and ₹0 Actual on every nursery-only section; DUB carries loaded with cells unchanged; the frontend typechecks unchanged because it already narrows on the discriminant; the plant-specific filename is asserted as a regression.
+- The measure block becomes a discriminated union with budgetState REQUIRED on both members (loaded with money, or not-loaded with budget null, rollover null, percentage null); the statement service parses its result through a zod response schema before returning it and a negative test proves not-loaded-with-money and loaded-with-null are rejected; a non-owner plant's statement carries not-loaded on every block including the Grand Total with no over-budget or credit label; the Excel export renders from budgetState alone (dash cells plus a 'Budget not loaded for this plant' note); H.O renders 100% of its July net inside sections 8 Manpower and 9 Admin and ₹0 Actual on every nursery-only section; the frontend typechecks unchanged; the plant-specific filename is asserted as a regression.
 - MisSelectionScopeReadout's provisional and plantDisplay and the plant option's provisional (contract widened by the frontend task) are populated by GET /api/mis/options, POST /api/mis/statement and POST /api/mis/run, with the DTOs and Swagger updated and each route's response tests covering them.
-- Every statement pins the period's active budget batch in provenance as the outline source regardless of the user's grants, read through the outline repository (a new method on its interface), so no budget AMOUNT is returned for a non-owner plant (the projection may still read the format's budget rows for a user granted DUB; it never returns them); the warehouse-backed proof shows drill-down footing in exact paise for a leaf and for unmapped-GL on a non-owner plant for a user granted that plant alone; the drill service and its pin contract are not edited.
-- SEED_USERS gains an optional fourth field listing canonical plant codes; absent, an admin is granted every plant in the master; seeding is idempotent and reconciles scope to the configured list; README documents it; a user granted only DUB sees only DUB in options and drill with no row leaking; the assistant's hermetic suite passes unchanged.
+- Every statement pins the period's active budget batch in provenance for every plant through ONE atomic outline-repository method that returns the batch id and its outline nodes together, so provenance and outline cannot diverge under a concurrent budget replacement (race-shaped hermetic test); no budget amount is returned for a non-owner plant; the drill service and its pin contract are not edited.
+- SEED_USERS gains an optional fourth field of canonical plant codes validated against the master; for every listed user the plant scope is reconciled to the list on each run (added and removed, idempotent); an admin with no list gets every master plant, a non-admin with no list gets none; unlisted users are never touched; README documents it; a user granted only DUB is refused an H.O statement at the service seam and sees only DUB in options; the assistant's hermetic suite passes unchanged.
 - The two zero states and the three nil states stay distinct from the not-loaded state in hermetic tests; every proof is judged by junit testcase name and executed count (D-0024, D-0032); new test files are registered in backend/package.json and tools/quality-gate.test.mjs; no D-0006-listed file is edited.
 - Decision 0037 governs the Ask view: actual_by_gl_month keeps its DUB literal; decision 0034's consequence about that view is deferred with the plant-aware assistant.
-- Proof split: exactly-once resolution, the 31-plant sum (₹11,02,73,718.00) and H.O's sections are proven hermetically from the July extract through the master; the 31 rendered statements, DUB's unchanged output and the non-owner drill footing are proven by backend/src/warehouse/all-plants-reconciliation.db.test.ts under WAREHOUSE_DB_TEST=1, registered in test:warehouse-proof and the self-skipping hermetic list (never test:db), and recorded in tests.json with executed counts.
+- Proof split: exactly-once resolution, the 31-plant sum (₹11,02,73,718.00) and H.O's sections are proven hermetically from the July extract through the master; the 31 rendered statements, DUB's unchanged values and the non-owner drill footing are proven by backend/src/warehouse/all-plants-reconciliation.db.test.ts under WAREHOUSE_DB_TEST=1 — registered in test:warehouse-proof and the self-skipping hermetic list (never test:db), refusing a non-loopback warehouse host before any destructive setup with its own negative leaf — EXECUTED on the host before close and recorded in tests.json with its testcase names verbatim and executed counts.
+- The budget owner reaches the statement service through the resolver: the master's formats map names budget_owner_plant, the loader validates the owner is a canonical selection carrying that format, MasterResolvedSelection carries budgetOwnerPlant, and the service is the sole owner-rule authority; no consumer re-derives ownership.
 
 **Write scope** (what `stage done` measures the diff against)
 
-- (none recorded)
+- contract/src/api.ts
+- backend/src/mapping
+- backend/src/ingest/mis-format-outline.ts
+- backend/src/ingest/mis-budget.parser.ts
+- backend/src/mis
+- backend/src/warehouse/statement-outline.repository.ts
+- backend/src/warehouse/statement-outline.interface.ts
+- backend/src/warehouse/all-plants-reconciliation.db.test.ts
+- backend/src/db/migrate.ts
+- backend/src/db/seed-users.test.ts
+- backend/src/config.ts
+- backend/package.json
+- tools/quality-gate.test.mjs
+- README.md
 
 **Required tests** (run by `stage done`)
 
-- (none recorded)
+- `the generated master equals the checked in master and names every SAP plant in the July extract with provisional labels and DUB as the budget owner` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mapping/mapping-master.test.ts)
+- `every plant cost centre and GL triple in the July extract resolves exactly once with the eleven unnamed pairs bucketed under the existing reason literals and the DUB selection unchanged` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mapping/mapping-master.test.ts)
+- `the thirty one plants resolved actual totals computed from the July extract through the master sum to the company net and HO resolves entirely to the manpower and admin sections` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mapping/mapping-master.test.ts)
+- `plant classification is a pure function of the committed table and the extract cost centres yielding fourteen nursery plants HO as corporate office and the rest as operations unit` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mapping/mapping-master.test.ts)
+- `the loader requires a budget owner that is a canonical selection of its format and re-keys the duplicate pair guard per plant while still rejecting one triple claiming two targets` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mapping/mapping-master.test.ts)
+- `a user granted only DUB is offered only DUB in the selection options and the resolution carries the budget owner plant` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mapping/selection-resolver.service.test.ts)
+- `a non owner plant carries a not loaded budget state on every block with null budget rollover and percentage and no over budget or credit label` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+- `the DUB statement keeps identical values tree and provenance and carries a loaded budget state on every block` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+- `the response schema rejects a not loaded block with money and a loaded block with a null budget` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+- `every statement pins the active budget batch through the atomic outline read so provenance and outline agree even when the batch is replaced between calls` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+- `a user granted only DUB is refused a statement for another plant at the service seam` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+- `the two zero states and the three nil states stay distinct from the not loaded state` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.service.test.ts)
+- `the export renders a dash and a not loaded note from the budget state alone and keeps the plant specific filename and DUB export bytes` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement-export.test.ts)
+- `the statement response scope readout carries provisional and plant display` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-statement.controller.test.ts)
+- `the run response scope readout and the plant options carry provisional and plant display` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-selection.controller.test.ts)
+- `seed users reconcile listed users plant scope to the list grant every master plant to an admin without one none to a non admin without one and never touch unlisted users` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/db/seed-users.test.ts)
 
 **Verify commands**
 
-- (none recorded)
+- `python3 factory/scripts/verify.py`
+
+**Review budget.** 30 files / 2600 lines -- The surface is the shared contract union, the generator, the classification table, the shared outline helper, the compact generated master, the loader and resolver (budget owner), the statement service with its zod response schema and atomic outline pin, the outline repository and interface, the export, three DTO files and Swagger, the seeder and config grammar, README, package.json and quality-gate registration, one warehouse proof file and sixteen hermetic leaves across six test files. The generated master stays a few hundred lines by construction.
 <!-- /forge:contract -->
