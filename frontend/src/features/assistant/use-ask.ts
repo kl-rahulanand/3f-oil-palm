@@ -5,8 +5,11 @@ import { createContext, createElement, useContext, useEffect, useRef, useState, 
 import { api } from "@/src/lib/api";
 
 export interface AskTurn {
+  id: string;
   question: string;
   response: AskResponse;
+  isPending?: boolean;
+  error?: string;
 }
 
 interface AskContextValue {
@@ -16,6 +19,7 @@ interface AskContextValue {
   error: string | null;
   ask: (question: string) => Promise<void>;
   rerun: (question: string, selection: Selection) => Promise<boolean>;
+  continueTurn: (turnId: string, question: string, selection: Selection) => Promise<boolean>;
 }
 
 const AskContext = createContext<AskContextValue | null>(null);
@@ -29,6 +33,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
   const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingPhasesRef = useRef<AskContextValue["phases"]>([]);
   const phasesVisibleRef = useRef(false);
+  const nextTurnIdRef = useRef(0);
 
   useEffect(() => {
     if (pathname !== "/ask" && pathname !== "/mis-reports") abortRef.current?.abort();
@@ -78,10 +83,49 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
             { signal: controller.signal, onPhase: receivePhase },
           );
       clearProgress();
-      setTurns((current) => [...current, { question: trimmed, response }]);
+      setTurns((current) => [...current, { id: `ask-turn-${++nextTurnIdRef.current}`, question: trimmed, response }]);
     } catch (caught) {
       clearProgress();
       if (!isAbort(caught)) setError("The question could not be sent. Try again.");
+    } finally {
+      abortRef.current = undefined;
+      setIsPending(false);
+    }
+    return true;
+  }
+
+  async function continueTurn(turnId: string, question: string, selection: Selection): Promise<boolean> {
+    if (!question.trim() || isPending || !turns.some((turn) => turn.id === turnId)) return false;
+
+    setIsPending(true);
+    setError(null);
+    setTurns((current) =>
+      current.map((turn) => (turn.id === turnId ? { ...turn, isPending: true, error: undefined } : turn)),
+    );
+    const controller = (abortRef.current = new AbortController());
+    try {
+      const response = await api.ask({ question, selection }, { signal: controller.signal });
+      setTurns((current) =>
+        current.map((turn) =>
+          turn.id === turnId
+            ? response.responseClass === "success"
+              ? { id: turn.id, question: turn.question, response }
+              : { ...turn, isPending: false, error: "That period could not be loaded. Choose a period to try again." }
+            : turn,
+        ),
+      );
+    } catch (caught) {
+      setTurns((current) =>
+        current.map((turn) =>
+          turn.id === turnId
+            ? {
+                ...turn,
+                isPending: false,
+                ...(isAbort(caught) ? { error: undefined } : { error: "The period could not be loaded. Try again." }),
+              }
+            : turn,
+        ),
+      );
     } finally {
       abortRef.current = undefined;
       setIsPending(false);
@@ -101,6 +145,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
           await run(question);
         },
         rerun: (question, selection) => run(question, selection),
+        continueTurn,
       },
     },
     children,

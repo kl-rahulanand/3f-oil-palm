@@ -1,0 +1,26 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "ask-period-continuation",
+  "score": 10,
+  "summary": "security lens over ask-period-continuation (5 product path(s), 8242f1b..8c41d83, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff implements stable turn IDs, sends the original untrimmed question with the selected structured time window, preserves clarification turns after non-success or transport failure, handles aborts without displaying an error, and retains the existing single-request concurrency guard. No actionable P0\u2013P2 security or correctness defect, real credential, or prohibited compatibility leftover is demonstrated by the available evidence.",
+  "blocking_findings": [],
+  "non_blocking_findings": [],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "2a725e2cd1b8ba2a4717254304cc22589e1f0ad8189961ae55dec60782dbe6f2",
+  "brief_sha256": "89d22132adc7f6dfa84175ffb76367bce847ad62d77de5b919a3664fad9931cd",
+  "branch_diff_digest": "47ed09d8bc4a8955f3ed211a6b482c0e043dfe54b2766caae472095ada19ed92",
+  "residual_risks": [],
+  "recorded_at": "2026-09-15T07:49:55+00:00",
+  "commit": "8c41d83cb0f005aa5d25d75e597d02b0bf3e3f28"
+}

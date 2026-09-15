@@ -1,11 +1,19 @@
 "use client";
 
-import { type AskResponse, type ChartType, type ProvenanceBatch, type ResultTable } from "@3f/contract";
+import {
+  type AskResponse,
+  type ChartType,
+  type FixedScaleMoney,
+  type MeasureFormat,
+  type ProvenanceBatch,
+  type ResultTable,
+  type Selection,
+} from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/src/lib/api";
-import { formatPercentage } from "../mis/statement-view";
+import { formatMoney, formatPercentage } from "../mis/statement-view";
 import { useAsk, type AskTurn } from "./use-ask";
 
 const SEED_QUESTIONS = [
@@ -13,11 +21,9 @@ const SEED_QUESTIONS = [
   // it comes from the signed-in user's scope - so naming one in the question left the model
   // with unmappable text and it either invented a filter or marked the ask unsupported.
   // The period is named explicitly because "this month" resolves to a month with no actuals.
-  // No MIS-statement seed here: a statement ask needs a single department, function and plant
-  // on the signed-in user plus a single-point period, so it cannot be a general seed question.
   "Show Actual and Budget by GL code for July 2026",
   "Show percentage of budget by GL code for July 2026",
-  "Show Actual by month",
+  "Show the MIS statement Actual by statement leaf for July 2026",
 ];
 const CHART_COLORS = ["#1c6b49", "#0c3529", "#7aa889", "#c8922f"];
 const PHASE_LABELS = {
@@ -28,7 +34,7 @@ const PHASE_LABELS = {
 } as const;
 
 export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>) {
-  const { turns, phases, isPending, error, ask } = useAsk();
+  const { turns, phases, isPending, error, ask, continueTurn } = useAsk();
   const [draft, setDraft] = useState("");
   const suggestions = latestSuggestions(turns) ?? SEED_QUESTIONS;
 
@@ -71,10 +77,10 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
       </div>
 
       <div className="ask-thread" aria-live="polite">
-        {turns.map((turn, index) => (
-          <div className="ask-exchange" key={`${turn.question}-${index}`}>
+        {turns.map((turn) => (
+          <div className="ask-exchange" key={turn.id}>
             <p className="ask-question">{turn.question}</p>
-            <Answer response={turn.response} question={turn.question} onAsk={ask} />
+            <Answer turn={turn} onAsk={ask} onContinue={continueTurn} />
           </div>
         ))}
         {phases.length > 0 && (
@@ -110,10 +116,15 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
 }
 
 function Answer({
-  response,
-  question,
+  turn,
   onAsk,
-}: Readonly<{ response: AskResponse; question: string; onAsk: (question: string) => Promise<void> }>) {
+  onContinue,
+}: Readonly<{
+  turn: AskTurn;
+  onAsk: (question: string) => Promise<void>;
+  onContinue: (turnId: string, question: string, selection: Selection) => Promise<boolean>;
+}>) {
+  const { response, question } = turn;
   if (response.responseClass === "success") return <SuccessAnswer response={response} />;
   if (response.responseClass === "informational") {
     return (
@@ -124,6 +135,41 @@ function Answer({
     );
   }
   if (response.responseClass === "clarification_needed") {
+    const choice = response.periodChoice;
+    if (choice) {
+      return (
+        <article className="ask-answer ask-clarification" aria-busy={turn.isPending || undefined}>
+          <p>{choice.prompt}</p>
+          <div className="ask-options">
+            {choice.options.map((option) => (
+              <button
+                type="button"
+                key={option.value}
+                disabled={turn.isPending}
+                onClick={() =>
+                  void onContinue(turn.id, choice.question, {
+                    ...choice.selection,
+                    timeWindow: option.timeWindow,
+                  })
+                }
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {turn.isPending && (
+            <p className="ask-period-status" role="status">
+              Loading the selected period…
+            </p>
+          )}
+          {turn.error && (
+            <p className="ask-period-error" role="alert">
+              {turn.error}
+            </p>
+          )}
+        </article>
+      );
+    }
     return (
       <article className="ask-answer ask-clarification">
         <p>{response.clarify?.prompt}</p>
@@ -424,16 +470,30 @@ function isNumeric(value: string | number | null): boolean {
   );
 }
 
-function cell(value: string | number | null | undefined, format?: "percent"): string | number {
+function cell(value: string | number | null | undefined, format?: MeasureFormat): string | number {
   if (value === null || value === undefined) return "—";
   // A percent measure is a RATIO in the payload, and it may also carry a sentinel string
   // ("over-budget", "credit / negative actual") that formatPercentage passes through intact.
   if (format === "percent") return formatPercentage(String(value));
+  if (format === "money") return formatAskMoney(value);
   return value;
 }
 
+/**
+ * Ask receives amounts in two shapes the MIS payload never produces: table cells arrive as
+ * numeric(18,2) strings, totals as JS numbers. formatMoney needs a fixed-scale string and
+ * throws on anything else, so normalise first and hand back anything that is not an amount
+ * rather than risk a render crash on a value shape we did not anticipate.
+ */
+function formatAskMoney(value: string | number): string {
+  const text = typeof value === "number" ? (Number.isFinite(value) ? value.toFixed(2) : "") : value.trim();
+  if (!/^-?\d+(\.\d{1,2})?$/.test(text)) return String(value);
+  const [whole, fraction = ""] = text.split(".");
+  return formatMoney(`${whole}.${`${fraction}00`.slice(0, 2)}` as FixedScaleMoney);
+}
+
 /** A total is keyed by its measure key, so its format is the matching column's format. */
-function formatForKey(result: ResultTable | undefined, key: string): "percent" | undefined {
+function formatForKey(result: ResultTable | undefined, key: string): MeasureFormat | undefined {
   return result?.columns.find((column) => column.key === key)?.format;
 }
 

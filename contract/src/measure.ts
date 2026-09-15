@@ -2,6 +2,11 @@
 // Measures live as version-controlled files in the backend repo and are CI-gated
 // by the golden-answer suite. The LLM SELECTS these; it never authors SQL.
 
+/** How a surface should render a measure's value.
+ *  "percent" - a 0..1 ratio, rendered as a percentage.
+ *  "money"   - a fixed-scale Rupee amount, rendered with the Indian digit grouping. */
+export type MeasureFormat = "percent" | "money";
+
 /** A verified metric. Its SQL expression is human-signed-off once, then reused. */
 export interface MeasureSpec {
   /** Domain-qualified id, e.g. "domain.metric" (never bare). */
@@ -24,8 +29,8 @@ export interface MeasureSpec {
   timeColumn?: string;
   /** Preferred grain when the author configured a time-aware measure. */
   defaultTimeGrain?: TimeGrain;
-  /** Display hint: value is a 0..1 ratio to render as a percentage. */
-  format?: "percent";
+  /** Display hint for surfaces; see MeasureFormat. */
+  format?: MeasureFormat;
   /** True if this measure is meaningless/misleading without a bounded time window
    *  (e.g. event-stream counts that otherwise scan all history). Drives the D3
    *  required-time-window clarify gate. */

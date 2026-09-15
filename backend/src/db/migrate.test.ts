@@ -74,12 +74,18 @@ test("seedConfiguredUsers creates and updates managed admins with DUB plant scop
     assert.equal(user.isActive, true);
     assert.equal(await countUsers(email), 1);
     assert.equal(await countUserRoles(user.id, "admin"), 1);
+    // The statement is scoped to ONE selector set, so the admin needs the whole triple -
+    // department, function AND plant - or no statement question is answerable from Ask.
     assert.equal(await countUserScope(user.id, "plant", "DUB"), 1);
+    assert.equal(await countUserScope(user.id, "department", "Agriculture"), 1);
+    assert.equal(await countUserScope(user.id, "function", "Nursery"), 1);
 
     assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Initial Admin", roles: ["admin"] }]), 1);
     assert.equal(await countUsers(email), 1);
     assert.equal(await countUserRoles(user.id, "admin"), 1);
     assert.equal(await countUserScope(user.id, "plant", "DUB"), 1);
+    assert.equal(await countUserScope(user.id, "department", "Agriculture"), 1);
+    assert.equal(await countUserScope(user.id, "function", "Nursery"), 1);
 
     await db.update(users).set({ isActive: false }).where(eq(users.id, user.id));
     assert.equal(await seedConfiguredUsers(db, [{ email, displayName: "Updated Admin", roles: ["admin"] }]), 1);
@@ -91,6 +97,8 @@ test("seedConfiguredUsers creates and updates managed admins with DUB plant scop
     assert.equal(await countUsers(email), 1);
     assert.equal(await countUserRoles(user.id, "admin"), 1);
     assert.equal(await countUserScope(user.id, "plant", "DUB"), 1);
+    assert.equal(await countUserScope(user.id, "department", "Agriculture"), 1);
+    assert.equal(await countUserScope(user.id, "function", "Nursery"), 1);
   } finally {
     await cleanup();
   }
