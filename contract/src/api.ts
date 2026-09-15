@@ -229,7 +229,14 @@ export interface MisSelectionPeriodOption {
 export interface MisSelectionOptionsResponse {
   departments: string[];
   functions: string[];
-  plants: Array<{ value: string; label: string; aliases: string[]; provisional?: boolean }>;
+  plants: Array<{
+    value: string;
+    label: string;
+    aliases: string[];
+    provisional?: boolean;
+    department?: string;
+    function?: string;
+  }>;
   periods: MisSelectionPeriodOption[];
 }
 

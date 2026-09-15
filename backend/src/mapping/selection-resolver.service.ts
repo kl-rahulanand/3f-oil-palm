@@ -47,6 +47,8 @@ export class SelectionResolverService implements ISelectionResolverService {
         label: selection.plant_aliases.display[0] ?? selection.plant_canonical,
         aliases: [selection.plant_canonical, ...selection.plant_aliases.sap, ...selection.plant_aliases.display],
         provisional: selection.provisional_labels,
+        department: selection.department,
+        function: selection.function,
       })),
       periods,
     };

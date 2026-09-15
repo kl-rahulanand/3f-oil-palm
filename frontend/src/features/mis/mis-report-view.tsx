@@ -17,6 +17,16 @@ export function MisReportView() {
   const requestedLink = useRef<string | undefined>(undefined);
   const [selection, setSelection] = useState<MisSelectionRunRequest>(editableSelection(linked.request));
   const [askOpen, setAskOpen] = useState(false);
+  const plants = options.data?.plants ?? [];
+  const departments = distinct(plants.map((plant) => plant.department));
+  const functions = distinct(
+    plants.filter((plant) => !selection.department || plant.department === selection.department).map((plant) => plant.function),
+  );
+  const selectablePlants = plants.filter(
+    (plant) =>
+      (!selection.department || plant.department === selection.department) &&
+      (!selection.function || plant.function === selection.function),
+  );
 
   useEffect(() => {
     if (!linked.request) {
@@ -31,7 +41,37 @@ export function MisReportView() {
   }, [linked, run]);
 
   function update(field: keyof MisSelectionRunRequest, value: string) {
-    setSelection((current) => ({ ...current, [field]: value }));
+    setSelection((current) => {
+      if (field === "plant") {
+        const plant = plants.find((option) => option.value === value);
+        return {
+          ...current,
+          plant: value,
+          ...(plant?.department ? { department: plant.department } : {}),
+          ...(plant?.function ? { function: plant.function } : {}),
+        };
+      }
+
+      if (field === "department") {
+        const functionName = matchesTuple(plants, value, current.function) ? current.function : "";
+        return {
+          ...current,
+          department: value,
+          function: functionName,
+          plant: matchesTuple(plants, value, functionName, current.plant) ? current.plant : "",
+        };
+      }
+
+      if (field === "function") {
+        return {
+          ...current,
+          function: value,
+          plant: matchesTuple(plants, current.department, value, current.plant) ? current.plant : "",
+        };
+      }
+
+      return { ...current, [field]: value };
+    });
   }
 
   function generate(event: FormEvent) {
@@ -52,19 +92,19 @@ export function MisReportView() {
           <SelectField
             label="Department"
             value={selection.department}
-            options={options.data?.departments.map((value) => ({ value, label: value })) ?? []}
+            options={departments.map((value) => ({ value, label: value }))}
             onChange={(value) => update("department", value)}
           />
           <SelectField
             label="Function"
             value={selection.function}
-            options={options.data?.functions.map((value) => ({ value, label: value })) ?? []}
+            options={functions.map((value) => ({ value, label: value }))}
             onChange={(value) => update("function", value)}
           />
           <SelectField
             label="Plant"
             value={selection.plant}
-            options={options.data?.plants.map(({ value, label, provisional }) => ({ value, label, provisional })) ?? []}
+            options={selectablePlants.map(({ value, label, provisional }) => ({ value, label, provisional }))}
             onChange={(value) => update("plant", value)}
           />
           <SelectField
@@ -189,4 +229,22 @@ function StatusMessage({ children, error = false }: Readonly<{ children: string;
 
 function isComplete(selection: MisSelectionRunRequest): boolean {
   return Object.values(selection).every(Boolean);
+}
+
+function distinct(values: Array<string | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
+function matchesTuple(
+  plants: Array<{ value: string; department?: string; function?: string }>,
+  department: string,
+  functionName: string,
+  plant?: string,
+): boolean {
+  return plants.some(
+    (option) =>
+      (!department || option.department === department) &&
+      (!functionName || option.function === functionName) &&
+      (!plant || option.value === plant),
+  );
 }
