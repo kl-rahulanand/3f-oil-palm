@@ -8,13 +8,187 @@ import { SemanticLayer } from "../semantic/semanticLayer";
 import type { IStatementOutlineRepository, StatementOutlineNode } from "../warehouse/statement-outline.interface";
 import { MisStatementService } from "./mis-statement.service";
 
+test("a non owner plant carries a not loaded budget state on every block with null budget rollover and percentage and no over budget or credit label", async () => {
+  const { service } = fixture({ plant: "H.O" });
+  const response = await service.run(userFor("H.O"), { ...request("fy26-27-ytd"), plant: "H.O" });
+
+  assert.equal(response.outcome, "resolved");
+  if (response.outcome !== "resolved") return;
+  const blocks = [...response.tree.flatMap(allBlocks), ...response.grandTotal.measures];
+  assert.ok(blocks.length > 0);
+  for (const block of blocks) {
+    assert.deepEqual(
+      {
+        budgetState: block.budgetState,
+        budget: block.budget,
+        rollover: block.rollover,
+        percentage: block.percentage,
+      },
+      { budgetState: "not-loaded", budget: null, rollover: null, percentage: null },
+    );
+  }
+});
+
+test("the DUB statement keeps identical values tree and provenance and carries a loaded budget state on every block", async () => {
+  const budgetBatch: ProvenanceBatch = {
+    source: "budget",
+    period: "2026-07-01",
+    batchId: "00000000-0000-0000-0000-000000000002",
+  };
+  const { service } = fixture({ outlineBatch: budgetBatch });
+  const response = await service.run(user, request("fy26-27-ytd"));
+
+  assert.equal(response.outcome, "resolved");
+  if (response.outcome !== "resolved") return;
+  assert.deepEqual(
+    response.grandTotal.measures.map(({ budgetState, budget, actual, percentage }) => ({
+      budgetState,
+      budget,
+      actual,
+      percentage,
+    })),
+    [{ budgetState: "loaded", budget: "101.00", actual: "50.50", percentage: "0.5" }],
+  );
+  assert.deepEqual(response.provenance.activeBatchIds, [budgetBatch]);
+});
+
+test("the response schema rejects a not loaded block with money and a loaded block with a null budget", () => {
+  const { misStatementResponseSchema } = require("./mis-statement.dto") as {
+    misStatementResponseSchema?: { parse(value: unknown): unknown };
+  };
+  assert.ok(misStatementResponseSchema);
+  const base = {
+    outcome: "resolved",
+    scope: {
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+      costCentres: [],
+      glCodes: [],
+      misFormat: "nursery-mis-financial-v1",
+      provisional: false,
+      plantDisplay: "Agri - Nursery - DUB",
+    },
+    tree: [],
+    grandTotal: {
+      nodeKey: "grand-total",
+      sNo: null,
+      budgetComponent: "Grand Total",
+      glCode: null,
+      children: [],
+      measures: [],
+    },
+    provenance: { activeBatchIds: [] },
+  };
+  const block = {
+    key: "selected",
+    label: "2026-07-01",
+    from: "2026-07-01",
+    to: "2026-07-01",
+    rollover: null,
+    actual: "1.00",
+    sourcePresence: [],
+  };
+  assert.throws(() =>
+    misStatementResponseSchema.parse({
+      ...base,
+      grandTotal: {
+        ...base.grandTotal,
+        measures: [{ ...block, budgetState: "not-loaded", budget: "1.00", percentage: null }],
+      },
+    }),
+  );
+  assert.throws(() =>
+    misStatementResponseSchema.parse({
+      ...base,
+      grandTotal: {
+        ...base.grandTotal,
+        measures: [{ ...block, budgetState: "loaded", budget: null, percentage: null }],
+      },
+    }),
+  );
+});
+
+test("every statement pins the active budget batch through the atomic outline read so provenance and outline agree even when the batch is replaced between calls", async () => {
+  const pinnedBudget: ProvenanceBatch = {
+    source: "budget",
+    period: "2026-07-01",
+    batchId: "00000000-0000-0000-0000-000000000077",
+  };
+  const replacementBudget: ProvenanceBatch = {
+    ...pinnedBudget,
+    batchId: "00000000-0000-0000-0000-000000000078",
+  };
+  const blockRace = fixture({
+    activeBatchIds: [replacementBudget],
+    outlineBatches: [pinnedBudget, pinnedBudget],
+  });
+  const blockRaceResponse = await blockRace.service.run(user, request("fy26-27-ytd"));
+
+  assert.deepEqual(blockRaceResponse, {
+    outcome: "refresh-required",
+    notice: "The data was refreshed - ask again",
+  });
+  assert.equal(blockRace.outlines.activeReads, 2);
+
+  const outlineRace = fixture({ outlineBatches: [pinnedBudget, replacementBudget] });
+  const outlineRaceResponse = await outlineRace.service.run(user, request("fy26-27-ytd"));
+  assert.deepEqual(outlineRaceResponse, {
+    outcome: "refresh-required",
+    notice: "The data was refreshed - ask again",
+  });
+  assert.equal(outlineRace.outlines.activeReads, 2);
+});
+
+test("a user granted only DUB is refused a statement for another plant at the service seam", async () => {
+  const { service } = fixture({ plant: "H.O" });
+  await assert.rejects(service.run(user, { ...request("2026-07-01"), plant: "H.O" }), /plant scope is not authorized/);
+});
+
+test("the two zero states and the three nil states stay distinct from the not loaded state", async () => {
+  const loaded = await fixture({ mixedZeroBudget: true }).service.run(user, request("fy26-27-ytd"));
+  const notLoaded = await fixture({ plant: "H.O", mixedZeroBudget: true }).service.run(userFor("H.O"), {
+    ...request("fy26-27-ytd"),
+    plant: "H.O",
+  });
+  assert.equal(loaded.outcome, "resolved");
+  assert.equal(notLoaded.outcome, "resolved");
+  if (loaded.outcome !== "resolved" || notLoaded.outcome !== "resolved") return;
+  const loadedLeaves = loaded.tree.flatMap((root) =>
+    root.children.length
+      ? root.children.flatMap((child) => (child.children.length ? child.children : [child]))
+      : [root],
+  );
+  assert.deepEqual(
+    loadedLeaves.map(({ measures }) => measures[0].budget),
+    ["0.00", "0.00", "0.00"],
+  );
+  assert.deepEqual(
+    loadedLeaves.map(({ measures }) => measures[0].percentage),
+    [null, "over-budget", "credit / negative actual"],
+  );
+  assert.ok(
+    notLoaded.tree
+      .flatMap(allBlocks)
+      .every(({ budget, rollover, percentage }) => budget === null && rollover === null && percentage === null),
+  );
+});
+
+function allBlocks(node: {
+  measures: Array<{ budgetState: string; budget: unknown; rollover: unknown; percentage: unknown }>;
+  children: Array<Parameters<typeof allBlocks>[0]>;
+}): Array<{ budgetState: string; budget: unknown; rollover: unknown; percentage: unknown }> {
+  return [...node.measures, ...node.children.flatMap(allBlocks)];
+}
+
 test("the statement service builds the tree from the outline of the budget batch for the selected period with every parent derived from its leaves and the grand total footing in outline order", async () => {
   const { service, executor, outlines } = fixture();
   const response = await service.run(user, request("2026-07-01"));
 
   assert.equal(response.outcome, "resolved");
   if (response.outcome !== "resolved") return;
-  assert.deepEqual(outlines.periods, ["2026-07-01"]);
+  assert.deepEqual(outlines.periods, ["2026-07-01", "2026-07-01"]);
   assert.deepEqual(
     response.tree.map(({ nodeKey }) => nodeKey),
     ["materials", "admin"],
@@ -33,6 +207,7 @@ test("the statement service builds the tree from the outline of the budget batch
     from: "2026-07-01",
     to: "2026-07-01",
     budget: "30.30",
+    budgetState: "loaded",
     rollover: null,
     actual: "15.15",
     percentage: "0.5",
@@ -111,6 +286,7 @@ test("the unmapped GL line is present with its own actual and zero budget counte
     from: "2026-04-01",
     to: "2026-07-01",
     budget: "0.00",
+    budgetState: "loaded",
     rollover: null,
     actual: "3.33",
     percentage: "over-budget",
@@ -145,16 +321,21 @@ function fixture(
     activeBatchIds?: ProvenanceBatch[];
     rowCount?: number;
     mixedZeroBudget?: boolean;
+    plant?: string;
+    outlineBatch?: ProvenanceBatch;
+    outlineBatches?: ProvenanceBatch[];
   } = {},
 ) {
-  const resolver = new FakeResolver();
+  const resolver = new FakeResolver(options.plant ?? "DUB");
   const executor = new FakeExecutor(
     options.includeUnmapped ?? false,
     options.activeBatchIds ?? [],
     options.rowCount,
     options.mixedZeroBudget ?? false,
   );
-  const outlines = new FakeOutlines();
+  const outlines = new FakeOutlines(
+    options.outlineBatches ?? (options.outlineBatch ? [options.outlineBatch] : undefined),
+  );
   const service = new MisStatementService(
     resolver,
     new SemanticLayer(),
@@ -165,6 +346,8 @@ function fixture(
 }
 
 class FakeResolver implements ISelectionResolverService {
+  constructor(private readonly plant: string) {}
+
   async options() {
     return { departments: [], functions: [], plants: [], periods: [] };
   }
@@ -178,7 +361,10 @@ class FakeResolver implements ISelectionResolverService {
       outcome: "resolved",
       department: request.department,
       function: request.function,
-      plant: request.plant,
+      plant: this.plant,
+      plantDisplay: this.plant === "DUB" ? "Agri - Nursery - DUB" : this.plant,
+      provisional: this.plant !== "DUB",
+      budgetOwnerPlant: "DUB",
       costCentres: ["Primary"],
       glCodes: ["5001", "5002", "5003"],
       misFormat: "nursery-mis-financial-v1",
@@ -286,9 +472,26 @@ class FakeExecutor {
 
 class FakeOutlines implements IStatementOutlineRepository {
   periods: string[] = [];
+  activeReads = 0;
 
-  async findByBudgetPeriod(period: string): Promise<StatementOutlineNode[]> {
+  constructor(
+    private readonly outlineBatches: ProvenanceBatch[] = [
+      {
+        source: "budget",
+        period: "2026-07-01",
+        batchId: "00000000-0000-0000-0000-000000000002",
+      },
+    ],
+  ) {}
+
+  async findActiveBudgetOutline(period: string) {
+    this.activeReads += 1;
     this.periods.push(period);
+    const outlineBatch = this.outlineBatches[Math.min(this.activeReads - 1, this.outlineBatches.length - 1)];
+    return { batchId: outlineBatch.batchId, nodes: this.nodes() };
+  }
+
+  private nodes(): StatementOutlineNode[] {
     return [
       node("materials", null, 0, "4", "Materials", 1),
       node("shade", "materials", 1, "4.1", "Shade Net", 2, "5001", "shade"),
@@ -336,3 +539,7 @@ const user: AuthUser = {
   },
   scope: [{ attribute: "plant", value: "DUB" }],
 };
+
+function userFor(plant: string): AuthUser {
+  return { ...user, scope: [{ attribute: "plant", value: plant }] };
+}

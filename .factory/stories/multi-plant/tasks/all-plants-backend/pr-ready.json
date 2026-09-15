@@ -1,0 +1,7 @@
+{
+  "task_id": "all-plants-backend",
+  "branch": "feat/multi-plant-all-plants-backend",
+  "base_main_sha": "d53269348d0b9f3e4589bc699bdf8dbc70b3900a",
+  "commit": "87a05be7a71859c37c349203818f96df2d2b78f1",
+  "sealed_at": "2026-09-15T14:04:11+00:00"
+}

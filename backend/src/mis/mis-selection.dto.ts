@@ -62,6 +62,9 @@ class MisSelectionPlantOptionDto {
 
   @ApiProperty({ example: ["DUB", "DUB-NUR", "Agri - Nursery - DUB"] })
   aliases!: string[];
+
+  @ApiProperty({ example: false })
+  provisional!: boolean;
 }
 
 export class MisSelectionOptionsResponseDto implements MisSelectionOptionsResponse {
@@ -87,6 +90,12 @@ class MisSelectionScopeReadoutDto implements MisSelectionScopeReadout {
 
   @ApiProperty({ example: "DUB" })
   plant!: string;
+
+  @ApiProperty({ example: "Agri - Nursery - DUB" })
+  plantDisplay!: string;
+
+  @ApiProperty({ example: false })
+  provisional!: boolean;
 
   @ApiProperty({ example: "2026-07-01" })
   period!: string;

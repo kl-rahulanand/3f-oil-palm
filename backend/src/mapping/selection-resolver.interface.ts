@@ -13,6 +13,9 @@ export interface MasterResolvedSelection {
   department: string;
   function: string;
   plant: string;
+  plantDisplay: string;
+  provisional: boolean;
+  budgetOwnerPlant: string;
   costCentres: string[];
   glCodes: string[];
   misFormat: string;

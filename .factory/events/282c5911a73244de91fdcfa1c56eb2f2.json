@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-15T13:30:25+00:00", "story": "multi-plant", "detail": "S-0014-9551: Ruling: the contract stays as approved (budgetState required on both union members; DUB emits 'loaded'). Amend the four frontend test fixtures to carry budgetState: 'loaded' \u2014 fixture-only edits, no c"}

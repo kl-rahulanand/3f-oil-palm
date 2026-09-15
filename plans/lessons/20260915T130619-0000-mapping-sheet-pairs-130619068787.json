@@ -1,0 +1,12 @@
+{
+  "topic": "mapping-sheet-pairs",
+  "lesson": "Sheet1 of SAP Entries Mapping.xlsx yields 94 usable (second Cost Center, GL) pairs, not 95: the row for GL 55000000 is the '9 Admin Expenses' section header with a blank cost centre and no outline leaf. Exclude it \u2014 parents are derived (decision 0020) and are never master targets; do not invent a cost centre or a leaf for it.",
+  "source": "S-0012-9b69",
+  "applies_to": [
+    "backend/src/mapping/**",
+    "backend/src/ingest/mis-format-outline.ts"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-15T13:06:19+00:00"
+}

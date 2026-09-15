@@ -6,6 +6,7 @@ export const UNMAPPED_GL_LINE = "unmapped-GL";
 export interface MappingMasterDefinition {
   readonly version: number;
   readonly source: string;
+  readonly formats: Readonly<Record<string, { readonly budget_owner_plant: string }>>;
   readonly selections: readonly MappingSelectionDefinition[];
 }
 
@@ -18,6 +19,7 @@ export interface MappingSelectionDefinition {
     readonly display: readonly string[];
   };
   readonly mis_format: string;
+  readonly provisional_labels: boolean;
   readonly budget_gl_codes: readonly string[];
   readonly entries: readonly MappingEntryDefinition[];
 }
@@ -57,6 +59,7 @@ const selectionSchema = z
     plant_canonical: nonEmpty,
     plant_aliases: z.object({ sap: z.array(nonEmpty).min(1), display: z.array(nonEmpty).min(1) }).strict(),
     mis_format: nonEmpty,
+    provisional_labels: z.boolean(),
     budget_gl_codes: z.array(nonEmpty).min(1),
     entries: z.array(entrySchema).min(1),
   })
@@ -65,6 +68,7 @@ const masterSchema = z
   .object({
     version: z.number().int().positive(),
     source: nonEmpty,
+    formats: z.record(nonEmpty, z.object({ budget_owner_plant: nonEmpty }).strict()),
     selections: z.array(selectionSchema).min(1),
   })
   .strict();
@@ -98,7 +102,7 @@ export function loadMappingMaster(value: unknown): MappingMaster {
   if (!parsed.success) throw new MappingMasterValidationError("Mapping master is malformed");
 
   const selectionKeys = new Set<string>();
-  const aliases = new Set<string>();
+  const aliases = new Map<string, string>();
   const entryKeys = new Set<string>();
   for (const selection of parsed.data.selections) {
     const selectionKey = key(selection.department, selection.function, selection.plant_canonical);
@@ -106,15 +110,9 @@ export function loadMappingMaster(value: unknown): MappingMaster {
       throw new MappingMasterValidationError("Mapping master has a duplicate selection key");
     selectionKeys.add(selectionKey);
 
-    for (const alias of selectionAliases(selection)) {
-      if (aliases.has(alias))
-        throw new MappingMasterValidationError("Mapping master reuses a plant alias across selections");
-      aliases.add(alias);
-    }
-
     for (const entry of selection.entries) {
       if (!entry.target) throw new MappingMasterValidationError("Mapping master has an entry without a target");
-      const entryKey = key(entry.cost_center, entry.gl_code);
+      const entryKey = key(selection.plant_canonical, entry.cost_center, entry.gl_code);
       if (entryKeys.has(entryKey))
         throw new MappingMasterValidationError("Mapping master has a duplicate selection entry");
       entryKeys.add(entryKey);
@@ -122,6 +120,26 @@ export function loadMappingMaster(value: unknown): MappingMaster {
         throw new MappingMasterValidationError("Mapping master has a provisional entry without a reason");
       }
     }
+
+    for (const alias of selectionAliases(selection)) {
+      const claimedBy = aliases.get(alias);
+      if (claimedBy && claimedBy !== selectionKey)
+        throw new MappingMasterValidationError("Mapping master reuses a plant alias across selections");
+      aliases.set(alias, selectionKey);
+    }
+  }
+
+  for (const [formatId, format] of Object.entries(parsed.data.formats)) {
+    if (
+      !parsed.data.selections.some(
+        ({ plant_canonical, mis_format }) => plant_canonical === format.budget_owner_plant && mis_format === formatId,
+      )
+    ) {
+      throw new MappingMasterValidationError("Mapping master format budget owner is not a canonical selection");
+    }
+  }
+  if (parsed.data.selections.some(({ mis_format }) => !parsed.data.formats[mis_format])) {
+    throw new MappingMasterValidationError("Mapping master selection format has no budget owner");
   }
 
   return parsed.data;

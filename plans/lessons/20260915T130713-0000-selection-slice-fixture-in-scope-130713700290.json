@@ -1,0 +1,12 @@
+{
+  "topic": "selection-slice-fixture-in-scope",
+  "lesson": "For all-plants-backend the fixture-only edit of backend/src/warehouse/selection-slice.db.test.ts (adding plantDisplay, provisional and budgetOwnerPlant to the resolver stub) is AUTHORIZED (signal S-0013 resolved); stage amend-scope adopts the path at close. Make the edit; do not pause on it again.",
+  "source": "S-0013-d3ab",
+  "applies_to": [
+    "backend/src/warehouse/selection-slice.db.test.ts",
+    "backend/src/mapping/**"
+  ],
+  "severity": "medium",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-15T13:07:13+00:00"
+}

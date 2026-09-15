@@ -4,6 +4,7 @@ import { WAREHOUSE } from "../config";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import {
   MAPPING_MASTER,
+  MappingMasterValidationError,
   UNMAPPED_GL_LINE,
   canonicalPlantFromMaster,
   resolveMappingTriple,
@@ -45,6 +46,7 @@ export class SelectionResolverService implements ISelectionResolverService {
         value: selection.plant_canonical,
         label: selection.plant_aliases.display[0] ?? selection.plant_canonical,
         aliases: [selection.plant_canonical, ...selection.plant_aliases.sap, ...selection.plant_aliases.display],
+        provisional: selection.provisional_labels,
       })),
       periods,
     };
@@ -84,6 +86,9 @@ export class SelectionResolverService implements ISelectionResolverService {
       department: selection.department,
       function: selection.function,
       plant: selection.plant_canonical,
+      plantDisplay: selection.plant_aliases.display[0] ?? selection.plant_canonical,
+      provisional: selection.provisional_labels,
+      budgetOwnerPlant: this.master.formats[selection.mis_format].budget_owner_plant,
       costCentres: unique(entries.map(({ cost_center }) => cost_center)),
       glCodes: unique([...entries.map(({ gl_code }) => gl_code), ...selection.budget_gl_codes]),
       misFormat: selection.mis_format,
@@ -130,7 +135,7 @@ export class SelectionResolverService implements ISelectionResolverService {
 }
 
 function toGovernedTarget(target: MappingEntry["target"]) {
-  if (!target) throw new Error("Mapping master selection entry has no target");
+  if (!target) throw new MappingMasterValidationError("Mapping master selection entry has no target");
   return target.kind === "leaf" ? { kind: "leaf" as const, leafKey: target.leaf_key } : { kind: "bucket" as const };
 }
 
@@ -144,7 +149,7 @@ function resolveEntries(selection: MappingSelection, master: MappingMaster): Map
       },
       master,
     );
-    if (!resolved) throw new Error("Mapping master selection entry did not resolve");
+    if (!resolved) throw new MappingMasterValidationError("Mapping master selection entry did not resolve");
     return resolved;
   });
 }

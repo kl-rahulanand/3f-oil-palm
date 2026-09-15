@@ -1,0 +1,12 @@
+{
+  "topic": "statement-pin-race-fix",
+  "lesson": "Review P1 (all three lenses): blocks execute against whichever budget batch is active at their own time, so the atomic outline pin can diverge. backend/src/sql is OUT of scope, so fix in the service: re-read the active budget outline (batch id) AFTER the blocks execute and compare with the id pinned before; on any mismatch (or a block-reported budget batch id differing from the pin) return the existing 'refresh-required' outcome instead of a statement. Extend the race-shaped hermetic leaf to swap the batch between the pin and the block execution and assert refresh-required.",
+  "source": ".factory/stories/multi-plant/tasks/all-plants-backend/reviews/quality.json",
+  "applies_to": [
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/mis/mis-statement.service.test.ts"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-15T13:45:48+00:00"
+}

@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-15T13:48:34+00:00", "story": "multi-plant", "detail": "S-0016-bf94: Authorized: backend/src/warehouse/__fixtures__/dub-statement-baseline.json is a mechanically required new fixture (DUB baseline with sourceCommit d532693, no batch ids); stage amend-scope adopts it at"}

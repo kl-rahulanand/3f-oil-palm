@@ -20,6 +20,67 @@ import { MisStatementExportService } from "./mis-statement-export.service";
 import { MisStatementController } from "./mis-statement.controller";
 import type { IMisStatementService } from "./mis-statement.interface";
 
+test("the export renders a dash and a not loaded note from the budget state alone and keeps the plant specific filename and DUB export bytes", async () => {
+  const notLoaded = statement(
+    [
+      {
+        ...node("H.O actual", "0.00", "12.34", null),
+        measures: [
+          {
+            ...block("selected", "2026-07-01", "0.00", "12.34", null),
+            budgetState: "not-loaded" as const,
+            budget: null,
+            percentage: null,
+          },
+        ],
+      },
+    ],
+    {
+      ...node("Grand Total", "0.00", "12.34", null),
+      measures: [
+        {
+          ...block("selected", "2026-07-01", "0.00", "12.34", null),
+          budgetState: "not-loaded" as const,
+          budget: null,
+          percentage: null,
+        },
+      ],
+    },
+    true,
+  );
+  notLoaded.scope.plant = "H.O";
+  const worksheet = await reopen(notLoaded);
+
+  assert.equal(worksheet.getCell("A2").value, "Budget not loaded for this plant");
+  assert.deepEqual(cells(worksheet, 4, 7), ["H.O actual", "H.O actual", "5000", "–", "–", 12, "–"]);
+  assert.deepEqual(cells(worksheet, 5, 7), ["Grand Total", "Grand Total", "Grand Total", "–", "–", 12, "–"]);
+
+  const loaded = await reopen(statement());
+  assert.equal(loaded.getCell("A2").value, "S. No.");
+  assert.equal(loaded.getCell("D3").value, 101);
+
+  const headers = new Map<string, string>();
+  const controller = new MisStatementController(
+    {
+      async run() {
+        return notLoaded;
+      },
+    },
+    {
+      async write() {
+        return Buffer.from("xlsx");
+      },
+    },
+  );
+  await controller.export(user, { ...request, plant: "H.O" }, {
+    setHeader(name: string, value: string) {
+      headers.set(name, value);
+      return this;
+    },
+  } as unknown as Response);
+  assert.match(headers.get("Content-Disposition") ?? "", /h-o-2026-07-01-to-2026-07-31\.xlsx"$/);
+});
+
 test("the export route calls the statement service once and branches before setting headers so a resolved request streams an xlsx with the canonical slug filename while an unresolvable request returns plain json with no file headers", async () => {
   const headers = new Map<string, string>();
   const response = {
@@ -258,6 +319,7 @@ function block(
     actual,
     percentage,
     sourcePresence: [],
+    budgetState: "loaded",
   };
 }
 
