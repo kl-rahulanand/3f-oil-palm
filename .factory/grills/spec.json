@@ -2,94 +2,172 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Cold read of the reopen-identity-and-policy contract. Eight findings, two of them P0 and both mine. The governing one: D-0048 let a revoked grant leave a cached figure on screen, which accepted decision 0028 forbids - and a deferral cannot override a decision. The human chose to AMEND 0028 to record the limit honestly rather than let the deferral quietly contradict it. The second: I amended the plan's refusal rule and left the CONFIRMED SPEC saying the opposite, so an implementer had two authorities. The read also caught that clearing via turn.error alone would leave the numbers rendering - the leak surviving the fix - that the policy could not be caller-stated without ask-panel.tsx in scope, and that the task was misclassified as not user-facing.",
-  "questions_asked": 1,
+  "summary": "Cold read of the mis-assistant-explains-a-number spec. Eleven findings, four of them contradictions, and the governing one was mine: decision 0035 - carried forward unchanged by 0037 - resolves a statement question's plant FROM THE QUESTION, which changes /ask, while the human had just constrained the Ask screen to stay exactly as it is. A spec could not honour both, so the human chose the frozen /ask and decision 0038 now records that the follow-up ships only the grounded explanation and leaves plant-from-question deferred. The read also caught that the draft could not identify its own subject (period alone cannot separate the July block from the FY-YTD block, and the clicked node was never carried), that every Actual is clickable including totals the raw drill refuses, that 'lists the transactions' collided with decision 0027's rule that no rows reach Bedrock, that 'the same audit record' is not a contract for the drill's governed-read protections, that the stale refusal the spec promised is flattened by the global exception filter, and that I had cited decision 0029 for all-plants scope when the accepted record is 0036. All eleven are resolved in the amended spec or by decision 0038.",
+  "questions_asked": 6,
   "gaps": [
-    "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
-    "The write scope could not deliver a caller-stated failure policy: continueTurn's two shipped period-control calls and their callback typings live in ask-panel.tsx, which was OUTSIDE scope. A required argument would not type-check with those callers untouched, and a defaulted one recreates the implicit policy the task exists to remove.",
-    "Clearing on a terminal 401/403 had no state contract. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and THE OLD NUMBERS STILL RENDER - the leak would have survived the fix.",
-    "The proof was materially incomplete: the identity leaves covered only dimensions and an absent/present time window, not domain, measures, filters, limit, optional time-window fields or array order; nothing proved that non-success responses carrying a selection are excluded as candidates; the auth leaf exercised only one of 401/403; and only not_supported represented the whole 'everything else retains' set.",
-    "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
-    "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
-    "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation."
+    "The grounding contract could not identify the subject. The draft carried only department, function, plant and period, but a July statement also renders a distinct FY-YTD block, so period alone cannot say WHICH 85,000 is meant - and the clicked node was never carried at all. The existing AskRequest.reportGrounding is a static reportId and has zero frontend callers, so a build would have had to invent the subject contract itself.",
+    "The click-then-ask flow had no owner. The clicked node lives in StatementView's private state and opens a modal; the docked AskPanel is its SIBLING in mis-report-view and receives no report or focus state. The draft never said how focus transfers to the assistant, how it is shown, or when it clears.",
+    "C5 was unbounded and collided with the model boundary. 'Lists the transactions' defined no page size, no total count and no route to later rows, while decision 0027 forbids transaction rows, amounts, batch identifiers and result rows reaching Bedrock. Without a required server-composed payload an implementation could satisfy the wording by letting the model write the numbers.",
+    "Pin semantics could not prove the claimed footing: the draft sent statement-level pins but not the selected block, and the raw drill's pin requirements are per block. It also never said whether an ordinary grounded question reads the pinned batches or current data, so an answer could contradict the very number on screen.",
+    "The mapping master was not snapshotted. The statement response carries batch provenance only, while the drill re-resolves against the CURRENT master, so a master change between rendering and asking silently changes which triples belong to the displayed leaf and the explanation stops footing to the figure on screen.",
+    "C7's 'same audit record' was not a contract. The drill's protections are re-deriving every client input, validating pins, applying current scope, auditing the exact predicate BEFORE the query runs and failing closed - none of which 'same audit record' requires. The ordinary chat audit is a different, weaker record, so the draft permitted a second raw-row route that evades decisions 0017, 0022 and 0025.",
+    "C8 promised a refusal the current error path cannot deliver: the drill's detailed stale status is flattened by the global exception filter into generic user copy, so reusing the route could never produce a message naming which source and period went stale.",
+    "The composition/causal boundary was untestable. The draft said 'and equivalents', which no leaf can assert, and grounding bypasses classifyCausalQuestion entirely - so a grounded 'why is this high?' would have stopped being declined without anyone deciding that it should.",
+    "Multi-plant and unmapped semantics were unstated: the draft never said whether every granted plant is supported, never distinguished decision 0034's expected 'Budget not loaded for this plant' state from a stale or missing batch, and treated an unmapped-GL line as though the master blessed it.",
+    "The proof obligation was a slogan, not a matrix. C10 mandated the vitest discriminator without naming what must be covered, so a suite could satisfy it while testing none of: focus states, aggregate versus leaf subjects, the two period blocks, the three staleness kinds, an out-of-scope plant, audit failure, provider payload exclusion, or footer identity."
   ],
   "contradictions": [
-    "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand."
+    "Decision 0035 (carried forward unchanged by 0037) resolves a statement question's plant FROM THE QUESTION when no grounding is present, with a 'name a plant' clarification. That by definition changes what /ask does - which directly contradicts the human's scope constraint that the Ask screen behave exactly as it does today. A spec cannot honour both.",
+    "The draft let C3 take 'the clicked node' as the subject while C4 spoke of 'that leaf', but every Actual on the statement is clickable including subtotals and Grand Total, and the raw drill REFUSES a non-leaf node. The two criteria therefore described different features, and closing the gap by adding an aggregate raw query is not permitted by decision 0024.",
+    "C3's no-focus behaviour ('the assistant asks which line it needs') contradicted the draft's own promise that ordinary data questions still work with a statement on screen - under C3 a perfectly answerable data question would be answered with a request to click a line.",
+    "The draft cited decision 0029 for all-plants scope. The accepted all-plants decision is 0036; 0029 is a different record. An implementer following the draft would have attested the wrong decision."
   ],
   "resolutions": [
-    "The spec is amended to match: not_supported now sits explicitly on the KEEPS side with the reasoning written in, and criterion 7 names only blocked_by_policy and a terminal 401/403 as the refusals the client can recognise.",
-    "ask-panel.tsx is added to write_scope and the policy argument is REQUIRED; the two shipped period-control calls pass 'retain' explicitly. Their behaviour does not change - only the call sites become explicit. A new criterion pins this.",
-    "A new criterion requires a result-free renderable state and a leaf that asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.",
-    "The leaf matrix grows from nine to thirteen: every identity field including array order, a leaf proving non-success turns carrying a selection are excluded, both 401 and 403 in one leaf, and not_supported plus a transport failure together representing the retains set.",
-    "Component leaves are added for BOTH pinned-reports and saved-views against a matched turn, and both test files enter write_scope.",
-    "user_facing is set to TRUE, which brings the functional check and makes emil-design-eng and frontend-design mandatory; a criterion records it.",
-    "The helper is renamed selection-identity.helper.ts per constitution section 3.2, and the contract cites the convention.",
-    "HUMAN ROUND: decision 0028 is AMENDED rather than the behaviour changed or the deferral left to override it. The amendment records that re-authorization still happens server-side, but the client can only act on refusals it can recognise, and states the consequence plainly - after losing a single grant an answer can remain on screen until reload, a display-lifetime limit rather than a cached figure at rest. D-0048's trigger reopens the amendment."
+    "RESOLVED by decision 0038 (accepted 2026-09-16, confirmed by Rahul Anand): the follow-up ships ONLY the grounded on-screen explanation. /ask sends no grounding and is byte-for-byte unchanged, proven by its shipped leaves passing unmodified; 0035's plant-from-the-question half stays deferred with its trigger intact, and 0037's stated consequence - a multi-plant user still gets 'not supported' on /ask - is carried forward deliberately rather than quietly broken.",
+    "RESOLVED by the human: a TOTAL or subtotal is answered with the roll-up path only - which lines compose it and which GLs and cost centres feed those - and returns no raw rows, while a LEAF gets the roll-up path plus its transactions. Nothing is refused and no aggregate raw query is added, so decision 0024 holds. Spec C6 and C7 now state the two shapes separately.",
+    "RESOLVED in the amended Behaviour and C3/C5: grounding NARROWS what a question may reach but does not turn every question into an explanation. An ordinary data question asked with a statement on screen is still answered as a data question; only a composition question with no focused node asks the user to click a line.",
+    "RESOLVED: the spec now cites decision 0036 for all-plants scope, and cites 0034 for the budget-owner rule, 0037 for the deferral this story closes and 0038 for its scope. The incorrect 0029 citation is gone.",
+    "RESOLVED in C1 and C5: the grounding carries department, function, plant, period, THE SELECTED BLOCK and, when clicked, the focused node as nodeKey plus block, along with the statement's pinned batches. The spec states the block is part of the subject precisely because a July screen also carries an FY-YTD block.",
+    "RESOLVED in the amended Behaviour and C5: focus is owned by the report view rather than the drill modal, is passed to both the drill panel and the assistant, and is CLEARED whenever the scope, the block or the pinned batches change, because the subject no longer exists.",
+    "RESOLVED in the amended Behaviour and C6/C9: the explanation is composed deterministically on the server from a typed payload and the model's only role is classifying the question, so no figure is ever model-generated; no transaction row, amount, batch id or result row reaches the provider, and C9 asserts the PROVIDER PAYLOAD rather than the rendered answer. The answer always carries the exact footer and the true total count, shows the first rows inline and offers the shipped drill for full paging, never truncating silently.",
+    "RESOLVED in the amended Behaviour and C1: the grounding carries the selected block so the per-block pin requirements can be met, and a grounded answer reads the SAME pinned batches the on-screen number came from, so it can never contradict the screen by using fresher data.",
+    "RESOLVED in the amended Behaviour and C12: the answer names the mapping-master version it resolved against, so an explanation built under a different master than the displayed figure is detectable rather than silently wrong. Cross-deployment master drift remains D-0038's existing deferral.",
+    "RESOLVED in C10, which now names the protections explicitly: inputs re-derived server-side, pins validated, current scope applied, the exact predicate audited BEFORE the query runs, and a failed audit fails closed - per decisions 0017, 0022 and 0025 - rather than 'the same audit record'.",
+    "RESOLVED in C11: a replaced or missing batch produces a TYPED refusal naming the source and period that reaches the user intact, explicitly not routed through the global exception filter that flattens it.",
+    "RESOLVED by the human and written as an explicit two-sided boundary in the Behaviour section and C3/C4: composition is answered, causal inference is still declined with today's copy even when grounded and focused, and a leaf asserts BOTH sides. The untestable word 'equivalents' is gone.",
+    "RESOLVED in the amended Behaviour and C13: every granted plant is supported by the docked assistant; a non-owner plant returns decision 0034's 'Budget not loaded for this plant' state, which is a normal answer and must never be presented as a stale or missing batch; and an unmapped-GL line is described as provisional rather than mapped.",
+    "RESOLVED in C14, which enumerates the matrix: no focus / composition / causal / ordinary data question; leaf / subtotal / grand total / unmapped; selected-period block / FY-YTD block; stale actual / stale budget / changed mapping version; plant outside grants; audit failure; provider payload exclusion; and footer-foots-to-screen with the true total count."
   ],
   "citations": [
     {
-      "finding": "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
-      "source": "docs/specs/ask-reopen-saved-report.md:84"
+      "finding": "Decision 0035 (carried forward unchanged by 0037) resolves a statement question's plant FROM THE QUESTION when no grounding is present, with a 'name a plant' clarification. That by definition changes what /ask does - which directly contradicts the human's scope constraint that the Ask screen behave exactly as it does today. A spec cannot honour both.",
+      "source": "docs/decisions/0037-ask-untouched-in-multi-plant.md:19"
     },
     {
-      "finding": "The write scope could not deliver a caller-stated failure policy: continueTurn's two shipped period-control calls and their callback typings live in ask-panel.tsx, which was OUTSIDE scope. A required argument would not type-check with those callers untouched, and a defaulted one recreates the implicit policy the task exists to remove.",
-      "source": "frontend/src/features/assistant/ask-panel.tsx:153"
+      "finding": "The draft let C3 take 'the clicked node' as the subject while C4 spoke of 'that leaf', but every Actual on the statement is clickable including subtotals and Grand Total, and the raw drill REFUSES a non-leaf node. The two criteria therefore described different features, and closing the gap by adding an aggregate raw query is not permitted by decision 0024.",
+      "source": "frontend/src/features/mis/statement-view.tsx:139"
     },
     {
-      "finding": "Clearing on a terminal 401/403 had no state contract. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and THE OLD NUMBERS STILL RENDER - the leak would have survived the fix.",
-      "source": "frontend/src/features/assistant/use-ask.ts:7; frontend/src/features/assistant/ask-panel.tsx:129"
+      "finding": "C3's no-focus behaviour ('the assistant asks which line it needs') contradicted the draft's own promise that ordinary data questions still work with a statement on screen - under C3 a perfectly answerable data question would be answered with a request to click a line.",
+      "source": "frontend/src/features/mis/statement-view.tsx:161"
     },
     {
-      "finding": "The proof was materially incomplete: the identity leaves covered only dimensions and an absent/present time window, not domain, measures, filters, limit, optional time-window fields or array order; nothing proved that non-success responses carrying a selection are excluded as candidates; the auth leaf exercised only one of 401/403; and only not_supported represented the whole 'everything else retains' set.",
-      "source": ".factory/stories/ask-reopen-saved-report/task-plans/reopen-identity-and-policy.md"
+      "finding": "The draft cited decision 0029 for all-plants scope. The accepted all-plants decision is 0036; 0029 is a different record. An implementer following the draft would have attested the wrong decision.",
+      "source": "docs/decisions/0036-all-plants-scope-for-the-poc.md:34"
     },
     {
-      "finding": "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
-      "source": "frontend/src/features/exploration/pinned-reports.tsx:65; frontend/src/features/exploration/saved-views.tsx:62"
+      "finding": "The grounding contract could not identify the subject. The draft carried only department, function, plant and period, but a July statement also renders a distinct FY-YTD block, so period alone cannot say WHICH 85,000 is meant - and the clicked node was never carried at all. The existing AskRequest.reportGrounding is a static reportId and has zero frontend callers, so a build would have had to invent the subject contract itself.",
+      "source": "contract/src/api.ts:149"
     },
     {
-      "finding": "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
-      "source": ".factory/stories/ask-reopen-saved-report/decomposition.json"
+      "finding": "The click-then-ask flow had no owner. The clicked node lives in StatementView's private state and opens a modal; the docked AskPanel is its SIBLING in mis-report-view and receives no report or focus state. The draft never said how focus transfers to the assistant, how it is shown, or when it clears.",
+      "source": "frontend/src/features/mis/mis-report-view.tsx:161"
     },
     {
-      "finding": "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation.",
-      "source": "constitution/pnp-coding-standards-modular-monolith.md:81"
+      "finding": "C5 was unbounded and collided with the model boundary. 'Lists the transactions' defined no page size, no total count and no route to later rows, while decision 0027 forbids transaction rows, amounts, batch identifiers and result rows reaching Bedrock. Without a required server-composed payload an implementation could satisfy the wording by letting the model write the numbers.",
+      "source": "docs/decisions/0027-assistant-llm-bedrock-mumbai.md:27"
     },
     {
-      "finding": "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand.",
-      "source": "docs/decisions/0028-saved-selections-not-snapshots.md:20; plans/deferrals.md:56"
+      "finding": "Pin semantics could not prove the claimed footing: the draft sent statement-level pins but not the selected block, and the raw drill's pin requirements are per block. It also never said whether an ordinary grounded question reads the pinned batches or current data, so an answer could contradict the very number on screen.",
+      "source": "backend/src/mis/mis-drill.service.ts:152"
+    },
+    {
+      "finding": "The mapping master was not snapshotted. The statement response carries batch provenance only, while the drill re-resolves against the CURRENT master, so a master change between rendering and asking silently changes which triples belong to the displayed leaf and the explanation stops footing to the figure on screen.",
+      "source": "backend/src/mis/mis-drill.service.ts:77"
+    },
+    {
+      "finding": "C7's 'same audit record' was not a contract. The drill's protections are re-deriving every client input, validating pins, applying current scope, auditing the exact predicate BEFORE the query runs and failing closed - none of which 'same audit record' requires. The ordinary chat audit is a different, weaker record, so the draft permitted a second raw-row route that evades decisions 0017, 0022 and 0025.",
+      "source": "backend/src/chat/chat.service.ts:105"
+    },
+    {
+      "finding": "C8 promised a refusal the current error path cannot deliver: the drill's detailed stale status is flattened by the global exception filter into generic user copy, so reusing the route could never produce a message naming which source and period went stale.",
+      "source": "backend/src/common/global-exception.filter.ts:54"
+    },
+    {
+      "finding": "The composition/causal boundary was untestable. The draft said 'and equivalents', which no leaf can assert, and grounding bypasses classifyCausalQuestion entirely - so a grounded 'why is this high?' would have stopped being declined without anyone deciding that it should.",
+      "source": "backend/src/chat/chat.service.ts:128"
+    },
+    {
+      "finding": "Multi-plant and unmapped semantics were unstated: the draft never said whether every granted plant is supported, never distinguished decision 0034's expected 'Budget not loaded for this plant' state from a stale or missing batch, and treated an unmapped-GL line as though the master blessed it.",
+      "source": "docs/decisions/0034-budget-belongs-to-the-owner-plant.md:23"
+    },
+    {
+      "finding": "The proof obligation was a slogan, not a matrix. C10 mandated the vitest discriminator without naming what must be covered, so a suite could satisfy it while testing none of: focus states, aggregate versus leaf subjects, the two period blocks, the three staleness kinds, an out-of-scope plant, audit failure, provider payload exclusion, or footer identity.",
+      "source": "docs/specs/mis-assistant-explains-a-number.md:1"
     }
   ],
   "rounds": [
     {
-      "question": "The grill is right that I've created a governance problem. Decision 0028 says plainly: \"a revoked grant produces a refusal rather than a cached figure.\" D-0048 permits exactly that cached figure for a revoked domain or measure grant. A deferral can't override an accepted decision \u2014 so one of them has to give. Which?",
+      "question": "How should the user point at the number they're asking about?",
       "options": [
-        "Amend 0028 to record the limit (Recommended)",
-        "Honour 0028 \u2014 clear on not_supported too",
-        "Add the typed reason after all"
+        "Both: click wins, else match (Recommended)",
+        "Click the line first, then ask",
+        "Match the number in the question"
       ],
-      "chosen": "Amend 0028 to record the limit (Recommended)",
+      "chosen": "Click the line first, then ask",
+      "frontier_empty": false
+    },
+    {
+      "question": "What should 'how did this calculation come to be' actually return?",
+      "options": [
+        "Both transactions and roll-up path (Recommended)",
+        "The transactions that sum to it",
+        "The roll-up path only"
+      ],
+      "chosen": "Both transactions and roll-up path (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "Decision 0035 (carried forward by 0037) says a statement question in Ask should resolve its plant from the question, which WOULD change /ask. You said /ask must stay exactly as today. Which wins?",
+      "options": [
+        "/ask stays frozen; explanation only (Recommended)",
+        "Do both: explanation + plant-aware Ask"
+      ],
+      "chosen": "/ask stays frozen; explanation only (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "Your example was 'how is total 85000'. But every Actual is clickable including subtotals and Grand Total, while the transaction drill REFUSES anything that isn't a leaf line. What should clicking a total do?",
+      "options": [
+        "Totals get roll-up path, leaves also get transactions (Recommended)",
+        "Totals flatten to all descendant leaves' transactions",
+        "Leaf lines only; refuse totals"
+      ],
+      "chosen": "Totals get roll-up path, leaves also get transactions (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "Decision 0027 forbids transaction rows ever reaching Bedrock, so the answer must be composed server-side, not written by the model. How many rows should the chat answer itself carry?",
+      "options": [
+        "Footer, counts, and first rows; drill for the rest (Recommended)",
+        "Full first page of 100",
+        "Footer and counts only, no rows"
+      ],
+      "chosen": "Footer, counts, and first rows; drill for the rest (Recommended)",
+      "frontier_empty": false
+    },
+    {
+      "question": "With a number focused, should 'why is this so high?' still be declined the way it is today?",
+      "options": [
+        "Yes \u2014 keep declining causal questions (Recommended)",
+        "Answer causal questions using the composition"
+      ],
+      "chosen": "Yes \u2014 keep declining causal questions (Recommended)",
       "frontier_empty": true
     }
   ],
-  "decision": "keep",
-  "new_abstractions": [
-    "A shared selection-identity helper - the first time two surfaces agree in code on when two governed selections are the same question.",
-    "A caller-stated failure policy on continueTurn, so one seam can serve two callers whose refusal semantics differ by design rather than by accident.",
-    "A result-free renderable turn state, which the thread has never had: until now a turn either held an answer or had never run."
-  ],
   "inspected_refs": [
-    "frontend/src/features/assistant/use-ask.ts:7,86,97-130,147",
-    "frontend/src/features/assistant/ask-panel.tsx:129,153",
-    "frontend/src/features/exploration/pinned-reports.tsx:65",
-    "frontend/src/features/exploration/saved-views.tsx:62",
-    "frontend/src/features/exploration/selection-label.ts",
-    "backend/src/chat/chat.service.ts:245,337",
-    "contract/src/api.ts:515",
-    "docs/decisions/0028-saved-selections-not-snapshots.md",
-    "constitution/pnp-coding-standards-modular-monolith.md:81"
+    "docs/decisions/0035-ask-plant-from-grounding-or-question.md",
+    "docs/decisions/0036-all-plants-scope-for-the-poc.md",
+    "docs/decisions/0037-ask-untouched-in-multi-plant.md",
+    "docs/decisions/0038-mis-assistant-explains-without-touching-ask.md",
+    "backend/src/chat/reconciliation-guard.ts:31",
+    "backend/src/mis/mis-drill.service.ts",
+    "frontend/src/features/mis/statement-view.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx:161",
+    "contract/src/api.ts:149"
   ],
-  "input_sha256": "18a03e838ee621b4b2cf9dc87c77bb5024a09ea2a18a40ef32ad1103ff21dc32",
-  "recorded_at": "2026-09-15T15:59:03+00:00",
-  "commit": "ce7f985978b18879104f3767a1db4252f409cf24"
+  "input_sha256": "8847fef78d4b1d3bc6f1926c52d09ee0e757c811607d76bb5d2cebc7e706b32b",
+  "recorded_at": "2026-09-15T19:53:53+00:00",
+  "commit": "ac04abf1bc02847d6541d37e0e795768de72db55"
 }

@@ -1,4 +1,4 @@
-# Cold-read grill — gate: spec — spec ask-reopen-saved-report.md
+# Cold-read grill — gate: spec — spec mis-assistant-explains-a-number.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,123 +431,128 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: If someone asks "...for July 2026" and then switches the period control to August, the question on screen says July while the answer shows August. That's a visible contradiction in an audited transcript. How should it read?
-  A: Keep their words, label the answer (Recommended)
-- Q: The grill found that batch ids already travel in the API but the Ask panel never renders them — its provenance section shows only readback, measures, scope and freshness. My criterion says "provenance reports the batch ids". Should this story make them visible?
-  A: Out of scope — reword the criterion (Recommended)
-- Q: The grill found that /api/chat documents its request body and error statuses but has no typed response DTO — its 201 carries only a description. Decision 0019 makes typed response DTOs mandatory for fresh routes; decision 0012 time-bounds the vendored deviation to the PoC. This story adds two new fields to that response. Pay the debt down now, or keep it inside the recorded deviation?
-  A: Keep the deviation, log a deferral (Recommended)
-- Q: Which statement format should the office and mill plants use (H.O, AP-AGRI, AY-*, YG-*, C G, KA-RAM, NK, SK, VJM)? They book only Admin and Manpower cost centres.
-  A: Nursery format, all rows (Recommended)
-- Q: How should Department and Function be labelled for plants the client has not named? Nursery plants are clearly Agriculture / Nursery.
-  A: Provisional labels, flagged (Recommended)
-- Q: The active story is 'Recoverable periods in Ask' (planning, no plan yet). Where does the multi-plant story go?
-  A: Multi-plant first, period control after (Recommended)
-- Q: Task 1 needs a period-free mapping lookup on SelectionResolverService. chat.service.ts:56 injects the CONCRETE class, but ISelectionResolverService is the declared port and 6+ test fakes implement it. Where should the new method live?
-  A: Concrete class only, record the gap (Recommended)
-- Q: While a clicked period is being fetched, should the rest of Ask stay usable — i.e. can someone type a new question before the continuation comes back?
-  A: Lock the panel while it runs (Recommended)
-- Q: A clicked period can come back as something other than a data answer — for example another clarification, or an informational glossary reply. Which of those should take over the turn?
-  A: Only a successful answer (Recommended)
-- Q: Re-asking only because a stale pointer filed your last answers into another repo. While a clicked period is being fetched, should the rest of Ask stay usable?
-  A: Lock the panel while it runs (Recommended)
-- Q: If a clicked period fails (server refuses it, or the network drops), what should the user be left looking at?
-  A: Keep the buttons, show why (Recommended)
-- Q: A clicked period can come back as something other than a data answer — another clarification, or an informational glossary reply. Which should take over the turn?
-  A: Only a successful answer (Recommended)
-- Q: The grill found my "question stays exactly as typed" claim is already false: use-ask.ts:86 stores the TRIMMED input on the turn, so leading/trailing whitespace is dropped the moment anyone asks anything. What should the guarantee actually be?
-  A: Narrow the claim to what's true (Recommended)
-- Q: How should the multi-plant story be scoped?
-  A: Small plus the Ask plant fix
-- Q: Two decision records carry the reduced scope: 0033 (for the PoC the format's budget belongs to the plant the master names, DUB; non-owner plants get the not-loaded dash; plant-keyed budgets and the outline object are deferred until a second plant's budget arrives; supersedes 0030) and 0034 (a statement question takes its plant from the docked report's scope or from the question, department and function come from the master, otherwise a 'name a plant' message; the typed plant picker is deferred to ask-period-control; supersedes 0032). Accept both, confirmed by Rahul Anand?
-  A: Accept both (Recommended)
-- Q: Two decision records carry the two-task scope: 0035 (supersedes 0029; every SAP plant selectable on the nursery format with provisional labels, full mapping sheet per plant, DUB owns the nursery budget and every other plant shows a dash; the rest deferred with a trigger) and 0036 (supersedes 0034; the assistant is untouched in this story, so a user granted every plant gets 'not supported' for statement questions in Ask until the follow-up; a second DUB-only user is the demo workaround). Accept both, confirmed by Rahul Anand?
-  A: Accept both (Recommended)
+- Q: Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?
+  A: Accept, confirmed by Rahul Anand (Recommended)
+- Q: FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)
+  A: Budget = loaded months, % = not loaded (Recommended)
+- Q: Conflict with shipped code. The period control's contract says a refused period switch KEEPS the previous answer — you chose that two stories ago, and it's proven by a passing test. This story says a refusal CLEARS it. Both go through the same `continueTurn`. How should that be resolved?
+  A: Clear only on saved-report reopens (Recommended)
+- Q: Which kinds of refusal should wipe the old numbers? A lost domain grant doesn't come back as `blocked_by_policy` — it returns `not_supported`. An expired login is an HTTP 401/403. Others are plainly not access problems.
+  A: Access-related only (Recommended)
+- Q: Your access-only clearing rule can't actually be implemented today. A revoked domain or measure grant returns `not_supported` (chat.service.ts:245) — but so do 'no mapping configured' and 'no periods loaded', which aren't access problems at all. The response carries only a class and a message, no reason code. How do you want to handle that?
+  A: Narrow it now, record the gap (Recommended)
+- Q: The grill is right that I've created a governance problem. Decision 0028 says plainly: "a revoked grant produces a refusal rather than a cached figure." D-0048 permits exactly that cached figure for a revoked domain or measure grant. A deferral can't override an accepted decision — so one of them has to give. Which?
+  A: Amend 0028 to record the limit (Recommended)
+- Q: When a reopen fails with a terminal 401/403, the session itself is gone — not just that one report. The contract currently says show the refusal on that turn and stop. Should it do more?
+  A: Show it on the turn, stay put (Recommended)
+- Q: When you reopen a pin whose answer is ALREADY visible on screen — say it's the last thing in the thread — should the panel still scroll to it?
+  A: Always scroll to it (Recommended)
+- Q: How should the user point at the number they're asking about?
+  A: Click the line first, then ask
+- Q: What should 'how did this calculation come to be' actually return?
+  A: Both transactions and roll-up path (Recommended)
 
-## The artifact under interrogation (spec ask-reopen-saved-report.md)
+## The artifact under interrogation (spec mis-assistant-explains-a-number.md)
 
 ---
-slug: ask-reopen-saved-report
-title: Reopening a saved report returns to its answer
+slug: mis-assistant-explains-a-number
+title: The on-screen assistant explains a number on the MIS statement
 status: draft
-saved: 2026-09-15T13:19:45+00:00
+saved: 2026-09-15T19:27:00+00:00
 ---
 
-# Reopening a saved report returns to its answer
+# The on-screen assistant explains a number on the MIS statement
 
 ## Why
 
-Opening a pinned report from the Dashboard appends a brand-new turn to the Ask thread every
-time, even when that exact report is already answered further up, and the panel does not move.
-Open the same pin five times and you get five identical answers; open it once on a long thread
-and it looks like nothing happened, because the answer lands below the fold.
-
-Both halves are visible in the code. `pinned-reports.tsx:67` calls `rerun(...)`, which is
-`run(question, selection)` (`use-ask.ts:147`), and `use-ask.ts:86` appends unconditionally:
+On the MIS Reports screen the docked assistant knows nothing about the report the user is
+looking at. `AskPanel` accepts exactly two props:
 
 ```ts
-setTurns((current) => [...current, { id: ..., question: trimmed, response }]);
+export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>)
 ```
 
-Nothing looks for an existing turn. And `grep` for `scrollIntoView` or `scrollTo` across
-`ask-panel.tsx` returns **nothing** - there is no scroll logic in the panel at all.
+and `ask()` posts `{ question }`. So asking "how is this 85000" while staring at Agriculture
+Nursery DUB for July 2026 is byte-for-byte the same request as asking it on `/ask` with nothing
+on screen. `grep reportGrounding frontend/src` returns **zero hits** - the contract already has a
+grounding slot (`AskRequest.reportGrounding`, `contract/src/api.ts:156`) and the backend fully
+implements it, but no client code has ever sent one, and it is keyed by a `reportId` from a
+static catalog rather than by the statement's department/function/plant/period.
 
-`saved-views.tsx:64` does the identical thing, so this is not a pins-only defect.
+Worse, the assistant actively refuses the question. `classifyCausalQuestion`
+(`backend/src/chat/reconciliation-guard.ts:31`) fires before any routing and returns:
 
-**The obvious fix is wrong.** Matching an existing turn by its question text would collapse
-unrelated reports into one, because the text is not the question - it is
-`selectionLabel(selection).title`, which is only the measure names joined:
+> Causal analysis is not configured. I can't infer why a result is high or low.
 
-```ts
-title: measures.join(" · ")
-```
+That guard is **correct** with no context - it stops the model inventing causes it cannot know.
+But it is answering the wrong question. "How is this 85000" is not causal inference. It is
+composition: *which amounts add up to this figure, and why do they land on this line*. The
+application already computes both halves and shows them to the same user through a different
+door:
 
-A pin of Actual and Budget by GL code for July and a pin of Actual and Budget by month are both
-titled `Actual · Budget`. Identity has to come from the **selection**, never the title.
+- `POST /api/mis/statement/drill` returns every transaction behind a statement node - month,
+  posting date, debit, credit, value, reference, memo - plus a footer that foots to the figure.
+  `statement-view.tsx:167` already opens it when the user clicks any Actual.
+- `MIS_MAPPING_MASTER` already determines which (plant, cost centre, GL) triples fold into each
+  statement leaf. That is how the number was built in the first place.
 
-The machinery to do this correctly already shipped. `continueTurn(turnId, question, selection)`
-(`use-ask.ts:97`) marks only its own turn pending, keeps the previous answer visible while it
-runs, attaches a typed refusal or a transport failure to that turn, and replaces **only** on
-success. It was built for the period control and is proven by six hermetic leaves.
+So the capability is not new analysis. It is letting the user ask, in words, for the explanation
+the product already has - at the moment they are looking at the number.
 
 ## Behaviour
 
-**Reopening a report that is already in the thread re-runs that turn in place.** The existing
-turn is found by comparing the stored `Selection`, not the displayed title. It is re-run through
-`continueTurn`, so the numbers are current - under decision 0028 a re-run re-authorizes and reads
-the currently active batches, and a saved report is a selection, never a snapshot.
+**The user clicks an Actual, then asks.** Focus is explicit and taken from the click the product
+already supports, not inferred from digits in the question. There is no number matching and no
+disambiguation prompt: if no Actual has been clicked, the assistant says which line it needs
+rather than guessing. Budget stays non-drillable, exactly as the statement footnote already
+states, so only an Actual can be the subject.
 
-**Opening a report that is not in the thread appends one turn, as today.**
+**Only the docked assistant is grounded.** The `/ask` page behaves exactly as it does today -
+same classification, same guards, same answers. The caller states that it is grounded, in the
+same shape `continueTurn`'s failure policy took in `ask-reopen-saved-report`: one seam, one
+behaviour per caller, rather than changing shared behaviour for every surface.
 
-**Either way the panel scrolls that turn into view**, so the click always has a visible effect.
+**The answer has two halves, in this order.** First the roll-up path: which GL codes and cost
+centres the mapping master folds into this leaf, and through which bucket - this is the "how did
+it come to be". Then the transactions that sum to it, with a footer that foots to the figure on
+screen - this is the "what is in it". A user who only wants one half can stop reading; a user who
+wants to check the arithmetic can.
 
-**A failed reopen leaves the previous answer in place** with the failure shown against that turn,
-which is what `continueTurn` already does. Nothing is reimplemented here.
+**Grounded questions that are not explanations still work.** With a statement on screen the user
+may also ask an ordinary data question. Grounding narrows what the question may reach; it does
+not turn every question into an explanation.
 
-**Pins and saved views behave identically**, because both call the same path today and both have
-the same defect.
+**Staleness is refused, not papered over.** The drill already refuses with a 409 when a pinned
+batch has been replaced. A grounded answer carries the same pinned batches and surfaces the same
+refusal in words, naming which source went stale, rather than silently answering from fresher
+data than the number on screen came from.
 
 ## Acceptance criteria
 
-1. Opening a saved report whose `Selection` already has a turn re-runs **that** turn through
-   `continueTurn` and appends nothing; the thread length is unchanged.
-2. Turn identity is the `Selection`, never the displayed title. A test pins two reports that share
-   a `selectionLabel().title` but differ in dimensions or filters, opens both, and asserts two
-   distinct turns.
-3. Opening a report that is not in the thread appends exactly one turn.
-4. After opening - reused or new - the panel scrolls that turn into view.
-5. A reopen that fails or is refused leaves the previous answer in place with the failure against
-   that turn, and the thread length is unchanged.
-6. Pins and saved views are both covered; a leaf set that exercises only one leaves the other
-   unproven.
-7. Every criterion is proven by hermetic tests judged by the vitest discriminator - the testcase
-   present AND NOT skipped AND NOT failed - because a matching name proves nothing for vitest.
-
-## Out of scope
-
-- Scrolling behaviour for ordinary typed questions.
-- Deduplicating turns the user created by asking the same thing twice by hand.
-- Any change to `continueTurn`'s pending, failure or replacement semantics.
+- **C1** The docked assistant on the MIS Reports screen sends the on-screen selection
+  (department, function, plant, period) and the pinned batches with the question. The `/ask` page
+  sends none of it and its behaviour is unchanged, proven by the shipped `/ask` leaves passing
+  unmodified.
+- **C2** With a statement on screen and an Actual clicked, "how is this 85000", "how did this
+  calculation come to be" and equivalents are answered with the explanation - NOT with
+  `classifyCausalQuestion`'s "Causal analysis is not configured". Without grounding that guard
+  still fires exactly as today.
+- **C3** The subject is the clicked node. With no node clicked, the assistant asks the user to
+  click the line rather than guessing; digits in the question are never used to pick a node.
+- **C4** The answer names the roll-up path: the GL codes and cost centres the mapping master
+  folds into that leaf, and the bucket they arrive through.
+- **C5** The answer lists the transactions behind the node and a footer that foots to the figure
+  displayed on screen. If they do not foot, that is a failure, not a rounding note.
+- **C6** The plant in the grounding is validated against the user's grants and never trusted from
+  the client; a plant the user cannot see is refused, not answered.
+- **C7** A grounded explanation writes the same audit record the drill route writes, per decision
+  0025. It is a governed read through a new door, not an unaudited one.
+- **C8** A replaced or missing batch refuses in words that name which source went stale, rather
+  than answering from data the on-screen number did not come from.
+- **C9** Budget is not a valid subject, matching the shipped statement footnote.
+- **C10** Every criterion is proven by hermetic tests judged by the vitest discriminator -
+  present AND NOT skipped AND NOT failed - because a matching testcase name proves nothing for
+  vitest (D-0031).
 
 
 ## What to return
