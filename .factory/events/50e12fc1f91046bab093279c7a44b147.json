@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-15T13:55:30+00:00", "story": "multi-plant", "detail": "S-0017-f615: Expected: the sandbox has no warehouse route. The orchestrator is executing the registered command on the host now (WAREHOUSE_DB_TEST=1 npm -w @3f/backend run test:warehouse-proof against 127.0.0.1:54"}
