@@ -1,52 +1,51 @@
 {
   "generated_by": "autoreview",
   "task_id": "explain-grounding-and-attestation",
-  "score": 3,
-  "summary": "performance lens over explain-grounding-and-attestation (16 product path(s), 6fa3a6d..5d37131, Codex via the autoreview skill at --max-priority P2): 2 blocking, 1 non-blocking. The patch leaves a blocking compatibility path in grounded chat wiring, accepts replaced/inactive pinned batches, and introduces quadratic per-request metadata construction that can become costly at the supported outline scale.",
-  "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "backend/src/chat",
-      "summary": "Reject inactive pinned batches during grounding verification (backend/src/chat/statement-grounding.service.ts:63): `DrillBatch` exposes `isActive`, and the test fixtures deliberately populate it, but verification accepts any stored batch whose id, source, and period match."
-    },
-    {
-      "category": "maintainability",
-      "area": "backend/src/chat",
-      "summary": "Make StatementGroundingService a required ChatService dependency (backend/src/chat/chat.service.ts:66): `ChatModule` always registers `StatementGroundingService`, so the optional constructor parameter and the subsequent \u201cgrounding unavailable\u201d branch exist only to preserve callers that construct `ChatService` without its new dependency."
-    }
-  ],
+  "score": 9,
+  "summary": "performance lens over explain-grounding-and-attestation (21 product path(s), 6fa3a6d..889322a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The core attestation flow is implemented, but the grounded-request schema permits avoidable client-controlled sorting and allocation amplification, and batch replacement can be misclassified because two independent reads are combined inconsistently. Both are actionable P2 defects.",
+  "blocking_findings": [],
   "non_blocking_findings": [
     {
       "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "Index leaf targets before building per-leaf metadata (backend/src/mis/mis-statement.service.ts:413): Each outline leaf scans the complete `resolution.leafTargets` array with `filter`, making statement generation O(outline leaves \u00d7 mapping targets) on every resolved request."
+      "area": "backend/src/chat",
+      "summary": "[P2] Bound client-supplied node metadata before sorting and hashing it (backend/src/chat/chat.schemas.ts:40): `nodeMetadata` and its nested `glCodes`/`costCentres` arrays have no `.max()` limits."
+    },
+    {
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "[P2] Do not let a stale batch row override the authoritative active batch (backend/src/chat/statement-grounding.service.ts:120): Batch existence and active-batch state are read concurrently in separate queries."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "backend/package.json",
+    "backend/src/chat/ask-period.test.ts",
+    "backend/src/chat/chat.controller.test.ts",
     "backend/src/chat/chat.controller.ts",
     "backend/src/chat/chat.module.ts",
     "backend/src/chat/chat.schemas.test.ts",
     "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.service.test.ts",
     "backend/src/chat/chat.service.ts",
     "backend/src/chat/statement-grounding.service.test.ts",
     "backend/src/chat/statement-grounding.service.ts",
+    "backend/src/mis/mis-statement.controller.test.ts",
     "backend/src/mis/mis-statement.dto.ts",
     "backend/src/mis/mis-statement.service.test.ts",
     "backend/src/mis/mis-statement.service.ts",
     "backend/src/mis/mis.module.ts",
     "backend/src/mis/statement-attestation.test.ts",
     "backend/src/mis/statement-attestation.ts",
+    "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
     "contract/src/api.ts",
     "tools/quality-gate.test.mjs"
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "d63b6b78a442eb913798fe76042073e482d1a12a41c8cf463460b89a7ddc0b87",
-  "brief_sha256": "7655df92be0e8a675b658cb44f2d514fbe82ec3c5fcb1b53ede0b9fe5541a45d",
-  "branch_diff_digest": "f22e748fbe4bc29cc5a5a5ce0b23ff3cc974fc1fc6bc06882a073bb33b50beee",
+  "review_run_id": "934bea8dcfa24389ee7f11356f16e26a272fa4d114f66b714a66195051f38c6c",
+  "brief_sha256": "5ba1de799ac99881d733b1038f32e5bec0ae3fe8e60598dae2315bf4eb51beda",
+  "branch_diff_digest": "bf8541ae1476c9af0797bb4caadf1a95c6acc784c60019e913a014a039f18048",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T02:30:25+00:00",
-  "commit": "5d371314ca6d3a7088b1f0bb9d502b4d4dbbf942"
+  "recorded_at": "2026-09-16T02:49:23+00:00",
+  "commit": "889322aa83653c21269c08b527a340d83315c76b"
 }
