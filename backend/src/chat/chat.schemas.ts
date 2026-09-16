@@ -32,6 +32,25 @@ const priorTurnsSchema = z
     message: "priorTurns payload is too large",
   });
 
+const statementGroundingSchema = z
+  .object({
+    attestedContext: z.string().min(3),
+    department: z.string().min(1),
+    function: z.string().min(1),
+    nodeKey: z.string().min(1),
+    block: z.string().min(1),
+    nodeMetadata: z.array(
+      z
+        .object({
+          nodeKey: z.string().min(1),
+          glCodes: z.array(z.string().min(1)),
+          costCentres: z.array(z.string().min(1)),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
 export const askSchema = z
   .object({
     question: z.string().min(CHAT_VALIDATION.questionMinLength).max(LLM_CONTEXT_CHAR_BUDGET),
@@ -49,5 +68,6 @@ export const askSchema = z
       })
       .strict()
       .optional(),
+    statementGrounding: statementGroundingSchema.optional(),
   })
   .strict();

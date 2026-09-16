@@ -1,0 +1,51 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "explain-grounding-and-attestation",
+  "score": 9,
+  "summary": "performance lens over explain-grounding-and-attestation (21 product path(s), 6fa3a6d..889322a, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The core attestation flow is implemented, but the grounded-request schema permits avoidable client-controlled sorting and allocation amplification, and batch replacement can be misclassified because two independent reads are combined inconsistently. Both are actionable P2 defects.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "[P2] Bound client-supplied node metadata before sorting and hashing it (backend/src/chat/chat.schemas.ts:40): `nodeMetadata` and its nested `glCodes`/`costCentres` arrays have no `.max()` limits."
+    },
+    {
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "[P2] Do not let a stale batch row override the authoritative active batch (backend/src/chat/statement-grounding.service.ts:120): Batch existence and active-batch state are read concurrently in separate queries."
+    }
+  ],
+  "recommendation": "approve-with-caveats",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/chat/ask-period.test.ts",
+    "backend/src/chat/chat.controller.test.ts",
+    "backend/src/chat/chat.controller.ts",
+    "backend/src/chat/chat.module.ts",
+    "backend/src/chat/chat.schemas.test.ts",
+    "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.service.test.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/statement-grounding.service.test.ts",
+    "backend/src/chat/statement-grounding.service.ts",
+    "backend/src/mis/mis-statement.controller.test.ts",
+    "backend/src/mis/mis-statement.dto.ts",
+    "backend/src/mis/mis-statement.service.test.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/mis/mis.module.ts",
+    "backend/src/mis/statement-attestation.test.ts",
+    "backend/src/mis/statement-attestation.ts",
+    "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "934bea8dcfa24389ee7f11356f16e26a272fa4d114f66b714a66195051f38c6c",
+  "brief_sha256": "5ba1de799ac99881d733b1038f32e5bec0ae3fe8e60598dae2315bf4eb51beda",
+  "branch_diff_digest": "bf8541ae1476c9af0797bb4caadf1a95c6acc784c60019e913a014a039f18048",
+  "residual_risks": [],
+  "recorded_at": "2026-09-16T02:49:23+00:00",
+  "commit": "889322aa83653c21269c08b527a340d83315c76b"
+}

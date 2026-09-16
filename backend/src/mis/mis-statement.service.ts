@@ -6,6 +6,7 @@ import type {
   MisStatementRouteResponse,
   MisStatementRunRequest,
   MisStatementMeasureBlock,
+  MisStatementNodeMetadata,
   MisStatementNode,
   ProvenanceBatch,
   Selection,
@@ -15,6 +16,7 @@ import { SelectionExecutionBlockedError, SelectionExecutor } from "../chat/selec
 import { loadConfig } from "../config";
 import { SelectionPeriodUnavailableError, SelectionResolverService } from "../mapping/selection-resolver.service";
 import type { ISelectionResolverService, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
+import { MAPPING_MASTER } from "../mapping/mapping-master";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
 import type { IStatementOutlineRepository, StatementOutlineNode } from "../warehouse/statement-outline.interface";
@@ -24,6 +26,7 @@ import type {
   MisStatementBlockDefinition,
 } from "./mis-statement.interface";
 import { misStatementResponseSchema } from "./mis-statement.dto";
+import { StatementAttestationService } from "./statement-attestation";
 
 const FY_START = "2026-04-01";
 const MEASURE_IDS = [
@@ -60,6 +63,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
     private readonly semantic: SemanticLayer,
     private readonly executor: SelectionExecutor,
     @Inject(StatementOutlineRepository) private readonly outlines: IStatementOutlineRepository,
+    private readonly attestation: StatementAttestationService,
   ) {}
 
   async run(user: AuthUser, request: MisStatementRunRequest): Promise<MisStatementRouteResponse> {
@@ -114,6 +118,19 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
         notice: "The data was refreshed - ask again",
       });
     }
+    const nodeMetadata = buildNodeMetadata(outline.nodes, resolution);
+    const attestedContext = this.attestation.issue({
+      department: resolution.department,
+      function: resolution.function,
+      plant: resolution.plant,
+      period: resolution.period.value,
+      outline: outline.nodes,
+      blocks: blocks.map(({ definition }) => definition.key),
+      nodeMetadata,
+      pinnedBatches: activeBatchIds,
+      mappingMasterVersion: MAPPING_MASTER.version,
+      userId: user.id,
+    });
     return misStatementResponseSchema.parse({
       outcome: "resolved",
       scope: {
@@ -130,6 +147,8 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
       tree,
       grandTotal,
       provenance: { activeBatchIds },
+      attestedContext,
+      nodeMetadata,
     });
   }
 
@@ -386,4 +405,31 @@ function batchesStillActive(requested: ProvenanceBatch[], active: ProvenanceBatc
 
 function plantScope(user: AuthUser): string[] {
   return user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
+}
+
+function buildNodeMetadata(
+  outline: StatementOutlineNode[],
+  resolution: MasterResolvedSelection,
+): MisStatementNodeMetadata[] {
+  const leafTargets = new Map<string, NonNullable<MasterResolvedSelection["leafTargets"]>>();
+  for (const target of resolution.leafTargets ?? []) {
+    if (target.target.kind !== "leaf") continue;
+    const targets = leafTargets.get(target.target.leafKey) ?? [];
+    targets.push(target);
+    leafTargets.set(target.target.leafKey, targets);
+  }
+  return outline
+    .filter(({ leafKey }) => leafKey !== null)
+    .map(({ nodeKey, leafKey }) => {
+      const targets = leafTargets.get(leafKey!) ?? [];
+      return {
+        nodeKey,
+        glCodes: unique(targets.map(({ glCode }) => glCode)),
+        costCentres: unique(targets.map(({ costCenter }) => costCenter)),
+      };
+    });
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)].sort();
 }

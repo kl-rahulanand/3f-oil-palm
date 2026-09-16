@@ -137,6 +137,38 @@ export interface AskReportGrounding {
   timeWindow?: { from: string; to: string; column?: string };
 }
 
+export interface MisStatementNodeMetadata {
+  nodeKey: string;
+  glCodes: string[];
+  costCentres: string[];
+}
+
+export interface AskStatementGrounding {
+  attestedContext: string;
+  department: string;
+  function: string;
+  nodeKey: string;
+  block: string;
+  nodeMetadata: MisStatementNodeMetadata[];
+}
+
+export type StatementGroundingRefusalReason =
+  | "invalid-signature"
+  | "expired-context"
+  | "wrong-user"
+  | "node-metadata-mismatch"
+  | "outline-mismatch"
+  | "node-not-in-outline"
+  | "block-not-in-outline"
+  | "plant-not-authorized"
+  | "pinned-batch-gone"
+  | "pinned-batch-invalid"
+  | "selection-mismatch";
+
+export type StatementGroundingResponse =
+  | { outcome: "verified-but-unanswered"; batchStatuses: MisDrillBatchStatus[] }
+  | { outcome: "refused"; reason: StatementGroundingRefusalReason; batchStatuses?: MisDrillBatchStatus[] };
+
 export interface AskPriorTurn {
   question: string;
   selection: Selection;
@@ -154,6 +186,8 @@ export interface AskRequest {
   selection?: Selection;
   /** Optional server-resolved report grounding; the client sends no semantic Selection. */
   reportGrounding?: AskReportGrounding;
+  /** Optional context issued with a rendered MIS statement. */
+  statementGrounding?: AskStatementGrounding;
   /** Client-held recent turns, bounded again by the server before they reach the model. */
   priorTurns?: AskPriorTurn[];
 }
@@ -334,6 +368,8 @@ export interface MisStatementResolvedResponse {
   tree: MisStatementNode[];
   grandTotal: MisStatementNode;
   provenance: MisStatementProvenance;
+  attestedContext?: string;
+  nodeMetadata?: MisStatementNodeMetadata[];
 }
 
 export interface MisStatementUnresolvableResponse {
@@ -574,6 +610,8 @@ export interface AskResponse {
   periodChoice?: AskPeriodChoice;
   /** Present on successful data answers. */
   periodControl?: AskPeriodControl;
+  /** Verification result for a question grounded against a rendered statement. */
+  statementGrounding?: StatementGroundingResponse;
   /** Deterministic mapping back to the governed statement, or the reason no mapping exists. */
   viewInReport:
     | {

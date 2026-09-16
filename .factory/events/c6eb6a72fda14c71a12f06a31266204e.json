@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-16T02:33:41+00:00", "story": "mis-assistant-explains-a-number", "detail": "Making ChatService and MisStatementService dependencies required, as the binding review ruling requires, mechanically requires updating direct-construction fixtures outside the current write scope: ba"}

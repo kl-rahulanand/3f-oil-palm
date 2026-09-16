@@ -1,0 +1,43 @@
+{
+  "id": "explain-grounding-and-attestation",
+  "title": "Attest the statement, and let the dock ground a question against it",
+  "status": "done",
+  "started_at": "2026-09-16T01:54:13+00:00",
+  "base_sha": "6fa3a6dd496d569a2200d817a685f11f4ad7c3c6",
+  "dirty_at_start": {
+    ".factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-grounding-and-attestation.json": {
+      "digest": "bc2e3b634cebdb4a9653956ecd819c589fca3a45c14bfaae3daa49d25458617e",
+      "git": "1 .M N... 100644 100644 100644 76954c8e6127e686c19fb7f4b18c55ed30b64180 76954c8e6127e686c19fb7f4b18c55ed30b64180 .factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-grounding-and-attestation.json\u0000\u0000100644 76954c8e6127e686c19fb7f4b18c55ed30b64180 0\t.factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-grounding-and-attestation.json\u0000\u0000H .factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-grounding-and-attestation.json\u0000"
+    }
+  },
+  "task_sha256": "477d780e0adcd9be260844fbc94c390863f993d3ddf602adcbcaa668e6efdbf7",
+  "local_review_stamp": {
+    "stage_id": "explain-grounding-and-attestation",
+    "base_sha": "6fa3a6dd496d569a2200d817a685f11f4ad7c3c6",
+    "delta_id": "bf8541ae1476c9af0797bb4caadf1a95c6acc784c60019e913a014a039f18048",
+    "contract_sha256": "477d780e0adcd9be260844fbc94c390863f993d3ddf602adcbcaa668e6efdbf7",
+    "recorded_at": "2026-09-16T02:49:23+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-16T02:49:24+00:00",
+  "measured": {
+    "strays": [],
+    "files": 21,
+    "lines": 836,
+    "budget": {
+      "files": 24,
+      "lines": 1300
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-16T02:49:24+00:00",
+    "from": "bada420d6ff20148c42625689eac305f23b849611ae6e98ac201c8e4621d2ae4",
+    "to": "477d780e0adcd9be260844fbc94c390863f993d3ddf602adcbcaa668e6efdbf7"
+  }
+}

@@ -5,6 +5,7 @@ import type {
   MisStatementNotLoadedMeasureBlock,
   MisStatementMeasureBlock,
   MisStatementNode,
+  MisStatementNodeMetadata,
   MisStatementRouteResponse,
   MisStatementProvenance,
   MisStatementRefreshRequiredResponse,
@@ -78,6 +79,9 @@ const statementScopeSchema = z
   })
   .strict();
 const provenanceSchema = z.object({ activeBatchIds: z.array(provenanceBatchSchema) }).strict();
+const nodeMetadataSchema: z.ZodType<MisStatementNodeMetadata> = z
+  .object({ nodeKey: z.string(), glCodes: z.array(z.string()), costCentres: z.array(z.string()) })
+  .strict();
 
 export const misStatementResponseSchema: z.ZodType<MisStatementRouteResponse> = z.discriminatedUnion("outcome", [
   z
@@ -87,6 +91,8 @@ export const misStatementResponseSchema: z.ZodType<MisStatementRouteResponse> = 
       tree: z.array(statementNodeSchema),
       grandTotal: statementNodeSchema,
       provenance: provenanceSchema,
+      attestedContext: z.string().optional(),
+      nodeMetadata: z.array(nodeMetadataSchema).optional(),
     })
     .strict(),
   z
@@ -210,6 +216,12 @@ class MisStatementProvenanceDto implements MisStatementProvenance {
   activeBatchIds!: MisStatementProvenanceBatchDto[];
 }
 
+class MisStatementNodeMetadataDto implements MisStatementNodeMetadata {
+  @ApiProperty() nodeKey!: string;
+  @ApiProperty({ type: [String] }) glCodes!: string[];
+  @ApiProperty({ type: [String] }) costCentres!: string[];
+}
+
 class MisStatementScopeReadoutDto {
   @ApiProperty({ example: "Agriculture" })
   department!: string;
@@ -254,6 +266,12 @@ export class MisStatementResolvedResponseDto implements MisStatementResolvedResp
 
   @ApiProperty({ type: MisStatementProvenanceDto })
   provenance!: MisStatementProvenanceDto;
+
+  @ApiProperty({ required: false, description: "Signed canonical statement context." })
+  attestedContext?: string;
+
+  @ApiProperty({ type: [MisStatementNodeMetadataDto], required: false })
+  nodeMetadata?: MisStatementNodeMetadataDto[];
 }
 
 export class MisStatementUnresolvableResponseDto implements MisStatementUnresolvableResponse {

@@ -1,0 +1,134 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "explain-grounding-and-attestation",
+  "verdict": "pass",
+  "issue": "mis-assistant-explains-a-number",
+  "current_flow": "Today the MIS statement route (mis-statement.controller.ts:81) takes @CurrentUser() user: AuthUser and a validated MisStatementRunRequest, and MisStatementService.run returns scope, tree, grandTotal and batch provenance. Nothing about that response is signed and MisStatementNode carries no approved GL/cost-centre set. The docked AskPanel takes only surface and onCollapse and posts { question }, so a question asked in front of a statement is indistinguishable from one asked on /ask. chat.schemas.ts is .strict() and has no grounding field, AskResponse carries only a broad ResponseClass with free-form message, and ChatModule has no outline repository.",
+  "criteria_map": {
+    "The statement response carries an ADDITIVE attested context: base64url canonical-JSON claims plus an HMAC-SHA256 signature, where canonical means sorted keys and no insignificant whitespace so identical claims always sign to identical bytes. Claims are department, function, plant, period, a DIGEST of the outline (leaf keys and their blocks), a DIGEST of the node-metadata projection, the pinned batch ids with their sources, the mapping-master version, the user id, and exp. The metadata digest is part of the signed material because otherwise a client could alter the readable metadata and a later aggregate explanation would present a false mapping as attested.": "t-ega-c1",
+    "The context is bound to the USER ID, not the session: mis-statement.controller.ts:81 receives @CurrentUser() user: AuthUser and no session id, AuthUser.id is available (contract/src/rbac.ts:29), and a session-bound token would die on the next refresh while the statement is still on screen.": "t-ega-c2",
+    "The signing secret is supplied as an ordered, delimiter-separated list under a named environment variable: the first key signs, any listed key verifies, so a key rotates without invalidating live statements. Empty or whitespace-only entries are rejected rather than silently skipped, and the TTL has explicit bounds with a 30-minute default. The requirement is enforced where the attestation provider is CONSTRUCTED, not inside loadConfig(), because loadConfig() runs throughout the backend and every existing hermetic leaf would otherwise fail for want of a secret. Absence therefore still fails startup, and the hermetic test command supplies a fixture secret explicitly.": "t-ega-c3",
+    "The statement response carries a READABLE per-leaf node-metadata projection - the approved GL codes and cost centres - because MisStatementNode carries nodeKey, glCode and children but no approved mapping set, and C7's aggregate explanation is a browser projection that an opaque token cannot supply.": "t-ega-c4",
+    "Both new response fields are OPTIONAL in the contract type so the existing typed fixtures in the backend export test and the frontend statement, drill and report tests keep compiling, while the resolved statement path ALWAYS populates them and a leaf asserts their presence on every resolved response. Task 3 must therefore treat absence as a real case rather than relying on the type.": "t-ega-c5",
+    "AskRequest gains statementGrounding carrying the attested context, the UNSIGNED node and block, and the client's department and function as verified context. chat.schemas.ts is .strict(), so it is extended deliberately and a leaf proves an unknown key is still rejected.": "t-ega-c6",
+    "Node and block membership is checked by RE-READING the pinned outline and comparing its digest to the signed claim before testing membership - a digest alone cannot answer whether a node belongs to the outline. The outline lookup is exposed to ChatModule for this, since chat has no outline repository today.": "t-ega-c7",
+    "The server re-derives everything and trusts nothing from the client, producing a TYPED REFUSAL - never a silent substitution and never an ordinary 'no mapping' answer - for each of: an invalid signature, an expired context, a context whose user id is not the caller, a node or block absent from the attested outline, a plant outside the user's CURRENT grants, a pinned batch that does not validate, and a department or function disagreeing with the master's selection for that plant.": "t-ega-c8",
+    "This task introduces the typed REFUSAL variants of the response union it needs, because AskResponse carries only a broad ResponseClass and free-form message today; task 2 adds the explanation variants. A verified grounded request must NOT fall through into the existing LLM path - it returns a verified-but-unanswered outcome that task 2 replaces.": "t-ega-c9",
+    "Decision 0019: the extended chat request and the statement response's new fields carry typed Zod schemas and Swagger documentation, which means mis-statement.dto.ts - it owns the strict response schema and MisStatementResolvedResponseDto, and without changing it the added fields are rejected or undocumented.": "t-ega-c10",
+    "Every new backend test file is registered in BOTH backend/package.json's test:hermetic allow-list AND tools/quality-gate.test.mjs, which independently owns and compares that list - updating only one of them fails the quality gate.": "t-ega-c11"
+  },
+  "questions_asked": 1,
+  "gaps": [
+    "The task contract was RECORDER-INVALID: nine acceptance_criteria against eight differently worded plan_contracts, with the decision-0038 criterion having no contract at all. The task gate requires exact three-way equality, so its criteria_map could never have been satisfied.",
+    "The required new test could not be registered within scope: adding statement-attestation.test.ts to backend/package.json alone FAILS the quality gate, because tools/quality-gate.test.mjs independently owns and compares the hermetic list and was outside write_scope.",
+    "The plan omitted the only statement-response Zod/Swagger seam. mis-statement.dto.ts owns the strict response schema and MisStatementResolvedResponseDto, so without changing it the service's added fields are rejected or undocumented - contradicting decision 0019, which the story plan attests.",
+    "The node metadata was NOT actually attested. The digest covered only leaf keys and blocks while the new readable GL/cost-centre metadata was a separate response value, so a client could alter it and task 3's aggregate explanation would present a FALSE MAPPING AS ATTESTED.",
+    "A digest alone cannot test node/block membership - it proves the outline is unchanged, not that a node belongs to it. The chat module has no outline repository and the usable pinned-batch lookup is not exposed by the interface injected into the statement service.",
+    "Task 1 promised typed refusals but had nowhere to put them: AskResponse carries only a broad ResponseClass and a free-form message, and task 2 owns the typed response union - so task 1 could neither return distinct refusal outcomes nor define what a VERIFIED request returns without falling into the existing LLM path.",
+    "The proposed refusal tests could not prove refusals. chat.schemas.test.ts only parses Zod input - it never constructs ChatService, re-resolves the master, checks grants or emits a response - so the node/block and department/function leaves could pass while the service ignored statementGrounding entirely. There was also no leaf for plant-outside-grants or pin validation.",
+    "The configuration requirement was under-specified and would have broken existing verification: no environment variable, delimiter, empty-key policy or TTL bounds, and loadConfig() runs throughout the backend while the current hermetic command supplies no secret - so requiring it globally would fail existing leaves.",
+    "Response-field optionality was unstated. Required fields break existing typed fixtures in the backend export test and the frontend statement, drill and report tests - all type-checked and all outside this task's scope - while optional fields weaken the stated 'the response carries' guarantee.",
+    "Surface Impact contradicted the contract: the story plan marks Docs 'Unchanged by design' while task 1 declared decision 0038's front matter in its write scope and promised to edit it.",
+    "MID-STAGE, signal S-0019-701b: the recorded write_scope omitted backend/src/chat/chat.controller.ts, which is what forwards parsed request fields to ChatService on BOTH the buffered and streamed paths (chat.controller.ts:37-40 and :76-77). Without it the server-side verification this task exists to build is unreachable. The file was in the task original scope and was dropped when the contract was rebuilt after this grill."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "RESOLVED: the criteria and the contracts are now the SAME ELEVEN STATEMENTS verbatim, one contract per criterion. The decision-0038 front-matter edit is DROPPED from this task entirely - it was cosmetic, it was the only thing making the Docs surface Changed, and removing it resolves that contradiction too.",
+    "RESOLVED: tools/quality-gate.test.mjs is in write_scope and a criterion requires every new backend test file to be registered in BOTH files, stating why - updating only one either fails the gate or leaves the leaf silently never running.",
+    "RESOLVED: backend/src/mis/mis-statement.dto.ts is in write_scope and the decision-0019 criterion names it explicitly as what typed schemas and Swagger documentation mean for this response.",
+    "RESOLVED: a DIGEST OF THE NODE-METADATA PROJECTION is part of the signed claims, and a required leaf proves that altering the readable metadata invalidates the context. The criterion states the attack it prevents rather than just the mechanism.",
+    "RESOLVED: membership is checked by RE-READING the pinned outline, comparing its digest to the signed claim, and only then testing membership; backend/src/warehouse/statement-outline.interface.ts and backend/src/chat/chat.module.ts are in write_scope so the lookup can be exposed to chat.",
+    "RESOLVED: this task introduces the REFUSAL VARIANTS of the union it needs while task 2 adds the explanation variants, and a criterion plus a required leaf state that a verified grounded request must NOT fall through into the LLM path - it returns a verified-but-unanswered outcome that task 2 replaces.",
+    "RESOLVED: the refusal leaves move to a SERVICE-LEVEL file, backend/src/chat/statement-grounding.service.test.ts, which constructs the service; chat.schemas.test.ts keeps only the schema leaf. Leaves for plant-outside-grants, pin validation and the no-LLM-fallthrough rule are added.",
+    "RESOLVED: a named environment variable holding a delimiter-separated ordered list, empty entries rejected rather than skipped, explicit TTL bounds with a 30-minute default, and the requirement enforced WHERE THE PROVIDER IS CONSTRUCTED rather than inside loadConfig(). Absence still fails startup, and the hermetic command supplies a fixture secret.",
+    "RESOLVED by the human: both fields are OPTIONAL IN THE TYPE so existing fixtures keep compiling, the resolved path ALWAYS populates them, and a required leaf asserts their presence on every resolved response. The criterion states the consequence explicitly - task 3 treats absence as a real case rather than trusting the type.",
+    "RESOLVED by removing the edit rather than the claim: the 0038 stories-field correction is cosmetic and is dropped from this task, so docs/ leaves this task's write_scope and the story plan's 'Unchanged by design' becomes true.",
+    "RESOLVED by extending the scope rather than escalating, because both files are MECHANICALLY IMPLIED by the recorded criteria and none of the criteria changed: chat.controller.ts for the forwarding on both chat paths, and backend/src/mis/mis.module.ts because a Nest provider must be registered in the module that supplies it and the attestation provider has nowhere else to live. The ruling is ledgered as a lesson so it reaches the brief, and it explicitly withholds any further authority: no classification change, no grounded answer, and no LLM path."
+  ],
+  "citations": [
+    {
+      "finding": "The task contract was RECORDER-INVALID: nine acceptance_criteria against eight differently worded plan_contracts, with the decision-0038 criterion having no contract at all. The task gate requires exact three-way equality, so its criteria_map could never have been satisfied.",
+      "source": ".factory/stories/mis-assistant-explains-a-number/decomposition.json:15"
+    },
+    {
+      "finding": "The required new test could not be registered within scope: adding statement-attestation.test.ts to backend/package.json alone FAILS the quality gate, because tools/quality-gate.test.mjs independently owns and compares the hermetic list and was outside write_scope.",
+      "source": "tools/quality-gate.test.mjs:15"
+    },
+    {
+      "finding": "The plan omitted the only statement-response Zod/Swagger seam. mis-statement.dto.ts owns the strict response schema and MisStatementResolvedResponseDto, so without changing it the service's added fields are rejected or undocumented - contradicting decision 0019, which the story plan attests.",
+      "source": "backend/src/mis/mis-statement.dto.ts:82"
+    },
+    {
+      "finding": "The node metadata was NOT actually attested. The digest covered only leaf keys and blocks while the new readable GL/cost-centre metadata was a separate response value, so a client could alter it and task 3's aggregate explanation would present a FALSE MAPPING AS ATTESTED.",
+      "source": ".factory/stories/mis-assistant-explains-a-number/task-plans/explain-grounding-and-attestation.md"
+    },
+    {
+      "finding": "A digest alone cannot test node/block membership - it proves the outline is unchanged, not that a node belongs to it. The chat module has no outline repository and the usable pinned-batch lookup is not exposed by the interface injected into the statement service.",
+      "source": "backend/src/warehouse/statement-outline.interface.ts:1"
+    },
+    {
+      "finding": "Task 1 promised typed refusals but had nowhere to put them: AskResponse carries only a broad ResponseClass and a free-form message, and task 2 owns the typed response union - so task 1 could neither return distinct refusal outcomes nor define what a VERIFIED request returns without falling into the existing LLM path.",
+      "source": "contract/src/api.ts:536"
+    },
+    {
+      "finding": "The proposed refusal tests could not prove refusals. chat.schemas.test.ts only parses Zod input - it never constructs ChatService, re-resolves the master, checks grants or emits a response - so the node/block and department/function leaves could pass while the service ignored statementGrounding entirely. There was also no leaf for plant-outside-grants or pin validation.",
+      "source": "backend/src/chat/chat.schemas.test.ts:1"
+    },
+    {
+      "finding": "The configuration requirement was under-specified and would have broken existing verification: no environment variable, delimiter, empty-key policy or TTL bounds, and loadConfig() runs throughout the backend while the current hermetic command supplies no secret - so requiring it globally would fail existing leaves.",
+      "source": "backend/src/config.ts:121"
+    },
+    {
+      "finding": "Response-field optionality was unstated. Required fields break existing typed fixtures in the backend export test and the frontend statement, drill and report tests - all type-checked and all outside this task's scope - while optional fields weaken the stated 'the response carries' guarantee.",
+      "source": "backend/src/mis/mis-statement-export.test.ts:257"
+    },
+    {
+      "finding": "Surface Impact contradicted the contract: the story plan marks Docs 'Unchanged by design' while task 1 declared decision 0038's front matter in its write scope and promised to edit it.",
+      "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md:241"
+    },
+    {
+      "finding": "MID-STAGE, signal S-0019-701b: the recorded write_scope omitted backend/src/chat/chat.controller.ts, which is what forwards parsed request fields to ChatService on BOTH the buffered and streamed paths (chat.controller.ts:37-40 and :76-77). Without it the server-side verification this task exists to build is unreachable. The file was in the task original scope and was dropped when the contract was rebuilt after this grill.",
+      "source": "backend/src/chat/chat.controller.ts:37"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "The attested context and node metadata are new fields on the statement response. Making them REQUIRED breaks existing typed fixtures in the backend export test and the frontend statement/drill/report tests \u2014 all type-checked, all outside this task's scope. How should the contract declare them?",
+      "options": [
+        "Optional in the type, always populated, asserted by a leaf (Recommended)",
+        "Required, and fix every fixture now"
+      ],
+      "chosen": "Optional in the type, always populated, asserted by a leaf (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "summary": "Cold read of the explain-grounding-and-attestation task contract: ten findings, and the first would have blocked the recorder outright - nine acceptance criteria against eight differently worded contracts, which the task gate's exact three-way equality can never accept. Three more would have paused a worker mid-implementation: adding a test file to backend/package.json alone FAILS the quality gate because tools/quality-gate.test.mjs independently owns that list; mis-statement.dto.ts owns the strict response schema so the added fields would have been rejected or undocumented; and requiring the secret inside loadConfig() would have failed every existing hermetic leaf, since loadConfig runs throughout the backend and the test command supplies no secret. The most serious was a real hole in my own design: the digest covered the outline but NOT the readable node metadata, so a client could have altered it and task 3 would have presented a false mapping as attested. The read also showed a digest cannot test membership at all, that the refusal leaves I named sat in a file that only parses Zod and could have passed while the service ignored grounding entirely, and that task 1 had no typed shape to return a refusal in. The human settled the one genuine tradeoff: optional fields that are always populated, keeping this task off four files it does not own.",
+  "inspected_refs": [
+    "backend/src/mis/mis-statement.controller.ts:81",
+    "backend/src/mis/mis-statement.dto.ts:82",
+    "backend/src/config.ts:121",
+    "backend/src/chat/chat.schemas.test.ts:1",
+    "contract/src/api.ts:536",
+    "tools/quality-gate.test.mjs:15",
+    "backend/src/warehouse/statement-outline.interface.ts:1",
+    "backend/src/mis/mis-statement-export.test.ts:257"
+  ],
+  "new_abstractions": [
+    "StatementAttestation (backend/src/mis/statement-attestation.ts) - signs and verifies the context. NEW because nothing in the repo signs a response payload today; authJwtSecret covers sessions, not artefacts. Justified: without it, re-derivation proves entitlement but not that the question is about the statement on screen, which is precisely what C14 requires.",
+    "StatementGroundingService (backend/src/chat/statement-grounding.service.ts) - verifies a grounded request and produces typed refusals. NEW because the refusal checks are service-level (master re-resolution, current grants, pin validation, outline membership) and cannot live in chat.schemas.ts, which only parses Zod - the grill showed leaves there could pass while the service ignored grounding entirely.",
+    "The refusal variants of the chat response union (contract/src/api.ts) - NEW because AskResponse carries only a broad ResponseClass and a free-form message, so there is no shape today in which an invalid, expired, other-user, out-of-outline, out-of-grants, bad-pin or master-mismatch outcome can be told apart. Task 2 extends the same union with the explanation variants rather than inventing a second one.",
+    "A node-metadata projection on the statement response - NOT a new abstraction so much as an additive field, listed because it is signed: its digest joins the claims so the readable metadata cannot be altered independently of the context."
+  ],
+  "rationale": "Attest the statement at the source and refuse anything that does not verify, with typed reasons. The context is signed HMAC-SHA256 over canonical JSON claims that include BOTH an outline digest and a node-metadata digest, bound to AuthUser.id rather than a session the route never receives. Membership is checked against a re-read pinned outline whose digest matches the claim, because a digest alone cannot answer membership. The secret is required where the provider is constructed rather than in loadConfig(), so absence still fails startup without breaking every existing hermetic leaf. Both new response fields are optional in the type and always populated, keeping this task off four files it does not own. This task introduces only the refusal variants of the response union; a verified request returns a verified-but-unanswered outcome that task 2 replaces, and must never fall through into the LLM path.",
+  "decision": "keep",
+  "input_sha256": "9421d6628556a393ffc0b6eaee07b2a8bad3dc6e1d816bb7637bfaa110ce5e1d",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "95985e1ac60acc43338e2766e9d89b8f997dd60d5ccc55b4ba2aedfa22911a6b",
+  "recorded_at": "2026-09-16T02:03:52+00:00",
+  "commit": "6fa3a6dd496d569a2200d817a685f11f4ad7c3c6",
+  "approved_task_plan_sha256": "95985e1ac60acc43338e2766e9d89b8f997dd60d5ccc55b4ba2aedfa22911a6b",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-16T02:04:18+00:00"
+}

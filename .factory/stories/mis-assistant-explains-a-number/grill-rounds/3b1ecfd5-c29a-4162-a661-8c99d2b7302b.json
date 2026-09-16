@@ -1,0 +1,16 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Decision 0025 says a replaced-but-still-present batch should be READ and reported. The drill service does that \u2014 but the shipped drill panel then HIDES the lines and tells the user to regenerate. So my rule that the same line can't behave two ways is already broken today. What should the assistant do?",
+      "options": [
+        "Assistant reports it; ledger the panel's divergence (Recommended)",
+        "Align the drill panel too",
+        "Assistant hides it too, matching the panel"
+      ],
+      "chosen": "Assistant reports it; ledger the panel's divergence (Recommended)"
+    }
+  ],
+  "at": "2026-09-15T23:35:36.212925+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

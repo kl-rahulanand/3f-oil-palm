@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-16T02:02:17+00:00", "story": "mis-assistant-explains-a-number", "detail": "backend/src/chat/chat.controller.ts must forward parsed statementGrounding to ChatService in both buffered and streamed paths; without this mechanically implied edit the required server verification i"}

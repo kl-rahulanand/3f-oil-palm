@@ -7,6 +7,7 @@ import type { ISelectionResolverService, MasterResolvedSelection } from "../mapp
 import { SemanticLayer } from "../semantic/semanticLayer";
 import type { IStatementOutlineRepository, StatementOutlineNode } from "../warehouse/statement-outline.interface";
 import { MisStatementService } from "./mis-statement.service";
+import { StatementAttestationService } from "./statement-attestation";
 
 test("a non owner plant carries a not loaded budget state on every block with null budget rollover and percentage and no over budget or credit label", async () => {
   const { service } = fixture({ plant: "H.O" });
@@ -50,6 +51,18 @@ test("the DUB statement keeps identical values tree and provenance and carries a
     [{ budgetState: "loaded", budget: "101.00", actual: "50.50", percentage: "0.5" }],
   );
   assert.deepEqual(response.provenance.activeBatchIds, [budgetBatch]);
+});
+
+test("every resolved statement response populates the attested context and the per leaf approved gl codes and cost centres", async () => {
+  const response = await fixture().service.run(user, request("2026-07-01"));
+  assert.equal(response.outcome, "resolved");
+  if (response.outcome !== "resolved") return;
+  assert.match(response.attestedContext ?? "", /^[^.]+\.[^.]+$/);
+  assert.deepEqual(response.nodeMetadata, [
+    { nodeKey: "shade", glCodes: ["5001"], costCentres: ["Primary"] },
+    { nodeKey: "diesel", glCodes: [], costCentres: [] },
+    { nodeKey: "repairs", glCodes: [], costCentres: [] },
+  ]);
 });
 
 test("the response schema rejects a not loaded block with money and a loaded block with a null budget", () => {
@@ -341,6 +354,7 @@ function fixture(
     new SemanticLayer(),
     executor as unknown as SelectionExecutor,
     outlines,
+    new StatementAttestationService(["test-secret"], 30, () => 1_000_000),
   );
   return { service, executor, outlines };
 }

@@ -244,6 +244,27 @@
       "completed_at": "2026-09-15T19:23:29+00:00",
       "history": ".factory/stories/ask-reopen-saved-report/",
       "outcome": "Opening a saved report or pinned report now returns you to its existing answer instead of stacking a duplicate copy of it. The Ask panel opens immediately on the click rather than after the answer arrives, the target turn is scrolled into view and shows 'Opening this report...' while it runs, and the answer it re-runs is re-asked in your own original wording rather than the pin's measure-name label - so the audit record carries the question someone actually asked. Which turn a report belongs to is decided by strict structural comparison of the resolved selection, not the displayed title, so two pins that both read 'Actual - Budget' but cover different dimensions or periods stay separate answers. A reopen refused because access was withdrawn clears the stale numbers from the screen and says why, while the period control's shipped behaviour of keeping the previous answer is untouched - the caller now states which it wants."
+    },
+    {
+      "key": "mis-assistant-explains-a-number",
+      "title": "The on-screen assistant explains a number on the MIS statement",
+      "story": "As a finance user looking at a figure on the MIS statement, I want to click it and ask the assistant how it was built, so that I can see which GL codes and cost centres feed that line and which transactions add up to it without leaving the report or guessing.",
+      "acceptance_criteria": [
+        "The docked MIS assistant sends statementGrounding - department, function, plant, period, block, pinned batches and the clicked node - and /ask sends none of it and is byte-for-byte unchanged, proven by its shipped leaves passing unmodified.",
+        "The server re-derives every input: department and function from the master's selection for that plant, the plant against the user's current grants, and the pins validated before any read. A tampered nodeKey, block or pin set is refused, not answered.",
+        "Intent is a closed enum - composition, causal, data - with stated precedence; a composition question is answered with the explanation, a causal question is still declined with today's copy, and a data question is answered by the existing ungrounded path with no pin or budget promise attached.",
+        "A leaf answer names the roll-up path and lists transactions with an exact footer asserted in paise against the statement payload, the true total count, the first 20 rows inline, and a control that opens the shipped drill panel for the rest.",
+        "A total or subtotal answer names the lines that compose it and their GLs and cost centres with no raw rows and no warehouse query, so decision 0024 holds and no governed-read audit is implied.",
+        "No transaction row, amount, batch identifier or result row ever reaches the model - a leaf asserts the provider payload, not the rendered answer - and the leaf read carries the drill's governed-read protections with the predicate audited before the query and failing closed.",
+        "Staleness follows decision 0025: a replaced-but-present batch is read and reported, only a gone batch is refused, and both are typed with source, period and batch status rather than flattened by the global error envelope."
+      ],
+      "order": 12,
+      "status": "active",
+      "epic": "assistant",
+      "skill": "fullstack",
+      "kind": "feature",
+      "depends_on": [],
+      "spec": "docs/specs/mis-assistant-explains-a-number.md"
     }
   ],
   "epics": [
@@ -285,5 +306,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-15T19:23:29+00:00"
+  "updated_at": "2026-09-15T20:21:48+00:00"
 }

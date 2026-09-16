@@ -12,6 +12,7 @@ import type { IStatementOutlineRepository } from "../warehouse/statement-outline
 import type { IMisStatementExportService } from "./mis-statement-export.interface";
 import { MisStatementController } from "./mis-statement.controller";
 import { MisStatementService } from "./mis-statement.service";
+import { StatementAttestationService } from "./statement-attestation";
 
 test("the statement route refuses a pinned batch that is no longer active and behaves unchanged when no pinned ids are sent", async () => {
   const { controller } = statementController();
@@ -114,6 +115,7 @@ function statementController(activeBatchIds: ProvenanceBatch[] = []): {
     new SemanticLayer(),
     new EmptyExecutor(activeBatchIds) as unknown as SelectionExecutor,
     new OneLeafOutline(),
+    new StatementAttestationService(["test-secret"], 30),
   );
   return { controller: new MisStatementController(service, exporter), service };
 }

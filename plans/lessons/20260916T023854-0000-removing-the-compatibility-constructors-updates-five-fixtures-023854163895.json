@@ -1,0 +1,13 @@
+{
+  "topic": "removing the compatibility constructors updates five fixtures",
+  "lesson": "RULING on S-0021-e132, already applied to the recorded contract: backend/src/chat/ask-period.test.ts, chat.controller.test.ts, chat.service.test.ts, backend/src/mis/mis-statement.controller.test.ts and backend/src/warehouse/all-plants-reconciliation.db.test.ts are now in write_scope. They are the complete set that constructs ChatService or MisStatementService directly, so deleting the compatibility defaults - the review's binding P1 - means each must pass the new dependency or it will not compile. Do not forget all-plants-reconciliation.db.test.ts: it is DB-gated and SKIPPED in the hermetic run, so a missing argument there will not surface as a test failure, only as a typecheck failure in verify. Update constructor arguments only; do NOT change what those fixtures assert, and do not reintroduce an optional parameter or an environment-constructed fallback to avoid touching them - that fallback is the security finding.",
+  "source": "S-0021-e132",
+  "applies_to": [
+    "backend/src/chat/**",
+    "backend/src/mis/**",
+    "backend/src/warehouse/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T02:38:54+00:00"
+}

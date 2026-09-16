@@ -1,0 +1,12 @@
+{
+  "topic": "explain-grounding-and-attestation: chat.controller.ts and mis.module.ts are in scope",
+  "lesson": "RULING on signal S-0019-701b, already applied to the recorded contract: backend/src/chat/chat.controller.ts AND backend/src/mis/mis.module.ts are now in this task's write_scope. The controller is what forwards parsed request fields to ChatService on BOTH the buffered and the streamed path (chat.controller.ts:37-40 and :76-77), so forward statementGrounding on both - the server-side verification this task exists to build is unreachable otherwise, and the streamed path must not be forgotten. mis.module.ts is included because a Nest provider must be registered in the module that supplies it and the attestation provider has nowhere else to live. Nothing else is authorized: do NOT change classification, do NOT answer a grounded question, and do NOT reach the LLM path - a verified grounded request returns the verified-but-unanswered outcome that task 2 replaces, and a required leaf asserts exactly that. The scope was extended rather than escalated because both files are mechanically implied by the recorded criteria.",
+  "source": "S-0019-701b",
+  "applies_to": [
+    "backend/src/chat/**",
+    "backend/src/mis/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T02:03:12+00:00"
+}

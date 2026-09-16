@@ -2,94 +2,110 @@
   "generated_by": "griller",
   "gate": "spec",
   "verdict": "pass",
-  "summary": "Cold read of the reopen-identity-and-policy contract. Eight findings, two of them P0 and both mine. The governing one: D-0048 let a revoked grant leave a cached figure on screen, which accepted decision 0028 forbids - and a deferral cannot override a decision. The human chose to AMEND 0028 to record the limit honestly rather than let the deferral quietly contradict it. The second: I amended the plan's refusal rule and left the CONFIRMED SPEC saying the opposite, so an implementer had two authorities. The read also caught that clearing via turn.error alone would leave the numbers rendering - the leak surviving the fix - that the policy could not be caller-stated without ask-panel.tsx in scope, and that the task was misclassified as not user-facing.",
+  "issue": "mis-assistant-explains-a-number",
+  "summary": "Requirements re-grill of the confirmed spec against repo reality. Eleven findings, and the two that mattered most were criteria of mine that were simply FALSE about the code. C7 had the server deriving subtotal composition from the mapping master, but parent/child structure lives in the pinned OUTLINE SNAPSHOT and decision 0024 requires aggregate behaviour to be a client projection - so aggregates now project the attested statement payload and name descendant lines WITH THEIR VALUES, which is also a better answer. And C9's absolute 'no amount reaches the model' was unimplementable, because the user's own question carries the number - 'how is this 85000' is the motivating example - so C9 now binds SERVER-SOURCED data only. The read also showed the existing causal guard does not classify 'how is this' as causal at all, so the boundary is a fixture table the tests own rather than prose. The human chose an attested statement context over a weaker scope-only check, which is what finally makes C14's tamper refusal honest, and chose to keep /ask isolated in RENDERING as well as sending - the shared AskProvider would otherwise have shown a grounded turn on the screen they froze. Recorded at the spec gate against the amended spec, whose delivery route for the attested context the human settled: it is an additive field on the existing statement response rather than a second endpoint that could drift from the screen.",
   "questions_asked": 1,
   "gaps": [
-    "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
-    "The write scope could not deliver a caller-stated failure policy: continueTurn's two shipped period-control calls and their callback typings live in ask-panel.tsx, which was OUTSIDE scope. A required argument would not type-check with those callers untouched, and a defaulted one recreates the implicit policy the task exists to remove.",
-    "Clearing on a terminal 401/403 had no state contract. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and THE OLD NUMBERS STILL RENDER - the leak would have survived the fix.",
-    "The proof was materially incomplete: the identity leaves covered only dimensions and an absent/present time window, not domain, measures, filters, limit, optional time-window fields or array order; nothing proved that non-success responses carrying a selection are excluded as candidates; the auth leaf exercised only one of 401/403; and only not_supported represented the whole 'everything else retains' set.",
-    "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
-    "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
-    "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation."
+    "Nothing in the request proved it was about the RENDERED statement. C14 required a tampered node, block or pin set to be refused, but a client-held request cannot distinguish tampering from another valid on-screen leaf or a valid historical batch - re-derivation protects scope, it does not prove screen identity - so C1, C2 and C14 could not all hold.",
+    "C7 said the server derives subtotal composition from the mapping master with no warehouse read. That cannot work: parent/child structure lives in the pinned OUTLINE SNAPSHOT, not the mapping master, and decision 0024 requires aggregate drill behaviour to be a client projection of the statement payload. A labels-only answer would also have failed the stated purpose of showing which amounts add up to the figure.",
+    "The intent and model-data boundary was wrong in two ways. The cited guard does NOT classify 'how is this 85000' as causal today - it matches 'why', 'reason' and 'explain' - so the boundary had to be built rather than assumed. And C9's absolute 'no amount ever reaches the model' was impossible as written, because decision 0027 permits a user's QUESTION to contain numbers and the ordinary data path still uses the model to select a governed query.",
+    "No rule covered client-supplied department or function disagreeing with the plant's master selection. The current resolver uses those as lookup KEYS while C2 says the server derives them, so one implementation could silently substitute and another return an ordinary 'no mapping' result.",
+    "Behaviour before a focus exists was contradictory: 'no rendered statement' conflicted with preserving ungrounded behaviour, and 'no focus asks the user to click' conflicted with the ordinary-data arm, so an answerable data question would have been met with a request to click a line.",
+    "No typed response existed to carry the explanation or the stale detail. AskResponse has no explanation payload, and the global exception path discards exactly the source, period and status C11 requires. C10 and C12 also applied audit requirements to EVERY explanation while C7 said aggregates have no governed-read audit.",
+    "'Budget not loaded' was incoherent across criteria: C8 prohibited Budget as a subject while C13 said a non-owner plant 'returns' the Budget-not-loaded state, and the budget batch is also the pinned OUTLINE source even for a non-owner plant.",
+    "Ownership of focus, block and the 'open full drill' action was unassigned. StatementView owns the drill internally while AskPanel is its sibling, there is no report-wide selected-block control - the block is known only once an Actual is clicked - and the spec required both a shared focus and an assistant control that opens the existing panel.",
+    "'/ask untouched' covered only what /ask SENDS. The dock and /ask share an AskProvider and turns survive navigation, so a grounded explanation could have rendered on /ask - a turn type it has never displayed - breaking the constraint in a way no leaf was asked to catch.",
+    "C14 mandated a vitest discriminator for every criterion, but the security, audit, provider-payload and tamper proofs are BACKEND leaves and this repo runs those under Node's test runner. A vitest-only criterion could not prove the server guarantees at all.",
+    "REPOSITORY-ONLY: the derived roadmap item did not carry C8, C12, C13 or C14's proof matrix, so planning could have satisfied the roadmap while silently omitting confirmed requirements.",
+    "The attested context had no delivery route. It must reach the client somehow, and the choice has real blast radius: adding it to the shipped MIS statement response touches a contract the report screen, the export and their leaves already depend on, while a separate endpoint would re-derive the statement scope a second time and could drift from the statement actually on screen - defeating the point of attestation."
   ],
-  "contradictions": [
-    "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand."
-  ],
+  "contradictions": [],
   "resolutions": [
-    "The spec is amended to match: not_supported now sits explicitly on the KEEPS side with the reasoning written in, and criterion 7 names only blocked_by_policy and a terminal 401/403 as the refusals the client can recognise.",
-    "ask-panel.tsx is added to write_scope and the policy argument is REQUIRED; the two shipped period-control calls pass 'retain' explicitly. Their behaviour does not change - only the call sites become explicit. A new criterion pins this.",
-    "A new criterion requires a result-free renderable state and a leaf that asserts the numbers are ABSENT FROM THE DOM, not merely that an error string appeared.",
-    "The leaf matrix grows from nine to thirteen: every identity field including array order, a leaf proving non-success turns carrying a selection are excluded, both 401 and 403 in one leaf, and not_supported plus a transport failure together representing the retains set.",
-    "Component leaves are added for BOTH pinned-reports and saved-views against a matched turn, and both test files enter write_scope.",
-    "user_facing is set to TRUE, which brings the functional check and makes emil-design-eng and frontend-design mandatory; a criterion records it.",
-    "The helper is renamed selection-identity.helper.ts per constitution section 3.2, and the contract cites the convention.",
-    "HUMAN ROUND: decision 0028 is AMENDED rather than the behaviour changed or the deferral left to override it. The amendment records that re-authorization still happens server-side, but the client can only act on refusals it can recognise, and states the consequence plainly - after losing a single grant an answer can remain on screen until reload, a display-lifetime limit rather than a cached figure at rest. D-0048's trigger reopens the amendment."
+    "RESOLVED by the human: the statement response now carries a server-issued ATTESTED CONTEXT binding scope, outline, pins, master version, user/session and expiry. The assistant returns it, and focus may be any valid Actual inside that attested statement, with no per-click round trip. C14's refusal set is restated as an invalid, expired or other-user context, or a node/block absent from the attested outline - it no longer calls a different valid node in the same statement 'tampering'.",
+    "RESOLVED: an aggregate explanation is a CLIENT PROJECTION of the attested statement payload per decision 0024, naming the descendant lines WITH THEIR VALUES plus their approved mapping metadata, with structure taken from the pinned outline snapshot. No raw rows, no query, no governed-read audit; and a labels-only answer explicitly does not satisfy the criterion.",
+    "RESOLVED: intent resolves against a FIXTURE TABLE the tests own - 'how is this / what makes up / break down' to composition, a causal cue winning when both appear, everything else falling through to the existing data path - and C9 is scoped to SERVER-SOURCED transaction, result, batch and measure data. The user's own question and prior-turn text may carry figures, which the motivating question requires.",
+    "RESOLVED: a mismatch in an attested grounded request is a TYPED REFUSAL. The server derives the canonical values from the master's selection for that plant; the client's copies are verified context, never authority.",
+    "RESOLVED by an explicit outcome table in the spec: with no statement or no mapping the dock says 'Generate a mapped statement first' locally and submits no grounded ask; with a statement but nothing clicked, composition asks for a click, causal is declined and an ordinary data question uses the existing ungrounded path; with an Actual focused, the three-arm behaviour applies.",
+    "RESOLVED: the explanation is an in-band TYPED RESPONSE UNION on the existing chat transport with a variant per outcome - focus-required, leaf, aggregate, replaced, gone, and safe audit-failure - and C10/C12 now bind ONLY leaf raw reads. Aggregates stay query-free with no governed-read audit, and a failed audit returns the safe refusal without ever running the query.",
+    "RESOLVED: every grounded explanation carries a distinct budgetState of not-loaded when applicable, while Budget stays non-focusable with no composition answer. The outline's budget pin is still attested and validated because it is the outline source, and its replaced or gone status stays distinct from the ordinary not-loaded state.",
+    "RESOLVED: the MIS report view owns the shared statement context and the focused nodeKey/block. There is no independent selected block before focus, so the block always comes from the focused node; clicking an Actual both opens today's drill and sets focus, so drill-down does not regress; and the assistant's action opens that same panel.",
+    "RESOLVED by the human: /ask stays fully isolated in rendering as well as sending. Grounded turns are partitioned to the docked panel and are not shown on /ask, and C14 requires a leaf proving both halves.",
+    "RESOLVED: each leaf is judged by the discriminator for its own runner - frontend by vitest (present AND NOT skipped AND NOT failed, D-0031) and backend by Node/JUnit, where a non-matching name yields a testcase named for the FILE PATH (D-0024). No test-runner migration is implied.",
+    "RESOLVED: the roadmap item's acceptance criteria are extended to carry the attested context, the budget state, the typed response union and the per-runner proof matrix, so the roadmap and the confirmed spec say the same thing.",
+    "RESOLVED by the human: the context is an ADDITIVE field on the existing statement response. The statement already computes everything the context binds - scope, outline, pins, master version - so it signs and returns it in the same round trip with no extra call and no second derivation. Existing consumers keep working; the shipped contract's leaves are re-proven as part of the story."
   ],
   "citations": [
     {
-      "finding": "The CONFIRMED SPEC contradicted this task contract: the spec still cleared on not_supported while the plan and task had narrowed to blocked_by_policy and 401/403. I amended the plan and never re-amended the spec, leaving a fresh implementer two incompatible authorities - and the plan's 'Docs: Unchanged by design' row was false as a result.",
-      "source": "docs/specs/ask-reopen-saved-report.md:84"
+      "finding": "Nothing in the request proved it was about the RENDERED statement. C14 required a tampered node, block or pin set to be refused, but a client-held request cannot distinguish tampering from another valid on-screen leaf or a valid historical batch - re-derivation protects scope, it does not prove screen identity - so C1, C2 and C14 could not all hold.",
+      "source": "docs/specs/mis-assistant-explains-a-number.md"
     },
     {
-      "finding": "The write scope could not deliver a caller-stated failure policy: continueTurn's two shipped period-control calls and their callback typings live in ask-panel.tsx, which was OUTSIDE scope. A required argument would not type-check with those callers untouched, and a defaulted one recreates the implicit policy the task exists to remove.",
-      "source": "frontend/src/features/assistant/ask-panel.tsx:153"
+      "finding": "C7 said the server derives subtotal composition from the mapping master with no warehouse read. That cannot work: parent/child structure lives in the pinned OUTLINE SNAPSHOT, not the mapping master, and decision 0024 requires aggregate drill behaviour to be a client projection of the statement payload. A labels-only answer would also have failed the stated purpose of showing which amounts add up to the figure.",
+      "source": "docs/decisions/0024-drill-down-aggregate-client-projection.md:24"
     },
     {
-      "finding": "Clearing on a terminal 401/403 had no state contract. AskTurn holds an AskResponse and the renderer draws from it (ask-panel.tsx:129), so setting turn.error alone leaves the successful response in place and THE OLD NUMBERS STILL RENDER - the leak would have survived the fix.",
-      "source": "frontend/src/features/assistant/use-ask.ts:7; frontend/src/features/assistant/ask-panel.tsx:129"
+      "finding": "The intent and model-data boundary was wrong in two ways. The cited guard does NOT classify 'how is this 85000' as causal today - it matches 'why', 'reason' and 'explain' - so the boundary had to be built rather than assumed. And C9's absolute 'no amount ever reaches the model' was impossible as written, because decision 0027 permits a user's QUESTION to contain numbers and the ordinary data path still uses the model to select a governed query.",
+      "source": "backend/src/chat/reconciliation-guard.ts:31"
     },
     {
-      "finding": "The proof was materially incomplete: the identity leaves covered only dimensions and an absent/present time window, not domain, measures, filters, limit, optional time-window fields or array order; nothing proved that non-success responses carrying a selection are excluded as candidates; the auth leaf exercised only one of 401/403; and only not_supported represented the whole 'everything else retains' set.",
-      "source": ".factory/stories/ask-reopen-saved-report/task-plans/reopen-identity-and-policy.md"
+      "finding": "No rule covered client-supplied department or function disagreeing with the plant's master selection. The current resolver uses those as lookup KEYS while C2 says the server derives them, so one implementation could silently substitute and another return an ordinary 'no mapping' result.",
+      "source": "backend/src/mapping/selection-resolver.service.ts"
     },
     {
-      "finding": "Neither Open entry point was proven against a MATCHED turn. Both components were in scope but neither component test was required, and their existing assertions cover an empty thread only - so the hook leaves could pass while one route still bypassed matching.",
-      "source": "frontend/src/features/exploration/pinned-reports.tsx:65; frontend/src/features/exploration/saved-views.tsx:62"
+      "finding": "Behaviour before a focus exists was contradictory: 'no rendered statement' conflicted with preserving ungrounded behaviour, and 'no focus asks the user to click' conflicted with the ordinary-data arm, so an answerable data question would have been met with a request to click a line.",
+      "source": "docs/specs/mis-assistant-explains-a-number.md"
     },
     {
-      "finding": "user_facing was false, which is wrong: the task changes a visible Open flow and what a refused reopen displays, so it would have bypassed the functional check and the mandatory frontend design evidence.",
-      "source": ".factory/stories/ask-reopen-saved-report/decomposition.json"
+      "finding": "No typed response existed to carry the explanation or the stale detail. AskResponse has no explanation payload, and the global exception path discards exactly the source, period and status C11 requires. C10 and C12 also applied audit requirements to EVERY explanation while C7 said aggregates have no governed-read audit.",
+      "source": "backend/src/common/global-exception.filter.ts:54"
     },
     {
-      "finding": "The proposed selection-identity.ts conflicted with the constitution's Helper convention for stateless, IO-free utility logic, with no recorded deviation.",
-      "source": "constitution/pnp-coding-standards-modular-monolith.md:81"
+      "finding": "'Budget not loaded' was incoherent across criteria: C8 prohibited Budget as a subject while C13 said a non-owner plant 'returns' the Budget-not-loaded state, and the budget batch is also the pinned OUTLINE source even for a non-owner plant.",
+      "source": "docs/decisions/0034-budget-belongs-to-the-owner-plant.md:23"
     },
     {
-      "finding": "D-0048 knowingly conflicted with accepted decision 0028. 0028 states that a revoked grant produces a refusal rather than a cached figure; D-0048 permitted exactly that cached figure for a revoked domain or measure grant. A deferral is not a superseding decision or a recorded deviation, so the conflict could not stand.",
-      "source": "docs/decisions/0028-saved-selections-not-snapshots.md:20; plans/deferrals.md:56"
+      "finding": "Ownership of focus, block and the 'open full drill' action was unassigned. StatementView owns the drill internally while AskPanel is its sibling, there is no report-wide selected-block control - the block is known only once an Actual is clicked - and the spec required both a shared focus and an assistant control that opens the existing panel.",
+      "source": "frontend/src/features/mis/statement-view.tsx:251"
+    },
+    {
+      "finding": "'/ask untouched' covered only what /ask SENDS. The dock and /ask share an AskProvider and turns survive navigation, so a grounded explanation could have rendered on /ask - a turn type it has never displayed - breaking the constraint in a way no leaf was asked to catch.",
+      "source": "frontend/src/features/assistant/use-ask.ts"
+    },
+    {
+      "finding": "C14 mandated a vitest discriminator for every criterion, but the security, audit, provider-payload and tamper proofs are BACKEND leaves and this repo runs those under Node's test runner. A vitest-only criterion could not prove the server guarantees at all.",
+      "source": "tools/junit-run.mjs"
+    },
+    {
+      "finding": "REPOSITORY-ONLY: the derived roadmap item did not carry C8, C12, C13 or C14's proof matrix, so planning could have satisfied the roadmap while silently omitting confirmed requirements.",
+      "source": "plans/roadmap.json"
+    },
+    {
+      "finding": "The attested context had no delivery route. It must reach the client somehow, and the choice has real blast radius: adding it to the shipped MIS statement response touches a contract the report screen, the export and their leaves already depend on, while a separate endpoint would re-derive the statement scope a second time and could drift from the statement actually on screen - defeating the point of attestation.",
+      "source": "contract/src/api.ts:331"
     }
   ],
   "rounds": [
     {
-      "question": "The grill is right that I've created a governance problem. Decision 0028 says plainly: \"a revoked grant produces a refusal rather than a cached figure.\" D-0048 permits exactly that cached figure for a revoked domain or measure grant. A deferral can't override an accepted decision \u2014 so one of them has to give. Which?",
+      "question": "The attested context has to reach the client somehow. Adding it to the existing MIS statement response touches a contract the shipped report screen, its export and its tests already depend on. Where should it come from?",
       "options": [
-        "Amend 0028 to record the limit (Recommended)",
-        "Honour 0028 \u2014 clear on not_supported too",
-        "Add the typed reason after all"
+        "Add it to the statement response (Recommended)",
+        "Separate endpoint the dock calls"
       ],
-      "chosen": "Amend 0028 to record the limit (Recommended)",
+      "chosen": "Add it to the statement response (Recommended)",
       "frontier_empty": true
     }
   ],
-  "decision": "keep",
-  "new_abstractions": [
-    "A shared selection-identity helper - the first time two surfaces agree in code on when two governed selections are the same question.",
-    "A caller-stated failure policy on continueTurn, so one seam can serve two callers whose refusal semantics differ by design rather than by accident.",
-    "A result-free renderable turn state, which the thread has never had: until now a turn either held an answer or had never run."
-  ],
   "inspected_refs": [
-    "frontend/src/features/assistant/use-ask.ts:7,86,97-130,147",
-    "frontend/src/features/assistant/ask-panel.tsx:129,153",
-    "frontend/src/features/exploration/pinned-reports.tsx:65",
-    "frontend/src/features/exploration/saved-views.tsx:62",
-    "frontend/src/features/exploration/selection-label.ts",
-    "backend/src/chat/chat.service.ts:245,337",
-    "contract/src/api.ts:515",
-    "docs/decisions/0028-saved-selections-not-snapshots.md",
-    "constitution/pnp-coding-standards-modular-monolith.md:81"
+    "docs/decisions/0024-drill-down-aggregate-client-projection.md",
+    "docs/decisions/0027-assistant-llm-bedrock-mumbai.md",
+    "docs/decisions/0034-budget-belongs-to-the-owner-plant.md",
+    "backend/src/chat/reconciliation-guard.ts:31",
+    "backend/src/common/global-exception.filter.ts:54",
+    "frontend/src/features/mis/statement-view.tsx:251",
+    "frontend/src/features/assistant/use-ask.ts",
+    "tools/junit-run.mjs"
   ],
-  "input_sha256": "18a03e838ee621b4b2cf9dc87c77bb5024a09ea2a18a40ef32ad1103ff21dc32",
-  "recorded_at": "2026-09-15T15:59:03+00:00",
-  "commit": "ce7f985978b18879104f3767a1db4252f409cf24"
+  "input_sha256": "20252512a4fabcd3d7e7219d79fefea7a81c7cd0b6592cd6183b0ad485cafaf8",
+  "recorded_at": "2026-09-15T22:29:43+00:00",
+  "commit": "896f7714a79bd6d65d62b87cea656b0ae8126991"
 }
