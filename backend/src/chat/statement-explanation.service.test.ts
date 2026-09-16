@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AskStatementGrounding, AuthUser, StatementGroundingResponse, StatementRollupEntry } from "@3f/contract";
+import { MAPPING_MASTER } from "../mapping/mapping-master";
 import type { IMisDrillService, MisDrillOutcome, VerifiedDrillContext } from "../mis/mis-drill.interface";
+import { StatementAttestationService } from "../mis/statement-attestation";
 import type { StatementGroundingVerification } from "./statement-grounding.service";
+import { StatementGroundingService } from "./statement-grounding.service";
 import { ChatService } from "./chat.service";
 import { StatementExplanationService } from "./statement-explanation.service";
 
@@ -181,6 +184,60 @@ test("an unmapped gl line is described as provisional with its reason", async ()
   const response = responseOf(await target.service.explain(user, "session", "how is this built", grounding));
   if (response?.outcome !== "leaf") assert.fail("expected leaf");
   assert.deepEqual(response.rollup[0], provisional);
+});
+
+test("an attested unmapped gl focus reaches the provisional explanation end to end", async () => {
+  const provisional: StatementRollupEntry = {
+    ...rollup[0]!,
+    mappingTarget: { kind: "bucket" },
+    bucket: "unmapped-GL",
+    provisional: true,
+    reason: "GL absent from Mapping Master",
+  };
+  const attestation = new StatementAttestationService(["secret"], 30, () => 1_000_000);
+  const nodeMetadata = [{ nodeKey: "unmapped-GL", glCodes: ["5001"], costCentres: ["Primary"] }];
+  const nodeAmounts = [{ nodeKey: "unmapped-GL", block: "selected" as const, actualPaise: "10001" }];
+  const request: AskStatementGrounding = {
+    attestedContext: attestation.issue({
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+      outline: [],
+      blocks: ["selected", "fy26-27-ytd"],
+      nodeMetadata,
+      nodeAmounts,
+      pinnedBatches: [],
+      mappingMasterVersion: MAPPING_MASTER.version,
+      userId: user.id,
+    }),
+    department: "Agriculture",
+    function: "Nursery",
+    focus: { nodeKey: "unmapped-GL", block: "selected", subject: "actual" },
+    nodeMetadata,
+    nodeAmounts,
+  };
+  const context: VerifiedDrillContext = {
+    ...verifiedContext,
+    request: { ...verifiedContext.request, focus: { nodeKey: "unmapped-GL", block: "selected" } },
+    leafKey: "unmapped-GL",
+    outline: [],
+  };
+  const drills = {
+    prepare: async () => ({ outcome: "prepared" as const, context }),
+    read: async () => ({
+      outcome: "ok" as const,
+      response: readResponse({ nodeKey: "unmapped-GL", leafKey: "unmapped-GL", rollup: [provisional] }),
+    }),
+  };
+  const service = new StatementExplanationService(
+    new StatementGroundingService(attestation, drills as never),
+    drills as never,
+  );
+
+  const response = responseOf(await service.explain(user, "session", "how is this built", request));
+  if (response.outcome !== "leaf") assert.fail(`expected leaf, received ${response.outcome}`);
+  assert.deepEqual(response.rollup, [provisional]);
 });
 
 test("the audit record names the mapping master version", async () => {

@@ -1,16 +1,22 @@
 {
   "generated_by": "autoreview",
   "task_id": "explain-the-number",
-  "score": 7,
-  "summary": "performance lens over explain-the-number (30 product path(s), ebeea76..7a75640, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The assistant and panel paths pass their intended limits, but the repository deliberately retains the superseded optional/defaulted API. That violates the explicit no-compatibility-leftovers requirement and allows future or unchanged callers to silently perform the larger 100-row read.",
+  "score": 6,
+  "summary": "performance lens over explain-the-number (32 product path(s), ebeea76..6442739, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The shared seam and bounded SQL row limit are implemented, but the verification path makes the required unmapped-GL explanation unreachable, and roll-up enrichment introduces avoidable multiplicative CPU work per explanation request.",
   "blocking_findings": [
     {
-      "category": "maintainability",
-      "area": "backend/src/warehouse",
-      "summary": "[P1] Make the SQL row limit mandatory instead of retaining the old default (backend/src/warehouse/drill-transactions.repository.ts:49): `buildQueries` still accepts the old two-argument call shape by defaulting `rowLimit` to `DRILL_PAGE_SIZE`, while its interface also marks the argument optional."
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "Rejecting focuses absent from the outline blocks the unmapped-GL explanation (backend/src/chat/statement-grounding.service.ts:61): `MisDrillService.prepare` explicitly treats `unmapped-GL` as a valid synthetic focus even when it is absent from the pinned workbook outline, setting `focusExists` and `leafKey` accordingly."
     }
   ],
-  "non_blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/mis",
+      "summary": "Avoid scanning the full mapping selection for every roll-up row (backend/src/mis/mis-drill.service.ts:238): This `.find()` scans `selection.entries` once for every matching leaf target, making explanation construction O(targets \u00d7 mapping entries) on the synchronous request path."
+    }
+  ],
   "recommendation": "request-changes",
   "reviewed_scope": [
     "backend/package.json",
@@ -38,6 +44,8 @@
     "backend/src/mis/statement-attestation.test.ts",
     "backend/src/mis/statement-attestation.ts",
     "backend/src/swagger.test.ts",
+    "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+    "backend/src/warehouse/drill-transactions.db.test.ts",
     "backend/src/warehouse/drill-transactions.interface.ts",
     "backend/src/warehouse/drill-transactions.repository.test.ts",
     "backend/src/warehouse/drill-transactions.repository.ts",
@@ -46,10 +54,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "cbdedd6c72ffc4654917e9c18d417739332085d83a851be4cbf0c37ffae222b9",
-  "brief_sha256": "092ffa199d89b7fb2a695f5cb6186613dbad6fa33079df162734eceefd33382b",
-  "branch_diff_digest": "9562a7455613e9795aa85a3a0a0ec3c9d5f442a6a2ced667e6da212311f492e1",
+  "review_run_id": "739acc03d91624171a7653a4551cca3061d2888a268f259ebe931a1a597324ac",
+  "brief_sha256": "47c9b2ab81703e1b1223be9a6686646f22b3ebce988c01db7a6d4f6a9544b81a",
+  "branch_diff_digest": "c50e26ca8fae38ea0aa5e5d5a3250f49ee2a507830960cf1e904058d38747b22",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T04:02:56+00:00",
-  "commit": "7a75640143c3a9c4037ff957790ba084acf3526a"
+  "recorded_at": "2026-09-16T04:19:08+00:00",
+  "commit": "644273904aad5989fa879e246c05989a2de4e95d"
 }

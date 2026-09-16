@@ -110,8 +110,23 @@ test("a gone batch is carried as a typed grounding outcome while a selection mis
   });
 });
 
+test("a pinned batch source or period mismatch keeps the pinned batch invalid refusal reason", async () => {
+  assert.deepEqual(
+    await fixture({ refusedMessage: "A pinned batch has the wrong source or period" }).service.verify(user, grounding),
+    {
+      outcome: "refused",
+      reason: "pinned-batch-invalid",
+    },
+  );
+});
+
 function fixture(
-  options: { outline?: StatementOutlineNode[]; batchStatuses?: MisDrillBatchStatus[]; outcome?: "gone" } = {},
+  options: {
+    outline?: StatementOutlineNode[];
+    batchStatuses?: MisDrillBatchStatus[];
+    outcome?: "gone";
+    refusedMessage?: string;
+  } = {},
 ) {
   const drills = new FakeDrills(options);
   return { service: new StatementGroundingService(attestation, drills), drills };
@@ -124,6 +139,7 @@ class FakeDrills implements IMisDrillService {
       outline?: StatementOutlineNode[];
       batchStatuses?: MisDrillBatchStatus[];
       outcome?: "gone";
+      refusedMessage?: string;
     },
   ) {}
   async prepare(
@@ -133,6 +149,9 @@ class FakeDrills implements IMisDrillService {
     this.prepareCalls += 1;
     if (this.options.outcome === "gone") {
       return { outcome: "gone", status: 409, message: "gone", batchStatuses: [] };
+    }
+    if (this.options.refusedMessage) {
+      return { outcome: "refused", status: 400, message: this.options.refusedMessage, batchStatuses: [] };
     }
     return { outcome: "prepared", context: prepared(request, this.options.outline, this.options.batchStatuses) };
   }

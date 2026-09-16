@@ -2,7 +2,7 @@
   "generated_by": "autoreview",
   "task_id": "explain-the-number",
   "score": 10,
-  "summary": "security lens over explain-the-number (30 product path(s), ebeea76..7a75640, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defects are demonstrated by the supplied diff. The change revalidates authorization and scope server-side, verifies signed grounding data, distinguishes replaced and gone batches, audits the exact transaction predicate before querying, fails closed on audit errors, refuses budget-focused requests in the backend, and keeps server-read financial data out of the model path. The diff also shows no compatibility-only leftover that warrants a blocking finding.",
+  "summary": "security lens over explain-the-number (32 product path(s), ebeea76..6442739, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defect is demonstrated by the supplied diff. The change validates current authorization and scope, binds readable statement amounts to the signed attestation, refuses Budget subjects before any governed read, distinguishes replaced from gone batches, audits the exact transaction predicate before execution, fails closed when that audit cannot be written, and keeps server-read transaction data out of the model path. The extracted drill seam also preserves typed outcomes and applies explicit SQL row limits for both callers.",
   "blocking_findings": [],
   "non_blocking_findings": [],
   "recommendation": "approve",
@@ -32,6 +32,8 @@
     "backend/src/mis/statement-attestation.test.ts",
     "backend/src/mis/statement-attestation.ts",
     "backend/src/swagger.test.ts",
+    "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+    "backend/src/warehouse/drill-transactions.db.test.ts",
     "backend/src/warehouse/drill-transactions.interface.ts",
     "backend/src/warehouse/drill-transactions.repository.test.ts",
     "backend/src/warehouse/drill-transactions.repository.ts",
@@ -40,10 +42,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "cbdedd6c72ffc4654917e9c18d417739332085d83a851be4cbf0c37ffae222b9",
-  "brief_sha256": "092ffa199d89b7fb2a695f5cb6186613dbad6fa33079df162734eceefd33382b",
-  "branch_diff_digest": "9562a7455613e9795aa85a3a0a0ec3c9d5f442a6a2ced667e6da212311f492e1",
+  "review_run_id": "739acc03d91624171a7653a4551cca3061d2888a268f259ebe931a1a597324ac",
+  "brief_sha256": "47c9b2ab81703e1b1223be9a6686646f22b3ebce988c01db7a6d4f6a9544b81a",
+  "branch_diff_digest": "c50e26ca8fae38ea0aa5e5d5a3250f49ee2a507830960cf1e904058d38747b22",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T04:02:56+00:00",
-  "commit": "7a75640143c3a9c4037ff957790ba084acf3526a"
+  "recorded_at": "2026-09-16T04:19:08+00:00",
+  "commit": "644273904aad5989fa879e246c05989a2de4e95d"
 }

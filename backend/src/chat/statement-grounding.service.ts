@@ -5,7 +5,7 @@ import type {
   MisDrillBatchStatus,
   StatementGroundingRefusalReason,
 } from "@3f/contract";
-import { MAPPING_MASTER } from "../mapping/mapping-master";
+import { MAPPING_MASTER, UNMAPPED_GL_LINE } from "../mapping/mapping-master";
 import { MisDrillService } from "../mis/mis-drill.service";
 import type { IMisDrillService, VerifiedDrillContext } from "../mis/mis-drill.interface";
 import { StatementAttestationService } from "../mis/statement-attestation";
@@ -55,7 +55,11 @@ export class StatementGroundingService {
     const blocks = statementBlocks(context.resolution.period.value, context.resolution.period.from);
     if (this.attestation.outlineDigest(context.outline, blocks) !== claims.outlineDigest)
       return refused("outline-mismatch");
-    if (grounding.focus && !context.outline.some(({ nodeKey }) => nodeKey === grounding.focus?.nodeKey)) {
+    if (
+      grounding.focus &&
+      grounding.focus.nodeKey !== UNMAPPED_GL_LINE &&
+      !context.outline.some(({ nodeKey }) => nodeKey === grounding.focus?.nodeKey)
+    ) {
       return refused("node-not-in-outline");
     }
     if (grounding.focus && !blocks.includes(grounding.focus.block)) return refused("block-not-in-outline");
@@ -78,10 +82,12 @@ function statementBlocks(period: string, from: string): string[] {
 }
 
 function preparationReason(message: string): StatementGroundingRefusalReason {
-  if (message.includes("plant scope") || message.includes("access is not authorized")) return "plant-not-authorized";
-  if (message.includes("node")) return "node-not-in-outline";
-  if (message.includes("block")) return "block-not-in-outline";
-  if (message.includes("Pinned")) return "pinned-batch-invalid";
+  const normalized = message.toLowerCase();
+  if (normalized.includes("plant scope") || normalized.includes("access is not authorized"))
+    return "plant-not-authorized";
+  if (normalized.includes("node")) return "node-not-in-outline";
+  if (normalized.includes("block")) return "block-not-in-outline";
+  if (normalized.includes("pinned")) return "pinned-batch-invalid";
   return "selection-mismatch";
 }
 
