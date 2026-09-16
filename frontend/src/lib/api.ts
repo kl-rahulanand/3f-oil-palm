@@ -125,7 +125,7 @@ async function request<T = unknown>(path: string, refreshOn401 = false, signal?:
   return response.json() as Promise<T>;
 }
 
-function boundedAskRequest(request: Pick<AskRequest, "question" | "priorTurns" | "selection">) {
+function boundedAskRequest(request: Pick<AskRequest, "question" | "priorTurns" | "selection" | "statementGrounding">) {
   if (!request.priorTurns?.length) return request;
   const priorTurns: AskPriorTurn[] = request.priorTurns.slice(-ASK_PRIOR_TURNS_MAX_ENTRIES).map((turn) => ({
     ...turn,
@@ -140,7 +140,7 @@ function boundedAskRequest(request: Pick<AskRequest, "question" | "priorTurns" |
 type AskStreamOptions = { signal?: AbortSignal; onPhase?: Parameters<typeof readAskStream>[1] };
 
 async function askStream(
-  request: Pick<AskRequest, "question" | "priorTurns">,
+  request: Pick<AskRequest, "question" | "priorTurns" | "statementGrounding">,
   options: AskStreamOptions = {},
 ): Promise<AskResponse> {
   const response = await postResponse("/api/chat/stream", boundedAskRequest(request), true, options.signal);
@@ -151,7 +151,10 @@ export const api = {
   misOptions: () => request<MisSelectionOptionsResponse>("/api/mis/options", true),
   runMisStatement: (selection: MisSelectionRunRequest) =>
     post<MisStatementRouteResponse>("/api/mis/statement", selection, true),
-  ask: (request: Pick<AskRequest, "question" | "priorTurns" | "selection">, options?: AskStreamOptions) =>
+  ask: (
+    request: Pick<AskRequest, "question" | "priorTurns" | "selection" | "statementGrounding">,
+    options?: AskStreamOptions,
+  ) =>
     request.selection
       ? post<AskResponse>("/api/chat", boundedAskRequest(request), true, options?.signal)
       : options

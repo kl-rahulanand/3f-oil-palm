@@ -5,9 +5,11 @@ import type {
   MisStatementRunResponse,
 } from "@3f/contract";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
-import { StatementView } from "./statement-view";
+import { DrillPanel, type DrillPanelSelection } from "./drill-panel";
+import { StatementView, type DrillPanelTarget } from "./statement-view";
 
 const mocks = vi.hoisted(() => ({ exportMisStatement: vi.fn(), runMisDrill: vi.fn() }));
 
@@ -321,6 +323,24 @@ test("leaf actuals are activatable in the statement and in the panel while budge
   expect(within(panelLeaf).getAllByRole("button")).toHaveLength(1);
 });
 
+test("clicking an actual opens the drill panel and sets assistant focus without replacing the drill", () => {
+  mocks.runMisDrill.mockReturnValue(new Promise(() => undefined));
+  renderWithQuery(<LiftedStatement />);
+
+  fireEvent.click(within(screen.getByRole("row", { name: /Shade Net/ })).getAllByRole("button")[0]);
+
+  expect(screen.getByRole("dialog", { name: "Shade Net" })).toBeInTheDocument();
+  expect(screen.getByTestId("assistant-focus")).toHaveTextContent("shade:selected:actual");
+});
+
+test("a budget cell is not focusable from the statement surface", () => {
+  renderWithQuery(<LiftedStatement />);
+
+  const cells = within(screen.getByRole("row", { name: /Shade Net/ })).getAllByRole("gridcell");
+  expect(within(cells[2]).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(cells[4]).getByRole("button", { name: /Drill down Actual/ })).toBeInTheDocument();
+});
+
 test("a not loaded leaf row renders a dash with the not loaded label in budget rollover and percentage with no drill affordance on those cells while the actual stays a drill button", () => {
   const leaf = {
     ...resolved.tree[0],
@@ -436,4 +456,20 @@ function notLoaded(
 
 function loaded(measureBlock: MisStatementMeasureBlock): MisStatementMeasureBlock {
   return { ...measureBlock, budgetState: "loaded" } as MisStatementMeasureBlock;
+}
+
+function LiftedStatement() {
+  const [drill, setDrill] = useState<DrillPanelSelection | null>(null);
+  const [focus, setFocus] = useState("");
+  function openDrill(target: DrillPanelTarget, opener: HTMLButtonElement) {
+    setFocus(`${target.node.nodeKey}:${target.blockKey}:actual`);
+    setDrill({ ...target, opener });
+  }
+  return (
+    <>
+      <StatementView response={resolved} onOpenDrill={openDrill} />
+      <output data-testid="assistant-focus">{focus}</output>
+      {drill && <DrillPanel selection={drill} onClose={() => setDrill(null)} />}
+    </>
+  );
 }

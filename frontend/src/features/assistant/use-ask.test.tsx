@@ -1,4 +1,4 @@
-import type { AskResponse, Selection } from "@3f/contract";
+import type { AskResponse, AskStatementGrounding, Selection } from "@3f/contract";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { AskPanel } from "./ask-panel";
@@ -52,6 +52,21 @@ const resultSuccess: AskResponse = {
   },
 };
 
+const grounding: AskStatementGrounding = {
+  attestedContext: "claims.signature",
+  department: "Agriculture",
+  function: "Nursery",
+  focus: { nodeKey: "shade", block: "selected", subject: "actual" },
+  nodeMetadata: [{ nodeKey: "shade", glCodes: ["5001"], costCentres: ["Primary"] }],
+  nodeAmounts: [{ nodeKey: "shade", block: "selected", actualPaise: "5000" }],
+};
+
+const groundedSuccess: AskResponse = {
+  ...success,
+  title: undefined,
+  statementGrounding: { outcome: "focus-required" },
+};
+
 beforeEach(() => {
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
 });
@@ -77,6 +92,57 @@ test("a continuation targets its turn by a stable id not by question or index", 
   await waitFor(() => expect(within(screen.getByTestId("turn-2")).getByText("Statement result")).toBeInTheDocument());
   expect(within(screen.getByTestId("turn-1")).getByText("Choose a period")).toBeInTheDocument();
   expect(screen.getByTestId("turn-1").dataset.turnId).not.toBe(screen.getByTestId("turn-2").dataset.turnId);
+});
+
+test("a grounded turn is not rendered on the ask page", async () => {
+  mocks.ask.mockResolvedValueOnce(groundedSuccess);
+  render(
+    <AskProvider>
+      <AskPanel surface="page" />
+      <GroundedButton />
+    </AskProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Ask grounded" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledOnce());
+
+  expect(screen.queryByText("How is this built?")).not.toBeInTheDocument();
+});
+
+test("a grounded turn is excluded from the prior turns an ungrounded ask sends", async () => {
+  mocks.ask.mockResolvedValueOnce(success).mockResolvedValueOnce(groundedSuccess).mockResolvedValueOnce(success);
+  render(
+    <AskProvider>
+      <OwnershipHarness />
+    </AskProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Ask ordinary first" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Ask grounded" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  fireEvent.click(screen.getByRole("button", { name: "Ask ordinary next" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(3));
+
+  expect(mocks.ask.mock.calls[2]?.[0].priorTurns).toEqual([{ question: "Ordinary first", selection }]);
+});
+
+test("a grounded explanation is cleared when a different statement is generated while ordinary turns survive", async () => {
+  mocks.ask.mockResolvedValueOnce(success).mockResolvedValueOnce(groundedSuccess);
+  render(
+    <AskProvider>
+      <OwnershipHarness />
+    </AskProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Ask ordinary first" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded"));
+  fireEvent.click(screen.getByRole("button", { name: "Ask grounded" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded,grounded"));
+  fireEvent.click(screen.getByRole("button", { name: "Clear grounded turns" }));
+
+  expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded");
+  expect(screen.getByTestId("turn-origins")).not.toHaveTextContent("grounded,");
 });
 
 test("a non success typed response keeps the clarification and its period buttons", async () => {
@@ -341,6 +407,36 @@ function ReopenButton() {
     <button type="button" onClick={() => void rerun("Actual · Budget", selection)}>
       Reopen saved report
     </button>
+  );
+}
+
+function GroundedButton() {
+  const { askGrounded } = useAsk();
+  return (
+    <button type="button" onClick={() => void askGrounded("How is this built?", grounding)}>
+      Ask grounded
+    </button>
+  );
+}
+
+function OwnershipHarness() {
+  const { turns, ask, askGrounded, clearGroundedTurns } = useAsk();
+  return (
+    <>
+      <button type="button" onClick={() => void ask("Ordinary first")}>
+        Ask ordinary first
+      </button>
+      <button type="button" onClick={() => void askGrounded("How is this built?", grounding)}>
+        Ask grounded
+      </button>
+      <button type="button" onClick={() => void ask("Ordinary next")}>
+        Ask ordinary next
+      </button>
+      <button type="button" onClick={clearGroundedTurns}>
+        Clear grounded turns
+      </button>
+      <output data-testid="turn-origins">{turns.map((turn) => turn.origin).join(",")}</output>
+    </>
   );
 }
 

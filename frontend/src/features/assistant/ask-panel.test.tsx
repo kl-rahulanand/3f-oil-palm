@@ -14,7 +14,13 @@
 //   - the picking leaf asserts the on-screen continuation behaviour, not just the eventual API
 //     request, because a request assertion alone cannot tell continueTurn from a direct api.ask.
 
-import type { AskResponse, AuthUser, Selection } from "@3f/contract";
+import type {
+  AskResponse,
+  AskStatementGrounding,
+  AuthUser,
+  MisStatementResolvedResponse,
+  Selection,
+} from "@3f/contract";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -143,6 +149,15 @@ const success: AskResponse = {
   viewInReport: { available: false, reason: "This answer is not a statement selection." },
 };
 
+const statementGrounding: AskStatementGrounding = {
+  attestedContext: "claims.signature",
+  department: "Agriculture",
+  function: "Nursery",
+  focus: { nodeKey: "shade", block: "selected", subject: "actual" },
+  nodeMetadata: [{ nodeKey: "shade", glCodes: ["5001"], costCentres: ["Primary"] }],
+  nodeAmounts: [{ nodeKey: "shade", block: "selected", actualPaise: "5000" }],
+};
+
 beforeEach(() => {
   vi.stubGlobal("CSS", { escape: (value: string) => value });
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
@@ -183,6 +198,37 @@ test("a successful answer renders its result with the verified badge the provena
   submit("Show an unverified governed result");
   await screen.findByText("Governed result");
   expect(screen.queryByText("✓ Verified")).not.toBeInTheDocument();
+});
+
+test("the docked panel sends the attested context and the focused node while the ask page sends neither", async () => {
+  mocks.ask
+    .mockResolvedValueOnce({
+      responseClass: "success",
+      sessionId: "session",
+      statementGrounding: { outcome: "focus-required" },
+      viewInReport: { available: false, reason: "Statement explanation." },
+    })
+    .mockResolvedValueOnce(success);
+  render(
+    <AskProvider>
+      <AskPanel surface="docked" grounding={statementGrounding} statement={statementFixture()} onOpenDrill={vi.fn()} />
+      <AskPanel surface="page" />
+    </AskProvider>,
+  );
+
+  const dock = screen.getByRole("region", { name: "Ask panel" });
+  fireEvent.change(within(dock).getByLabelText("Ask about your MIS data"), { target: { value: "How is this built?" } });
+  fireEvent.click(within(dock).getByRole("button", { name: "Send question" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
+  expect(within(dock).getByRole("heading", { name: "Choose a figure to explain" })).toBeInTheDocument();
+
+  const page = screen.getByRole("region", { name: "Ask" });
+  fireEvent.change(within(page).getByLabelText("Ask about your MIS data"), { target: { value: "Show Actual" } });
+  fireEvent.click(within(page).getByRole("button", { name: "Send question" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+
+  expect(mocks.ask.mock.calls[0]?.[0]).toEqual({ question: "How is this built?", statementGrounding });
+  expect(mocks.ask.mock.calls[1]?.[0]).not.toHaveProperty("statementGrounding");
 });
 
 test("a chart shape the client cannot draw honestly falls back to the table rather than a misleading chart", async () => {
@@ -891,4 +937,45 @@ function RerunButton() {
       Rerun stored selection
     </button>
   );
+}
+
+function statementFixture(): MisStatementResolvedResponse {
+  const measure = {
+    key: "selected" as const,
+    label: "July 2026",
+    from: "2026-07-01",
+    to: "2026-07-01",
+    budgetState: "loaded" as const,
+    budget: "100.00" as const,
+    rollover: null,
+    actual: "50.00" as const,
+    percentage: "0.5",
+    sourcePresence: ["matched" as const],
+  };
+  const node = {
+    nodeKey: "shade",
+    sNo: "4.1",
+    budgetComponent: "Shade Net",
+    glCode: "5001",
+    measures: [measure],
+    children: [],
+  };
+  return {
+    outcome: "resolved",
+    scope: {
+      department: "Agriculture",
+      function: "Nursery",
+      plant: "DUB",
+      period: "2026-07-01",
+      costCentres: ["Primary"],
+      glCodes: ["5001"],
+      misFormat: "nursery-mis-financial-v1",
+    },
+    tree: [node],
+    grandTotal: { ...node, nodeKey: "grand-total", budgetComponent: "Grand Total", glCode: null },
+    provenance: { activeBatchIds: [] },
+    nodeMetadata: statementGrounding.nodeMetadata,
+    nodeAmounts: statementGrounding.nodeAmounts,
+    attestedContext: statementGrounding.attestedContext,
+  };
 }

@@ -1,5 +1,18 @@
 {
   "id": "explain-on-screen",
   "title": "Click a figure, ask, and see the explanation",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-16T05:19:43+00:00",
+  "base_sha": "1e5515c66cae9268f36316e77fc416dcab4c446b",
+  "dirty_at_start": {
+    ".factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-on-screen.json": {
+      "digest": "6e27749c0257e6754f22364a7c946a380631a7313eadc0810415a9bba7083f3d",
+      "git": "1 .M N... 100644 100644 100644 568be27d36f9bcc2d34cc53965696eb6634986f5 568be27d36f9bcc2d34cc53965696eb6634986f5 .factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-on-screen.json\u0000\u0000100644 568be27d36f9bcc2d34cc53965696eb6634986f5 0\t.factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-on-screen.json\u0000\u0000H .factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-on-screen.json\u0000"
+    },
+    "plans/lessons/20260916T051914-0000-node_modules-is-materialised-in-explain-on-screen-051914008185.json": {
+      "digest": "f31dad1cfd1a08d76ee997a4ba68e9c110ea59f0f5752b21073f10e234a8ec34",
+      "git": "? plans/lessons/20260916T051914-0000-node_modules-is-materialised-in-explain-on-screen-051914008185.json\u0000\u0000\u0000"
+    }
+  },
+  "task_sha256": "5c03fdc557a3007091f590187679887c5d0e248f0b5d27b1d295f74ac24ed15a"
 }

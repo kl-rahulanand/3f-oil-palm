@@ -1,6 +1,6 @@
 "use client";
 
-import type { AskPriorTurn, AskResponse, ChatStreamEvent, Selection } from "@3f/contract";
+import type { AskPriorTurn, AskResponse, AskStatementGrounding, ChatStreamEvent, Selection } from "@3f/contract";
 import {
   createContext,
   createElement,
@@ -16,6 +16,7 @@ import { selectionsEqual } from "../exploration/selection-identity.helper";
 
 export interface AskTurn {
   id: string;
+  origin: "ungrounded" | "grounded";
   question: string;
   response?: AskResponse;
   isPending?: boolean;
@@ -30,6 +31,8 @@ interface AskContextValue {
   scrollTargetId: string | null;
   clearScrollTarget: () => void;
   ask: (question: string) => Promise<void>;
+  askGrounded: (question: string, grounding: AskStatementGrounding) => Promise<void>;
+  clearGroundedTurns: () => void;
   rerun: (question: string, selection: Selection) => Promise<boolean>;
   continueTurn: (
     turnId: string,
@@ -83,12 +86,16 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     }
   }
 
-  async function run(question: string, selection?: Selection, reopen = false): Promise<boolean> {
-    const trimmed = question.trim();
+  async function run(
+    request: Pick<Parameters<typeof api.ask>[0], "question" | "selection" | "statementGrounding">,
+    origin: AskTurn["origin"],
+    reopen = false,
+  ): Promise<boolean> {
+    const trimmed = request.question.trim();
     if (!trimmed || isPending) return false;
 
     const priorTurns: AskPriorTurn[] = turns.flatMap((turn) =>
-      turn.response?.responseClass === "success" && turn.response.selection
+      turn.origin === "ungrounded" && turn.response?.responseClass === "success" && turn.response.selection
         ? [{ question: turn.question, selection: turn.response.selection }]
         : [],
     );
@@ -97,22 +104,26 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     setError(null);
     clearProgress();
     if (turnId) {
-      setTurns((current) => [...current, { id: turnId, question: trimmed, isPending: true }]);
+      setTurns((current) => [...current, { id: turnId, origin, question: trimmed, isPending: true }]);
       setScrollTargetId(turnId);
     }
     const controller = (abortRef.current = new AbortController());
     try {
-      const response = selection
-        ? await api.ask({ question: trimmed, selection }, { signal: controller.signal })
+      const response = request.selection
+        ? await api.ask({ question: trimmed, selection: request.selection }, { signal: controller.signal })
         : await api.ask(
-            { question: trimmed, ...(priorTurns.length ? { priorTurns } : {}) },
+            {
+              question: trimmed,
+              ...(request.statementGrounding ? { statementGrounding: request.statementGrounding } : {}),
+              ...(priorTurns.length && origin === "ungrounded" ? { priorTurns } : {}),
+            },
             { signal: controller.signal, onPhase: receivePhase },
           );
       clearProgress();
       setTurns((current) =>
         turnId
-          ? current.map((turn) => (turn.id === turnId ? { id: turnId, question: trimmed, response } : turn))
-          : [...current, { id: `ask-turn-${++nextTurnIdRef.current}`, question: trimmed, response }],
+          ? current.map((turn) => (turn.id === turnId ? { id: turnId, origin, question: trimmed, response } : turn))
+          : [...current, { id: `ask-turn-${++nextTurnIdRef.current}`, origin, question: trimmed, response }],
       );
     } catch (caught) {
       clearProgress();
@@ -184,8 +195,12 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
         error,
         scrollTargetId,
         clearScrollTarget,
+        clearGroundedTurns: () => setTurns((current) => current.filter((turn) => turn.origin === "ungrounded")),
         ask: async (question) => {
-          await run(question);
+          await run({ question }, "ungrounded");
+        },
+        askGrounded: async (question, statementGrounding) => {
+          await run({ question, statementGrounding }, "grounded");
         },
         rerun: (question, selection) => {
           if (!question.trim() || isPending) return Promise.resolve(false);
@@ -197,7 +212,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
                 turn.response.selection &&
                 selectionsEqual(turn.response.selection, selection),
             );
-          if (!match) return run(question, selection, true);
+          if (!match) return run({ question, selection }, "ungrounded", true);
           setScrollTargetId(match.id);
           return continueTurn(match.id, match.question, selection, "clear-on-refusal");
         },
@@ -213,9 +228,10 @@ function resolveContinueResponse(
   response: AskResponse,
   failurePolicy: ContinueTurnFailurePolicy,
 ): AskTurn {
-  if (response.responseClass === "success") return { id: turn.id, question: turn.question, response };
+  if (response.responseClass === "success")
+    return { id: turn.id, origin: turn.origin, question: turn.question, response };
   if (failurePolicy === "clear-on-refusal" && response.responseClass === "blocked_by_policy") {
-    return { id: turn.id, question: turn.question, response };
+    return { id: turn.id, origin: turn.origin, question: turn.question, response };
   }
   return {
     ...turn,
@@ -235,6 +251,7 @@ function resolveContinueError(
   if (failurePolicy === "clear-on-refusal" && isAccessRefusal(error)) {
     return {
       id: turn.id,
+      origin: turn.origin,
       question: turn.question,
       response: {
         responseClass: "blocked_by_policy" as AskResponse["responseClass"],
@@ -269,4 +286,8 @@ export function useAsk(): AskContextValue {
   const value = useContext(AskContext);
   if (!value) throw new Error("useAsk must be used within AskProvider");
   return value;
+}
+
+export function useOptionalAsk(): AskContextValue | null {
+  return useContext(AskContext);
 }
