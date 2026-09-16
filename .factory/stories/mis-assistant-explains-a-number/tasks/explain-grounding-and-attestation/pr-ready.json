@@ -1,0 +1,7 @@
+{
+  "task_id": "explain-grounding-and-attestation",
+  "branch": "feat/mis-assistant-explains-a-number-explain-grounding-and-attestation",
+  "base_main_sha": "ac04abf1bc02847d6541d37e0e795768de72db55",
+  "commit": "889322aa83653c21269c08b527a340d83315c76b",
+  "sealed_at": "2026-09-16T02:49:32+00:00"
+}
