@@ -1,5 +1,5 @@
 import type { AskResponse, AskStatementGrounding, Selection } from "@3f/contract";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { AskPanel } from "./ask-panel";
 import { AskProvider, useAsk } from "./use-ask";
@@ -128,21 +128,29 @@ test("a grounded turn is excluded from the prior turns an ungrounded ask sends",
 });
 
 test("a grounded explanation is cleared when a different statement is generated while ordinary turns survive", async () => {
-  mocks.ask.mockResolvedValueOnce(success).mockResolvedValueOnce(groundedSuccess);
+  const pendingGrounded = deferred<AskResponse>();
+  mocks.ask
+    .mockResolvedValueOnce(success)
+    .mockResolvedValueOnce(groundedSuccess)
+    .mockReturnValueOnce(pendingGrounded.promise);
   render(
     <AskProvider>
       <OwnershipHarness />
     </AskProvider>,
   );
 
+  fireEvent.click(screen.getByRole("button", { name: "Load first statement" }));
   fireEvent.click(screen.getByRole("button", { name: "Ask ordinary first" }));
   await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded"));
   fireEvent.click(screen.getByRole("button", { name: "Ask grounded" }));
   await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded,grounded"));
-  fireEvent.click(screen.getByRole("button", { name: "Clear grounded turns" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ask grounded" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(3));
+  fireEvent.click(screen.getByRole("button", { name: "Load next statement" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/));
+  await act(async () => pendingGrounded.resolve(groundedSuccess));
 
-  expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded");
-  expect(screen.getByTestId("turn-origins")).not.toHaveTextContent("grounded,");
+  expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/);
 });
 
 test("a non success typed response keeps the clarification and its period buttons", async () => {
@@ -420,9 +428,15 @@ function GroundedButton() {
 }
 
 function OwnershipHarness() {
-  const { turns, ask, askGrounded, clearGroundedTurns } = useAsk();
+  const { turns, ask, askGrounded, syncStatementIdentity } = useAsk();
   return (
     <>
+      <button type="button" onClick={() => syncStatementIdentity("statement-a")}>
+        Load first statement
+      </button>
+      <button type="button" onClick={() => syncStatementIdentity("statement-b")}>
+        Load next statement
+      </button>
       <button type="button" onClick={() => void ask("Ordinary first")}>
         Ask ordinary first
       </button>
@@ -431,9 +445,6 @@ function OwnershipHarness() {
       </button>
       <button type="button" onClick={() => void ask("Ordinary next")}>
         Ask ordinary next
-      </button>
-      <button type="button" onClick={clearGroundedTurns}>
-        Clear grounded turns
       </button>
       <output data-testid="turn-origins">{turns.map((turn) => turn.origin).join(",")}</output>
     </>
@@ -503,4 +514,12 @@ function Harness() {
       ))}
     </>
   );
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
 }

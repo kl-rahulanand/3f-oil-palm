@@ -8,6 +8,7 @@ import type {
   StatementGroundingResponse,
   StatementLeafExplanation,
 } from "@3f/contract";
+import { useMemo } from "react";
 import { formatExactMoney, formatMoney } from "../mis/statement-view";
 import { projectStatementDescendants } from "../mis/aggregate-projection.helper";
 
@@ -43,6 +44,11 @@ export function StatementExplanation({
   statement: MisStatementResolvedResponse;
   onOpenDrill: (nodeKey: string, block: MisStatementMeasureBlock["key"], opener: HTMLButtonElement) => void;
 }>) {
+  const aggregateLines = useMemo(
+    () =>
+      response.outcome === "aggregate" ? projectStatementDescendants(statement, response.nodeKey, response.block) : [],
+    [response, statement],
+  );
   switch (response.outcome) {
     case "focus-required":
       return (
@@ -65,13 +71,12 @@ export function StatementExplanation({
         </article>
       );
     case "aggregate": {
-      const lines = projectStatementDescendants(statement, response.nodeKey, response.block);
       return (
         <article className="statement-explanation" data-outcome={response.outcome}>
           <h2>Lines that compose this figure</h2>
           {response.budgetState === "not-loaded" && <p>Budget not loaded for this plant.</p>}
           <ul className="statement-explanation-lines">
-            {lines.map((line) => (
+            {aggregateLines.map((line) => (
               <li key={line.nodeKey}>
                 <div>
                   <strong>{line.label}</strong>

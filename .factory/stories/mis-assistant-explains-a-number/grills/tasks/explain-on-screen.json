@@ -39,7 +39,8 @@
     "The plan promised the drill 'does not move', but DrillPanelSelection is LOCAL STATE inside StatementView while the dock is its sibling - so the explanation's 'open the full drill' control had nowhere to call, and DrillPanelSelection also needs the invoking element for focus restoration.",
     "An internal handover contradiction: the story decomposition described task 3 as rendering 'not-loaded' as an outcome, but not-loaded is a BUDGET STATE carried on leaf and aggregate, not one of the response-union outcomes - the seventh is 'refused'.",
     "The plan implied grounding would ride on the shared ask() as an optional parameter, which is precisely the compatibility shim the reviewer focus prohibits and this story has removed three times - and here it would leave /ask's classification one defaulted argument away from changing.",
-    "Grounded-turn lifetime was undefined. AskProvider outlives the route, so an explanation of a July DUB figure would remain in the dock after a different statement was generated and read as though it described the new figures."
+    "Grounded-turn lifetime was undefined. AskProvider outlives the route, so an explanation of a July DUB figure would remain in the dock after a different statement was generated and read as though it described the new figures.",
+    "MID-STAGE, signal S-0025-d216: deleting StatementView drill fallback makes onOpenDrill required, and drill-panel.test.tsx has 17 StatementView callers that omit it, so they cannot compile without the lifted factory."
   ],
   "contradictions": [],
   "resolutions": [
@@ -49,7 +50,8 @@
     "RESOLVED by the recommended seam: DrillPanelSelection and one shared openDrill factory lift to MisReportView, and both an Actual click and the explanation control invoke the same drill, each passing its own opener. The plan now states that 'does not move' means the component and behaviour are retained, not that the state stays unreachable.",
     "RESOLVED: the recorded criterion names the seven actual union outcomes - focus-required, leaf, replaced, aggregate, gone, audit-failure and refused - and budgetState is handled as the field it is. The recorded contract, not the older story-plan prose, is what the implementer binds.",
     "RESOLVED: the caller opts in through a distinct askGrounded action, recorded as a criterion, with the reviewer focus calling out an optional-parameter default as the defect.",
-    "RESOLVED by the human: grounded turns and focus are CLEARED when the attested statement identity changes - scope, pins or block - while ordinary Ask turns are preserved, with a leaf proving both halves. Losing an explanation on regenerate is the accepted cost; stale figures wearing a fresh statement's authority is not."
+    "RESOLVED by the human: grounded turns and focus are CLEARED when the attested statement identity changes - scope, pins or block - while ordinary Ask turns are preserved, with a leaf proving both halves. Losing an explanation on regenerate is the accepted cost; stale figures wearing a fresh statement's authority is not.",
+    "RESOLVED by extending the scope rather than escalating: the file is mechanically implied by the reviews binding P1, and retaining the fallback to avoid editing it would preserve the old ownership path the lift retires - the fourth compatibility shim this story has removed. Call sites updated only; what those tests assert about the drill panel is untouched."
   ],
   "citations": [
     {
@@ -79,6 +81,10 @@
     {
       "finding": "Grounded-turn lifetime was undefined. AskProvider outlives the route, so an explanation of a July DUB figure would remain in the dock after a different statement was generated and read as though it described the new figures.",
       "source": "frontend/src/features/assistant/use-ask.ts:86"
+    },
+    {
+      "finding": "MID-STAGE, signal S-0025-d216: deleting StatementView drill fallback makes onOpenDrill required, and drill-panel.test.tsx has 17 StatementView callers that omit it, so they cannot compile without the lifted factory.",
+      "source": "frontend/src/features/mis/drill-panel.test.tsx"
     }
   ],
   "rounds": [
@@ -100,13 +106,13 @@
     "contract/src/api.ts:152",
     "contract/src/api.ts:204"
   ],
-  "input_sha256": "d40eee80ed040032a24751bbe6753689b3833f13f7b4f435de529a874cc03c1a",
+  "input_sha256": "c6d0c4799cc6d377e66b6d3660aacb9e72ca6e029c0535a6d1f8de2a86833acb",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "20554a1ef0b8bf3fe1b5b957928d77e0e7e5866795dbfde3acfc4f9f2566aaf1",
-  "recorded_at": "2026-09-16T05:19:23+00:00",
-  "commit": "1e5515c66cae9268f36316e77fc416dcab4c446b",
+  "recorded_at": "2026-09-16T06:05:55+00:00",
+  "commit": "f1a75a4cd66c9a16f3a945aec04a7521ed839ced",
   "approved_task_plan_sha256": "20554a1ef0b8bf3fe1b5b957928d77e0e7e5866795dbfde3acfc4f9f2566aaf1",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-16T05:19:26+00:00"
+  "approved_at": "2026-09-16T06:05:58+00:00"
 }

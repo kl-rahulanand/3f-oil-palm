@@ -1,0 +1,58 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "explain-on-screen",
+  "score": 0,
+  "summary": "performance lens over explain-on-screen (15 product path(s), 1e5515c..f1a75a4, Codex via the autoreview skill at --max-priority P2): 3 blocking, 1 non-blocking. The patch can display grounded financial explanations belonging to an earlier statement, both after the report view remounts and when an old request completes after an identity change. It also retains the explicitly forbidden StatementView drill compatibility path. Aggregate projections additionally perform repeated whole-statement work on the composer keystroke path.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/features/mis",
+      "summary": "Grounded history survives the first statement loaded after a remount (frontend/src/features/mis/mis-report-view.tsx:62): `previousIdentity` is component-local and starts as `undefined`, so this guard deliberately skips clearing when the first resolved statement is loaded."
+    },
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "Discard pending grounded responses when the statement changes (frontend/src/features/assistant/use-ask.ts:198): `clearGroundedTurns` only filters responses already stored in `turns`; it neither aborts nor invalidates an in-flight `askGrounded`."
+    },
+    {
+      "category": "maintainability",
+      "area": "frontend/src/features/mis",
+      "summary": "Remove the retained StatementView-owned drill fallback (frontend/src/features/mis/statement-view.tsx:25): Making `onOpenDrill` optional while retaining StatementView's local drill state preserves the old ownership path for callers that do not adopt the lifted factory."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "frontend/src/features/assistant",
+      "summary": "Memoize aggregate projection outside the composer render path (frontend/src/features/assistant/statement-explanation.tsx:68): This projection executes every time an aggregate explanation renders."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/statement-explanation.test.tsx",
+    "frontend/src/features/assistant/statement-explanation.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/mis/aggregate-projection.helper.test.ts",
+    "frontend/src/features/mis/aggregate-projection.helper.ts",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "frontend/src/features/mis/statement-view.tsx",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "performance",
+  "review_run_id": "b64720e8ca3a1b458e66c3bcde5d8668eec15ab4e6fbd488b2224e3a629bbd0e",
+  "brief_sha256": "ed0a24a44398882c0c80d27443f6faca1708d49f33bd9437e5058d1fc29a0995",
+  "branch_diff_digest": "1664c596e0350cc223597e17a123b46ae80cedcf636e9d49dc35b5bcdcea3011",
+  "residual_risks": [],
+  "recorded_at": "2026-09-16T05:54:32+00:00",
+  "commit": "f1a75a4cd66c9a16f3a945aec04a7521ed839ced"
+}

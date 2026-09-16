@@ -138,6 +138,7 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - frontend/src/features/assistant/use-ask.ts
 - frontend/src/features/mis/aggregate-projection.helper.test.ts
 - frontend/src/features/mis/aggregate-projection.helper.ts
+- frontend/src/features/mis/drill-panel.test.tsx
 - frontend/src/features/mis/drill-panel.tsx
 - frontend/src/features/mis/mis-report-view.test.tsx
 - frontend/src/features/mis/mis-report-view.tsx
@@ -174,5 +175,5 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 - `python3 factory/scripts/verify.py`
 
-**Review budget.** 20 files / 1700 lines -- Sized from the file set at the start rather than raised mid-stage, which is the lesson from task 2's three budget raises. Seventeen declared files: focus lifted into the report view, the dock wired to send grounding, a browser-side aggregate projection with its own helper and leaves, a renderer for seven variants, turn partitioning across rendering and priorTurns, and the request types on two paths. UI, so design skills are mandatory and a functional check is required. Lines raised once at contract time, before implementation, for the grill's additions: the lifted drill seam, the grounded-turn lifetime rule, gating all three optional fields, and an aggregate INTEGRATION leaf beside the helper one.
+**Review budget.** 21 files / 1700 lines -- Sized from the file set at the start rather than raised mid-stage, which is the lesson from task 2's three budget raises. Seventeen declared files: focus lifted into the report view, the dock wired to send grounding, a browser-side aggregate projection with its own helper and leaves, a renderer for seven variants, turn partitioning across rendering and priorTurns, and the request types on two paths. UI, so design skills are mandatory and a functional check is required. Lines raised once at contract time, before implementation, for the grill's additions: the lifted drill seam, the grounded-turn lifetime rule, gating all three optional fields, and an aggregate INTEGRATION leaf beside the helper one. Extended once mid-stage (S-0025-d216) for frontend/src/features/mis/drill-panel.test.tsx, mechanically implied by the review's binding P1: deleting StatementView's drill fallback makes onOpenDrill required, and that file's 17 StatementView callers currently omit it, so they must pass it or the build breaks. Retaining the fallback to avoid editing them is the shim the finding exists to remove.
 <!-- /forge:contract -->

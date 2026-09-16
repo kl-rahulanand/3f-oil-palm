@@ -32,7 +32,7 @@ interface AskContextValue {
   clearScrollTarget: () => void;
   ask: (question: string) => Promise<void>;
   askGrounded: (question: string, grounding: AskStatementGrounding) => Promise<void>;
-  clearGroundedTurns: () => void;
+  syncStatementIdentity: (identity: string) => void;
   rerun: (question: string, selection: Selection) => Promise<boolean>;
   continueTurn: (
     turnId: string,
@@ -57,6 +57,9 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
   const pendingPhasesRef = useRef<AskContextValue["phases"]>([]);
   const phasesVisibleRef = useRef(false);
   const nextTurnIdRef = useRef(0);
+  const requestIdRef = useRef(0);
+  const pendingOriginRef = useRef<AskTurn["origin"] | undefined>(undefined);
+  const statementIdentityRef = useRef<string | undefined>(undefined);
   const clearScrollTarget = useCallback(() => setScrollTargetId(null), []);
 
   useEffect(() => {
@@ -65,13 +68,13 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  function clearProgress() {
+  const clearProgress = useCallback(() => {
     if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current);
     phaseTimerRef.current = undefined;
     pendingPhasesRef.current = [];
     phasesVisibleRef.current = false;
     setPhases([]);
-  }
+  }, []);
 
   function receivePhase(phase: AskContextValue["phases"][number]) {
     pendingPhasesRef.current = [...pendingPhasesRef.current, phase];
@@ -108,6 +111,8 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
       setScrollTargetId(turnId);
     }
     const controller = (abortRef.current = new AbortController());
+    const requestId = ++requestIdRef.current;
+    pendingOriginRef.current = origin;
     try {
       const response = request.selection
         ? await api.ask({ question: trimmed, selection: request.selection }, { signal: controller.signal })
@@ -119,6 +124,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
             },
             { signal: controller.signal, onPhase: receivePhase },
           );
+      if (requestId !== requestIdRef.current) return true;
       clearProgress();
       setTurns((current) =>
         turnId
@@ -126,6 +132,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
           : [...current, { id: `ask-turn-${++nextTurnIdRef.current}`, origin, question: trimmed, response }],
       );
     } catch (caught) {
+      if (requestId !== requestIdRef.current) return true;
       clearProgress();
       if (turnId) {
         setTurns((current) =>
@@ -141,8 +148,11 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
         setError("The question could not be sent. Try again.");
       }
     } finally {
-      abortRef.current = undefined;
-      setIsPending(false);
+      if (requestId === requestIdRef.current) {
+        abortRef.current = undefined;
+        pendingOriginRef.current = undefined;
+        setIsPending(false);
+      }
     }
     return true;
   }
@@ -161,8 +171,11 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
       current.map((turn) => (turn.id === turnId ? { ...turn, isPending: true, error: undefined } : turn)),
     );
     const controller = (abortRef.current = new AbortController());
+    const requestId = ++requestIdRef.current;
+    pendingOriginRef.current = "ungrounded";
     try {
       const response = await api.ask({ question, selection }, { signal: controller.signal });
+      if (requestId !== requestIdRef.current) return true;
       setTurns((current) =>
         current.map((turn) =>
           turn.id === turnId && turn.response
@@ -171,6 +184,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
         ),
       );
     } catch (caught) {
+      if (requestId !== requestIdRef.current) return true;
       setTurns((current) =>
         current.map((turn) =>
           turn.id === turnId && turn.response
@@ -179,11 +193,35 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
         ),
       );
     } finally {
-      abortRef.current = undefined;
-      setIsPending(false);
+      if (requestId === requestIdRef.current) {
+        abortRef.current = undefined;
+        pendingOriginRef.current = undefined;
+        setIsPending(false);
+      }
     }
     return true;
   }
+
+  const clearGroundedTurns = useCallback(() => {
+    setTurns((current) => current.filter((turn) => turn.origin === "ungrounded"));
+    if (pendingOriginRef.current !== "grounded") return;
+    requestIdRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = undefined;
+    pendingOriginRef.current = undefined;
+    clearProgress();
+    setIsPending(false);
+  }, [clearProgress]);
+
+  const syncStatementIdentity = useCallback(
+    (identity: string) => {
+      if (identity === statementIdentityRef.current) return;
+      const replacesStatement = statementIdentityRef.current !== undefined;
+      statementIdentityRef.current = identity;
+      if (replacesStatement) clearGroundedTurns();
+    },
+    [clearGroundedTurns],
+  );
 
   return createElement(
     AskContext.Provider,
@@ -195,7 +233,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
         error,
         scrollTargetId,
         clearScrollTarget,
-        clearGroundedTurns: () => setTurns((current) => current.filter((turn) => turn.origin === "ungrounded")),
+        syncStatementIdentity,
         ask: async (question) => {
           await run({ question }, "ungrounded");
         },
@@ -286,8 +324,4 @@ export function useAsk(): AskContextValue {
   const value = useContext(AskContext);
   if (!value) throw new Error("useAsk must be used within AskProvider");
   return value;
-}
-
-export function useOptionalAsk(): AskContextValue | null {
-  return useContext(AskContext);
 }

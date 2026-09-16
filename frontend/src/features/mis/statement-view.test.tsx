@@ -9,7 +9,7 @@ import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
 import { DrillPanel, type DrillPanelSelection } from "./drill-panel";
-import { StatementView, type DrillPanelTarget } from "./statement-view";
+import { StatementView as OwnedStatementView, type DrillPanelTarget } from "./statement-view";
 
 const mocks = vi.hoisted(() => ({ exportMisStatement: vi.fn(), runMisDrill: vi.fn() }));
 
@@ -458,6 +458,19 @@ function loaded(measureBlock: MisStatementMeasureBlock): MisStatementMeasureBloc
   return { ...measureBlock, budgetState: "loaded" } as MisStatementMeasureBlock;
 }
 
+function StatementView({ response }: Readonly<{ response: MisStatementRunResponse }>) {
+  const [drill, setDrill] = useState<DrillPanelSelection | null>(null);
+  function openDrill(target: DrillPanelTarget, opener: HTMLButtonElement) {
+    setDrill({ ...target, opener });
+  }
+  return (
+    <>
+      <OwnedStatementView response={response} onOpenDrill={openDrill} />
+      {drill && <DrillPanel selection={drill} onClose={() => setDrill(null)} />}
+    </>
+  );
+}
+
 function LiftedStatement() {
   const [drill, setDrill] = useState<DrillPanelSelection | null>(null);
   const [focus, setFocus] = useState("");
@@ -467,7 +480,7 @@ function LiftedStatement() {
   }
   return (
     <>
-      <StatementView response={resolved} onOpenDrill={openDrill} />
+      <OwnedStatementView response={resolved} onOpenDrill={openDrill} />
       <output data-testid="assistant-focus">{focus}</output>
       {drill && <DrillPanel selection={drill} onClose={() => setDrill(null)} />}
     </>

@@ -1,0 +1,11 @@
+{
+  "topic": "explain-on-screen round-1 review fixes",
+  "lesson": "THREE defects, each raised by more than one lens; security and performance both scored 0. (1) THE CLEARING RULE HAS A REMOUNT HOLE - mis-report-view.tsx:59 keeps previousIdentity as COMPONENT-LOCAL state that starts undefined, so the guard deliberately skips clearing on the first resolved statement this instance sees. But AskProvider explicitly OUTLIVES the route: navigate away, come back, load a different statement, and the old grounded explanation is still sitting there against the new figures - precisely the defect the rule exists to prevent, reintroduced through the back door. The identity must be remembered where the TURNS live, in the provider, not in a component that remounts; clearing must key on the attested statement identity itself rather than on whether this instance happens to have seen one before. (2) AN IN-FLIGHT GROUNDED ASK IS NOT INVALIDATED - use-ask.ts:198 clearGroundedTurns only filters turns ALREADY IN STATE, so an askGrounded still in flight resolves afterwards and re-adds a grounded turn describing the OLD statement. Abort or invalidate the pending request as part of clearing, and add a leaf that starts a grounded ask, changes the statement before it resolves, and asserts no grounded turn appears. (3) TWO COMPATIBILITY SHIMS, which the reviewer focus expressly prohibits and this story has now removed four times: statement-view.tsx:25-30 keeps StatementView's own DrillPanelSelection and a fallback drill factory for when onOpenDrill is absent, preserving the exact old ownership path the lift was meant to retire; and use-ask.ts:293 adds useOptionalAsk, which duplicates the required useAsk purely to suppress the missing-provider failure. Delete both - make onOpenDrill required and let a missing provider fail loudly - and update any caller that relied on them.",
+  "source": ".factory/stories/mis-assistant-explains-a-number/tasks/explain-on-screen/reviews/security.json",
+  "applies_to": [
+    "frontend/src/features/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T05:55:03+00:00"
+}

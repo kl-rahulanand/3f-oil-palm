@@ -7,9 +7,9 @@ import type {
   MisStatementResolvedResponse,
   MisStatementRunResponse,
 } from "@3f/contract";
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import { Button } from "@/src/components/ui/button";
-import { DrillPanel, type DrillPanelSelection } from "./drill-panel";
+import type { DrillPanelSelection } from "./drill-panel";
 import { useMisStatementExport } from "./use-mis-statement";
 
 const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
@@ -23,15 +23,9 @@ export function StatementView({
   onOpenDrill,
 }: Readonly<{
   response: MisStatementRunResponse;
-  onOpenDrill?: (target: DrillPanelTarget, opener: HTMLButtonElement) => void;
+  onOpenDrill: (target: DrillPanelTarget, opener: HTMLButtonElement) => void;
 }>) {
   const download = useMisStatementExport();
-  const [drill, setDrill] = useState<DrillPanelSelection | null>(null);
-
-  function openDrill(target: DrillPanelTarget, opener: HTMLButtonElement) {
-    if (onOpenDrill) onOpenDrill(target, opener);
-    else setDrill({ ...target, opener });
-  }
 
   if (response.outcome === "unresolvable") {
     return (
@@ -138,7 +132,7 @@ export function StatementView({
                 level={1}
                 breadcrumb={[]}
                 response={response}
-                onOpen={openDrill}
+                onOpen={onOpenDrill}
                 key={node.nodeKey}
               />
             ))}
@@ -152,7 +146,7 @@ export function StatementView({
                 <MeasureCells
                   measure={response.grandTotal.measures[index]}
                   onOpen={(opener) =>
-                    openDrill(
+                    onOpenDrill(
                       {
                         node: response.grandTotal,
                         roots: response.tree,
@@ -178,7 +172,6 @@ export function StatementView({
           {response.provenance.activeBatchIds.map(({ batchId }) => batchId).join(", ") || "None"}
         </span>
       </footer>
-      {!onOpenDrill && drill && <DrillPanel selection={drill} onClose={() => setDrill(null)} />}
     </section>
   );
 }

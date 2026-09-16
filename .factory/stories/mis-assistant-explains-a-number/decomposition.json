@@ -608,6 +608,7 @@
         "frontend/src/features/assistant/use-ask.ts",
         "frontend/src/features/mis/aggregate-projection.helper.test.ts",
         "frontend/src/features/mis/aggregate-projection.helper.ts",
+        "frontend/src/features/mis/drill-panel.test.tsx",
         "frontend/src/features/mis/drill-panel.tsx",
         "frontend/src/features/mis/mis-report-view.test.tsx",
         "frontend/src/features/mis/mis-report-view.tsx",
@@ -736,12 +737,12 @@
         "Grounded turns must clear on a statement change - check ordinary Ask turns survive it, or the fix has eaten the user's history."
       ],
       "review_budget": {
-        "max_changed_files": 20,
+        "max_changed_files": 21,
         "max_changed_lines": 1700,
-        "reason": "Sized from the file set at the start rather than raised mid-stage, which is the lesson from task 2's three budget raises. Seventeen declared files: focus lifted into the report view, the dock wired to send grounding, a browser-side aggregate projection with its own helper and leaves, a renderer for seven variants, turn partitioning across rendering and priorTurns, and the request types on two paths. UI, so design skills are mandatory and a functional check is required. Lines raised once at contract time, before implementation, for the grill's additions: the lifted drill seam, the grounded-turn lifetime rule, gating all three optional fields, and an aggregate INTEGRATION leaf beside the helper one."
+        "reason": "Sized from the file set at the start rather than raised mid-stage, which is the lesson from task 2's three budget raises. Seventeen declared files: focus lifted into the report view, the dock wired to send grounding, a browser-side aggregate projection with its own helper and leaves, a renderer for seven variants, turn partitioning across rendering and priorTurns, and the request types on two paths. UI, so design skills are mandatory and a functional check is required. Lines raised once at contract time, before implementation, for the grill's additions: the lifted drill seam, the grounded-turn lifetime rule, gating all three optional fields, and an aggregate INTEGRATION leaf beside the helper one. Extended once mid-stage (S-0025-d216) for frontend/src/features/mis/drill-panel.test.tsx, mechanically implied by the review's binding P1: deleting StatementView's drill fallback makes onOpenDrill required, and that file's 17 StatementView callers currently omit it, so they must pass it or the build breaks. Retaining the fallback to avoid editing them is the shim the finding exists to remove."
       }
     }
   ],
   "plan_sha256": "6be426e55d3f7fd6f9acf34d7d7c8b3581448cb763ed2bd8f1df5b7cd0334eb2",
-  "commit": "95d666ac74afc80624c5cfe7dffbdfd244adef9d"
+  "commit": "f1a75a4cd66c9a16f3a945aec04a7521ed839ced"
 }
