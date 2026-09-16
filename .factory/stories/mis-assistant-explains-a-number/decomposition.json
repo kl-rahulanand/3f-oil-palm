@@ -499,18 +499,188 @@
         "explain-the-number"
       ],
       "acceptance_criteria": [
-        "The MIS report view OWNS the shared statement context and the focused {nodeKey, block}. StatementView owns the drill internally today (statement-view.tsx:22) while AskPanel is its sibling, so focus must lift. There is NO independent selected block before focus - the block always comes from the focused node.",
-        "Clicking an Actual STILL opens the drill panel exactly as today. Focus is set as a SIDE EFFECT, never a replacement, so drill-down does not regress. The user may ask with the panel open or closed.",
-        "An AGGREGATE explanation is a CLIENT PROJECTION of the attested statement payload, per decision 0024: the browser derives the descendant lines and THEIR VALUES from the statement it already holds, driven by the aggregate variant as an INSTRUCTION. No new server projection crosses the network per aggregate ask, and a labels-only answer does not satisfy this.",
-        "The assistant renders EVERY outcome variant: leaf, aggregate, focus-required, replaced, gone, audit-failure and budget not-loaded. A variant that falls through to generic copy is a defect.",
-        "/ask is isolated by TURN OWNERSHIP, not a rendering branch. Both panels share one AskProvider, every turn renders from it, and successful turns feed the next request's priorTurns (use-ask.ts:86) - so each turn is tagged with its origin and grounded turns are partitioned out of BOTH /ask's rendering AND the priorTurns /ask sends. Leaves prove both halves.",
-        "The frontend request types admit grounding on the buffered AND streamed paths.",
-        "The assistant offers a declared control that opens the shipped drill panel on the focused node for full paging beyond the inline 20 rows.",
-        "With no rendered statement or no mapping for the scope, the dock says so LOCALLY and submits no grounded ask - that is the only local case; 'no focus' is a server outcome.",
-        "The shipped /ask leaves and the statement view's shipped leaves pass UNMODIFIED."
-      ]
+        "The MIS report view OWNS the shared statement context and the focused { nodeKey, block, subject }. StatementView owns the drill internally today (statement-view.tsx:22) while AskPanel is its sibling in mis-report-view, so focus must lift. There is NO independent selected block before focus: the block always comes from the focused node.",
+        "Clicking an Actual STILL opens the drill panel exactly as it does today. Focus is set as a SIDE EFFECT, never a replacement, so drill-down does not regress, and the user may ask with the panel open or closed.",
+        "The docked panel sends statementGrounding - attestedContext, department, function, the optional focus, nodeMetadata and nodeAmounts - taken from the rendered statement response. The /ask page sends none of it.",
+        "An AGGREGATE explanation is projected IN THE BROWSER from the attested statement payload, per decision 0024. The server returns instruction 'project-descendants-from-attested-statement' and no rows; the client derives the descendant lines AND THEIR VALUES from the statement it already holds. A labels-only rendering does not satisfy this.",
+        "All SEVEN variants render their own copy: focus-required, leaf, replaced, aggregate, gone, audit-failure and refused. A variant that falls through to generic copy is a defect, and replaced must show the notice and the replaced batches alongside the full explanation rather than dropping either.",
+        "/ask is isolated by TURN OWNERSHIP, not a rendering branch. Both panels share one AskProvider, every turn renders from it, and successful turns feed the next request's priorTurns (use-ask.ts:86) - so each turn is tagged with its origin, and grounded turns are partitioned out of BOTH /ask's rendering AND the priorTurns /ask sends. Leaves prove both halves.",
+        "The frontend request types admit statementGrounding on the buffered AND the streamed path.",
+        "The explanation offers a declared control that opens the shipped drill panel on the focused node, for paging beyond the inline 20 rows that transactions.pageSize fixes.",
+        "With no rendered statement, or no mapping for the scope, the dock says so LOCALLY and submits no grounded ask. That is the ONLY local case: an absent focus is a SERVER outcome returning focus-required, because task 2 made it one.",
+        "Both new statement-response fields are OPTIONAL in the contract type, so the client treats their absence as a real case rather than trusting the type - when they are missing the dock does not offer a grounded ask.",
+        "Budget is not focusable from the surface, matching the statement's shipped footnote that Budget is not drillable - while the backend refusal task 2 shipped remains the authority, because a client-side rule cannot catch a crafted request.",
+        "The shipped /ask leaves and the statement view's shipped leaves pass UNMODIFIED.",
+        "Every criterion is proven by hermetic frontend leaves judged by the vitest discriminator - present AND NOT skipped AND NOT failed (D-0031) - because vitest exits 0 and marks an unmatched -t leaf skipped, so a name drift would report green having asserted nothing."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-eos-c1",
+          "statement": "The MIS report view OWNS the shared statement context and the focused { nodeKey, block, subject }. StatementView owns the drill internally today (statement-view.tsx:22) while AskPanel is its sibling in mis-report-view, so focus must lift. There is NO independent selected block before focus: the block always comes from the focused node.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c2",
+          "statement": "Clicking an Actual STILL opens the drill panel exactly as it does today. Focus is set as a SIDE EFFECT, never a replacement, so drill-down does not regress, and the user may ask with the panel open or closed.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c3",
+          "statement": "The docked panel sends statementGrounding - attestedContext, department, function, the optional focus, nodeMetadata and nodeAmounts - taken from the rendered statement response. The /ask page sends none of it.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c4",
+          "statement": "An AGGREGATE explanation is projected IN THE BROWSER from the attested statement payload, per decision 0024. The server returns instruction 'project-descendants-from-attested-statement' and no rows; the client derives the descendant lines AND THEIR VALUES from the statement it already holds. A labels-only rendering does not satisfy this.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c5",
+          "statement": "All SEVEN variants render their own copy: focus-required, leaf, replaced, aggregate, gone, audit-failure and refused. A variant that falls through to generic copy is a defect, and replaced must show the notice and the replaced batches alongside the full explanation rather than dropping either.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c6",
+          "statement": "/ask is isolated by TURN OWNERSHIP, not a rendering branch. Both panels share one AskProvider, every turn renders from it, and successful turns feed the next request's priorTurns (use-ask.ts:86) - so each turn is tagged with its origin, and grounded turns are partitioned out of BOTH /ask's rendering AND the priorTurns /ask sends. Leaves prove both halves.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c7",
+          "statement": "The frontend request types admit statementGrounding on the buffered AND the streamed path.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c8",
+          "statement": "The explanation offers a declared control that opens the shipped drill panel on the focused node, for paging beyond the inline 20 rows that transactions.pageSize fixes.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c9",
+          "statement": "With no rendered statement, or no mapping for the scope, the dock says so LOCALLY and submits no grounded ask. That is the ONLY local case: an absent focus is a SERVER outcome returning focus-required, because task 2 made it one.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c10",
+          "statement": "Both new statement-response fields are OPTIONAL in the contract type, so the client treats their absence as a real case rather than trusting the type - when they are missing the dock does not offer a grounded ask.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c11",
+          "statement": "Budget is not focusable from the surface, matching the statement's shipped footnote that Budget is not drillable - while the backend refusal task 2 shipped remains the authority, because a client-side rule cannot catch a crafted request.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c12",
+          "statement": "The shipped /ask leaves and the statement view's shipped leaves pass UNMODIFIED.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-eos-c13",
+          "statement": "Every criterion is proven by hermetic frontend leaves judged by the vitest discriminator - present AND NOT skipped AND NOT failed (D-0031) - because vitest exits 0 and marks an unmatched -t leaf skipped, so a name drift would report green having asserted nothing.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        }
+      ],
+      "write_scope": [
+        "frontend/app/globals.css",
+        "frontend/src/features/assistant/ask-panel.test.tsx",
+        "frontend/src/features/assistant/ask-panel.tsx",
+        "frontend/src/features/assistant/statement-explanation.test.tsx",
+        "frontend/src/features/assistant/statement-explanation.tsx",
+        "frontend/src/features/assistant/use-ask.test.tsx",
+        "frontend/src/features/assistant/use-ask.ts",
+        "frontend/src/features/mis/aggregate-projection.helper.test.ts",
+        "frontend/src/features/mis/aggregate-projection.helper.ts",
+        "frontend/src/features/mis/drill-panel.tsx",
+        "frontend/src/features/mis/mis-report-view.test.tsx",
+        "frontend/src/features/mis/mis-report-view.tsx",
+        "frontend/src/features/mis/statement-view.test.tsx",
+        "frontend/src/features/mis/statement-view.tsx",
+        "frontend/src/features/mis/use-mis-statement.ts",
+        "frontend/src/lib/api.test.ts",
+        "frontend/src/lib/api.ts"
+      ],
+      "required_tests": [
+        {
+          "id": "clicking an actual opens the drill panel and sets assistant focus without replacing the drill",
+          "path": "frontend/src/features/mis/statement-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the block comes from the focused node and there is no selected block before focus",
+          "path": "frontend/src/features/mis/mis-report-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "an aggregate explanation projects descendant lines with their values from the rendered statement",
+          "path": "frontend/src/features/mis/aggregate-projection.helper.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "all seven outcome variants render their own copy and none falls through to the generic message",
+          "path": "frontend/src/features/assistant/statement-explanation.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the replaced variant shows its notice and replaced batches alongside the full explanation",
+          "path": "frontend/src/features/assistant/statement-explanation.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a grounded turn is not rendered on the ask page",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a grounded turn is excluded from the prior turns an ungrounded ask sends",
+          "path": "frontend/src/features/assistant/use-ask.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the docked panel sends the attested context and the focused node while the ask page sends neither",
+          "path": "frontend/src/features/assistant/ask-panel.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "grounding is admitted on the buffered and the streamed request path",
+          "path": "frontend/src/lib/api.test.ts",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "with no rendered statement the dock says so locally and submits no grounded ask",
+          "path": "frontend/src/features/mis/mis-report-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "a statement response missing the attested context does not offer a grounded ask",
+          "path": "frontend/src/features/mis/mis-report-view.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        },
+        {
+          "id": "the explanation offers a control that opens the drill panel on the focused node",
+          "path": "frontend/src/features/assistant/statement-explanation.test.tsx",
+          "command": "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile={report} {path} -t {id}"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "Isolation must be turn OWNERSHIP. A rendering-only branch leaves grounded turns feeding priorTurns, which changes /ask's wire behaviour - both halves need leaves.",
+        "The aggregate must be projected in the BROWSER from the statement already held. Any new server call per aggregate ask violates decision 0024, and the server deliberately returns an instruction and no rows.",
+        "Clicking must still open the drill. If focus replaced that, drill-down regressed.",
+        "All seven variants need their own rendering. A fallthrough to generic copy discards the typed detail tasks 1 and 2 worked to preserve - especially replaced, which must keep both its notice and its figures.",
+        "Absence of the optional statement fields is a real case, not a type impossibility - check the dock degrades rather than crashing or offering a grounded ask it cannot make.",
+        "UI, so emil-design-eng and frontend-design are mandatory and must be genuinely applied; a pass that changes nothing usually means they were not.",
+        "No compatibility shims: this story has removed three already. A new optional parameter with a default that preserves an old call shape is the same defect.",
+        "The shipped /ask and statement-view leaves must pass unmodified."
+      ],
+      "review_budget": {
+        "max_changed_files": 20,
+        "max_changed_lines": 1500,
+        "reason": "Sized from the file set at the start rather than raised mid-stage, which is the lesson from task 2's three budget raises. Seventeen declared files: focus lifted into the report view, the dock wired to send grounding, a browser-side aggregate projection with its own helper and leaves, a renderer for seven variants, turn partitioning across rendering and priorTurns, and the request types on two paths. UI, so design skills are mandatory and a functional check is required."
+      }
     }
   ],
   "plan_sha256": "6be426e55d3f7fd6f9acf34d7d7c8b3581448cb763ed2bd8f1df5b7cd0334eb2",
-  "commit": "7a75640143c3a9c4037ff957790ba084acf3526a"
+  "commit": "6997770d898772e6e8ee89145aea50c3aed80ee6"
 }
