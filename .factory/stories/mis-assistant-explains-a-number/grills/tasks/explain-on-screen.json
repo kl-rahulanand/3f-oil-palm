@@ -1,0 +1,109 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "explain-on-screen",
+  "verdict": "pass",
+  "issue": "mis-assistant-explains-a-number",
+  "current_flow": "StatementView owns DrillPanelSelection as local state (statement-view.tsx:20) and opens the drill on an Actual click; AskPanel is its SIBLING in mis-report-view.tsx:161 and receives no report state. AskProvider is shared by the dock and /ask: every turn renders from it and successful turns feed the next request's priorTurns (use-ask.ts:86). Tasks 1 and 2 shipped the attested context, the grounding request and a seven-variant response union whose aggregate carries instruction 'project-descendants-from-attested-statement' and no rows, with attestedContext, nodeMetadata and nodeAmounts optional on the statement response.",
+  "criteria_map": {
+    "The MIS report view OWNS the shared statement context and the focused { nodeKey, block, subject }. StatementView owns the drill internally today (statement-view.tsx:22) while AskPanel is its sibling in mis-report-view, so focus must lift. There is NO independent selected block before focus: the block always comes from the focused node.": "t-eos-c1",
+    "Clicking an Actual STILL opens the drill panel exactly as it does today. Focus is set as a SIDE EFFECT, never a replacement, so drill-down does not regress, and the user may ask with the panel open or closed.": "t-eos-c2",
+    "The docked panel sends statementGrounding - attestedContext, department, function, the optional focus, nodeMetadata and nodeAmounts - taken from the rendered statement response. The /ask page sends none of it.": "t-eos-c3",
+    "An AGGREGATE explanation is projected IN THE BROWSER from the attested statement payload, per decision 0024. The server returns instruction 'project-descendants-from-attested-statement' and no rows; the client derives the descendant lines AND THEIR VALUES from the statement it already holds. A labels-only rendering does not satisfy this.": "t-eos-c4",
+    "All SEVEN variants render their own copy: focus-required, leaf, replaced, aggregate, gone, audit-failure and refused. A variant that falls through to generic copy is a defect, and replaced must show the notice and the replaced batches alongside the full explanation rather than dropping either.": "t-eos-c5",
+    "/ask is isolated by TURN OWNERSHIP, not a rendering branch. Both panels share one AskProvider, every turn renders from it, and successful turns feed the next request's priorTurns (use-ask.ts:86) - so each turn is tagged with its origin, and grounded turns are partitioned out of BOTH /ask's rendering AND the priorTurns /ask sends. Leaves prove both halves.": "t-eos-c6",
+    "The frontend request types admit statementGrounding on the buffered AND the streamed path.": "t-eos-c7",
+    "The explanation offers a declared control that opens the shipped drill panel on the focused node, for paging beyond the inline 20 rows that transactions.pageSize fixes.": "t-eos-c8",
+    "With no rendered statement, or no mapping for the scope, the dock says so LOCALLY and submits no grounded ask. That is the ONLY local case: an absent focus is a SERVER outcome returning focus-required, because task 2 made it one.": "t-eos-c9",
+    "ALL THREE optional statement-response fields gate grounding - attestedContext, nodeMetadata AND nodeAmounts - not just the attestation. Any one of them missing means the dock does not offer a grounded ask, because a request carrying an attested context without the metadata or the amounts is invalid at the server and would surface as a refusal the user cannot act on. A leaf proves each absence independently.": "t-eos-c10",
+    "Budget is not focusable from the surface, matching the statement's shipped footnote that Budget is not drillable - while the backend refusal task 2 shipped remains the authority, because a client-side rule cannot catch a crafted request.": "t-eos-c11",
+    "The shipped /ask leaves and the statement view's shipped leaves pass UNMODIFIED.": "t-eos-c12",
+    "Every criterion is proven by hermetic frontend leaves judged by the vitest discriminator - present AND NOT skipped AND NOT failed (D-0031) - because vitest exits 0 and marks an unmatched -t leaf skipped, so a name drift would report green having asserted nothing.": "t-eos-c13",
+    "DrillPanelSelection and a single openDrill factory lift to MisReportView, so both an Actual click and the explanation's control invoke the SAME drill, each passing its own invoking element for focus restoration. 'The drill does not move' means its component and behaviour are retained - not that its state stays unreachable inside StatementView, which is where it lives today and why the dock cannot open it.": "t-eos-c14",
+    "Grounded turns and focus are CLEARED when the attested statement identity changes - scope, pins or block - while ordinary Ask turns are preserved. AskProvider outlives the route, so without this an explanation of a July DUB figure stays in the dock after a different statement is generated and reads as though it describes the new numbers.": "t-eos-c15",
+    "The caller opts in through an explicit action - askGrounded - rather than an optional grounding parameter defaulted onto the shared ask(). An optional default is the compatibility shim this story has already removed three times, and here it would risk changing /ask's classification rather than leaving it byte-for-byte unchanged.": "t-eos-c16"
+  },
+  "decision": "keep",
+  "rationale": "One bounded frontend task: lift focus and the drill seam, wire the dock, project aggregates in the browser, render seven variants, and partition grounded turns. It adds no new endpoint and no new query - the server work is done. The grill's amendments added lifetime and opt-in rules and three proof gaps without widening what is built.",
+  "new_abstractions": [
+    "A lifted drill seam in MisReportView - DrillPanelSelection plus one openDrill factory - so an Actual click and the explanation control invoke the same shipped panel. NEW because that state is local to StatementView today, which is exactly why the dock cannot open it.",
+    "A grounded-turn origin tag with a lifetime rule. NEW because AskProvider is shared across routes and has no notion of which statement a turn belongs to, so without it grounded turns both leak onto /ask and outlive the statement they explain.",
+    "askGrounded as a distinct caller action beside ask(). NEW because the alternative - an optional parameter with a default - is the compatibility shim this story has removed three times.",
+    "A browser-side aggregate projection helper deriving descendant lines and values from the attested statement, per decision 0024, which keeps that projection off the server."
+  ],
+  "questions_asked": 1,
+  "gaps": [
+    "The contract makes THREE statement-response fields optional - attestedContext, nodeMetadata and nodeAmounts - but the plan called them 'both' optional fields and the proof set tested only a missing attestation. A response missing the metadata or the amounts would still have produced a grounded request, invalid at the server and surfacing as a refusal the user can do nothing about.",
+    "The required leaves did not prove focus CLEARING when the statement scope, the pinned batches or the block change, nor the no-mapping local handling, nor Budget's non-focusability, nor that the shipped leaves still pass by exact discriminator - so each of those regressions could have passed this task's proof set.",
+    "The aggregate was proven only by a HELPER test. A correct helper sitting beside a renderer that shows labels only - or that fetches the descendants - would have satisfied that test while failing the criterion outright.",
+    "The plan promised the drill 'does not move', but DrillPanelSelection is LOCAL STATE inside StatementView while the dock is its sibling - so the explanation's 'open the full drill' control had nowhere to call, and DrillPanelSelection also needs the invoking element for focus restoration.",
+    "An internal handover contradiction: the story decomposition described task 3 as rendering 'not-loaded' as an outcome, but not-loaded is a BUDGET STATE carried on leaf and aggregate, not one of the response-union outcomes - the seventh is 'refused'.",
+    "The plan implied grounding would ride on the shared ask() as an optional parameter, which is precisely the compatibility shim the reviewer focus prohibits and this story has removed three times - and here it would leave /ask's classification one defaulted argument away from changing.",
+    "Grounded-turn lifetime was undefined. AskProvider outlives the route, so an explanation of a July DUB figure would remain in the dock after a different statement was generated and read as though it described the new figures."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "RESOLVED: the criterion now gates ALL THREE fields and a leaf proves each absence independently disables the grounded ask.",
+    "RESOLVED: leaves added for focus clearing on a scope or pin change, the local no-mapping message, a Budget cell being non-focusable from the surface, and the unchanged shipped leaves.",
+    "RESOLVED: an INTEGRATION leaf is required beside the helper one, asserting the aggregate response renders descendant VALUES from the held statement AND issues no request.",
+    "RESOLVED by the recommended seam: DrillPanelSelection and one shared openDrill factory lift to MisReportView, and both an Actual click and the explanation control invoke the same drill, each passing its own opener. The plan now states that 'does not move' means the component and behaviour are retained, not that the state stays unreachable.",
+    "RESOLVED: the recorded criterion names the seven actual union outcomes - focus-required, leaf, replaced, aggregate, gone, audit-failure and refused - and budgetState is handled as the field it is. The recorded contract, not the older story-plan prose, is what the implementer binds.",
+    "RESOLVED: the caller opts in through a distinct askGrounded action, recorded as a criterion, with the reviewer focus calling out an optional-parameter default as the defect.",
+    "RESOLVED by the human: grounded turns and focus are CLEARED when the attested statement identity changes - scope, pins or block - while ordinary Ask turns are preserved, with a leaf proving both halves. Losing an explanation on regenerate is the accepted cost; stale figures wearing a fresh statement's authority is not."
+  ],
+  "citations": [
+    {
+      "finding": "The contract makes THREE statement-response fields optional - attestedContext, nodeMetadata and nodeAmounts - but the plan called them 'both' optional fields and the proof set tested only a missing attestation. A response missing the metadata or the amounts would still have produced a grounded request, invalid at the server and surfacing as a refusal the user can do nothing about.",
+      "source": "contract/src/api.ts:152"
+    },
+    {
+      "finding": "The required leaves did not prove focus CLEARING when the statement scope, the pinned batches or the block change, nor the no-mapping local handling, nor Budget's non-focusability, nor that the shipped leaves still pass by exact discriminator - so each of those regressions could have passed this task's proof set.",
+      "source": ".factory/stories/mis-assistant-explains-a-number/decomposition.json"
+    },
+    {
+      "finding": "The aggregate was proven only by a HELPER test. A correct helper sitting beside a renderer that shows labels only - or that fetches the descendants - would have satisfied that test while failing the criterion outright.",
+      "source": "frontend/src/features/mis/aggregate-projection.helper.ts"
+    },
+    {
+      "finding": "The plan promised the drill 'does not move', but DrillPanelSelection is LOCAL STATE inside StatementView while the dock is its sibling - so the explanation's 'open the full drill' control had nowhere to call, and DrillPanelSelection also needs the invoking element for focus restoration.",
+      "source": "frontend/src/features/mis/statement-view.tsx:20"
+    },
+    {
+      "finding": "An internal handover contradiction: the story decomposition described task 3 as rendering 'not-loaded' as an outcome, but not-loaded is a BUDGET STATE carried on leaf and aggregate, not one of the response-union outcomes - the seventh is 'refused'.",
+      "source": "contract/src/api.ts:204"
+    },
+    {
+      "finding": "The plan implied grounding would ride on the shared ask() as an optional parameter, which is precisely the compatibility shim the reviewer focus prohibits and this story has removed three times - and here it would leave /ask's classification one defaulted argument away from changing.",
+      "source": "frontend/src/features/assistant/use-ask.ts"
+    },
+    {
+      "finding": "Grounded-turn lifetime was undefined. AskProvider outlives the route, so an explanation of a July DUB figure would remain in the dock after a different statement was generated and read as though it described the new figures.",
+      "source": "frontend/src/features/assistant/use-ask.ts:86"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "The Ask provider lives across routes, so an explanation of a July/DUB figure stays in the dock after the user generates a DIFFERENT statement \u2014 making an old answer look like it belongs to the new numbers. What should happen to grounded explanations when the statement changes?",
+      "options": [
+        "Clear grounded turns on a new statement (Recommended)",
+        "Keep them, but visibly stamped with their statement"
+      ],
+      "chosen": "Clear grounded turns on a new statement (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "summary": "Cold read of the explain-on-screen contract: ten findings. Two were seams the plan assumed existed and does not - the drill's state is LOCAL to StatementView while the dock is its sibling, so the explanation's open-the-drill control had nowhere to call, and grounded-turn lifetime was undefined against an AskProvider that outlives the route, meaning an explanation of a July DUB figure would have sat in the dock against a completely different statement. The human chose to clear grounded turns when the statement identity changes while preserving ordinary Ask turns. Three findings were proof gaps that would have let regressions through: the aggregate was proven only by a helper test, so a correct helper beside a labels-only or fetching renderer would have passed; focus clearing, the local no-mapping path and Budget non-focusability had no leaves at all; and only one of the three optional statement fields was gated, so a response missing the metadata or amounts would still have produced an invalid grounded request. It also caught an internal handover contradiction - the story prose called 'not-loaded' an outcome when it is a budget state and the seventh outcome is 'refused' - and that grounding was about to ride on ask() as an optional parameter, the same shim pattern removed three times already.",
+  "inspected_refs": [
+    "frontend/src/features/mis/statement-view.tsx:20",
+    "frontend/src/features/mis/mis-report-view.tsx:161",
+    "frontend/src/features/assistant/use-ask.ts:86",
+    "contract/src/api.ts:152",
+    "contract/src/api.ts:204"
+  ],
+  "input_sha256": "d40eee80ed040032a24751bbe6753689b3833f13f7b4f435de529a874cc03c1a",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "20554a1ef0b8bf3fe1b5b957928d77e0e7e5866795dbfde3acfc4f9f2566aaf1",
+  "recorded_at": "2026-09-16T05:18:37+00:00",
+  "commit": "95d666ac74afc80624c5cfe7dffbdfd244adef9d"
+}
