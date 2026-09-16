@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Inject,
   Post,
+  ServiceUnavailableException,
   UseFilters,
   UseGuards,
 } from "@nestjs/common";
@@ -17,6 +18,7 @@ import { MisSelectionErrorDto } from "./mis-selection.dto";
 import { MisDrillAuditFilter } from "./mis-drill.audit.filter";
 import { MisDrillRequestDto, MisDrillResponseDto, misDrillRequestSchema } from "./mis-drill.dto";
 import type { IMisDrillService } from "./mis-drill.interface";
+import { AuditedDrillRefusalException } from "./mis-drill.interface";
 import { MisDrillService } from "./mis-drill.service";
 
 @ApiTags("MIS")
@@ -53,11 +55,22 @@ export class MisDrillController {
     description: "The pinned statement snapshot is stale.",
     type: MisSelectionErrorDto,
   })
-  run(@CurrentUser() user: AuthUser, @SessionId() sessionId: string, @Body() body: unknown): Promise<MisDrillResponse> {
+  async run(
+    @CurrentUser() user: AuthUser,
+    @SessionId() sessionId: string,
+    @Body() body: unknown,
+  ): Promise<MisDrillResponse> {
     const parsed = misDrillRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues.map((issue) => `${issue.path.join(".") || "request"} invalid`));
     }
-    return this.drills.run(user, sessionId, parsed.data);
+    const outcome = await this.drills.run(user, sessionId, parsed.data);
+    if (outcome.outcome === "ok" || outcome.outcome === "replaced") {
+      const { rollup: _rollup, budgetState: _budgetState, ...response } = outcome.response;
+      if (response.pageSize !== 100) throw new Error("Drill seam returned an invalid panel page size");
+      return response as MisDrillResponse;
+    }
+    if (outcome.outcome === "audit-failed") throw new ServiceUnavailableException(outcome.message);
+    throw new AuditedDrillRefusalException(outcome.status, outcome.message, outcome.batchStatuses);
   }
 }

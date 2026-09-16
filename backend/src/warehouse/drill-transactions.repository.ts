@@ -21,23 +21,16 @@ export class DrillTransactionsRepository implements IDrillTransactionsRepository
     @Inject(WAREHOUSE) private readonly warehouse: Warehouse,
   ) {}
 
-  async findBatchesByIds(ids: string[]): Promise<DrillBatch[]> {
-    if (ids.length === 0) return [];
-    const result = await this.warehouse.execute(`SELECT id, source_kind, period, is_active
-FROM ingest_batch
-WHERE id IN (${ids.map(quote).join(", ")})
-LIMIT 25000`);
-    return batches(result);
-  }
-
-  async findActiveBatches(pins: ProvenanceBatch[]): Promise<DrillBatch[]> {
+  async findBatchStates(pins: ProvenanceBatch[]): Promise<DrillBatch[]> {
     if (pins.length === 0) return [];
-    const predicates = uniquePins(pins).map(
+    const ids = pins.map(({ batchId }) => batchId);
+    const activePredicates = uniquePins(pins).map(
       ({ source, period }) => `(source_kind = ${quote(source)} AND period = ${quote(period)})`,
     );
     const result = await this.warehouse.execute(`SELECT id, source_kind, period, is_active
 FROM ingest_batch
-WHERE is_active AND (${predicates.join(" OR ")})
+WHERE id IN (${ids.map(quote).join(", ")})
+   OR (is_active AND (${activePredicates.join(" OR ")}))
 LIMIT 25000`);
     return batches(result);
   }
@@ -53,7 +46,7 @@ LIMIT 25000`);
       .filter((period): period is string => Boolean(period));
   }
 
-  buildQueries(predicate: DrillPredicate, page: number): DrillQueries {
+  buildQueries(predicate: DrillPredicate, page: number, rowLimit = DRILL_PAGE_SIZE): DrillQueries {
     const where = buildPredicate(predicate);
     return {
       pageSql: `SELECT txn.month, txn.posting_date, txn.debit, txn.credit,
@@ -62,7 +55,7 @@ FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
 WHERE ${where}
 ORDER BY (txn.debit - txn.credit) DESC, txn.month DESC, txn.posting_date DESC, txn.txn_no, txn.line_id
-LIMIT ${DRILL_PAGE_SIZE} OFFSET ${(page - 1) * DRILL_PAGE_SIZE}`,
+LIMIT ${rowLimit} OFFSET ${(page - 1) * rowLimit}`,
       footerSql: `SELECT COUNT(*) AS total_count,
   COALESCE(SUM(txn.debit), 0)::numeric(18,2) AS debit,
   COALESCE(SUM(txn.credit), 0)::numeric(18,2) AS credit,
@@ -120,7 +113,7 @@ function batches(result: QueryResult): DrillBatch[] {
     source: String(row.source_kind) as DrillBatch["source"],
     period: normalizeDateOnly(row.period) ?? "",
     batchId: String(row.id),
-    isActive: row.is_active === "true" || row.is_active === 1,
+    isActive: String(row.is_active) === "true" || row.is_active === 1,
   }));
 }
 

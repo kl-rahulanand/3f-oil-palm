@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { METHOD_METADATA, PATH_METADATA } from "@nestjs/common/constants";
 import { RequestMethod } from "@nestjs/common";
+import { DECORATORS } from "@nestjs/swagger/dist/constants";
 import { AuthController } from "./auth/auth.controller";
 import { ChatController } from "./chat/chat.controller";
+import { ChatResponseDto, ChatStreamEventDto } from "./chat/chat.schemas";
 import { UsersController } from "./users/users.controller";
 import { GrantsController } from "./grants/grants.controller";
 import { ReportsController } from "./reports/reports.controller";
@@ -54,6 +56,19 @@ test("controller metadata contains auth, admin, and data API paths without beare
   const swagger = buildSwaggerConfig();
   assert.equal(swagger.info.title, "3F API");
   assert.equal(swagger.components?.securitySchemes?.bearer, undefined);
+});
+
+test("both chat routes document the explanation union with a named schema", () => {
+  assert.equal(ChatResponseDto.name, "ChatResponseDto");
+  assert.equal(ChatStreamEventDto.name, "ChatStreamEventDto");
+  for (const [route, expected] of [
+    [ChatController.prototype.ask, ChatResponseDto],
+    [ChatController.prototype.stream, ChatStreamEventDto],
+  ] as const) {
+    const responses = Reflect.getMetadata(DECORATORS.API_RESPONSE, route) as Record<string, { type?: Function }>;
+    const response = responses[route === ChatController.prototype.ask ? "201" : "200"];
+    assert.equal(response?.type, expected);
+  }
 });
 
 function controllerRoutes(controller: Function): string[] {

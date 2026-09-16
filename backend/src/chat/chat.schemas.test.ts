@@ -26,8 +26,7 @@ test("the strict chat schema accepts statementGrounding and still rejects an unk
     attestedContext: "claims.signature",
     department: "Agriculture",
     function: "Nursery",
-    nodeKey: "leaf",
-    block: "selected",
+    focus: { nodeKey: "leaf", block: "selected", subject: "actual" },
     nodeMetadata: [{ nodeKey: "leaf", glCodes: ["5001"], costCentres: ["Primary"] }],
   };
   assert.equal(askSchema.safeParse({ question: "How is this built?", statementGrounding }).success, true);
@@ -37,7 +36,7 @@ test("the strict chat schema accepts statementGrounding and still rejects an unk
   );
 });
 
-test("statement grounding requires both a node and block", () => {
+test("an absent focus returns focus required rather than being rejected by the schema", () => {
   const statementGrounding = {
     attestedContext: "claims.signature",
     department: "Agriculture",
@@ -45,18 +44,50 @@ test("statement grounding requires both a node and block", () => {
     nodeMetadata: [{ nodeKey: "leaf", glCodes: ["5001"], costCentres: ["Primary"] }],
   };
 
-  assert.equal(askSchema.safeParse({ question: "How is this built?", statementGrounding }).success, false);
+  assert.equal(askSchema.safeParse({ question: "How is this built?", statementGrounding }).success, true);
   assert.equal(
     askSchema.safeParse({
       question: "How is this built?",
-      statementGrounding: { ...statementGrounding, nodeKey: "leaf" },
+      statementGrounding: { ...statementGrounding, focus: { nodeKey: "leaf", subject: "actual" } },
     }).success,
     false,
   );
   assert.equal(
     askSchema.safeParse({
       question: "How is this built?",
-      statementGrounding: { ...statementGrounding, block: "selected" },
+      statementGrounding: { ...statementGrounding, focus: { block: "selected", subject: "actual" } },
+    }).success,
+    false,
+  );
+});
+
+test("oversized node metadata arrays are rejected by the schema before being sorted and hashed", () => {
+  const base = {
+    attestedContext: "claims.signature",
+    department: "Agriculture",
+    function: "Nursery",
+  };
+  assert.equal(
+    askSchema.safeParse({
+      question: "How is this built?",
+      statementGrounding: {
+        ...base,
+        nodeMetadata: Array.from({ length: 501 }, (_, index) => ({
+          nodeKey: `leaf-${index}`,
+          glCodes: ["5001"],
+          costCentres: ["Primary"],
+        })),
+      },
+    }).success,
+    false,
+  );
+  assert.equal(
+    askSchema.safeParse({
+      question: "How is this built?",
+      statementGrounding: {
+        ...base,
+        nodeMetadata: [{ nodeKey: "leaf", glCodes: Array(101).fill("5001"), costCentres: ["Primary"] }],
+      },
     }).success,
     false,
   );

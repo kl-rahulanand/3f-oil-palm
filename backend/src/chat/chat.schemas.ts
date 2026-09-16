@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   ASK_PRIOR_TURN_MAX_QUESTION_CHARS,
   ASK_PRIOR_TURNS_MAX_ENTRIES,
   ASK_PRIOR_TURNS_MAX_SERIALIZED_CHARS,
+  ResponseClass,
+  type AskResponse,
 } from "@3f/contract";
 import { selectionSchema } from "../saved/saved.schemas";
 import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
@@ -37,17 +40,25 @@ const statementGroundingSchema = z
     attestedContext: z.string().min(3),
     department: z.string().min(1),
     function: z.string().min(1),
-    nodeKey: z.string().min(1),
-    block: z.string().min(1),
-    nodeMetadata: z.array(
-      z
-        .object({
-          nodeKey: z.string().min(1),
-          glCodes: z.array(z.string().min(1)),
-          costCentres: z.array(z.string().min(1)),
-        })
-        .strict(),
-    ),
+    focus: z
+      .object({
+        nodeKey: z.string().min(1).max(200),
+        block: z.enum(["selected", "fy26-27-ytd"]),
+        subject: z.enum(["actual", "budget"]),
+      })
+      .strict()
+      .optional(),
+    nodeMetadata: z
+      .array(
+        z
+          .object({
+            nodeKey: z.string().min(1).max(200),
+            glCodes: z.array(z.string().min(1).max(100)).max(100),
+            costCentres: z.array(z.string().min(1).max(200)).max(100),
+          })
+          .strict(),
+      )
+      .max(500),
   })
   .strict();
 
@@ -71,3 +82,75 @@ export const askSchema = z
     statementGrounding: statementGroundingSchema.optional(),
   })
   .strict();
+
+export class ChatResponseDto {
+  @ApiProperty({ enum: Object.values(ResponseClass) })
+  responseClass!: ResponseClass;
+
+  @ApiProperty()
+  sessionId!: string;
+
+  @ApiProperty({
+    required: false,
+    oneOf: [
+      { type: "object", required: ["outcome"], properties: { outcome: { enum: ["focus-required"] } } },
+      {
+        type: "object",
+        required: ["outcome", "transactions", "rollup"],
+        properties: {
+          outcome: { enum: ["leaf"] },
+          transactions: { type: "object" },
+          rollup: { type: "array", items: { type: "object" } },
+        },
+      },
+      {
+        type: "object",
+        required: ["outcome", "transactions", "rollup", "notice"],
+        properties: {
+          outcome: { enum: ["replaced"] },
+          transactions: { type: "object" },
+          rollup: { type: "array", items: { type: "object" } },
+          notice: { type: "string" },
+        },
+      },
+      {
+        type: "object",
+        required: ["outcome", "instruction"],
+        properties: {
+          outcome: { enum: ["aggregate"] },
+          instruction: { enum: ["project-descendants-from-attested-statement"] },
+        },
+      },
+      {
+        type: "object",
+        required: ["outcome", "batchStatuses"],
+        properties: { outcome: { enum: ["gone"] }, batchStatuses: { type: "array", items: { type: "object" } } },
+      },
+      {
+        type: "object",
+        required: ["outcome", "message"],
+        properties: { outcome: { enum: ["audit-failure"] }, message: { type: "string" } },
+      },
+      {
+        type: "object",
+        required: ["outcome", "reason"],
+        properties: { outcome: { enum: ["refused"] }, reason: { type: "string" } },
+      },
+    ],
+  })
+  statementGrounding?: AskResponse["statementGrounding"];
+
+  @ApiProperty({ type: Object })
+  viewInReport!: AskResponse["viewInReport"];
+
+  @ApiPropertyOptional()
+  message?: string;
+}
+
+export class ChatStreamEventDto {
+  @ApiProperty({ enum: ["phase", "token", "result", "error"] })
+  type!: "phase" | "token" | "result" | "error";
+
+  @ApiPropertyOptional({ type: ChatResponseDto })
+  response?: ChatResponseDto;
+}

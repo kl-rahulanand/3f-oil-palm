@@ -147,8 +147,11 @@ export interface AskStatementGrounding {
   attestedContext: string;
   department: string;
   function: string;
-  nodeKey: string;
-  block: string;
+  focus?: {
+    nodeKey: string;
+    block: MisStatementMeasureBlock["key"];
+    subject: "actual" | "budget";
+  };
   nodeMetadata: MisStatementNodeMetadata[];
 }
 
@@ -163,10 +166,46 @@ export type StatementGroundingRefusalReason =
   | "plant-not-authorized"
   | "pinned-batch-gone"
   | "pinned-batch-invalid"
-  | "selection-mismatch";
+  | "selection-mismatch"
+  | "budget-subject-not-supported";
+
+export interface StatementRollupEntry {
+  plant: string;
+  costCentre: string;
+  glCode: string;
+  bucket: string;
+  mappingTarget: { kind: "leaf"; leafKey: string } | { kind: "bucket" };
+  provisional: boolean;
+  reason: string | null;
+}
+
+export interface StatementLeafExplanation {
+  nodeKey: string;
+  leafKey: string;
+  block: MisStatementMeasureBlock["key"];
+  budgetState: "loaded" | "not-loaded";
+  rollup: StatementRollupEntry[];
+  transactions: {
+    lines: MisDrillLine[];
+    footer: MisDrillFooter;
+    totalCount: number;
+    pageSize: 20;
+  };
+}
 
 export type StatementGroundingResponse =
-  | { outcome: "verified-but-unanswered"; batchStatuses: MisDrillBatchStatus[] }
+  | { outcome: "focus-required" }
+  | ({ outcome: "leaf" } & StatementLeafExplanation)
+  | ({ outcome: "replaced"; notice: string; replacedBatches: MisDrillBatchStatus[] } & StatementLeafExplanation)
+  | {
+      outcome: "aggregate";
+      nodeKey: string;
+      block: MisStatementMeasureBlock["key"];
+      budgetState: "loaded" | "not-loaded";
+      instruction: "project-descendants-from-attested-statement";
+    }
+  | { outcome: "gone"; batchStatuses: MisDrillBatchStatus[]; message: string }
+  | { outcome: "audit-failure"; message: string }
   | { outcome: "refused"; reason: StatementGroundingRefusalReason; batchStatuses?: MisDrillBatchStatus[] };
 
 export interface AskPriorTurn {

@@ -38,7 +38,7 @@ import { chooseChart } from "./chartChooser";
 import { classifyCausalQuestion, classifyReconciliationQuestion } from "./reconciliation-guard";
 import { classifySmalltalk } from "./smalltalk-guard";
 import { parseTimeWindow } from "./timeWindowParse";
-import { StatementGroundingService } from "./statement-grounding.service";
+import { StatementExplanationService } from "./statement-explanation.service";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -63,7 +63,7 @@ export class ChatService {
     private readonly help: HelpService,
     private readonly selectionResolver: SelectionResolverService,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
-    private readonly statementGrounding: StatementGroundingService,
+    private readonly statementExplanation: StatementExplanationService,
   ) {}
 
   async ask(
@@ -112,15 +112,29 @@ export class ChatService {
       return done({ responseClass: ResponseClass.BackendError, message: CHAT_MESSAGES.auditNotRecorded });
     }
     if (statementGrounding) {
-      const grounding = await this.statementGrounding.verify(user, statementGrounding);
-      return done({
-        responseClass: grounding.outcome === "refused" ? ResponseClass.BlockedByPolicy : ResponseClass.NotSupported,
-        message:
-          grounding.outcome === "refused"
-            ? "Statement grounding was refused."
-            : "Grounded explanation is not available yet.",
-        statementGrounding: grounding,
-      });
+      const explanation = await this.statementExplanation.explain(user, sessionId, question, statementGrounding);
+      if (explanation.kind === "causal") {
+        const causal = classifyCausalQuestion(question) ?? classifyCausalQuestion("why");
+        return done({ responseClass: ResponseClass.Informational, kind: "informational", ...causal! });
+      }
+      if (explanation.kind === "response") {
+        const grounding = explanation.response;
+        return done({
+          responseClass:
+            grounding.outcome === "leaf" || grounding.outcome === "replaced" || grounding.outcome === "aggregate"
+              ? ResponseClass.Success
+              : grounding.outcome === "audit-failure"
+                ? ResponseClass.BackendError
+                : ResponseClass.BlockedByPolicy,
+          message:
+            grounding.outcome === "focus-required"
+              ? "Click an Actual in the statement first."
+              : grounding.outcome === "audit-failure" || grounding.outcome === "gone"
+                ? grounding.message
+                : undefined,
+          statementGrounding: grounding,
+        });
+      }
     }
     onEvent?.({ type: "phase", phase: "routing" });
     const allowed = this.semantic.allowedFor(user.permissions);

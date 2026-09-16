@@ -32,6 +32,7 @@ import { StatementAttestationService, createStatementAttestationFromEnvironment 
     SelectionResolverService,
     StatementOutlineRepository,
     DrillTransactionsRepository,
+    MisDrillService,
   ],
 })
 export class MisModule {}
