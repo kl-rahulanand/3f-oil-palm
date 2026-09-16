@@ -1,0 +1,12 @@
+{
+  "topic": "explain-grounding-and-attestation round-1 review fixes",
+  "lesson": "THREE fixes; the review scored security 1, performance 3, quality 4 with ten blocking findings. (1) SECURITY P1, raised by all three lenses - statement-grounding.service.ts:62 validates a pinned batch by id, source and period only, while DrillBatch carries isActive and the fixtures deliberately populate it, so a batch that is no longer active passes verification. Do NOT simply 'reject inactive': that would contradict accepted decision 0025, which requires a REPLACED-but-still-present batch to be read and reported and refuses only a GONE one. CLASSIFY instead: not found => gone => typed refusal now; present but not active => replaced => NOT a grounding refusal, carry the classification forward for task 2 to report; present and active => active. Ignoring isActive is the defect, because it makes the three indistinguishable. (2) SECURITY P1 - mis-statement.service.ts:66 still silently constructs a StatementAttestationService from the environment when a caller omits the dependency. That is exactly the 'no development fallback' the contract forbids: it is a path on which an unverified or self-issued context can exist. Delete it and make the dependency required; the module owns construction. (3) SECURITY P1 and performance - chat.service.ts:64 keeps StatementGroundingService optional with an unreachable 'grounding unavailable' branch, purely for callers using the old constructor shape. ChatModule always registers it, so make it required and delete the branch. (4) QUALITY - chat.schemas.ts:37 leaves node and block optional and the pairwise refinement accepts a request where BOTH are absent, so grounding can arrive with no subject at all; require them together. Update the affected fixtures rather than keeping shim constructors, and add a leaf for the inactive/gone batch classification and one for the both-absent schema case.",
+  "source": ".factory/stories/mis-assistant-explains-a-number/tasks/explain-grounding-and-attestation/reviews/security.json",
+  "applies_to": [
+    "backend/src/chat/**",
+    "backend/src/mis/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T02:31:07+00:00"
+}

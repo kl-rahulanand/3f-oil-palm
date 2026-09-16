@@ -63,7 +63,7 @@ export class ChatService {
     private readonly help: HelpService,
     private readonly selectionResolver: SelectionResolverService,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
-    private readonly statementGrounding?: StatementGroundingService,
+    private readonly statementGrounding: StatementGroundingService,
   ) {}
 
   async ask(
@@ -112,9 +112,6 @@ export class ChatService {
       return done({ responseClass: ResponseClass.BackendError, message: CHAT_MESSAGES.auditNotRecorded });
     }
     if (statementGrounding) {
-      if (!this.statementGrounding) {
-        return done({ responseClass: ResponseClass.BackendError, message: "Statement grounding is unavailable." });
-      }
       const grounding = await this.statementGrounding.verify(user, statementGrounding);
       return done({
         responseClass: grounding.outcome === "refused" ? ResponseClass.BlockedByPolicy : ResponseClass.NotSupported,

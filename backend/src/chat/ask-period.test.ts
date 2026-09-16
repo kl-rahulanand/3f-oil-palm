@@ -230,6 +230,7 @@ function makeFixture(selection: Selection, periods: string[], activeBatchIds: Pr
     {} as never,
     new SelectionResolverService(new PeriodWarehouse(periods)),
     llm,
+    {} as never,
   );
   return { service, llm, executor };
 }

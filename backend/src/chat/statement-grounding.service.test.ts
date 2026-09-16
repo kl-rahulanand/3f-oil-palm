@@ -65,9 +65,38 @@ test("a plant outside the users current grants is refused and a pinned batch tha
     outcome: "refused",
     reason: "plant-not-authorized",
   });
-  assert.deepEqual(await fixture({ batches: [] }).verify(user, grounding), {
+  const response = await fixture({ batches: [], activeBatches: [] }).verify(user, grounding);
+  assert.deepEqual(response, {
     outcome: "refused",
-    reason: "pinned-batch-invalid",
+    reason: "pinned-batch-gone",
+    batchStatuses: pins.map((pin) => ({
+      source: pin.source,
+      period: pin.period,
+      requestedBatchId: pin.batchId,
+      status: "gone",
+      activeBatchId: null,
+    })),
+  });
+});
+
+test("inactive pinned batches are classified as replaced and carried forward", async () => {
+  const replacement = {
+    ...pins[0],
+    batchId: "00000000-0000-0000-0000-000000000003",
+    isActive: true,
+  };
+  const response = await fixture({
+    batches: pins.map((pin, index) => ({ ...pin, isActive: index !== 0 })),
+    activeBatches: [replacement, { ...pins[1], isActive: true }],
+  }).verify(user, grounding);
+
+  assert.equal(response.outcome, "verified-but-unanswered");
+  assert.deepEqual(response.batchStatuses[0], {
+    source: "actuals",
+    period: "2026-07-01",
+    requestedBatchId: pins[0].batchId,
+    status: "replaced",
+    activeBatchId: replacement.batchId,
   });
 });
 
@@ -115,10 +144,10 @@ test("a verified grounded request does not fall through into the llm path", asyn
 
   assert.equal(llmCalls, 0);
   assert.equal(response.responseClass, ResponseClass.NotSupported);
-  assert.deepEqual(response.statementGrounding, { outcome: "verified-but-unanswered" });
+  assert.equal(response.statementGrounding?.outcome, "verified-but-unanswered");
 });
 
-function fixture(options: { batches?: DrillBatch[] } = {}): StatementGroundingService {
+function fixture(options: { batches?: DrillBatch[]; activeBatches?: DrillBatch[] } = {}): StatementGroundingService {
   return new StatementGroundingService(
     attestation,
     new Resolver(),
@@ -128,6 +157,7 @@ function fixture(options: { batches?: DrillBatch[] } = {}): StatementGroundingSe
     } as IPinnedStatementOutlineRepository,
     {
       findBatchesByIds: async () => options.batches ?? pins.map((pin) => ({ ...pin, isActive: true })),
+      findActiveBatches: async () => options.activeBatches ?? pins.map((pin) => ({ ...pin, isActive: true })),
     } as unknown as IDrillTransactionsRepository,
   );
 }

@@ -1,4 +1,36 @@
-# Branch-wide plan-contract review brief
+# Review brief — explain-grounding-and-attestation — quality lens
+
+You are one lens of a three-lens code review. You see ONLY the diff bundle for
+this task (no repository access), so judge what the diff shows and say so when
+something cannot be verified from it. Report every finding with its
+file_path and line. Use ONLY these categories: bug, security, regression,
+test_gap, maintainability. Priorities: P0/P1 block the task; P2/P3 must be
+resolved or explicitly deferred with a reason before it ships.
+
+LENS: QUALITY. Correctness, regressions, gaps in the implementer's tests,
+API/contract drift, and maintainability. Check approved-deliverable presence and
+reachability FIRST: every deliverable a plan contract, acceptance criterion, or
+the reviewer focus names must be genuinely implemented AND reachable (registered,
+invoked — not merely defined in a file nothing imports); an absent or unreachable
+deliverable is a blocking finding even when the rest is clean. Flag
+single-responsibility violations and incoherent file/folder organisation against
+the reviewer focus (never a mandated layout). Structure-for-growth in shared
+infrastructure is NOT over-engineering; reserve that finding for speculative
+abstraction. Enforce the minimal-diff discipline (a new dependency where the
+stdlib suffices, reimplementing an existing helper, sprawl where a surgical
+change would do) — but a diff that drops validation, error handling, security, or
+accessibility to look smaller is the OPPOSITE finding. The constitution's coding
+standards are law: flag deviations you can see in the diff. Assess cyclomatic
+complexity of every changed function; genuinely knotted control flow (roughly
+>10 independent paths) is blocking and must name its decomposition.
+
+LEFTOVERS (blocking): the diff must carry no code kept only for compatibility — no wrapper or shim over its replacement, no re-export or alias kept 'for callers', no renamed-but-retained symbol, no dead branch behind a removed feature, no 'legacy'/'deprecated'/'backward' naming or comment. Report each as a BLOCKING finding with file:line and verdict the contract it belongs to as partial; a clean diff says so in one line.
+CONTRACT VERDICTS (mandatory, machine-parsed). In overall_explanation, emit ONE
+line per plan contract listed under "Plan contracts" below, exactly in this form:
+
+VERDICT <contract-id>: implemented|partial|missing — <file:line evidence>
+
+Every listed contract must get a line. Do not rename contract ids.
 
 For each contract, emit a verdict — implemented | partial | missing — with file:line evidence, recorded as contract_verdicts in the quality artifact. Then review the diff normally; the contract check does not replace the quality/performance/security lenses.
 
@@ -132,47 +164,3 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 - [high] node_modules is materialised in explain-grounding-and-attestation: node_modules is fully installed in THIS worktree as of 2026-09-16: the orchestrator ran 'npm ci --offline --cache /Users/caw-dev-m4-5/.npm' from the host BEFORE delegating, because forge task start always cuts a fresh worktree without node_modules and the sandbox can neither reach the registry nor read the host cache. No product file changed - node_modules is gitignored. Run the verify commands directly and do NOT attempt npm install, npm ci or any --offline retry; those fail in the sandbox and are not yours to fix. If a package is genuinely missing, raise a signal naming it.
 - [high] explain-grounding-and-attestation: chat.controller.ts and mis.module.ts are in scope: RULING on signal S-0019-701b, already applied to the recorded contract: backend/src/chat/chat.controller.ts AND backend/src/mis/mis.module.ts are now in this task's write_scope. The controller is what forwards parsed request fields to ChatService on BOTH the buffered and the streamed path (chat.controller.ts:37-40 and :76-77), so forward statementGrounding on both - the server-side verification this task exists to build is unreachable otherwise, and the streamed path must not be forgotten. mis.module.ts is included because a Nest provider must be registered in the module that supplies it and the attestation provider has nowhere else to live. Nothing else is authorized: do NOT change classification, do NOT answer a grounded question, and do NOT reach the LLM path - a verified grounded request returns the verified-but-unanswered outcome that task 2 replaces, and a required leaf asserts exactly that. The scope was extended rather than escalated because both files are mechanically implied by the recorded criteria.
 - [high] attestation env var names and delimiter: RULING on S-0020-199d, taken from the repo's own conventions rather than invented: the signing keys are STATEMENT_ATTESTATION_SECRETS, ';'-separated (config.ts:98 already uses ';' for SEED_USERS, and AUTH_JWT_SECRET is the secret naming precedent). The FIRST key signs and ANY listed key verifies, so rotation does not invalidate live statements. Entries are trimmed and an empty or whitespace-only entry THROWS rather than being filtered out - silently skipping one could leave the list empty and yield an unsigned context, which is the exact failure this task exists to prevent. TTL is STATEMENT_ATTESTATION_TTL_MINUTES, default 30, bounded 1..240 inclusive, out-of-range throws. Read BOTH where the attestation provider is CONSTRUCTED, never inside loadConfig(), because loadConfig() runs throughout the backend and every existing hermetic leaf would fail for want of a secret; hermetic tests supply a fixture secret explicitly.
-
-## Task explain-the-number
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-Governed by **0038** (this story's scope), **0037** (which named it), **0024** (aggregate is a
-client projection), **0025** (pinned-batch raw read and the replaced/gone rule), **0027** (what may
-reach Bedrock), **0034**/**0036** (budget owner and all-plants), **0017**/**0022** (governed
-projection and the composite-key seam), **0021** (the outline snapshot). All active decisions are
-attested in the front matter.
-
-## Task explain-on-screen
-
-### Plan contracts
-
-- None declared.
-
-### Reviewer focus
-
-No task-specific reviewer focus declared.
-
-### Settled — do not relitigate
-
-The following are accepted: the story plan's decisions and rulings, and the contracts of tasks already sealed in this story. A finding that contradicts one is a proposal to change a decision, which belongs in a decision record, not in this review; do not raise it as a defect. Rejected findings from earlier rounds are ledgered as lessons below.
-
-#### Story plan — Decisions
-
-Governed by **0038** (this story's scope), **0037** (which named it), **0024** (aggregate is a
-client projection), **0025** (pinned-batch raw read and the replaced/gone rule), **0027** (what may
-reach Bedrock), **0034**/**0036** (budget owner and all-plants), **0017**/**0022** (governed
-projection and the composite-key seam), **0021** (the outline snapshot). All active decisions are
-attested in the front matter.

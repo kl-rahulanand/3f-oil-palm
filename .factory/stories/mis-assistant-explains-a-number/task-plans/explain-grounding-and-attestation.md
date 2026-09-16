@@ -143,13 +143,17 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 **Write scope** (what `stage done` measures the diff against)
 
 - backend/package.json
+- backend/src/chat/ask-period.test.ts
+- backend/src/chat/chat.controller.test.ts
 - backend/src/chat/chat.controller.ts
 - backend/src/chat/chat.module.ts
 - backend/src/chat/chat.schemas.test.ts
 - backend/src/chat/chat.schemas.ts
+- backend/src/chat/chat.service.test.ts
 - backend/src/chat/chat.service.ts
 - backend/src/chat/statement-grounding.service.test.ts
 - backend/src/chat/statement-grounding.service.ts
+- backend/src/mis/mis-statement.controller.test.ts
 - backend/src/mis/mis-statement.controller.ts
 - backend/src/mis/mis-statement.dto.ts
 - backend/src/mis/mis-statement.service.test.ts
@@ -157,6 +161,7 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - backend/src/mis/mis.module.ts
 - backend/src/mis/statement-attestation.test.ts
 - backend/src/mis/statement-attestation.ts
+- backend/src/warehouse/all-plants-reconciliation.db.test.ts
 - backend/src/warehouse/statement-outline.interface.ts
 - contract/src/api.ts
 - tools/quality-gate.test.mjs
@@ -180,5 +185,5 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 - `python3 factory/scripts/verify.py`
 
-**Review budget.** 18 files / 1000 lines -- A signed attestation module with its own leaves, two additive statement fields and their DTO/Swagger, the outline lookup exposed to chat, the chat schema extension, and a grounding service that produces typed refusals. No UI and no explanation logic. Scope extended mid-stage for two MECHANICALLY IMPLIED files (signal S-0019-701b): backend/src/chat/chat.controller.ts, because it is what forwards parsed request fields to ChatService on BOTH the buffered and streamed paths (chat.controller.ts:37-40 and :76-77) - without it the server-side verification this task exists to build is unreachable; and backend/src/mis/mis.module.ts, because a Nest provider must be registered in the module that supplies it and the new attestation provider has nowhere else to live. Neither adds behaviour beyond the recorded criteria.
+**Review budget.** 24 files / 1300 lines -- A signed attestation module with its own leaves, two additive statement fields and their DTO/Swagger, the outline lookup exposed to chat, the chat schema extension, and a grounding service that produces typed refusals. No UI and no explanation logic. Scope extended mid-stage for two MECHANICALLY IMPLIED files (signal S-0019-701b): backend/src/chat/chat.controller.ts, because it is what forwards parsed request fields to ChatService on BOTH the buffered and streamed paths (chat.controller.ts:37-40 and :76-77) - without it the server-side verification this task exists to build is unreachable; and backend/src/mis/mis.module.ts, because a Nest provider must be registered in the module that supplies it and the new attestation provider has nowhere else to live. Neither adds behaviour beyond the recorded criteria. Scope extended again mid-stage (signal S-0021-e132) for five MECHANICALLY IMPLIED fixture files. The review's binding P1 ruling is to delete the compatibility constructor defaults on ChatService and MisStatementService; every file that constructs those services DIRECTLY must therefore pass the new dependency or it will not compile. `grep -rln 'new ChatService(|new MisStatementService(' backend/src` names exactly these: ask-period.test.ts, chat.controller.test.ts, chat.service.test.ts, mis-statement.controller.test.ts and all-plants-reconciliation.db.test.ts (the last is a DB-gated leaf, skipped in the hermetic run but still type-checked). The budget rises with them because the ceiling is measured on the finished diff, and these are constructor-argument edits rather than new behaviour.
 <!-- /forge:contract -->

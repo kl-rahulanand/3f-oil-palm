@@ -147,8 +147,8 @@ export interface AskStatementGrounding {
   attestedContext: string;
   department: string;
   function: string;
-  nodeKey?: string;
-  block?: string;
+  nodeKey: string;
+  block: string;
   nodeMetadata: MisStatementNodeMetadata[];
 }
 
@@ -161,11 +161,13 @@ export type StatementGroundingRefusalReason =
   | "node-not-in-outline"
   | "block-not-in-outline"
   | "plant-not-authorized"
+  | "pinned-batch-gone"
   | "pinned-batch-invalid"
   | "selection-mismatch";
 
 export type StatementGroundingResponse =
-  { outcome: "verified-but-unanswered" } | { outcome: "refused"; reason: StatementGroundingRefusalReason };
+  | { outcome: "verified-but-unanswered"; batchStatuses: MisDrillBatchStatus[] }
+  | { outcome: "refused"; reason: StatementGroundingRefusalReason; batchStatuses?: MisDrillBatchStatus[] };
 
 export interface AskPriorTurn {
   question: string;

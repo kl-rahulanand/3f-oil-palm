@@ -292,6 +292,7 @@ function makeFixture(options: {
     help as never,
     new FakeSelectionResolver() as never,
     llm,
+    {} as never,
   );
   return { service, llm, executor, audit, dimensions, help };
 }

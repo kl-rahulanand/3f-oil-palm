@@ -37,8 +37,8 @@ const statementGroundingSchema = z
     attestedContext: z.string().min(3),
     department: z.string().min(1),
     function: z.string().min(1),
-    nodeKey: z.string().min(1).optional(),
-    block: z.string().min(1).optional(),
+    nodeKey: z.string().min(1),
+    block: z.string().min(1),
     nodeMetadata: z.array(
       z
         .object({
@@ -49,10 +49,7 @@ const statementGroundingSchema = z
         .strict(),
     ),
   })
-  .strict()
-  .refine((value) => Boolean(value.nodeKey) === Boolean(value.block), {
-    message: "nodeKey and block must be supplied together",
-  });
+  .strict();
 
 export const askSchema = z
   .object({

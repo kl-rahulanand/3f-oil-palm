@@ -1,0 +1,118 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "explain-grounding-and-attestation",
+  "score": 4,
+  "summary": "quality lens over explain-grounding-and-attestation (16 product path(s), 6fa3a6d..5d37131, Codex via the autoreview skill at --max-priority P2): 2 blocking, 0 non-blocking. The attestation construction, rotation, response projection, and no-LLM outcome are largely present, but two verification-boundary gaps allow an incomplete or stale grounded request to be accepted.\nVERDICT t-ega-c1: implemented \u2014 backend/src/mis/statement-attestation.ts:50\nVERDICT t-ega-c2: implemented \u2014 backend/src/mis/mis-statement.service.ts:131\nVERDICT t-ega-c3: implemented \u2014 backend/src/mis/statement-attestation.ts:107\nVERDICT t-ega-c4: implemented \u2014 backend/src/mis/mis-statement.service.ts:409\nVERDICT t-ega-c5: implemented \u2014 backend/src/mis/mis-statement.service.ts:147\nVERDICT t-ega-c6: partial \u2014 backend/src/chat/chat.schemas.ts:37 permits omission of the required node and block\nVERDICT t-ega-c7: partial \u2014 backend/src/chat/statement-grounding.service.ts:78 re-reads and digests the outline, but membership checks are conditional on optional fields\nVERDICT t-ega-c8: partial \u2014 backend/src/chat/statement-grounding.service.ts:61 accepts inactive or replaced pinned batches\nVERDICT t-ega-c9: implemented \u2014 backend/src/chat/chat.service.ts:112\nVERDICT t-ega-c10: implemented \u2014 backend/src/mis/mis-statement.dto.ts:266\nVERDICT t-ega-c11: implemented \u2014 tools/quality-gate.test.mjs:23\nLEFTOVERS: no compatibility-only wrapper, alias, re-export, or legacy branch is shown.",
+  "blocking_findings": [
+    {
+      "category": "security",
+      "area": "backend/src/chat",
+      "summary": "Require node and block before accepting statement grounding (backend/src/chat/chat.schemas.ts:37): Both fields are optional, and the pairwise refinement also accepts requests where both are absent."
+    },
+    {
+      "category": "security",
+      "area": "backend/src/chat",
+      "summary": "Reject pinned batches that are no longer active (backend/src/chat/statement-grounding.service.ts:61): The batch check validates only ID, source, and period."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
+      "summary": "t-ega-c6: AskRequest gains statementGrounding carrying the attested context, the UNSIGNED node and block, and the client's department and function as verified context. chat.schemas.ts is .strict(), so it is extended deliberately and a leaf proves an unknown key is still rejected."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
+      "summary": "t-ega-c7: Node and block membership is checked by RE-READING the pinned outline and comparing its digest to the signed claim before testing membership - a digest alone cannot answer whether a node belongs to the outline. The outline lookup is exposed to ChatModule for this, since chat has no outline repository today."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
+      "summary": "t-ega-c8: The server re-derives everything and trusts nothing from the client, producing a TYPED REFUSAL - never a silent substitution and never an ordinary 'no mapping' answer - for each of: an invalid signature, an expired context, a context whose user id is not the caller, a node or block absent from the attested outline, a plant outside the user's CURRENT grants, a pinned batch that does not validate, and a department or function disagreeing with the master's selection for that plant."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/chat/chat.controller.ts",
+    "backend/src/chat/chat.module.ts",
+    "backend/src/chat/chat.schemas.test.ts",
+    "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/statement-grounding.service.test.ts",
+    "backend/src/chat/statement-grounding.service.ts",
+    "backend/src/mis/mis-statement.dto.ts",
+    "backend/src/mis/mis-statement.service.test.ts",
+    "backend/src/mis/mis-statement.service.ts",
+    "backend/src/mis/mis.module.ts",
+    "backend/src/mis/statement-attestation.test.ts",
+    "backend/src/mis/statement-attestation.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-ega-c1",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/statement-attestation.ts:50"
+    },
+    {
+      "contract_id": "t-ega-c2",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.service.ts:131"
+    },
+    {
+      "contract_id": "t-ega-c3",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/statement-attestation.ts:107"
+    },
+    {
+      "contract_id": "t-ega-c4",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.service.ts:409"
+    },
+    {
+      "contract_id": "t-ega-c5",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.service.ts:147"
+    },
+    {
+      "contract_id": "t-ega-c6",
+      "verdict": "partial",
+      "evidence": "backend/src/chat/chat.schemas.ts:37 permits omission of the required node and block"
+    },
+    {
+      "contract_id": "t-ega-c7",
+      "verdict": "partial",
+      "evidence": "backend/src/chat/statement-grounding.service.ts:78 re-reads and digests the outline, but membership checks are conditional on optional fields"
+    },
+    {
+      "contract_id": "t-ega-c8",
+      "verdict": "partial",
+      "evidence": "backend/src/chat/statement-grounding.service.ts:61 accepts inactive or replaced pinned batches"
+    },
+    {
+      "contract_id": "t-ega-c9",
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/chat.service.ts:112"
+    },
+    {
+      "contract_id": "t-ega-c10",
+      "verdict": "implemented",
+      "evidence": "backend/src/mis/mis-statement.dto.ts:266"
+    },
+    {
+      "contract_id": "t-ega-c11",
+      "verdict": "implemented",
+      "evidence": "tools/quality-gate.test.mjs:23"
+    }
+  ],
+  "aspect": "quality",
+  "review_run_id": "d63b6b78a442eb913798fe76042073e482d1a12a41c8cf463460b89a7ddc0b87",
+  "brief_sha256": "7655df92be0e8a675b658cb44f2d514fbe82ec3c5fcb1b53ede0b9fe5541a45d",
+  "branch_diff_digest": "f22e748fbe4bc29cc5a5a5ce0b23ff3cc974fc1fc6bc06882a073bb33b50beee",
+  "residual_risks": [],
+  "recorded_at": "2026-09-16T02:30:25+00:00",
+  "commit": "5d371314ca6d3a7088b1f0bb9d502b4d4dbbf942"
+}

@@ -37,6 +37,31 @@ test("the strict chat schema accepts statementGrounding and still rejects an unk
   );
 });
 
+test("statement grounding requires both a node and block", () => {
+  const statementGrounding = {
+    attestedContext: "claims.signature",
+    department: "Agriculture",
+    function: "Nursery",
+    nodeMetadata: [{ nodeKey: "leaf", glCodes: ["5001"], costCentres: ["Primary"] }],
+  };
+
+  assert.equal(askSchema.safeParse({ question: "How is this built?", statementGrounding }).success, false);
+  assert.equal(
+    askSchema.safeParse({
+      question: "How is this built?",
+      statementGrounding: { ...statementGrounding, nodeKey: "leaf" },
+    }).success,
+    false,
+  );
+  assert.equal(
+    askSchema.safeParse({
+      question: "How is this built?",
+      statementGrounding: { ...statementGrounding, block: "selected" },
+    }).success,
+    false,
+  );
+});
+
 const selection: Selection = {
   domain: "governed-financial",
   measureIds: ["governed-financial.actual"],

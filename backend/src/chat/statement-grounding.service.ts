@@ -2,6 +2,8 @@ import { Inject, Injectable } from "@nestjs/common";
 import type {
   AskStatementGrounding,
   AuthUser,
+  MisDrillBatchStatus,
+  ProvenanceBatch,
   StatementGroundingRefusalReason,
   StatementGroundingResponse,
 } from "@3f/contract";
@@ -9,7 +11,7 @@ import { MAPPING_MASTER } from "../mapping/mapping-master";
 import type { ISelectionResolverService, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { SelectionResolverService } from "../mapping/selection-resolver.service";
 import { StatementAttestationService } from "../mis/statement-attestation";
-import type { IDrillTransactionsRepository } from "../warehouse/drill-transactions.interface";
+import type { DrillBatch, IDrillTransactionsRepository } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import type { IPinnedStatementOutlineRepository } from "../warehouse/statement-outline.interface";
 import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
@@ -54,13 +56,23 @@ export class StatementGroundingService {
     }
 
     const uniqueIds = new Set(claims.pinnedBatches.map(({ batchId }) => batchId));
-    const found = await this.batches.findBatchesByIds([...uniqueIds]);
+    if (uniqueIds.size !== claims.pinnedBatches.length) return refused("pinned-batch-invalid");
+    const [found, active] = await Promise.all([
+      this.batches.findBatchesByIds([...uniqueIds]),
+      this.batches.findActiveBatches(claims.pinnedBatches),
+    ]);
     const foundById = new Map(found.map((batch) => [batch.batchId, batch]));
+    const activeByPeriod = new Map(active.map((batch) => [`${batch.source}\0${batch.period}`, batch]));
+    const batchStatuses = claims.pinnedBatches.map((pin) =>
+      batchStatus(pin, foundById.get(pin.batchId), activeByPeriod),
+    );
+    if (batchStatuses.some(({ status }) => status === "gone")) {
+      return refused("pinned-batch-gone", batchStatuses);
+    }
     if (
-      uniqueIds.size !== claims.pinnedBatches.length ||
       claims.pinnedBatches.some((pin) => {
-        const batch = foundById.get(pin.batchId);
-        return !batch || batch.source !== pin.source || batch.period !== pin.period;
+        const batch = foundById.get(pin.batchId)!;
+        return batch.source !== pin.source || batch.period !== pin.period;
       })
     ) {
       return refused("pinned-batch-invalid");
@@ -73,11 +85,11 @@ export class StatementGroundingService {
     const outline = await this.outlines.findByBudgetBatchId(budgetPins[0].batchId);
     const blocks = statementBlocks(resolution);
     if (this.attestation.outlineDigest(outline, blocks) !== claims.outlineDigest) return refused("outline-mismatch");
-    if (grounding.nodeKey && !outline.some(({ nodeKey }) => nodeKey === grounding.nodeKey)) {
+    if (!outline.some(({ nodeKey }) => nodeKey === grounding.nodeKey)) {
       return refused("node-not-in-outline");
     }
-    if (grounding.block && !blocks.includes(grounding.block)) return refused("block-not-in-outline");
-    return { outcome: "verified-but-unanswered" };
+    if (!blocks.includes(grounding.block)) return refused("block-not-in-outline");
+    return { outcome: "verified-but-unanswered", batchStatuses };
   }
 }
 
@@ -92,6 +104,24 @@ function plantScope(user: AuthUser): string[] {
   return user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
 }
 
-function refused(reason: StatementGroundingRefusalReason): StatementGroundingResponse {
-  return { outcome: "refused", reason };
+function batchStatus(
+  pin: ProvenanceBatch,
+  found: DrillBatch | undefined,
+  activeByPeriod: Map<string, DrillBatch>,
+): MisDrillBatchStatus {
+  const active = activeByPeriod.get(`${pin.source}\0${pin.period}`);
+  return {
+    source: pin.source,
+    period: pin.period,
+    requestedBatchId: pin.batchId,
+    status: !found ? "gone" : found.isActive || active?.batchId === pin.batchId ? "current" : "replaced",
+    activeBatchId: active?.batchId ?? (found?.isActive ? found.batchId : null),
+  };
+}
+
+function refused(
+  reason: StatementGroundingRefusalReason,
+  batchStatuses?: MisDrillBatchStatus[],
+): StatementGroundingResponse {
+  return { outcome: "refused", reason, ...(batchStatuses ? { batchStatuses } : {}) };
 }

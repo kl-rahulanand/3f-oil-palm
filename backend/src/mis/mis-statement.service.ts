@@ -26,7 +26,7 @@ import type {
   MisStatementBlockDefinition,
 } from "./mis-statement.interface";
 import { misStatementResponseSchema } from "./mis-statement.dto";
-import { StatementAttestationService, createStatementAttestationFromEnvironment } from "./statement-attestation";
+import { StatementAttestationService } from "./statement-attestation";
 
 const FY_START = "2026-04-01";
 const MEASURE_IDS = [
@@ -63,7 +63,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
     private readonly semantic: SemanticLayer,
     private readonly executor: SelectionExecutor,
     @Inject(StatementOutlineRepository) private readonly outlines: IStatementOutlineRepository,
-    private readonly attestation: StatementAttestationService = createStatementAttestationFromEnvironment(),
+    private readonly attestation: StatementAttestationService,
   ) {}
 
   async run(user: AuthUser, request: MisStatementRunRequest): Promise<MisStatementRouteResponse> {
@@ -411,12 +411,17 @@ function buildNodeMetadata(
   outline: StatementOutlineNode[],
   resolution: MasterResolvedSelection,
 ): MisStatementNodeMetadata[] {
+  const leafTargets = new Map<string, NonNullable<MasterResolvedSelection["leafTargets"]>>();
+  for (const target of resolution.leafTargets ?? []) {
+    if (target.target.kind !== "leaf") continue;
+    const targets = leafTargets.get(target.target.leafKey) ?? [];
+    targets.push(target);
+    leafTargets.set(target.target.leafKey, targets);
+  }
   return outline
     .filter(({ leafKey }) => leafKey !== null)
     .map(({ nodeKey, leafKey }) => {
-      const targets = (resolution.leafTargets ?? []).filter(
-        ({ target }) => target.kind === "leaf" && target.leafKey === leafKey,
-      );
+      const targets = leafTargets.get(leafKey!) ?? [];
       return {
         nodeKey,
         glCodes: unique(targets.map(({ glCode }) => glCode)),

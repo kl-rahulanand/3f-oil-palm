@@ -10,6 +10,7 @@ import { MAPPING_MASTER } from "../mapping/mapping-master";
 import { SelectionResolverService } from "../mapping/selection-resolver.service";
 import { MisStatementExportService } from "../mis/mis-statement-export.service";
 import { MisStatementService } from "../mis/mis-statement.service";
+import { StatementAttestationService } from "../mis/statement-attestation";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
@@ -50,6 +51,7 @@ before(async () => {
     new SemanticLayer(),
     new SelectionExecutor(new SqlBuilder(), new SqlValidator(), warehouse),
     new StatementOutlineRepository(warehouse),
+    new StatementAttestationService(["test-secret"], 30),
   );
 });
 
