@@ -208,7 +208,13 @@
         "No SERVER-SOURCED transaction row, amount, batch identifier, measure value or result row reaches the model. A leaf asserts the PROVIDER PAYLOAD, not the rendered answer. The user's own question and prior-turn text may carry figures - the motivating question does - so the rule binds what the server read, never what the user typed.",
         "The union is schema'd and documented on BOTH the buffered and the streamed chat route (decision 0019); they are separate routes and must not drift. Hermetic leaves use a deterministic classifier and a FAKE provider, never Bedrock, and every new test file is registered in BOTH backend/package.json's test:hermetic allow-list AND tools/quality-gate.test.mjs.",
         "D-0052, whose trigger is this task: the leaf that proves the re-read outline digest check must exercise the MISMATCH path by returning a DIFFERENT outline than the one attested, because today it returns the same outline and varies only the node - so the comparison could be skipped entirely and the leaf would still pass. Bound the client-supplied nodeMetadata arrays and their strings in chat.schemas.ts as well, since that structure is sorted and hashed during verification.",
-        "D-0053, whose trigger is this task: read pinned-batch existence and the authoritative active-batch state in ONE query in statement-grounding.service.ts, so a stale row cannot be reconciled against an active-batch answer read at a different instant."
+        "D-0053, whose trigger is this task: read pinned-batch existence and the authoritative active-batch state in ONE query in statement-grounding.service.ts, so a stale row cannot be reconciled against an active-batch answer read at a different instant.",
+        "The wire carries an OPTIONAL typed focus instead of a required nodeKey/block pair: absent means the server returns focus-required, and present means { nodeKey, block, subject: 'actual' | 'budget' }. Task 1 made the pair REQUIRED, which makes both focus-required and the backend Budget refusal impossible - an unfocused request is rejected before the service ever runs, and without a subject a crafted Budget focus is indistinguishable from an Actual one. Only subject 'actual' reaches the read seam; 'budget' is a typed refusal.",
+        "REPLACED is its own outcome carrying the FULL leaf explanation - roll-up path, transaction page and exact footer - plus a notice naming the source and period that went stale, rather than a status flag on an otherwise-normal answer that a renderer can drop. It extends the statement-grounding union task 1 shipped; no parallel response channel is created.",
+        "A server-only VERIFIED-GROUNDING CONTEXT is produced from the single authoritative batch-state read and passed to the seam, carrying the server-derived resolution, scope, pins, range and focus. The drill controller uses the same seam's preparation path. A drill request is NEVER reconstructed from client fields, because that would either create a second inconsistent validation path or repeat the sensitive batch reads.",
+        "The row limit reaches the SQL: drill-transactions hard-codes LIMIT 100 and its interface takes no limit argument, so the assistant's 20 would be cosmetic without changing the interface, the repository and its test.",
+        "The typed roll-up payload carries the mapping target, the provisional flag and the reason, because leafTriples() drops them today - without those an unmapped-GL line cannot honestly be described as provisional, which criterion 8 requires.",
+        "Both chat routes carry a NAMED response DTO or schema for the union with a Swagger assertion - they have description-only responses today, and decision 0019 is not satisfied by a description."
       ],
       "plan_contracts": [
         {
@@ -275,31 +281,68 @@
           "id": "t-etn-c13",
           "statement": "D-0053, whose trigger is this task: read pinned-batch existence and the authoritative active-batch state in ONE query in statement-grounding.service.ts, so a stale row cannot be reconciled against an active-batch answer read at a different instant.",
           "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c14",
+          "statement": "The wire carries an OPTIONAL typed focus instead of a required nodeKey/block pair: absent means the server returns focus-required, and present means { nodeKey, block, subject: 'actual' | 'budget' }. Task 1 made the pair REQUIRED, which makes both focus-required and the backend Budget refusal impossible - an unfocused request is rejected before the service ever runs, and without a subject a crafted Budget focus is indistinguishable from an Actual one. Only subject 'actual' reaches the read seam; 'budget' is a typed refusal.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c15",
+          "statement": "REPLACED is its own outcome carrying the FULL leaf explanation - roll-up path, transaction page and exact footer - plus a notice naming the source and period that went stale, rather than a status flag on an otherwise-normal answer that a renderer can drop. It extends the statement-grounding union task 1 shipped; no parallel response channel is created.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c16",
+          "statement": "A server-only VERIFIED-GROUNDING CONTEXT is produced from the single authoritative batch-state read and passed to the seam, carrying the server-derived resolution, scope, pins, range and focus. The drill controller uses the same seam's preparation path. A drill request is NEVER reconstructed from client fields, because that would either create a second inconsistent validation path or repeat the sensitive batch reads.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c17",
+          "statement": "The row limit reaches the SQL: drill-transactions hard-codes LIMIT 100 and its interface takes no limit argument, so the assistant's 20 would be cosmetic without changing the interface, the repository and its test.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c18",
+          "statement": "The typed roll-up payload carries the mapping target, the provisional flag and the reason, because leafTriples() drops them today - without those an unmapped-GL line cannot honestly be described as provisional, which criterion 8 requires.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c19",
+          "statement": "Both chat routes carry a NAMED response DTO or schema for the union with a Swagger assertion - they have description-only responses today, and decision 0019 is not satisfied by a description.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
         }
       ],
       "write_scope": [
-        "contract/src/api.ts",
         "backend/package.json",
-        "tools/quality-gate.test.mjs",
         "backend/src/chat/chat.controller.ts",
-        "backend/src/chat/chat.schemas.ts",
-        "backend/src/chat/chat.schemas.test.ts",
-        "backend/src/chat/chat.service.ts",
-        "backend/src/chat/chat.service.test.ts",
-        "backend/src/chat/chat.sse.test.ts",
-        "backend/src/chat/reconciliation-guard.ts",
-        "backend/src/chat/reconciliation-guard.test.ts",
-        "backend/src/chat/statement-explanation.service.ts",
-        "backend/src/chat/statement-explanation.service.test.ts",
-        "backend/src/chat/statement-grounding.service.ts",
-        "backend/src/chat/statement-grounding.service.test.ts",
-        "backend/src/chat/statement-intent.ts",
-        "backend/src/chat/statement-intent.test.ts",
         "backend/src/chat/chat.module.ts",
+        "backend/src/chat/chat.schemas.test.ts",
+        "backend/src/chat/chat.schemas.ts",
+        "backend/src/chat/chat.service.test.ts",
+        "backend/src/chat/chat.service.ts",
+        "backend/src/chat/chat.sse.test.ts",
+        "backend/src/chat/reconciliation-guard.test.ts",
+        "backend/src/chat/reconciliation-guard.ts",
+        "backend/src/chat/statement-explanation.service.test.ts",
+        "backend/src/chat/statement-explanation.service.ts",
+        "backend/src/chat/statement-grounding.service.test.ts",
+        "backend/src/chat/statement-grounding.service.ts",
+        "backend/src/chat/statement-intent.test.ts",
+        "backend/src/chat/statement-intent.ts",
+        "backend/src/mis/mis-drill.controller.test.ts",
         "backend/src/mis/mis-drill.controller.ts",
-        "backend/src/mis/mis-drill.service.ts",
+        "backend/src/mis/mis-drill.interface.ts",
         "backend/src/mis/mis-drill.service.test.ts",
-        "backend/src/mis/mis.module.ts"
+        "backend/src/mis/mis-drill.service.ts",
+        "backend/src/mis/mis-statement.service.ts",
+        "backend/src/mis/mis.module.ts",
+        "backend/src/swagger.test.ts",
+        "backend/src/warehouse/drill-transactions.interface.ts",
+        "backend/src/warehouse/drill-transactions.repository.test.ts",
+        "backend/src/warehouse/drill-transactions.repository.ts",
+        "contract/src/api.ts",
+        "tools/quality-gate.test.mjs"
       ],
       "required_tests": [
         {
@@ -376,6 +419,51 @@
           "id": "pinned batch existence and the active batch are read in one query so a stale row cannot override the active one",
           "path": "backend/src/chat/statement-grounding.service.test.ts",
           "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a grounded data question falls through to the ungrounded path with no pin or budget promise attached",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a crafted budget subject is refused before the read seam is reached",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an absent focus returns focus required rather than being rejected by the schema",
+          "path": "backend/src/chat/chat.schemas.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the replaced outcome carries the full leaf explanation and a notice naming the source and period",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an unmapped gl line is described as provisional with its reason",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the audit record names the mapping master version",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the repository honours the supplied row limit so twenty reaches the sql and the drill keeps one hundred",
+          "path": "backend/src/warehouse/drill-transactions.repository.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the drill controller maps every typed seam outcome to its shipped response",
+          "path": "backend/src/mis/mis-drill.controller.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "both chat routes document the explanation union with a named schema",
+          "path": "backend/src/swagger.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
         }
       ],
       "verify_commands": [
@@ -393,9 +481,9 @@
         "New test files must be registered in BOTH backend/package.json and tools/quality-gate.test.mjs, or the gate fails or the leaf silently never runs."
       ],
       "review_budget": {
-        "max_changed_files": 22,
-        "max_changed_lines": 1400,
-        "reason": "A seam extraction with typed outcomes shared by two callers, a deterministic intent table, the explanation service, and the response union across two chat routes - plus D-0052 and D-0053, whose recorded trigger is this task and which open the same files. No UI. The largest of the three tasks, and the one where the governed-read protections live."
+        "max_changed_files": 30,
+        "max_changed_lines": 1900,
+        "reason": "A seam extraction with typed outcomes shared by two callers, a deterministic intent table, the explanation service, and the response union across two chat routes - plus D-0052 and D-0053, whose recorded trigger is this task and which open the same files. No UI. The largest of the three tasks, and the one where the governed-read protections live. Raised after the task grill: the limit must reach the SQL (the repository hard-codes LIMIT 100), the drill controller must map typed outcomes, the roll-up payload must carry provisional data leafTriples drops, and both chat routes need a named union schema - each pulling its own file and leaf. The ceiling is measured on the finished diff."
       }
     },
     {
@@ -420,5 +508,5 @@
     }
   ],
   "plan_sha256": "6be426e55d3f7fd6f9acf34d7d7c8b3581448cb763ed2bd8f1df5b7cd0334eb2",
-  "commit": "13a7f400258089adafcd51111b15671af76e9763"
+  "commit": "7c85354c451c70d949625c95ba58a6f94bfb9ed3"
 }
