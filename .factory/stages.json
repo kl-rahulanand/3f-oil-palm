@@ -1,15 +1,20 @@
 {
-  "issue": "ask-reopen-saved-report",
+  "issue": "mis-assistant-explains-a-number",
   "stages": [
     {
-      "id": "reopen-identity-and-policy",
-      "title": "Match a turn by its selection, and let the caller state the failure policy",
-      "status": "done"
+      "id": "explain-grounding-and-attestation",
+      "title": "Attest the statement, and let the dock ground a question against it",
+      "status": "pending"
     },
     {
-      "id": "reopen-navigation-and-scroll",
-      "title": "Navigate first, show it working, scroll to it",
-      "status": "done"
+      "id": "explain-the-number",
+      "title": "Answer a composition question about the focused figure",
+      "status": "pending"
+    },
+    {
+      "id": "explain-on-screen",
+      "title": "Click a figure, ask, and see the explanation",
+      "status": "pending"
     }
   ]
 }

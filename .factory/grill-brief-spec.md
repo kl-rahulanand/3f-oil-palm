@@ -1,4 +1,4 @@
-# Cold-read grill — gate: spec — spec ask-reopen-saved-report.md
+# Cold-read grill — gate: spec — spec mis-assistant-explains-a-number.md
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -431,123 +431,200 @@ These questions were put to the human and answered. Two obligations:
   A: Keep Pulse's email+OTP passwordless auth
 - Q: Sign-off gate — how do we unlock the build?
   A: Record an internal go-ahead now
-- Q: If someone asks "...for July 2026" and then switches the period control to August, the question on screen says July while the answer shows August. That's a visible contradiction in an audited transcript. How should it read?
-  A: Keep their words, label the answer (Recommended)
-- Q: The grill found that batch ids already travel in the API but the Ask panel never renders them — its provenance section shows only readback, measures, scope and freshness. My criterion says "provenance reports the batch ids". Should this story make them visible?
-  A: Out of scope — reword the criterion (Recommended)
-- Q: The grill found that /api/chat documents its request body and error statuses but has no typed response DTO — its 201 carries only a description. Decision 0019 makes typed response DTOs mandatory for fresh routes; decision 0012 time-bounds the vendored deviation to the PoC. This story adds two new fields to that response. Pay the debt down now, or keep it inside the recorded deviation?
-  A: Keep the deviation, log a deferral (Recommended)
-- Q: Which statement format should the office and mill plants use (H.O, AP-AGRI, AY-*, YG-*, C G, KA-RAM, NK, SK, VJM)? They book only Admin and Manpower cost centres.
-  A: Nursery format, all rows (Recommended)
-- Q: How should Department and Function be labelled for plants the client has not named? Nursery plants are clearly Agriculture / Nursery.
-  A: Provisional labels, flagged (Recommended)
-- Q: The active story is 'Recoverable periods in Ask' (planning, no plan yet). Where does the multi-plant story go?
-  A: Multi-plant first, period control after (Recommended)
-- Q: Task 1 needs a period-free mapping lookup on SelectionResolverService. chat.service.ts:56 injects the CONCRETE class, but ISelectionResolverService is the declared port and 6+ test fakes implement it. Where should the new method live?
-  A: Concrete class only, record the gap (Recommended)
-- Q: While a clicked period is being fetched, should the rest of Ask stay usable — i.e. can someone type a new question before the continuation comes back?
-  A: Lock the panel while it runs (Recommended)
-- Q: A clicked period can come back as something other than a data answer — for example another clarification, or an informational glossary reply. Which of those should take over the turn?
-  A: Only a successful answer (Recommended)
-- Q: Re-asking only because a stale pointer filed your last answers into another repo. While a clicked period is being fetched, should the rest of Ask stay usable?
-  A: Lock the panel while it runs (Recommended)
-- Q: If a clicked period fails (server refuses it, or the network drops), what should the user be left looking at?
-  A: Keep the buttons, show why (Recommended)
-- Q: A clicked period can come back as something other than a data answer — another clarification, or an informational glossary reply. Which should take over the turn?
-  A: Only a successful answer (Recommended)
-- Q: The grill found my "question stays exactly as typed" claim is already false: use-ask.ts:86 stores the TRIMMED input on the turn, so leading/trailing whitespace is dropped the moment anyone asks anything. What should the guarantee actually be?
-  A: Narrow the claim to what's true (Recommended)
-- Q: How should the multi-plant story be scoped?
-  A: Small plus the Ask plant fix
-- Q: Two decision records carry the reduced scope: 0033 (for the PoC the format's budget belongs to the plant the master names, DUB; non-owner plants get the not-loaded dash; plant-keyed budgets and the outline object are deferred until a second plant's budget arrives; supersedes 0030) and 0034 (a statement question takes its plant from the docked report's scope or from the question, department and function come from the master, otherwise a 'name a plant' message; the typed plant picker is deferred to ask-period-control; supersedes 0032). Accept both, confirmed by Rahul Anand?
-  A: Accept both (Recommended)
-- Q: Two decision records carry the two-task scope: 0035 (supersedes 0029; every SAP plant selectable on the nursery format with provisional labels, full mapping sheet per plant, DUB owns the nursery budget and every other plant shows a dash; the rest deferred with a trigger) and 0036 (supersedes 0034; the assistant is untouched in this story, so a user granted every plant gets 'not supported' for statement questions in Ask until the follow-up; a second DUB-only user is the demo workaround). Accept both, confirmed by Rahul Anand?
-  A: Accept both (Recommended)
+- Q: Decision 0029 (every SAP plant selectable on the nursery format, provisional labels, absent budget as a dash) must be accepted before the spec can be confirmed. It supersedes decision 0016's 'single plant DUB' join scope while restating its join key (GL code + month, now within each granted plant) and its deferred mapping-master clause. Accept it as written, confirmed by Rahul Anand?
+  A: Accept, confirmed by Rahul Anand (Recommended)
+- Q: FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)
+  A: Budget = loaded months, % = not loaded (Recommended)
+- Q: Conflict with shipped code. The period control's contract says a refused period switch KEEPS the previous answer — you chose that two stories ago, and it's proven by a passing test. This story says a refusal CLEARS it. Both go through the same `continueTurn`. How should that be resolved?
+  A: Clear only on saved-report reopens (Recommended)
+- Q: Which kinds of refusal should wipe the old numbers? A lost domain grant doesn't come back as `blocked_by_policy` — it returns `not_supported`. An expired login is an HTTP 401/403. Others are plainly not access problems.
+  A: Access-related only (Recommended)
+- Q: Your access-only clearing rule can't actually be implemented today. A revoked domain or measure grant returns `not_supported` (chat.service.ts:245) — but so do 'no mapping configured' and 'no periods loaded', which aren't access problems at all. The response carries only a class and a message, no reason code. How do you want to handle that?
+  A: Narrow it now, record the gap (Recommended)
+- Q: The grill is right that I've created a governance problem. Decision 0028 says plainly: "a revoked grant produces a refusal rather than a cached figure." D-0048 permits exactly that cached figure for a revoked domain or measure grant. A deferral can't override an accepted decision — so one of them has to give. Which?
+  A: Amend 0028 to record the limit (Recommended)
+- Q: When a reopen fails with a terminal 401/403, the session itself is gone — not just that one report. The contract currently says show the refusal on that turn and stop. Should it do more?
+  A: Show it on the turn, stay put (Recommended)
+- Q: When you reopen a pin whose answer is ALREADY visible on screen — say it's the last thing in the thread — should the panel still scroll to it?
+  A: Always scroll to it (Recommended)
+- Q: How should the user point at the number they're asking about?
+  A: Click the line first, then ask
+- Q: What should 'how did this calculation come to be' actually return?
+  A: Both transactions and roll-up path (Recommended)
+- Q: Decision 0035 (carried forward by 0037) says a statement question in Ask should resolve its plant from the question, which WOULD change /ask. You said /ask must stay exactly as today. Which wins?
+  A: /ask stays frozen; explanation only (Recommended)
+- Q: Your example was 'how is total 85000'. But every Actual is clickable including subtotals and Grand Total, while the transaction drill REFUSES anything that isn't a leaf line. What should clicking a total do?
+  A: Totals get roll-up path, leaves also get transactions (Recommended)
+- Q: Decision 0027 forbids transaction rows ever reaching Bedrock, so the answer must be composed server-side, not written by the model. How many rows should the chat answer itself carry?
+  A: Footer, counts, and first rows; drill for the rest (Recommended)
+- Q: With a number focused, should 'why is this so high?' still be declined the way it is today?
+  A: Yes — keep declining causal questions (Recommended)
 
-## The artifact under interrogation (spec ask-reopen-saved-report.md)
+## The artifact under interrogation (spec mis-assistant-explains-a-number.md)
 
 ---
-slug: ask-reopen-saved-report
-title: Reopening a saved report returns to its answer
+slug: mis-assistant-explains-a-number
+title: The on-screen assistant explains a number on the MIS statement
 status: draft
-saved: 2026-09-15T13:19:45+00:00
+saved: 2026-09-15T19:52:14+00:00
 ---
 
-# Reopening a saved report returns to its answer
+# The on-screen assistant explains a number on the MIS statement
 
 ## Why
 
-Opening a pinned report from the Dashboard appends a brand-new turn to the Ask thread every
-time, even when that exact report is already answered further up, and the panel does not move.
-Open the same pin five times and you get five identical answers; open it once on a long thread
-and it looks like nothing happened, because the answer lands below the fold.
+On the MIS Reports screen the docked assistant knows nothing about the report on screen.
+`AskPanel` accepts exactly two props - `surface` and `onCollapse` - and `ask()` posts
+`{ question }`. So asking "how is this 85000" while looking at Agriculture Nursery DUB for July
+2026 is byte-for-byte the same request as asking it on `/ask` with nothing on screen.
 
-Both halves are visible in the code. `pinned-reports.tsx:67` calls `rerun(...)`, which is
-`run(question, selection)` (`use-ask.ts:147`), and `use-ask.ts:86` appends unconditionally:
+Worse, the assistant actively refuses the question. `classifyCausalQuestion`
+(`backend/src/chat/reconciliation-guard.ts:31`) fires before any routing and answers:
 
-```ts
-setTurns((current) => [...current, { id: ..., question: trimmed, response }]);
-```
+> Causal analysis is not configured. I can't infer why a result is high or low.
 
-Nothing looks for an existing turn. And `grep` for `scrollIntoView` or `scrollTo` across
-`ask-panel.tsx` returns **nothing** - there is no scroll logic in the panel at all.
+That guard is **correct with no context** - it stops the model inventing causes. But it answers
+the wrong question. "How is this 85000" is not causal inference, it is **composition**: which
+amounts add up to this figure, and why do they land on this line. The product already computes
+both halves and already shows them to the same user through a different door:
 
-`saved-views.tsx:64` does the identical thing, so this is not a pins-only defect.
+- `POST /api/mis/statement/drill` returns every transaction behind a leaf - month, posting date,
+  debit, credit, value, reference, memo - plus a footer that foots exactly, and it is audited
+  under decision 0025. `statement-view.tsx:167` opens it when the user clicks an Actual.
+- The mapping master already determines which (plant, cost centre, GL) triples fold into each
+  statement leaf. That is how the number was built.
 
-**The obvious fix is wrong.** Matching an existing turn by its question text would collapse
-unrelated reports into one, because the text is not the question - it is
-`selectionLabel(selection).title`, which is only the measure names joined:
+This capability is not new analysis. It lets the user ask, in words, for an explanation the
+product already has, at the moment they are looking at the number.
 
-```ts
-title: measures.join(" · ")
-```
-
-A pin of Actual and Budget by GL code for July and a pin of Actual and Budget by month are both
-titled `Actual · Budget`. Identity has to come from the **selection**, never the title.
-
-The machinery to do this correctly already shipped. `continueTurn(turnId, question, selection)`
-(`use-ask.ts:97`) marks only its own turn pending, keeps the previous answer visible while it
-runs, attaches a typed refusal or a transport failure to that turn, and replaces **only** on
-success. It was built for the period control and is proven by six hermetic leaves.
+**This is the follow-up decision 0037 named.** 0037 left the assistant untouched by multi-plant
+and deferred `statementGrounding` to "the follow-up story". Decision 0038 scopes that follow-up
+to the grounded explanation only: `/ask` is frozen, and 0035's plant-from-the-question half stays
+deferred.
 
 ## Behaviour
 
-**Reopening a report that is already in the thread re-runs that turn in place.** The existing
-turn is found by comparing the stored `Selection`, not the displayed title. It is re-run through
-`continueTurn`, so the numbers are current - under decision 0028 a re-run re-authorizes and reads
-the currently active batches, and a saved report is a selection, never a snapshot.
+### The grounding
+The docked panel sends a typed `statementGrounding` carrying the rendered statement's
+**department, function, plant and period** - exactly the shape decision 0035 specified and 0038
+adopts - plus the **selected block** and, when the user has clicked one, the **focused node**
+(`nodeKey` and block) and the statement's **pinned batches**. The block is part of the subject
+because a July screen also carries a distinct FY-YTD block, so period alone cannot identify
+"this 85,000".
 
-**Opening a report that is not in the thread appends one turn, as today.**
+The server **re-derives everything**. It never trusts the client: department and function come
+from the master's selection for that plant, never from user scope; the plant is checked against
+the user's current grants on every ask; and the pins are validated before any read. A plant the
+user cannot see is refused, not answered.
 
-**Either way the panel scrolls that turn into view**, so the click always has a visible effect.
+### `/ask` is untouched
+`/ask` sends no grounding and behaves byte-for-byte as today, proven by its shipped leaves
+passing unmodified. Grounding is a branch the caller opts into - the same shape `continueTurn`'s
+caller-stated failure policy took in `ask-reopen-saved-report` - never a change to shared
+classification. Per 0037 and 0038, a user granted every plant still gets "not supported" for a
+statement question on `/ask`, while the same user gets a full answer from the docked assistant.
 
-**A failed reopen leaves the previous answer in place** with the failure shown against that turn,
-which is what `continueTurn` already does. Nothing is reimplemented here.
+### Click, then ask
+Focus is explicit. The user clicks an Actual - the affordance the statement already ships - and
+that node becomes the subject. Digits in the question are **never** used to choose a node, so
+there is no ambiguity when two lines share a value and no disambiguation prompt. Focus is owned
+by the report view, not by the drill modal, and is passed to both the drill panel and the
+assistant. It is **cleared** whenever the report scope, the block or the pinned batches change,
+because the subject no longer exists.
 
-**Pins and saved views behave identically**, because both call the same path today and both have
-the same defect.
+With no node focused, the assistant asks the user to click the line. Budget is never a subject,
+matching the statement's shipped footnote that Budget is not drillable.
+
+### What the answer contains
+**A total and a leaf are answered differently, because the drill refuses a non-leaf and decision
+0024 does not permit inventing an aggregate raw query.**
+
+- A **leaf** gets both halves: the roll-up path - which GL codes and cost centres the mapping
+  master folds into that leaf, through which bucket - then the transactions behind it.
+- A **total or subtotal** gets the roll-up path only: which lines compose it, and which GLs and
+  cost centres feed those lines. No raw rows, nothing refused.
+
+Transactions are bounded and honest about it: the answer always carries the **exact footer** and
+the **total row count**, shows the first rows inline, and offers the existing drill panel for
+full paging. It never truncates silently. If the footer does not foot to the figure on screen,
+that is a failure, not a rounding note.
+
+### The model never sees the numbers
+Decision 0027 forbids transaction rows, amounts, batch identifiers and result rows reaching
+Bedrock. The explanation is therefore **composed deterministically on the server** and rendered
+from a typed payload. The model's only role is classifying the question. No figure in the answer
+is ever model-generated.
+
+### Composition is answered; cause is not
+The boundary is explicit and testable, not "equivalents":
+
+- **Composition** - how a figure was built, what it contains, which GLs or lines feed it - is
+  answered.
+- **Causal** - why a figure is high or low, what caused a movement - is still declined, with
+  today's copy. Grounding must not become a back door that lets the model invent reasons, which
+  is exactly what `classifyCausalQuestion` exists to prevent.
+- An ordinary **data question** asked with a statement on screen is still answered as a data
+  question. Grounding narrows what a question may reach; it does not turn every question into an
+  explanation.
+
+### Freshness and staleness
+A grounded answer reads the **same pinned batches** the on-screen number came from, so the answer
+can never contradict the screen by quietly using fresher data. A replaced or missing batch is
+refused in **typed** terms that name which source and period went stale - not through the global
+HTTP error envelope, which flattens that detail into generic copy.
+
+The answer also names the **mapping-master version** it resolved against, so an explanation that
+was built under a different master than the on-screen figure is detectable rather than silently
+wrong. Cross-deployment master drift remains D-0038's deferral.
+
+### Plants and unmapped lines
+Every plant the user is granted is supported by the docked assistant. A plant that is not the
+budget owner carries decision 0034's **"Budget not loaded for this plant"** state, which is a
+normal, expected answer and must never be presented as a stale or missing batch. An
+`unmapped-GL` line is **provisional**, not an approved mapping path, and the explanation says so
+rather than implying the master blesses it.
 
 ## Acceptance criteria
 
-1. Opening a saved report whose `Selection` already has a turn re-runs **that** turn through
-   `continueTurn` and appends nothing; the thread length is unchanged.
-2. Turn identity is the `Selection`, never the displayed title. A test pins two reports that share
-   a `selectionLabel().title` but differ in dimensions or filters, opens both, and asserts two
-   distinct turns.
-3. Opening a report that is not in the thread appends exactly one turn.
-4. After opening - reused or new - the panel scrolls that turn into view.
-5. A reopen that fails or is refused leaves the previous answer in place with the failure against
-   that turn, and the thread length is unchanged.
-6. Pins and saved views are both covered; a leaf set that exercises only one leaves the other
-   unproven.
-7. Every criterion is proven by hermetic tests judged by the vitest discriminator - the testcase
-   present AND NOT skipped AND NOT failed - because a matching name proves nothing for vitest.
-
-## Out of scope
-
-- Scrolling behaviour for ordinary typed questions.
-- Deduplicating turns the user created by asking the same thing twice by hand.
-- Any change to `continueTurn`'s pending, failure or replacement semantics.
+- **C1** The docked assistant sends `statementGrounding` - department, function, plant, period,
+  block, pinned batches, and the focused node when one is clicked. `/ask` sends none of it and
+  its shipped leaves pass **unmodified**.
+- **C2** The server re-derives department and function from the master's selection for that plant
+  and validates the plant against the user's current grants on every ask. A plant outside the
+  user's grants is refused, never answered, and a leaf proves the client cannot widen its own
+  scope by editing the payload.
+- **C3** With a node focused, a composition question is answered with the explanation, NOT with
+  `classifyCausalQuestion`'s "Causal analysis is not configured". Without grounding that guard
+  fires exactly as today.
+- **C4** A causal question is still declined even when grounded and focused. A leaf asserts the
+  composition/causal boundary on both sides.
+- **C5** The subject is the clicked node, identified by `nodeKey` **and block**. With no node
+  focused the assistant asks for the line; digits in the question never choose a node. Focus
+  clears when the scope, block or pinned batches change.
+- **C6** A **leaf** answer names the roll-up path - the GL codes and cost centres the master folds
+  into that leaf, and the bucket they arrive through - and lists transactions with an exact
+  footer and the true total count, showing the first rows inline and offering the drill for the
+  rest. The footer foots to the figure on screen.
+- **C7** A **total or subtotal** answer names the lines that compose it and their GLs and cost
+  centres, and returns **no raw rows**. It is not refused, and no aggregate raw query is added.
+- **C8** Budget is never a valid subject, matching the shipped statement footnote.
+- **C9** No transaction row, amount, batch identifier or result row is ever sent to the model. A
+  leaf asserts the provider payload, not merely the rendered answer.
+- **C10** The explanation writes the drill's governed-read protections, not the ordinary chat
+  audit: inputs re-derived server-side, pins validated, current scope applied, the exact
+  predicate audited **before** the query runs, and a failed audit fails closed. Per decisions
+  0017, 0022 and 0025.
+- **C11** A replaced or missing batch produces a **typed** refusal naming the source and period,
+  reaching the user intact rather than flattened by the global error envelope.
+- **C12** The answer names the mapping-master version it resolved against.
+- **C13** A non-budget-owner plant returns decision 0034's "Budget not loaded for this plant"
+  state, distinct from a stale or missing batch. An unmapped-GL line is described as provisional.
+- **C14** Every criterion is proven by hermetic tests judged by the vitest discriminator -
+  present AND NOT skipped AND NOT failed (D-0031) - across this matrix: no focus / composition /
+  causal / ordinary data question; leaf / subtotal / grand total / unmapped; selected-period
+  block / FY-YTD block; stale actual / stale budget / changed mapping version; plant outside
+  grants; audit failure; provider payload exclusion; and footer-foots-to-screen with the true
+  total count.
 
 
 ## What to return
