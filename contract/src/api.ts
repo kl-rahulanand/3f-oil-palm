@@ -143,6 +143,12 @@ export interface MisStatementNodeMetadata {
   costCentres: string[];
 }
 
+export interface MisStatementNodeAmount {
+  nodeKey: string;
+  block: MisStatementMeasureBlock["key"];
+  actualPaise: string;
+}
+
 export interface AskStatementGrounding {
   attestedContext: string;
   department: string;
@@ -153,6 +159,7 @@ export interface AskStatementGrounding {
     subject: "actual" | "budget";
   };
   nodeMetadata: MisStatementNodeMetadata[];
+  nodeAmounts: MisStatementNodeAmount[];
 }
 
 export type StatementGroundingRefusalReason =
@@ -160,6 +167,7 @@ export type StatementGroundingRefusalReason =
   | "expired-context"
   | "wrong-user"
   | "node-metadata-mismatch"
+  | "node-amounts-mismatch"
   | "outline-mismatch"
   | "node-not-in-outline"
   | "block-not-in-outline"
@@ -167,7 +175,8 @@ export type StatementGroundingRefusalReason =
   | "pinned-batch-gone"
   | "pinned-batch-invalid"
   | "selection-mismatch"
-  | "budget-subject-not-supported";
+  | "budget-subject-not-supported"
+  | "footing-mismatch";
 
 export interface StatementRollupEntry {
   plant: string;
@@ -409,6 +418,7 @@ export interface MisStatementResolvedResponse {
   provenance: MisStatementProvenance;
   attestedContext?: string;
   nodeMetadata?: MisStatementNodeMetadata[];
+  nodeAmounts?: MisStatementNodeAmount[];
 }
 
 export interface MisStatementUnresolvableResponse {

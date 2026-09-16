@@ -59,6 +59,17 @@ const statementGroundingSchema = z
           .strict(),
       )
       .max(500),
+    nodeAmounts: z
+      .array(
+        z
+          .object({
+            nodeKey: z.string().min(1).max(200),
+            block: z.enum(["selected", "fy26-27-ytd"]),
+            actualPaise: z.string().regex(/^-?\d{1,30}$/),
+          })
+          .strict(),
+      )
+      .max(1000),
   })
   .strict();
 

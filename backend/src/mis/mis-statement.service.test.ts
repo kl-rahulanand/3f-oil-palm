@@ -63,6 +63,13 @@ test("every resolved statement response populates the attested context and the p
     { nodeKey: "diesel", glCodes: [], costCentres: [] },
     { nodeKey: "repairs", glCodes: [], costCentres: [] },
   ]);
+  assert.deepEqual(
+    response.nodeAmounts?.filter(({ nodeKey }) => nodeKey === "shade"),
+    [
+      { nodeKey: "shade", block: "selected", actualPaise: "1010" },
+      { nodeKey: "shade", block: "fy26-27-ytd", actualPaise: "2020" },
+    ],
+  );
 });
 
 test("the response schema rejects a not loaded block with money and a loaded block with a null budget", () => {

@@ -36,6 +36,18 @@ test("a leaf explanation foots in paise against the statement payload and report
     reference: String(index),
     memo: null,
   }));
+  const mismatch = fixture({
+    verification: { outcome: "verified", context: { ...verifiedContext, focusedActualPaise: "10000" } },
+    read: {
+      outcome: "ok",
+      response: readResponse({ footer: { debit: "100.01", credit: "0.00", value: "100.01" } }),
+    },
+  });
+  assert.deepEqual(responseOf(await mismatch.service.explain(user, "session", "how is this 100", grounding)), {
+    outcome: "refused",
+    reason: "footing-mismatch",
+  });
+
   const target = fixture({
     read: {
       outcome: "ok",
@@ -305,6 +317,7 @@ const verifiedContext = {
   focusExists: true,
   leafKey: "leaf",
   budgetState: "loaded" as const,
+  focusedActualPaise: "10001",
 } satisfies VerifiedDrillContext;
 const grounding: AskStatementGrounding = {
   attestedContext: "claims.signature",
@@ -312,6 +325,7 @@ const grounding: AskStatementGrounding = {
   function: "Nursery",
   focus: { nodeKey: "leaf", block: "selected", subject: "actual" },
   nodeMetadata: [],
+  nodeAmounts: [{ nodeKey: "leaf", block: "selected", actualPaise: "10001" }],
 };
 const user = { id: "user", scope: [] } as unknown as AuthUser;
 

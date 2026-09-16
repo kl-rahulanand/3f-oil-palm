@@ -6,6 +6,7 @@ import type {
   MisStatementRouteResponse,
   MisStatementRunRequest,
   MisStatementMeasureBlock,
+  MisStatementNodeAmount,
   MisStatementNodeMetadata,
   MisStatementNode,
   ProvenanceBatch,
@@ -119,6 +120,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
       });
     }
     const nodeMetadata = buildNodeMetadata(outline.nodes, resolution);
+    const nodeAmounts = buildNodeAmounts(tree);
     const attestedContext = this.attestation.issue({
       department: resolution.department,
       function: resolution.function,
@@ -127,6 +129,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
       outline: outline.nodes,
       blocks: blocks.map(({ definition }) => definition.key),
       nodeMetadata,
+      nodeAmounts,
       pinnedBatches: activeBatchIds,
       mappingMasterVersion: MAPPING_MASTER.version,
       userId: user.id,
@@ -149,6 +152,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
       provenance: { activeBatchIds },
       attestedContext,
       nodeMetadata,
+      nodeAmounts,
     });
   }
 
@@ -428,6 +432,17 @@ function buildNodeMetadata(
         costCentres: unique(targets.map(({ costCenter }) => costCenter)),
       };
     });
+}
+
+function buildNodeAmounts(tree: MisStatementNode[]): MisStatementNodeAmount[] {
+  return tree.flatMap((node) => [
+    ...node.measures.map(({ key, actual }) => ({
+      nodeKey: node.nodeKey,
+      block: key,
+      actualPaise: toPaise(actual).toString(),
+    })),
+    ...buildNodeAmounts(node.children),
+  ]);
 }
 
 function unique(values: string[]): string[] {

@@ -25,7 +25,12 @@ export class StatementGroundingService {
   ) {}
 
   async verify(user: AuthUser, grounding: AskStatementGrounding): Promise<StatementGroundingVerification> {
-    const verified = this.attestation.verify(grounding.attestedContext, user.id, grounding.nodeMetadata);
+    const verified = this.attestation.verify(
+      grounding.attestedContext,
+      user.id,
+      grounding.nodeMetadata,
+      grounding.nodeAmounts,
+    );
     if (verified.outcome === "refused") return verified;
     const { claims } = verified;
     const prepared = await this.drills.prepare(user, {
@@ -54,7 +59,16 @@ export class StatementGroundingService {
       return refused("node-not-in-outline");
     }
     if (grounding.focus && !blocks.includes(grounding.focus.block)) return refused("block-not-in-outline");
-    return { outcome: "verified", context };
+    const amount = grounding.focus
+      ? grounding.nodeAmounts.find(
+          ({ nodeKey, block }) => nodeKey === grounding.focus?.nodeKey && block === grounding.focus.block,
+        )
+      : undefined;
+    if (grounding.focus && !amount) return refused("footing-mismatch");
+    return {
+      outcome: "verified",
+      context: { ...context, ...(amount ? { focusedActualPaise: amount.actualPaise } : {}) },
+    };
   }
 }
 

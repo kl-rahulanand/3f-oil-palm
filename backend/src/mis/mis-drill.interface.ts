@@ -32,6 +32,7 @@ export interface VerifiedDrillContext {
   focusExists: boolean;
   leafKey: string | null;
   budgetState: "loaded" | "not-loaded";
+  focusedActualPaise?: string;
 }
 
 export type MisDrillPreparationOutcome =

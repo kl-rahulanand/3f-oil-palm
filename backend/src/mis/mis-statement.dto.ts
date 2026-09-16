@@ -5,6 +5,7 @@ import type {
   MisStatementNotLoadedMeasureBlock,
   MisStatementMeasureBlock,
   MisStatementNode,
+  MisStatementNodeAmount,
   MisStatementNodeMetadata,
   MisStatementRouteResponse,
   MisStatementProvenance,
@@ -82,6 +83,13 @@ const provenanceSchema = z.object({ activeBatchIds: z.array(provenanceBatchSchem
 const nodeMetadataSchema: z.ZodType<MisStatementNodeMetadata> = z
   .object({ nodeKey: z.string(), glCodes: z.array(z.string()), costCentres: z.array(z.string()) })
   .strict();
+const nodeAmountSchema: z.ZodType<MisStatementNodeAmount> = z
+  .object({
+    nodeKey: z.string(),
+    block: z.enum(["selected", "fy26-27-ytd"]),
+    actualPaise: z.string().regex(/^-?\d+$/),
+  })
+  .strict();
 
 export const misStatementResponseSchema: z.ZodType<MisStatementRouteResponse> = z.discriminatedUnion("outcome", [
   z
@@ -93,6 +101,7 @@ export const misStatementResponseSchema: z.ZodType<MisStatementRouteResponse> = 
       provenance: provenanceSchema,
       attestedContext: z.string().optional(),
       nodeMetadata: z.array(nodeMetadataSchema).optional(),
+      nodeAmounts: z.array(nodeAmountSchema).optional(),
     })
     .strict(),
   z
@@ -222,6 +231,12 @@ class MisStatementNodeMetadataDto implements MisStatementNodeMetadata {
   @ApiProperty({ type: [String] }) costCentres!: string[];
 }
 
+class MisStatementNodeAmountDto implements MisStatementNodeAmount {
+  @ApiProperty() nodeKey!: string;
+  @ApiProperty({ enum: ["selected", "fy26-27-ytd"] }) block!: MisStatementNodeAmount["block"];
+  @ApiProperty({ example: "10001" }) actualPaise!: string;
+}
+
 class MisStatementScopeReadoutDto {
   @ApiProperty({ example: "Agriculture" })
   department!: string;
@@ -272,6 +287,9 @@ export class MisStatementResolvedResponseDto implements MisStatementResolvedResp
 
   @ApiProperty({ type: [MisStatementNodeMetadataDto], required: false })
   nodeMetadata?: MisStatementNodeMetadataDto[];
+
+  @ApiProperty({ type: [MisStatementNodeAmountDto], required: false })
+  nodeAmounts?: MisStatementNodeAmountDto[];
 }
 
 export class MisStatementUnresolvableResponseDto implements MisStatementUnresolvableResponse {

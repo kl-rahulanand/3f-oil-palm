@@ -1,0 +1,56 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "explain-the-number",
+  "score": 6,
+  "summary": "performance lens over explain-the-number (25 product path(s), ebeea76..1bf2093, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The patch omits the required paise-level footing check against the statement payload, allowing an internally inconsistent explanation to be returned as grounded. It also introduces quadratic mapping-master work in the per-request roll-up path. No blocking compatibility leftover is evident in the supplied diff.",
+  "blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "Return a leaf only after checking its footer against the statement amount in paise (backend/src/chat/statement-explanation.service.ts:70): The implementation immediately converts the drill result into a successful leaf/replaced explanation without obtaining or comparing the corresponding statement payload amount."
+    }
+  ],
+  "non_blocking_findings": [
+    {
+      "category": "bug",
+      "area": "backend/src/mis",
+      "summary": "Avoid a full mapping-master scan for every roll-up entry (backend/src/mis/mis-drill.service.ts:228): This lookup runs inside the `leafTargets.map(...)` loop and linearly scans `selection.entries` for each matching triple."
+    }
+  ],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "backend/package.json",
+    "backend/src/chat/chat.controller.ts",
+    "backend/src/chat/chat.module.ts",
+    "backend/src/chat/chat.schemas.test.ts",
+    "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.service.ts",
+    "backend/src/chat/reconciliation-guard.test.ts",
+    "backend/src/chat/statement-explanation.service.test.ts",
+    "backend/src/chat/statement-explanation.service.ts",
+    "backend/src/chat/statement-grounding.service.test.ts",
+    "backend/src/chat/statement-grounding.service.ts",
+    "backend/src/chat/statement-intent.test.ts",
+    "backend/src/chat/statement-intent.ts",
+    "backend/src/mis/mis-drill.controller.test.ts",
+    "backend/src/mis/mis-drill.controller.ts",
+    "backend/src/mis/mis-drill.interface.ts",
+    "backend/src/mis/mis-drill.service.test.ts",
+    "backend/src/mis/mis-drill.service.ts",
+    "backend/src/mis/mis.module.ts",
+    "backend/src/swagger.test.ts",
+    "backend/src/warehouse/drill-transactions.interface.ts",
+    "backend/src/warehouse/drill-transactions.repository.test.ts",
+    "backend/src/warehouse/drill-transactions.repository.ts",
+    "contract/src/api.ts",
+    "tools/quality-gate.test.mjs"
+  ],
+  "skills_used": [],
+  "aspect": "performance",
+  "review_run_id": "dadf3c0ac307a7727e37143846ef98eda6e3a868cc1de9d31160d4df2c1a9314",
+  "brief_sha256": "3284f4d711c0faa1c7c21c6b3b911ce5cd062c9dc6ed9732f0ace792af1df4cd",
+  "branch_diff_digest": "73eab34f25c56c1be65ada899a40c02537939397802b205e8bc1ad734b5e810f",
+  "residual_risks": [],
+  "recorded_at": "2026-09-16T03:45:43+00:00",
+  "commit": "1bf209353249b1bf7bf4a357b2353c207e827088"
+}

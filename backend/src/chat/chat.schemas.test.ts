@@ -28,6 +28,7 @@ test("the strict chat schema accepts statementGrounding and still rejects an unk
     function: "Nursery",
     focus: { nodeKey: "leaf", block: "selected", subject: "actual" },
     nodeMetadata: [{ nodeKey: "leaf", glCodes: ["5001"], costCentres: ["Primary"] }],
+    nodeAmounts: [{ nodeKey: "leaf", block: "selected", actualPaise: "10001" }],
   };
   assert.equal(askSchema.safeParse({ question: "How is this built?", statementGrounding }).success, true);
   assert.equal(
@@ -42,6 +43,7 @@ test("an absent focus returns focus required rather than being rejected by the s
     department: "Agriculture",
     function: "Nursery",
     nodeMetadata: [{ nodeKey: "leaf", glCodes: ["5001"], costCentres: ["Primary"] }],
+    nodeAmounts: [{ nodeKey: "leaf", block: "selected", actualPaise: "10001" }],
   };
 
   assert.equal(askSchema.safeParse({ question: "How is this built?", statementGrounding }).success, true);
@@ -66,6 +68,7 @@ test("oversized node metadata arrays are rejected by the schema before being sor
     attestedContext: "claims.signature",
     department: "Agriculture",
     function: "Nursery",
+    nodeAmounts: [{ nodeKey: "leaf", block: "selected", actualPaise: "10001" }],
   };
   assert.equal(
     askSchema.safeParse({

@@ -21,6 +21,10 @@ const outline: StatementOutlineNode[] = [
   },
 ];
 const metadata = [{ nodeKey: "leaf", glCodes: ["5001"], costCentres: ["Primary"] }];
+const amounts = [
+  { nodeKey: "leaf", block: "selected" as const, actualPaise: "10001" },
+  { nodeKey: "leaf", block: "fy26-27-ytd" as const, actualPaise: "20002" },
+];
 const pins = [
   { source: "actuals" as const, period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000001" },
   { source: "budget" as const, period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000002" },
@@ -33,6 +37,7 @@ const context = attestation.issue({
   outline,
   blocks: ["selected", "fy26-27-ytd"],
   nodeMetadata: metadata,
+  nodeAmounts: amounts,
   pinnedBatches: pins,
   mappingMasterVersion: MAPPING_MASTER.version,
   userId: "user-1",
@@ -43,6 +48,7 @@ const grounding: AskStatementGrounding = {
   function: "Nursery",
   focus: { nodeKey: "leaf", block: "selected", subject: "actual" },
   nodeMetadata: metadata,
+  nodeAmounts: amounts,
 };
 
 test("a re read outline that differs from the attested one is refused on the digest mismatch", async () => {
@@ -74,7 +80,10 @@ test("pinned batch existence and the active batch are read in one query so a sta
   const result = await target.service.verify(user, grounding);
   assert.equal(target.drills.prepareCalls, 1);
   assert.equal(result.outcome, "verified");
-  if (result.outcome === "verified") assert.deepEqual(result.context.batchStatuses, replaced);
+  if (result.outcome === "verified") {
+    assert.deepEqual(result.context.batchStatuses, replaced);
+    assert.equal(result.context.focusedActualPaise, "10001");
+  }
 });
 
 test("a node or block absent from the re read pinned outline is refused with its own typed reason", async () => {

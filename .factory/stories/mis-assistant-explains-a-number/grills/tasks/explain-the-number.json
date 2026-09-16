@@ -45,7 +45,8 @@
     "leafTriples() drops the mapping target, the provisional flag and the reason, so the roll-up payload could not honestly describe an unmapped-GL line as provisional - which criterion 8 requires.",
     "The proof set omitted several recorded promises: that a grounded DATA question falls through unpinned, that the audit records the mapping-master version, and that unmapped lines are marked provisional.",
     "Both chat routes carry DESCRIPTION-ONLY Swagger responses, so decision 0019's typed-contract requirement could have been 'satisfied' by prose while the union stayed undocumented and free to drift between the buffered and streamed routes.",
-    "The manual verification named only LLM_PROVIDER=bedrock, so a human following it would hit a startup failure or a mock provider: BEDROCK_MODEL_ID and STATEMENT_ATTESTATION_SECRETS are both required now that task 1 has shipped."
+    "The manual verification named only LLM_PROVIDER=bedrock, so a human following it would hit a startup failure or a mock provider: BEDROCK_MODEL_ID and STATEMENT_ATTESTATION_SECRETS are both required now that task 1 has shipped.",
+    "MID-STAGE, signal S-0022-462a: the binding paise-footing fix cannot be implemented without the attestation, because the footer must be compared against the amount the user SAW - and for a replaced-but-present batch, re-deriving that amount at ask time returns a different number than was on screen, so the comparison would run against the wrong baseline."
   ],
   "contradictions": [],
   "resolutions": [
@@ -58,7 +59,8 @@
     "RESOLVED: the typed roll-up payload carries the mapping target, provisional flag and reason, recorded as a criterion with a leaf asserting an unmapped-GL line is described as provisional with its reason.",
     "RESOLVED: leaves added for all three, plus the absent-focus and crafted-budget cases the new focus contract makes provable.",
     "RESOLVED: a named response DTO or schema for the union is required on both routes, with a Swagger assertion leaf in backend/src/swagger.test.ts, which is now in scope.",
-    "RESOLVED: the manual verification names all three."
+    "RESOLVED: the manual verification names all three.",
+    "RESOLVED by extending the scope rather than escalating: backend/src/mis/statement-attestation.ts and its test are mechanically implied, and the amount is bound at ISSUE time using the nodeMetadata pattern task 1 already shipped - per-node, per-block actual paise travel READABLE in the statement response while their DIGEST joins the signed claims, so the token does not grow with the statement and altering a readable amount invalidates the context. The amount is never accepted from client input, because a caller able to declare the amount its own footer should match has defeated the check."
   ],
   "citations": [
     {
@@ -100,6 +102,10 @@
     {
       "finding": "The manual verification named only LLM_PROVIDER=bedrock, so a human following it would hit a startup failure or a mock provider: BEDROCK_MODEL_ID and STATEMENT_ATTESTATION_SECRETS are both required now that task 1 has shipped.",
       "source": ".factory/stories/mis-assistant-explains-a-number/task-plans/explain-the-number.md"
+    },
+    {
+      "finding": "MID-STAGE, signal S-0022-462a: the binding paise-footing fix cannot be implemented without the attestation, because the footer must be compared against the amount the user SAW - and for a replaced-but-present batch, re-deriving that amount at ask time returns a different number than was on screen, so the comparison would run against the wrong baseline.",
+      "source": "backend/src/mis/statement-attestation.ts"
     }
   ],
   "rounds": [
@@ -123,13 +129,13 @@
     "backend/src/chat/chat.controller.ts",
     "contract/src/api.ts"
   ],
-  "input_sha256": "69b836646a9ba1067e82040b62d1bab3a2a0c4bac8fae332a0af997665399b36",
+  "input_sha256": "844e6b1b085101080b825168d045d2909bdd889310d6e3234acf44399b5c4f3f",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "476a7ec484e444f0b81ae345e895f66b7de6525b22c33cae78a9bf57f7a6eb8b",
-  "recorded_at": "2026-09-16T03:15:50+00:00",
-  "commit": "ebeea768c2a774fa6a51ff65c694d10815397b39",
+  "recorded_at": "2026-09-16T03:48:50+00:00",
+  "commit": "1bf209353249b1bf7bf4a357b2353c207e827088",
   "approved_task_plan_sha256": "476a7ec484e444f0b81ae345e895f66b7de6525b22c33cae78a9bf57f7a6eb8b",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-16T03:15:53+00:00"
+  "approved_at": "2026-09-16T03:48:54+00:00"
 }

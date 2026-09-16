@@ -67,6 +67,9 @@ export class StatementExplanationService {
         response: { outcome: "refused", reason: "pinned-batch-invalid", batchStatuses: read.batchStatuses },
       };
     }
+    if (paise(read.response.footer.value) !== verified.context.focusedActualPaise) {
+      return { kind: "response", response: { outcome: "refused", reason: "footing-mismatch" } };
+    }
     const explanation = leaf(read.response, grounding.focus.block);
     if (read.outcome === "replaced") {
       const replacedBatches = read.response.batchStatuses.filter(({ status }) => status === "replaced");
@@ -82,6 +85,10 @@ export class StatementExplanationService {
     }
     return { kind: "response", response: { outcome: "leaf", ...explanation } };
   }
+}
+
+function paise(value: string): string {
+  return BigInt(value.replace(".", "")).toString();
 }
 
 function leaf(response: MisDrillReadResponse, block: "selected" | "fy26-27-ytd") {

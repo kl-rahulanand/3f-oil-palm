@@ -163,6 +163,8 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - backend/src/mis/mis-drill.service.ts
 - backend/src/mis/mis-statement.service.ts
 - backend/src/mis/mis.module.ts
+- backend/src/mis/statement-attestation.test.ts
+- backend/src/mis/statement-attestation.ts
 - backend/src/swagger.test.ts
 - backend/src/warehouse/drill-transactions.interface.ts
 - backend/src/warehouse/drill-transactions.repository.test.ts
@@ -201,5 +203,5 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 - `python3 factory/scripts/verify.py`
 
-**Review budget.** 30 files / 1900 lines -- A seam extraction with typed outcomes shared by two callers, a deterministic intent table, the explanation service, and the response union across two chat routes - plus D-0052 and D-0053, whose recorded trigger is this task and which open the same files. No UI. The largest of the three tasks, and the one where the governed-read protections live. Raised after the task grill: the limit must reach the SQL (the repository hard-codes LIMIT 100), the drill controller must map typed outcomes, the roll-up payload must carry provisional data leafTriples drops, and both chat routes need a named union schema - each pulling its own file and leaf. The ceiling is measured on the finished diff.
+**Review budget.** 32 files / 1900 lines -- A seam extraction with typed outcomes shared by two callers, a deterministic intent table, the explanation service, and the response union across two chat routes - plus D-0052 and D-0053, whose recorded trigger is this task and which open the same files. No UI. The largest of the three tasks, and the one where the governed-read protections live. Raised after the task grill: the limit must reach the SQL (the repository hard-codes LIMIT 100), the drill controller must map typed outcomes, the roll-up payload must carry provisional data leafTriples drops, and both chat routes need a named union schema - each pulling its own file and leaf. The ceiling is measured on the finished diff. Scope extended mid-stage (signal S-0022-462a) for backend/src/mis/statement-attestation.ts and its test, which are MECHANICALLY IMPLIED by the review's binding paise-footing fix. The footer must be compared against the statement amount that was ON SCREEN, and for a REPLACED-but-present batch re-deriving that amount now returns a different number than the user saw - so the amount has to be bound at ISSUE time, which means the attestation. Following the nodeMetadata pattern already shipped: the per-node actual paise travel READABLE in the statement response and their DIGEST joins the signed claims, so the token does not grow with the statement and the amounts still cannot be altered independently of the context.
 <!-- /forge:contract -->
