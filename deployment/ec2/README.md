@@ -18,7 +18,7 @@ cp deployment/ec2/.env.example deployment/ec2/.env
 chmod 600 deployment/ec2/.env
 ```
 
-Edit `deployment/ec2/.env`. The two that catch people out:
+Edit `deployment/ec2/.env`. The three that catch people out:
 
 - `NEXT_PUBLIC_API_BASE_URL` and `FRONTEND_ORIGIN` must both be the instance's
   **public** address. Not `localhost`, not a container name — the browser
@@ -27,6 +27,13 @@ Edit `deployment/ec2/.env`. The two that catch people out:
   them, set `LLM_PROVIDER=mock` and the app still runs, but Ask will answer
   every question with a clarification, because that is all the mock provider
   ever returns. It will look broken.
+- `STATEMENT_ATTESTATION_SECRETS` is **required** and has no default — the
+  backend throws `STATEMENT_ATTESTATION_SECRETS is required` at boot and the
+  container never starts. That is deliberate: a development fallback would mean
+  silently unsigned statement contexts, which defeats the check. Generate one
+  with `openssl rand -hex 32`. Several keys may be listed separated by `;` — the
+  first signs, any listed key verifies, so you can rotate without invalidating
+  statements already open in a browser.
 
 Then:
 

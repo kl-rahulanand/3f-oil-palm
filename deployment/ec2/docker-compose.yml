@@ -35,6 +35,17 @@ x-backend-env: &backend-env
   # default, so keep the admin entry if you still want it maintained.
   # Format: email|Display Name|role1+role2;email|Display Name|role
   SEED_USERS: ${SEED_USERS:-}
+  # Signs the attested statement context the MIS assistant verifies. REQUIRED:
+  # the backend constructs its attestation provider at boot and throws
+  # "STATEMENT_ATTESTATION_SECRETS is required" without it, so the container will
+  # not start. There is deliberately NO development fallback - a silently
+  # unsigned context would defeat the check entirely.
+  # Format: one or more keys separated by ";". The FIRST key signs and ANY listed
+  # key verifies, so a key can be rotated without invalidating statements that
+  # are already open in a browser. An empty entry is rejected, not skipped.
+  STATEMENT_ATTESTATION_SECRETS: ${STATEMENT_ATTESTATION_SECRETS:?set STATEMENT_ATTESTATION_SECRETS in deployment/ec2/.env - generate one with `openssl rand -hex 32`}
+  # How long an issued statement context stays valid. Default 30, range 1-240.
+  STATEMENT_ATTESTATION_TTL_MINUTES: ${STATEMENT_ATTESTATION_TTL_MINUTES:-30}
   LLM_PROVIDER: ${LLM_PROVIDER:-bedrock}
   AWS_REGION: ${AWS_REGION:-ap-south-1}
   BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-}
