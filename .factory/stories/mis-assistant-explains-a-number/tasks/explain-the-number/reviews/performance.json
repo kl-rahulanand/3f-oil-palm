@@ -1,22 +1,21 @@
 {
   "generated_by": "autoreview",
   "task_id": "explain-the-number",
-  "score": 6,
-  "summary": "performance lens over explain-the-number (32 product path(s), ebeea76..6442739, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The shared seam and bounded SQL row limit are implemented, but the verification path makes the required unmapped-GL explanation unreachable, and roll-up enrichment introduces avoidable multiplicative CPU work per explanation request.",
+  "score": 4,
+  "summary": "performance lens over explain-the-number (32 product path(s), ebeea76..9732790, Codex via the autoreview skill at --max-priority P2): 2 blocking, 0 non-blocking. The patch still publishes incomplete buffered and streamed chat schemas and retains a superseded refusal reason after introducing the dedicated gone outcome. Both are blocking contract defects under the supplied review criteria.",
   "blocking_findings": [
     {
       "category": "bug",
       "area": "backend/src/chat",
-      "summary": "Rejecting focuses absent from the outline blocks the unmapped-GL explanation (backend/src/chat/statement-grounding.service.ts:61): `MisDrillService.prepare` explicitly treats `unmapped-GL` as a valid synthetic focus even when it is absent from the pinned workbook outline, setting `focusExists` and `leafKey` accordingly."
-    }
-  ],
-  "non_blocking_findings": [
+      "summary": "Chat response schemas still omit the `tables` field (backend/src/chat/chat.schemas.ts:97): `ChatResponseDto` enumerates the buffered response shape but does not declare `tables`, even though ordinary `ChatService` responses can return that field."
+    },
     {
-      "category": "bug",
-      "area": "backend/src/mis",
-      "summary": "Avoid scanning the full mapping selection for every roll-up row (backend/src/mis/mis-drill.service.ts:238): This `.find()` scans `selection.entries` once for every matching leaf target, making explanation construction O(targets \u00d7 mapping entries) on the synchronous request path."
+      "category": "maintainability",
+      "area": "contract/src",
+      "summary": "Remove the obsolete `pinned-batch-gone` refusal variant (contract/src/api.ts:174): Gone batches now have the dedicated `{ outcome: \"gone\" }` response, and the rewritten grounding service no longer emits `reason: \"pinned-batch-gone\"`."
     }
   ],
+  "non_blocking_findings": [],
   "recommendation": "request-changes",
   "reviewed_scope": [
     "backend/package.json",
@@ -54,10 +53,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "739acc03d91624171a7653a4551cca3061d2888a268f259ebe931a1a597324ac",
-  "brief_sha256": "47c9b2ab81703e1b1223be9a6686646f22b3ebce988c01db7a6d4f6a9544b81a",
-  "branch_diff_digest": "c50e26ca8fae38ea0aa5e5d5a3250f49ee2a507830960cf1e904058d38747b22",
+  "review_run_id": "31c769d8cb1e5762f33732cfda08269a5c443657cc58d755fb49bc866f2aa86b",
+  "brief_sha256": "03303fdb114abab7a05d6ce8c876c5b1417beb6c2f0c5637c2d8e2c450e7604c",
+  "branch_diff_digest": "e3759782fa6ab54366a839faba51e1f557c1b969bfa5d605e752c56f1b9c9b58",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T04:19:08+00:00",
-  "commit": "644273904aad5989fa879e246c05989a2de4e95d"
+  "recorded_at": "2026-09-16T04:36:19+00:00",
+  "commit": "9732790d4a02a1937d1ee0e3a8441e85974c9dd3"
 }

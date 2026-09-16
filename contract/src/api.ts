@@ -172,7 +172,6 @@ export type StatementGroundingRefusalReason =
   | "node-not-in-outline"
   | "block-not-in-outline"
   | "plant-not-authorized"
-  | "pinned-batch-gone"
   | "pinned-batch-invalid"
   | "selection-mismatch"
   | "budget-subject-not-supported"
