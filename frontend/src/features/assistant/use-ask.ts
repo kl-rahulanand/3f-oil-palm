@@ -32,7 +32,7 @@ interface AskContextValue {
   clearScrollTarget: () => void;
   ask: (question: string) => Promise<void>;
   askGrounded: (question: string, grounding: AskStatementGrounding) => Promise<void>;
-  syncStatementIdentity: (identity: string) => void;
+  syncStatementIdentity: (identity: string | undefined) => void;
   rerun: (question: string, selection: Selection) => Promise<boolean>;
   continueTurn: (
     turnId: string,
@@ -214,7 +214,11 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
   }, [clearProgress]);
 
   const syncStatementIdentity = useCallback(
-    (identity: string) => {
+    (identity: string | undefined) => {
+      if (!identity) {
+        clearGroundedTurns();
+        return;
+      }
       if (identity === statementIdentityRef.current) return;
       const replacesStatement = statementIdentityRef.current !== undefined;
       statementIdentityRef.current = identity;

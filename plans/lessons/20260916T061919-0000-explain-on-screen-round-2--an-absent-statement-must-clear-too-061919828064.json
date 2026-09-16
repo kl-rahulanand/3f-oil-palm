@@ -1,0 +1,12 @@
+{
+  "topic": "explain-on-screen round-2: an absent statement must clear too",
+  "lesson": "ONE defect, the last arm of the clearing rule. mis-report-view.tsx:61 early-returns when identity is undefined, and identity becomes undefined whenever a RESOLVED statement is replaced by an unresolvable, refresh-required or failed result. So the early return skips BOTH the provider synchronisation and the local focus/drill clearing, and a grounded explanation survives with NO statement behind it at all - worse than the remount hole just fixed, because there are no figures on screen for it to be wrong about, only an explanation presented as if there were. Treat an ABSENT identity as a clearing trigger, not as nothing-to-compare: when there is no resolved statement, grounding is impossible, so grounded turns and focus must clear and the dock must fall back to its local 'generate a mapped statement first' message. Ordinary Ask turns still survive. Add a leaf that renders a resolved statement, asks a grounded question, then re-renders with an unresolvable or refresh-required outcome and asserts the grounded explanation is gone while an ordinary turn remains. Do not touch the provider-held identity, the in-flight abort or the required onOpenDrill - all three are reviewed clean.",
+  "source": ".factory/stories/mis-assistant-explains-a-number/tasks/explain-on-screen/reviews/security.json",
+  "applies_to": [
+    "frontend/src/features/mis/**",
+    "frontend/src/features/assistant/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T06:19:19+00:00"
+}

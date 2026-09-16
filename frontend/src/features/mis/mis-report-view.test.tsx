@@ -230,6 +230,37 @@ test("persisted grounded history clears on the first statement after report remo
   await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/));
 });
 
+test("grounded history and drill clear when the rendered statement disappears while ordinary turns survive", async () => {
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValueOnce(groundedStatement).mockResolvedValueOnce({
+    outcome: "unresolvable",
+    notice: "No mapping configured",
+    tree: [],
+    grandTotal: null,
+    provenance: { activeBatchIds: [] },
+  });
+  mocks.ask
+    .mockResolvedValueOnce(successResponse())
+    .mockResolvedValueOnce(groundedResponse({ outcome: "focus-required" }));
+  renderWithQuery(
+    <AskProvider pathname="/mis-reports">
+      <ReportRemountHarness />
+    </AskProvider>,
+  );
+  await generateStatement();
+  fireEvent.click(screen.getByRole("button", { name: "Seed ordinary turn" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded"));
+  fireEvent.click(screen.getByRole("button", { name: "Seed grounded turn" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded,grounded"));
+  clickShadeActual();
+
+  fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+
+  expect(await screen.findByText("No mapping configured")).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/));
+  expect(screen.queryByRole("dialog", { name: "Shade Net" })).not.toBeInTheDocument();
+});
+
 test("the dock says so locally when the scope has no mapping and submits no grounded ask", async () => {
   mocks.misOptions.mockResolvedValue(options);
   mocks.runMisStatement.mockResolvedValue({

@@ -58,7 +58,6 @@ export function MisReportView() {
   }, [linked, run]);
 
   useEffect(() => {
-    if (!identity) return;
     setFocus(null);
     setDrill(null);
     syncStatementIdentity(identity);

@@ -1,29 +1,9 @@
 {
   "generated_by": "autoreview",
   "task_id": "explain-on-screen",
-  "score": 3,
-  "summary": "quality lens over explain-on-screen (15 product path(s), 1e5515c..f1a75a4, Codex via the autoreview skill at --max-priority P2): 2 blocking, 1 non-blocking. The main grounding and rendering paths are present, but statement changes do not reliably evict grounded results, allowing explanations for old financial data to appear under a new statement. Older explanation drill controls can also become inert.\nVERDICT t-eos-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:31 evidence\nVERDICT t-eos-c2: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:70 evidence\nVERDICT t-eos-c3: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:220 evidence\nVERDICT t-eos-c4: implemented \u2014 frontend/src/features/assistant/statement-explanation.tsx:68 evidence\nVERDICT t-eos-c5: implemented \u2014 frontend/src/features/assistant/statement-explanation.tsx:48 evidence\nVERDICT t-eos-c6: implemented \u2014 frontend/src/features/assistant/ask-panel.tsx:56 evidence\nVERDICT t-eos-c7: implemented \u2014 frontend/src/lib/api.ts:143 evidence\nVERDICT t-eos-c8: partial \u2014 frontend/src/features/mis/mis-report-view.tsx:201 evidence\nVERDICT t-eos-c9: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:75 evidence\nVERDICT t-eos-c10: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:219 evidence\nVERDICT t-eos-c11: implemented \u2014 frontend/src/features/mis/statement-view.test.tsx:344 evidence\nVERDICT t-eos-c12: implemented \u2014 frontend/src/features/assistant/ask-panel.test.tsx:200 evidence\nVERDICT t-eos-c13: partial \u2014 frontend/src/features/assistant/use-ask.test.tsx:126 evidence\nVERDICT t-eos-c14: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:70 evidence\nVERDICT t-eos-c15: partial \u2014 frontend/src/features/assistant/use-ask.ts:198 evidence\nVERDICT t-eos-c16: implemented \u2014 frontend/src/features/assistant/use-ask.ts:201 evidence",
+  "score": 9,
+  "summary": "quality lens over explain-on-screen (16 product path(s), 1e5515c..ef63fb3, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The main flow is implemented, but statement cleanup has an actionable stale-data hole when a resolved statement is replaced by a non-resolved outcome.\nVERDICT t-eos-c1: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:28 evidence\nVERDICT t-eos-c2: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:66 evidence\nVERDICT t-eos-c3: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:211 evidence\nVERDICT t-eos-c4: implemented \u2014 frontend/src/features/assistant/statement-explanation.tsx:83 evidence\nVERDICT t-eos-c5: implemented \u2014 frontend/src/features/assistant/statement-explanation.tsx:53 evidence\nVERDICT t-eos-c6: implemented \u2014 frontend/src/features/assistant/use-ask.ts:98 evidence\nVERDICT t-eos-c7: implemented \u2014 frontend/src/lib/api.ts:143 evidence\nVERDICT t-eos-c8: implemented \u2014 frontend/src/features/assistant/statement-explanation.tsx:176 evidence\nVERDICT t-eos-c9: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:72 evidence\nVERDICT t-eos-c10: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:214 evidence\nVERDICT t-eos-c11: implemented \u2014 frontend/src/features/mis/statement-view.tsx:248 evidence\nVERDICT t-eos-c12: implemented \u2014 frontend/src/features/mis/statement-view.test.tsx:457 evidence\nVERDICT t-eos-c13: implemented \u2014 frontend/src/features/mis/mis-report-view.test.tsx:133 evidence\nVERDICT t-eos-c14: implemented \u2014 frontend/src/features/mis/mis-report-view.tsx:65 evidence\nVERDICT t-eos-c15: partial \u2014 frontend/src/features/mis/mis-report-view.tsx:59 evidence\nVERDICT t-eos-c16: implemented \u2014 frontend/src/features/assistant/use-ask.ts:240 evidence",
   "blocking_findings": [
-    {
-      "category": "bug",
-      "area": "frontend/src/features/assistant",
-      "summary": "[P1] Invalidate an in-flight grounded ask when the statement changes (frontend/src/features/assistant/use-ask.ts:198): `clearGroundedTurns` only filters turns already stored in state."
-    },
-    {
-      "category": "bug",
-      "area": "frontend/src/features/mis",
-      "summary": "[P1] Clear persisted grounded history on the first statement after remount (frontend/src/features/mis/mis-report-view.tsx:62): The guard skips clearing whenever this `MisReportView` instance has no previous identity."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
-      "summary": "t-eos-c8: The explanation offers a declared control that opens the shipped drill panel on the focused node, for paging beyond the inline 20 rows that transactions.pageSize fixes."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
-      "summary": "t-eos-c13: Every criterion is proven by hermetic frontend leaves judged by the vitest discriminator - present AND NOT skipped AND NOT failed (D-0031) - because vitest exits 0 and marks an unmatched -t leaf skipped, so a name drift would report green having asserted nothing."
-    },
     {
       "category": "plan-contract-partial",
       "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
@@ -34,10 +14,10 @@
     {
       "category": "bug",
       "area": "frontend/src/features/mis",
-      "summary": "[P2] Do not leave older explanation drill controls as silent no-ops (frontend/src/features/mis/mis-report-view.tsx:201): The dock retains multiple grounded turns, but this callback opens the drill only when the clicked explanation's node and block equal the latest global focus."
+      "summary": "[P2] Clear stale drill and grounded turns when the statement disappears (frontend/src/features/mis/mis-report-view.tsx:59): When a subsequent Generate resolves to `unresolvable` or `refresh-required`, `identity` becomes undefined and this early return skips every cleanup action."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "frontend/app/globals.css",
     "frontend/src/features/assistant/ask-panel.test.tsx",
@@ -48,6 +28,7 @@
     "frontend/src/features/assistant/use-ask.ts",
     "frontend/src/features/mis/aggregate-projection.helper.test.ts",
     "frontend/src/features/mis/aggregate-projection.helper.ts",
+    "frontend/src/features/mis/drill-panel.test.tsx",
     "frontend/src/features/mis/mis-report-view.test.tsx",
     "frontend/src/features/mis/mis-report-view.tsx",
     "frontend/src/features/mis/statement-view.test.tsx",
@@ -62,32 +43,32 @@
     {
       "contract_id": "t-eos-c1",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:31 evidence"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:28 evidence"
     },
     {
       "contract_id": "t-eos-c2",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:70 evidence"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:66 evidence"
     },
     {
       "contract_id": "t-eos-c3",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:220 evidence"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:211 evidence"
     },
     {
       "contract_id": "t-eos-c4",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/statement-explanation.tsx:68 evidence"
+      "evidence": "frontend/src/features/assistant/statement-explanation.tsx:83 evidence"
     },
     {
       "contract_id": "t-eos-c5",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/statement-explanation.tsx:48 evidence"
+      "evidence": "frontend/src/features/assistant/statement-explanation.tsx:53 evidence"
     },
     {
       "contract_id": "t-eos-c6",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.tsx:56 evidence"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:98 evidence"
     },
     {
       "contract_id": "t-eos-c7",
@@ -96,48 +77,48 @@
     },
     {
       "contract_id": "t-eos-c8",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:201 evidence"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/assistant/statement-explanation.tsx:176 evidence"
     },
     {
       "contract_id": "t-eos-c9",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:75 evidence"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:72 evidence"
     },
     {
       "contract_id": "t-eos-c10",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:219 evidence"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:214 evidence"
     },
     {
       "contract_id": "t-eos-c11",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/statement-view.test.tsx:344 evidence"
+      "evidence": "frontend/src/features/mis/statement-view.tsx:248 evidence"
     },
     {
       "contract_id": "t-eos-c12",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/ask-panel.test.tsx:200 evidence"
+      "evidence": "frontend/src/features/mis/statement-view.test.tsx:457 evidence"
     },
     {
       "contract_id": "t-eos-c13",
-      "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/use-ask.test.tsx:126 evidence"
+      "verdict": "implemented",
+      "evidence": "frontend/src/features/mis/mis-report-view.test.tsx:133 evidence"
     },
     {
       "contract_id": "t-eos-c14",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/mis/mis-report-view.tsx:70 evidence"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:65 evidence"
     },
     {
       "contract_id": "t-eos-c15",
       "verdict": "partial",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:198 evidence"
+      "evidence": "frontend/src/features/mis/mis-report-view.tsx:59 evidence"
     },
     {
       "contract_id": "t-eos-c16",
       "verdict": "implemented",
-      "evidence": "frontend/src/features/assistant/use-ask.ts:201 evidence"
+      "evidence": "frontend/src/features/assistant/use-ask.ts:240 evidence"
     },
     {
       "contract_id": "t-ega-c1",
@@ -291,10 +272,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "b64720e8ca3a1b458e66c3bcde5d8668eec15ab4e6fbd488b2224e3a629bbd0e",
-  "brief_sha256": "ed0a24a44398882c0c80d27443f6faca1708d49f33bd9437e5058d1fc29a0995",
-  "branch_diff_digest": "1664c596e0350cc223597e17a123b46ae80cedcf636e9d49dc35b5bcdcea3011",
+  "review_run_id": "78b572c9e97349427c2473d44c5420f653b27d0e273ae666d09c4a678531f908",
+  "brief_sha256": "b7c2b79d071dc8d0365ea4ad1d8799c0b8d3f7a40fccede3b66a68f10989d006",
+  "branch_diff_digest": "73b4e634df6f653c775f76f1d1fb171d4f1272efb4901a11d3568da47bf48aa9",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T05:54:32+00:00",
-  "commit": "f1a75a4cd66c9a16f3a945aec04a7521ed839ced"
+  "recorded_at": "2026-09-16T06:18:56+00:00",
+  "commit": "ef63fb32b98adb2b2485471c37d75b60c686b807"
 }
