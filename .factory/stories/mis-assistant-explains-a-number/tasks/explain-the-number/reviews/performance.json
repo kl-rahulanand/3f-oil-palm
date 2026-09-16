@@ -1,22 +1,17 @@
 {
   "generated_by": "autoreview",
   "task_id": "explain-the-number",
-  "score": 4,
-  "summary": "performance lens over explain-the-number (32 product path(s), ebeea76..9732790, Codex via the autoreview skill at --max-priority P2): 2 blocking, 0 non-blocking. The patch still publishes incomplete buffered and streamed chat schemas and retains a superseded refusal reason after introducing the dedicated gone outcome. Both are blocking contract defects under the supplied review criteria.",
-  "blocking_findings": [
+  "score": 9,
+  "summary": "performance lens over explain-the-number (32 product path(s), ebeea76..42a0ea6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The main functionality is coherent and the diff contains no apparent compatibility leftovers, but the focus-required path performs multiple unnecessary governed-read operations before returning a response that does not depend on them. That request-level I/O amplification is actionable at P2.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
     {
       "category": "bug",
       "area": "backend/src/chat",
-      "summary": "Chat response schemas still omit the `tables` field (backend/src/chat/chat.schemas.ts:97): `ChatResponseDto` enumerates the buffered response shape but does not declare `tables`, even though ordinary `ChatService` responses can return that field."
-    },
-    {
-      "category": "maintainability",
-      "area": "contract/src",
-      "summary": "Remove the obsolete `pinned-batch-gone` refusal variant (contract/src/api.ts:174): Gone batches now have the dedicated `{ outcome: \"gone\" }` response, and the rewritten grounding service no longer emits `reason: \"pinned-batch-gone\"`."
+      "summary": "[P2] Return focus-required before issuing grounding reads (backend/src/chat/statement-explanation.service.ts:31): For a composition question with no focus, the result is unconditionally `focus-required`, but this call first runs `grounding.verify()`."
     }
   ],
-  "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/chat/chat.controller.ts",
@@ -53,10 +48,10 @@
   ],
   "skills_used": [],
   "aspect": "performance",
-  "review_run_id": "31c769d8cb1e5762f33732cfda08269a5c443657cc58d755fb49bc866f2aa86b",
-  "brief_sha256": "03303fdb114abab7a05d6ce8c876c5b1417beb6c2f0c5637c2d8e2c450e7604c",
-  "branch_diff_digest": "e3759782fa6ab54366a839faba51e1f557c1b969bfa5d605e752c56f1b9c9b58",
+  "review_run_id": "2a68f886d313a0a6726e798c565812011d86401ad7c08eb120ba1f0db5d58ee8",
+  "brief_sha256": "69d4725784a9bac279352943ee26958d836b47a852f8896d31376b77889615a6",
+  "branch_diff_digest": "4e8562029001ad1ab55ebfa05a9f7257787b785c87a07b065156154ed6618c6b",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T04:36:19+00:00",
-  "commit": "9732790d4a02a1937d1ee0e3a8441e85974c9dd3"
+  "recorded_at": "2026-09-16T05:04:24+00:00",
+  "commit": "42a0ea60c79f393bcabed98bfc2674860ec5825c"
 }

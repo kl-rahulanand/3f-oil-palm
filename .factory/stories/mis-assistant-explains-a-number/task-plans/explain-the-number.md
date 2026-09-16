@@ -174,6 +174,11 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - contract/src/api.ts
 - tools/quality-gate.test.mjs
 
+**Scope amendments** (measured paths the scope did not name, recorded with `forge stage amend-scope`)
+
+- backend/src/mis/mis-statement.dto.ts -- Both paths are mechanically implied by criteria this task already carries, and were under-declared by me rather than taken opportunistically. backend/src/mis/mis-statement.dto.ts owns the STRICT response schema and MisStatementResolvedResponseDto, so the per-node actual-paise projection that signal S-0022-462a added to the statement response - the amount the paise footing is checked against - is rejected or undocumented without it; that is the same reason it was in task 1's scope for the attested context. backend/src/mis/mis-statement.service.test.ts is that service's fixture and asserts the response shape, so it cannot compile or pass once the response carries the new field. Neither adds behaviour beyond the recorded criteria.
+- backend/src/mis/mis-statement.service.test.ts -- Both paths are mechanically implied by criteria this task already carries, and were under-declared by me rather than taken opportunistically. backend/src/mis/mis-statement.dto.ts owns the STRICT response schema and MisStatementResolvedResponseDto, so the per-node actual-paise projection that signal S-0022-462a added to the statement response - the amount the paise footing is checked against - is rejected or undocumented without it; that is the same reason it was in task 1's scope for the attested context. backend/src/mis/mis-statement.service.test.ts is that service's fixture and asserts the response shape, so it cannot compile or pass once the response carries the new field. Neither adds behaviour beyond the recorded criteria.
+
 **Required tests** (run by `stage done`)
 
 - `the extracted seam returns a typed replaced outcome instead of throwing and the drill controller still maps it to its shipped response` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/mis/mis-drill.service.test.ts)

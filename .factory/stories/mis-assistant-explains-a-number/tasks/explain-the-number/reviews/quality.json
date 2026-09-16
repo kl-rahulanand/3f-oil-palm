@@ -1,22 +1,17 @@
 {
   "generated_by": "autoreview",
   "task_id": "explain-the-number",
-  "score": 7,
-  "summary": "quality lens over explain-the-number (32 product path(s), ebeea76..9732790, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The implementation otherwise provides the shared governed seam and explanation flow, but the exported response contract retains a superseded, unreachable compatibility variant, which is blocking under the review brief.\nVERDICT t-etn-c1: implemented \u2014 backend/src/mis/mis-drill.service.ts:39 shared prepare/read seam serves panel and assistant\nVERDICT t-etn-c2: implemented \u2014 backend/src/chat/statement-intent.ts:1 closed intent union with causal precedence\nVERDICT t-etn-c3: implemented \u2014 backend/src/chat/statement-explanation.service.ts:95 leaf response carries roll-up and transaction page\nVERDICT t-etn-c4: implemented \u2014 backend/src/chat/statement-explanation.service.ts:70 footer is converted and compared in paise\nVERDICT t-etn-c5: implemented \u2014 backend/src/mis/mis-drill.service.ts:94 audit completes before transaction execution\nVERDICT t-etn-c6: implemented \u2014 backend/src/chat/statement-explanation.service.ts:75 replaced reads are returned with source/period notice\nVERDICT t-etn-c7: implemented \u2014 backend/src/chat/statement-explanation.service.ts:25 budget focus is refused before intent/read handling\nVERDICT t-etn-c8: implemented \u2014 backend/src/mis/mis-drill.service.ts:229 roll-up preserves provisional mapping state and reason\nVERDICT t-etn-c9: partial \u2014 contract/src/api.ts:176 retains the obsolete pinned-batch-gone refusal alongside the new gone outcome\nVERDICT t-etn-c10: implemented \u2014 backend/src/chat/chat.service.ts:115 grounded explanations return directly without invoking the provider\nVERDICT t-etn-c11: implemented \u2014 backend/src/chat/chat.controller.ts:21 named schemas are attached to both buffered and streamed routes\nVERDICT t-etn-c12: implemented \u2014 backend/src/chat/statement-grounding.service.test.ts:52 exercises a genuinely different outline digest\nVERDICT t-etn-c13: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:24 requested and active batch states share one query\nVERDICT t-etn-c14: implemented \u2014 contract/src/api.ts:157 focus is optional and includes actual-or-budget subject\nVERDICT t-etn-c15: implemented \u2014 backend/src/chat/statement-explanation.service.ts:75 replaced carries the complete leaf explanation\nVERDICT t-etn-c16: implemented \u2014 backend/src/chat/statement-grounding.service.ts:35 verification passes the prepared server-only context to the read seam\nVERDICT t-etn-c17: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:49 the mandatory row limit reaches LIMIT and OFFSET\nVERDICT t-etn-c18: implemented \u2014 contract/src/api.ts:181 roll-up entries type mapping target, provisional flag, and reason\nVERDICT t-etn-c19: implemented \u2014 backend/src/chat/chat.controller.ts:21 both routes reference named Swagger DTOs",
-  "blocking_findings": [
+  "score": 9,
+  "summary": "quality lens over explain-the-number (32 product path(s), ebeea76..42a0ea6, Codex via the autoreview skill at --max-priority P2): 0 blocking, 1 non-blocking. The explanation feature is implemented and reachable, but invalid drill-node refusals now bypass the existing refusal audit path.\nVERDICT t-etn-c1: implemented \u2014 backend/src/mis/mis-drill.service.ts:39 extracted prepare/read seam is shared by run and chat\nVERDICT t-etn-c2: implemented \u2014 backend/src/chat/statement-intent.ts:1 closed intent classifier with causal precedence\nVERDICT t-etn-c3: implemented \u2014 backend/src/chat/statement-explanation.service.ts:93 leaf response carries roll-up and transaction page\nVERDICT t-etn-c4: implemented \u2014 backend/src/chat/statement-explanation.service.ts:76 compares footer and attested amount in paise\nVERDICT t-etn-c5: implemented \u2014 backend/src/mis/mis-drill.service.ts:123 audits the predicate before transaction execution\nVERDICT t-etn-c6: implemented \u2014 backend/src/chat/statement-explanation.service.ts:79 returns full replaced reads and refuses gone batches\nVERDICT t-etn-c7: implemented \u2014 backend/src/chat/statement-explanation.service.ts:23 refuses budget subjects before intent exits\nVERDICT t-etn-c8: implemented \u2014 backend/src/mis/mis-drill.service.ts:96 derives budget state and preserves provisional roll-up data\nVERDICT t-etn-c9: implemented \u2014 contract/src/api.ts:196 defines the in-band explanation response union\nVERDICT t-etn-c10: implemented \u2014 backend/src/chat/chat.service.ts:115 resolves grounded composition before the LLM path\nVERDICT t-etn-c11: implemented \u2014 backend/src/chat/chat.controller.ts:21 and backend/package.json:18 cover both routes and hermetic registration\nVERDICT t-etn-c12: implemented \u2014 backend/src/chat/statement-grounding.service.test.ts:49 exercises a different-outline mismatch and chat.schemas.ts:43 bounds metadata\nVERDICT t-etn-c13: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:24 reads requested and active batch state in one query\nVERDICT t-etn-c14: implemented \u2014 backend/src/chat/chat.schemas.ts:43 models an optional typed focus with subject\nVERDICT t-etn-c15: implemented \u2014 backend/src/chat/statement-explanation.service.ts:81 builds a distinct full replaced outcome\nVERDICT t-etn-c16: implemented \u2014 backend/src/mis/mis-drill.interface.ts:22 defines the server-only verified context reused by both callers\nVERDICT t-etn-c17: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:49 applies the mandatory row limit to SQL\nVERDICT t-etn-c18: implemented \u2014 contract/src/api.ts:176 types mapping target, provisional state, and reason\nVERDICT t-etn-c19: implemented \u2014 backend/src/chat/chat.controller.ts:21 names response DTOs on both chat routes\nLEFTOVERS: no compatibility wrappers, aliases, or retained deprecated branches are shown.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
     {
-      "category": "maintainability",
-      "area": "contract/src",
-      "summary": "[P1] Remove the superseded pinned-batch-gone refusal variant (contract/src/api.ts:176): The new `gone` response outcome fully replaces the old `pinned-batch-gone` refusal: `StatementGroundingService` now returns `outcome: \"gone\"`, and no changed path emits this refusal reason."
-    },
-    {
-      "category": "plan-contract-partial",
-      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
-      "summary": "t-etn-c9: The explanation is an in-band TYPED RESPONSE UNION on the existing chat transport with a variant per outcome: focus-required, leaf, aggregate, replaced, gone and safe audit-failure. 'No focus' is a SERVER outcome returning focus-required, not a local guess, and it extends the refusal variants task 1 already shipped rather than inventing a second union."
+      "category": "regression",
+      "area": "backend/src/mis",
+      "summary": "[P2] Audit invalid drill-node refusals before returning them (backend/src/mis/mis-drill.service.ts:108): When a panel request names a node that is not a statement leaf, `prepare()` still returns a prepared context with `focusExists` false, and this branch returns a refusal directly."
     }
   ],
-  "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/chat/chat.controller.ts",
@@ -56,97 +51,97 @@
     {
       "contract_id": "t-etn-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.service.ts:39 shared prepare/read seam serves panel and assistant"
+      "evidence": "backend/src/mis/mis-drill.service.ts:39 extracted prepare/read seam is shared by run and chat"
     },
     {
       "contract_id": "t-etn-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-intent.ts:1 closed intent union with causal precedence"
+      "evidence": "backend/src/chat/statement-intent.ts:1 closed intent classifier with causal precedence"
     },
     {
       "contract_id": "t-etn-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:95 leaf response carries roll-up and transaction page"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:93 leaf response carries roll-up and transaction page"
     },
     {
       "contract_id": "t-etn-c4",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:70 footer is converted and compared in paise"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:76 compares footer and attested amount in paise"
     },
     {
       "contract_id": "t-etn-c5",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.service.ts:94 audit completes before transaction execution"
+      "evidence": "backend/src/mis/mis-drill.service.ts:123 audits the predicate before transaction execution"
     },
     {
       "contract_id": "t-etn-c6",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:75 replaced reads are returned with source/period notice"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:79 returns full replaced reads and refuses gone batches"
     },
     {
       "contract_id": "t-etn-c7",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:25 budget focus is refused before intent/read handling"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:23 refuses budget subjects before intent exits"
     },
     {
       "contract_id": "t-etn-c8",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.service.ts:229 roll-up preserves provisional mapping state and reason"
+      "evidence": "backend/src/mis/mis-drill.service.ts:96 derives budget state and preserves provisional roll-up data"
     },
     {
       "contract_id": "t-etn-c9",
-      "verdict": "partial",
-      "evidence": "contract/src/api.ts:176 retains the obsolete pinned-batch-gone refusal alongside the new gone outcome"
+      "verdict": "implemented",
+      "evidence": "contract/src/api.ts:196 defines the in-band explanation response union"
     },
     {
       "contract_id": "t-etn-c10",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.ts:115 grounded explanations return directly without invoking the provider"
+      "evidence": "backend/src/chat/chat.service.ts:115 resolves grounded composition before the LLM path"
     },
     {
       "contract_id": "t-etn-c11",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.controller.ts:21 named schemas are attached to both buffered and streamed routes"
+      "evidence": "backend/src/chat/chat.controller.ts:21 and backend/package.json:18 cover both routes and hermetic registration"
     },
     {
       "contract_id": "t-etn-c12",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-grounding.service.test.ts:52 exercises a genuinely different outline digest"
+      "evidence": "backend/src/chat/statement-grounding.service.test.ts:49 exercises a different-outline mismatch and chat.schemas.ts:43 bounds metadata"
     },
     {
       "contract_id": "t-etn-c13",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:24 requested and active batch states share one query"
+      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:24 reads requested and active batch state in one query"
     },
     {
       "contract_id": "t-etn-c14",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:157 focus is optional and includes actual-or-budget subject"
+      "evidence": "backend/src/chat/chat.schemas.ts:43 models an optional typed focus with subject"
     },
     {
       "contract_id": "t-etn-c15",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:75 replaced carries the complete leaf explanation"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:81 builds a distinct full replaced outcome"
     },
     {
       "contract_id": "t-etn-c16",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-grounding.service.ts:35 verification passes the prepared server-only context to the read seam"
+      "evidence": "backend/src/mis/mis-drill.interface.ts:22 defines the server-only verified context reused by both callers"
     },
     {
       "contract_id": "t-etn-c17",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:49 the mandatory row limit reaches LIMIT and OFFSET"
+      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:49 applies the mandatory row limit to SQL"
     },
     {
       "contract_id": "t-etn-c18",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:181 roll-up entries type mapping target, provisional flag, and reason"
+      "evidence": "contract/src/api.ts:176 types mapping target, provisional state, and reason"
     },
     {
       "contract_id": "t-etn-c19",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.controller.ts:21 both routes reference named Swagger DTOs"
+      "evidence": "backend/src/chat/chat.controller.ts:21 names response DTOs on both chat routes"
     },
     {
       "contract_id": "t-ega-c1",
@@ -205,10 +200,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "31c769d8cb1e5762f33732cfda08269a5c443657cc58d755fb49bc866f2aa86b",
-  "brief_sha256": "03303fdb114abab7a05d6ce8c876c5b1417beb6c2f0c5637c2d8e2c450e7604c",
-  "branch_diff_digest": "e3759782fa6ab54366a839faba51e1f557c1b969bfa5d605e752c56f1b9c9b58",
+  "review_run_id": "2a68f886d313a0a6726e798c565812011d86401ad7c08eb120ba1f0db5d58ee8",
+  "brief_sha256": "69d4725784a9bac279352943ee26958d836b47a852f8896d31376b77889615a6",
+  "branch_diff_digest": "4e8562029001ad1ab55ebfa05a9f7257787b785c87a07b065156154ed6618c6b",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T04:36:19+00:00",
-  "commit": "9732790d4a02a1937d1ee0e3a8441e85974c9dd3"
+  "recorded_at": "2026-09-16T05:04:24+00:00",
+  "commit": "42a0ea60c79f393bcabed98bfc2674860ec5825c"
 }

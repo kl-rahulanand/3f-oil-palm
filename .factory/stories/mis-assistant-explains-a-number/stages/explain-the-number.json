@@ -1,7 +1,7 @@
 {
   "id": "explain-the-number",
   "title": "Answer a composition question about the focused figure",
-  "status": "active",
+  "status": "done",
   "started_at": "2026-09-16T03:16:08+00:00",
   "base_sha": "ebeea768c2a774fa6a51ff65c694d10815397b39",
   "dirty_at_start": {
@@ -14,5 +14,37 @@
       "git": "? plans/lessons/20260916T031541-0000-node_modules-is-materialised-in-explain-the-number-031541747406.json\u0000\u0000\u0000"
     }
   },
-  "task_sha256": "1842c32f1301395dd83a075dbb50eea1011d3bea0d624dccc33ba55c1c082335"
+  "task_sha256": "f84158708595f00fad5ecb67ee62a2e4262fa5a316ac200458656247a04bd20d",
+  "local_review_stamp": {
+    "stage_id": "explain-the-number",
+    "base_sha": "ebeea768c2a774fa6a51ff65c694d10815397b39",
+    "delta_id": "4e8562029001ad1ab55ebfa05a9f7257787b785c87a07b065156154ed6618c6b",
+    "contract_sha256": "f84158708595f00fad5ecb67ee62a2e4262fa5a316ac200458656247a04bd20d",
+    "recorded_at": "2026-09-16T05:04:24+00:00",
+    "generated_by": "autoreview",
+    "lenses": [
+      "quality",
+      "performance",
+      "security"
+    ]
+  },
+  "completed_at": "2026-09-16T05:04:25+00:00",
+  "measured": {
+    "strays": [
+      "backend/src/mis/mis-statement.dto.ts",
+      "backend/src/mis/mis-statement.service.test.ts"
+    ],
+    "files": 32,
+    "lines": 2198,
+    "budget": {
+      "files": 34,
+      "lines": 1900
+    },
+    "test_id_misses": []
+  },
+  "contract_changed": {
+    "at": "2026-09-16T05:04:25+00:00",
+    "from": "1842c32f1301395dd83a075dbb50eea1011d3bea0d624dccc33ba55c1c082335",
+    "to": "f84158708595f00fad5ecb67ee62a2e4262fa5a316ac200458656247a04bd20d"
+  }
 }
