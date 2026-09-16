@@ -1,0 +1,273 @@
+---
+issue: mis-assistant-explains-a-number
+title: The on-screen assistant explains a number on the MIS statement
+status: approved
+saved: 2026-09-15T23:51:44+00:00
+story: mis-assistant-explains-a-number
+decisions_reviewed:
+  - 0001-poc-engagement-scope
+  - 0002-phase1-financial-mis
+  - 0003-mis-presentation-tool
+  - 0004-pulse-governed-joins
+  - 0005-client-signoff
+  - 0006-frontend-fresh-backend-vendor
+  - 0007-frontend-framework-nextjs
+  - 0008-pulse-vendored-snapshot
+  - 0009-required-tests-real-name-and-tsproject
+  - 0010-rebrand-pulse-to-3f
+  - 0011-deployment-readiness-poc-scope
+  - 0012-vendored-api-constitution-deviation
+  - 0013-backend-observability-built-in-poc
+  - 0014-sap-ingestion-poc-no-master
+  - 0015-warehouse-snake-case-deviation
+  - 0017-mis-selection-composite-key-seam
+  - 0018-mis-selection-unmapped-gl-bucket
+  - 0019-fresh-routes-follow-vendored-house-style
+  - 0020-mis-budget-leaf-grain
+  - 0021-mis-statement-outline-snapshot
+  - 0022-mis-statement-governed-projection
+  - 0023-mis-statement-drift-reports-not-blocks
+  - 0024-drill-down-aggregate-client-projection
+  - 0025-drill-down-pinned-batch-raw-read
+  - 0026-assistant-ships-in-the-poc
+  - 0027-assistant-llm-bedrock-mumbai
+  - 0028-saved-selections-not-snapshots
+  - 0029-bind-host-explicit-network-exposure
+  - 0032-master-generated-from-workbook
+  - 0034-poc-budget-owner-plant
+  - 0036-all-plants-scope-for-the-poc
+  - 0037-ask-untouched-in-multi-plant
+  - 0038-mis-assistant-explains-without-touching-ask
+---
+
+# Plan — mis-assistant-explains-a-number: The on-screen assistant explains a number on the MIS statement
+
+This plan binds the **confirmed spec**, `docs/specs/mis-assistant-explains-a-number.md`, not the
+roadmap card. The card carries 7 of the spec's 14 criteria because `roadmap fill` refuses to amend
+an active card; binding the spec is what keeps the extra criteria from being silently dropped.
+
+## Problem
+
+The docked assistant on the MIS Reports screen knows nothing about the report on screen. `AskPanel`
+takes only `surface` and `onCollapse`, and `ask()` posts `{ question }` - so asking "how is this
+85000" in front of Agriculture Nursery DUB for July is byte-for-byte the same request as asking it
+on `/ask` with nothing rendered.
+
+And the assistant refuses the question outright. `classifyCausalQuestion`
+(`backend/src/chat/reconciliation-guard.ts:31`) answers "Causal analysis is not configured." That
+guard is right with no context - it stops the model inventing causes - but it answers the wrong
+question. "How is this 85000" is **composition**, not cause, and the product already computes it:
+the drill returns the transactions behind a leaf with a footer that foots, audited under decision
+0025, and the pinned outline snapshot plus the mapping master already know which lines and which
+GL/cost-centre triples build a figure.
+
+Decision 0037 named this capability as its follow-up. Decision 0038 scopes it: the grounded
+explanation ships, `/ask` is frozen, and 0035's plant-from-question half stays deferred.
+
+## Scope / Non-goals
+
+**In scope.** An attested statement context; `statementGrounding` on `AskRequest`; server-side
+re-derivation and typed refusals; a three-arm intent enum; leaf explanations (roll-up path +
+transactions) and aggregate explanations (client projection); a typed response union; the drill's
+governed-read protections on the leaf read; staleness per decision 0025; `budgetState`.
+
+**Explicit non-goals.** `/ask` behaviour, in **sending and rendering** (0038). Plant-from-question
+and the "name a plant" clarification (0035's deferred half). Threading pinned batches through
+`SelectionExecutor` so ordinary grounded data questions inherit pin and budget guarantees - grounding
+means **explanation only**, and that gap is deferred with a trigger. Closing D-0038's mapping-version
+detection: C12 is attribution only. Answering causal questions. Making Budget focusable.
+
+## Acceptance Criteria
+
+C1-C14 of the confirmed spec, reproduced there in full. The four that a reader is most likely to
+soften, and must not:
+
+- **C9** binds **server-sourced** data only. The user's own question carries the number - "how is
+  this 85000" is the motivating example - so an absolute "no number reaches the model" would forbid
+  the feature. What must never be sent is what the server read from the warehouse.
+- **C7** is a **client projection of the attested statement payload** (decision 0024), naming
+  descendant lines **with their values**. Structure comes from the pinned outline snapshot, not the
+  mapping master, which knows GL-to-leaf mapping and not the tree. A labels-only answer fails it.
+- **C11** follows decision 0025 exactly: a **replaced but present** batch is read and reported;
+  only a **gone** batch is refused. The same pinned line must not behave one way in the drill panel
+  and another in the assistant.
+- **C6** asserts footing in **paise against the statement payload**. The statement displays rupees
+  and the shipped drill contract permits the exact footer to differ from the displayed cell by up
+  to Rs 1; the assistant inherits that rule rather than contradicting it.
+
+## Technical Approach
+
+### Attestation — the executable design
+The statement response gains an **additive** attested-context field. The statement already computes
+everything it binds, so it signs and returns it in the same round trip; a second endpoint would
+re-derive the scope and could drift from the statement on screen, defeating the point.
+
+- **Envelope**: `<base64url(canonical JSON claims)>.<base64url(HMAC-SHA256)>`. Canonical JSON means
+  sorted keys and no insignificant whitespace, so the same claims always sign to the same bytes.
+- **Claims**: department, function, plant, period; a **digest of the outline** (leaf keys and their
+  blocks) rather than the outline itself, so the token stays small; the pinned batch ids and their
+  sources; the mapping-master version; the **user id**; and `exp`.
+- **Binding**: to the **user id**, not the session, because the statement route has no session id
+  today and a session-bound token would expire on refresh. Adding user id to the statement service
+  is task 1's plumbing.
+- **Key and TTL**: a new required config secret plus a TTL (default 30 minutes). Absent secret is a
+  **startup failure**, never a silently unsigned token.
+- **Rotation**: the verifier accepts a small ordered list of keys and signs with the first, so a key
+  can be rotated without invalidating live statements.
+- Focus may be any valid Actual **inside that attested statement**, so there is no per-click round
+  trip. The node and block travel **unsigned** and are validated against the signed outline digest.
+
+### What is signed, what is merely sent
+Signed claims are authority. Everything else is **verified context**: the client's department and
+function are sent so a mismatch with the master's selection can be **refused** rather than silently
+substituted, and the node and block are sent unsigned and checked against the attested outline. The
+chat request schema is `.strict()` today, so task 1 extends it deliberately rather than by accident.
+
+**No focus is a server outcome, not a local guess.** With a statement rendered and nothing clicked,
+the dock still sends the attested request and the server returns C12a's typed `focus-required`
+variant, so the rule is server-owned and provable by a backend leaf. Only "no statement at all"
+is local - there is nothing to attest.
+
+### The node-metadata projection
+C7 needs per-line approved mapping metadata that statement nodes do not carry today and an opaque
+token cannot supply. Task 1 therefore adds an **additive, readable** node-metadata projection to the
+statement response - the approved GL codes and cost centres per leaf - covered by the same
+attestation digest. The aggregate chat variant is then an **instruction only**: the browser derives
+descendants and their values from the rendered statement it already holds, which is exactly what
+decision 0024 requires, and no new server projection crosses the network per aggregate ask.
+
+### The raw-read seam
+`MisDrillService` already has the pin validation, the pre-query audit and the predicate this
+capability needs, but it is controller-oriented: it throws HTTP exceptions and is not exported to
+`ChatModule`. Task 2 **extracts a domain seam** that returns typed outcomes - `ok`, `replaced`,
+`gone`, `audit-failed` - instead of throwing, and both the drill controller and the assistant call
+it. Without that extraction task 2 would either duplicate the sensitive query or lose the typed
+outcomes to the global error filter. The assistant requests **20** rows; the drill panel keeps its
+**100**-row page, so the seam takes the limit as an argument.
+
+### Re-derivation
+The server trusts nothing from the client. Department and function come from the master's selection
+for that plant; the plant is checked against current grants on every ask; pins are validated before
+any read. Client copies of department and function are **verified context, never authority** - a
+mismatch is a typed refusal, not a silent substitution.
+
+### Intent
+A closed enum - `composition`, `causal`, `data` - resolved against a **fixture table the tests
+own**. Today's guard does not classify "how is this" as causal at all, so this boundary is built,
+not assumed. A causal cue **wins** when both appear.
+
+### The two answer shapes
+A **leaf** is a governed read: the drill's protections, the audit written before the query, the
+roll-up path, transactions, paise footing, 20 rows inline, true total count, a control that opens
+the shipped drill panel. An **aggregate** runs **no query at all**: a client projection of the
+attested payload, no governed-read audit.
+
+### The seam, and what `/ask` isolation really costs
+Grounding is a branch the caller opts into - the same shape `continueTurn`'s caller-stated failure
+policy took in `ask-reopen-saved-report` - never a change to shared classification.
+
+Isolation is **turn ownership**, not a rendering `if`. Both panels share one `AskProvider`, every
+turn renders from it, and successful turns feed the next request's `priorTurns`. Task 3 therefore
+**tags each turn with its origin** and partitions grounded turns out of BOTH `/ask`'s rendering and
+the `priorTurns` that `/ask` sends - otherwise a grounded explanation would leak into an ungrounded
+request's context and `/ask`'s wire behaviour would change after all. The frontend request types
+must also admit grounding on the buffered and streamed paths.
+
+### Typed contracts (decision 0019)
+0019 requires typed request/response contracts and Swagger documentation for the surfaces this
+story changes. That work is explicit, not assumed: task 1 owns the Zod schema and OpenAPI for the
+extended chat request and the statement response's new fields; task 2 owns the response union's
+schema and documentation across **both** the buffered and streamed chat paths, which are separate
+routes and must not drift.
+
+## Decisions
+Governed by **0038** (this story's scope), **0037** (which named it), **0024** (aggregate is a
+client projection), **0025** (pinned-batch raw read and the replaced/gone rule), **0027** (what may
+reach Bedrock), **0034**/**0036** (budget owner and all-plants), **0017**/**0022** (governed
+projection and the composite-key seam), **0021** (the outline snapshot). All active decisions are
+attested in the front matter.
+
+## Risks
+- **The attested context touches a shipped contract.** Additive, but the statement's existing
+  consumers and leaves must be re-proven. Task 1 owns that.
+- **Re-deriving scope is not the same as proving screen identity.** This is exactly why attestation
+  exists; without it C14's tamper refusal is unprovable.
+- **A weaker second raw-row route.** The leaf read must carry the drill's protections, not the
+  ordinary chat audit, or this becomes a way around decisions 0017, 0022 and 0025.
+- **The drill panel already diverges from decision 0025.** The service reads a replaced-but-present
+  batch; the shipped panel hides those lines and tells the user to regenerate. The assistant follows
+  0025 and reports them, so until D-0051 is picked up the two views will differ on the same line.
+  This is a ledgered, deliberate divergence rather than an oversight - the alternative was editing a
+  shipped surface outside this story.
+- **Backend leaves can silently not run.** `backend/package.json`'s hermetic test list is an
+  explicit allow-list, so a new test file does not execute until it is added. Every backend task
+  updates that list and names real gated leaves.
+
+## Verify Plan
+`python3 factory/scripts/verify.py`. Leaves are judged by the discriminator for their own runner -
+frontend by vitest (present AND NOT skipped AND NOT failed, D-0031), backend by Node/JUnit, where a
+non-matching name yields a testcase named for the FILE PATH (D-0024). Named because each can pass
+by accident:
+
+- the **provider payload**, not the rendered answer, proving no server-sourced row reaches the model;
+- an **invalid, expired or other-user** context, and a node or block **absent from the attested
+  outline**, each refused;
+- **department or function disagreeing** with the master's selection, refused;
+- the **intent fixture table**, including mixed wording where the causal cue wins;
+- **replaced-but-present** read and reported versus **gone** refused, for actual and for budget;
+- a failed audit returning the safe refusal **without ever querying**;
+- an aggregate answering with **child values** and running **no query**;
+- **`/ask` neither sending grounding nor rendering a grounded turn**;
+- **paise-exact footing** against the statement payload with the true total count.
+
+Every hermetic leaf uses a **deterministic classifier and a fake provider**. Intent is a fixture
+table, so the classification leaves need no model at all, and a Bedrock-backed assertion would be
+neither hermetic nor reproducible. Bedrock appears only in the **live check**, as separate manual
+evidence: render a statement, click an Actual, ask a composition question and a causal one, and
+confirm the explanation foots to the figure on screen with `LLM_PROVIDER=bedrock` declared.
+
+Each task must also **add its new test files to `backend/package.json`'s hermetic list** - the list
+is an allow-list, so a leaf that is not named simply never runs and the gate goes green having
+asserted nothing.
+
+## Surface Impact
+| Surface | Classification | Notes |
+| --- | --- | --- |
+| Runtime behavior | **Changed** | The docked assistant answers composition questions about a focused figure. |
+| API | **Changed** | `AskRequest` gains `statementGrounding`; the statement response gains an additive attested context; the chat response gains a typed explanation union. |
+| Data/schema | **Unchanged by design** | No storage change; the drill and the outline snapshot are read as they ship. |
+| CLI/ops | **N-A** | No CLI or deployment surface. |
+| UI | **Changed** | Focus lifts to the report view, the dock renders explanations, `/ask` is isolated. |
+| Docs | **Unchanged by design** | The confirmed spec and decision 0038 are already committed; no task edits documentation. 0038's front matter names `ask-reopen-saved-report` because it was minted during that run - it governs this story, and task 1 corrects the `stories` field. |
+| Tests | **Changed** | New backend and frontend leaves; the shipped statement and `/ask` leaves must pass unmodified. |
+
+## Task Decomposition
+Sequential; explicit dependencies. Three tasks.
+
+1. **`explain-grounding-and-attestation`** (backend + contract, `user_facing: false`) — **C1, C2**,
+   and C14's backend proof for both. The signed context (envelope, claims, user binding, config
+   secret, TTL, rotation) on the statement response; the **readable node-metadata projection** C7
+   needs; the user id plumbed into the statement service; `statementGrounding` on `AskRequest` with
+   the `.strict()` chat schema extended deliberately; server-side re-derivation; and the typed
+   refusals for an invalid, expired or other-user context, a node or block outside the attested
+   outline, a plant outside grants, and a department/function mismatch. Owns the Zod/OpenAPI work
+   for both changed requests under decision 0019, and corrects 0038's `stories` field. No UI and no
+   explanation yet. **The shipped statement and export leaves must pass unmodified.** Depends on
+   nothing.
+
+2. **`explain-the-number`** (backend, `user_facing: false`) — **C3, C4, C6, C8, C9, C10, C11, C12,
+   C12a, C13**, and C14's backend proof for them. Extracts the **raw-read domain seam** from
+   `MisDrillService` returning typed `ok`/`replaced`/`gone`/`audit-failed` outcomes with a row-limit
+   argument, so the drill controller and the assistant share one sensitive query; the intent fixture
+   table with a deterministic classifier; the leaf explanation with the roll-up path, transactions,
+   paise footing, 20 rows and the true count; the typed response union documented on **both** the
+   buffered and streamed chat paths; `budgetState`; and the **backend refusal for a crafted Budget
+   focus** (C8 cannot be a client-side rule). Depends on task 1.
+
+3. **`explain-on-screen`** (frontend, `user_facing: true`) — **C5, C7**, C8's surface half, and
+   C14's frontend proof. Focus ownership lifted to the MIS report view; the dock wired to send the
+   attested context; the **aggregate client projection** deriving descendants and values from the
+   rendered statement per decision 0024, driven by the aggregate variant as an instruction; the
+   control that opens the shipped drill; **rendering every outcome variant** - leaf, aggregate,
+   focus-required, replaced, gone, audit-failure and not-loaded; and `/ask` isolated by **turn
+   ownership** in rendering *and* in `priorTurns`. Depends on task 2.
