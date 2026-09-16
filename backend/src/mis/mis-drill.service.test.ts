@@ -20,8 +20,20 @@ test("the drill resolves its leaf and triples server side rejecting a node key t
   assert.deepEqual(fixture.transactions.predicates[0].triples, [TRIPLE]);
 
   const bucket = makeFixture();
-  await bucket.service.run(user, SESSION_ID, { ...request(), nodeKey: "unmapped-GL" });
+  const bucketOutcome = await bucket.service.run(user, SESSION_ID, { ...request(), nodeKey: "unmapped-GL" });
   assert.deepEqual(bucket.transactions.predicates[0].triples, [BUCKET_TRIPLE]);
+  assert.equal(bucketOutcome.outcome, "ok");
+  if (bucketOutcome.outcome === "ok") {
+    assert.deepEqual(bucketOutcome.response.rollup[0], {
+      plant: "DUB",
+      costCentre: "Unknown",
+      glCode: "5999",
+      bucket: "unmapped-GL",
+      mappingTarget: { kind: "bucket" },
+      provisional: true,
+      reason: "GL absent from Mapping Master",
+    });
+  }
 
   assert.equal(
     (await makeFixture().service.run(user, SESSION_ID, { ...request(), nodeKey: "parent-or-crafted-key" })).outcome,
@@ -229,7 +241,7 @@ class FakeTransactions implements IDrillTransactionsRepository {
   async findActualPeriods() {
     return this.options.actualPeriods ?? ["2026-07-01"];
   }
-  buildQueries(predicate: DrillPredicate, _page: number, rowLimit = 100): DrillQueries {
+  buildQueries(predicate: DrillPredicate, _page: number, rowLimit: number): DrillQueries {
     this.predicates.push(predicate);
     this.limits.push(rowLimit);
     return { pageSql: "SELECT page", footerSql: "SELECT footer", objectsTouched: ["sap_transaction", "ingest_batch"] };

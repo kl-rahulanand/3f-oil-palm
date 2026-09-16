@@ -75,7 +75,7 @@ test("a leaf explanation names the gl codes and cost centres the master folds in
 
 test("a crafted budget focus is refused by the backend", async () => {
   const target = fixture();
-  const response = await target.service.explain(user, "session", "how is this built", {
+  const response = await target.service.explain(user, "session", "why did this change", {
     ...grounding,
     focus: { ...grounding.focus!, subject: "budget" },
   });

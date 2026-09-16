@@ -1,0 +1,11 @@
+{
+  "topic": "buildQueries callers when rowLimit becomes mandatory",
+  "lesson": "RULING on S-0023-04bb, already in the recorded contract: backend/src/warehouse/drill-transactions.db.test.ts and backend/src/warehouse/all-plants-reconciliation.db.test.ts are in write_scope as the remaining concrete callers of buildQueries. Pass the limit explicitly at each call site. Do NOT keep a default value or add an overload to avoid editing them - that is the same compatibility shim the round-1 review deleted from ChatService and MisStatementService, and it would let a caller that forgets the limit silently get 100 rows. Both files are DB-gated and SKIPPED in the hermetic run, so a missed call site will not show up as a failing test, only as a typecheck failure in verify. Update call sites only; do not change what those tests assert.",
+  "source": "S-0023-04bb",
+  "applies_to": [
+    "backend/src/warehouse/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T04:07:37+00:00"
+}

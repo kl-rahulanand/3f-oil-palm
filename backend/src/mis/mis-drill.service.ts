@@ -232,8 +232,8 @@ function leafRollup(resolution: MasterResolvedSelection, leafKey: string): State
         glCode,
         bucket: entry?.mis_line ?? (target.kind === "leaf" ? target.leafKey : UNMAPPED_GL),
         mappingTarget: target,
-        provisional: entry?.provisional ?? resolution.provisional,
-        reason: entry?.reason ?? null,
+        provisional: entry?.provisional ?? (target.kind === "bucket" || resolution.provisional),
+        reason: entry?.reason ?? (target.kind === "bucket" ? "GL absent from Mapping Master" : null),
       };
     });
 }

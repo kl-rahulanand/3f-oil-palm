@@ -1,0 +1,13 @@
+{
+  "topic": "explain-the-number round-2 review fixes",
+  "lesson": "THREE fixes; the review reached security 10 but quality 9 with four partial contract verdicts and performance 7 with a P1. (1) ORDERING, partials on t-etn-c7 and t-etn-c14 - statement-explanation.service.ts:25 evaluates the INTENT EXITS BEFORE the Budget refusal, so a crafted focus whose subject is 'budget' escapes refusal whenever the accompanying question routes to causal or data first. The refusal is meant to be a property of the FOCUS, not of the question: validate the subject as soon as a focus is present and BEFORE any intent branch returns, so subject 'budget' is refused whatever is asked alongside it. Add a leaf that sends a budget subject with a CAUSAL question and asserts the budget refusal rather than the causal decline. (2) PROVISIONAL DRIFT, partials on t-etn-c8 and t-etn-c18 - mis-drill.service.ts:247's unmapped fallback can lose the provisional flag and reason, so an unmapped-GL line can be described without them and t-etn-c18's typed roll-up payload is not reliably populated. Carry mapping target, provisional and reason through that fallback rather than reconstructing a bare triple, and strengthen the provisional leaf so it fails when the fallback drops them. (3) PERFORMANCE P1 - drill-transactions.repository.ts:49 keeps rowLimit OPTIONAL, defaulting to DRILL_PAGE_SIZE, and the interface marks it optional too. That is the same compatibility-default pattern the round-1 review removed from ChatService and MisStatementService: it silently preserves the old two-argument call shape, so a caller that forgets the limit gets 100 rows with no error. Make the argument MANDATORY in both the interface and the repository and update every caller.",
+  "source": ".factory/stories/mis-assistant-explains-a-number/tasks/explain-the-number/reviews/quality.json",
+  "applies_to": [
+    "backend/src/chat/**",
+    "backend/src/mis/**",
+    "backend/src/warehouse/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T04:03:33+00:00"
+}

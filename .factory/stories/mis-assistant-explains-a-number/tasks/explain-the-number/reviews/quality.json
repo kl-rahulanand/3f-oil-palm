@@ -1,28 +1,43 @@
 {
   "generated_by": "autoreview",
   "task_id": "explain-the-number",
-  "score": 6,
-  "summary": "quality lens over explain-the-number (25 product path(s), ebeea76..1bf2093, Codex via the autoreview skill at --max-priority P2): 1 blocking, 1 non-blocking. The core explanation path is reachable, but the required paise footing assertion is absent and the extracted seam drops refusal auditing for invalid drill focuses. No compatibility leftovers are visible in the bundle.\nVERDICT t-etn-c1: implemented \u2014 backend/src/mis/mis-drill.service.ts:45\nVERDICT t-etn-c2: implemented \u2014 backend/src/chat/statement-intent.ts:1\nVERDICT t-etn-c3: implemented \u2014 backend/src/chat/statement-explanation.service.ts:87\nVERDICT t-etn-c4: partial \u2014 backend/src/chat/statement-explanation.service.ts:96 copies the footer without a paise assertion\nVERDICT t-etn-c5: implemented \u2014 backend/src/mis/mis-drill.service.ts:113\nVERDICT t-etn-c6: implemented \u2014 backend/src/chat/statement-explanation.service.ts:58\nVERDICT t-etn-c7: implemented \u2014 backend/src/chat/statement-explanation.service.ts:27\nVERDICT t-etn-c8: implemented \u2014 backend/src/mis/mis-drill.service.ts:98\nVERDICT t-etn-c9: implemented \u2014 contract/src/api.ts:194\nVERDICT t-etn-c10: implemented \u2014 backend/src/chat/chat.service.ts:115\nVERDICT t-etn-c11: implemented \u2014 backend/src/chat/chat.controller.ts:21\nVERDICT t-etn-c12: implemented \u2014 backend/src/chat/chat.schemas.ts:40\nVERDICT t-etn-c13: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:24\nVERDICT t-etn-c14: implemented \u2014 contract/src/api.ts:150\nVERDICT t-etn-c15: implemented \u2014 backend/src/chat/statement-explanation.service.ts:71\nVERDICT t-etn-c16: implemented \u2014 backend/src/mis/mis-drill.interface.ts:20\nVERDICT t-etn-c17: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:49\nVERDICT t-etn-c18: implemented \u2014 contract/src/api.ts:169\nVERDICT t-etn-c19: implemented \u2014 backend/src/chat/chat.schemas.ts:85",
+  "score": 9,
+  "summary": "quality lens over explain-the-number (30 product path(s), ebeea76..7a75640, Codex via the autoreview skill at --max-priority P2): 0 blocking, 2 non-blocking. The main explanation flow is implemented, but Budget subjects can evade their typed refusal and real unmapped-GL roll-ups can lose the required provisional status and reason.\nVERDICT t-etn-c1: implemented \u2014 backend/src/mis/mis-drill.service.ts:39 extracted prepare/read seam\nVERDICT t-etn-c2: implemented \u2014 backend/src/chat/statement-intent.ts:1 closed intent classifier\nVERDICT t-etn-c3: implemented \u2014 backend/src/chat/statement-explanation.service.ts:97 leaf payload\nVERDICT t-etn-c4: implemented \u2014 backend/src/chat/statement-explanation.service.ts:69 paise comparison\nVERDICT t-etn-c5: implemented \u2014 backend/src/mis/mis-drill.service.ts:112 audit precedes execution\nVERDICT t-etn-c6: implemented \u2014 backend/src/chat/statement-explanation.service.ts:75 replaced and gone branches\nVERDICT t-etn-c7: partial \u2014 backend/src/chat/statement-explanation.service.ts:25 intent exits precede Budget refusal\nVERDICT t-etn-c8: partial \u2014 backend/src/mis/mis-drill.service.ts:247 unmapped fallback can lose provisional metadata\nVERDICT t-etn-c9: implemented \u2014 contract/src/api.ts:196 typed explanation union\nVERDICT t-etn-c10: implemented \u2014 backend/src/chat/statement-explanation.service.ts:24 grounded composition avoids the provider\nVERDICT t-etn-c11: implemented \u2014 tools/quality-gate.test.mjs:26 new hermetic leaves registered\nVERDICT t-etn-c12: implemented \u2014 backend/src/chat/statement-grounding.service.test.ts:49 different-outline mismatch exercised\nVERDICT t-etn-c13: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:24 batch states use one query\nVERDICT t-etn-c14: partial \u2014 backend/src/chat/statement-explanation.service.ts:25 optional focus exists, but Budget is not always refused\nVERDICT t-etn-c15: implemented \u2014 backend/src/chat/statement-explanation.service.ts:79 replaced carries the full leaf\nVERDICT t-etn-c16: implemented \u2014 backend/src/chat/statement-grounding.service.ts:39 verified preparation context is reused\nVERDICT t-etn-c17: implemented \u2014 backend/src/warehouse/drill-transactions.repository.ts:49 row limit reaches SQL\nVERDICT t-etn-c18: partial \u2014 backend/src/mis/mis-drill.service.ts:247 provisional and reason metadata can drift\nVERDICT t-etn-c19: implemented \u2014 backend/src/chat/chat.controller.ts:21 named DTOs document both routes\nNo compatibility-only wrapper, alias, or deprecated leftover is shown in the diff.",
   "blocking_findings": [
     {
-      "category": "bug",
-      "area": "backend/src/chat",
-      "summary": "[P1] Assert the drill footer against the focused statement value in paise (backend/src/chat/statement-explanation.service.ts:96): The leaf builder simply copies `response.footer` into the explanation; neither the request nor the verified context carries the focused statement measure, and no paise comparison is performed."
+      "category": "plan-contract-partial",
+      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
+      "summary": "t-etn-c7: Budget is refused as a subject IN THE BACKEND, because a crafted focus on a Budget cell cannot be caught by a client-side rule."
     },
     {
       "category": "plan-contract-partial",
       "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
-      "summary": "t-etn-c4: Footing is asserted in PAISE against the statement payload, not the rendered cell. The statement displays rupees and the shipped drill contract permits the exact footer to differ from the displayed cell by up to Rs 1 with paise equality underneath, so a leaf asserts paise equality and never rupee equality."
+      "summary": "t-etn-c8: Every grounded explanation carries a distinct budgetState of not-loaded when the plant is not the budget owner (decision 0034), kept distinct from a replaced or gone batch. An unmapped-GL line is described as provisional, not as an approved mapping."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
+      "summary": "t-etn-c14: The wire carries an OPTIONAL typed focus instead of a required nodeKey/block pair: absent means the server returns focus-required, and present means { nodeKey, block, subject: 'actual' | 'budget' }. Task 1 made the pair REQUIRED, which makes both focus-required and the backend Budget refusal impossible - an unfocused request is rejected before the service ever runs, and without a subject a crafted Budget focus is indistinguishable from an Actual one. Only subject 'actual' reaches the read seam; 'budget' is a typed refusal."
+    },
+    {
+      "category": "plan-contract-partial",
+      "area": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria",
+      "summary": "t-etn-c18: The typed roll-up payload carries the mapping target, the provisional flag and the reason, because leafTriples() drops them today - without those an unmapped-GL line cannot honestly be described as provisional, which criterion 8 requires."
     }
   ],
   "non_blocking_findings": [
     {
-      "category": "regression",
+      "category": "bug",
+      "area": "backend/src/chat",
+      "summary": "[P2] Refuse Budget focus before intent fall-through (backend/src/chat/statement-explanation.service.ts:25): The method returns immediately for `data` and `causal` questions before inspecting `focus.subject`."
+    },
+    {
+      "category": "bug",
       "area": "backend/src/mis",
-      "summary": "[P2] Audit invalid-node refusals before returning them from the seam (backend/src/mis/mis-drill.service.ts:111): When preparation succeeds but the focus is absent, unknown, or an aggregate, `read()` returns a refusal directly."
+      "summary": "[P2] Preserve provisional metadata for master-absent GLs (backend/src/mis/mis-drill.service.ts:247): For a bucket target with no matching `selection.entries` row\u2014the master-absent unmapped-GL case\u2014`entry` is undefined, so this fallback uses the selection-wide `resolution.provisional` flag and the following line emits a null reason."
     }
   ],
-  "recommendation": "request-changes",
+  "recommendation": "approve-with-caveats",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/chat/chat.controller.ts",
@@ -42,7 +57,12 @@
     "backend/src/mis/mis-drill.interface.ts",
     "backend/src/mis/mis-drill.service.test.ts",
     "backend/src/mis/mis-drill.service.ts",
+    "backend/src/mis/mis-statement.dto.ts",
+    "backend/src/mis/mis-statement.service.test.ts",
+    "backend/src/mis/mis-statement.service.ts",
     "backend/src/mis/mis.module.ts",
+    "backend/src/mis/statement-attestation.test.ts",
+    "backend/src/mis/statement-attestation.ts",
     "backend/src/swagger.test.ts",
     "backend/src/warehouse/drill-transactions.interface.ts",
     "backend/src/warehouse/drill-transactions.repository.test.ts",
@@ -55,97 +75,97 @@
     {
       "contract_id": "t-etn-c1",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.service.ts:45"
+      "evidence": "backend/src/mis/mis-drill.service.ts:39 extracted prepare/read seam"
     },
     {
       "contract_id": "t-etn-c2",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-intent.ts:1"
+      "evidence": "backend/src/chat/statement-intent.ts:1 closed intent classifier"
     },
     {
       "contract_id": "t-etn-c3",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:87"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:97 leaf payload"
     },
     {
       "contract_id": "t-etn-c4",
-      "verdict": "partial",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:96 copies the footer without a paise assertion"
+      "verdict": "implemented",
+      "evidence": "backend/src/chat/statement-explanation.service.ts:69 paise comparison"
     },
     {
       "contract_id": "t-etn-c5",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.service.ts:113"
+      "evidence": "backend/src/mis/mis-drill.service.ts:112 audit precedes execution"
     },
     {
       "contract_id": "t-etn-c6",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:58"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:75 replaced and gone branches"
     },
     {
       "contract_id": "t-etn-c7",
-      "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:27"
+      "verdict": "partial",
+      "evidence": "backend/src/chat/statement-explanation.service.ts:25 intent exits precede Budget refusal"
     },
     {
       "contract_id": "t-etn-c8",
-      "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.service.ts:98"
+      "verdict": "partial",
+      "evidence": "backend/src/mis/mis-drill.service.ts:247 unmapped fallback can lose provisional metadata"
     },
     {
       "contract_id": "t-etn-c9",
       "verdict": "implemented",
-      "evidence": "contract/src/api.ts:194"
+      "evidence": "contract/src/api.ts:196 typed explanation union"
     },
     {
       "contract_id": "t-etn-c10",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.service.ts:115"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:24 grounded composition avoids the provider"
     },
     {
       "contract_id": "t-etn-c11",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.controller.ts:21"
+      "evidence": "tools/quality-gate.test.mjs:26 new hermetic leaves registered"
     },
     {
       "contract_id": "t-etn-c12",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.schemas.ts:40"
+      "evidence": "backend/src/chat/statement-grounding.service.test.ts:49 different-outline mismatch exercised"
     },
     {
       "contract_id": "t-etn-c13",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:24"
+      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:24 batch states use one query"
     },
     {
       "contract_id": "t-etn-c14",
-      "verdict": "implemented",
-      "evidence": "contract/src/api.ts:150"
+      "verdict": "partial",
+      "evidence": "backend/src/chat/statement-explanation.service.ts:25 optional focus exists, but Budget is not always refused"
     },
     {
       "contract_id": "t-etn-c15",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/statement-explanation.service.ts:71"
+      "evidence": "backend/src/chat/statement-explanation.service.ts:79 replaced carries the full leaf"
     },
     {
       "contract_id": "t-etn-c16",
       "verdict": "implemented",
-      "evidence": "backend/src/mis/mis-drill.interface.ts:20"
+      "evidence": "backend/src/chat/statement-grounding.service.ts:39 verified preparation context is reused"
     },
     {
       "contract_id": "t-etn-c17",
       "verdict": "implemented",
-      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:49"
+      "evidence": "backend/src/warehouse/drill-transactions.repository.ts:49 row limit reaches SQL"
     },
     {
       "contract_id": "t-etn-c18",
-      "verdict": "implemented",
-      "evidence": "contract/src/api.ts:169"
+      "verdict": "partial",
+      "evidence": "backend/src/mis/mis-drill.service.ts:247 provisional and reason metadata can drift"
     },
     {
       "contract_id": "t-etn-c19",
       "verdict": "implemented",
-      "evidence": "backend/src/chat/chat.schemas.ts:85"
+      "evidence": "backend/src/chat/chat.controller.ts:21 named DTOs document both routes"
     },
     {
       "contract_id": "t-ega-c1",
@@ -204,10 +224,10 @@
     }
   ],
   "aspect": "quality",
-  "review_run_id": "dadf3c0ac307a7727e37143846ef98eda6e3a868cc1de9d31160d4df2c1a9314",
-  "brief_sha256": "3284f4d711c0faa1c7c21c6b3b911ce5cd062c9dc6ed9732f0ace792af1df4cd",
-  "branch_diff_digest": "73eab34f25c56c1be65ada899a40c02537939397802b205e8bc1ad734b5e810f",
+  "review_run_id": "cbdedd6c72ffc4654917e9c18d417739332085d83a851be4cbf0c37ffae222b9",
+  "brief_sha256": "092ffa199d89b7fb2a695f5cb6186613dbad6fa33079df162734eceefd33382b",
+  "branch_diff_digest": "9562a7455613e9795aa85a3a0a0ec3c9d5f442a6a2ced667e6da212311f492e1",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T03:45:43+00:00",
-  "commit": "1bf209353249b1bf7bf4a357b2353c207e827088"
+  "recorded_at": "2026-09-16T04:02:56+00:00",
+  "commit": "7a75640143c3a9c4037ff957790ba084acf3526a"
 }

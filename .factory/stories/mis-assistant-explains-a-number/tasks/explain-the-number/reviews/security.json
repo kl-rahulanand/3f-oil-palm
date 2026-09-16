@@ -1,17 +1,11 @@
 {
   "generated_by": "autoreview",
   "task_id": "explain-the-number",
-  "score": 7,
-  "summary": "security lens over explain-the-number (25 product path(s), ebeea76..1bf2093, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The patch implements most of the governed-read protections, but it omits the required financial-integrity check between the selected statement value and the exact transaction footer. Because the request contract does not carry that value and the service blindly returns the read result, the claimed grounded explanation is not actually footed against the statement payload.",
-  "blocking_findings": [
-    {
-      "category": "security",
-      "area": "backend/src/chat",
-      "summary": "[P1] Verify the transaction footer against the statement amount (backend/src/chat/statement-explanation.service.ts:82): The explanation converts the drill response directly into a grounded leaf without comparing its footer to the statement payload in paise."
-    }
-  ],
+  "score": 10,
+  "summary": "security lens over explain-the-number (30 product path(s), ebeea76..7a75640, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. No actionable P0\u2013P2 security defects are demonstrated by the supplied diff. The change revalidates authorization and scope server-side, verifies signed grounding data, distinguishes replaced and gone batches, audits the exact transaction predicate before querying, fails closed on audit errors, refuses budget-focused requests in the backend, and keeps server-read financial data out of the model path. The diff also shows no compatibility-only leftover that warrants a blocking finding.",
+  "blocking_findings": [],
   "non_blocking_findings": [],
-  "recommendation": "request-changes",
+  "recommendation": "approve",
   "reviewed_scope": [
     "backend/package.json",
     "backend/src/chat/chat.controller.ts",
@@ -31,7 +25,12 @@
     "backend/src/mis/mis-drill.interface.ts",
     "backend/src/mis/mis-drill.service.test.ts",
     "backend/src/mis/mis-drill.service.ts",
+    "backend/src/mis/mis-statement.dto.ts",
+    "backend/src/mis/mis-statement.service.test.ts",
+    "backend/src/mis/mis-statement.service.ts",
     "backend/src/mis/mis.module.ts",
+    "backend/src/mis/statement-attestation.test.ts",
+    "backend/src/mis/statement-attestation.ts",
     "backend/src/swagger.test.ts",
     "backend/src/warehouse/drill-transactions.interface.ts",
     "backend/src/warehouse/drill-transactions.repository.test.ts",
@@ -41,10 +40,10 @@
   ],
   "skills_used": [],
   "aspect": "security",
-  "review_run_id": "dadf3c0ac307a7727e37143846ef98eda6e3a868cc1de9d31160d4df2c1a9314",
-  "brief_sha256": "3284f4d711c0faa1c7c21c6b3b911ce5cd062c9dc6ed9732f0ace792af1df4cd",
-  "branch_diff_digest": "73eab34f25c56c1be65ada899a40c02537939397802b205e8bc1ad734b5e810f",
+  "review_run_id": "cbdedd6c72ffc4654917e9c18d417739332085d83a851be4cbf0c37ffae222b9",
+  "brief_sha256": "092ffa199d89b7fb2a695f5cb6186613dbad6fa33079df162734eceefd33382b",
+  "branch_diff_digest": "9562a7455613e9795aa85a3a0a0ec3c9d5f442a6a2ced667e6da212311f492e1",
   "residual_risks": [],
-  "recorded_at": "2026-09-16T03:45:43+00:00",
-  "commit": "1bf209353249b1bf7bf4a357b2353c207e827088"
+  "recorded_at": "2026-09-16T04:02:56+00:00",
+  "commit": "7a75640143c3a9c4037ff957790ba084acf3526a"
 }

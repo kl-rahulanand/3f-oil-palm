@@ -46,7 +46,7 @@ LIMIT 25000`);
       .filter((period): period is string => Boolean(period));
   }
 
-  buildQueries(predicate: DrillPredicate, page: number, rowLimit = DRILL_PAGE_SIZE): DrillQueries {
+  buildQueries(predicate: DrillPredicate, page: number, rowLimit: number): DrillQueries {
     const where = buildPredicate(predicate);
     return {
       pageSql: `SELECT txn.month, txn.posting_date, txn.debit, txn.credit,

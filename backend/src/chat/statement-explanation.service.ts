@@ -21,12 +21,12 @@ export class StatementExplanationService {
     question: string,
     grounding: AskStatementGrounding,
   ): Promise<StatementExplanationDecision> {
-    const intent = classifyStatementIntent(question);
-    if (intent === "data") return { kind: "data" };
-    if (intent === "causal") return { kind: "causal" };
     if (grounding.focus?.subject === "budget") {
       return { kind: "response", response: { outcome: "refused", reason: "budget-subject-not-supported" } };
     }
+    const intent = classifyStatementIntent(question);
+    if (intent === "data") return { kind: "data" };
+    if (intent === "causal") return { kind: "causal" };
     const verified = await this.grounding.verify(user, grounding);
     if (verified.outcome === "refused") return { kind: "response", response: verified };
     if (verified.outcome === "gone") {

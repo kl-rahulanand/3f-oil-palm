@@ -27,6 +27,6 @@ export interface DrillReadResult {
 export interface IDrillTransactionsRepository {
   findBatchStates(pins: ProvenanceBatch[]): Promise<DrillBatch[]>;
   findActualPeriods(from: string, to: string): Promise<string[]>;
-  buildQueries(predicate: DrillPredicate, page: number, rowLimit?: number): DrillQueries;
+  buildQueries(predicate: DrillPredicate, page: number, rowLimit: number): DrillQueries;
   execute(queries: DrillQueries): Promise<DrillReadResult>;
 }
