@@ -76,8 +76,8 @@ test(
         from: JULY,
         to: JULY,
       };
-      const first = await repository.execute(repository.buildQueries(leafPredicate, 1));
-      const repeated = await repository.execute(repository.buildQueries(leafPredicate, 1));
+      const first = await repository.execute(repository.buildQueries(leafPredicate, 1, 100));
+      const repeated = await repository.execute(repository.buildQueries(leafPredicate, 1, 100));
       assert.equal(first.footer.value, statementByLeaf.get(LEAF_KEY));
       assert.deepEqual(first.lines, repeated.lines);
 
@@ -90,6 +90,7 @@ test(
               .map(({ plant, costCenter, glCode }) => ({ plant, costCenter, glCode })),
           },
           1,
+          100,
         ),
       );
       assert.equal(bucket.footer.value, statementByLeaf.get("unmapped-GL"));
@@ -122,7 +123,11 @@ test(
       );
       const ytdStatementByLeaf = new Map(ytdStatementRows.rows.map((row) => [row.leaf_key, row.actual_net]));
       const paged = await repository.execute(
-        repository.buildQueries({ ...leafPredicate, actualBatchIds: [april], from: "2026-04-01", to: "2026-04-01" }, 1),
+        repository.buildQueries(
+          { ...leafPredicate, actualBatchIds: [april], from: "2026-04-01", to: "2026-04-01" },
+          1,
+          100,
+        ),
       );
       assert.equal(paged.totalCount, 101);
       assert.equal(paged.lines.length, 100);
@@ -130,6 +135,7 @@ test(
         repository.buildQueries(
           { ...leafPredicate, actualBatchIds: [april, may, actual.batchId], from: "2026-04-01" },
           1,
+          100,
         ),
       );
       assert.equal(ytdStatementByLeaf.get(LEAF_KEY), addMoney(statementByLeaf.get(LEAF_KEY)!, "104.03"));

@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "When the pinned batch was replaced, decision 0025 says show the figures and report the replacement. But should that be its own response shape, or the normal answer with a flag on it? Task 3 renders whatever I choose here.",
+      "options": [
+        "Its own outcome carrying the full explanation (Recommended)",
+        "The normal leaf answer with a status flag"
+      ],
+      "chosen": "Its own outcome carrying the full explanation (Recommended)"
+    }
+  ],
+  "at": "2026-09-16T03:13:06.211848+00:00",
+  "session_id": "f601a459-eb52-4cde-9699-183dae152f8a"
+}

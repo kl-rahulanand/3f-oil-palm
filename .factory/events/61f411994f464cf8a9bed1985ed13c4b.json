@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-16T03:47:41+00:00", "story": "mis-assistant-explains-a-number", "detail": "The paise-footing review fix must bind server-derived per-node/per-block actual paise from the issued statement payload into the signed attestation so replaced-but-present statements can still be chec"}

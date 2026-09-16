@@ -6,7 +6,7 @@ import { zodApiBody } from "../common/openapi";
 import { AuthGuard, CurrentUser, RequireAction, SessionId } from "../auth/auth.guard";
 import { ChatService } from "./chat.service";
 import { CHAT_API_DESCRIPTIONS } from "./chat.constants";
-import { askSchema } from "./chat.schemas";
+import { askSchema, ChatResponseDto, ChatStreamEventDto } from "./chat.schemas";
 import { runChatStream, serializeSseFrame } from "./chat.sse";
 
 @ApiTags("chat")
@@ -18,7 +18,11 @@ export class ChatController {
   @Post()
   @ApiOperation({ summary: "Ask a natural-language data question" })
   @ApiBody(zodApiBody(askSchema))
-  @ApiResponse({ status: HttpStatus.CREATED, description: CHAT_API_DESCRIPTIONS.answerGenerated })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: CHAT_API_DESCRIPTIONS.answerGenerated,
+    type: ChatResponseDto,
+  })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: CHAT_API_DESCRIPTIONS.invalidRequestBody })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
@@ -47,7 +51,11 @@ export class ChatController {
   @Post("stream")
   @ApiOperation({ summary: "Stream a natural-language data answer" })
   @ApiBody(zodApiBody(askSchema))
-  @ApiResponse({ status: HttpStatus.OK, description: "Answer streamed as server-sent events" })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: "Answer streamed as server-sent events",
+    type: ChatStreamEventDto,
+  })
   async stream(
     @CurrentUser() user: AuthUser,
     @SessionId() sessionId: string,

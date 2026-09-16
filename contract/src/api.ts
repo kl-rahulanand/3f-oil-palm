@@ -143,13 +143,23 @@ export interface MisStatementNodeMetadata {
   costCentres: string[];
 }
 
+export interface MisStatementNodeAmount {
+  nodeKey: string;
+  block: MisStatementMeasureBlock["key"];
+  actualPaise: string;
+}
+
 export interface AskStatementGrounding {
   attestedContext: string;
   department: string;
   function: string;
-  nodeKey: string;
-  block: string;
+  focus?: {
+    nodeKey: string;
+    block: MisStatementMeasureBlock["key"];
+    subject: "actual" | "budget";
+  };
   nodeMetadata: MisStatementNodeMetadata[];
+  nodeAmounts: MisStatementNodeAmount[];
 }
 
 export type StatementGroundingRefusalReason =
@@ -157,16 +167,53 @@ export type StatementGroundingRefusalReason =
   | "expired-context"
   | "wrong-user"
   | "node-metadata-mismatch"
+  | "node-amounts-mismatch"
   | "outline-mismatch"
   | "node-not-in-outline"
   | "block-not-in-outline"
   | "plant-not-authorized"
-  | "pinned-batch-gone"
   | "pinned-batch-invalid"
-  | "selection-mismatch";
+  | "selection-mismatch"
+  | "budget-subject-not-supported"
+  | "footing-mismatch";
+
+export interface StatementRollupEntry {
+  plant: string;
+  costCentre: string;
+  glCode: string;
+  bucket: string;
+  mappingTarget: { kind: "leaf"; leafKey: string } | { kind: "bucket" };
+  provisional: boolean;
+  reason: string | null;
+}
+
+export interface StatementLeafExplanation {
+  nodeKey: string;
+  leafKey: string;
+  block: MisStatementMeasureBlock["key"];
+  budgetState: "loaded" | "not-loaded";
+  rollup: StatementRollupEntry[];
+  transactions: {
+    lines: MisDrillLine[];
+    footer: MisDrillFooter;
+    totalCount: number;
+    pageSize: 20;
+  };
+}
 
 export type StatementGroundingResponse =
-  | { outcome: "verified-but-unanswered"; batchStatuses: MisDrillBatchStatus[] }
+  | { outcome: "focus-required" }
+  | ({ outcome: "leaf" } & StatementLeafExplanation)
+  | ({ outcome: "replaced"; notice: string; replacedBatches: MisDrillBatchStatus[] } & StatementLeafExplanation)
+  | {
+      outcome: "aggregate";
+      nodeKey: string;
+      block: MisStatementMeasureBlock["key"];
+      budgetState: "loaded" | "not-loaded";
+      instruction: "project-descendants-from-attested-statement";
+    }
+  | { outcome: "gone"; batchStatuses: MisDrillBatchStatus[]; message: string }
+  | { outcome: "audit-failure"; message: string }
   | { outcome: "refused"; reason: StatementGroundingRefusalReason; batchStatuses?: MisDrillBatchStatus[] };
 
 export interface AskPriorTurn {
@@ -370,6 +417,7 @@ export interface MisStatementResolvedResponse {
   provenance: MisStatementProvenance;
   attestedContext?: string;
   nodeMetadata?: MisStatementNodeMetadata[];
+  nodeAmounts?: MisStatementNodeAmount[];
 }
 
 export interface MisStatementUnresolvableResponse {

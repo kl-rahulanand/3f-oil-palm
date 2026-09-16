@@ -1,5 +1,10 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import type { MisStatementNodeMetadata, ProvenanceBatch, StatementGroundingRefusalReason } from "@3f/contract";
+import type {
+  MisStatementNodeAmount,
+  MisStatementNodeMetadata,
+  ProvenanceBatch,
+  StatementGroundingRefusalReason,
+} from "@3f/contract";
 import { z } from "zod";
 
 const pinSchema = z.object({ source: z.enum(["actuals", "budget"]), period: z.string(), batchId: z.string() }).strict();
@@ -11,6 +16,7 @@ const claimsSchema = z
     period: z.string(),
     outlineDigest: z.string(),
     nodeMetadataDigest: z.string(),
+    nodeAmountsDigest: z.string(),
     pinnedBatches: z.array(pinSchema),
     mappingMasterVersion: z.number().int().positive(),
     userId: z.string(),
@@ -26,7 +32,7 @@ export type StatementAttestationVerification =
       outcome: "refused";
       reason: Extract<
         StatementGroundingRefusalReason,
-        "invalid-signature" | "expired-context" | "wrong-user" | "node-metadata-mismatch"
+        "invalid-signature" | "expired-context" | "wrong-user" | "node-metadata-mismatch" | "node-amounts-mismatch"
       >;
     };
 
@@ -51,6 +57,7 @@ export class StatementAttestationService {
     outline: StatementOutlineDigestNode[];
     blocks: readonly string[];
     nodeMetadata: MisStatementNodeMetadata[];
+    nodeAmounts: MisStatementNodeAmount[];
     pinnedBatches: ProvenanceBatch[];
     mappingMasterVersion: number;
     userId: string;
@@ -62,6 +69,7 @@ export class StatementAttestationService {
       period: input.period,
       outlineDigest: this.outlineDigest(input.outline, input.blocks),
       nodeMetadataDigest: this.nodeMetadataDigest(input.nodeMetadata),
+      nodeAmountsDigest: this.nodeAmountsDigest(input.nodeAmounts),
       pinnedBatches: sortedPins(input.pinnedBatches),
       mappingMasterVersion: input.mappingMasterVersion,
       userId: input.userId,
@@ -71,7 +79,12 @@ export class StatementAttestationService {
     return `${Buffer.from(bytes).toString("base64url")}.${sign(bytes, this.keys[0])}`;
   }
 
-  verify(context: string, userId: string, nodeMetadata: MisStatementNodeMetadata[]): StatementAttestationVerification {
+  verify(
+    context: string,
+    userId: string,
+    nodeMetadata: MisStatementNodeMetadata[],
+    nodeAmounts: MisStatementNodeAmount[],
+  ): StatementAttestationVerification {
     const [payload, signature, extra] = context.split(".");
     if (!payload || !signature || extra || !/^[A-Za-z0-9_-]+$/.test(payload + signature)) return invalid();
     let bytes: Buffer;
@@ -91,6 +104,9 @@ export class StatementAttestationService {
     if (claims.userId !== userId) return { outcome: "refused", reason: "wrong-user" };
     if (claims.nodeMetadataDigest !== this.nodeMetadataDigest(nodeMetadata)) {
       return { outcome: "refused", reason: "node-metadata-mismatch" };
+    }
+    if (claims.nodeAmountsDigest !== this.nodeAmountsDigest(nodeAmounts)) {
+      return { outcome: "refused", reason: "node-amounts-mismatch" };
     }
     return { outcome: "verified", claims };
   }
@@ -113,6 +129,14 @@ export class StatementAttestationService {
           costCentres: [...costCentres].sort(),
         }))
         .sort((left, right) => left.nodeKey.localeCompare(right.nodeKey)),
+    );
+  }
+
+  nodeAmountsDigest(amounts: MisStatementNodeAmount[]): string {
+    return digest(
+      [...amounts].sort((left, right) =>
+        `${left.nodeKey}\0${left.block}`.localeCompare(`${right.nodeKey}\0${right.block}`),
+      ),
     );
   }
 }

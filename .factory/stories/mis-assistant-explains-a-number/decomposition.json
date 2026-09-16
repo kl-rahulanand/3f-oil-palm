@@ -196,18 +196,299 @@
         "explain-grounding-and-attestation"
       ],
       "acceptance_criteria": [
-        "A domain seam is EXTRACTED from MisDrillService returning typed outcomes - ok, replaced, gone, audit-failed - instead of throwing HTTP exceptions, and takes the row limit as an argument. MisDrillService today is controller-oriented and unavailable to ChatModule (mis-drill.service.ts:27), so without this the task would either duplicate the sensitive query or lose the typed outcomes to the global error filter. The drill controller and the assistant both call it; the assistant asks for 20 rows and the panel keeps its 100.",
+        "A domain seam is EXTRACTED from MisDrillService returning typed outcomes - ok, replaced, gone, audit-failed - instead of throwing HTTP exceptions, and takes the row limit as an argument. MisDrillService is controller-oriented today (mis-drill.service.ts:27) and unavailable to ChatModule, so without the extraction this task would either duplicate the sensitive pinned-batch query or lose its typed outcomes to the global error filter. The drill controller and the assistant both call the ONE seam; the assistant asks for 20 rows and the drill panel keeps its 100.",
         "Intent is a closed enum - composition, causal, data - resolved against a FIXTURE TABLE the tests own, with a causal cue WINNING when both appear. Today's guard does not classify 'how is this 85000' as causal at all (reconciliation-guard.ts:31); it matches why, reason and explain. Composition is answered, causal is still declined with today's copy, and data falls through to the existing ungrounded path with NO pin or budget promise attached.",
         "A LEAF explanation names the roll-up path - the GL codes and cost centres the master folds into that leaf, and the bucket they arrive through - and lists transactions with an exact footer, the true total count, and the first 20 rows.",
-        "Footing is asserted in PAISE against the statement payload, not the rendered cell. The statement displays rupees and the shipped drill contract permits the exact footer to differ from the displayed cell by up to Rs 1 with paise equality underneath; a leaf asserts paise equality, not rupee equality.",
+        "Footing is asserted in PAISE against the statement payload, not the rendered cell. The statement displays rupees and the shipped drill contract permits the exact footer to differ from the displayed cell by up to Rs 1 with paise equality underneath, so a leaf asserts paise equality and never rupee equality.",
         "The leaf read carries the drill's governed-read protections, not the ordinary chat audit: inputs re-derived, pins validated, current scope applied, the exact predicate audited BEFORE the query runs, and a failed audit returning a SAFE TYPED REFUSAL having never queried.",
-        "Staleness follows decision 0025 exactly: a REPLACED but still present batch is READ AND REPORTED as replaced; only a GONE batch is refused. Both are typed, naming source, period and batch status. The shipped drill PANEL diverges from this (it hides the lines) - that divergence is ledgered as D-0051 and is deliberately NOT fixed here.",
-        "Budget is refused as a subject IN THE BACKEND. A crafted focus on a Budget cell cannot be a client-side rule.",
+        "Staleness follows decision 0025 exactly: a REPLACED but still present batch is READ AND REPORTED as replaced; only a GONE batch is refused. Both are typed, naming source, period and batch status. The shipped drill PANEL diverges from this by hiding the lines - that divergence is ledgered as D-0051 and is deliberately NOT fixed here.",
+        "Budget is refused as a subject IN THE BACKEND, because a crafted focus on a Budget cell cannot be caught by a client-side rule.",
         "Every grounded explanation carries a distinct budgetState of not-loaded when the plant is not the budget owner (decision 0034), kept distinct from a replaced or gone batch. An unmapped-GL line is described as provisional, not as an approved mapping.",
-        "The explanation is an in-band TYPED RESPONSE UNION on the existing chat transport with a variant per outcome: focus-required, leaf, aggregate, replaced, gone and safe audit-failure. 'No focus' is a SERVER outcome returning focus-required, not a local guess.",
-        "No SERVER-SOURCED transaction row, amount, batch identifier, measure value or result row reaches the model. A leaf asserts the PROVIDER PAYLOAD, not the rendered answer. The user's own question and prior-turn text may carry figures - the motivating question does - so the rule binds what the server read.",
-        "The union is schema'd and documented on BOTH the buffered and streamed chat routes (decision 0019); they are separate routes and must not drift. Hermetic leaves use a deterministic classifier and a FAKE provider - never Bedrock. New test files are added to backend/package.json's test:hermetic allow-list."
-      ]
+        "The explanation is an in-band TYPED RESPONSE UNION on the existing chat transport with a variant per outcome: focus-required, leaf, aggregate, replaced, gone and safe audit-failure. 'No focus' is a SERVER outcome returning focus-required, not a local guess, and it extends the refusal variants task 1 already shipped rather than inventing a second union.",
+        "No SERVER-SOURCED transaction row, amount, batch identifier, measure value or result row reaches the model. A leaf asserts the PROVIDER PAYLOAD, not the rendered answer. The user's own question and prior-turn text may carry figures - the motivating question does - so the rule binds what the server read, never what the user typed.",
+        "The union is schema'd and documented on BOTH the buffered and the streamed chat route (decision 0019); they are separate routes and must not drift. Hermetic leaves use a deterministic classifier and a FAKE provider, never Bedrock, and every new test file is registered in BOTH backend/package.json's test:hermetic allow-list AND tools/quality-gate.test.mjs.",
+        "D-0052, whose trigger is this task: the leaf that proves the re-read outline digest check must exercise the MISMATCH path by returning a DIFFERENT outline than the one attested, because today it returns the same outline and varies only the node - so the comparison could be skipped entirely and the leaf would still pass. Bound the client-supplied nodeMetadata arrays and their strings in chat.schemas.ts as well, since that structure is sorted and hashed during verification.",
+        "D-0053, whose trigger is this task: read pinned-batch existence and the authoritative active-batch state in ONE query in statement-grounding.service.ts, so a stale row cannot be reconciled against an active-batch answer read at a different instant.",
+        "The wire carries an OPTIONAL typed focus instead of a required nodeKey/block pair: absent means the server returns focus-required, and present means { nodeKey, block, subject: 'actual' | 'budget' }. Task 1 made the pair REQUIRED, which makes both focus-required and the backend Budget refusal impossible - an unfocused request is rejected before the service ever runs, and without a subject a crafted Budget focus is indistinguishable from an Actual one. Only subject 'actual' reaches the read seam; 'budget' is a typed refusal.",
+        "REPLACED is its own outcome carrying the FULL leaf explanation - roll-up path, transaction page and exact footer - plus a notice naming the source and period that went stale, rather than a status flag on an otherwise-normal answer that a renderer can drop. It extends the statement-grounding union task 1 shipped; no parallel response channel is created.",
+        "A server-only VERIFIED-GROUNDING CONTEXT is produced from the single authoritative batch-state read and passed to the seam, carrying the server-derived resolution, scope, pins, range and focus. The drill controller uses the same seam's preparation path. A drill request is NEVER reconstructed from client fields, because that would either create a second inconsistent validation path or repeat the sensitive batch reads.",
+        "The row limit reaches the SQL: drill-transactions hard-codes LIMIT 100 and its interface takes no limit argument, so the assistant's 20 would be cosmetic without changing the interface, the repository and its test.",
+        "The typed roll-up payload carries the mapping target, the provisional flag and the reason, because leafTriples() drops them today - without those an unmapped-GL line cannot honestly be described as provisional, which criterion 8 requires.",
+        "Both chat routes carry a NAMED response DTO or schema for the union with a Swagger assertion - they have description-only responses today, and decision 0019 is not satisfied by a description."
+      ],
+      "plan_contracts": [
+        {
+          "id": "t-etn-c1",
+          "statement": "A domain seam is EXTRACTED from MisDrillService returning typed outcomes - ok, replaced, gone, audit-failed - instead of throwing HTTP exceptions, and takes the row limit as an argument. MisDrillService is controller-oriented today (mis-drill.service.ts:27) and unavailable to ChatModule, so without the extraction this task would either duplicate the sensitive pinned-batch query or lose its typed outcomes to the global error filter. The drill controller and the assistant both call the ONE seam; the assistant asks for 20 rows and the drill panel keeps its 100.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c2",
+          "statement": "Intent is a closed enum - composition, causal, data - resolved against a FIXTURE TABLE the tests own, with a causal cue WINNING when both appear. Today's guard does not classify 'how is this 85000' as causal at all (reconciliation-guard.ts:31); it matches why, reason and explain. Composition is answered, causal is still declined with today's copy, and data falls through to the existing ungrounded path with NO pin or budget promise attached.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c3",
+          "statement": "A LEAF explanation names the roll-up path - the GL codes and cost centres the master folds into that leaf, and the bucket they arrive through - and lists transactions with an exact footer, the true total count, and the first 20 rows.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c4",
+          "statement": "Footing is asserted in PAISE against the statement payload, not the rendered cell. The statement displays rupees and the shipped drill contract permits the exact footer to differ from the displayed cell by up to Rs 1 with paise equality underneath, so a leaf asserts paise equality and never rupee equality.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c5",
+          "statement": "The leaf read carries the drill's governed-read protections, not the ordinary chat audit: inputs re-derived, pins validated, current scope applied, the exact predicate audited BEFORE the query runs, and a failed audit returning a SAFE TYPED REFUSAL having never queried.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c6",
+          "statement": "Staleness follows decision 0025 exactly: a REPLACED but still present batch is READ AND REPORTED as replaced; only a GONE batch is refused. Both are typed, naming source, period and batch status. The shipped drill PANEL diverges from this by hiding the lines - that divergence is ledgered as D-0051 and is deliberately NOT fixed here.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c7",
+          "statement": "Budget is refused as a subject IN THE BACKEND, because a crafted focus on a Budget cell cannot be caught by a client-side rule.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c8",
+          "statement": "Every grounded explanation carries a distinct budgetState of not-loaded when the plant is not the budget owner (decision 0034), kept distinct from a replaced or gone batch. An unmapped-GL line is described as provisional, not as an approved mapping.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c9",
+          "statement": "The explanation is an in-band TYPED RESPONSE UNION on the existing chat transport with a variant per outcome: focus-required, leaf, aggregate, replaced, gone and safe audit-failure. 'No focus' is a SERVER outcome returning focus-required, not a local guess, and it extends the refusal variants task 1 already shipped rather than inventing a second union.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c10",
+          "statement": "No SERVER-SOURCED transaction row, amount, batch identifier, measure value or result row reaches the model. A leaf asserts the PROVIDER PAYLOAD, not the rendered answer. The user's own question and prior-turn text may carry figures - the motivating question does - so the rule binds what the server read, never what the user typed.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c11",
+          "statement": "The union is schema'd and documented on BOTH the buffered and the streamed chat route (decision 0019); they are separate routes and must not drift. Hermetic leaves use a deterministic classifier and a FAKE provider, never Bedrock, and every new test file is registered in BOTH backend/package.json's test:hermetic allow-list AND tools/quality-gate.test.mjs.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c12",
+          "statement": "D-0052, whose trigger is this task: the leaf that proves the re-read outline digest check must exercise the MISMATCH path by returning a DIFFERENT outline than the one attested, because today it returns the same outline and varies only the node - so the comparison could be skipped entirely and the leaf would still pass. Bound the client-supplied nodeMetadata arrays and their strings in chat.schemas.ts as well, since that structure is sorted and hashed during verification.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c13",
+          "statement": "D-0053, whose trigger is this task: read pinned-batch existence and the authoritative active-batch state in ONE query in statement-grounding.service.ts, so a stale row cannot be reconciled against an active-batch answer read at a different instant.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c14",
+          "statement": "The wire carries an OPTIONAL typed focus instead of a required nodeKey/block pair: absent means the server returns focus-required, and present means { nodeKey, block, subject: 'actual' | 'budget' }. Task 1 made the pair REQUIRED, which makes both focus-required and the backend Budget refusal impossible - an unfocused request is rejected before the service ever runs, and without a subject a crafted Budget focus is indistinguishable from an Actual one. Only subject 'actual' reaches the read seam; 'budget' is a typed refusal.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c15",
+          "statement": "REPLACED is its own outcome carrying the FULL leaf explanation - roll-up path, transaction page and exact footer - plus a notice naming the source and period that went stale, rather than a status flag on an otherwise-normal answer that a renderer can drop. It extends the statement-grounding union task 1 shipped; no parallel response channel is created.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c16",
+          "statement": "A server-only VERIFIED-GROUNDING CONTEXT is produced from the single authoritative batch-state read and passed to the seam, carrying the server-derived resolution, scope, pins, range and focus. The drill controller uses the same seam's preparation path. A drill request is NEVER reconstructed from client fields, because that would either create a second inconsistent validation path or repeat the sensitive batch reads.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c17",
+          "statement": "The row limit reaches the SQL: drill-transactions hard-codes LIMIT 100 and its interface takes no limit argument, so the assistant's 20 would be cosmetic without changing the interface, the repository and its test.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c18",
+          "statement": "The typed roll-up payload carries the mapping target, the provisional flag and the reason, because leafTriples() drops them today - without those an unmapped-GL line cannot honestly be described as provisional, which criterion 8 requires.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        },
+        {
+          "id": "t-etn-c19",
+          "statement": "Both chat routes carry a NAMED response DTO or schema for the union with a Swagger assertion - they have description-only responses today, and decision 0019 is not satisfied by a description.",
+          "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md \u2014 Acceptance Criteria"
+        }
+      ],
+      "write_scope": [
+        "backend/package.json",
+        "backend/src/chat/chat.controller.ts",
+        "backend/src/chat/chat.module.ts",
+        "backend/src/chat/chat.schemas.test.ts",
+        "backend/src/chat/chat.schemas.ts",
+        "backend/src/chat/chat.service.test.ts",
+        "backend/src/chat/chat.service.ts",
+        "backend/src/chat/chat.sse.test.ts",
+        "backend/src/chat/reconciliation-guard.test.ts",
+        "backend/src/chat/reconciliation-guard.ts",
+        "backend/src/chat/statement-explanation.service.test.ts",
+        "backend/src/chat/statement-explanation.service.ts",
+        "backend/src/chat/statement-grounding.service.test.ts",
+        "backend/src/chat/statement-grounding.service.ts",
+        "backend/src/chat/statement-intent.test.ts",
+        "backend/src/chat/statement-intent.ts",
+        "backend/src/mis/mis-drill.controller.test.ts",
+        "backend/src/mis/mis-drill.controller.ts",
+        "backend/src/mis/mis-drill.interface.ts",
+        "backend/src/mis/mis-drill.service.test.ts",
+        "backend/src/mis/mis-drill.service.ts",
+        "backend/src/mis/mis-statement.service.ts",
+        "backend/src/mis/mis.module.ts",
+        "backend/src/mis/statement-attestation.test.ts",
+        "backend/src/mis/statement-attestation.ts",
+        "backend/src/swagger.test.ts",
+        "backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+        "backend/src/warehouse/drill-transactions.db.test.ts",
+        "backend/src/warehouse/drill-transactions.interface.ts",
+        "backend/src/warehouse/drill-transactions.repository.test.ts",
+        "backend/src/warehouse/drill-transactions.repository.ts",
+        "contract/src/api.ts",
+        "tools/quality-gate.test.mjs"
+      ],
+      "required_tests": [
+        {
+          "id": "the extracted seam returns a typed replaced outcome instead of throwing and the drill controller still maps it to its shipped response",
+          "path": "backend/src/mis/mis-drill.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the assistant asks the seam for twenty rows while the drill panel keeps its hundred row page",
+          "path": "backend/src/mis/mis-drill.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a gone batch is refused while a replaced but present batch is read and reported",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a failed audit returns a safe typed refusal and never runs the query",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a leaf explanation foots in paise against the statement payload and reports the true total count with twenty rows",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a leaf explanation names the gl codes and cost centres the master folds into that leaf",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a crafted budget focus is refused by the backend",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a non owner plant carries budgetState not loaded distinct from a replaced or gone batch",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "no server sourced row amount batch id or measure value appears in the provider payload while the users own question may carry a figure",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a grounded question with no focused node returns the focus required variant from the server",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the intent fixture table resolves composition and causal and lets the causal cue win when both appear",
+          "path": "backend/src/chat/statement-intent.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an ungrounded causal question still receives the shipped causal copy",
+          "path": "backend/src/chat/reconciliation-guard.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a re read outline that differs from the attested one is refused on the digest mismatch",
+          "path": "backend/src/chat/statement-grounding.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "oversized node metadata arrays are rejected by the schema before being sorted and hashed",
+          "path": "backend/src/chat/chat.schemas.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "pinned batch existence and the active batch are read in one query so a stale row cannot override the active one",
+          "path": "backend/src/chat/statement-grounding.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a grounded data question falls through to the ungrounded path with no pin or budget promise attached",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "a crafted budget subject is refused before the read seam is reached",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an absent focus returns focus required rather than being rejected by the schema",
+          "path": "backend/src/chat/chat.schemas.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the replaced outcome carries the full leaf explanation and a notice naming the source and period",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "an unmapped gl line is described as provisional with its reason",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the audit record names the mapping master version",
+          "path": "backend/src/chat/statement-explanation.service.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the repository honours the supplied row limit so twenty reaches the sql and the drill keeps one hundred",
+          "path": "backend/src/warehouse/drill-transactions.repository.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "the drill controller maps every typed seam outcome to its shipped response",
+          "path": "backend/src/mis/mis-drill.controller.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        },
+        {
+          "id": "both chat routes document the explanation union with a named schema",
+          "path": "backend/src/swagger.test.ts",
+          "command": "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register"
+        }
+      ],
+      "verify_commands": [
+        "python3 factory/scripts/verify.py"
+      ],
+      "reviewer_focus": [
+        "The seam must be EXTRACTED, not copied. Exactly one pinned-batch query may exist - a second copy is the defect this contract exists to prevent.",
+        "Typed outcomes must not pass through the global exception filter, which flattens source, period and status into generic copy.",
+        "The audit must be written BEFORE the query and a failure must return WITHOUT querying - fail closed, not fail after.",
+        "The provider-payload leaf must assert what reached the model, not the rendered answer. A rendered-answer assertion proves nothing about decision 0027.",
+        "Footing must be asserted in PAISE. A rupee assertion contradicts the shipped drill contract's Rs 1 tolerance.",
+        "Decision 0025's replaced-versus-gone rule must not be softened into refusing both. D-0051 records that the shipped panel already diverges; do NOT 'fix' the panel here.",
+        "Hermetic leaves must use a fake provider - any Bedrock dependency makes them non-reproducible and is not hermetic.",
+        "D-0052's digest leaf must return a DIFFERENT outline. If it returns the same one and varies only the node, the mismatch branch is still unexercised and the fix is cosmetic.",
+        "New test files must be registered in BOTH backend/package.json and tools/quality-gate.test.mjs, or the gate fails or the leaf silently never runs."
+      ],
+      "review_budget": {
+        "max_changed_files": 34,
+        "max_changed_lines": 1900,
+        "reason": "A seam extraction with typed outcomes shared by two callers, a deterministic intent table, the explanation service, and the response union across two chat routes - plus D-0052 and D-0053, whose recorded trigger is this task and which open the same files. No UI. The largest of the three tasks, and the one where the governed-read protections live. Raised after the task grill: the limit must reach the SQL (the repository hard-codes LIMIT 100), the drill controller must map typed outcomes, the roll-up payload must carry provisional data leafTriples drops, and both chat routes need a named union schema - each pulling its own file and leaf. The ceiling is measured on the finished diff. Scope extended mid-stage (signal S-0022-462a) for backend/src/mis/statement-attestation.ts and its test, which are MECHANICALLY IMPLIED by the review's binding paise-footing fix. The footer must be compared against the statement amount that was ON SCREEN, and for a REPLACED-but-present batch re-deriving that amount now returns a different number than the user saw - so the amount has to be bound at ISSUE time, which means the attestation. Following the nodeMetadata pattern already shipped: the per-node actual paise travel READABLE in the statement response and their DIGEST joins the signed claims, so the token does not grow with the statement and the amounts still cannot be altered independently of the context. Extended again (S-0023-04bb) for drill-transactions.db.test.ts and all-plants-reconciliation.db.test.ts, the two remaining concrete callers of buildQueries. The review's binding P1 is to make rowLimit MANDATORY, so every caller must pass it or the build breaks - and retaining a default or an overload to avoid touching them would reinstate exactly the compatibility shim the round-1 review removed. Both are DB-gated and skipped in the hermetic run, so a missed call site surfaces only as a typecheck failure in verify."
+      }
     },
     {
       "id": "explain-on-screen",
@@ -231,5 +512,5 @@
     }
   ],
   "plan_sha256": "6be426e55d3f7fd6f9acf34d7d7c8b3581448cb763ed2bd8f1df5b7cd0334eb2",
-  "commit": "5d371314ca6d3a7088b1f0bb9d502b4d4dbbf942"
+  "commit": "7a75640143c3a9c4037ff957790ba084acf3526a"
 }

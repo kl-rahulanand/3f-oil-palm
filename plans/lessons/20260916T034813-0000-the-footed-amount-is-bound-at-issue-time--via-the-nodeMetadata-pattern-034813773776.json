@@ -1,0 +1,12 @@
+{
+  "topic": "the footed amount is bound at issue time, via the nodeMetadata pattern",
+  "lesson": "RULING on S-0022-462a, already applied to the recorded contract: backend/src/mis/statement-attestation.ts and statement-attestation.test.ts are now in write_scope. The paise footing must compare the drill footer against the statement amount THE USER SAW, so it cannot be re-derived at ask time - for a replaced-but-present batch that would return a different number than was on screen, and the comparison would silently pass or fail against the wrong baseline. Bind it at ISSUE time and follow the pattern task 1 already shipped for nodeMetadata rather than inventing a second one: the per-node, per-block actual paise travel READABLE in the statement response, and their DIGEST joins the signed claims. That keeps the token from growing with the statement while making the amounts unforgeable - altering a readable amount must invalidate the context exactly as altering node metadata does, and a leaf must assert that. Do NOT weaken or replace the existing outline and metadata digests, and do NOT accept the amount from client input under any framing: a caller that can declare the amount its own footer should match has defeated the check.",
+  "source": "S-0022-462a",
+  "applies_to": [
+    "backend/src/mis/**",
+    "backend/src/chat/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T03:48:13+00:00"
+}

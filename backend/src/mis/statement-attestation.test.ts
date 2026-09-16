@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
-import type { MisStatementNodeMetadata, ProvenanceBatch } from "@3f/contract";
+import type { MisStatementNodeAmount, MisStatementNodeMetadata, ProvenanceBatch } from "@3f/contract";
 import { StatementAttestationService, createStatementAttestationFromEnvironment } from "./statement-attestation";
 
 const pins: ProvenanceBatch[] = [
@@ -9,6 +9,10 @@ const pins: ProvenanceBatch[] = [
   { source: "budget", period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000002" },
 ];
 const metadata: MisStatementNodeMetadata[] = [{ nodeKey: "shade", glCodes: ["5001"], costCentres: ["Primary"] }];
+const amounts: MisStatementNodeAmount[] = [
+  { nodeKey: "shade", block: "selected", actualPaise: "10001" },
+  { nodeKey: "shade", block: "fy26-27-ytd", actualPaise: "20002" },
+];
 const input = {
   department: "Agriculture",
   function: "Nursery",
@@ -17,6 +21,7 @@ const input = {
   outline: [{ nodeKey: "shade", leafKey: "shade" }],
   blocks: ["selected", "fy26-27-ytd"] as const,
   nodeMetadata: metadata,
+  nodeAmounts: amounts,
   pinnedBatches: pins,
   mappingMasterVersion: 7,
   userId: "user-1",
@@ -26,7 +31,7 @@ test("the attested context binds scope outline digest metadata digest pins maste
   const service = new StatementAttestationService(["new-secret"], 30, () => 1_000_000);
   const context = service.issue(input);
   assert.equal(context, service.issue({ ...input, pinnedBatches: [...pins].reverse() }));
-  const verified = service.verify(context, "user-1", metadata);
+  const verified = service.verify(context, "user-1", metadata, amounts);
 
   assert.equal(verified.outcome, "verified");
   if (verified.outcome !== "verified") return;
@@ -37,6 +42,7 @@ test("the attested context binds scope outline digest metadata digest pins maste
     period: "2026-07-01",
     outlineDigest: service.outlineDigest(input.outline, input.blocks),
     nodeMetadataDigest: service.nodeMetadataDigest(metadata),
+    nodeAmountsDigest: service.nodeAmountsDigest(amounts),
     pinnedBatches: pins,
     mappingMasterVersion: 7,
     userId: "user-1",
@@ -51,7 +57,7 @@ test("a tampered claim fails verification because the signature no longer matche
   claims.plant = "H.O";
   const tampered = `${Buffer.from(JSON.stringify(claims)).toString("base64url")}.${signature}`;
 
-  assert.deepEqual(service.verify(tampered, "user-1", metadata), {
+  assert.deepEqual(service.verify(tampered, "user-1", metadata, amounts), {
     outcome: "refused",
     reason: "invalid-signature",
   });
@@ -61,9 +67,19 @@ test("altering the readable node metadata invalidates the context because its di
   const service = new StatementAttestationService(["secret"], 30, () => 1_000_000);
   const context = service.issue(input);
 
-  assert.deepEqual(service.verify(context, "user-1", [{ ...metadata[0], glCodes: ["forged"] }]), {
+  assert.deepEqual(service.verify(context, "user-1", [{ ...metadata[0], glCodes: ["forged"] }], amounts), {
     outcome: "refused",
     reason: "node-metadata-mismatch",
+  });
+});
+
+test("altering a readable statement amount invalidates the context because its digest is signed", () => {
+  const service = new StatementAttestationService(["secret"], 30, () => 1_000_000);
+  const context = service.issue(input);
+
+  assert.deepEqual(service.verify(context, "user-1", metadata, [{ ...amounts[0], actualPaise: "1" }]), {
+    outcome: "refused",
+    reason: "node-amounts-mismatch",
   });
 });
 
@@ -71,9 +87,12 @@ test("an expired context and a context issued to another user are both refused",
   let now = 1_000_000;
   const service = new StatementAttestationService(["secret"], 1, () => now);
   const context = service.issue(input);
-  assert.deepEqual(service.verify(context, "user-2", metadata), { outcome: "refused", reason: "wrong-user" });
+  assert.deepEqual(service.verify(context, "user-2", metadata, amounts), { outcome: "refused", reason: "wrong-user" });
   now = 1_061_000;
-  assert.deepEqual(service.verify(context, "user-1", metadata), { outcome: "refused", reason: "expired-context" });
+  assert.deepEqual(service.verify(context, "user-1", metadata, amounts), {
+    outcome: "refused",
+    reason: "expired-context",
+  });
 });
 
 test("constructing the provider without a secret throws and an empty key entry is rejected rather than skipped", () => {
@@ -96,10 +115,14 @@ test("a context signed by a rotated older key still verifies while new ones are 
   const old = new StatementAttestationService(["old"], 30, () => 1_000_000).issue(input);
   const rotating = new StatementAttestationService(["new", "old"], 30, () => 1_000_000);
 
-  assert.equal(rotating.verify(old, "user-1", metadata).outcome, "verified");
+  assert.equal(rotating.verify(old, "user-1", metadata, amounts).outcome, "verified");
   assert.equal(
-    new StatementAttestationService(["new"], 30, () => 1_000_000).verify(rotating.issue(input), "user-1", metadata)
-      .outcome,
+    new StatementAttestationService(["new"], 30, () => 1_000_000).verify(
+      rotating.issue(input),
+      "user-1",
+      metadata,
+      amounts,
+    ).outcome,
     "verified",
   );
 });

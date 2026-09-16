@@ -1,0 +1,12 @@
+{
+  "topic": "explain-the-number round-3 review fixes",
+  "lesson": "THREE fixes. Security stays 10; quality fell to 3 because both P1s make recorded criteria unreachable rather than merely imperfect. (1) THE UNMAPPED-GL EXPLANATION CANNOT BE REACHED - statement-grounding.service.ts:61 rejects every focused node absent from the pinned budget outline, but UNMAPPED_GL is a SYNTHETIC node that legitimately is not in the outline; MisDrillService.prepare already treats it as valid for exactly this reason. So the outline-membership rule task 1 introduced silently blocks the unmapped bucket, and t-etn-c8's promise that an unmapped-GL line is described as provisional can never fire. Allow the attested synthetic unmapped-GL focus through membership validation, mirroring prepare() rather than inventing a second rule, and add a leaf that focuses UNMAPPED_GL end to end and asserts the provisional explanation - not just that the verifier accepts it. (2) THE ADVERTISED SCHEMAS ARE WRONG - chat.schemas.ts:97 advertises ChatResponseDto as the schema for every buffered chat response while omitting fields ChatService visibly returns (kind, title, definition, tables). An advertised schema that does not describe the wire is worse than the description-only state decision 0019 was meant to fix, because a consumer now has something authoritative-looking and false. Publish COMPLETE buffered and streamed response schemas covering the ordinary response fields as well as the explanation union, and strengthen the swagger leaf so it fails when a returned field is missing from the schema rather than merely asserting the schema is named. (3) One invalid-pin path emits the WRONG typed reason; make each refusal reason match the condition that produced it, since the whole point of typed refusals is telling them apart. Do not touch the budget-refusal ordering, the paise footing or the mandatory rowLimit - all three are reviewed clean.",
+  "source": ".factory/stories/mis-assistant-explains-a-number/tasks/explain-the-number/reviews/quality.json",
+  "applies_to": [
+    "backend/src/chat/**",
+    "backend/src/mis/**"
+  ],
+  "severity": "high",
+  "generated_by": "implementer",
+  "added_at": "2026-09-16T04:19:42+00:00"
+}

@@ -1,13 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ResponseClass, type AskStatementGrounding, type AuthUser, type MisSelectionRunRequest } from "@3f/contract";
-import { ChatService } from "./chat.service";
-import { StatementGroundingService } from "./statement-grounding.service";
-import type { ISelectionResolverService, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
-import type { IDrillTransactionsRepository, DrillBatch } from "../warehouse/drill-transactions.interface";
-import type { IPinnedStatementOutlineRepository, StatementOutlineNode } from "../warehouse/statement-outline.interface";
-import { StatementAttestationService } from "../mis/statement-attestation";
+import type { AskStatementGrounding, AuthUser, MisDrillBatchStatus } from "@3f/contract";
 import { MAPPING_MASTER } from "../mapping/mapping-master";
+import type { IMisDrillService, MisDrillPreparationOutcome, VerifiedDrillContext } from "../mis/mis-drill.interface";
+import { StatementAttestationService } from "../mis/statement-attestation";
+import type { StatementOutlineNode } from "../warehouse/statement-outline.interface";
+import { StatementGroundingService } from "./statement-grounding.service";
 
 const attestation = new StatementAttestationService(["secret"], 30, () => 1_000_000);
 const outline: StatementOutlineNode[] = [
@@ -23,6 +21,10 @@ const outline: StatementOutlineNode[] = [
   },
 ];
 const metadata = [{ nodeKey: "leaf", glCodes: ["5001"], costCentres: ["Primary"] }];
+const amounts = [
+  { nodeKey: "leaf", block: "selected" as const, actualPaise: "10001" },
+  { nodeKey: "leaf", block: "fy26-27-ytd" as const, actualPaise: "20002" },
+];
 const pins = [
   { source: "actuals" as const, period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000001" },
   { source: "budget" as const, period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000002" },
@@ -35,6 +37,7 @@ const context = attestation.issue({
   outline,
   blocks: ["selected", "fy26-27-ytd"],
   nodeMetadata: metadata,
+  nodeAmounts: amounts,
   pinnedBatches: pins,
   mappingMasterVersion: MAPPING_MASTER.version,
   userId: "user-1",
@@ -43,134 +46,139 @@ const grounding: AskStatementGrounding = {
   attestedContext: context,
   department: "Agriculture",
   function: "Nursery",
-  nodeKey: "leaf",
-  block: "selected",
+  focus: { nodeKey: "leaf", block: "selected", subject: "actual" },
   nodeMetadata: metadata,
+  nodeAmounts: amounts,
 };
 
+test("a re read outline that differs from the attested one is refused on the digest mismatch", async () => {
+  const different = [{ ...outline[0]!, nodeKey: "different", leafKey: "different" }];
+  assert.deepEqual(await fixture({ outline: different }).service.verify(user, grounding), {
+    outcome: "refused",
+    reason: "outline-mismatch",
+  });
+});
+
+test("pinned batch existence and the active batch are read in one query so a stale row cannot override the active one", async () => {
+  const replaced: MisDrillBatchStatus[] = [
+    {
+      source: "actuals",
+      period: "2026-07-01",
+      requestedBatchId: pins[0]!.batchId,
+      status: "replaced",
+      activeBatchId: "replacement",
+    },
+    {
+      source: "budget",
+      period: "2026-07-01",
+      requestedBatchId: pins[1]!.batchId,
+      status: "current",
+      activeBatchId: pins[1]!.batchId,
+    },
+  ];
+  const target = fixture({ batchStatuses: replaced });
+  const result = await target.service.verify(user, grounding);
+  assert.equal(target.drills.prepareCalls, 1);
+  assert.equal(result.outcome, "verified");
+  if (result.outcome === "verified") {
+    assert.deepEqual(result.context.batchStatuses, replaced);
+    assert.equal(result.context.focusedActualPaise, "10001");
+  }
+});
+
 test("a node or block absent from the re read pinned outline is refused with its own typed reason", async () => {
-  const service = fixture();
-  assert.deepEqual(await service.verify(user, { ...grounding, nodeKey: "missing" }), {
+  const target = fixture().service;
+  assert.deepEqual(await target.verify(user, { ...grounding, focus: { ...grounding.focus!, nodeKey: "missing" } }), {
     outcome: "refused",
     reason: "node-not-in-outline",
   });
-  assert.deepEqual(await service.verify(user, { ...grounding, block: "missing" }), {
-    outcome: "refused",
-    reason: "block-not-in-outline",
-  });
+  assert.deepEqual(
+    await target.verify(user, { ...grounding, focus: { ...grounding.focus!, block: "missing" as never } }),
+    {
+      outcome: "refused",
+      reason: "block-not-in-outline",
+    },
+  );
 });
 
-test("a plant outside the users current grants is refused and a pinned batch that does not validate is refused", async () => {
-  assert.deepEqual(await fixture().verify({ ...user, scope: [] }, grounding), {
-    outcome: "refused",
-    reason: "plant-not-authorized",
-  });
-  const response = await fixture({ batches: [], activeBatches: [] }).verify(user, grounding);
-  assert.deepEqual(response, {
-    outcome: "refused",
-    reason: "pinned-batch-gone",
-    batchStatuses: pins.map((pin) => ({
-      source: pin.source,
-      period: pin.period,
-      requestedBatchId: pin.batchId,
-      status: "gone",
-      activeBatchId: null,
-    })),
-  });
-});
-
-test("inactive pinned batches are classified as replaced and carried forward", async () => {
-  const replacement = {
-    ...pins[0],
-    batchId: "00000000-0000-0000-0000-000000000003",
-    isActive: true,
-  };
-  const response = await fixture({
-    batches: pins.map((pin, index) => ({ ...pin, isActive: index !== 0 })),
-    activeBatches: [replacement, { ...pins[1], isActive: true }],
-  }).verify(user, grounding);
-
-  assert.equal(response.outcome, "verified-but-unanswered");
-  assert.deepEqual(response.batchStatuses[0], {
-    source: "actuals",
-    period: "2026-07-01",
-    requestedBatchId: pins[0].batchId,
-    status: "replaced",
-    activeBatchId: replacement.batchId,
-  });
-});
-
-test("a department or function disagreeing with the master selection is a typed refusal not a silent substitution and not a no mapping answer", async () => {
-  assert.deepEqual(await fixture().verify(user, { ...grounding, department: "Finance" }), {
-    outcome: "refused",
-    reason: "selection-mismatch",
-  });
-  assert.deepEqual(await fixture().verify(user, { ...grounding, function: "Accounts" }), {
+test("a gone batch is carried as a typed grounding outcome while a selection mismatch is refused", async () => {
+  const gone = fixture({ outcome: "gone" });
+  assert.equal((await gone.service.verify(user, grounding)).outcome, "gone");
+  assert.deepEqual(await fixture().service.verify(user, { ...grounding, department: "Finance" }), {
     outcome: "refused",
     reason: "selection-mismatch",
   });
 });
 
-test("a verified grounded request does not fall through into the llm path", async () => {
-  let llmCalls = 0;
-  const audit = { writeRequestEvent: async () => undefined, writeResultEvent: async () => undefined };
-  const service = new ChatService(
-    {} as never,
-    {} as never,
-    audit as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
+test("a pinned batch source or period mismatch keeps the pinned batch invalid refusal reason", async () => {
+  assert.deepEqual(
+    await fixture({ refusedMessage: "A pinned batch has the wrong source or period" }).service.verify(user, grounding),
     {
-      select: async () => {
-        llmCalls += 1;
-        throw new Error("LLM must not run");
-      },
-    } as never,
-    fixture(),
+      outcome: "refused",
+      reason: "pinned-batch-invalid",
+    },
   );
-  const response = await service.ask(
-    user,
-    "session-1",
-    "How is this built?",
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    grounding,
-  );
-
-  assert.equal(llmCalls, 0);
-  assert.equal(response.responseClass, ResponseClass.NotSupported);
-  assert.equal(response.statementGrounding?.outcome, "verified-but-unanswered");
 });
 
-function fixture(options: { batches?: DrillBatch[]; activeBatches?: DrillBatch[] } = {}): StatementGroundingService {
-  return new StatementGroundingService(
-    attestation,
-    new Resolver(),
-    {
-      findByBudgetPeriod: async () => outline,
-      findByBudgetBatchId: async () => outline,
-    } as IPinnedStatementOutlineRepository,
-    {
-      findBatchesByIds: async () => options.batches ?? pins.map((pin) => ({ ...pin, isActive: true })),
-      findActiveBatches: async () => options.activeBatches ?? pins.map((pin) => ({ ...pin, isActive: true })),
-    } as unknown as IDrillTransactionsRepository,
-  );
+function fixture(
+  options: {
+    outline?: StatementOutlineNode[];
+    batchStatuses?: MisDrillBatchStatus[];
+    outcome?: "gone";
+    refusedMessage?: string;
+  } = {},
+) {
+  const drills = new FakeDrills(options);
+  return { service: new StatementGroundingService(attestation, drills), drills };
 }
 
-class Resolver implements ISelectionResolverService {
-  async options() {
-    return { departments: [], functions: [], plants: [], periods: [] };
+class FakeDrills implements IMisDrillService {
+  prepareCalls = 0;
+  constructor(
+    private readonly options: {
+      outline?: StatementOutlineNode[];
+      batchStatuses?: MisDrillBatchStatus[];
+      outcome?: "gone";
+      refusedMessage?: string;
+    },
+  ) {}
+  async prepare(
+    _user: AuthUser,
+    request: Parameters<IMisDrillService["prepare"]>[1],
+  ): Promise<MisDrillPreparationOutcome> {
+    this.prepareCalls += 1;
+    if (this.options.outcome === "gone") {
+      return { outcome: "gone", status: 409, message: "gone", batchStatuses: [] };
+    }
+    if (this.options.refusedMessage) {
+      return { outcome: "refused", status: 400, message: this.options.refusedMessage, batchStatuses: [] };
+    }
+    return { outcome: "prepared", context: prepared(request, this.options.outline, this.options.batchStatuses) };
   }
-  canonicalPlant(plant: string) {
-    return plant;
+  async read(): Promise<never> {
+    throw new Error("not used");
   }
-  async resolve(request: MisSelectionRunRequest): Promise<MasterResolvedSelection> {
-    return {
+  async run(): Promise<never> {
+    throw new Error("not used");
+  }
+}
+
+function prepared(
+  request: Parameters<IMisDrillService["prepare"]>[1],
+  reread = outline,
+  batchStatuses: MisDrillBatchStatus[] = pins.map((pin) => ({
+    source: pin.source,
+    period: pin.period,
+    requestedBatchId: pin.batchId,
+    status: "current",
+    activeBatchId: pin.batchId,
+  })),
+): VerifiedDrillContext {
+  const normalized =
+    "nodeKey" in request ? { ...request, focus: { nodeKey: request.nodeKey, block: request.block } } : request;
+  return {
+    request: normalized,
+    resolution: {
       outcome: "resolved",
       department: "Agriculture",
       function: "Nursery",
@@ -185,9 +193,17 @@ class Resolver implements ISelectionResolverService {
       triples: [],
       leafTargets: [],
       masterGlCodes: ["5001"],
-      period: { value: request.period, from: "2026-07-01", to: "2026-07-01" },
-    };
-  }
+      period: { value: "2026-07-01", from: "2026-07-01", to: "2026-07-01" },
+    },
+    outline: reread,
+    batchStatuses,
+    actuals: [pins[0]!],
+    budget: pins[1]!,
+    range: { from: "2026-07-01", to: "2026-07-01" },
+    focusExists: true,
+    leafKey: "leaf",
+    budgetState: "loaded",
+  };
 }
 
 const user: AuthUser = {

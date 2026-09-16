@@ -3,8 +3,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { METHOD_METADATA, PATH_METADATA } from "@nestjs/common/constants";
 import { RequestMethod } from "@nestjs/common";
+import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { ResponseClass, type AskResponse, type ChatStreamEvent } from "@3f/contract";
 import { AuthController } from "./auth/auth.controller";
 import { ChatController } from "./chat/chat.controller";
+import { ChatResponseDto, ChatStreamEventDto } from "./chat/chat.schemas";
 import { UsersController } from "./users/users.controller";
 import { GrantsController } from "./grants/grants.controller";
 import { ReportsController } from "./reports/reports.controller";
@@ -55,6 +58,112 @@ test("controller metadata contains auth, admin, and data API paths without beare
   assert.equal(swagger.info.title, "3F API");
   assert.equal(swagger.components?.securitySchemes?.bearer, undefined);
 });
+
+test("both chat routes document the explanation union with a named schema", () => {
+  assert.equal(ChatResponseDto.name, "ChatResponseDto");
+  assert.equal(ChatStreamEventDto.name, "ChatStreamEventDto");
+  for (const [route, expected] of [
+    [ChatController.prototype.ask, ChatResponseDto],
+    [ChatController.prototype.stream, ChatStreamEventDto],
+  ] as const) {
+    const responses = Reflect.getMetadata(DECORATORS.API_RESPONSE, route) as Record<string, { type?: Function }>;
+    const response = responses[route === ChatController.prototype.ask ? "201" : "200"];
+    assert.equal(response?.type, expected);
+  }
+
+  const responseFields = modelProperties(ChatResponseDto);
+  const completeResponse = {
+    responseClass: ResponseClass.Success,
+    sessionId: "session",
+    kind: "informational",
+    term: "Actual",
+    definitionKind: "measure",
+    definition: "Actual spend",
+    suggestedQuestions: [],
+    usedPriorContext: false,
+    title: "Actual by GL",
+    chips: [],
+    selection: { domain: "test", measureIds: [], dimensionIds: [], filters: [] },
+    result: { columns: [], rows: [] },
+    totals: {},
+    chartType: "table",
+    availableChartTypes: ["table"],
+    availableFields: { dimensions: [], measures: [] },
+    provenance: {
+      verified: true,
+      measureIds: [],
+      measures: [],
+      impliedFilters: [],
+      scope: "plant=DUB",
+      readback: "Actual",
+      dataAsOf: null,
+      sql: "select 1",
+    },
+    appliedTimeWindow: { from: "2026-07-01", to: "2026-07-01", column: "month" },
+    appliedFilters: [],
+    periodChoice: {
+      prompt: "Pick",
+      selection: { domain: "test", measureIds: [], dimensionIds: [], filters: [] },
+      question: "Actual?",
+      options: [],
+    },
+    periodControl: { current: null, options: [] },
+    statementGrounding: { outcome: "focus-required" },
+    viewInReport: { available: false, reason: "Not a statement answer" },
+    message: "Done",
+    clarify: { prompt: "Pick", options: [] },
+    latencyMs: 1,
+  } satisfies Required<AskResponse>;
+  assert.deepEqual(
+    Object.keys(completeResponse).filter((field) => !responseFields.includes(field)),
+    [],
+  );
+  const groundingProperty = Reflect.getMetadata(
+    DECORATORS.API_MODEL_PROPERTIES,
+    ChatResponseDto.prototype,
+    "statementGrounding",
+  ) as { oneOf: Array<{ required: string[]; properties: { outcome: { enum: string[] } } }> };
+  assert.deepEqual(
+    Object.fromEntries(groundingProperty.oneOf.map((schema) => [schema.properties.outcome.enum[0], schema.required])),
+    {
+      "focus-required": ["outcome"],
+      leaf: ["outcome", "nodeKey", "leafKey", "block", "budgetState", "transactions", "rollup"],
+      replaced: [
+        "outcome",
+        "nodeKey",
+        "leafKey",
+        "block",
+        "budgetState",
+        "transactions",
+        "rollup",
+        "notice",
+        "replacedBatches",
+      ],
+      aggregate: ["outcome", "nodeKey", "block", "budgetState", "instruction"],
+      gone: ["outcome", "batchStatuses", "message"],
+      "audit-failure": ["outcome", "message"],
+      refused: ["outcome", "reason"],
+    },
+  );
+
+  const streamFields = modelProperties(ChatStreamEventDto);
+  const streamEvents = [
+    { type: "phase", phase: "routing" },
+    { type: "token", text: "Working" },
+    { type: "result", response: completeResponse },
+    { type: "error", message: "Failed", responseClass: ResponseClass.BackendError },
+  ] satisfies ChatStreamEvent[];
+  assert.deepEqual(
+    [...new Set(streamEvents.flatMap((event) => Object.keys(event)))].filter((field) => !streamFields.includes(field)),
+    [],
+  );
+});
+
+function modelProperties(model: Function): string[] {
+  return (
+    (Reflect.getMetadata(DECORATORS.API_MODEL_PROPERTIES_ARRAY, model.prototype) as string[] | undefined) ?? []
+  ).map((property) => property.replace(/^:/, ""));
+}
 
 function controllerRoutes(controller: Function): string[] {
   const prefix = normalizePath(Reflect.getMetadata(PATH_METADATA, controller) ?? "");

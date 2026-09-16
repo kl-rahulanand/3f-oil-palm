@@ -1,0 +1,141 @@
+{
+  "generated_by": "griller",
+  "gate": "task",
+  "task_id": "explain-the-number",
+  "verdict": "pass",
+  "issue": "mis-assistant-explains-a-number",
+  "current_flow": "MisDrillService.run (mis-drill.service.ts:27) authorizes, canonicalises the plant against scope, resolves the selection, picks the block, binds pins, reads the outline, derives the leafKey, computes leafTriples, builds queries and writes the drill audit before querying - but it is controller-oriented: it returns HTTP-shaped refusals through refuse(...) and is not exported to ChatModule. drill-transactions hard-codes LIMIT 100. classifyCausalQuestion (reconciliation-guard.ts:31) matches why/reason/explain and does NOT classify 'how is this 85000' as causal. Task 1 shipped the attested context, the grounding service and the refusal variants of the union, with nodeKey and block REQUIRED together, and a verified request returning a verified-but-unanswered outcome.",
+  "criteria_map": {
+    "A domain seam is EXTRACTED from MisDrillService returning typed outcomes - ok, replaced, gone, audit-failed - instead of throwing HTTP exceptions, and takes the row limit as an argument. MisDrillService is controller-oriented today (mis-drill.service.ts:27) and unavailable to ChatModule, so without the extraction this task would either duplicate the sensitive pinned-batch query or lose its typed outcomes to the global error filter. The drill controller and the assistant both call the ONE seam; the assistant asks for 20 rows and the drill panel keeps its 100.": "t-etn-c1",
+    "Intent is a closed enum - composition, causal, data - resolved against a FIXTURE TABLE the tests own, with a causal cue WINNING when both appear. Today's guard does not classify 'how is this 85000' as causal at all (reconciliation-guard.ts:31); it matches why, reason and explain. Composition is answered, causal is still declined with today's copy, and data falls through to the existing ungrounded path with NO pin or budget promise attached.": "t-etn-c2",
+    "A LEAF explanation names the roll-up path - the GL codes and cost centres the master folds into that leaf, and the bucket they arrive through - and lists transactions with an exact footer, the true total count, and the first 20 rows.": "t-etn-c3",
+    "Footing is asserted in PAISE against the statement payload, not the rendered cell. The statement displays rupees and the shipped drill contract permits the exact footer to differ from the displayed cell by up to Rs 1 with paise equality underneath, so a leaf asserts paise equality and never rupee equality.": "t-etn-c4",
+    "The leaf read carries the drill's governed-read protections, not the ordinary chat audit: inputs re-derived, pins validated, current scope applied, the exact predicate audited BEFORE the query runs, and a failed audit returning a SAFE TYPED REFUSAL having never queried.": "t-etn-c5",
+    "Staleness follows decision 0025 exactly: a REPLACED but still present batch is READ AND REPORTED as replaced; only a GONE batch is refused. Both are typed, naming source, period and batch status. The shipped drill PANEL diverges from this by hiding the lines - that divergence is ledgered as D-0051 and is deliberately NOT fixed here.": "t-etn-c6",
+    "Budget is refused as a subject IN THE BACKEND, because a crafted focus on a Budget cell cannot be caught by a client-side rule.": "t-etn-c7",
+    "Every grounded explanation carries a distinct budgetState of not-loaded when the plant is not the budget owner (decision 0034), kept distinct from a replaced or gone batch. An unmapped-GL line is described as provisional, not as an approved mapping.": "t-etn-c8",
+    "The explanation is an in-band TYPED RESPONSE UNION on the existing chat transport with a variant per outcome: focus-required, leaf, aggregate, replaced, gone and safe audit-failure. 'No focus' is a SERVER outcome returning focus-required, not a local guess, and it extends the refusal variants task 1 already shipped rather than inventing a second union.": "t-etn-c9",
+    "No SERVER-SOURCED transaction row, amount, batch identifier, measure value or result row reaches the model. A leaf asserts the PROVIDER PAYLOAD, not the rendered answer. The user's own question and prior-turn text may carry figures - the motivating question does - so the rule binds what the server read, never what the user typed.": "t-etn-c10",
+    "The union is schema'd and documented on BOTH the buffered and the streamed chat route (decision 0019); they are separate routes and must not drift. Hermetic leaves use a deterministic classifier and a FAKE provider, never Bedrock, and every new test file is registered in BOTH backend/package.json's test:hermetic allow-list AND tools/quality-gate.test.mjs.": "t-etn-c11",
+    "D-0052, whose trigger is this task: the leaf that proves the re-read outline digest check must exercise the MISMATCH path by returning a DIFFERENT outline than the one attested, because today it returns the same outline and varies only the node - so the comparison could be skipped entirely and the leaf would still pass. Bound the client-supplied nodeMetadata arrays and their strings in chat.schemas.ts as well, since that structure is sorted and hashed during verification.": "t-etn-c12",
+    "D-0053, whose trigger is this task: read pinned-batch existence and the authoritative active-batch state in ONE query in statement-grounding.service.ts, so a stale row cannot be reconciled against an active-batch answer read at a different instant.": "t-etn-c13",
+    "The wire carries an OPTIONAL typed focus instead of a required nodeKey/block pair: absent means the server returns focus-required, and present means { nodeKey, block, subject: 'actual' | 'budget' }. Task 1 made the pair REQUIRED, which makes both focus-required and the backend Budget refusal impossible - an unfocused request is rejected before the service ever runs, and without a subject a crafted Budget focus is indistinguishable from an Actual one. Only subject 'actual' reaches the read seam; 'budget' is a typed refusal.": "t-etn-c14",
+    "REPLACED is its own outcome carrying the FULL leaf explanation - roll-up path, transaction page and exact footer - plus a notice naming the source and period that went stale, rather than a status flag on an otherwise-normal answer that a renderer can drop. It extends the statement-grounding union task 1 shipped; no parallel response channel is created.": "t-etn-c15",
+    "A server-only VERIFIED-GROUNDING CONTEXT is produced from the single authoritative batch-state read and passed to the seam, carrying the server-derived resolution, scope, pins, range and focus. The drill controller uses the same seam's preparation path. A drill request is NEVER reconstructed from client fields, because that would either create a second inconsistent validation path or repeat the sensitive batch reads.": "t-etn-c16",
+    "The row limit reaches the SQL: drill-transactions hard-codes LIMIT 100 and its interface takes no limit argument, so the assistant's 20 would be cosmetic without changing the interface, the repository and its test.": "t-etn-c17",
+    "The typed roll-up payload carries the mapping target, the provisional flag and the reason, because leafTriples() drops them today - without those an unmapped-GL line cannot honestly be described as provisional, which criterion 8 requires.": "t-etn-c18",
+    "Both chat routes carry a NAMED response DTO or schema for the union with a Swagger assertion - they have description-only responses today, and decision 0019 is not satisfied by a description.": "t-etn-c19"
+  },
+  "decision": "keep",
+  "rationale": "One bounded task: extract the seam once, classify intent deterministically, and answer through the drill's existing protections. It stays bounded because it adds no UI and no new query path - the sensitive query already exists and is being moved, not written. The grill's amendments widened the FILE set (the repository that owns the limit, the drill interface and controller test, the Swagger artifact) without widening the behaviour.",
+  "new_abstractions": [
+    "A raw-read domain seam extracted from MisDrillService returning typed ok/replaced/gone/audit-failed outcomes with a row-limit argument. NEW because the existing service is controller-oriented and throws HTTP exceptions; without extraction this task would duplicate the sensitive pinned-batch query or lose typed outcomes to the global error filter.",
+    "A server-only verified-grounding context produced from the single authoritative batch-state read. NEW because verify() returns a public status today and the seam needs server-derived resolution, scope, pins, range and focus - rebuilding those from client fields would be a second validation path.",
+    "A statement-intent fixture table (composition | causal | data) with causal precedence. NEW because the existing guard does not classify composition wording at all, so the boundary has to be built rather than configured.",
+    "The explanation variants of the chat response union - leaf, aggregate, replaced, focus-required, safe audit-failure - extending the refusal variants task 1 shipped rather than creating a second union."
+  ],
+  "questions_asked": 1,
+  "gaps": [
+    "The focus wire contract made two recorded criteria IMPOSSIBLE. Task 1 shipped nodeKey and block as a REQUIRED pair, so an unfocused grounded request is rejected by the schema before the service ever runs and focus-required can never be returned; and the request carries no subject, so a crafted Budget focus is indistinguishable from an Actual one and the promised backend Budget refusal cannot exist.",
+    "The replaced answer had no shape. The contract required both a distinct replaced variant AND the leaf explanation with its transactions, without saying whether replacement is a status attached to the leaf or a complete outcome containing the leaf payload - so task 3 could not render it consistently.",
+    "The verified-read handoff was undefined. StatementGroundingService.verify() returns only a public status while the shared seam needs the server-derived resolution, scope, pins, range and focus - so an implementer would either rebuild a drill request from CLIENT fields, creating a second inconsistent validation path, or re-run every check and repeat the sensitive batch reads.",
+    "The row limit could not reach the SQL: drill-transactions hard-codes LIMIT 100 and its interface takes no limit argument, so 'the assistant asks for 20 while the panel keeps 100' would have been cosmetic - both would still have queried 100.",
+    "D-0053 could not be PROVEN from the scoped fake-only grounding test, because the real repository executes separate 'found' and 'active' SQL queries - a fake would have satisfied the leaf while the race remained in the shipped code.",
+    "The drill interface and controller test were out of scope although the contract requires the controller to map typed seam outcomes back to its shipped response - so the extraction could have silently changed the drill route's behaviour with nothing to catch it.",
+    "leafTriples() drops the mapping target, the provisional flag and the reason, so the roll-up payload could not honestly describe an unmapped-GL line as provisional - which criterion 8 requires.",
+    "The proof set omitted several recorded promises: that a grounded DATA question falls through unpinned, that the audit records the mapping-master version, and that unmapped lines are marked provisional.",
+    "Both chat routes carry DESCRIPTION-ONLY Swagger responses, so decision 0019's typed-contract requirement could have been 'satisfied' by prose while the union stayed undocumented and free to drift between the buffered and streamed routes.",
+    "The manual verification named only LLM_PROVIDER=bedrock, so a human following it would hit a startup failure or a mock provider: BEDROCK_MODEL_ID and STATEMENT_ATTESTATION_SECRETS are both required now that task 1 has shipped.",
+    "MID-STAGE, signal S-0022-462a: the binding paise-footing fix cannot be implemented without the attestation, because the footer must be compared against the amount the user SAW - and for a replaced-but-present batch, re-deriving that amount at ask time returns a different number than was on screen, so the comparison would run against the wrong baseline."
+  ],
+  "contradictions": [],
+  "resolutions": [
+    "RESOLVED: the pair becomes ONE OPTIONAL TYPED FOCUS - absent means the server returns focus-required, present means { nodeKey, block, subject: 'actual' | 'budget' }, 'budget' is a typed refusal, and only 'actual' reaches the read seam. Recorded as a criterion with leaves for both the absent-focus and crafted-budget cases.",
+    "RESOLVED by the human: replaced is ITS OWN OUTCOME carrying the full leaf explanation, transaction page and footer, plus a notice naming the source and period that went stale. A flag on an otherwise-normal answer is the kind of detail a renderer drops, and then stale figures read as current. It extends task 1's union rather than opening a parallel response channel.",
+    "RESOLVED: verification produces a SERVER-ONLY verified-grounding context from the SINGLE authoritative batch-state read, and both the chat path and the drill controller feed the seam from it. A drill request is never reconstructed from client fields. This is also the honest fix for D-0053, whose race was two separate reads.",
+    "RESOLVED: backend/src/warehouse/drill-transactions.{interface,repository}.ts and its repository test are in scope, with a leaf asserting the supplied limit reaches the query so 20 and 100 are genuinely different.",
+    "RESOLVED: the one-query repository operation is in scope and tested at the repository level, not only through a fake.",
+    "RESOLVED: backend/src/mis/mis-drill.interface.ts and mis-drill.controller.test.ts are in scope, with a leaf asserting the controller maps EVERY typed outcome to its shipped response.",
+    "RESOLVED: the typed roll-up payload carries the mapping target, provisional flag and reason, recorded as a criterion with a leaf asserting an unmapped-GL line is described as provisional with its reason.",
+    "RESOLVED: leaves added for all three, plus the absent-focus and crafted-budget cases the new focus contract makes provable.",
+    "RESOLVED: a named response DTO or schema for the union is required on both routes, with a Swagger assertion leaf in backend/src/swagger.test.ts, which is now in scope.",
+    "RESOLVED: the manual verification names all three.",
+    "RESOLVED by extending the scope rather than escalating: backend/src/mis/statement-attestation.ts and its test are mechanically implied, and the amount is bound at ISSUE time using the nodeMetadata pattern task 1 already shipped - per-node, per-block actual paise travel READABLE in the statement response while their DIGEST joins the signed claims, so the token does not grow with the statement and altering a readable amount invalidates the context. The amount is never accepted from client input, because a caller able to declare the amount its own footer should match has defeated the check."
+  ],
+  "citations": [
+    {
+      "finding": "The focus wire contract made two recorded criteria IMPOSSIBLE. Task 1 shipped nodeKey and block as a REQUIRED pair, so an unfocused grounded request is rejected by the schema before the service ever runs and focus-required can never be returned; and the request carries no subject, so a crafted Budget focus is indistinguishable from an Actual one and the promised backend Budget refusal cannot exist.",
+      "source": "backend/src/chat/chat.schemas.ts"
+    },
+    {
+      "finding": "The replaced answer had no shape. The contract required both a distinct replaced variant AND the leaf explanation with its transactions, without saying whether replacement is a status attached to the leaf or a complete outcome containing the leaf payload - so task 3 could not render it consistently.",
+      "source": "contract/src/api.ts"
+    },
+    {
+      "finding": "The verified-read handoff was undefined. StatementGroundingService.verify() returns only a public status while the shared seam needs the server-derived resolution, scope, pins, range and focus - so an implementer would either rebuild a drill request from CLIENT fields, creating a second inconsistent validation path, or re-run every check and repeat the sensitive batch reads.",
+      "source": "backend/src/chat/statement-grounding.service.ts"
+    },
+    {
+      "finding": "The row limit could not reach the SQL: drill-transactions hard-codes LIMIT 100 and its interface takes no limit argument, so 'the assistant asks for 20 while the panel keeps 100' would have been cosmetic - both would still have queried 100.",
+      "source": "backend/src/warehouse/drill-transactions.repository.ts"
+    },
+    {
+      "finding": "D-0053 could not be PROVEN from the scoped fake-only grounding test, because the real repository executes separate 'found' and 'active' SQL queries - a fake would have satisfied the leaf while the race remained in the shipped code.",
+      "source": "backend/src/chat/statement-grounding.service.ts"
+    },
+    {
+      "finding": "The drill interface and controller test were out of scope although the contract requires the controller to map typed seam outcomes back to its shipped response - so the extraction could have silently changed the drill route's behaviour with nothing to catch it.",
+      "source": "backend/src/mis/mis-drill.controller.ts"
+    },
+    {
+      "finding": "leafTriples() drops the mapping target, the provisional flag and the reason, so the roll-up payload could not honestly describe an unmapped-GL line as provisional - which criterion 8 requires.",
+      "source": "backend/src/mis/mis-selection.service.ts"
+    },
+    {
+      "finding": "The proof set omitted several recorded promises: that a grounded DATA question falls through unpinned, that the audit records the mapping-master version, and that unmapped lines are marked provisional.",
+      "source": ".factory/stories/mis-assistant-explains-a-number/decomposition.json"
+    },
+    {
+      "finding": "Both chat routes carry DESCRIPTION-ONLY Swagger responses, so decision 0019's typed-contract requirement could have been 'satisfied' by prose while the union stayed undocumented and free to drift between the buffered and streamed routes.",
+      "source": "backend/src/chat/chat.controller.ts"
+    },
+    {
+      "finding": "The manual verification named only LLM_PROVIDER=bedrock, so a human following it would hit a startup failure or a mock provider: BEDROCK_MODEL_ID and STATEMENT_ATTESTATION_SECRETS are both required now that task 1 has shipped.",
+      "source": ".factory/stories/mis-assistant-explains-a-number/task-plans/explain-the-number.md"
+    },
+    {
+      "finding": "MID-STAGE, signal S-0022-462a: the binding paise-footing fix cannot be implemented without the attestation, because the footer must be compared against the amount the user SAW - and for a replaced-but-present batch, re-deriving that amount at ask time returns a different number than was on screen, so the comparison would run against the wrong baseline.",
+      "source": "backend/src/mis/statement-attestation.ts"
+    }
+  ],
+  "rounds": [
+    {
+      "question": "When the pinned batch was replaced, decision 0025 says show the figures and report the replacement. But should that be its own response shape, or the normal answer with a flag on it? Task 3 renders whatever I choose here.",
+      "options": [
+        "Its own outcome carrying the full explanation (Recommended)",
+        "The normal leaf answer with a status flag"
+      ],
+      "chosen": "Its own outcome carrying the full explanation (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "summary": "Cold read of the explain-the-number contract: ten findings, and the sharpest showed task 1's own review outcome had quietly broken two of THIS task's criteria. Making nodeKey and block a required pair - the right call for task 1, where a grounded request had to carry a subject - means an unfocused request is now rejected by the schema before the service runs, so focus-required can never be returned, and with no subject field a crafted Budget focus is indistinguishable from an Actual one, so the backend Budget refusal cannot exist. The pair becomes one optional typed focus. The read also caught three things that would have made recorded promises cosmetic: drill-transactions hard-codes LIMIT 100 with no limit argument, so 20-versus-100 was unprovable; D-0053's race is in the REAL repository's two SQL queries, so a fake-only leaf would have passed while the race shipped; and leafTriples drops the provisional data needed to describe an unmapped line honestly. The human chose the replaced outcome to carry the full explanation rather than a flag a renderer could drop.",
+  "inspected_refs": [
+    "backend/src/mis/mis-drill.service.ts:27",
+    "backend/src/warehouse/drill-transactions.repository.ts",
+    "backend/src/chat/reconciliation-guard.ts:31",
+    "backend/src/chat/statement-grounding.service.ts",
+    "backend/src/chat/chat.schemas.ts",
+    "backend/src/chat/chat.controller.ts",
+    "contract/src/api.ts"
+  ],
+  "input_sha256": "844e6b1b085101080b825168d045d2909bdd889310d6e3234acf44399b5c4f3f",
+  "grounding_basis": "working-tree",
+  "grounding_treeish": "",
+  "task_plan_sha256": "476a7ec484e444f0b81ae345e895f66b7de6525b22c33cae78a9bf57f7a6eb8b",
+  "recorded_at": "2026-09-16T03:48:50+00:00",
+  "commit": "1bf209353249b1bf7bf4a357b2353c207e827088",
+  "approved_task_plan_sha256": "476a7ec484e444f0b81ae345e895f66b7de6525b22c33cae78a9bf57f7a6eb8b",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-16T03:48:54+00:00"
+}

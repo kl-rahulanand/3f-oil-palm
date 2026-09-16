@@ -16,6 +16,7 @@ test("the drill page and footer queries share one predicate and emit the determi
       to: "2026-07-01",
     },
     2,
+    100,
   );
 
   const where = (sql: string) => sql.match(/WHERE ([\s\S]+?)\n(?:ORDER BY|LIMIT)/)?.[1];
@@ -43,6 +44,31 @@ test("drill line dates are normalized to date only strings under a non utc timez
     if (original === undefined) delete process.env.TZ;
     else process.env.TZ = original;
   }
+});
+
+test("the repository honours the supplied row limit so twenty reaches the sql and the drill keeps one hundred", () => {
+  const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
+  assert.equal(repository.buildQueries.length, 3);
+  const predicate = {
+    actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+    triples: [{ plant: "DUB", costCenter: "Primary", glCode: "5001" }],
+    plants: ["DUB"],
+    from: "2026-07-01",
+    to: "2026-07-01",
+  };
+  assert.match(repository.buildQueries(predicate, 1, 20).pageSql, /LIMIT 20 OFFSET 0$/);
+  assert.match(repository.buildQueries(predicate, 2, 100).pageSql, /LIMIT 100 OFFSET 100$/);
+});
+
+test("pinned batch existence and active state are read in one query", async () => {
+  const warehouse = new FakeWarehouse();
+  const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
+  await repository.findBatchStates([
+    { source: "actuals", period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000001" },
+  ]);
+  assert.equal(warehouse.executed.length, 1);
+  assert.match(warehouse.executed[0]!, /id IN/);
+  assert.match(warehouse.executed[0]!, /is_active/);
 });
 
 class FakeWarehouse implements Warehouse {

@@ -153,7 +153,7 @@ test(
         .map(({ plant, costCenter, glCode }) => ({ plant, costCenter, glCode }));
       assert.ok(triples.length);
       const drill = await repository.execute(
-        repository.buildQueries({ actualBatchIds, triples, plants: ["CHIR"], from: JULY, to: JULY }, 1),
+        repository.buildQueries({ actualBatchIds, triples, plants: ["CHIR"], from: JULY, to: JULY }, 1, 100),
       );
       assert.equal(drill.footer.value, statementNode.measures[0].actual);
     }

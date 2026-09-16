@@ -9,11 +9,12 @@ import type { AuditService } from "../core/audit.service";
 import { MisDrillAuditFilter } from "./mis-drill.audit.filter";
 import { MisDrillController } from "./mis-drill.controller";
 import type { IMisDrillService } from "./mis-drill.interface";
+import type { MisDrillOutcome } from "./mis-drill.interface";
 
-test("the request schema rejects a pinned batch id that is not a uuid before any sql is built", () => {
+test("the request schema rejects a pinned batch id that is not a uuid before any sql is built", async () => {
   const service = new EmptyDrillService();
   const controller = new MisDrillController(service);
-  assert.throws(() =>
+  await assert.rejects(() =>
     controller.run(user, SESSION_ID, { ...request(), pinnedBatches: [{ ...ACTUAL, batchId: "not-sql-safe'" }] }),
   );
   assert.equal(service.calls, 0);
@@ -63,15 +64,50 @@ test("an authenticated drill refused by the route guards is audited with the pre
 test("the drill route refuses an out of range page and returns an empty result as a zero row success with a zero footer", async () => {
   const service = new EmptyDrillService();
   const controller = new MisDrillController(service);
-  assert.throws(() => controller.run(user, SESSION_ID, { ...request(), page: 0 }));
+  await assert.rejects(() => controller.run(user, SESSION_ID, { ...request(), page: 0 }));
   assert.deepEqual(await controller.run(user, SESSION_ID, request()), EMPTY_RESPONSE);
+});
+
+test("the drill controller maps every typed seam outcome to its shipped response", async () => {
+  for (const outcome of ["ok", "replaced"] as const) {
+    const response = await new MisDrillController(
+      new OutcomeDrillService({ outcome, response: INTERNAL_RESPONSE }),
+    ).run(user, SESSION_ID, request());
+    assert.deepEqual(response, EMPTY_RESPONSE);
+  }
+  for (const outcome of [
+    { outcome: "gone" as const, status: 409, message: "gone", batchStatuses: [] },
+    { outcome: "refused" as const, status: 400, message: "refused", batchStatuses: [] },
+    { outcome: "audit-failed" as const, status: 503, message: "audit failed" },
+  ]) {
+    await assert.rejects(new MisDrillController(new OutcomeDrillService(outcome)).run(user, SESSION_ID, request()));
+  }
 });
 
 class EmptyDrillService implements IMisDrillService {
   calls = 0;
-  async run(): Promise<MisDrillResponse> {
+  async prepare(): Promise<never> {
+    throw new Error("not used");
+  }
+  async read(): Promise<never> {
+    throw new Error("not used");
+  }
+  async run(): Promise<MisDrillOutcome> {
     this.calls += 1;
-    return EMPTY_RESPONSE;
+    return { outcome: "ok", response: INTERNAL_RESPONSE };
+  }
+}
+
+class OutcomeDrillService implements IMisDrillService {
+  constructor(private readonly outcome: MisDrillOutcome) {}
+  async prepare(): Promise<never> {
+    throw new Error("not used");
+  }
+  async read(): Promise<never> {
+    throw new Error("not used");
+  }
+  async run() {
+    return this.outcome;
   }
 }
 
@@ -127,6 +163,7 @@ const EMPTY_RESPONSE: MisDrillResponse = {
   budgetBatchId: BUDGET.batchId,
   batchStatuses: [],
 };
+const INTERNAL_RESPONSE = { ...EMPTY_RESPONSE, rollup: [], budgetState: "loaded" as const };
 
 const user: AuthUser = {
   id: "00000000-0000-0000-0000-000000000010",

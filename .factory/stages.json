@@ -4,7 +4,8 @@
     {
       "id": "explain-grounding-and-attestation",
       "title": "Attest the statement, and let the dock ground a question against it",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "477d780e0adcd9be260844fbc94c390863f993d3ddf602adcbcaa668e6efdbf7"
     },
     {
       "id": "explain-the-number",

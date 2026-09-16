@@ -20,26 +20,40 @@ test("the drill resolves its leaf and triples server side rejecting a node key t
   assert.deepEqual(fixture.transactions.predicates[0].triples, [TRIPLE]);
 
   const bucket = makeFixture();
-  await bucket.service.run(user, SESSION_ID, { ...request(), nodeKey: "unmapped-GL" });
+  const bucketOutcome = await bucket.service.run(user, SESSION_ID, { ...request(), nodeKey: "unmapped-GL" });
   assert.deepEqual(bucket.transactions.predicates[0].triples, [BUCKET_TRIPLE]);
+  assert.equal(bucketOutcome.outcome, "ok");
+  if (bucketOutcome.outcome === "ok") {
+    assert.deepEqual(bucketOutcome.response.rollup[0], {
+      plant: "DUB",
+      costCentre: "Unknown",
+      glCode: "5999",
+      bucket: "unmapped-GL",
+      mappingTarget: { kind: "bucket" },
+      provisional: true,
+      reason: "GL absent from Mapping Master",
+    });
+  }
 
-  await assert.rejects(
-    makeFixture().service.run(user, SESSION_ID, { ...request(), nodeKey: "parent-or-crafted-key" }),
-    (error: unknown) => error instanceof AuditedDrillRefusalException && error.getStatus() === 400,
+  assert.equal(
+    (await makeFixture().service.run(user, SESSION_ID, { ...request(), nodeKey: "parent-or-crafted-key" })).outcome,
+    "refused",
   );
 });
 
 test("the pinned batch set is refused when it does not cover every month in the block range and reports per batch status when a pinned batch is no longer active", async () => {
   const incomplete = makeFixture({ actualPeriods: ["2026-04-01", "2026-07-01"] });
-  await assert.rejects(
-    incomplete.service.run(user, SESSION_ID, { ...request(), block: "fy26-27-ytd" }),
-    (error: unknown) => error instanceof AuditedDrillRefusalException && error.getStatus() === 409,
+  assert.equal(
+    (await incomplete.service.run(user, SESSION_ID, { ...request(), block: "fy26-27-ytd" })).outcome,
+    "refused",
   );
 
   const replaced = makeFixture({ replacedActual: true });
   const response = await replaced.service.run(user, SESSION_ID, request());
+  assert.equal(response.outcome, "replaced");
+  if (response.outcome !== "replaced") return;
   assert.deepEqual(
-    response.batchStatuses.find(({ source }) => source === "actuals"),
+    response.response.batchStatuses.find(({ source }) => source === "actuals"),
     {
       source: ACTUAL.source,
       period: ACTUAL.period,
@@ -48,18 +62,14 @@ test("the pinned batch set is refused when it does not cover every month in the 
       activeBatchId: REPLACEMENT_ACTUAL.batchId,
     },
   );
-  assert.deepEqual(response.actualBatchIds, [ACTUAL.batchId]);
+  assert.deepEqual(response.response.actualBatchIds, [ACTUAL.batchId]);
 
   const gone = makeFixture({ goneActual: true });
-  await assert.rejects(gone.service.run(user, SESSION_ID, request()), (error: unknown) => {
-    assert.ok(error instanceof AuditedDrillRefusalException);
-    assert.equal(error.getStatus(), 409);
-    assert.deepEqual(error.getResponse(), {
-      message: "A pinned batch is gone",
-      batchStatuses: error.batchStatuses,
-    });
+  const goneOutcome = await gone.service.run(user, SESSION_ID, request());
+  assert.equal(goneOutcome.outcome, "gone");
+  if (goneOutcome.outcome === "gone") {
     assert.deepEqual(
-      error.batchStatuses.find(({ source }) => source === "actuals"),
+      goneOutcome.batchStatuses.find(({ source }) => source === "actuals"),
       {
         source: ACTUAL.source,
         period: ACTUAL.period,
@@ -68,8 +78,7 @@ test("the pinned batch set is refused when it does not cover every month in the 
         activeBatchId: REPLACEMENT_ACTUAL.batchId,
       },
     );
-    return true;
-  });
+  }
 });
 
 test("the drill takes its outline from the pinned budget batch whose period equals the block end rather than the currently active one", async () => {
@@ -77,14 +86,36 @@ test("the drill takes its outline from the pinned budget batch whose period equa
   const response = await fixture.service.run(user, SESSION_ID, request());
 
   assert.deepEqual(fixture.outlines.batchIds, [BUDGET.batchId]);
-  assert.equal(response.leafKey, "leaf-a");
-  assert.deepEqual(response.batchStatuses.find(({ source }) => source === "budget")?.status, "replaced");
+  assert.equal(response.outcome, "replaced");
+  if (response.outcome !== "replaced") return;
+  assert.equal(response.response.leafKey, "leaf-a");
+  assert.deepEqual(response.response.batchStatuses.find(({ source }) => source === "budget")?.status, "replaced");
 });
 
 test("a failing audit insert aborts the drill before any transaction query is issued", async () => {
   const fixture = makeFixture({ failAudit: true });
-  await assert.rejects(fixture.service.run(user, SESSION_ID, request()), /audit unavailable/);
+  assert.equal((await fixture.service.run(user, SESSION_ID, request())).outcome, "audit-failed");
   assert.equal(fixture.transactions.executeCalls, 0);
+});
+
+test("the extracted seam returns a typed replaced outcome instead of throwing and the drill controller still maps it to its shipped response", async () => {
+  const fixture = makeFixture({ replacedActual: true });
+  const outcome = await fixture.service.run(user, SESSION_ID, request());
+  assert.equal(outcome.outcome, "replaced");
+  if (outcome.outcome === "replaced") {
+    assert.equal(outcome.response.batchStatuses[0]?.status, "replaced");
+    assert.equal(outcome.response.footer.value, "0.00");
+  }
+});
+
+test("the assistant asks the seam for twenty rows while the drill panel keeps its hundred row page", async () => {
+  const fixture = makeFixture();
+  const prepared = await fixture.service.prepare(user, request());
+  assert.equal(prepared.outcome, "prepared");
+  if (prepared.outcome !== "prepared") return;
+  await fixture.service.read(user, SESSION_ID, prepared.context, 20);
+  await fixture.service.run(user, SESSION_ID, request());
+  assert.deepEqual(fixture.transactions.limits, [20, 100]);
 });
 
 function makeFixture(
@@ -189,6 +220,7 @@ class FakeOutlines implements IPinnedStatementOutlineRepository {
 
 class FakeTransactions implements IDrillTransactionsRepository {
   predicates: DrillPredicate[] = [];
+  limits: number[] = [];
   executeCalls = 0;
   constructor(
     private readonly options: {
@@ -198,14 +230,10 @@ class FakeTransactions implements IDrillTransactionsRepository {
       goneActual?: boolean;
     },
   ) {}
-  async findBatchesByIds(): Promise<DrillBatch[]> {
+  async findBatchStates(): Promise<DrillBatch[]> {
     return [
       ...(this.options.goneActual ? [] : [{ ...ACTUAL, isActive: !this.options.replacedActual }]),
       { ...BUDGET, isActive: !this.options.replacedBudget },
-    ];
-  }
-  async findActiveBatches(): Promise<DrillBatch[]> {
-    return [
       { ...(this.options.replacedActual || this.options.goneActual ? REPLACEMENT_ACTUAL : ACTUAL), isActive: true },
       { ...(this.options.replacedBudget ? REPLACEMENT_BUDGET : BUDGET), isActive: true },
     ];
@@ -213,8 +241,9 @@ class FakeTransactions implements IDrillTransactionsRepository {
   async findActualPeriods() {
     return this.options.actualPeriods ?? ["2026-07-01"];
   }
-  buildQueries(predicate: DrillPredicate): DrillQueries {
+  buildQueries(predicate: DrillPredicate, _page: number, rowLimit: number): DrillQueries {
     this.predicates.push(predicate);
+    this.limits.push(rowLimit);
     return { pageSql: "SELECT page", footerSql: "SELECT footer", objectsTouched: ["sap_transaction", "ingest_batch"] };
   }
   async execute() {
