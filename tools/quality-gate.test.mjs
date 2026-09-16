@@ -23,6 +23,7 @@ const hermeticTests = [
   "backend/src/chat/reconciliation-guard.test.ts",
   "backend/src/chat/selectionExecutor.composed.test.ts",
   "backend/src/chat/smalltalk-guard.test.ts",
+  "backend/src/chat/statement-grounding.service.test.ts",
   "backend/src/chat/suppression.test.ts",
   "backend/src/chat/timeWindowParse.test.ts",
   "backend/src/common/error-envelope.wiring.test.ts",
@@ -49,6 +50,7 @@ const hermeticTests = [
   "backend/src/mis/mis-statement-export.test.ts",
   "backend/src/mis/mis-statement.controller.test.ts",
   "backend/src/mis/mis-statement.service.test.ts",
+  "backend/src/mis/statement-attestation.test.ts",
   "backend/src/pins/pins.schemas.test.ts",
   "backend/src/pins/pins.service.test.ts",
   "backend/src/saved/saved.service.test.ts",
@@ -92,6 +94,8 @@ const dbTests = [
 
 const backendTestRunner =
   "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test";
+const backendHermeticTestRunner =
+  "cd .. && STATEMENT_ATTESTATION_SECRETS=hermetic-statement-attestation-secret TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test";
 
 const expectedScripts = {
   "build:contract": "npm -w @3f/contract run build",
@@ -125,10 +129,10 @@ const expectedWorkspaceScripts = {
     lint: 'cd .. && eslint --config eslint.config.mjs "backend/src/**/*.ts" "backend/test/**/*.ts" --no-error-on-unmatched-pattern',
     "format:check":
       'cd .. && prettier --config .prettierrc.json --ignore-path .prettierignore --check "backend/src/**/*.ts" "backend/test/**/*.ts" --no-error-on-unmatched-pattern',
-    "test:hermetic": `${backendTestRunner} ${hermeticTests.join(" ")}`,
+    "test:hermetic": `${backendHermeticTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts backend/src/warehouse/load-freshness.db.test.ts backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+      "cd .. && STATEMENT_ATTESTATION_SECRETS=warehouse-proof-statement-attestation-secret TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts backend/src/warehouse/load-freshness.db.test.ts backend/src/warehouse/all-plants-reconciliation.db.test.ts",
     "master:generate": "ts-node -T src/mapping/generate-mapping-master.ts",
   },
   contract: {

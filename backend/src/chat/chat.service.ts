@@ -5,6 +5,7 @@ import {
   type AskPeriodOption,
   type AskPriorTurn,
   type AskReportGrounding,
+  type AskStatementGrounding,
   type AskResponse,
   type AuthUser,
   type ChatStreamEvent,
@@ -37,6 +38,7 @@ import { chooseChart } from "./chartChooser";
 import { classifyCausalQuestion, classifyReconciliationQuestion } from "./reconciliation-guard";
 import { classifySmalltalk } from "./smalltalk-guard";
 import { parseTimeWindow } from "./timeWindowParse";
+import { StatementGroundingService } from "./statement-grounding.service";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -61,6 +63,7 @@ export class ChatService {
     private readonly help: HelpService,
     private readonly selectionResolver: SelectionResolverService,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
+    private readonly statementGrounding?: StatementGroundingService,
   ) {}
 
   async ask(
@@ -72,6 +75,7 @@ export class ChatService {
     clientPriorTurns?: AskPriorTurn[],
     onEvent?: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
+    statementGrounding?: AskStatementGrounding,
   ): Promise<AskResponse> {
     const started = Date.now();
     const cfg = loadConfig();
@@ -106,6 +110,20 @@ export class ChatService {
       await this.audit.writeRequestEvent({ userId: user.id, sessionId, question });
     } catch {
       return done({ responseClass: ResponseClass.BackendError, message: CHAT_MESSAGES.auditNotRecorded });
+    }
+    if (statementGrounding) {
+      if (!this.statementGrounding) {
+        return done({ responseClass: ResponseClass.BackendError, message: "Statement grounding is unavailable." });
+      }
+      const grounding = await this.statementGrounding.verify(user, statementGrounding);
+      return done({
+        responseClass: grounding.outcome === "refused" ? ResponseClass.BlockedByPolicy : ResponseClass.NotSupported,
+        message:
+          grounding.outcome === "refused"
+            ? "Statement grounding was refused."
+            : "Grounded explanation is not available yet.",
+        statementGrounding: grounding,
+      });
     }
     onEvent?.({ type: "phase", phase: "routing" });
     const allowed = this.semantic.allowedFor(user.permissions);

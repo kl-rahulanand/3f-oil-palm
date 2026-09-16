@@ -38,6 +38,9 @@ export class ChatController {
       parsed.data.selection,
       parsed.data.reportGrounding,
       parsed.data.priorTurns,
+      undefined,
+      undefined,
+      parsed.data.statementGrounding,
     );
   }
 
@@ -79,6 +82,7 @@ export class ChatController {
             parsed.data.priorTurns,
             onEvent,
             abort.signal,
+            parsed.data.statementGrounding,
           ),
         (event) => {
           if (!abort.signal.aborted && !response.destroyed) {

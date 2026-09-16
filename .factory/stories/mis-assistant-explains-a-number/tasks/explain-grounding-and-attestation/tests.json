@@ -1,0 +1,62 @@
+{
+  "commit": "6fa3a6dd496d569a2200d817a685f11f4ad7c3c6",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All 12 required leaves executed and passed under the Node/JUnit discriminator: the testcase name must equal the leaf id verbatim AND must not be the FILE PATH, because tools/junit-run.mjs exits 0 and emits a testcase named after the file when --name matches nothing (D-0024) - so exit code alone proves nothing. Full backend hermetic suite: 201 tests, 185 pass, 0 fail, 16 skipped (the pre-existing DB-gated warehouse leaves, unchanged by this task). verify.py passes. The attestation is proven on its own terms rather than by construction: a tampered claim fails because the signature no longer matches the canonical encoding; altering the readable node metadata invalidates the context, which is the attack the metadata digest exists to stop - without it a client could forge the mapping and task 3 would render a false mapping as attested; an expired context and one issued to another user are both refused; a rotated older key still verifies while new contexts sign with the first; and constructing the provider without a secret throws, with an empty key entry rejected rather than filtered, since silently skipping one could leave the list empty and yield an unsigned context. Grounding refusals are proven at the SERVICE level, not on the Zod schema - the task grill caught that a leaf in chat.schemas.test.ts could pass while the service ignored statementGrounding entirely, so those leaves construct the service and cover a node or block outside the re-read pinned outline, a plant outside current grants, a pinned batch that fails validation, and a department or function disagreeing with the master. A separate leaf asserts a verified grounded request does NOT fall through into the LLM path, which is the boundary that keeps task 2's answer unshipped until task 2 ships it.",
+    "blocking_findings": [],
+    "commands_run": [
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/mis/statement-attestation.test.ts --name \"the attested context binds scope outline digest metadata digest pins master version user and expiry\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/mis/statement-attestation.test.ts --name \"a tampered claim fails verification because the signature no longer matches the canonical encoding\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/mis/statement-attestation.test.ts --name \"altering the readable node metadata invalidates the context because its digest is signed\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/mis/statement-attestation.test.ts --name \"an expired context and a context issued to another user are both refused\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/mis/statement-attestation.test.ts --name \"constructing the provider without a secret throws and an empty key entry is rejected rather than skipped\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/mis/statement-attestation.test.ts --name \"a context signed by a rotated older key still verifies while new ones are signed with the first key\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/chat/statement-grounding.service.test.ts --name \"a node or block absent from the re read pinned outline is refused with its own typed reason\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/chat/statement-grounding.service.test.ts --name \"a plant outside the users current grants is refused and a pinned batch that does not validate is refused\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/chat/statement-grounding.service.test.ts --name \"a department or function disagreeing with the master selection is a typed refusal not a silent substitution and not a no mapping answer\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/chat/statement-grounding.service.test.ts --name \"a verified grounded request does not fall through into the llm path\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/chat/chat.schemas.test.ts --name \"the strict chat schema accepts statementGrounding and still rejects an unknown key\" --report <junit.xml> --require ts-node/register",
+      "TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file backend/src/mis/mis-statement.service.test.ts --name \"every resolved statement response populates the attested context and the per leaf approved gl codes and cost centres\" --report <junit.xml> --require ts-node/register",
+      "STATEMENT_ATTESTATION_SECRETS=... npm run -w @3f/backend test:hermetic",
+      "python3 factory/scripts/verify.py"
+    ],
+    "pass_fail_summary": "12/12 required leaves executed and passed; backend hermetic 185 pass / 0 fail / 16 pre-existing skips; verify.py green.",
+    "tests_added_or_updated": [
+      "backend/src/mis/statement-attestation.test.ts",
+      "backend/src/chat/statement-grounding.service.test.ts",
+      "backend/src/chat/chat.schemas.test.ts",
+      "backend/src/mis/mis-statement.service.test.ts"
+    ],
+    "reviewed_scope": [
+      "backend/package.json",
+      "backend/src/chat/chat.controller.ts",
+      "backend/src/chat/chat.module.ts",
+      "backend/src/chat/chat.schemas.test.ts",
+      "backend/src/chat/chat.schemas.ts",
+      "backend/src/chat/chat.service.ts",
+      "backend/src/chat/statement-grounding.service.test.ts",
+      "backend/src/chat/statement-grounding.service.ts",
+      "backend/src/mis/mis-statement.controller.ts",
+      "backend/src/mis/mis-statement.dto.ts",
+      "backend/src/mis/mis-statement.service.test.ts",
+      "backend/src/mis/mis-statement.service.ts",
+      "backend/src/mis/mis.module.ts",
+      "backend/src/mis/statement-attestation.test.ts",
+      "backend/src/mis/statement-attestation.ts",
+      "backend/src/warehouse/statement-outline.interface.ts",
+      "contract/src/api.ts",
+      "tools/quality-gate.test.mjs"
+    ],
+    "remaining_gaps": [
+      "The typed refusal variants ship here but no explanation does: a verified grounded request returns the verified-but-unanswered outcome that task 2 replaces.",
+      "Both new statement-response fields are optional in the contract type by the human's decision, so task 3 must treat absence as a real case rather than trusting the type."
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-16T02:26:03+00:00",
+    "commit": "6fa3a6dd496d569a2200d817a685f11f4ad7c3c6"
+  },
+  "updated_at": "2026-09-16T02:26:03+00:00"
+}

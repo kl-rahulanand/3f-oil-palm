@@ -29,7 +29,8 @@
     "The proposed refusal tests could not prove refusals. chat.schemas.test.ts only parses Zod input - it never constructs ChatService, re-resolves the master, checks grants or emits a response - so the node/block and department/function leaves could pass while the service ignored statementGrounding entirely. There was also no leaf for plant-outside-grants or pin validation.",
     "The configuration requirement was under-specified and would have broken existing verification: no environment variable, delimiter, empty-key policy or TTL bounds, and loadConfig() runs throughout the backend while the current hermetic command supplies no secret - so requiring it globally would fail existing leaves.",
     "Response-field optionality was unstated. Required fields break existing typed fixtures in the backend export test and the frontend statement, drill and report tests - all type-checked and all outside this task's scope - while optional fields weaken the stated 'the response carries' guarantee.",
-    "Surface Impact contradicted the contract: the story plan marks Docs 'Unchanged by design' while task 1 declared decision 0038's front matter in its write scope and promised to edit it."
+    "Surface Impact contradicted the contract: the story plan marks Docs 'Unchanged by design' while task 1 declared decision 0038's front matter in its write scope and promised to edit it.",
+    "MID-STAGE, signal S-0019-701b: the recorded write_scope omitted backend/src/chat/chat.controller.ts, which is what forwards parsed request fields to ChatService on BOTH the buffered and streamed paths (chat.controller.ts:37-40 and :76-77). Without it the server-side verification this task exists to build is unreachable. The file was in the task original scope and was dropped when the contract was rebuilt after this grill."
   ],
   "contradictions": [],
   "resolutions": [
@@ -42,7 +43,8 @@
     "RESOLVED: the refusal leaves move to a SERVICE-LEVEL file, backend/src/chat/statement-grounding.service.test.ts, which constructs the service; chat.schemas.test.ts keeps only the schema leaf. Leaves for plant-outside-grants, pin validation and the no-LLM-fallthrough rule are added.",
     "RESOLVED: a named environment variable holding a delimiter-separated ordered list, empty entries rejected rather than skipped, explicit TTL bounds with a 30-minute default, and the requirement enforced WHERE THE PROVIDER IS CONSTRUCTED rather than inside loadConfig(). Absence still fails startup, and the hermetic command supplies a fixture secret.",
     "RESOLVED by the human: both fields are OPTIONAL IN THE TYPE so existing fixtures keep compiling, the resolved path ALWAYS populates them, and a required leaf asserts their presence on every resolved response. The criterion states the consequence explicitly - task 3 treats absence as a real case rather than trusting the type.",
-    "RESOLVED by removing the edit rather than the claim: the 0038 stories-field correction is cosmetic and is dropped from this task, so docs/ leaves this task's write_scope and the story plan's 'Unchanged by design' becomes true."
+    "RESOLVED by removing the edit rather than the claim: the 0038 stories-field correction is cosmetic and is dropped from this task, so docs/ leaves this task's write_scope and the story plan's 'Unchanged by design' becomes true.",
+    "RESOLVED by extending the scope rather than escalating, because both files are MECHANICALLY IMPLIED by the recorded criteria and none of the criteria changed: chat.controller.ts for the forwarding on both chat paths, and backend/src/mis/mis.module.ts because a Nest provider must be registered in the module that supplies it and the attestation provider has nowhere else to live. The ruling is ledgered as a lesson so it reaches the brief, and it explicitly withholds any further authority: no classification change, no grounded answer, and no LLM path."
   ],
   "citations": [
     {
@@ -84,6 +86,10 @@
     {
       "finding": "Surface Impact contradicted the contract: the story plan marks Docs 'Unchanged by design' while task 1 declared decision 0038's front matter in its write scope and promised to edit it.",
       "source": "plans/active/mis-assistant-explains-a-number-the-on-screen-assistant-explains-a-number-on-the-mis-statement.md:241"
+    },
+    {
+      "finding": "MID-STAGE, signal S-0019-701b: the recorded write_scope omitted backend/src/chat/chat.controller.ts, which is what forwards parsed request fields to ChatService on BOTH the buffered and streamed paths (chat.controller.ts:37-40 and :76-77). Without it the server-side verification this task exists to build is unreachable. The file was in the task original scope and was dropped when the contract was rebuilt after this grill.",
+      "source": "backend/src/chat/chat.controller.ts:37"
     }
   ],
   "rounds": [
@@ -116,10 +122,13 @@
   ],
   "rationale": "Attest the statement at the source and refuse anything that does not verify, with typed reasons. The context is signed HMAC-SHA256 over canonical JSON claims that include BOTH an outline digest and a node-metadata digest, bound to AuthUser.id rather than a session the route never receives. Membership is checked against a re-read pinned outline whose digest matches the claim, because a digest alone cannot answer membership. The secret is required where the provider is constructed rather than in loadConfig(), so absence still fails startup without breaking every existing hermetic leaf. Both new response fields are optional in the type and always populated, keeping this task off four files it does not own. This task introduces only the refusal variants of the response union; a verified request returns a verified-but-unanswered outcome that task 2 replaces, and must never fall through into the LLM path.",
   "decision": "keep",
-  "input_sha256": "d9323174812f4a580125dce64271b404d9791fcff735f996a2032cd884f2f606",
+  "input_sha256": "9421d6628556a393ffc0b6eaee07b2a8bad3dc6e1d816bb7637bfaa110ce5e1d",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "95985e1ac60acc43338e2766e9d89b8f997dd60d5ccc55b4ba2aedfa22911a6b",
-  "recorded_at": "2026-09-16T01:51:41+00:00",
-  "commit": "0a228ef548aebcbe1e596d79ae03c55bbefa1095"
+  "recorded_at": "2026-09-16T02:03:52+00:00",
+  "commit": "6fa3a6dd496d569a2200d817a685f11f4ad7c3c6",
+  "approved_task_plan_sha256": "95985e1ac60acc43338e2766e9d89b8f997dd60d5ccc55b4ba2aedfa22911a6b",
+  "approved_by": "Rahul Anand",
+  "approved_at": "2026-09-16T02:04:18+00:00"
 }

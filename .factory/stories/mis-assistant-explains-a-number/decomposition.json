@@ -83,22 +83,24 @@
         }
       ],
       "write_scope": [
-        "contract/src/api.ts",
         "backend/package.json",
-        "tools/quality-gate.test.mjs",
+        "backend/src/chat/chat.controller.ts",
         "backend/src/chat/chat.module.ts",
-        "backend/src/chat/chat.schemas.ts",
         "backend/src/chat/chat.schemas.test.ts",
+        "backend/src/chat/chat.schemas.ts",
         "backend/src/chat/chat.service.ts",
-        "backend/src/chat/statement-grounding.service.ts",
         "backend/src/chat/statement-grounding.service.test.ts",
+        "backend/src/chat/statement-grounding.service.ts",
         "backend/src/mis/mis-statement.controller.ts",
         "backend/src/mis/mis-statement.dto.ts",
-        "backend/src/mis/mis-statement.service.ts",
         "backend/src/mis/mis-statement.service.test.ts",
-        "backend/src/mis/statement-attestation.ts",
+        "backend/src/mis/mis-statement.service.ts",
+        "backend/src/mis/mis.module.ts",
         "backend/src/mis/statement-attestation.test.ts",
-        "backend/src/warehouse/statement-outline.interface.ts"
+        "backend/src/mis/statement-attestation.ts",
+        "backend/src/warehouse/statement-outline.interface.ts",
+        "contract/src/api.ts",
+        "tools/quality-gate.test.mjs"
       ],
       "required_tests": [
         {
@@ -175,9 +177,9 @@
         "The shipped statement and export leaves must pass unmodified - both new fields are additive and optional in the type."
       ],
       "review_budget": {
-        "max_changed_files": 16,
+        "max_changed_files": 18,
         "max_changed_lines": 1000,
-        "reason": "A signed attestation module with its own leaves, two additive statement fields and their DTO/Swagger, the outline lookup exposed to chat, the chat schema extension, and a grounding service that produces typed refusals. No UI and no explanation logic."
+        "reason": "A signed attestation module with its own leaves, two additive statement fields and their DTO/Swagger, the outline lookup exposed to chat, the chat schema extension, and a grounding service that produces typed refusals. No UI and no explanation logic. Scope extended mid-stage for two MECHANICALLY IMPLIED files (signal S-0019-701b): backend/src/chat/chat.controller.ts, because it is what forwards parsed request fields to ChatService on BOTH the buffered and streamed paths (chat.controller.ts:37-40 and :76-77) - without it the server-side verification this task exists to build is unreachable; and backend/src/mis/mis.module.ts, because a Nest provider must be registered in the module that supplies it and the new attestation provider has nowhere else to live. Neither adds behaviour beyond the recorded criteria."
       }
     },
     {
@@ -224,5 +226,5 @@
     }
   ],
   "plan_sha256": "6be426e55d3f7fd6f9acf34d7d7c8b3581448cb763ed2bd8f1df5b7cd0334eb2",
-  "commit": "0a228ef548aebcbe1e596d79ae03c55bbefa1095"
+  "commit": "6fa3a6dd496d569a2200d817a685f11f4ad7c3c6"
 }

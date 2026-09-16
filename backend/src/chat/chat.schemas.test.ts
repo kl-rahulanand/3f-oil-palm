@@ -21,6 +21,22 @@ test("the request schema rejects an oversize prior turns array payload or questi
   assert.equal(askSchema.safeParse({ question: "Show Actual", priorTurns: questionHeavy }).success, false);
 });
 
+test("the strict chat schema accepts statementGrounding and still rejects an unknown key", () => {
+  const statementGrounding = {
+    attestedContext: "claims.signature",
+    department: "Agriculture",
+    function: "Nursery",
+    nodeKey: "leaf",
+    block: "selected",
+    nodeMetadata: [{ nodeKey: "leaf", glCodes: ["5001"], costCentres: ["Primary"] }],
+  };
+  assert.equal(askSchema.safeParse({ question: "How is this built?", statementGrounding }).success, true);
+  assert.equal(
+    askSchema.safeParse({ question: "How is this built?", statementGrounding, unknown: true }).success,
+    false,
+  );
+});
+
 const selection: Selection = {
   domain: "governed-financial",
   measureIds: ["governed-financial.actual"],

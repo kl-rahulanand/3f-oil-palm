@@ -9,6 +9,7 @@ import { MisDrillService } from "./mis-drill.service";
 import { MisStatementExportService } from "./mis-statement-export.service";
 import { MisStatementController } from "./mis-statement.controller";
 import { MisStatementService } from "./mis-statement.service";
+import { StatementAttestationService, createStatementAttestationFromEnvironment } from "./statement-attestation";
 
 @Module({
   controllers: [MisStatementController, MisDrillController],
@@ -20,7 +21,17 @@ import { MisStatementService } from "./mis-statement.service";
     DrillTransactionsRepository,
     MisDrillService,
     MisDrillAuditFilter,
+    {
+      provide: StatementAttestationService,
+      useFactory: createStatementAttestationFromEnvironment,
+    },
     AuthGuard,
+  ],
+  exports: [
+    StatementAttestationService,
+    SelectionResolverService,
+    StatementOutlineRepository,
+    DrillTransactionsRepository,
   ],
 })
 export class MisModule {}
