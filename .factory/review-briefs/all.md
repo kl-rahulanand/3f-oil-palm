@@ -189,7 +189,7 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at de15f1f808e7
+- verify.py: ok at 42a9e6011eea
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
@@ -402,7 +402,7 @@ All matched files use Prettier code style! passes clean. Task 2 (composed-relati
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at de15f1f808e7
+- verify.py: ok at 42a9e6011eea
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0
@@ -573,7 +573,7 @@ Recorded lessons that apply to this task's paths. A finding that contradicts one
 
 Recorded by the harness for this story (not in the diff). Use it to verdict verification contracts; do not mark them partial for lack of execution evidence in the bundle.
 
-- verify.py: ok at de15f1f808e7
+- verify.py: ok at 42a9e6011eea
   - `npm run structural` -> exit 0
   - `npm run typecheck` -> exit 0
   - `npm run quality` -> exit 0

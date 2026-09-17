@@ -260,9 +260,9 @@
     "D-0054: roadmap-gate has been failing on master for the whole project; pre-existing and unrelated to this story."
   ],
   "aspect": "security",
-  "review_run_id": "12ab4769d95483895a74d7bfcb917d452df40991c9fa1656a0f045459e8df4d7",
-  "brief_sha256": "e3bc8cbda68a000cb8ce80acf81140a52f518f74661e03b07f57e9d755248ed2",
-  "branch_diff_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "recorded_at": "2026-09-17T11:24:58+00:00",
-  "commit": "de15f1f808e7c033344fbfbbba1748825afada01"
+  "review_run_id": "4b9b8e788347ba0e605ce8161976fccce0cba3a0c6362bdf229b14a96e44c64e",
+  "brief_sha256": "f37678e705c9e1ef34605fa77612273cbcc17eab67a81c43b429caf5094983ac",
+  "branch_diff_digest": "e52872daddb00ee6f52754f0d8e92f50a71aee79a98b9e6392fc7636491ca277",
+  "recorded_at": "2026-09-17T11:30:32+00:00",
+  "commit": "42a9e6011eea0de552c5c269466ed68c0feac82a"
 }

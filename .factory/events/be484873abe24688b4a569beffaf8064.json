@@ -1,0 +1,1 @@
+{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-17T11:30:44+00:00", "story": "mis-assistant-explains-a-number", "detail": "Click any Actual figure on the MIS statement, ask the assistant beside it how that number came to be, and get an answer built from the same governed data the figure came from. A leaf line answers with"}
