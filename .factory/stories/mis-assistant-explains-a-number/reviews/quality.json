@@ -1,0 +1,271 @@
+{
+  "generated_by": "autoreview",
+  "score": 9,
+  "summary": "Story roll-up for mis-assistant-explains-a-number across three sealed tasks, each of which finished at quality 10 / performance 10 / security 10 with no blocking findings. All 46 task contracts are implemented; backend 227 tests with 0 failures, frontend 155/155, verify.py green on master. Scored 9 rather than 10 for one story-level reason no per-task lens could see: the capability has never been exercised end to end. Every criterion needing a rendered statement - the leaf explanation and its paise-exact footer, the aggregate projection with descendant values, the replaced-batch outcome, focus clearing - is proven by hermetic leaves only, because this host's warehouse has no schema and the source workbooks are not in the repository, while the one environment with real data is pinned to code predating the story. The three review loops themselves were unusually productive, which is the counterweight: they retired a remount hole and an uninvalidated in-flight request in the clearing rule, a forgeable node-metadata projection, and FIVE separate compatibility shims. Ledgered as D-0055 with a trigger.",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    "The end-to-end path is unexercised (D-0055).",
+    "The drill panel and the assistant will disagree about a replaced batch until D-0051 is picked up."
+  ],
+  "recommendation": "approve",
+  "reviewed_scope": [
+    "contract/src/api.ts",
+    "backend/src/mis/statement-attestation.ts",
+    "backend/src/chat/statement-grounding.service.ts",
+    "backend/src/chat/statement-explanation.service.ts",
+    "backend/src/chat/statement-intent.ts",
+    "backend/src/mis/mis-drill.service.ts",
+    "frontend/src/features/assistant/statement-explanation.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/features/mis/aggregate-projection.helper.ts"
+  ],
+  "contract_verdicts": [
+    {
+      "contract_id": "t-ega-c1",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c2",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c3",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c4",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c5",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c6",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c7",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c8",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c9",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c10",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-ega-c11",
+      "verdict": "implemented",
+      "evidence": "Proven by task 1's leaves and confirmed live at closeout: the backend boots only with STATEMENT_ATTESTATION_SECRETS set and refuses to start without it."
+    },
+    {
+      "contract_id": "t-etn-c1",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c2",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c3",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024). Hermetic only: the end-to-end path needing a rendered statement could not be exercised at closeout (D-0055) because no host holds both the code and ingested data."
+    },
+    {
+      "contract_id": "t-etn-c4",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024). Hermetic only: the end-to-end path needing a rendered statement could not be exercised at closeout (D-0055) because no host holds both the code and ingested data."
+    },
+    {
+      "contract_id": "t-etn-c5",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c6",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c7",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c8",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c9",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c10",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c11",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c12",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c13",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c14",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c15",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c16",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c17",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c18",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-etn-c19",
+      "verdict": "implemented",
+      "evidence": "Proven by task 2's backend leaves, judged by the Node/JUnit discriminator (a non-matching name would be reported against the FILE PATH, D-0024)."
+    },
+    {
+      "contract_id": "t-eos-c1",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c2",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c3",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031). Hermetic only: the end-to-end path needing a rendered statement could not be exercised at closeout (D-0055) because no host holds both the code and ingested data."
+    },
+    {
+      "contract_id": "t-eos-c4",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031). Hermetic only: the end-to-end path needing a rendered statement could not be exercised at closeout (D-0055) because no host holds both the code and ingested data."
+    },
+    {
+      "contract_id": "t-eos-c5",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c6",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c7",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c8",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c9",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c10",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c11",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c12",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c13",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c14",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c15",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    },
+    {
+      "contract_id": "t-eos-c16",
+      "verdict": "implemented",
+      "evidence": "Proven by task 3's 20 frontend leaves under the vitest discriminator (present AND NOT skipped AND NOT failed, D-0031)."
+    }
+  ],
+  "skills_used": [
+    "emil-design-eng",
+    "frontend-design"
+  ],
+  "residual_risks": [
+    "D-0055: the end-to-end explanation has never run against real ingested data - no host holds both the code and the data - so four contracts are proven hermetically rather than end to end.",
+    "D-0051: the shipped drill panel hides a replaced batch's lines that the assistant now reads and reports, so the two surfaces disagree on the same line until that deferral is picked up.",
+    "Plant-from-question stays deferred per decision 0038: a multi-plant user still gets 'not supported' for a statement question on /ask.",
+    "D-0054: roadmap-gate has been failing on master for the whole project; pre-existing and unrelated to this story."
+  ],
+  "aspect": "quality",
+  "review_run_id": "12ab4769d95483895a74d7bfcb917d452df40991c9fa1656a0f045459e8df4d7",
+  "brief_sha256": "e3bc8cbda68a000cb8ce80acf81140a52f518f74661e03b07f57e9d755248ed2",
+  "branch_diff_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "recorded_at": "2026-09-17T11:24:58+00:00",
+  "commit": "de15f1f808e7c033344fbfbbba1748825afada01"
+}

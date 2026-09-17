@@ -1,0 +1,82 @@
+{
+  "commit": "de15f1f808e7c033344fbfbbba1748825afada01",
+  "functional": {
+    "generated_by": "functional-checker",
+    "status": "partial",
+    "score": 6,
+    "summary": "Live check of mis-assistant-explains-a-number against this worktree on master (frontend :3000, backend :4000, environment Local, mock OTP, LLM provider from the host env). VERIFIED LIVE: the backend boots with STATEMENT_ATTESTATION_SECRETS set and refuses to boot without it - task 1's required-secret rule holds in a real process, not just a unit test. Sign-in works. On MIS Reports with no rendered statement the docked assistant shows its LOCAL message, 'Generate a mapped statement first to ask about a figure', and its composer is DISABLED - a stronger guarantee than criterion t-eos-c8 asked for, because it cannot submit a grounded ask at all rather than merely warning, and a network trace confirmed no /api/chat request is issued. /ask is unaffected: its composer is enabled and it renders no grounded explanation, so the dock-only disabling does not leak into the screen decision 0038 froze. NOT VERIFIED LIVE, and this is why the status is partial rather than passed: every criterion that needs a RENDERED STATEMENT - the leaf explanation and its paise-exact footer, the aggregate client projection with descendant values, the replaced-batch outcome, focus clearing on a statement change, the drill hand-off control, and the composition/causal boundary against a real figure - could not be exercised, because this machine's warehouse database has no schema and no ingested data (sap_transaction does not exist) and the source SAP and budget workbooks are not present in the repo or on this host. There is nothing to ingest, so no statement can be produced here. The EC2 instance that does hold real data is deliberately pinned to PR #59, which predates this story. Those criteria remain covered by the 20 hermetic frontend leaves and the backend suites, which is proof of behaviour but not of the end-to-end path.",
+    "blocking_findings": [],
+    "non_blocking_findings": [
+      "The local warehouse database has no schema at all, so a developer cloning this repo cannot exercise the MIS or assistant surfaces end to end without workbooks that are not in the repository. That is a developer-onboarding gap rather than a defect in this story."
+    ],
+    "manual_validation_steps": [
+      "Start the app DB and warehouse DB (docker compose -p 3oilpalm up -d app-db warehouse-db).",
+      "Start the backend with STATEMENT_ATTESTATION_SECRETS set, NODE_ENV=development, AUTH_OTP_MOCK=1; confirm it refuses to start with the secret unset.",
+      "Sign in at http://127.0.0.1:3000 as a seeded admin with code 000000.",
+      "Open MIS Reports and the Assistant with no statement generated; confirm the local 'Generate a mapped statement first' message and that the composer is disabled.",
+      "Navigate to /ask; confirm its composer is enabled and no grounded explanation is rendered.",
+      "WITH DATA (not possible on this host): generate Agriculture Nursery DUB for July 2026, click a leaf Actual, ask 'how is this 85000', and confirm the roll-up path, the transactions and a footer that foots to the clicked cell."
+    ],
+    "residual_risks": [
+      "The end-to-end explanation path has never been exercised against real ingested data on any machine: the three tasks were proven by hermetic leaves, and the only environment with data is pinned to code that predates the feature. The first real exercise will be whenever the server is moved past PR #69.",
+      "D-0051 stands: the shipped drill panel hides a replaced batch's lines that the assistant now reads and reports, so those two surfaces will disagree on the same line until that deferral is picked up."
+    ],
+    "recommendation": "approve-with-caveats",
+    "reviewed_scope": [
+      "frontend/src/features/assistant/statement-explanation.tsx",
+      "frontend/src/features/assistant/ask-panel.tsx",
+      "frontend/src/features/assistant/use-ask.ts",
+      "frontend/src/features/mis/mis-report-view.tsx",
+      "frontend/src/features/mis/statement-view.tsx",
+      "backend/src/mis/statement-attestation.ts",
+      "backend/src/chat/statement-explanation.service.ts",
+      "backend/src/chat/statement-grounding.service.ts"
+    ],
+    "remaining_gaps": [],
+    "commands_run": [],
+    "tests_added_or_updated": [],
+    "recorded_at": "2026-09-17T11:23:45+00:00",
+    "commit": "de15f1f808e7c033344fbfbbba1748825afada01"
+  },
+  "updated_at": "2026-09-17T11:24:14+00:00",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "Story roll-up for mis-assistant-explains-a-number, run on master after all three tasks merged (#67, #68, #69). Backend: 227 tests, 211 passing, 0 failing, 16 skipped - the skipped set is the DB-gated warehouse proofs that need a migrated Postgres and are not part of the hermetic list. Frontend: 155 tests across 22 files, all passing. verify.py passes. Each task's required leaves were proven individually under the discriminator for its OWN runner, which matters because the two runners fail green differently: vitest exits 0 and marks an unmatched -t leaf skipped (D-0031), while tools/junit-run.mjs exits 0 and names the testcase after the FILE PATH when --name matches nothing (D-0024). Task 1 contributed leaves for the signed context - claims binding scope, an outline digest, a node-metadata digest, pins, master version, user and expiry - plus tamper, expiry, other-user, rotated-key and missing-secret refusals, and the typed refusals for a node outside the attested outline, a plant outside grants and a department or function disagreeing with the master. Task 2 contributed the extracted raw-read seam returning typed outcomes shared by the drill controller and the assistant, the intent fixture table with causal precedence, the leaf explanation footing in PAISE against the statement payload, the pre-query audit failing closed, decision 0025's replaced-versus-gone rule, the backend Budget refusal, budgetState not-loaded, and the provider-payload assertion proving no server-sourced row reaches the model. Task 3 contributed all 20 frontend leaves: the lifted drill seam, the aggregate projected in the browser with descendant values and no request, all seven outcome variants rendering their own copy, /ask isolated in BOTH rendering and priorTurns, grounded turns cleared when the statement identity changes, and each of the three optional statement fields independently gating grounding.",
+    "blocking_findings": [],
+    "commands_run": [
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts",
+      "STATEMENT_ATTESTATION_SECRETS=... npm run -w @3f/backend test:hermetic",
+      "STATEMENT_ATTESTATION_SECRETS=... python3 factory/scripts/verify.py"
+    ],
+    "pass_fail_summary": "Backend 227 tests / 211 pass / 0 fail / 16 DB-gated skips; frontend 155/155 across 22 files; verify.py green.",
+    "reviewed_scope": [
+      "contract/src/api.ts",
+      "backend/src/mis/statement-attestation.ts",
+      "backend/src/chat/statement-grounding.service.ts",
+      "backend/src/chat/statement-explanation.service.ts",
+      "backend/src/chat/statement-intent.ts",
+      "backend/src/mis/mis-drill.service.ts",
+      "frontend/src/features/assistant/statement-explanation.tsx",
+      "frontend/src/features/assistant/use-ask.ts",
+      "frontend/src/features/mis/mis-report-view.tsx",
+      "frontend/src/features/mis/aggregate-projection.helper.ts"
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [
+      "D-0055: the end-to-end path has never run against real ingested data - no host has both the code and the data.",
+      "D-0051: the shipped drill panel hides a replaced batch's lines the assistant now reports.",
+      "D-0054: roadmap-gate has been failing on master for the whole project, unrelated to this story.",
+      "Plant-from-question in Ask stays deferred per decision 0038, so a multi-plant user still gets 'not supported' for a statement question on /ask."
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "tests_added_or_updated": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-17T11:24:14+00:00",
+    "commit": "de15f1f808e7c033344fbfbbba1748825afada01"
+  }
+}
