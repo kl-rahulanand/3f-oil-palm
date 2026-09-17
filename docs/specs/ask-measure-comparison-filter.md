@@ -97,8 +97,11 @@ against the `%` column of the statement.
 - `totals` are computed over **every group that passes the filter, not only the visible page**:
   the ungrouped totals query wraps the grouped, filtered query **without its `LIMIT`** as a derived
   table, so the total of "over-budget lines" is the total of all such lines even when more match
-  than the page shows. The object allowlist still holds because the derived table reads only the
-  approved objects.
+  than the page shows. Over that derived table a money measure totals as the sum of its group
+  alias, and a `%` measure totals through the same nil-rule `CASE` over the summed Actual and
+  Budget aliases, so a selection that displays `%` while filtering on amounts still gets a total
+  `%`; a measure that is neither money nor declares such a totals expression totals as null. The
+  object allowlist still holds because the derived table reads only the approved objects.
 - The deterministic SQL validator (`sqlValidator.ts`) accepts the `HAVING` clause and the derived
   totals query without any new bypass, and every existing check keeps firing: single `SELECT`, no
   `*`, approved objects only, blocked columns refused wherever they appear (a `HAVING` or a derived
@@ -146,6 +149,13 @@ against the `%` column of the statement.
   "The MIS statement cannot apply this comparison.", because the statement has no row filter and a
   link would silently drop the condition. (The `%` column does not represent a threshold, a
   Roll-over comparison, or the signed-budget case, so it is not named.)
+- **A grounded question may compare against a measure the report does not display.** Today a
+  grounded ask offers the model only the report's own measures (`domainScopedToReport`,
+  `chat.service.ts:628`); for an "Actual by GL code" report that would leave Budget out of the
+  comparison vocabulary, so "which are over budget" could not be expressed. For a grounded ask the
+  comparable operands are every money measure of the report's domain the user is permitted, and the
+  canonicaliser appends the operand as usual; a leaf proves an Actual-only report answers "over
+  budget" with `Actual > Budget` and Budget appended.
 - **Report grounding merges the comparison; this is a stated change to grounding merge
   semantics.** When a question is answered against a pinned or saved report,
   `applyReportGroundingToSelection` (`chat.service.ts:638`) today rebuilds the selection from the
@@ -195,12 +205,15 @@ against the `%` column of the statement.
 - **C2** One canonicaliser, `normalizeMeasureFilters`, runs at every ingress (provider output,
   direct `AskRequest.selection`, saved and pin store and reopen, prior-turn re-run, grounded
   selection) and refuses, through the single typed refusal `measure_filter_invalid` with its reason
-  enum, a filter whose operand is not a money measure of the selection's domain, is outside the
-  user's measure permissions, compares a measure with itself, duplicates another entry, or carries
-  a value outside `^-?\d+(\.\d{1,2})?$`; accepted values are normalised to two decimals. `%`
-  measures are refused as not comparable. Every check that reads `measureIds` (validation, executor
-  authorization, saved and pin runnable status, pin definition-version hash) reads the union with
-  the operand measures. Leaves prove each site and that the three ingress kinds refuse identically.
+  enum, a filter whose operand is not a money measure of the selection's domain or not a measure
+  of that domain at all, compares a measure with itself, duplicates another entry, or carries a
+  value outside `^-?\d+(\.\d{1,2})?$`; accepted values are normalised to two decimals. `%`
+  measures are refused as not comparable. An operand outside the **user's permissions** is refused
+  by the **existing displayed-measure path** (the operand union is what that path now reads), so a
+  permission refusal looks exactly as it does today for a displayed measure. Every check that reads
+  `measureIds` (validation, executor authorization, saved and pin runnable status, pin
+  definition-version hash) reads the union with the operand measures. Leaves prove each site and
+  that the three ingress kinds refuse identically.
 - **C3** The builder compiles each measure filter to `HAVING` over the verified expressions in both
   the governed-financial query and the statement projection, and the statement projection now also
   applies dimension filters as `WHERE` predicates; leaves assert the emitted SQL for
