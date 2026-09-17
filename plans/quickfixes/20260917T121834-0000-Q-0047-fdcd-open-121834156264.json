@@ -1,0 +1,12 @@
+{
+  "event": "open",
+  "id": "Q-0047-fdcd",
+  "profile": "lite",
+  "reason": "Human-requested: add ROLE.md (Codex subagent routing) at the repo root, point AGENTS.md at it, switch Codex web_search to live and set the optional subagent fallback keys in .codex/config.toml. Docs and config only.",
+  "started_at": "2026-09-17T12:18:34+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "by": "Rahul Anand",
+  "base_sha": "6997770d898772e6e8ee89145aea50c3aed80ee6"
+}
