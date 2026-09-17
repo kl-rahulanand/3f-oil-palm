@@ -10,7 +10,8 @@
     {
       "id": "explain-the-number",
       "title": "Answer a composition question about the focused figure",
-      "status": "pending"
+      "status": "done",
+      "task_sha256": "f84158708595f00fad5ecb67ee62a2e4262fa5a316ac200458656247a04bd20d"
     },
     {
       "id": "explain-on-screen",

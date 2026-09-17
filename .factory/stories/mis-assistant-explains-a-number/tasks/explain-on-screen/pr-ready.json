@@ -1,0 +1,7 @@
+{
+  "task_id": "explain-on-screen",
+  "branch": "feat/mis-assistant-explains-a-number-explain-on-screen",
+  "base_main_sha": "6997770d898772e6e8ee89145aea50c3aed80ee6",
+  "commit": "a4fb26cfe3bf28fc9d549f33d5dfd30253f084d5",
+  "sealed_at": "2026-09-16T06:31:50+00:00"
+}
