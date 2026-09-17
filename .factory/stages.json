@@ -4,19 +4,17 @@
     {
       "id": "explain-grounding-and-attestation",
       "title": "Attest the statement, and let the dock ground a question against it",
-      "status": "done",
-      "task_sha256": "477d780e0adcd9be260844fbc94c390863f993d3ddf602adcbcaa668e6efdbf7"
+      "status": "done"
     },
     {
       "id": "explain-the-number",
       "title": "Answer a composition question about the focused figure",
-      "status": "done",
-      "task_sha256": "f84158708595f00fad5ecb67ee62a2e4262fa5a316ac200458656247a04bd20d"
+      "status": "done"
     },
     {
       "id": "explain-on-screen",
       "title": "Click a figure, ask, and see the explanation",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
