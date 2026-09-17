@@ -1,5 +1,7 @@
 # AGENTS.md — 3oilpalm
 
+Before delegating work to subagents, read and follow [ROLE.md](ROLE.md) for model selection, delegation scope, and escalation.
+
 ## What This Repo Is
 
 Symphony Forge is a dual-runtime software-factory template for turning in-repo architecture and decision docs into shipped applications.

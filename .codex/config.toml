@@ -16,7 +16,7 @@ personality = "pragmatic"
 # editing this value deliberately in the client repo — the diff-visible edit
 # is the ledgered escape hatch, and `forge upgrade` restores this default.
 sandbox_mode = "workspace-write"
-web_search = "cached"
+web_search = "live"
 
 [features]
 codex_hooks = true
@@ -27,6 +27,8 @@ skills = true
 [agents]
 max_threads = 6
 max_depth = 1
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "medium"
 
 [projects."/workspace"]
 trust_level = "trusted"
