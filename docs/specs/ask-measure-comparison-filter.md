@@ -118,36 +118,54 @@ against the `%` column of the statement.
 - The provider's parser rejects a malformed `measureFilters` entry with a typed reason, the same
   way `filters` are rejected today.
 
+### One canonical ingress
+- `normalizeMeasureFilters` is the **single canonicaliser**, applied wherever a `Selection` enters
+  the backend: the provider's parsed output, a direct `AskRequest.selection`, a saved query or pin
+  when stored and when reopened, a prior-turn selection re-run, and a grounded selection. Every
+  door therefore behaves identically, and there is **one public refusal**, `measure_filter_invalid`,
+  carrying the reason enum (`not_comparable`, `unknown_measure`, `self_comparison`, `duplicate`,
+  `malformed_value`), surfaced through the existing typed-refusal path. A leaf proves a saved, a
+  direct and a provider-produced selection with the same bad entry are refused identically.
+
 ### What the reader sees
-- The answer's chips and the saved-selection label render each measure filter in words:
-  `Actual > Budget`, `Actual > ₹5,00,000`, using the registered measure labels and the Indian
-  digit grouping for values. Unregistered ids render as `(unavailable)` like today.
+- The saved-selection label renders each measure filter in words: `Actual > Budget`,
+  `Actual > ₹5,00,000`, using the registered measure labels and the Indian digit grouping for
+  values. Unregistered ids render as `(unavailable)` like today.
+- The Ask answer today renders only its result table (`ask-panel.tsx:460`: no chips, no
+  applied-filter readout, and an empty result is a blank table). This story adds a small
+  **read-only readout line** under the answer title, built from `appliedMeasureFilters` and the
+  applied period (`Actual > Budget · July 2026`), shown on a fresh answer and after a conversation
+  is reopened, and an **empty-state message** in place of the blank table when a filtered result
+  has no rows: "No lines match Actual > Budget for July 2026" (human ruling, 2026-09-17). Nothing
+  edits the comparison in place.
 - The provenance readback names the condition: "... where Actual is greater than Budget".
 - `AskResponse` gains an additive `appliedMeasureFilters` next to `appliedFilters`, and the
   conversation answer snapshot (`ConversationAnswerSnapshot`, written by
-  `conversations.service.ts:294`) carries it too, so the field editor shows the comparison both on
-  a fresh answer and after a conversation is reopened. Editing it in the editor is out of scope; it
-  displays read-only.
-- `viewInReport` is **unavailable** for an answer carrying a measure filter, with the reason "The
-  MIS statement shows every line; open it and read the % column", because the statement has no
-  row filter and a link would silently drop the condition.
-- **Report grounding preserves the comparison.** When a question is answered against a pinned or
-  saved report, `applyReportGroundingToSelection` (`chat.service.ts:638`) rebuilds the selection
-  from the report's measures, dimensions and filters; it must carry the question's
-  `measureFilters` through unchanged (the report itself carries none unless it was saved with
-  them, in which case the report's are kept and the question's appended). A leaf proves a grounded
-  "which are over budget" never returns the unfiltered report with the verified badge, which is
-  the original failure mode.
+  `conversations.service.ts:294`) carries it too, which is what lets the readout survive a reopen.
+- `viewInReport` is **unavailable** for an answer carrying a measure filter, with the neutral reason
+  "The MIS statement cannot apply this comparison.", because the statement has no row filter and a
+  link would silently drop the condition. (The `%` column does not represent a threshold, a
+  Roll-over comparison, or the signed-budget case, so it is not named.)
+- **Report grounding merges the comparison; this is a stated change to grounding merge
+  semantics.** When a question is answered against a pinned or saved report,
+  `applyReportGroundingToSelection` (`chat.service.ts:638`) today rebuilds the selection from the
+  report's measures, dimensions and filters only. It now also merges `measureFilters`: the report's
+  own entries first, then the question's, with identical normalised comparisons **deduplicated**
+  and the rest ANDed in that order, so the merge can never produce the duplicate the canonicaliser
+  refuses. A leaf proves a grounded "which are over budget" never returns the unfiltered report
+  with the verified badge (the original failure mode), and a leaf covers the identical-entry case.
 - Reopening a saved or pinned selection that carries a measure filter re-runs it with the filter;
   selection identity (`selection-identity.helper.ts`) includes `measureFilters`, so two selections
   differing only in the comparison are distinct.
 - Help's "what you can ask" lists comparison examples beside the dimension filter examples.
 
 ### What does not change
-- `/ask` routing, grounding, period control, the causal guard, the docked explanation and the
-  statement screen are untouched. A user granted every plant still gets "not supported" for a
-  statement-domain question (decisions 0037, 0038); this capability changes what a **permitted**
-  selection can express, not who may ask what.
+- `/ask` routing, the docked assistant's statement grounding, period control, the causal guard,
+  the docked explanation and the statement screen are untouched. A user granted every plant still
+  gets "not supported" for a statement-domain question (decisions 0037, 0038); this capability
+  changes what a **permitted** selection can express, not who may ask what. A question that names
+  no period still aggregates all loaded data, exactly as `ask-period-control.md` settled; only the
+  report-grounding merge above changes.
 - Dimension filters, time windows, limits and the `%` measure's nil rule keep their shipped
   semantics; the `over-budget` label and `Actual gt Budget` agree by construction.
 
@@ -156,10 +174,12 @@ against the `%` column of the statement.
   verified badge may only sit on an answer whose selection carries every condition it ran with.
 - Comparisons compile only from verified measure expressions; the model never authors SQL and never
   names a column.
-- Money values cross the contract as fixed-scale decimal strings, never floats.
+- A comparison value (`compareTo.value`) crosses the contract as a fixed-scale decimal string,
+  never a float. Totals stay JavaScript numbers exactly as the shipped `AskResponse` contract
+  declares (`contract/src/api.ts:638`); this story does not migrate them.
 
 ## Out of scope (now)
-- Editing measure filters in the field editor (display only here).
+- Editing a measure filter in place (the readout is display only).
 - Comparisons on `%` or on dimension values (`gl_code > 5000`).
 - Sorting by a comparison or by variance; a separate "variance" measure.
 - Statement-domain clarifications for multi-plant users (0037/0038 stand).
@@ -172,12 +192,15 @@ against the `%` column of the statement.
   compareTo: measure|value }`, combined with AND, order-preserving; `filters` is unchanged; the
   saved-query zod schema, the persisted turn type, the conversation answer snapshot and the Swagger
   DTOs accept it; every shipped leaf that builds or stores a selection passes unmodified.
-- **C2** Validation refuses, with typed reasons, a filter whose operand is not a money measure of the
-  selection's domain, is outside the user's measure permissions, compares a measure with itself,
-  duplicates another entry, or carries a value outside `^-?\d+(\.\d{1,2})?$`; accepted values are
-  normalised to two decimals. `%` measures are refused as not comparable. Every check that reads
-  `measureIds` (validation, executor authorization, saved and pin runnable status, pin
-  definition-version hash) reads the union with the operand measures, proven by leaves.
+- **C2** One canonicaliser, `normalizeMeasureFilters`, runs at every ingress (provider output,
+  direct `AskRequest.selection`, saved and pin store and reopen, prior-turn re-run, grounded
+  selection) and refuses, through the single typed refusal `measure_filter_invalid` with its reason
+  enum, a filter whose operand is not a money measure of the selection's domain, is outside the
+  user's measure permissions, compares a measure with itself, duplicates another entry, or carries
+  a value outside `^-?\d+(\.\d{1,2})?$`; accepted values are normalised to two decimals. `%`
+  measures are refused as not comparable. Every check that reads `measureIds` (validation, executor
+  authorization, saved and pin runnable status, pin definition-version hash) reads the union with
+  the operand measures. Leaves prove each site and that the three ingress kinds refuse identically.
 - **C3** The builder compiles each measure filter to `HAVING` over the verified expressions in both
   the governed-financial query and the statement projection, and the statement projection now also
   applies dimension filters as `WHERE` predicates; leaves assert the emitted SQL for
@@ -198,21 +221,30 @@ against the `%` column of the statement.
   system prompt carries the mapping rules (over/under budget, over 100%, lakh/crore); the parser
   rejects malformed entries with a typed reason. Leaves assert schema, prompt text and parser
   behaviour against recorded provider outputs.
-- **C8** Chips, saved-selection labels and the provenance readback render the comparison in words
-  with registered labels and Indian digit grouping; `appliedMeasureFilters` is returned; selection
-  identity includes the filter.
-- **C9** `viewInReport` is unavailable with the stated reason when a measure filter is present, and
-  report grounding carries the question's `measureFilters` through; a leaf proves a grounded
-  over-budget question never returns the unfiltered report.
-- **C10** Functional check, live against Bedrock and the July warehouse: "show me list items where
-  Actuals are more than the budget" returns only lines with Actual above Budget and no others, with
-  the chip `Actual > Budget`; "which GL codes spent more than 5 lakh in July 2026" returns only lines
-  above ₹5,00,000; "GL codes over 100% of budget" returns the same lines as the first question; for
-  DUB the first answer's lines are exactly the statement rows whose `%` is above 100 or reads
-  `over-budget`, every July budget being zero or positive.
+- **C8** Saved-selection labels, the Ask answer's read-only readout line and the provenance
+  readback render the comparison in words with registered labels and Indian digit grouping; a
+  filtered result with no rows renders the empty-state message instead of a blank table; the
+  readout survives a conversation reopen; `appliedMeasureFilters` is returned and snapshotted;
+  selection identity includes the filter.
+- **C9** `viewInReport` is unavailable with the reason "The MIS statement cannot apply this
+  comparison." when a measure filter is present; report grounding merges the report's and the
+  question's `measureFilters` (report's first, identical normalised comparisons deduplicated, the
+  rest ANDed in order); leaves prove a grounded over-budget question never returns the unfiltered
+  report and that an identical entry on both sides yields one.
+- **C10** Functional check, live against Bedrock and the July warehouse, with two oracles because a
+  GL code can fold into several statement components. GL grain, as the admin: "show me list items
+  where Actuals are more than the budget for July 2026" returns only GL codes whose July actual
+  exceeds July budget, with the readout `Actual > Budget · July 2026`, and the set equals the
+  governed GL-month relation's over-budget set for July (the gated warehouse leaf); "which GL codes
+  spent more than 5 lakh in July 2026" returns only codes above ₹5,00,000; "GL codes over 100% of
+  budget for July 2026" returns the same codes as the first. The original no-period phrasing is
+  also asked and its answer is asserted against its all-loaded scope, unchanged period semantics.
+  Statement grain, as a DUB-only user: "which statement lines are over budget for July 2026"
+  returns exactly the DUB statement rows whose `%` is above 100 or reads `over-budget`, every July
+  budget being zero or positive.
 
 ## Open items (non-blocking)
-- Whether the field editor should let a reader change the threshold in place (a later story).
+- Whether a reader should be able to change the threshold in place (a later story).
 - Whether a `variance` measure (Actual − Budget) should join the vocabulary so "biggest overruns"
   sorts by it.
 
@@ -229,3 +261,9 @@ against the `%` column of the statement.
   operand authorization, totals beyond the page, literal grammar, snapshot field, validator scope,
   AND semantics and order, the 0011 citation), two put to the human (signed budgets compare as
   amounts; the statement projection's dropped dimension filters are fixed here).
+- Requirements grill cold read, 2026-09-17: nine findings, eight settled from the repository
+  (July-qualified phrasings with period semantics unchanged; two oracles by grain; the grounding
+  merge stated and deduplicated; the neutral view-in-report reason; the float rule scoped to the
+  comparison value; one canonical ingress and one public refusal; the stale 0029 citation in a
+  carried ledger round), one put to the human (the Ask answer gains a read-only readout line and an
+  empty-state message).
