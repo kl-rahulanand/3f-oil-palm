@@ -44,21 +44,36 @@ against the `%` column of the statement.
   - `measureId`: the left operand, a measure id of the domain;
   - `op`: one of `gt`, `gte`, `lt`, `lte`;
   - `compareTo`: `{ kind: "measure", measureId }` or `{ kind: "value", value }`, where `value` is
-    a decimal string in whole rupees with at most two decimals (the same fixed-scale string every
-    money value already uses; never a float).
+    a rupee amount as a decimal string matching `^-?\d+(\.\d{1,2})?$` (so `500000`, `500000.5`
+    and `-1200.00` are accepted; `5 lakh`, `₹5,00,000`, `1e5` and leading `+` are not). The
+    server normalises an accepted value to the shipped `FixedScaleMoney` form with exactly two
+    decimals before it is validated, stored, compared or echoed, so `500000` and `500000.00` are
+    one value. Never a float.
+- Several entries are combined with **AND**. Two entries that normalise to the same
+  `(measureId, op, compareTo)` are a malformed selection, refused with a typed reason. Entries
+  keep the order they were emitted in; that order is part of selection identity.
 - Existing `filters` keep their shape and meaning; the two lists are independent and both may be
-  present. Saved queries, pins and the persisted turn type accept the new field; a stored selection
-  without it is unchanged.
+  present. Saved queries, pins, the persisted turn type and the conversation answer snapshot accept
+  the new field; a stored selection without it is unchanged.
 
 ### What may be compared
-- Only measures whose `format` is `money` are comparable, on either side. The `%` measures in both
-  domains are `CASE` expressions that yield text labels (`over-budget`, `credit / negative actual`)
-  and are **not** comparable: a filter naming them is a typed refusal
-  (`selectionMeasureNotComparable`), never a silent drop. "Over 100% of budget" therefore means
-  `Actual gt Budget`, and the selector prompt says so.
+- Only measures whose `format` is `money` are comparable, on either side, and they compare **as
+  amounts**. The `%` measures in both domains are `CASE` expressions that yield text labels
+  (`over-budget`, `credit / negative actual`) and are **not** comparable: a filter naming them is a
+  typed refusal (`selectionMeasureNotComparable`), never a silent drop. "Over budget" and "over
+  100% of budget" both mean `Actual gt Budget`, and the selector prompt says so. The two readings
+  agree with the `%` column whenever Budget is zero or positive, which is every budget the client
+  has supplied; for a **negative** budget the comparison is on amounts (Budget −100, Actual −150 is
+  not over budget even though the column reads 150%), and the spec claims no reconciliation there
+  (human ruling, 2026-09-17).
 - Both operands must be measures of the selection's domain and within the user's measure
-  permissions, exactly as `measureIds` are checked today (`selectionValidation.ts:15`). A measure
-  outside either is refused with the existing "not available" path.
+  permissions. Every check that today reads `measureIds` reads the **union of `measureIds` and the
+  operand measures**: `validateSelectionForUser` (`selectionValidation.ts:15`), the executor's
+  `authorize`, the saved-query and pin runnable status (`saved.service.ts:114`,
+  `pins.service.ts:256`) and the pin definition-version hash. A measure outside the domain or the
+  permissions is refused with the existing "not available" path; a persisted selection whose
+  operand is no longer registered or permitted reports not runnable, exactly as a displayed measure
+  would.
 - Comparing a measure with itself is refused as malformed.
 
 ### How it runs
@@ -67,17 +82,28 @@ against the `%` column of the statement.
   (`buildStatementProjection`). The comparison is `<left expr> <op> <right expr | literal>`, the
   literal quoted through the builder's existing `lit`. A selection with no dimensions still works:
   the single aggregate row is kept or dropped by the comparison, which answers "is actual over
-  budget this month" with one row or none.
-- Operand measures **not already in `measureIds` are added by the server**, deterministically and
-  before validation, so the answer always shows the columns it was filtered on. The addition is
-  visible in the returned selection and its chips; it is never hidden.
-- `totals` are computed over the **rows that pass the filter**: the ungrouped totals query wraps the
-  grouped query (without its `LIMIT`) as a derived table, so the total of "over-budget lines" is the
-  total of those lines, not of the whole domain. The SQL validator's object allowlist still holds
-  because the derived table reads only the approved objects.
+  budget this month" with one row or none. An answer with zero rows is a **successful, empty**
+  answer ("No lines match Actual > Budget for July 2026"), never an error and never a refusal.
+- The statement projection also applies the selection's **dimension filters** (`leaf_key`) as
+  `WHERE` predicates on the relation. Today it silently drops them (`sqlBuilder.ts:203` never reads
+  `selection.filters`); that pre-existing gap is closed in this story (human ruling, 2026-09-17:
+  fix here, not defer), with a leaf proving a `leaf_key` filter narrows the projected rows and the
+  golden statement proofs unchanged.
+- Operand measures **not already in `measureIds` are appended by the server**, in the order of
+  their first appearance in `measureFilters`, deterministically and before validation, so the
+  answer always shows the columns it was filtered on. The addition is visible in the returned
+  selection and its chips; it is never hidden. The first entry of `measureIds` is unchanged by the
+  append, so result ordering (largest first by the first measure) is unchanged.
+- `totals` are computed over **every group that passes the filter, not only the visible page**:
+  the ungrouped totals query wraps the grouped, filtered query **without its `LIMIT`** as a derived
+  table, so the total of "over-budget lines" is the total of all such lines even when more match
+  than the page shows. The object allowlist still holds because the derived table reads only the
+  approved objects.
 - The deterministic SQL validator (`sqlValidator.ts`) accepts the `HAVING` clause and the derived
-  totals query without any new bypass: single `SELECT`, no `*`, approved objects only, bounded
-  `LIMIT`. A leaf proves a `HAVING` that references an unapproved column or object is still refused.
+  totals query without any new bypass, and every existing check keeps firing: single `SELECT`, no
+  `*`, approved objects only, blocked columns refused wherever they appear (a `HAVING` or a derived
+  table included), bounded `LIMIT`. The validator has an object allowlist and a blocked-column
+  list, not a general column allowlist; this story does not add one.
 - Row ordering is unchanged (largest first by the first measure).
 
 ### What the model is told
@@ -97,11 +123,21 @@ against the `%` column of the statement.
   `Actual > Budget`, `Actual > ₹5,00,000`, using the registered measure labels and the Indian
   digit grouping for values. Unregistered ids render as `(unavailable)` like today.
 - The provenance readback names the condition: "... where Actual is greater than Budget".
-- `AskResponse` gains an additive `appliedMeasureFilters` next to `appliedFilters`, so the field
-  editor can show them; editing them in the editor is out of scope, they display read-only.
+- `AskResponse` gains an additive `appliedMeasureFilters` next to `appliedFilters`, and the
+  conversation answer snapshot (`ConversationAnswerSnapshot`, written by
+  `conversations.service.ts:294`) carries it too, so the field editor shows the comparison both on
+  a fresh answer and after a conversation is reopened. Editing it in the editor is out of scope; it
+  displays read-only.
 - `viewInReport` is **unavailable** for an answer carrying a measure filter, with the reason "The
   MIS statement shows every line; open it and read the % column", because the statement has no
   row filter and a link would silently drop the condition.
+- **Report grounding preserves the comparison.** When a question is answered against a pinned or
+  saved report, `applyReportGroundingToSelection` (`chat.service.ts:638`) rebuilds the selection
+  from the report's measures, dimensions and filters; it must carry the question's
+  `measureFilters` through unchanged (the report itself carries none unless it was saved with
+  them, in which case the report's are kept and the question's appended). A leaf proves a grounded
+  "which are over budget" never returns the unfiltered report with the verified badge, which is
+  the original failure mode.
 - Reopening a saved or pinned selection that carries a measure filter re-runs it with the filter;
   selection identity (`selection-identity.helper.ts`) includes `measureFilters`, so two selections
   differing only in the comparison are distinct.
@@ -133,22 +169,31 @@ against the `%` column of the statement.
 ## Acceptance criteria
 
 - **C1** `Selection.measureFilters` is an additive optional list of `{ measureId, op: gt|gte|lt|lte,
-  compareTo: measure|value }`; `filters` is unchanged; the saved-query zod schema, the persisted turn
-  type and the Swagger DTOs accept it; every shipped leaf that builds or stores a selection passes
-  unmodified.
+  compareTo: measure|value }`, combined with AND, order-preserving; `filters` is unchanged; the
+  saved-query zod schema, the persisted turn type, the conversation answer snapshot and the Swagger
+  DTOs accept it; every shipped leaf that builds or stores a selection passes unmodified.
 - **C2** Validation refuses, with typed reasons, a filter whose operand is not a money measure of the
-  selection's domain, is outside the user's measure permissions, compares a measure with itself, or
-  carries a non-decimal value. `%` measures are refused as not comparable.
+  selection's domain, is outside the user's measure permissions, compares a measure with itself,
+  duplicates another entry, or carries a value outside `^-?\d+(\.\d{1,2})?$`; accepted values are
+  normalised to two decimals. `%` measures are refused as not comparable. Every check that reads
+  `measureIds` (validation, executor authorization, saved and pin runnable status, pin
+  definition-version hash) reads the union with the operand measures, proven by leaves.
 - **C3** The builder compiles each measure filter to `HAVING` over the verified expressions in both
-  the governed-financial query and the statement projection; leaves assert the emitted SQL for
-  measure-vs-measure, measure-vs-value, an ungrouped selection, and the combination with a dimension
-  filter and a time window.
-- **C4** Operand measures missing from `measureIds` are added by the server before validation and
-  appear in the returned selection and chips.
-- **C5** `totals` are computed over the filtered rows via a derived table; a leaf asserts the totals
-  equal the sum of the returned rows on a fixture where an unfiltered total would differ.
-- **C6** The SQL validator accepts the new shapes and still refuses an unapproved object or column
-  inside `HAVING` or the derived table; the mandatory bounded `LIMIT` check still fires.
+  the governed-financial query and the statement projection, and the statement projection now also
+  applies dimension filters as `WHERE` predicates; leaves assert the emitted SQL for
+  measure-vs-measure, measure-vs-value, an ungrouped selection, the combination with a dimension
+  filter and a time window, and a `leaf_key` filter on the projection, with the golden statement
+  proofs unchanged.
+- **C4** Operand measures missing from `measureIds` are appended by the server, in first-appearance
+  order, before validation, and appear in the returned selection and chips; the first measure and
+  therefore the row ordering are unchanged.
+- **C5** `totals` are computed over every matching group via a derived table without the inner
+  `LIMIT`; a leaf asserts, on a fixture with more matching groups than the limit, that the totals
+  cover the groups beyond the visible page and differ from the unfiltered total.
+- **C6** The SQL validator accepts the new shapes and every existing check still fires: a `HAVING`
+  or derived table that references an unapproved object or a blocked column is refused, and the
+  mandatory bounded `LIMIT` check still fires. An answer whose `HAVING` drops every row is a
+  successful empty answer with the stated wording.
 - **C7** The selector tool schema enumerates only comparable measure ids in `measureFilters`; the
   system prompt carries the mapping rules (over/under budget, over 100%, lakh/crore); the parser
   rejects malformed entries with a typed reason. Leaves assert schema, prompt text and parser
@@ -156,12 +201,15 @@ against the `%` column of the statement.
 - **C8** Chips, saved-selection labels and the provenance readback render the comparison in words
   with registered labels and Indian digit grouping; `appliedMeasureFilters` is returned; selection
   identity includes the filter.
-- **C9** `viewInReport` is unavailable with the stated reason when a measure filter is present.
+- **C9** `viewInReport` is unavailable with the stated reason when a measure filter is present, and
+  report grounding carries the question's `measureFilters` through; a leaf proves a grounded
+  over-budget question never returns the unfiltered report.
 - **C10** Functional check, live against Bedrock and the July warehouse: "show me list items where
   Actuals are more than the budget" returns only lines with Actual above Budget and no others, with
   the chip `Actual > Budget`; "which GL codes spent more than 5 lakh in July 2026" returns only lines
-  above ₹5,00,000; "GL codes over 100% of budget" returns the same lines as the first question; the
-  three answers reconcile against the statement's `%` column for DUB.
+  above ₹5,00,000; "GL codes over 100% of budget" returns the same lines as the first question; for
+  DUB the first answer's lines are exactly the statement rows whose `%` is above 100 or reads
+  `over-budget`, every July budget being zero or positive.
 
 ## Open items (non-blocking)
 - Whether the field editor should let a reader change the threshold in place (a later story).
@@ -175,4 +223,9 @@ against the `%` column of the statement.
   `backend/src/sql/sqlBuilder.ts`, `backend/src/sql/sqlValidator.ts`,
   `backend/src/semantic/selectionValidation.ts`, `backend/src/chat/chat.service.ts`,
   `backend/src/saved/saved.schemas.ts`, `frontend/src/features/exploration/selection-label.ts`.
-- Decisions 0004 (governed joins, code-authored measures), 0011 (review), 0037, 0038.
+- Decisions 0004 (governed joins, code-authored measures), 0037, 0038, and 0039 (this capability's
+  comparison rules).
+- Spec grill cold read, 2026-09-17: ten findings, eight settled from the repository (grounding,
+  operand authorization, totals beyond the page, literal grammar, snapshot field, validator scope,
+  AND semantics and order, the 0011 citation), two put to the human (signed budgets compare as
+  amounts; the statement projection's dropped dimension filters are fixed here).
