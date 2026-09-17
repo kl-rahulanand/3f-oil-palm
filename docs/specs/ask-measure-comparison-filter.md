@@ -1,7 +1,7 @@
 ---
 slug: ask-measure-comparison-filter
 title: Ask filters by a comparison between measures
-status: draft
+status: confirmed
 saved: 2026-09-17T10:56:38+00:00
 ---
 

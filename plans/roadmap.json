@@ -265,6 +265,31 @@
       "kind": "feature",
       "depends_on": [],
       "spec": "docs/specs/mis-assistant-explains-a-number.md"
+    },
+    {
+      "key": "ask-measure-filter",
+      "title": "Ask filters by a comparison between measures",
+      "story": "As a finance reader asking Ask about budget versus actual, I want 'which lines are over budget' and 'which GL codes spent more than 5 lakh' answered with only the matching lines, so that a verified answer never silently drops the condition I asked for.",
+      "acceptance_criteria": [
+        "Selection gains an additive optional measureFilters list (measure vs measure or vs a fixed-scale decimal value, gt/gte/lt/lte, AND, order-preserving); filters is unchanged; saved queries, pins, the persisted turn, the conversation answer snapshot and Swagger accept it; shipped selection leaves pass unmodified.",
+        "Validation refuses with typed reasons a non-money operand, an operand outside the domain or the user's permissions, a self-comparison, a duplicate entry or a value outside ^-?\\d+(\\.\\d{1,2})?$; % measures are not comparable; every check that reads measureIds reads the union with the operand measures.",
+        "The SQL builder compiles each measure filter to HAVING over the verified expressions in both the governed-financial query and the statement projection, and the statement projection now applies dimension filters as WHERE predicates; leaves assert the emitted SQL and the golden statement proofs stay unchanged.",
+        "Operand measures missing from measureIds are appended by the server in first-appearance order before validation and appear in the returned selection and chips; the first measure and the row ordering are unchanged.",
+        "Totals cover every matching group via a derived table without the inner LIMIT; a fixture with more matches than the page proves it.",
+        "The SQL validator accepts HAVING and the derived table while its object allowlist, blocked-column, no-star and bounded-LIMIT checks still fire; an empty result is a successful empty answer.",
+        "The selector tool schema enumerates only comparable measure ids in measureFilters; the system prompt maps over/under budget, over 100% and lakh/crore onto the shape; the parser refuses malformed entries; leaves assert schema, prompt and parser against recorded provider outputs.",
+        "Chips, saved-selection labels and the provenance readback render the comparison in words with registered labels and Indian digit grouping; appliedMeasureFilters is returned and snapshotted; selection identity includes the filter.",
+        "viewInReport is unavailable with the stated reason when a measure filter is present, and report grounding carries the question's measureFilters through; a leaf proves a grounded over-budget question never returns the unfiltered report.",
+        "Functional check live against Bedrock and the July warehouse: the three demo phrasings return only the matching lines with the Actual > Budget chip, and the DUB answer matches the statement rows whose % is above 100 or reads over-budget."
+      ],
+      "order": 13,
+      "status": "active",
+      "epic": "assistant",
+      "skill": "fullstack",
+      "depends_on": [
+        "assistant"
+      ],
+      "spec": "docs/specs/ask-measure-comparison-filter.md"
     }
   ],
   "epics": [
@@ -306,5 +331,5 @@
     }
   ],
   "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-15T20:21:48+00:00"
+  "updated_at": "2026-09-17T11:44:53+00:00"
 }
