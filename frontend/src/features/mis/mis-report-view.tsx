@@ -1,12 +1,20 @@
 "use client";
 
-import type { MisSelectionRunRequest, MisStatementRunRequest } from "@3f/contract";
+import type {
+  AskStatementGrounding,
+  MisSelectionRunRequest,
+  MisStatementNode,
+  MisStatementResolvedResponse,
+  MisStatementRunRequest,
+} from "@3f/contract";
 import { MessageSquareText } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/src/components/ui/button";
 import { AskPanel, parseActiveBatchIds } from "@/src/features/assistant/ask-panel";
-import { StatementView } from "./statement-view";
+import { useAsk } from "@/src/features/assistant/use-ask";
+import { DrillPanel, type DrillPanelSelection } from "./drill-panel";
+import { StatementView, type DrillPanelTarget } from "./statement-view";
 import { useMisStatement } from "./use-mis-statement";
 
 const EMPTY_SELECTION: MisSelectionRunRequest = { department: "", function: "", plant: "", period: "" };
@@ -17,6 +25,13 @@ export function MisReportView() {
   const requestedLink = useRef<string | undefined>(undefined);
   const [selection, setSelection] = useState<MisSelectionRunRequest>(editableSelection(linked.request));
   const [askOpen, setAskOpen] = useState(false);
+  const [focus, setFocus] = useState<
+    (NonNullable<AskStatementGrounding["focus"]> & { target: DrillPanelTarget }) | null
+  >(null);
+  const [drill, setDrill] = useState<DrillPanelSelection | null>(null);
+  const { syncStatementIdentity } = useAsk();
+  const statement = run.data?.outcome === "resolved" ? run.data : undefined;
+  const identity = statement ? statementIdentity(statement) : undefined;
   const plants = options.data?.plants ?? [];
   const departments = distinct(plants.map((plant) => plant.department));
   const functions = distinct(
@@ -41,6 +56,20 @@ export function MisReportView() {
     setSelection(editableSelection(linked.request));
     run.mutate(linked.request);
   }, [linked, run]);
+
+  useEffect(() => {
+    setFocus(null);
+    setDrill(null);
+    syncStatementIdentity(identity);
+  }, [identity, syncStatementIdentity]);
+
+  function openDrill(target: DrillPanelTarget, opener: HTMLButtonElement) {
+    setFocus({ nodeKey: target.node.nodeKey, block: target.blockKey, subject: "actual", target });
+    setDrill({ ...target, opener });
+  }
+
+  const grounding = statementGrounding(statement, focus);
+  const groundingUnavailable = grounding ? undefined : "Generate a mapped statement first to ask about a figure.";
 
   function update(field: keyof MisSelectionRunRequest, value: string) {
     setSelection((current) => {
@@ -152,21 +181,90 @@ export function MisReportView() {
               (run.data.outcome === "refresh-required" ? (
                 <StatusMessage error>{run.data.notice}</StatusMessage>
               ) : (
-                <StatementView response={run.data} />
+                <StatementView response={run.data} onOpenDrill={openDrill} />
               ))}
           </>
         )}
       </section>
       {askOpen ? (
-        <AskPanel surface="docked" onCollapse={() => setAskOpen(false)} />
+        <AskPanel
+          surface="docked"
+          onCollapse={() => setAskOpen(false)}
+          grounding={grounding}
+          statement={statement}
+          groundingUnavailable={groundingUnavailable}
+          onOpenDrill={(nodeKey, block, opener) => {
+            const target = statement && findDrillTarget(statement, nodeKey, block);
+            if (target) openDrill(target, opener);
+          }}
+        />
       ) : (
         <button className="ask-rail" type="button" onClick={() => setAskOpen(true)}>
           <MessageSquareText size={17} aria-hidden="true" />
           <span>Assistant</span>
         </button>
       )}
+      {drill && <DrillPanel selection={drill} onClose={() => setDrill(null)} />}
     </div>
   );
+}
+
+function statementGrounding(
+  statement: MisStatementResolvedResponse | undefined,
+  focus: (NonNullable<AskStatementGrounding["focus"]> & { target: DrillPanelTarget }) | null,
+): AskStatementGrounding | undefined {
+  if (!statement?.attestedContext || !statement.nodeMetadata || !statement.nodeAmounts) return undefined;
+  return {
+    attestedContext: statement.attestedContext,
+    department: statement.scope.department,
+    function: statement.scope.function,
+    ...(focus ? { focus: { nodeKey: focus.nodeKey, block: focus.block, subject: focus.subject } } : {}),
+    nodeMetadata: statement.nodeMetadata,
+    nodeAmounts: statement.nodeAmounts,
+  };
+}
+
+function statementIdentity(statement: MisStatementResolvedResponse): string {
+  return JSON.stringify({
+    scope: statement.scope,
+    pins: statement.provenance.activeBatchIds,
+    blocks: statement.grandTotal.measures.map(({ key, from, to }) => ({ key, from, to })),
+  });
+}
+
+function findDrillTarget(
+  statement: MisStatementResolvedResponse,
+  nodeKey: string,
+  blockKey: DrillPanelTarget["blockKey"],
+): DrillPanelTarget | undefined {
+  if (statement.grandTotal.nodeKey === nodeKey) {
+    return {
+      node: statement.grandTotal,
+      roots: statement.tree,
+      blockKey,
+      breadcrumb: [statement.grandTotal.budgetComponent],
+      response: statement,
+    };
+  }
+
+  function find(nodes: MisStatementNode[], breadcrumb: string[]): DrillPanelTarget | undefined {
+    for (const node of nodes) {
+      const path = [...breadcrumb, node.budgetComponent];
+      if (node.nodeKey === nodeKey) {
+        return {
+          node,
+          roots: node.children.length ? node.children : [],
+          blockKey,
+          breadcrumb: path,
+          response: statement,
+        };
+      }
+      const target = find(node.children, path);
+      if (target) return target;
+    }
+  }
+
+  return find(statement.tree, []);
 }
 
 function linkedStatementRequest(searchParams: URLSearchParams): {

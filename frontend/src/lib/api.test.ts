@@ -174,6 +174,41 @@ test("the streaming client sends the csrf header and refreshes once on a 401", a
   ).toBe(true);
 });
 
+test("grounding is admitted on the buffered and the streamed request path", async () => {
+  Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=grounding-token" });
+  const grounding = {
+    attestedContext: "claims.signature",
+    department: "Agriculture",
+    function: "Nursery",
+    focus: { nodeKey: "shade", block: "selected" as const, subject: "actual" as const },
+    nodeMetadata: [{ nodeKey: "shade", glCodes: ["5001"], costCentres: ["Primary"] }],
+    nodeAmounts: [{ nodeKey: "shade", block: "selected" as const, actualPaise: "5000" }],
+  };
+  const result = {
+    responseClass: "success",
+    sessionId: "session",
+    statementGrounding: { outcome: "focus-required" },
+    viewInReport: { available: false, reason: "Statement explanation." },
+  };
+  const event = `data: ${JSON.stringify({ type: "result", response: result })}\n\n`;
+  const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) =>
+    String(input).endsWith("/api/chat/stream")
+      ? streamResponse(200, event)
+      : String(input).endsWith("/api/chat")
+        ? response(200, result)
+        : response(),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+
+  await api.ask({ question: "How is this built?", statementGrounding: grounding });
+  await api.askStream({ question: "How is this built?", statementGrounding: grounding });
+
+  for (const path of ["/api/chat", "/api/chat/stream"]) {
+    const [, init] = fetchMock.mock.calls.find(([input]) => String(input).endsWith(path))!;
+    expect(JSON.parse(String(init?.body))).toEqual({ question: "How is this built?", statementGrounding: grounding });
+  }
+});
+
 test("the client trims prior turns to the shared limits so a ninth turn still succeeds", async () => {
   Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=ask-token" });
   const event = `data: ${JSON.stringify({ type: "result", response: { ...resultForTrim(), sessionId: "session" } })}\n\n`;

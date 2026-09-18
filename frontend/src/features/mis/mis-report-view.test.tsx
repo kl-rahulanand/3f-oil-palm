@@ -1,13 +1,16 @@
 import type { MisStatementResolvedResponse } from "@3f/contract";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { useReducer } from "react";
+import { useReducer, useState, type ReactElement } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
+import { AskProvider, useAsk } from "../assistant/use-ask";
 import { MisReportView } from "./mis-report-view";
 
 const mocks = vi.hoisted(() => ({
   misOptions: vi.fn(),
   runMisStatement: vi.fn(),
+  runMisDrill: vi.fn(),
+  ask: vi.fn(),
   searchParams: new URLSearchParams(),
 }));
 
@@ -87,17 +90,26 @@ const statement: MisStatementResolvedResponse = {
   provenance: { activeBatchIds: [] },
 };
 
+const groundedStatement: MisStatementResolvedResponse = {
+  ...statement,
+  attestedContext: "claims.signature",
+  nodeMetadata: [{ nodeKey: "shade", glCodes: ["5001"], costCentres: ["Primary"] }],
+  nodeAmounts: [{ nodeKey: "shade", block: "selected", actualPaise: "5000" }],
+};
+
 afterEach(() => {
   cleanup();
   mocks.misOptions.mockReset();
   mocks.runMisStatement.mockReset();
+  mocks.runMisDrill.mockReset();
+  mocks.ask.mockReset();
   mocks.searchParams = new URLSearchParams();
 });
 
 test("Generate posts the existing four selectors to the statement route and renders the statement inline below them", async () => {
   mocks.misOptions.mockResolvedValue(options);
   mocks.runMisStatement.mockResolvedValue(statement);
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   const period = await screen.findByLabelText("Period");
   expect(within(period).getByRole("option", { name: "Jul 2026" })).toHaveValue("2026-07-01");
@@ -118,10 +130,198 @@ test("Generate posts the existing four selectors to the statement route and rend
   expect(table).toHaveTextContent("Shade Net");
 });
 
+test("the block comes from the focused node and there is no selected block before focus", async () => {
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValue(groundedStatement);
+  mocks.ask
+    .mockResolvedValueOnce(groundedResponse({ outcome: "focus-required" }))
+    .mockResolvedValueOnce(groundedResponse({ outcome: "focus-required" }));
+  renderGroundedReport();
+  await generateStatement();
+  fireEvent.click(screen.getByRole("button", { name: "Assistant" }));
+
+  submitDock("How is this built?");
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
+  expect(mocks.ask.mock.calls[0]?.[0].statementGrounding).not.toHaveProperty("focus");
+
+  clickShadeActual();
+  submitDock("How is this built?");
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0].statementGrounding.focus).toEqual({
+    nodeKey: "shade",
+    block: "selected",
+    subject: "actual",
+  });
+});
+
+test("with no rendered statement the dock says so locally and submits no grounded ask", async () => {
+  mocks.misOptions.mockResolvedValue(options);
+  renderGroundedReport();
+
+  fireEvent.click(screen.getByRole("button", { name: "Assistant" }));
+
+  expect(screen.getByRole("status")).toHaveTextContent("Generate a mapped statement first");
+  expect(
+    within(screen.getByRole("region", { name: "Ask panel" })).getByRole("button", { name: "Send question" }),
+  ).toBeDisabled();
+  expect(mocks.ask).not.toHaveBeenCalled();
+});
+
+test("a statement response missing the attested context does not offer a grounded ask", async () => {
+  await expectUngroundedField({ ...groundedStatement, attestedContext: undefined });
+});
+
+test("a statement response missing node metadata does not offer a grounded ask", async () => {
+  await expectUngroundedField({ ...groundedStatement, nodeMetadata: undefined });
+});
+
+test("a statement response missing node amounts does not offer a grounded ask", async () => {
+  await expectUngroundedField({ ...groundedStatement, nodeAmounts: undefined });
+});
+
+test("focus clears when the statement scope or pinned batches change", async () => {
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValueOnce(groundedStatement).mockResolvedValueOnce({
+    ...groundedStatement,
+    provenance: {
+      activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: "replacement" }],
+    },
+  });
+  mocks.ask.mockResolvedValue(groundedResponse({ outcome: "focus-required" }));
+  renderGroundedReport();
+  await generateStatement();
+  clickShadeActual();
+  fireEvent.click(screen.getByRole("button", { name: "Close drill-down" }));
+  fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+  await waitFor(() => expect(mocks.runMisStatement).toHaveBeenCalledTimes(2));
+  fireEvent.click(screen.getByRole("button", { name: "Assistant" }));
+  submitDock("How is this built?");
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledOnce());
+
+  expect(mocks.ask.mock.calls[0]?.[0].statementGrounding).not.toHaveProperty("focus");
+});
+
+test("persisted grounded history clears on the first statement after report remount while ordinary turns survive", async () => {
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValueOnce(groundedStatement).mockResolvedValueOnce({
+    ...groundedStatement,
+    provenance: {
+      activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: "replacement" }],
+    },
+  });
+  mocks.ask
+    .mockResolvedValueOnce(successResponse())
+    .mockResolvedValueOnce(groundedResponse({ outcome: "focus-required" }));
+  renderWithQuery(
+    <AskProvider pathname="/mis-reports">
+      <ReportRemountHarness />
+    </AskProvider>,
+  );
+  await generateStatement();
+  fireEvent.click(screen.getByRole("button", { name: "Seed ordinary turn" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded"));
+  fireEvent.click(screen.getByRole("button", { name: "Seed grounded turn" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded,grounded"));
+
+  fireEvent.click(screen.getByRole("button", { name: "Toggle report" }));
+  fireEvent.click(screen.getByRole("button", { name: "Toggle report" }));
+  await generateStatement();
+
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/));
+});
+
+test("grounded history and drill clear when the rendered statement disappears while ordinary turns survive", async () => {
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValueOnce(groundedStatement).mockResolvedValueOnce({
+    outcome: "unresolvable",
+    notice: "No mapping configured",
+    tree: [],
+    grandTotal: null,
+    provenance: { activeBatchIds: [] },
+  });
+  mocks.ask
+    .mockResolvedValueOnce(successResponse())
+    .mockResolvedValueOnce(groundedResponse({ outcome: "focus-required" }));
+  renderWithQuery(
+    <AskProvider pathname="/mis-reports">
+      <ReportRemountHarness />
+    </AskProvider>,
+  );
+  await generateStatement();
+  fireEvent.click(screen.getByRole("button", { name: "Seed ordinary turn" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded"));
+  fireEvent.click(screen.getByRole("button", { name: "Seed grounded turn" }));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded,grounded"));
+  clickShadeActual();
+
+  fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+
+  expect(await screen.findByText("No mapping configured")).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/));
+  expect(screen.queryByRole("dialog", { name: "Shade Net" })).not.toBeInTheDocument();
+});
+
+test("the dock says so locally when the scope has no mapping and submits no grounded ask", async () => {
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValue({
+    outcome: "unresolvable",
+    notice: "No mapping configured",
+    tree: [],
+    grandTotal: null,
+    provenance: { activeBatchIds: [] },
+  });
+  renderGroundedReport();
+  await screen.findByLabelText("Period");
+  chooseSelection();
+  fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+  await screen.findByText("No mapping configured");
+  fireEvent.click(screen.getByRole("button", { name: "Assistant" }));
+
+  expect(screen.getByText(/Generate a mapped statement first/)).toBeInTheDocument();
+  expect(mocks.ask).not.toHaveBeenCalled();
+});
+
+test("the explanation control opens the same drill the statement click opens", async () => {
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValue(groundedStatement);
+  mocks.runMisDrill.mockReturnValue(new Promise(() => undefined));
+  mocks.ask.mockResolvedValue(
+    groundedResponse({
+      outcome: "leaf",
+      nodeKey: "shade",
+      leafKey: "shade",
+      block: "selected",
+      budgetState: "loaded",
+      rollup: [],
+      transactions: {
+        lines: [],
+        footer: { debit: "50.00", credit: "0.00", value: "50.00" },
+        totalCount: 0,
+        pageSize: 20,
+      },
+    }),
+  );
+  renderGroundedReport();
+  await generateStatement();
+  clickShadeActual();
+  expect(screen.getByRole("dialog", { name: "Shade Net" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Close drill-down" }));
+  fireEvent.click(screen.getByRole("button", { name: "Assistant" }));
+  submitDock("How is this built?");
+  await screen.findByRole("button", { name: "Open full drill" });
+  fireEvent.click(
+    within(screen.getByRole("row", { name: "Grand total" })).getByRole("button", { name: /Drill down Actual/ }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Close drill-down" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Open full drill" }));
+
+  expect(screen.getByRole("dialog", { name: "Shade Net" })).toBeInTheDocument();
+});
+
 test("a failed statement call surfaces one clear report error and no stale statement", async () => {
   mocks.misOptions.mockResolvedValue(options);
   mocks.runMisStatement.mockRejectedValue(new Error("failed"));
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   await screen.findByLabelText("Period");
   chooseSelection();
@@ -149,7 +349,7 @@ test("a refresh required statement response replaces the report with its notice 
     notice: "The data was refreshed - ask again",
   });
 
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   expect(await screen.findByRole("alert")).toHaveTextContent("The data was refreshed - ask again");
   expect(screen.queryByRole("treegrid", { name: "Financial MIS statement" })).not.toBeInTheDocument();
@@ -170,7 +370,7 @@ test("each in-page report link runs with its own pins while edited selections ru
   mocks.misOptions.mockResolvedValue(options);
   mocks.runMisStatement.mockResolvedValue(statement);
 
-  renderWithQuery(<NavigationHarness />);
+  renderReport(<NavigationHarness />);
 
   await waitFor(() =>
     expect(mocks.runMisStatement).toHaveBeenCalledWith({
@@ -209,7 +409,7 @@ test("each in-page report link runs with its own pins while edited selections ru
 test("a malformed pinned-batch report link is refused instead of running an unpinned statement", async () => {
   mocks.searchParams = reportParams("not-json");
   mocks.misOptions.mockResolvedValue(options);
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "The report link is invalid. Return to Ask and open it again.",
@@ -233,7 +433,7 @@ test("a plant option carrying provisional renders the plain text provisional lab
       },
     ],
   });
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   const plant = await screen.findByLabelText("Plant");
   expect(within(plant).getByRole("option", { name: "Agri - Nursery - DUB" })).toBeInTheDocument();
@@ -244,7 +444,7 @@ test("a plant option carrying provisional renders the plain text provisional lab
 
 test("choosing a plant first fills its department and function", async () => {
   mocks.misOptions.mockResolvedValue(tupleOptions());
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   fireEvent.change(await screen.findByLabelText("Plant"), { target: { value: "H.O" } });
 
@@ -254,7 +454,7 @@ test("choosing a plant first fills its department and function", async () => {
 
 test("choosing a department first filters its functions and plants", async () => {
   mocks.misOptions.mockResolvedValue({ ...tupleOptions(), functions: ["Nursery", "Flat-list-only"] });
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   const department = await screen.findByLabelText("Department");
   fireEvent.change(department, { target: { value: "Agriculture" } });
@@ -274,7 +474,7 @@ test("choosing a department first filters its functions and plants", async () =>
 
 test("changing a department or function clears a plant that no longer matches", async () => {
   mocks.misOptions.mockResolvedValue(tupleOptions());
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   const plant = await screen.findByLabelText("Plant");
   fireEvent.change(plant, { target: { value: "DUB" } });
@@ -298,7 +498,7 @@ test("metadata-free plants stay selectable without contributing flat selector va
       { value: "VJA", label: "Agri - Nursery - VJA", aliases: [], department: "Agriculture", function: "Nursery" },
     ],
   });
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   const plant = await screen.findByLabelText("Plant");
   expect(within(plant).getByRole("option", { name: "DUB" })).toBeInTheDocument();
@@ -334,7 +534,7 @@ test("metadata-free plants do not preserve a function across an incompatible dep
       },
     ],
   });
-  renderWithQuery(<MisReportView />);
+  renderReport();
 
   const plant = await screen.findByLabelText("Plant");
   fireEvent.change(plant, { target: { value: "VJA" } });
@@ -390,4 +590,100 @@ function NavigationHarness() {
       <MisReportView />
     </>
   );
+}
+
+function ReportRemountHarness() {
+  const [showReport, setShowReport] = useState(true);
+  const { turns, ask, askGrounded } = useAsk();
+  return (
+    <>
+      <button type="button" onClick={() => setShowReport((current) => !current)}>
+        Toggle report
+      </button>
+      <button type="button" onClick={() => void ask("Ordinary question")}>
+        Seed ordinary turn
+      </button>
+      <button type="button" onClick={() => void askGrounded("Grounded question", statementGroundingFixture())}>
+        Seed grounded turn
+      </button>
+      <output data-testid="turn-origins">{turns.map((turn) => turn.origin).join(",")}</output>
+      {showReport && <MisReportView />}
+    </>
+  );
+}
+
+function renderGroundedReport() {
+  return renderWithQuery(
+    <AskProvider pathname="/mis-reports">
+      <MisReportView />
+    </AskProvider>,
+  );
+}
+
+function renderReport(view: ReactElement = <MisReportView />) {
+  return renderWithQuery(<AskProvider pathname="/mis-reports">{view}</AskProvider>);
+}
+
+async function generateStatement() {
+  await screen.findByLabelText("Period");
+  chooseSelection();
+  fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+  await screen.findByRole("treegrid", { name: "Financial MIS statement" });
+}
+
+function submitDock(question: string) {
+  const dock = screen.getByRole("region", { name: "Ask panel" });
+  fireEvent.change(within(dock).getByLabelText("Ask about your MIS data"), { target: { value: question } });
+  fireEvent.click(within(dock).getByRole("button", { name: "Send question" }));
+}
+
+function clickShadeActual() {
+  fireEvent.click(
+    within(screen.getByRole("row", { name: /Shade Net/ })).getByRole("button", { name: /Drill down Actual/ }),
+  );
+}
+
+function groundedResponse(statementGrounding: NonNullable<import("@3f/contract").AskResponse["statementGrounding"]>) {
+  return {
+    responseClass: "success",
+    sessionId: "session",
+    statementGrounding,
+    viewInReport: { available: false, reason: "Statement explanation." },
+  };
+}
+
+function successResponse() {
+  return {
+    responseClass: "success" as const,
+    sessionId: "session",
+    selection: {
+      domain: "mis-statement" as const,
+      measureIds: ["mis-statement.actual"],
+      dimensionIds: ["mis-statement.leaf_key"],
+      filters: [],
+    },
+    viewInReport: { available: false as const, reason: "Not available." },
+  };
+}
+
+function statementGroundingFixture() {
+  return {
+    attestedContext: "claims.signature",
+    department: "Agriculture",
+    function: "Nursery",
+    focus: { nodeKey: "shade", block: "selected" as const, subject: "actual" as const },
+    nodeMetadata: groundedStatement.nodeMetadata!,
+    nodeAmounts: groundedStatement.nodeAmounts!,
+  };
+}
+
+async function expectUngroundedField(response: MisStatementResolvedResponse) {
+  mocks.misOptions.mockResolvedValue(options);
+  mocks.runMisStatement.mockResolvedValue(response);
+  renderGroundedReport();
+  await generateStatement();
+  fireEvent.click(screen.getByRole("button", { name: "Assistant" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Generate a mapped statement first");
+  expect(mocks.ask).not.toHaveBeenCalled();
+  cleanup();
 }

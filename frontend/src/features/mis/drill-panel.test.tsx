@@ -6,9 +6,11 @@ import type {
   MisStatementResolvedResponse,
 } from "@3f/contract";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
-import { StatementView } from "./statement-view";
+import { DrillPanel, type DrillPanelSelection } from "./drill-panel";
+import { StatementView as OwnedStatementView, type DrillPanelTarget } from "./statement-view";
 
 const mocks = vi.hoisted(() => ({
   misOptions: vi.fn(),
@@ -426,6 +428,19 @@ function drillResponse(overrides: Partial<MisDrillResponse> = {}): MisDrillRespo
 
 function openActual(rowName: string, blockIndex: number) {
   fireEvent.click(within(screen.getByRole("row", { name: new RegExp(rowName) })).getAllByRole("button")[blockIndex]);
+}
+
+function StatementView({ response }: Readonly<{ response: MisStatementResolvedResponse }>) {
+  const [drill, setDrill] = useState<DrillPanelSelection | null>(null);
+  function openDrill(target: DrillPanelTarget, opener: HTMLButtonElement) {
+    setDrill({ ...target, opener });
+  }
+  return (
+    <>
+      <OwnedStatementView response={response} onOpenDrill={openDrill} />
+      {drill && <DrillPanel selection={drill} onClose={() => setDrill(null)} />}
+    </>
+  );
 }
 
 function node(

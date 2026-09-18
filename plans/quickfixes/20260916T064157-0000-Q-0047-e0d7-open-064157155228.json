@@ -1,0 +1,12 @@
+{
+  "event": "open",
+  "id": "Q-0047-e0d7",
+  "profile": "lite",
+  "reason": "The EC2 deployment is broken on master and the fix is two env lines. Task 1 made STATEMENT_ATTESTATION_SECRETS required where the attestation provider is CONSTRUCTED - createStatementAttestationFromEnvironment throws 'STATEMENT_ATTESTATION_SECRETS is required' - and mis.module registers that provider at boot, so the backend container will not start against current master with the shipped compose. It is the ONLY new throw-if-missing variable; everything else added since the last deploy has a default. Deployment config, no product behaviour, no story.",
+  "started_at": "2026-09-16T06:41:57+00:00",
+  "max_files": 5,
+  "files": [],
+  "harness_source": false,
+  "by": "Rahul Anand",
+  "base_sha": "6997770d898772e6e8ee89145aea50c3aed80ee6"
+}

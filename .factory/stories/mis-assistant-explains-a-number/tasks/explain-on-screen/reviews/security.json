@@ -1,0 +1,43 @@
+{
+  "generated_by": "autoreview",
+  "task_id": "explain-on-screen",
+  "score": 7,
+  "summary": "security lens over explain-on-screen (16 product path(s), 1e5515c..ef63fb3, Codex via the autoreview skill at --max-priority P2): 1 blocking, 0 non-blocking. The main grounded explanation flow is implemented, but statement invalidation only handles transitions between two resolved identities. Losing the rendered/attested statement leaves prior or pending grounded explanations alive, creating a concrete stale-context security and correctness defect.",
+  "blocking_findings": [
+    {
+      "category": "security",
+      "area": "frontend/src/features/mis",
+      "summary": "[P1] Clear grounding when the rendered statement disappears (frontend/src/features/mis/mis-report-view.tsx:61): When a resolved statement is replaced by an unresolvable, refresh-required, or failed result, `identity` becomes undefined and this early return skips both the provider synchronization and local focus/drill clearing."
+    }
+  ],
+  "non_blocking_findings": [],
+  "recommendation": "request-changes",
+  "reviewed_scope": [
+    "frontend/app/globals.css",
+    "frontend/src/features/assistant/ask-panel.test.tsx",
+    "frontend/src/features/assistant/ask-panel.tsx",
+    "frontend/src/features/assistant/statement-explanation.test.tsx",
+    "frontend/src/features/assistant/statement-explanation.tsx",
+    "frontend/src/features/assistant/use-ask.test.tsx",
+    "frontend/src/features/assistant/use-ask.ts",
+    "frontend/src/features/mis/aggregate-projection.helper.test.ts",
+    "frontend/src/features/mis/aggregate-projection.helper.ts",
+    "frontend/src/features/mis/drill-panel.test.tsx",
+    "frontend/src/features/mis/mis-report-view.test.tsx",
+    "frontend/src/features/mis/mis-report-view.tsx",
+    "frontend/src/features/mis/statement-view.test.tsx",
+    "frontend/src/features/mis/statement-view.tsx",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts"
+  ],
+  "skills_used": [
+    "review-animations"
+  ],
+  "aspect": "security",
+  "review_run_id": "78b572c9e97349427c2473d44c5420f653b27d0e273ae666d09c4a678531f908",
+  "brief_sha256": "b7c2b79d071dc8d0365ea4ad1d8799c0b8d3f7a40fccede3b66a68f10989d006",
+  "branch_diff_digest": "73b4e634df6f653c775f76f1d1fb171d4f1272efb4901a11d3568da47bf48aa9",
+  "residual_risks": [],
+  "recorded_at": "2026-09-16T06:18:56+00:00",
+  "commit": "ef63fb32b98adb2b2485471c37d75b60c686b807"
+}
