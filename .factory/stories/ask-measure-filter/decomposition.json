@@ -41,7 +41,8 @@
         "backend/src/common/global-exception.filter.ts",
         "backend/src/common/error-envelope.wiring.test.ts",
         "backend/package.json",
-        "tools/quality-gate.test.mjs"
+        "tools/quality-gate.test.mjs",
+        ".prettierignore"
       ],
       "required_tests": [
         {
@@ -201,5 +202,5 @@
     }
   ],
   "plan_sha256": "00ffd80cc163fe064df69efcaed55e9ae934b2352ea06f42baffbd7c55583cb2",
-  "commit": "7fac4bf710a08fa98aa5012d31e801fe8b6062c8"
+  "commit": "c9db25afcd286364381a87714cdf904df6a686bf"
 }
