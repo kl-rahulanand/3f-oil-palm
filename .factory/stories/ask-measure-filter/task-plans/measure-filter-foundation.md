@@ -89,7 +89,10 @@ provider and every reader-facing surface are untouched here.
   injection). Exports:
   - `normalizeMeasureFilters(domain: DomainSpec, filters: MeasureFilter[] | undefined): MeasureFilter[]`
     — value must match `^-?\d+(\.\d{1,2})?$` and is normalised to exactly two decimals
-    (`500000` → `500000.00`, `-1200.5` → `-1200.50`); both operands must be measures of the
+    **lexically** (split on the point, pad the fraction to two digits, keep the integer digits
+    verbatim, canonicalise `-0`, `-0.0` and `-0.00` to `0.00`): never through `Number(...)` or
+    `toFixed`, so `12345678901234567.89` survives unchanged; a leaf asserts a value above
+    `Number.MAX_SAFE_INTEGER` and the negative-zero case. Both operands must be measures of the
     domain with `format === "money"` (a `%` measure or an unknown id is refused); a measure
     compared with itself is refused; two entries identical after normalisation are refused; order
     is preserved.
@@ -111,21 +114,38 @@ provider and every reader-facing surface are untouched here.
 - `global-exception.filter.ts` gains one branch: when the exception is a
   `MeasureFilterInvalidException`, `details = { reason }` and `userMessage` is the reader sentence
   for that reason (five sentences, in the exception file as a typed map); `code` stays `HTTP_400`
-  and `type` is already the constructor name. Everything else in the filter is unchanged.
+  and `type` is already the constructor name. Everything else in the filter is unchanged. The
+  contract owns the shape: `ErrorPayload.details` (`contract/src/api.ts:26`) becomes
+  `{ fieldErrors?: ErrorFieldDetail[]; reason?: MeasureFilterInvalidReason }` with the reason enum
+  exported from the contract, and the saved and pin error DTOs document the `reason` member in
+  Swagger, so the public 400 shape is typed and documented, not implicit.
+
+### Ask stays closed until task 2 (human ruling at this grill)
+- `chat.schemas.ts` imports `selectionSchema` for the Ask request, so widening the saved schema
+  would let a direct `/api/chat` request carry a measure filter into the new SQL path before task
+  2 wires Ask's canonicalisation and refusal. Task 1 therefore gives the Ask request its own
+  strict selection schema in `backend/src/chat/chat.schemas.ts` that **omits** `measureFilters`
+  (a request carrying it answers 400 `VALIDATION_ERROR` through the existing zod path); a leaf in
+  `chat.schemas.test.ts` proves it. Task 2 replaces that schema when it lifts the gate. No other
+  file under `backend/src/chat` changes except `selectionExecutor.ts` and its composed test.
 
 ### Every non-chat ingress canonicalises and authorises the union (C2, C4)
 - `saved.service.ts` and `pins.service.ts`: on store (`POST /api/saved`, `POST /api/pins`) the
-  selection is canonicalised before it is validated and written; on reopen the stored selection
-  is canonicalised again before status is computed and before it is re-run; `selectionStatus`
-  checks every id in `operandMeasureIds` against the registry and the user's `measureIds`
-  permissions, so an unregistered or unpermitted operand reports `definition_unregistered` /
-  the existing not-permitted reason exactly as a displayed measure would.
+  selection is canonicalised before it is validated and written. On reopen the order is fixed:
+  **status first, over the raw operand union** (`operandMeasureIds` of the stored selection,
+  without canonicalising), so an operand no longer registered reports `definition_unregistered`
+  and an unpermitted one reports the existing not-permitted reason exactly as a displayed measure
+  would; **only a runnable selection is then canonicalised** before it is re-run. A leaf proves a
+  stored selection whose operand was removed from the registry reports `definition_unregistered`
+  rather than throwing `unknown_measure`.
 - `computeDefinitionVersion` receives the measures for the operand union, so a pin whose filter
   operand's expression changes is flagged `definitionChanged`.
 - `validateSelectionForUser` and `selectionExecutor.authorize` read `operandMeasureIds`.
 - The chat service's own call sites (provider door, direct `AskRequest.selection`, grounded
   selection) belong to task 2; this task exposes the helper and must not edit
-  `backend/src/chat/chat.service.ts`.
+  `backend/src/chat/chat.service.ts`. Under `backend/src/chat` it edits exactly three files:
+  `selectionExecutor.ts`, `selectionExecutor.composed.test.ts` and `chat.schemas.ts` (with its
+  test), the last only to keep Ask closed as above.
 
 ### SQL, built in one place (C3, C5, C6)
 - `sqlBuilder.ts`: a private `havingClause(domain, measures, filters)` renders
@@ -141,9 +161,15 @@ provider and every reader-facing surface are untouched here.
   `dimensionIds: []`); otherwise it wraps the grouped, filtered query **without its `LIMIT`** as
   `SELECT <totals> FROM (<grouped query>) AS filtered LIMIT 1`, where each selected measure totals
   as `SUM(<alias>) AS <alias>` when `format === "money"`, as `<totalsOverAliases> AS <alias>` when
-  the measure declares one, and `NULL AS <alias>` otherwise. The semantic layer sets
-  `totalsOverAliases` on both `%` measures to the same nil-rule `CASE` written over `SUM(actual)`
-  and `SUM(budget)` (the group aliases). `objectsTouched` is unchanged.
+  the measure declares one, and `NULL AS <alias>` otherwise. Aliases are the measure id's last
+  segment, so they differ per domain and the two `%` expressions are concrete, not one literal:
+  - `governed-financial.percentage` (aliases `actual`, `budget`):
+    `CASE WHEN SUM(budget) = 0 AND SUM(actual) = 0 THEN NULL WHEN SUM(budget) = 0 AND SUM(actual) > 0
+    THEN 'over-budget' WHEN SUM(budget) = 0 AND SUM(actual) < 0 THEN 'credit / negative actual'
+    ELSE (SUM(actual) / SUM(budget))::text END`;
+  - `mis-statement.percentage` (aliases `actual_net`, `budget_net`): the same `CASE` over
+    `SUM(actual_net)` and `SUM(budget_net)`.
+  Leaves assert `buildTotals` for both domains. `objectsTouched` is unchanged.
 - `selectionExecutor.totalsFor` calls `this.builder.buildTotals(...)` and runs the returned SQL
   through the same validator and warehouse path as `executeResolved`; it constructs no SQL.
 - `sqlValidator.ts` is not edited. Leaves prove: a `HAVING` query and the derived totals query
@@ -180,8 +206,9 @@ provider and every reader-facing surface are untouched here.
 
 ## Out of scope
 - The Bedrock schema, prompt and parser; the chat service's ingress call, refusal translation,
-  chips, readback, `viewInReport`, grounding merge, `appliedMeasureFilters` population; Swagger;
-  help; the warehouse proof — task 2.
+  chips, readback, `viewInReport`, grounding merge, `appliedMeasureFilters` population; chat
+  Swagger; help; the warehouse proof; the leaf proving provider, direct Ask and stored re-run
+  refuse identically — task 2. Task 1 proves the stored, save and pin handling only.
 - Labels, identity, the readout line, the empty state, the functional check — task 3.
 
 ## Proof
@@ -198,14 +225,15 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 **Acceptance criteria**
 
-- contract/src/measure.ts: MeasureFilterOp (gt|gte|lt|lte), MeasureFilterOperand ({kind:'measure', measureId} | {kind:'value', value}), MeasureFilter and Selection.measureFilters?: MeasureFilter[]; contract/src/api.ts: AskResponse.appliedMeasureFilters?: MeasureFilter[] and the same optional field on ConversationAnswerSnapshot; filters is unchanged; the saved-selection zod schema accepts the field; every shipped leaf that builds or stores a selection passes unmodified and npm run typecheck stays green for all three workspaces.
-- backend/src/semantic/measure-filter.helper.ts is the ONE seam and canonicaliser, a pure helper with no IO: normalizeMeasureFilters(domain, filters) enforces the value grammar ^-?\d+(\.\d{1,2})?$ normalised to exactly two decimals, comparability (measure.format === 'money' on both sides, so both domains' % measures are refused), unknown-measure, self-comparison and duplicate-after-normalisation refusal; operandMeasureIds(selection) returns the union of measureIds and every operand measure id; canonicalizeSelection(domain, selection) normalises and appends operand measures missing from measureIds in first-appearance order, leaving the first entry of measureIds unchanged so row ordering is unchanged.
-- backend/src/semantic/measure-filter-invalid.exception.ts: MeasureFilterInvalidException extends BadRequestException with reason: MeasureFilterInvalidReason (not_comparable | unknown_measure | self_comparison | duplicate | malformed_value); it is the only shape refusal the helper raises, never a bare Error; an operand outside the user's permissions follows the existing displayed-measure path (validateSelectionForUser 'Measure not available', the executor's SelectionExecutionBlockedError) over the operand union; backend/src/common/global-exception.filter.ts gains one branch so a MeasureFilterInvalidException answers HTTP 400 with code HTTP_400, type 'MeasureFilterInvalidException', details { reason } and a reader userMessage, pinned by a leaf in error-envelope.wiring.test.ts.
-- canonicalizeSelection runs at every non-chat ingress this task owns (saved query and pin on store and on reopen, prior-turn re-run) and validateSelectionForUser, the executor's authorize, saved.service.ts and pins.service.ts runnable status and the pin definition-version hash all read operandMeasureIds instead of selection.measureIds; a persisted selection whose operand measure is unregistered or outside the user's permissions reports not runnable exactly as a displayed measure would; leaves prove each site and that a stored selection with the same bad entry as a direct one is refused with the same reason.
-- backend/src/sql/sqlBuilder.ts renders each measure filter as <left expr> <op> <right expr | lit(value)> joined by AND in a HAVING clause placed after GROUP BY in build and after the projection's grouping in buildStatementProjection; buildStatementProjection additionally renders selection.filters as WHERE predicates on relation.<column> (eq, neq, in) beside the period predicate, emitted only when a filter is present; leaves assert the emitted SQL for measure-vs-measure, measure-vs-value, an ungrouped selection (one aggregate row kept or dropped), the combination with a dimension filter and a time window, and a leaf_key filter on the projection; every existing sqlBuilder and golden statement leaf passes with its expectations unchanged.
-- A new public SqlBuilder.buildTotals(domain, selection, user, resolvedScope) returns the ungrouped totals query: byte-for-byte today's shape when measureFilters is empty, and 'SELECT <totals over the aliases> FROM (<the grouped, filtered query with no LIMIT>) AS filtered LIMIT 1' when it is not, where a money measure totals as SUM(<alias>), a measure with the new optional MeasureSpec.totalsOverAliases (contract/src/measure.ts, additive) totals through that expression, and any other measure totals as NULL; backend/src/semantic/semanticLayer.ts sets totalsOverAliases on governed-financial.percentage and mis-statement.percentage to the same nil-rule CASE over SUM(actual) and SUM(budget) aliases; selectionExecutor.totalsFor calls buildTotals and constructs no SQL itself; leaves assert the unchanged shape, the money-only shape, the percent-display shape, and that the inner query carries no LIMIT.
+- contract/src/measure.ts: MeasureFilterOp (gt|gte|lt|lte), MeasureFilterOperand ({kind:'measure', measureId} | {kind:'value', value}), MeasureFilter, Selection.measureFilters?: MeasureFilter[] and MeasureSpec.totalsOverAliases?: string; contract/src/api.ts: AskResponse.appliedMeasureFilters?: MeasureFilter[], the same optional field on ConversationAnswerSnapshot, the exported MeasureFilterInvalidReason enum and ErrorPayload.details widened to { fieldErrors?: ErrorFieldDetail[]; reason?: MeasureFilterInvalidReason }; filters is unchanged; the saved-selection zod schema accepts measureFilters; every shipped leaf that builds or stores a selection passes unmodified and npm run typecheck stays green for all three workspaces.
+- backend/src/semantic/measure-filter.helper.ts is the ONE seam and canonicaliser, a pure helper with no IO: normalizeMeasureFilters(domain, filters) enforces the value grammar ^-?\d+(\.\d{1,2})?$ and normalises lexically to exactly two decimals (split on the point, pad the fraction, keep integer digits verbatim, canonicalise negative zero to 0.00; never Number() or toFixed, so a value above Number.MAX_SAFE_INTEGER survives unchanged), comparability (measure.format === 'money' on both sides, so both domains' % measures are refused), unknown-measure, self-comparison and duplicate-after-normalisation refusal; operandMeasureIds(selection) returns the union of measureIds and every operand measure id in first-appearance order; canonicalizeSelection(domain, selection) normalises and appends operand measures missing from measureIds, leaving the first entry of measureIds unchanged so row ordering is unchanged, and returns a selection without measureFilters byte-for-byte unchanged.
+- backend/src/semantic/measure-filter-invalid.exception.ts: MeasureFilterInvalidException extends BadRequestException with reason: MeasureFilterInvalidReason (not_comparable | unknown_measure | self_comparison | duplicate | malformed_value) and a typed map of five reader sentences; it is the only shape refusal the helper raises, never a bare Error; an operand outside the user's permissions follows the existing displayed-measure path (validateSelectionForUser 'Measure not available', the executor's SelectionExecutionBlockedError) over the operand union; backend/src/common/global-exception.filter.ts gains one branch so a MeasureFilterInvalidException answers HTTP 400 with code HTTP_400, type 'MeasureFilterInvalidException', details { reason } and the reader userMessage; the saved and pin ExplorationErrorDto documents the reason member in Swagger; a leaf in error-envelope.wiring.test.ts pins the envelope.
+- Ask stays closed until task 2: backend/src/chat/chat.schemas.ts gives the Ask request its own strict selection schema that omits measureFilters, so a direct AskRequest.selection carrying one answers 400 VALIDATION_ERROR through the existing zod path, proven by a leaf in chat.schemas.test.ts; under backend/src/chat this task edits exactly selectionExecutor.ts, selectionExecutor.composed.test.ts, chat.schemas.ts and chat.schemas.test.ts, and never chat.service.ts.
+- Every non-chat ingress this task owns is canonicalised and authorises the union: saved.service.ts and pins.service.ts canonicalise on store before validation and write; on reopen the order is status first over the raw operand union (an unregistered operand reports definition_unregistered, an unpermitted one the existing not-permitted reason, exactly as a displayed measure would), then canonicalisation of a runnable selection only; validateSelectionForUser, the executor's authorize, both runnable-status checks and the pin definition-version hash (computeDefinitionVersion over the operand union's measures) read operandMeasureIds instead of selection.measureIds; leaves prove each site, the reopen order, and that a stored selection with a bad entry is refused with its reason on store.
+- backend/src/sql/sqlBuilder.ts renders each measure filter as <left expr> <op> <right expr | lit(value)> joined by AND in a HAVING clause placed after GROUP BY in build (directly after WHERE when there are no dimensions) and after the projection's grouping in buildStatementProjection; buildStatementProjection additionally renders selection.filters as WHERE predicates on relation.<column> (eq, neq, in) beside the period predicate, emitted only when a filter is present; leaves assert the emitted SQL for measure-vs-measure, measure-vs-value, an ungrouped selection (one aggregate row kept or dropped), the combination with a dimension filter and a time window, and a leaf_key filter on the projection; every existing sqlBuilder and golden statement leaf passes with its expectations unchanged.
+- A new public SqlBuilder.buildTotals(domain, selection, user, resolvedScope) returns the ungrouped totals query: byte-for-byte today's shape when measureFilters is empty, and 'SELECT <totals over the aliases> FROM (<the grouped, filtered query with no LIMIT>) AS filtered LIMIT 1' when it is not, where a money measure totals as SUM(<alias>) AS <alias>, a measure with totalsOverAliases totals through that expression, and any other measure totals as NULL; backend/src/semantic/semanticLayer.ts sets totalsOverAliases on governed-financial.percentage to the nil-rule CASE over SUM(actual) and SUM(budget) and on mis-statement.percentage to the same CASE over SUM(actual_net) and SUM(budget_net); selectionExecutor.totalsFor calls buildTotals and constructs no SQL itself; leaves assert the unchanged shape, the money-only shape, the percent-display shape in both domains, and that the inner query carries no LIMIT.
 - backend/src/sql/sqlValidator.ts gains no rule: leaves prove a query with HAVING and the derived-table totals query are accepted, that an unapproved object referenced inside the derived table and a blocked column referenced inside HAVING are refused with the existing reasons, that a missing or oversize outer LIMIT is still refused, and pin that Parser.tableList on the derived table returns the base objects.
-- Hermetic proof: every required leaf below exists under its exact name, is executed (junit testcase present and executed, never skipped) and passes; python3 factory/scripts/verify.py passes; no file under backend/src/llm, backend/src/chat, backend/src/help, backend/src/conversations or frontend changes.
+- D-0006 and registration: backend/src/semantic/selectionValidation.ts is formatted and removed from .prettierignore and from ignoredBaselineHashes in tools/quality-gate.test.mjs in the same change; the new helper test is listed in backend/package.json test:hermetic and in tools/quality-gate.test.mjs; every required leaf exists under its exact name, is executed (junit testcase present and executed, never skipped) and passes; python3 factory/scripts/verify.py passes; no file under backend/src/llm, backend/src/help, backend/src/conversations or frontend changes.
 
 **Write scope** (what `stage done` measures the diff against)
 
@@ -217,6 +245,8 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 - backend/src/pins
 - backend/src/chat/selectionExecutor.ts
 - backend/src/chat/selectionExecutor.composed.test.ts
+- backend/src/chat/chat.schemas.ts
+- backend/src/chat/chat.schemas.test.ts
 - backend/src/common/global-exception.filter.ts
 - backend/src/common/error-envelope.wiring.test.ts
 - backend/package.json
@@ -225,22 +255,23 @@ Rendered by the harness from the recorded decomposition; edit the decomposition,
 
 **Required tests** (run by `stage done`)
 
-- `normalizeMeasureFilters accepts gt gte lt lte between two money measures and against a decimal value normalised to two decimals` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/semantic/measure-filter.helper.test.ts)
+- `normalizeMeasureFilters accepts gt gte lt lte between two money measures and normalises a decimal value lexically to two decimals including a value above MAX_SAFE_INTEGER and negative zero` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/semantic/measure-filter.helper.test.ts)
 - `normalizeMeasureFilters refuses a percent operand an unknown measure a self comparison a duplicate entry and a malformed value with typed reasons` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/semantic/measure-filter.helper.test.ts)
-- `canonicalizeSelection appends operand measures in first appearance order and leaves the first measure unchanged` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/semantic/measure-filter.helper.test.ts)
+- `canonicalizeSelection appends operand measures in first appearance order leaves the first measure unchanged and returns a selection without filters unchanged` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/semantic/measure-filter.helper.test.ts)
 - `validateSelectionForUser refuses an operand measure outside the domain or the user permissions even when measureIds are permitted` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/semantic/measure-filter.helper.test.ts)
 - `the builder renders a HAVING over the verified expressions for measure versus measure measure versus value and an ungrouped selection with a dimension filter and a time window` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/sql/sqlBuilder.selection.test.ts)
 - `buildTotals is unchanged without measure filters and wraps the grouped query without its LIMIT as a derived table with an outer LIMIT 1 when filters are present` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/sql/sqlBuilder.selection.test.ts)
-- `buildTotals totals a percent display measure through totalsOverAliases and a money measure as the sum of its alias` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/sql/sqlBuilder.selection.test.ts)
-- `a MeasureFilterInvalidException answers HTTP 400 with its type its reason in details and a reader userMessage` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/common/error-envelope.wiring.test.ts)
+- `buildTotals totals a percent display measure through totalsOverAliases in both domains and a money measure as the sum of its alias` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/sql/sqlBuilder.selection.test.ts)
 - `the statement projection renders a HAVING for a measure filter and a WHERE predicate for a leaf key filter and is unchanged when neither is present` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/sql/sqlBuilder.statement.test.ts)
 - `the validator accepts HAVING and a derived table totals query and still refuses an unapproved object inside the derived table a blocked column inside HAVING and a missing outer LIMIT` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/sql/sqlValidator.composed.test.ts)
-- `saved query runnable status and the stored selection refusal cover the operand measures and answer HTTP 400 with type MeasureFilterInvalidException` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/saved/saved.service.test.ts)
+- `saved query store refuses a bad measure filter with its reason canonicalises a good one and reports an unregistered operand as definition unregistered on reopen` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/saved/saved.service.test.ts)
 - `pin runnable status and the definition version hash cover the operand measures` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/pins/pins.service.test.ts)
+- `a MeasureFilterInvalidException answers HTTP 400 with its type its reason in details and a reader userMessage` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/common/error-envelope.wiring.test.ts)
+- `a direct Ask request carrying measureFilters is refused with a validation error until task two lifts the gate` -- `TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node tools/junit-run.mjs --file {path} --name {id} --report {report} --require ts-node/register` (backend/src/chat/chat.schemas.test.ts)
 
 **Verify commands**
 
 - `python3 factory/scripts/verify.py`
 
-**Review budget.** 16 files / 1100 lines -- Two contract files, one new helper with its test, one new exception, validation and executor edits, the builder (two domains plus buildTotals), the validator's leaves, saved and pins status and hash with their tests, the composed executor test, and package and quality-gate registration.
+**Review budget.** 26 files / 1500 lines -- Two contract files; the new helper and exception with the helper test; selectionValidation.ts (formatted and un-ignored) with .prettierignore and the quality-gate baseline; the builder in both domains plus buildTotals and the semantic layer's two totalsOverAliases; the validator's leaves; saved and pins services, schemas and DTOs with their tests; the executor and its composed test; chat.schemas.ts and its test; the exception filter and the envelope test; backend/package.json registration. Thirteen hermetic leaves across nine test files.
 <!-- /forge:contract -->
