@@ -1,8 +1,8 @@
 ---
 issue: ask-measure-filter
 title: Ask filters by a comparison between measures
-status: approved
-saved: 2026-09-18T04:56:08+00:00
+status: awaiting-approval
+saved: 2026-09-18T06:15:46+00:00
 story: ask-measure-filter
 decisions_reviewed:
   - 0001-poc-engagement-scope
@@ -38,14 +38,14 @@ decisions_reviewed:
   - 0036-all-plants-scope-for-the-poc
   - 0037-ask-untouched-in-multi-plant
   - 0038-mis-assistant-explains-without-touching-ask
-  - 0039-ask-measure-comparison-filter
+  - 0040-ask-measure-comparison-filter
 ---
 
 # Plan — ask-measure-filter: Ask filters by a comparison between measures
 
 Story: `ask-measure-filter` (roadmap 13, epic assistant) · spec:
 `docs/specs/ask-measure-comparison-filter.md` (confirmed 2026-09-17, amended once after the
-requirements cold read) · decision 0039 (accepted 2026-09-17). Second draft: the plan cold read
+requirements cold read) · decision 0040 (accepted 2026-09-17). Second draft: the plan cold read
 found the backend task unbounded and the human split it (three tasks), moved the totals query
 into the builder, and named the canonical ingress and the refusal contract.
 
@@ -180,12 +180,12 @@ deduplicated, the rest ANDed in order), a stated change to grounding merge seman
 its title (`Actual > Budget · July 2026`) and an **empty-state message** ("No lines match
 Actual > Budget for July 2026") when a filtered result has no rows (human ruling, 2026-09-17).
 
-### Rejected simpler shapes (0039)
+### Rejected simpler shapes (0040)
 A post-filter over returned rows (wrong under `LIMIT`) and a question-wording guard (answers
-nothing). Both recorded in 0039.
+nothing). Both recorded in 0040.
 
 ## Decisions
-- `docs/decisions/0039-ask-measure-comparison-filter.md` — accepted 2026-09-17. HAVING over
+- `docs/decisions/0040-ask-measure-comparison-filter.md` — accepted 2026-09-17. HAVING over
   verified expressions; money operands only, compared as amounts; operands made visible; totals
   follow the filter beyond the page; operands count for authorization; the statement projection
   honours dimension filters; a condition that cannot be expressed is refused, never dropped.

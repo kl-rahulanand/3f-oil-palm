@@ -62,7 +62,7 @@
     }
   ],
   "issue": "ask-measure-filter",
-  "input_sha256": "2ce8703b31827d10fa4686046d3756058fb2a6e604119d8338790a7008e21c78",
-  "recorded_at": "2026-09-17T12:22:46+00:00",
-  "commit": "7fac4bf710a08fa98aa5012d31e801fe8b6062c8"
+  "input_sha256": "090d132437ecc524140cc99b65d3c154820aa197629add3609e65ec22700c5c8",
+  "recorded_at": "2026-09-18T06:15:45+00:00",
+  "commit": "5deb5f235ab6cf12bb8ff5663430c4b58387f1ad"
 }

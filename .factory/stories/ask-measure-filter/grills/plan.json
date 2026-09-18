@@ -73,8 +73,8 @@
       "frontier_empty": true
     }
   ],
-  "input_sha256": "00ffd80cc163fe064df69efcaed55e9ae934b2352ea06f42baffbd7c55583cb2",
+  "input_sha256": "aef258a3b0c7d77baae252e28609dda91cadecb52e52d4fc3818de98598c5a67",
   "issue": "ask-measure-filter",
-  "recorded_at": "2026-09-17T12:23:36+00:00",
-  "commit": "7fac4bf710a08fa98aa5012d31e801fe8b6062c8"
+  "recorded_at": "2026-09-18T06:15:45+00:00",
+  "commit": "5deb5f235ab6cf12bb8ff5663430c4b58387f1ad"
 }
