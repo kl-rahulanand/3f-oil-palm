@@ -1,0 +1,20 @@
+{
+  "issue": "ask-measure-filter",
+  "stages": [
+    {
+      "id": "measure-filter-foundation",
+      "title": "Measure comparison filters: contract, canonical ingress, authorization union, HAVING in both domains, derived totals",
+      "status": "pending"
+    },
+    {
+      "id": "measure-filter-ask-integration",
+      "title": "Measure comparison filters in Ask: selector schema and prompt, chat ingress and refusal, grounding merge, response and snapshot, Swagger, help, warehouse proof",
+      "status": "pending"
+    },
+    {
+      "id": "measure-filter-surfaces",
+      "title": "Render the comparison: labels, identity, the Ask answer readout line and empty state; live functional check",
+      "status": "pending"
+    }
+  ]
+}
