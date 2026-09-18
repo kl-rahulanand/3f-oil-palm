@@ -1,5 +1,14 @@
 {
   "id": "measure-filter-foundation",
   "title": "Measure comparison filters: contract, canonical ingress, authorization union, HAVING in both domains, derived totals",
-  "status": "pending"
+  "status": "active",
+  "started_at": "2026-09-18T05:49:58+00:00",
+  "base_sha": "287c2697dba0734642785c5308172b7143eb8656",
+  "dirty_at_start": {
+    ".factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json": {
+      "digest": "45b451d4b907f1aaff74b78b7f023eee90b55971c6206b3761fe69e6b5688078",
+      "git": "1 .M N... 100644 100644 100644 b573b96803b523f4799d52b517e1a8c8844a9401 b573b96803b523f4799d52b517e1a8c8844a9401 .factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000\u0000100644 b573b96803b523f4799d52b517e1a8c8844a9401 0\t.factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000\u0000H .factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000"
+    }
+  },
+  "task_sha256": "34cf083fb624d66f0700087ea19de99eff0ceeab4460727760385cf57f735da6"
 }

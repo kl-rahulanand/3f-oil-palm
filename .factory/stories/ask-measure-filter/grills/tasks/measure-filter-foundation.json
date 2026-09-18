@@ -101,13 +101,13 @@
     "One pure canonicaliser helper and one typed exception that every selection ingress calls \u2014 the first single seam for selection normalisation and operand authorization.",
     "A builder-owned totals query over a derived table with per-measure totalsOverAliases \u2014 the first totals that respect a row filter beyond the visible page."
   ],
-  "input_sha256": "1778e443f15dbc4569fe973afdb804b3a89333f5abfb38836dba6381a5e76d9e",
+  "input_sha256": "ed840fc6ea913975760b3cdb348362486c780d0283cd388e09b3f1b6913782b2",
   "grounding_basis": "working-tree",
   "grounding_treeish": "",
   "task_plan_sha256": "f74e7fdbf72fa76650c827225ba657ba2d587c613373c2abf89bef54e83fb023",
-  "recorded_at": "2026-09-18T05:48:23+00:00",
-  "commit": "90204c2422e0abac6bc8209110e2feb3e3a9cd18",
+  "recorded_at": "2026-09-18T05:49:35+00:00",
+  "commit": "287c2697dba0734642785c5308172b7143eb8656",
   "approved_task_plan_sha256": "f74e7fdbf72fa76650c827225ba657ba2d587c613373c2abf89bef54e83fb023",
   "approved_by": "Rahul Anand",
-  "approved_at": "2026-09-18T05:48:23+00:00"
+  "approved_at": "2026-09-18T05:49:41+00:00"
 }
