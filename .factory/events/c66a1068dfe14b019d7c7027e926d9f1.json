@@ -1,0 +1,1 @@
+{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-18T05:58:28+00:00", "story": "ask-measure-filter", "detail": "S-0026-172d: RULING: backend/src/swagger.test.ts is in scope for measure-filter-foundation. Add the optional-field exemplar for AskResponse.appliedMeasureFilters (and ConversationAnswerSnapshot.appliedMeasureFilte"}
