@@ -268,7 +268,7 @@ against the `%` column of the statement.
   `backend/src/sql/sqlBuilder.ts`, `backend/src/sql/sqlValidator.ts`,
   `backend/src/semantic/selectionValidation.ts`, `backend/src/chat/chat.service.ts`,
   `backend/src/saved/saved.schemas.ts`, `frontend/src/features/exploration/selection-label.ts`.
-- Decisions 0004 (governed joins, code-authored measures), 0037, 0038, and 0039 (this capability's
+- Decisions 0004 (governed joins, code-authored measures), 0037, 0038, and 0040 (this capability's
   comparison rules).
 - Spec grill cold read, 2026-09-17: ten findings, eight settled from the repository (grounding,
   operand authorization, totals beyond the page, literal grammar, snapshot field, validator scope,
