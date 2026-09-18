@@ -1,4 +1,5 @@
 {
+  "generated_by": "human",
   "items": [
     {
       "key": "platform-base",
@@ -268,6 +269,31 @@
       "completed_at": "2026-09-17T11:30:44+00:00",
       "history": ".factory/stories/mis-assistant-explains-a-number/",
       "outcome": "Click any Actual figure on the MIS statement, ask the assistant beside it how that number came to be, and get an answer built from the same governed data the figure came from. A leaf line answers with both halves: the roll-up path naming the GL codes and cost centres the mapping master folds into it, and the transactions behind it with a footer that foots in paise to the cell you clicked. A subtotal or grand total answers with the lines that compose it and their values, projected in your browser from the statement already on screen rather than fetched again. The assistant still declines to say WHY a number is high - that inference it cannot make - but it will now show exactly WHAT the number is made of, which is the question people were actually asking. Nothing is taken on trust: the statement response carries a signed context binding its scope, outline, pinned batches, mapping-master version and user, so a question can be proven to be about the statement on screen and not merely about data you happen to be entitled to. Every refusal says which check failed. The transaction read keeps the drill's governed-read protections, auditing the exact predicate before it runs and failing closed. No figure the server read ever reaches the model - the explanation is composed on the server and the model only classifies the question. A statement built on a batch that has since been replaced still answers, and says so. The Ask page is untouched: it neither sends this context nor displays these explanations, and a grounded explanation is cleared the moment you generate a different statement, so an answer can never sit against figures it does not describe. SHIPPED UNEXERCISED: no host held both this code and real data, so the capability closes on hermetic proof under decision 0039, and its first run on the server is also its first proof (D-0055)."
+    },
+    {
+      "key": "ask-measure-filter",
+      "title": "Ask filters by a comparison between measures",
+      "story": "As a finance reader asking Ask about budget versus actual, I want 'which lines are over budget' and 'which GL codes spent more than 5 lakh' answered with only the matching lines, so that a verified answer never silently drops the condition I asked for.",
+      "acceptance_criteria": [
+        "Selection gains an additive optional measureFilters list (measure vs measure or vs a fixed-scale decimal value, gt/gte/lt/lte, AND, order-preserving); filters is unchanged; saved queries, pins, the persisted turn, the conversation answer snapshot and Swagger accept it; shipped selection leaves pass unmodified.",
+        "Validation refuses with typed reasons a non-money operand, an operand outside the domain or the user's permissions, a self-comparison, a duplicate entry or a value outside ^-?\\d+(\\.\\d{1,2})?$; % measures are not comparable; every check that reads measureIds reads the union with the operand measures.",
+        "The SQL builder compiles each measure filter to HAVING over the verified expressions in both the governed-financial query and the statement projection, and the statement projection now applies dimension filters as WHERE predicates; leaves assert the emitted SQL and the golden statement proofs stay unchanged.",
+        "Operand measures missing from measureIds are appended by the server in first-appearance order before validation and appear in the returned selection and chips; the first measure and the row ordering are unchanged.",
+        "Totals cover every matching group via a derived table without the inner LIMIT; a fixture with more matches than the page proves it.",
+        "The SQL validator accepts HAVING and the derived table while its object allowlist, blocked-column, no-star and bounded-LIMIT checks still fire; an empty result is a successful empty answer.",
+        "The selector tool schema enumerates only comparable measure ids in measureFilters; the system prompt maps over/under budget, over 100% and lakh/crore onto the shape; the parser refuses malformed entries; leaves assert schema, prompt and parser against recorded provider outputs.",
+        "Chips, saved-selection labels and the provenance readback render the comparison in words with registered labels and Indian digit grouping; appliedMeasureFilters is returned and snapshotted; selection identity includes the filter.",
+        "viewInReport is unavailable with the stated reason when a measure filter is present, and report grounding carries the question's measureFilters through; a leaf proves a grounded over-budget question never returns the unfiltered report.",
+        "Functional check live against Bedrock and the July warehouse: the three demo phrasings return only the matching lines with the Actual > Budget chip, and the DUB answer matches the statement rows whose % is above 100 or reads over-budget."
+      ],
+      "order": 13,
+      "status": "active",
+      "epic": "assistant",
+      "skill": "fullstack",
+      "depends_on": [
+        "assistant"
+      ],
+      "spec": "docs/specs/ask-measure-comparison-filter.md"
     }
   ],
   "epics": [
@@ -308,6 +334,5 @@
       ]
     }
   ],
-  "generated_by": "docs-decomposer",
-  "updated_at": "2026-09-17T11:30:44+00:00"
+  "updated_at": "2026-09-18T05:49:26+00:00"
 }

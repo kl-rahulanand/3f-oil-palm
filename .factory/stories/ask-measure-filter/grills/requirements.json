@@ -1,0 +1,68 @@
+{
+  "generated_by": "griller",
+  "gate": "requirements",
+  "verdict": "pass",
+  "summary": "One read-only Codex cold read (gpt-5.6-terra, task-mu5gq4gt-btiojn) of the confirmed spec docs/specs/ask-measure-comparison-filter.md against the built repo returned NOT CONVERGED with nine findings. Eight were settled from the repository: C10's demo phrasings are July-qualified because a question without a period aggregates all loaded data (ask-period-control.md:39), and the original no-date phrase is tested against that all-loaded scope; C10 gets two oracles because a GL code can fold into several statement components (docs/context/2026-08-20-srihari-phase1-data/README.md:83), so the GL answer is proven against the governed GL-month relation and, as a DUB-only user, the statement-domain answer against the statement's % column; report grounding is stated as a changed merge (report's filters first, identical normalised comparisons deduplicated, the rest ANDed in order) rather than 'untouched'; the viewInReport reason becomes the neutral 'The MIS statement cannot apply this comparison.' because the % column does not represent a threshold, a Roll-over comparison or the signed-budget case; the never-a-float rule is scoped to compareTo.value since Ask totals are Record<string, number> by contract (contract/src/api.ts:638); normalizeMeasureFilters is named the ONE canonicaliser at every ingress (provider output, direct AskRequest.selection, saved and pin store and reopen, prior turns, grounded selections) with one public refusal, measure_filter_invalid plus the reason enum; the misnumbered 'Decision 0029' in the brief's carried settled answers is a stale ledger round from the multi-plant story (that ruling is accepted decision 0036) and none of this story's documents cite 0029 for it. One finding went to the human: the Ask answer renders only its table (ask-panel.tsx:460, no chips, no applied-filter readout, an empty result is a blank table), so the comparison and the empty-state wording had no surface; the human chose to add a read-only readout line and an empty-state message in the frontend task rather than limit the promise to API persistence and saved-view labels. The spec was amended once and this pass is recorded against the amended version.",
+  "questions_asked": 1,
+  "gaps": [
+    "C10's first and third prompts named no period while Ask aggregates all loaded data when none is given, so a July-statement comparison would fail or need an undeclared change to period semantics.",
+    "C10 compared incompatible grains: a GL-code answer against statement leaf rows, though a GL can map to several statement components and cost centres.",
+    "The spec said grounding was untouched yet required applyReportGroundingToSelection to preserve measure filters, and 'report's retained, question's appended' could produce a malformed duplicate.",
+    "The viewInReport reason 'open it and read the % column' was false for a threshold comparison, a Roll-over comparison, or the accepted negative-budget case.",
+    "'Money values never floats' contradicted the shipped totals contract (Record<string, number>) and the executor's Number() conversion.",
+    "The required empty-answer wording had no rendered surface: SuccessAnswer renders a table only and never response.message.",
+    "The spec assumed a field editor and chips that the Ask answer does not render today.",
+    "Canonicalisation and typed refusals lacked one authoritative ingress across provider output, direct selections, saved queries, pins, prior turns and grounded selections.",
+    "The brief's carried settled answers cited 'Decision 0029' for the plant-scope ruling that is accepted decision 0036."
+  ],
+  "contradictions": [
+    "Spec C10 versus ask-period-control.md:39 on what a period-less question aggregates.",
+    "Spec 'grounding is untouched' versus the required change to applyReportGroundingToSelection.",
+    "Spec 'never a float' versus contract/src/api.ts:638 totals as numbers."
+  ],
+  "resolutions": [
+    "C10: the demo phrasings are July-qualified; the original no-date phrase is also run and asserted against its all-loaded scope; period semantics are unchanged.",
+    "C10: two oracles, the GL answer against the governed GL-month relation (the warehouse leaf) and the statement-domain answer, as a DUB-only user, against the statement's % column.",
+    "Behaviour: report grounding merge semantics change and are stated: report's measureFilters first, identical normalised comparisons deduplicated, the remainder ANDed in emitted order; a leaf covers the duplicate case.",
+    "Behaviour and C9: the viewInReport reason is 'The MIS statement cannot apply this comparison.'",
+    "Rules: the fixed-scale-string rule binds compareTo.value only; totals stay numbers as shipped.",
+    "Behaviour and C8 (empty answer): the empty-state message is rendered by the frontend task in place of the blank table; the backend returns zero rows plus the message (human ruling).",
+    "Behaviour and C8 (field editor): the assumed field editor and chips are removed from the spec; the reader-visible surface is the new read-only readout line under the answer title, on a fresh answer and after a reopen (human ruling).",
+    "Behaviour and C2: normalizeMeasureFilters is the one canonicaliser applied at every ingress, with the single public refusal measure_filter_invalid carrying the reason enum; a leaf proves a saved, direct and provider-produced selection are refused identically.",
+    "Record: the 0029 citation lives in a stale carried ledger round, not in this story's documents; the ruling is decision 0036 and nothing here relies on it.",
+    "Contradiction (C10 versus ask-period-control.md:39) resolved: period semantics unchanged, the phrasings are July-qualified and the no-period phrase is asserted against its all-loaded scope.",
+    "Contradiction (grounding untouched versus applyReportGroundingToSelection change) resolved: 'What does not change' now scopes the untouched surfaces and names the grounding merge as the one stated change.",
+    "Contradiction (never a float versus totals as numbers) resolved: the rule binds compareTo.value only; totals keep the shipped number contract."
+  ],
+  "open_items": [
+    "Non-blocking: editing the comparison in place (a later story).",
+    "Non-blocking: a variance measure for sorting by overrun."
+  ],
+  "inspected_refs": [
+    "docs/specs/ask-measure-comparison-filter.md",
+    "docs/specs/ask-period-control.md:39",
+    "docs/context/2026-08-20-srihari-phase1-data/README.md:83",
+    "docs/decisions/0036-all-plants-scope-for-the-poc.md:24",
+    "docs/decisions/0029-bind-host-explicit-network-exposure.md:8",
+    "contract/src/api.ts:638",
+    "contract/src/api.ts:730",
+    "backend/src/saved/saved.schemas.ts:18",
+    "backend/src/chat/chat.service.ts:638",
+    "frontend/src/features/assistant/ask-panel.tsx:460"
+  ],
+  "rounds": [
+    {
+      "question": "The requirements cold read found that the Ask answer today renders only its table: no chips, no applied-filter readout, and an empty result is a blank table. Where should the reader see the comparison and an empty result in this story?",
+      "options": [
+        "Add a readout line (Recommended)",
+        "API and saved-view labels only"
+      ],
+      "chosen": "Add a readout line (Recommended)",
+      "frontier_empty": true
+    }
+  ],
+  "issue": "ask-measure-filter",
+  "input_sha256": "2ce8703b31827d10fa4686046d3756058fb2a6e604119d8338790a7008e21c78",
+  "recorded_at": "2026-09-17T12:22:46+00:00",
+  "commit": "7fac4bf710a08fa98aa5012d31e801fe8b6062c8"
+}
