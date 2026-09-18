@@ -2,7 +2,7 @@
 issue: ask-measure-filter
 title: Ask filters by a comparison between measures
 status: awaiting-approval
-saved: 2026-09-18T06:15:46+00:00
+saved: 2026-09-18T06:19:44+00:00
 story: ask-measure-filter
 decisions_reviewed:
   - 0001-poc-engagement-scope
@@ -38,6 +38,7 @@ decisions_reviewed:
   - 0036-all-plants-scope-for-the-poc
   - 0037-ask-untouched-in-multi-plant
   - 0038-mis-assistant-explains-without-touching-ask
+  - 0039-close-mis-assistant-with-partial-functional
   - 0040-ask-measure-comparison-filter
 ---
 
