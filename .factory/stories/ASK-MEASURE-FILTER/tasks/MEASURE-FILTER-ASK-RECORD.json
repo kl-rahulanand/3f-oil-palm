@@ -2,27 +2,20 @@
   "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-ASK-RECORD",
   "review": {
     "blocking_level": "P1",
-    "changed": "41accf5770832de37cb55282af7c23dd8b5923ba9423e1d65cf5fe531f0ceefe",
-    "commit": "e6033b9f139bfea77872b2e2f061a3e9354239cc",
+    "changed": "4f967b0c234ca053d576b159ec603e8155277e66961e410930152831f7111061",
+    "commit": "d28b6dd3e99887f75a436edd311ba8dcc2641a54",
     "dismissals": [],
     "findings": [
       {
-        "body": "The accepted amount grammar permits leading zeroes, and normalization only pads the decimal places. A valid operand such as `000500000` therefore reaches this formatter as `000500000.00` and is rendered in the new chip/readback as `\u20b900,05,00,000` instead of `\u20b95,00,000`. Strip leading zeroes while preserving zero before applying Indian grouping.",
-        "file": "backend/src/chat/chat.service.ts",
-        "line": 748,
-        "priority": "P2",
-        "title": "Canonicalize leading zeroes before formatting comparison amounts"
-      },
-      {
-        "body": "Selecting the first domain with any money measure can omit the figure-to-figure example even when the user can perform one. For example, a user permitted only Actual in `governed-financial` but Actual and Budget in `mis-statement` gets only the amount example because the first domain's one-element array wins. Select a domain with at least two permitted money measures for the binary example, independently of the domain used for the amount example.",
-        "file": "backend/src/help/help.service.ts",
-        "line": 95,
-        "priority": "P2",
-        "title": "Choose a domain with two measures for the binary help example"
+        "body": "The added assertions only verify `appliedMeasureFilters`. Nothing verifies that `ChatResponseDto.selection` references `ExplorationSelectionDto`, so reverting that property to the previous generic object schema would leave this test green. The existing production-Swagger test only checks the shared selection component, which is also registered by saved-query routes and therefore does not prove `/api/chat` uses it. Add an assertion against the chat response schema or its `selection` metadata so the required `selection.measureFilters` documentation cannot regress unnoticed.",
+        "file": "backend/src/swagger.test.ts",
+        "line": 122,
+        "priority": "P1",
+        "title": "Not done: Swagger test for selection.measureFilters on chat responses"
       }
     ],
-    "status": "clean",
-    "tree": "9ae5eb34f786aa6402f0739d1e89e6b4bff20a7126967b2863096850ef3614f6"
+    "status": "blocked",
+    "tree": "2a69442a318a3f54aa21b6ef4944619e905c08431726640bfdf6bb048fa1d268"
   },
   "status": "fixing",
   "steps": [
@@ -32,6 +25,10 @@
     },
     {
       "at": "2026-10-01T19:53:38+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-01T20:08:25+00:00",
       "step": "review"
     }
   ]
