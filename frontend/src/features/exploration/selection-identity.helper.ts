@@ -17,12 +17,34 @@ export function selectionsEqual(left: Selection, right: Selection): boolean {
           : filter.value === other.value)
       );
     }) &&
+    equalMeasureFilters(left.measureFilters, right.measureFilters) &&
     left.timeWindow?.grain === right.timeWindow?.grain &&
     left.timeWindow?.last === right.timeWindow?.last &&
     left.timeWindow?.from === right.timeWindow?.from &&
     left.timeWindow?.to === right.timeWindow?.to &&
     left.timeWindow?.column === right.timeWindow?.column &&
     left.limit === right.limit
+  );
+}
+
+function equalMeasureFilters(left: Selection["measureFilters"], right: Selection["measureFilters"]): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return (
+    left.length === right.length &&
+    left.every((filter, index) => {
+      const other = right[index];
+      return (
+        other !== undefined &&
+        filter.measureId === other.measureId &&
+        filter.op === other.op &&
+        filter.compareTo.kind === other.compareTo.kind &&
+        (filter.compareTo.kind === "measure" && other.compareTo.kind === "measure"
+          ? filter.compareTo.measureId === other.compareTo.measureId
+          : filter.compareTo.kind === "value" &&
+            other.compareTo.kind === "value" &&
+            filter.compareTo.value === other.compareTo.value)
+      );
+    })
   );
 }
 

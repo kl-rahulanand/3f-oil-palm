@@ -15,3 +15,29 @@ test("selection labels use the shared semantic catalog and preserve unavailable 
     summary: "GL code · removed_dimension (unavailable): DUB",
   });
 });
+
+test("selection labels spell out measure comparisons with registered labels and Indian digit grouping", () => {
+  const selection: Selection = {
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    dimensionIds: ["gl_code"],
+    filters: [],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "value", value: "500000.00" },
+      },
+    ],
+  };
+
+  expect(selectionLabel(selection)).toEqual({
+    title: "Actual · Budget",
+    summary: "GL code · Actual > Budget · Actual > ₹5,00,000",
+  });
+});

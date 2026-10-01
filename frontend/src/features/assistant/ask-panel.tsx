@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/src/lib/api";
 import { formatMoney, formatPercentage } from "../mis/statement-view";
+import { measureFilterLabel } from "../exploration/selection-label";
 import { useAsk, type AskTurn } from "./use-ask";
 import { StatementExplanation } from "./statement-explanation";
 
@@ -298,6 +299,8 @@ function SuccessAnswer({
 }>) {
   const [saving, setSaving] = useState<"save" | "pin">();
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string }>();
+  const comparisonReadout = appliedComparisonReadout(response);
+  const emptyComparisonMessage = appliedComparisonEmptyMessage(response);
 
   async function preserve(kind: "save" | "pin") {
     if (!response.selection) return;
@@ -333,6 +336,7 @@ function SuccessAnswer({
     <article className="ask-answer ask-success" aria-busy={turn.isPending || undefined}>
       {response.provenance?.verified && <span className="ask-verified">✓ Verified</span>}
       {response.title && <h2>{response.title}</h2>}
+      {comparisonReadout && <p className="ask-report-reason">{comparisonReadout}</p>}
       {response.totals && (
         <dl className="ask-totals">
           {Object.entries(response.totals).map(([label, value]) => (
@@ -343,7 +347,12 @@ function SuccessAnswer({
           ))}
         </dl>
       )}
-      {response.result && <ResultVisual result={response.result} chartType={response.chartType} />}
+      {response.result &&
+        (emptyComparisonMessage ? (
+          <p className="ask-report-reason">{emptyComparisonMessage}</p>
+        ) : (
+          <ResultVisual result={response.result} chartType={response.chartType} />
+        ))}
       {response.provenance && <ProvenanceDisclosure provenance={response.provenance} />}
       <ViewInReport response={response} />
       {response.periodControl &&
@@ -642,6 +651,48 @@ function formatAskMoney(value: string | number): string {
 /** A total is keyed by its measure key, so its format is the matching column's format. */
 function formatForKey(result: ResultTable | undefined, key: string): MeasureFormat | undefined {
   return result?.columns.find((column) => column.key === key)?.format;
+}
+
+function appliedComparisonReadout(response: AskResponse): string | undefined {
+  const comparisons = appliedComparisonLabels(response);
+  if (!comparisons) return undefined;
+  const period = appliedPeriodLabel(response);
+  return period ? `${comparisons} · ${period}` : comparisons;
+}
+
+function appliedComparisonEmptyMessage(response: AskResponse): string | undefined {
+  if (response.result?.rows.length !== 0) return undefined;
+  const comparisons = appliedComparisonLabels(response);
+  if (!comparisons) return undefined;
+  const period = appliedPeriodLabel(response);
+  return `No lines match ${comparisons}${period ? ` for ${period}` : ""}`;
+}
+
+function appliedComparisonLabels(response: AskResponse): string | undefined {
+  return response.appliedMeasureFilters?.length
+    ? response.appliedMeasureFilters.map(measureFilterLabel).join(" · ")
+    : undefined;
+}
+
+function appliedPeriodLabel(response: AskResponse): string | undefined {
+  const current = response.periodControl?.current;
+  const controlled = current
+    ? response.periodControl?.options.find((option) => option.value === current)?.label
+    : undefined;
+  if (controlled) return controlled;
+  const window = response.appliedTimeWindow;
+  if (!window) return undefined;
+  const from = formatMonthYear(window.from);
+  const to = formatMonthYear(window.to);
+  if (!from || !to) return undefined;
+  return from === to ? from : `${from}–${to}`;
+}
+
+function formatMonthYear(value: string): string | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
 function latestSuggestions(turns: AskTurn[]): string[] | undefined {

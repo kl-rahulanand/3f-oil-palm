@@ -118,11 +118,11 @@ test("a grounded turn is excluded from the prior turns an ungrounded ask sends",
   );
 
   fireEvent.click(screen.getByRole("button", { name: "Ask ordinary first" }));
-  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/));
   fireEvent.click(screen.getByRole("button", { name: "Ask grounded" }));
-  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded,grounded"));
   fireEvent.click(screen.getByRole("button", { name: "Ask ordinary next" }));
-  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(3));
+  await waitFor(() => expect(screen.getByTestId("turn-origins")).toHaveTextContent("ungrounded,grounded,ungrounded"));
 
   expect(mocks.ask.mock.calls[2]?.[0].priorTurns).toEqual([{ question: "Ordinary first", selection }]);
 });
