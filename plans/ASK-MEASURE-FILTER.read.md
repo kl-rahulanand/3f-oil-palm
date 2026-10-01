@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T15:42:53+00:00
-read_hash: ec98c53b1343c160b76da9a96ea333bae05195ad
-round: 1
+read_at: 2026-10-01T15:48:16+00:00
+read_hash: e265574ec065fabb10140dde8b4a17b3c0cbb4b3
+round: 2
 passed: no
-doc_seen: ec98c53b1343c160b76da9a96ea333bae05195ad
+doc_seen: e265574ec065fabb10140dde8b4a17b3c0cbb4b3
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+notes_seen: 7be40f333afd9390f0f3ef81c96a8b2a131cc97c
 ---
 # Cold read notes
 
@@ -48,3 +48,21 @@ Only a genuine trade-off goes to the human, as a question with options.
 7. Trap: Windows shells: item 10.
    The prescribed warehouse command uses POSIX inline environment assignments and line continuations. Provide PowerShell/cmd equivalents or explicitly declare the live/warehouse checks macOS/Linux-host-only.
    Disposition: cut the doc declares the warehouse proof and the live check macOS/Linux-host-only (For the builders; Verify Plan): CI is Linux without a database or network and the repository has no Windows development host.
+
+## Round 2
+
+8. Split: `MEASURE-FILTER-ASK-RESPONSE` remains too large and its Covers cell is inaccurate.
+   It delivers C1, C2, C5, C6, C8, and C9—direct canonicalisation, refusal, warehouse proof, empty answer, snapshot/readback, and grounding—but lists only C1 and C9. The plan also still claims items 1–6 are complete despite this unfinished work. Reassign each unfinished outcome and split the response task further.
+   Disposition: cut the claim that items 1 to 6 are complete is withdrawn: details 1, 2, 5 and 6 now say what #73 left and which row delivers it; the response part is split into MEASURE-FILTER-ASK-RESPONSE (items 2, 6, 9) and MEASURE-FILTER-ASK-RECORD (items 1, 8, 5); item 8 is now the backend half and new item 11 the on-screen half, so every Covers cell names what its row delivers.
+
+9. Unproven: item 7: a comparison measure from one permitted domain cannot be used with another selected domain.
+   `comparableMeasureIds: string[]` has no domain association, while the provider may receive multiple allowed domains. The plan only validates against that global list; pin either per-domain comparable IDs or a selected-domain parser check, with a cross-domain refusal leaf.
+   Disposition: cut the seam is now `comparableMeasureIdsByDomain`, keyed by domain name; `parseMeasureFilters` checks operands against the selected domain's list and MEASURE-FILTER-SELECTOR carries a cross-domain refusal leaf (Notes, The selector and Grounded vocabulary; the SELECTOR row).
+
+10. The plan contradicts itself about the mock provider.
+   The selector task and Grounded vocabulary say `LlmProvider` and `mock.provider.ts` carry `comparableMeasureIds`, while the Selector technical approach still says “The mock provider is unchanged.” One contract must be chosen and tested.
+   Disposition: cut The selector now says `LlmProvider` and the mock provider accept the new argument and the mock ignores it; the contradiction is gone.
+
+11. Done item 3 remains ambiguous against item 9.
+   One says the “statement view” applies comparisons; the other says the MIS statement cannot apply them. The technical notes distinguish Ask’s statement projection from the MIS statement screen, but the user-facing Done-when text does not. Name those two surfaces explicitly.
+   Disposition: cut item 3 now names Ask's GL-code view and Ask's statement-line view, and item 9 the MIS statement screen.

@@ -1,6 +1,6 @@
 # Ask filters by a comparison between measures
 
-3 parts · Risks: none one-way · New moving parts: none
+4 parts · Risks: none one-way · New moving parts: none
 
 ## What changes for you
 
@@ -36,14 +36,15 @@ selection all enter the backend without passing through the provider branch.
 
 1. **A question that compares one figure with another, or with an amount, carries that comparison through to the answer, and saved reports, pins and reopened answers keep it; nothing stored before this change is affected.**
 2. **A comparison that cannot be honoured is refused with a stated reason, never silently dropped: only money figures compare, a figure never compares with itself, duplicates and malformed amounts are refused, and a figure the reader may not see is refused exactly as it is today.**
-3. **The database itself applies the comparison, in both the GL view and the statement view, and the statement view now also honours a line filter it used to ignore.**
+3. **The database itself applies the comparison in both of Ask's views, the GL-code view and the statement-line view, and Ask's statement-line view now also honours a line filter it used to ignore.**
 4. **Any figure a comparison relies on is shown as a column in the answer, added by the server, without changing the order of the rows.**
 5. **Totals cover every line that passes the comparison, not only the page on screen.**
 6. **Every existing safety check on generated SQL still fires with the new shapes, and an answer with no matching lines is a successful empty answer with a plain message.**
 7. **The assistant's model is told the comparison shape and the rules for over budget, under budget, over 100% and lakh or crore, and it can only name figures that compare.**
-8. **Answers, saved-report labels and the provenance readback spell the comparison out in words with Indian digit grouping, an empty result shows a message instead of a blank table, and the readout survives reopening a conversation.**
-9. **"View in report" says the MIS statement cannot apply the comparison, and a question asked inside a report combines the report's comparisons with the question's.**
+8. **The answer carries the comparison it applied: a chip per comparison, the provenance readback spells it out in words with Indian digit grouping, the applied comparisons come back with the answer and are kept in the conversation record, and the comparison is part of what makes two saved reports the same or different.**
+9. **"View in report" says the MIS statement screen cannot apply the comparison, and a question asked inside a report combines the report's comparisons with the question's.**
 10. **A live check against Bedrock and the July warehouse proves the demo phrasings, at GL grain as the admin and at statement grain as a DUB-only user.**
+11. **On screen, saved-report labels and the answer's readout line spell the comparison out in words with Indian digit grouping, an empty result shows a message instead of a blank table, the readout survives reopening a conversation, and reopening a saved or pinned report that carries a comparison re-runs it with the comparison.**
 
 ## Risks
 
@@ -61,10 +62,10 @@ selection all enter the backend without passing through the provider branch.
 
 ## For the builders
 
-Done-when items 1 to 6 are already on master: the foundation part (contract, canonical ingress,
-authorization union, HAVING in both domains, derived totals) was built and merged under the
-previous harness as pull request #73, so no row below covers them and the three remaining parts
-build on it. Builds and checks run on macOS or Linux hosts: CI is Linux with no network and no
+The foundation part (contract, canonical ingress, authorization union, HAVING in both domains,
+derived totals) was built and merged under the previous harness as pull request #73: Done-when
+items 3 and 4 are on master in full, and items 1, 2, 5 and 6 in part; each of those four says under
+Done-when details what #73 left and which row below delivers it. Four parts remain and build on it. Builds and checks run on macOS or Linux hosts: CI is Linux with no network and no
 database, and this repository has no Windows development host, so the warehouse proof and the
 live functional check are declared macOS/Linux-host-only. Decision 0040 and the confirmed spec `docs/specs/ask-measure-comparison-filter.md`
 stand. The previous harness's commands named in the Notes (`verify.py`, `./forge defer add`) no
@@ -72,11 +73,16 @@ longer exist: the test command is forge.toml's, and deferrals are plain notes he
 
 ### Done-when details
 
-1. (C1) `Selection.measureFilters` is an additive optional list of `{ measureId, op: gt|gte|lt|lte,
+1. (C1) Left after #73: the chat DTOs and Swagger, and the conversation answer snapshot
+   (MEASURE-FILTER-ASK-RECORD); the contract, the saved-query schema and the persisted turn are on master.
+   `Selection.measureFilters` is an additive optional list of `{ measureId, op: gt|gte|lt|lte,
    compareTo: measure|value }`, combined with AND, order-preserving; `filters` is unchanged; the
    saved-query zod schema, the persisted turn type, the conversation answer snapshot and the Swagger
    DTOs accept it; every shipped leaf that builds or stores a selection passes unmodified.
-2. (C2) One canonicaliser, `normalizeMeasureFilters`, runs at every ingress (provider output,
+2. (C2) Left after #73: the provider door (MEASURE-FILTER-SELECTOR) and the direct `AskRequest.selection`
+   door with the Ask refusal translation (MEASURE-FILTER-ASK-RESPONSE); saved, pin, reopen and
+   prior-turn doors, the helper and the HTTP envelope are on master.
+   One canonicaliser, `normalizeMeasureFilters`, runs at every ingress (provider output,
    direct `AskRequest.selection`, saved and pin store and reopen, prior-turn re-run, grounded
    selection) and refuses, through the single typed refusal `measure_filter_invalid` with its reason
    enum, a filter whose operand is not a money measure of the selection's domain or not a measure
@@ -97,10 +103,14 @@ longer exist: the test command is forge.toml's, and deferrals are plain notes he
 4. (C4) Operand measures missing from `measureIds` are appended by the server, in first-appearance
    order, before validation, and appear in the returned selection and chips; the first measure and
    therefore the row ordering are unchanged.
-5. (C5) `totals` are computed over every matching group via a derived table without the inner
+5. (C5) Left after #73: the fixture leaf with more matching groups than the limit is the gated warehouse
+   proof (MEASURE-FILTER-ASK-RECORD); the derived-table totals query and its builder leaves are on master.
+   `totals` are computed over every matching group via a derived table without the inner
    `LIMIT`; a leaf asserts, on a fixture with more matching groups than the limit, that the totals
    cover the groups beyond the visible page and differ from the unfiltered total.
-6. (C6) The SQL validator accepts the new shapes and every existing check still fires: a `HAVING`
+6. (C6) Left after #73: the successful empty answer with the stated wording in Ask
+   (MEASURE-FILTER-ASK-RESPONSE); the validator leaves are on master.
+   The SQL validator accepts the new shapes and every existing check still fires: a `HAVING`
    or derived table that references an unapproved object or a blocked column is refused, and the
    mandatory bounded `LIMIT` check still fires. An answer whose `HAVING` drops every row is a
    successful empty answer with the stated wording.
@@ -110,7 +120,7 @@ longer exist: the test command is forge.toml's, and deferrals are plain notes he
    system prompt carries the mapping rules (over/under budget, over 100%, lakh/crore); the parser
    rejects malformed entries with a typed reason. Leaves assert schema, prompt text and parser
    behaviour against recorded provider outputs.
-8. (C8) Saved-selection labels, the Ask answer's read-only readout line and the provenance
+8. (C8, backend half; the on-screen half is item 11) Saved-selection labels, the Ask answer's read-only readout line and the provenance
    readback render the comparison in words with registered labels and Indian digit grouping; a
    filtered result with no rows renders the empty-state message instead of a blank table; the
    readout survives a conversation reopen; `appliedMeasureFilters` is returned and snapshotted;
@@ -133,14 +143,22 @@ longer exist: the test command is forge.toml's, and deferrals are plain notes he
    Statement grain, as a DUB-only user: "which statement lines are over budget for July 2026"
    returns exactly the DUB statement rows whose `%` is above 100 or reads `over-budget`, every July
    budget being zero or positive.
+11. (C8, on-screen half) `selection-label.ts` renders each measure filter in words with registered
+   labels and Indian digit grouping (`Actual > Budget`, `Actual > ₹5,00,000`); `selection-identity.helper.ts`
+   compares `measureFilters`; the Ask answer shows a read-only readout line under its title built from
+   `appliedMeasureFilters` and the applied period, on a fresh answer and after a conversation reopen, and
+   renders the empty-state message ("No lines match Actual > Budget for July 2026") in place of the
+   blank table when a filtered result has no rows; reopening a saved or pinned selection with a filter
+   re-runs it with the filter. Vitest leaves for label, identity, readout, empty state and reopen.
 
 ## Tasks
 
 | ID | Name | What it delivers | Covers | Scope | Tests | After | User-facing |
 |---|---|---|---|---|---|---|---|
-| MEASURE-FILTER-SELECTOR | Measure comparison filters reach the selector: tool schema and prompt, comparable-measure vocabulary, parser, provider door canonicalised | Let the selector emit the comparison and let the provider door carry it: the Bedrock tool schema gains measureFilters whose measureId and compareTo.measureId enumerate only comparable measure ids from a new comparableMeasureIds argument on the provider's selection call (the seam, pinned here with LlmProvider and the mock provider updated); the system prompt maps over/under budget, over 100% and lakh/crore onto the shape and sends anything else to mark_unsupported; parseMeasureFilters refuses malformed entries with typed reasons in llm.constants.ts; the chat service passes the comparable ids (every permitted money measure of the full domain, also when grounded), runs report grounding on the emitted selection and only then canonicalises the provider's selection through the foundation helper against the full domain. One crossing leaf: an Actual-only grounded report answers 'over budget' with Actual > Budget and Budget appended. No DTO, Swagger, help, chips, readback, snapshot or frontend change. | 7 | `backend/src/llm/bedrock.provider.ts`, `backend/src/llm/bedrock.provider.test.ts`, `backend/src/llm/llm.constants.ts`, `backend/src/llm/llm.interface.ts`, `backend/src/llm/mock.provider.ts`, `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts` | `backend/src/llm/bedrock.provider.test.ts`, `backend/src/chat/chat.service.test.ts` | none | no |
-| MEASURE-FILTER-ASK-RESPONSE | Measure comparison filters through Ask: direct door, refusal, chips, readback, grounding merge, response and snapshot, Swagger, help, warehouse proof | Carry the comparison honestly through the rest of Ask: a direct AskRequest.selection is canonicalised through the foundation helper; a MeasureFilterInvalidException becomes responseClass not_supported with a reader sentence per reason and the reason in the structured log line (no audit schema change); one chip of the existing kind 'filter' per measure filter; the readback names the comparison; appliedMeasureFilters is returned and snapshotted in the conversation answer; viewInReport is unavailable with the neutral reason; report grounding merges the report's and the question's measureFilters (report's first, identical normalised entries deduplicated, the rest ANDed in order); an empty filtered result is a successful zero-row answer with the stated message; the chat DTOs and Swagger document the fields; help lists comparison examples; the gated warehouse proof measure-filter.db.test.ts runs the over-budget selection against the July fixture and is registered in backend/package.json's test:warehouse-proof and test:hermetic and pinned in tools/quality-gate.test.mjs. | 9, 1 | `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts`, `backend/src/chat/chat.schemas.ts`, `backend/src/chat/chat.schemas.test.ts`, `backend/src/chat/chat.controller.ts`, `backend/src/conversations`, `backend/src/help`, `backend/src/swagger.test.ts`, `backend/src/warehouse/measure-filter.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | `backend/src/chat/chat.service.test.ts`, `backend/src/chat/chat.schemas.test.ts`, `backend/src/conversations/conversations.service.test.ts`, `backend/src/help/help.service.test.ts`, `backend/src/swagger.test.ts`, `backend/src/warehouse/measure-filter.db.test.ts`, `tools/quality-gate.test.mjs` | MEASURE-FILTER-SELECTOR | no |
-| MEASURE-FILTER-SURFACES | Render the comparison: labels, identity, the Ask answer readout line and empty state; live functional check | Consume the widened contract on the frontend: selection labels render each measure filter in words with registered labels and Indian digit grouping ('Actual > Budget', 'Actual > ₹5,00,000'); selection identity includes measureFilters; the Ask answer shows a read-only readout line under its title built from appliedMeasureFilters and the applied period, on a fresh answer and after a conversation reopen, and renders the empty-state message in place of the blank table when a filtered result has no rows; reopening a saved or pinned selection that carries a filter re-runs it with the filter. Vitest leaves for label, identity, readout, empty state and reopen. The story's functional check runs the executable matrix in the plan live against Bedrock and the July warehouse, as the admin and as a DUB-only user. | 8, 10 | `frontend/src/features/exploration/selection-label.ts`, `frontend/src/features/exploration/selection-label.test.ts`, `frontend/src/features/exploration/selection-identity.helper.ts`, `frontend/src/features/exploration/selection-identity.helper.test.ts`, `frontend/src/features/assistant` | `frontend/src/features/exploration/selection-label.test.ts`, `frontend/src/features/exploration/selection-identity.helper.test.ts`, `frontend/src/features/assistant/ask-panel.test.tsx` | MEASURE-FILTER-ASK-RESPONSE | yes |
+| MEASURE-FILTER-SELECTOR | Measure comparison filters reach the selector: tool schema and prompt, comparable-measure vocabulary, parser, provider door canonicalised | Let the selector emit the comparison and let the provider door carry it: the Bedrock tool schema gains measureFilters whose measureId and compareTo.measureId enumerate only comparable measure ids from a new comparableMeasureIdsByDomain argument on the provider's selection call (the seam, pinned here with LlmProvider and the mock provider updated), parsed against the selected domain's list with a cross-domain operand refused by a typed reason; the system prompt maps over/under budget, over 100% and lakh/crore onto the shape and sends anything else to mark_unsupported; parseMeasureFilters refuses malformed entries with typed reasons in llm.constants.ts; the chat service passes the comparable ids per permitted domain (every money measure of each full domain, also when grounded), runs report grounding on the emitted selection and only then canonicalises the provider's selection through the foundation helper against the full domain. Leaves: a cross-domain operand refused; one crossing leaf, an Actual-only grounded report answers 'over budget' with Actual > Budget and Budget appended. No DTO, Swagger, help, chips, readback, snapshot or frontend change. | 7 | `backend/src/llm/bedrock.provider.ts`, `backend/src/llm/bedrock.provider.test.ts`, `backend/src/llm/llm.constants.ts`, `backend/src/llm/llm.interface.ts`, `backend/src/llm/mock.provider.ts`, `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts` | `backend/src/llm/bedrock.provider.test.ts`, `backend/src/chat/chat.service.test.ts` | none | no |
+| MEASURE-FILTER-ASK-RESPONSE | Measure comparison filters through Ask's doors: direct selection, refusal translation, empty answer, view-in-report, grounding merge | Carry the comparison honestly through Ask's remaining doors: a direct AskRequest.selection is canonicalised through the foundation helper before anything runs; a MeasureFilterInvalidException from either door becomes responseClass not_supported with a reader sentence per reason and the reason in the structured log line (no audit schema change); an empty filtered result is a successful zero-row answer with the stated message; viewInReport is unavailable with the neutral reason when a filter is present; report grounding merges the report's and the question's measureFilters (report's first, identical normalised entries deduplicated, the rest ANDed in order). No chips, readback, response field, snapshot, DTO, Swagger, help or frontend change. | 2, 6, 9 | `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts`, `backend/src/chat/chat.schemas.ts`, `backend/src/chat/chat.schemas.test.ts` | `backend/src/chat/chat.service.test.ts`, `backend/src/chat/chat.schemas.test.ts` | MEASURE-FILTER-SELECTOR | no |
+| MEASURE-FILTER-ASK-RECORD | The answer records the comparison: chips, readback, appliedMeasureFilters, conversation snapshot, DTOs and Swagger, help, warehouse proof | Make the applied comparison visible and durable: one chip of the existing kind 'filter' per measure filter with the words label; the readback names the comparison; appliedMeasureFilters is returned on the response and kept in the conversation answer snapshot; the chat DTOs and Swagger document the fields; help lists comparison examples; the gated warehouse proof measure-filter.db.test.ts runs the over-budget selection against the July fixture, asserts the GL set equals the relation's and that totals cover matching groups beyond the page, prints the over-budget set for the functional check's oracle, and is registered in backend/package.json's test:warehouse-proof and test:hermetic and pinned in tools/quality-gate.test.mjs. | 1, 8, 5 | `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts`, `backend/src/chat/chat.schemas.ts`, `backend/src/chat/chat.controller.ts`, `backend/src/conversations`, `backend/src/help`, `backend/src/swagger.test.ts`, `backend/src/warehouse/measure-filter.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | `backend/src/chat/chat.service.test.ts`, `backend/src/conversations/conversations.service.test.ts`, `backend/src/help/help.service.test.ts`, `backend/src/swagger.test.ts`, `backend/src/warehouse/measure-filter.db.test.ts`, `tools/quality-gate.test.mjs` | MEASURE-FILTER-ASK-RESPONSE | no |
+| MEASURE-FILTER-SURFACES | Render the comparison: labels, identity, the Ask answer readout line and empty state; live functional check | Consume the widened contract on the frontend: selection labels render each measure filter in words with registered labels and Indian digit grouping ('Actual > Budget', 'Actual > ₹5,00,000'); selection identity includes measureFilters; the Ask answer shows a read-only readout line under its title built from appliedMeasureFilters and the applied period, on a fresh answer and after a conversation reopen, and renders the empty-state message in place of the blank table when a filtered result has no rows; reopening a saved or pinned selection that carries a filter re-runs it with the filter. Vitest leaves for label, identity, readout, empty state and reopen. The story's functional check runs the executable matrix in the plan live against Bedrock and the July warehouse, as the admin and as a DUB-only user. | 11, 10 | `frontend/src/features/exploration/selection-label.ts`, `frontend/src/features/exploration/selection-label.test.ts`, `frontend/src/features/exploration/selection-identity.helper.ts`, `frontend/src/features/exploration/selection-identity.helper.test.ts`, `frontend/src/features/assistant` | `frontend/src/features/exploration/selection-label.test.ts`, `frontend/src/features/exploration/selection-identity.helper.test.ts`, `frontend/src/features/assistant/ask-panel.test.tsx` | MEASURE-FILTER-ASK-RECORD | yes |
 New moving parts: none
 
 ## Notes
@@ -223,9 +241,11 @@ column inside `HAVING`, and a missing outer `LIMIT` are still refused, and pin t
 ### The selector
 `bedrock.provider.ts`: `measureFilters` in the `emit_selection` schema with `measureId` and
 `compareTo.measureId` enumerating comparable ids only, `op` the four operators, `value` a string;
-`parseMeasureFilters` mirrors `parseFilters` with typed reasons in `llm.constants.ts`. The system
-prompt gains `systemPromptMeasureFilters` (over / under budget, over 100%, lakh and crore, and the
-`mark_unsupported` rule). The mock provider is unchanged.
+`parseMeasureFilters` mirrors `parseFilters` with typed reasons in `llm.constants.ts`, and checks
+each operand against the **selected domain's** comparable ids, refusing a cross-domain operand with
+a typed reason. The system prompt gains `systemPromptMeasureFilters` (over / under budget, over
+100%, lakh and crore, and the `mark_unsupported` rule). `LlmProvider` and the mock provider accept
+the new `comparableMeasureIdsByDomain` argument; the mock ignores it.
 
 ### Grounded vocabulary (the seam MEASURE-FILTER-SELECTOR pins)
 A grounded ask today offers the model only the report's own measures (`domainScopedToReport`,
@@ -234,10 +254,11 @@ A grounded ask today offers the model only the report's own measures (`domainSco
 comparison operands: widening it would let the model display Budget, which
 `applyReportGroundingToSelection` (`chat.service.ts:644`) rejects; narrowing it leaves Budget out
 of `compareTo`. The seam: the provider's selection call takes, beside the (scoped) domain, a
-separate `comparableMeasureIds: string[]`, every money measure of the **full** domain the user is
-permitted, and builds the `measureFilters.measureId` and `compareTo.measureId` enums from it while
-`measureIds` keeps its enum from the scoped domain; `parseMeasureFilters` validates operands
-against that list. The chat service then runs report grounding on the model's selection as emitted
+separate `comparableMeasureIdsByDomain: Record<string, string[]>`, keyed by domain name, every
+money measure of each **full** permitted domain the user may read, and builds the
+`measureFilters.measureId` and `compareTo.measureId` enums from the union while `measureIds`
+keeps its enum from the scoped domain; `parseMeasureFilters` validates each operand against the
+**selected** domain's list, so a measure of another permitted domain is refused, never compiled. The chat service then runs report grounding on the model's selection as emitted
 (displayed measures only) and **afterwards** canonicalises against the full domain, so an appended
 operand is never rejected by the displayed-measure check. `LlmProvider` (`llm.interface.ts`) and
 the mock provider carry the new argument. MEASURE-FILTER-SELECTOR commits the argument, the enum
@@ -298,12 +319,14 @@ nothing). Both recorded in 0040.
 | SQL builder (both domains), `buildTotals`, `semanticLayer.ts` (`totalsOverAliases` on the two `%` measures), executor `totalsFor`, validator leaves | **Changed** — HAVING, derived totals, projection WHERE filters | on master (#73) |
 | `backend/package.json` (`test:hermetic` registration of the new helper test), `tools/quality-gate.test.mjs` | **Changed** — proof registration | on master (#73) |
 | Bedrock provider schema, prompt, parser; LLM messages; `LlmProvider` and mock provider (`comparableMeasureIds`); the chat service's provider call and grounding order | **Changed** — `measureFilters` tool field and rules, the comparable-measure seam | MEASURE-FILTER-SELECTOR |
-| Chat service: direct-door ingress, refusal translation and log line, chips, readback, `viewInReport`, report-grounding merge, `appliedMeasureFilters`; conversations snapshot; chat DTOs and Swagger; help examples; warehouse proof | **Changed** | MEASURE-FILTER-ASK-RESPONSE |
-| `backend/package.json` (`test:warehouse-proof` and `test:hermetic` registration of `measure-filter.db.test.ts`), `tools/quality-gate.test.mjs` (pins both registries) | **Changed** — D-0008 proof registration | MEASURE-FILTER-ASK-RESPONSE |
+| Chat service: direct-door ingress, refusal translation and log line, empty answer, `viewInReport`, report-grounding merge | **Changed** | MEASURE-FILTER-ASK-RESPONSE |
+| Chat service: chips, readback, `appliedMeasureFilters`; conversations snapshot; chat DTOs and Swagger; help examples; warehouse proof | **Changed** | MEASURE-FILTER-ASK-RECORD |
+| `backend/package.json` (`test:warehouse-proof` and `test:hermetic` registration of `measure-filter.db.test.ts`), `tools/quality-gate.test.mjs` (pins both registries) | **Changed** — D-0008 proof registration | MEASURE-FILTER-ASK-RECORD |
 | Frontend selection label, identity, Ask answer readout line and empty state | **Changed** | MEASURE-FILTER-SURFACES |
 | Tests: `measure-filter.helper.test.ts` (new), `sqlBuilder.selection.test.ts`, `sqlBuilder.statement.test.ts`, `sqlValidator.composed.test.ts`, `saved.service.test.ts`, `pins.service.test.ts` | **Changed** | on master (#73) |
 | Tests: `bedrock.provider.test.ts`, `chat.service.test.ts` (provider door, crossing leaf) | **Changed** | MEASURE-FILTER-SELECTOR |
-| Tests: `chat.service.test.ts` (direct door, refusal, chips, readback, merge, empty), `chat.schemas.test.ts`, `conversations.service.test.ts` (new), `help.service.test.ts` (new), `swagger.test.ts`, `measure-filter.db.test.ts` (new, gated), `tools/quality-gate.test.mjs` | **Changed** | MEASURE-FILTER-ASK-RESPONSE |
+| Tests: `chat.service.test.ts` (direct door, refusal, merge, empty), `chat.schemas.test.ts` | **Changed** | MEASURE-FILTER-ASK-RESPONSE |
+| Tests: `chat.service.test.ts` (chips, readback, applied), `conversations.service.test.ts` (new), `help.service.test.ts` (new), `swagger.test.ts`, `measure-filter.db.test.ts` (new, gated), `tools/quality-gate.test.mjs` | **Changed** | MEASURE-FILTER-ASK-RECORD |
 | Tests: `selection-label.test.ts`, `selection-identity.helper.test.ts`, `ask-panel.test.tsx` | **Changed** | MEASURE-FILTER-SURFACES |
 | `/ask` routing, causal guard, docked grounding, period semantics, statement screen, mapping master, ingestion | **Unchanged by design** — 0037, 0038, ask-period-control; this story changes what a permitted selection can express, not who may ask what | — |
 | Editing the comparison in place | **Deferred** — edit a measure filter in place (revisit when a reader asks to change a threshold without retyping) | — |
@@ -314,21 +337,24 @@ nothing). Both recorded in 0040.
 ### Task Decomposition
 
 The foundation (contract, canonical ingress, authorization union, HAVING in both domains,
-derived totals: Done-when items 1 to 6) is on master as pull request #73. Three parts remain,
-in dependency order; every new field is optional, so each build stays green at each step.
+derived totals) is on master as pull request #73. Four parts remain, in dependency order; every
+new field is optional, so each build stays green at each step.
 
 1. **MEASURE-FILTER-SELECTOR** (backend) — item 7. Provider schema, prompt, parser and
-   messages; the comparable-measure seam (`comparableMeasureIds` on the provider call,
-   `LlmProvider`, mock provider); the chat service's provider call, grounding-before-append order
-   and canonicalisation of the provider door; the crossing leaf. Waits for nothing.
-2. **MEASURE-FILTER-ASK-RESPONSE** (backend) — items 9 and 1. The direct door, refusal
-   translation and log line, chips, readback, `viewInReport`, the report-grounding merge,
+   messages; the comparable-measure seam (`comparableMeasureIdsByDomain` on the provider call,
+   `LlmProvider`, mock provider, cross-domain refusal); the chat service's provider call,
+   grounding-before-append order and canonicalisation of the provider door; the crossing leaf.
+   Waits for nothing.
+2. **MEASURE-FILTER-ASK-RESPONSE** (backend) — items 2, 6 and 9. The direct door, refusal
+   translation and log line, the empty answer, `viewInReport`, the report-grounding merge.
+   Waits for MEASURE-FILTER-SELECTOR.
+3. **MEASURE-FILTER-ASK-RECORD** (backend) — items 1, 8 and 5. Chips, readback,
    `appliedMeasureFilters`, the conversation snapshot, chat DTOs and Swagger, help examples, the
    gated warehouse proof and its registration in `backend/package.json` and
-   `tools/quality-gate.test.mjs`. Waits for MEASURE-FILTER-SELECTOR.
-3. **MEASURE-FILTER-SURFACES** (frontend, user-facing) — items 8 and 10. Labels, identity, the
-   readout line and empty state, reopen with a filter, and the live functional check. Waits for
-   MEASURE-FILTER-ASK-RESPONSE. Loads impeccable and emil-design-eng as the brief requires.
+   `tools/quality-gate.test.mjs`. Waits for MEASURE-FILTER-ASK-RESPONSE.
+4. **MEASURE-FILTER-SURFACES** (frontend, user-facing) — items 11 and 10. Labels, identity,
+   the readout line and empty state, reopen with a filter, and the live functional check. Waits
+   for MEASURE-FILTER-ASK-RECORD. Loads impeccable and emil-design-eng as the brief requires.
 
 ### Verify Plan
 
@@ -348,12 +374,13 @@ in dependency order; every new field is optional, so each build stays green at e
   from `comparableMeasureIds`, prompt text, parser against recorded outputs); `chat.service.test.ts`
   (the provider door canonicalised, grounding before append, the crossing leaf: an Actual-only
   grounded report answering "over budget").
-- **Hermetic backend, MEASURE-FILTER-ASK-RESPONSE** — `chat.service.test.ts` (the direct door, refusal translated to `not_supported` with the reason in the log line, the filter
-  chip, readback, `viewInReport`, grounding merge incl. the duplicate case, `appliedMeasureFilters`, empty result);
-  `chat.schemas.test.ts`; 
-  `conversations.service.test.ts` (snapshot keeps the field); `help.service.test.ts`;
-  `swagger.test.ts`; `tools/quality-gate.test.mjs` (both backend registries pinned).
-- **Gated DB proof, MEASURE-FILTER-ASK-RESPONSE (D-0008), macOS/Linux host only** — `backend/src/warehouse/measure-filter.db.test.ts`,
+- **Hermetic backend, MEASURE-FILTER-ASK-RESPONSE** — `chat.service.test.ts` (the direct door canonicalised,
+  refusal translated to `not_supported` with the reason in the log line, `viewInReport`, grounding
+  merge incl. the duplicate case, empty result); `chat.schemas.test.ts`.
+- **Hermetic backend, MEASURE-FILTER-ASK-RECORD** — `chat.service.test.ts` (the filter chip, readback,
+  `appliedMeasureFilters`); `conversations.service.test.ts` (snapshot keeps the field);
+  `help.service.test.ts`; `swagger.test.ts`; `tools/quality-gate.test.mjs` (both backend registries pinned).
+- **Gated DB proof, MEASURE-FILTER-ASK-RECORD (D-0008), macOS/Linux host only** — `backend/src/warehouse/measure-filter.db.test.ts`,
   registered in `test:warehouse-proof`, loopback-only; executed on the host as
   `WAREHOUSE_DB_TEST=1 WAREHOUSE_DRIVER=postgres WAREHOUSE_PG_HOST=127.0.0.1 WAREHOUSE_PG_PORT=5433
   WAREHOUSE_PG_USER=warehouse WAREHOUSE_PG_DATABASE=warehouse npm -w @3f/backend run
