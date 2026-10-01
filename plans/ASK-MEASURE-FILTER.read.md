@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T19:57:22+00:00
-read_hash: f80319011485205cff229ad72d1b8830d9b4f3f5
-round: 16
+read_at: 2026-10-01T19:59:53+00:00
+read_hash: 43f954b54c212f6c02729060b18ec12dc68979df
+round: 17
 passed: no
-doc_seen: f80319011485205cff229ad72d1b8830d9b4f3f5
+doc_seen: 43f954b54c212f6c02729060b18ec12dc68979df
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: c565b40258f583244b6328c0f432b2cf2fd8c194
+notes_seen: 9daf422a8ede672fd2fda5f82ec6c8eff3540b43
 ---
 # Cold read notes
 
@@ -177,3 +177,13 @@ No findings.
 31. The D-0006 formatter-removal path targets a deleted ledger and contradicts the plan’s migration note.
    `.prettierignore` requires recording a removal in `plans/deferrals.md`, but Forge v1 deleted that file and the plan says deferrals are plain Notes; the Record task nevertheless scopes the absent file. Pin one current recording location and its update, rather than recreating an obsolete ledger or leaving the required removal undocumented.
    Disposition: cut `plans/deferrals.md` is dropped from the Scope; the row now pins the recording location as one dated header comment in `.prettierignore` itself, the way the D-0005 removal is recorded, and says the ledger is not recreated (Tasks row).
+
+## Round 17
+
+32. The plan’s task state is stale and contradictory.
+   It says six parts remain and that Provider and Warehouse Proof may still run, while the Record task relies on Provider #78 and Warehouse Proof #79 already having merged. Mark those two parts as on master and update the remaining-work count and decomposition so workers have one current dependency state.
+   Disposition: cut the For the builders paragraph and the Task Decomposition now mark Provider (#78), Warehouse Proof (#79), Ask Response (#80) and Grounding (#81) as merged and name the two remaining parts.
+
+33. The D-0006 cleanup is not fully pinned.
+   Removing `conversations.service.ts` from `.prettierignore` also requires removing its entry from `tools/quality-gate.test.mjs`’s exact `ignoredBaselineHashes` manifest; otherwise the quality-gate leaf fails. Name that removal and add `tools/quality-gate.test.mjs` to Record’s Tests cell. The task should also replace the existing `.prettierignore` header’s still-false reference to deleted `plans/deferrals.md`, not merely append a new comment.
+   Disposition: cut the Record row now names the `ignoredBaselineHashes` removal in `tools/quality-gate.test.mjs` and the replacement of the header's `plans/deferrals.md` reference, and `tools/quality-gate.test.mjs` joins its Tests cell (Tasks row).
