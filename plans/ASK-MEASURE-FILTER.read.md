@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:07:02+00:00
-read_hash: 03b103a0ab44ee2cf8d2a061a087e4914f51bf19
-round: 10
+read_at: 2026-10-01T16:08:11+00:00
+read_hash: 791ea9b7f53abfb148fd9d771bd23f1987425252
+round: 11
 passed: no
-doc_seen: 03b103a0ab44ee2cf8d2a061a087e4914f51bf19
+doc_seen: 791ea9b7f53abfb148fd9d771bd23f1987425252
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 689c93e960011790eb24ec42aa39c9ec83fad1e4
+notes_seen: 72c40fcc193e201db37f5efff3afebe6eb60800a
 ---
 # Cold read notes
 
@@ -138,3 +138,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 25. `MEASURE-FILTER-PROVIDER` omits C2 from its Covers cell.
    C2 explicitly assigns the provider ingress to this task, and its delivery canonicalizes provider output, but it claims to cover only C7.
    Disposition: cut the provider door's canonicalisation is stated under item 7 (detail 7), which MEASURE-FILTER-PROVIDER covers, and detail 2 now says that door is done under item 7 before item 2's task runs; item 2 stays with MEASURE-FILTER-ASK-RESPONSE, which runs after it, so its reviewer sees every door in place.
+
+## Round 11
+
+26. C2’s provider ingress is still unmapped.
+   Rewording it as “part of item 7” does not change that canonicalizing provider output is C2 behavior. Add C2 to `MEASURE-FILTER-PROVIDER`’s Covers cell, or move that work to the C2 task.
+   Disposition: cut canonicalising the provider door now belongs to MEASURE-FILTER-ASK-RESPONSE with items 2 and 6 (every door: provider, direct, prior turn), which runs right after MEASURE-FILTER-PROVIDER; the provider task covers item 7 only and its crossing leaf shows parsed filters reaching the chat service intact; MEASURE-FILTER-GROUNDING follows and inserts the merge between the normalise and the append (rows, details 2 and 7, Task Decomposition, Verify Plan, Surface Impact, the ingress risk).
