@@ -2,27 +2,27 @@
   "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-ASK-RESPONSE",
   "review": {
     "blocking_level": "P1",
-    "changed": "0cc64649ba5a86a79af481b1c9c2b31cf246323f2fd40ea58664f4f6197bcaa4",
-    "commit": "42e281bcca4e45335b3b88d42f29481fb67052da",
+    "changed": "77fc3e4792e6eaf1e83f311551c16ca97e71781916652f985dafe3da1b9beb78",
+    "commit": "04c9be037865b79f448e58c944ae81579ba5503d",
     "dismissals": [],
     "findings": [
       {
-        "body": "Canonicalization occurs only after the provider's `unsupported` branch has returned. The Bedrock parser returns `kind: \"unsupported\"` for comparison measures or operands outside the selected domain's comparable set (`bedrock.provider.ts:347-369`), including percentage and cross-domain outputs. Those cases therefore take the earlier generic fallback path, never call `refuseMeasureFilter`, and produce neither the required reason-specific reader sentence nor a structured `MeasureFilterInvalidReason`. Translate these comparison-specific provider outcomes before the generic branch, and cover the provider door for `not_comparable` and `unknown_measure`.",
+        "body": "The provider translation still infers the refusal reason from which operand failed rather than why it failed. For example, `Actual > governed-financial.percentage` is rejected by the provider as `selectionMeasureFilterOperandNotAllowed` (`bedrock.provider.ts:362-369`), but this branch maps every such result to `UnknownMeasure`; Percentage exists and should produce `NotComparable` and the `%`-specific sentence. Conversely, an unknown left-hand measure is mapped to `NotComparable`. Thus provider-door refusals and structured logs disagree with the canonical helper/direct door. The new test only covers a non-comparable left operand and unknown right operand, missing these reversed cases.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 288,
+        "line": 274,
         "priority": "P1",
         "title": "Not done: A comparison that cannot be honoured is refused with a stated reason, never silently dropped"
       },
       {
-        "body": "The new empty-answer test injects an empty table through `FakeExecutor`, so it does not prove that a real filtered SQL execution reaches the API as a successful zero-row answer with the stated message. The story assigns that warehouse/API/browser proof (functional matrix row 6) to MEASURE-FILTER-SURFACES, so this is a later-task test gap rather than a blocker for this branch.",
+        "body": "The empty-answer test still injects an empty table through `FakeExecutor`, so it does not prove that real filtered SQL execution reaches the API as a successful zero-row answer with the stated message. The story assigns that warehouse/API/browser proof (functional matrix row 6) to MEASURE-FILTER-SURFACES, making this a later-task test gap rather than a blocker for this branch.",
         "file": "backend/src/chat/chat.service.test.ts",
-        "line": 389,
+        "line": 422,
         "priority": "P2",
         "title": "Later: prove the empty Ask answer through MEASURE-FILTER-SURFACES"
       }
     ],
     "status": "blocked",
-    "tree": "fb20b5ef14a6ee43e6774d3c9e79f66bad651a31638beb4362ed3a0f06ddc275"
+    "tree": "b5d9db578da730949da142a9e521820cbd0f620a5ef19d62e7b6c1915b95ab23"
   },
   "status": "fixing",
   "steps": [
@@ -32,6 +32,10 @@
     },
     {
       "at": "2026-10-01T17:26:46+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-01T17:34:10+00:00",
       "step": "review"
     }
   ]
