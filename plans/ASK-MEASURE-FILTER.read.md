@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:04:39+00:00
-read_hash: 1b98ac78fb050f6c21499b7b4c2c93bfc485dc09
-round: 9
+read_at: 2026-10-01T16:07:02+00:00
+read_hash: 03b103a0ab44ee2cf8d2a061a087e4914f51bf19
+round: 10
 passed: no
-doc_seen: 1b98ac78fb050f6c21499b7b4c2c93bfc485dc09
+doc_seen: 03b103a0ab44ee2cf8d2a061a087e4914f51bf19
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 3f3d2ee84abb2149ac5286a03dc2b1f65e8117a5
+notes_seen: 689c93e960011790eb24ec42aa39c9ec83fad1e4
 ---
 # Cold read notes
 
@@ -128,3 +128,13 @@ Only a genuine trade-off goes to the human, as a question with options.
 23. The refusal-contract notes still assign work to nonexistent “Task 1.”
    They say Task 1 changes `global-exception.filter.ts`, but Surface Impact says that branch is already on master and current task 1 has no such Scope. Replace it with the foundation ownership.
    Disposition: cut the refusal-contract note now says the foundation (on master, #73) added the exception-filter branch.
+
+## Round 10
+
+24. The builders summary is stale.
+   It says “Four parts remain,” while the task table and decomposition now define five.
+   Disposition: cut the builders summary now says five parts remain.
+
+25. `MEASURE-FILTER-PROVIDER` omits C2 from its Covers cell.
+   C2 explicitly assigns the provider ingress to this task, and its delivery canonicalizes provider output, but it claims to cover only C7.
+   Disposition: cut the provider door's canonicalisation is stated under item 7 (detail 7), which MEASURE-FILTER-PROVIDER covers, and detail 2 now says that door is done under item 7 before item 2's task runs; item 2 stays with MEASURE-FILTER-ASK-RESPONSE, which runs after it, so its reviewer sees every door in place.

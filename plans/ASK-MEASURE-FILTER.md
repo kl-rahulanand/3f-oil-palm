@@ -68,7 +68,7 @@ selection all enter the backend without passing through the provider branch.
 The foundation part (contract, canonical ingress, authorization union, HAVING in both domains,
 derived totals) was built and merged under the previous harness as pull request #73: Done-when
 items 3 and 4 are on master in full, and items 1, 2, 5 and 6 in part; each of those four says under
-Done-when details what #73 left and which row below delivers it. Four parts remain and build on it. Builds and checks run on macOS or Linux hosts: CI is Linux with no network and no
+Done-when details what #73 left and which row below delivers it. Five parts remain and build on it. Builds and checks run on macOS or Linux hosts: CI is Linux with no network and no
 database, and this repository has no Windows development host, so the warehouse proof and the
 live functional check are declared macOS/Linux-host-only. Decision 0040 and the confirmed spec `docs/specs/ask-measure-comparison-filter.md`
 stand. The previous harness's commands named in the Notes (`verify.py`, `./forge defer add`) no
@@ -82,7 +82,8 @@ longer exist: the test command is forge.toml's, and deferrals are plain notes he
    compareTo: measure|value }`, combined with AND, order-preserving; `filters` is unchanged; the
    saved-query zod schema, the persisted turn type, the conversation answer snapshot and the Swagger
    DTOs accept it; every shipped leaf that builds or stores a selection passes unmodified.
-2. (C2) Left after #73: the provider door (MEASURE-FILTER-PROVIDER) and, in MEASURE-FILTER-ASK-RESPONSE,
+2. (C2) Left after #73: the provider door, which MEASURE-FILTER-PROVIDER canonicalises as part of item 7
+   (it runs before this item's task), and, in MEASURE-FILTER-ASK-RESPONSE,
    Ask's own doors: `askSelectionSchema` (`chat.schemas.ts:24`) still omits `measureFilters`, and
    it is the shape of both the direct `AskRequest.selection` and every `priorTurns[].selection`,
    so a follow-up after a filtered answer is refused by the schema today. That task widens the
@@ -132,7 +133,9 @@ longer exist: the test command is forge.toml's, and deferrals are plain notes he
    mandatory bounded `LIMIT` check still fires. An answer whose `HAVING` drops every row is a
    successful empty answer with the stated wording.
 7. (C7) The comparison enums come from `comparableMeasureIdsByDomain`, not the scoped domain (Notes,
-   Grounded vocabulary); MEASURE-FILTER-PROVIDER pins that seam.
+   Grounded vocabulary); MEASURE-FILTER-PROVIDER pins that seam, and what the selector emits is
+   canonicalised through the foundation helper at the provider door (the chat service's provider
+   call), so this item includes that door; item 2's remaining doors come later.
    The selector tool schema enumerates only comparable measure ids in `measureFilters`; the
    system prompt carries the mapping rules (over/under budget, over 100%, lakh/crore); the parser
    rejects malformed entries with a typed reason. Leaves assert schema, prompt text and parser
