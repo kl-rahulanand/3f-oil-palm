@@ -23,7 +23,7 @@ import { LLM_PROVIDER, loadConfig } from "../config";
 import { LLM_CONTEXT_CHAR_BUDGET, LLM_MESSAGES } from "../llm/llm.constants";
 import type { LlmPriorTurn, LlmProvider, LlmUsage } from "../llm/llm.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
-import { canonicalizeSelection } from "../semantic/measure-filter.helper";
+import { canonicalizeSelection, normalizeMeasureFilters } from "../semantic/measure-filter.helper";
 import { MeasureFilterInvalidException } from "../semantic/measure-filter-invalid.exception";
 import { StructuredLogger } from "../common/structured.logger";
 import { AuditService } from "../core/audit.service";
@@ -301,20 +301,33 @@ export class ChatService {
       }
       selection = sel.selection;
       try {
+        const selectedDomain = this.semantic.domain(selection.domain);
+        if (selectedDomain && selection.measureFilters) {
+          selection = {
+            ...selection,
+            measureFilters: normalizeMeasureFilters(selectedDomain, selection.measureFilters),
+          };
+        }
+        if (groundedReport) {
+          const reportSelection = groundedReport.selection.measureFilters
+            ? {
+                ...groundedReport.selection,
+                measureFilters: normalizeMeasureFilters(groundedReport.domain, groundedReport.selection.measureFilters),
+              }
+            : groundedReport.selection;
+          const groundedSelection = applyReportGroundingToSelection(selection, reportSelection);
+          if (!groundedSelection) {
+            return done({
+              responseClass: ResponseClass.NotSupported,
+              message: CHAT_MESSAGES.reportGroundingSelectionMismatch,
+            });
+          }
+          selection = groundedSelection;
+        }
         selection = this.canonicalizeKnownSelection(selection);
       } catch (error) {
         if (error instanceof MeasureFilterInvalidException) return refuseMeasureFilter(error);
         throw error;
-      }
-      if (groundedReport) {
-        const groundedSelection = applyReportGroundingToSelection(selection, groundedReport.selection);
-        if (!groundedSelection) {
-          return done({
-            responseClass: ResponseClass.NotSupported,
-            message: CHAT_MESSAGES.reportGroundingSelectionMismatch,
-          });
-        }
-        selection = groundedSelection;
       }
       const routingClarify = domainRoutingAmbiguity({
         question,
@@ -567,7 +580,7 @@ export class ChatService {
       appliedTimeWindow,
       appliedFilters: selection.filters,
       periodControl: buildPeriodControl(selection, appliedTimeWindow, answerPeriodOptions),
-      viewInReport: buildViewInReport(domain, statementScope, activeBatchIds),
+      viewInReport: buildViewInReport(domain, selection, statementScope, activeBatchIds),
       ...answerMetadata,
     };
 
@@ -761,15 +774,44 @@ function applyReportGroundingToSelection(selection: Selection, reportSelection: 
   const selectedFilters = selection.filters.filter(
     (filter) => !reportSelection.filters.some((reportFilter) => sameFilter(reportFilter, filter)),
   );
+  const reportMeasureFilters = reportSelection.measureFilters ?? [];
+  const selectedMeasureFilters = (selection.measureFilters ?? []).filter(
+    (filter) => !reportMeasureFilters.some((reportFilter) => sameMeasureFilter(reportFilter, filter)),
+  );
 
   return {
     domain: selection.domain,
     measureIds: [...selection.measureIds],
     dimensionIds: [...selection.dimensionIds],
     filters: [...reportSelection.filters.map((filter) => ({ ...filter })), ...selectedFilters],
+    ...(reportSelection.measureFilters || selection.measureFilters
+      ? {
+          measureFilters: [
+            ...reportMeasureFilters.map(cloneMeasureFilter),
+            ...selectedMeasureFilters.map(cloneMeasureFilter),
+          ],
+        }
+      : {}),
     ...(reportSelection.timeWindow ? { timeWindow: { ...reportSelection.timeWindow } } : {}),
     limit: reportSelection.limit,
   };
+}
+
+function cloneMeasureFilter(filter: MeasureFilter): MeasureFilter {
+  return { ...filter, compareTo: { ...filter.compareTo } };
+}
+
+function sameMeasureFilter(left: MeasureFilter, right: MeasureFilter): boolean {
+  return (
+    left.measureId === right.measureId &&
+    left.op === right.op &&
+    left.compareTo.kind === right.compareTo.kind &&
+    (left.compareTo.kind === "measure" && right.compareTo.kind === "measure"
+      ? left.compareTo.measureId === right.compareTo.measureId
+      : left.compareTo.kind === "value" &&
+        right.compareTo.kind === "value" &&
+        left.compareTo.value === right.compareTo.value)
+  );
 }
 
 function sameFilter(left: Selection["filters"][number], right: Selection["filters"][number]): boolean {
@@ -866,9 +908,13 @@ export function isVerifiedSelection(
 
 function buildViewInReport(
   domain: DomainSpec,
+  selection: Selection,
   statementScope: MasterResolvedSelection | undefined,
   activeBatchIds: NonNullable<Provenance["activeBatchIds"]>,
 ): NonNullable<AskResponse["viewInReport"]> {
+  if (selection.measureFilters?.length) {
+    return { available: false, reason: "The MIS statement cannot apply this comparison." };
+  }
   if (domain.name !== "mis-statement") {
     return { available: false, reason: "This answer was not executed against the MIS statement." };
   }
