@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T20:59:41+00:00
-read_hash: e290ca5689e4913daeafbd10beab6360cd872530
-round: 20
+read_at: 2026-10-01T21:00:31+00:00
+read_hash: bd6d2455d1d7ce051de4281d03096f9fd55a189a
+round: 21
 passed: no
-doc_seen: e290ca5689e4913daeafbd10beab6360cd872530
+doc_seen: bd6d2455d1d7ce051de4281d03096f9fd55a189a
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 0bc3c6dc06b01875732ac5185028144e639a6c68
+notes_seen: 084d4561d00d9e8383cb3bd3dd4ef2bde456c3b6
 ---
 # Cold read notes
 
@@ -202,3 +202,10 @@ No findings.
 
    Update the builders summary and decomposition to mark Ask Record merged and Surfaces as the sole remaining part, so no worker attempts to rebuild it.
    Disposition: cut the For the builders paragraph and the Task Decomposition now mark MEASURE-FILTER-ASK-RECORD merged as #82 and name MEASURE-FILTER-SURFACES as the one remaining part.
+
+## Round 21
+
+35. The plan still says the completed Ask Response work is broken “today”: it claims `askSelectionSchema` omits `measureFilters` and prior turns are refused.
+
+   Pull request #80 is merged; `origin/master` now uses the full selection schema and has acceptance coverage. Update that C2 detail and the ingress risk to describe the completed behavior, leaving only Surfaces as unfinished.
+   Disposition: cut Done-when detail 2 now says the Ask doors were delivered and merged as #80 and describes the schema gap in the past tense; the Risks line sits above For the builders in the approved part of the doc and records the risk as it stood at approval, so it is left as approved.

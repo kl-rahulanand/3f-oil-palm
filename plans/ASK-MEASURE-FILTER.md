@@ -85,9 +85,9 @@ longer exist: the test command is forge.toml's, and deferrals are plain notes he
 2. (C2) Left after #73: in MEASURE-FILTER-ASK-RESPONSE, the provider door (the selector's parsed
    output, canonicalised before validation and execution) and Ask's own doors below; and in
    MEASURE-FILTER-GROUNDING, the grounded selection, canonicalised after the report merge and
-   refused identically. Ask's own doors: `askSelectionSchema` (`chat.schemas.ts:24`) still omits `measureFilters`, and
+   refused identically. Ask's own doors (delivered and merged as #80): before #80, `askSelectionSchema` (`chat.schemas.ts:24`) omitted `measureFilters`, and
    it is the shape of both the direct `AskRequest.selection` and every `priorTurns[].selection`,
-   so a follow-up after a filtered answer is refused by the schema today. That task widens the
+   so a follow-up after a filtered answer was refused by the schema. That task widened the
    shared schema to the full `selectionSchema`, canonicalises the direct selection and each prior
    turn's selection through the foundation helper before they are used as Bedrock's conversation
    context (`bedrock.provider.ts:200`), and adds the Ask refusal translation. A prior turn is
