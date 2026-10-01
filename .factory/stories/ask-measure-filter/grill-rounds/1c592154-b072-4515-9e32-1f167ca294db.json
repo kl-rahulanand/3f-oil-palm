@@ -1,0 +1,15 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "The task cold read found that the shared selection schema is also the Ask request schema, so once task 1 widens it a direct /api/chat request could carry a measure filter into the new SQL path before task 2 adds Ask's canonicalisation and refusal. How should task 1 handle that gap?",
+      "options": [
+        "Reject in Ask until task 2 (Recommended)",
+        "Bring minimal Ask handling into task 1"
+      ],
+      "chosen": "Reject in Ask until task 2 (Recommended)"
+    }
+  ],
+  "at": "2026-09-18T05:45:30.659189+00:00",
+  "session_id": "4aae3a4c-e622-44bc-8104-76ad07126bfc"
+}

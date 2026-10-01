@@ -1,4 +1,4 @@
-# Cold-read grill — gate: requirements — requirements for mis-assistant-explains-a-number (docs/specs/mis-assistant-explains-a-number.md)
+# Cold-read grill — gate: requirements — requirements for ask-measure-filter (docs/specs/ask-measure-comparison-filter.md)
 
 You did NOT write what follows. Read it cold, as an adversary trying to break the handover, never as its author defending it. You are READ-ONLY: return findings, change nothing.
 
@@ -435,208 +435,242 @@ These questions were put to the human and answered. Two obligations:
   A: Accept, confirmed by Rahul Anand (Recommended)
 - Q: FY-YTD block on a plant whose budget covers only some of the months in the block: how should Budget and % render? (Today only July is loaded, so the DUB YTD block is unaffected either way.)
   A: Budget = loaded months, % = not loaded (Recommended)
+- Q: The spec grill put three questions to you and you answered them twice, but both ledgers landed in the wrong checkout. Confirm the three rulings for the record: signed budgets compare as amounts ('over budget' and 'over 100% of budget' both mean Actual greater than Budget); the statement projection's silently dropped dimension filters are fixed in this story, not deferred; decision 0039 is accepted as written, confirmed by Rahul Anand?
+  A: Confirm all three (Recommended)
 
-## The artifact under interrogation (requirements for mis-assistant-explains-a-number (docs/specs/mis-assistant-explains-a-number.md))
+## The artifact under interrogation (requirements for ask-measure-filter (docs/specs/ask-measure-comparison-filter.md))
 
 ---
-slug: mis-assistant-explains-a-number
-title: The on-screen assistant explains a number on the MIS statement
+slug: ask-measure-comparison-filter
+title: Ask filters by a comparison between measures
 status: confirmed
-saved: 2026-09-15T20:20:17+00:00
+saved: 2026-09-17T10:56:38+00:00
 ---
 
-# The on-screen assistant explains a number on the MIS statement
+# Ask filters by a comparison between measures
 
 ## Why
 
-On the MIS Reports screen the docked assistant knows nothing about the report on screen.
-`AskPanel` accepts exactly two props - `surface` and `onCollapse` - and `ask()` posts
-`{ question }`. So asking "how is this 85000" while looking at Agriculture Nursery DUB for July
-2026 is byte-for-byte the same request as asking it on `/ask` with nothing on screen.
+On 2026-09-16, during the client demo, the human asked Ask "show me list items where Actuals are
+more than the budget" and got a wrong answer. Reproduced locally against Bedrock on 2026-09-17:
+the selector emitted `Actual` and `Budget` by GL code with `filters: []`, the executor ran it, and
+the answer listed all 67 July GL codes with the verified badge, under-budget lines included
+(GL 50001202 at ₹2,80,908 against ₹5,00,000). Every number was right; the list was not the list
+asked for, and nothing said so.
 
-Worse, the assistant actively refuses the question. `classifyCausalQuestion`
-(`backend/src/chat/reconciliation-guard.ts:31`) fires before any routing and answers:
+The cause is structural, not a model slip. `SelectionFilter` (`contract/src/measure.ts:160`) is
+the only filter shape and it compares a **dimension** to a value (`eq | in | neq`). There is no
+way to say "one measure greater than another measure" or "a measure above a number", so the
+selector's tool schema (`backend/src/llm/bedrock.provider.ts:88`) cannot carry the condition, the
+SQL builder (`backend/src/sql/sqlBuilder.ts:93`) cannot compile it, and the model's only honest
+options are `request_clarification` or `mark_unsupported`, which it did not take. The question is
+the most natural one a finance reader asks of a budget-versus-actual table, and the screen already
+answers it through the `%` column and its `over-budget` label.
 
-> Causal analysis is not configured. I can't infer why a result is high or low.
+This capability adds the missing filter shape end to end: contract, selector schema and prompt,
+semantic validation, SQL, provenance readback, saved and pinned selections, and the chips a reader
+sees. It does not touch `/ask`'s routing, grounding, or the statement screen.
 
-That guard is **correct with no context** - it stops the model inventing causes. But it answers
-the wrong question. "How is this 85000" is not causal inference, it is **composition**: which
-amounts add up to this figure, and why do they land on this line. The product already computes
-both halves and already shows them to the same user through a different door:
+## Users
 
-- `POST /api/mis/statement/drill` returns every transaction behind a leaf - month, posting date,
-  debit, credit, value, reference, memo - plus a footer that foots exactly, and it is audited
-  under decision 0025. `statement-view.tsx:167` opens it when the user clicks an Actual.
-- The mapping master already determines which (plant, cost centre, GL) triples fold into each
-  statement leaf. That is how the number was built.
-
-This capability is not new analysis. It lets the user ask, in words, for an explanation the
-product already has, at the moment they are looking at the number.
-
-**This is the follow-up decision 0037 named.** 0037 left the assistant untouched by multi-plant
-and deferred `statementGrounding` to "the follow-up story". Decision 0038 scopes that follow-up
-to the grounded explanation only: `/ask` is frozen, and 0035's plant-from-the-question half stays
-deferred.
+Finance and management at 3F asking Ask "which lines are over budget", "which GL codes spent more
+than ₹5 lakh", "where is actual below budget"; the demo audience; Srihari checking the same answer
+against the `%` column of the statement.
 
 ## Behaviour
 
-### The grounding
-The docked panel sends a typed `statementGrounding` carrying the rendered statement's
-**department, function, plant and period** - exactly the shape decision 0035 specified and 0038
-adopts - plus the **selected block** and, when the user has clicked one, the **focused node**
-(`nodeKey` and block) and the statement's **pinned batches**. The block is part of the subject
-because a July screen also carries a distinct FY-YTD block, so period alone cannot identify
-"this 85,000".
+### The filter shape
+- `Selection` gains an **additive, optional** `measureFilters` list. Each entry compares one
+  measure of the selection's domain with either **another measure of the same domain** or a
+  **number**:
+  - `measureId`: the left operand, a measure id of the domain;
+  - `op`: one of `gt`, `gte`, `lt`, `lte`;
+  - `compareTo`: `{ kind: "measure", measureId }` or `{ kind: "value", value }`, where `value` is
+    a rupee amount as a decimal string matching `^-?\d+(\.\d{1,2})?$` (so `500000`, `500000.5`
+    and `-1200.00` are accepted; `5 lakh`, `₹5,00,000`, `1e5` and leading `+` are not). The
+    server normalises an accepted value to the shipped `FixedScaleMoney` form with exactly two
+    decimals before it is validated, stored, compared or echoed, so `500000` and `500000.00` are
+    one value. Never a float.
+- Several entries are combined with **AND**. Two entries that normalise to the same
+  `(measureId, op, compareTo)` are a malformed selection, refused with a typed reason. Entries
+  keep the order they were emitted in; that order is part of selection identity.
+- Existing `filters` keep their shape and meaning; the two lists are independent and both may be
+  present. Saved queries, pins, the persisted turn type and the conversation answer snapshot accept
+  the new field; a stored selection without it is unchanged.
 
-The server **re-derives everything**. It never trusts the client: department and function come
-from the master's selection for that plant, never from user scope; the plant is checked against
-the user's current grants on every ask; and the pins are validated before any read. A plant the
-user cannot see is refused, not answered.
+### What may be compared
+- Only measures whose `format` is `money` are comparable, on either side, and they compare **as
+  amounts**. The `%` measures in both domains are `CASE` expressions that yield text labels
+  (`over-budget`, `credit / negative actual`) and are **not** comparable: a filter naming them is a
+  typed refusal (`selectionMeasureNotComparable`), never a silent drop. "Over budget" and "over
+  100% of budget" both mean `Actual gt Budget`, and the selector prompt says so. The two readings
+  agree with the `%` column whenever Budget is zero or positive, which is every budget the client
+  has supplied; for a **negative** budget the comparison is on amounts (Budget −100, Actual −150 is
+  not over budget even though the column reads 150%), and the spec claims no reconciliation there
+  (human ruling, 2026-09-17).
+- Both operands must be measures of the selection's domain and within the user's measure
+  permissions. Every check that today reads `measureIds` reads the **union of `measureIds` and the
+  operand measures**: `validateSelectionForUser` (`selectionValidation.ts:15`), the executor's
+  `authorize`, the saved-query and pin runnable status (`saved.service.ts:114`,
+  `pins.service.ts:256`) and the pin definition-version hash. A measure outside the domain or the
+  permissions is refused with the existing "not available" path; a persisted selection whose
+  operand is no longer registered or permitted reports not runnable, exactly as a displayed measure
+  would.
+- Comparing a measure with itself is refused as malformed.
 
-### `/ask` is untouched
-`/ask` sends no grounding and behaves byte-for-byte as today, proven by its shipped leaves
-passing unmodified. Grounding is a branch the caller opts into - the same shape `continueTurn`'s
-caller-stated failure policy took in `ask-reopen-saved-report` - never a change to shared
-classification. Per 0037 and 0038, a user granted every plant still gets "not supported" for a
-statement question on `/ask`, while the same user gets a full answer from the docked assistant.
+### How it runs
+- The SQL builder compiles each measure filter to a `HAVING` clause over the measures' **verified
+  expressions**, in both domains: the grouped governed-financial query and the statement projection
+  (`buildStatementProjection`). The comparison is `<left expr> <op> <right expr | literal>`, the
+  literal quoted through the builder's existing `lit`. A selection with no dimensions still works:
+  the single aggregate row is kept or dropped by the comparison, which answers "is actual over
+  budget this month" with one row or none. An answer with zero rows is a **successful, empty**
+  answer ("No lines match Actual > Budget for July 2026"), never an error and never a refusal.
+- The statement projection also applies the selection's **dimension filters** (`leaf_key`) as
+  `WHERE` predicates on the relation. Today it silently drops them (`sqlBuilder.ts:203` never reads
+  `selection.filters`); that pre-existing gap is closed in this story (human ruling, 2026-09-17:
+  fix here, not defer), with a leaf proving a `leaf_key` filter narrows the projected rows and the
+  golden statement proofs unchanged.
+- Operand measures **not already in `measureIds` are appended by the server**, in the order of
+  their first appearance in `measureFilters`, deterministically and before validation, so the
+  answer always shows the columns it was filtered on. The addition is visible in the returned
+  selection and its chips; it is never hidden. The first entry of `measureIds` is unchanged by the
+  append, so result ordering (largest first by the first measure) is unchanged.
+- `totals` are computed over **every group that passes the filter, not only the visible page**:
+  the ungrouped totals query wraps the grouped, filtered query **without its `LIMIT`** as a derived
+  table, so the total of "over-budget lines" is the total of all such lines even when more match
+  than the page shows. The object allowlist still holds because the derived table reads only the
+  approved objects.
+- The deterministic SQL validator (`sqlValidator.ts`) accepts the `HAVING` clause and the derived
+  totals query without any new bypass, and every existing check keeps firing: single `SELECT`, no
+  `*`, approved objects only, blocked columns refused wherever they appear (a `HAVING` or a derived
+  table included), bounded `LIMIT`. The validator has an object allowlist and a blocked-column
+  list, not a general column allowlist; this story does not add one.
+- Row ordering is unchanged (largest first by the first measure).
 
-### Click, then ask
-Focus is explicit. The user clicks an Actual - the affordance the statement already ships - and
-that node becomes the subject. **Clicking still opens the drill panel exactly as it does today**:
-focus is set as a side effect, never as a replacement, so drill-down does not regress. The user
-may ask with the panel open or closed, and the block is taken from the focused node rather than
-from any separate control. With no statement rendered, or no mapping for the scope, the assistant
-says so plainly instead of grounding against nothing. Digits in the question are **never** used to choose a node, so
-there is no ambiguity when two lines share a value and no disambiguation prompt. Focus is owned
-by the report view, not by the drill modal, and is passed to both the drill panel and the
-assistant. It is **cleared** whenever the report scope, the block or the pinned batches change,
-because the subject no longer exists.
+### What the model is told
+- The selector tool schema gains `measureFilters` with the shape above; `measureId` enumerates the
+  comparable measure ids only, so the model cannot name `%`.
+- The system prompt states: a comparison between two metrics, or a metric against a threshold, goes
+  in `measureFilters`, never in `filters`; "over budget" / "above budget" / "more than budget" is
+  `Actual gt Budget`; "under budget" is `Actual lt Budget`; "over 100% of budget" is `Actual gt
+  Budget`; Indian magnitudes are converted to plain numbers (`5 lakh` → `500000`, `1.2 crore` →
+  `12000000`); a comparison the vocabulary cannot express is `mark_unsupported`, never an
+  unfiltered answer.
+- The provider's parser rejects a malformed `measureFilters` entry with a typed reason, the same
+  way `filters` are rejected today.
 
-With no node focused, the assistant asks the user to click the line. Budget is never a subject,
-matching the statement's shipped footnote that Budget is not drillable.
+### What the reader sees
+- The answer's chips and the saved-selection label render each measure filter in words:
+  `Actual > Budget`, `Actual > ₹5,00,000`, using the registered measure labels and the Indian
+  digit grouping for values. Unregistered ids render as `(unavailable)` like today.
+- The provenance readback names the condition: "... where Actual is greater than Budget".
+- `AskResponse` gains an additive `appliedMeasureFilters` next to `appliedFilters`, and the
+  conversation answer snapshot (`ConversationAnswerSnapshot`, written by
+  `conversations.service.ts:294`) carries it too, so the field editor shows the comparison both on
+  a fresh answer and after a conversation is reopened. Editing it in the editor is out of scope; it
+  displays read-only.
+- `viewInReport` is **unavailable** for an answer carrying a measure filter, with the reason "The
+  MIS statement shows every line; open it and read the % column", because the statement has no
+  row filter and a link would silently drop the condition.
+- **Report grounding preserves the comparison.** When a question is answered against a pinned or
+  saved report, `applyReportGroundingToSelection` (`chat.service.ts:638`) rebuilds the selection
+  from the report's measures, dimensions and filters; it must carry the question's
+  `measureFilters` through unchanged (the report itself carries none unless it was saved with
+  them, in which case the report's are kept and the question's appended). A leaf proves a grounded
+  "which are over budget" never returns the unfiltered report with the verified badge, which is
+  the original failure mode.
+- Reopening a saved or pinned selection that carries a measure filter re-runs it with the filter;
+  selection identity (`selection-identity.helper.ts`) includes `measureFilters`, so two selections
+  differing only in the comparison are distinct.
+- Help's "what you can ask" lists comparison examples beside the dimension filter examples.
 
-### What the answer contains
-**A total and a leaf are answered differently, because the drill refuses a non-leaf and decision
-0024 does not permit inventing an aggregate raw query.**
+### What does not change
+- `/ask` routing, grounding, period control, the causal guard, the docked explanation and the
+  statement screen are untouched. A user granted every plant still gets "not supported" for a
+  statement-domain question (decisions 0037, 0038); this capability changes what a **permitted**
+  selection can express, not who may ask what.
+- Dimension filters, time windows, limits and the `%` measure's nil rule keep their shipped
+  semantics; the `over-budget` label and `Actual gt Budget` agree by construction.
 
-- A **leaf** gets both halves: the roll-up path - which GL codes and cost centres the mapping
-  master folds into that leaf, through which bucket - then the transactions behind it.
-- A **total or subtotal** gets the roll-up path only: which lines compose it, and which GLs and
-  cost centres feed those lines. No raw rows, nothing refused. This is a **deterministic response
-  derived from the mapping master with no warehouse query at all**, so it adds no aggregate raw
-  read - decision 0024 keeps aggregate projection off the server - and, having performed no
-  governed read, it carries no governed-read audit record. Only the leaf transaction read is a
-  governed read, and only it is audited.
+## Rules
+- A condition the vocabulary cannot express is refused or clarified; it is never dropped. The
+  verified badge may only sit on an answer whose selection carries every condition it ran with.
+- Comparisons compile only from verified measure expressions; the model never authors SQL and never
+  names a column.
+- Money values cross the contract as fixed-scale decimal strings, never floats.
 
-Transactions are bounded and honest about it: the answer always carries the **exact footer** and
-the **true total row count**, shows the **first 20 rows** inline, and offers a declared control
-that opens the existing drill panel on that node for full paging. It never truncates silently.
-
-Footing is asserted in **paise against the statement payload**, not against the rendered cell.
-The statement displays rupees, and the shipped drill contract already permits an exact footer to
-differ from the displayed cell by up to ₹1 while paise equality holds underneath; the assistant
-inherits that rule rather than contradicting it, and uses the statement's own display formatting
-so the two surfaces round identically.
-
-### The model never sees the numbers
-Decision 0027 forbids transaction rows, amounts, batch identifiers and result rows reaching
-Bedrock. The explanation is therefore **composed deterministically on the server** and rendered
-from a typed payload. The model's only role is classifying the question. No figure in the answer
-is ever model-generated.
-
-### Composition is answered; cause is not
-Intent is a closed enum - `composition`, `causal`, `data` - resolved server-side, with stated
-precedence so mixed wording cannot be read two ways: a question carrying BOTH a composition cue
-and a causal cue resolves to `causal` and is declined, because the safe reading wins.
-
-- **Composition** - how a figure was built, what it contains, which GLs or lines feed it - is
-  answered with the explanation.
-- **Causal** - why a figure is high or low, what caused a movement - is still declined with
-  today's copy. Grounding must not become a back door that lets the model invent reasons, which
-  is exactly what `classifyCausalQuestion` exists to prevent.
-- **Data** - an ordinary governed question - is answered by the EXISTING ungrounded path,
-  unchanged. **Grounding attaches no pin or budget promise to it.** `SelectionExecutor` takes no
-  pinned batches and does not apply the non-budget-owner suppression, so a grounded data question
-  could otherwise silently read newer data than the figure on screen, or show the owner plant's
-  budget on another plant. Rather than promise what the executor cannot honour, grounding means
-  **explanation only**; threading pins through the governed executor is deferred with a trigger.
-
-### Freshness and staleness
-A grounded answer reads the **same pinned batches** the on-screen number came from, so it cannot
-contradict the screen by quietly using fresher data.
-
-Staleness follows **decision 0025 exactly**, because the same pinned line must not behave one way
-in the drill panel and another in the assistant: a batch that has been **replaced but still
-exists is read and reported as replaced**; only a batch that is **gone** is refused. The refusal
-and the replaced notice are both **typed**, naming the source, the period and the batch status,
-and reach the user intact - explicitly not routed through the global exception filter, which
-flattens that detail into generic copy.
-
-The answer records the **mapping-master version** it resolved against in the **audit record**.
-This is attribution, not detection: the statement response carries batch provenance only, so
-there is nothing to compare a version against, and the master is a compiled-in constant that
-cannot drift inside a running process. Cross-deployment drift stays D-0038's deferral, which this
-story does not close.
-
-### Plants and unmapped lines
-Every plant the user is granted is supported by the docked assistant. A plant that is not the
-budget owner carries decision 0034's **"Budget not loaded for this plant"** state, which is a
-normal, expected answer and must never be presented as a stale or missing batch. An
-`unmapped-GL` line is **provisional**, not an approved mapping path, and the explanation says so
-rather than implying the master blesses it.
+## Out of scope (now)
+- Editing measure filters in the field editor (display only here).
+- Comparisons on `%` or on dimension values (`gl_code > 5000`).
+- Sorting by a comparison or by variance; a separate "variance" measure.
+- Statement-domain clarifications for multi-plant users (0037/0038 stand).
+- A heuristic guard that scans question wording for comparison words; the schema and prompt carry
+  the condition, and the functional check proves the two demo phrasings.
 
 ## Acceptance criteria
 
-- **C1** The docked assistant sends `statementGrounding` - department, function, plant, period,
-  block, pinned batches, and the focused node when one is clicked. `/ask` sends none of it and
-  its shipped leaves pass **unmodified**.
-- **C2** The server re-derives department and function from the master's selection for that plant
-  and validates the plant against the user's current grants on every ask. A plant outside the
-  user's grants is refused, never answered, and a leaf proves the client cannot widen its own
-  scope by editing the payload.
-- **C3** Intent is a closed enum - `composition`, `causal`, `data` - with stated precedence: a
-  question carrying both a composition and a causal cue resolves to `causal`. With a node focused,
-  a `composition` question is answered with the explanation, NOT with `classifyCausalQuestion`'s
-  "Causal analysis is not configured". Without grounding that guard fires exactly as today.
-- **C4** A `causal` question is still declined even when grounded and focused, and a `data`
-  question is answered by the existing ungrounded path with no pin or budget promise attached.
-  Leaves assert all three arms and the mixed-wording precedence.
-- **C5** The subject is the clicked node, identified by `nodeKey` **and block**. With no node
-  focused the assistant asks for the line; digits in the question never choose a node. Focus
-  clears when the scope, block or pinned batches change.
-- **C6** A **leaf** answer names the roll-up path - the GL codes and cost centres the master folds
-  into that leaf, and the bucket they arrive through - and lists transactions with an exact
-  footer and the true total count, showing the first **20** rows inline and offering a declared
-  control that opens the shipped drill panel on that node for the rest. The footer is asserted in
-  **paise against the statement payload**, and may differ from the rupee-rounded cell by up to ₹1
-  exactly as the shipped drill contract allows.
-- **C7** A **total or subtotal** answer names the lines that compose it and their GLs and cost
-  centres, returns **no raw rows**, and is produced **without any warehouse query** - a
-  deterministic read of the mapping master. It is not refused, no aggregate raw query is added
-  (decision 0024), and because it performs no governed read it carries no governed-read audit.
-- **C8** Budget is never a valid subject, matching the shipped statement footnote.
-- **C9** No transaction row, amount, batch identifier or result row is ever sent to the model. A
-  leaf asserts the provider payload, not merely the rendered answer.
-- **C10** The explanation writes the drill's governed-read protections, not the ordinary chat
-  audit: inputs re-derived server-side, pins validated, current scope applied, the exact
-  predicate audited **before** the query runs, and a failed audit fails closed. Per decisions
-  0017, 0022 and 0025.
-- **C11** Staleness follows decision 0025: a **replaced but existing** batch is read and reported
-  as replaced; only a **gone** batch is refused. Both are **typed**, naming source, period and
-  batch status, and reach the user intact rather than flattened by the global error envelope.
-- **C12** The audit record names the mapping-master version the answer resolved against. This is
-  attribution only - no detection promise is made, because the statement response carries no
-  master version to compare against. D-0038 stays open and this story does not close it.
-- **C13** A non-budget-owner plant returns decision 0034's "Budget not loaded for this plant"
-  state, distinct from a stale or missing batch. An unmapped-GL line is described as provisional.
-- **C14** Every criterion is proven by hermetic tests judged by the vitest discriminator -
-  present AND NOT skipped AND NOT failed (D-0031) - across this matrix: no focus / composition /
-  causal / ordinary data question; leaf / subtotal / grand total / unmapped; selected-period
-  block / FY-YTD block; replaced-but-present batch versus gone batch, for actual and for budget;
-  plant outside grants; a TAMPERED nodeKey, block or pinned-batch set in the payload, which must
-  be refused rather than answered because C2 and C10 require every input to be re-derived; audit
-  failure; provider payload exclusion; and paise-exact footing against the statement payload with
-  the true total count.
+- **C1** `Selection.measureFilters` is an additive optional list of `{ measureId, op: gt|gte|lt|lte,
+  compareTo: measure|value }`, combined with AND, order-preserving; `filters` is unchanged; the
+  saved-query zod schema, the persisted turn type, the conversation answer snapshot and the Swagger
+  DTOs accept it; every shipped leaf that builds or stores a selection passes unmodified.
+- **C2** Validation refuses, with typed reasons, a filter whose operand is not a money measure of the
+  selection's domain, is outside the user's measure permissions, compares a measure with itself,
+  duplicates another entry, or carries a value outside `^-?\d+(\.\d{1,2})?$`; accepted values are
+  normalised to two decimals. `%` measures are refused as not comparable. Every check that reads
+  `measureIds` (validation, executor authorization, saved and pin runnable status, pin
+  definition-version hash) reads the union with the operand measures, proven by leaves.
+- **C3** The builder compiles each measure filter to `HAVING` over the verified expressions in both
+  the governed-financial query and the statement projection, and the statement projection now also
+  applies dimension filters as `WHERE` predicates; leaves assert the emitted SQL for
+  measure-vs-measure, measure-vs-value, an ungrouped selection, the combination with a dimension
+  filter and a time window, and a `leaf_key` filter on the projection, with the golden statement
+  proofs unchanged.
+- **C4** Operand measures missing from `measureIds` are appended by the server, in first-appearance
+  order, before validation, and appear in the returned selection and chips; the first measure and
+  therefore the row ordering are unchanged.
+- **C5** `totals` are computed over every matching group via a derived table without the inner
+  `LIMIT`; a leaf asserts, on a fixture with more matching groups than the limit, that the totals
+  cover the groups beyond the visible page and differ from the unfiltered total.
+- **C6** The SQL validator accepts the new shapes and every existing check still fires: a `HAVING`
+  or derived table that references an unapproved object or a blocked column is refused, and the
+  mandatory bounded `LIMIT` check still fires. An answer whose `HAVING` drops every row is a
+  successful empty answer with the stated wording.
+- **C7** The selector tool schema enumerates only comparable measure ids in `measureFilters`; the
+  system prompt carries the mapping rules (over/under budget, over 100%, lakh/crore); the parser
+  rejects malformed entries with a typed reason. Leaves assert schema, prompt text and parser
+  behaviour against recorded provider outputs.
+- **C8** Chips, saved-selection labels and the provenance readback render the comparison in words
+  with registered labels and Indian digit grouping; `appliedMeasureFilters` is returned; selection
+  identity includes the filter.
+- **C9** `viewInReport` is unavailable with the stated reason when a measure filter is present, and
+  report grounding carries the question's `measureFilters` through; a leaf proves a grounded
+  over-budget question never returns the unfiltered report.
+- **C10** Functional check, live against Bedrock and the July warehouse: "show me list items where
+  Actuals are more than the budget" returns only lines with Actual above Budget and no others, with
+  the chip `Actual > Budget`; "which GL codes spent more than 5 lakh in July 2026" returns only lines
+  above ₹5,00,000; "GL codes over 100% of budget" returns the same lines as the first question; for
+  DUB the first answer's lines are exactly the statement rows whose `%` is above 100 or reads
+  `over-budget`, every July budget being zero or positive.
+
+## Open items (non-blocking)
+- Whether the field editor should let a reader change the threshold in place (a later story).
+- Whether a `variance` measure (Actual − Budget) should join the vocabulary so "biggest overruns"
+  sorts by it.
+
+## Source
+- Demo question and local reproduction, 2026-09-16/17 (`audit_events` holds no local record; the
+  question was asked on the EC2 demo box; reproduction returned 67 unfiltered rows).
+- `contract/src/measure.ts`, `backend/src/llm/bedrock.provider.ts`, `backend/src/llm/llm.constants.ts`,
+  `backend/src/sql/sqlBuilder.ts`, `backend/src/sql/sqlValidator.ts`,
+  `backend/src/semantic/selectionValidation.ts`, `backend/src/chat/chat.service.ts`,
+  `backend/src/saved/saved.schemas.ts`, `frontend/src/features/exploration/selection-label.ts`.
+- Decisions 0004 (governed joins, code-authored measures), 0037, 0038, and 0039 (this capability's
+  comparison rules).
+- Spec grill cold read, 2026-09-17: ten findings, eight settled from the repository (grounding,
+  operand authorization, totals beyond the page, literal grammar, snapshot field, validator scope,
+  AND semantics and order, the 0011 citation), two put to the human (signed budgets compare as
+  amounts; the statement projection's dropped dimension filters are fixed here).
 
 
 ## What to return
