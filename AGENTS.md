@@ -37,9 +37,9 @@ Forge takes each change from an approved plan to a merged pull request. Whenever
 are unsure, run `forge next`: it says where things stand and gives the exact next command.
 
 If Forge started you with a brief, as a worker or a cold reader, that brief is your job: follow it
-and nothing else.
+and the Rules below, and leave the flow and the approval steps to the agent coordinating the work.
 
-### The shape of the work
+### The flow
 
 1. A story starts as one short doc: `forge story new <KEY> "<title>"`.
 2. It gets rounds of cold read (`forge read <KEY>`) until one finds nothing, then one approval
@@ -51,21 +51,28 @@ and nothing else.
    Then, once close says Ready, the agent runs `forge merge <item>`. After the story's last merge,
    `forge story done <KEY> "<outcome>"`.
 
-### Smaller changes
+### The lanes
 
+- **Story:** anything that changes an interface or needs more than five code files.
 - **Fix:** a small change, started with `forge fix start "<why>" --done "<done when>"`.
-  Closed the same way, `forge close <FIX-ID>`.
+  Specs, decisions, the roadmap and discovery notes ship as fixes.
 
 ### Rules
 
-- Never commit directly to the default branch; every change goes through a pull request.
+- Never commit to the default branch. Work happens on a story, task or fix branch, and the
+  git hooks refuse anything else.
+- Never run `gh pr merge` or use `--no-verify`. The agent merges only through
   `forge merge <item>` when the default branch allows it; `merge = "human"` is the default.
-- Never edit the story doc after approval except through Forge.
-- A task's brief is the contract; a worker that finds the brief wrong raises it, it does not
-  reinterpret it.
-- When a cold read or review names a problem, fix the problem; do not argue it down. What
+- Ask the human only to approve a story, to choose between options, or to merge when the repo
+  keeps the human merge setting.
+- No running commentary. Speak only when something lands, when a failure or finding needs the
+  human, or when a decision is theirs, in a line or two.
+- Write for humans in plain English: no IDs, hashes or jargon in questions, pull request
+  summaries or the board.
+- A story is approved through Plan Mode: exit Plan Mode with the text of the story doc that
   `forge next` names, unchanged, as the plan: from its title down to `## For the builders`, or the
-  task section the brief names.
-- Keep the worker's worktree clean of anything the task does not own.
+  whole doc when it has no such heading. The approval matches its "What changes for you" and
+  "Done when" sections exactly, so a summary or a rewrite records nothing, and an edit below
+  `## For the builders` needs no new approval. There is no other approval step.
 - Run long `forge work` runs in the background and keep watching them.
 <!-- forge:end -->
