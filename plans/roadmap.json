@@ -271,7 +271,7 @@
       "outcome": "Click any Actual figure on the MIS statement, ask the assistant beside it how that number came to be, and get an answer built from the same governed data the figure came from. A leaf line answers with both halves: the roll-up path naming the GL codes and cost centres the mapping master folds into it, and the transactions behind it with a footer that foots in paise to the cell you clicked. A subtotal or grand total answers with the lines that compose it and their values, projected in your browser from the statement already on screen rather than fetched again. The assistant still declines to say WHY a number is high - that inference it cannot make - but it will now show exactly WHAT the number is made of, which is the question people were actually asking. Nothing is taken on trust: the statement response carries a signed context binding its scope, outline, pinned batches, mapping-master version and user, so a question can be proven to be about the statement on screen and not merely about data you happen to be entitled to. Every refusal says which check failed. The transaction read keeps the drill's governed-read protections, auditing the exact predicate before it runs and failing closed. No figure the server read ever reaches the model - the explanation is composed on the server and the model only classifies the question. A statement built on a batch that has since been replaced still answers, and says so. The Ask page is untouched: it neither sends this context nor displays these explanations, and a grounded explanation is cleared the moment you generate a different statement, so an answer can never sit against figures it does not describe. SHIPPED UNEXERCISED: no host held both this code and real data, so the capability closes on hermetic proof under decision 0039, and its first run on the server is also its first proof (D-0055)."
     },
     {
-      "key": "ask-measure-filter",
+      "key": "ASK-MEASURE-FILTER",
       "title": "Ask filters by a comparison between measures",
       "story": "As a finance reader asking Ask about budget versus actual, I want 'which lines are over budget' and 'which GL codes spent more than 5 lakh' answered with only the matching lines, so that a verified answer never silently drops the condition I asked for.",
       "acceptance_criteria": [
@@ -287,7 +287,7 @@
         "Functional check live against Bedrock and the July warehouse: the three demo phrasings return only the matching lines with the Actual > Budget chip, and the DUB answer matches the statement rows whose % is above 100 or reads over-budget."
       ],
       "order": 13,
-      "status": "active",
+      "status": "pending",
       "epic": "assistant",
       "skill": "fullstack",
       "depends_on": [
