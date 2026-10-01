@@ -1,0 +1,14 @@
+{
+  "base": "67944a4eea9edfed7e0478a7a9f2e003efc9c3f9",
+  "branch": "fix/the-measure-comparison-story-must-contin",
+  "done_when": "plans/roadmap.json lists ASK-MEASURE-FILTER with its spec, the spec's Forge v1 confirmation fields record the 2026-09-17 confirmation, and forge story new ASK-MEASURE-FILTER opens the story",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-01T15:29:46+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "The measure-comparison story must continue under Forge v1: the roadmap still lists it under the old lowercase key, which forge story new does not accept, and its confirmed spec carries no Forge v1 confirmation hash"
+}
