@@ -89,6 +89,7 @@ test("the freshness route is allow listed behind auth guard with no action grant
       "domain",
       "filters",
       "limit",
+      "measureFilters",
       "measureIds",
       "timeWindow",
     ]);

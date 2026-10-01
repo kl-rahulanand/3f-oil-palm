@@ -4,7 +4,7 @@ import { IncomingMessage, ServerResponse } from "node:http";
 import type { Socket } from "node:net";
 import { Duplex } from "node:stream";
 import { test } from "node:test";
-import type { ErrorEnvelope } from "@3f/contract";
+import { MeasureFilterInvalidReason, type ErrorEnvelope } from "@3f/contract";
 import type { INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "../app.module";
@@ -12,6 +12,7 @@ import { CsrfGuard } from "../auth/csrf.guard";
 import { loadConfig } from "../config";
 import { configureApp } from "../main";
 import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
+import { MeasureFilterInvalidException } from "../semantic/measure-filter-invalid.exception";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -36,6 +37,33 @@ test("an unhandled 500 and a guarded 4xx both return the constitution-07 error e
     const internal = await request(app, "/api/auth/logout", "POST");
     assert.equal(internal.status, 500);
     assertEnvelope(internal.body, internal.headers.get("x-correlation-id") ?? null, 500);
+  } finally {
+    CsrfGuard.prototype.canActivate = originalCsrfGuard;
+    AuthoredMeasureRegistry.prototype.onModuleInit = originalRegistryInit;
+    await app?.close();
+  }
+});
+
+test("a MeasureFilterInvalidException answers HTTP 400 with its type its reason in details and a reader userMessage", async () => {
+  const originalRegistryInit = AuthoredMeasureRegistry.prototype.onModuleInit;
+  const originalCsrfGuard = CsrfGuard.prototype.canActivate;
+  AuthoredMeasureRegistry.prototype.onModuleInit = async () => {};
+  CsrfGuard.prototype.canActivate = () => {
+    throw new MeasureFilterInvalidException(MeasureFilterInvalidReason.NotComparable);
+  };
+  let app: INestApplication | undefined;
+
+  try {
+    app = await NestFactory.create(AppModule, { logger: false });
+    configureApp(app, { ...loadConfig(), environment: "Development", swaggerEnabled: false });
+    await app.init();
+    const response = await request(app, "/api/auth/logout", "POST");
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.error.code, "HTTP_400");
+    assert.equal(response.body.error.type, "MeasureFilterInvalidException");
+    assert.deepEqual(response.body.error.details, { reason: MeasureFilterInvalidReason.NotComparable });
+    assert.equal(response.body.error.userMessage, "Only money measures can be compared.");
   } finally {
     CsrfGuard.prototype.canActivate = originalCsrfGuard;
     AuthoredMeasureRegistry.prototype.onModuleInit = originalRegistryInit;

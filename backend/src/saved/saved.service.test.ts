@@ -1,10 +1,11 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AuthUser, Selection } from "@3f/contract";
+import { MeasureFilterInvalidReason, type AuthUser, type Selection } from "@3f/contract";
 import type { AuditService } from "../core/audit.service";
 import type { AppDb } from "../db/pool";
 import { SemanticLayer } from "../semantic/semanticLayer";
+import { MeasureFilterInvalidException } from "../semantic/measure-filter-invalid.exception";
 import { SavedService } from "./saved.service";
 
 test("listing refuses a saved selection the caller may no longer run instead of dropping it or serving a cached figure", async () => {
@@ -79,6 +80,87 @@ test("creating a saved query reports and audits its current refusal status befor
   });
   assert.deepEqual(order, ["request", "refusal", "write"]);
 });
+
+test("saved query store refuses a bad measure filter with its reason canonicalises a good one and reports an unregistered operand as definition unregistered on reopen", async () => {
+  const semantic = new SemanticLayer();
+  const badService = new SavedService({} as AppDb, semantic, audit({ refusals: [] }));
+  await assert.rejects(
+    () =>
+      badService.create(USER, SESSION_ID, {
+        selection: { ...SELECTION, measureFilters: [valueFilter("1.234")] },
+      }),
+    (error) =>
+      error instanceof MeasureFilterInvalidException && error.reason === MeasureFilterInvalidReason.MalformedValue,
+  );
+
+  let stored: Selection | undefined;
+  const db = {
+    insert: () => ({
+      values: (value: { selection: Selection }) => ({
+        returning: async () => {
+          stored = value.selection;
+          return [savedRow(value.selection)];
+        },
+      }),
+    }),
+  } as unknown as AppDb;
+  const permitted = {
+    ...USER,
+    permissions: {
+      ...USER.permissions,
+      measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    },
+  };
+  const good = await new SavedService(db, semantic, audit({ refusals: [] })).create(permitted, SESSION_ID, {
+    selection: {
+      ...SELECTION,
+      measureFilters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+        },
+      ],
+    },
+  });
+  assert.deepEqual(stored?.measureIds, ["governed-financial.actual", "governed-financial.budget"]);
+  assert.deepEqual(good.selection, stored);
+
+  const unavailable: Selection = {
+    ...SELECTION,
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.retired" },
+      },
+    ],
+  };
+  const [reopened] = await new SavedService(listDb(savedRow(unavailable)), semantic, audit({ refusals: [] })).list(
+    {
+      ...permitted,
+      permissions: {
+        ...permitted.permissions,
+        measureIds: [...permitted.permissions.measureIds, "governed-financial.retired"],
+      },
+    },
+    SESSION_ID,
+  );
+  assert.deepEqual(reopened.selection, unavailable);
+  assert.deepEqual(reopened.status, {
+    runnable: false,
+    reason: "definition_unregistered",
+    message: "This selection uses a definition that is no longer registered.",
+  });
+});
+
+function valueFilter(value: string) {
+  return {
+    measureId: "governed-financial.actual",
+    op: "gt" as const,
+    compareTo: { kind: "value" as const, value },
+  };
+}
 
 function listDb(row: ReturnType<typeof savedRow>): AppDb {
   return {

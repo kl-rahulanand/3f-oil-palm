@@ -1,7 +1,7 @@
 // Gate 0 — the HTTP API contract shared by frontend + backend.
 
 import { z } from "zod";
-import type { MeasureFormat, Selection, SelectionFilter, TimeGrain } from "./measure";
+import type { MeasureFilter, MeasureFormat, Selection, SelectionFilter, TimeGrain } from "./measure";
 import { authUserSchema } from "./rbac";
 import type { ScopeAttr } from "./rbac";
 
@@ -23,13 +23,21 @@ export interface ErrorFieldDetail {
   reason: string;
 }
 
+export enum MeasureFilterInvalidReason {
+  NotComparable = "not_comparable",
+  UnknownMeasure = "unknown_measure",
+  SelfComparison = "self_comparison",
+  Duplicate = "duplicate",
+  MalformedValue = "malformed_value",
+}
+
 export interface ErrorPayload {
   errorId: string;
   code: string;
   type: string;
   message: string;
   userMessage: string;
-  details: { fieldErrors?: ErrorFieldDetail[] };
+  details: { fieldErrors?: ErrorFieldDetail[]; reason?: MeasureFilterInvalidReason };
   statusCode: number;
   correlationId: string;
   requestId: string | null;
@@ -654,6 +662,7 @@ export interface AskResponse {
   appliedTimeWindow?: { from: string; to: string; column: string };
   /** Concrete dimension filters applied to the query, for editable value filters. */
   appliedFilters?: SelectionFilter[];
+  appliedMeasureFilters?: MeasureFilter[];
   /** Offered only when a statement period needs clarification. */
   periodChoice?: AskPeriodChoice;
   /** Present on successful data answers. */
@@ -740,6 +749,7 @@ export interface ConversationAnswerSnapshot {
   // range) survives a conversation reopen — not just the read-only result.
   availableFields?: AskResponse["availableFields"];
   appliedFilters?: AskResponse["appliedFilters"];
+  appliedMeasureFilters?: AskResponse["appliedMeasureFilters"];
   appliedTimeWindow?: AskResponse["appliedTimeWindow"];
 }
 

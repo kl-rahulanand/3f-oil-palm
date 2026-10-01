@@ -1,0 +1,11 @@
+{
+  "topic": "measure-filter-foundation-routes-test-in-scope",
+  "lesson": "RULING on signal S-0027-c04f, applies to measure-filter-foundation: backend/src/app.routes.test.ts IS in this task's write scope. Add measureFilters to the expected Swagger selection-property keys; no other assertion changes. Together with swagger.test.ts (S-0026-172d) these are the only two fixture files outside the recorded scope; do not raise either again, continue implementing.",
+  "source": "signal S-0027-c04f",
+  "applies_to": [
+    "backend/src/saved/saved.schemas.ts"
+  ],
+  "severity": "high",
+  "generated_by": "orchestrator",
+  "added_at": "2026-09-18T06:09:58+00:00"
+}

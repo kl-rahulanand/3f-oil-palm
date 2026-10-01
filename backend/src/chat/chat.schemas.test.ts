@@ -96,6 +96,24 @@ test("oversized node metadata arrays are rejected by the schema before being sor
   );
 });
 
+test("a direct Ask request carrying measureFilters is refused with a validation error until task two lifts the gate", () => {
+  const result = askSchema.safeParse({
+    question: "Show lines over budget",
+    selection: {
+      ...selection,
+      measureFilters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+        },
+      ],
+    },
+  });
+  assert.equal(result.success, false);
+  if (!result.success) assert.deepEqual(result.error.issues[0]?.path, ["selection"]);
+});
+
 const selection: Selection = {
   domain: "governed-financial",
   measureIds: ["governed-financial.actual"],

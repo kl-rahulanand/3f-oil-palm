@@ -101,6 +101,7 @@ test("both chat routes document the explanation union with a named schema", () =
     },
     appliedTimeWindow: { from: "2026-07-01", to: "2026-07-01", column: "month" },
     appliedFilters: [],
+    appliedMeasureFilters: [],
     periodChoice: {
       prompt: "Pick",
       selection: { domain: "test", measureIds: [], dimensionIds: [], filters: [] },

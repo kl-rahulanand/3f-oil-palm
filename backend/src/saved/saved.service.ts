@@ -5,6 +5,7 @@ import { DRIZZLE_DB } from "../config";
 import { AuditService } from "../core/audit.service";
 import type { AppDb } from "../db/pool";
 import { savedQueries } from "../db/schema";
+import { canonicalizeSelection, operandMeasureIds } from "../semantic/measure-filter.helper";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { validateSelectionForUser } from "../semantic/selectionValidation";
 import { selectionSchema } from "./saved.schemas";
@@ -25,8 +26,11 @@ export class SavedService {
       action: "create",
       submitted: req,
     });
-    validateSelectionForUser(this.semantic, user, req.selection);
-    const status = selectionStatus(this.semantic, user, req.selection);
+    const domain = this.semantic.domain(req.selection.domain);
+    if (!domain) validateSelectionForUser(this.semantic, user, req.selection);
+    const selection = canonicalizeSelection(domain!, req.selection);
+    validateSelectionForUser(this.semantic, user, selection);
+    const status = selectionStatus(this.semantic, user, selection);
     if (!status.runnable) {
       await this.audit.writeExplorationRefusalEvent({
         actorId: user.id,
@@ -41,12 +45,12 @@ export class SavedService {
       .insert(savedQueries)
       .values({
         userId: user.id,
-        selection: req.selection,
+        selection,
         chartType: req.chartType,
       })
       .returning();
 
-    return toSavedQuery(inserted[0], status);
+    return toSavedQuery(this.semantic, inserted[0], status);
   }
 
   async list(user: AuthUser, sessionId: string): Promise<SavedQuery[]> {
@@ -56,7 +60,10 @@ export class SavedService {
       .from(savedQueries)
       .where(eq(savedQueries.userId, user.id))
       .orderBy(desc(savedQueries.createdAt));
-    const saved = rows.map((row) => toSavedQuery(row, selectionStatus(this.semantic, user, row.selection)));
+    const saved = rows.map((row) => {
+      const status = selectionStatus(this.semantic, user, row.selection);
+      return toSavedQuery(this.semantic, row, status);
+    });
     await this.audit.writeExplorationRefusalEvents(
       saved.flatMap((item) =>
         item.status.runnable
@@ -94,8 +101,9 @@ export class SavedService {
 
 type SavedQueryRow = typeof savedQueries.$inferSelect;
 
-function toSavedQuery(row: SavedQueryRow, status: ExplorationSelectionStatus): SavedQuery {
-  const selection = storedSelection(row.selection);
+function toSavedQuery(semantic: SemanticLayer, row: SavedQueryRow, status: ExplorationSelectionStatus): SavedQuery {
+  const stored = storedSelection(row.selection);
+  const selection = status.runnable ? canonicalizeSelection(semantic.domain(stored.domain)!, stored) : stored;
   return {
     id: row.id,
     selection,
@@ -114,10 +122,11 @@ function storedSelection(value: unknown): Selection {
 function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown): ExplorationSelectionStatus {
   const selection = storedSelection(value);
   const domain = semantic.domain(selection.domain);
+  const measureIds = operandMeasureIds(selection);
   const dimensionIds = new Set([...selection.dimensionIds, ...selection.filters.map((filter) => filter.dimensionId)]);
   if (
     !domain ||
-    selection.measureIds.some((id) => !semantic.measure(selection.domain, id)) ||
+    measureIds.some((id) => !semantic.measure(selection.domain, id)) ||
     [...dimensionIds].some((id) => !semantic.dimension(selection.domain, id))
   ) {
     return {
@@ -130,7 +139,7 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
     (domain.composed && !user.permissions.actions.includes("report")) ||
     (domain.scopeColumn && !user.scope.some((scope) => scope.attribute === domain.scopeColumn)) ||
     !user.permissions.domains.includes(selection.domain) ||
-    selection.measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
+    measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
     [...dimensionIds].some((id) => !user.permissions.dimensionIds.includes(id))
   ) {
     return {

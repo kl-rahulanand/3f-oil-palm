@@ -98,6 +98,43 @@ test("the statement projection returns only the selected dimensions and measures
   );
 });
 
+test("the statement projection renders a HAVING for a measure filter and a WHERE predicate for a leaf key filter and is unchanged when neither is present", () => {
+  const domain = new SemanticLayer().domain("mis-statement")!;
+  const builder = new SqlBuilder();
+  const base: Selection = {
+    domain: domain.name,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    dimensionIds: ["leaf_key"],
+    filters: [],
+    timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
+  };
+  const unchanged = builder.build(domain, base, statementUser, false, scope).sql;
+  assert.doesNotMatch(unchanged, /\nWHERE relation\.|\nHAVING /);
+
+  const filtered = builder.build(
+    domain,
+    {
+      ...base,
+      filters: [{ dimensionId: "leaf_key", op: "eq", value: "4.5|50001605|fertilizers-manures" }],
+      measureFilters: [
+        {
+          measureId: "mis-statement.actual_net",
+          op: "gt",
+          compareTo: { kind: "measure", measureId: "mis-statement.budget_net" },
+        },
+      ],
+    },
+    statementUser,
+    false,
+    scope,
+  ).sql;
+  assert.match(filtered, /WHERE relation\.leaf_key = '4\.5\|50001605\|fertilizers-manures'/);
+  assert.match(
+    filtered,
+    /GROUP BY relation\.leaf_key, outline\.sort_order\nHAVING SUM\(actual_net\) > SUM\(budget_net\)\nORDER BY/,
+  );
+});
+
 const user: AuthUser = {
   id: "proof-user",
   email: "proof@example.com",
