@@ -10,7 +10,9 @@ import {
   type Selection,
 } from "@3f/contract";
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "../llm/llm.interface";
+import { BedrockLlmProvider } from "../llm/bedrock.provider";
 import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
+import { loadConfig } from "../config";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
 import { askSchema } from "./chat.schemas";
@@ -91,7 +93,13 @@ test("the llm provider receives the question prior turns and dimension values an
 
   assert.equal(fixture.llm.inputs.length, 1);
   const input = fixture.llm.inputs[0];
-  assert.deepEqual(Object.keys(input).sort(), ["allowedDomains", "dimensionValues", "priorTurns", "question"]);
+  assert.deepEqual(Object.keys(input).sort(), [
+    "allowedDomains",
+    "comparableMeasureIdsByDomain",
+    "dimensionValues",
+    "priorTurns",
+    "question",
+  ]);
   assert.equal(input.question, "Show Actual by GL code");
   assert.deepEqual(input.priorTurns, priorTurns);
   assert.equal(input.allowedDomains[0]?.name, "governed-financial");
@@ -101,10 +109,66 @@ test("the llm provider receives the question prior turns and dimension values an
   assert.deepEqual(input.dimensionValues?.gl_code?.at(0), "DUB-00");
   assert.deepEqual(input.dimensionValues?.gl_code?.at(-1), "DUB-49");
   assert.equal("month" in (input.dimensionValues ?? {}), false);
+  assert.deepEqual(input.comparableMeasureIdsByDomain, {
+    "governed-financial": ["governed-financial.actual"],
+  });
   const serialized = JSON.stringify(input);
   for (const forbidden of ["123.45", "warehouse-row", "transaction-line", "batch-contents", ACTUAL_BATCH_ID]) {
     assert.equal(serialized.includes(forbidden), false, forbidden);
   }
+});
+
+test("a grounded selector keeps the report display scope and receives every permitted money comparison operand", async () => {
+  const fixture = makeFixture({ selection: financialSelection, groundedSelection: financialSelection });
+  const user = userFor("governed-financial");
+  user.permissions.measureIds.push("governed-financial.budget", "governed-financial.percentage");
+
+  await fixture.service.ask(user, "session", "Which are over budget?", undefined, { reportId: "actual-report" });
+
+  const input = fixture.llm.inputs[0];
+  assert.deepEqual(
+    input.allowedDomains[0]?.measures.map(({ id }) => id),
+    ["governed-financial.actual"],
+  );
+  assert.deepEqual(input.comparableMeasureIdsByDomain, {
+    "governed-financial": ["governed-financial.actual", "governed-financial.budget"],
+  });
+});
+
+test("a recorded provider comparison reaches Ask execution intact", async () => {
+  const provider = bedrockProviderWith({
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["gl_code"],
+    filters: [],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+    timeWindow: { grain: "month", from: "2026-07-01", to: "2026-07-01" },
+  });
+  const fixture = makeFixture({ llm: provider });
+  const user = userFor("governed-financial");
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show GL codes where Actual is more than Budget for July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(fixture.executor.selections[0]?.measureIds, ["governed-financial.actual"]);
+  assert.deepEqual(fixture.executor.selections[0]?.measureFilters, [
+    {
+      measureId: "governed-financial.actual",
+      op: "gt",
+      compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+    },
+  ]);
 });
 
 test("a data question answers from the governed measures and a definition question answers from the semantic layer labels", async () => {
@@ -268,6 +332,8 @@ const ACTUAL_BATCH_ID = "00000000-0000-0000-0000-000000000001";
 function makeFixture(options: {
   selection?: Selection;
   kind?: "selection" | "clarify" | "no_tool_block" | "backend_error";
+  llm?: LlmProvider;
+  groundedSelection?: Selection;
   result?: ResultTable;
   activeBatchIds?: ProvenanceBatch[];
   failEntryAudit?: boolean;
@@ -278,23 +344,38 @@ function makeFixture(options: {
       : options.kind === "no_tool_block" || options.kind === "backend_error"
         ? { kind: options.kind, reason: "Incomplete model response" }
         : { kind: "selection", selection: options.selection! };
-  const llm = new FakeLlm(llmResult);
+  const fakeLlm = new FakeLlm(llmResult);
+  const provider = options.llm ?? fakeLlm;
   const executor = new FakeExecutor(options.result ?? RESULT, options.activeBatchIds ?? []);
   const audit = new FakeAudit(options.failEntryAudit ?? false);
   const dimensions = new FakeDimensions();
   const help = new FakeHelp();
+  const semantic = new SemanticLayer();
+  const reports = options.groundedSelection
+    ? {
+        resolveAuthorizedSelection() {
+          const domain = semantic.domain(options.groundedSelection!.domain);
+          assert.ok(domain);
+          return {
+            report: { title: "Actual report" },
+            selection: options.groundedSelection!,
+            domain,
+          };
+        },
+      }
+    : {};
   const service = new ChatService(
-    new SemanticLayer(),
+    semantic,
     executor as never,
     audit as never,
     dimensions as never,
-    {} as never,
+    reports as never,
     help as never,
     new FakeSelectionResolver() as never,
-    llm,
+    provider,
     {} as never,
   );
-  return { service, llm, executor, audit, dimensions, help };
+  return { service, llm: fakeLlm, executor, audit, dimensions, help };
 }
 
 function numericTokens(value: unknown): string[] {
@@ -312,12 +393,14 @@ class FakeLlm implements LlmProvider {
 
 class FakeExecutor {
   calls = 0;
+  readonly selections: Selection[] = [];
   constructor(
     private readonly result: ResultTable,
     private readonly activeBatchIds: ProvenanceBatch[],
   ) {}
   async run(_user: unknown, _domain: unknown, selection: Selection, options: { beforeExecute?: Function }) {
     this.calls += 1;
+    this.selections.push(selection);
     await options.beforeExecute?.({ selection, sql: "SELECT governed", objectsTouched: [selection.domain] });
     return {
       result: this.result,
@@ -331,6 +414,28 @@ class FakeExecutor {
   async freshness() {
     return "2026-07-01";
   }
+}
+
+function bedrockProviderWith(selection: Selection): BedrockLlmProvider {
+  class ConverseCommand {
+    constructor(readonly input: unknown) {}
+  }
+  const provider = Object.create(BedrockLlmProvider.prototype) as BedrockLlmProvider;
+  Reflect.set(provider, "cfg", {
+    ...loadConfig(),
+    bedrock: { region: "ap-south-1", modelId: "test-model" },
+  });
+  Reflect.set(provider, "ConverseCommand", ConverseCommand);
+  Reflect.set(provider, "client", {
+    async send() {
+      return {
+        output: {
+          message: { content: [{ toolUse: { name: "emit_selection", input: selection } }] },
+        },
+      };
+    },
+  });
+  return provider;
 }
 
 class FakeAudit {

@@ -1,0 +1,85 @@
+{
+  "approval": {
+    "at": "2026-10-01T16:40:08+00:00",
+    "by": "human-via-Claude",
+    "event": "toolu_01HMbCx2RWdwU9uTwE9Kj9Nz",
+    "hash": "4b58638bb624c7e069fbe5b0f1904bb9012a4ae56002305e93776ea795a954b4",
+    "round": 15,
+    "runtime": "claude",
+    "session": "95f602af-e2c3-4ac2-9e21-a78e0aed778d"
+  },
+  "doc": "plans/ASK-MEASURE-FILTER.md",
+  "status": "approved",
+  "steps": [
+    {
+      "at": "2026-10-01T15:38:23+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-01T15:42:53+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T15:48:16+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T15:52:29+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T15:55:09+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T15:56:35+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T15:58:32+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:00:27+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:02:32+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:04:39+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:07:02+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:08:11+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:10:37+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:11:54+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:18:10+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:19:33+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-01T16:40:08+00:00",
+      "step": "approved"
+    }
+  ],
+  "title": "Ask filters by a comparison between measures",
+  "touches": 1
+}

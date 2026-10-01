@@ -13,6 +13,8 @@ export interface LlmSelectionInput {
   question: string;
   /** The domains + measures/dimensions the user is permitted to use. */
   allowedDomains: DomainSpec[];
+  /** Comparable measures from each full permitted domain, even when the displayed vocabulary is scoped. */
+  comparableMeasureIdsByDomain: Record<string, string[]>;
   /** Recent turns for follow-ups, ordered oldest-first and bounded by the caller. */
   priorTurns?: LlmPriorTurn[];
   /** Real low-cardinality dimension values, keyed by dimension id. */
