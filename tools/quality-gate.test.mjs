@@ -57,6 +57,7 @@ const hermeticTests = [
   "backend/src/pins/pins.service.test.ts",
   "backend/src/saved/saved.service.test.ts",
   "backend/src/semantic/definitionVersion.test.ts",
+  "backend/src/semantic/measure-filter.helper.test.ts",
   "backend/src/semantic/semanticLayer.financial.test.ts",
   "backend/src/semantic/semanticLayer.statement.test.ts",
   "backend/src/sql/sqlBuilder.composed.test.ts",
@@ -215,7 +216,6 @@ c16c3caf691704a163a15c6b4e52bd5bb0360ad742dfff8151e310d69b149712 backend/src/rec
 2acc47706b6cffcac04ecd156725b593c3240b9bf2c00154a8a6ce01150306e6 backend/src/recon/reconciliation.service.ts
 48af5fd4514fb0ff8e81812eea986b4026488c9c548afab66df0fa5cdd55b633 backend/src/reports/reports.service.ts
 430a16cf27377aad3c3f64136659755773322fd3189d436ca39b38c0e8edc9ba backend/src/semantic/definitionVersion.test.ts
-6ad8d170c0e6053c6d992094ba2a7c098ed2460871e8fe7c871e98a690feae7a backend/src/semantic/selectionValidation.ts
 8d4180354a45af0dd7a53c37e7124df29fc5fa0f76c54a8a007186d1bc94d5d1 backend/src/sql/sql.constants.ts
 bf87de09ae5d480823d3f7cc3d45f625e2903594afeaf7eaa13a866321c811d6 backend/src/sql/sqlValidator.ts
 2e736292f4b2732ede4917855dbd30ffa6f0388106c7976560179ddfe7d2e4a0 backend/src/usage/usage.controller.test.ts

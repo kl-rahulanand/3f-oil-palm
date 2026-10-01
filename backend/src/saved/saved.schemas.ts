@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { MeasureFilterInvalidReason } from "@3f/contract";
 import type {
   ChartType,
   Environment,
@@ -6,6 +7,7 @@ import type {
   ErrorFieldDetail,
   ErrorPayload,
   ExplorationSelectionStatus,
+  MeasureFilter,
   SaveQueryRequest,
   SavedQuery,
   Selection,
@@ -29,6 +31,20 @@ const selectionSchema = z
         })
         .strict(),
     ),
+    measureFilters: z
+      .array(
+        z
+          .object({
+            measureId: z.string().min(1),
+            op: z.enum(["gt", "gte", "lt", "lte"]),
+            compareTo: z.discriminatedUnion("kind", [
+              z.object({ kind: z.literal("measure"), measureId: z.string().min(1) }).strict(),
+              z.object({ kind: z.literal("value"), value: z.string().min(1) }).strict(),
+            ]),
+          })
+          .strict(),
+      )
+      .optional(),
     timeWindow: z
       .object({
         grain: z.enum(["day", "week", "month"]),
@@ -63,6 +79,30 @@ class ExplorationSelectionFilterDto implements SelectionFilter {
   value!: string | string[];
 }
 
+class ExplorationMeasureFilterDto implements MeasureFilter {
+  @ApiProperty({ example: "governed-financial.actual" })
+  measureId!: string;
+
+  @ApiProperty({ enum: ["gt", "gte", "lt", "lte"], example: "gt" })
+  op!: MeasureFilter["op"];
+
+  @ApiProperty({
+    oneOf: [
+      {
+        type: "object",
+        required: ["kind", "measureId"],
+        properties: { kind: { enum: ["measure"] }, measureId: { type: "string" } },
+      },
+      {
+        type: "object",
+        required: ["kind", "value"],
+        properties: { kind: { enum: ["value"] }, value: { type: "string" } },
+      },
+    ],
+  })
+  compareTo!: MeasureFilter["compareTo"];
+}
+
 class ExplorationTimeWindowDto implements NonNullable<Selection["timeWindow"]> {
   @ApiProperty({ enum: ["day", "week", "month"], example: "month" })
   grain!: NonNullable<Selection["timeWindow"]>["grain"];
@@ -92,6 +132,9 @@ export class ExplorationSelectionDto implements Selection {
 
   @ApiProperty({ type: [ExplorationSelectionFilterDto] })
   filters!: SelectionFilter[];
+
+  @ApiProperty({ type: [ExplorationMeasureFilterDto], required: false })
+  measureFilters?: MeasureFilter[];
 
   @ApiProperty({ type: ExplorationTimeWindowDto, required: false })
   timeWindow?: NonNullable<Selection["timeWindow"]>;
@@ -154,6 +197,9 @@ class ExplorationErrorFieldDto implements ErrorFieldDetail {
 class ExplorationErrorDetailsDto {
   @ApiProperty({ type: [ExplorationErrorFieldDto], required: false })
   fieldErrors?: ExplorationErrorFieldDto[];
+
+  @ApiProperty({ enum: Object.values(MeasureFilterInvalidReason), required: false })
+  reason?: MeasureFilterInvalidReason;
 }
 
 class ExplorationErrorPayloadDto implements ErrorPayload {

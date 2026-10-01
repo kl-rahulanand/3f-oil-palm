@@ -95,6 +95,35 @@ test("the selection executor surfaces composed provenance on the result the row 
   assert.deepEqual(result.budgetComponentLabels, ["Admin, East", "Labour"]);
 });
 
+test("the selection executor authorizes measure filter operands through the displayed measure path", () => {
+  const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), new ProvenanceWarehouse());
+  const filtered: Selection = {
+    ...selection,
+    measureIds: ["governed-financial.actual"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  assert.throws(
+    () =>
+      executor.authorize(
+        user({
+          actions: ["report"],
+          domains: [domain.name],
+          measureIds: filtered.measureIds,
+          dimensionIds: ["gl_code"],
+        }),
+        domain,
+        filtered,
+      ),
+    SelectionExecutionBlockedError,
+  );
+});
+
 const domain: DomainSpec = {
   name: "governed-financial",
   label: "Governed financial",

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { AuthUser, DomainSpec, Selection } from "@3f/contract";
+import type { AuthUser, DomainSpec, MeasureFilter, MeasureSpec, Selection } from "@3f/contract";
 import { loadConfig } from "../config";
 import { SQL_BUILDER_MESSAGES } from "./sql.constants";
 
@@ -117,6 +117,7 @@ export class SqlBuilder {
     const limit = Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows);
     const groupColumns = dims.map((d) => d.column);
     const groupBy = groupColumns.length ? `\nGROUP BY ${[...new Set(groupColumns)].join(", ")}` : "";
+    const having = this.havingClause(domain, selection.measureFilters);
     // Deterministic ordering so results (and pinned tiles that re-run) are stable across runs:
     // a date breakdown reads chronologically; any other breakdown reads largest-first by the
     // first measure (the warehouse otherwise returns an arbitrary, run-to-run-varying order).
@@ -138,6 +139,7 @@ export class SqlBuilder {
       `\nFROM ${composedCtes ? "financial_relation" : goldObject}` +
       whereSql +
       groupBy +
+      having +
       orderBy +
       `\nLIMIT ${limit}`;
 
@@ -153,6 +155,30 @@ export class SqlBuilder {
             "financial_relation",
           ]
         : [goldObject],
+    };
+  }
+
+  buildTotals(
+    domain: DomainSpec,
+    selection: Selection,
+    user: AuthUser,
+    resolvedScope?: GovernedSelectionScope,
+  ): BuiltQuery {
+    if (!selection.measureFilters?.length) {
+      return this.build(domain, { ...selection, dimensionIds: [] }, user, false, resolvedScope);
+    }
+
+    const grouped = this.build(domain, selection, user, false, resolvedScope);
+    const measures = selection.measureIds.map((id) => this.measure(domain, id));
+    const totals = measures.map((measure) => {
+      const alias = measure.id.split(".").pop()!;
+      const expression = measure.format === "money" ? `SUM(${alias})` : (measure.totalsOverAliases ?? "NULL");
+      return `${expression} AS ${alias}`;
+    });
+    const innerSql = grouped.sql.replace(/\nORDER BY[^\n]+(?=\nLIMIT \d+$)/, "").replace(/\nLIMIT \d+$/, "");
+    return {
+      sql: `SELECT ${totals.join(", ")} FROM (${innerSql}) AS filtered LIMIT 1`,
+      objectsTouched: grouped.objectsTouched,
     };
   }
 
@@ -200,6 +226,21 @@ export class SqlBuilder {
         .map((value) => this.lit(value))
         .join(", "),
     );
+    const where = selection.filters.flatMap((filter) => {
+      const dimension = domain.dimensions.find(({ id }) => id === filter.dimensionId);
+      if (!dimension) return [];
+      if (filter.op === "in" && Array.isArray(filter.value)) {
+        return [`relation.${dimension.column} IN (${filter.value.map((value) => this.lit(value)).join(", ")})`];
+      }
+      return typeof filter.value === "string"
+        ? [`relation.${dimension.column} ${filter.op === "neq" ? "<>" : "="} ${this.lit(filter.value)}`]
+        : [];
+    });
+    const join = includesLeaf ? "LEFT JOIN outline_order AS outline\n  ON outline.leaf_key = relation.leaf_key" : "";
+    const whereSql = where.length ? `WHERE ${where.join("\n  AND ")}` : "";
+    const groupBy = includesLeaf ? "GROUP BY relation.leaf_key, outline.sort_order" : "";
+    const having = this.havingClause(domain, selection.measureFilters).trimStart();
+    const orderBy = includesLeaf ? "ORDER BY outline.sort_order NULLS LAST, relation.leaf_key" : "";
     const sql = `WITH leaf_targets AS (
   SELECT * FROM (VALUES (${targetRows.join("),\n    (")})) AS target(plant, cost_center, gl_code, leaf_key)
 ), actual_by_leaf_month AS (
@@ -254,7 +295,7 @@ export class SqlBuilder {
 )
 SELECT ${selectColumns.join(",\n  ")}
 FROM statement_relation AS relation
-${includesLeaf ? "LEFT JOIN outline_order AS outline\n  ON outline.leaf_key = relation.leaf_key\nGROUP BY relation.leaf_key, outline.sort_order\nORDER BY outline.sort_order NULLS LAST, relation.leaf_key" : ""}
+${[join, whereSql, groupBy, having, orderBy].filter(Boolean).join("\n")}
 LIMIT ${Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows)}`;
 
     return {
@@ -271,6 +312,27 @@ LIMIT ${Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows)}
         "statement_relation",
       ],
     };
+  }
+
+  private havingClause(domain: DomainSpec, filters: MeasureFilter[] | undefined): string {
+    if (!filters?.length) return "";
+    const operators: Record<MeasureFilter["op"], string> = { gt: ">", gte: ">=", lt: "<", lte: "<=" };
+    return `\nHAVING ${filters
+      .map((filter) => {
+        const left = this.measure(domain, filter.measureId).expr;
+        const right =
+          filter.compareTo.kind === "measure"
+            ? this.measure(domain, filter.compareTo.measureId).expr
+            : this.lit(filter.compareTo.value);
+        return `${left} ${operators[filter.op]} ${right}`;
+      })
+      .join(" AND ")}`;
+  }
+
+  private measure(domain: DomainSpec, id: string): MeasureSpec {
+    const measure = domain.measures.find((candidate) => candidate.id === id);
+    if (!measure) throw new Error(`unknown measure ${id}`);
+    return measure;
   }
 
   private composedCtes(

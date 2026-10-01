@@ -1,7 +1,5 @@
 # AGENTS.md — 3oilpalm
 
-Before delegating work to subagents, read and follow [ROLE.md](ROLE.md) for model selection, delegation scope, and escalation.
-
 ## What This Repo Is
 
 Symphony Forge is a dual-runtime software-factory template for turning in-repo architecture and decision docs into shipped applications.
@@ -53,7 +51,7 @@ phases require sign-off; implementation also requires a plan and decomposition.
 
 Prompt files under `factory/prompts/` are phase contracts. They are invoked explicitly by the parent session; hooks only load context and enforce gates.
 
-Default specialist set:
+Before delegating to subagents, read and follow [ROLE.md](ROLE.md) for model selection, delegation scope, and escalation. Default specialist set:
 - `planner-high`
 - `docs-decomposer`
 - `functional-checker` (user-facing tasks only)

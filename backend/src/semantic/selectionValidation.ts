@@ -1,19 +1,16 @@
 import { BadRequestException } from "@nestjs/common";
 import type { AuthUser, MeasureSpec, Selection } from "@3f/contract";
+import { operandMeasureIds } from "./measure-filter.helper";
 import { SemanticLayer } from "./semanticLayer";
 
-export function validateSelectionForUser(
-  semantic: SemanticLayer,
-  user: AuthUser,
-  selection: Selection,
-): MeasureSpec[] {
+export function validateSelectionForUser(semantic: SemanticLayer, user: AuthUser, selection: Selection): MeasureSpec[] {
   const domain = semantic.domain(selection.domain);
   if (!domain || !user.permissions.domains.includes(selection.domain)) {
     throw new BadRequestException(`Unknown or not permitted domain: ${selection.domain}`);
   }
 
   const measures: MeasureSpec[] = [];
-  for (const measureId of selection.measureIds) {
+  for (const measureId of operandMeasureIds(selection)) {
     const measure = semantic.measure(selection.domain, measureId);
     if (!measure || !user.permissions.measureIds.includes(measureId)) {
       throw new BadRequestException(`Measure not available: ${measureId}`);

@@ -1,20 +1,20 @@
 {
-  "issue": "ask-measure-filter",
+  "issue": "mis-assistant-explains-a-number",
   "stages": [
     {
-      "id": "measure-filter-foundation",
-      "title": "Measure comparison filters: contract, canonical ingress, authorization union, HAVING in both domains, derived totals",
-      "status": "pending"
+      "id": "explain-grounding-and-attestation",
+      "title": "Attest the statement, and let the dock ground a question against it",
+      "status": "done"
     },
     {
-      "id": "measure-filter-ask-integration",
-      "title": "Measure comparison filters in Ask: selector schema and prompt, chat ingress and refusal, grounding merge, response and snapshot, Swagger, help, warehouse proof",
-      "status": "pending"
+      "id": "explain-the-number",
+      "title": "Answer a composition question about the focused figure",
+      "status": "done"
     },
     {
-      "id": "measure-filter-surfaces",
-      "title": "Render the comparison: labels, identity, the Ask answer readout line and empty state; live functional check",
-      "status": "pending"
+      "id": "explain-on-screen",
+      "title": "Click a figure, ask, and see the explanation",
+      "status": "done"
     }
   ]
 }

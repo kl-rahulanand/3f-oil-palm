@@ -5,6 +5,7 @@ import type { AuthUser, Selection } from "@3f/contract";
 import type { AuditService } from "../core/audit.service";
 import type { AppDb } from "../db/pool";
 import { dashboardPins } from "../db/schema";
+import { computeDefinitionVersion } from "../semantic/definitionVersion";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { PinsService } from "./pins.service";
 
@@ -104,6 +105,61 @@ test("a pin refusal is audited before a reorder can commit", async () => {
 
   await assert.rejects(() => service.reorder({ ...USER, scope: [] }, SESSION_ID, [row.id]), /audit unavailable/);
   assert.equal(transactionStarted, false);
+});
+
+test("pin runnable status and the definition version hash cover the operand measures", async () => {
+  const semantic = new SemanticLayer();
+  const filtered: Selection = {
+    ...SELECTION,
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const permitted = {
+    ...USER,
+    permissions: {
+      ...USER.permissions,
+      measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    },
+  };
+  let written: { selection: Selection; definitionVersion: string } | undefined;
+  const createDb = {
+    insert: () => ({
+      values: (value: { selection: Selection; definitionVersion: string }) => ({
+        returning: async () => {
+          written = value;
+          return [{ ...pinRow(value.selection), definitionVersion: value.definitionVersion }];
+        },
+      }),
+    }),
+  } as unknown as AppDb;
+  await new PinsService(createDb, semantic, audit()).create(permitted, SESSION_ID, { selection: filtered });
+  assert.deepEqual(written?.selection.measureIds, ["governed-financial.actual", "governed-financial.budget"]);
+  assert.equal(
+    written?.definitionVersion,
+    computeDefinitionVersion([
+      semantic.measure(filtered.domain, "governed-financial.actual")!,
+      semantic.measure(filtered.domain, "governed-financial.budget")!,
+    ]),
+  );
+
+  const staleRow = {
+    ...pinRow(filtered),
+    definitionVersion: computeDefinitionVersion([semantic.measure(filtered.domain, "governed-financial.actual")!]),
+  };
+  const [revoked] = await new PinsService(pinDb(staleRow, []), semantic, audit()).list(USER, SESSION_ID);
+  assert.deepEqual(revoked.status, {
+    runnable: false,
+    reason: "grant_revoked",
+    message: "You no longer have permission to run this selection.",
+  });
+  const [permittedPin] = await new PinsService(pinDb(staleRow, []), semantic, audit()).list(permitted, SESSION_ID);
+  assert.equal(permittedPin.definitionChanged, true);
+  assert.deepEqual(permittedPin.selection.measureIds, ["governed-financial.actual", "governed-financial.budget"]);
 });
 
 function pinDb(row: ReturnType<typeof pinRow>, insertedTables: unknown[]): AppDb {

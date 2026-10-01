@@ -1,0 +1,1 @@
+{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-18T05:57:47+00:00", "story": "ask-measure-filter", "detail": "Adding required contract field AskResponse.appliedMeasureFilters mechanically requires backend/src/swagger.test.ts Required<AskResponse> fixture to add the optional-field exemplar, but that file is ou"}

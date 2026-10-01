@@ -21,12 +21,14 @@ const reportGroundingTimeWindowSchema = z
     message: "from must be on or before to",
   });
 
+const askSelectionSchema = selectionSchema.omit({ measureFilters: true }).strict();
+
 const priorTurnsSchema = z
   .array(
     z
       .object({
         question: z.string().min(1).max(ASK_PRIOR_TURN_MAX_QUESTION_CHARS),
-        selection: selectionSchema,
+        selection: askSelectionSchema,
       })
       .strict(),
   )
@@ -77,7 +79,7 @@ export const askSchema = z
   .object({
     question: z.string().min(CHAT_VALIDATION.questionMinLength).max(LLM_CONTEXT_CHAR_BUDGET),
     sessionId: z.string().min(1).max(200).optional(),
-    selection: selectionSchema.optional(),
+    selection: askSelectionSchema.optional(),
     priorTurns: priorTurnsSchema.optional(),
     reportGrounding: z
       .object({
@@ -182,6 +184,9 @@ export class ChatResponseDto {
 
   @ApiPropertyOptional({ type: "array", items: { type: "object" } })
   appliedFilters?: AskResponse["appliedFilters"];
+
+  @ApiPropertyOptional({ type: "array", items: { type: "object" } })
+  appliedMeasureFilters?: AskResponse["appliedMeasureFilters"];
 
   @ApiPropertyOptional({ type: "object" })
   periodChoice?: AskResponse["periodChoice"];

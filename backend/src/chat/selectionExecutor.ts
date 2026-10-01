@@ -10,6 +10,7 @@ import type {
   SourcePresence,
 } from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
+import { operandMeasureIds } from "../semantic/measure-filter.helper";
 import { SqlBuilder, type GovernedSelectionScope } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "../warehouse/warehouse.interface";
@@ -111,7 +112,7 @@ export class SelectionExecutor {
       domain.composed &&
       (!user.permissions.actions.includes("report") ||
         !user.permissions.domains.includes(domain.name) ||
-        !selection.measureIds.every((id) => user.permissions.measureIds.includes(id)) ||
+        !operandMeasureIds(selection).every((id) => user.permissions.measureIds.includes(id)) ||
         !selection.dimensionIds.every((id) => user.permissions.dimensionIds.includes(id)))
     ) {
       throw new SelectionExecutionBlockedError("governed financial selection is not authorized");
@@ -226,19 +227,27 @@ export class SelectionExecutor {
     resolvedScope?: GovernedSelectionScope,
     signal?: AbortSignal,
   ): Promise<Record<string, number> | undefined> {
-    const ungrouped = await this.executeResolved(
-      user,
-      domain,
-      {
-        ...resolvedSelection,
-        dimensionIds: [],
-      },
-      beforeExecute,
-      false,
-      resolvedScope,
-      signal,
+    this.authorize(user, domain, resolvedSelection);
+    const cfg = loadConfig();
+    const built = this.builder.buildTotals(domain, resolvedSelection, user, resolvedScope);
+    await beforeExecute?.({
+      sql: built.sql,
+      objectsTouched: built.objectsTouched,
+      selection: resolvedSelection.measureFilters?.length
+        ? resolvedSelection
+        : { ...resolvedSelection, dimensionIds: [] },
+    });
+    const validation = this.validator.validate(
+      built.sql,
+      built.objectsTouched,
+      cfg.maxRows,
+      domain.blockedColumns ?? [],
     );
-    const row = ungrouped.result.rows[0];
+    if (!validation.ok) throw new SelectionExecutionBlockedError(validation.reason ?? "query blocked");
+    await this.warehouse.explain(built.sql);
+    signal?.throwIfAborted();
+    const raw = await withTimeout(this.warehouse.execute(built.sql), cfg.queryTimeoutMs);
+    const row = raw.rows[0];
     if (!row) return undefined;
 
     const totals: Record<string, number> = {};

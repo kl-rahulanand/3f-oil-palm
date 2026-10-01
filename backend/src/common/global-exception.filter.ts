@@ -3,6 +3,10 @@ import { ArgumentsHost, Catch, HttpException, HttpStatus, type ExceptionFilter }
 import type { ErrorEnvelope, ErrorFieldDetail } from "@3f/contract";
 import type { Response } from "express";
 import type { Config } from "../config";
+import {
+  MEASURE_FILTER_INVALID_MESSAGES,
+  MeasureFilterInvalidException,
+} from "../semantic/measure-filter-invalid.exception";
 import { maskPath, type ObservableRequest } from "./request-logging.middleware";
 import { sanitizedStack, StructuredLogger } from "./structured.logger";
 
@@ -18,6 +22,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = http.getRequest<ObservableRequest>();
     const response = http.getResponse<Response>();
     const zodError = asZodError(exception);
+    const measureFilterError = exception instanceof MeasureFilterInvalidException ? exception : undefined;
     const statusCode = zodError
       ? HttpStatus.BAD_REQUEST
       : exception instanceof HttpException
@@ -28,7 +33,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // A 400 is a validation failure (Zod safeParse -> BadRequestException, or a raw ZodError).
     // Surface VALIDATION_ERROR with sanitized field names; never the client-supplied values.
     const validation =
-      statusCode === HttpStatus.BAD_REQUEST
+      statusCode === HttpStatus.BAD_REQUEST && !measureFilterError
         ? zodError
           ? zodValidationDetails(zodError)
           : httpValidationDetails(exception)
@@ -67,12 +72,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             ? exception.constructor.name
             : "InternalError",
         message,
-        userMessage: validation
-          ? "The request contains invalid fields"
-          : statusCode >= 500
-            ? "Something went wrong. Please try again later"
-            : "The request could not be completed",
-        details: validation ? { fieldErrors: validation } : {},
+        userMessage: measureFilterError
+          ? MEASURE_FILTER_INVALID_MESSAGES[measureFilterError.reason]
+          : validation
+            ? "The request contains invalid fields"
+            : statusCode >= 500
+              ? "Something went wrong. Please try again later"
+              : "The request could not be completed",
+        details: measureFilterError
+          ? { reason: measureFilterError.reason }
+          : validation
+            ? { fieldErrors: validation }
+            : {},
         statusCode,
         correlationId,
         requestId,

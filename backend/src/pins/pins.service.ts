@@ -14,6 +14,7 @@ import { AuditService } from "../core/audit.service";
 import type { AppDb } from "../db/pool";
 import { dashboardPins } from "../db/schema";
 import { computeDefinitionVersion } from "../semantic/definitionVersion";
+import { canonicalizeSelection, operandMeasureIds } from "../semantic/measure-filter.helper";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { validateSelectionForUser } from "../semantic/selectionValidation";
 import { selectionSchema } from "../saved/saved.schemas";
@@ -34,18 +35,21 @@ export class PinsService {
       action: "create",
       submitted: req,
     });
-    const selectedMeasures = validateSelectionForUser(this.semantic, user, req.selection);
-    const status = selectionStatus(this.semantic, user, req.selection);
+    const domain = this.semantic.domain(req.selection.domain);
+    if (!domain) validateSelectionForUser(this.semantic, user, req.selection);
+    const selection = canonicalizeSelection(domain!, req.selection);
+    const selectedMeasures = validateSelectionForUser(this.semantic, user, selection);
+    const status = selectionStatus(this.semantic, user, selection);
     await this.auditRefusal(user, sessionId, undefined, status, "create");
     const definitionVersion = computeDefinitionVersion(selectedMeasures);
-    const title = req.title?.trim() || this.defaultTitle(req.selection, selectedMeasures);
+    const title = req.title?.trim() || this.defaultTitle(selection, selectedMeasures);
 
     const inserted = await this.db
       .insert(dashboardPins)
       .values({
         userId: user.id,
         title,
-        selection: req.selection,
+        selection,
         chartType: req.chartType,
         viewPrefs: req.view ?? null,
         definitionVersion,
@@ -57,7 +61,7 @@ export class PinsService {
       })
       .returning();
 
-    return toPin(inserted[0], status, false);
+    return toPin(this.semantic, inserted[0], status, false);
   }
 
   async list(user: AuthUser, sessionId: string): Promise<Pin[]> {
@@ -91,6 +95,7 @@ export class PinsService {
     const pins = orderedIds.map((id, position) => {
       const row = rowsById.get(id)!;
       return toPin(
+        this.semantic,
         { ...row, position },
         selectionStatus(this.semantic, user, row.selection),
         this.definitionChanged(row),
@@ -146,7 +151,7 @@ export class PinsService {
       .where(and(eq(dashboardPins.id, id), eq(dashboardPins.userId, user.id)))
       .returning();
     if (updated.length === 0) throw new NotFoundException("Pin not found");
-    return toPin(updated[0], status, this.definitionChanged(updated[0]));
+    return toPin(this.semantic, updated[0], status, this.definitionChanged(updated[0]));
   }
 
   async remove(user: AuthUser, sessionId: string, id: string): Promise<{ ok: true }> {
@@ -173,7 +178,7 @@ export class PinsService {
       .orderBy(asc(dashboardPins.position), desc(dashboardPins.createdAt));
     const pins = rows.map((row) => {
       const status = selectionStatus(this.semantic, user, row.selection);
-      return toPin(row, status, this.definitionChanged(row));
+      return toPin(this.semantic, row, status, this.definitionChanged(row));
     });
     await this.audit.writeExplorationRefusalEvents(
       pins.flatMap((pin) =>
@@ -216,7 +221,7 @@ export class PinsService {
     if (!isSelection(selection)) return true;
 
     const currentMeasures: MeasureSpec[] = [];
-    for (const measureId of selection.measureIds) {
+    for (const measureId of operandMeasureIds(selection)) {
       const measure = this.semantic.measure(selection.domain, measureId);
       if (!measure) return true;
       currentMeasures.push(measure);
@@ -234,11 +239,17 @@ export class PinsService {
 
 type DashboardPinRow = typeof dashboardPins.$inferSelect;
 
-function toPin(row: DashboardPinRow, status: ExplorationSelectionStatus, definitionChanged: boolean): Pin {
+function toPin(
+  semantic: SemanticLayer,
+  row: DashboardPinRow,
+  status: ExplorationSelectionStatus,
+  definitionChanged: boolean,
+): Pin {
+  const stored = row.selection as Selection;
   return {
     id: row.id,
     title: row.title,
-    selection: row.selection as Selection,
+    selection: status.runnable ? canonicalizeSelection(semantic.domain(stored.domain)!, stored) : stored,
     status,
     ...(row.chartType ? { chartType: row.chartType as Pin["chartType"] } : {}),
     ...(row.viewPrefs
@@ -257,11 +268,12 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
   const parsed = selectionSchema.safeParse(value);
   if (!parsed.success) throw new BadRequestException("Stored pin selection is invalid");
   const selection = parsed.data;
+  const measureIds = operandMeasureIds(selection);
   const dimensionIds = new Set([...selection.dimensionIds, ...selection.filters.map((filter) => filter.dimensionId)]);
   const domain = semantic.domain(selection.domain);
   if (
     !domain ||
-    selection.measureIds.some((id) => !semantic.measure(selection.domain, id)) ||
+    measureIds.some((id) => !semantic.measure(selection.domain, id)) ||
     [...dimensionIds].some((id) => !semantic.dimension(selection.domain, id))
   ) {
     return {
@@ -274,7 +286,7 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
     (domain.composed && !user.permissions.actions.includes("report")) ||
     (domain.scopeColumn && !user.scope.some((scope) => scope.attribute === domain.scopeColumn)) ||
     !user.permissions.domains.includes(selection.domain) ||
-    selection.measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
+    measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
     [...dimensionIds].some((id) => !user.permissions.dimensionIds.includes(id))
   ) {
     return {

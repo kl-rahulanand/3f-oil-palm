@@ -69,6 +69,12 @@ export class SemanticLayer {
   WHEN SUM(budget_net) = 0 AND SUM(actual_net) < 0 THEN 'credit / negative actual'
   ELSE (SUM(actual_net) / SUM(budget_net))::text
 END`,
+          totalsOverAliases: `CASE
+  WHEN SUM(budget) = 0 AND SUM(actual) = 0 THEN NULL
+  WHEN SUM(budget) = 0 AND SUM(actual) > 0 THEN 'over-budget'
+  WHEN SUM(budget) = 0 AND SUM(actual) < 0 THEN 'credit / negative actual'
+  ELSE (SUM(actual) / SUM(budget))::text
+END`,
           grain: "gl_code and month",
           impliedFilters: [],
           allowedDimensions: ["gl_code", "month"],
@@ -121,6 +127,12 @@ END`,
   WHEN SUM(budget_net) = 0 AND SUM(actual_net) < 0 THEN 'credit / negative actual'
   ELSE (SUM(actual_net) / SUM(budget_net))::text
 END`,
+          `CASE
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) = 0 THEN NULL
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) > 0 THEN 'over-budget'
+  WHEN SUM(budget_net) = 0 AND SUM(actual_net) < 0 THEN 'credit / negative actual'
+  ELSE (SUM(actual_net) / SUM(budget_net))::text
+END`,
         ),
       ],
       dimensions: [{ id: "leaf_key", label: SEMANTIC_LABELS.dimensions.leaf_key, column: "leaf_key" }],
@@ -163,7 +175,13 @@ END`,
   }
 }
 
-function statementMeasure(id: string, label: string, synonyms: string[], expr: string): MeasureSpec {
+function statementMeasure(
+  id: string,
+  label: string,
+  synonyms: string[],
+  expr: string,
+  totalsOverAliases?: string,
+): MeasureSpec {
   return {
     id: `mis-statement.${id}`,
     label,
@@ -178,6 +196,7 @@ function statementMeasure(id: string, label: string, synonyms: string[], expr: s
     synonyms,
     goldObject: "statement_relation",
     expr,
+    ...(totalsOverAliases ? { totalsOverAliases } : {}),
     grain: "statement leaf and period range",
     impliedFilters: [],
     allowedDimensions: ["leaf_key"],

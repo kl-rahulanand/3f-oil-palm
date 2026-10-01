@@ -31,6 +31,8 @@ export interface MeasureSpec {
   defaultTimeGrain?: TimeGrain;
   /** Display hint for surfaces; see MeasureFormat. */
   format?: MeasureFormat;
+  /** Aggregate expression over selected aliases when filtered grouped rows are totalled. */
+  totalsOverAliases?: string;
   /** True if this measure is meaningless/misleading without a bounded time window
    *  (e.g. event-stream counts that otherwise scan all history). Drives the D3
    *  required-time-window clarify gate. */
@@ -153,8 +155,19 @@ export interface Selection {
   measureIds: string[];
   dimensionIds: string[];
   filters: SelectionFilter[];
+  measureFilters?: MeasureFilter[];
   timeWindow?: { grain: TimeGrain; last?: number; from?: string; to?: string; column?: string };
   limit?: number;
+}
+
+export type MeasureFilterOp = "gt" | "gte" | "lt" | "lte";
+
+export type MeasureFilterOperand = { kind: "measure"; measureId: string } | { kind: "value"; value: string };
+
+export interface MeasureFilter {
+  measureId: string;
+  op: MeasureFilterOp;
+  compareTo: MeasureFilterOperand;
 }
 
 export interface SelectionFilter {

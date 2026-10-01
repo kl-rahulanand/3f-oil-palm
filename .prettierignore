@@ -43,7 +43,6 @@ backend/src/recon/recon.store.ts
 backend/src/recon/reconciliation.service.ts
 backend/src/reports/reports.service.ts
 backend/src/semantic/definitionVersion.test.ts
-backend/src/semantic/selectionValidation.ts
 backend/src/sql/sql.constants.ts
 backend/src/sql/sqlValidator.ts
 backend/src/usage/usage.controller.test.ts

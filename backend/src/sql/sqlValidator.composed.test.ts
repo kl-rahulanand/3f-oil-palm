@@ -55,6 +55,36 @@ test("the composed WITH full-outer-join query passes sqlValidator when the two s
   );
 });
 
+test("the validator accepts HAVING and a derived table totals query and still refuses an unapproved object inside the derived table a blocked column inside HAVING and a missing outer LIMIT", () => {
+  const validator = new SqlValidator();
+  const having =
+    "SELECT gl_code, SUM(actual_net) AS actual FROM approved GROUP BY gl_code HAVING SUM(actual_net) > 1 LIMIT 10";
+  const derived = `SELECT SUM(actual) AS actual
+FROM (SELECT gl_code, SUM(actual_net) AS actual FROM approved GROUP BY gl_code HAVING SUM(actual_net) > 1) AS filtered
+LIMIT 1`;
+
+  assert.deepEqual(validator.validate(having, ["approved"], 100), { ok: true });
+  assert.deepEqual(validator.validate(derived, ["approved"], 100), { ok: true });
+  assert.deepEqual(
+    new Parser().tableList(derived, { database: "postgresql" }).map((entry) => entry.split("::").pop()),
+    ["approved"],
+  );
+  assert.deepEqual(validator.validate(derived.replace("approved", "forbidden"), ["approved"], 100), {
+    ok: false,
+    reason: "unapproved object: forbidden",
+  });
+  assert.deepEqual(
+    validator.validate(having.replace("SUM(actual_net) > 1", "SUM(secret_amount) > 1"), ["approved"], 100, [
+      "secret_amount",
+    ]),
+    { ok: false, reason: "blocked column: secret_amount" },
+  );
+  assert.deepEqual(validator.validate(derived.replace(/\nLIMIT 1$/, ""), ["approved"], 100), {
+    ok: false,
+    reason: "missing LIMIT",
+  });
+});
+
 const composedDomain: DomainSpec = {
   name: "governed-financial",
   label: "Governed financial",
