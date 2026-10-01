@@ -1,0 +1,12 @@
+{
+  "doc": "plans/ASK-MEASURE-FILTER.md",
+  "status": "planning",
+  "steps": [
+    {
+      "at": "2026-10-01T15:38:23+00:00",
+      "step": "start"
+    }
+  ],
+  "title": "Ask filters by a comparison between measures",
+  "touches": 0
+}
