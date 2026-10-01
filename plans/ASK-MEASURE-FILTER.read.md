@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T20:03:34+00:00
-read_hash: 92a79d6372737a0b4aac9ff4394ee350a994ed5b
-round: 19
+read_at: 2026-10-01T21:02:48+00:00
+read_hash: 2d3deaf02fb7e11214be78a2276d37ad314125f4
+round: 24
 passed: yes
-doc_seen: 92a79d6372737a0b4aac9ff4394ee350a994ed5b
+doc_seen: 2d3deaf02fb7e11214be78a2276d37ad314125f4
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: ab114a686455623bd0c8162673fe1d52ebd4228e
+notes_seen: 2a7323e3251534e0673b4ee8eb9ff01f583fd280
 ---
 # Cold read notes
 
@@ -193,5 +193,37 @@ No findings.
 No findings.
 
 ## Round 19
+
+No findings.
+
+## Round 20
+
+34. The task state is stale: Ask Record has already merged to `origin/master` as pull request #82, but the plan still says only four parts are merged and lists Ask Record as next.
+
+   Update the builders summary and decomposition to mark Ask Record merged and Surfaces as the sole remaining part, so no worker attempts to rebuild it.
+   Disposition: cut the For the builders paragraph and the Task Decomposition now mark MEASURE-FILTER-ASK-RECORD merged as #82 and name MEASURE-FILTER-SURFACES as the one remaining part.
+
+## Round 21
+
+35. The plan still says the completed Ask Response work is broken “today”: it claims `askSelectionSchema` omits `measureFilters` and prior turns are refused.
+
+   Pull request #80 is merged; `origin/master` now uses the full selection schema and has acceptance coverage. Update that C2 detail and the ingress risk to describe the completed behavior, leaving only Surfaces as unfinished.
+   Disposition: cut Done-when detail 2 now says the Ask doors were delivered and merged as #80 and describes the schema gap in the past tense; the Risks line sits above For the builders in the approved part of the doc and records the risk as it stood at approval, so it is left as approved.
+
+## Round 22
+
+36. The ingress-risk entry still says `priorTurns[].selection` “rejects today,” although #80 is merged and the schema now accepts it.
+
+   Retain the risk, but describe the former gap in past tense and the completed leaf that guards against regression.
+   Disposition: cut the ingress risk keeps its place and now says the prior-turn schema gap closed with #80 and names the `chat.schemas.test.ts` leaves that guard it; Risks is outside the approval hash, so the approval stands.
+
+## Round 23
+
+37. C9 still says `applyReportGroundingToSelection` “drops `measureFilters` today,” despite Grounding having merged as #81.
+
+   Change this to the pre-#81 condition and name the merged grounding leaf, so the remaining Surfaces worker is not told to fix an already-completed backend path.
+   Disposition: cut Done-when detail 9 now says the grounding merge dropped filters before #81 and names its merged leaves; the same sweep put every other present-tense description of a merged gap below For the builders (the Ask Response and Grounding rows, the refusal and totals notes, the grounded-vocabulary note) in the past tense or neutral wording.
+
+## Round 24
 
 No findings.
