@@ -3,11 +3,32 @@
   "branch": "fix/the-measure-comparison-story-must-contin",
   "done_when": "plans/roadmap.json lists ASK-MEASURE-FILTER with its spec, the spec's Forge v1 confirmation fields record the 2026-09-17 confirmation, and forge story new ASK-MEASURE-FILTER opens the story",
   "kind": "fix",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "a684b0a86a3a0f33fea9a5129c75dee92a9e777f90d09963bc2079274debcd60",
+    "commit": "d6465df1cd8df0a393347c32802efa264f93369a",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The static metadata is internally consistent, including the spec link and confirmation hash, but the patch adds no end-to-end test or recorded functional invocation proving that the real Forge entry point accepts this roadmap item and opens the story. The supplied close run only executes the repository's npm build/typecheck/tests; `package.json:16-28` contains no Forge story command, and no repository test references this key. Consequently, a roadmap/status/confirmation contract mismatch that makes `forge story new ASK-MEASURE-FILTER` refuse can still pass every reported check. Add a suite-owned test through Forge's actual command entry point and record the required functional check.",
+        "file": "plans/roadmap.json",
+        "line": 274,
+        "priority": "P1",
+        "title": "Not done: forge story new ASK-MEASURE-FILTER opens the story"
+      }
+    ],
+    "status": "blocked",
+    "tree": "373b260f69061b9afb1f83f9b4299a12c5403dffd7a36ea67cacdf5834ba4096"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-01T15:29:46+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-01T15:33:44+00:00",
+      "step": "review"
     }
   ],
   "why": "The measure-comparison story must continue under Forge v1: the roadmap still lists it under the old lowercase key, which forge story new does not accept, and its confirmed spec carries no Forge v1 confirmation hash"
