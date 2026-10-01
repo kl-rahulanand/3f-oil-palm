@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:18:10+00:00
-read_hash: 2017a842fd8b735831efb1c7d46a6cc774b61f93
-round: 14
-passed: no
-doc_seen: 2017a842fd8b735831efb1c7d46a6cc774b61f93
+read_at: 2026-10-01T16:19:33+00:00
+read_hash: 39faf0571c86c4121e336f94848046e08fbb123d
+round: 15
+passed: yes
+doc_seen: 39faf0571c86c4121e336f94848046e08fbb123d
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 2ea6fbbfcabf2e5f8b1c28f0ef0beca37dc0d4e8
+notes_seen: e445267c6c541f27186c75b673284a76ba387092
 ---
 # Cold read notes
 
@@ -163,3 +163,7 @@ Only a genuine trade-off goes to the human, as a question with options.
 
    Its builder/executor DB proof and registry wiring do not consume chips, readback, snapshots, DTOs, or help from `MEASURE-FILTER-ASK-RECORD`. Start it from the foundation; then make Surfaces wait for both the record task and the proof.
    Disposition: cut MEASURE-FILTER-WAREHOUSE-PROOF now waits for nothing (it needs only the foundation on master) and MEASURE-FILTER-SURFACES waits for both MEASURE-FILTER-ASK-RECORD and the proof (rows, Task Decomposition).
+
+## Round 15
+
+No findings.
