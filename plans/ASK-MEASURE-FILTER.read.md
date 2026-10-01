@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T15:48:16+00:00
-read_hash: e265574ec065fabb10140dde8b4a17b3c0cbb4b3
-round: 2
+read_at: 2026-10-01T15:52:29+00:00
+read_hash: 2319566ec8703b6583866b2487bb8a2c859acd86
+round: 3
 passed: no
-doc_seen: e265574ec065fabb10140dde8b4a17b3c0cbb4b3
+doc_seen: 2319566ec8703b6583866b2487bb8a2c859acd86
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 7be40f333afd9390f0f3ef81c96a8b2a131cc97c
+notes_seen: d0068cca1d58e8a1cb78cf5d2ffb40f76d725c4b
 ---
 # Cold read notes
 
@@ -66,3 +66,21 @@ Only a genuine trade-off goes to the human, as a question with options.
 11. Done item 3 remains ambiguous against item 9.
    One says the “statement view” applies comparisons; the other says the MIS statement cannot apply them. The technical notes distinguish Ask’s statement projection from the MIS statement screen, but the user-facing Done-when text does not. Name those two surfaces explicitly.
    Disposition: cut item 3 now names Ask's GL-code view and Ask's statement-line view, and item 9 the MIS statement screen.
+
+## Round 3
+
+12. The new selector seam is still named inconsistently.
+   C7, Surface Impact, and Verify Plan say `comparableMeasureIds`; tasks and Technical Approach require `comparableMeasureIdsByDomain`. Use the keyed name everywhere so the parser and provider contract are unambiguous.
+   Disposition: cut `comparableMeasureIdsByDomain` is the only name in the doc now (Done-when details 7, Surface Impact, Verify Plan).
+
+13. Item 8’s “backend half” still contains the frontend label, readout, empty-state, and reopen requirements.
+   Those belong to item 11 and MEASURE-FILTER-SURFACES, while MEASURE-FILTER-ASK-RECORD owns chips, readback, response, and snapshot. Split the detail text accordingly so each task’s Covers cell remains truthful.
+   Disposition: cut detail 8 now holds only the backend half (chip, readback, `appliedMeasureFilters`, snapshot, DTOs and Swagger, with its leaves) and item 8's sentence drops the identity clause; labels, readout, empty state, reopen and identity live in item 11 and MEASURE-FILTER-SURFACES.
+
+14. The ingress Risk still refers to obsolete task numbering and reverses the new ownership.
+   It says task 1 covers every door and task 2 covers the provider door; now the selector covers the provider door, response covers the direct door, and foundation covers saved/pin/reopen. Update the risk’s proof references.
+   Disposition: cut the ingress risk now names the foundation on master for saved, pin, reopen and prior-turn doors, MEASURE-FILTER-SELECTOR for the provider door and MEASURE-FILTER-ASK-RESPONSE for the direct door.
+
+15. Unproven: item 5: totals beyond the visible page.
+   The warehouse proof says it uses the July fixture and asserts totals beyond the page, but does not pin a limit or prove that matching groups exceed it. Specify a deterministic low limit and an assertion that a matching group beyond that page contributes to the total.
+   Disposition: cut the gated leaf now pins `limit: 1`, asserts at least two over-budget groups in the July window (failing loudly otherwise) and that the total equals the sum over every matching group in the relation (detail 5, Verify Plan, the RECORD row).
