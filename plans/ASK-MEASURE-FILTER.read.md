@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T15:52:29+00:00
-read_hash: 2319566ec8703b6583866b2487bb8a2c859acd86
-round: 3
+read_at: 2026-10-01T15:55:09+00:00
+read_hash: 75fd36c7498c19df9a556bec0bccab2a73cb9598
+round: 4
 passed: no
-doc_seen: 2319566ec8703b6583866b2487bb8a2c859acd86
+doc_seen: 75fd36c7498c19df9a556bec0bccab2a73cb9598
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: d0068cca1d58e8a1cb78cf5d2ffb40f76d725c4b
+notes_seen: 9dc479107c32cc91ba2e99c4c2b1d02849b1a338
 ---
 # Cold read notes
 
@@ -84,3 +84,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 15. Unproven: item 5: totals beyond the visible page.
    The warehouse proof says it uses the July fixture and asserts totals beyond the page, but does not pin a limit or prove that matching groups exceed it. Specify a deterministic low limit and an assertion that a matching group beyond that page contributes to the total.
    Disposition: cut the gated leaf now pins `limit: 1`, asserts at least two over-budget groups in the July window (failing loudly otherwise) and that the total equals the sum over every matching group in the relation (detail 5, Verify Plan, the RECORD row).
+
+## Round 4
+
+16. Unproven: items 1 and 2: a follow-up after an answer with a measure filter.
+   The frontend sends prior successful selections in `priorTurns`, but the current nested schema rejects `measureFilters`. The plan only names the direct `AskRequest.selection` door. State that the shared schema admits filters in prior turns, preserves their canonical form before Bedrock sees them, and add a `chat.schemas` or chat-service leaf for that follow-up.
+   Disposition: cut detail 2 now names `askSelectionSchema` (`chat.schemas.ts:24`) as the shape of both the direct selection and every prior turn, MEASURE-FILTER-ASK-RESPONSE widens it and canonicalises each prior turn's selection before Bedrock and before a follow-up re-runs it, with leaves in `chat.schemas.test.ts` and `chat.service.test.ts` (row, Verify Plan).
