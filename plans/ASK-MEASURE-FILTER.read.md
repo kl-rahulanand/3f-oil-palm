@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:02:32+00:00
-read_hash: 5dacf3f80b3d440daccc11ab8edbb6ba5f67bc0b
-round: 8
+read_at: 2026-10-01T16:04:39+00:00
+read_hash: 1b98ac78fb050f6c21499b7b4c2c93bfc485dc09
+round: 9
 passed: no
-doc_seen: 5dacf3f80b3d440daccc11ab8edbb6ba5f67bc0b
+doc_seen: 1b98ac78fb050f6c21499b7b4c2c93bfc485dc09
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 578d0e9bfc4b5fe6cf431b9fada9ea0a2d8d3f27
+notes_seen: 3f3d2ee84abb2149ac5286a03dc2b1f65e8117a5
 ---
 # Cold read notes
 
@@ -118,3 +118,13 @@ Only a genuine trade-off goes to the human, as a question with options.
 21. The selector task cannot pass its grounded crossing leaf before the response task.
    Grounding currently drops `measureFilters`; its merge is assigned to the later response task, yet selector must prove an Actual-only report preserves `Actual > Budget` through grounding and append. Move the merge seam and crossing leaf into selector, or move both to response.
    Disposition: cut the report-grounding merge (carrying `measureFilters` through `applyReportGroundingToSelection`, which drops them today) and `viewInReport` now belong to MEASURE-FILTER-SELECTOR with the crossing leaf, so it covers items 7 and 9; MEASURE-FILTER-ASK-RESPONSE keeps the direct and prior-turn doors, the refusal translation and the empty answer, items 2 and 6 (rows, detail 9, Task Decomposition, Verify Plan, Surface Impact).
+
+## Round 9
+
+22. Split: `MEASURE-FILTER-SELECTOR` → provider seam and grounded-selector integration.
+   It now spans provider schema/prompt/parser/interface/mock changes plus normalization, grounding merge, append order, `viewInReport`, and several chat leaves—likely beyond the ~400-line task limit. The second task can depend on the provider seam and own C9.
+   Disposition: cut MEASURE-FILTER-SELECTOR is split into MEASURE-FILTER-PROVIDER (item 7: schema, prompt, parser, the seam, the provider door, a crossing leaf on an ungrounded recorded output) and MEASURE-FILTER-GROUNDING (item 9: normalise-merge-append, the merge carrying filters, viewInReport, the grounded crossing case), the latter after the former; five parts remain.
+
+23. The refusal-contract notes still assign work to nonexistent “Task 1.”
+   They say Task 1 changes `global-exception.filter.ts`, but Surface Impact says that branch is already on master and current task 1 has no such Scope. Replace it with the foundation ownership.
+   Disposition: cut the refusal-contract note now says the foundation (on master, #73) added the exception-filter branch.
