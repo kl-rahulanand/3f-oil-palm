@@ -13,10 +13,7 @@ import { conversations, conversationTurns } from "../db/schema";
 
 const DEFAULT_TITLE = "New chat";
 const NOT_FOUND = "Conversation not found";
-const CONVERSATION_HYDRATE_LIMIT = Math.max(
-  1,
-  Math.floor(loadConfig().conversationHydrateLimit),
-);
+const CONVERSATION_HYDRATE_LIMIT = Math.max(1, Math.floor(loadConfig().conversationHydrateLimit));
 
 export interface AppendConversationTurn {
   question: string;
@@ -105,12 +102,7 @@ export class ConversationsService {
       const owned = await tx
         .select({ id: conversations.id })
         .from(conversations)
-        .where(
-          and(
-            eq(conversations.id, conversationId),
-            eq(conversations.userId, userId),
-          ),
-        )
+        .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
         .limit(1)
         .for("update");
       if (owned.length === 0) throw new NotFoundException(NOT_FOUND);
@@ -119,12 +111,7 @@ export class ConversationsService {
         .select({ ordinal: max(conversationTurns.ordinal) })
         .from(conversationTurns)
         .innerJoin(conversations, eq(conversations.id, conversationTurns.conversationId))
-        .where(
-          and(
-            eq(conversations.id, conversationId),
-            eq(conversations.userId, userId),
-          ),
-        );
+        .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)));
       const ordinal = (ordinalRows[0]?.ordinal ?? 0) + 1;
 
       const rows = await tx
@@ -148,12 +135,7 @@ export class ConversationsService {
       await tx
         .update(conversations)
         .set({ updatedAt: new Date() })
-        .where(
-          and(
-            eq(conversations.id, conversationId),
-            eq(conversations.userId, userId),
-          ),
-        );
+        .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)));
 
       return toTurn(rows[0]);
     });
@@ -173,11 +155,7 @@ export class ConversationsService {
         .from(conversationTurns)
         .innerJoin(conversations, eq(conversations.id, conversationTurns.conversationId))
         .where(
-          and(
-            eq(conversations.id, conversationId),
-            eq(conversations.userId, userId),
-            eq(conversationTurns.id, turnId),
-          ),
+          and(eq(conversations.id, conversationId), eq(conversations.userId, userId), eq(conversationTurns.id, turnId)),
         )
         .limit(1)
         .for("update");
@@ -190,12 +168,7 @@ export class ConversationsService {
           selection,
           answerSnapshot: answerSnapshot(answer),
         })
-        .where(
-          and(
-            eq(conversationTurns.id, turnId),
-            eq(conversationTurns.conversationId, conversationId),
-          ),
-        )
+        .where(and(eq(conversationTurns.id, turnId), eq(conversationTurns.conversationId, conversationId)))
         .returning({
           id: conversationTurns.id,
           ordinal: conversationTurns.ordinal,
@@ -208,32 +181,18 @@ export class ConversationsService {
       await tx
         .update(conversations)
         .set({ updatedAt: new Date() })
-        .where(
-          and(
-            eq(conversations.id, conversationId),
-            eq(conversations.userId, userId),
-          ),
-        );
+        .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)));
 
       return toTurn(rows[0]);
     });
   }
 
-  async getRecentTurns(
-    userId: string,
-    conversationId: string,
-    limit: number,
-  ): Promise<ConversationTurnView[]> {
+  async getRecentTurns(userId: string, conversationId: string, limit: number): Promise<ConversationTurnView[]> {
     const boundedLimit = Math.max(0, Math.floor(limit));
     const owned = await this.db
       .select({ id: conversations.id })
       .from(conversations)
-      .where(
-        and(
-          eq(conversations.id, conversationId),
-          eq(conversations.userId, userId),
-        ),
-      )
+      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
       .limit(1);
     if (owned.length === 0) throw new NotFoundException(NOT_FOUND);
     if (boundedLimit === 0) return [];
@@ -249,12 +208,7 @@ export class ConversationsService {
       })
       .from(conversationTurns)
       .innerJoin(conversations, eq(conversations.id, conversationTurns.conversationId))
-      .where(
-        and(
-          eq(conversations.id, conversationId),
-          eq(conversations.userId, userId),
-        ),
-      )
+      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
       .orderBy(desc(conversationTurns.ordinal))
       .limit(boundedLimit);
 
@@ -299,14 +253,10 @@ function answerSnapshot(answer: ConversationAnswerSnapshot): ConversationAnswerS
     ...(answer.totals === undefined ? {} : { totals: answer.totals }),
     ...(answer.chartType === undefined ? {} : { chartType: answer.chartType }),
     ...(answer.provenance === undefined ? {} : { provenance: answer.provenance }),
-    ...(answer.usedPriorContext === undefined
-      ? {}
-      : { usedPriorContext: answer.usedPriorContext }),
+    ...(answer.usedPriorContext === undefined ? {} : { usedPriorContext: answer.usedPriorContext }),
     ...(answer.availableFields === undefined ? {} : { availableFields: answer.availableFields }),
     ...(answer.appliedFilters === undefined ? {} : { appliedFilters: answer.appliedFilters }),
-    ...(answer.appliedMeasureFilters === undefined
-      ? {}
-      : { appliedMeasureFilters: answer.appliedMeasureFilters }),
+    ...(answer.appliedMeasureFilters === undefined ? {} : { appliedMeasureFilters: answer.appliedMeasureFilters }),
     ...(answer.appliedTimeWindow === undefined ? {} : { appliedTimeWindow: answer.appliedTimeWindow }),
   };
 }
