@@ -268,11 +268,7 @@ function validateIgnoredBaseline(ignore, readPath = readFileSync) {
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith("#"))
       .sort(),
-    [
-      "**/dist/**",
-      "**/node_modules/**",
-      ...ignoredPaths,
-    ].sort(),
+    ["**/dist/**", "**/node_modules/**", ...ignoredPaths].sort(),
     "the Prettier ignore list must contain only the pinned build, debt, and harness paths",
   );
   for (const path of ignoredPaths) {
