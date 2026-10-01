@@ -751,8 +751,9 @@ function measureFilterOperandLabel(domain: DomainSpec, filter: MeasureFilter): s
 function formatIndianRupees(value: string): string {
   const negative = value.startsWith("-");
   const [whole, fraction = ""] = (negative ? value.slice(1) : value).split(".");
-  const tail = whole.slice(-3);
-  const head = whole.slice(0, -3);
+  const normalizedWhole = whole.replace(/^0+(?=\d)/, "");
+  const tail = normalizedWhole.slice(-3);
+  const head = normalizedWhole.slice(0, -3);
   const groupedHead = head.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
   const grouped = head ? `${groupedHead},${tail}` : tail;
   const decimals = fraction && !/^0+$/.test(fraction) ? `.${fraction}` : "";

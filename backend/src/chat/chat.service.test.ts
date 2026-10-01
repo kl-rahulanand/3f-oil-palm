@@ -566,7 +566,7 @@ test("a measure-filtered answer records comparison chips readback and applied fi
     {
       measureId: "governed-financial.actual",
       op: "lte",
-      compareTo: { kind: "value", value: "500000.00" },
+      compareTo: { kind: "value", value: "000500000.00" },
     },
   ];
   const fixture = makeFixture({ selection: { ...financialSelection, measureFilters } });

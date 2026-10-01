@@ -18,6 +18,23 @@ test("help lists measure comparison filter examples using permitted labels and I
   );
 });
 
+test("help finds a figure comparison in any domain with two permitted money measures", async () => {
+  const service = new HelpService(new SemanticLayer(), { values: async () => [] } as never);
+  const user = financeUser();
+  user.permissions.domains.push("mis-statement");
+  user.permissions.measureIds = ["governed-financial.actual", "mis-statement.actual_net", "mis-statement.budget_net"];
+
+  const response = await service.build(user);
+
+  assert.deepEqual(
+    response.whatYouCanAsk.filterExamples.find(({ dimensionLabel }) => dimensionLabel === "Measure comparisons"),
+    {
+      dimensionLabel: "Measure comparisons",
+      values: ["Actual > Budget", "Actual > ₹5,00,000"],
+    },
+  );
+});
+
 function financeUser(): AuthUser {
   return {
     id: "user-1",
