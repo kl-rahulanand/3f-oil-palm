@@ -1,0 +1,78 @@
+{
+  "event": "done",
+  "id": "Q-0047-fdcd",
+  "profile": "lite",
+  "by": "Rahul Anand",
+  "reason": "Human-requested: add ROLE.md (Codex subagent routing) at the repo root, point AGENTS.md at it, switch Codex web_search to live and set the optional subagent fallback keys in .codex/config.toml. Docs and config only.",
+  "base_sha": "6997770d898772e6e8ee89145aea50c3aed80ee6",
+  "started_at": "2026-09-17T12:18:34+00:00",
+  "completed_at": "2026-09-17T12:21:51+00:00",
+  "files": [
+    "ROLE.md"
+  ],
+  "reviews": {
+    "quality": {
+      "generated_by": "autoreview",
+      "score": 10,
+      "summary": "quality lens over lite window Q-0047-fdcd (3 product path(s), origin/master..HEAD, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The bounded diff changes exactly the three required files. AGENTS.md points to the newly added root-level ROLE.md; the TOML edit preserves the shown existing keys and uses valid values and recognized `[agents]` options; the routing guidance is internally consistent and gives explicit user instructions and configured specialist roles precedence. No credential, secret, or absolute local path is introduced. The supplied evidence does not establish any contradiction with omitted AGENTS.md defaults or harness specialist settings.",
+      "blocking_findings": [],
+      "non_blocking_findings": [],
+      "recommendation": "approve",
+      "reviewed_scope": [
+        "ROLE.md",
+        "AGENTS.md",
+        ".codex/config.toml"
+      ],
+      "skills_used": [],
+      "aspect": "quality",
+      "review_run_id": "8ecf2988c8c5720cc08ad96cd3d252960c14652086f9d0bd4f786d617a41f625",
+      "brief_sha256": "861ab06ba3d4b6fc74647e87396d74ccca5ba9b28953826d9743b223ecf17a32",
+      "branch_diff_digest": "e197841633e862f32ebbf0e3296680d8fe881329c6a4ccc7c2be62c7729adc75",
+      "residual_risks": [],
+      "recorded_at": "2026-09-17T12:21:51+00:00",
+      "commit": "b7d17426b1d8e54b5e2d10642cecf0e468a1282f"
+    },
+    "performance": {
+      "generated_by": "autoreview",
+      "score": 10,
+      "summary": "performance lens over lite window Q-0047-fdcd (3 product path(s), origin/master..HEAD, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff changes exactly the three contracted files. AGENTS.md points to the newly added root ROLE.md, the TOML remains syntactically valid while preserving the shown prior keys, and the added subagent defaults are documented Codex configuration fields. The routing entries use supported model and reasoning combinations, and no credential or absolute local path is introduced. No concrete P0\u2013P2 performance or correctness defect is demonstrated by the available evidence.",
+      "blocking_findings": [],
+      "non_blocking_findings": [],
+      "recommendation": "approve",
+      "reviewed_scope": [
+        "ROLE.md",
+        "AGENTS.md",
+        ".codex/config.toml"
+      ],
+      "skills_used": [],
+      "aspect": "performance",
+      "review_run_id": "8ecf2988c8c5720cc08ad96cd3d252960c14652086f9d0bd4f786d617a41f625",
+      "brief_sha256": "861ab06ba3d4b6fc74647e87396d74ccca5ba9b28953826d9743b223ecf17a32",
+      "branch_diff_digest": "e197841633e862f32ebbf0e3296680d8fe881329c6a4ccc7c2be62c7729adc75",
+      "residual_risks": [],
+      "recorded_at": "2026-09-17T12:21:51+00:00",
+      "commit": "b7d17426b1d8e54b5e2d10642cecf0e468a1282f"
+    },
+    "security": {
+      "generated_by": "autoreview",
+      "score": 10,
+      "summary": "security lens over lite window Q-0047-fdcd (3 product path(s), origin/master..HEAD, Codex via the autoreview skill at --max-priority P2): 0 blocking, 0 non-blocking. The supplied diff is limited to the three contracted files, the AGENTS.md link resolves to the new root-level ROLE.md, and the TOML edit preserves the shown prior keys while remaining syntactically valid. The routing guidance is internally consistent with the added fallback settings, recognizes specialist and user overrides, and introduces no apparent credential or absolute local path. The omitted unchanged repository files cannot support a concrete contradiction finding under the stated evidence constraints.",
+      "blocking_findings": [],
+      "non_blocking_findings": [],
+      "recommendation": "approve",
+      "reviewed_scope": [
+        "ROLE.md",
+        "AGENTS.md",
+        ".codex/config.toml"
+      ],
+      "skills_used": [],
+      "aspect": "security",
+      "review_run_id": "8ecf2988c8c5720cc08ad96cd3d252960c14652086f9d0bd4f786d617a41f625",
+      "brief_sha256": "861ab06ba3d4b6fc74647e87396d74ccca5ba9b28953826d9743b223ecf17a32",
+      "branch_diff_digest": "e197841633e862f32ebbf0e3296680d8fe881329c6a4ccc7c2be62c7729adc75",
+      "residual_risks": [],
+      "recorded_at": "2026-09-17T12:21:51+00:00",
+      "commit": "b7d17426b1d8e54b5e2d10642cecf0e468a1282f"
+    }
+  }
+}

@@ -75,6 +75,6 @@
   ],
   "input_sha256": "0e4812d524c14d8ffa31539108f000b0af673121e935f2138d0d8db59b416b75",
   "issue": "ask-measure-filter",
-  "recorded_at": "2026-09-18T06:19:21+00:00",
-  "commit": "2d7bdca6347ab48da7153c977464bf238f11b734"
+  "recorded_at": "2026-09-18T06:19:44+00:00",
+  "commit": "5bc4e63d2e1a9d584186221ba6ed8d0beb7d7606"
 }
