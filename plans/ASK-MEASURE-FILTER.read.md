@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T19:59:53+00:00
-read_hash: 43f954b54c212f6c02729060b18ec12dc68979df
-round: 17
-passed: no
-doc_seen: 43f954b54c212f6c02729060b18ec12dc68979df
+read_at: 2026-10-01T20:01:30+00:00
+read_hash: af854efc7656bfb80aa6a9c39e5c93e223e9d62c
+round: 18
+passed: yes
+doc_seen: af854efc7656bfb80aa6a9c39e5c93e223e9d62c
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 9daf422a8ede672fd2fda5f82ec6c8eff3540b43
+notes_seen: a4795d676ed15f7dc39b9b881d0b41b1e9329927
 ---
 # Cold read notes
 
@@ -187,3 +187,7 @@ No findings.
 33. The D-0006 cleanup is not fully pinned.
    Removing `conversations.service.ts` from `.prettierignore` also requires removing its entry from `tools/quality-gate.test.mjs`’s exact `ignoredBaselineHashes` manifest; otherwise the quality-gate leaf fails. Name that removal and add `tools/quality-gate.test.mjs` to Record’s Tests cell. The task should also replace the existing `.prettierignore` header’s still-false reference to deleted `plans/deferrals.md`, not merely append a new comment.
    Disposition: cut the Record row now names the `ignoredBaselineHashes` removal in `tools/quality-gate.test.mjs` and the replacement of the header's `plans/deferrals.md` reference, and `tools/quality-gate.test.mjs` joins its Tests cell (Tasks row).
+
+## Round 18
+
+No findings.
