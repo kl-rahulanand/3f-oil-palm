@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T15:56:35+00:00
-read_hash: 96a6c30fde08cec727b9d10d348bbdcde157e46a
-round: 5
+read_at: 2026-10-01T15:58:32+00:00
+read_hash: 78c1c54057a44b2e141d04cf3cb338ccee809a72
+round: 6
 passed: no
-doc_seen: 96a6c30fde08cec727b9d10d348bbdcde157e46a
+doc_seen: 78c1c54057a44b2e141d04cf3cb338ccee809a72
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: d0ade4c7bfec241c1de157cb6ea17d89707c2b61
+notes_seen: c4f5983feccb72d3c403940c83a2f0291243f7f1
 ---
 # Cold read notes
 
@@ -96,3 +96,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 17. The prior-turn plan describes behavior the chat service does not have.
    `chat.service.ts:193` only reads the latest prior selection for time-window inheritance; the next selection still comes from Bedrock. It never “re-runs the last one.” Rename this as canonical prior context passed to Bedrock and test that behavior, or explicitly scope and prove a new rerun path.
    Disposition: cut detail 2, the ASK-RESPONSE row and the Verify Plan now describe prior turns as canonical conversation context for Bedrock (`bedrock.provider.ts:200`) with only the time window inherited (`chat.service.ts:193`, `:318`), state that nothing re-runs a prior selection and the story adds no re-run path, and the leaf tests that behaviour.
+
+## Round 6
+
+18. The ingress-risk ownership is stale again.
+   It says foundation leaves cover prior-turn doors, yet C2 and MEASURE-FILTER-ASK-RESPONSE say `priorTurns[].selection` currently rejects filters and that task must admit and canonicalise them. Assign that prior-context door and leaf to ASK-RESPONSE.
+   Disposition: cut the ingress risk now assigns the prior-turn context door and its leaf to MEASURE-FILTER-ASK-RESPONSE, matching detail 2 and the row; the foundation covers saved, pin and reopen only.

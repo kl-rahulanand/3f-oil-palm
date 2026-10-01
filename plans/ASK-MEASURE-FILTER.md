@@ -58,9 +58,10 @@ selection all enter the backend without passing through the provider branch.
 - **Statement projection filters.** The `WHERE` predicate is emitted only when a filter is present;
   the golden statement proofs are asserted unchanged.
 - **Ingress coverage.** A door that skips `canonicalizeSelection` reintroduces the bug. The
-  foundation's leaves on master cover the saved, pin, reopen and prior-turn doors;
-  MEASURE-FILTER-SELECTOR's chat leaf asserts the provider door and MEASURE-FILTER-ASK-RESPONSE's
-  the direct `AskRequest.selection` door.
+  foundation's leaves on master cover the saved, pin and reopen doors; MEASURE-FILTER-SELECTOR's
+  chat leaf asserts the provider door; MEASURE-FILTER-ASK-RESPONSE's leaves assert the direct
+  `AskRequest.selection` door and the prior-turn context door (`priorTurns[].selection`, which
+  the shared schema rejects today).
 
 ## For the builders
 
