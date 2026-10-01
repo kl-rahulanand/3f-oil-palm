@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { BadRequestException } from "@nestjs/common";
 import {
+  MeasureFilterInvalidReason,
   ResponseClass,
   type AskPriorTurn,
   type AuthUser,
@@ -135,7 +136,7 @@ test("a grounded selector keeps the report display scope and receives every perm
   });
 });
 
-test("a recorded provider comparison reaches Ask execution intact", async () => {
+test("a recorded provider comparison reaches Ask execution canonical with its operand displayed", async () => {
   const provider = bedrockProviderWith({
     domain: "governed-financial",
     measureIds: ["governed-financial.actual"],
@@ -161,7 +162,10 @@ test("a recorded provider comparison reaches Ask execution intact", async () => 
   );
 
   assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(fixture.executor.selections[0]?.measureIds, ["governed-financial.actual"]);
+  assert.deepEqual(fixture.executor.selections[0]?.measureIds, [
+    "governed-financial.actual",
+    "governed-financial.budget",
+  ]);
   assert.deepEqual(fixture.executor.selections[0]?.measureFilters, [
     {
       measureId: "governed-financial.actual",
@@ -169,6 +173,202 @@ test("a recorded provider comparison reaches Ask execution intact", async () => 
       compareTo: { kind: "measure", measureId: "governed-financial.budget" },
     },
   ]);
+});
+
+test("the provider door refuses the non-decimal value 5 lakh as malformed before execution", async () => {
+  const provider = bedrockProviderWith({
+    ...financialSelection,
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "value", value: "5 lakh" },
+      },
+    ],
+  });
+  const fixture = makeFixture({ llm: provider });
+
+  const response = await fixture.service.ask(userFor("governed-financial"), "session", "Which spent over 5 lakh?");
+
+  assert.equal(response.responseClass, ResponseClass.NotSupported);
+  assert.match(response.message ?? "", /plain number/);
+  assert.equal(fixture.executor.calls, 0);
+  assert.equal(fixture.logs[0]?.context.reason, MeasureFilterInvalidReason.MalformedValue);
+});
+
+test("a direct Ask selection is canonical before authorization and execution", async () => {
+  const fixture = makeFixture({ selection: financialSelection });
+  const directSelection: Selection = {
+    ...financialSelection,
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+      {
+        measureId: "governed-financial.budget",
+        op: "gte",
+        compareTo: { kind: "value", value: "500000" },
+      },
+    ],
+  };
+  const user = userFor("governed-financial");
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Show the selected lines", directSelection);
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(fixture.executor.selections[0]?.measureIds, [
+    "governed-financial.actual",
+    "governed-financial.budget",
+  ]);
+  assert.deepEqual(fixture.executor.selections[0]?.measureFilters?.[1]?.compareTo, {
+    kind: "value",
+    value: "500000.00",
+  });
+  assert.equal(fixture.llm.inputs.length, 0);
+});
+
+test("a filtered prior turn is canonical provider context and still supplies the inherited time window", async () => {
+  const currentSelection: Selection = { ...financialSelection, timeWindow: undefined };
+  const priorSelection: Selection = {
+    ...financialSelection,
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const fixture = makeFixture({ selection: currentSelection });
+  const user = userFor("governed-financial");
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "And Actual now?", undefined, undefined, [
+    { question: "Show lines over budget", selection: priorSelection },
+  ]);
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(fixture.llm.inputs[0]?.priorTurns?.[0]?.selection.measureIds, [
+    "governed-financial.actual",
+    "governed-financial.budget",
+  ]);
+  assert.deepEqual(fixture.llm.inputs[0]?.priorTurns?.[0]?.selection.measureFilters, priorSelection.measureFilters);
+  assert.deepEqual(fixture.executor.selections[0]?.timeWindow, {
+    grain: "month",
+    from: "2026-07-01",
+    to: "2026-07-01",
+    column: "month",
+  });
+  assert.deepEqual(fixture.executor.selections[0]?.measureFilters, undefined);
+});
+
+test("Ask translates every measure-filter refusal reason and records its typed reason", async () => {
+  const cases: Array<{
+    reason: MeasureFilterInvalidReason;
+    filters: NonNullable<Selection["measureFilters"]>;
+    message: RegExp;
+  }> = [
+    {
+      reason: MeasureFilterInvalidReason.NotComparable,
+      filters: [
+        {
+          measureId: "governed-financial.percentage",
+          op: "gt",
+          compareTo: { kind: "value", value: "100" },
+        },
+      ],
+      message: /can't compare % with anything/,
+    },
+    {
+      reason: MeasureFilterInvalidReason.UnknownMeasure,
+      filters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "measure", measureId: "outside.amount" },
+        },
+      ],
+      message: /unavailable/,
+    },
+    {
+      reason: MeasureFilterInvalidReason.SelfComparison,
+      filters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "measure", measureId: "governed-financial.actual" },
+        },
+      ],
+      message: /itself/,
+    },
+    {
+      reason: MeasureFilterInvalidReason.Duplicate,
+      filters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "value", value: "1" },
+        },
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "value", value: "1.00" },
+        },
+      ],
+      message: /same comparison more than once/,
+    },
+    {
+      reason: MeasureFilterInvalidReason.MalformedValue,
+      filters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "value", value: "1.234" },
+        },
+      ],
+      message: /plain number/,
+    },
+  ];
+
+  for (const entry of cases) {
+    const fixture = makeFixture({ selection: financialSelection });
+    const user = userFor("governed-financial");
+    user.permissions.measureIds.push("governed-financial.percentage");
+    const response = await fixture.service.ask(user, "session", "Use this comparison", {
+      ...financialSelection,
+      measureFilters: entry.filters,
+    });
+
+    assert.equal(response.responseClass, ResponseClass.NotSupported, entry.reason);
+    assert.match(response.message ?? "", entry.message, entry.reason);
+    assert.equal(fixture.executor.calls, 0, entry.reason);
+    assert.equal(fixture.logs[0]?.context.reason, entry.reason);
+  }
+});
+
+test("an empty measure-filtered execution is a successful answer with a plain empty message", async () => {
+  const filteredSelection: Selection = {
+    ...financialSelection,
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const fixture = makeFixture({ selection: filteredSelection, result: { columns: RESULT.columns, rows: [] } });
+  const user = userFor("governed-financial");
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Show lines over budget for July 2026");
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(response.result?.rows, []);
+  assert.equal(response.message, "No lines match Actual > Budget for July 2026");
 });
 
 test("a data question answers from the governed measures and a definition question answers from the semantic layer labels", async () => {
@@ -351,6 +551,7 @@ function makeFixture(options: {
   const dimensions = new FakeDimensions();
   const help = new FakeHelp();
   const semantic = new SemanticLayer();
+  const logs: Array<{ context: Record<string, unknown> }> = [];
   const reports = options.groundedSelection
     ? {
         resolveAuthorizedSelection() {
@@ -375,7 +576,12 @@ function makeFixture(options: {
     provider,
     {} as never,
   );
-  return { service, llm: fakeLlm, executor, audit, dimensions, help };
+  Reflect.set(service, "logger", {
+    log(_level: string, _message: string, fields: { context?: Record<string, unknown> }) {
+      logs.push({ context: fields.context ?? {} });
+    },
+  });
+  return { service, llm: fakeLlm, executor, audit, dimensions, help, logs };
 }
 
 function numericTokens(value: unknown): string[] {

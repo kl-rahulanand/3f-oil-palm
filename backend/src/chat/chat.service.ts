@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
+  MeasureFilterInvalidReason,
   ResponseClass,
   type AskPeriodControl,
   type AskPeriodOption,
@@ -12,6 +13,7 @@ import {
   type Chip,
   type DomainSpec,
   type MeasureSpec,
+  type MeasureFilter,
   type Permissions,
   type Provenance,
   type ResultTable,
@@ -21,6 +23,9 @@ import { LLM_PROVIDER, loadConfig } from "../config";
 import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
 import type { LlmPriorTurn, LlmProvider, LlmUsage } from "../llm/llm.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
+import { canonicalizeSelection } from "../semantic/measure-filter.helper";
+import { MeasureFilterInvalidException } from "../semantic/measure-filter-invalid.exception";
+import { StructuredLogger } from "../common/structured.logger";
 import { AuditService } from "../core/audit.service";
 import { DimensionValuesService } from "../core/dimension-values.service";
 import { ReportsService } from "../reports/reports.service";
@@ -54,6 +59,8 @@ import {
  */
 @Injectable()
 export class ChatService {
+  private readonly logger = new StructuredLogger(loadConfig());
+
   constructor(
     private readonly semantic: SemanticLayer,
     private readonly selectionExecutor: SelectionExecutor,
@@ -104,6 +111,17 @@ export class ChatService {
         ...(llmUsage ? { usage: llmUsage } : {}),
       });
       return res;
+    };
+    const refuseMeasureFilter = (error: MeasureFilterInvalidException): AskResponse => {
+      this.logger.log("debug", "Ask turn refused", {
+        module: "ChatService",
+        accountId: user.id,
+        context: { reason: error.reason },
+      });
+      return done({
+        responseClass: ResponseClass.NotSupported,
+        message: MEASURE_FILTER_REFUSAL_MESSAGES[error.reason],
+      });
     };
 
     try {
@@ -186,17 +204,30 @@ export class ChatService {
         }
       : undefined;
 
-    const priorTurns: LlmPriorTurn[] = trimPriorTurnsToTokenBudget([
-      ...(clientPriorTurns ?? []),
-      ...(groundingPriorTurn ? [groundingPriorTurn] : []),
-    ]);
+    let priorTurns: LlmPriorTurn[];
+    try {
+      priorTurns = trimPriorTurnsToTokenBudget(
+        [...(clientPriorTurns ?? []), ...(groundingPriorTurn ? [groundingPriorTurn] : [])].map((turn) => ({
+          ...turn,
+          selection: this.canonicalizeKnownSelection(turn.selection),
+        })),
+      );
+    } catch (error) {
+      if (error instanceof MeasureFilterInvalidException) return refuseMeasureFilter(error);
+      throw error;
+    }
     const priorSelection = priorTurns.at(-1)?.selection;
 
     // 1. Selection: use the user's edited chips, else ask the LLM to select.
     onEvent?.({ type: "phase", phase: "selecting" });
     let selection: Selection;
     if (usesEditedSelection && editedSelection) {
-      selection = editedSelection;
+      try {
+        selection = this.canonicalizeKnownSelection(editedSelection);
+      } catch (error) {
+        if (error instanceof MeasureFilterInvalidException) return refuseMeasureFilter(error);
+        throw error;
+      }
     } else {
       usedPriorContext = priorTurns.length > 0;
       const llmAllowedDomains = groundedReport
@@ -263,6 +294,12 @@ export class ChatService {
         }
         selection = groundedSelection;
       }
+      try {
+        selection = this.canonicalizeKnownSelection(selection);
+      } catch (error) {
+        if (error instanceof MeasureFilterInvalidException) return refuseMeasureFilter(error);
+        throw error;
+      }
       const routingClarify = domainRoutingAmbiguity({
         question,
         allowedDomains: llmAllowedDomains,
@@ -325,7 +362,7 @@ export class ChatService {
     if (!selection.timeWindow && priorSelection?.timeWindow && priorSelection.domain === selection.domain) {
       const usesTimeBoundMeasure = selection.measureIds
         .map((id) => this.semantic.measure(selection.domain, id))
-        .some((measure) => measure?.requiresTimeWindow === true);
+        .some((measure) => Boolean(measure?.timeColumn) || measure?.requiresTimeWindow === true);
       if (usesTimeBoundMeasure) {
         selection = { ...selection, timeWindow: priorSelection.timeWindow };
       }
@@ -506,6 +543,9 @@ export class ChatService {
       // save/pin/edit it and re-run deterministically (H1/I1). Never SQL — just the selection.
       selection,
       result,
+      ...(result.rows.length === 0 && selection.measureFilters?.length
+        ? { message: emptyMeasureFilterMessage(domain, selection, appliedTimeWindow, answerPeriodOptions) }
+        : {}),
       ...(totals ? { totals } : {}),
       provenance,
       appliedTimeWindow,
@@ -533,6 +573,11 @@ export class ChatService {
 
   private title(domainLabel: string, sel: Selection): string {
     return `${sel.measureIds.map((m) => m.split(".").pop()).join(", ")} — ${domainLabel}`;
+  }
+
+  private canonicalizeKnownSelection(selection: Selection): Selection {
+    const domain = this.semantic.domain(selection.domain);
+    return domain ? canonicalizeSelection(domain, selection) : selection;
   }
 
   private async dimensionValuesForAllowedDomains(
@@ -620,6 +665,51 @@ export class ChatService {
 
     return { kind: "selection", selection: { ...selection, filters } };
   }
+}
+
+const MEASURE_FILTER_REFUSAL_MESSAGES: Record<MeasureFilterInvalidReason, string> = {
+  [MeasureFilterInvalidReason.NotComparable]: "I can't compare % with anything; compare Actual with Budget instead.",
+  [MeasureFilterInvalidReason.UnknownMeasure]:
+    "I can't use that comparison because one of its measures is unavailable.",
+  [MeasureFilterInvalidReason.SelfComparison]: "I can't compare a figure with itself.",
+  [MeasureFilterInvalidReason.Duplicate]: "I can't use the same comparison more than once.",
+  [MeasureFilterInvalidReason.MalformedValue]:
+    "I couldn't use that comparison amount; enter a plain number with no more than two decimal places.",
+};
+
+function emptyMeasureFilterMessage(
+  domain: DomainSpec,
+  selection: Selection,
+  appliedTimeWindow: AppliedTimeWindow | undefined,
+  periodOptions: AskPeriodOption[],
+): string {
+  const comparisons = selection.measureFilters!.map((filter) => formatMeasureFilter(domain, filter)).join(" and ");
+  const period = appliedTimeWindow
+    ? periodOptions.find((option) => windowMatchesPeriod(appliedTimeWindow, option))?.label
+    : undefined;
+  return `No lines match ${comparisons}${period ? ` for ${period}` : ""}`;
+}
+
+function formatMeasureFilter(domain: DomainSpec, filter: MeasureFilter): string {
+  const label = (measureId: string) =>
+    domain.measures.find((measure) => measure.id === measureId)?.label ?? measureId.split(".").at(-1)!;
+  const operators: Record<MeasureFilter["op"], string> = { gt: ">", gte: ">=", lt: "<", lte: "<=" };
+  const right =
+    filter.compareTo.kind === "measure"
+      ? label(filter.compareTo.measureId)
+      : formatIndianRupees(filter.compareTo.value);
+  return `${label(filter.measureId)} ${operators[filter.op]} ${right}`;
+}
+
+function formatIndianRupees(value: string): string {
+  const negative = value.startsWith("-");
+  const [whole, fraction = ""] = (negative ? value.slice(1) : value).split(".");
+  const tail = whole.slice(-3);
+  const head = whole.slice(0, -3);
+  const groupedHead = head.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+  const grouped = head ? `${groupedHead},${tail}` : tail;
+  const decimals = fraction && !/^0+$/.test(fraction) ? `.${fraction}` : "";
+  return `${negative ? "-" : ""}₹${grouped}${decimals}`;
 }
 
 function cloneSelection(selection: Selection): Selection {

@@ -96,22 +96,47 @@ test("oversized node metadata arrays are rejected by the schema before being sor
   );
 });
 
-test("a direct Ask request carrying measureFilters is refused with a validation error until task two lifts the gate", () => {
-  const result = askSchema.safeParse({
-    question: "Show lines over budget",
-    selection: {
-      ...selection,
-      measureFilters: [
+test("Ask accepts a measure filter on a direct selection and a prior turn but rejects a malformed filter", () => {
+  const filteredSelection = {
+    ...selection,
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt" as const,
+        compareTo: { kind: "measure" as const, measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+
+  assert.equal(askSchema.safeParse({ question: "Show lines over budget", selection: filteredSelection }).success, true);
+  assert.equal(
+    askSchema.safeParse({
+      question: "What changed?",
+      priorTurns: [{ question: "Show lines over budget", selection: filteredSelection }],
+    }).success,
+    true,
+  );
+  assert.equal(
+    askSchema.safeParse({
+      question: "What changed?",
+      priorTurns: [
         {
-          measureId: "governed-financial.actual",
-          op: "gt",
-          compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+          question: "Show lines over budget",
+          selection: {
+            ...selection,
+            measureFilters: [
+              {
+                measureId: "governed-financial.actual",
+                op: "gt",
+                compareTo: { kind: "value" },
+              },
+            ],
+          },
         },
       ],
-    },
-  });
-  assert.equal(result.success, false);
-  if (!result.success) assert.deepEqual(result.error.issues[0]?.path, ["selection"]);
+    }).success,
+    false,
+  );
 });
 
 const selection: Selection = {

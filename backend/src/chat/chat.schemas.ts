@@ -21,7 +21,7 @@ const reportGroundingTimeWindowSchema = z
     message: "from must be on or before to",
   });
 
-const askSelectionSchema = selectionSchema.omit({ measureFilters: true }).strict();
+const askSelectionSchema = selectionSchema;
 
 const priorTurnsSchema = z
   .array(
