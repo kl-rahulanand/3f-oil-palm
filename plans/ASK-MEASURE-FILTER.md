@@ -68,7 +68,7 @@ selection all enter the backend without passing through the provider branch.
 The foundation part (contract, canonical ingress, authorization union, HAVING in both domains,
 derived totals) was built and merged under the previous harness as pull request #73: Done-when
 items 3 and 4 are on master in full, and items 1, 2, 5 and 6 in part; each of those four says under
-Done-when details what #73 left and which row below delivers it. Six parts build on it; four are merged (MEASURE-FILTER-PROVIDER as #78, MEASURE-FILTER-WAREHOUSE-PROOF as #79, MEASURE-FILTER-ASK-RESPONSE as #80, MEASURE-FILTER-GROUNDING as #81) and two remain: MEASURE-FILTER-ASK-RECORD, then MEASURE-FILTER-SURFACES. Builds and checks run on macOS or Linux hosts: CI is Linux with no network and no
+Done-when details what #73 left and which row below delivers it. Six parts build on it; five are merged (MEASURE-FILTER-PROVIDER as #78, MEASURE-FILTER-WAREHOUSE-PROOF as #79, MEASURE-FILTER-ASK-RESPONSE as #80, MEASURE-FILTER-GROUNDING as #81, MEASURE-FILTER-ASK-RECORD as #82) and one remains: MEASURE-FILTER-SURFACES. Builds and checks run on macOS or Linux hosts: CI is Linux with no network and no
 database, and this repository has no Windows development host, so the warehouse proof and the
 live functional check are declared macOS/Linux-host-only. Decision 0040 and the confirmed spec `docs/specs/ask-measure-comparison-filter.md`
 stand. The previous harness's commands named in the Notes (`verify.py`, `./forge defer add`) no
@@ -384,7 +384,7 @@ nothing). Both recorded in 0040.
 ### Task Decomposition
 
 The foundation (contract, canonical ingress, authorization union, HAVING in both domains,
-derived totals) is on master as pull request #73. Six parts follow, listed in dependency order (the proof depends only on the foundation); parts 1, 2, 3 and 5 are merged as #78, #80, #81 and #79, so only 4 and 6 remain; every
+derived totals) is on master as pull request #73. Six parts follow, listed in dependency order (the proof depends only on the foundation); parts 1 to 5 are merged as #78, #80, #81, #82 and #79, so only 6 remains; every
 new field is optional, so each build stays green at each step.
 
 1. **MEASURE-FILTER-PROVIDER** (backend) — item 7. Provider schema, prompt, parser and
@@ -399,7 +399,7 @@ new field is optional, so each build stays green at each step.
    crossing case. Merged as #81.
 4. **MEASURE-FILTER-ASK-RECORD** (backend) — items 1 and 8. Chips, readback,
    `appliedMeasureFilters`, the conversation snapshot, chat DTOs and Swagger, help examples.
-   Waits for MEASURE-FILTER-GROUNDING (merged as #81): it is the next part to build.
+   Merged as #82.
 5. **MEASURE-FILTER-WAREHOUSE-PROOF** (backend) — item 5. The gated warehouse proof and its
    registration in `backend/package.json` and `tools/quality-gate.test.mjs`; it prints the
    over-budget set the functional check uses as its oracle. Needs only the foundation on master.

@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T20:03:34+00:00
-read_hash: 92a79d6372737a0b4aac9ff4394ee350a994ed5b
-round: 19
-passed: yes
-doc_seen: 92a79d6372737a0b4aac9ff4394ee350a994ed5b
+read_at: 2026-10-01T20:59:41+00:00
+read_hash: e290ca5689e4913daeafbd10beab6360cd872530
+round: 20
+passed: no
+doc_seen: e290ca5689e4913daeafbd10beab6360cd872530
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: ab114a686455623bd0c8162673fe1d52ebd4228e
+notes_seen: 0bc3c6dc06b01875732ac5185028144e639a6c68
 ---
 # Cold read notes
 
@@ -195,3 +195,10 @@ No findings.
 ## Round 19
 
 No findings.
+
+## Round 20
+
+34. The task state is stale: Ask Record has already merged to `origin/master` as pull request #82, but the plan still says only four parts are merged and lists Ask Record as next.
+
+   Update the builders summary and decomposition to mark Ask Record merged and Surfaces as the sole remaining part, so no worker attempts to rebuild it.
+   Disposition: cut the For the builders paragraph and the Task Decomposition now mark MEASURE-FILTER-ASK-RECORD merged as #82 and name MEASURE-FILTER-SURFACES as the one remaining part.
