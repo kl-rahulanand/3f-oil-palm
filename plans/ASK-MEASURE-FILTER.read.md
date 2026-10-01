@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T15:55:09+00:00
-read_hash: 75fd36c7498c19df9a556bec0bccab2a73cb9598
-round: 4
+read_at: 2026-10-01T15:56:35+00:00
+read_hash: 96a6c30fde08cec727b9d10d348bbdcde157e46a
+round: 5
 passed: no
-doc_seen: 75fd36c7498c19df9a556bec0bccab2a73cb9598
+doc_seen: 96a6c30fde08cec727b9d10d348bbdcde157e46a
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 9dc479107c32cc91ba2e99c4c2b1d02849b1a338
+notes_seen: d0ade4c7bfec241c1de157cb6ea17d89707c2b61
 ---
 # Cold read notes
 
@@ -90,3 +90,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 16. Unproven: items 1 and 2: a follow-up after an answer with a measure filter.
    The frontend sends prior successful selections in `priorTurns`, but the current nested schema rejects `measureFilters`. The plan only names the direct `AskRequest.selection` door. State that the shared schema admits filters in prior turns, preserves their canonical form before Bedrock sees them, and add a `chat.schemas` or chat-service leaf for that follow-up.
    Disposition: cut detail 2 now names `askSelectionSchema` (`chat.schemas.ts:24`) as the shape of both the direct selection and every prior turn, MEASURE-FILTER-ASK-RESPONSE widens it and canonicalises each prior turn's selection before Bedrock and before a follow-up re-runs it, with leaves in `chat.schemas.test.ts` and `chat.service.test.ts` (row, Verify Plan).
+
+## Round 5
+
+17. The prior-turn plan describes behavior the chat service does not have.
+   `chat.service.ts:193` only reads the latest prior selection for time-window inheritance; the next selection still comes from Bedrock. It never “re-runs the last one.” Rename this as canonical prior context passed to Bedrock and test that behavior, or explicitly scope and prove a new rerun path.
+   Disposition: cut detail 2, the ASK-RESPONSE row and the Verify Plan now describe prior turns as canonical conversation context for Bedrock (`bedrock.provider.ts:200`) with only the time window inherited (`chat.service.ts:193`, `:318`), state that nothing re-runs a prior selection and the story adds no re-run path, and the leaf tests that behaviour.
