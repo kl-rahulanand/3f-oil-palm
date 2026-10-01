@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:11:54+00:00
-read_hash: c44846b17918bac7e1a7e22d5d8ba188fc8ba104
-round: 13
+read_at: 2026-10-01T16:18:10+00:00
+read_hash: 2017a842fd8b735831efb1c7d46a6cc774b61f93
+round: 14
 passed: no
-doc_seen: c44846b17918bac7e1a7e22d5d8ba188fc8ba104
+doc_seen: 2017a842fd8b735831efb1c7d46a6cc774b61f93
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 529d2b8796ccf8205bbb3a75f3f4a5be91569222
+notes_seen: 2ea6fbbfcabf2e5f8b1c28f0ef0beca37dc0d4e8
 ---
 # Cold read notes
 
@@ -156,3 +156,10 @@ Only a genuine trade-off goes to the human, as a question with options.
 28. Split: `MEASURE-FILTER-ASK-RECORD` → answer record and warehouse proof.
    The DB proof plus package and quality-gate wiring is independent C5 work and makes this already three-item, multi-surface task likely exceed the line budget. Give the proof and its registries their own task.
    Disposition: cut the gated warehouse proof and its registries are MEASURE-FILTER-WAREHOUSE-PROOF (item 5), after MEASURE-FILTER-ASK-RECORD (items 1 and 8) and before MEASURE-FILTER-SURFACES, whose functional check uses the set it prints; six parts remain.
+
+## Round 14
+
+29. The warehouse-proof task has an artificial dependency.
+
+   Its builder/executor DB proof and registry wiring do not consume chips, readback, snapshots, DTOs, or help from `MEASURE-FILTER-ASK-RECORD`. Start it from the foundation; then make Surfaces wait for both the record task and the proof.
+   Disposition: cut MEASURE-FILTER-WAREHOUSE-PROOF now waits for nothing (it needs only the foundation on master) and MEASURE-FILTER-SURFACES waits for both MEASURE-FILTER-ASK-RECORD and the proof (rows, Task Decomposition).
