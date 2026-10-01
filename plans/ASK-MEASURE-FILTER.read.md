@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:19:33+00:00
-read_hash: 39faf0571c86c4121e336f94848046e08fbb123d
-round: 15
-passed: yes
-doc_seen: 39faf0571c86c4121e336f94848046e08fbb123d
+read_at: 2026-10-01T19:57:22+00:00
+read_hash: f80319011485205cff229ad72d1b8830d9b4f3f5
+round: 16
+passed: no
+doc_seen: f80319011485205cff229ad72d1b8830d9b4f3f5
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: e445267c6c541f27186c75b673284a76ba387092
+notes_seen: c565b40258f583244b6328c0f432b2cf2fd8c194
 ---
 # Cold read notes
 
@@ -167,3 +167,13 @@ Only a genuine trade-off goes to the human, as a question with options.
 ## Round 15
 
 No findings.
+
+## Round 16
+
+30. Shared test-registry wiring has two concurrent owners.
+   `MEASURE-FILTER-ASK-RECORD` and `MEASURE-FILTER-WAREHOUSE-PROOF` both edit `backend/package.json` and `tools/quality-gate.test.mjs`, yet the proof has no dependency on Record. The Record row also says “No … registry … change” while its Scope says the opposite. Put both registrations in a small final wiring task after Record and Proof (and make Surfaces wait for it), or serialize ownership under one task.
+   Disposition: cut the proof part merged as #79 before the record part started, so the two registry files have one owner at a time and no wiring task is needed; the record row now says it registers its two new leaves there, matching its Scope (Tasks row).
+
+31. The D-0006 formatter-removal path targets a deleted ledger and contradicts the plan’s migration note.
+   `.prettierignore` requires recording a removal in `plans/deferrals.md`, but Forge v1 deleted that file and the plan says deferrals are plain Notes; the Record task nevertheless scopes the absent file. Pin one current recording location and its update, rather than recreating an obsolete ledger or leaving the required removal undocumented.
+   Disposition: cut `plans/deferrals.md` is dropped from the Scope; the row now pins the recording location as one dated header comment in `.prettierignore` itself, the way the D-0005 removal is recorded, and says the ledger is not recreated (Tasks row).
