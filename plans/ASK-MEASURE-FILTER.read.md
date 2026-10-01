@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T15:58:32+00:00
-read_hash: 78c1c54057a44b2e141d04cf3cb338ccee809a72
-round: 6
+read_at: 2026-10-01T16:00:27+00:00
+read_hash: 7fb9ca5d4ac51e9e2f914f68fd885e63eff5a30f
+round: 7
 passed: no
-doc_seen: 78c1c54057a44b2e141d04cf3cb338ccee809a72
+doc_seen: 7fb9ca5d4ac51e9e2f914f68fd885e63eff5a30f
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: c4f5983feccb72d3c403940c83a2f0291243f7f1
+notes_seen: ef9153068d21538d39e3ee03aff276f495f2adc4
 ---
 # Cold read notes
 
@@ -102,3 +102,13 @@ Only a genuine trade-off goes to the human, as a question with options.
 18. The ingress-risk ownership is stale again.
    It says foundation leaves cover prior-turn doors, yet C2 and MEASURE-FILTER-ASK-RESPONSE say `priorTurns[].selection` currently rejects filters and that task must admit and canonicalise them. Assign that prior-context door and leaf to ASK-RESPONSE.
    Disposition: cut the ingress risk now assigns the prior-turn context door and its leaf to MEASURE-FILTER-ASK-RESPONSE, matching detail 2 and the row; the foundation covers saved, pin and reopen only.
+
+## Round 7
+
+19. Grounding’s duplicate rule cannot work with the stated ordering.
+   Provider output is merged before canonicalization, but C9 requires deduplication after amount normalization. `500000` and stored `500000.00` remain separate through the merge, then normalize into a refused duplicate. Normalize filters before or inside the merge and add a leaf for this equivalent-value case.
+   Disposition: cut the order is now normalise, merge, append (Notes, Grounded vocabulary; detail 9; the ASK-RESPONSE row and Verify Plan): filters are normalised before the grounding merge, the report's filters too, so `500000` and a stored `500000.00` deduplicate to one entry, and the operand append still comes after the merge; a `chat.service.test.ts` leaf covers the equivalent-value duplicate.
+
+20. The plan contradicts the confirmed spec on prior-turn reruns.
+   Spec C2 requires canonicalization at a “prior-turn selection re-run,” while this plan says no such path exists or will be added. Reconcile the confirmed spec and plan, or identify and prove the required rerun path.
+   Disposition: keep the repository has no prior-turn re-run path (`chat.service.ts:193` and `:318` only inherit the time window; `bedrock.provider.ts:200` passes prior turns as context), so the spec's "prior-turn re-run" is a misnomer for the prior-turn context door, which MEASURE-FILTER-ASK-RESPONSE canonicalises; the plan records it under Notes as a spec erratum to correct at the spec's next edit, because re-confirming a confirmed spec for wording that changes no behaviour costs a full spec read cycle.
