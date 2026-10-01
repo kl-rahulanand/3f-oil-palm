@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:10:37+00:00
-read_hash: c3117d06b81301e87886e1c25be630a3a466b25e
-round: 12
+read_at: 2026-10-01T16:11:54+00:00
+read_hash: c44846b17918bac7e1a7e22d5d8ba188fc8ba104
+round: 13
 passed: no
-doc_seen: c3117d06b81301e87886e1c25be630a3a466b25e
+doc_seen: c44846b17918bac7e1a7e22d5d8ba188fc8ba104
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 7eb6341506e83c2ade9ee8bfa0d228784a9cf387
+notes_seen: 529d2b8796ccf8205bbb3a75f3f4a5be91569222
 ---
 # Cold read notes
 
@@ -150,3 +150,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 27. C2’s grounded ingress is now unmapped.
    `MEASURE-FILTER-GROUNDING` runs `canonicalizeSelection` after its merge, yet claims only C9 while C2 says the grounded selection is an ingress. Add C2 to that task and its detail, or move the grounded canonicalization into the C2 task.
    Disposition: cut MEASURE-FILTER-GROUNDING now covers items 9 and 2: its row and detail 2 name the grounded selection as item 2's last ingress, canonicalised after the merge and refused identically, with a leaf; it runs after MEASURE-FILTER-ASK-RESPONSE, so every other door is in place when its reviewer reads item 2.
+
+## Round 13
+
+28. Split: `MEASURE-FILTER-ASK-RECORD` → answer record and warehouse proof.
+   The DB proof plus package and quality-gate wiring is independent C5 work and makes this already three-item, multi-surface task likely exceed the line budget. Give the proof and its registries their own task.
+   Disposition: cut the gated warehouse proof and its registries are MEASURE-FILTER-WAREHOUSE-PROOF (item 5), after MEASURE-FILTER-ASK-RECORD (items 1 and 8) and before MEASURE-FILTER-SURFACES, whose functional check uses the set it prints; six parts remain.
