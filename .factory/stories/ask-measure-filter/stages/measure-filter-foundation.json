@@ -1,14 +1,47 @@
 {
   "id": "measure-filter-foundation",
   "title": "Measure comparison filters: contract, canonical ingress, authorization union, HAVING in both domains, derived totals",
-  "status": "active",
-  "started_at": "2026-09-18T05:49:58+00:00",
-  "base_sha": "287c2697dba0734642785c5308172b7143eb8656",
+  "status": "done",
+  "started_at": "2026-10-01T10:26:54+00:00",
+  "base_sha": "3aec3d8ebc780cfc6bf07aa089b7c12bca45c8e6",
   "dirty_at_start": {
+    ".factory/events/14da6d212af14470b5b039196f44e409.json": {
+      "digest": "f02e69d34131ec85f10aafbc3a0be306f0883235ab8d219fd884d7471ba24ee8",
+      "git": "? .factory/events/14da6d212af14470b5b039196f44e409.json\u0000\u0000\u0000"
+    },
+    ".factory/events/6295c821a8a249318ef7ec9c32e2ccaa.json": {
+      "digest": "76dbf387db6b02ea8e4779ceb11f3632580d3e72f15e7838ec16ff886dfe1073",
+      "git": "? .factory/events/6295c821a8a249318ef7ec9c32e2ccaa.json\u0000\u0000\u0000"
+    },
+    ".factory/events/9741e1a4cf9a40719367f26796bb9378.json": {
+      "digest": "b873457a3ab17f3d58486a78bde413328aa7bb3da4b3d2e687960c07cf80e890",
+      "git": "? .factory/events/9741e1a4cf9a40719367f26796bb9378.json\u0000\u0000\u0000"
+    },
+    ".factory/stories/ask-measure-filter/decomposition.json": {
+      "digest": "d05d12b4ec5520b0c17ed0a26286e032c09c9fd3eac5ccc1943c64f5ef29e6a8",
+      "git": "1 .M N... 100644 100644 100644 170271d9858374de590fa9a14de70525ea15bdbf 170271d9858374de590fa9a14de70525ea15bdbf .factory/stories/ask-measure-filter/decomposition.json\u0000\u0000100644 170271d9858374de590fa9a14de70525ea15bdbf 0\t.factory/stories/ask-measure-filter/decomposition.json\u0000\u0000H .factory/stories/ask-measure-filter/decomposition.json\u0000"
+    },
+    ".factory/stories/ask-measure-filter/grills/plan.json": {
+      "digest": "acead0a73b55357ef00a3f66c08b8301b367d126acd1a0c5773ee059a13083e7",
+      "git": "1 .M N... 100644 100644 100644 a47e7180e1b9fda0b6ac5b58a6df994e56180e40 a47e7180e1b9fda0b6ac5b58a6df994e56180e40 .factory/stories/ask-measure-filter/grills/plan.json\u0000\u0000100644 a47e7180e1b9fda0b6ac5b58a6df994e56180e40 0\t.factory/stories/ask-measure-filter/grills/plan.json\u0000\u0000H .factory/stories/ask-measure-filter/grills/plan.json\u0000"
+    },
+    ".factory/stories/ask-measure-filter/grills/requirements.json": {
+      "digest": "07823021e6c3e76c1ae477919b30513157cc671a7af278a4e569ed65e244a94e",
+      "git": "1 .M N... 100644 100644 100644 117676d6c90db331f1ad2bd7fb35ddf8ce039eec 117676d6c90db331f1ad2bd7fb35ddf8ce039eec .factory/stories/ask-measure-filter/grills/requirements.json\u0000\u0000100644 117676d6c90db331f1ad2bd7fb35ddf8ce039eec 0\t.factory/stories/ask-measure-filter/grills/requirements.json\u0000\u0000H .factory/stories/ask-measure-filter/grills/requirements.json\u0000"
+    },
     ".factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json": {
-      "digest": "45b451d4b907f1aaff74b78b7f023eee90b55971c6206b3761fe69e6b5688078",
-      "git": "1 .M N... 100644 100644 100644 b573b96803b523f4799d52b517e1a8c8844a9401 b573b96803b523f4799d52b517e1a8c8844a9401 .factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000\u0000100644 b573b96803b523f4799d52b517e1a8c8844a9401 0\t.factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000\u0000H .factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000"
+      "digest": "d5bbdaa4441ab1a5a81d9e78390fa752af934ce6b5cadfe59413638531c897da",
+      "git": "1 .M N... 100644 100644 100644 d8a51efa289b9f111b201caa60acbaf36b84e4e9 d8a51efa289b9f111b201caa60acbaf36b84e4e9 .factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000\u0000100644 d8a51efa289b9f111b201caa60acbaf36b84e4e9 0\t.factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000\u0000H .factory/stories/ask-measure-filter/grills/tasks/measure-filter-foundation.json\u0000"
+    },
+    ".factory/stories/ask-measure-filter/stages/measure-filter-foundation.json": {
+      "digest": "921a3c630a342683527c9798d9f95fec2f593b6a7600fb10a828cdee2aa017dd",
+      "git": "1 .M N... 100644 100644 100644 53d192f01a203e56231c55fbd7a83f0710311b20 53d192f01a203e56231c55fbd7a83f0710311b20 .factory/stories/ask-measure-filter/stages/measure-filter-foundation.json\u0000\u0000100644 53d192f01a203e56231c55fbd7a83f0710311b20 0\t.factory/stories/ask-measure-filter/stages/measure-filter-foundation.json\u0000\u0000H .factory/stories/ask-measure-filter/stages/measure-filter-foundation.json\u0000"
+    },
+    "plans/active/ask-measure-filter-ask-filters-by-a-comparison-between-measures.md": {
+      "digest": "370ecc2e32152a26f577aa2bca4206d85d036d713fbf381743f5bf633e15a18f",
+      "git": "1 .M N... 100644 100644 100644 33bfd7ff5b1d961a6fa9029067fced6495809b49 33bfd7ff5b1d961a6fa9029067fced6495809b49 plans/active/ask-measure-filter-ask-filters-by-a-comparison-between-measures.md\u0000\u0000100644 33bfd7ff5b1d961a6fa9029067fced6495809b49 0\tplans/active/ask-measure-filter-ask-filters-by-a-comparison-between-measures.md\u0000\u0000H plans/active/ask-measure-filter-ask-filters-by-a-comparison-between-measures.md\u0000"
     }
   },
-  "task_sha256": "34cf083fb624d66f0700087ea19de99eff0ceeab4460727760385cf57f735da6"
+  "task_sha256": "34cf083fb624d66f0700087ea19de99eff0ceeab4460727760385cf57f735da6",
+  "completed_at": "2026-10-01T10:26:55+00:00"
 }
