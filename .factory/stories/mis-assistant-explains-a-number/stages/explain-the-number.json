@@ -1,50 +1,5 @@
 {
   "id": "explain-the-number",
   "title": "Answer a composition question about the focused figure",
-  "status": "done",
-  "started_at": "2026-09-16T03:16:08+00:00",
-  "base_sha": "ebeea768c2a774fa6a51ff65c694d10815397b39",
-  "dirty_at_start": {
-    ".factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-the-number.json": {
-      "digest": "b4413c3c9d68b062d6bde5cb7ab8e58eb6661e9f9326e5271110ba09e1c7f208",
-      "git": "1 .M N... 100644 100644 100644 2f0ec55b13047da6a98fd281ceace030426bff7e 2f0ec55b13047da6a98fd281ceace030426bff7e .factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-the-number.json\u0000\u0000100644 2f0ec55b13047da6a98fd281ceace030426bff7e 0\t.factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-the-number.json\u0000\u0000H .factory/stories/mis-assistant-explains-a-number/grills/tasks/explain-the-number.json\u0000"
-    },
-    "plans/lessons/20260916T031541-0000-node_modules-is-materialised-in-explain-the-number-031541747406.json": {
-      "digest": "580cadde82fda52aab1e113b325489813529dd0bcbe0c93a8efb6d304e8b926e",
-      "git": "? plans/lessons/20260916T031541-0000-node_modules-is-materialised-in-explain-the-number-031541747406.json\u0000\u0000\u0000"
-    }
-  },
-  "task_sha256": "f84158708595f00fad5ecb67ee62a2e4262fa5a316ac200458656247a04bd20d",
-  "local_review_stamp": {
-    "stage_id": "explain-the-number",
-    "base_sha": "ebeea768c2a774fa6a51ff65c694d10815397b39",
-    "delta_id": "4e8562029001ad1ab55ebfa05a9f7257787b785c87a07b065156154ed6618c6b",
-    "contract_sha256": "f84158708595f00fad5ecb67ee62a2e4262fa5a316ac200458656247a04bd20d",
-    "recorded_at": "2026-09-16T05:04:24+00:00",
-    "generated_by": "autoreview",
-    "lenses": [
-      "quality",
-      "performance",
-      "security"
-    ]
-  },
-  "completed_at": "2026-09-16T05:04:25+00:00",
-  "measured": {
-    "strays": [
-      "backend/src/mis/mis-statement.dto.ts",
-      "backend/src/mis/mis-statement.service.test.ts"
-    ],
-    "files": 32,
-    "lines": 2198,
-    "budget": {
-      "files": 34,
-      "lines": 1900
-    },
-    "test_id_misses": []
-  },
-  "contract_changed": {
-    "at": "2026-09-16T05:04:25+00:00",
-    "from": "1842c32f1301395dd83a075dbb50eea1011d3bea0d624dccc33ba55c1c082335",
-    "to": "f84158708595f00fad5ecb67ee62a2e4262fa5a316ac200458656247a04bd20d"
-  }
+  "status": "done"
 }

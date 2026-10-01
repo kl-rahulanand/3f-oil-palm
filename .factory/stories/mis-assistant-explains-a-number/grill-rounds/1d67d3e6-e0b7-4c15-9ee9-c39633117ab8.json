@@ -1,0 +1,32 @@
+{
+  "generated_by": "claude-code:plan-mode",
+  "questions": [
+    {
+      "question": "Negative budgets: the statement supports signed values, so with Budget -100 and Actual -150 the % column shows 150% while 'Actual > Budget' is false. How should 'over budget' and 'over 100% of budget' be defined?",
+      "options": [
+        "Compare amounts (Recommended)",
+        "Compare the ratio",
+        "Refuse when budget is negative"
+      ],
+      "chosen": "Compare amounts (Recommended)"
+    },
+    {
+      "question": "The statement projection ignores dimension filters today (a leaf_key filter is silently dropped), a pre-existing gap the cold read found. Fix it in this story or defer it?",
+      "options": [
+        "Defer with a trigger (Recommended)",
+        "Fix it here"
+      ],
+      "chosen": "Fix it here"
+    },
+    {
+      "question": "Decision 0039 (comparisons compile to HAVING over verified expressions; only money measures compare; operands made visible; totals follow the filter; a condition that cannot be expressed is refused, never dropped) must be accepted before the spec is confirmed. Accept it as written, confirmed by Rahul Anand?",
+      "options": [
+        "Accept, confirmed by Rahul Anand (Recommended)",
+        "Do not accept yet"
+      ],
+      "chosen": "Accept, confirmed by Rahul Anand (Recommended)"
+    }
+  ],
+  "at": "2026-09-17T11:05:17.007656+00:00",
+  "session_id": "4aae3a4c-e622-44bc-8104-76ad07126bfc"
+}

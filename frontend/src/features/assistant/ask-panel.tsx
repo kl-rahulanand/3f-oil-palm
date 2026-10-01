@@ -8,6 +8,9 @@ import {
   type ProvenanceBatch,
   type ResultTable,
   type Selection,
+  type AskStatementGrounding,
+  type MisStatementMeasureBlock,
+  type MisStatementResolvedResponse,
 } from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
@@ -15,6 +18,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/src/lib/api";
 import { formatMoney, formatPercentage } from "../mis/statement-view";
 import { useAsk, type AskTurn } from "./use-ask";
+import { StatementExplanation } from "./statement-explanation";
 
 const SEED_QUESTIONS = [
   // These name only things the selector can actually resolve. The plant is NOT a dimension -
@@ -33,11 +37,27 @@ const PHASE_LABELS = {
   summarizing: "Summarizing answer",
 } as const;
 
-export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" | "page"; onCollapse?: () => void }>) {
-  const { turns, phases, isPending, error, scrollTargetId, clearScrollTarget, ask, continueTurn } = useAsk();
+export function AskPanel({
+  surface,
+  onCollapse,
+  grounding,
+  statement,
+  groundingUnavailable,
+  onOpenDrill,
+}: Readonly<{
+  surface: "docked" | "page";
+  onCollapse?: () => void;
+  grounding?: AskStatementGrounding;
+  statement?: MisStatementResolvedResponse;
+  groundingUnavailable?: string;
+  onOpenDrill?: (nodeKey: string, block: MisStatementMeasureBlock["key"], opener: HTMLButtonElement) => void;
+}>) {
+  const { turns, phases, isPending, error, scrollTargetId, clearScrollTarget, ask, askGrounded, continueTurn } =
+    useAsk();
   const [draft, setDraft] = useState("");
   const threadRef = useRef<HTMLDivElement>(null);
-  const suggestions = latestSuggestions(turns) ?? SEED_QUESTIONS;
+  const visibleTurns = surface === "page" ? turns.filter((turn) => turn.origin === "ungrounded") : turns;
+  const suggestions = latestSuggestions(visibleTurns) ?? SEED_QUESTIONS;
 
   useEffect(() => {
     if (surface !== "page" || !scrollTargetId) return;
@@ -51,7 +71,8 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
     event.preventDefault();
     const question = draft;
     setDraft("");
-    void ask(question);
+    if (surface === "docked" && grounding) void askGrounded(question, grounding);
+    else if (!groundingUnavailable) void ask(question);
   }
 
   return (
@@ -75,10 +96,22 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
 
       <div className="ask-intro">
         <p>Ask about this report. Each answer shows its verification status.</p>
+        {groundingUnavailable && (
+          <p className="ask-grounding-unavailable" role="status">
+            {groundingUnavailable}
+          </p>
+        )}
         <span className="ask-eyebrow">Suggested</span>
         <div className="ask-suggestions">
           {suggestions.map((question) => (
-            <button key={question} type="button" disabled={isPending} onClick={() => void ask(question)}>
+            <button
+              key={question}
+              type="button"
+              disabled={isPending || Boolean(groundingUnavailable)}
+              onClick={() =>
+                void (surface === "docked" && grounding ? askGrounded(question, grounding) : ask(question))
+              }
+            >
               {question}
             </button>
           ))}
@@ -86,10 +119,17 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
       </div>
 
       <div className="ask-thread" aria-live="polite" ref={threadRef}>
-        {turns.map((turn) => (
+        {visibleTurns.map((turn) => (
           <div className="ask-exchange" id={surface === "page" ? turn.id : undefined} key={turn.id}>
             <p className="ask-question">{turn.question}</p>
-            <Answer turn={turn} isPending={isPending} onAsk={ask} onContinue={continueTurn} />
+            <Answer
+              turn={turn}
+              isPending={isPending}
+              onAsk={ask}
+              onContinue={continueTurn}
+              statement={statement}
+              onOpenDrill={onOpenDrill}
+            />
           </div>
         ))}
         {phases.length > 0 && (
@@ -115,8 +155,13 @@ export function AskPanel({ surface, onCollapse }: Readonly<{ surface: "docked" |
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Ask about your MIS data…"
+          disabled={Boolean(groundingUnavailable)}
         />
-        <button type="submit" aria-label="Send question" disabled={isPending || !draft.trim()}>
+        <button
+          type="submit"
+          aria-label="Send question"
+          disabled={isPending || !draft.trim() || Boolean(groundingUnavailable)}
+        >
           <Send size={15} />
         </button>
       </form>
@@ -129,6 +174,8 @@ function Answer({
   isPending,
   onAsk,
   onContinue,
+  statement,
+  onOpenDrill,
 }: Readonly<{
   turn: AskTurn;
   isPending: boolean;
@@ -139,6 +186,8 @@ function Answer({
     selection: Selection,
     failurePolicy: "retain" | "clear-on-refusal",
   ) => Promise<boolean>;
+  statement?: MisStatementResolvedResponse;
+  onOpenDrill?: (nodeKey: string, block: MisStatementMeasureBlock["key"], opener: HTMLButtonElement) => void;
 }>) {
   const { response, question } = turn;
   if (!response) {
@@ -153,6 +202,11 @@ function Answer({
         Opening this report…
       </p>
     ) : null;
+  }
+  if (response.statementGrounding && statement && onOpenDrill) {
+    return (
+      <StatementExplanation response={response.statementGrounding} statement={statement} onOpenDrill={onOpenDrill} />
+    );
   }
   if (response.responseClass === "success") {
     return <SuccessAnswer turn={turn} response={response} isPending={isPending} onContinue={onContinue} />;

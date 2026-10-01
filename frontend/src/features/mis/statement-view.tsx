@@ -7,19 +7,25 @@ import type {
   MisStatementResolvedResponse,
   MisStatementRunResponse,
 } from "@3f/contract";
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import { Button } from "@/src/components/ui/button";
-import { DrillPanel, type DrillPanelSelection } from "./drill-panel";
+import type { DrillPanelSelection } from "./drill-panel";
 import { useMisStatementExport } from "./use-mis-statement";
 
 const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
 const shortMonthFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "UTC" });
 const percentageFormatter = new Intl.NumberFormat("en-IN", { style: "percent", maximumFractionDigits: 1 });
 export const BUDGET_NOT_LOADED_LABEL = "Budget not loaded for this plant";
+export type DrillPanelTarget = Omit<DrillPanelSelection, "opener">;
 
-export function StatementView({ response }: Readonly<{ response: MisStatementRunResponse }>) {
+export function StatementView({
+  response,
+  onOpenDrill,
+}: Readonly<{
+  response: MisStatementRunResponse;
+  onOpenDrill: (target: DrillPanelTarget, opener: HTMLButtonElement) => void;
+}>) {
   const download = useMisStatementExport();
-  const [drill, setDrill] = useState<DrillPanelSelection | null>(null);
 
   if (response.outcome === "unresolvable") {
     return (
@@ -126,7 +132,7 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
                 level={1}
                 breadcrumb={[]}
                 response={response}
-                onOpen={setDrill}
+                onOpen={onOpenDrill}
                 key={node.nodeKey}
               />
             ))}
@@ -140,14 +146,16 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
                 <MeasureCells
                   measure={response.grandTotal.measures[index]}
                   onOpen={(opener) =>
-                    setDrill({
-                      node: response.grandTotal,
-                      roots: response.tree,
-                      blockKey: block.key,
-                      breadcrumb: [response.grandTotal.budgetComponent],
-                      response,
+                    onOpenDrill(
+                      {
+                        node: response.grandTotal,
+                        roots: response.tree,
+                        blockKey: block.key,
+                        breadcrumb: [response.grandTotal.budgetComponent],
+                        response,
+                      },
                       opener,
-                    })
+                    )
                   }
                   key={block.key}
                 />
@@ -164,7 +172,6 @@ export function StatementView({ response }: Readonly<{ response: MisStatementRun
           {response.provenance.activeBatchIds.map(({ batchId }) => batchId).join(", ") || "None"}
         </span>
       </footer>
-      {drill && <DrillPanel selection={drill} onClose={() => setDrill(null)} />}
     </section>
   );
 }
@@ -182,7 +189,7 @@ function StatementRow({
   level: number;
   breadcrumb: string[];
   response: MisStatementResolvedResponse;
-  onOpen: (selection: DrillPanelSelection) => void;
+  onOpen: (target: DrillPanelTarget, opener: HTMLButtonElement) => void;
 }>) {
   const parent = node.children.length > 0;
   const path = [...breadcrumb, node.budgetComponent];
@@ -213,14 +220,16 @@ function StatementRow({
           <MeasureCells
             measure={node.measures[index]}
             onOpen={(opener) =>
-              onOpen({
-                node,
-                roots: parent ? node.children : [],
-                blockKey: block.key,
-                breadcrumb: path,
-                response,
+              onOpen(
+                {
+                  node,
+                  roots: parent ? node.children : [],
+                  blockKey: block.key,
+                  breadcrumb: path,
+                  response,
+                },
                 opener,
-              })
+              )
             }
             key={block.key}
           />

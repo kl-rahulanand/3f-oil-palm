@@ -1,0 +1,76 @@
+{
+  "commit": "ef63fb32b98adb2b2485471c37d75b60c686b807",
+  "automated": {
+    "generated_by": "implementer",
+    "status": "passed",
+    "summary": "All 20 required leaves executed and passed under the VITEST discriminator - present AND NOT skipped AND NOT failed (D-0031) - because vitest exits 0 and marks an unmatched -t leaf skipped, so a name drift reports green having asserted nothing. Full frontend suite: 153 tests across 22 files, all passing. verify.py passes. The aggregate is proven by an INTEGRATION leaf, not only the helper: it asserts the aggregate response renders descendant VALUES from the statement already held AND issues no request, which is what decision 0024 requires and what a helper-only test could not have caught - a correct helper beside a labels-only or fetching renderer would have passed. /ask isolation is proven on BOTH halves: a grounded turn is not rendered there, and it is excluded from the priorTurns an ungrounded ask sends, so a grounded explanation cannot leak into an ungrounded request's context. All three optional statement fields gate grounding independently, so a response missing the metadata or the amounts cannot produce a request that is invalid at the server. Focus clears when the scope or pinned batches change, and a grounded explanation is cleared when a different statement is generated while ordinary Ask turns survive - without that an explanation of one plant's figure would sit against another's. DESIGN PASS (emil-design-eng and frontend-design genuinely applied, not merely attested) found two real defects, both fixed. The replaced notice was painted with the error palette and announced with role=alert, but decision 0025 is explicit that a replaced-but-present batch's figures are legitimate - so it told the user something had broken when nothing had, the same category mistake decision 0034 forbids for the Budget not-loaded state. It is now role=status with an advisory emerald-and-paper treatment that keeps its prominence through the left border without claiming breakage. And the new open-the-drill control had a scale(0.97) press feedback that was absent from the prefers-reduced-motion block every other button in globals.css is listed in; it now respects it. The numerics use tabular-nums and right alignment so the figures read as financial rather than chatty. ROUND 2 (security and performance both scored 0; all three defects were real and each was raised by more than one lens). The clearing rule had a REMOUNT HOLE: previousIdentity was component-local to MisReportView and started undefined, so the guard skipped clearing on the first statement any new instance saw - and since AskProvider outlives the route, navigating away and back then loading a different statement left the old explanation sitting against the new figures, exactly the defect the rule exists to prevent. The identity now lives in the PROVIDER, where the turns live, so a remount cannot reopen the hole. An in-flight askGrounded was also not invalidated - clearing only filtered turns already in state, so a pending response landed afterwards and re-added a grounded turn describing the OLD statement; it is now aborted as part of clearing. And two compatibility shims went: StatementView kept its own DrillPanelSelection and a fallback factory whenever onOpenDrill was absent, preserving the very ownership path the lift retires, and useOptionalAsk duplicated useAsk purely to suppress the missing-provider failure. onOpenDrill is now required, a missing provider fails loudly, and the 17 callers in drill-panel.test.tsx pass the lifted factory. That is the fourth shim this story has removed. Re-verified: 20/20 leaves pass, frontend 154/154 across 22 files, verify green. ROUND 3: the last arm of the clearing rule. mis-report-view.tsx early-returned when identity was undefined, and identity goes undefined whenever a RESOLVED statement is replaced by an unresolvable, refresh-required or failed result - so the return skipped both the provider synchronisation and the local focus clearing, and a grounded explanation survived with NO statement behind it at all. That is worse than the remount hole, because there are no figures on screen for it to be wrong about, only an explanation presented as though there were. An absent identity is now a clearing trigger rather than nothing-to-compare, and the dock falls back to its local message. Final: 20/20 leaves pass, frontend 155/155 across 22 files, verify green.",
+    "blocking_findings": [],
+    "commands_run": [
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/statement-view.test.tsx -t \"clicking an actual opens the drill panel and sets assistant focus without replacing the drill\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/mis-report-view.test.tsx -t \"the block comes from the focused node and there is no selected block before focus\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/aggregate-projection.helper.test.ts -t \"an aggregate explanation projects descendant lines with their values from the rendered statement\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/statement-explanation.test.tsx -t \"all seven outcome variants render their own copy and none falls through to the generic message\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/statement-explanation.test.tsx -t \"the replaced variant shows its notice and replaced batches alongside the full explanation\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/use-ask.test.tsx -t \"a grounded turn is not rendered on the ask page\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/use-ask.test.tsx -t \"a grounded turn is excluded from the prior turns an ungrounded ask sends\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/ask-panel.test.tsx -t \"the docked panel sends the attested context and the focused node while the ask page sends neither\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/lib/api.test.ts -t \"grounding is admitted on the buffered and the streamed request path\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/mis-report-view.test.tsx -t \"with no rendered statement the dock says so locally and submits no grounded ask\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/mis-report-view.test.tsx -t \"a statement response missing the attested context does not offer a grounded ask\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/statement-explanation.test.tsx -t \"the explanation offers a control that opens the drill panel on the focused node\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/mis-report-view.test.tsx -t \"a statement response missing node metadata does not offer a grounded ask\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/mis-report-view.test.tsx -t \"a statement response missing node amounts does not offer a grounded ask\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/mis-report-view.test.tsx -t \"focus clears when the statement scope or pinned batches change\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/use-ask.test.tsx -t \"a grounded explanation is cleared when a different statement is generated while ordinary turns survive\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/assistant/statement-explanation.test.tsx -t \"the aggregate response renders descendant values from the held statement and issues no request\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/statement-view.test.tsx -t \"a budget cell is not focusable from the statement surface\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/mis-report-view.test.tsx -t \"the dock says so locally when the scope has no mapping and submits no grounded ask\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts --reporter=junit --outputFile=<junit.xml> frontend/src/features/mis/mis-report-view.test.tsx -t \"the explanation control opens the same drill the statement click opens\"",
+      "npm exec --no -- vitest run --config frontend/vitest.config.ts",
+      "python3 factory/scripts/verify.py"
+    ],
+    "pass_fail_summary": "20/20 required leaves executed and passed; frontend suite 155/155 across 22 files; verify.py green.",
+    "tests_added_or_updated": [
+      "frontend/src/features/assistant/statement-explanation.test.tsx",
+      "frontend/src/features/assistant/use-ask.test.tsx",
+      "frontend/src/features/assistant/ask-panel.test.tsx",
+      "frontend/src/features/mis/mis-report-view.test.tsx",
+      "frontend/src/features/mis/statement-view.test.tsx",
+      "frontend/src/features/mis/aggregate-projection.helper.test.ts",
+      "frontend/src/lib/api.test.ts"
+    ],
+    "reviewed_scope": [
+      "frontend/app/globals.css",
+      "frontend/src/features/assistant/ask-panel.test.tsx",
+      "frontend/src/features/assistant/ask-panel.tsx",
+      "frontend/src/features/assistant/statement-explanation.test.tsx",
+      "frontend/src/features/assistant/statement-explanation.tsx",
+      "frontend/src/features/assistant/use-ask.test.tsx",
+      "frontend/src/features/assistant/use-ask.ts",
+      "frontend/src/features/mis/aggregate-projection.helper.test.ts",
+      "frontend/src/features/mis/aggregate-projection.helper.ts",
+      "frontend/src/features/mis/drill-panel.tsx",
+      "frontend/src/features/mis/mis-report-view.test.tsx",
+      "frontend/src/features/mis/mis-report-view.tsx",
+      "frontend/src/features/mis/statement-view.test.tsx",
+      "frontend/src/features/mis/statement-view.tsx",
+      "frontend/src/features/mis/use-mis-statement.ts",
+      "frontend/src/lib/api.test.ts",
+      "frontend/src/lib/api.ts"
+    ],
+    "skills_used": [
+      "emil-design-eng",
+      "frontend-design"
+    ],
+    "remaining_gaps": [
+      "The live functional check is run separately against a real statement; these leaves are hermetic.",
+      "D-0051 stands: the shipped drill panel still hides a replaced batch's lines that the assistant now reads and reports, so the two surfaces differ on the same line until that deferral is picked up."
+    ],
+    "non_blocking_findings": [],
+    "residual_risks": [],
+    "manual_validation_steps": [],
+    "recorded_at": "2026-09-16T06:24:52+00:00",
+    "commit": "ef63fb32b98adb2b2485471c37d75b60c686b807"
+  },
+  "updated_at": "2026-09-16T06:24:52+00:00"
+}
