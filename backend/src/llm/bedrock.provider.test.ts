@@ -4,6 +4,112 @@ import { ResponseClass } from "@3f/contract";
 import { loadConfig } from "../config";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { BedrockLlmProvider } from "./bedrock.provider";
+import { LLM_MESSAGES } from "./llm.constants";
+
+test("measure filter enums use the separate comparable vocabulary while displayed measures stay scoped", async () => {
+  const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
+
+  await fixture.provider.select(selectionInput());
+
+  const request = fixture.requests[0];
+  const emitSelection = request?.toolConfig?.tools[0]?.toolSpec.inputSchema.json;
+  const properties = emitSelection?.properties as Record<string, Record<string, unknown>>;
+  const measureFilterItems = properties.measureFilters.items as Record<string, unknown>;
+  const measureFilterProperties = measureFilterItems.properties as Record<string, Record<string, unknown>>;
+  assert.deepEqual(measureFilterProperties.measureId.enum, [
+    "governed-financial.actual",
+    "governed-financial.budget",
+    "mis-statement.actual_net",
+  ]);
+  assert.deepEqual(measureFilterProperties.op.enum, ["gt", "gte", "lt", "lte"]);
+  const compareTo = measureFilterProperties.compareTo as { oneOf: Array<Record<string, unknown>> };
+  const measureOperand = compareTo.oneOf[0]?.properties as Record<string, Record<string, unknown>>;
+  assert.deepEqual(measureOperand.measureId.enum, [
+    "governed-financial.actual",
+    "governed-financial.budget",
+    "mis-statement.actual_net",
+  ]);
+  assert.deepEqual(properties.measureIds.items, {
+    type: "string",
+    enum: ["governed-financial.actual"],
+  });
+});
+
+test("the selector prompt maps budget comparisons and Indian magnitudes or refuses them", async () => {
+  const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
+
+  await fixture.provider.select(selectionInput());
+
+  const request = fixture.requests[0];
+  const prompt = request?.system?.map(({ text }) => text).join("\n") ?? "";
+  assert.match(prompt, /over budget.*Actual.*gt.*Budget/i);
+  assert.match(prompt, /under budget.*Actual.*lt.*Budget/i);
+  assert.match(prompt, /over 100% of budget.*Actual.*gt.*Budget/i);
+  assert.match(prompt, /5 lakh.*500000/i);
+  assert.match(prompt, /1\.2 crore.*12000000/i);
+  assert.match(prompt, /mark_unsupported/i);
+});
+
+test("recorded measure filters are parsed intact and malformed or cross-domain operands get typed reasons", async () => {
+  const valid = providerWith([
+    toolResponse("emit_selection", {
+      domain: "governed-financial",
+      measureIds: ["governed-financial.actual"],
+      dimensionIds: ["gl_code"],
+      filters: [],
+      measureFilters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+        },
+      ],
+    }),
+  ]);
+
+  const result = await valid.provider.select(selectionInput());
+
+  assert.equal(result.kind, "selection");
+  if (result.kind === "selection") {
+    assert.deepEqual(result.selection.measureFilters, [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ]);
+  }
+
+  const malformed = providerWith([
+    toolResponse("emit_selection", {
+      domain: "governed-financial",
+      measureIds: ["governed-financial.actual"],
+      measureFilters: [{ measureId: "governed-financial.actual", op: "gt", compareTo: { kind: "value" } }],
+    }),
+  ]);
+  assert.deepEqual(await malformed.provider.select(selectionInput()), {
+    kind: "unsupported",
+    reason: LLM_MESSAGES.selectionMeasureFiltersMalformed,
+  });
+
+  const crossDomain = providerWith([
+    toolResponse("emit_selection", {
+      domain: "governed-financial",
+      measureIds: ["governed-financial.actual"],
+      measureFilters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "measure", measureId: "mis-statement.actual_net" },
+        },
+      ],
+    }),
+  ]);
+  assert.deepEqual(await crossDomain.provider.select(selectionInput()), {
+    kind: "unsupported",
+    reason: LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed("mis-statement.actual_net"),
+  });
+});
 
 test("the selector converse request carries an explicit max tokens cap", async () => {
   const fixture = providerWith([toolResponse("mark_unsupported", { reason: "Outside the governed vocabulary" })]);
@@ -93,6 +199,12 @@ test("a retried selector response preserves usage from both attempts", async () 
 
 type ConverseRequest = {
   inferenceConfig?: { temperature?: number; topP?: number; maxTokens?: number };
+  system?: Array<{ text: string }>;
+  toolConfig?: {
+    tools: Array<{
+      toolSpec: { inputSchema: { json: { properties?: Record<string, Record<string, unknown>> } } };
+    }>;
+  };
 };
 
 type ConverseOutput = {
@@ -124,9 +236,18 @@ function providerWith(outputs: ConverseOutput[], onSend?: () => void) {
 }
 
 function selectionInput() {
-  const domain = new SemanticLayer().domain("governed-financial");
-  assert.ok(domain);
-  return { question: "Show Actual", allowedDomains: [domain] };
+  const semantic = new SemanticLayer();
+  const domain = semantic.domain("governed-financial");
+  const statementDomain = semantic.domain("mis-statement");
+  assert.ok(domain && statementDomain);
+  return {
+    question: "Show Actual",
+    allowedDomains: [{ ...domain, measures: domain.measures.filter(({ id }) => id === "governed-financial.actual") }],
+    comparableMeasureIdsByDomain: {
+      "governed-financial": ["governed-financial.actual", "governed-financial.budget"],
+      "mis-statement": ["mis-statement.actual_net"],
+    },
+  };
 }
 
 function noToolResponse(usage?: ConverseOutput["usage"]): ConverseOutput {

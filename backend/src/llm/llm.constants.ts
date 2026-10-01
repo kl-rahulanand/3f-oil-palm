@@ -22,6 +22,11 @@ export const LLM_MESSAGES = {
   selectionFiltersMalformed: "Selection filters are malformed",
   selectionFilterDimensionNotAllowed: (id: string): string =>
     `Selection filter dimension is not in the allowed vocabulary: ${id}`,
+  selectionMeasureFiltersMalformed: "Selection measure filters are malformed",
+  selectionMeasureFilterMeasureNotAllowed: (id: string): string =>
+    `Selection measure filter measure is not in the comparable vocabulary for the selected domain: ${id}`,
+  selectionMeasureFilterOperandNotAllowed: (id: string): string =>
+    `Selection measure filter operand is not in the comparable vocabulary for the selected domain: ${id}`,
   selectionTimeWindowMalformed: "Selection timeWindow is malformed",
   selectionLimitMalformed: "Selection limit is malformed",
   bedrockModelIdNotConfigured: "Bedrock select failed: BEDROCK_MODEL_ID is not configured",
@@ -48,6 +53,11 @@ export const LLM_MESSAGES = {
     // about those domains come back unanswerable.
     "Every id in dimensionIds and every filter dimensionId MUST be a dimension of the domain you selected in this same call; the list below spans all domains, and borrowing one from another domain makes the question unanswerable. " +
     "Express EVERY period -- a month, quarter, year, a named month such as 'July 2026', 'last 30 days', 'this month' -- ONLY in timeWindow. NEVER put a date, month, or period value in filters.",
+  systemPromptMeasureFilters:
+    "Put every comparison between two measures, or between a measure and an amount, in measureFilters; never put it in filters and never omit it. " +
+    "Map 'over budget', 'above budget', and 'more than budget' to Actual gt Budget; map 'under budget' to Actual lt Budget; and map 'over 100% of budget' to Actual gt Budget. " +
+    "Convert Indian magnitudes to plain decimal strings: 5 lakh becomes 500000 and 1.2 crore becomes 12000000. " +
+    "If a requested comparison cannot be expressed with the comparable measure vocabulary and operators, call mark_unsupported instead of emitting an unfiltered selection.",
   systemPromptUnsupported:
     "If the question needs something outside this vocabulary, call request_clarification or mark_unsupported.",
   systemPromptConversational:

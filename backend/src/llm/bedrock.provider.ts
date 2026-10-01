@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { DomainSpec, Selection, SelectionFilter, TimeGrain } from "@3f/contract";
+import type { DomainSpec, MeasureFilter, Selection, SelectionFilter, TimeGrain } from "@3f/contract";
 import { loadConfig, type Config } from "../config";
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "./llm.interface";
 import { LLM_MESSAGES, LLM_SELECTOR_MAX_TOKENS, LLM_SELECTOR_RETRY_MAX_TOKENS } from "./llm.constants";
@@ -69,7 +69,10 @@ interface BedrockConverseOutput {
   };
 }
 
-export function buildBedrockSelectionToolSpec(allowedDomains: DomainSpec[]): BedrockSelectionToolSpec {
+export function buildBedrockSelectionToolSpec(
+  allowedDomains: DomainSpec[],
+  comparableMeasureIdsByDomain: Record<string, string[]>,
+): BedrockSelectionToolSpec {
   const vocabulary: BedrockSelectionVocabulary = {
     domains: allowedDomains.map((domain) => ({
       name: domain.name,
@@ -88,6 +91,7 @@ export function buildBedrockSelectionToolSpec(allowedDomains: DomainSpec[]): Bed
 
   const domainNames = allowedDomains.map((domain) => domain.name);
   const measureIds = [...new Set(allowedDomains.flatMap((domain) => domain.measures.map((m) => m.id)))];
+  const comparableMeasureIds = [...new Set(Object.values(comparableMeasureIdsByDomain).flat())];
   const dimensionIds = [...new Set(allowedDomains.flatMap((domain) => domain.dimensions.map((d) => d.id)))];
 
   const filterSchema: JsonSchema = {
@@ -99,6 +103,37 @@ export function buildBedrockSelectionToolSpec(allowedDomains: DomainSpec[]): Bed
       op: { type: "string", enum: ["eq", "in", "neq"] },
       value: {
         anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+      },
+    },
+  };
+  const measureFilterSchema: JsonSchema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["measureId", "op", "compareTo"],
+    properties: {
+      measureId: { type: "string", enum: comparableMeasureIds },
+      op: { type: "string", enum: ["gt", "gte", "lt", "lte"] },
+      compareTo: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["kind", "measureId"],
+            properties: {
+              kind: { type: "string", enum: ["measure"] },
+              measureId: { type: "string", enum: comparableMeasureIds },
+            },
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["kind", "value"],
+            properties: {
+              kind: { type: "string", enum: ["value"] },
+              value: { type: "string" },
+            },
+          },
+        ],
       },
     },
   };
@@ -130,6 +165,10 @@ export function buildBedrockSelectionToolSpec(allowedDomains: DomainSpec[]): Bed
                   filters: {
                     type: "array",
                     items: filterSchema,
+                  },
+                  measureFilters: {
+                    type: "array",
+                    items: measureFilterSchema,
                   },
                   timeWindow: {
                     type: "object",
@@ -210,6 +249,7 @@ export function buildBedrockSelectionSystemPrompt(
     LLM_MESSAGES.systemPromptNoDateUnlessAsked,
     LLM_MESSAGES.systemPromptNoSql,
     LLM_MESSAGES.systemPromptFilterValues,
+    LLM_MESSAGES.systemPromptMeasureFilters,
     LLM_MESSAGES.systemPromptConversational,
     LLM_MESSAGES.systemPromptUnsupported,
     input.dimensionValues ? LLM_MESSAGES.allowedDimensionValues(input.dimensionValues) : "",
@@ -222,6 +262,7 @@ export function buildBedrockSelectionSystemPrompt(
 export function mapBedrockToolUseToSelectionResult(
   toolUse: BedrockToolUseLike | undefined,
   allowedDomains: DomainSpec[],
+  comparableMeasureIdsByDomain: Record<string, string[]>,
 ): LlmSelectionResult {
   if (toolUse === undefined) {
     return { kind: "no_tool_block", reason: LLM_MESSAGES.noToolUse };
@@ -303,6 +344,31 @@ export function mapBedrockToolUseToSelectionResult(
     };
   }
 
+  const parsedMeasureFilters =
+    input.measureFilters === undefined ? { measureFilters: [] } : parseMeasureFilters(input.measureFilters);
+  if ("reason" in parsedMeasureFilters) {
+    return { kind: "unsupported", reason: parsedMeasureFilters.reason };
+  }
+  const allowedComparableMeasureIds = new Set(comparableMeasureIdsByDomain[domain.name] ?? []);
+  const invalidMeasureFilter = parsedMeasureFilters.measureFilters.find(
+    (filter) => !allowedComparableMeasureIds.has(filter.measureId),
+  );
+  if (invalidMeasureFilter) {
+    return {
+      kind: "unsupported",
+      reason: LLM_MESSAGES.selectionMeasureFilterMeasureNotAllowed(invalidMeasureFilter.measureId),
+    };
+  }
+  const invalidMeasureOperand = parsedMeasureFilters.measureFilters.find(
+    (filter) => filter.compareTo.kind === "measure" && !allowedComparableMeasureIds.has(filter.compareTo.measureId),
+  );
+  if (invalidMeasureOperand?.compareTo.kind === "measure") {
+    return {
+      kind: "unsupported",
+      reason: LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed(invalidMeasureOperand.compareTo.measureId),
+    };
+  }
+
   const timeWindow = input.timeWindow === undefined ? undefined : parseTimeWindow(input.timeWindow);
   if (input.timeWindow !== undefined && !timeWindow) {
     return { kind: "unsupported", reason: LLM_MESSAGES.selectionTimeWindowMalformed };
@@ -318,6 +384,7 @@ export function mapBedrockToolUseToSelectionResult(
     measureIds,
     dimensionIds,
     filters,
+    ...(input.measureFilters !== undefined ? { measureFilters: parsedMeasureFilters.measureFilters } : {}),
     ...(timeWindow ? { timeWindow } : {}),
     limit,
   };
@@ -328,9 +395,10 @@ export function mapBedrockToolUseToSelectionResult(
 export function mapBedrockConverseOutputToSelectionResult(
   output: BedrockConverseOutput,
   allowedDomains: DomainSpec[],
+  comparableMeasureIdsByDomain: Record<string, string[]>,
   model: string,
 ): LlmSelectionResult {
-  const result = mapBedrockToolUseToSelectionResult(firstToolUse(output), allowedDomains);
+  const result = mapBedrockToolUseToSelectionResult(firstToolUse(output), allowedDomains, comparableMeasureIdsByDomain);
   const usage = output.usage;
   if (!usage) return result;
 
@@ -370,7 +438,7 @@ export class BedrockLlmProvider implements LlmProvider {
       throw new Error(LLM_MESSAGES.bedrockModelIdNotConfigured);
     }
 
-    const toolSpec = buildBedrockSelectionToolSpec(input.allowedDomains);
+    const toolSpec = buildBedrockSelectionToolSpec(input.allowedDomains, input.comparableMeasureIdsByDomain);
     const systemPrompt = buildBedrockSelectionSystemPrompt(input, toolSpec.vocabulary);
 
     try {
@@ -391,7 +459,12 @@ export class BedrockLlmProvider implements LlmProvider {
           }),
           signal ? { abortSignal: signal } : undefined,
         );
-        return mapBedrockConverseOutputToSelectionResult(output, input.allowedDomains, this.cfg.bedrock.modelId);
+        return mapBedrockConverseOutputToSelectionResult(
+          output,
+          input.allowedDomains,
+          input.comparableMeasureIdsByDomain,
+          this.cfg.bedrock.modelId,
+        );
       };
 
       const first = await selectOnce(LLM_SELECTOR_MAX_TOKENS);
@@ -452,6 +525,38 @@ function parseFilters(value: unknown): SelectionFilter[] | undefined {
   return filters;
 }
 
+function parseMeasureFilters(
+  value: unknown,
+): { measureFilters: MeasureFilter[] } | { reason: typeof LLM_MESSAGES.selectionMeasureFiltersMalformed } {
+  if (!Array.isArray(value)) return { reason: LLM_MESSAGES.selectionMeasureFiltersMalformed };
+  const measureFilters: MeasureFilter[] = [];
+  for (const item of value) {
+    const filter = asRecord(item);
+    const compareTo = asRecord(filter?.compareTo);
+    if (!filter || typeof filter.measureId !== "string" || !isMeasureFilterOp(filter.op) || !compareTo) {
+      return { reason: LLM_MESSAGES.selectionMeasureFiltersMalformed };
+    }
+    if (compareTo.kind === "measure" && typeof compareTo.measureId === "string") {
+      measureFilters.push({
+        measureId: filter.measureId,
+        op: filter.op,
+        compareTo: { kind: "measure", measureId: compareTo.measureId },
+      });
+      continue;
+    }
+    if (compareTo.kind === "value" && typeof compareTo.value === "string") {
+      measureFilters.push({
+        measureId: filter.measureId,
+        op: filter.op,
+        compareTo: { kind: "value", value: compareTo.value },
+      });
+      continue;
+    }
+    return { reason: LLM_MESSAGES.selectionMeasureFiltersMalformed };
+  }
+  return { measureFilters };
+}
+
 function parseTimeWindow(value: unknown): Selection["timeWindow"] | undefined {
   const timeWindow = asRecord(value);
   if (!timeWindow || !isTimeGrain(timeWindow.grain)) return undefined;
@@ -477,6 +582,10 @@ function parseLimit(value: unknown): number | undefined {
 
 function isFilterOp(value: unknown): value is SelectionFilter["op"] {
   return value === "eq" || value === "in" || value === "neq";
+}
+
+function isMeasureFilterOp(value: unknown): value is MeasureFilter["op"] {
+  return value === "gt" || value === "gte" || value === "lt" || value === "lte";
 }
 
 function isTimeGrain(value: unknown): value is TimeGrain {

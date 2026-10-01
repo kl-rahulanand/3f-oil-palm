@@ -192,6 +192,7 @@ function providerWithSend(
 function selectionInput() {
   return {
     question: "Show Actual",
+    comparableMeasureIdsByDomain: { "governed-financial": [] },
     allowedDomains: [
       {
         name: "governed-financial",

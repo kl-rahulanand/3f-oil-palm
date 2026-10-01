@@ -202,12 +202,19 @@ export class ChatService {
       const llmAllowedDomains = groundedReport
         ? [domainScopedToReport(groundedReport.domain, groundedReport.selection)]
         : allowed;
+      const comparableMeasureIdsByDomain = Object.fromEntries(
+        allowed.map((domain) => [
+          domain.name,
+          domain.measures.filter((measure) => measure.format === "money").map((measure) => measure.id),
+        ]),
+      );
       const dimensionValues = await this.dimensionValuesForAllowedDomains(llmAllowedDomains, cfg.dimensionEnumMax);
       signal?.throwIfAborted();
       const sel = await this.llm.select(
         {
           question,
           allowedDomains: llmAllowedDomains,
+          comparableMeasureIdsByDomain,
           ...(priorTurns.length > 0 ? { priorTurns } : {}),
           dimensionValues,
         },
