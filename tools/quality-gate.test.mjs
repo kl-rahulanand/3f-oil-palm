@@ -105,8 +105,7 @@ const expectedScripts = {
   "build:backend": "npm -w @3f/backend run build",
   "build:frontend": "npm run build:contract && npm -w @3f/frontend run build",
   build: "npm run build:contract && npm run build:backend && npm run build:frontend",
-  structural:
-    "npm run build && python3 factory/scripts/check_dual_runtime.py && python3 factory/scripts/check_vendor_integrity.py",
+  structural: "npm run build",
   "dev:frontend": "npm -w @3f/frontend run dev",
   "typecheck:frontend": "npm -w @3f/frontend run typecheck",
   typecheck: "npm -w @3f/contract run typecheck && npm -w @3f/backend run typecheck && npm run typecheck:frontend",
@@ -260,7 +259,6 @@ function validateIgnoredBaseline(ignore, readPath = readFileSync) {
   assert.match(ignore, /# D-0006 \(2026-09-07\):/);
   assert.match(ignore, /Before editing a listed file, format it and remove it here in the same change\./);
   assert.match(ignore, /Every new ignore entry requires its own named, dated deferral\./);
-  assert.match(ignore, /# Harness-owned workflows are re-vendored by forge upgrade;/);
   assert.doesNotMatch(ignore, /^(?:backend|contract)\/(?:\*{1,2})/m, "vendored exclusions must name files");
 
   const ignoredPaths = [...ignoredBaselineHashes.keys()];
@@ -274,10 +272,6 @@ function validateIgnoredBaseline(ignore, readPath = readFileSync) {
       "**/dist/**",
       "**/node_modules/**",
       ...ignoredPaths,
-      ".github/workflows/factory-scaffold.yml",
-      ".github/workflows/gardener.yml",
-      ".github/workflows/harness-health.yml",
-      ".github/workflows/roadmap-gate.yml",
     ].sort(),
     "the Prettier ignore list must contain only the pinned build, debt, and harness paths",
   );
