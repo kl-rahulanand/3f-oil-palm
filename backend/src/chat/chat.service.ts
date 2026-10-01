@@ -284,6 +284,12 @@ export class ChatService {
         return done({ responseClass: ResponseClass.BackendError, message: sel.reason });
       }
       selection = sel.selection;
+      try {
+        selection = this.canonicalizeKnownSelection(selection);
+      } catch (error) {
+        if (error instanceof MeasureFilterInvalidException) return refuseMeasureFilter(error);
+        throw error;
+      }
       if (groundedReport) {
         const groundedSelection = applyReportGroundingToSelection(selection, groundedReport.selection);
         if (!groundedSelection) {
@@ -293,12 +299,6 @@ export class ChatService {
           });
         }
         selection = groundedSelection;
-      }
-      try {
-        selection = this.canonicalizeKnownSelection(selection);
-      } catch (error) {
-        if (error instanceof MeasureFilterInvalidException) return refuseMeasureFilter(error);
-        throw error;
       }
       const routingClarify = domainRoutingAmbiguity({
         question,

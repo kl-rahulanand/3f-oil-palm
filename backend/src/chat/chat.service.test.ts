@@ -196,6 +196,32 @@ test("the provider door refuses the non-decimal value 5 lakh as malformed before
   assert.equal(fixture.logs[0]?.context.reason, MeasureFilterInvalidReason.MalformedValue);
 });
 
+test("a grounded provider comparison is canonical before the grounding merge can discard it", async () => {
+  const provider = bedrockProviderWith({
+    ...financialSelection,
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "value", value: "5 lakh" },
+      },
+    ],
+  });
+  const fixture = makeFixture({ llm: provider, groundedSelection: financialSelection });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Which spent over 5 lakh?",
+    undefined,
+    { reportId: "actual-report" },
+  );
+
+  assert.equal(response.responseClass, ResponseClass.NotSupported);
+  assert.equal(fixture.executor.calls, 0);
+  assert.equal(fixture.logs[0]?.context.reason, MeasureFilterInvalidReason.MalformedValue);
+});
+
 test("a direct Ask selection is canonical before authorization and execution", async () => {
   const fixture = makeFixture({ selection: financialSelection });
   const directSelection: Selection = {
