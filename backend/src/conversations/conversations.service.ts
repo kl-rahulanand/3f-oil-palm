@@ -304,6 +304,9 @@ function answerSnapshot(answer: ConversationAnswerSnapshot): ConversationAnswerS
       : { usedPriorContext: answer.usedPriorContext }),
     ...(answer.availableFields === undefined ? {} : { availableFields: answer.availableFields }),
     ...(answer.appliedFilters === undefined ? {} : { appliedFilters: answer.appliedFilters }),
+    ...(answer.appliedMeasureFilters === undefined
+      ? {}
+      : { appliedMeasureFilters: answer.appliedMeasureFilters }),
     ...(answer.appliedTimeWindow === undefined ? {} : { appliedTimeWindow: answer.appliedTimeWindow }),
   };
 }

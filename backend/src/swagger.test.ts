@@ -119,6 +119,30 @@ test("both chat routes document the explanation union with a named schema", () =
     Object.keys(completeResponse).filter((field) => !responseFields.includes(field)),
     [],
   );
+  const appliedMeasureFiltersProperty = Reflect.getMetadata(
+    DECORATORS.API_MODEL_PROPERTIES,
+    ChatResponseDto.prototype,
+    "appliedMeasureFilters",
+  ) as {
+    items: {
+      required: string[];
+      properties: {
+        measureId: { type: string };
+        op: { enum: string[] };
+        compareTo: { oneOf: Array<{ required: string[] }> };
+      };
+    };
+  };
+  assert.deepEqual(appliedMeasureFiltersProperty.items.required, ["measureId", "op", "compareTo"]);
+  assert.equal(appliedMeasureFiltersProperty.items.properties.measureId.type, "string");
+  assert.deepEqual(appliedMeasureFiltersProperty.items.properties.op.enum, ["gt", "gte", "lt", "lte"]);
+  assert.deepEqual(
+    appliedMeasureFiltersProperty.items.properties.compareTo.oneOf.map(({ required }) => required),
+    [
+      ["kind", "measureId"],
+      ["kind", "value"],
+    ],
+  );
   const groundingProperty = Reflect.getMetadata(
     DECORATORS.API_MODEL_PROPERTIES,
     ChatResponseDto.prototype,

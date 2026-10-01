@@ -7,7 +7,7 @@ import {
   ResponseClass,
   type AskResponse,
 } from "@3f/contract";
-import { selectionSchema } from "../saved/saved.schemas";
+import { ExplorationSelectionDto, selectionSchema } from "../saved/saved.schemas";
 import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
 import { CHAT_VALIDATION } from "./chat.constants";
 
@@ -138,7 +138,7 @@ export class ChatResponseDto {
   })
   chips?: AskResponse["chips"];
 
-  @ApiPropertyOptional({ type: "object" })
+  @ApiPropertyOptional({ type: ExplorationSelectionDto })
   selection?: AskResponse["selection"];
 
   @ApiPropertyOptional({
@@ -185,7 +185,37 @@ export class ChatResponseDto {
   @ApiPropertyOptional({ type: "array", items: { type: "object" } })
   appliedFilters?: AskResponse["appliedFilters"];
 
-  @ApiPropertyOptional({ type: "array", items: { type: "object" } })
+  @ApiPropertyOptional({
+    type: "array",
+    items: {
+      type: "object",
+      required: ["measureId", "op", "compareTo"],
+      properties: {
+        measureId: { type: "string", example: "governed-financial.actual" },
+        op: { enum: ["gt", "gte", "lt", "lte"], example: "gt" },
+        compareTo: {
+          oneOf: [
+            {
+              type: "object",
+              required: ["kind", "measureId"],
+              properties: {
+                kind: { enum: ["measure"] },
+                measureId: { type: "string", example: "governed-financial.budget" },
+              },
+            },
+            {
+              type: "object",
+              required: ["kind", "value"],
+              properties: {
+                kind: { enum: ["value"] },
+                value: { type: "string", example: "500000.00" },
+              },
+            },
+          ],
+        },
+      },
+    },
+  })
   appliedMeasureFilters?: AskResponse["appliedMeasureFilters"];
 
   @ApiPropertyOptional({ type: "object" })
