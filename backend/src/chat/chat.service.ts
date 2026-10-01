@@ -20,7 +20,7 @@ import {
   type Selection,
 } from "@3f/contract";
 import { LLM_PROVIDER, loadConfig } from "../config";
-import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
+import { LLM_CONTEXT_CHAR_BUDGET, LLM_MESSAGES } from "../llm/llm.constants";
 import type { LlmPriorTurn, LlmProvider, LlmUsage } from "../llm/llm.interface";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { canonicalizeSelection } from "../semantic/measure-filter.helper";
@@ -266,6 +266,15 @@ export class ChatService {
         });
       }
       if (sel.kind === "unsupported") {
+        const measureFilterReason =
+          sel.reason === LLM_MESSAGES.selectionMeasureFiltersMalformed
+            ? MeasureFilterInvalidReason.MalformedValue
+            : sel.reason.startsWith(LLM_MESSAGES.selectionMeasureFilterMeasureNotAllowed(""))
+              ? MeasureFilterInvalidReason.NotComparable
+              : sel.reason.startsWith(LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed(""))
+                ? MeasureFilterInvalidReason.UnknownMeasure
+                : undefined;
+        if (measureFilterReason) return refuseMeasureFilter(new MeasureFilterInvalidException(measureFilterReason));
         const index = await termIndex();
         const lookup = glossaryLookup(question, index);
         if (lookup) {

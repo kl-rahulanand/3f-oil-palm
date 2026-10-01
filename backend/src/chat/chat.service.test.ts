@@ -12,7 +12,7 @@ import {
 } from "@3f/contract";
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "../llm/llm.interface";
 import { BedrockLlmProvider } from "../llm/bedrock.provider";
-import { LLM_CONTEXT_CHAR_BUDGET } from "../llm/llm.constants";
+import { LLM_CONTEXT_CHAR_BUDGET, LLM_MESSAGES } from "../llm/llm.constants";
 import { loadConfig } from "../config";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
@@ -194,6 +194,39 @@ test("the provider door refuses the non-decimal value 5 lakh as malformed before
   assert.match(response.message ?? "", /plain number/);
   assert.equal(fixture.executor.calls, 0);
   assert.equal(fixture.logs[0]?.context.reason, MeasureFilterInvalidReason.MalformedValue);
+});
+
+test("provider comparison refusals preserve malformed not-comparable and unknown-measure reasons", async () => {
+  const cases = [
+    {
+      providerReason: LLM_MESSAGES.selectionMeasureFiltersMalformed,
+      expectedReason: MeasureFilterInvalidReason.MalformedValue,
+      message: /plain number/,
+    },
+    {
+      providerReason: LLM_MESSAGES.selectionMeasureFilterMeasureNotAllowed("governed-financial.percentage"),
+      expectedReason: MeasureFilterInvalidReason.NotComparable,
+      message: /can't compare % with anything/,
+    },
+    {
+      providerReason: LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed("mis-statement.actual_net"),
+      expectedReason: MeasureFilterInvalidReason.UnknownMeasure,
+      message: /unavailable/,
+    },
+  ];
+
+  for (const entry of cases) {
+    const fixture = makeFixture({
+      llm: new FakeLlm({ kind: "unsupported", reason: entry.providerReason }),
+    });
+
+    const response = await fixture.service.ask(userFor("governed-financial"), "session", "Use this comparison");
+
+    assert.equal(response.responseClass, ResponseClass.NotSupported, entry.expectedReason);
+    assert.match(response.message ?? "", entry.message, entry.expectedReason);
+    assert.equal(fixture.executor.calls, 0, entry.expectedReason);
+    assert.equal(fixture.logs[0]?.context.reason, entry.expectedReason);
+  }
 });
 
 test("a grounded provider comparison is canonical before the grounding merge can discard it", async () => {
