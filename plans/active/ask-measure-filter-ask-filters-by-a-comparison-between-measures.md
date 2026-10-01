@@ -1,8 +1,8 @@
 ---
 issue: ask-measure-filter
 title: Ask filters by a comparison between measures
-status: awaiting-approval
-saved: 2026-09-18T06:19:44+00:00
+status: approved
+saved: 2026-10-01T10:26:39+00:00
 story: ask-measure-filter
 decisions_reviewed:
   - 0001-poc-engagement-scope
