@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:00:27+00:00
-read_hash: 7fb9ca5d4ac51e9e2f914f68fd885e63eff5a30f
-round: 7
+read_at: 2026-10-01T16:02:32+00:00
+read_hash: 5dacf3f80b3d440daccc11ab8edbb6ba5f67bc0b
+round: 8
 passed: no
-doc_seen: 7fb9ca5d4ac51e9e2f914f68fd885e63eff5a30f
+doc_seen: 5dacf3f80b3d440daccc11ab8edbb6ba5f67bc0b
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: ef9153068d21538d39e3ee03aff276f495f2adc4
+notes_seen: 578d0e9bfc4b5fe6cf431b9fada9ea0a2d8d3f27
 ---
 # Cold read notes
 
@@ -112,3 +112,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 20. The plan contradicts the confirmed spec on prior-turn reruns.
    Spec C2 requires canonicalization at a “prior-turn selection re-run,” while this plan says no such path exists or will be added. Reconcile the confirmed spec and plan, or identify and prove the required rerun path.
    Disposition: keep the repository has no prior-turn re-run path (`chat.service.ts:193` and `:318` only inherit the time window; `bedrock.provider.ts:200` passes prior turns as context), so the spec's "prior-turn re-run" is a misnomer for the prior-turn context door, which MEASURE-FILTER-ASK-RESPONSE canonicalises; the plan records it under Notes as a spec erratum to correct at the spec's next edit, because re-confirming a confirmed spec for wording that changes no behaviour costs a full spec read cycle.
+
+## Round 8
+
+21. The selector task cannot pass its grounded crossing leaf before the response task.
+   Grounding currently drops `measureFilters`; its merge is assigned to the later response task, yet selector must prove an Actual-only report preserves `Actual > Budget` through grounding and append. Move the merge seam and crossing leaf into selector, or move both to response.
+   Disposition: cut the report-grounding merge (carrying `measureFilters` through `applyReportGroundingToSelection`, which drops them today) and `viewInReport` now belong to MEASURE-FILTER-SELECTOR with the crossing leaf, so it covers items 7 and 9; MEASURE-FILTER-ASK-RESPONSE keeps the direct and prior-turn doors, the refusal translation and the empty answer, items 2 and 6 (rows, detail 9, Task Decomposition, Verify Plan, Surface Impact).
