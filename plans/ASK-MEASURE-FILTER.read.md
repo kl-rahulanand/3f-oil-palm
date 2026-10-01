@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T21:01:17+00:00
-read_hash: 1a0d363dbbe49a9fd6e6f00f5c09eb369036357f
-round: 22
+read_at: 2026-10-01T21:02:00+00:00
+read_hash: 20bf68798457927dc5fb3781f4a67bf285b16983
+round: 23
 passed: no
-doc_seen: 1a0d363dbbe49a9fd6e6f00f5c09eb369036357f
+doc_seen: 20bf68798457927dc5fb3781f4a67bf285b16983
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 5435ac39798b57cf62fb20f3fd2fb0690b984420
+notes_seen: c93b3cee623e2133411f19f85e957b45271a5d95
 ---
 # Cold read notes
 
@@ -216,3 +216,10 @@ No findings.
 
    Retain the risk, but describe the former gap in past tense and the completed leaf that guards against regression.
    Disposition: cut the ingress risk keeps its place and now says the prior-turn schema gap closed with #80 and names the `chat.schemas.test.ts` leaves that guard it; Risks is outside the approval hash, so the approval stands.
+
+## Round 23
+
+37. C9 still says `applyReportGroundingToSelection` “drops `measureFilters` today,” despite Grounding having merged as #81.
+
+   Change this to the pre-#81 condition and name the merged grounding leaf, so the remaining Surfaces worker is not told to fix an already-completed backend path.
+   Disposition: cut Done-when detail 9 now says the grounding merge dropped filters before #81 and names its merged leaves; the same sweep put every other present-tense description of a merged gap below For the builders (the Ask Response and Grounding rows, the refusal and totals notes, the grounded-vocabulary note) in the past tense or neutral wording.
