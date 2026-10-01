@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T21:00:31+00:00
-read_hash: bd6d2455d1d7ce051de4281d03096f9fd55a189a
-round: 21
+read_at: 2026-10-01T21:01:17+00:00
+read_hash: 1a0d363dbbe49a9fd6e6f00f5c09eb369036357f
+round: 22
 passed: no
-doc_seen: bd6d2455d1d7ce051de4281d03096f9fd55a189a
+doc_seen: 1a0d363dbbe49a9fd6e6f00f5c09eb369036357f
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 084d4561d00d9e8383cb3bd3dd4ef2bde456c3b6
+notes_seen: 5435ac39798b57cf62fb20f3fd2fb0690b984420
 ---
 # Cold read notes
 
@@ -209,3 +209,10 @@ No findings.
 
    Pull request #80 is merged; `origin/master` now uses the full selection schema and has acceptance coverage. Update that C2 detail and the ingress risk to describe the completed behavior, leaving only Surfaces as unfinished.
    Disposition: cut Done-when detail 2 now says the Ask doors were delivered and merged as #80 and describes the schema gap in the past tense; the Risks line sits above For the builders in the approved part of the doc and records the risk as it stood at approval, so it is left as approved.
+
+## Round 22
+
+36. The ingress-risk entry still says `priorTurns[].selection` “rejects today,” although #80 is merged and the schema now accepts it.
+
+   Retain the risk, but describe the former gap in past tense and the completed leaf that guards against regression.
+   Disposition: cut the ingress risk keeps its place and now says the prior-turn schema gap closed with #80 and names the `chat.schemas.test.ts` leaves that guard it; Risks is outside the approval hash, so the approval stands.

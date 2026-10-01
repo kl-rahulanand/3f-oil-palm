@@ -59,9 +59,10 @@ selection all enter the backend without passing through the provider branch.
   the golden statement proofs are asserted unchanged.
 - **Ingress coverage.** A door that skips `canonicalizeSelection` reintroduces the bug. The
   foundation's leaves on master cover the saved, pin and reopen doors; MEASURE-FILTER-ASK-RESPONSE's
-  leaves assert the provider door, the direct `AskRequest.selection` door and the prior-turn
-  context door (`priorTurns[].selection`, which
-  the shared schema rejects today).
+  leaves (merged as #80) assert the provider door, the direct `AskRequest.selection` door and the
+  prior-turn context door (`priorTurns[].selection`, which the shared schema rejected before #80;
+  `chat.schemas.test.ts` now accepts a prior turn with a filter and refuses a malformed one, so a
+  regression fails a leaf).
 
 ## For the builders
 
