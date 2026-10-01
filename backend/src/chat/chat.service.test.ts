@@ -196,22 +196,35 @@ test("the provider door refuses the non-decimal value 5 lakh as malformed before
   assert.equal(fixture.logs[0]?.context.reason, MeasureFilterInvalidReason.MalformedValue);
 });
 
-test("provider comparison refusals preserve malformed not-comparable and unknown-measure reasons", async () => {
+test("provider comparison refusals classify the rejected measure by why it is invalid", async () => {
   const cases = [
     {
       providerReason: LLM_MESSAGES.selectionMeasureFiltersMalformed,
       expectedReason: MeasureFilterInvalidReason.MalformedValue,
       message: /plain number/,
+      permittedDomains: [],
+      permittedMeasures: [],
     },
     {
-      providerReason: LLM_MESSAGES.selectionMeasureFilterMeasureNotAllowed("governed-financial.percentage"),
+      providerReason: LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed("governed-financial.percentage"),
       expectedReason: MeasureFilterInvalidReason.NotComparable,
       message: /can't compare % with anything/,
+      permittedDomains: [],
+      permittedMeasures: ["governed-financial.percentage"],
+    },
+    {
+      providerReason: LLM_MESSAGES.selectionMeasureFilterMeasureNotAllowed("unknown.amount"),
+      expectedReason: MeasureFilterInvalidReason.UnknownMeasure,
+      message: /unavailable/,
+      permittedDomains: [],
+      permittedMeasures: [],
     },
     {
       providerReason: LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed("mis-statement.actual_net"),
       expectedReason: MeasureFilterInvalidReason.UnknownMeasure,
       message: /unavailable/,
+      permittedDomains: ["mis-statement"],
+      permittedMeasures: ["mis-statement.actual_net"],
     },
   ];
 
@@ -219,8 +232,11 @@ test("provider comparison refusals preserve malformed not-comparable and unknown
     const fixture = makeFixture({
       llm: new FakeLlm({ kind: "unsupported", reason: entry.providerReason }),
     });
+    const user = userFor("governed-financial");
+    user.permissions.domains.push(...entry.permittedDomains);
+    user.permissions.measureIds.push(...entry.permittedMeasures);
 
-    const response = await fixture.service.ask(userFor("governed-financial"), "session", "Use this comparison");
+    const response = await fixture.service.ask(user, "session", "Use this comparison");
 
     assert.equal(response.responseClass, ResponseClass.NotSupported, entry.expectedReason);
     assert.match(response.message ?? "", entry.message, entry.expectedReason);

@@ -266,14 +266,21 @@ export class ChatService {
         });
       }
       if (sel.kind === "unsupported") {
+        const measurePrefix = LLM_MESSAGES.selectionMeasureFilterMeasureNotAllowed("");
+        const operandPrefix = LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed("");
+        const rejectedMeasurePrefix = [measurePrefix, operandPrefix].find((prefix) => sel.reason.startsWith(prefix));
+        const rejectedMeasureId = rejectedMeasurePrefix ? sel.reason.slice(rejectedMeasurePrefix.length) : undefined;
+        const rejectedMeasure = rejectedMeasureId
+          ? allowed.flatMap((domain) => domain.measures).find((measure) => measure.id === rejectedMeasureId)
+          : undefined;
         const measureFilterReason =
           sel.reason === LLM_MESSAGES.selectionMeasureFiltersMalformed
             ? MeasureFilterInvalidReason.MalformedValue
-            : sel.reason.startsWith(LLM_MESSAGES.selectionMeasureFilterMeasureNotAllowed(""))
-              ? MeasureFilterInvalidReason.NotComparable
-              : sel.reason.startsWith(LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed(""))
-                ? MeasureFilterInvalidReason.UnknownMeasure
-                : undefined;
+            : rejectedMeasureId
+              ? rejectedMeasure && rejectedMeasure.format !== "money"
+                ? MeasureFilterInvalidReason.NotComparable
+                : MeasureFilterInvalidReason.UnknownMeasure
+              : undefined;
         if (measureFilterReason) return refuseMeasureFilter(new MeasureFilterInvalidException(measureFilterReason));
         const index = await termIndex();
         const lookup = glossaryLookup(question, index);
