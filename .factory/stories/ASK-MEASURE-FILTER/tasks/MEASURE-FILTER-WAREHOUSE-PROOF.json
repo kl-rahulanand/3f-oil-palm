@@ -1,10 +1,31 @@
 {
   "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-WAREHOUSE-PROOF",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "b3fbe8f4aed5aa84b42fb564fd64713bbcfa64734a921610fda02591424eb821",
+    "commit": "7aa01df115491f2536f077322cddecf3f7060435",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This task is restricted to the warehouse proof, backend package registry, and quality-gate registry, but the branch also adds this story record, `.factory/stories/ASK-MEASURE-FILTER/tasks/MEASURE-FILTER-WAREHOUSE-PROOF.json`, `plans/ASK-MEASURE-FILTER.md`, and `plans/ASK-MEASURE-FILTER.read.md`. None is needed to implement or register the proof, and no handoff justification permits these additions. Remove them from this task branch or land them separately.",
+        "file": ".factory/stories/ASK-MEASURE-FILTER/story.json",
+        "line": 1,
+        "priority": "P1",
+        "title": "Remove the four files outside the allowed task scope"
+      }
+    ],
+    "status": "blocked",
+    "tree": "822561ba337c34566c5d01aa66a0e4f3d6f511eb25ddd995e98385b6b0c0ec8b"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-01T16:40:27+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-01T16:54:59+00:00",
+      "step": "review"
     }
   ]
 }
