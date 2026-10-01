@@ -1,1 +1,0 @@
-{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-08T15:20:19+00:00", "story": "platform-base", "detail": "backend-observability binds D-0018/D-0019/D-0020 for error metrics, non-Local centralized transport, and Swagger error DTOs, but plans/deferrals.md contains no such records (it ends at D-0017); the re"}

@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-15T13:05:51+00:00", "story": "multi-plant", "detail": "MasterResolvedSelection now requires plantDisplay, provisional and budgetOwnerPlant as contracted; backend/src/warehouse/selection-slice.db.test.ts has a typed resolver stub and must add those three f"}

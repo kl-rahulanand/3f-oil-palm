@@ -1,1 +1,0 @@
-{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-10T01:55:56+00:00", "story": "sap-ingestion", "detail": "sap-ingestion delivers the Financial MIS data foundation: SAP actuals and MIS budgets ingest into a dedicated warehouse (guarded POST /api/ingest/actuals and /budget), each upload replaced idempotentl"}

@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-07T14:34:21+00:00", "story": "platform-base", "detail": "FACTORY_TEST_CMD is required to run the full backend suite, but 42 tests require a migrated Postgres app DB; quality.yml is specified to run only npm ci then verify:ci and the pinned command graph con"}

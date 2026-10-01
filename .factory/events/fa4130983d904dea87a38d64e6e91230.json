@@ -1,1 +1,0 @@
-{"event": "stage-start", "generated_by": "implementer", "at": "2026-09-09T09:09:38+00:00", "story": "sap-ingestion", "detail": "actuals-loader SAP actuals Excel loader + idempotent per-period replace"}

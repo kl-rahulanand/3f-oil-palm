@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-12T08:14:56+00:00", "story": "assistant", "detail": "Making AskResponse.viewInReport non-optional as t-aga-c5 requires mechanically needs updating backend/src/chat/chat.sse.test.ts, whose typed AskResponse fixture omits the field, but that file is outsi"}

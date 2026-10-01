@@ -1,0 +1,11 @@
+{
+  "branch": "task/PLATFORM-BASE-FRONTEND-SHELL-LOGIN",
+  "status": "merged",
+  "steps": [
+    {
+      "at": "2026-09-08T14:17:47+00:00",
+      "step": "merged"
+    }
+  ],
+  "touches": 0
+}

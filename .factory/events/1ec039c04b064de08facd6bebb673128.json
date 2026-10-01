@@ -1,1 +1,0 @@
-{"event": "signal-escalated", "generated_by": "orchestrator", "at": "2026-09-08T06:12:51+00:00", "story": "platform-base", "detail": "Whether frontend-foundation (T7), which renders a placeholder page + one _ds-themed primitive as a build/test smoke, carries the frontend design-review + functional-check gate now (user_facing:true) o"}

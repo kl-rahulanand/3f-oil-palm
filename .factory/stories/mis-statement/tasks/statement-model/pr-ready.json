@@ -1,7 +1,0 @@
-{
-  "task_id": "statement-model",
-  "branch": "feat/mis-statement-statement-model",
-  "base_main_sha": "b5651998672c4cb664cc17024167142235af7b57",
-  "commit": "d81a2730072d700161e3cddad3d8013697cb31db",
-  "sealed_at": "2026-09-11T08:06:03+00:00"
-}

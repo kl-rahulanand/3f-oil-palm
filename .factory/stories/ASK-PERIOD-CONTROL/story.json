@@ -1,0 +1,28 @@
+{
+  "approval": {
+    "at": "2026-09-15T06:16:16+00:00",
+    "by": "carried over from the copied-in Forge",
+    "hash": "9425a41fac57e0d04a00b4cb0ef5b1411418a0993cee2c64988f7a23b64482a7"
+  },
+  "doc": "plans/ASK-PERIOD-CONTROL.md",
+  "finished": "2026-09-15T08:53:40+00:00",
+  "merged": {
+    "ASK-PERIOD-CONTINUATION": "2026-09-15T08:11:46+00:00",
+    "ASK-PERIOD-CONTRACT-AND-BRANCH": "2026-09-15T07:19:15+00:00",
+    "ON-ANSWERS": "2026-09-15T08:53:40+00:00"
+  },
+  "outcome": "A statement question that names no period now asks which period to use instead of refusing, and every settled answer carries a control that moves it to another period without retyping the question. Measured before: 'Show the MIS statement Actual by statement leaf' returned a red refusal 4/4. Measured after: it returns the prompt and the loaded periods, and clicking one returns 81 verified rows with zero selector calls - the chosen period reaches the warehouse as data, never as words re-guessed by the model. Four failure causes that shared one dead-end message now resolve in a fixed order, each saying what is actually wrong: an unresolvable scope triple points at an administrator, a missing mapping and an empty period list keep their own messages, and only a missing period clarifies. An answer that covers no single period says so - 'All loaded data within your access scope and any filters applied by this question' - rather than defaulting a control to a period it never used.",
+  "status": "done",
+  "steps": [
+    {
+      "at": "2026-09-15T06:16:16+00:00",
+      "step": "approved"
+    },
+    {
+      "at": "2026-09-15T08:53:40+00:00",
+      "step": "done"
+    }
+  ],
+  "title": "Recoverable periods in Ask",
+  "touches": 0
+}

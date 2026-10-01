@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-10T16:40:10+00:00", "story": "mis-selection", "detail": "The repaired selection-slice warehouse proof cannot be rerun in this workspace because the sandbox rejects loopback Postgres connections with EPERM at 127.0.0.1:5433; rerun test:warehouse-proof on the"}

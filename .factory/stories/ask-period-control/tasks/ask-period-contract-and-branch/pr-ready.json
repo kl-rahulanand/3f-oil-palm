@@ -1,7 +1,0 @@
-{
-  "task_id": "ask-period-contract-and-branch",
-  "branch": "feat/ask-period-control-ask-period-contract-and-branch",
-  "base_main_sha": "a978324c106dcd5db1d31bafeec9e3446d579089",
-  "commit": "3a1184c128c9b97af1f92cd2a7cd51840f990f90",
-  "sealed_at": "2026-09-15T07:17:59+00:00"
-}

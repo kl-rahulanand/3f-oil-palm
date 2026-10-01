@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T11:16:10+00:00", "story": "governed-joins", "detail": "The approved measures.service.ts narrowing now trips D-0006; correct completion requires removing backend/src/measures/measures.service.ts from .prettierignore plus its ignoredBaselineHashes entry, bu"}

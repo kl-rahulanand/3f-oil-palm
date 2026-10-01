@@ -1,7 +1,0 @@
-{
-  "task_id": "assistant-exploration-api",
-  "branch": "feat/assistant-assistant-exploration-api",
-  "base_main_sha": "eaf73d8e80fa7f2f845d3fad95b52dec5aabbdcc",
-  "commit": "d3d55833f6929fd89090dc4f22df586ea4189192",
-  "sealed_at": "2026-09-12T16:17:04+00:00"
-}

@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-02T08:47:16+00:00", "story": "platform-base", "detail": "Live Postgres app-path E2E cannot run because the sandbox is denied access to the Docker socket; Compose config validates and all hermetic/build checks pass."}

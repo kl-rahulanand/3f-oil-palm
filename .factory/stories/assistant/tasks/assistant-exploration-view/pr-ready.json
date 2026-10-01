@@ -1,7 +1,0 @@
-{
-  "task_id": "assistant-exploration-view",
-  "branch": "feat/assistant-assistant-exploration-view",
-  "base_main_sha": "d4772bca37c586c34e6cd23db874088d47263513",
-  "commit": "91c1377cf8b9771d8812dbc432fdf57edd304ac5",
-  "sealed_at": "2026-09-12T17:43:11+00:00"
-}

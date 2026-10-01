@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-11T10:10:28+00:00", "story": "mis-statement", "detail": "S-0004-c554: Resolved from WORKFLOW.md Event-Driven Delegation: this is one mechanically implied test file. Extend scope only to backend/src/warehouse/statement-projection.db.test.ts so the committed D-0008 proof "}

@@ -1,7 +1,0 @@
-{
-  "task_id": "gl-month-rollups",
-  "branch": "feat/governed-joins-gl-month-rollups",
-  "base_main_sha": "194d4419e72c8d130531f2edbfcd35bf850de048",
-  "commit": "c881489a2cb720eb9bb0ac18a1ce6c4e051d80ea",
-  "sealed_at": "2026-09-10T04:50:54+00:00"
-}

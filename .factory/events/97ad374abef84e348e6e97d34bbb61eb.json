@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-01T14:28:01+00:00", "story": "platform-base", "detail": "vendor-backend-contract requires snapshotting 163 files / 19,253 lines from ~/Desktop/pulse, exceeding the hard 8-file/400-line review budget; its task plan also requires a frontend/ stub outside the "}

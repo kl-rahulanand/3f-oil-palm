@@ -1,0 +1,11 @@
+{
+  "branch": "task/GOVERNED-JOINS-GOVERNED-DOMAIN-MEASURES",
+  "status": "merged",
+  "steps": [
+    {
+      "at": "2026-09-10T08:53:20+00:00",
+      "step": "merged"
+    }
+  ],
+  "touches": 0
+}

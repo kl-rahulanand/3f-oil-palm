@@ -1,1 +1,0 @@
-{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-10T18:40:44+00:00", "story": "mis-selection", "detail": "The selection-ui required Vitest command exits 0 for an impossible -t test id, so its negative control cannot fail and contradicts the binding required_tests false-green lesson; amend the required com"}

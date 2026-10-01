@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-11T16:07:04+00:00", "story": "mis-statement", "detail": "Making MisStatementExportService a required MisStatementController dependency requires updating backend/src/mis/mis-statement.controller.test.ts, whose constructor call currently passes only the state"}

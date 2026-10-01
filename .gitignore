@@ -53,11 +53,6 @@ pino-*.log
 .factory/scratchpad.md
 .worktrees/
 
-# forge gstack: project-local store — projects/ is committed, machine noise is not
-.gstack/*
-!.gstack/projects/
-.gstack/**/brain-cache/
-.gstack/**/timeline.jsonl
 
 # transitional: machinery moved to factory/; on-disk copy only serves already-running sessions' hooks
 .agents/

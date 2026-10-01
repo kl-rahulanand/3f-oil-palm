@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-10T15:36:35+00:00", "story": "mis-selection", "detail": "The D-0008 selection-slice warehouse proof cannot run because the sandbox is denied access to the local Docker socket; hermetic coverage and the loopback refusal control remain runnable."}

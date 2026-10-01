@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T11:23:47+00:00", "story": "sap-ingestion", "detail": "S-0011-ddb6: Acknowledged - the WAREHOUSE_DB_TEST=1 D-0008 proof runs HOST-SIDE by the orchestrator against docker warehouse-db (sandbox has no Docker), per decision D-0008 (DB-backed proofs are demonstrated host "}

@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-07T11:55:44+00:00", "story": "platform-base", "detail": "S-0010-8b22: Answered here \u2014 no contract change needed, this is already settled by the rule in force. tools/junit-run.mjs and tools/junit-run.test.mjs are PRE-EXISTING files, exactly the class the .prettierignore "}

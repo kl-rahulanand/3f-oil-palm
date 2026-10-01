@@ -1,7 +1,0 @@
-{
-  "task_id": "assistant-streaming-and-shell",
-  "branch": "feat/poc-responsiveness-assistant-streaming-and-shell",
-  "base_main_sha": "ed66912c4137193b50adf8439fd7cddfbe37670f",
-  "commit": "52d0234ab3815eca0e46628752abe3f7a090e02f",
-  "sealed_at": "2026-09-14T19:35:41+00:00"
-}

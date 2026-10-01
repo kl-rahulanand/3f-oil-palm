@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-15T13:48:19+00:00", "story": "multi-plant", "detail": "S-0015-a7c4: Not authorized: sqlBuilder.ts stays out of scope (governed SQL path). Implement detect-and-refuse in the service per lesson statement-pin-no-sqlbuilder: re-read the pinned outline batch after the bloc"}

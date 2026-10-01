@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T10:27:18+00:00", "story": "governed-joins", "detail": "S-0007-5b59: AUTHORIZED: backend/src/measures/measures.service.ts is in-scope as the mechanically-implied consumer. The composed relation now carries a provenance-only source_presence column on its result rows; me"}

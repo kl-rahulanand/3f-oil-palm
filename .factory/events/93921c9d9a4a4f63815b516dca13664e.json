@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-15T10:49:51+00:00", "story": "multi-plant", "detail": "S-0011-16bb: Resolved by the orchestrator: the trunk took decision number 0029 (bind-host) while this story was in flight; the story's decisions are renumbered 0030-0037 on the story branch and merged here (commit"}

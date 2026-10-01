@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-08T15:21:21+00:00", "story": "platform-base", "detail": "S-0013-72c3: Recorded the three PoC-scope deferrals in this worktree's plans/deferrals.md \u2014 D-0018 (error metrics), D-0019 (non-Local centralized log transport), D-0020 (decorated Swagger error DTOs). They were ap"}

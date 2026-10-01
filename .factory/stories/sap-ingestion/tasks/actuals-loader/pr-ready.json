@@ -1,7 +1,0 @@
-{
-  "task_id": "actuals-loader",
-  "branch": "feat/sap-ingestion-actuals-loader",
-  "base_main_sha": "66cc8b83589aaa2a265b98d0c4e09e11755746c9",
-  "commit": "a7a92f49d810879180d1ef6dcffa46c2da33480a",
-  "sealed_at": "2026-09-09T11:49:10+00:00"
-}

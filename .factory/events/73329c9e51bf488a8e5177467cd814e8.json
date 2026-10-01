@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-12T10:51:10+00:00", "story": "assistant", "detail": "S-0003-62ca: Settled by the orchestrator: the shared npm cache now holds recharts@3.10.1 and its full 42-package closure, warmed from the host where the registry IS reachable. Install it with 'npm install recharts"}

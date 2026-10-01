@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-15T13:06:56+00:00", "story": "multi-plant", "detail": "S-0013-d3ab: Authorized: write_scope amended to include backend/src/warehouse/selection-slice.db.test.ts for the fixture-only change the new MasterResolvedSelection fields mechanically imply. No behaviour change i"}

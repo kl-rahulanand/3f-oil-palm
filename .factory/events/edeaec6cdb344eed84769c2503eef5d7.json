@@ -1,1 +1,0 @@
-{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-11T22:10:46+00:00", "story": "drill-down", "detail": "drill-transactions-view must name every replaced batch in a 409 refusal, but GlobalExceptionFilter discards AuditedDrillRefusalException.batchStatuses and the task forbids backend or contract changes;"}

@@ -1,1 +1,0 @@
-{"event": "signal-confusion", "generated_by": "implementer", "at": "2026-09-09T10:40:17+00:00", "story": "sap-ingestion", "detail": "The required pre-materialization XLSX guard has no specified total-uncompressed-byte or ZIP-entry ceilings; please resolve the numeric limits before implementation."}

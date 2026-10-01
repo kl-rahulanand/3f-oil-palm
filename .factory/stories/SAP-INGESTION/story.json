@@ -1,0 +1,29 @@
+{
+  "approval": {
+    "at": "2026-09-09T05:22:47+00:00",
+    "by": "carried over from the copied-in Forge",
+    "hash": "0a4f71e302c79090c6595d609ecdbba221392d1d48fd8ffd895b266079a755d0"
+  },
+  "doc": "plans/SAP-INGESTION.md",
+  "finished": "2026-09-09T23:05:43+00:00",
+  "merged": {
+    "ACTUALS-LOADER": "2026-09-09T15:07:11+00:00",
+    "BUDGET-LOADER": "2026-09-09T17:46:47+00:00",
+    "RECONCILIATION-PROOF": "2026-09-09T23:05:43+00:00",
+    "WAREHOUSE-SCHEMA": "2026-09-09T08:36:53+00:00"
+  },
+  "outcome": "sap-ingestion delivers the Financial MIS data foundation: SAP actuals and MIS budgets ingest into a dedicated warehouse (guarded POST /api/ingest/actuals and /budget), each upload replaced idempotently per period with prior-batch retention, and the headline figure is proven to source \u2014 July 2026 DUB actuals reconcile to EXACTLY Rs 11,512,712.07 (paise) across both the raw sap_transaction rows and the actual_by_key_month gold view, stable under re-upload. Four tasks shipped: warehouse-schema (#13), actuals-loader (#15), budget-loader (#16), reconciliation-proof (#17). No governed budget-actual join or UI yet (governed-joins / reporting stories).",
+  "status": "done",
+  "steps": [
+    {
+      "at": "2026-09-09T05:22:47+00:00",
+      "step": "approved"
+    },
+    {
+      "at": "2026-09-09T23:05:43+00:00",
+      "step": "done"
+    }
+  ],
+  "title": "Ingest SAP actuals + budgets",
+  "touches": 0
+}

@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-10T05:58:47+00:00", "story": "governed-joins", "detail": "Live test:warehouse-proof rerun is blocked in this Codex sandbox: Docker socket access and TCP connect to loopback warehouse 127.0.0.1:5433 both fail with EPERM; hermetic proof registration and all de"}

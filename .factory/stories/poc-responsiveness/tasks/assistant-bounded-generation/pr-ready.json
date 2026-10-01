@@ -1,7 +1,0 @@
-{
-  "task_id": "assistant-bounded-generation",
-  "branch": "feat/poc-responsiveness-assistant-bounded-generation",
-  "base_main_sha": "170dda7d20e5fecc9b1087d315c4399ca2c8d1d3",
-  "commit": "1a673073c0b4039076da4a30e9ecb5aed1a8b176",
-  "sealed_at": "2026-09-14T16:55:51+00:00"
-}

@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T18:56:12+00:00", "story": "mis-selection", "detail": "S-0023-d3d1: Do NOT widen scope: the ruling removes the need for triple-grain amounts entirely. Emit ONE bucket row per GL code by folding the master's bucket entries by gl_code (costCentre null when a GL has seve"}

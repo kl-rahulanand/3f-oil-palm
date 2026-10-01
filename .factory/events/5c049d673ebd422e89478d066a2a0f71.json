@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-09T07:25:22+00:00", "story": "sap-ingestion", "detail": "D-0008 warehouse DB proof cannot run because this execution environment denies access to the Docker socket; host orchestration must run warehouse:migrate and warehouse:proof."}

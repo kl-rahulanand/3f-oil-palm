@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-09T11:22:55+00:00", "story": "sap-ingestion", "detail": "D-0008 cannot be executed in this delegated sandbox: Docker API access is denied and no WAREHOUSE_PG_* connection is configured; the committed WAREHOUSE_DB_TEST leaf remains ready for the orchestrator"}

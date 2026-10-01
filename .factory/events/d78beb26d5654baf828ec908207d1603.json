@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T10:20:10+00:00", "story": "governed-joins", "detail": "S-0006-135e: Do NOT widen the shared ResultTable row value type to SourcePresence[] (that is what ripples exhaustive guards into measures.service.ts, an unrelated consumer at measures.service.ts:150). CONTAIN it i"}

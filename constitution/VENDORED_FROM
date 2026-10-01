@@ -1,3 +1,0 @@
-symphony-forge @ e93af2de942efdac022638c18c5d005cbfafa3d6
-Update by re-vendoring from the harness repo; do not edit in place.
-Re-pointed 2026-10-01: the local re-vendor commit 871ff7b existed only in a since-rewritten clone; e93af2d is its upstream base (knacklabs/main, 2026-09-11). Local deltas vs that base: factory/scripts/forge_cli/review.py and factory/tests/test_review_preflight_evidence_scope.py (review pre-flight reads evidence task-scoped).

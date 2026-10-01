@@ -1,1 +1,0 @@
-{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-16T04:54:35+00:00", "story": "mis-assistant-explains-a-number", "detail": "Review says ChatResponseDto omits a tables field returned by ChatService, but repo-wide search finds no AskResponse.tables type, no ChatService tables return, and no product-source tables response fie"}

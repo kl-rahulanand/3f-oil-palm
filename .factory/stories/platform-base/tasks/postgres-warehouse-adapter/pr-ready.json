@@ -1,8 +1,0 @@
-{
-  "task_id": "postgres-warehouse-adapter",
-  "branch": "master",
-  "base_main_sha": "51ee67b463b7eaab2020c04814783214d495662b",
-  "commit": "58653be",
-  "sealed_at": "2026-09-04T09:23:59+00:00",
-  "reconciled": true
-}

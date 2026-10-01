@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-15T13:06:19+00:00", "story": "multi-plant", "detail": "S-0012-9b69: Ruling: exclude the GL 55000000 row. It is the Admin Expenses section header (blank second Cost Center, no leaf); parents are derived per decision 0020 and never appear as master targets. 94 pairs is "}

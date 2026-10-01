@@ -1,1 +1,0 @@
-{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-09T02:19:19+00:00", "story": "platform-base", "detail": "The 3F platform base is shipped end-to-end (all 10 platform-base tasks merged to master, CI green): a vendored NestJS backend on a separate Postgres warehouse with cookie-based email/OTP auth, a trimm"}

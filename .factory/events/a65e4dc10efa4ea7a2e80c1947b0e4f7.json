@@ -1,1 +1,0 @@
-{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-15T19:23:29+00:00", "story": "ask-reopen-saved-report", "detail": "Opening a saved report or pinned report now returns you to its existing answer instead of stacking a duplicate copy of it. The Ask panel opens immediately on the click rather than after the answer arr"}

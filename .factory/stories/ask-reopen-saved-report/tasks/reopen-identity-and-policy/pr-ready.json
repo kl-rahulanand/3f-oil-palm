@@ -1,7 +1,0 @@
-{
-  "task_id": "reopen-identity-and-policy",
-  "branch": "feat/ask-reopen-saved-report-reopen-identity-and-policy",
-  "base_main_sha": "f4d175c6c71fe0fce784834262c0fd42c5effe23",
-  "commit": "c96ae0872b39ff2ac3927631b967a4ce64032580",
-  "sealed_at": "2026-09-15T16:45:49+00:00"
-}

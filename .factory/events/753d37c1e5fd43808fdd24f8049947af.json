@@ -1,1 +1,0 @@
-{"event": "stage-start", "generated_by": "implementer", "at": "2026-09-14T16:03:58+00:00", "story": "poc-responsiveness", "detail": "assistant-bounded-generation Cap the selector generation, scope its retry, and bound the request"}

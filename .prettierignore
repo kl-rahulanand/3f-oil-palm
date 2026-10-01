@@ -51,9 +51,3 @@ backend/src/usage/usage.service.test.ts
 backend/src/usage/usage.service.ts
 backend/src/users/users.constants.ts
 backend/src/users/users.controller.ts
-
-# Harness-owned workflows are re-vendored by forge upgrade; only product quality.yml is checked here.
-.github/workflows/factory-scaffold.yml
-.github/workflows/gardener.yml
-.github/workflows/harness-health.yml
-.github/workflows/roadmap-gate.yml

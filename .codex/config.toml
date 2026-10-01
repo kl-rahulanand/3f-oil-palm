@@ -19,6 +19,7 @@ sandbox_mode = "workspace-write"
 web_search = "live"
 
 [features]
+hooks = true
 codex_hooks = true
 multi_agent = true
 streamable_shell = true

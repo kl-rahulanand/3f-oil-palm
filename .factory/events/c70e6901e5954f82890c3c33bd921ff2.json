@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T10:03:32+00:00", "story": "governed-joins", "detail": "Aggregate-row source_presence requires ResultTable to admit SourcePresence[]; the resulting exhaustive guards in backend/src/measures/measures.service.ts are mechanically required but that file is out"}

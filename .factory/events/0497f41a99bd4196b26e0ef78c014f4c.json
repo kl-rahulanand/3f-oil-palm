@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-11T22:12:07+00:00", "story": "drill-down", "detail": "S-0002-ae2f: Confirmed: global-exception.filter.ts builds details as validation ? { fieldErrors } : {} and a generic userMessage, so the exception's batchStatuses never reach the client. You are right that it cann"}

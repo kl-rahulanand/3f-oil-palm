@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-01T14:34:06+00:00", "story": "platform-base", "detail": "S-0001-bfb3: Accepted decision 0008: Pulse backend+contract are a pinned vendored snapshot. Vendor task gets an elevated review_budget (reasoned); frontend workspace entry deferred to the frontend task (task 1 = c"}

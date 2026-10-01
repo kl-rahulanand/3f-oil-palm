@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T10:41:07+00:00", "story": "sap-ingestion", "detail": "S-0010-e994: Settled: total uncompressed bytes <= 256 MB and ZIP entry count <= 256, enforced WHILE reading the archive so an over-limit file is rejected BEFORE full materialization (paired with the existing 15 MB"}

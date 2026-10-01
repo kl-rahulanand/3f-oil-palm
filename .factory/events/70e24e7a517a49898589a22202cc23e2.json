@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-11T09:29:55+00:00", "story": "mis-statement", "detail": "S-0002-47a9: AUTHORIZED - mechanically implied, and verified: contract/src/measure.ts:59 types joinKeys as the literal tuple ['gl_code', 'month'], so a statement_relation domain joining on leaf_key cannot be decla"}

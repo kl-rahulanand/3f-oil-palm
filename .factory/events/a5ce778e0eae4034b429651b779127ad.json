@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-16T06:05:22+00:00", "story": "mis-assistant-explains-a-number", "detail": "S-0025-d216: Scope extended, not a question for the human: drill-panel.test.tsx is mechanically implied by the review's binding P1. Deleting StatementView's drill fallback makes onOpenDrill required, and that file"}

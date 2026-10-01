@@ -1,0 +1,30 @@
+{
+  "approval": {
+    "at": "2026-09-11T15:24:33+00:00",
+    "by": "carried over from the copied-in Forge",
+    "hash": "1f784c9a909ea24abd81123cf7c91d413d43f317ad0712aa80544aa8a0457edf"
+  },
+  "doc": "plans/MIS-STATEMENT.md",
+  "finished": "2026-09-11T16:55:37+00:00",
+  "merged": {
+    "STATEMENT-API": "2026-09-11T11:58:22+00:00",
+    "STATEMENT-EXPORT-API": "2026-09-11T16:15:18+00:00",
+    "STATEMENT-EXPORT-CONTROL": "2026-09-11T16:55:37+00:00",
+    "STATEMENT-MODEL": "2026-09-11T08:22:59+00:00",
+    "STATEMENT-VIEW": "2026-09-11T15:11:55+00:00"
+  },
+  "outcome": "3F can produce the Financial MIS themselves. Pick Agriculture / Nursery / DUB and a period, and Srihari's own statement appears - his hierarchy at its natural depth, his line numbers and budget components, the month and the year-to-date side by side, every parent footing to a grand total of Rs 1,15,12,712 Actual against Rs 1,00,50,136 Budget for July. Download Excel hands him the same statement as a real spreadsheet whose columns sum, named for the selection it came from. The unmapped-GL line stays visible throughout, so the mapping gap he still owes us is impossible to miss rather than absorbed into a total.",
+  "status": "done",
+  "steps": [
+    {
+      "at": "2026-09-11T15:24:33+00:00",
+      "step": "approved"
+    },
+    {
+      "at": "2026-09-11T16:55:37+00:00",
+      "step": "done"
+    }
+  ],
+  "title": "MIS statement + Excel export",
+  "touches": 0
+}

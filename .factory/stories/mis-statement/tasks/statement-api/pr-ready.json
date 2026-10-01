@@ -1,7 +1,0 @@
-{
-  "task_id": "statement-api",
-  "branch": "feat/mis-statement-statement-api",
-  "base_main_sha": "15dd782a90284b528441c13de014ea9736f701ea",
-  "commit": "aa74f81ed5b26eb2050279ea245ece717de68353",
-  "sealed_at": "2026-09-11T11:54:32+00:00"
-}

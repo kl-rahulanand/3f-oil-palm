@@ -1,0 +1,29 @@
+{
+  "approval": {
+    "at": "2026-09-12T07:26:33+00:00",
+    "by": "carried over from the copied-in Forge",
+    "hash": "ff6ab1557369403ace6a42bec4c934e06b040831ac6688d44e879dd35b9fdbfe"
+  },
+  "doc": "plans/ASSISTANT.md",
+  "finished": "2026-09-12T18:12:09+00:00",
+  "merged": {
+    "ASK-SURFACES": "2026-09-12T12:36:00+00:00",
+    "EXPLORATION-API": "2026-09-12T16:19:12+00:00",
+    "EXPLORATION-VIEW": "2026-09-12T18:12:09+00:00",
+    "GOVERNED-ASK": "2026-09-12T09:58:57+00:00"
+  },
+  "outcome": "Srihari can now ask the 3F Financial MIS questions in plain English and get answers he can check. The assistant is registered and governed: every question runs through the same authorization, semantic layer and SQL guard as the reports, so an answer is either the governed numbers with a verified badge and its provenance - the readback, the measures, the scope and the data-as-of behind a disclosure - or an honest refusal that says why. It declines what it must not answer: a causal 'why is labour high' is refused rather than guessed at, a question outside the registered catalog returns not-supported rather than a plausible number, and a greeting is answered deterministically without ever reaching the model. Answers are asked and read in two places, the panel docked beside the MIS report and a standalone Ask page, and 'view in report' opens the statement the answer came from, or says plainly why it cannot. He can save a question and pin it to his dashboard, then reopen either from Explore or the dashboard - and reopening RE-RUNS the saved selection against current data rather than replaying a stored answer, because nothing at rest holds one: the vendored snapshot machinery was deleted outright. Every reopen re-authorizes as the current user against the current semantic layer, so a selection he may no longer run comes back as a refusal that says so rather than a stale figure or a silently missing row, and it stays visible and deletable. The model runs on Bedrock in ap-south-1, and the boundary is enforced by test on the provider's own arguments: his question, the prior turns and the governed vocabulary may leave the app; amounts, measure values, transaction lines and result rows never do.",
+  "status": "done",
+  "steps": [
+    {
+      "at": "2026-09-12T07:26:33+00:00",
+      "step": "approved"
+    },
+    {
+      "at": "2026-09-12T18:12:09+00:00",
+      "step": "done"
+    }
+  ],
+  "title": "Assistant + exploration",
+  "touches": 0
+}

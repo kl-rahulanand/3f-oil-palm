@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-10T09:29:53+00:00", "story": "governed-joins", "detail": "D-0008 host proof cannot execute in the Codex sandbox: Docker socket access is denied and direct 127.0.0.1:5433 connections fail with EPERM; orchestrator must run the pinned test:warehouse-proof comma"}

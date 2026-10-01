@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-07T09:21:33+00:00", "story": "platform-base", "detail": "Required ESLint packages are absent and npm install cannot resolve registry.npmjs.org (ENOTFOUND), so package-lock.json and executable quality checks cannot be produced or verified in this environment"}

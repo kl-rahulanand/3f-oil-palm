@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T16:01:55+00:00", "story": "mis-selection", "detail": "S-0016-2736: Expected: the D-0008 proof runs host-side by the orchestrator; the Codex sandbox denies loopback (EPERM). Hermetic + verify pass. Running test:warehouse-proof + dead-port control host-side now."}

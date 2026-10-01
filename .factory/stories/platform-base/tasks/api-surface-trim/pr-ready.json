@@ -1,7 +1,0 @@
-{
-  "task_id": "api-surface-trim",
-  "branch": "feat/platform-base-api-surface-trim",
-  "base_main_sha": "9e3da3df38321256baf8e84767f71fa48e92b7ab",
-  "commit": "5e4685a91352236994cdb88360c9b70059a0d62c",
-  "sealed_at": "2026-09-07T21:25:04+00:00"
-}
