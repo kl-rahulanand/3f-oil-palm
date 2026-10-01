@@ -1,0 +1,35 @@
+{
+  "approval": {
+    "at": "2026-09-07T08:30:09+00:00",
+    "by": "carried over from the copied-in Forge",
+    "hash": "2bb68f035837691eb155f8ac37f4b8c01ae016025c3b7dba18d489c74a7d4f19"
+  },
+  "doc": "plans/PLATFORM-BASE.md",
+  "finished": "2026-09-08T17:31:24+00:00",
+  "merged": {
+    "API-SURFACE-TRIM": "2026-09-08T04:37:14+00:00",
+    "BACKEND-BOOT-OTP-AUTH": "2026-09-02T13:03:06+00:00",
+    "BACKEND-OBSERVABILITY": "2026-09-08T16:56:29+00:00",
+    "FRONTEND-FOUNDATION": "2026-09-08T09:14:49+00:00",
+    "FRONTEND-SHELL-LOGIN": "2026-09-08T14:17:47+00:00",
+    "HARNESS-WIRING": "2026-09-08T17:31:24+00:00",
+    "POSTGRES-WAREHOUSE-ADAPTER": "2026-09-04T09:23:59+00:00",
+    "QUALITY-GATE-BASELINE": "2026-09-07T19:04:25+00:00",
+    "REBRAND-PULSE-TO-3F": "2026-09-04T05:50:31+00:00",
+    "VENDOR-BACKEND-CONTRACT": "2026-09-04T09:23:57+00:00"
+  },
+  "outcome": "The 3F platform base is shipped end-to-end (all 10 platform-base tasks merged to master, CI green): a vendored NestJS backend on a separate Postgres warehouse with cookie-based email/OTP auth, a trimmed loopback-hardened API allow-list, app-wide observability (a governed constitution-07 error envelope + structured JSON request/error logging correlated by correlationId), a Next.js App Router frontend shell + two-step email/OTP login faithful to the imported 3F design and _ds tokens, and a repo-wide quality gate across all three workspaces (contract+backend+frontend) with dual-runtime + vendor-integrity checks and CI verify on every push. A user can sign in to the shell; the factory can build, verify, and ship the next epic on a green, guarded foundation.",
+  "status": "done",
+  "steps": [
+    {
+      "at": "2026-09-07T08:30:09+00:00",
+      "step": "approved"
+    },
+    {
+      "at": "2026-09-08T17:31:24+00:00",
+      "step": "done"
+    }
+  ],
+  "title": "Adapt Pulse into the 3F app base",
+  "touches": 0
+}

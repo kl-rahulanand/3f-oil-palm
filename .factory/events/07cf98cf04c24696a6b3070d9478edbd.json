@@ -1,1 +1,0 @@
-{"event": "stage-measured", "generated_by": "implementer", "at": "2026-09-10T17:13:40+00:00", "story": "mis-selection", "detail": "selection-resolution: selection-resolution changed 2 path(s) outside its declared write_scope: backend/src/mapping/selection-resolver.interface.ts, backend/src/mis/mis-selection.interface.ts"}

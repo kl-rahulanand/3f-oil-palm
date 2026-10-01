@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-11T10:42:07+00:00", "story": "mis-statement", "detail": "The blocking statement SQL authorization fix requires backend/src/chat/selectionExecutor.ts: the route must select leaf_key, but SelectionExecutor automatically executes a second totals query whenever"}

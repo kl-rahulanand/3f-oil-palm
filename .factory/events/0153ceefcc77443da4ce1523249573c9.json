@@ -1,1 +1,0 @@
-{"event": "stage-start", "generated_by": "implementer", "at": "2026-09-08T15:15:26+00:00", "story": "platform-base", "detail": "backend-observability App-wide global exception handler + structured JSON request/error logging"}

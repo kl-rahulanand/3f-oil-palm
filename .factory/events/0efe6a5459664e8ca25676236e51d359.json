@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T10:56:45+00:00", "story": "governed-joins", "detail": "Aggregate source_presence is required as a row-aligned set and contract typing exposes it as SourcePresence[], but backend/src/measures/measures.service.ts (outside write_scope) must narrow or seriali"}

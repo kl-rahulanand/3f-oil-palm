@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-09T10:17:32+00:00", "story": "sap-ingestion", "detail": "The WAREHOUSE_DB_TEST=1 actuals idempotency/raw/paise proof cannot run because this sandbox is denied access to the Docker socket; execute the committed ingest.service.test.ts proof on the host."}

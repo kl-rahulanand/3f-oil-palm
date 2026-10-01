@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-09T09:12:49+00:00", "story": "sap-ingestion", "detail": "The actuals-loader plan requires extending backend/src/warehouse/warehouse-schema.test.ts for the new raw column, but the task's exact write_scope omits that file; resolution must either add it or exp"}

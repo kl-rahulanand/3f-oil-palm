@@ -1,7 +1,0 @@
-{
-  "task_id": "assistant-ask-surfaces",
-  "branch": "feat/assistant-assistant-ask-surfaces",
-  "base_main_sha": "e24a8bd811ea4e97af4c499ff206f2631ef4ffe5",
-  "commit": "387ed25d318387c28162585b41363175df2dad48",
-  "sealed_at": "2026-09-12T12:01:56+00:00"
-}

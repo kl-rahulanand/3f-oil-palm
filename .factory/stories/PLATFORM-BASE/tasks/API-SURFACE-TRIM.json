@@ -1,0 +1,11 @@
+{
+  "branch": "task/PLATFORM-BASE-API-SURFACE-TRIM",
+  "status": "merged",
+  "steps": [
+    {
+      "at": "2026-09-08T04:37:14+00:00",
+      "step": "merged"
+    }
+  ],
+  "touches": 0
+}

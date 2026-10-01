@@ -1,1 +1,0 @@
-{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-10T12:21:49+00:00", "story": "governed-joins", "detail": "The 3F MIS now has ONE governed financial definition \u2014 Actual, Budget and % \u2014 that report, drill-down and the assistant all share, computed over a correct Budget-Actual join instead of ad-hoc SQL. Eac"}

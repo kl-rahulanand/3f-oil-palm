@@ -1,0 +1,11 @@
+{
+  "branch": "task/PLATFORM-BASE-VENDOR-BACKEND-CONTRACT",
+  "status": "merged",
+  "steps": [
+    {
+      "at": "2026-09-04T09:23:57+00:00",
+      "step": "merged"
+    }
+  ],
+  "touches": 0
+}

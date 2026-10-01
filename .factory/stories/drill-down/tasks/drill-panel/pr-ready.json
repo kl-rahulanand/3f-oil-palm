@@ -1,7 +1,0 @@
-{
-  "task_id": "drill-panel",
-  "branch": "feat/drill-down-drill-panel",
-  "base_main_sha": "1e8aa0fdce916c050c91a6cdcc19b8578275c506",
-  "commit": "02ec5bb30447430edf654ab6f1ec61e0caf89b7a",
-  "sealed_at": "2026-09-11T21:20:25+00:00"
-}

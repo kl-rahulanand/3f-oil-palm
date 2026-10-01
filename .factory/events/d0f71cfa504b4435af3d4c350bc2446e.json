@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-12T11:07:15+00:00", "story": "assistant", "detail": "Frontend verification is blocked because the installed node_modules tree lacks lockfile dependencies zod, typescript-eslint, and prettier; registry/cache installation is unavailable (ENOTCACHED)."}

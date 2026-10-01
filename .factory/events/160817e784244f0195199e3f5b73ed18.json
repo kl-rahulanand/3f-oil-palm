@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T07:19:56+00:00", "story": "sap-ingestion", "detail": "S-0001-38d3: Authorized: create backend/src/warehouse/warehouse-proof.db.test.ts as a DB-backed test registered in backend package.json test:db. It mechanically implements the D-0008-proof-as-recorded-test require"}

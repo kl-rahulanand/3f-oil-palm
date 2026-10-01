@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-07T09:37:45+00:00", "story": "platform-base", "detail": "Prettier cannot pass over backend/src without reformatting at least 67 vendored files outside this task's write scope; ignoring them would violate the no-false-green contract, so the task needs an orc"}

@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-11T14:38:21+00:00", "story": "mis-statement", "detail": "Removing the obsolete frontend runMisSelection API requires deleting its sole caller frontend/src/features/mis/use-mis-selection.ts, but that file is absent from the declared write scope; add it so th"}

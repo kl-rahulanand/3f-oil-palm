@@ -1,7 +1,0 @@
-{
-  "task_id": "reconciliation-proof",
-  "branch": "feat/sap-ingestion-reconciliation-proof",
-  "base_main_sha": "512c6d4d48186fe11c5068022a4246b6b2bbd179",
-  "commit": "98eacbe227d40f064bc0c8d645a05ae27501bf4a",
-  "sealed_at": "2026-09-09T19:47:20+00:00"
-}

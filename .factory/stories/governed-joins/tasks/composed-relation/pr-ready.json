@@ -1,7 +1,0 @@
-{
-  "task_id": "composed-relation",
-  "branch": "feat/governed-joins-composed-relation",
-  "base_main_sha": "e5ae83563c9c263af2a29ecc3b9cb194313bb4ef",
-  "commit": "fa267915949bbaec16faa667a87566f4c266c877",
-  "sealed_at": "2026-09-10T06:48:26+00:00"
-}

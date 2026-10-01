@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T16:41:29+00:00", "story": "mis-selection", "detail": "S-0017-2c49: Ran host-side by the orchestrator (D-0008): test:warehouse-proof is 16/16 pass / 0 fail after the stub repair, and the dead-port negative control follows. Sandbox loopback EPERM is the documented reso"}

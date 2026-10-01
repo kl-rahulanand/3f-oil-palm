@@ -1,7 +1,0 @@
-{
-  "task_id": "quality-gate-baseline",
-  "branch": "feat/platform-base-quality-gate-baseline",
-  "base_main_sha": "982ed20b2d8ab6bd3f18dc2210492ba3c7ac0023",
-  "commit": "f4ac4bc8a74512b2847ba9778558b760771af0db",
-  "sealed_at": "2026-09-07T18:39:29+00:00"
-}

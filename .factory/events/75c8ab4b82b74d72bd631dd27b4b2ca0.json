@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-02T08:48:02+00:00", "story": "platform-base", "detail": "S-0002-f8d7: Expected: the live app-path E2E (c3) is demonstrated evidence requiring a live warehouse-db container and is intentionally NOT a hermetic required_test. The Codex sandbox has no Docker socket, so the "}

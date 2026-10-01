@@ -1,1 +1,0 @@
-{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-11T01:42:08+00:00", "story": "mis-selection", "detail": "mis-selection ships the selection layer end to end. A versioned repo-owned Mapping Master is now the single authority for plant aliases, the MIS format and the (cost centre, GL) to MIS-line mapping, w"}

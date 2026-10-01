@@ -1,7 +1,0 @@
-{
-  "task_id": "drill-transactions-view",
-  "branch": "feat/drill-down-drill-transactions-view",
-  "base_main_sha": "9aa7e9cf4586f7097cd5075259d8557dd5a5f439",
-  "commit": "e4ae0b5aea4138e3b9c9216766fde0f4f36e3178",
-  "sealed_at": "2026-09-11T22:22:17+00:00"
-}

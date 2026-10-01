@@ -1,1 +1,0 @@
-{"event": "shipped", "generated_by": "orchestrator", "at": "2026-09-15T03:35:52+00:00", "story": "poc-responsiveness", "detail": "A follow-up question used to take 39 seconds, then 57, and looked like the product had hung. It now comes back in one to five seconds, and while it works you can see it working: both Ask surfaces stre"}

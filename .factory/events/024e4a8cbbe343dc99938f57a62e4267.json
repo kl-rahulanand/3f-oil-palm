@@ -1,1 +1,0 @@
-{"event": "signal-contradiction", "generated_by": "implementer", "at": "2026-09-10T05:33:41+00:00", "story": "governed-joins", "detail": "The required WITH composed query cannot pass the unchanged sqlValidator with objectsTouched limited to the two base leaves: installed node-sql-parser tableList reports CTE aliases actual_src/budget_sr"}

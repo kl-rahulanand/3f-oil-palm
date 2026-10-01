@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-12T14:28:16+00:00", "story": "assistant", "detail": "The brief says node_modules is fully installed, but npm run build:contract fails because tsc is not found; per the task lesson I will not run npm install or npm ci."}

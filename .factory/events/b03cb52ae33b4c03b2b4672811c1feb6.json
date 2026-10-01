@@ -1,1 +1,0 @@
-{"event": "stage-start", "generated_by": "implementer", "at": "2026-09-07T20:48:33+00:00", "story": "platform-base", "detail": "api-surface-trim Constrain the API surface, close the local-network exposure, harden the warehouse proof"}

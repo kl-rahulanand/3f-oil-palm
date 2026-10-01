@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T10:35:30+00:00", "story": "governed-joins", "detail": "S-0008-9441: FINAL direction \u2014 the SCALAR-AGGREGATE, no-widening design (do NOT extend scope to measures.service.ts, do NOT put any array type in the ResultTable row union). Root cause of the ripple: SourcePresenc"}

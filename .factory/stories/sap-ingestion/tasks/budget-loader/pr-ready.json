@@ -1,7 +1,0 @@
-{
-  "task_id": "budget-loader",
-  "branch": "feat/sap-ingestion-budget-loader",
-  "base_main_sha": "19f3297fdf037ee6f14dd5a6afba3546382e95fb",
-  "commit": "67b54e83af64c9126bee325cbb9cc29514cfb84f",
-  "sealed_at": "2026-09-09T17:45:09+00:00"
-}

@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-11T19:23:09+00:00", "story": "drill-down", "detail": "Required-test negative control falsely passes: junit-run.mjs exits 0 and reports the file as one testcase when --name matches no leaf; tools/junit-run.mjs is outside this task's write scope."}

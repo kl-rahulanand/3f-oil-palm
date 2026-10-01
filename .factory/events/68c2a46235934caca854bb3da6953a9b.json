@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-10T11:23:55+00:00", "story": "governed-joins", "detail": "Post-fix D-0008 warehouse proof rerun requires WAREHOUSE_PG_* host settings, which are unavailable in this session; rerun npm --prefix backend run test:warehouse-proof on the demonstrated local wareho"}

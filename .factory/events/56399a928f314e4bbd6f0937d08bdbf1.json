@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-16T04:59:03+00:00", "story": "mis-assistant-explains-a-number", "detail": "S-0024-7de8: CONFIRMED and the finding is REJECTED, not actioned - the worker and the orchestrator reached this independently. 'tables' appears ZERO times in backend/src/chat/chat.service.ts and ZERO times in cont"}

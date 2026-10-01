@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-09T18:37:23+00:00", "story": "sap-ingestion", "detail": "The gated reconciliation proof executes but the sandbox denies Docker and localhost warehouse access (EPERM 127.0.0.1:5433), so host-side D-0008 evidence must be run by the orchestrator."}

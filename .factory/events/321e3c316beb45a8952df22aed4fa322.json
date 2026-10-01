@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-15T06:41:07+00:00", "story": "ask-period-control", "detail": "node_modules is absent in this worktree despite the brief's materialised-dependencies claim; prettier, tsc, ts-node, and the required tests cannot run, and the sandbox must not install them."}

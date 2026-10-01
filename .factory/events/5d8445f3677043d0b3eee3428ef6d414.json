@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-12T09:03:10+00:00", "story": "assistant", "detail": "S-0002-593f: Not a defect: the brief's ledgered ruling identifies live frontend statement-view and export-test consumers of MisStatementRunResponse; MisStatementRouteResponse composes the refresh-required case wit"}

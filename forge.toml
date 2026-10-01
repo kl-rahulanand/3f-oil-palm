@@ -1,0 +1,43 @@
+# Forge's settings. Your coding agent keeps this file: ask it to change a setting or upgrade Forge.
+version = "v1.2.1"
+repo = "client"
+signoff = "docs/decisions/0005-client-signoff.md"
+stage = "prototype"
+workers = "codex"
+test = "npm ci && npm run structural && npm run typecheck && npm run test:hermetic"
+checks = ["tests", "forge-pr-check"]
+interfaces = ["**/routes/**", "**/*.controller.*", "**/migrations/**", "**/schema.*", "**/*.schema.*", "**/cli.*"]
+
+[models.build]
+model = "gpt-6.1-sol"
+effort = "medium"
+
+[models.fix]
+model = "gpt-6.1-sol"
+effort = "medium"
+
+[models.lite]
+model = "gpt-6.1-sol"
+effort = "medium"
+subagents = "gpt-6-luna"
+subagent_effort = "max"
+
+[models.grill.codex]
+model = "gpt-6.1-sol"
+effort = "high"
+
+[models.grill.claude]
+model = "opus"
+effort = "high"
+
+[models.design.claude]
+model = "claude-opus-5-5"
+effort = "high"
+
+[models.design.codex]
+model = "gpt-6.1-sol"
+effort = "high"
+
+[models.review]
+model = "gpt-6-sol"
+effort = "high"

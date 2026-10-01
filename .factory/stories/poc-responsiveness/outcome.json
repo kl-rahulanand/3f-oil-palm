@@ -1,7 +1,0 @@
-{
-  "generated_by": "implementer",
-  "outcome": "A follow-up question used to take 39 seconds, then 57, and looked like the product had hung. It now comes back in one to five seconds, and while it works you can see it working: both Ask surfaces stream the backend's own progress phases - routing, selecting, querying, summarizing - instead of one silent spinner, and an answer that arrives immediately shows no flicker at all. The cause turned out to be a single missing request field: the selector call to Bedrock set no output limit, so on a follow-up the model would emit up to twenty-four thousand tokens of preamble around a hundred-token answer. Capping it ended the runaway without truncating anything. Leaving the assistant now actually stops the work rather than abandoning it, and asking a ninth question in one conversation no longer fails - the client sends only as much history as the server accepts. The shell's top bar stops lying: where it showed a permanently greyed-out 'Freshness unavailable' chip, it now shows when the governed data was last loaded, taken from the oldest active batch across actuals and budget so it never claims the numbers are fresher than the stalest input behind them, and it says plainly which kind of unavailable it is when there is nothing to show. The docked Ask panel fills its column instead of stopping halfway down the page.",
-  "issue": "poc-responsiveness",
-  "commit": "87cb839ea06aa02b2125ec6ecac11a2a2ac6b651",
-  "recorded_at": "2026-09-15T03:35:45+00:00"
-}

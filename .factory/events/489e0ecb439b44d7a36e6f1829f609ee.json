@@ -1,1 +1,0 @@
-{"event": "signal-scope-change", "generated_by": "implementer", "at": "2026-09-10T10:26:47+00:00", "story": "governed-joins", "detail": "Aggregate source-presence arrays widen ResultTable row values, so backend/src/measures/measures.service.ts must be updated to ignore the provenance-only source_presence column when persisting authored"}

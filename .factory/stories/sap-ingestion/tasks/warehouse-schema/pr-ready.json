@@ -1,7 +1,0 @@
-{
-  "task_id": "warehouse-schema",
-  "branch": "feat/sap-ingestion-warehouse-schema",
-  "base_main_sha": "8402960df6992693900a72d30ab638a97a92fdc9",
-  "commit": "90fd68e9461c37a1924bcf28d54dc85126282059",
-  "sealed_at": "2026-09-09T08:34:20+00:00"
-}

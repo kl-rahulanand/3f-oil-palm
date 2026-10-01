@@ -1,1 +1,0 @@
-{"event": "signal-confusion", "generated_by": "implementer", "at": "2026-09-15T12:58:53+00:00", "story": "multi-plant", "detail": "Sheet1 contains 94 usable (second Cost Center, GL) pairs; the claimed 95th row is GL 55000000 with blank second Cost Center and no outline leaf, so generating 95 keyed pairs would require inventing da"}

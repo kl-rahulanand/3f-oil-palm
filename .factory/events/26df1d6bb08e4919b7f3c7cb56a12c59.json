@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-18T06:09:58+00:00", "story": "ask-measure-filter", "detail": "S-0027-c04f: RULING: backend/src/app.routes.test.ts is in scope for measure-filter-foundation. Add measureFilters to the expected Swagger selection-property keys; keep every other assertion unchanged. Adopted into"}

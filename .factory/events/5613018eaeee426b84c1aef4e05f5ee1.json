@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-02T12:10:19+00:00", "story": "platform-base", "detail": "Docker API access is denied in the delegated environment, so the required app-db migration, backend boot, mock-OTP login/RBAC/audit smoke flow, and DB-backed tests cannot be demonstrated here."}

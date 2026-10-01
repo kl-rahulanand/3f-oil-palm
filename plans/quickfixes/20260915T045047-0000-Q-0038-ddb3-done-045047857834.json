@@ -1,9 +1,0 @@
-{
-  "event": "done",
-  "id": "Q-0038-ddb3",
-  "profile": "quickfix",
-  "reason": "Pin the POC demo user to one department and function so MIS-statement questions are reachable from Ask. statementRequest (chat.service.ts) needs exactly one department, one function and one plant on the signed-in user plus a period; the seeder grants only plant=DUB, so every statement ask returns 'The answer does not resolve to one statement selector set and offered period.' - proven live, including from inside a generated report where grounding is active. Seed department=Agriculture and function=Nursery (the canonical values in mis-mapping-master) alongside the existing plant grant. Also verify whether the strict window.from === window.to check blocks a natural-language period such as 'July 2026' (which resolves to 2026-07-01..2026-07-31) and, if so, accept a window that names exactly one WHOLE calendar month - the same period the MIS Reports dropdown sends.",
-  "started_at": "2026-09-15T04:45:03+00:00",
-  "completed_at": "2026-09-15T04:50:47+00:00",
-  "files": []
-}

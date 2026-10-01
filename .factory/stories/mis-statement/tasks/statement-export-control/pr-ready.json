@@ -1,7 +1,0 @@
-{
-  "task_id": "statement-export-control",
-  "branch": "feat/mis-statement-statement-export-control",
-  "base_main_sha": "a87ad6bdbf0a20d843278b4d324ce2bb014d8040",
-  "commit": "75e5e76a9e64fb65c9477314ade86cf9b1b44857",
-  "sealed_at": "2026-09-11T16:47:29+00:00"
-}

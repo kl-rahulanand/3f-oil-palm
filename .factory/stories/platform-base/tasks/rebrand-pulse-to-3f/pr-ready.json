@@ -1,7 +1,0 @@
-{
-  "task_id": "rebrand-pulse-to-3f",
-  "branch": "feat/platform-base-adapt-pulse-into-the-3f-app-base",
-  "base_main_sha": "6966954e54ef2c307b8e76a8f334ec371d0f5df6",
-  "commit": "628270d70d41d7a91e86cc525aa38e8889fcef63",
-  "sealed_at": "2026-09-04T05:45:37+00:00"
-}

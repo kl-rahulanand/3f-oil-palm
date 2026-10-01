@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-16T02:02:59+00:00", "story": "mis-assistant-explains-a-number", "detail": "S-0019-701b: Scope extended, not a question for the human: both files are mechanically implied by the recorded criteria. backend/src/chat/chat.controller.ts is what forwards parsed request fields to ChatService on"}

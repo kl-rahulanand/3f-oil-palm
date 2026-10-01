@@ -1,7 +1,0 @@
-{
-  "task_id": "golden-provenance",
-  "branch": "feat/governed-joins-golden-provenance",
-  "base_main_sha": "0cca24b2930b13615299cd0e94047d2803ea457b",
-  "commit": "51cfd75142f2616bb970339dec51aa423addf3c9",
-  "sealed_at": "2026-09-10T12:10:53+00:00"
-}

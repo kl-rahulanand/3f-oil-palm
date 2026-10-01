@@ -1,0 +1,11 @@
+{
+  "branch": "task/ASK-PERIOD-CONTROL-ON-ANSWERS",
+  "status": "merged",
+  "steps": [
+    {
+      "at": "2026-09-15T08:53:40+00:00",
+      "step": "merged"
+    }
+  ],
+  "touches": 0
+}

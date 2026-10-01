@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T10:07:57+00:00", "story": "sap-ingestion", "detail": "S-0008-959e: Do NOT modify tools/junit-run.mjs (out of write_scope; a pre-existing harness test-runner robustness gap NOT introduced by this task). Every actuals-loader required_test (ingest.controller.test.ts, sa"}

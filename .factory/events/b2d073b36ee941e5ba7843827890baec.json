@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-15T13:55:16+00:00", "story": "multi-plant", "detail": "The updated test:warehouse-proof cannot execute in the sandbox: all DB leaves fail before setup with connect EPERM 127.0.0.1:5433. Please rerun the registered command from the host so the new frozen D"}

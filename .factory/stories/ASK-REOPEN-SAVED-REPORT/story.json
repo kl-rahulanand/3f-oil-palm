@@ -1,0 +1,27 @@
+{
+  "approval": {
+    "at": "2026-09-15T15:59:35+00:00",
+    "by": "carried over from the copied-in Forge",
+    "hash": "dd3b16fac193752024374e438beb2fc9212cf49a36c3296c37f2341bbb9b4143"
+  },
+  "doc": "plans/ASK-REOPEN-SAVED-REPORT.md",
+  "finished": "2026-09-15T18:36:23+00:00",
+  "merged": {
+    "REOPEN-IDENTITY-AND-POLICY": "2026-09-15T16:52:32+00:00",
+    "REOPEN-NAVIGATION-AND-SCROLL": "2026-09-15T18:36:23+00:00"
+  },
+  "outcome": "Opening a saved report or pinned report now returns you to its existing answer instead of stacking a duplicate copy of it. The Ask panel opens immediately on the click rather than after the answer arrives, the target turn is scrolled into view and shows 'Opening this report...' while it runs, and the answer it re-runs is re-asked in your own original wording rather than the pin's measure-name label - so the audit record carries the question someone actually asked. Which turn a report belongs to is decided by strict structural comparison of the resolved selection, not the displayed title, so two pins that both read 'Actual - Budget' but cover different dimensions or periods stay separate answers. A reopen refused because access was withdrawn clears the stale numbers from the screen and says why, while the period control's shipped behaviour of keeping the previous answer is untouched - the caller now states which it wants.",
+  "status": "done",
+  "steps": [
+    {
+      "at": "2026-09-15T15:59:35+00:00",
+      "step": "approved"
+    },
+    {
+      "at": "2026-09-15T18:36:23+00:00",
+      "step": "done"
+    }
+  ],
+  "title": "Reopening a saved report returns to its answer",
+  "touches": 0
+}

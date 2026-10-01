@@ -1,7 +1,0 @@
-{
-  "task_id": "shell-freshness-api",
-  "branch": "feat/poc-responsiveness-shell-freshness-api",
-  "base_main_sha": "309c7e21012f3346a23f10cca51e1fa19bad9b69",
-  "commit": "e7dcba25eeb54b42ab644c9745388598e4aa81ed",
-  "sealed_at": "2026-09-14T17:35:08+00:00"
-}

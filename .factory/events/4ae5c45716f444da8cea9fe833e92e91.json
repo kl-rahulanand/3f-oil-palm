@@ -1,1 +1,0 @@
-{"event": "signal-blocked", "generated_by": "implementer", "at": "2026-09-12T10:49:32+00:00", "story": "assistant", "detail": "The required recharts dependency is absent from the workspace and npm install cannot reach registry.npmjs.org (ENOTFOUND); package and lockfile cannot be completed or verified in this sandbox."}

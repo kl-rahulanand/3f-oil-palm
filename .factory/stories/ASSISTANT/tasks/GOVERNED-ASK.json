@@ -1,0 +1,11 @@
+{
+  "branch": "task/ASSISTANT-GOVERNED-ASK",
+  "status": "merged",
+  "steps": [
+    {
+      "at": "2026-09-12T09:58:57+00:00",
+      "step": "merged"
+    }
+  ],
+  "touches": 0
+}

@@ -1,9 +1,0 @@
-{
-  "event": "done",
-  "id": "Q-0041-2749",
-  "profile": "quickfix",
-  "reason": "The Ask PAGE is capped at 'width: min(100%, 760px)' (globals.css .ask-panel[data-surface=\"page\"]), so on a normal desktop window it sits as a narrow centred column with large empty gutters either side, while every other page fills the shell. The surface is table-heavy - 67 GL-code rows, 81 statement-leaf rows whose keys are long composite strings - so the cap actively hurts the content it holds. Widen the page surface; the 360px docked surface is unaffected.",
-  "started_at": "2026-09-15T05:21:04+00:00",
-  "completed_at": "2026-09-15T05:23:59+00:00",
-  "files": []
-}

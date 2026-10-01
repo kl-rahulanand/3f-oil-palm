@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-10T17:41:16+00:00", "story": "mis-selection", "detail": "S-0018-70e6: AUTHORIZED as a mechanically-implied file: backend/src/mis/mis-selection.dto.ts is in-scope for this task. The contract already requires extending MisSelectionBucketRow with its Actual and Budget amou"}

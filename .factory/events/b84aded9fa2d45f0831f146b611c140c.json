@@ -1,1 +1,0 @@
-{"event": "signal-resolved", "generated_by": "orchestrator", "at": "2026-09-09T09:16:46+00:00", "story": "sap-ingestion", "detail": "S-0005-d49d: Do NOT modify global-exception.filter.ts (out of scope; it sanitizes 400s to field-names-only by design - constitution-07, no client values/messages). Model row validation as a zod schema over the par"}
