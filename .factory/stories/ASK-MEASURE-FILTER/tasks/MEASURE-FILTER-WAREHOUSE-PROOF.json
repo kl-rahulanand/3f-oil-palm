@@ -1,0 +1,37 @@
+{
+  "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-WAREHOUSE-PROOF",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "b3fbe8f4aed5aa84b42fb564fd64713bbcfa64734a921610fda02591424eb821",
+    "commit": "7aa01df115491f2536f077322cddecf3f7060435",
+    "dismissals": [
+      {
+        "because": ".factory/stories/ASK-MEASURE-FILTER/story.json:1 is Forge's own story record: git log shows the four files were added by Forge's commits 1bc3166 (Approve the plan), c9b93f9 (Start task) and d38e49e (is working), not by the worker; the worker's commit 7aa01df touches only backend/package.json, backend/src/warehouse/measure-filter.db.test.ts and tools/quality-gate.test.mjs, all in Scope",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "This task is restricted to the warehouse proof, backend package registry, and quality-gate registry, but the branch also adds this story record, `.factory/stories/ASK-MEASURE-FILTER/tasks/MEASURE-FILTER-WAREHOUSE-PROOF.json`, `plans/ASK-MEASURE-FILTER.md`, and `plans/ASK-MEASURE-FILTER.read.md`. None is needed to implement or register the proof, and no handoff justification permits these additions. Remove them from this task branch or land them separately.",
+        "file": ".factory/stories/ASK-MEASURE-FILTER/story.json",
+        "line": 1,
+        "priority": "P1",
+        "title": "Remove the four files outside the allowed task scope"
+      }
+    ],
+    "status": "clean",
+    "tree": "822561ba337c34566c5d01aa66a0e4f3d6f511eb25ddd995e98385b6b0c0ec8b"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-01T16:40:27+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-01T16:54:59+00:00",
+      "step": "review"
+    }
+  ]
+}
