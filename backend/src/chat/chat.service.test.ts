@@ -271,6 +271,116 @@ test("a grounded provider comparison is canonical before the grounding merge can
   assert.equal(fixture.logs[0]?.context.reason, MeasureFilterInvalidReason.MalformedValue);
 });
 
+test("report grounding keeps report comparisons first and deduplicates an identical question comparison", async () => {
+  const reportFilter: NonNullable<Selection["measureFilters"]>[number] = {
+    measureId: "governed-financial.actual",
+    op: "gt",
+    compareTo: { kind: "value", value: "100.00" },
+  };
+  const questionFilter: NonNullable<Selection["measureFilters"]>[number] = {
+    measureId: "governed-financial.actual",
+    op: "lt",
+    compareTo: { kind: "value", value: "200.00" },
+  };
+  const fixture = makeFixture({
+    selection: { ...financialSelection, measureFilters: [reportFilter, questionFilter] },
+    groundedSelection: { ...financialSelection, measureFilters: [reportFilter] },
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Keep the report threshold and cap it at 200",
+    undefined,
+    { reportId: "actual-report" },
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(fixture.executor.selections[0]?.measureFilters, [reportFilter, questionFilter]);
+});
+
+test("report grounding normalises equivalent comparison values before deduplicating them", async () => {
+  for (const [questionValue, reportValue] of [
+    ["500000", "500000.00"],
+    ["500000.00", "500000"],
+  ]) {
+    const fixture = makeFixture({
+      selection: {
+        ...financialSelection,
+        measureFilters: [
+          {
+            measureId: "governed-financial.actual",
+            op: "gt",
+            compareTo: { kind: "value", value: questionValue },
+          },
+        ],
+      },
+      groundedSelection: {
+        ...financialSelection,
+        measureFilters: [
+          {
+            measureId: "governed-financial.actual",
+            op: "gt",
+            compareTo: { kind: "value", value: reportValue },
+          },
+        ],
+      },
+    });
+
+    const response = await fixture.service.ask(
+      userFor("governed-financial"),
+      "session",
+      "Keep lines over five lakh",
+      undefined,
+      { reportId: "actual-report" },
+    );
+
+    assert.equal(response.responseClass, ResponseClass.Success);
+    assert.deepEqual(fixture.executor.selections[0]?.measureFilters, [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "value", value: "500000.00" },
+      },
+    ]);
+  }
+});
+
+test("an Actual-only grounded report applies an over-budget comparison before appending Budget", async () => {
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      measureFilters: [
+        {
+          measureId: "governed-financial.actual",
+          op: "gt",
+          compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+        },
+      ],
+    },
+    groundedSelection: financialSelection,
+  });
+  const user = userFor("governed-financial");
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Which are over budget?", undefined, {
+    reportId: "actual-report",
+  });
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(fixture.executor.selections[0]?.measureIds, [
+    "governed-financial.actual",
+    "governed-financial.budget",
+  ]);
+  assert.deepEqual(fixture.executor.selections[0]?.measureFilters, [
+    {
+      measureId: "governed-financial.actual",
+      op: "gt",
+      compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+    },
+  ]);
+});
+
 test("a direct Ask selection is canonical before authorization and execution", async () => {
   const fixture = makeFixture({ selection: financialSelection });
   const directSelection: Selection = {
@@ -536,6 +646,29 @@ test("the view in report field is available only for a statement domain answer r
   const other = await unavailable.service.ask(userFor("governed-financial"), "session", "Show Actual");
   assert.equal(other.viewInReport?.available, false);
   if (other.viewInReport?.available === false) assert.match(other.viewInReport.reason, /not executed against/);
+
+  const filteredStatement = makeFixture({
+    selection: {
+      ...statementSelection,
+      measureFilters: [
+        {
+          measureId: "mis-statement.actual_net",
+          op: "gt",
+          compareTo: { kind: "value", value: "100" },
+        },
+      ],
+    },
+    activeBatchIds,
+  });
+  const filteredAnswer = await filteredStatement.service.ask(
+    userFor("mis-statement", true),
+    "session",
+    "Show statement lines above 100",
+  );
+  assert.deepEqual(filteredAnswer.viewInReport, {
+    available: false,
+    reason: "The MIS statement cannot apply this comparison.",
+  });
 });
 
 test("a failing entry audit aborts the request before any warehouse read including the dimension value lookup", async () => {
