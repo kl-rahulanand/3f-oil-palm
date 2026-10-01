@@ -3,6 +3,8 @@ slug: ask-measure-comparison-filter
 title: Ask filters by a comparison between measures
 status: confirmed
 saved: 2026-09-17T10:56:38+00:00
+confirmed_by: "Rahul Anand"
+confirmed_hash: 611e41a27efb390a7a9adbbad909696ff5b85c1397569391fcd5f28f1f358656
 ---
 
 # Ask filters by a comparison between measures
@@ -280,3 +282,6 @@ against the `%` column of the statement.
   comparison value; one canonical ingress and one public refusal; the stale 0029 citation in a
   carried ledger round), one put to the human (the Ask answer gains a read-only readout line and an
   empty-state message).
+
+## Roadmap
+- ASK-MEASURE-FILTER: Ask filters by a comparison between measures
