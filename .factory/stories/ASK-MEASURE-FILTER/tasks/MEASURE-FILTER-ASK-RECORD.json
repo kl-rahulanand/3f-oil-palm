@@ -1,0 +1,31 @@
+{
+  "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-ASK-RECORD",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "a3ff7b034c94457e49bfdb969f1f23ef14125536cc0fed6f5494d8e24b97be96",
+    "commit": "ef342855fb9156997e76f6e74ffa1bc632515f73",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "3f6af01e32e4bfa1666372ace49639ed7201b69f7b0919d87f71dafa16899009"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-01T18:23:02+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-01T19:53:38+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-01T20:08:25+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-01T20:15:05+00:00",
+      "step": "review"
+    }
+  ]
+}

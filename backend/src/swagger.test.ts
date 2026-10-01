@@ -2,12 +2,16 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { METHOD_METADATA, PATH_METADATA } from "@nestjs/common/constants";
-import { RequestMethod } from "@nestjs/common";
+import { RequestMethod, type INestApplication } from "@nestjs/common";
 import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { NestFactory } from "@nestjs/core";
+import { SwaggerModule } from "@nestjs/swagger";
 import { ResponseClass, type AskResponse, type ChatStreamEvent } from "@3f/contract";
+import { AppModule } from "./app.module";
 import { AuthController } from "./auth/auth.controller";
 import { ChatController } from "./chat/chat.controller";
 import { ChatResponseDto, ChatStreamEventDto } from "./chat/chat.schemas";
+import { AuthoredMeasureRegistry } from "./measures/authored-measure.registry";
 import { UsersController } from "./users/users.controller";
 import { GrantsController } from "./grants/grants.controller";
 import { ReportsController } from "./reports/reports.controller";
@@ -119,6 +123,30 @@ test("both chat routes document the explanation union with a named schema", () =
     Object.keys(completeResponse).filter((field) => !responseFields.includes(field)),
     [],
   );
+  const appliedMeasureFiltersProperty = Reflect.getMetadata(
+    DECORATORS.API_MODEL_PROPERTIES,
+    ChatResponseDto.prototype,
+    "appliedMeasureFilters",
+  ) as {
+    items: {
+      required: string[];
+      properties: {
+        measureId: { type: string };
+        op: { enum: string[] };
+        compareTo: { oneOf: Array<{ required: string[] }> };
+      };
+    };
+  };
+  assert.deepEqual(appliedMeasureFiltersProperty.items.required, ["measureId", "op", "compareTo"]);
+  assert.equal(appliedMeasureFiltersProperty.items.properties.measureId.type, "string");
+  assert.deepEqual(appliedMeasureFiltersProperty.items.properties.op.enum, ["gt", "gte", "lt", "lte"]);
+  assert.deepEqual(
+    appliedMeasureFiltersProperty.items.properties.compareTo.oneOf.map(({ required }) => required),
+    [
+      ["kind", "measureId"],
+      ["kind", "value"],
+    ],
+  );
   const groundingProperty = Reflect.getMetadata(
     DECORATORS.API_MODEL_PROPERTIES,
     ChatResponseDto.prototype,
@@ -158,6 +186,36 @@ test("both chat routes document the explanation union with a named schema", () =
     [...new Set(streamEvents.flatMap((event) => Object.keys(event)))].filter((field) => !streamFields.includes(field)),
     [],
   );
+});
+
+test("POST /api/chat documents selection measure filters through the shared selection schema", async () => {
+  const originalInit = AuthoredMeasureRegistry.prototype.onModuleInit;
+  AuthoredMeasureRegistry.prototype.onModuleInit = async () => {};
+  let app: INestApplication | undefined;
+
+  try {
+    app = await NestFactory.create(AppModule, { logger: false });
+    await app.init();
+    const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
+    const responseSchema = document.paths["/api/chat"]?.post?.responses?.["201"] as {
+      content?: { "application/json"?: { schema?: { $ref?: string } } };
+    };
+    const responseRef = responseSchema.content?.["application/json"]?.schema?.$ref;
+    assert.equal(responseRef, "#/components/schemas/ChatResponseDto");
+
+    const responseComponent = document.components?.schemas?.ChatResponseDto as {
+      properties?: { selection?: { $ref?: string } };
+    };
+    assert.equal(responseComponent.properties?.selection?.$ref, "#/components/schemas/ExplorationSelectionDto");
+
+    const selectionComponent = document.components?.schemas?.ExplorationSelectionDto as {
+      properties?: Record<string, unknown>;
+    };
+    assert.ok(selectionComponent.properties?.measureFilters);
+  } finally {
+    AuthoredMeasureRegistry.prototype.onModuleInit = originalInit;
+    await app?.close();
+  }
 });
 
 function modelProperties(model: Function): string[] {

@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T16:19:33+00:00
-read_hash: 39faf0571c86c4121e336f94848046e08fbb123d
-round: 15
+read_at: 2026-10-01T20:03:34+00:00
+read_hash: 92a79d6372737a0b4aac9ff4394ee350a994ed5b
+round: 19
 passed: yes
-doc_seen: 39faf0571c86c4121e336f94848046e08fbb123d
+doc_seen: 92a79d6372737a0b4aac9ff4394ee350a994ed5b
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: e445267c6c541f27186c75b673284a76ba387092
+notes_seen: ab114a686455623bd0c8162673fe1d52ebd4228e
 ---
 # Cold read notes
 
@@ -165,5 +165,33 @@ Only a genuine trade-off goes to the human, as a question with options.
    Disposition: cut MEASURE-FILTER-WAREHOUSE-PROOF now waits for nothing (it needs only the foundation on master) and MEASURE-FILTER-SURFACES waits for both MEASURE-FILTER-ASK-RECORD and the proof (rows, Task Decomposition).
 
 ## Round 15
+
+No findings.
+
+## Round 16
+
+30. Shared test-registry wiring has two concurrent owners.
+   `MEASURE-FILTER-ASK-RECORD` and `MEASURE-FILTER-WAREHOUSE-PROOF` both edit `backend/package.json` and `tools/quality-gate.test.mjs`, yet the proof has no dependency on Record. The Record row also says “No … registry … change” while its Scope says the opposite. Put both registrations in a small final wiring task after Record and Proof (and make Surfaces wait for it), or serialize ownership under one task.
+   Disposition: cut the proof part merged as #79 before the record part started, so the two registry files have one owner at a time and no wiring task is needed; the record row now says it registers its two new leaves there, matching its Scope (Tasks row).
+
+31. The D-0006 formatter-removal path targets a deleted ledger and contradicts the plan’s migration note.
+   `.prettierignore` requires recording a removal in `plans/deferrals.md`, but Forge v1 deleted that file and the plan says deferrals are plain Notes; the Record task nevertheless scopes the absent file. Pin one current recording location and its update, rather than recreating an obsolete ledger or leaving the required removal undocumented.
+   Disposition: cut `plans/deferrals.md` is dropped from the Scope; the row now pins the recording location as one dated header comment in `.prettierignore` itself, the way the D-0005 removal is recorded, and says the ledger is not recreated (Tasks row).
+
+## Round 17
+
+32. The plan’s task state is stale and contradictory.
+   It says six parts remain and that Provider and Warehouse Proof may still run, while the Record task relies on Provider #78 and Warehouse Proof #79 already having merged. Mark those two parts as on master and update the remaining-work count and decomposition so workers have one current dependency state.
+   Disposition: cut the For the builders paragraph and the Task Decomposition now mark Provider (#78), Warehouse Proof (#79), Ask Response (#80) and Grounding (#81) as merged and name the two remaining parts.
+
+33. The D-0006 cleanup is not fully pinned.
+   Removing `conversations.service.ts` from `.prettierignore` also requires removing its entry from `tools/quality-gate.test.mjs`’s exact `ignoredBaselineHashes` manifest; otherwise the quality-gate leaf fails. Name that removal and add `tools/quality-gate.test.mjs` to Record’s Tests cell. The task should also replace the existing `.prettierignore` header’s still-false reference to deleted `plans/deferrals.md`, not merely append a new comment.
+   Disposition: cut the Record row now names the `ignoredBaselineHashes` removal in `tools/quality-gate.test.mjs` and the replacement of the header's `plans/deferrals.md` reference, and `tools/quality-gate.test.mjs` joins its Tests cell (Tasks row).
+
+## Round 18
+
+No findings.
+
+## Round 19
 
 No findings.

@@ -32,7 +32,7 @@ export class HelpService {
       whatYouCanAsk: {
         measures: index.measures,
         dimensions: index.dimensions.map(({ id, label }) => ({ id, label })),
-        filterExamples: buildFilterExamples(index),
+        filterExamples: buildFilterExamples(index, allowed),
         timeframes: ["last 7 days", "last 30 days", "this month", "Jan-Mar 2026"],
         sampleQuestions: buildSampleQuestions(index),
       },
@@ -59,9 +59,7 @@ export class HelpService {
     return buildTermIndex(allowed, values);
   }
 
-  private async dimensionValuesForAllowedDomains(
-    allowedDomains: DomainSpec[],
-  ): Promise<Record<string, string[]>> {
+  private async dimensionValuesForAllowedDomains(allowedDomains: DomainSpec[]): Promise<Record<string, string[]>> {
     const maxValues = loadConfig().dimensionEnumMax;
     const valuesByDimension: Record<string, string[]> = {};
     for (const domain of allowedDomains) {
@@ -76,29 +74,33 @@ export class HelpService {
   }
 }
 
-function buildFilterExamples(index: TermIndex): HelpResponse["whatYouCanAsk"]["filterExamples"] {
-  return index.values.reduce<HelpResponse["whatYouCanAsk"]["filterExamples"]>((examples, value) => {
-    const existing = examples.find((example) => example.dimensionLabel === value.dimensionLabel);
+function buildFilterExamples(index: TermIndex, domains: DomainSpec[]): HelpResponse["whatYouCanAsk"]["filterExamples"] {
+  const examples = index.values.reduce<HelpResponse["whatYouCanAsk"]["filterExamples"]>((items, value) => {
+    const existing = items.find((example) => example.dimensionLabel === value.dimensionLabel);
     if (existing) {
       if (existing.values.length < 5) existing.values.push(value.value);
-      return examples;
+      return items;
     }
-    examples.push({ dimensionLabel: value.dimensionLabel, values: [value.value] });
-    return examples;
+    items.push({ dimensionLabel: value.dimensionLabel, values: [value.value] });
+    return items;
   }, []);
+
+  const comparableByDomain = domains.map((domain) => domain.measures.filter((measure) => measure.format === "money"));
+  const amountMeasures = comparableByDomain.find((measures) => measures.length > 0);
+  if (!amountMeasures) return examples;
+
+  const pairMeasures = comparableByDomain.find((measures) => measures.length > 1);
+  const values = pairMeasures ? [`${pairMeasures[0].label} > ${pairMeasures[1].label}`] : [];
+  values.push(`${amountMeasures[0].label} > ₹5,00,000`);
+  examples.push({ dimensionLabel: "Measure comparisons", values });
+  return examples;
 }
 
 function buildSampleQuestions(index: TermIndex): HelpResponse["whatYouCanAsk"]["sampleQuestions"] {
   const dimensionsById = new Map(index.dimensions.map((dimension) => [dimension.id, dimension]));
-  const preferredDimensions = [
-    "state",
-    "agent",
-    "channel",
-    "campaign",
-    "bank",
-    "record_type",
-    "status",
-  ].map((id) => dimensionsById.get(id)).filter((dimension): dimension is TermIndexDimension => Boolean(dimension));
+  const preferredDimensions = ["state", "agent", "channel", "campaign", "bank", "record_type", "status"]
+    .map((id) => dimensionsById.get(id))
+    .filter((dimension): dimension is TermIndexDimension => Boolean(dimension));
 
   const fallbackDimensions = index.dimensions.filter(
     (dimension) => !preferredDimensions.some((preferred) => preferred.id === dimension.id),

@@ -567,7 +567,7 @@ export class ChatService {
       responseClass: ResponseClass.Success,
       usedPriorContext,
       title: this.title(domain.label, selection),
-      chips: this.chips(selection),
+      chips: this.chips(domain, selection),
       // The fully-resolved selection (post normalize + time-window) so the client can
       // save/pin/edit it and re-run deterministically (H1/I1). Never SQL — just the selection.
       selection,
@@ -579,6 +579,7 @@ export class ChatService {
       provenance,
       appliedTimeWindow,
       appliedFilters: selection.filters,
+      appliedMeasureFilters: selection.measureFilters,
       periodControl: buildPeriodControl(selection, appliedTimeWindow, answerPeriodOptions),
       viewInReport: buildViewInReport(domain, selection, statementScope, activeBatchIds),
       ...answerMetadata,
@@ -588,9 +589,12 @@ export class ChatService {
     return done(successResponse);
   }
 
-  private chips(sel: Selection): Chip[] {
+  private chips(domain: DomainSpec, sel: Selection): Chip[] {
     const chips: Chip[] = sel.measureIds.map((id) => ({ kind: "measure", id, label: id.split(".").pop()! }));
     for (const d of sel.dimensionIds) chips.push({ kind: "dimension", id: d, label: d });
+    for (const [index, filter] of (sel.measureFilters ?? []).entries()) {
+      chips.push({ kind: "filter", id: `measure-filter-${index}`, label: formatMeasureFilter(domain, filter) });
+    }
     if (sel.timeWindow)
       chips.push({
         kind: "timeWindow",
@@ -720,21 +724,36 @@ function emptyMeasureFilterMessage(
 }
 
 function formatMeasureFilter(domain: DomainSpec, filter: MeasureFilter): string {
-  const label = (measureId: string) =>
-    domain.measures.find((measure) => measure.id === measureId)?.label ?? measureId.split(".").at(-1)!;
   const operators: Record<MeasureFilter["op"], string> = { gt: ">", gte: ">=", lt: "<", lte: "<=" };
-  const right =
-    filter.compareTo.kind === "measure"
-      ? label(filter.compareTo.measureId)
-      : formatIndianRupees(filter.compareTo.value);
-  return `${label(filter.measureId)} ${operators[filter.op]} ${right}`;
+  return `${measureFilterLabel(domain, filter.measureId)} ${operators[filter.op]} ${measureFilterOperandLabel(domain, filter)}`;
+}
+
+function formatMeasureFilterWords(domain: DomainSpec, filter: MeasureFilter): string {
+  const operators: Record<MeasureFilter["op"], string> = {
+    gt: "is greater than",
+    gte: "is greater than or equal to",
+    lt: "is less than",
+    lte: "is less than or equal to",
+  };
+  return `${measureFilterLabel(domain, filter.measureId)} ${operators[filter.op]} ${measureFilterOperandLabel(domain, filter)}`;
+}
+
+function measureFilterLabel(domain: DomainSpec, measureId: string): string {
+  return domain.measures.find((measure) => measure.id === measureId)?.label ?? measureId.split(".").at(-1)!;
+}
+
+function measureFilterOperandLabel(domain: DomainSpec, filter: MeasureFilter): string {
+  return filter.compareTo.kind === "measure"
+    ? measureFilterLabel(domain, filter.compareTo.measureId)
+    : formatIndianRupees(filter.compareTo.value);
 }
 
 function formatIndianRupees(value: string): string {
   const negative = value.startsWith("-");
   const [whole, fraction = ""] = (negative ? value.slice(1) : value).split(".");
-  const tail = whole.slice(-3);
-  const head = whole.slice(0, -3);
+  const normalizedWhole = whole.replace(/^0+(?=\d)/, "");
+  const tail = normalizedWhole.slice(-3);
+  const head = normalizedWhole.slice(0, -3);
   const groupedHead = head.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
   const grouped = head ? `${groupedHead},${tail}` : tail;
   const decimals = fraction && !/^0+$/.test(fraction) ? `.${fraction}` : "";
@@ -1069,6 +1088,12 @@ export function buildReadback(
   if (appliedTimeWindow) {
     clauses.push(
       `from ${appliedTimeWindow.from} to ${appliedTimeWindow.to} (by ${timeColumnLabel(domain, appliedTimeWindow.column)})`,
+    );
+  }
+
+  if (selection.measureFilters?.length) {
+    clauses.push(
+      `where ${selection.measureFilters.map((filter) => formatMeasureFilterWords(domain, filter)).join(" and ")}`,
     );
   }
 

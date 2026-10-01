@@ -556,6 +556,36 @@ test("an empty measure-filtered execution is a successful answer with a plain em
   assert.equal(response.message, "No lines match Actual > Budget for July 2026");
 });
 
+test("a measure-filtered answer records comparison chips readback and applied filters", async () => {
+  const measureFilters: NonNullable<Selection["measureFilters"]> = [
+    {
+      measureId: "governed-financial.actual",
+      op: "gt",
+      compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+    },
+    {
+      measureId: "governed-financial.actual",
+      op: "lte",
+      compareTo: { kind: "value", value: "000500000.00" },
+    },
+  ];
+  const fixture = makeFixture({ selection: { ...financialSelection, measureFilters } });
+  const user = userFor("governed-financial");
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Show the selected comparisons");
+
+  assert.deepEqual(
+    response.chips?.filter(({ kind }) => kind === "filter").map(({ label }) => label),
+    ["Actual > Budget", "Actual <= ₹5,00,000"],
+  );
+  assert.match(
+    response.provenance?.readback ?? "",
+    /where Actual is greater than Budget and Actual is less than or equal to ₹5,00,000/,
+  );
+  assert.deepEqual(response.appliedMeasureFilters, measureFilters);
+});
+
 test("a data question answers from the governed measures and a definition question answers from the semantic layer labels", async () => {
   const data = makeFixture({ selection: financialSelection });
   const answer = await data.service.ask(

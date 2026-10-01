@@ -31,10 +31,12 @@ const hermeticTests = [
   "backend/src/common/error-envelope.wiring.test.ts",
   "backend/src/common/exploration-audit.filter.test.ts",
   "backend/src/common/request-logging.test.ts",
+  "backend/src/conversations/conversations.service.test.ts",
   "backend/src/core/dimension-values.service.test.ts",
   "backend/src/db/migrate.trim.test.ts",
   "backend/src/db/seed-users.test.ts",
   "backend/src/health/health.controller.test.ts",
+  "backend/src/help/help.service.test.ts",
   "backend/src/ingest/ingest.controller.test.ts",
   "backend/src/ingest/ingest.service.test.ts",
   "backend/src/ingest/mis-budget.parser.test.ts",
@@ -193,7 +195,6 @@ d87c8800569af74975ce67dbdb408de2ebbc1c11cbf00a5eb51f42190e1aefe9 backend/src/cha
 a91b8489592d28d7e418290e34799dcfb58238c54bb1050fba339280d11ed646 backend/src/chat/timeWindowParse.ts
 c401ca278a38b619644004834a832197cd3e21ea4394dff874611ba000adb90d backend/src/common/openapi.ts
 5cdcc416d806108b06f887f81fded9bce2288cfeb36d825546a401d619f6ed8b backend/src/conversations/conversations.controller.ts
-ea49b24dd229a78110685297c646190e971c1526ac096c7003df75c675c20998 backend/src/conversations/conversations.service.ts
 9db182303af310614919aa97c2ea0228dc4dbca406af52863fc22c650909c612 backend/src/core/dimension-values.service.test.ts
 b218baa747af4070dc3bd9ef6b7188f6f1c79e8e1f92c94330087cbbecc8fd76 backend/src/core/rbac.service.ts
 ceaa15512931da9c7b4874e9f73b45e2f1143fa11c36b2f52a6ebfb0821dd75b backend/src/core/session.service.test.ts
@@ -202,7 +203,6 @@ ceaa15512931da9c7b4874e9f73b45e2f1143fa11c36b2f52a6ebfb0821dd75b backend/src/cor
 fdd5b42a8c71a4ae157087975610d937c371c2e9ed32399478f3f61fb8db6d69 backend/src/email/email.service.ts
 96b9245a12b5beba3a4a566481760658363ba82bc02f7bfe037a8e6b8848bd60 backend/src/grants/grants.controller.ts
 21329c9cd7465e056e914be589f1105116539b9befc7c56fa825c51572ead0b7 backend/src/help/glossary.ts
-4f9ac5199d07e84223bc727ebb31037f3f16001c7f4fb37971e9385705621424 backend/src/help/help.service.ts
 f97f5a40ebac02d0c31e0adb3cfc1ed19d1c134e0e943623714824594a44bf2b backend/src/measures/authored-measure.registry.test.ts
 96d894688cfebd5a2b8b54d3b53b1324ff9cec8d15ca6e01887de97fb6d89d9d backend/src/measures/authored-measure.registry.ts
 0dfcb8c559afbec03ba57263bdb948ad28b582a555bf8d8cf60b579fce0ab4b3 backend/src/measures/measure-authoring.catalog.ts
