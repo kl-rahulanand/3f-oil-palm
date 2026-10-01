@@ -1,10 +1,23 @@
 {
   "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-GROUNDING",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "778ab88203db026b1fe370e5d64ca2d168cbd755131aebe82f239fc4e92f6781",
+    "commit": "6021e0eecff41a9c974a0c6e1bd7d25fa6efa4f1",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "26ac2827ee182a55e7c072232a4f472b36c72312b4cec438eb276183e7bb3129"
+  },
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-01T18:02:57+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-01T18:13:50+00:00",
+      "step": "review"
     }
   ]
 }
