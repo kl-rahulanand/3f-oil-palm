@@ -9,7 +9,48 @@
     "blocking_level": "P1",
     "changed": "9ab82f4837cb7a6433dd678b1932a52e0dd54fb30c8b1e81a54f3ee02d8762b1",
     "commit": "17e41cc24771768871d9a3dc5e68b781837a16b8",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": ".factory/fixes/migrate-v1.json:7 the record itself says forge close turns on branch protection after this pull request merges, so forge doctor cannot pass before the merge; the installed doctor was run in this checkout (commit 17e41cc, Functional check paragraph) and reports only that mismatch; the Autoreview pin, impeccable and the synced files pass",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": ".factory/fixes/migrate-v1.json:7 stale: commit 17e41cc added all four set-aside copies under .forge-migrate/kept/ and filled the draft's Scope and Tests; the doctor clause: .factory/fixes/migrate-v1.json:7 the record itself says forge close turns on branch protection after this pull request merges, so forge doctor cannot pass before the merge; the installed doctor was run in this checkout (commit 17e41cc, Functional check paragraph) and reports only that mismatch; the Autoreview pin, impeccable and the synced files pass",
+        "finding": 4,
+        "from_base": false
+      },
+      {
+        "because": ".factory/fixes/migrate-v1.json:7 the record itself says forge close turns on branch protection after this pull request merges, so forge doctor cannot pass before the merge; the installed doctor was run in this checkout (commit 17e41cc, Functional check paragraph) and reports only that mismatch; the Autoreview pin, impeccable and the synced files pass; the re-plan clause: .factory/fixes/migrate-v1.json:7 the record itself routes this story to forge story new ASK-MEASURE-FILTER after the merge: story new opens a story worktree off the default branch, which carries no forge.toml until this pull request merges; the draft at .forge-migrate/replan/ASK-MEASURE-FILTER.md now parses as a story doc with Covers, Scope and Tests on every row (commit 17e41cc)",
+        "finding": 7,
+        "from_base": false
+      },
+      {
+        "because": ".factory/fixes/migrate-v1.json:7 the record itself routes this story to forge story new ASK-MEASURE-FILTER after the merge: story new opens a story worktree off the default branch, which carries no forge.toml until this pull request merges; the draft at .forge-migrate/replan/ASK-MEASURE-FILTER.md now parses as a story doc with Covers, Scope and Tests on every row (commit 17e41cc)",
+        "finding": 21,
+        "from_base": false
+      },
+      {
+        "because": ".factory/fixes/migrate-v1.json:7 the record itself says forge close turns on branch protection after this pull request merges, so forge doctor cannot pass before the merge; the installed doctor was run in this checkout (commit 17e41cc, Functional check paragraph) and reports only that mismatch; the Autoreview pin, impeccable and the synced files pass; the re-plan clause: .factory/fixes/migrate-v1.json:7 the record itself routes this story to forge story new ASK-MEASURE-FILTER after the merge: story new opens a story worktree off the default branch, which carries no forge.toml until this pull request merges; the draft at .forge-migrate/replan/ASK-MEASURE-FILTER.md now parses as a story doc with Covers, Scope and Tests on every row (commit 17e41cc)",
+        "finding": 22,
+        "from_base": false
+      },
+      {
+        "because": ".forge-migrate/kept/factory/scripts/forge_cli/review.py:1 exists in HEAD: commit 17e41cc added all four set-aside copies (git ls-tree HEAD .forge-migrate/kept lists it)",
+        "finding": 31,
+        "from_base": false
+      },
+      {
+        "because": ".factory/fixes/migrate-v1.json:7 the record itself says forge close turns on branch protection after this pull request merges, so forge doctor cannot pass before the merge; the installed doctor was run in this checkout (commit 17e41cc, Functional check paragraph) and reports only that mismatch; the Autoreview pin, impeccable and the synced files pass",
+        "finding": 33,
+        "from_base": false
+      },
+      {
+        "because": ".factory/fixes/migrate-v1.json:7 the record itself routes this story to forge story new ASK-MEASURE-FILTER after the merge: story new opens a story worktree off the default branch, which carries no forge.toml until this pull request merges; the draft at .forge-migrate/replan/ASK-MEASURE-FILTER.md now parses as a story doc with Covers, Scope and Tests on every row (commit 17e41cc)",
+        "finding": 35,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "chunk 1/38:\n\nThe set-aside copies now exist, but the supplied close proof runs only the npm command from `forge.toml`, and a repository-wide search finds no changed test or workflow invoking the installed `forge doctor` entry point. Green product tests therefore do not prove the explicit Forge-v1 health check. Add an end-to-end check that runs installed `forge doctor` successfully before closing the migration.",
@@ -278,10 +319,10 @@
         "title": "Retire or redirect documented local-Forge entry points before deleting their modules"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "72b2cd535b9f59397623d6829f58600651dd97c82aa03c41a3c6b2cf68bc6362"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-01T10:36:28+00:00",
