@@ -380,6 +380,12 @@ export class ChatService {
         clarify: normalizedSelection.clarify,
       });
     selection = normalizedSelection.selection;
+    // On the provider path, an explicit period in the user's words is authoritative.
+    // Edited selections are period-control re-runs and must keep the window the user chose.
+    if (!usesEditedSelection) {
+      const parsedTimeWindow = parseTimeWindow(question, new Date());
+      if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
+    }
     if (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.from > selection.timeWindow.to)
       return done({
         responseClass: ResponseClass.NotSupported,
@@ -396,22 +402,9 @@ export class ChatService {
         selection = { ...selection, timeWindow: priorSelection.timeWindow };
       }
     }
-    let resolved = resolveSelectionTimeWindow(domain, selection);
+    const resolved = resolveSelectionTimeWindow(domain, selection);
     selection = resolved.selection;
-    let appliedTimeWindow = resolved.appliedTimeWindow;
-    // Deterministic fallback: if the LLM produced no usable time window (none at all, or a
-    // partial one that didn't resolve), parse it from the question text ("last 30 days",
-    // "since 1 january", "2026-01-01 to 2026-07-09", "Jan-Mar 2026", ...) instead of
-    // re-asking. This keeps time-window clarify answers from looping through the LLM.
-    if (!appliedTimeWindow) {
-      const parsedTimeWindow = parseTimeWindow(question, new Date());
-      if (parsedTimeWindow) {
-        selection = { ...selection, timeWindow: parsedTimeWindow };
-        resolved = resolveSelectionTimeWindow(domain, selection);
-        selection = resolved.selection;
-        appliedTimeWindow = resolved.appliedTimeWindow;
-      }
-    }
+    const appliedTimeWindow = resolved.appliedTimeWindow;
     const selectedMeasures = selection.measureIds
       .map((id) => this.semantic.measure(selection.domain, id))
       .filter((measure): measure is MeasureSpec => Boolean(measure));

@@ -450,6 +450,92 @@ test("a filtered prior turn is canonical provider context and still supplies the
   assert.deepEqual(fixture.executor.selections[0]?.measureFilters, undefined);
 });
 
+test("a follow-up naming July 2026 uses July when the model emits the last 31 days", async () => {
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      timeWindow: { grain: "day", last: 31 },
+    },
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Which GL codes spent more than 5 lakh in July 2026?",
+    undefined,
+    undefined,
+    [{ question: "Show Actual by GL code", selection: financialSelection }],
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(response.selection?.timeWindow, {
+    grain: "day",
+    from: "2026-07-01",
+    to: "2026-07-31",
+    column: "month",
+  });
+});
+
+test("a follow-up naming a period uses it instead of the prior answer's window", async () => {
+  const selectionWithoutWindow: Selection = { ...financialSelection, timeWindow: undefined };
+  const augustSelection: Selection = {
+    ...financialSelection,
+    timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
+  };
+  const fixture = makeFixture({ selection: selectionWithoutWindow });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code for July 2026",
+    undefined,
+    undefined,
+    [{ question: "Show Actual by GL code for August 2026", selection: augustSelection }],
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(response.selection?.timeWindow, {
+    grain: "day",
+    from: "2026-07-01",
+    to: "2026-07-31",
+    column: "month",
+  });
+});
+
+test("a question naming no period with no prior turn still covers all loaded data", async () => {
+  const fixture = makeFixture({ selection: { ...financialSelection, timeWindow: undefined } });
+
+  const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show Actual by GL code");
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.equal(response.selection?.timeWindow, undefined);
+  assert.equal(response.periodControl?.current, null);
+});
+
+test("a period-control rerun keeps its edited August window when the question says July", async () => {
+  const augustSelection: Selection = {
+    ...financialSelection,
+    timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
+  };
+  const fixture = makeFixture({ selection: financialSelection });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code for July 2026",
+    augustSelection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(response.selection?.timeWindow, {
+    grain: "month",
+    from: "2026-08-01",
+    to: "2026-08-31",
+    column: "month",
+  });
+  assert.equal(fixture.llm.inputs.length, 0);
+});
+
 test("Ask translates every measure-filter refusal reason and records its typed reason", async () => {
   const cases: Array<{
     reason: MeasureFilterInvalidReason;
