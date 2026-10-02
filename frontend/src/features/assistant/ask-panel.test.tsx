@@ -270,12 +270,21 @@ test("a filtered answer derives the readout period when its period control is ab
 });
 
 test("a partial non-month window keeps its exact dates in the answer readout", async () => {
-  mocks.ask.mockResolvedValue(partialDateWindowSuccess());
+  mocks.ask.mockResolvedValue(postingDateWindowSuccess());
   renderAsk();
 
   submit("Show lines over budget from 10 to 20 July 2026");
 
   expect(await screen.findByText("Actual > Budget · 10 Jul 2026 – 20 Jul 2026")).toBeInTheDocument();
+});
+
+test("a whole-month non-month window keeps its exact dates in the answer readout", async () => {
+  mocks.ask.mockResolvedValue(postingDateWindowSuccess("2026-07-01", "2026-07-31"));
+  renderAsk();
+
+  submit("Show lines over budget by posting date for July 2026");
+
+  expect(await screen.findByText("Actual > Budget · 1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
 });
 
 test("an empty filtered answer shows a plain message in place of the blank table", async () => {
@@ -291,7 +300,7 @@ test("an empty filtered answer shows a plain message in place of the blank table
 });
 
 test("an empty filtered answer keeps exact dates for a partial non-month window", async () => {
-  const response = partialDateWindowSuccess();
+  const response = postingDateWindowSuccess();
   response.result = { ...response.result!, rows: [] };
   mocks.ask.mockResolvedValue(response);
   renderAsk();
@@ -1075,13 +1084,13 @@ function filteredSuccess(): AskResponse {
   };
 }
 
-function partialDateWindowSuccess(): AskResponse {
+function postingDateWindowSuccess(from = "2026-07-10", to = "2026-07-20"): AskResponse {
   const response = filteredSuccess();
   delete response.periodControl;
-  response.appliedTimeWindow = { column: "posting_date", from: "2026-07-10", to: "2026-07-20" };
+  response.appliedTimeWindow = { column: "posting_date", from, to };
   response.selection = {
     ...measureFilteredSelection,
-    timeWindow: { grain: "day", column: "posting_date", from: "2026-07-10", to: "2026-07-20" },
+    timeWindow: { grain: "day", column: "posting_date", from, to },
   };
   return response;
 }

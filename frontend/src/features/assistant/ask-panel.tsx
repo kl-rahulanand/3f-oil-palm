@@ -686,7 +686,7 @@ function appliedPeriodLabel(response: AskResponse): string | undefined {
     : undefined;
   if (controlled) return controlled;
   if (!window) return undefined;
-  const wholeMonths = coversWholeCalendarMonths(window.from, window.to);
+  const wholeMonths = window.column === "month" && coversWholeCalendarMonths(window.from, window.to);
   const from = wholeMonths ? formatMonthYear(window.from) : formatExactDate(window.from);
   const to = wholeMonths ? formatMonthYear(window.to) : formatExactDate(window.to);
   if (!from || !to) return undefined;

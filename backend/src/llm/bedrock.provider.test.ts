@@ -41,8 +41,7 @@ test("the selector schema requires dimension ids so Bedrock always chooses total
   await fixture.provider.select(selectionInput());
 
   const emitSelection = fixture.requests[0]?.toolConfig?.tools[0]?.toolSpec.inputSchema.json as
-    | { required?: string[] }
-    | undefined;
+    { required?: string[] } | undefined;
   assert.deepEqual(emitSelection?.required, ["domain", "measureIds", "dimensionIds"]);
 });
 
