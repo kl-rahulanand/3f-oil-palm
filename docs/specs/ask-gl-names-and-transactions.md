@@ -58,7 +58,9 @@ figure against its source transactions without switching screens.
 - Each supported Ask answer carries a signed drill context, built the way the statement screen's
   signed context is built (`backend/src/mis/statement-attestation.ts`): it binds the reader, the
   executed selection, the effective plant predicate of the executed query, the pinned actuals
-  batches and, for statement lines, the pinned budget outline, and it expires after the same
+  batches and, for statement lines, the pinned budget batch and outline, plus for every row its key,
+  its Actual in exact paise and whether at least one SAP line feeds it (so the clickable marker and
+  the footer target come from the signed context, never from the client), and it expires after the same
   configured lifetime (30 minutes by default). The client sends only that context and the row's key.
   The server refuses, with a stated reason and an audit record, a missing, altered, expired or
   other-user context, and it never accepts a selection, scope, batch or amount from the client. A
@@ -77,10 +79,14 @@ figure against its source transactions without switching screens.
   cost centre, account name, memo, reference, debit, credit and value, 100 lines a page; the
   statement screen's drill gains the document number, cost centre and account name columns as an
   additive change. Its month column stays on the statement screen.
-- The panel's footer equals the Actual that was clicked, to the paisa. When a pinned actuals batch
-  has since been replaced or is gone, Ask shows no rows and says "The data behind this answer has been
-  reloaded. Ask again to open its transactions." The statement screen keeps its own wording and
-  behaviour.
+- The panel's footer equals the signed Actual of the row that was clicked, to the paisa.
+- Reloaded data follows the confirmed drill-down spec (`docs/specs/actuals-drill-down.md`), for the
+  pinned actuals batches and, on statement lines, the pinned budget batch alike: a pinned batch that
+  still exists but has been replaced is read, the lines still foot to the clicked Actual, and the
+  panel names the replacement ("This answer was built on data that has since been reloaded; these are
+  the lines it was built from."); a pinned batch that is gone is refused with no rows, the reason
+  "The data behind this answer is no longer available. Ask again to open its transactions.", and an
+  audit record of the refusal.
 - The server marks each row's Actual clickable only when at least one SAP line feeds it under the
   predicate; a genuine zero net with lines behind it stays clickable. Budget figures, `%`, totals,
   budget-only Actuals and empty-state rows are not clickable, and they cause no read and no audit
@@ -125,26 +131,29 @@ figure against its source transactions without switching screens.
 - **C2** An Ask answer grouped by statement line shows "<number> <label>" from the answer's pinned
   budget outline instead of the raw leaf key, also after a re-upload makes another outline active.
 - **C3** In an answer whose only row dimension is `gl_code`, clicking a line's Actual opens its SAP
-  lines under the server-derived predicate (row GL code, time window, dimension filters, authorized
-  plants, pinned actuals batches), 100 a page, with a footer equal to the clicked Actual to the
-  paisa; other answer shapes have no clickable Actual.
+  lines under the server-derived predicate (row GL code, time window, dimension filters, the effective
+  plant predicate of the executed query, pinned actuals batches), 100 a page, with a footer equal to
+  the row's signed Actual to the paisa; other answer shapes have no clickable Actual.
 - **C4** In an answer whose only row dimension is `leaf_key`, clicking a line's Actual opens the same
   lines the statement screen's drill opens for that leaf under the answer's pinned outline and
   batches; the shared panel shows document number, cost centre and account name on both screens.
 - **C5** Every opening writes the typed drill audit record before the read and fails closed when the
   write fails; a reader outside the line's plants is refused, audited, and sees no rows.
-- **C5a** The drill accepts only the answer's signed drill context: a missing, altered, expired or
+- **C5a** The drill accepts only the answer's signed drill context, which carries each row's key,
+  exact-paise Actual and clickable marker: a missing, altered, expired or
   other-user context is refused with its reason and audited; the read uses the effective plant
   predicate of the executed query, so a reader allowed more plants than the query read sees no extra
   lines and the footer still equals the Actual.
-- **C6** When a pinned actuals batch is replaced or gone, Ask shows no rows and "The data behind this
-  answer has been reloaded. Ask again to open its transactions."; the statement screen is unchanged.
+- **C6** A replaced pinned batch, actuals or (on statement lines) budget, is read, foots to the
+  clicked Actual and is named as replaced; a gone pinned batch is refused with no rows, the stated
+  reason and an audit record, as the confirmed drill-down spec requires.
 - **C7** Only Actuals with at least one feeding SAP line are clickable; Budget, `%`, totals,
   budget-only Actuals and empty-state rows are inert and cause no read or audit record; the "+n more"
   disclosure is keyboard- and touch-operable and the full list is in the accessible name; names and
   transaction lines never reach the model.
 - **C8** Hermetic proofs cover name selection, ties, fallback and disclosure, pinned labels after a
-  re-upload, signed-context refusals, a mixed-plant reader, predicate re-derivation and refusal, audit-before-read ordering, replaced and gone batches, inert cells and
+  re-upload, signed-context refusals, the signed per-row Actual and marker, replaced and gone
+  actuals and budget batches, a mixed-plant reader, predicate re-derivation and refusal, audit-before-read ordering, replaced and gone batches, inert cells and
   exact-paise footing. A manual live check against the July warehouse and the host's Bedrock model,
   outside CI and in a fresh Ask conversation: "show me list items where Actuals are more than
   the budget for July 2026" shows names for all 21 codes, and opening 50001201's Actual foots to

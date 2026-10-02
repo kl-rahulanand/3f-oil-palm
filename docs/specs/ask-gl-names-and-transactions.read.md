@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T15:15:21+00:00
-read_hash: e467ae89d159db2b8729f3745ab2e705222816fe
-round: 2
+read_at: 2026-10-02T15:17:02+00:00
+read_hash: f1fdf6d4c40d5d9c8d0589c3021c78e92c8c6ba2
+round: 3
 passed: no
-doc_seen: e467ae89d159db2b8729f3745ab2e705222816fe
+doc_seen: f1fdf6d4c40d5d9c8d0589c3021c78e92c8c6ba2
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 26e259b3069918e6bbd98d54abe86433baf2f386
+notes_seen: 627efafed5a54732a519d75ffdad96cee602863b
 ---
 # Cold read notes
 
@@ -69,4 +69,26 @@ Only a genuine trade-off goes to the human, as a question with options.
    - The current statement panel tells the reader to “Generate the statement again,” which is wrong in Ask; it currently withholds replaced-batch rows as well.
    - Specify the Ask copy and whether a replaced pinned batch displays its rows/footer or the unavailable state, then prove both outcomes.
    Disposition: cut Ask shows no rows and states the reload in its own words for a replaced or gone batch; the statement screen is unchanged (Behaviour, C6).
+
+## Round 3
+
+11. **Contradiction: C3 still permits the unsafe “authorized plants” predicate.**
+   - Behaviour and C5a correctly require the effective plant predicate of the executed query, but C3 still specifies “authorized plants.”
+   - Replace that term in C3 and its proof with the effective executed predicate; otherwise the acceptance test can approve the mixed-scope leak and footing failure already identified.
+   Disposition: cut C3 now names the effective plant predicate of the executed query.
+
+12. **Gap: the signed Ask context does not bind the expected Actual or per-row clickability.**
+   - The existing statement attestation protects `nodeAmounts` by digest while the client supplies those amounts for verification. This spec forbids the client from sending an amount and does not say the new context contains signed Actual paise and feeding-line presence for each row.
+   - Bind those values in the signed context, or use a server-owned result record, so the server can enforce the exact-paise footer and the client has a trusted clickable/inert marker without accepting client data.
+   Disposition: cut the signed context carries each row's key, exact-paise Actual and feeding-line marker, and the footer target comes from it (Behaviour, C3, C5a).
+
+13. **Gap: pinned budget-outline replacement and disappearance have no Ask outcome.**
+   - Statement-line drills need the pinned budget outline to resolve a leaf to its triples. C6 covers only actuals batches, despite the existing drill treating a replaced budget batch as a distinct pin status.
+   - Specify the replaced and gone outcomes for the pinned budget batch, including rows, user copy, and audit behaviour; add them to C8.
+   Disposition: cut the pinned budget batch on statement lines follows the same replaced and gone outcomes, rows, copy and audit as the actuals batches (Behaviour, C6, C8).
+
+14. **Contradiction: C6 conflicts with the confirmed transaction-drill behaviour for a replaced batch.**
+   - `actuals-drill-down` requires an existing but replaced pinned batch to be read, foot to the displayed Actual, and report replacement; only a gone batch is refused. C6 instead withholds all Ask rows for both.
+   - Resolve this against the confirmed spec before approval; an Ask-specific departure needs an explicit decision rather than silently changing the pinned-read guarantee.
+   Disposition: cut Ask now follows the confirmed actuals-drill-down spec: a replaced batch is read, foots and is named; only a gone batch is refused (Behaviour, C6).
 
