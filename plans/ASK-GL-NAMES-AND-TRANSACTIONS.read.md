@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T17:20:53+00:00
-read_hash: 3a85784a90358437a9bc67bc5c9f4af2cb24468d
-round: 2
+read_at: 2026-10-02T17:22:59+00:00
+read_hash: 09afab2e56807be5918478e4e6df45157755eff4
+round: 3
 passed: no
-doc_seen: 3a85784a90358437a9bc67bc5c9f4af2cb24468d
+doc_seen: 09afab2e56807be5918478e4e6df45157755eff4
 spec_seen: ebc6473926090ed5ec1a4a7466cbf186cf3f9b4c
-notes_seen: 8f94af255f400eb56d96184822651ae0e8c7a99d
+notes_seen: 75ac1cec73d2ce682f7a3d3dd96460470fd74af6
 ---
 # Cold read notes
 
@@ -62,4 +62,18 @@ Only a genuine trade-off goes to the human, as a question with options.
 10. Gap: the new leaf-key label fallback is not in the confirmed spec.
    The spec requires statement labels from the last-month budget outline; it does not authorize deriving and title-casing a label from a raw leaf key. Confirm and record this variant in the spec, or remove it.
    Disposition: cut the leaf-key label fallback is removed; Done-when 2 now covers statement answers built on budget data, and an answer with no pinned outline keeps today's raw key, as the spec's pinned-outline rule implies (Done-when 2, detail 2).
+
+## Round 3
+
+11. Trap: stale leaf-key fallback: `GL-NAMES` still promises a “leaf-key fallback,” while detail 2 now requires raw leaf keys when no budget batch exists.
+   Remove that phrase from the task, or the task and its tests can reintroduce the rejected derived-label behavior.
+   Disposition: cut the GL-NAMES row now says raw leaf keys are kept when there is no outline; no derived-label wording remains.
+
+12. Gap: no task can register the new GL-name repository for the chat-service wiring.
+   `GL-NAMES` creates `GlNameRepository`, but neither it nor `GL-ANSWER-WIRING` scopes `backend/src/chat/chat.module.ts`; the latter is the only task that injects it into `ChatService`. Add the module wiring and a Nest-resolution proof to the wiring task.
+   Disposition: cut GL-ANSWER-WIRING scopes backend/src/chat/chat.module.ts, registers the name resolver and adds a Nest-resolution leaf.
+
+13. Gap: the exact issuance aggregate is not pinned to the route footer’s implementation.
+   `sap_transaction` has debit and credit, not a `value` column; the existing drill footer derives value as `debit - credit`. Define one repository summary operation using that exact expression, then have both issuance and the route footer use it, with a test proving their decimal strings match.
+   Disposition: cut one repository operation, summarize, returns count and sum(debit - credit)::text, the existing footer's expression; issuance signs it and a leaf proves issuance and route footer strings match (detail 7).
 
