@@ -386,7 +386,7 @@ export class ChatService {
     if (!usesEditedSelection) {
       const now = new Date();
       const parsedTimeWindow =
-        parseTimeWindow(question, now) ?? parseNamedMonthTimeWindow(question, priorSelection?.timeWindow, now);
+        parseTimeWindow(question, now) ?? parseNamedTimeWindow(question, priorSelection?.timeWindow, now);
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
       else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
@@ -697,37 +697,85 @@ export class ChatService {
   }
 }
 
-const PERIOD_WORD_PATTERN = /\b(?:quarter|q[1-4]|fy|ytd|today|yesterday|since)\b/i;
+const PERIOD_WORD_PATTERN = /\b(?:quarter|q[1-4]|fy|ytd|today|yesterday|since|financial\s+year)\b/i;
 const MAY_PERIOD_PATTERN =
   /\b(?:(?:in|for|of|during|since|from|until|till|through|to|by|about|before|after)\s+may|may\s+(?:\d{4}|[1-9]|[12]\d|3[01])|(?:[1-9]|[12]\d|3[01])\s+may)\b/i;
 const RELATIVE_GRANULARITY_PATTERN =
   /\b(?:(?:last|past|previous|this|next|current)\s+(?:\d+\s+)?|\d+\s+)(?:days?|weeks?|months?|years?)\b/i;
 const NAMED_MONTH_PATTERN =
   /\b(january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/i;
+const NAMED_QUARTER_PATTERN = /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)\b/i;
+const BARE_YEAR_PATTERN = /\b(\d{4})\b/;
 const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 export function hasTimePeriodWords(text: string): boolean {
   return (
     PERIOD_WORD_PATTERN.test(text) ||
+    BARE_YEAR_PATTERN.test(text) ||
     NAMED_MONTH_PATTERN.test(text) ||
     MAY_PERIOD_PATTERN.test(text) ||
     RELATIVE_GRANULARITY_PATTERN.test(text)
   );
 }
 
-function parseNamedMonthTimeWindow(
+function parseNamedTimeWindow(
   text: string,
   priorWindow: Selection["timeWindow"] | undefined,
   now: Date,
 ): Selection["timeWindow"] | null {
+  const relative = text.match(/\b(last|previous|this)\s+(month|quarter|year)\b/i);
+  if (relative) {
+    const direction = relative[1].toLowerCase();
+    const period = relative[2].toLowerCase();
+    if (period === "month") {
+      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+      return calendarWindow(start.getUTCFullYear(), start.getUTCMonth() + 1);
+    }
+    if (period === "quarter") {
+      const currentStartMonth = Math.floor(now.getUTCMonth() / 3) * 3 + 1;
+      if (direction === "this") {
+        return {
+          grain: "day",
+          from: calendarMonthStart(now.getUTCFullYear(), currentStartMonth),
+          to: now.toISOString().slice(0, 10),
+        };
+      }
+      const start = new Date(Date.UTC(now.getUTCFullYear(), currentStartMonth - 4, 1));
+      return calendarWindow(start.getUTCFullYear(), start.getUTCMonth() + 1, start.getUTCMonth() + 3);
+    }
+    return calendarWindow(now.getUTCFullYear() - 1, 1, 12);
+  }
+
+  const quarter = text.match(NAMED_QUARTER_PATTERN);
+  if (quarter) {
+    const number = quarter[1]
+      ? Number(quarter[1])
+      : ["first", "second", "third", "fourth"].indexOf(quarter[2].toLowerCase()) + 1;
+    const startMonth = (number - 1) * 3 + 1;
+    return calendarWindow(anchorYear(priorWindow, now, startMonth), startMonth, startMonth + 2);
+  }
+
+  const bareYear = text.match(BARE_YEAR_PATTERN)?.[1];
+  if (bareYear) return calendarWindow(Number(bareYear), 1, 12);
+
   const monthName = NAMED_MONTH_PATTERN.exec(text)?.[1] ?? (MAY_PERIOD_PATTERN.test(text) ? "may" : undefined);
   if (!monthName) return null;
   const month = MONTH_PREFIXES.indexOf(monthName.slice(0, 3).toLowerCase()) + 1;
+  return calendarWindow(anchorYear(priorWindow, now, month), month);
+}
 
+function anchorYear(priorWindow: Selection["timeWindow"] | undefined, now: Date, startMonth: number): number {
   const priorYear = (priorWindow?.from ?? priorWindow?.to)?.match(/^(\d{4})-/)?.[1];
-  const year = priorYear ? Number(priorYear) : now.getUTCFullYear() - (month > now.getUTCMonth() + 1 ? 1 : 0);
-  const from = `${year}-${String(month).padStart(2, "0")}-01`;
-  return { grain: "day", from, to: monthEnd(from) };
+  return priorYear ? Number(priorYear) : now.getUTCFullYear() - (startMonth > now.getUTCMonth() + 1 ? 1 : 0);
+}
+
+function calendarWindow(year: number, startMonth: number, endMonth = startMonth): Selection["timeWindow"] {
+  const from = calendarMonthStart(year, startMonth);
+  return { grain: "day", from, to: monthEnd(calendarMonthStart(year, endMonth)) };
+}
+
+function calendarMonthStart(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-01`;
 }
 
 const MEASURE_FILTER_REFUSAL_MESSAGES: Record<MeasureFilterInvalidReason, string> = {
