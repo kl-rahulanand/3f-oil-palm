@@ -1,0 +1,50 @@
+{
+  "base": "e30193970dadd02df042a99ec0497068b6d61534",
+  "branch": "fix/spec-for-ask-showing-gl-names-and-openin",
+  "done_when": "The spec is saved, confirmed by the owner and on the roadmap",
+  "kind": "fix",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "3faba7309ba410edff90ccd8d59198ff52c61440c9df66f6d326429d6e90e295",
+    "commit": "2c8ce1b0a16568af39049556cbcd83b98d1ee4f6",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The name is resolved from the raw lines aggregated into each result row, but `rowLabels` is keyed only by the raw GL/leaf value. Existing selections may contain multiple dimensions, and production SQL groups by every selected dimension (`backend/src/sql/sqlBuilder.ts:62-68,118-119`); `gl_code` plus `month` is an exercised shape (`backend/src/warehouse/measure-filter.db.test.ts:95-98`). Two month rows can therefore share a GL key while their month-scoped name counts select different primary names. A key-only client join cannot identify which label belongs to which row. Use a full row identity/index, or define one label per key over the whole answer scope.",
+        "file": "docs/specs/ask-gl-names-and-transactions.md",
+        "line": 59,
+        "priority": "P2",
+        "title": "Key per-row labels by a unique row identity"
+      },
+      {
+        "body": "Supported answers allow any time window with the line dimension and an authorized Actual, but the context unconditionally requires a last-month budget batch and outline. The existing statement projection deliberately emits actual-only rows through a full outer join and leaves `budget_batch_id` null when there is no budget side (`backend/src/sql/sqlBuilder.ts:269-294`). Thus an otherwise supported Actual answer can exist without the required batch, making its drill context impossible to construct. Either exclude this shape explicitly or permit an absent budget pin/outline while retaining the executed query's bound triples, and cover that outcome in C8.",
+        "file": "docs/specs/ask-gl-names-and-transactions.md",
+        "line": 74,
+        "priority": "P2",
+        "title": "Define drilling when the last month has no budget batch"
+      }
+    ],
+    "status": "clean",
+    "tree": "c2dede045a7f211849ebd2be828435062e90520ed96c3332c7bef80ff98ef94e"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-02T15:09:27+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-02T15:45:39+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T15:55:31+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T17:00:43+00:00",
+      "step": "review"
+    }
+  ],
+  "why": "Spec for Ask showing GL names and opening an Actual's transactions"
+}
