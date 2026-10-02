@@ -20,7 +20,7 @@ click to show the transactions, and confirmed the spec `docs/specs/ask-gl-names-
 ## Done when
 
 1. **An Ask answer by GL code shows each code with its main SAP account name, a "+n more" list for codes with several names that works by keyboard and touch, the MIS line name for budget-only codes, and the bare code when no name exists, without changing any row, total or order.**
-2. **An Ask answer by statement line shows each line's number and name instead of a raw key, taken from the data that answer was built on.**
+2. **An Ask answer by statement line that was built on budget data shows each line's number and name from that data instead of a raw key.**
 3. **Clicking a GL line's Actual opens the SAP transactions behind it for exactly that answer's period and plants, a hundred at a time, adding up to the clicked figure to the paisa.**
 4. **Clicking a statement line's Actual in Ask opens the same transactions the statement screen opens for that line.**
 5. **The transaction panel, on the statement screen and in Ask, shows each line's document number, cost centre and account name.**
@@ -61,13 +61,13 @@ click to show the transactions, and confirmed the spec `docs/specs/ask-gl-names-
    and accessible name.
 2. (spec C2, C5b labels) The statement-line label is "<s_no> <label>" from the outline of the answer
    window's last-month budget batch (`StatementOutlineRepository.findByBudgetBatchId`), never the
-   active outline. When the answer has no last-month budget batch (an actual-only statement answer),
-   the label comes from the leaf key itself, never shown raw: "1.1|50001201|sprout-cost" reads
-   "1.1 Sprout cost" (the number, then the slug with hyphens as spaces and the first letter capitalized). `rowLabels` is stored in the conversation answer snapshot (`answerSnapshot()`
+   active outline. An actual-only statement answer with no last-month budget batch has no pinned
+   outline, so its lines keep today's raw leaf key (the spec defines labels only from the pinned
+   outline; nothing is derived from the key). `rowLabels` is stored in the conversation answer snapshot (`answerSnapshot()`
    whitelist, `conversations.service.ts:248`); the drill object never is. The app has no screen that
    reopens a stored conversation (owner deferral, 2026-10-02) and no production writer calls
    `appendTurn`, so stored-answer behaviour is proven at the service boundary. Leaves: labels from the
-   pinned outline after another outline becomes active; the leaf-key fallback with no budget batch;
+   pinned outline after another outline becomes active; raw keys kept when there is no budget batch;
    snapshot keeps `rowLabels` and drops `drill`.
 3. (spec C3, C5a paging) A new `POST /api/chat/drill` takes the signed context, the row key and a page
    (1 to 1,000,000; anything else or a non-integer is a 400, as `mis-drill.dto.ts:30`). For a
@@ -77,7 +77,7 @@ click to show the transactions, and confirmed the spec `docs/specs/ask-gl-names-
    triples mode. Sort is the existing `value DESC, month DESC, posting_date DESC, txn_no, line_id`;
    page size 100; the response carries page, size, total count and an all-match footer. The footer
    equals the row's signed Actual to the paisa. Leaves: predicate re-derivation per row, footer equals
-   the signed Actual, excessive page, stable page boundary, empty result.
+   the signed Actual, excessive page, non-integer page (400), stable page boundary, empty result.
 4. (spec C4) For a mis-statement row the context binds the exact plant, cost-centre and GL triples
    the executed query resolved (`MasterResolvedSelection.leafTargets`, `chat.service.ts:470-479`) and
    the mapping master's version (audit attribution only); the route reads exactly those triples and
@@ -104,10 +104,14 @@ click to show the transactions, and confirmed the spec `docs/specs/ask-gl-names-
    outline digest when present (absent is allowed: an actual-only statement answer may have no budget
    batch, and the read then uses the bound triples alone), for statement rows the bound triples and
    mapping version, and per row the key, the Actual in exact paise and `drillable`. Exact paise: the
-   executor's numbers come from `numeric(18,2)` cells, and the context stores
-   `Math.round(actual * 100)` as an integer string; issuance refuses a row whose absolute Actual
-   reaches ₹9,00,00,00,00,00,000 (beyond which a JavaScript number no longer holds every paisa), so
-   that row is not drillable. Leaves include cent values (₹0.01, ₹12,345.67) and their footing. Every click:
+   signed Actual never passes through a JavaScript number. GL-ANSWER-WIRING runs one grouped query
+   per answer over the rows' drill predicates returning, per row key, the feeding-line count and
+   `sum(value)::text` (an exact `numeric(18,2)` decimal string from Postgres), and signs that string
+   as integer paise; the same sum is the click's footer, so footing is exact by construction. The
+   row is drillable when its count is at least one; issuance also checks that this exact sum equals
+   the displayed Actual to the paisa and logs a data mismatch (and marks the row not drillable)
+   otherwise. Leaves include cent values (₹0.01, ₹12,345.67), a sum above ₹90 lakh crore, and the
+   footing. Every click:
    verify signature, expiry and user; re-authorize the reader's current domain, Actual measure and
    plant scope, refusing if any one plant in the bound predicate is no longer held; then write the
    typed drill audit record (reuse `writeDrillEvent` with an Ask question label) before any read, and
@@ -140,7 +144,7 @@ click to show the transactions, and confirmed the spec `docs/specs/ask-gl-names-
 | GL-TXN-COLUMNS | Document number, cost centre and account name in the transaction panel | The repository selects `txn_no`, `cost_center` and `acct_name`; `MisDrillLine` gains `txnNo`, `costCenter`, `accountName`; the statement drill DTO and service pass them through; the statement screen's panel shows the three columns. Pins the transaction-line shape the Ask route reuses. | 5 | `contract/src/api.ts`, `backend/src/warehouse/drill-transactions.repository.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts`, `backend/src/warehouse/drill-transactions.interface.ts`, `backend/src/mis/mis-drill.dto.ts`, `backend/src/mis/mis-drill.service.ts`, `backend/src/mis/mis-drill.service.test.ts`, `frontend/src/features/mis/drill-panel.tsx`, `frontend/src/features/mis/drill-panel.test.tsx` | `backend/src/warehouse/drill-transactions.repository.test.ts`, `backend/src/mis/mis-drill.service.test.ts`, `frontend/src/features/mis/drill-panel.test.tsx` | none | yes |
 | GL-DRILL-ROUTE | The signed answer link and the Ask transaction route | Pins the Ask response seam in the contract (`AskResponse.rowLabels`, `AskResponse.drill`, the Ask drill request and response, `rowLabels` on the conversation snapshot type) and the backend read: the sibling signing service with its claims and exact-paise rule, the `POST /api/chat/drill` controller and service (verify, re-authorize, audit before read, predicate re-derivation in a new GL-and-plants mode and the triples mode, pin binding, paging), the chat DTOs and Swagger, the route and Swagger registries. One crossing leaf: a context issued by the signing service for a fixture answer opens through the route and foots to its signed Actual. No Ask answer issues a context yet and no frontend change. | 3, 7, 8 | `contract/src/api.ts`, `backend/src/chat/ask-drill-context.ts`, `backend/src/chat/ask-drill-context.test.ts`, `backend/src/chat/ask-drill.controller.ts`, `backend/src/chat/ask-drill.service.ts`, `backend/src/chat/ask-drill.service.test.ts`, `backend/src/chat/chat.module.ts`, `backend/src/chat/chat.schemas.ts`, `backend/src/warehouse/drill-transactions.repository.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts`, `backend/src/warehouse/drill-transactions.interface.ts`, `backend/src/core/audit.service.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | `backend/src/chat/ask-drill-context.test.ts`, `backend/src/chat/ask-drill.service.test.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`, `tools/quality-gate.test.mjs` | GL-TXN-COLUMNS | no |
 | GL-NAMES | The name resolver, the snapshot field and the label rendering | The name resolver over `sap_transaction` under the executed query's scope with normalization, ties and budget-only fallback, and statement labels from the pinned last-month outline or the leaf-key fallback; `rowLabels` kept in the conversation snapshot whitelist; the Ask table renders "key · label" with the "+n more" disclosure from `rowLabels`. The chat service wiring is GL-ANSWER-WIRING's. | 1, 2 | `backend/src/warehouse/gl-name.repository.ts`, `backend/src/warehouse/gl-name.repository.test.ts`, `backend/src/conversations/conversations.service.ts`, `backend/src/conversations/conversations.service.test.ts`, `frontend/src/features/assistant/ask-panel.tsx`, `frontend/src/features/assistant/ask-panel.test.tsx`, `backend/package.json`, `tools/quality-gate.test.mjs` | `backend/src/warehouse/gl-name.repository.test.ts`, `backend/src/conversations/conversations.service.test.ts`, `frontend/src/features/assistant/ask-panel.test.tsx`, `tools/quality-gate.test.mjs` | GL-DRILL-ROUTE | yes |
-| GL-ANSWER-WIRING | Ask answers carry names, the signed link and clickable markers | The only part that edits the chat service: it attaches `rowLabels` from the name resolver and issues `AskResponse.drill` only for supported shapes that display an authorized Actual, with per-row `drillable` from a feeding-line count, the bound plant predicate, batches, the last-month budget batch when present, and statement triples; the model-boundary leaf extended. | 6, 9 | `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts`, `backend/src/warehouse/drill-transactions.repository.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts` | `backend/src/chat/chat.service.test.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts` | GL-NAMES | no |
+| GL-ANSWER-WIRING | Ask answers carry names, the signed link and clickable markers | The only part that edits the chat service: it attaches `rowLabels` from the name resolver and issues `AskResponse.drill` only for supported shapes that display an authorized Actual, with per-row `drillable` and the exact signed Actual from one grouped count-and-`sum(value)::text` query in the drill repository, the bound plant predicate, batches, the last-month budget batch when present, and statement triples; the model-boundary leaf extended. | 6, 9 | `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts`, `backend/src/warehouse/drill-transactions.repository.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts` | `backend/src/chat/chat.service.test.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts` | GL-NAMES | no |
 | GL-DRILL-PANEL | Click an Actual, see its transactions | The shared transaction panel opens from an Ask answer's `drillable` Actuals (GL and statement lines), calls the Ask route with context, row key and page, and shows the replaced and refusal wording; inert cells make no request. The live functional check. | 4, 10 | `frontend/src/features/mis/drill-panel.tsx`, `frontend/src/features/mis/drill-panel.test.tsx`, `frontend/src/features/assistant/ask-panel.tsx`, `frontend/src/features/assistant/ask-panel.test.tsx`, `frontend/src/lib/api.ts` | `frontend/src/features/mis/drill-panel.test.tsx`, `frontend/src/features/assistant/ask-panel.test.tsx` | GL-ANSWER-WIRING | yes |
 New moving parts: the `POST /api/chat/drill` route (Done-when 3, 4, 7) and the Ask drill signing service, a sibling of the statement attestation on the same secrets (Done-when 7).
 

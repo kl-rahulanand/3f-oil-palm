@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T17:18:00+00:00
-read_hash: f38629a381beff1e94fdab974fc5677f8f3b37a0
-round: 1
+read_at: 2026-10-02T17:20:53+00:00
+read_hash: 3a85784a90358437a9bc67bc5c9f4af2cb24468d
+round: 2
 passed: no
-doc_seen: f38629a381beff1e94fdab974fc5677f8f3b37a0
+doc_seen: 3a85784a90358437a9bc67bc5c9f4af2cb24468d
 spec_seen: ebc6473926090ed5ec1a4a7466cbf186cf3f9b4c
-notes_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+notes_seen: 8f94af255f400eb56d96184822651ae0e8c7a99d
 ---
 # Cold read notes
 
@@ -48,4 +48,18 @@ Only a genuine trade-off goes to the human, as a question with options.
 7. Unproven: item 7: a gone pinned budget batch on a statement-row drill.
    The plan proves replaced budget and gone actuals, but not the required gone-budget refusal: no rows, stated message, and refusal audit.
    Disposition: cut a gone budget batch on a statement row is added to the pin leaves (detail 8).
+
+## Round 2
+
+8. Gap: `Math.round(actual * 100)` cannot guarantee the signed Actual is exact paise.
+   The executor has already converted `numeric(18,2)` to a JavaScript number; at sufficiently large values, cents are lost before rounding, while the new cutoff also makes an Actual with SAP lines inert. Preserve a fixed-scale decimal/paise value before number coercion instead of declining otherwise drillable rows.
+   Disposition: cut the signed Actual comes from a grouped count and sum(value)::text query over each row's drill predicate, an exact decimal string signed as integer paise that is also the click's footer; no JavaScript number and no cutoff (detail 7, GL-ANSWER-WIRING).
+
+9. Unproven: item 3: a non-integer page returns HTTP 400.
+   The prose states the rule, but detail 3’s test leaves still name only an excessive page. The prior finding’s claimed non-integer test leaf was not added.
+   Disposition: cut the non-integer page (400) leaf is now in detail 3 (the round 1 edit had missed its target).
+
+10. Gap: the new leaf-key label fallback is not in the confirmed spec.
+   The spec requires statement labels from the last-month budget outline; it does not authorize deriving and title-casing a label from a raw leaf key. Confirm and record this variant in the spec, or remove it.
+   Disposition: cut the leaf-key label fallback is removed; Done-when 2 now covers statement answers built on budget data, and an answer with no pinned outline keeps today's raw key, as the spec's pinned-outline rule implies (Done-when 2, detail 2).
 
