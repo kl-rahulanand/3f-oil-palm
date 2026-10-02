@@ -1,0 +1,14 @@
+{
+  "base": "37003503adc0b335100f1a87d41ab2b39ba79461",
+  "branch": "fix/an-ask-question-that-names-a-period-such",
+  "done_when": "A follow-up that names a period answers for that period whatever window the model emits; a question naming no period still inherits or aggregates as before; changing an answer's period still re-runs on the chosen period",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-02T10:11:11+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "An Ask question that names a period, such as July 2026, answers for that period even as a follow-up in the same thread; the model's own window and the previous answer's window used to win"
+}
