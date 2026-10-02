@@ -5,19 +5,19 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "06d0f43fa4cbcd252035b8747f99b50628d7e3547a8921b98d66ad91f332621f",
-    "commit": "9c1bb98d06914924f67ded5ec700e05e5c8ec1c6",
+    "changed": "f2be25fc53b7a1a6fd6eb55f78d0fab0cc9699efe79707181f760ae78aeea2f1",
+    "commit": "c3ce700b4ec4b3332a813929eb7ee4bfc24599ed",
     "dismissals": [],
     "findings": [
       {
-        "body": "`calendarYear` accepts a four-digit year only when the preceding text matches the narrow prefix list (or the question consists only of the year). Thus a follow-up such as \u201cWhat were 2025 actuals?\u201d is not recognized as naming 2025: the model window is cleared and the prior window is inherited. Conversely, \u201cShow an amount of 2025\u201d matches the allowed `of` prefix and has no recognized currency suffix, so it is incorrectly converted to calendar year 2025. These directly violate the Done-when requirements that a named year override prior/model windows and that an amount never be read as a year.",
+        "body": "`calendarYear` accepts a year only when the whole question is essentially the year or its immediate prefix/suffix matches a narrow whitelist. A natural same-thread follow-up such as \u201cShow me 2025\u201d matches neither condition. The app therefore treats it as having no period, clears whatever 2025 window the model emitted, and inherits the prior answer's window instead. This directly violates the requirement that a follow-up naming a year answer for that year regardless of the model or previous window.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 823,
+        "line": 831,
         "priority": "P1",
-        "title": "Not done: Named-year follow-ups and unitless amounts still choose the wrong period"
+        "title": "Not done: Named-year follow-ups can still inherit the previous period"
       },
       {
-        "body": "The added coverage invokes `ChatService.ask` through `makeFixture`, which replaces the provider, executor/database, audit, dimensions, and selection resolver with fakes (`backend/src/chat/chat.service.test.ts:979-1025`). The frontend Ask tests also mock the API (`frontend/src/features/assistant/ask-panel.test.tsx:33-42`), while `package.json:26` runs only Node/Vitest suites and the repository has no Playwright configuration, specification, or browser-test script. Therefore named-period follow-ups, prior-turn transport, no-period inheritance/aggregation, and period-control reruns remain unproven through the required browser, running API, and real database. The successful close run only executed the same lower-boundary tests.",
+        "body": "The new coverage invokes `ChatService.ask` through `makeFixture`, which substitutes the provider, executor/database, audit, dimensions, and selection resolver with fakes. The frontend Ask tests also mock the API, while the repository test command contains no Playwright/browser suite and no Playwright specifications are present. Consequently the required user-facing flows\u2014named-period follow-ups, no-period inheritance or aggregation, and period-control reruns\u2014remain unproven through a browser, running API, and real database.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -25,7 +25,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "80b639a39450ac4d77c7b4af56ea374dfb717784b8d13b22a5eb407e99ea88a4"
+    "tree": "ffce451615bef8829cdc3afaf147314c9efa41d29056e8b46e5ecd1434723e3a"
   },
   "status": "fixing",
   "steps": [
@@ -59,6 +59,10 @@
     },
     {
       "at": "2026-10-02T11:48:08+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T11:55:53+00:00",
       "step": "review"
     }
   ],
