@@ -698,6 +698,7 @@ export class ChatService {
 }
 
 const PERIOD_WORD_PATTERN = /\b(?:quarter|q[1-4]|fy|ytd|today|yesterday|since|financial\s+year)\b/i;
+const FISCAL_PERIOD_PATTERN = /\b(?:fy|ytd|financial\s+year)\b/i;
 const MAY_PERIOD_PATTERN =
   /\b(?:(?:in|for|of|during|since|from|until|till|through|to|by|about|before|after)\s+may|may\s+(?:\d{4}|[1-9]|[12]\d|3[01])|(?:[1-9]|[12]\d|3[01])\s+may)\b/i;
 const RELATIVE_GRANULARITY_PATTERN =
@@ -705,13 +706,16 @@ const RELATIVE_GRANULARITY_PATTERN =
 const NAMED_MONTH_PATTERN =
   /\b(january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/i;
 const NAMED_QUARTER_PATTERN = /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)\b/i;
-const BARE_YEAR_PATTERN = /\b(\d{4})\b/;
+const CALENDAR_YEAR_PATTERN = /\b(\d{4})\b/g;
+const AMOUNT_BEFORE_YEAR_PATTERN =
+  /(?:\b(?:over|above|below|under|exceeding|rs\.?|inr|rupees|lakh|crore)|\b(?:more|less|greater)\s+than|\bat\s+(?:least|most)|₹)\s*$/i;
+const AMOUNT_AFTER_YEAR_PATTERN = /^(?:\.\d+|\s+(?:lakh|crore|rupees)\b)/i;
 const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 export function hasTimePeriodWords(text: string): boolean {
   return (
     PERIOD_WORD_PATTERN.test(text) ||
-    BARE_YEAR_PATTERN.test(text) ||
+    calendarYear(text) !== null ||
     NAMED_MONTH_PATTERN.test(text) ||
     MAY_PERIOD_PATTERN.test(text) ||
     RELATIVE_GRANULARITY_PATTERN.test(text)
@@ -723,6 +727,8 @@ function parseNamedTimeWindow(
   priorWindow: Selection["timeWindow"] | undefined,
   now: Date,
 ): Selection["timeWindow"] | null {
+  if (FISCAL_PERIOD_PATTERN.test(text)) return null;
+
   const relative = text.match(/\b(last|previous|this)\s+(month|quarter|year)\b/i);
   if (relative) {
     const direction = relative[1].toLowerCase();
@@ -752,16 +758,28 @@ function parseNamedTimeWindow(
       ? Number(quarter[1])
       : ["first", "second", "third", "fourth"].indexOf(quarter[2].toLowerCase()) + 1;
     const startMonth = (number - 1) * 3 + 1;
-    return calendarWindow(anchorYear(priorWindow, now, startMonth), startMonth, startMonth + 2);
+    return calendarWindow(calendarYear(text) ?? anchorYear(priorWindow, now, startMonth), startMonth, startMonth + 2);
   }
 
-  const bareYear = text.match(BARE_YEAR_PATTERN)?.[1];
-  if (bareYear) return calendarWindow(Number(bareYear), 1, 12);
+  const bareYear = calendarYear(text);
+  if (bareYear !== null) return calendarWindow(bareYear, 1, 12);
 
   const monthName = NAMED_MONTH_PATTERN.exec(text)?.[1] ?? (MAY_PERIOD_PATTERN.test(text) ? "may" : undefined);
   if (!monthName) return null;
   const month = MONTH_PREFIXES.indexOf(monthName.slice(0, 3).toLowerCase()) + 1;
   return calendarWindow(anchorYear(priorWindow, now, month), month);
+}
+
+function calendarYear(text: string): number | null {
+  if (FISCAL_PERIOD_PATTERN.test(text)) return null;
+  for (const match of text.matchAll(CALENDAR_YEAR_PATTERN)) {
+    const index = match.index ?? 0;
+    const before = text.slice(0, index);
+    const after = text.slice(index + match[0].length);
+    if (AMOUNT_BEFORE_YEAR_PATTERN.test(before) || AMOUNT_AFTER_YEAR_PATTERN.test(after)) continue;
+    return Number(match[1]);
+  }
+  return null;
 }
 
 function anchorYear(priorWindow: Selection["timeWindow"] | undefined, now: Date, startMonth: number): number {

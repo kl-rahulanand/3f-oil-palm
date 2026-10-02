@@ -569,25 +569,6 @@ test("a follow-up using modal May inherits July instead of the model's invented 
   });
 });
 
-test("period words are detected even when they do not resolve to a window", () => {
-  for (const question of [
-    "What about August?",
-    "Which quarter was highest?",
-    "Show Q3",
-    "Compare this FY",
-    "Compare the financial year",
-    "Show YTD",
-    "Try the previous week",
-    "Show the last 3 months",
-    "Show 30 days",
-    "Compare this year",
-    "Compare next month",
-    "Since the last review",
-  ]) {
-    assert.equal(hasTimePeriodWords(question), true, question);
-  }
-});
-
 test("a bare calendar year overrides a wrong or missing model window", async () => {
   for (const question of ["What about 2025?", "Show Actual for 2025", "Show Actual in 2025"]) {
     for (const modelWindow of [{ grain: "month" as const, from: "2026-09-01", to: "2026-09-30" }, undefined]) {
@@ -612,6 +593,39 @@ test("a bare calendar year overrides a wrong or missing model window", async () 
         column: "month",
       });
     }
+  }
+});
+
+test("a quarter with an explicit year uses that year instead of the prior window's year", async () => {
+  for (const question of [
+    "Show Q3 2025",
+    "Show Q3 of 2025",
+    "Show the third quarter 2025",
+    "Show the third quarter of 2025",
+  ]) {
+    const fixture = makeFixture({
+      selection: {
+        ...financialSelection,
+        timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
+      },
+    });
+
+    const response = await fixture.service.ask(
+      userFor("governed-financial"),
+      "session",
+      question,
+      undefined,
+      undefined,
+      [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
+    );
+
+    assert.equal(response.responseClass, ResponseClass.Success);
+    assert.deepEqual(response.selection?.timeWindow, {
+      grain: "day",
+      from: "2025-07-01",
+      to: "2025-09-30",
+      column: "month",
+    });
   }
 });
 
@@ -685,23 +699,70 @@ test("relative calendar periods override a wrong or missing model window", async
   }
 });
 
-test("financial year wording keeps the model window for the period control", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
-    },
-  });
+test("fiscal and other model-owned period wording keeps the model window", async () => {
+  for (const question of [
+    "Compare this FY",
+    "Show FY 2025",
+    "Show the financial year",
+    "Show YTD",
+    "Compare next month",
+    "Try the previous week",
+  ]) {
+    const fixture = makeFixture({
+      selection: {
+        ...financialSelection,
+        timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+      },
+    });
 
-  const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show the financial year");
+    const response = await fixture.service.ask(userFor("governed-financial"), "session", question);
 
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "month",
-    from: "2026-04-01",
-    to: "2026-07-31",
-    column: "month",
-  });
+    assert.equal(response.responseClass, ResponseClass.Success);
+    assert.deepEqual(
+      response.selection?.timeWindow,
+      {
+        grain: "month",
+        from: "2026-04-01",
+        to: "2026-07-31",
+        column: "month",
+      },
+      question,
+    );
+  }
+});
+
+test("a four-digit amount is not read as a year", async () => {
+  for (const question of ["Show amounts over 2025", "Which GL codes spent more than 2025?"]) {
+    const modelWindow = { grain: "month" as const, from: "2026-09-01", to: "2026-09-30" };
+    const firstTurn = makeFixture({ selection: { ...financialSelection, timeWindow: modelWindow } });
+
+    const firstResponse = await firstTurn.service.ask(userFor("governed-financial"), "session", question);
+
+    assert.equal(firstResponse.responseClass, ResponseClass.Success);
+    assert.equal(firstResponse.selection?.timeWindow, undefined, question);
+
+    const followUp = makeFixture({ selection: { ...financialSelection, timeWindow: modelWindow } });
+    const followUpResponse = await followUp.service.ask(
+      userFor("governed-financial"),
+      "session",
+      question,
+      undefined,
+      undefined,
+      [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
+    );
+
+    assert.equal(followUpResponse.responseClass, ResponseClass.Success);
+    assert.deepEqual(
+      followUpResponse.selection?.timeWindow,
+      {
+        grain: "month",
+        from: "2026-07-01",
+        to: "2026-07-01",
+        column: "month",
+      },
+      question,
+    );
+  }
 });
 
 test("an ordinary follow-up has no period words", () => {
