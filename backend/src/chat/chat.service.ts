@@ -724,7 +724,9 @@ const YEAR_MONTH_PATTERN = /\b(199\d|20\d{2})-(0[1-9]|1[0-2])\b/;
 const CALENDAR_YEAR_PATTERN = /\b(199\d|20\d{2})\b/g;
 const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
 const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
-const AMOUNT_WORDS = String.raw`(?:actuals?|budget(?:s|ed|ing)?|cost(?:s|ed|ing)?|expense(?:s|d)?|spend(?:s|ing)?|spent|amount(?:s|ed|ing)?|value(?:s|d)?|valuing|total(?:s|ed|ing|led|ling)?|sum(?:s|med|ming)?|balance(?:s|d|ing)?|figure(?:s|d|ing)?|limit(?:s|ed|ing)?|threshold(?:s|ed|ing)?|rollover(?:s|ed|ing)?|variances?|payments?|pay(?:s|ing)?|paid|charge(?:s|d|ing)?)`;
+const QUANTITY_NOUNS = String.raw`(?:amounts?|values?|totals?|sums?|figures?|balances?|limits?|thresholds?|numbers?)`;
+const MEASURE_AND_DATA_WORDS = String.raw`(?:actuals?|budgets?|costs?|expenses?|spend|gl|codes?|statements?|mis|reports?|data|results?)`;
+const AMOUNT_WORDS = String.raw`(?:${QUANTITY_NOUNS}|${MEASURE_AND_DATA_WORDS}|budget(?:ed|ing)|cost(?:ed|ing)|expense(?:d)|spend(?:s|ing)|spent|amount(?:ed|ing)|value(?:d)|valuing|total(?:ed|ing|led|ling)|sum(?:med|ming)|balance(?:d|ing)|figure(?:d|ing)|limit(?:ed|ing)|threshold(?:ed|ing)|rollover(?:s|ed|ing)?|variances?|payments?|pay(?:s|ing)?|paid|charge(?:s|d|ing)?)`;
 const PERIOD_PREPOSITION_BEFORE_YEAR_PATTERN = /\b(?:in|for|during|since|from|until|till|through|by|before|after)\s*$/i;
 const PERIOD_MEASURE_OF_YEAR_PATTERN = new RegExp(String.raw`\b(?:${MONTH_NAMES}|actuals?|budgets?)\s+of\s*$`, "i");
 const PERIOD_ACTUAL_TO_YEAR_PATTERN = /\bactuals?\s+to\s*$/i;
@@ -734,6 +736,8 @@ const AMOUNT_MODIFIER = String.raw`(?:exactly|about|around|approximately|approx\
 const AMOUNT_LINK = String.raw`(?:is|are|was|were|be|been|being|that|which|who|should|would|could|must|will|shall|can|may|totalling|totaling|totals|amounting|adds\s+up|comes|sums|equals|equal|worth|reaching|hitting|more\s+than|less\s+than|greater\s+than|over|above|below|under|exceeding|exceeds|beyond|${AMOUNT_MODIFIER}|to|of|a|an|the)`;
 const LINKED_AMOUNT_YEAR_PATTERN = new RegExp(String.raw`\b${AMOUNT_WORDS}(?:\s+${AMOUNT_LINK})+\s*$`, "i");
 const AMOUNT_RANGE_PREFIX_PATTERN = new RegExp(String.raw`\b${AMOUNT_WORDS}(?:\s+${AMOUNT_LINK})*\s*$`, "i");
+const DIRECT_QUANTITY_AMOUNT_PATTERN = new RegExp(String.raw`\b${QUANTITY_NOUNS}\s*$`, "i");
+const DIRECT_GL_NUMBER_YEAR_PATTERN = /\bgl\s+numbers?\s*$/i;
 const COMPARISON_YEAR_PREFIX_PATTERN = new RegExp(
   String.raw`(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])(?:\s+${AMOUNT_MODIFIER})?\s*$`,
   "i",
@@ -885,6 +889,7 @@ function hasAmountContext(before: string, after: string): boolean {
     PERIOD_ACTUAL_TO_YEAR_PATTERN.test(before)
   )
     return false;
+  if (DIRECT_QUANTITY_AMOUNT_PATTERN.test(before) && !DIRECT_GL_NUMBER_YEAR_PATTERN.test(before)) return true;
   return LINKED_AMOUNT_YEAR_PATTERN.test(before);
 }
 
