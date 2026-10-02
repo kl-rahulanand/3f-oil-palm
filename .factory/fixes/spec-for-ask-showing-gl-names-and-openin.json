@@ -3,11 +3,39 @@
   "branch": "fix/spec-for-ask-showing-gl-names-and-openin",
   "done_when": "The spec is saved, confirmed by the owner and on the roadmap",
   "kind": "fix",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "ead356a74cce5a1f2b3762415f219520dd943b5ce7dd7c01dfab1a00cf4634e5",
+    "commit": "812d8446a521cd5991098df2b3d966978a5eb237",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The specified source for a statement leaf's raw predicate does not contain the required data. `StatementOutlineNode` in `backend/src/warehouse/statement-outline.interface.ts:1` contains a GL code and leaf key, but no plant or cost centre; the existing drill obtains the triples from the resolved mapping in `backend/src/mis/mis-drill.service.ts:107` and uses the outline only for node-to-leaf resolution. Thus an implementation cannot re-derive the promised exact predicate from the pinned outline and may fall back to current mapping or an over-broad GL predicate, risking non-footing results or raw-row exposure. Require the signed context to bind the executed resolved triples, or bind and verify the mapping version/resolved selection separately from the pinned outline.",
+        "file": "docs/specs/ask-gl-names-and-transactions.md",
+        "line": 89,
+        "priority": "P1",
+        "title": "Bind statement-leaf triples instead of deriving them from the outline"
+      },
+      {
+        "body": "The spec supports any time window but repeatedly refers to one pinned budget batch/outline without selecting it. Current Ask provenance can contain a distinct budget batch for every result month (`backend/src/sql/sqlBuilder.ts:219`), and those outline snapshots can differ after partial reloads. The existing statement drill resolves this by selecting the budget batch at the block end (`backend/src/mis/mis-drill.service.ts:203`), but this spec does not adopt that rule or another reconciliation rule. Consequently multi-period GL fallbacks and statement labels can resolve from different outlines depending on implementation or query order. Specify the authoritative period/batch (for example, the time-window end) and bind that choice in the context.",
+        "file": "docs/specs/ask-gl-names-and-transactions.md",
+        "line": 64,
+        "priority": "P2",
+        "title": "Define which outline governs a multi-period answer"
+      }
+    ],
+    "status": "blocked",
+    "tree": "4de1d4d613cfb9e5a9f7f567997730d3a37eb96739499d7ab9b9a8e64a581888"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-02T15:09:27+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-02T15:45:39+00:00",
+      "step": "review"
     }
   ],
   "why": "Spec for Ask showing GL names and opening an Actual's transactions"
