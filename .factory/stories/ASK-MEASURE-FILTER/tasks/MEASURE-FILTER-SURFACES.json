@@ -1,10 +1,38 @@
 {
   "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-SURFACES",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "699676fbc0c94cb2bae7e3c4a0d8d15f5807840c1279b51c95da083032eccfa1",
+    "commit": "21721c9119df07339d1fe4a0a6a487c280dfebd6",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "Done-when 11 requires both saved and pinned filtered selections to reopen through the real UI and rerun with the comparison. The supplied functional-check record walks only a saved view; this pinned-report leaf mocks both the pin API and Ask, so it cannot provide the required browser/API/database proof for the pin path. Add the pinned-report reopen to the live functional walk and record that the filtered result and readout are preserved.",
+        "file": "frontend/src/features/exploration/pinned-reports.test.tsx",
+        "line": 149,
+        "priority": "P1",
+        "title": "Not done: functional check"
+      },
+      {
+        "body": "Value comparisons are normalized and executed with up to two decimal places, but `formatMoney` rounds to the nearest whole rupee. For example, an applied threshold of `500000.49` is rendered as `\u20b95,00,000`, while `500000.50` becomes `\u20b95,00,001`; the saved label, answer readout, and empty-state message therefore describe a different boundary from the one actually queried. Use an Indian-grouped exact-money formatter when paise are non-zero and add a fractional-threshold leaf.",
+        "file": "frontend/src/features/exploration/selection-label.ts",
+        "line": 41,
+        "priority": "P2",
+        "title": "Preserve paise in comparison labels"
+      }
+    ],
+    "status": "blocked",
+    "tree": "bad662eca4427a1a61e8d7d65a894ff7a23cd83d9b70a3f7336b04d2dd4fb9fd"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-01T20:35:51+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-02T07:33:12+00:00",
+      "step": "review"
     }
   ]
 }
