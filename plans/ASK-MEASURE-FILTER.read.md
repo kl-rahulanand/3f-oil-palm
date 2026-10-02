@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T21:02:48+00:00
-read_hash: 2d3deaf02fb7e11214be78a2276d37ad314125f4
-round: 24
-passed: yes
-doc_seen: 2d3deaf02fb7e11214be78a2276d37ad314125f4
+read_at: 2026-10-02T06:56:58+00:00
+read_hash: 6e8be2c78239d7888e37df8afdff5047a4cf9857
+round: 25
+passed: no
+doc_seen: 6e8be2c78239d7888e37df8afdff5047a4cf9857
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 2a7323e3251534e0673b4ee8eb9ff01f583fd280
+notes_seen: 8febab0d884c5965e26d8467b7a0f5b1ef2102ed
 ---
 # Cold read notes
 
@@ -227,3 +227,13 @@ No findings.
 ## Round 24
 
 No findings.
+
+## Round 25
+
+38. Unproven: item 11: the readout cannot “survive reopening a conversation” on the declared frontend path.
+   `AskProvider` keeps turns only in memory, and its existing test explicitly proves a reload clears them. The frontend has no conversation API client or hydration path despite backend conversation endpoints. Name the reopen UI/API path, scope it, and add a hydration/readout leaf—or defer this requirement.
+   Disposition: cut Done-when 11 no longer promises the readout after a conversation reopen; the owner removed it and deferred it until a reopen screen exists (Notes, Decided line, 2026-10-02), and detail 11 and the Surfaces row drop it too.
+
+39. Unproven: item 11: reopening a saved or pinned selection with a measure filter is not covered by a declared leaf.
+   The task names only label, identity, Ask-panel, and provider tests; it excludes `saved-views` and `pinned-reports`, whose existing reopen tests use selections without `measureFilters`. Add filtered reopen leaves there that assert the exact selection reaches Ask, or explicitly make an equivalent integration leaf prove both entry points.
+   Disposition: cut `saved-views.test.tsx` and `pinned-reports.test.tsx` join the Surfaces row's Scope and Tests, and detail 11 names their filtered reopen leaves asserting the stored selection with `measureFilters` reaches Ask intact.
