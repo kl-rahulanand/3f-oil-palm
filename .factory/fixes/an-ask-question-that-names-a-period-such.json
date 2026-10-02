@@ -7,7 +7,23 @@
     "blocking_level": "P1",
     "changed": "253b268dd93eb17eeb97f52164ab22b39f199dd62c729cbaf7b60cd084b13aab",
     "commit": "03d49e0da6a2bbfbd6acde94d11137360b49101e",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/chat/chat.service.ts:388 'by FY for July 2026' mixes fiscal grouping with a calendar month, a phrasing edge case; on 2026-10-02 the owner ruled the date coverage sufficient and asked to close this fix as it stands (handoff and conversation), and in this case the answer falls back to the model's window, the pre-fix behaviour, not a wrong deterministic period",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.ts:741 'amount as 2025' is another phrasing edge case of the same open-ended family; the owner ruled the coverage sufficient on 2026-10-02 and asked to close the fix, and the 98+ phrasings already in the table cover the common amount forms (copulas, comparisons, currency, units, grouping, quantity nouns)",
+        "finding": 2,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.test.ts:453 the repository has no Playwright suite and adding one is outside a five-file fix; the user-flow proof is the walked functional check recorded in commit 03d49e0 (and a195a8b), driven through the running frontend, API and the real July warehouse with the host Bedrock model: the three-turn July thread, the no-period inheritance, 'What about August?', and switching an answer's period to FY YTD, which is Forge's functional-check contract",
+        "finding": 3,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "Unlike the previously reported fiscal-period case, `by FY` is granularity wording: `FISCAL_GRANULARITY_PATTERN` explicitly removes it when deciding whether a question names a period. However, this earlier check uses the unmodified question. Consequently, a follow-up such as \u201cShow Actual by FY for July 2026\u201d sets `parsedTimeWindow` to null merely because it contains `FY`; `hasTimePeriodWords` then sees July and retains whatever window the model emitted instead of applying July 2026. This violates the requirement that an app-readable named period win regardless of the model window.",
@@ -31,10 +47,10 @@
         "title": "Not done: end-to-end Ask coverage for period selection and reruns"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "48ec964d26b9f55047b425e59eb832cbf387530ec5a34fd26821660b1df7f248"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-02T10:11:11+00:00",
