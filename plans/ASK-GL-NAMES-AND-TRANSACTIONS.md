@@ -1,56 +1,151 @@
 # Ask names each GL line and opens its transactions
 
-<n> parts · Risks: ... · New moving parts: ...
+4 parts · Risks: none one-way · New moving parts: a transaction route for Ask answers and its signed answer link
 
 ## What changes for you
 
-<What the people who use this will notice, in plain English. No IDs, codes or jargon.>
+An Ask answer by GL code shows what each code is: "50001201 · Sprout Cost - Imp" instead of a bare
+number, with "+14 more" where a code covers several SAP account names. An answer by statement line
+shows "1.1 Sprout Cost" instead of a raw key. Clicking a line's Actual opens the SAP transactions
+behind that exact number, in the same panel the MIS statement uses, adding up to the figure you
+clicked. The statement screen's transaction panel also gains three columns: document number, cost
+centre and account name.
 
 ## Why
 
-<Why this matters now, in plain English.>
+Bare GL codes mean nothing without a chart of accounts open alongside, and checking what a figure is
+made of meant leaving Ask for the statement screen. The owner asked on 2026-10-02 for names and for a
+click to show the transactions, and confirmed the spec `docs/specs/ask-gl-names-and-transactions.md`.
 
 ## Done when
 
-<!-- One bold plain sentence per result, which the owner approves: no code names, file paths or
-test names. Its evidence, edge cases and proving tests go under the same number in Done-when
-details. -->
-
-1. **Something anyone can observe once this is done.**
+1. **An Ask answer by GL code shows each code with its main SAP account name, a "+n more" list for codes with several names that works by keyboard and touch, the MIS line name for budget-only codes, and the bare code when no name exists, without changing any row, total or order.**
+2. **An Ask answer by statement line shows each line's number and name instead of a raw key, taken from the data that answer was built on.**
+3. **Clicking a GL line's Actual opens the SAP transactions behind it for exactly that answer's period and plants, a hundred at a time, adding up to the clicked figure to the paisa.**
+4. **Clicking a statement line's Actual in Ask opens the same transactions the statement screen opens for that line, and the transaction panel on both screens shows document number, cost centre and account name.**
+5. **Only answers that show an Actual the reader may see offer a click, and only on Actuals with transactions behind them; Budget, %, totals and budget-only lines stay inert and cause no read.**
+6. **Every opening is recorded before any transaction is read; a tampered, expired or someone else's answer link, or a reader whose access has changed, is refused with a stated reason and recorded, never served a partial result.**
+7. **Reloaded data behaves as the statement drill does: a replaced batch is still read and named as replaced, and a removed batch is refused with a reason.**
+8. **Names, the answer link, amounts and transactions never reach the assistant's model.**
+9. **A live check on the July data shows names for all 21 over-budget GL codes, opens 50001201's Actual to lines adding up to ₹83,98,339, and opens a DUB-only user's statement line to the same lines as the statement screen.**
 
 ## Risks
 
-<!-- Each one-way step: deleting data, a destructive migration, a new vendor. -->
-
-Risks: none
+- **Signed answer link.** The link is signed, not encrypted, so it must hold only figures the answer
+  already shows; part 1 proves a Budget-only answer and a reader without the Actual grant get no
+  link and no Actual value.
+- **Plant scope.** The GL view reads only the plants its governed relation aggregates (today
+  `actual_by_gl_month` is DUB-only), while the statement drill reads every plant the reader holds.
+  The Ask drill must use the plants the answer's query actually read, or the footer stops matching
+  and other plants' lines leak; part 1 proves a reader with more plants sees no extra lines.
+- **Nothing one-way:** no migration, no data deletion, no new vendor.
 
 ## For the builders
 
-<!-- Everything from here down is for the agents. The owner doesn't see it when approving, and
-tightening it needs no new approval. -->
-
 ### Done-when details
 
-<!-- Under each Done-when item's number: its evidence, edge cases and the tests that prove it.
-Workers and reviewers get the entries of the items they cover. An item with nothing to add has
-no entry. -->
-
-1. <Evidence, edge cases and the tests that prove item 1.>
+1. (spec C1, C7 disclosure) The name is the most frequent SAP `acct_name`, by count of `sap_transaction`
+   rows among the lines the executed query aggregated into that row: its pinned actuals batches, its
+   time window and its effective plant predicate (for governed-financial, the plants of the governed
+   relation intersected with the reader's scope, today {DUB} ∩ scope; never every plant the reader
+   holds). Names group by a trimmed, whitespace-collapsed, case-folded form; each group shows its most
+   frequent original spelling (ties: alphabetical); "+n more" counts groups. Budget-only codes take the
+   label of the outline belonging to the answer window's last-month budget batch (several labels: the
+   first in outline order, "+n more"); with no such batch or label, the bare code. Names travel in an
+   optional typed `AskResponse.rowLabels` list of `{ key, label, otherLabels }` keyed by the raw row
+   key; `ResultTable` cells keep the raw key; labels never alter rows, totals or order. The "+n more"
+   is a focusable, tappable disclosure and the line's accessible name includes the full ordered list.
+   Leaves: name selection and ties, normalization, multi-name count, budget-only fallback, bare code,
+   mixed-plant reader sees only the query's plants' names, rows/order unchanged, disclosure keyboard
+   and accessible name.
+2. (spec C2, C5b labels) The statement-line label is "<s_no> <label>" from the outline of the answer
+   window's last-month budget batch (`StatementOutlineRepository.findByBudgetBatchId`), never the
+   active outline. `rowLabels` is stored in the conversation answer snapshot (`answerSnapshot()`
+   whitelist, `conversations.service.ts:248`); the drill object never is. The app has no screen that
+   reopens a stored conversation (owner deferral, 2026-10-02) and no production writer calls
+   `appendTurn`, so stored-answer behaviour is proven at the service boundary. Leaves: labels from the
+   pinned outline after another outline becomes active; snapshot keeps `rowLabels` and drops `drill`.
+3. (spec C3, C5a paging) A new `POST /api/chat/drill` takes the signed context, the row key and a page
+   (1 to 1,000,000; anything else or a non-integer is a 400, as `mis-drill.dto.ts:30`). For a
+   governed-financial row the predicate is the row's GL code, the time window, the selection's
+   dimension filters, the effective plant predicate bound in the context and the pinned actuals
+   batches; `DrillTransactionsRepository.buildPredicate` gains a GL-and-plants mode alongside its
+   triples mode. Sort is the existing `value DESC, month DESC, posting_date DESC, txn_no, line_id`;
+   page size 100; the response carries page, size, total count and an all-match footer. The footer
+   equals the row's signed Actual to the paisa. Leaves: predicate re-derivation per row, footer equals
+   the signed Actual, excessive page, stable page boundary, empty result.
+4. (spec C4) For a mis-statement row the context binds the exact plant, cost-centre and GL triples
+   the executed query resolved (`MasterResolvedSelection.leafTargets`, `chat.service.ts:470-479`) and
+   the mapping master's version (audit attribution only); the read uses exactly those triples and the
+   single plant the statement scope resolved, and is proven equal to the statement drill's read for
+   the same leaf, period and batches. `MisDrillLine` and the Ask drill line gain `txnNo` (document
+   number, `sap_transaction.txn_no`), `costCenter` and `accountName`; the repository selects them;
+   the statement drill DTO and panel show them as an additive change. Leaves: Ask statement-line read
+   equals the statement drill's; new columns on both responses and both panels.
+5. (spec C5b, C7) `AskResponse.drill` (`{ context, rows: [{ key, drillable }] }`, outside
+   `ResultTable`) is issued only when the only row dimension is `gl_code` (governed-financial) or
+   `leaf_key` (mis-statement) AND the displayed measures include that domain's Actual
+   (`governed-financial.actual`, `mis-statement.actual_net`) the reader may see. `drillable` is true
+   only when at least one SAP line feeds the row under its predicate (a genuine zero net with lines
+   stays true). The frontend renders only `drillable` Actuals as buttons; Budget, `%`, totals,
+   budget-only Actuals and empty-state rows are plain text and never call the route. Leaves: no
+   `drill` for a month breakdown, a no-breakdown answer, a Budget-only answer and a reader without
+   the Actual grant; `drillable` false for budget-only and true for zero-net-with-lines; inert cells
+   make no request.
+6. (spec C5, C5a, C5c) The context is signed like `StatementAttestationService` (same secrets env,
+   same TTL env, default 30 minutes) by a sibling service with its own claims: user id, executed
+   selection, effective plant predicate, pinned actuals batches, the last-month budget batch and its
+   outline digest when present (absent is allowed: an actual-only statement answer may have no budget
+   batch, and the read then uses the bound triples alone), for statement rows the bound triples and
+   mapping version, and per row the key, the Actual in exact paise and `drillable`. Every click:
+   verify signature, expiry and user; re-authorize the reader's current domain, Actual measure and
+   plant scope, refusing if any one plant in the bound predicate is no longer held; then write the
+   typed drill audit record (reuse `writeDrillEvent` with an Ask question label) before any read, and
+   fail closed with 503 when that write fails; refusals write `writeDrillRefusalEvent`. Wording:
+   "This answer is too old to open. Ask again to open its transactions." (expired),
+   "Your access has changed since this answer was shown. Ask again." (access). Leaves: invalid
+   signature, expired, other user, lost one of two plants, lost Actual grant, audit-before-read
+   ordering, audit failure 503, a reader with more plants than the query read sees no extra lines.
+7. (spec C6) Pin binding follows `MisDrillService.bindPins`: a replaced pinned batch (actuals, or on
+   statement lines the budget) is read, foots to the clicked Actual and the panel says "This answer
+   was built on data that has since been reloaded; these are the lines it was built from."; a gone
+   pinned batch is refused with no rows, "The data behind this answer is no longer available. Ask
+   again to open its transactions." and a refusal audit record. Leaves: replaced actuals, replaced
+   budget on a statement row, gone actuals.
+8. (spec C7 boundary) Extend `chat.service.test.ts:68` ("the llm provider receives the question prior
+   turns and dimension values and never an amount or a result row") so `rowLabels`, SAP account names,
+   the drill context, amounts and transaction rows are proven absent from every provider request.
+9. (spec C8 live) Manual live check, outside CI, against the July warehouse and the host's Bedrock
+   model, each question in a fresh conversation, recorded in the last commit's `Functional check:`
+   paragraph: as the admin, "show me list items where Actuals are more than the budget for July 2026"
+   shows names for all 21 codes and 50001201's Actual opens to lines footing to ₹83,98,339; as a
+   DUB-only user, a statement-line answer's Actual opens to the same lines as the statement screen's
+   drill for that line; the statement screen's panel shows the three new columns.
 
 ## Tasks
 
-<!-- One row per task. Covers: the Done-when numbers it delivers, at most three. Scope: the paths
-it may change. Tests: the tests it adds or changes. After: the tasks it waits for. When two tasks
-share a function, field, file format or command, the first task pins it: it commits the shared
-names and stubs plus one test that crosses both sides, and the tasks that use it list it under
-After. Split tasks so each owns its files; shared lines (command table, guide list, registry) go
-to one task or a small last wiring task; After only when a task needs another task's code. The
-moving-parts line stays last: "none", or each new dependency, service, datastore,
-queue, background job or abstraction layer, with the Done-when item that needs it. -->
-
 | ID | Name | What it delivers | Covers | Scope | Tests | After | User-facing |
 |---|---|---|---|---|---|---|---|
+| GL-DRILL-ROUTE | The signed answer link and the Ask transaction route | Pins the shared seam and the backend read: contract types (`AskResponse.drill`, the Ask drill request and response, `txnNo`/`costCenter`/`accountName` on `MisDrillLine` and the Ask drill line), the sibling signing service with its claims, the `POST /api/chat/drill` controller and service (verify, re-authorize, audit before read, predicate re-derivation in GL-and-plants and triples modes, pin binding, paging), the repository's new mode and columns, the statement drill passing the new columns through, the chat DTOs and Swagger, route and Swagger registries. One crossing leaf: a context issued by the signing service for a fixture answer opens through the route and foots to its signed Actual. No Ask answer issues a context yet and no frontend change. | 3, 6, 7 | `contract/src/api.ts`, `backend/src/chat/ask-drill-context.ts`, `backend/src/chat/ask-drill-context.test.ts`, `backend/src/chat/ask-drill.controller.ts`, `backend/src/chat/ask-drill.service.ts`, `backend/src/chat/ask-drill.service.test.ts`, `backend/src/chat/chat.module.ts`, `backend/src/chat/chat.schemas.ts`, `backend/src/warehouse/drill-transactions.repository.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts`, `backend/src/warehouse/drill-transactions.interface.ts`, `backend/src/mis/mis-drill.service.ts`, `backend/src/mis/mis-drill.dto.ts`, `backend/src/mis/mis-drill.service.test.ts`, `backend/src/core/audit.service.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | `backend/src/chat/ask-drill-context.test.ts`, `backend/src/chat/ask-drill.service.test.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts`, `backend/src/mis/mis-drill.service.test.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`, `tools/quality-gate.test.mjs` | none | no |
+| GL-NAMES | Names on GL and statement lines | The name resolver over `sap_transaction` under the executed query's scope with normalization, ties and budget-only fallback; statement labels from the pinned last-month outline; `AskResponse.rowLabels` attached in the chat service; `rowLabels` kept in the conversation snapshot; the Ask table renders "key · label" with the "+n more" disclosure. | 1, 2 | `backend/src/warehouse/gl-name.repository.ts`, `backend/src/warehouse/gl-name.repository.test.ts`, `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts`, `backend/src/conversations/conversations.service.ts`, `backend/src/conversations/conversations.service.test.ts`, `frontend/src/features/assistant/ask-panel.tsx`, `frontend/src/features/assistant/ask-panel.test.tsx`, `backend/package.json`, `tools/quality-gate.test.mjs` | `backend/src/warehouse/gl-name.repository.test.ts`, `backend/src/chat/chat.service.test.ts`, `backend/src/conversations/conversations.service.test.ts`, `frontend/src/features/assistant/ask-panel.test.tsx`, `tools/quality-gate.test.mjs` | GL-DRILL-ROUTE | yes |
+| GL-DRILL-ISSUE | Ask answers carry the signed link and clickable markers | The chat service issues `AskResponse.drill` only for supported shapes that display an authorized Actual, with per-row `drillable` from a feeding-line count, the bound plant predicate, batches, last-month budget batch when present, and statement triples; the model-boundary leaf extended. | 5, 8 | `backend/src/chat/chat.service.ts`, `backend/src/chat/chat.service.test.ts`, `backend/src/warehouse/drill-transactions.repository.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts` | `backend/src/chat/chat.service.test.ts`, `backend/src/warehouse/drill-transactions.repository.test.ts` | GL-NAMES | no |
+| GL-DRILL-PANEL | Click an Actual, see its transactions | The shared transaction panel opens from an Ask answer's `drillable` Actuals (GL and statement lines), calls the Ask route with context, row key and page, shows the replaced and refusal wording, and shows document number, cost centre and account name on both the Ask and statement screens; inert cells make no request. The live functional check. | 4, 9 | `frontend/src/features/mis/drill-panel.tsx`, `frontend/src/features/mis/drill-panel.test.tsx`, `frontend/src/features/assistant/ask-panel.tsx`, `frontend/src/features/assistant/ask-panel.test.tsx`, `frontend/src/lib/api.ts` | `frontend/src/features/mis/drill-panel.test.tsx`, `frontend/src/features/assistant/ask-panel.test.tsx` | GL-DRILL-ISSUE | yes |
 
-New moving parts: none
+New moving parts: the `POST /api/chat/drill` route (Done-when 3, 4, 6) and the Ask drill signing service, a sibling of the statement attestation on the same secrets (Done-when 6).
 
 ## Notes
+
+- Spec `docs/specs/ask-gl-names-and-transactions.md`, confirmed by Rahul Anand on 2026-10-02 (round 10).
+- Owner decisions, 2026-10-02: SAP name (most used, "+n more", MIS label fallback); only Actual opens
+  transactions; both the GL-code and statement-line views; the statement panel gains three columns.
+- Carried from the spec fix's final review (non-blocking): labels and drill rows are keyed by the raw
+  row key, which is unique in the supported shapes (one row per `gl_code` or `leaf_key`); an
+  actual-only statement answer may have no last-month budget batch, so the context allows an absent
+  budget pin and the read uses the bound triples alone (Done-when detail 6).
+- Known traps (AGENTS.md) applied: every new test file's task lists `backend/package.json` and
+  `tools/quality-gate.test.mjs`; no `.prettierignore`-listed file is in any Scope; workers run
+  `npm run quality` before their last commit; the live check asks each question in a fresh
+  conversation. No tool-schema or prompt change, so no model probe is needed.
+- The live check's DUB-only user is `dub@example.invalid` with role admin and plants DUB (the analyst
+  role lacks the `report` action), seeded by `npm run db:migrate` with `SEED_USERS`; the mock code is
+  in `backend/src/email/email.service.ts`.
