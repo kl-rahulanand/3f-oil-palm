@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T15:12:58+00:00
-read_hash: ce7e8c0c6d062dcb38d748690fe3cdb53cf868c7
-round: 1
+read_at: 2026-10-02T15:15:21+00:00
+read_hash: e467ae89d159db2b8729f3745ab2e705222816fe
+round: 2
 passed: no
-doc_seen: ce7e8c0c6d062dcb38d748690fe3cdb53cf868c7
+doc_seen: e467ae89d159db2b8729f3745ab2e705222816fe
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+notes_seen: 26e259b3069918e6bbd98d54abe86433baf2f386
 ---
 # Cold read notes
 
@@ -47,4 +47,26 @@ Only a genuine trade-off goes to the human, as a question with options.
 6. **Trap: no network in CI and fresh Ask conversations: C8.**
    - Mark C8 as a manual/live warehouse check, not a CI test, and require the quoted question in a fresh Ask conversation. Add hermetic proofs for name selection, fallback, pin/refusal/audit ordering, replacement/gone outcomes, inactive cells, and exact-paise footing.
    Disposition: cut C8 lists the hermetic proofs and marks the live check manual, outside CI, in a fresh Ask conversation.
+
+## Round 2
+
+7. **Gap: the “answer identity” needed for a tamper-proof drill is undefined.**
+   - Ask responses currently expose no durable answer/turn identifier that a drill endpoint can resolve to the original selection, effective scope, row amounts, and provenance; a session ID is not that identity.
+   - Specify a user-bound, opaque attestation or a server-owned answer record, its lifetime and refusal when missing/expired/deleted. The server must never accept a client-supplied selection, scope, or row amount as a substitute.
+   Disposition: cut supported answers carry a signed, user-bound, expiring drill context built like the statement attestation; the server refuses missing, altered, expired or other-user contexts with an audit record and never takes selection, scope, batches or amounts from the client (Behaviour, C5a).
+
+8. **Contradiction: “authorized plants” is not necessarily the plant predicate that fed a GL answer.**
+   - `governed-financial` currently aggregates from `actual_by_gl_month`, which is DUB-only. A reader authorized for DUB plus other plants could receive a DUB-only Actual while the proposed raw predicate reads that GL from every authorized plant, leaking rows and breaking the footer.
+   - Require the drill and name resolver to use the effective plant predicate of the executed governed query, and prove a mixed-scope user cannot add another plant’s transactions or names.
+   Disposition: cut names and the drill use the raw lines the executed governed query aggregated, under its effective plant predicate, never every authorized plant; a mixed-plant proof is required (Behaviour, C1, C5a, C8).
+
+9. **Contradiction: C1/C2 still say “active” batches/outlines while Behaviour requires the answer’s pinned batches and outline.**
+   - Resolve names against the pinned provenance, including statement-line labels, or an answer reopened after a re-upload can display a current outline label for an old leaf/result.
+   - C1/C2 and their hermetic proofs should explicitly cover replacement and a pinned outline that differs from the active one.
+   Disposition: cut C1 and C2 now resolve against the answer's pinned batches and outline, including after a re-upload, with hermetic proof (C1, C2, C8).
+
+10. **Gap: C6 does not state what an Ask reader sees for replaced and gone batches.**
+   - The current statement panel tells the reader to “Generate the statement again,” which is wrong in Ask; it currently withholds replaced-batch rows as well.
+   - Specify the Ask copy and whether a replaced pinned batch displays its rows/footer or the unavailable state, then prove both outcomes.
+   Disposition: cut Ask shows no rows and states the reload in its own words for a replaced or gone batch; the statement screen is unchanged (Behaviour, C6).
 
