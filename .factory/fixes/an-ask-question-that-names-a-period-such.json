@@ -3,7 +3,7 @@
   "branch": "fix/an-ask-question-that-names-a-period-such",
   "done_when": "A follow-up that names a period answers for that period whatever window the model emits; a question naming no period still inherits or aggregates as before; changing an answer's period still re-runs on the chosen period",
   "kind": "fix",
-  "status": "started",
+  "status": "working",
   "steps": [
     {
       "at": "2026-10-02T10:11:11+00:00",
