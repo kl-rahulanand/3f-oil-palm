@@ -2,36 +2,22 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-TXN-COLUMNS",
   "review": {
     "blocking_level": "P1",
-    "changed": "4fa09bfc3fec7f871b3259cc285a654444aca9151bee621fa8d5a5e3f44a0a5b",
-    "commit": "fd86a2c698bad7c9706033734bc033069e806da7",
+    "changed": "e18529f4fee59e8deccb686c0a48b89f7b83cfe6485a73e486443196c24cf4e2",
+    "commit": "4ad812429758549ce99befbdd1d569b9e89af207",
     "dismissals": [],
     "findings": [
       {
-        "body": "The only UI proof stubs `runMisDrill` and injects a fabricated response, so it never exercises the running statement screen, API, or database. The review contract requires user-facing Done-when items to have a Playwright flow through the real API and database, included in the repository test suite. No such test or Playwright suite exists, so failures in transport, serialization, or real query results would escape this coverage.",
-        "file": "frontend/src/features/mis/drill-panel.test.tsx",
-        "line": 196,
-        "priority": "P1",
-        "title": "Not done: end-to-end transaction-panel coverage"
-      },
-      {
-        "body": "This changes the visible table layout from seven to ten columns, but the task record contains only its start event and no impeccable inspection or emil-design-eng interaction checklist evidence. The supplied functional check verifies content and keyboard behavior, but not the required visual audit and polish pass for the widened panel.",
+        "body": "These cells are rendered only by the statement-bound `DrillPanel`; its selection still requires a `MisStatementResolvedResponse` and it reads through the statement drill hook. The general Ask answer therefore cannot display document number, cost centre, or account name yet. The plan assigns that integration to the later `GL-DRILL-PANEL` task, so this is deferred work rather than a blocking gap in this prerequisite task.",
         "file": "frontend/src/features/mis/drill-panel.tsx",
-        "line": 286,
-        "priority": "P1",
-        "title": "Not done: impeccable and emil-design-eng UI review"
-      },
-      {
-        "body": "The new cells are rendered only by the statement-bound `DrillPanel`; its selection still requires a `MisStatementResolvedResponse` and it calls the statement drill hook. The general Ask screen therefore cannot display these columns yet. The plan assigns that missing Ask-to-shared-panel integration to the later `GL-DRILL-PANEL` task, so this is deferred work rather than a P1 gap in this prerequisite task.",
-        "file": "frontend/src/features/mis/drill-panel.tsx",
-        "line": 306,
+        "line": 318,
         "priority": "P2",
         "title": "Later: show the three transaction fields in Ask \u2192 GL-DRILL-PANEL"
       }
     ],
-    "status": "blocked",
-    "tree": "80f2ec15cf6f3c91d5c408a5341a6e510265580b516e1426983d89d933006379"
+    "status": "clean",
+    "tree": "28181e921ae6807ff95d2187d5e6b24631b299bceb30c44574d24a397819097f"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-02T17:34:36+00:00",
@@ -39,6 +25,10 @@
     },
     {
       "at": "2026-10-02T17:52:43+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T18:11:59+00:00",
       "step": "review"
     }
   ]
