@@ -577,7 +577,9 @@ test("period words are detected even when they do not resolve to a window", () =
     "Compare this FY",
     "Show YTD",
     "Try the previous week",
-    "Which days were highest?",
+    "Show the last 3 months",
+    "Show 30 days",
+    "Compare this year",
     "Compare next month",
     "Since the last review",
   ]) {
@@ -586,40 +588,67 @@ test("period words are detected even when they do not resolve to a window", () =
 });
 
 test("an ordinary follow-up has no period words", () => {
-  assert.equal(hasTimePeriodWords("And which GL codes spent more than 3 lakh?"), false);
+  for (const question of [
+    "And which GL codes spent more than 3 lakh?",
+    "Show Actual by month",
+    "Which days were highest?",
+    "Show monthly Actual",
+  ]) {
+    assert.equal(hasTimePeriodWords(question), false, question);
+  }
 });
 
-test("an unresolved period phrase keeps the model's window instead of inheriting", async () => {
-  const augustSelection: Selection = {
-    ...financialSelection,
-    timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
-  };
-  const fixture = makeFixture({ selection: augustSelection });
+test("what about August after July resolves August 2026 regardless of the model window", async () => {
+  for (const modelWindow of [{ grain: "month" as const, from: "2026-09-01", to: "2026-09-30" }, undefined]) {
+    const fixture = makeFixture({
+      selection: { ...financialSelection, timeWindow: modelWindow },
+    });
 
-  const response = await fixture.service.ask(
-    userFor("governed-financial"),
-    "session",
-    "What about August?",
-    undefined,
-    undefined,
-    [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
-  );
+    const response = await fixture.service.ask(
+      userFor("governed-financial"),
+      "session",
+      "What about August?",
+      undefined,
+      undefined,
+      [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
+    );
+
+    assert.equal(response.responseClass, ResponseClass.Success);
+    assert.deepEqual(response.selection?.timeWindow, {
+      grain: "day",
+      from: "2026-08-01",
+      to: "2026-08-31",
+      column: "month",
+    });
+  }
+});
+
+test("a bare month on a first turn resolves to its latest occurrence regardless of the model window", async () => {
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      timeWindow: { grain: "month", from: "2025-09-01", to: "2025-09-30" },
+    },
+  });
+
+  const response = await fixture.service.ask(userFor("governed-financial"), "session", "What about January?");
+  const year = new Date().getUTCFullYear();
 
   assert.equal(response.responseClass, ResponseClass.Success);
   assert.deepEqual(response.selection?.timeWindow, {
-    grain: "month",
-    from: "2026-08-01",
-    to: "2026-08-31",
+    grain: "day",
+    from: `${year}-01-01`,
+    to: `${year}-01-31`,
     column: "month",
   });
 });
 
-test("what about May keeps the model's May window", async () => {
-  const maySelection: Selection = {
+test("what about May resolves May instead of keeping another model window", async () => {
+  const juneSelection: Selection = {
     ...financialSelection,
-    timeWindow: { grain: "month", from: "2026-05-01", to: "2026-05-31" },
+    timeWindow: { grain: "month", from: "2026-06-01", to: "2026-06-30" },
   };
-  const fixture = makeFixture({ selection: maySelection });
+  const fixture = makeFixture({ selection: juneSelection });
 
   const response = await fixture.service.ask(
     userFor("governed-financial"),
@@ -632,9 +661,50 @@ test("what about May keeps the model's May window", async () => {
 
   assert.equal(response.responseClass, ResponseClass.Success);
   assert.deepEqual(response.selection?.timeWindow, {
-    grain: "month",
+    grain: "day",
     from: "2026-05-01",
     to: "2026-05-31",
+    column: "month",
+  });
+});
+
+test("show Actual by month aggregates when the model invents a window on a first turn", async () => {
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      timeWindow: { grain: "day", last: 31 },
+    },
+  });
+
+  const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show Actual by month");
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.equal(response.selection?.timeWindow, undefined);
+  assert.equal(response.periodControl?.current, null);
+});
+
+test("show Actual by month inherits July when the model invents a follow-up window", async () => {
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      timeWindow: { grain: "day", last: 31 },
+    },
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by month",
+    undefined,
+    undefined,
+    [{ question: "Show Actual for July 2026", selection: financialSelection }],
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(response.selection?.timeWindow, {
+    grain: "month",
+    from: "2026-07-01",
+    to: "2026-07-01",
     column: "month",
   });
 });

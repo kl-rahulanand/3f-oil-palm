@@ -384,7 +384,9 @@ export class ChatService {
     // With no period language, discard a guessed model window so inheritance or all-data applies.
     // Edited selections are period-control re-runs and must keep the window the user chose.
     if (!usesEditedSelection) {
-      const parsedTimeWindow = parseTimeWindow(question, new Date());
+      const now = new Date();
+      const parsedTimeWindow =
+        parseTimeWindow(question, now) ?? parseNamedMonthTimeWindow(question, priorSelection?.timeWindow, now);
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
       else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
@@ -695,13 +697,37 @@ export class ChatService {
   }
 }
 
-const PERIOD_WORD_PATTERN =
-  /\b(?:january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec|quarter|q[1-4]|year|fy|ytd|weeks?|days?|months?|today|yesterday|since)\b/i;
+const PERIOD_WORD_PATTERN = /\b(?:quarter|q[1-4]|fy|ytd|today|yesterday|since)\b/i;
 const MAY_PERIOD_PATTERN =
   /\b(?:(?:in|for|of|during|since|from|until|till|through|to|by|about|before|after)\s+may|may\s+(?:\d{4}|[1-9]|[12]\d|3[01])|(?:[1-9]|[12]\d|3[01])\s+may)\b/i;
+const RELATIVE_GRANULARITY_PATTERN =
+  /\b(?:(?:last|past|previous|this|next|current)\s+(?:\d+\s+)?|\d+\s+)(?:days?|weeks?|months?|years?)\b/i;
+const NAMED_MONTH_PATTERN =
+  /\b(january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/i;
+const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 export function hasTimePeriodWords(text: string): boolean {
-  return PERIOD_WORD_PATTERN.test(text) || MAY_PERIOD_PATTERN.test(text);
+  return (
+    PERIOD_WORD_PATTERN.test(text) ||
+    NAMED_MONTH_PATTERN.test(text) ||
+    MAY_PERIOD_PATTERN.test(text) ||
+    RELATIVE_GRANULARITY_PATTERN.test(text)
+  );
+}
+
+function parseNamedMonthTimeWindow(
+  text: string,
+  priorWindow: Selection["timeWindow"] | undefined,
+  now: Date,
+): Selection["timeWindow"] | null {
+  const monthName = NAMED_MONTH_PATTERN.exec(text)?.[1] ?? (MAY_PERIOD_PATTERN.test(text) ? "may" : undefined);
+  if (!monthName) return null;
+  const month = MONTH_PREFIXES.indexOf(monthName.slice(0, 3).toLowerCase()) + 1;
+
+  const priorYear = (priorWindow?.from ?? priorWindow?.to)?.match(/^(\d{4})-/)?.[1];
+  const year = priorYear ? Number(priorYear) : now.getUTCFullYear() - (month > now.getUTCMonth() + 1 ? 1 : 0);
+  const from = `${year}-${String(month).padStart(2, "0")}-01`;
+  return { grain: "day", from, to: monthEnd(from) };
 }
 
 const MEASURE_FILTER_REFUSAL_MESSAGES: Record<MeasureFilterInvalidReason, string> = {
