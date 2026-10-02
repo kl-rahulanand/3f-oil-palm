@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T15:18:26+00:00
-read_hash: e78ad8b07af94d690ca1c53fb75e43ba3a571f5d
-round: 4
+read_at: 2026-10-02T15:19:38+00:00
+read_hash: 394a67ad592db0d50cc1b4bddf9ec899ce6469bf
+round: 5
 passed: no
-doc_seen: e78ad8b07af94d690ca1c53fb75e43ba3a571f5d
+doc_seen: 394a67ad592db0d50cc1b4bddf9ec899ce6469bf
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 202d86095e4576cfc3442f71d7c96cecdf7a05ae
+notes_seen: 53951f41044739f8ba671195d69f33471686aeb3
 ---
 # Cold read notes
 
@@ -103,4 +103,21 @@ Only a genuine trade-off goes to the human, as a question with options.
    - Current `AskResponse` and `ConversationAnswerSnapshot` have no drill-context or per-row drill metadata. “Carries a signed drill context” does not pin its response field, row association, or expired-context behaviour after a page/conversation reopen.
    - Define the contract and require a re-run to mint a fresh context when it is absent or expired; prove a hydrated old answer cannot issue a drill with stale or missing metadata.
    Disposition: cut AskResponse gains optional drillContext and per-row drillable, not stored in snapshots, saved views or pins; expired or stored answers refuse with stated wording and saved or pinned reopens re-run for a fresh context (Behaviour, C5b, C8).
+
+## Round 5
+
+17. **Gap: `drillable` cannot be added directly to a current result row without changing the generic table contract.**
+   - `ResultTable.rows` permits only string, number, or null values; a boolean violates that type. Adding it as a table column would also render an unintended column.
+   - Define typed drill metadata outside the generic rows, keyed by row index/key, and prove it remains absent from non-drillable answer shapes.
+   Disposition: cut drill metadata is a typed drill object outside ResultTable (signed context plus rows of key and drillable), absent on unsupported shapes, with proof (Behaviour, C5b, C8).
+
+18. **Contradiction: partial plant-scope revocation is not refused.**
+   - The text refuses only when the reader loses “every plant” in the signed predicate. If an answer covered plants A and B and access to B is revoked, the reader still has A; retaining the original predicate leaks B, while narrowing it violates the no-partial-footer rule.
+   - Require refusal when access to any plant in the signed predicate is lost, with a hermetic partial-revocation proof.
+   Disposition: cut losing any one plant in the signed predicate refuses the drill, with a partial-revocation proof (Behaviour, C5c, C8).
+
+19. **Contradiction: stored conversation answers cannot both be clickable and preserve inert rows.**
+   - C5b excludes both `drillContext` and `drillable` from the stored snapshot, yet says a stored answer’s click is refused. Without the marker, the UI cannot distinguish a genuine zero-net Actual from a budget-only Actual; making every stored Actual clickable violates C7.
+   - Specify that stored answers render all Actuals inert with an “Ask again” affordance, or retain a non-authoritative eligibility marker solely for rendering while the server still refuses absent context.
+   Disposition: cut a stored conversation answer renders every Actual inert with an 'Ask again' action that re-runs it, so no marker is stored and no budget-only Actual becomes clickable (Behaviour, C5b, C8).
 
