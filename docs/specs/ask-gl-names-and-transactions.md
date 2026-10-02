@@ -53,7 +53,8 @@ figure against its source transactions without switching screens.
 
 - Supported answers: an Ask answer whose only row dimension is the domain's line dimension, `gl_code`
   in governed-financial or `leaf_key` in mis-statement, with any dimension filters, comparisons and
-  time window. In any other shape (no breakdown, or a breakdown by month or by several dimensions)
+  time window, AND whose displayed measures include that domain's Actual, which the reader is
+  authorized to see. In any other shape (no breakdown, or a breakdown by month or by several dimensions)
   no Actual is clickable.
 - Each supported Ask answer carries a signed drill context, built the way the statement screen's
   signed context is built (`backend/src/mis/statement-attestation.ts`): it binds the reader, the
@@ -68,7 +69,10 @@ figure against its source transactions without switching screens.
   `ResultTable` rows (whose cells stay string, number or null and gain no column): an opaque signed
   `context` string and a `rows` list of `{ key, drillable }` matching result rows by key. The client
   uses `drillable` only to render an Actual as a button; the server re-checks it against the signed
-  context on every click. Answers of other shapes carry no `drill` object. Neither is stored in the
+  context on every click. Answers of other shapes, and answers that do not display an authorized
+  Actual (Budget-only, `%`-only, or a reader without the Actual grant), carry no `drill` object. The
+  context is signed, not encrypted, so it holds only values that answer already displays: the row
+  keys and the Actuals shown on screen, never a figure the answer did not show. Neither is stored in the
   conversation answer snapshot, a saved view or a pin. A saved view or pin reopens by re-running, so
   it gets a fresh context. An answer shown from a stored conversation renders every Actual inert,
   with an "Ask again to open transactions" action that re-runs it; an answer whose context has
@@ -153,7 +157,8 @@ figure against its source transactions without switching screens.
 - **C5** Every opening writes the typed drill audit record before the read and fails closed when the
   write fails; a reader outside the line's plants is refused, audited, and sees no rows.
 - **C5b** `AskResponse` carries an optional typed `drill` object (signed `context` and `rows` of
-  `{ key, drillable }`) outside `ResultTable`, absent for unsupported shapes; the conversation
+  `{ key, drillable }`) outside `ResultTable`, absent for unsupported shapes and for answers that do
+  not display an authorized Actual, and the context holds no figure the answer did not display; the conversation
   snapshot, saved views and pins do not store it; a stored conversation answer renders every Actual
   inert with an "Ask again" action; an expired answer's click is refused with the stated wording; a
   saved or pinned reopen gets a fresh context from its re-run.
@@ -176,7 +181,8 @@ figure against its source transactions without switching screens.
   re-upload, signed-context refusals, the signed per-row Actual and marker, replaced and gone
   actuals and budget batches, an expired or stored answer, access revoked after the answer was
   shown (including losing one of several plants), the absent `drill` object on unsupported shapes,
-  inert Actuals on a stored answer, a mixed-plant reader, predicate re-derivation and refusal, audit-before-read ordering, replaced and gone batches, inert cells and
+  inert Actuals on a stored answer, no `drill` object and no Actual value for a Budget-only answer
+  or a reader without the Actual grant, a mixed-plant reader, predicate re-derivation and refusal, audit-before-read ordering, replaced and gone batches, inert cells and
   exact-paise footing. A manual live check against the July warehouse and the host's Bedrock model,
   outside CI and in a fresh Ask conversation: "show me list items where Actuals are more than
   the budget for July 2026" shows names for all 21 codes, and opening 50001201's Actual foots to

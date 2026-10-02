@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T15:19:38+00:00
-read_hash: 394a67ad592db0d50cc1b4bddf9ec899ce6469bf
-round: 5
+read_at: 2026-10-02T15:21:02+00:00
+read_hash: dd45e4b2eb92b99591fc3a3c9ded49520349dbad
+round: 6
 passed: no
-doc_seen: 394a67ad592db0d50cc1b4bddf9ec899ce6469bf
+doc_seen: dd45e4b2eb92b99591fc3a3c9ded49520349dbad
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 53951f41044739f8ba671195d69f33471686aeb3
+notes_seen: 164721d086250a590b2978f50f5f12dc75c6960c
 ---
 # Cold read notes
 
@@ -120,4 +120,11 @@ Only a genuine trade-off goes to the human, as a question with options.
    - C5b excludes both `drillContext` and `drillable` from the stored snapshot, yet says a stored answer’s click is refused. Without the marker, the UI cannot distinguish a genuine zero-net Actual from a budget-only Actual; making every stored Actual clickable violates C7.
    - Specify that stored answers render all Actuals inert with an “Ask again” affordance, or retain a non-authoritative eligibility marker solely for rendering while the server still refuses absent context.
    Disposition: cut a stored conversation answer renders every Actual inert with an 'Ask again' action that re-runs it, so no marker is stored and no budget-only Actual becomes clickable (Behaviour, C5b, C8).
+
+## Round 6
+
+20. **Security gap: the drill context can disclose Actuals for an answer that did not show them.**
+   - Supported shape is defined only by its row dimension, so a Budget-only or %-only GL/leaf answer may receive a context containing every row’s exact Actual. The referenced statement attestation is HMAC-signed, not encrypted; its base64 payload is readable by the client.
+   - Issue `drill` only when the corresponding Actual measure was selected and authorized, and make the context genuinely opaque (encrypted or server-held) if it contains amounts. Add a hermetic Budget-only/no-Actual-permission proof that no drill metadata or Actual values are returned.
+   Disposition: cut the drill object is issued only when the answer displays an authorized Actual, and the signed context holds only values the answer already displays; Budget-only and no-grant proofs added (Behaviour, C5b, C8).
 
