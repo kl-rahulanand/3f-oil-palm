@@ -5,33 +5,26 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "1ecc60a2b8fcfbfeb14894234695f5d76f3c21dd9c5d5cfab98574908a220e58",
-    "commit": "e25ac64eb6a0d815ce3d71a5ba54cc78719503a2",
+    "changed": "73682eb1eee2e66aa7c79d78e4dee135ad68548ca2b3a9df36dd9ed2280d8145",
+    "commit": "b0e4ce2ab8f735347924160c18590161d1ae7eb7",
     "dismissals": [],
     "findings": [
       {
-        "body": "`calendarYear` does not recognize the common `between \u2026 and \u2026` comparison form. For example, \u201cShow GL codes whose Actual amount is between 2025 and 3000 rupees\u201d does not match any amount prefix/suffix guard for the first number, so 2025 becomes a full-year window and overrides the model or inherited window. This directly violates the requirement that an amount is never read as a year, and the regression matrix omits amount ranges.",
+        "body": "`QUANTITY_OF_YEAR_PATTERN` recognizes only \u201camount/total/value \u2026 of 2025\u201d, while the comparison guard does not recognize the equally explicit form \u201cis 2025\u201d. Consequently, \u201cShow GL codes where Actual amount is 2025\u201d reaches `calendarYear`, which returns 2025 and replaces the model or inherited window with the whole calendar year. This violates the requirement that an amount is never read as a year, and the regression matrix has no scalar `amount is \u2026` case.",
         "file": "backend/src/chat/chat.service.ts",
         "line": 731,
         "priority": "P1",
-        "title": "Not done: An amount range can still be read as a calendar year"
+        "title": "Not done: An amount phrased with \u201cis\u201d can still be read as a calendar year"
       },
       {
-        "body": "The display-granularity stripping fixes \u201cby quarter,\u201d but other common no-period wording remains broken. \u201cShow quarter over quarter Actual\u201d cannot be resolved by either parser, yet the bare `quarter` matches `PERIOD_WORD_PATTERN`; consequently the model-emitted window is neither cleared nor replaced by the prior window. The question names no specific period, so it must inherit or aggregate as required. The added matrix has many display forms but no quarter-over-quarter case.",
+        "body": "After stripping the enumerated display/comparison phrases, any remaining bare `quarter` still satisfies `PERIOD_WORD_PATTERN`. For example, \u201cShow a quarter breakdown of Actual\u201d is not parsed by either time-window parser, but `hasTimePeriodWords` returns true, so the model-emitted window is retained and a prior window is not inherited. This question names no specific period and therefore must inherit or aggregate; the added matrix covers \u201cby quarter\u201d and quarter-over-quarter but not this generic granularity wording.",
         "file": "backend/src/chat/chat.service.ts",
         "line": 704,
         "priority": "P1",
-        "title": "Not done: \u201cquarter over quarter\u201d can preserve the model\u2019s arbitrary window"
+        "title": "Not done: A generic quarter breakdown can preserve the model\u2019s arbitrary window"
       },
       {
-        "body": "An unambiguous named month such as \u201cShow July/2025\u201d is not accepted by `MONTH_WITH_YEAR_PATTERN`, although numeric month/year and quarter/year slash forms are supported. `parseTimeWindow` also cannot parse it, after which `parseNamedTimeWindow` finds the bare year before considering the month and selects all of 2025. Thus this month-with-year wording answers for the wrong period regardless of the model window. The table covers `07/2025` and `Q3/2025` but omits the named-month equivalent.",
-        "file": "backend/src/chat/chat.service.ts",
-        "line": 719,
-        "priority": "P1",
-        "title": "Not done: A named month/year with a slash is reduced to the whole year"
-      },
-      {
-        "body": "The prior coverage gap remains open. The new matrix invokes `ChatService.ask` through `makeFixture`, whose provider, executor/database, audit, dimensions, and resolver are fakes; the period-control test uses the same boundary. The unchanged root test command (`package.json` line 26) runs Node/Vitest suites, while the frontend test script (`frontend/package.json` line 9) is jsdom Vitest and the repository contains no Playwright specification or dependency. Therefore named-period follow-ups, inheritance/aggregation, and edited-period reruns still lack the required browser \u2192 running API \u2192 real database proof; the successful close run only proves the hermetic tests.",
+        "body": "The period matrix and rerun test exercise `ChatService.ask` through `makeFixture`, whose provider, executor/database, audit, dimensions, and resolver are fakes. The registered root suite (`package.json:26`) runs Node/Vitest tests, the frontend suite (`frontend/package.json:9`) is jsdom Vitest, and there is no Playwright specification exercising a browser against the running API and a real database. Thus the named-period override, no-period inheritance/aggregation, amount protection, and edited-period rerun still lack the required end-to-end user-flow proof; the successful close run only establishes the hermetic tests.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -39,7 +32,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "6be3f4a6d16fc41a971081eccea71b5f4bb1bcb7785631c819fa12c1594360ec"
+    "tree": "7043f5f054f05731abe591d94fb86c0a81ad9fe34c8a2d386c32d29ad3787974"
   },
   "status": "fixing",
   "steps": [
@@ -85,6 +78,10 @@
     },
     {
       "at": "2026-10-02T12:14:50+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T12:26:45+00:00",
       "step": "review"
     }
   ],
