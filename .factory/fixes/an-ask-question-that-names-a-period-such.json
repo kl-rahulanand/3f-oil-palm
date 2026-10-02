@@ -3,11 +3,39 @@
   "branch": "fix/an-ask-question-that-names-a-period-such",
   "done_when": "A follow-up that names a period answers for that period whatever window the model emits; a question naming no period still inherits or aggregates as before; changing an answer's period still re-runs on the chosen period",
   "kind": "fix",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "52c816b63375c5209d19dd89eecf4a63f6700d7b5dea14f27fcd8c75bf87930b",
+    "commit": "cee7a914f5a3ddc5a8cb0071413966b9d57f697d",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The period-word heuristic treats the common modal verb \u201cMay\u201d as a month. For example, `May I see Actual by GL code?` has no requested period and `parseTimeWindow` returns null, but this regex makes `hasTimePeriodWords` return true. Consequently the new branch does not clear a model-emitted window such as `last: 31`, so a fresh question does not aggregate all loaded data and a follow-up does not inherit its prior window. This violates the explicit no-period requirement.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 699,
+        "priority": "P1",
+        "title": "Not done: A follow-up that names a period answers for that period whatever window the model emits; a question naming no period still\n       "
+      },
+      {
+        "body": "The added regression coverage calls `ChatService.ask` directly with a fake LLM and fake executor. It therefore does not prove the required user-facing flow through the running API, real database, and browser: carrying prior turns, overriding a wrong model window, inheriting/aggregating when no period is named, and changing the answer period. The repository evidence contains no Playwright scenario for these behaviors, so the change is proven only at a mocked unit boundary.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 453,
+        "priority": "P1",
+        "title": "Not done: end-to-end Ask coverage for period selection and reruns"
+      }
+    ],
+    "status": "blocked",
+    "tree": "e1680ef700227b5a32d90d849b7a2b7a3ad53447c4b1d31836920f66c97b631c"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-02T10:11:11+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-02T10:31:22+00:00",
+      "step": "review"
     }
   ],
   "why": "An Ask question that names a period, such as July 2026, answers for that period even as a follow-up in the same thread; the model's own window and the previous answer's window used to win"
