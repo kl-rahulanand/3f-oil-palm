@@ -2,22 +2,22 @@
   "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-SURFACES",
   "review": {
     "blocking_level": "P1",
-    "changed": "a48be059ddb00c6af4fab413c2a762d961953995c4b3ff64ef4ab7284db6c947",
-    "commit": "536236b21d090a9d2e10851a7620730cc6344d64",
+    "changed": "fd0d39cb804d1bc5841340445f8810e7405d711ebeac041e3f5524fcd63c01e2",
+    "commit": "2b980ffe2c825ec4d35c477ea211e53c91bc394b",
     "dismissals": [],
     "findings": [
       {
-        "body": "New evidence beyond the prior ruling/fix: `coversWholeCalendarMonths` is applied without checking the window column. Consequently, a `posting_date` window from `2026-07-01` through `2026-07-31` with no `periodControl` is still rendered as `July 2026`, even though the ruling permits month-name collapsing only for same-month windows on the `month` column and requires other windows to retain exact date wording. This affects both the readout and empty-state message. Restrict month collapsing to `window.column === \"month\"` and add a full-calendar `posting_date` case alongside the partial-range leaves.",
+        "body": "New evidence beyond the prior fix: production success responses always include `periodControl` (`backend/src/chat/chat.service.ts:583`), and custom controls use raw ISO labels (`chat.service.ts:1053-1059`). Returning that label here before formatting `appliedTimeWindow` means a `posting_date` range still renders as `2026-07-10 \u2013 2026-07-20`; a full July range matching an option can collapse to `2026-07-01`. This affects both the readout and empty-state message. The new tests miss the production path because `postingDateWindowSuccess` deletes `periodControl` at `ask-panel.test.tsx:1089`. Format non-month windows from `appliedTimeWindow` before falling back to the control label, and cover the response with its control retained.",
         "file": "frontend/src/features/assistant/ask-panel.tsx",
-        "line": 689,
+        "line": 687,
         "priority": "P2",
-        "title": "Preserve exact full-month ranges for non-month columns"
+        "title": "Preserve exact non-month dates when a period control is present"
       }
     ],
     "status": "clean",
-    "tree": "63fe7bb3eaaa7e3c914b5952eb81c867d8e6c1e9393e7f0c6fccaf401b039bca"
+    "tree": "d19b2a1368dab51d85b9103797b1bc59bd8ac8663daf221d05482f6f0c4f262e"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-01T20:35:51+00:00",
@@ -33,6 +33,10 @@
     },
     {
       "at": "2026-10-02T07:54:43+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T08:05:07+00:00",
       "step": "review"
     }
   ]
