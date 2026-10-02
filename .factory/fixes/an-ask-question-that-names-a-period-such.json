@@ -5,19 +5,19 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "6a475e174294da1ea1ec7177ca1d1594ee4f26e4f7d03c55ff3f236323773d8f",
-    "commit": "1e05112a301abfdf0d211ed1fc13100f950181cd",
+    "changed": "12a66e5545d4ebcf11b0eb3d680267626c1aef4aea603397acb13ac33f589228",
+    "commit": "a382d8ea369f742adfb7b1b9fe90be4cd0172e9f",
     "dismissals": [],
     "findings": [
       {
-        "body": "The amount guard still requires at least one linking token after an amount word. Consequently, a clear amount phrase such as `Show actual amount 2025` does not match `LINKED_AMOUNT_YEAR_PATTERN`: the final `amount` has no following link, so `calendarYear` accepts 2025 and replaces the model/prior window with calendar year 2025. On a follow-up this returns the wrong period instead of inheriting the prior window. This is new evidence distinct from the ruled `Actual to/of 2025` cases and the now-covered `totalling to 2025` case.",
+        "body": "A thousands-formatted amount such as `Show actual amount 2,025` is still classified as calendar year 2025. `CALENDAR_YEAR_PATTERN` matches the digits after the comma, while the amount-context checks receive `Show actual amount 2,` and therefore match neither the direct-quantity nor linked-amount patterns. On a follow-up this overrides the inherited window with all of 2025. This is new evidence not covered by the ruling preserving `Actual to/of 2025`, and is distinct from the newly covered unformatted `actual amount 2025` case.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 888,
+        "line": 724,
         "priority": "P1",
         "title": "Not done: an amount is never read as a year"
       },
       {
-        "body": "The added matrix and rerun tests exercise `ChatService.ask` through `makeFixture`, whose LLM, executor/warehouse, audit, dimensions, reports, and resolver are fakes. The frontend period-control tests also mock the API. The registered suite at `package.json:26` and `backend/package.json:18` contains no Playwright/browser path through a running API and real database. Therefore named-period precedence, no-period inheritance/aggregation, amount protection, and changing the answer period still lack the required user-flow proof. The successful close run only confirms these mocked service/jsdom boundaries, so the prior test-audit blocker remains open.",
+        "body": "The new matrix and rerun checks still call `ChatService.ask` through `makeFixture`, where the model, executor/warehouse, audit, dimensions, reports, and resolver are fakes. Frontend period-control tests likewise mock the API, and the registered package test commands contain no Playwright/browser flow through a running API and real database. Thus named-period precedence, inheritance/aggregation, amount protection, and edited-period reruns remain proven only at mocked service/jsdom boundaries, contrary to the required end-to-end user-flow test. The successful close run does not close this prior test-audit blocker.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -25,7 +25,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "a598a27c2ff1e6d0756318ee0aa1c53dc9e82f0e7882c029370dbe949c7d88ac"
+    "tree": "9204eb884f42be67aea386f84123bbeff045df0725d8b294bace9ef9cf077926"
   },
   "status": "fixing",
   "steps": [
@@ -99,6 +99,10 @@
     },
     {
       "at": "2026-10-02T13:41:01+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T13:48:29+00:00",
       "step": "review"
     }
   ],
