@@ -707,6 +707,8 @@ const RELATIVE_GRANULARITY_PATTERN =
   /\b(?:(?:last|past|previous|this|next|current)\s+(?:\d+\s+)?|\d+\s+)(?:days?|weeks?|months?|years?)\b/i;
 const DISPLAY_GRANULARITY_PATTERN =
   /\b(?:(?:for\s+each|by|per|each|every)\s+(?:day|week|month|quarter|year|fy|period)|daily|weekly|monthly|quarterly|yearly|annually|annual|month-?wise|quarter-?wise|year-wise)\b/gi;
+const PERIOD_COMPARISON_PATTERN =
+  /\b(?:(?:quarter|month|year|week|period)\s+(?:over|on)\s+(?:quarter|month|year|week|period)|qoq|mom|yoy|wow|(?:day|week|month|quarter|year|period)\s+trends?)\b/gi;
 const MONTH_NAMES =
   "january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec";
 const NAMED_MONTH_PATTERN =
@@ -716,7 +718,7 @@ const QUARTER_WITH_YEAR_PATTERN =
   /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)(?:\s+of\s+|\s*,\s*|\s*-\s*|\s*\/\s*|\s+)(199\d|20\d{2})\b/i;
 const QUARTER_WITH_APOSTROPHE_YEAR_PATTERN = /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)\s+['’](\d{2})\b/i;
 const MONTH_WITH_YEAR_PATTERN = new RegExp(
-  `\\b(${MONTH_NAMES})(?:\\s+of\\s+|\\s*,\\s*|\\s*-\\s*|\\s+)(199\\d|20\\d{2})\\b`,
+  `\\b(${MONTH_NAMES})(?:\\s+of\\s+|\\s*,\\s*|\\s*[-/._]\\s*|\\s+)(199\\d|20\\d{2})\\b`,
   "i",
 );
 const MONTH_WITH_APOSTROPHE_YEAR_PATTERN = new RegExp(`\\b(${MONTH_NAMES})\\s+['’](\\d{2})\\b`, "i");
@@ -729,12 +731,23 @@ const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|cro
 const QUANTITY_OF_YEAR_PATTERN = /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)\s+of\s*$/i;
 const COMPARISON_YEAR_PREFIX_PATTERN =
   /(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])\s*$/i;
+const RANGE_ENDPOINT = String.raw`(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)?`;
+const NUMBER_RANGE_PATTERNS = [
+  new RegExp(`\\bbetween\\s+${RANGE_ENDPOINT}\\s+and\\s+${RANGE_ENDPOINT}\\b`, "i"),
+  new RegExp(`\\bfrom\\s+${RANGE_ENDPOINT}\\s+to\\s+${RANGE_ENDPOINT}\\b`, "i"),
+  new RegExp(`(?<![A-Za-z0-9_])${RANGE_ENDPOINT}\\s+to\\s+${RANGE_ENDPOINT}\\b`, "i"),
+  new RegExp(`(?<![A-Za-z0-9_])${RANGE_ENDPOINT}\\s*-\\s*${RANGE_ENDPOINT}\\b`, "i"),
+];
+const RANGE_AMOUNT_MARKER_PATTERN = /(?:₹|\b(?:rs\.?|inr|rupees?|lakhs?|crores?|k|thousand)\b)/i;
+const RANGE_QUANTITY_PREFIX_PATTERN =
+  /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)(?:\s+is)?\s*$/i;
+const RANGE_MEASURE_PREFIX_PATTERN = /\b(?:actual|budget)\s*$/i;
 const MAY_MODAL_PATTERN =
   /\bmay\s+(?:i|we|you|he|she|they|it|this|that|there|be|have|not|also|still|need|want|see|get|show|know|help)\b/i;
 const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 function hasTimePeriodWords(text: string): boolean {
-  const periodText = text.replace(DISPLAY_GRANULARITY_PATTERN, " ");
+  const periodText = text.replace(DISPLAY_GRANULARITY_PATTERN, " ").replace(PERIOD_COMPARISON_PATTERN, " ");
   return (
     FISCAL_PERIOD_PATTERN.test(periodText) ||
     PERIOD_WORD_PATTERN.test(periodText) ||
@@ -765,6 +778,10 @@ function parseNamedTimeWindow(
   now: Date,
 ): Selection["timeWindow"] | null {
   if (FISCAL_PERIOD_PATTERN.test(text)) return null;
+
+  const yearRange = classifyYearRange(text);
+  if (yearRange?.kind === "amount") return null;
+  if (yearRange) return calendarYearRange(yearRange.first, yearRange.second);
 
   const relative = text.match(/\b(last|previous|this)\s+(month|quarter|year)\b/i);
   if (relative) {
@@ -816,6 +833,7 @@ function parseNamedTimeWindow(
 
 function calendarYear(text: string): number | null {
   if (FISCAL_PERIOD_PATTERN.test(text)) return null;
+  if (classifyYearRange(text)?.kind === "amount") return null;
   for (const match of text.matchAll(CALENDAR_YEAR_PATTERN)) {
     const index = match.index ?? 0;
     const before = text.slice(0, index);
@@ -828,6 +846,30 @@ function calendarYear(text: string): number | null {
     )
       continue;
     return Number(match[1]);
+  }
+  return null;
+}
+
+function classifyYearRange(
+  text: string,
+): { kind: "calendar"; first: number; second: number } | { kind: "amount" } | null {
+  for (const pattern of NUMBER_RANGE_PATTERNS) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const first = Number(match[1]);
+    const second = Number(match[2]);
+    const before = text.slice(0, match.index);
+    const isCalendarYear = (value: number) => Number.isInteger(value) && value >= 1990 && value <= 2099;
+    if (
+      !isCalendarYear(first) ||
+      !isCalendarYear(second) ||
+      RANGE_AMOUNT_MARKER_PATTERN.test(match[0]) ||
+      COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
+      RANGE_QUANTITY_PREFIX_PATTERN.test(before) ||
+      RANGE_MEASURE_PREFIX_PATTERN.test(before)
+    )
+      return { kind: "amount" };
+    return { kind: "calendar", first, second };
   }
   return null;
 }
@@ -848,6 +890,12 @@ function anchorYear(priorWindow: Selection["timeWindow"] | undefined, now: Date,
 function calendarWindow(year: number, startMonth: number, endMonth = startMonth): Selection["timeWindow"] {
   const from = calendarMonthStart(year, startMonth);
   return { grain: "day", from, to: monthEnd(calendarMonthStart(year, endMonth)) };
+}
+
+function calendarYearRange(first: number, second: number): Selection["timeWindow"] {
+  const fromYear = Math.min(first, second);
+  const toYear = Math.max(first, second);
+  return { grain: "day", from: `${fromYear}-01-01`, to: `${toYear}-12-31` };
 }
 
 function calendarMonthStart(year: number, month: number): string {
