@@ -5,19 +5,19 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "1e31f0219833c62f21963c35d01f3afa6d1ce41fd46b604f97369dfdeab77777",
-    "commit": "a195a8be9c87625c85e79a5a70904f59803e182b",
+    "changed": "55e2baf1ab9cc882b77027c6d0556c65ee7c73a17de41a1e96a6a67aa75ec7de",
+    "commit": "43286d7668943424b110c8ff4707f936291cd3f9",
     "dismissals": [],
     "findings": [
       {
-        "body": "The fallback still does not deterministically resolve every explicitly named period. For example, after a July 2026 answer, \u201cWhat about 2025?\u201d names an unambiguous year, but neither parser recognizes a year alone and `hasTimePeriodWords` returns false, so line 391 removes even a correct model window and the later inheritance restores July 2026. Conversely, \u201cShow Q3\u201d is classified as period language but cannot be parsed without an explicit year, so a wrong model-emitted window survives unchanged. Thus explicit periods do not win whatever window the model emits, as required.",
+        "body": "Detected-but-unparsed period language still preserves the model's window at this branch. `hasTimePeriodWords` recognizes expressions such as \u201cprevious week\u201d, \u201cnext month\u201d, \u201cYTD\u201d, and \u201cFY\u201d, but neither parser resolves them, so a wrong model window remains authoritative. There are also deterministic misparses: \u201cthird quarter of 2025\u201d returns before considering the explicit year and anchors to the prior/current year, while any four-digit financial value such as \u201camounts over 2025\u201d is treated as a calendar year, breaking the no-period inheritance/aggregation case. The new detector-only test explicitly lists several unresolved expressions without verifying their selected windows, so the full Done-when behavior remains unmet.",
         "file": "backend/src/chat/chat.service.ts",
         "line": 391,
         "priority": "P1",
-        "title": "Not done: Named periods must override the model; no-period turns must inherit/aggregate; edited periods must rerun as chosen"
+        "title": "Not done: A follow-up that names a period answers for that period whatever window the model emits; a question naming no period still inhe"
       },
       {
-        "body": "The added regression scenarios call `ChatService.ask` directly with fake model, executor, warehouse, and audit boundaries. Repository inspection found no Playwright test/configuration or browser test command covering a named-period follow-up, no-period inheritance/aggregation, and changing an answer\u2019s period. The existing frontend tests also mock the Ask API. Consequently, this user-facing behavior remains proven only by unit/component tests rather than through a browser, running API, real database, prior-turn transport, and period control as required.",
+        "body": "The added regression scenarios beginning here call `ChatService.ask` through `makeFixture`, whose model, executor, warehouse, and audit boundaries are fakes. Repository inspection still finds no Playwright test/configuration or browser test command covering a named-period follow-up, no-period inheritance/aggregation, and changing an answer's period. The frontend tests mock the Ask API. Consequently, this user-facing behavior remains proven only by unit/component tests rather than through a browser, running API, real database, prior-turn transport, and period control as required.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -25,7 +25,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "43643acfeaddac7cb1db006b2d13fc0bfafb774dd3a05fd295df5dd5267ec230"
+    "tree": "be1ea278ac965866ff3a0d70e087109195e0ad765e2ef88dd9e2c7bf238d41b5"
   },
   "status": "fixing",
   "steps": [
@@ -43,6 +43,10 @@
     },
     {
       "at": "2026-10-02T10:54:46+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T11:08:55+00:00",
       "step": "review"
     }
   ],
