@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T17:22:59+00:00
-read_hash: 09afab2e56807be5918478e4e6df45157755eff4
-round: 3
-passed: no
-doc_seen: 09afab2e56807be5918478e4e6df45157755eff4
+read_at: 2026-10-02T17:24:49+00:00
+read_hash: a5e8d8e560a1edc0f8dee45f5ac790b5ac36a79e
+round: 4
+passed: yes
+doc_seen: a5e8d8e560a1edc0f8dee45f5ac790b5ac36a79e
 spec_seen: ebc6473926090ed5ec1a4a7466cbf186cf3f9b4c
-notes_seen: 75ac1cec73d2ce682f7a3d3dd96460470fd74af6
+notes_seen: 01a2c2cce009ec695decf09371853dab91095c96
 ---
 # Cold read notes
 
@@ -77,3 +77,6 @@ Only a genuine trade-off goes to the human, as a question with options.
    `sap_transaction` has debit and credit, not a `value` column; the existing drill footer derives value as `debit - credit`. Define one repository summary operation using that exact expression, then have both issuance and the route footer use it, with a test proving their decimal strings match.
    Disposition: cut one repository operation, summarize, returns count and sum(debit - credit)::text, the existing footer's expression; issuance signs it and a leaf proves issuance and route footer strings match (detail 7).
 
+## Round 4
+
+No findings.
