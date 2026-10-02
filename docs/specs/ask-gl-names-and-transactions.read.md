@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T16:43:50+00:00
-read_hash: 899f39a27816d238dc1c4bdf5043a902fd016378
-round: 8
+read_at: 2026-10-02T16:50:54+00:00
+read_hash: 7b4f1b6a48937eb0d08d75c2781898fae7d27b83
+round: 9
 passed: no
-doc_seen: 899f39a27816d238dc1c4bdf5043a902fd016378
+doc_seen: 7b4f1b6a48937eb0d08d75c2781898fae7d27b83
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 18f51d22e8fe1d13f855f9b845f3c8d62550ab20
+notes_seen: e8a3bb8604b8f2e288bbd6a33c41ec006f8347ad
 ---
 # Cold read notes
 
@@ -149,4 +149,18 @@ No findings.
 24. Gap: C1 does not define the displayed canonical form when SAP account names differ only by whitespace or casing.
    - Trimmed, case-insensitive comparison leaves `Sprout Cost`, ` sprout cost ` and `SPROUT COST` without a specified grouping, displayed spelling, or `+n more` count. Define that normalization and add it to the name-selection proof.
    Disposition: cut names group by a trimmed, whitespace-collapsed, case-folded form showing the most frequent spelling; counts and '+n more' are per group; added to the name-selection proof.
+
+## Round 9
+
+25. Contradiction: C2’s reopened-answer label guarantee conflicts with C5b forbidding `rowLabels` in conversation snapshots.
+   - A rehydrated conversation retains only raw dimension cells, so after re-upload it cannot render the pinned statement label or GL name. Persist non-sensitive labels for stored answers, or explicitly narrow C1/C2; add a stored-conversation-after-reupload proof.
+   Disposition: cut rowLabels are stored in the conversation answer snapshot as non-sensitive display text from the pinned data, so stored answers keep their labels after a re-upload; the drill object is never stored; proof added (C2, C5b, C8).
+
+26. Gap: “out-of-range” page remains undefined.
+   - C5a requires a 400 and C8 tests an excessive page, but neither sets the upper bound. Pin the shared drill’s limit (currently one million) so backend, Swagger and the hermetic test agree.
+   Disposition: cut the page bound is the shared drill's limit: pages 1 to 1,000,000, anything else or a non-integer is a 400 (Behaviour, C5a, C8).
+
+27. Unproven: C7’s rule that names and transaction lines never reach the model has no named hermetic proof.
+   - C8 proves display, drill and access behavior, but not the provider payload boundary. Add a proof that `rowLabels`, account names, drill context, amounts and transaction rows are absent from every model request.
+   Disposition: cut C8 adds a hermetic proof that rowLabels, SAP account names, the drill context, amounts and transaction rows are absent from every model request.
 
