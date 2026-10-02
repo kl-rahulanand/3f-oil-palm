@@ -76,3 +76,24 @@ and the Rules below, and leave the flow and the approval steps to the agent coor
   `## For the builders` needs no new approval. There is no other approval step.
 - Run long `forge work` runs in the background and keep watching them.
 <!-- forge:end -->
+
+## Known traps
+
+- A change to the Ask selector's tool schema or system prompt can change what the live Bedrock
+  model emits for phrasings that already worked, and hermetic tests replay recorded outputs, so
+  they cannot see it. Adding `measureFilters` to `emit_selection` made the host model drop
+  `dimensionIds` and `timeWindow` until `dimensionIds` was required. A story that touches the
+  schema or prompt plans a live probe of existing phrasings against the pre-change code.
+- A task whose Tests cell names a new test file also lists `backend/package.json` and
+  `tools/quality-gate.test.mjs` in its Scope, because the leaf runs only once it is registered and
+  the gate pins the registry.
+- A task that edits a file listed in `.prettierignore` lists `.prettierignore` in its Scope, formats
+  the file, removes its line and records the removal in that file's header in the same change; the
+  quality gate pins the ignore list's hashes.
+- When a story's parts merge one by one, sweep the whole story doc below `## For the builders` for
+  "today", "still" and present-tense descriptions of the merged gaps at once; one stale sentence per
+  cold read cost five rounds.
+- Forge's test command runs no format or lint check, so CI's `verify` job catches Prettier and
+  ESLint failures the close missed; workers run `npm run quality` before their last commit.
+- A live functional check asks each question in a fresh Ask conversation: as a follow-up, the
+  model can emit a relative window that overrides the month the question names.
