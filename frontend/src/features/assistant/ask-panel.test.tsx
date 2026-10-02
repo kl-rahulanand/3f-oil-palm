@@ -1014,12 +1014,18 @@ const measureFilteredSelection: Selection = {
 };
 
 function filteredSuccess(): AskResponse {
+  const rawMonthlyPeriodControl = {
+    ...periodControl,
+    options: periodControl.options.map((option) =>
+      option.value === "2026-07-01" ? { ...option, label: "2026-07-01" } : option,
+    ),
+  };
   return {
     ...success,
     selection: measureFilteredSelection,
     appliedMeasureFilters,
-    appliedTimeWindow: { column: "month", from: "2026-07-01", to: "2026-07-31" },
-    periodControl,
+    appliedTimeWindow: { column: "month", from: "2026-07-01", to: "2026-07-01" },
+    periodControl: rawMonthlyPeriodControl,
     result: {
       columns: [
         { key: "gl_code", label: "GL code", numeric: false },

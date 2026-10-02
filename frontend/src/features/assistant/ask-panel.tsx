@@ -675,12 +675,16 @@ function appliedComparisonLabels(response: AskResponse): string | undefined {
 }
 
 function appliedPeriodLabel(response: AskResponse): string | undefined {
+  const window = response.appliedTimeWindow;
+  if (window?.column === "month" && window.from.slice(0, 7) === window.to.slice(0, 7)) {
+    const month = formatMonthYear(window.from);
+    if (month) return month;
+  }
   const current = response.periodControl?.current;
   const controlled = current
     ? response.periodControl?.options.find((option) => option.value === current)?.label
     : undefined;
   if (controlled) return controlled;
-  const window = response.appliedTimeWindow;
   if (!window) return undefined;
   const from = formatMonthYear(window.from);
   const to = formatMonthYear(window.to);

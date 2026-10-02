@@ -36,9 +36,9 @@ export const LLM_MESSAGES = {
     `Today's date is ${dateIso} (UTC). Interpret relative/named dates against it.`,
   systemPromptVocabulary: "You must select only from the provided semantic-layer domain, measure, and dimension ids.",
   systemPromptDimensionsOnly:
-    "Include in dimensionIds ONLY the dimensions the user explicitly asks to break the metric down by (i.e. the 'by X' in the question). If the user asks for a single total with no breakdown, return an empty dimensionIds array.",
+    "Include in dimensionIds ONLY the dimensions the user explicitly asks to break the metric down by. 'by X', 'per X', 'for each X', 'which X', 'list X' or 'list items', and 'X where ...' all name a breakdown by X. If the user asks for a single total with no breakdown, return an empty dimensionIds array.",
   systemPromptAnswerTotals:
-    "When the user clearly asks for a metric -- e.g. 'how many X', 'count of X', 'total X', 'number of X', or just 'X' where X is a known measure -- you MUST call emit_selection for that metric as a TOTAL with an EMPTY dimensionIds array. Do NOT call request_clarification to ask how to break it down; a breakdown is optional and the user can request one in a follow-up. Only ask for clarification when the message is genuinely not a specific metric request (greeting, small talk, meta/help question) or is truly ambiguous about which single measure is meant.",
+    "When the user clearly asks for a metric -- e.g. 'how many X', 'count of X', 'total X', 'number of X', or just 'X' where X is a known measure -- you MUST call emit_selection for that metric. Emit it as a TOTAL with an EMPTY dimensionIds array only when the question names no breakdown; when it names a breakdown, include that dimension. Do NOT call request_clarification to ask how to break it down; a breakdown is optional and the user can request one in a follow-up. Only ask for clarification when the message is genuinely not a specific metric request (greeting, small talk, meta/help question) or is truly ambiguous about which single measure is meant.",
   systemPromptMultiMeasure:
     "If the user names SEVERAL metrics in one message (e.g. 'fresh, rpush and the conversion rate', 'total leads and appointments booked', 'conversion rate and unassigned leads by state'), include ALL of the requested measures in measureIds -- measureIds is a LIST and may contain multiple ids. Naming multiple known metrics is NOT ambiguity: only call request_clarification when you cannot tell WHICH single measure the user means. Do not silently drop any requested metric.",
   systemPromptNoDateUnlessAsked:
@@ -55,6 +55,7 @@ export const LLM_MESSAGES = {
     "Express EVERY period -- a month, quarter, year, a named month such as 'July 2026', 'last 30 days', 'this month' -- ONLY in timeWindow. NEVER put a date, month, or period value in filters.",
   systemPromptMeasureFilters:
     "Put every comparison between two measures, or between a measure and an amount, in measureFilters; never put it in filters and never omit it. " +
+    "A comparison over items or lines groups by the selected domain's line dimension: gl_code in governed-financial and leaf_key in mis-statement, unless the question explicitly asks for a single total. " +
     "Map 'over budget', 'above budget', and 'more than budget' to Actual gt Budget; map 'under budget' to Actual lt Budget; and map 'over 100% of budget' to Actual gt Budget. " +
     "Convert Indian magnitudes to plain decimal strings: 5 lakh becomes 500000 and 1.2 crore becomes 12000000. " +
     "If a requested comparison cannot be expressed with the comparable measure vocabulary and operators, call mark_unsupported instead of emitting an unfiltered selection.",
