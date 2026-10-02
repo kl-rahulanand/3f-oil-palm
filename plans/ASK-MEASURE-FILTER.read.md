@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T07:05:17+00:00
-read_hash: fe656fb67e8543036cf8717020f64a18fe3702d8
-round: 26
-passed: no
-doc_seen: fe656fb67e8543036cf8717020f64a18fe3702d8
+read_at: 2026-10-02T07:05:59+00:00
+read_hash: cee30663930587d97094b347ff74e3a4c69745b8
+round: 27
+passed: yes
+doc_seen: cee30663930587d97094b347ff74e3a4c69745b8
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: e67e2eae04f3110cbcf43d22869d3de46866045d
+notes_seen: 91e4a5472367ec003bd3f47d230ede66e64fed22
 ---
 # Cold read notes
 
@@ -247,3 +247,7 @@ No findings.
 41. Unproven: items 1 and 11: a legacy selection with no `measureFilters` is identity-equivalent to a new selection with `measureFilters: []`.
    Both mean no comparison, but older stored JSON omits the optional field. Pin this equality in `selection-identity.helper.test.ts` so reopening an unchanged saved or pinned report does not create a duplicate turn.
    Disposition: cut Done-when detail 11 now names the identity equality of a missing `measureFilters` and `[]`, with its `selection-identity.helper.test.ts` leaf (already in the Surfaces row's Tests).
+
+## Round 27
+
+No findings.

@@ -9,7 +9,7 @@
     "session": "95f602af-e2c3-4ac2-9e21-a78e0aed778d"
   },
   "doc": "plans/ASK-MEASURE-FILTER.md",
-  "status": "approved",
+  "status": "read",
   "steps": [
     {
       "at": "2026-10-01T15:38:23+00:00",
@@ -114,8 +114,20 @@
     {
       "at": "2026-10-01T21:02:48+00:00",
       "step": "read"
+    },
+    {
+      "at": "2026-10-02T06:56:58+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-02T07:05:17+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-02T07:06:00+00:00",
+      "step": "read"
     }
   ],
   "title": "Ask filters by a comparison between measures",
-  "touches": 1
+  "touches": 3
 }
