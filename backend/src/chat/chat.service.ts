@@ -385,11 +385,12 @@ export class ChatService {
     // Edited selections are period-control re-runs and must keep the window the user chose.
     if (!usesEditedSelection) {
       const now = new Date();
-      const parsedTimeWindow =
-        parseExplicitMonthYear(question) ??
-        (AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
-          ? null
-          : (parseTimeWindow(question, now) ?? parseNamedTimeWindow(question, priorSelection?.timeWindow, now)));
+      const parsedTimeWindow = FISCAL_PERIOD_PATTERN.test(question)
+        ? null
+        : (parseExplicitMonthYear(question) ??
+          (AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
+            ? null
+            : (parseTimeWindow(question, now) ?? parseNamedTimeWindow(question, priorSelection?.timeWindow, now))));
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
       else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
@@ -700,8 +701,8 @@ export class ChatService {
   }
 }
 
-const PERIOD_WORD_PATTERN = /\b(?:quarter|q[1-4]|fy|ytd|today|yesterday|since|financial\s+year)\b/i;
-const FISCAL_PERIOD_PATTERN = /\b(?:fy|ytd|financial\s+year)\b/i;
+const PERIOD_WORD_PATTERN = /\b(?:quarter|q[1-4]|today|yesterday|since)\b/i;
+const FISCAL_PERIOD_PATTERN = /\b(?:f\.?\s*y\.?|fiscal(?:\s+year)?|financial\s+year|fytd|ytd)(?=\s*\d|\b|$)/i;
 const RELATIVE_GRANULARITY_PATTERN =
   /\b(?:(?:last|past|previous|this|next|current)\s+(?:\d+\s+)?|\d+\s+)(?:days?|weeks?|months?|years?)\b/i;
 const MONTH_NAMES =
@@ -709,6 +710,9 @@ const MONTH_NAMES =
 const NAMED_MONTH_PATTERN =
   /\b(january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/i;
 const NAMED_QUARTER_PATTERN = /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)\b/i;
+const QUARTER_WITH_YEAR_PATTERN =
+  /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)(?:\s+of\s+|\s*,\s*|\s*-\s*|\s*\/\s*|\s+)(199\d|20\d{2})\b/i;
+const QUARTER_WITH_APOSTROPHE_YEAR_PATTERN = /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)\s+['’](\d{2})\b/i;
 const MONTH_WITH_YEAR_PATTERN = new RegExp(
   `\\b(${MONTH_NAMES})(?:\\s+of\\s+|\\s*,\\s*|\\s*-\\s*|\\s+)(199\\d|20\\d{2})\\b`,
   "i",
@@ -718,6 +722,8 @@ const AMBIGUOUS_MONTH_YEAR_PATTERN = new RegExp(`\\b(?:${MONTH_NAMES})\\s+\\d{2}
 const NUMERIC_MONTH_YEAR_PATTERN = /\b(0?[1-9]|1[0-2])\/(199\d|20\d{2})\b/;
 const YEAR_MONTH_PATTERN = /\b(199\d|20\d{2})-(0[1-9]|1[0-2])\b/;
 const CALENDAR_YEAR_PATTERN = /\b(199\d|20\d{2})\b/g;
+const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
+const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
 const YEAR_PREFIX_PATTERN = new RegExp(
   `(?:\\b(?:in|for|during|of|since|from|until|till|through|to|by|about|before|after|year|calendar|cy)|\\b(?:${MONTH_NAMES})|\\b(?:q[1-4]|quarter))\\s*$`,
   "i",
@@ -728,6 +734,7 @@ const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", 
 
 function hasTimePeriodWords(text: string): boolean {
   return (
+    FISCAL_PERIOD_PATTERN.test(text) ||
     PERIOD_WORD_PATTERN.test(text) ||
     calendarYear(text) !== null ||
     NAMED_MONTH_PATTERN.test(text) ||
@@ -780,13 +787,20 @@ function parseNamedTimeWindow(
     return calendarWindow(now.getUTCFullYear() - 1, 1, 12);
   }
 
-  const quarter = text.match(NAMED_QUARTER_PATTERN);
+  const quarterWithYear = text.match(QUARTER_WITH_YEAR_PATTERN);
+  const quarterWithApostropheYear = text.match(QUARTER_WITH_APOSTROPHE_YEAR_PATTERN);
+  const quarter = quarterWithYear ?? quarterWithApostropheYear ?? text.match(NAMED_QUARTER_PATTERN);
   if (quarter) {
     const number = quarter[1]
       ? Number(quarter[1])
       : ["first", "second", "third", "fourth"].indexOf(quarter[2].toLowerCase()) + 1;
     const startMonth = (number - 1) * 3 + 1;
-    return calendarWindow(calendarYear(text) ?? anchorYear(priorWindow, now, startMonth), startMonth, startMonth + 2);
+    const year = quarterWithYear
+      ? Number(quarter[3])
+      : quarterWithApostropheYear
+        ? 2000 + Number(quarter[3])
+        : (calendarYear(text) ?? anchorYear(priorWindow, now, startMonth));
+    return calendarWindow(year, startMonth, startMonth + 2);
   }
 
   const bareYear = calendarYear(text);
@@ -804,6 +818,7 @@ function calendarYear(text: string): number | null {
     const index = match.index ?? 0;
     const before = text.slice(0, index);
     const after = text.slice(index + match[0].length);
+    if (AMOUNT_YEAR_PREFIX_PATTERN.test(before) || AMOUNT_YEAR_SUFFIX_PATTERN.test(after)) continue;
     const isOnlyYear = /^(?:what\s+about\s*)?$/i.test(before.trim()) && /^[?!.,'’\s]*$/.test(after);
     if (!isOnlyYear && !YEAR_PREFIX_PATTERN.test(before)) continue;
     return Number(match[1]);
