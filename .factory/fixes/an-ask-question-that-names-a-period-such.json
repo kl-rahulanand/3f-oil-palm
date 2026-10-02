@@ -5,27 +5,34 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "55e2baf1ab9cc882b77027c6d0556c65ee7c73a17de41a1e96a6a67aa75ec7de",
-    "commit": "43286d7668943424b110c8ff4707f936291cd3f9",
+    "changed": "61b315db7bd5eba3d4c9f63e8be7500d76811b2e9179bb9497e0f64fe686ead6",
+    "commit": "04e24ac9b8a3aaf276281c1928813dd0b5f83dc6",
     "dismissals": [],
     "findings": [
       {
-        "body": "Detected-but-unparsed period language still preserves the model's window at this branch. `hasTimePeriodWords` recognizes expressions such as \u201cprevious week\u201d, \u201cnext month\u201d, \u201cYTD\u201d, and \u201cFY\u201d, but neither parser resolves them, so a wrong model window remains authoritative. There are also deterministic misparses: \u201cthird quarter of 2025\u201d returns before considering the explicit year and anchors to the prior/current year, while any four-digit financial value such as \u201camounts over 2025\u201d is treated as a calendar year, breaking the no-period inheritance/aggregation case. The new detector-only test explicitly lists several unresolved expressions without verifying their selected windows, so the full Done-when behavior remains unmet.",
+        "body": "The Done-when remains unmet for accepted period and amount wording. The new parser checks for a bare year before extracting a named month, while the existing parser only accepts a directly adjacent `month year` form (`backend/src/chat/timeWindowParse.ts:92`). Consequently, common month-with-year forms such as \u201cJuly of 2025\u201d or \u201cJuly, 2025\u201d resolve to the whole of 2025. The special May pattern also misses an unambiguous bare follow-up such as \u201cMay?\u201d or \u201cShow May\u201d, causing the previous/model window to win. Finally, the amount exclusions are prefix heuristics: phrases such as \u201cShow Actual totaling 2025\u201d still pass through `calendarYear` and become calendar-year queries, contrary to the requirement that an amount is never interpreted as a year.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 391,
+        "line": 764,
         "priority": "P1",
         "title": "Not done: A follow-up that names a period answers for that period whatever window the model emits; a question naming no period still inhe"
       },
       {
-        "body": "The added regression scenarios beginning here call `ChatService.ask` through `makeFixture`, whose model, executor, warehouse, and audit boundaries are fakes. Repository inspection still finds no Playwright test/configuration or browser test command covering a named-period follow-up, no-period inheritance/aggregation, and changing an answer's period. The frontend tests mock the Ask API. Consequently, this user-facing behavior remains proven only by unit/component tests rather than through a browser, running API, real database, prior-turn transport, and period control as required.",
+        "body": "The added regression scenarios still invoke `ChatService.ask` through `makeFixture`, whose model, executor, warehouse, audit, and selection resolver are fakes. The frontend period-control tests likewise mock the Ask API, and the repository has no Playwright configuration, browser specifications, or browser test command. Therefore named-period follow-ups, no-period inheritance/aggregation, and changing an answer's period remain unproven through the required browser, running API, real database, prior-turn transport, and period control. The successful close command only ran hermetic unit/component tests and does not close this required user-flow test gap.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
         "title": "Not done: end-to-end Ask coverage for period selection and reruns"
+      },
+      {
+        "body": "This test directly asserts the private period-word classification, and it is the only reason `hasTimePeriodWords` is exported; production only needs the function inside `chat.service.ts`. Adjacent `ChatService.ask` tests already exercise the observable inheritance and aggregation behavior. Keeping this predicate-only test creates a test-only production API and would fail under behavior-preserving parser refactoring. Remove the export and this direct test, retaining coverage at the service boundary.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 768,
+        "priority": "P2",
+        "title": "Simpler: remove the exported detector test \u2192 cover period detection through ChatService.ask"
       }
     ],
     "status": "blocked",
-    "tree": "be1ea278ac965866ff3a0d70e087109195e0ad765e2ef88dd9e2c7bf238d41b5"
+    "tree": "07e3a64394f1fc0d471d64e82d4f5199681e5ede641b7386c2de5dbf56f7a987"
   },
   "status": "fixing",
   "steps": [
@@ -47,6 +54,10 @@
     },
     {
       "at": "2026-10-02T11:08:55+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T11:19:56+00:00",
       "step": "review"
     }
   ],
