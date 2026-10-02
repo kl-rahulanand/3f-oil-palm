@@ -385,12 +385,12 @@ export class ChatService {
     // Edited selections are period-control re-runs and must keep the window the user chose.
     if (!usesEditedSelection) {
       const now = new Date();
-      const parsedTimeWindow = FISCAL_PERIOD_PATTERN.test(question)
-        ? null
-        : (parseExplicitMonthYear(question) ??
-          (AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
-            ? null
-            : (parseTimeWindow(question, now) ?? parseNamedTimeWindow(question, priorSelection?.timeWindow, now))));
+      const parsedTimeWindow =
+        FISCAL_PERIOD_PATTERN.test(question) || AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
+          ? null
+          : (parseTimeWindow(question, now) ??
+            parseExplicitMonthYear(question) ??
+            parseNamedTimeWindow(question, priorSelection?.timeWindow, now));
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
       else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
@@ -725,11 +725,13 @@ const YEAR_MONTH_PATTERN = /\b(199\d|20\d{2})-(0[1-9]|1[0-2])\b/;
 const CALENDAR_YEAR_PATTERN = /\b(199\d|20\d{2})\b/g;
 const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
 const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
-const QUANTITY_OF_YEAR_PATTERN =
-  /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)\s+of(?:\s+exactly)?\s*$/i;
+const AMOUNT_WORDS =
+  "actuals?|budgets?|costs?|expenses?|spend|spending|spent|amounts?|values?|totals?|sum|balance|figures?|limit|threshold|rollover|variance|payments?|charges?";
+const QUANTITY_OF_YEAR_PATTERN = new RegExp(`\\b(?:${AMOUNT_WORDS})\\s+of(?:\\s+exactly)?\\s*$`, "i");
+const PERIOD_MEASURE_OF_YEAR_PATTERN = /\b(?:actuals?|budgets?)\s+of\s*$/i;
 const AMOUNT_MODIFIER = String.raw`(?:exactly|about|around|approximately|approx\.?|roughly|nearly|almost|just|only|precisely|at\s+least|at\s+most|close\s+to|up\s+to)`;
 const COPULA_AMOUNT_PREFIX_PATTERN = new RegExp(
-  String.raw`\b(?:actuals?|budgets?|spend(?:ing)?|values?|amounts?|totals?|sums?|figures?|balances?|limits?|thresholds?|expenses?|costs?)(?:\s+(?:amounts?|values?|totals?))?\s+(?:is|was|are|were|equals?|equal\s+to|be)(?:\s+${AMOUNT_MODIFIER})?\s*$`,
+  String.raw`\b(?:${AMOUNT_WORDS})(?:\s+(?:amounts?|values?|totals?))?\s+(?:is|was|are|were|equals?|equal\s+to|be)(?:\s+${AMOUNT_MODIFIER})?\s*$`,
   "i",
 );
 const COMPARISON_YEAR_PREFIX_PATTERN = new RegExp(
@@ -744,9 +746,7 @@ const NUMBER_RANGE_PATTERNS = [
   new RegExp(`(?<![A-Za-z0-9_])${RANGE_ENDPOINT}\\s*-\\s*${RANGE_ENDPOINT}\\b`, "i"),
 ];
 const RANGE_AMOUNT_MARKER_PATTERN = /(?:₹|\b(?:rs\.?|inr|rupees?|lakhs?|crores?|k|thousand)\b)/i;
-const RANGE_QUANTITY_PREFIX_PATTERN =
-  /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)(?:\s+is)?\s*$/i;
-const RANGE_MEASURE_PREFIX_PATTERN = /\b(?:actual|budget)\s*$/i;
+const RANGE_AMOUNT_PREFIX_PATTERN = new RegExp(`\\b(?:${AMOUNT_WORDS})(?:\\s+is)?\\s*$`, "i");
 const MAY_MODAL_PATTERN =
   /\bmay\s+(?:i|we|you|he|she|they|it|this|that|there|be|have|not|also|still|need|want|see|get|show|know|help)\b/i;
 const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
@@ -845,7 +845,7 @@ function calendarYear(text: string): number | null {
     const after = text.slice(index + match[0].length);
     if (
       AMOUNT_YEAR_PREFIX_PATTERN.test(before) ||
-      QUANTITY_OF_YEAR_PATTERN.test(before) ||
+      (QUANTITY_OF_YEAR_PATTERN.test(before) && !PERIOD_MEASURE_OF_YEAR_PATTERN.test(before)) ||
       COPULA_AMOUNT_PREFIX_PATTERN.test(before) ||
       COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
       AMOUNT_YEAR_SUFFIX_PATTERN.test(after)
@@ -871,9 +871,8 @@ function classifyYearRange(
       !isCalendarYear(second) ||
       RANGE_AMOUNT_MARKER_PATTERN.test(match[0]) ||
       COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
-      RANGE_QUANTITY_PREFIX_PATTERN.test(before) ||
-      COPULA_AMOUNT_PREFIX_PATTERN.test(before) ||
-      RANGE_MEASURE_PREFIX_PATTERN.test(before)
+      RANGE_AMOUNT_PREFIX_PATTERN.test(before) ||
+      COPULA_AMOUNT_PREFIX_PATTERN.test(before)
     )
       return { kind: "amount" };
     return { kind: "calendar", first, second };
