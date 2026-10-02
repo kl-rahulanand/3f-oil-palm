@@ -278,9 +278,21 @@ function TransactionBody({
         </div>
       )}
       <div className="mis-drill-table-scroll">
-        <table className="mis-drill-table mis-drill-transactions">
+        <table className="mis-drill-table mis-drill-transactions" style={{ minWidth: 1300, tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: 92 }} />
+            <col style={{ width: 112 }} />
+            <col style={{ width: 124 }} />
+            <col style={{ width: 120 }} />
+            <col style={{ width: 208 }} />
+            <col style={{ width: 104 }} />
+            <col style={{ width: 104 }} />
+            <col style={{ width: 104 }} />
+            <col style={{ width: 112 }} />
+            <col style={{ width: 220 }} />
+          </colgroup>
           <thead>
-            <tr>
+            <tr style={{ whiteSpace: "nowrap" }}>
               <th scope="col">Month</th>
               <th scope="col">Posting date</th>
               <th scope="col">Document no.</th>
@@ -305,12 +317,12 @@ function TransactionBody({
                   <td>{formatDate(line.postingDate)}</td>
                   <td>{line.txnNo}</td>
                   <td>{line.costCenter}</td>
-                  <td>{line.accountName}</td>
+                  <td style={{ overflowWrap: "anywhere" }}>{line.accountName}</td>
                   <td data-numeric="true">{formatMoney(line.debit)}</td>
                   <td data-numeric="true">{formatMoney(line.credit)}</td>
                   <td data-numeric="true">{formatMoney(line.value)}</td>
                   <td>{line.reference ?? "—"}</td>
-                  <td>{line.memo ?? "—"}</td>
+                  <td style={{ overflowWrap: "anywhere" }}>{line.memo ?? "—"}</td>
                 </tr>
               ))
             )}
