@@ -5,26 +5,26 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "b03b506ea133bb909806a7c852a86df26f5c7603a1e7335e4f75db096b65660c",
-    "commit": "8db1ea2777cfb0867928f26a9a2deeef5e61f52d",
+    "changed": "f564c08ee2a7c066a41fca5da18d5e67a121407df7388bd050dc4ffcaa19b727",
+    "commit": "7dac90b8d5daa9b7a3875aa559ba97672eccbea1",
     "dismissals": [],
     "findings": [
       {
-        "body": "The authoritative parser still invokes the broad `parseTimeWindow` helper before the deliberately limited named-period parser. Consequently, wording outside the Done-when list, such as \u201cShow last 30 days\u201d, returns `{ grain: \"day\", last: 30 }` and overwrites a valid model-emitted window. Non-enumerated wording is required to retain the model window, as the tests already expect for examples such as \u201cnext month\u201d and \u201cprevious week\u201d. Restrict the authoritative override to the enumerated month/year/quarter forms while retaining the broader parser only as a fallback when the model supplied no usable window.",
+        "body": "`parseExplicitMonthYear` now runs before the app's existing `parseTimeWindow` reader, but its patterns match substrings inside richer date expressions. For example, \u201cShow 2026-01-01 to 2026-07-09\u201d matches `2026-01` and becomes January 2026 instead of the explicit date range; \u201cShow Jan-Mar 2026\u201d matches `Mar 2026` and becomes March instead of January\u2013March. These are date forms the app reader already parses, so they must override the model with the complete parsed period. Run the general date reader before these substring helpers or prevent the helpers from matching inside dates and ranges.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 393,
+        "line": 390,
         "priority": "P1",
-        "title": "Not done: non-enumerated date wording can override the model window"
+        "title": "Not done: explicit dates and ranges can be truncated to one month"
       },
       {
-        "body": "The new copula guard requires `is`, `was`, `are`, `were`, or `equals` to appear immediately before the digits. A clear amount filter such as \u201cShow Actual is exactly 2025\u201d therefore does not match this guard (the prefix ends in `is exactly`), reaches `calendarYear`, and replaces the model or inherited window with calendar year 2025. This still violates the requirement that an amount is never read as a year; the added matrix covers \u201ctotal of exactly 2025\u201d but not a copula followed by an amount modifier.",
+        "body": "The amount-range classifier recognizes only `actual` and `budget` as measure prefixes and omits `costs` and `expenses` from its quantity prefixes. Consequently, a follow-up such as \u201cShow costs between 2024 and 2025\u201d is classified as calendar years 2024\u20132025 and overrides the prior/model window, even though the same code treats an `Actual` range as an amount range. This violates the requirement that an amount is never read as a year. Apply the same amount vocabulary used by `COPULA_AMOUNT_PREFIX_PATTERN` to range classification.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 731,
+        "line": 748,
         "priority": "P1",
-        "title": "Not done: amount modifiers can still be interpreted as a calendar year"
+        "title": "Not done: cost and expense amount ranges are treated as calendar years"
       },
       {
-        "body": "The new period matrix and edited-period test invoke `ChatService.ask` through `makeFixture`, where the model, query executor/database, audit service, dimensions, and resolver are fakes. The registered backend suite is Node-based and the frontend suite is jsdom Vitest; repository inspection still finds no Playwright test exercising the browser against a running API and real database. Thus the named-period override, inheritance/aggregation, amount protection, and period-control rerun remain proven only below the required end-to-end user-flow boundary. The successful close run executes these hermetic tests but does not supply that missing proof.",
+        "body": "The new matrix calls `ChatService.ask` through `makeFixture`, whose model, query executor/database, audit service, dimensions, reports, and resolver are fakes. The period-control rerun test uses the same fixture. Repository scripts register only Node and jsdom/Vitest suites, with no Playwright user flow against a running API and real database. Thus the named-period override, inheritance/aggregation, amount protection, and control rerun remain proven only below the required end-to-end boundary; the successful close run does not supply the required browser proof.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -32,7 +32,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "fa3da3ed16023d0226e495d9c75bfa6e2f1b71ed94ae6ac82629600e2139519d"
+    "tree": "c4cde234df6120ae6b416de479efd55b9c8b70325acec9076ca2c4c3b8bb171f"
   },
   "status": "fixing",
   "steps": [
@@ -86,6 +86,10 @@
     },
     {
       "at": "2026-10-02T12:38:10+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T12:48:18+00:00",
       "step": "review"
     }
   ],
