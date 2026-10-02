@@ -5,36 +5,29 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "913fb7fecaecfa88a86a620278fe3cd875dff131acb9ca8f3253e88cfaf53fdd",
-    "commit": "9598707a65b4b055405916ea8d683e4fcbefd933",
+    "changed": "3faba7309ba410edff90ccd8d59198ff52c61440c9df66f6d326429d6e90e295",
+    "commit": "2c8ce1b0a16568af39049556cbcd83b98d1ee4f6",
     "dismissals": [],
     "findings": [
       {
-        "body": "The confirmation digest does not cover the current specification. Applying the repository's established body-only SHA-256 convention\u2014confirmed by reproducing the hash in `docs/specs/ask-measure-comparison-filter.md`\u2014gives `34ebcb2f...` for this document, while this field records `777ba735...`. Because this spec has no `## For the builders` boundary, the approval rule at `AGENTS.md:72-76` covers the whole document. The substantive edits made after confirmation therefore need renewed owner confirmation before the Done-when is met.",
+        "body": "The name is resolved from the raw lines aggregated into each result row, but `rowLabels` is keyed only by the raw GL/leaf value. Existing selections may contain multiple dimensions, and production SQL groups by every selected dimension (`backend/src/sql/sqlBuilder.ts:62-68,118-119`); `gl_code` plus `month` is an exercised shape (`backend/src/warehouse/measure-filter.db.test.ts:95-98`). Two month rows can therefore share a GL key while their month-scoped name counts select different primary names. A key-only client join cannot identify which label belongs to which row. Use a full row identity/index, or define one label per key over the whole answer scope.",
         "file": "docs/specs/ask-gl-names-and-transactions.md",
-        "line": 7,
-        "priority": "P1",
-        "title": "Not done: The spec is saved, confirmed by the owner and on the roadmap"
+        "line": 59,
+        "priority": "P2",
+        "title": "Key per-row labels by a unique row identity"
       },
       {
-        "body": "The prior ambiguity remains: supported answers may span any time window, but the context still binds one unspecified budget batch and outline. Current Ask provenance can include a separate budget batch for each result month (`backend/src/sql/sqlBuilder.ts:219-221`), whose outline snapshots can differ after partial reloads, while the existing statement drill deliberately selects the block-end budget (`backend/src/mis/mis-drill.service.ts:203-206`). Without an equivalent rule here, statement labels and budget-only GL fallbacks can vary by implementation or query order. Specify and bind the authoritative period/batch.",
+        "body": "Supported answers allow any time window with the line dimension and an authorized Actual, but the context unconditionally requires a last-month budget batch and outline. The existing statement projection deliberately emits actual-only rows through a full outer join and leaves `budget_batch_id` null when there is no budget side (`backend/src/sql/sqlBuilder.ts:269-294`). Thus an otherwise supported Actual answer can exist without the required batch, making its drill context impossible to construct. Either exclude this shape explicitly or permit an absent budget pin/outline while retaining the executed query's bound triples, and cover that outcome in C8.",
         "file": "docs/specs/ask-gl-names-and-transactions.md",
-        "line": 64,
+        "line": 74,
         "priority": "P2",
-        "title": "Define which outline governs a multi-period answer"
-      },
-      {
-        "body": "The contract says the client sends only the context and row key, but the same spec promises transaction results in pages of 100 at line 108 and C3. After the first page, neither field identifies the next page, so the panel cannot request subsequent results without violating the stated request contract. Define a validated page/cursor field as non-authoritative input, or return a signed continuation token.",
-        "file": "docs/specs/ask-gl-names-and-transactions.md",
-        "line": 70,
-        "priority": "P2",
-        "title": "Allow a pagination control in the drill request"
+        "title": "Define drilling when the last month has no budget batch"
       }
     ],
-    "status": "blocked",
-    "tree": "07afb513c63b8fc865ef27f5cf1b711bad65093144bc0e4985b5516440fa0dde"
+    "status": "clean",
+    "tree": "c2dede045a7f211849ebd2be828435062e90520ed96c3332c7bef80ff98ef94e"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-02T15:09:27+00:00",
@@ -46,6 +39,10 @@
     },
     {
       "at": "2026-10-02T15:55:31+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T17:00:43+00:00",
       "step": "review"
     }
   ],
