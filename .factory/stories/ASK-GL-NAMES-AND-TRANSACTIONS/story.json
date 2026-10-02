@@ -1,0 +1,12 @@
+{
+  "doc": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md",
+  "status": "planning",
+  "steps": [
+    {
+      "at": "2026-10-02T17:06:40+00:00",
+      "step": "start"
+    }
+  ],
+  "title": "Ask names each GL line and opens its transactions",
+  "touches": 0
+}
