@@ -386,11 +386,10 @@ export class ChatService {
     if (!usesEditedSelection) {
       const now = new Date();
       const parsedTimeWindow =
-        FISCAL_PERIOD_PATTERN.test(question) || AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
+        parseTimeWindow(question, now) ??
+        (FISCAL_PERIOD_PATTERN.test(question) || AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
           ? null
-          : (parseTimeWindow(question, now) ??
-            parseExplicitMonthYear(question) ??
-            parseNamedTimeWindow(question, priorSelection?.timeWindow, now));
+          : (parseExplicitMonthYear(question) ?? parseNamedTimeWindow(question, priorSelection?.timeWindow, now)));
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
       else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
@@ -726,13 +725,13 @@ const CALENDAR_YEAR_PATTERN = /\b(199\d|20\d{2})\b/g;
 const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
 const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
 const AMOUNT_WORDS = String.raw`(?:actuals?|budget(?:s|ed|ing)?|cost(?:s|ed|ing)?|expense(?:s|d)?|spend(?:s|ing)?|spent|amount(?:s|ed|ing)?|value(?:s|d)?|valuing|total(?:s|ed|ing|led|ling)?|sum(?:s|med|ming)?|balance(?:s|d|ing)?|figure(?:s|d|ing)?|limit(?:s|ed|ing)?|threshold(?:s|ed|ing)?|rollover(?:s|ed|ing)?|variances?|payments?|pay(?:s|ing)?|paid|charge(?:s|d|ing)?)`;
-const PERIOD_MEASURE_OF_YEAR_PATTERN = /\b(?:actuals?|budgets?)\s+of\s*$/i;
+const AMOUNT_WORD_PATTERN = new RegExp(String.raw`\b${AMOUNT_WORDS}\b`, "i");
+const PERIOD_PREPOSITION_BEFORE_YEAR_PATTERN =
+  /(?:\b(?:in|for|during|since|from|until|till|through|by|before|after)|(?<!close\s)(?<!up\s)\bto)\s*$/i;
+const PERIOD_MEASURE_OF_YEAR_PATTERN = new RegExp(String.raw`\b(?:${MONTH_NAMES}|actuals?|budgets?)\s+of\s*$`, "i");
+const YEAR_MEASURE_SUFFIX_PATTERN =
+  /^\s*(?:actuals?|budgets?|spend(?:ing)?|figures?|numbers?|data|results?|expenses?|costs?|statements?|mis|reports?|gl|totals?)\b/i;
 const AMOUNT_MODIFIER = String.raw`(?:exactly|about|around|approximately|approx\.?|roughly|near(?:ly)?|almost|just|only|precisely|at\s+least|at\s+most|close\s+to|up\s+to)`;
-const AMOUNT_LINK = String.raw`(?:is|was|are|were|equals?|equal\s+to|be|over|above|below|under|more\s+than|less\s+than|greater\s+than|exceeding|exceeds|beyond|totaling|totalling|worth|${AMOUNT_MODIFIER}|of|a|an|the)`;
-const AMOUNT_BEFORE_NUMBER_PATTERN = new RegExp(
-  String.raw`\b${AMOUNT_WORDS}(?=(?:\s+[a-z]+\.?){0,3}\s*$)(?:\s+${AMOUNT_LINK}){0,3}\s*$`,
-  "i",
-);
 const COMPARISON_YEAR_PREFIX_PATTERN = new RegExp(
   String.raw`(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])(?:\s+${AMOUNT_MODIFIER})?\s*$`,
   "i",
@@ -843,7 +842,7 @@ function calendarYear(text: string): number | null {
     const after = text.slice(index + match[0].length);
     if (
       AMOUNT_YEAR_PREFIX_PATTERN.test(before) ||
-      (AMOUNT_BEFORE_NUMBER_PATTERN.test(before) && !PERIOD_MEASURE_OF_YEAR_PATTERN.test(before)) ||
+      hasAmountContext(before, after) ||
       COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
       AMOUNT_YEAR_SUFFIX_PATTERN.test(after)
     )
@@ -868,12 +867,18 @@ function classifyYearRange(
       !isCalendarYear(second) ||
       RANGE_AMOUNT_MARKER_PATTERN.test(match[0]) ||
       COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
-      AMOUNT_BEFORE_NUMBER_PATTERN.test(before)
+      hasAmountContext(before, "")
     )
       return { kind: "amount" };
     return { kind: "calendar", first, second };
   }
   return null;
+}
+
+function hasAmountContext(before: string, after: string): boolean {
+  if (YEAR_MEASURE_SUFFIX_PATTERN.test(after)) return false;
+  if (!AMOUNT_WORD_PATTERN.test(before)) return false;
+  return !PERIOD_PREPOSITION_BEFORE_YEAR_PATTERN.test(before) && !PERIOD_MEASURE_OF_YEAR_PATTERN.test(before);
 }
 
 function isNamedMay(text: string): boolean {
