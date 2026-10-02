@@ -35,6 +35,16 @@ test("measure filter enums use the separate comparable vocabulary while displaye
   });
 });
 
+test("the selector schema requires dimension ids so Bedrock always chooses total or breakdown", async () => {
+  const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
+
+  await fixture.provider.select(selectionInput());
+
+  const emitSelection = fixture.requests[0]?.toolConfig?.tools[0]?.toolSpec.inputSchema.json as
+    { required?: string[] } | undefined;
+  assert.deepEqual(emitSelection?.required, ["domain", "measureIds", "dimensionIds"]);
+});
+
 test("the selector prompt maps budget comparisons and Indian magnitudes or refuses them", async () => {
   const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
 
@@ -48,6 +58,29 @@ test("the selector prompt maps budget comparisons and Indian magnitudes or refus
   assert.match(prompt, /5 lakh.*500000/i);
   assert.match(prompt, /1\.2 crore.*12000000/i);
   assert.match(prompt, /mark_unsupported/i);
+});
+
+test("the selector prompt gives named breakdowns precedence over the total default", async () => {
+  const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
+
+  await fixture.provider.select(selectionInput());
+
+  const prompt = fixture.requests[0]?.system?.map(({ text }) => text).join("\n") ?? "";
+  for (const wording of ["by X", "per X", "for each X", "which X", "list X", "list items", "X where ..."]) {
+    assert.match(prompt, new RegExp(wording.replace(/[.]/g, "\\."), "i"));
+  }
+  assert.match(prompt, /TOTAL with an EMPTY dimensionIds array only when the question names no breakdown/i);
+});
+
+test("the selector prompt groups item and line comparisons by the domain line dimension", async () => {
+  const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
+
+  await fixture.provider.select(selectionInput());
+
+  const prompt = fixture.requests[0]?.system?.map(({ text }) => text).join("\n") ?? "";
+  assert.match(prompt, /comparison over items or lines.*selected domain's line dimension/i);
+  assert.match(prompt, /gl_code in governed-financial.*leaf_key in mis-statement/i);
+  assert.match(prompt, /unless the question explicitly asks for a single total/i);
 });
 
 test("recorded measure filters are parsed intact and malformed or cross-domain operands get typed reasons", async () => {

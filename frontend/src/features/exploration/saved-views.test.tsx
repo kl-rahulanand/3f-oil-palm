@@ -17,6 +17,18 @@ const selection: Selection = {
   filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
 };
 
+const measureFilteredSelection: Selection = {
+  ...selection,
+  measureIds: ["governed-financial.actual", "governed-financial.budget"],
+  measureFilters: [
+    {
+      measureId: "governed-financial.actual",
+      op: "gt",
+      compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+    },
+  ],
+};
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -120,6 +132,22 @@ test("opening a saved view navigates before the request resolves", async () => {
 
   expect(mocks.push).toHaveBeenCalledWith("/ask");
   expect(mocks.ask).toHaveBeenCalledTimes(1);
+});
+
+test("opening a saved view sends its stored measure comparison to Ask intact", async () => {
+  mocks.savedQueries.mockResolvedValue([saved("filtered", measureFilteredSelection, { runnable: true })]);
+  mocks.ask.mockResolvedValue(success("Filtered actual", measureFilteredSelection));
+  renderSaved();
+
+  await screen.findByRole("heading", { name: "Actual · Budget" });
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  await waitFor(() =>
+    expect(mocks.ask).toHaveBeenCalledWith(
+      { question: "Actual · Budget", selection: measureFilteredSelection },
+      { signal: expect.any(AbortSignal) },
+    ),
+  );
 });
 
 test("opening a saved view that matches an existing turn reruns it rather than appending", async () => {

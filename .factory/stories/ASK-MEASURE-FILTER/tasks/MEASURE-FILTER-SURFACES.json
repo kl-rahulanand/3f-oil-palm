@@ -1,0 +1,43 @@
+{
+  "branch": "task/ASK-MEASURE-FILTER-MEASURE-FILTER-SURFACES",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "fd0d39cb804d1bc5841340445f8810e7405d711ebeac041e3f5524fcd63c01e2",
+    "commit": "2b980ffe2c825ec4d35c477ea211e53c91bc394b",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "New evidence beyond the prior fix: production success responses always include `periodControl` (`backend/src/chat/chat.service.ts:583`), and custom controls use raw ISO labels (`chat.service.ts:1053-1059`). Returning that label here before formatting `appliedTimeWindow` means a `posting_date` range still renders as `2026-07-10 \u2013 2026-07-20`; a full July range matching an option can collapse to `2026-07-01`. This affects both the readout and empty-state message. The new tests miss the production path because `postingDateWindowSuccess` deletes `periodControl` at `ask-panel.test.tsx:1089`. Format non-month windows from `appliedTimeWindow` before falling back to the control label, and cover the response with its control retained.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 687,
+        "priority": "P2",
+        "title": "Preserve exact non-month dates when a period control is present"
+      }
+    ],
+    "status": "clean",
+    "tree": "d19b2a1368dab51d85b9103797b1bc59bd8ac8663daf221d05482f6f0c4f262e"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-01T20:35:51+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-02T07:33:12+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T07:44:48+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T07:54:43+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T08:05:07+00:00",
+      "step": "review"
+    }
+  ]
+}

@@ -11,6 +11,19 @@ const selection: Selection = {
   limit: 25,
 };
 
+const measureFilters: NonNullable<Selection["measureFilters"]> = [
+  {
+    measureId: "governed-financial.actual",
+    op: "gt",
+    compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+  },
+  {
+    measureId: "governed-financial.actual",
+    op: "lte",
+    compareTo: { kind: "value", value: "500000.00" },
+  },
+];
+
 test("selections differing in any single field are not equal", () => {
   const variants: Selection[] = [
     { ...selection, domain: "mis-statement" },
@@ -50,4 +63,31 @@ test("two reports sharing a label title but differing in dimensions are not the 
 
   expect(byGlCode.measureIds.join(" · ")).toBe(byMonth.measureIds.join(" · "));
   expect(selectionsEqual(byGlCode, byMonth)).toBe(false);
+});
+
+test("selections differing only in measure comparisons are not equal", () => {
+  const filtered = { ...selection, measureFilters };
+
+  expect(
+    selectionsEqual(filtered, { ...filtered, measureFilters: measureFilters.map((filter) => ({ ...filter })) }),
+  ).toBe(true);
+  expect(selectionsEqual(filtered, selection)).toBe(false);
+  expect(selectionsEqual(filtered, { ...filtered, measureFilters: [...measureFilters].reverse() })).toBe(false);
+  expect(
+    selectionsEqual(filtered, {
+      ...filtered,
+      measureFilters: [{ ...measureFilters[0]!, op: "gte" }, measureFilters[1]!],
+    }),
+  ).toBe(false);
+  expect(
+    selectionsEqual(filtered, {
+      ...filtered,
+      measureFilters: [measureFilters[0]!, { ...measureFilters[1]!, compareTo: { kind: "value", value: "600000.00" } }],
+    }),
+  ).toBe(false);
+});
+
+test("a legacy selection without measure filters equals the same selection with an empty list", () => {
+  expect(selectionsEqual(selection, { ...selection, measureFilters: [] })).toBe(true);
+  expect(selectionsEqual({ ...selection, measureFilters: [] }, selection)).toBe(true);
 });

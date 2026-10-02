@@ -219,16 +219,120 @@ test("the docked panel sends the attested context and the focused node while the
   const dock = screen.getByRole("region", { name: "Ask panel" });
   fireEvent.change(within(dock).getByLabelText("Ask about your MIS data"), { target: { value: "How is this built?" } });
   fireEvent.click(within(dock).getByRole("button", { name: "Send question" }));
-  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
-  expect(within(dock).getByRole("heading", { name: "Choose a figure to explain" })).toBeInTheDocument();
+  expect(await within(dock).findByRole("heading", { name: "Choose a figure to explain" })).toBeInTheDocument();
 
   const page = screen.getByRole("region", { name: "Ask" });
   fireEvent.change(within(page).getByLabelText("Ask about your MIS data"), { target: { value: "Show Actual" } });
   fireEvent.click(within(page).getByRole("button", { name: "Send question" }));
-  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(await within(page).findByRole("heading", { name: "Governed result" })).toBeInTheDocument();
 
   expect(mocks.ask.mock.calls[0]?.[0]).toEqual({ question: "How is this built?", statementGrounding });
   expect(mocks.ask.mock.calls[1]?.[0]).not.toHaveProperty("statementGrounding");
+});
+
+test("a successful filtered answer shows its comparison and applied period under the title", async () => {
+  mocks.ask.mockResolvedValue(filteredSuccess());
+  renderAsk();
+
+  submit("Show lines over budget for July 2026");
+
+  const title = await screen.findByRole("heading", { name: "Governed result" });
+  const answer = title.closest("article")!;
+  expect(within(answer).getByText("Actual > Budget · July 2026")).toBeInTheDocument();
+});
+
+test("a fractional comparison threshold keeps its paise in the answer readout", async () => {
+  const response = filteredSuccess();
+  const fractionalFilter: NonNullable<AskResponse["appliedMeasureFilters"]>[number] = {
+    measureId: "governed-financial.actual",
+    op: "gt",
+    compareTo: { kind: "value", value: "500000.49" },
+  };
+  response.appliedMeasureFilters = [fractionalFilter];
+  response.selection = { ...measureFilteredSelection, measureFilters: [fractionalFilter] };
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+
+  submit("Show lines above 500000.49 for July 2026");
+
+  expect(await screen.findByText("Actual > ₹5,00,000.49 · July 2026")).toBeInTheDocument();
+});
+
+test("a filtered answer derives the readout period when its period control is absent", async () => {
+  const restored = filteredSuccess();
+  delete restored.periodControl;
+  mocks.ask.mockResolvedValue(restored);
+  renderAsk();
+
+  submit("Show lines over budget for July 2026");
+
+  expect(await screen.findByText("Actual > Budget · July 2026")).toBeInTheDocument();
+});
+
+test("a partial non-month window keeps its exact dates in the answer readout", async () => {
+  mocks.ask.mockResolvedValue(postingDateWindowSuccess());
+  renderAsk();
+
+  submit("Show lines over budget from 10 to 20 July 2026");
+
+  expect(await screen.findByText("Actual > Budget · 10 Jul 2026 – 20 Jul 2026")).toBeInTheDocument();
+});
+
+test("a whole-month non-month window keeps its exact dates in the answer readout", async () => {
+  mocks.ask.mockResolvedValue(postingDateWindowSuccess("2026-07-01", "2026-07-31"));
+  renderAsk();
+
+  submit("Show lines over budget by posting date for July 2026");
+
+  expect(await screen.findByText("Actual > Budget · 1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
+});
+
+test("an empty filtered answer shows a plain message in place of the blank table", async () => {
+  const response = filteredSuccess();
+  response.result = { ...response.result!, rows: [] };
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+
+  submit("Show lines over budget for July 2026");
+
+  expect(await screen.findByText("No lines match Actual > Budget for July 2026")).toBeInTheDocument();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
+
+test("an empty filtered answer keeps exact dates for a partial non-month window", async () => {
+  const response = postingDateWindowSuccess();
+  response.result = { ...response.result!, rows: [] };
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+
+  submit("Show lines over budget from 10 to 20 July 2026");
+
+  expect(await screen.findByText("No lines match Actual > Budget for 10 Jul 2026 – 20 Jul 2026")).toBeInTheDocument();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
+
+test("rerunning a stored comparison sends it intact and shows the fresh answer readout", async () => {
+  mocks.ask
+    .mockResolvedValueOnce(filteredSuccess())
+    .mockResolvedValueOnce({ ...filteredSuccess(), title: "Rerun governed result" });
+  render(
+    <AskProvider>
+      <AskPanel surface="page" />
+      <MeasureFilterRerunButton />
+    </AskProvider>,
+  );
+
+  submit("Show lines over budget for July 2026");
+  await screen.findByText("Actual > Budget · July 2026");
+  fireEvent.click(screen.getByRole("button", { name: "Rerun filtered report" }));
+
+  const rerun = (await screen.findByRole("heading", { name: "Rerun governed result" })).closest("article")!;
+  expect(within(rerun).getByText("Actual > Budget · July 2026")).toBeInTheDocument();
+  expect(mocks.ask).toHaveBeenNthCalledWith(
+    2,
+    { question: "Show lines over budget for July 2026", selection: measureFilteredSelection },
+    expect.any(Object),
+  );
 });
 
 test("a chart shape the client cannot draw honestly falls back to the table rather than a misleading chart", async () => {
@@ -935,6 +1039,67 @@ function RerunButton() {
   return (
     <button type="button" onClick={() => void rerun("Stored question", selection)}>
       Rerun stored selection
+    </button>
+  );
+}
+
+const appliedMeasureFilters: NonNullable<AskResponse["appliedMeasureFilters"]> = [
+  {
+    measureId: "governed-financial.actual",
+    op: "gt",
+    compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+  },
+];
+
+const measureFilteredSelection: Selection = {
+  domain: "governed-financial",
+  measureIds: ["governed-financial.actual", "governed-financial.budget"],
+  dimensionIds: ["gl_code"],
+  filters: [],
+  measureFilters: appliedMeasureFilters,
+  timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-31" },
+};
+
+function filteredSuccess(): AskResponse {
+  const rawMonthlyPeriodControl = {
+    ...periodControl,
+    options: periodControl.options.map((option) =>
+      option.value === "2026-07-01" ? { ...option, label: "2026-07-01" } : option,
+    ),
+  };
+  return {
+    ...success,
+    selection: measureFilteredSelection,
+    appliedMeasureFilters,
+    appliedTimeWindow: { column: "month", from: "2026-07-01", to: "2026-07-01" },
+    periodControl: rawMonthlyPeriodControl,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001202", actual: "600000.00", budget: "500000.00" }],
+    },
+  };
+}
+
+function postingDateWindowSuccess(from = "2026-07-10", to = "2026-07-20"): AskResponse {
+  const response = filteredSuccess();
+  delete response.periodControl;
+  response.appliedTimeWindow = { column: "posting_date", from, to };
+  response.selection = {
+    ...measureFilteredSelection,
+    timeWindow: { grain: "day", column: "posting_date", from, to },
+  };
+  return response;
+}
+
+function MeasureFilterRerunButton() {
+  const { rerun } = useAsk();
+  return (
+    <button type="button" onClick={() => void rerun("Actual · Budget", measureFilteredSelection)}>
+      Rerun filtered report
     </button>
   );
 }
