@@ -722,8 +722,12 @@ const AMBIGUOUS_MONTH_YEAR_PATTERN = new RegExp(`\\b(?:${MONTH_NAMES})\\s+\\d{2}
 const NUMERIC_MONTH_YEAR_PATTERN = /\b(0?[1-9]|1[0-2])\/(199\d|20\d{2})\b/;
 const YEAR_MONTH_PATTERN = /\b(199\d|20\d{2})-(0[1-9]|1[0-2])\b/;
 const CALENDAR_YEAR_PATTERN = /(?<![\d,.₹])\b(199\d|20\d{2})\b(?![,.]\d)/g;
-const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
-const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
+const CURRENCY_MARKER = String.raw`(?:₹|\b(?:re|inr|rupees?)\b|\brs(?:\.|\b))`;
+const AMOUNT_YEAR_PREFIX_PATTERN = new RegExp(String.raw`${CURRENCY_MARKER}\s*$`, "i");
+const AMOUNT_YEAR_SUFFIX_PATTERN = new RegExp(
+  String.raw`^(?:\.\d+|\s*(?:${CURRENCY_MARKER}|\b(?:lakhs?|crores?|k|thousand)\b))`,
+  "i",
+);
 const QUANTITY_NOUNS = String.raw`(?:amounts?|values?|totals?|sums?|figures?|balances?|limits?|thresholds?|numbers?)`;
 const MEASURE_AND_DATA_WORDS = String.raw`(?:actuals?|budgets?|costs?|expenses?|spend|gl|codes?|statements?|mis|reports?|data|results?)`;
 const AMOUNT_WORDS = String.raw`(?:${QUANTITY_NOUNS}|${MEASURE_AND_DATA_WORDS}|budget(?:ed|ing)|cost(?:ed|ing)|expense(?:d)|spend(?:s|ing)|spent|amount(?:ed|ing)|value(?:d)|valuing|total(?:ed|ing|led|ling)|sum(?:med|ming)|balance(?:d|ing)|figure(?:d|ing)|limit(?:ed|ing)|threshold(?:ed|ing)|rollover(?:s|ed|ing)?|variances?|payments?|pay(?:s|ing)?|paid|charge(?:s|d|ing)?)`;
@@ -733,7 +737,7 @@ const PERIOD_ACTUAL_TO_YEAR_PATTERN = /\bactuals?\s+to\s*$/i;
 const YEAR_MEASURE_SUFFIX_PATTERN =
   /^\s*(?:actuals?|budgets?|spend(?:ing)?|figures?|numbers?|data|results?|expenses?|costs?|statements?|mis|reports?|gl|totals?)\b/i;
 const AMOUNT_MODIFIER = String.raw`(?:exactly|about|around|approximately|approx\.?|roughly|near(?:ly)?|almost|just|only|precisely|at\s+least|at\s+most|close\s+to|up\s+to)`;
-const AMOUNT_LINK = String.raw`(?:is|are|was|were|be|been|being|that|which|who|should|would|could|must|will|shall|can|may|totalling|totaling|totals|amounting|adds\s+up|comes|sums|equals|equal|worth|reaching|hitting|more\s+than|less\s+than|greater\s+than|over|above|below|under|exceeding|exceeds|beyond|${AMOUNT_MODIFIER}|to|of|a|an|the)`;
+const AMOUNT_LINK = String.raw`(?:is|are|was|were|be|been|being|that|which|who|should|would|could|must|will|shall|can|may|totalling|totaling|totals|amounting|adds\s+up|comes|sums|equals|equal|worth|reaching|hitting|more\s+than|less\s+than|greater\s+than|over|above|below|under|exceeding|exceeds|beyond|${AMOUNT_MODIFIER}|${CURRENCY_MARKER}|to|of|a|an|the)`;
 const LINKED_AMOUNT_YEAR_PATTERN = new RegExp(String.raw`\b${AMOUNT_WORDS}(?:\s+${AMOUNT_LINK})+\s*$`, "i");
 const AMOUNT_RANGE_PREFIX_PATTERN = new RegExp(String.raw`\b${AMOUNT_WORDS}(?:\s+${AMOUNT_LINK})*\s*$`, "i");
 const DIRECT_QUANTITY_AMOUNT_PATTERN = new RegExp(String.raw`\b${QUANTITY_NOUNS}\s*$`, "i");
@@ -742,14 +746,17 @@ const COMPARISON_YEAR_PREFIX_PATTERN = new RegExp(
   String.raw`(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])(?:\s+${AMOUNT_MODIFIER})?\s*$`,
   "i",
 );
-const RANGE_ENDPOINT = String.raw`(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)?`;
+const RANGE_ENDPOINT = String.raw`(?:${CURRENCY_MARKER})?\s*(\d+(?:\.\d+)?)\s*(?:${CURRENCY_MARKER}|lakhs?|crores?|k|thousand)?`;
 const NUMBER_RANGE_PATTERNS = [
   new RegExp(`\\bbetween\\s+${RANGE_ENDPOINT}\\s+and\\s+${RANGE_ENDPOINT}\\b`, "i"),
   new RegExp(`\\bfrom\\s+${RANGE_ENDPOINT}\\s+to\\s+${RANGE_ENDPOINT}\\b`, "i"),
   new RegExp(`(?<![A-Za-z0-9_])${RANGE_ENDPOINT}\\s+to\\s+${RANGE_ENDPOINT}\\b`, "i"),
   new RegExp(`(?<![A-Za-z0-9_])${RANGE_ENDPOINT}\\s*-\\s*${RANGE_ENDPOINT}\\b`, "i"),
 ];
-const RANGE_AMOUNT_MARKER_PATTERN = /(?:₹|\b(?:rs\.?|inr|rupees?|lakhs?|crores?|k|thousand)\b)/i;
+const RANGE_AMOUNT_MARKER_PATTERN = new RegExp(
+  String.raw`(?:${CURRENCY_MARKER}|\b(?:lakhs?|crores?|k|thousand)\b)`,
+  "i",
+);
 const MAY_MODAL_PATTERN =
   /\bmay\s+(?:i|we|you|he|she|they|it|this|that|there|be|have|not|also|still|need|want|see|get|show|know|help)\b/i;
 const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
