@@ -49,7 +49,8 @@ figure against its source transactions without switching screens.
   with "+n more" in the same disclosure. A code with neither shows the bare code.
 - An Ask answer grouped by statement line shows the line's number and label ("1.1 Sprout Cost")
   instead of the raw key, taken from the outline belonging to the answer window's last-month budget
-  batch, so an answer reopened after a re-upload keeps the labels of the data it was built on.
+  batch. Its `rowLabels` are stored in the conversation answer snapshot, so a stored answer reopened
+  after a re-upload keeps the labels of the data it was built on.
 - Names are display text resolved on the server after the governed query runs. They are never part
   of the selection, never sent to the model, and never change which rows are returned or their order.
   The `ResultTable` dimension cell keeps the raw GL code or leaf key. `AskResponse` carries names as an
@@ -75,10 +76,11 @@ figure against its source transactions without switching screens.
   paise and whether at least one SAP line feeds it (so the clickable marker and the footer target come
   from the signed context, never from the client), and it expires after the same configured lifetime
   (30 minutes by default). The client sends only that context, the row's key and a page number. Pages
-  are 1-based and the page size is fixed server-side at 100. The page is non-authoritative: it never
-  widens scope or changes the predicate. A non-integer or out-of-range page is refused with HTTP 400.
-  The server refuses, with a stated reason and an audit record, a missing, altered, expired or
-  other-user context, and it never accepts a selection, scope, batch, triples or amount from the client.
+  are integers from 1 through 1,000,000 and the page size is fixed server-side at 100. The page is
+  non-authoritative: it never widens scope or changes the predicate. Any page outside that range, or a
+  non-integer, is refused with HTTP 400. The server refuses, with a stated reason and an audit record,
+  a missing, altered, expired or other-user context, and it never accepts a selection, scope, batch,
+  triples or amount from the client.
 - Delivery: a supported `AskResponse` gains an optional typed `drill` object, outside the generic
   `ResultTable` rows (whose cells stay string, number or null and gain no column): an opaque signed
   `context` string and a `rows` list of `{ key, drillable }` matching result rows by key. The client
@@ -87,9 +89,11 @@ figure against its source transactions without switching screens.
   Actual (Budget-only, `%`-only, or a reader without the Actual grant), carry no `drill` object. The
   context is signed, not encrypted, so it holds only the values needed to reproduce the displayed
   Actual's read and footer: the row keys, the Actuals shown on screen and, for statement leaves, the
-  bound triples, never a figure the answer did not show. Neither is stored in the
-  conversation answer snapshot, a saved view or a pin. A saved view or pin reopens by re-running, so it
-  gets a fresh context. An answer shown from a stored conversation renders every Actual inert,
+  bound triples, never a figure the answer did not show. The non-sensitive `rowLabels`, resolved from
+  the answer's pinned data, are stored in the conversation answer snapshot so its original labels
+  remain visible; the `drill` object is never stored there, in a saved view or in a pin. A saved view or
+  pin reopens by re-running, so it gets fresh labels and context. An answer shown from a stored
+  conversation renders every Actual inert,
   with an "Ask again to open transactions" action that re-runs it; an answer whose context has
   expired is refused on click with "This answer is too old to open. Ask again to open its
   transactions."
@@ -174,7 +178,8 @@ figure against its source transactions without switching screens.
   and order are unchanged.
 - **C2** An Ask answer grouped by statement line shows "<number> <label>" from the outline belonging
   to the answer window's last-month budget batch instead of the raw leaf key, also after a re-upload
-  makes another outline active.
+  makes another outline active; a stored conversation answer retains and shows its original
+  `rowLabels` after that re-upload.
 - **C3** In an answer whose only row dimension is `gl_code`, clicking a line's Actual opens its SAP
   lines under the server-derived predicate (row GL code, time window, dimension filters, the effective
   plant predicate of the executed query, pinned actuals batches), 100 a page, with a footer equal to
@@ -192,21 +197,23 @@ figure against its source transactions without switching screens.
   key. The client joins labels and the optional `drill.rows` list of `{ key, drillable }` to rows by
   that same raw key; labels never alter query rows or their order. The optional `drill` object also
   carries its signed `context`, is absent for unsupported shapes and answers that do not display an
-  authorized Actual, and holds no figure the answer did not display. The conversation snapshot, saved
-  views and pins store neither object; a stored conversation answer renders every Actual inert with an
-  "Ask again" action; an expired answer's click is refused with the stated wording; a saved or pinned
-  reopen gets fresh metadata and context from its re-run.
+  authorized Actual, and holds no figure the answer did not display. Conversation answer snapshots
+  store `rowLabels` so stored answers retain their original display text, but never store the `drill`
+  object; saved views and pins store neither object. A stored conversation answer renders every Actual
+  inert with an "Ask again" action; an expired answer's click is refused with the stated wording; a
+  saved or pinned reopen gets fresh metadata and context from its re-run.
 - **C5c** Every click re-authorizes the reader's current grants and plant scope; a reader who lost
   the domain, the Actual measure or any one plant in the signed predicate is refused with the stated wording and an audit record, never
   served a narrowed, non-footing read.
-- **C5a** The drill request accepts only the answer's signed drill context, the row key and a 1-based
-  page number; the server fixes page size at 100, and a non-integer or out-of-range page is a 400. The
-  page cannot change scope or predicate. The response carries the total matching count, page and size,
-  and its all-match footer; lines sort by Value descending, Month descending, posting date descending,
-  transaction number and line id. The context carries each row's key, exact-paise Actual and clickable
-  marker: a missing, altered, expired or other-user context is refused with its reason and audited; the
-  read uses the effective plant predicate of the executed query, so a reader allowed more plants than
-  the query read sees no extra lines and the footer still equals the Actual.
+- **C5a** The drill request accepts only the answer's signed drill context, the row key and an integer
+  page from 1 through 1,000,000; the server fixes page size at 100, and anything outside that range or a
+  non-integer is a 400. The page cannot change scope or predicate. The response carries the total
+  matching count, page and size, and its all-match footer; lines sort by Value descending, Month
+  descending, posting date descending, transaction number and line id. The context carries each row's
+  key, exact-paise Actual and clickable marker: a missing, altered, expired or other-user context is
+  refused with its reason and audited; the read uses the effective plant predicate of the executed
+  query, so a reader allowed more plants than the query read sees no extra lines and the footer still
+  equals the Actual.
 - **C6** A replaced pinned batch, actuals or (on statement lines) budget, is read, foots to the
   clicked Actual and is named as replaced; a gone pinned batch is refused with no rows, the stated
   reason and an audit record, as the confirmed drill-down spec requires.
@@ -216,15 +223,17 @@ figure against its source transactions without switching screens.
   transaction lines never reach the model.
 - **C8** Hermetic proofs cover normalized name grouping, representative-spelling and group-count
   selection, ties, fallback and disclosure; labels leaving query rows and order unchanged and joining
-  the correct drill row by raw key; pinned labels after a re-upload; a multi-period answer choosing its
-  last-month budget batch and outline; signed-context refusals; the signed per-row Actual and marker;
-  a non-integer and excessive page, response metadata and stable page boundaries under the specified
-  sort; replaced and gone actuals and budget batches; an expired or stored answer; access revoked after
-  the answer was shown (including losing one of several plants); the absent `drill` object on
-  unsupported shapes; inert Actuals on a stored answer; no `drill` object and no Actual value for a
-  Budget-only answer or a reader without the Actual grant; a mixed-plant reader; predicate
-  re-derivation and refusal; audit-before-read ordering; replaced and gone batches; inert cells and
-  exact-paise footing. A manual live check against the July warehouse and the host's Bedrock model,
+  the correct drill row by raw key; pinned labels after a re-upload and a stored conversation retaining
+  those original labels after another re-upload; a multi-period answer choosing its last-month budget
+  batch and outline; signed-context refusals; the signed per-row Actual and marker; a non-integer page
+  and excessive page 1,000,001, response metadata and stable page boundaries under the specified sort;
+  replaced and gone actuals and budget batches; an expired or stored answer; access revoked after the
+  answer was shown (including losing one of several plants); the absent `drill` object on unsupported
+  shapes; inert Actuals on a stored answer; no `drill` object and no Actual value for a Budget-only
+  answer or a reader without the Actual grant; a mixed-plant reader; predicate re-derivation and
+  refusal; audit-before-read ordering; replaced and gone batches; inert cells; exact-paise footing;
+  and `rowLabels`, SAP account names, the drill context, amounts and transaction rows absent from every
+  model request. A manual live check against the July warehouse and the host's Bedrock model,
   outside CI and in a fresh Ask conversation: "show me list items where Actuals are more than
   the budget for July 2026" shows names for all 21 codes, and opening 50001201's Actual foots to
   ₹83,98,339 across its SAP lines; a DUB-only user's statement-line answer opens the same lines as
