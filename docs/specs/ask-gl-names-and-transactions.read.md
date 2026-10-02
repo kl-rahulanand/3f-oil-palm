@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T15:22:18+00:00
-read_hash: 5b80efb94467235833ee031665d07b50565bf243
-round: 7
-passed: yes
-doc_seen: 5b80efb94467235833ee031665d07b50565bf243
+read_at: 2026-10-02T16:43:50+00:00
+read_hash: 899f39a27816d238dc1c4bdf5043a902fd016378
+round: 8
+passed: no
+doc_seen: 899f39a27816d238dc1c4bdf5043a902fd016378
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 62f8194a98401cef3ed6e182406ef3121db359c8
+notes_seen: 18f51d22e8fe1d13f855f9b845f3c8d62550ab20
 ---
 # Cold read notes
 
@@ -131,3 +131,22 @@ Only a genuine trade-off goes to the human, as a question with options.
 ## Round 7
 
 No findings.
+
+## Round 8
+
+21. Contradiction: C4 requires a historical mapping-master version to be resolvable, despite the confirmed drill contract deferring master-version pins.
+   - The accepted all-plants decision defers that work to D-0038; the confirmed drill spec treats the version as audit attribution only. Bound triples already reproduce the read, so either record a new decision that supplies version retention/resolution, or remove the new refusal.
+   Disposition: cut every refusal tied to the mapping master's version is removed; the bound triples reproduce the read and the version is audit attribution only, as in the confirmed drill spec.
+
+22. Gap: C1/C2 do not define how server-resolved display names retain the raw row key needed for drilling.
+   - `ResultTable` has only scalar cells, while `drill.rows` is keyed by the raw GL/leaf key. Replacing a dimension cell with its display label loses that key; leaving it unchanged cannot display the name. Pin presentation metadata and its row association, and prove labels neither alter query rows nor misassociate a drill.
+   Disposition: cut names travel as a typed rowLabels list keyed by the raw row key; ResultTable cells keep the key and drill.rows match by the same key; labels never alter rows or order, with proof.
+
+23. Gap: the Ask paging contract omits the shared drill’s upper page bound and deterministic transaction ordering.
+   - C5a only requires an integer from 1, whereas the confirmed drill bounds pages and sorts by Value, Month, posting date, transaction number and line id. Pin the same bound and order for Ask, including tests for an excessive page and stable page boundaries.
+   Disposition: cut paging follows the confirmed drill spec exactly: 1-based, size fixed at 100, out-of-range or non-integer page is a 400, sorted Value, Month, posting date, transaction number, line id; excessive-page and page-boundary proofs added.
+
+24. Gap: C1 does not define the displayed canonical form when SAP account names differ only by whitespace or casing.
+   - Trimmed, case-insensitive comparison leaves `Sprout Cost`, ` sprout cost ` and `SPROUT COST` without a specified grouping, displayed spelling, or `+n more` count. Define that normalization and add it to the name-selection proof.
+   Disposition: cut names group by a trimmed, whitespace-collapsed, case-folded form showing the most frequent spelling; counts and '+n more' are per group; added to the name-selection proof.
+
