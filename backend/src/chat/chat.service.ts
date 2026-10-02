@@ -380,6 +380,20 @@ export class ChatService {
         clarify: normalizedSelection.clarify,
       });
     selection = normalizedSelection.selection;
+    // On the provider path, an explicit period in the user's words is authoritative.
+    // With no period language, discard a guessed model window so inheritance or all-data applies.
+    // Edited selections are period-control re-runs and must keep the window the user chose.
+    if (!usesEditedSelection) {
+      const now = new Date();
+      const parsedTimeWindow = FISCAL_PERIOD_PATTERN.test(question)
+        ? null
+        : (parseTimeWindow(question, now) ??
+          (AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
+            ? null
+            : (parseExplicitMonthYear(question) ?? parseNamedTimeWindow(question, priorSelection?.timeWindow, now))));
+      if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
+      else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
+    }
     if (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.from > selection.timeWindow.to)
       return done({
         responseClass: ResponseClass.NotSupported,
@@ -396,22 +410,9 @@ export class ChatService {
         selection = { ...selection, timeWindow: priorSelection.timeWindow };
       }
     }
-    let resolved = resolveSelectionTimeWindow(domain, selection);
+    const resolved = resolveSelectionTimeWindow(domain, selection);
     selection = resolved.selection;
-    let appliedTimeWindow = resolved.appliedTimeWindow;
-    // Deterministic fallback: if the LLM produced no usable time window (none at all, or a
-    // partial one that didn't resolve), parse it from the question text ("last 30 days",
-    // "since 1 january", "2026-01-01 to 2026-07-09", "Jan-Mar 2026", ...) instead of
-    // re-asking. This keeps time-window clarify answers from looping through the LLM.
-    if (!appliedTimeWindow) {
-      const parsedTimeWindow = parseTimeWindow(question, new Date());
-      if (parsedTimeWindow) {
-        selection = { ...selection, timeWindow: parsedTimeWindow };
-        resolved = resolveSelectionTimeWindow(domain, selection);
-        selection = resolved.selection;
-        appliedTimeWindow = resolved.appliedTimeWindow;
-      }
-    }
+    const appliedTimeWindow = resolved.appliedTimeWindow;
     const selectedMeasures = selection.measureIds
       .map((id) => this.semantic.measure(selection.domain, id))
       .filter((measure): measure is MeasureSpec => Boolean(measure));
@@ -698,6 +699,234 @@ export class ChatService {
 
     return { kind: "selection", selection: { ...selection, filters } };
   }
+}
+
+const PERIOD_WORD_PATTERN = /\b(?:q[1-4]|today|yesterday|since)\b/i;
+const FISCAL_PERIOD_PATTERN = /\b(?:f\.?\s*y\.?|fiscal(?:\s+year)?|financial\s+year|fytd|ytd)(?=\s*\d|\b|$)/i;
+const QUALIFIED_PERIOD_PATTERN =
+  /\b(?:last|past|previous|prior|this|current|next|\d+(?:st|nd|rd|th)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\s+(?:days?|weeks?|months?|quarters?|years?|periods?)\b/i;
+const FISCAL_GRANULARITY_PATTERN = /\b(?:for\s+each|by|per|each|every)\s+f\.?\s*y\.?\b/gi;
+const MONTH_NAMES =
+  "january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec";
+const NAMED_MONTH_PATTERN =
+  /\b(january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/i;
+const NAMED_QUARTER_PATTERN = /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)\b/i;
+const QUARTER_WITH_YEAR_PATTERN =
+  /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)(?:\s+of\s+|\s*,\s*|\s*-\s*|\s*\/\s*|\s+)(199\d|20\d{2})\b/i;
+const QUARTER_WITH_APOSTROPHE_YEAR_PATTERN = /\b(?:q([1-4])|(first|second|third|fourth)\s+quarter)\s+['’](\d{2})\b/i;
+const MONTH_WITH_YEAR_PATTERN = new RegExp(
+  `\\b(${MONTH_NAMES})(?:\\s+of\\s+|\\s*,\\s*|\\s*[-/._]\\s*|\\s+)(199\\d|20\\d{2})\\b`,
+  "i",
+);
+const MONTH_WITH_APOSTROPHE_YEAR_PATTERN = new RegExp(`\\b(${MONTH_NAMES})\\s+['’](\\d{2})\\b`, "i");
+const AMBIGUOUS_MONTH_YEAR_PATTERN = new RegExp(`\\b(?:${MONTH_NAMES})\\s+\\d{2}\\b`, "i");
+const NUMERIC_MONTH_YEAR_PATTERN = /\b(0?[1-9]|1[0-2])\/(199\d|20\d{2})\b/;
+const YEAR_MONTH_PATTERN = /\b(199\d|20\d{2})-(0[1-9]|1[0-2])\b/;
+const CALENDAR_YEAR_PATTERN = /(?<![\d,.₹])\b(199\d|20\d{2})\b(?![,.]\d)/g;
+const CURRENCY_MARKER = String.raw`(?:₹|\b(?:re|inr|rupees?)\b|\brs(?:\.|\b))`;
+const AMOUNT_YEAR_PREFIX_PATTERN = new RegExp(String.raw`${CURRENCY_MARKER}\s*$`, "i");
+const AMOUNT_YEAR_SUFFIX_PATTERN = new RegExp(
+  String.raw`^(?:\.\d+|\s*(?:${CURRENCY_MARKER}|\b(?:lakhs?|crores?|k|thousand)\b))`,
+  "i",
+);
+const QUANTITY_NOUNS = String.raw`(?:amounts?|values?|totals?|sums?|figures?|balances?|limits?|thresholds?|numbers?)`;
+const MEASURE_AND_DATA_WORDS = String.raw`(?:actuals?|budgets?|costs?|expenses?|spend|gl|codes?|statements?|mis|reports?|data|results?)`;
+const AMOUNT_WORDS = String.raw`(?:${QUANTITY_NOUNS}|${MEASURE_AND_DATA_WORDS}|budget(?:ed|ing)|cost(?:ed|ing)|expense(?:d)|spend(?:s|ing)|spent|amount(?:ed|ing)|value(?:d)|valuing|total(?:ed|ing|led|ling)|sum(?:med|ming)|balance(?:d|ing)|figure(?:d|ing)|limit(?:ed|ing)|threshold(?:ed|ing)|rollover(?:s|ed|ing)?|variances?|payments?|pay(?:s|ing)?|paid|charge(?:s|d|ing)?)`;
+const PERIOD_PREPOSITION_BEFORE_YEAR_PATTERN = /\b(?:in|for|during|since|from|until|till|through|by|before|after)\s*$/i;
+const PERIOD_MEASURE_OF_YEAR_PATTERN = new RegExp(String.raw`\b(?:${MONTH_NAMES}|actuals?|budgets?)\s+of\s*$`, "i");
+const PERIOD_ACTUAL_TO_YEAR_PATTERN = /\bactuals?\s+to\s*$/i;
+const YEAR_MEASURE_SUFFIX_PATTERN =
+  /^\s*(?:actuals?|budgets?|spend(?:ing)?|figures?|numbers?|data|results?|expenses?|costs?|statements?|mis|reports?|gl|totals?)\b/i;
+const AMOUNT_MODIFIER = String.raw`(?:exactly|about|around|approximately|approx\.?|roughly|near(?:ly)?|almost|just|only|precisely|at\s+least|at\s+most|close\s+to|up\s+to)`;
+const AMOUNT_LINK = String.raw`(?:is|are|was|were|be|been|being|that|which|who|should|would|could|must|will|shall|can|may|totalling|totaling|totals|amounting|adds\s+up|comes|sums|equals|equal|worth|reaching|hitting|more\s+than|less\s+than|greater\s+than|over|above|below|under|exceeding|exceeds|beyond|${AMOUNT_MODIFIER}|${CURRENCY_MARKER}|to|of|a|an|the)`;
+const LINKED_AMOUNT_YEAR_PATTERN = new RegExp(String.raw`\b${AMOUNT_WORDS}(?:\s+${AMOUNT_LINK})+\s*$`, "i");
+const AMOUNT_RANGE_PREFIX_PATTERN = new RegExp(String.raw`\b${AMOUNT_WORDS}(?:\s+${AMOUNT_LINK})*\s*$`, "i");
+const DIRECT_QUANTITY_AMOUNT_PATTERN = new RegExp(String.raw`\b${QUANTITY_NOUNS}\s*$`, "i");
+const DIRECT_GL_NUMBER_YEAR_PATTERN = /\bgl\s+numbers?\s*$/i;
+const COMPARISON_YEAR_PREFIX_PATTERN = new RegExp(
+  String.raw`(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])(?:\s+${AMOUNT_MODIFIER})?\s*$`,
+  "i",
+);
+const RANGE_ENDPOINT = String.raw`(?:${CURRENCY_MARKER})?\s*(\d+(?:\.\d+)?)\s*(?:${CURRENCY_MARKER}|lakhs?|crores?|k|thousand)?`;
+const NUMBER_RANGE_PATTERNS = [
+  new RegExp(`\\bbetween\\s+${RANGE_ENDPOINT}\\s+and\\s+${RANGE_ENDPOINT}\\b`, "i"),
+  new RegExp(`\\bfrom\\s+${RANGE_ENDPOINT}\\s+to\\s+${RANGE_ENDPOINT}\\b`, "i"),
+  new RegExp(`(?<![A-Za-z0-9_])${RANGE_ENDPOINT}\\s+to\\s+${RANGE_ENDPOINT}\\b`, "i"),
+  new RegExp(`(?<![A-Za-z0-9_])${RANGE_ENDPOINT}\\s*-\\s*${RANGE_ENDPOINT}\\b`, "i"),
+];
+const RANGE_AMOUNT_MARKER_PATTERN = new RegExp(
+  String.raw`(?:${CURRENCY_MARKER}|\b(?:lakhs?|crores?|k|thousand)\b)`,
+  "i",
+);
+const MAY_MODAL_PATTERN =
+  /\bmay\s+(?:i|we|you|he|she|they|it|this|that|there|be|have|not|also|still|need|want|see|get|show|know|help)\b/i;
+const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+function hasTimePeriodWords(text: string): boolean {
+  const periodText = text.replace(FISCAL_GRANULARITY_PATTERN, " ");
+  return (
+    FISCAL_PERIOD_PATTERN.test(periodText) ||
+    PERIOD_WORD_PATTERN.test(periodText) ||
+    calendarYear(periodText) !== null ||
+    NAMED_MONTH_PATTERN.test(periodText) ||
+    isNamedMay(periodText) ||
+    QUALIFIED_PERIOD_PATTERN.test(periodText)
+  );
+}
+
+function parseExplicitMonthYear(text: string): Selection["timeWindow"] | null {
+  const named = text.match(MONTH_WITH_YEAR_PATTERN);
+  if (named) return calendarWindow(Number(named[2]), monthNumber(named[1]));
+
+  const apostrophe = text.match(MONTH_WITH_APOSTROPHE_YEAR_PATTERN);
+  if (apostrophe) return calendarWindow(2000 + Number(apostrophe[2]), monthNumber(apostrophe[1]));
+
+  const numeric = text.match(NUMERIC_MONTH_YEAR_PATTERN);
+  if (numeric) return calendarWindow(Number(numeric[2]), Number(numeric[1]));
+
+  const yearFirst = text.match(YEAR_MONTH_PATTERN);
+  return yearFirst ? calendarWindow(Number(yearFirst[1]), Number(yearFirst[2])) : null;
+}
+
+function parseNamedTimeWindow(
+  text: string,
+  priorWindow: Selection["timeWindow"] | undefined,
+  now: Date,
+): Selection["timeWindow"] | null {
+  if (FISCAL_PERIOD_PATTERN.test(text)) return null;
+
+  const yearRange = classifyYearRange(text);
+  if (yearRange?.kind === "amount") return null;
+  if (yearRange) return calendarYearRange(yearRange.first, yearRange.second);
+
+  const relative = text.match(/\b(last|previous|this)\s+(month|quarter|year)\b/i);
+  if (relative) {
+    const direction = relative[1].toLowerCase();
+    const period = relative[2].toLowerCase();
+    if (period === "month") {
+      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+      return calendarWindow(start.getUTCFullYear(), start.getUTCMonth() + 1);
+    }
+    if (period === "quarter") {
+      const currentStartMonth = Math.floor(now.getUTCMonth() / 3) * 3 + 1;
+      if (direction === "this") {
+        return {
+          grain: "day",
+          from: calendarMonthStart(now.getUTCFullYear(), currentStartMonth),
+          to: now.toISOString().slice(0, 10),
+        };
+      }
+      const start = new Date(Date.UTC(now.getUTCFullYear(), currentStartMonth - 4, 1));
+      return calendarWindow(start.getUTCFullYear(), start.getUTCMonth() + 1, start.getUTCMonth() + 3);
+    }
+    return calendarWindow(now.getUTCFullYear() - 1, 1, 12);
+  }
+
+  const quarterWithYear = text.match(QUARTER_WITH_YEAR_PATTERN);
+  const quarterWithApostropheYear = text.match(QUARTER_WITH_APOSTROPHE_YEAR_PATTERN);
+  const quarter = quarterWithYear ?? quarterWithApostropheYear ?? text.match(NAMED_QUARTER_PATTERN);
+  if (quarter) {
+    const number = quarter[1]
+      ? Number(quarter[1])
+      : ["first", "second", "third", "fourth"].indexOf(quarter[2].toLowerCase()) + 1;
+    const startMonth = (number - 1) * 3 + 1;
+    const year = quarterWithYear
+      ? Number(quarter[3])
+      : quarterWithApostropheYear
+        ? 2000 + Number(quarter[3])
+        : (calendarYear(text) ?? anchorYear(priorWindow, now, startMonth));
+    return calendarWindow(year, startMonth, startMonth + 2);
+  }
+
+  const bareYear = calendarYear(text);
+  if (bareYear !== null) return calendarWindow(bareYear, 1, 12);
+
+  const monthName = NAMED_MONTH_PATTERN.exec(text)?.[1] ?? (isNamedMay(text) ? "may" : undefined);
+  if (!monthName) return null;
+  const month = monthNumber(monthName);
+  return calendarWindow(anchorYear(priorWindow, now, month), month);
+}
+
+function calendarYear(text: string): number | null {
+  if (FISCAL_PERIOD_PATTERN.test(text)) return null;
+  if (classifyYearRange(text)?.kind === "amount") return null;
+  for (const match of text.matchAll(CALENDAR_YEAR_PATTERN)) {
+    const index = match.index ?? 0;
+    const before = text.slice(0, index);
+    const after = text.slice(index + match[0].length);
+    if (
+      AMOUNT_YEAR_PREFIX_PATTERN.test(before) ||
+      hasAmountContext(before, after) ||
+      COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
+      AMOUNT_YEAR_SUFFIX_PATTERN.test(after)
+    )
+      continue;
+    return Number(match[1]);
+  }
+  return null;
+}
+
+function classifyYearRange(
+  text: string,
+): { kind: "calendar"; first: number; second: number } | { kind: "amount" } | null {
+  for (const pattern of NUMBER_RANGE_PATTERNS) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const first = Number(match[1]);
+    const second = Number(match[2]);
+    const before = text.slice(0, match.index);
+    const isCalendarYear = (value: number) => Number.isInteger(value) && value >= 1990 && value <= 2099;
+    if (
+      !isCalendarYear(first) ||
+      !isCalendarYear(second) ||
+      RANGE_AMOUNT_MARKER_PATTERN.test(match[0]) ||
+      COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
+      AMOUNT_RANGE_PREFIX_PATTERN.test(before)
+    )
+      return { kind: "amount" };
+    return { kind: "calendar", first, second };
+  }
+  return null;
+}
+
+function hasAmountContext(before: string, after: string): boolean {
+  if (YEAR_MEASURE_SUFFIX_PATTERN.test(after)) return false;
+  if (
+    PERIOD_PREPOSITION_BEFORE_YEAR_PATTERN.test(before) ||
+    PERIOD_MEASURE_OF_YEAR_PATTERN.test(before) ||
+    PERIOD_ACTUAL_TO_YEAR_PATTERN.test(before)
+  )
+    return false;
+  if (DIRECT_QUANTITY_AMOUNT_PATTERN.test(before) && !DIRECT_GL_NUMBER_YEAR_PATTERN.test(before)) return true;
+  return LINKED_AMOUNT_YEAR_PATTERN.test(before);
+}
+
+function isNamedMay(text: string): boolean {
+  return /\bmay\b/i.test(text) && !MAY_MODAL_PATTERN.test(text);
+}
+
+function monthNumber(name: string): number {
+  return MONTH_PREFIXES.indexOf(name.slice(0, 3).toLowerCase()) + 1;
+}
+
+function anchorYear(priorWindow: Selection["timeWindow"] | undefined, now: Date, startMonth: number): number {
+  const priorYear = (priorWindow?.from ?? priorWindow?.to)?.match(/^(\d{4})-/)?.[1];
+  return priorYear ? Number(priorYear) : now.getUTCFullYear() - (startMonth > now.getUTCMonth() + 1 ? 1 : 0);
+}
+
+function calendarWindow(year: number, startMonth: number, endMonth = startMonth): Selection["timeWindow"] {
+  const from = calendarMonthStart(year, startMonth);
+  return { grain: "day", from, to: monthEnd(calendarMonthStart(year, endMonth)) };
+}
+
+function calendarYearRange(first: number, second: number): Selection["timeWindow"] {
+  const fromYear = Math.min(first, second);
+  const toYear = Math.max(first, second);
+  return { grain: "day", from: `${fromYear}-01-01`, to: `${toYear}-12-31` };
+}
+
+function calendarMonthStart(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-01`;
 }
 
 const MEASURE_FILTER_REFUSAL_MESSAGES: Record<MeasureFilterInvalidReason, string> = {
