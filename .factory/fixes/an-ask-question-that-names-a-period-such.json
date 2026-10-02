@@ -5,26 +5,19 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "f564c08ee2a7c066a41fca5da18d5e67a121407df7388bd050dc4ffcaa19b727",
-    "commit": "7dac90b8d5daa9b7a3875aa559ba97672eccbea1",
+    "changed": "1f75d62e4a95e27d4bc1b7dffdf0a63d8bb10fc98198fc5e430e3faec7076032",
+    "commit": "3eacd46858fc0ceac6f64ee2bc30c1ff167e09d2",
     "dismissals": [],
     "findings": [
       {
-        "body": "`parseExplicitMonthYear` now runs before the app's existing `parseTimeWindow` reader, but its patterns match substrings inside richer date expressions. For example, \u201cShow 2026-01-01 to 2026-07-09\u201d matches `2026-01` and becomes January 2026 instead of the explicit date range; \u201cShow Jan-Mar 2026\u201d matches `Mar 2026` and becomes March instead of January\u2013March. These are date forms the app reader already parses, so they must override the model with the complete parsed period. Run the general date reader before these substring helpers or prevent the helpers from matching inside dates and ranges.",
+        "body": "`calendarYear` excludes amount-like years only for the narrow `... of`, copula, comparison, currency, and suffix forms. For example, \u201cShow an amount around 2025\u201d matches none of those guards, so `parseNamedTimeWindow` converts 2025 into the full 2025 calendar window, overriding the model/prior period. This directly violates the requirement that an amount is never read as a year. The existing `AMOUNT_MODIFIER` vocabulary should also protect direct amount phrases such as `amount around 2025` and `cost approximately 2025`.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 390,
+        "line": 730,
         "priority": "P1",
-        "title": "Not done: explicit dates and ranges can be truncated to one month"
+        "title": "Not done: direct approximate amounts are still treated as calendar years"
       },
       {
-        "body": "The amount-range classifier recognizes only `actual` and `budget` as measure prefixes and omits `costs` and `expenses` from its quantity prefixes. Consequently, a follow-up such as \u201cShow costs between 2024 and 2025\u201d is classified as calendar years 2024\u20132025 and overrides the prior/model window, even though the same code treats an `Actual` range as an amount range. This violates the requirement that an amount is never read as a year. Apply the same amount vocabulary used by `COPULA_AMOUNT_PREFIX_PATTERN` to range classification.",
-        "file": "backend/src/chat/chat.service.ts",
-        "line": 748,
-        "priority": "P1",
-        "title": "Not done: cost and expense amount ranges are treated as calendar years"
-      },
-      {
-        "body": "The new matrix calls `ChatService.ask` through `makeFixture`, whose model, query executor/database, audit service, dimensions, reports, and resolver are fakes. The period-control rerun test uses the same fixture. Repository scripts register only Node and jsdom/Vitest suites, with no Playwright user flow against a running API and real database. Thus the named-period override, inheritance/aggregation, amount protection, and control rerun remain proven only below the required end-to-end boundary; the successful close run does not supply the required browser proof.",
+        "body": "The added matrix invokes `ChatService.ask` through `makeFixture`; that fixture uses a fake LLM, executor/warehouse, audit service, dimensions, reports, and resolver (unchanged lines 1221\u20131267). The period-control rerun test uses the same fixture. The registered suites remain Node and jsdom/Vitest tests, with no Playwright flow through a running frontend, API, and real database. Therefore the named-period override, inheritance/aggregation, amount protection, and user-driven period rerun still lack the required end-to-end proof. The successful close run only executed these lower-boundary suites.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -32,7 +25,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "c4cde234df6120ae6b416de479efd55b9c8b70325acec9076ca2c4c3b8bb171f"
+    "tree": "ce0355cc4f98c67180db5a755242190f9cccfcad10f0f67f5689c1dc26f427e3"
   },
   "status": "fixing",
   "steps": [
@@ -90,6 +83,10 @@
     },
     {
       "at": "2026-10-02T12:48:18+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T13:03:19+00:00",
       "step": "review"
     }
   ],
