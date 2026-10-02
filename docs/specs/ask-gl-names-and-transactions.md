@@ -61,22 +61,26 @@ figure against its source transactions without switching screens.
 - Each supported Ask answer carries a signed drill context, built the way the statement screen's
   signed context is built (`backend/src/mis/statement-attestation.ts`): it binds the reader, the
   executed selection, the effective plant predicate of the executed query, the pinned actuals
-  batches and, for statement lines, the pinned budget batch and outline, plus for every row its key,
-  its Actual in exact paise and whether at least one SAP line feeds it (so the clickable marker and
-  the footer target come from the signed context, never from the client), and it expires after the same
-  configured lifetime (30 minutes by default). The client sends only that context and the row's key.
-  The server refuses, with a stated reason and an audit record, a missing, altered, expired or
-  other-user context, and it never accepts a selection, scope, batch or amount from the client.
+  batches and, for statement lines, the pinned budget batch and outline. For each statement leaf it
+  also binds the exact plant, cost-centre and GL triples the executed query resolved through the
+  mapping master, together with the mapping master's version; the outline binds only the node-to-leaf
+  identity and label. For every row the context binds its key, its Actual in exact paise and whether at
+  least one SAP line feeds it (so the clickable marker and the footer target come from the signed
+  context, never from the client), and it expires after the same configured lifetime (30 minutes by
+  default). The client sends only that context and the row's key. The server refuses, with a stated
+  reason and an audit record, a missing, altered, expired or other-user context, and it never accepts a
+  selection, scope, batch, mapping version, triples or amount from the client.
 - Delivery: a supported `AskResponse` gains an optional typed `drill` object, outside the generic
   `ResultTable` rows (whose cells stay string, number or null and gain no column): an opaque signed
   `context` string and a `rows` list of `{ key, drillable }` matching result rows by key. The client
   uses `drillable` only to render an Actual as a button; the server re-checks it against the signed
   context on every click. Answers of other shapes, and answers that do not display an authorized
   Actual (Budget-only, `%`-only, or a reader without the Actual grant), carry no `drill` object. The
-  context is signed, not encrypted, so it holds only values that answer already displays: the row
-  keys and the Actuals shown on screen, never a figure the answer did not show. Neither is stored in the
-  conversation answer snapshot, a saved view or a pin. A saved view or pin reopens by re-running, so
-  it gets a fresh context. An answer shown from a stored conversation renders every Actual inert,
+  context is signed, not encrypted, so it holds only the values needed to reproduce the displayed
+  Actual's read and footer: the row keys, the Actuals shown on screen and, for statement leaves, the
+  bound triples and mapping version, never a figure the answer did not show. Neither is stored in the
+  conversation answer snapshot, a saved view or a pin. A saved view or pin reopens by re-running, so it
+  gets a fresh context. An answer shown from a stored conversation renders every Actual inert,
   with an "Ask again to open transactions" action that re-runs it; an answer whose context has
   expired is refused on click with "This answer is too old to open. Ask again to open its
   transactions."
@@ -84,16 +88,22 @@ figure against its source transactions without switching screens.
   longer holds the domain, the Actual measure or any one plant in the signed predicate, the drill is
   refused with "Your access has changed since this answer was shown. Ask again." and audited; it never
   narrows the predicate and returns a partial, non-footing result.
-- From the verified context the server re-derives the exact predicate: the raw SAP lines the
-  answer's governed query aggregated into that row, that is the row's GL code (or the leaf's mapped
-  plant, cost-centre and GL triples from the pinned outline), the time window and dimension filters,
-  the effective plant predicate of the executed query, and the pinned actuals batches. A reader
-  allowed several plants never sees another plant's lines in an answer whose query read fewer. Comparisons decide which rows appear, not which transactions feed a row, so they
-  do not enter the predicate.
+- From the verified context the server reconstructs the exact predicate for the raw SAP lines the
+  answer's governed query aggregated into that row: the row's GL code, or for a statement leaf exactly
+  the plant, cost-centre and GL triples bound when the executed query resolved that leaf through the
+  mapping master, plus the time window and dimension filters, the effective plant predicate of the
+  executed query, and the pinned actuals batches. The statement outline supplies only the node-to-leaf
+  identity and label, never the triples. On a statement-leaf click the server reads exactly the bound
+  triples and refuses with an audit record if their bound mapping-master version is no longer
+  resolvable. A reader allowed several plants never sees another plant's lines in an answer whose query
+  read fewer. Comparisons decide which rows appear, not which transactions feed a row, so they do not
+  enter the predicate.
 - In a GL-code answer, a line's Actual figure is a button that opens that code's SAP lines under that
   predicate. In a statement-line answer, a line's Actual opens the statement drill's read for that
-  leaf, under the answer's pinned budget outline and batches, so a GL split across several leaves
-  is read only for the leaf clicked.
+  leaf, using exactly the triples and mapping-master version bound for that leaf by the executed query;
+  the pinned outline supplies only its node-to-leaf identity and label. A GL split across several
+  leaves is read only for the leaf clicked, and an unresolvable bound mapping version is refused with
+  an audit record.
 - One transaction panel serves the statement screen and Ask. It shows posting date, document number,
   cost centre, account name, memo, reference, debit, credit and value, 100 lines a page; the
   statement screen's drill gains the document number, cost centre and account name columns as an
@@ -154,8 +164,11 @@ figure against its source transactions without switching screens.
   plant predicate of the executed query, pinned actuals batches), 100 a page, with a footer equal to
   the row's signed Actual to the paisa; other answer shapes have no clickable Actual.
 - **C4** In an answer whose only row dimension is `leaf_key`, clicking a line's Actual opens the same
-  lines the statement screen's drill opens for that leaf under the answer's pinned outline and
-  batches; the shared panel shows document number, cost centre and account name on both screens.
+  lines the statement screen's drill opens for that leaf, using exactly the plant, cost-centre and GL
+  triples the executed query bound for it together with the mapping master's version and the answer's
+  pinned batches; the outline supplies only the node-to-leaf identity and label. The click is refused
+  with an audit record if the bound mapping version is no longer resolvable. The shared panel shows
+  document number, cost centre and account name on both screens.
 - **C5** Every opening writes the typed drill audit record before the read and fails closed when the
   write fails; a reader outside the line's plants is refused, audited, and sees no rows.
 - **C5b** `AskResponse` carries an optional typed `drill` object (signed `context` and `rows` of
