@@ -705,6 +705,8 @@ const PERIOD_WORD_PATTERN = /\b(?:quarter|q[1-4]|today|yesterday|since)\b/i;
 const FISCAL_PERIOD_PATTERN = /\b(?:f\.?\s*y\.?|fiscal(?:\s+year)?|financial\s+year|fytd|ytd)(?=\s*\d|\b|$)/i;
 const RELATIVE_GRANULARITY_PATTERN =
   /\b(?:(?:last|past|previous|this|next|current)\s+(?:\d+\s+)?|\d+\s+)(?:days?|weeks?|months?|years?)\b/i;
+const DISPLAY_GRANULARITY_PATTERN =
+  /\b(?:(?:for\s+each|by|per|each|every)\s+(?:day|week|month|quarter|year|fy|period)|daily|weekly|monthly|quarterly|yearly|annually|annual|month-?wise|quarter-?wise|year-wise)\b/gi;
 const MONTH_NAMES =
   "january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec";
 const NAMED_MONTH_PATTERN =
@@ -726,19 +728,20 @@ const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
 const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
 const QUANTITY_OF_YEAR_PATTERN = /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)\s+of\s*$/i;
 const COMPARISON_YEAR_PREFIX_PATTERN =
-  /(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|[<>]=?)\s*$/i;
+  /(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])\s*$/i;
 const MAY_MODAL_PATTERN =
   /\bmay\s+(?:i|we|you|he|she|they|it|this|that|there|be|have|not|also|still|need|want|see|get|show|know|help)\b/i;
 const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 function hasTimePeriodWords(text: string): boolean {
+  const periodText = text.replace(DISPLAY_GRANULARITY_PATTERN, " ");
   return (
-    FISCAL_PERIOD_PATTERN.test(text) ||
-    PERIOD_WORD_PATTERN.test(text) ||
-    calendarYear(text) !== null ||
-    NAMED_MONTH_PATTERN.test(text) ||
-    isNamedMay(text) ||
-    RELATIVE_GRANULARITY_PATTERN.test(text)
+    FISCAL_PERIOD_PATTERN.test(periodText) ||
+    PERIOD_WORD_PATTERN.test(periodText) ||
+    calendarYear(periodText) !== null ||
+    NAMED_MONTH_PATTERN.test(periodText) ||
+    isNamedMay(periodText) ||
+    RELATIVE_GRANULARITY_PATTERN.test(periodText)
   );
 }
 
