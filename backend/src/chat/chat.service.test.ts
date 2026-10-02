@@ -462,6 +462,7 @@ test("Ask selects the intended window across supported ambiguous and no-period p
   const july2026 = { grain: "day" as const, from: "2026-07-01", to: "2026-07-31", column: "month" };
   const inheritedJuly = { grain: "month" as const, from: "2026-07-01", to: "2026-07-01", column: "month" };
   const july2025 = { grain: "day" as const, from: "2025-07-01", to: "2025-07-31", column: "month" };
+  const year2024 = { grain: "day" as const, from: "2024-01-01", to: "2024-12-31", column: "month" };
   const year2025 = { grain: "day" as const, from: "2025-01-01", to: "2025-12-31", column: "month" };
   const quarterThree2025 = { grain: "day" as const, from: "2025-07-01", to: "2025-09-30", column: "month" };
   const quarterThree2026 = { grain: "day" as const, from: "2026-07-01", to: "2026-09-30", column: "month" };
@@ -562,11 +563,17 @@ test("Ask selects the intended window across supported ambiguous and no-period p
     { question: "Show 2025 GL", prior: true, expected: year2025 },
     { question: "Show 2025 totals", prior: true, expected: year2025 },
     { question: "Show actuals of 2025", prior: true, expected: year2025 },
+    { question: "Show me 2025", prior: true, expected: year2025 },
+    { question: "And 2024?", prior: true, expected: year2024 },
+    { question: "GL codes 2025", prior: true, expected: year2025 },
+    { question: "2025 please", prior: true, expected: year2025 },
     { question: "Show Actual totaling 2025", expected: undefined },
     { question: "Show amounts over 2025", expected: undefined },
     { question: "Which GL codes spent more than 2025?", expected: undefined },
-    { question: "Show GL code 2025", expected: undefined },
+    { question: "Show GL code 2025", expected: year2025 },
     { question: "Show Actual totaling 2025", prior: true, expected: inheritedJuly },
+    { question: "Spent more than 2025", prior: true, expected: inheritedJuly },
+    { question: "Worth 2025", prior: true, expected: inheritedJuly },
     { question: "Show an amount of 2025 rupees", prior: true, expected: inheritedJuly },
     { question: "Show an amount of 2025 rupee", prior: true, expected: inheritedJuly },
     { question: "Show an amount of 2025 rs", prior: true, expected: inheritedJuly },
