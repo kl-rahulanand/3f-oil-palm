@@ -5,19 +5,19 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "52c816b63375c5209d19dd89eecf4a63f6700d7b5dea14f27fcd8c75bf87930b",
-    "commit": "cee7a914f5a3ddc5a8cb0071413966b9d57f697d",
+    "changed": "498d5ac26211c5ad49c97c6eb1317a8cf25fb7231df7d37b0541a328fbeb8d64",
+    "commit": "fb6db475e3bb9a28b3639fb67a29c78575edd9ce",
     "dismissals": [],
     "findings": [
       {
-        "body": "The period-word heuristic treats the common modal verb \u201cMay\u201d as a month. For example, `May I see Actual by GL code?` has no requested period and `parseTimeWindow` returns null, but this regex makes `hasTimePeriodWords` return true. Consequently the new branch does not clear a model-emitted window such as `last: 31`, so a fresh question does not aggregate all loaded data and a follow-up does not inherit its prior window. This violates the explicit no-period requirement.",
+        "body": "When `parseTimeWindow` cannot resolve the wording, line 389 preserves any model-emitted window merely because the question contains a period word. For example, with a prior July 2026 answer, \u201cWhat about August?\u201d parses to null; if the model emits September, the service answers September, and if it emits no window, the service inherits July. The added test at line 592 only supplies the correct August model window, so it cannot catch this. The same heuristic treats granularity requests such as \u201cShow Actual by month\u201d as naming a period, allowing an invented model window instead of aggregating or inheriting. This violates the required behavior regardless of the model output.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 699,
+        "line": 389,
         "priority": "P1",
-        "title": "Not done: A follow-up that names a period answers for that period whatever window the model emits; a question naming no period still\n       "
+        "title": "Not done: Named periods must override the model; no-period questions must inherit or aggregate; edited periods must rerun as chosen"
       },
       {
-        "body": "The added regression coverage calls `ChatService.ask` directly with a fake LLM and fake executor. It therefore does not prove the required user-facing flow through the running API, real database, and browser: carrying prior turns, overriding a wrong model window, inheriting/aggregating when no period is named, and changing the answer period. The repository evidence contains no Playwright scenario for these behaviors, so the change is proven only at a mocked unit boundary.",
+        "body": "All added regression scenarios invoke `ChatService.ask` with fake model, executor, and warehouse boundaries. They do not exercise the user-facing path through a browser, running API, real database, prior-turn transport, and period-control interaction. Repository discovery found only Vitest/jsdom frontend tests with a mocked API and backend unit tests, not a Playwright flow covering explicit-period override, no-period inheritance/aggregation, and changing an answer\u2019s period. The required end-to-end proof therefore remains missing.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -25,7 +25,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "e1680ef700227b5a32d90d849b7a2b7a3ad53447c4b1d31836920f66c97b631c"
+    "tree": "b6967e73a41cc0cdc025db4ea4303b7e3535186852e214912dcebf645b9719a6"
   },
   "status": "fixing",
   "steps": [
@@ -35,6 +35,10 @@
     },
     {
       "at": "2026-10-02T10:31:22+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T10:41:48+00:00",
       "step": "review"
     }
   ],
