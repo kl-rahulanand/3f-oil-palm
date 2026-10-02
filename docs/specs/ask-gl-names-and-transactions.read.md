@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T15:21:02+00:00
-read_hash: dd45e4b2eb92b99591fc3a3c9ded49520349dbad
-round: 6
-passed: no
-doc_seen: dd45e4b2eb92b99591fc3a3c9ded49520349dbad
+read_at: 2026-10-02T15:22:18+00:00
+read_hash: 5b80efb94467235833ee031665d07b50565bf243
+round: 7
+passed: yes
+doc_seen: 5b80efb94467235833ee031665d07b50565bf243
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 164721d086250a590b2978f50f5f12dc75c6960c
+notes_seen: 62f8194a98401cef3ed6e182406ef3121db359c8
 ---
 # Cold read notes
 
@@ -128,3 +128,6 @@ Only a genuine trade-off goes to the human, as a question with options.
    - Issue `drill` only when the corresponding Actual measure was selected and authorized, and make the context genuinely opaque (encrypted or server-held) if it contains amounts. Add a hermetic Budget-only/no-Actual-permission proof that no drill metadata or Actual values are returned.
    Disposition: cut the drill object is issued only when the answer displays an authorized Actual, and the signed context holds only values the answer already displays; Budget-only and no-grant proofs added (Behaviour, C5b, C8).
 
+## Round 7
+
+No findings.
