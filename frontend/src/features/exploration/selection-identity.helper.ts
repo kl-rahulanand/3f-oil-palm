@@ -28,11 +28,12 @@ export function selectionsEqual(left: Selection, right: Selection): boolean {
 }
 
 function equalMeasureFilters(left: Selection["measureFilters"], right: Selection["measureFilters"]): boolean {
-  if (left === undefined || right === undefined) return left === right;
+  const leftFilters = left ?? [];
+  const rightFilters = right ?? [];
   return (
-    left.length === right.length &&
-    left.every((filter, index) => {
-      const other = right[index];
+    leftFilters.length === rightFilters.length &&
+    leftFilters.every((filter, index) => {
+      const other = rightFilters[index];
       return (
         other !== undefined &&
         filter.measureId === other.measureId &&

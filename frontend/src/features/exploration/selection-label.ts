@@ -34,12 +34,17 @@ export function selectionLabel(selection: Selection): SelectionLabel {
 }
 
 export function measureFilterLabel(filter: MeasureFilter): string {
-  const left = registeredLabel(SEMANTIC_LABELS.measures, filter.measureId);
+  const left = comparisonMeasureLabel(filter.measureId);
   const right =
     filter.compareTo.kind === "measure"
-      ? registeredLabel(SEMANTIC_LABELS.measures, filter.compareTo.measureId)
+      ? comparisonMeasureLabel(filter.compareTo.measureId)
       : formatMoney(filter.compareTo.value as FixedScaleMoney);
   return `${left} ${MEASURE_FILTER_OPERATORS[filter.op]} ${right}`;
+}
+
+function comparisonMeasureLabel(id: string): string {
+  const measures: Record<string, string> = SEMANTIC_LABELS.measures;
+  return measures[id] ?? "(unavailable)";
 }
 
 function registeredLabel(catalog: Record<string, string>, id: string): string {

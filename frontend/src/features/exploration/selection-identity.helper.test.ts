@@ -86,3 +86,8 @@ test("selections differing only in measure comparisons are not equal", () => {
     }),
   ).toBe(false);
 });
+
+test("a legacy selection without measure filters equals the same selection with an empty list", () => {
+  expect(selectionsEqual(selection, { ...selection, measureFilters: [] })).toBe(true);
+  expect(selectionsEqual({ ...selection, measureFilters: [] }, selection)).toBe(true);
+});

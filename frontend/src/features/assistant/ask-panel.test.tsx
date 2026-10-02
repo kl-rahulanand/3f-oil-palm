@@ -241,13 +241,13 @@ test("a successful filtered answer shows its comparison and applied period under
   expect(within(answer).getByText("Actual > Budget · July 2026")).toBeInTheDocument();
 });
 
-test("a persisted filtered answer derives the readout period when its period control is absent", async () => {
+test("a filtered answer derives the readout period when its period control is absent", async () => {
   const restored = filteredSuccess();
   delete restored.periodControl;
   mocks.ask.mockResolvedValue(restored);
   renderAsk();
 
-  submit("Reopen the July answer");
+  submit("Show lines over budget for July 2026");
 
   expect(await screen.findByText("Actual > Budget · July 2026")).toBeInTheDocument();
 });
@@ -264,10 +264,10 @@ test("an empty filtered answer shows a plain message in place of the blank table
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
 });
 
-test("reopening a stored comparison sends it intact and shows the answer readout", async () => {
+test("rerunning a stored comparison sends it intact and shows the fresh answer readout", async () => {
   mocks.ask
     .mockResolvedValueOnce(filteredSuccess())
-    .mockResolvedValueOnce({ ...filteredSuccess(), title: "Reopened governed result" });
+    .mockResolvedValueOnce({ ...filteredSuccess(), title: "Rerun governed result" });
   render(
     <AskProvider>
       <AskPanel surface="page" />
@@ -277,10 +277,10 @@ test("reopening a stored comparison sends it intact and shows the answer readout
 
   submit("Show lines over budget for July 2026");
   await screen.findByText("Actual > Budget · July 2026");
-  fireEvent.click(screen.getByRole("button", { name: "Reopen filtered report" }));
+  fireEvent.click(screen.getByRole("button", { name: "Rerun filtered report" }));
 
-  const reopened = (await screen.findByRole("heading", { name: "Reopened governed result" })).closest("article")!;
-  expect(within(reopened).getByText("Actual > Budget · July 2026")).toBeInTheDocument();
+  const rerun = (await screen.findByRole("heading", { name: "Rerun governed result" })).closest("article")!;
+  expect(within(rerun).getByText("Actual > Budget · July 2026")).toBeInTheDocument();
   expect(mocks.ask).toHaveBeenNthCalledWith(
     2,
     { question: "Show lines over budget for July 2026", selection: measureFilteredSelection },
@@ -1041,7 +1041,7 @@ function MeasureFilterRerunButton() {
   const { rerun } = useAsk();
   return (
     <button type="button" onClick={() => void rerun("Actual · Budget", measureFilteredSelection)}>
-      Reopen filtered report
+      Rerun filtered report
     </button>
   );
 }

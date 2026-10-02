@@ -150,7 +150,7 @@ export function buildBedrockSelectionToolSpec(
               json: {
                 type: "object",
                 additionalProperties: false,
-                required: ["domain", "measureIds"],
+                required: ["domain", "measureIds", "dimensionIds"],
                 properties: {
                   domain: { type: "string", enum: domainNames },
                   measureIds: {

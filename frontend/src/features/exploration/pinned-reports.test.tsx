@@ -25,6 +25,19 @@ const selection: Selection = {
   filters: [],
 };
 
+const measureFilteredSelection: Selection = {
+  ...selection,
+  measureIds: ["governed-financial.actual", "governed-financial.budget"],
+  dimensionIds: ["gl_code"],
+  measureFilters: [
+    {
+      measureId: "governed-financial.actual",
+      op: "gt",
+      compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+    },
+  ],
+};
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -131,6 +144,24 @@ test("opening a pin navigates before the request resolves", async () => {
 
   expect(mocks.push).toHaveBeenCalledWith("/ask");
   expect(mocks.ask).toHaveBeenCalledTimes(1);
+});
+
+test("opening a pin sends its stored measure comparison to Ask intact", async () => {
+  mocks.pins.mockResolvedValue([
+    pin("filtered", "Filtered actual", 0, false, { runnable: true }, measureFilteredSelection),
+  ]);
+  mocks.ask.mockResolvedValue(success("Filtered actual", measureFilteredSelection));
+  renderPins();
+
+  await screen.findByRole("heading", { name: "Filtered actual" });
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+  await waitFor(() =>
+    expect(mocks.ask).toHaveBeenCalledWith(
+      { question: "Actual · Budget", selection: measureFilteredSelection },
+      { signal: expect.any(AbortSignal) },
+    ),
+  );
 });
 
 test("opening while another request runs shows the busy message and does not navigate", async () => {

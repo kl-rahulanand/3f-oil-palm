@@ -35,6 +35,17 @@ test("measure filter enums use the separate comparable vocabulary while displaye
   });
 });
 
+test("the selector schema requires dimension ids so Bedrock always chooses total or breakdown", async () => {
+  const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
+
+  await fixture.provider.select(selectionInput());
+
+  const emitSelection = fixture.requests[0]?.toolConfig?.tools[0]?.toolSpec.inputSchema.json as
+    | { required?: string[] }
+    | undefined;
+  assert.deepEqual(emitSelection?.required, ["domain", "measureIds", "dimensionIds"]);
+});
+
 test("the selector prompt maps budget comparisons and Indian magnitudes or refuses them", async () => {
   const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
 

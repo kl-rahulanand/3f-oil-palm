@@ -41,3 +41,26 @@ test("selection labels spell out measure comparisons with registered labels and 
     summary: "GL code · Actual > Budget · Actual > ₹5,00,000",
   });
 });
+
+test("an unregistered comparison measure renders that operand as unavailable", () => {
+  const comparison = (measureId: string, operandMeasureId: string): Selection => ({
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    dimensionIds: ["gl_code"],
+    filters: [],
+    measureFilters: [
+      {
+        measureId,
+        op: "gt",
+        compareTo: { kind: "measure", measureId: operandMeasureId },
+      },
+    ],
+  });
+
+  expect(selectionLabel(comparison("retired.actual", "governed-financial.budget")).summary).toBe(
+    "GL code · (unavailable) > Budget",
+  );
+  expect(selectionLabel(comparison("governed-financial.actual", "retired.budget")).summary).toBe(
+    "GL code · Actual > (unavailable)",
+  );
+});
