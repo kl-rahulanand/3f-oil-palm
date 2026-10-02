@@ -63,8 +63,17 @@ figure against its source transactions without switching screens.
   the footer target come from the signed context, never from the client), and it expires after the same
   configured lifetime (30 minutes by default). The client sends only that context and the row's key.
   The server refuses, with a stated reason and an audit record, a missing, altered, expired or
-  other-user context, and it never accepts a selection, scope, batch or amount from the client. A
-  reopened answer gets a fresh context from its re-run.
+  other-user context, and it never accepts a selection, scope, batch or amount from the client.
+- Delivery: a supported `AskResponse` gains an optional opaque `drillContext` string and, on each
+  result row, an optional `drillable` boolean the client uses only to render the Actual as a button;
+  the server re-checks both against the signed context on every click. Neither is stored in the
+  conversation answer snapshot, a saved view or a pin. A saved view or pin reopens by re-running, so
+  it gets a fresh context; an answer shown from a stored conversation, or whose context has expired,
+  is refused on click with "This answer is too old to open. Ask again to open its transactions."
+- Every click re-authorizes against the reader's current grants and plant scope. If the reader no
+  longer holds the domain, the Actual measure or every plant in the signed predicate, the drill is
+  refused with "Your access has changed since this answer was shown. Ask again." and audited; it never
+  narrows the predicate and returns a partial, non-footing result.
 - From the verified context the server re-derives the exact predicate: the raw SAP lines the
   answer's governed query aggregated into that row, that is the row's GL code (or the leaf's mapped
   plant, cost-centre and GL triples from the pinned outline), the time window and dimension filters,
@@ -139,6 +148,13 @@ figure against its source transactions without switching screens.
   batches; the shared panel shows document number, cost centre and account name on both screens.
 - **C5** Every opening writes the typed drill audit record before the read and fails closed when the
   write fails; a reader outside the line's plants is refused, audited, and sees no rows.
+- **C5b** `AskResponse` carries the optional `drillContext` and per-row `drillable` fields; the
+  conversation snapshot, saved views and pins do not store them; an expired or stored answer's click
+  is refused with the stated wording, and a saved or pinned reopen gets a fresh context from its
+  re-run.
+- **C5c** Every click re-authorizes the reader's current grants and plant scope; a reader whose
+  access changed since the answer is refused with the stated wording and an audit record, never
+  served a narrowed, non-footing read.
 - **C5a** The drill accepts only the answer's signed drill context, which carries each row's key,
   exact-paise Actual and clickable marker: a missing, altered, expired or
   other-user context is refused with its reason and audited; the read uses the effective plant
@@ -153,7 +169,8 @@ figure against its source transactions without switching screens.
   transaction lines never reach the model.
 - **C8** Hermetic proofs cover name selection, ties, fallback and disclosure, pinned labels after a
   re-upload, signed-context refusals, the signed per-row Actual and marker, replaced and gone
-  actuals and budget batches, a mixed-plant reader, predicate re-derivation and refusal, audit-before-read ordering, replaced and gone batches, inert cells and
+  actuals and budget batches, an expired or stored answer, access revoked after the answer was
+  shown, a mixed-plant reader, predicate re-derivation and refusal, audit-before-read ordering, replaced and gone batches, inert cells and
   exact-paise footing. A manual live check against the July warehouse and the host's Bedrock model,
   outside CI and in a fresh Ask conversation: "show me list items where Actuals are more than
   the budget for July 2026" shows names for all 21 codes, and opening 50001201's Actual foots to

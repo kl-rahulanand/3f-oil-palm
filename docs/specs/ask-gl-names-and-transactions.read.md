@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T15:17:02+00:00
-read_hash: f1fdf6d4c40d5d9c8d0589c3021c78e92c8c6ba2
-round: 3
+read_at: 2026-10-02T15:18:26+00:00
+read_hash: e78ad8b07af94d690ca1c53fb75e43ba3a571f5d
+round: 4
 passed: no
-doc_seen: f1fdf6d4c40d5d9c8d0589c3021c78e92c8c6ba2
+doc_seen: e78ad8b07af94d690ca1c53fb75e43ba3a571f5d
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 627efafed5a54732a519d75ffdad96cee602863b
+notes_seen: 202d86095e4576cfc3442f71d7c96cecdf7a05ae
 ---
 # Cold read notes
 
@@ -91,4 +91,16 @@ Only a genuine trade-off goes to the human, as a question with options.
    - `actuals-drill-down` requires an existing but replaced pinned batch to be read, foot to the displayed Actual, and report replacement; only a gone batch is refused. C6 instead withholds all Ask rows for both.
    - Resolve this against the confirmed spec before approval; an Ask-specific departure needs an explicit decision rather than silently changing the pinned-read guarantee.
    Disposition: cut Ask now follows the confirmed actuals-drill-down spec: a replaced batch is read, foots and is named; only a gone batch is refused (Behaviour, C6).
+
+## Round 4
+
+15. **Gap: a signed context must not substitute for current RBAC re-authorization.**
+   - The context freezes the effective plant predicate at answer time, but the spec never requires every click to re-check the reader’s current grants and plant scope.
+   - If scope changes during the 30-minute lifetime, refuse the drill rather than intersecting the old predicate and returning a partial, non-footing result. Add a proof for scope revoked after the answer was rendered.
+   Disposition: cut every click re-authorizes current grants and plant scope and refuses, audited, when access changed, never narrowing to a partial read (Behaviour, C5c, C8).
+
+16. **Gap: the Ask response and reopened-turn contract do not define how drill context is delivered or retained.**
+   - Current `AskResponse` and `ConversationAnswerSnapshot` have no drill-context or per-row drill metadata. “Carries a signed drill context” does not pin its response field, row association, or expired-context behaviour after a page/conversation reopen.
+   - Define the contract and require a re-run to mint a fresh context when it is absent or expired; prove a hydrated old answer cannot issue a drill with stale or missing metadata.
+   Disposition: cut AskResponse gains optional drillContext and per-row drillable, not stored in snapshots, saved views or pins; expired or stored answers refuse with stated wording and saved or pinned reopens re-run for a fresh context (Behaviour, C5b, C8).
 
