@@ -17,7 +17,7 @@ import { loadConfig } from "../config";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
 import { askSchema } from "./chat.schemas";
-import { ChatService, trimPriorTurnsToTokenBudget } from "./chat.service";
+import { ChatService, hasTimePeriodWords, trimPriorTurnsToTokenBudget } from "./chat.service";
 
 test("trimming retains the newest turns in oldest first order", () => {
   const turns = ["oldest", "middle", "newest"].map((question) => ({
@@ -502,8 +502,84 @@ test("a follow-up naming a period uses it instead of the prior answer's window",
   });
 });
 
+test("a follow-up naming no period inherits July when the model emits the last 31 days", async () => {
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      timeWindow: { grain: "day", last: 31 },
+    },
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "And which GL codes spent more than 3 lakh?",
+    undefined,
+    undefined,
+    [{ question: "Which GL codes spent more than 5 lakh in July 2026?", selection: financialSelection }],
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(response.selection?.timeWindow, {
+    grain: "month",
+    from: "2026-07-01",
+    to: "2026-07-01",
+    column: "month",
+  });
+});
+
+test("period words are detected even when they do not resolve to a window", () => {
+  for (const question of [
+    "What about August?",
+    "Which quarter was highest?",
+    "Show Q3",
+    "Compare this FY",
+    "Show YTD",
+    "Try the previous week",
+    "Which days were highest?",
+    "Compare next month",
+    "Since the last review",
+  ]) {
+    assert.equal(hasTimePeriodWords(question), true, question);
+  }
+});
+
+test("an ordinary follow-up has no period words", () => {
+  assert.equal(hasTimePeriodWords("And which GL codes spent more than 3 lakh?"), false);
+});
+
+test("an unresolved period phrase keeps the model's window instead of inheriting", async () => {
+  const augustSelection: Selection = {
+    ...financialSelection,
+    timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
+  };
+  const fixture = makeFixture({ selection: augustSelection });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "What about August?",
+    undefined,
+    undefined,
+    [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(response.selection?.timeWindow, {
+    grain: "month",
+    from: "2026-08-01",
+    to: "2026-08-31",
+    column: "month",
+  });
+});
+
 test("a question naming no period with no prior turn still covers all loaded data", async () => {
-  const fixture = makeFixture({ selection: { ...financialSelection, timeWindow: undefined } });
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      timeWindow: { grain: "day", last: 31 },
+    },
+  });
 
   const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show Actual by GL code");
 
@@ -748,7 +824,11 @@ test("a selection naming a measure outside the registered domains is refused ser
 test("the view in report field is available only for a statement domain answer resolving to one selector set and otherwise carries a reason", async () => {
   const activeBatchIds: ProvenanceBatch[] = [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }];
   const available = makeFixture({ selection: statementSelection, activeBatchIds });
-  const answer = await available.service.ask(userFor("mis-statement", true), "session", "Show statement Actual");
+  const answer = await available.service.ask(
+    userFor("mis-statement", true),
+    "session",
+    "Show statement Actual for July 2026",
+  );
   assert.deepEqual(answer.viewInReport, {
     available: true,
     department: "Agriculture",
@@ -779,7 +859,7 @@ test("the view in report field is available only for a statement domain answer r
   const filteredAnswer = await filteredStatement.service.ask(
     userFor("mis-statement", true),
     "session",
-    "Show statement lines above 100",
+    "Show statement lines above 100 for July 2026",
   );
   assert.deepEqual(filteredAnswer.viewInReport, {
     available: false,

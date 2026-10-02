@@ -136,7 +136,7 @@ test("a successful answer carries a period control whose current entry is the wi
     const response = await makeFixture(statementSelection(timeWindow), ["2026-07-01"]).service.ask(
       statementUser(),
       "session",
-      STATEMENT_QUESTION,
+      `${STATEMENT_QUESTION} for July 2026`,
     );
     assert.equal(response.responseClass, ResponseClass.Success);
     assert.equal(response.periodControl?.current, "2026-07-01");

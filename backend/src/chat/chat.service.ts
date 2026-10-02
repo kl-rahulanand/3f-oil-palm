@@ -381,10 +381,12 @@ export class ChatService {
       });
     selection = normalizedSelection.selection;
     // On the provider path, an explicit period in the user's words is authoritative.
+    // With no period language, discard a guessed model window so inheritance or all-data applies.
     // Edited selections are period-control re-runs and must keep the window the user chose.
     if (!usesEditedSelection) {
       const parsedTimeWindow = parseTimeWindow(question, new Date());
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
+      else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
     if (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.from > selection.timeWindow.to)
       return done({
@@ -691,6 +693,13 @@ export class ChatService {
 
     return { kind: "selection", selection: { ...selection, filters } };
   }
+}
+
+const PERIOD_WORD_PATTERN =
+  /\b(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec|quarter|q[1-4]|year|fy|ytd|weeks?|days?|months?|today|yesterday|since)\b/i;
+
+export function hasTimePeriodWords(text: string): boolean {
+  return PERIOD_WORD_PATTERN.test(text);
 }
 
 const MEASURE_FILTER_REFUSAL_MESSAGES: Record<MeasureFilterInvalidReason, string> = {
