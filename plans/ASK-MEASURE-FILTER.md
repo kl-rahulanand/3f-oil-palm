@@ -176,7 +176,7 @@ longer exist: the test command is forge.toml's, and deferrals are plain notes he
    `appliedMeasureFilters` and the applied period, on a fresh answer, and
    renders the empty-state message ("No lines match Actual > Budget for July 2026") in place of the
    blank table when a filtered result has no rows; reopening a saved or pinned selection with a filter
-   re-runs it with the filter. Vitest leaves for label, identity, readout, empty state and reopen; the saved and pinned reopen leaves live in `saved-views.test.tsx` and `pinned-reports.test.tsx` and assert a stored selection with `measureFilters` reaches Ask intact.
+   re-runs it with the filter. Vitest leaves for label, identity, readout, empty state and reopen; the saved and pinned reopen leaves live in `saved-views.test.tsx` and `pinned-reports.test.tsx` and assert a stored selection with `measureFilters` reaches Ask intact. Two edge cases have their own leaves: a stored comparison whose left or operand measure id is not registered renders that side as `(unavailable)` (`selection-label.test.ts`), and a legacy selection with no `measureFilters` field is identity-equal to the same selection with `measureFilters: []`, so reopening an unchanged saved or pinned report adds no duplicate turn (`selection-identity.helper.test.ts`).
 
 ## Tasks
 

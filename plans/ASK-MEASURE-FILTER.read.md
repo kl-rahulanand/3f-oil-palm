@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T06:56:58+00:00
-read_hash: 6e8be2c78239d7888e37df8afdff5047a4cf9857
-round: 25
+read_at: 2026-10-02T07:05:17+00:00
+read_hash: fe656fb67e8543036cf8717020f64a18fe3702d8
+round: 26
 passed: no
-doc_seen: 6e8be2c78239d7888e37df8afdff5047a4cf9857
+doc_seen: fe656fb67e8543036cf8717020f64a18fe3702d8
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 8febab0d884c5965e26d8467b7a0f5b1ef2102ed
+notes_seen: e67e2eae04f3110cbcf43d22869d3de46866045d
 ---
 # Cold read notes
 
@@ -237,3 +237,13 @@ No findings.
 39. Unproven: item 11: reopening a saved or pinned selection with a measure filter is not covered by a declared leaf.
    The task names only label, identity, Ask-panel, and provider tests; it excludes `saved-views` and `pinned-reports`, whose existing reopen tests use selections without `measureFilters`. Add filtered reopen leaves there that assert the exact selection reaches Ask, or explicitly make an equivalent integration leaf prove both entry points.
    Disposition: cut `saved-views.test.tsx` and `pinned-reports.test.tsx` join the Surfaces row's Scope and Tests, and detail 11 names their filtered reopen leaves asserting the stored selection with `measureFilters` reaches Ask intact.
+
+## Round 26
+
+40. Unproven: item 11: an unregistered measure in a stored comparison still renders as unavailable.
+   The confirmed spec requires unavailable ids to render as `(unavailable)`, but the planned label leaf only names registered-label examples. Add a `selection-label.test.ts` case for unavailable left and operand measure ids.
+   Disposition: cut Done-when detail 11 now names the `(unavailable)` rendering of an unregistered left or operand measure, with its `selection-label.test.ts` leaf (already in the Surfaces row's Tests).
+
+41. Unproven: items 1 and 11: a legacy selection with no `measureFilters` is identity-equivalent to a new selection with `measureFilters: []`.
+   Both mean no comparison, but older stored JSON omits the optional field. Pin this equality in `selection-identity.helper.test.ts` so reopening an unchanged saved or pinned report does not create a duplicate turn.
+   Disposition: cut Done-when detail 11 now names the identity equality of a missing `measureFilters` and `[]`, with its `selection-identity.helper.test.ts` leaf (already in the Surfaces row's Tests).
