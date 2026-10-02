@@ -696,10 +696,12 @@ export class ChatService {
 }
 
 const PERIOD_WORD_PATTERN =
-  /\b(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec|quarter|q[1-4]|year|fy|ytd|weeks?|days?|months?|today|yesterday|since)\b/i;
+  /\b(?:january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec|quarter|q[1-4]|year|fy|ytd|weeks?|days?|months?|today|yesterday|since)\b/i;
+const MAY_PERIOD_PATTERN =
+  /\b(?:(?:in|for|of|during|since|from|until|till|through|to|by|about|before|after)\s+may|may\s+(?:\d{4}|[1-9]|[12]\d|3[01])|(?:[1-9]|[12]\d|3[01])\s+may)\b/i;
 
 export function hasTimePeriodWords(text: string): boolean {
-  return PERIOD_WORD_PATTERN.test(text);
+  return PERIOD_WORD_PATTERN.test(text) || MAY_PERIOD_PATTERN.test(text);
 }
 
 const MEASURE_FILTER_REFUSAL_MESSAGES: Record<MeasureFilterInvalidReason, string> = {
