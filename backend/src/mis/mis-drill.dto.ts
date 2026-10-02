@@ -64,6 +64,9 @@ class MisDrillBatchStatusDto implements MisDrillBatchStatus {
 class MisDrillLineDto implements MisDrillLine {
   @ApiProperty({ example: "2026-07-01" }) month!: string;
   @ApiProperty({ example: "2026-07-14" }) postingDate!: string;
+  @ApiProperty({ description: "SAP document number.", example: "1900001234" }) txnNo!: string;
+  @ApiProperty({ description: "SAP cost centre.", example: "DUB-NUR" }) costCenter!: string;
+  @ApiProperty({ description: "SAP account name.", example: "Sprout Cost - Imp" }) accountName!: string;
   @ApiProperty({ example: "125.00" }) debit!: FixedScaleMoney;
   @ApiProperty({ example: "0.00" }) credit!: FixedScaleMoney;
   @ApiProperty({ example: "125.00" }) value!: FixedScaleMoney;

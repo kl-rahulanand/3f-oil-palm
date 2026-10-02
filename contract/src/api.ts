@@ -468,6 +468,9 @@ export interface MisDrillBatchStatus {
 export interface MisDrillLine {
   month: string;
   postingDate: string;
+  txnNo: string;
+  costCenter: string;
+  accountName: string;
   debit: FixedScaleMoney;
   credit: FixedScaleMoney;
   value: FixedScaleMoney;

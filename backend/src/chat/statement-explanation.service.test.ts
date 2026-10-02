@@ -33,6 +33,9 @@ test("a leaf explanation foots in paise against the statement payload and report
   const lines = Array.from({ length: 20 }, (_, index) => ({
     month: "2026-07-01",
     postingDate: "2026-07-01",
+    txnNo: `190000${String(index).padStart(4, "0")}`,
+    costCenter: "DUB-NUR",
+    accountName: "Sprout Cost - Imp",
     debit: "5.00" as const,
     credit: "0.00" as const,
     value: "5.00" as const,

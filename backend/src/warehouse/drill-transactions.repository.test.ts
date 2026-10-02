@@ -60,6 +60,53 @@ test("the repository honours the supplied row limit so twenty reaches the sql an
   assert.match(repository.buildQueries(predicate, 2, 100).pageSql, /LIMIT 100 OFFSET 100$/);
 });
 
+test("the repository returns each transaction's document number cost centre and account name", async () => {
+  const warehouse = new FakeWarehouse([
+    {
+      month: "2026-07-01",
+      posting_date: "2026-07-14",
+      txn_no: "1900001234",
+      cost_center: "DUB-NUR",
+      acct_name: "Sprout Cost - Imp",
+      debit: "125.00",
+      credit: "0.00",
+      value: "125.00",
+      reference: "REF-1",
+      memo: "Seedlings",
+    },
+  ]);
+  const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
+  const queries = repository.buildQueries(
+    {
+      actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+      triples: [{ plant: "DUB", costCenter: "DUB-NUR", glCode: "5001" }],
+      plants: ["DUB"],
+      from: "2026-07-01",
+      to: "2026-07-01",
+    },
+    1,
+    100,
+  );
+
+  assert.match(queries.pageSql, /txn\.txn_no/);
+  assert.match(queries.pageSql, /txn\.cost_center/);
+  assert.match(queries.pageSql, /txn\.acct_name/);
+  assert.deepEqual((await repository.execute(queries)).lines, [
+    {
+      month: "2026-07-01",
+      postingDate: "2026-07-14",
+      txnNo: "1900001234",
+      costCenter: "DUB-NUR",
+      accountName: "Sprout Cost - Imp",
+      debit: "125.00",
+      credit: "0.00",
+      value: "125.00",
+      reference: "REF-1",
+      memo: "Seedlings",
+    },
+  ]);
+});
+
 test("pinned batch existence and active state are read in one query", async () => {
   const warehouse = new FakeWarehouse();
   const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
@@ -75,6 +122,8 @@ class FakeWarehouse implements Warehouse {
   explained: string[] = [];
   executed: string[] = [];
 
+  constructor(private readonly pageRows: Array<Record<string, string | number | null>> = []) {}
+
   async explain(sql: string) {
     this.explained.push(sql);
   }
@@ -83,7 +132,7 @@ class FakeWarehouse implements Warehouse {
     this.executed.push(sql);
     return sql.includes("COUNT(*)")
       ? { columns: [], rows: [{ total_count: "0", debit: "0.00", credit: "0.00", value: "0.00" }] }
-      : { columns: [], rows: [] };
+      : { columns: [], rows: this.pageRows };
   }
 
   async freshness() {

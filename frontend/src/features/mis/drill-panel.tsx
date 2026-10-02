@@ -283,6 +283,9 @@ function TransactionBody({
             <tr>
               <th scope="col">Month</th>
               <th scope="col">Posting date</th>
+              <th scope="col">Document no.</th>
+              <th scope="col">Cost centre</th>
+              <th scope="col">Account name</th>
               <th scope="col">Debit</th>
               <th scope="col">Credit</th>
               <th scope="col">Value</th>
@@ -293,13 +296,16 @@ function TransactionBody({
           <tbody>
             {result.lines.length === 0 ? (
               <tr>
-                <td colSpan={7}>No transactions match this Actual.</td>
+                <td colSpan={10}>No transactions match this Actual.</td>
               </tr>
             ) : (
               result.lines.map((line, index) => (
                 <tr key={`${result.page}-${index}`}>
                   <td>{formatMonth(line.month)}</td>
                   <td>{formatDate(line.postingDate)}</td>
+                  <td>{line.txnNo}</td>
+                  <td>{line.costCenter}</td>
+                  <td>{line.accountName}</td>
                   <td data-numeric="true">{formatMoney(line.debit)}</td>
                   <td data-numeric="true">{formatMoney(line.credit)}</td>
                   <td data-numeric="true">{formatMoney(line.value)}</td>
@@ -311,7 +317,7 @@ function TransactionBody({
           </tbody>
           <tfoot>
             <tr className="mis-drill-foot" aria-label={foots ? "Total" : "Total withheld"}>
-              <th colSpan={2} scope="row">
+              <th colSpan={5} scope="row">
                 {foots ? "Total" : "Total withheld"}
               </th>
               {foots ? (

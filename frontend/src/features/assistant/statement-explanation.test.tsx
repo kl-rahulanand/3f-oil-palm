@@ -6,6 +6,9 @@ import { StatementExplanation } from "./statement-explanation";
 const line = {
   month: "2026-07-01",
   postingDate: "2026-07-12",
+  txnNo: "1900001234",
+  costCenter: "DUB-NUR",
+  accountName: "Shade Net Material",
   debit: "50.00" as const,
   credit: "0.00" as const,
   value: "50.00" as const,
