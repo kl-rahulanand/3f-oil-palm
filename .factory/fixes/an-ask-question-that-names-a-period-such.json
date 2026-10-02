@@ -5,26 +5,26 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "3c94bf4cdf6abc36b316ab475d22952059812c65988d488b79067e5dda2320cf",
-    "commit": "dc3ca3728ac1f29fedf41991badc8ebed43753bf",
+    "changed": "0ec19449764c2e1cd889b899467bbc3a9ce6e68b1e7f318c1373747f3e4db2ad",
+    "commit": "706c1f05bcc061c65d30f479603ae72d1a814125",
     "dismissals": [],
     "findings": [
       {
-        "body": "`AMBIGUOUS_MONTH_YEAR_PATTERN` short-circuits all deterministic parsing whenever a month is followed by two digits. This also matches unambiguous app-readable dates such as `since July 25, 2026` and ranges beginning `July 25, 2026 through ...`; the unchanged date reader accepts these forms in `backend/src/chat/timeWindowParse.ts` lines 32 and 105\u2013124. Because `hasTimePeriodWords` then sees the month name, the model window is retained instead of being cleared or overridden. The new test at line 486 even expects the model window for `Jul 25`, although the app's date reader parses that as a month-day date. This violates the required precedence for every period the app reads itself.",
+        "body": "The year/amount heuristic still rejects ordinary terse year wording. For example, `Show Actuals 2025` on a follow-up does not parse as calendar year 2025: `hasAmountContext` sees `Actuals` before the number and makes `calendarYear` skip it. The service then treats the question as having no period, clears the model's window, and inherits the prior window instead. Thus a prior July answer remains July even though the follow-up explicitly names 2025. This is distinct new evidence from the coordinator's ruling preserving `Actual to 2025` and `Actual of 2025`; neither ruled phrase is involved.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 389,
+        "line": 845,
         "priority": "P1",
-        "title": "Not done: A follow-up that names a period the app reads itself answers for that period whatever window the model emits"
+        "title": "Not done: A follow-up that names a period the app reads itself (anything the app's date reader parses, such as last 30 days, explicit dates"
       },
       {
-        "body": "The amount guard only recognizes its enumerated link words and therefore still misses ordinary unambiguous amount phrases. For example, in `Show an amount that is 2025`, `AMOUNT_BEFORE_NUMBER_PATTERN` fails because `that` is not an `AMOUNT_LINK`; none of the currency, comparison, or suffix guards apply, so `calendarYear` returns 2025 and replaces the model/prior window with calendar year 2025. `Show an amount that should be 2025` fails similarly. The newly added direct cases such as `amount around 2025` do not cover this remaining violation.",
+        "body": "A clear amount phrase such as `Show an amount totalling to 2025` is still converted to calendar year 2025. Although `amount` and `totalling` are amount words, `hasAmountContext` returns false because the text immediately before the number ends in `to`; the comparison guard does not match `totalling to`, so `calendarYear` accepts 2025 and overwrites the model/prior window. This is new evidence not covered by the ruling that preserves the shorter `Actual to 2025` calendar-year behavior.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 733,
+        "line": 881,
         "priority": "P1",
         "title": "Not done: an amount is never read as a year"
       },
       {
-        "body": "The added matrix calls `ChatService.ask` through `makeFixture`, whose LLM, executor/warehouse, audit, dimensions, reports, and resolver are fakes; the period-control rerun test uses the same fixture. `ask-period.test.ts` is likewise service-level with fake infrastructure. The registered suites contain no Playwright flow through a running frontend, API, real database, and period-control interaction, so named-period precedence, inheritance/aggregation, amount protection, and user-driven reruns still lack the required end-to-end proof. The successful close run exercised only these lower-boundary Node/jsdom suites.",
+        "body": "The new matrix and rerun checks still call `ChatService.ask` through `makeFixture`, where the LLM, executor/warehouse, audit, dimensions, reports, and resolver are fakes. The frontend period-control tests also mock the API, and the registered test command contains no Playwright/browser suite. Consequently, named-period precedence, inheritance/aggregation, amount protection, and changing an answer's period have no required end-to-end proof through a browser, running API, real database, and user flow. The successful close run only exercised these service/jsdom boundaries, so the prior test-audit blocker remains open.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -32,7 +32,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "8f226c03841de5e50c4c6e732318fcb858b0c1f128e5c19f1292195a67e975a3"
+    "tree": "5309901c30e0468df1cc211f1cd2897529b279f788f0ddc3d91f27088b8ae6bd"
   },
   "status": "fixing",
   "steps": [
@@ -98,6 +98,10 @@
     },
     {
       "at": "2026-10-02T13:15:18+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T13:30:46+00:00",
       "step": "review"
     }
   ],
