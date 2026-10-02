@@ -1,0 +1,43 @@
+{
+  "base": "ad67aed4822dabfb17e6a06d6d6545697efac745",
+  "branch": "fix/ask-measure-filter-done",
+  "done_when": "The board shows the story as finished, with its outcome.",
+  "kind": "story-done",
+  "outcome": "Ask now answers comparison questions such as list items where Actual is more than Budget, or GL codes above 5 lakh, by filtering in the database at GL-code and statement-line grain, shows the comparison as a readout and chips, keeps it in saved and pinned reports, and passed a live check against Bedrock and the July warehouse.",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "e4f1fbee49229d840a65be06e2b2f14afbe89c2d01604e3f75eb34ce4fff4994",
+    "commit": "97cfb25cf58b36ae65a4883de7f77d63b3b86c77",
+    "dismissals": [
+      {
+        "because": "plans/roadmap.json:290 commit fe7a159 sets the ASK-MEASURE-FILTER entry to status done with completed_at 2026-10-02T09:36:12+00:00 and the outcome sentence from .factory/stories/ASK-MEASURE-FILTER/story.json, matching its finished neighbours; the finding describes the tree before that commit, and the verifying worker round confirmed the entry and changed nothing",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "This marks only the internal story record as done. The board\u2019s source entry remains `\"status\": \"pending\"` at `plans/roadmap.json:290` and still lacks both `completed_at` and `outcome`; completed neighboring entries contain all three fields. The story plan also explicitly says at `plans/ASK-MEASURE-FILTER.md:385` that `forge story done` records the outcome in this roadmap item. Consequently, the board will continue to show ASK-MEASURE-FILTER as unfinished without its outcome. Update the Forge-owned roadmap entry as part of this completion change.",
+        "file": ".factory/stories/ASK-MEASURE-FILTER/story.json",
+        "line": 22,
+        "priority": "P1",
+        "title": "Not done: The board shows the story as finished, with its outcome."
+      }
+    ],
+    "status": "clean",
+    "tree": "03a80ff573a9f701cae347ea85bc8a279369db4b140cadf375854df02fd0b3ef"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-02T09:36:33+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-02T09:39:24+00:00",
+      "step": "review"
+    }
+  ],
+  "touches": 0,
+  "why": "Record that Ask filters by a comparison between measures is finished, and what it achieved."
+}
