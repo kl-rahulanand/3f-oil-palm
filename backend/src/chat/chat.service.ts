@@ -701,14 +701,11 @@ export class ChatService {
   }
 }
 
-const PERIOD_WORD_PATTERN = /\b(?:quarter|q[1-4]|today|yesterday|since)\b/i;
+const PERIOD_WORD_PATTERN = /\b(?:q[1-4]|today|yesterday|since)\b/i;
 const FISCAL_PERIOD_PATTERN = /\b(?:f\.?\s*y\.?|fiscal(?:\s+year)?|financial\s+year|fytd|ytd)(?=\s*\d|\b|$)/i;
-const RELATIVE_GRANULARITY_PATTERN =
-  /\b(?:(?:last|past|previous|this|next|current)\s+(?:\d+\s+)?|\d+\s+)(?:days?|weeks?|months?|years?)\b/i;
-const DISPLAY_GRANULARITY_PATTERN =
-  /\b(?:(?:for\s+each|by|per|each|every)\s+(?:day|week|month|quarter|year|fy|period)|daily|weekly|monthly|quarterly|yearly|annually|annual|month-?wise|quarter-?wise|year-wise)\b/gi;
-const PERIOD_COMPARISON_PATTERN =
-  /\b(?:(?:quarter|month|year|week|period)\s+(?:over|on)\s+(?:quarter|month|year|week|period)|qoq|mom|yoy|wow|(?:day|week|month|quarter|year|period)\s+trends?)\b/gi;
+const QUALIFIED_PERIOD_PATTERN =
+  /\b(?:last|past|previous|prior|this|current|next|\d+(?:st|nd|rd|th)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\s+(?:days?|weeks?|months?|quarters?|years?|periods?)\b/i;
+const FISCAL_GRANULARITY_PATTERN = /\b(?:for\s+each|by|per|each|every)\s+f\.?\s*y\.?\b/gi;
 const MONTH_NAMES =
   "january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec";
 const NAMED_MONTH_PATTERN =
@@ -728,7 +725,10 @@ const YEAR_MONTH_PATTERN = /\b(199\d|20\d{2})-(0[1-9]|1[0-2])\b/;
 const CALENDAR_YEAR_PATTERN = /\b(199\d|20\d{2})\b/g;
 const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
 const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
-const QUANTITY_OF_YEAR_PATTERN = /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)\s+of\s*$/i;
+const QUANTITY_OF_YEAR_PATTERN =
+  /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)\s+of(?:\s+exactly)?\s*$/i;
+const COPULA_AMOUNT_PREFIX_PATTERN =
+  /\b(?:actuals?|budgets?|spend(?:ing)?|values?|amounts?|totals?|sums?|figures?|balances?|limits?|thresholds?|expenses?|costs?)(?:\s+(?:amounts?|values?|totals?))?\s+(?:is|was|are|were|equals?)\s*$/i;
 const COMPARISON_YEAR_PREFIX_PATTERN =
   /(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])\s*$/i;
 const RANGE_ENDPOINT = String.raw`(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)?`;
@@ -747,14 +747,14 @@ const MAY_MODAL_PATTERN =
 const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 function hasTimePeriodWords(text: string): boolean {
-  const periodText = text.replace(DISPLAY_GRANULARITY_PATTERN, " ").replace(PERIOD_COMPARISON_PATTERN, " ");
+  const periodText = text.replace(FISCAL_GRANULARITY_PATTERN, " ");
   return (
     FISCAL_PERIOD_PATTERN.test(periodText) ||
     PERIOD_WORD_PATTERN.test(periodText) ||
     calendarYear(periodText) !== null ||
     NAMED_MONTH_PATTERN.test(periodText) ||
     isNamedMay(periodText) ||
-    RELATIVE_GRANULARITY_PATTERN.test(periodText)
+    QUALIFIED_PERIOD_PATTERN.test(periodText)
   );
 }
 
@@ -841,6 +841,7 @@ function calendarYear(text: string): number | null {
     if (
       AMOUNT_YEAR_PREFIX_PATTERN.test(before) ||
       QUANTITY_OF_YEAR_PATTERN.test(before) ||
+      COPULA_AMOUNT_PREFIX_PATTERN.test(before) ||
       COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
       AMOUNT_YEAR_SUFFIX_PATTERN.test(after)
     )
@@ -866,6 +867,7 @@ function classifyYearRange(
       RANGE_AMOUNT_MARKER_PATTERN.test(match[0]) ||
       COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
       RANGE_QUANTITY_PREFIX_PATTERN.test(before) ||
+      COPULA_AMOUNT_PREFIX_PATTERN.test(before) ||
       RANGE_MEASURE_PREFIX_PATTERN.test(before)
     )
       return { kind: "amount" };
