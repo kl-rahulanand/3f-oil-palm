@@ -686,10 +686,11 @@ function appliedPeriodLabel(response: AskResponse): string | undefined {
     : undefined;
   if (controlled) return controlled;
   if (!window) return undefined;
-  const from = formatMonthYear(window.from);
-  const to = formatMonthYear(window.to);
+  const wholeMonths = coversWholeCalendarMonths(window.from, window.to);
+  const from = wholeMonths ? formatMonthYear(window.from) : formatExactDate(window.from);
+  const to = wholeMonths ? formatMonthYear(window.to) : formatExactDate(window.to);
   if (!from || !to) return undefined;
-  return from === to ? from : `${from}–${to}`;
+  return from === to ? from : `${from}${wholeMonths ? "–" : " – "}${to}`;
 }
 
 function formatMonthYear(value: string): string | undefined {
@@ -697,6 +698,31 @@ function formatMonthYear(value: string): string | undefined {
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return undefined;
   return new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
+function formatExactDate(value: string): string | undefined {
+  const date = exactDate(value);
+  if (!date) return undefined;
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function coversWholeCalendarMonths(from: string, to: string): boolean {
+  const start = exactDate(from);
+  const end = exactDate(to);
+  if (!start || !end || start.getUTCDate() !== 1) return false;
+  const lastDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 0)).getUTCDate();
+  return end.getUTCDate() === lastDay;
+}
+
+function exactDate(value: string): Date | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? date : undefined;
 }
 
 function latestSuggestions(turns: AskTurn[]): string[] | undefined {

@@ -269,6 +269,15 @@ test("a filtered answer derives the readout period when its period control is ab
   expect(await screen.findByText("Actual > Budget · July 2026")).toBeInTheDocument();
 });
 
+test("a partial non-month window keeps its exact dates in the answer readout", async () => {
+  mocks.ask.mockResolvedValue(partialDateWindowSuccess());
+  renderAsk();
+
+  submit("Show lines over budget from 10 to 20 July 2026");
+
+  expect(await screen.findByText("Actual > Budget · 10 Jul 2026 – 20 Jul 2026")).toBeInTheDocument();
+});
+
 test("an empty filtered answer shows a plain message in place of the blank table", async () => {
   const response = filteredSuccess();
   response.result = { ...response.result!, rows: [] };
@@ -278,6 +287,18 @@ test("an empty filtered answer shows a plain message in place of the blank table
   submit("Show lines over budget for July 2026");
 
   expect(await screen.findByText("No lines match Actual > Budget for July 2026")).toBeInTheDocument();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
+
+test("an empty filtered answer keeps exact dates for a partial non-month window", async () => {
+  const response = partialDateWindowSuccess();
+  response.result = { ...response.result!, rows: [] };
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+
+  submit("Show lines over budget from 10 to 20 July 2026");
+
+  expect(await screen.findByText("No lines match Actual > Budget for 10 Jul 2026 – 20 Jul 2026")).toBeInTheDocument();
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
 });
 
@@ -1052,6 +1073,17 @@ function filteredSuccess(): AskResponse {
       rows: [{ gl_code: "50001202", actual: "600000.00", budget: "500000.00" }],
     },
   };
+}
+
+function partialDateWindowSuccess(): AskResponse {
+  const response = filteredSuccess();
+  delete response.periodControl;
+  response.appliedTimeWindow = { column: "posting_date", from: "2026-07-10", to: "2026-07-20" };
+  response.selection = {
+    ...measureFilteredSelection,
+    timeWindow: { grain: "day", column: "posting_date", from: "2026-07-10", to: "2026-07-20" },
+  };
+  return response;
 }
 
 function MeasureFilterRerunButton() {
