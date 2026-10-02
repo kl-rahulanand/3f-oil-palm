@@ -724,6 +724,9 @@ const YEAR_MONTH_PATTERN = /\b(199\d|20\d{2})-(0[1-9]|1[0-2])\b/;
 const CALENDAR_YEAR_PATTERN = /\b(199\d|20\d{2})\b/g;
 const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
 const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
+const QUANTITY_OF_YEAR_PATTERN = /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)\s+of\s*$/i;
+const YEAR_DATA_SUFFIX_PATTERN =
+  /^\s*(?:actuals?|budgets?|spend(?:ing)?|figures?|numbers?|data|results?|expenses?|costs?|statement|mis|report|gl|totals?)\b/i;
 const YEAR_PREFIX_PATTERN = new RegExp(
   `(?:\\b(?:in|for|during|of|since|from|until|till|through|to|by|about|before|after|year|calendar|cy)|\\b(?:${MONTH_NAMES})|\\b(?:q[1-4]|quarter))\\s*$`,
   "i",
@@ -818,9 +821,14 @@ function calendarYear(text: string): number | null {
     const index = match.index ?? 0;
     const before = text.slice(0, index);
     const after = text.slice(index + match[0].length);
-    if (AMOUNT_YEAR_PREFIX_PATTERN.test(before) || AMOUNT_YEAR_SUFFIX_PATTERN.test(after)) continue;
+    if (
+      AMOUNT_YEAR_PREFIX_PATTERN.test(before) ||
+      QUANTITY_OF_YEAR_PATTERN.test(before) ||
+      AMOUNT_YEAR_SUFFIX_PATTERN.test(after)
+    )
+      continue;
     const isOnlyYear = /^(?:what\s+about\s*)?$/i.test(before.trim()) && /^[?!.,'’\s]*$/.test(after);
-    if (!isOnlyYear && !YEAR_PREFIX_PATTERN.test(before)) continue;
+    if (!isOnlyYear && !YEAR_PREFIX_PATTERN.test(before) && !YEAR_DATA_SUFFIX_PATTERN.test(after)) continue;
     return Number(match[1]);
   }
   return null;
