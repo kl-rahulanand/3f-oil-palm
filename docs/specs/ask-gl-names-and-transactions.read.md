@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T16:50:54+00:00
-read_hash: 7b4f1b6a48937eb0d08d75c2781898fae7d27b83
-round: 9
-passed: no
-doc_seen: 7b4f1b6a48937eb0d08d75c2781898fae7d27b83
+read_at: 2026-10-02T16:54:54+00:00
+read_hash: 86a9c9b3cf22f4b3b073f97730a8a07d40b6eb2b
+round: 10
+passed: yes
+doc_seen: 86a9c9b3cf22f4b3b073f97730a8a07d40b6eb2b
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: e8a3bb8604b8f2e288bbd6a33c41ec006f8347ad
+notes_seen: ad5acc96a8160f2eb036ddb98034653c521730fc
 ---
 # Cold read notes
 
@@ -164,3 +164,6 @@ No findings.
    - C8 proves display, drill and access behavior, but not the provider payload boundary. Add a proof that `rowLabels`, account names, drill context, amounts and transaction rows are absent from every model request.
    Disposition: cut C8 adds a hermetic proof that rowLabels, SAP account names, the drill context, amounts and transaction rows are absent from every model request.
 
+## Round 10
+
+No findings.
