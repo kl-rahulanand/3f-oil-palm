@@ -5,19 +5,26 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "f2be25fc53b7a1a6fd6eb55f78d0fab0cc9699efe79707181f760ae78aeea2f1",
-    "commit": "c3ce700b4ec4b3332a813929eb7ee4bfc24599ed",
+    "changed": "8abb167f7e227ceb24866e397d674b08f90eee332ab3677393bb32a40a9ca4ff",
+    "commit": "710f44241d7e9a7386369f91c63b1c90daf32333",
     "dismissals": [],
     "findings": [
       {
-        "body": "`calendarYear` accepts a year only when the whole question is essentially the year or its immediate prefix/suffix matches a narrow whitelist. A natural same-thread follow-up such as \u201cShow me 2025\u201d matches neither condition. The app therefore treats it as having no period, clears whatever 2025 window the model emitted, and inherits the prior answer's window instead. This directly violates the requirement that a follow-up naming a year answer for that year regardless of the model or previous window.",
+        "body": "`PERIOD_WORD_PATTERN` treats the bare word `quarter` as a named period, although `parseNamedTimeWindow` can resolve only a numbered/ordinal quarter. For a common no-period question such as \u201cShow Actual by quarter,\u201d both parsers return null, but `hasTimePeriodWords` returns true, so the model-emitted window is neither cleared nor replaced by the prior window. The answer can therefore use an arbitrary model period instead of aggregating or inheriting as required. The table-driven test covers \u201cby month\u201d but omits the equivalent \u201cby quarter\u201d case.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 831,
+        "line": 704,
         "priority": "P1",
-        "title": "Not done: Named-year follow-ups can still inherit the previous period"
+        "title": "Not done: A no-period \u201cby quarter\u201d question can preserve the model\u2019s window"
       },
       {
-        "body": "The new coverage invokes `ChatService.ask` through `makeFixture`, which substitutes the provider, executor/database, audit, dimensions, and selection resolver with fakes. The frontend Ask tests also mock the API, while the repository test command contains no Playwright/browser suite and no Playwright specifications are present. Consequently the required user-facing flows\u2014named-period follow-ups, no-period inheritance or aggregation, and period-control reruns\u2014remain unproven through a browser, running API, and real database.",
+        "body": "The amount disambiguation does not recognize the standalone `=` operator. For example, \u201cShow Actual = 2025\u201d reaches `calendarYear`; its prefix ends in `=`, which does not match `[<>]=?`, so the code returns 2025 and overrides the model or inherited window with the full 2025 calendar year. This is an unambiguous amount comparison and violates the requirement that an amount is never read as a year. The added cases test word-form comparisons but omit this operator.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 729,
+        "priority": "P1",
+        "title": "Not done: An amount can still be read as a calendar year"
+      },
+      {
+        "body": "The previous test-coverage gap remains open. The new regression matrix calls `ChatService.ask` through `makeFixture`, whose provider, executor/database, audit, dimensions, and selection resolver are fakes. Frontend Ask tests mock the API, and the repository test command contains no Playwright/browser suite or Playwright specification. Thus named-period follow-ups, no-period inheritance/aggregation, and period-control reruns are still not proven through the required browser, running API, and real database boundary; the successful close run only establishes the hermetic tests.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -25,7 +32,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "ffce451615bef8829cdc3afaf147314c9efa41d29056e8b46e5ecd1434723e3a"
+    "tree": "61451c2bb13eb7b9e863062f06215664329f30cefc46d8aceedcc77cfed327eb"
   },
   "status": "fixing",
   "steps": [
@@ -63,6 +70,10 @@
     },
     {
       "at": "2026-10-02T11:55:53+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T12:04:46+00:00",
       "step": "review"
     }
   ],
