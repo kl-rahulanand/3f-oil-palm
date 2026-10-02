@@ -725,13 +725,12 @@ const YEAR_MONTH_PATTERN = /\b(199\d|20\d{2})-(0[1-9]|1[0-2])\b/;
 const CALENDAR_YEAR_PATTERN = /\b(199\d|20\d{2})\b/g;
 const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
 const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
-const AMOUNT_WORDS =
-  "actuals?|budgets?|costs?|expenses?|spend|spending|spent|amounts?|values?|totals?|sum|balance|figures?|limit|threshold|rollover|variance|payments?|charges?";
-const QUANTITY_OF_YEAR_PATTERN = new RegExp(`\\b(?:${AMOUNT_WORDS})\\s+of(?:\\s+exactly)?\\s*$`, "i");
+const AMOUNT_WORDS = String.raw`(?:actuals?|budget(?:s|ed|ing)?|cost(?:s|ed|ing)?|expense(?:s|d)?|spend(?:s|ing)?|spent|amount(?:s|ed|ing)?|value(?:s|d)?|valuing|total(?:s|ed|ing|led|ling)?|sum(?:s|med|ming)?|balance(?:s|d|ing)?|figure(?:s|d|ing)?|limit(?:s|ed|ing)?|threshold(?:s|ed|ing)?|rollover(?:s|ed|ing)?|variances?|payments?|pay(?:s|ing)?|paid|charge(?:s|d|ing)?)`;
 const PERIOD_MEASURE_OF_YEAR_PATTERN = /\b(?:actuals?|budgets?)\s+of\s*$/i;
-const AMOUNT_MODIFIER = String.raw`(?:exactly|about|around|approximately|approx\.?|roughly|nearly|almost|just|only|precisely|at\s+least|at\s+most|close\s+to|up\s+to)`;
-const COPULA_AMOUNT_PREFIX_PATTERN = new RegExp(
-  String.raw`\b(?:${AMOUNT_WORDS})(?:\s+(?:amounts?|values?|totals?))?\s+(?:is|was|are|were|equals?|equal\s+to|be)(?:\s+${AMOUNT_MODIFIER})?\s*$`,
+const AMOUNT_MODIFIER = String.raw`(?:exactly|about|around|approximately|approx\.?|roughly|near(?:ly)?|almost|just|only|precisely|at\s+least|at\s+most|close\s+to|up\s+to)`;
+const AMOUNT_LINK = String.raw`(?:is|was|are|were|equals?|equal\s+to|be|over|above|below|under|more\s+than|less\s+than|greater\s+than|exceeding|exceeds|beyond|totaling|totalling|worth|${AMOUNT_MODIFIER}|of|a|an|the)`;
+const AMOUNT_BEFORE_NUMBER_PATTERN = new RegExp(
+  String.raw`\b${AMOUNT_WORDS}(?=(?:\s+[a-z]+\.?){0,3}\s*$)(?:\s+${AMOUNT_LINK}){0,3}\s*$`,
   "i",
 );
 const COMPARISON_YEAR_PREFIX_PATTERN = new RegExp(
@@ -746,7 +745,6 @@ const NUMBER_RANGE_PATTERNS = [
   new RegExp(`(?<![A-Za-z0-9_])${RANGE_ENDPOINT}\\s*-\\s*${RANGE_ENDPOINT}\\b`, "i"),
 ];
 const RANGE_AMOUNT_MARKER_PATTERN = /(?:₹|\b(?:rs\.?|inr|rupees?|lakhs?|crores?|k|thousand)\b)/i;
-const RANGE_AMOUNT_PREFIX_PATTERN = new RegExp(`\\b(?:${AMOUNT_WORDS})(?:\\s+is)?\\s*$`, "i");
 const MAY_MODAL_PATTERN =
   /\bmay\s+(?:i|we|you|he|she|they|it|this|that|there|be|have|not|also|still|need|want|see|get|show|know|help)\b/i;
 const MONTH_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
@@ -845,8 +843,7 @@ function calendarYear(text: string): number | null {
     const after = text.slice(index + match[0].length);
     if (
       AMOUNT_YEAR_PREFIX_PATTERN.test(before) ||
-      (QUANTITY_OF_YEAR_PATTERN.test(before) && !PERIOD_MEASURE_OF_YEAR_PATTERN.test(before)) ||
-      COPULA_AMOUNT_PREFIX_PATTERN.test(before) ||
+      (AMOUNT_BEFORE_NUMBER_PATTERN.test(before) && !PERIOD_MEASURE_OF_YEAR_PATTERN.test(before)) ||
       COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
       AMOUNT_YEAR_SUFFIX_PATTERN.test(after)
     )
@@ -871,8 +868,7 @@ function classifyYearRange(
       !isCalendarYear(second) ||
       RANGE_AMOUNT_MARKER_PATTERN.test(match[0]) ||
       COMPARISON_YEAR_PREFIX_PATTERN.test(before) ||
-      RANGE_AMOUNT_PREFIX_PATTERN.test(before) ||
-      COPULA_AMOUNT_PREFIX_PATTERN.test(before)
+      AMOUNT_BEFORE_NUMBER_PATTERN.test(before)
     )
       return { kind: "amount" };
     return { kind: "calendar", first, second };
