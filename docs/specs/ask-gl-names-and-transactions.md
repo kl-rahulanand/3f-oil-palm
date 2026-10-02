@@ -31,12 +31,17 @@ figure against its source transactions without switching screens.
 ### Names
 
 - An Ask answer grouped by GL code shows each code's name beside it: "50001201 · Sprout Cost - Imp".
-- The name is the SAP account name the code uses most often in the active actuals batches; ties go
-  to the alphabetically first name. When a code carries more than one name, the line says how many
-  others there are: "55021000 · Salaries & Wages +14 more", and the full list is available on hover
-  and to a screen reader.
-- A code with no SAP transactions (budget-only) falls back to its MIS statement line label from the
-  active budget outline; a code with neither shows the bare code.
+- The name is the SAP account name with the most transaction lines (a count of rows, not of amount)
+  among the lines that feed the answer: the answer's pinned actuals batches, its period and the
+  reader's authorized plants. Names are compared trimmed and case-insensitively; ties go to the
+  alphabetically first. When a code carries more than one name, the line says how many others there
+  are: "55021000 · Salaries & Wages +14 more". The "+14 more" is a focusable, tappable disclosure
+  that reveals the full list, ordered by line count and then alphabetically, and the line's
+  accessible name includes the complete list; nothing depends on a hover tooltip.
+- A code with no SAP lines in that scope (budget-only) falls back to its MIS statement line label
+  from the answer's pinned budget outline; when the outline gives the code several labels, the
+  first in outline order is shown with "+n more" in the same disclosure. A code with neither shows
+  the bare code.
 - An Ask answer grouped by statement line shows the line's number and label ("1.1 Sprout Cost")
   instead of the raw key, taken from the active budget outline the statement screen uses.
 - Names are display text resolved on the server after the governed query runs. They are never part
@@ -44,18 +49,30 @@ figure against its source transactions without switching screens.
 
 ### Opening an Actual's transactions
 
-- In an answer grouped by GL code, a line's Actual figure is a button. Clicking it opens that GL
-  code's SAP transaction lines for the answer's period and the reader's plant scope, in the same
-  panel and columns the statement drill uses: posting date, document number, cost centre, account
-  name, memo, reference, debit, credit and value, 100 lines a page.
-- In an answer grouped by statement line, a line's Actual opens the same transactions the statement
-  screen's drill opens for that line.
-- The panel's footer equals the Actual that was clicked, to the paisa. The read is pinned to the
-  actuals batches that produced the answer; when a batch has since been replaced the panel says so,
-  and when it is gone the panel says the answer must be asked again, exactly as the statement drill
-  does.
-- Budget figures, `%`, totals and rows from the empty-state are not clickable: a budget has no
-  transactions.
+- Supported answers: an Ask answer whose only row dimension is the domain's line dimension, `gl_code`
+  in governed-financial or `leaf_key` in mis-statement, with any dimension filters, comparisons and
+  time window. In any other shape (no breakdown, or a breakdown by month or by several dimensions)
+  no Actual is clickable.
+- The client sends only the answer's identity, the row's key and the answer's pinned batches; the
+  server re-derives the exact predicate from the executed selection it re-authorizes: the row's GL
+  code (or the leaf's mapped plant, cost-centre and GL triples from the pinned outline), the
+  selection's time window and dimension filters, the reader's authorized plants and the pinned
+  actuals batches. Comparisons decide which rows appear, not which transactions feed a row, so they
+  do not enter the predicate.
+- In a GL-code answer, a line's Actual figure is a button that opens that code's SAP lines under that
+  predicate. In a statement-line answer, a line's Actual opens the statement drill's read for that
+  leaf, under the answer's pinned budget outline and batches, so a GL split across several leaves
+  is read only for the leaf clicked.
+- One transaction panel serves the statement screen and Ask. It shows posting date, document number,
+  cost centre, account name, memo, reference, debit, credit and value, 100 lines a page; the
+  statement screen's drill gains the document number, cost centre and account name columns as an
+  additive change. Its month column stays on the statement screen.
+- The panel's footer equals the Actual that was clicked, to the paisa. A replaced or gone batch is
+  handled exactly as the statement drill handles it today.
+- The server marks each row's Actual clickable only when at least one SAP line feeds it under the
+  predicate; a genuine zero net with lines behind it stays clickable. Budget figures, `%`, totals,
+  budget-only Actuals and empty-state rows are not clickable, and they cause no read and no audit
+  record.
 - Every opening writes the same typed drill audit record as the statement drill before any row is
   read, and fails closed when that write fails.
 
@@ -63,7 +80,7 @@ figure against its source transactions without switching screens.
 
 - The governed query, its rows, totals, ordering, comparisons, the readout line and the period
   control.
-- The MIS statement screen and its drill.
+- The MIS statement screen, apart from the three added drill columns.
 - What reaches the model: the question, prior turns and the governed vocabulary; never names,
   amounts or transaction lines.
 
@@ -95,17 +112,24 @@ figure against its source transactions without switching screens.
   code, and the bare code when neither exists; rows, totals and order are unchanged.
 - **C2** An Ask answer grouped by statement line shows "<number> <label>" from the active budget
   outline instead of the raw leaf key.
-- **C3** Clicking a GL line's Actual opens its SAP transaction lines for the answer's period and the
-  reader's plant scope, pinned to the answer's actuals batches, 100 a page, with a footer equal to
-  the clicked Actual to the paisa.
-- **C4** Clicking a statement line's Actual in Ask opens the same lines the statement screen's drill
-  opens for that line.
+- **C3** In an answer whose only row dimension is `gl_code`, clicking a line's Actual opens its SAP
+  lines under the server-derived predicate (row GL code, time window, dimension filters, authorized
+  plants, pinned actuals batches), 100 a page, with a footer equal to the clicked Actual to the
+  paisa; other answer shapes have no clickable Actual.
+- **C4** In an answer whose only row dimension is `leaf_key`, clicking a line's Actual opens the same
+  lines the statement screen's drill opens for that leaf under the answer's pinned outline and
+  batches; the shared panel shows document number, cost centre and account name on both screens.
 - **C5** Every opening writes the typed drill audit record before the read and fails closed when the
   write fails; a reader outside the line's plants is refused, audited, and sees no rows.
-- **C6** A replaced batch is read and named; a gone batch asks the reader to ask again.
-- **C7** Budget, `%`, totals and empty-state rows are not clickable; names and transaction lines
-  never reach the model.
-- **C8** A live check against the July warehouse: "show me list items where Actuals are more than
+- **C6** A replaced or gone batch is handled exactly as the statement drill handles it today.
+- **C7** Only Actuals with at least one feeding SAP line are clickable; Budget, `%`, totals,
+  budget-only Actuals and empty-state rows are inert and cause no read or audit record; the "+n more"
+  disclosure is keyboard- and touch-operable and the full list is in the accessible name; names and
+  transaction lines never reach the model.
+- **C8** Hermetic proofs cover name selection, ties, fallback and disclosure, predicate
+  re-derivation and refusal, audit-before-read ordering, replaced and gone batches, inert cells and
+  exact-paise footing. A manual live check against the July warehouse and the host's Bedrock model,
+  outside CI and in a fresh Ask conversation: "show me list items where Actuals are more than
   the budget for July 2026" shows names for all 21 codes, and opening 50001201's Actual foots to
   ₹83,98,339 across its SAP lines; a DUB-only user's statement-line answer opens the same lines as
   the statement screen.
