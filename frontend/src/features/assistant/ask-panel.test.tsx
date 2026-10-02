@@ -241,6 +241,23 @@ test("a successful filtered answer shows its comparison and applied period under
   expect(within(answer).getByText("Actual > Budget · July 2026")).toBeInTheDocument();
 });
 
+test("a fractional comparison threshold keeps its paise in the answer readout", async () => {
+  const response = filteredSuccess();
+  const fractionalFilter: NonNullable<AskResponse["appliedMeasureFilters"]>[number] = {
+    measureId: "governed-financial.actual",
+    op: "gt",
+    compareTo: { kind: "value", value: "500000.49" },
+  };
+  response.appliedMeasureFilters = [fractionalFilter];
+  response.selection = { ...measureFilteredSelection, measureFilters: [fractionalFilter] };
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+
+  submit("Show lines above 500000.49 for July 2026");
+
+  expect(await screen.findByText("Actual > ₹5,00,000.49 · July 2026")).toBeInTheDocument();
+});
+
 test("a filtered answer derives the readout period when its period control is absent", async () => {
   const restored = filteredSuccess();
   delete restored.periodControl;

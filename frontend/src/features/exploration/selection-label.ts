@@ -1,5 +1,5 @@
 import { SEMANTIC_LABELS, type FixedScaleMoney, type MeasureFilter, type Selection } from "@3f/contract";
-import { formatMoney } from "../mis/statement-view";
+import { formatExactMoney } from "../mis/statement-view";
 
 const MEASURE_FILTER_OPERATORS: Record<MeasureFilter["op"], string> = {
   gt: ">",
@@ -38,8 +38,12 @@ export function measureFilterLabel(filter: MeasureFilter): string {
   const right =
     filter.compareTo.kind === "measure"
       ? comparisonMeasureLabel(filter.compareTo.measureId)
-      : formatMoney(filter.compareTo.value as FixedScaleMoney);
+      : formatComparisonMoney(filter.compareTo.value as FixedScaleMoney);
   return `${left} ${MEASURE_FILTER_OPERATORS[filter.op]} ${right}`;
+}
+
+function formatComparisonMoney(value: FixedScaleMoney): string {
+  return formatExactMoney(value).replace(/\.00$/, "");
 }
 
 function comparisonMeasureLabel(id: string): string {

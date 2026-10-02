@@ -42,6 +42,24 @@ test("selection labels spell out measure comparisons with registered labels and 
   });
 });
 
+test("selection labels preserve non-zero paise in comparison thresholds", () => {
+  const selection: Selection = {
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["gl_code"],
+    filters: [],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "value", value: "500000.49" },
+      },
+    ],
+  };
+
+  expect(selectionLabel(selection).summary).toBe("GL code · Actual > ₹5,00,000.49");
+});
+
 test("an unregistered comparison measure renders that operand as unavailable", () => {
   const comparison = (measureId: string, operandMeasureId: string): Selection => ({
     domain: "governed-financial",
