@@ -385,11 +385,12 @@ export class ChatService {
     // Edited selections are period-control re-runs and must keep the window the user chose.
     if (!usesEditedSelection) {
       const now = new Date();
-      const parsedTimeWindow =
-        parseTimeWindow(question, now) ??
-        (FISCAL_PERIOD_PATTERN.test(question) || AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
-          ? null
-          : (parseExplicitMonthYear(question) ?? parseNamedTimeWindow(question, priorSelection?.timeWindow, now)));
+      const parsedTimeWindow = FISCAL_PERIOD_PATTERN.test(question)
+        ? null
+        : (parseTimeWindow(question, now) ??
+          (AMBIGUOUS_MONTH_YEAR_PATTERN.test(question)
+            ? null
+            : (parseExplicitMonthYear(question) ?? parseNamedTimeWindow(question, priorSelection?.timeWindow, now))));
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
       else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
