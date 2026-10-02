@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-01T21:02:48+00:00
-read_hash: 2d3deaf02fb7e11214be78a2276d37ad314125f4
-round: 24
+read_at: 2026-10-02T07:05:59+00:00
+read_hash: cee30663930587d97094b347ff74e3a4c69745b8
+round: 27
 passed: yes
-doc_seen: 2d3deaf02fb7e11214be78a2276d37ad314125f4
+doc_seen: cee30663930587d97094b347ff74e3a4c69745b8
 spec_seen: a6a8d1d38c659820c053ce5dc838a53a64dbf471
-notes_seen: 2a7323e3251534e0673b4ee8eb9ff01f583fd280
+notes_seen: 91e4a5472367ec003bd3f47d230ede66e64fed22
 ---
 # Cold read notes
 
@@ -225,5 +225,29 @@ No findings.
    Disposition: cut Done-when detail 9 now says the grounding merge dropped filters before #81 and names its merged leaves; the same sweep put every other present-tense description of a merged gap below For the builders (the Ask Response and Grounding rows, the refusal and totals notes, the grounded-vocabulary note) in the past tense or neutral wording.
 
 ## Round 24
+
+No findings.
+
+## Round 25
+
+38. Unproven: item 11: the readout cannot “survive reopening a conversation” on the declared frontend path.
+   `AskProvider` keeps turns only in memory, and its existing test explicitly proves a reload clears them. The frontend has no conversation API client or hydration path despite backend conversation endpoints. Name the reopen UI/API path, scope it, and add a hydration/readout leaf—or defer this requirement.
+   Disposition: cut Done-when 11 no longer promises the readout after a conversation reopen; the owner removed it and deferred it until a reopen screen exists (Notes, Decided line, 2026-10-02), and detail 11 and the Surfaces row drop it too.
+
+39. Unproven: item 11: reopening a saved or pinned selection with a measure filter is not covered by a declared leaf.
+   The task names only label, identity, Ask-panel, and provider tests; it excludes `saved-views` and `pinned-reports`, whose existing reopen tests use selections without `measureFilters`. Add filtered reopen leaves there that assert the exact selection reaches Ask, or explicitly make an equivalent integration leaf prove both entry points.
+   Disposition: cut `saved-views.test.tsx` and `pinned-reports.test.tsx` join the Surfaces row's Scope and Tests, and detail 11 names their filtered reopen leaves asserting the stored selection with `measureFilters` reaches Ask intact.
+
+## Round 26
+
+40. Unproven: item 11: an unregistered measure in a stored comparison still renders as unavailable.
+   The confirmed spec requires unavailable ids to render as `(unavailable)`, but the planned label leaf only names registered-label examples. Add a `selection-label.test.ts` case for unavailable left and operand measure ids.
+   Disposition: cut Done-when detail 11 now names the `(unavailable)` rendering of an unregistered left or operand measure, with its `selection-label.test.ts` leaf (already in the Surfaces row's Tests).
+
+41. Unproven: items 1 and 11: a legacy selection with no `measureFilters` is identity-equivalent to a new selection with `measureFilters: []`.
+   Both mean no comparison, but older stored JSON omits the optional field. Pin this equality in `selection-identity.helper.test.ts` so reopening an unchanged saved or pinned report does not create a duplicate turn.
+   Disposition: cut Done-when detail 11 now names the identity equality of a missing `measureFilters` and `[]`, with its `selection-identity.helper.test.ts` leaf (already in the Surfaces row's Tests).
+
+## Round 27
 
 No findings.
