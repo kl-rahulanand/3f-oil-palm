@@ -5,19 +5,26 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "1f75d62e4a95e27d4bc1b7dffdf0a63d8bb10fc98198fc5e430e3faec7076032",
-    "commit": "3eacd46858fc0ceac6f64ee2bc30c1ff167e09d2",
+    "changed": "3c94bf4cdf6abc36b316ab475d22952059812c65988d488b79067e5dda2320cf",
+    "commit": "dc3ca3728ac1f29fedf41991badc8ebed43753bf",
     "dismissals": [],
     "findings": [
       {
-        "body": "`calendarYear` excludes amount-like years only for the narrow `... of`, copula, comparison, currency, and suffix forms. For example, \u201cShow an amount around 2025\u201d matches none of those guards, so `parseNamedTimeWindow` converts 2025 into the full 2025 calendar window, overriding the model/prior period. This directly violates the requirement that an amount is never read as a year. The existing `AMOUNT_MODIFIER` vocabulary should also protect direct amount phrases such as `amount around 2025` and `cost approximately 2025`.",
+        "body": "`AMBIGUOUS_MONTH_YEAR_PATTERN` short-circuits all deterministic parsing whenever a month is followed by two digits. This also matches unambiguous app-readable dates such as `since July 25, 2026` and ranges beginning `July 25, 2026 through ...`; the unchanged date reader accepts these forms in `backend/src/chat/timeWindowParse.ts` lines 32 and 105\u2013124. Because `hasTimePeriodWords` then sees the month name, the model window is retained instead of being cleared or overridden. The new test at line 486 even expects the model window for `Jul 25`, although the app's date reader parses that as a month-day date. This violates the required precedence for every period the app reads itself.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 730,
+        "line": 389,
         "priority": "P1",
-        "title": "Not done: direct approximate amounts are still treated as calendar years"
+        "title": "Not done: A follow-up that names a period the app reads itself answers for that period whatever window the model emits"
       },
       {
-        "body": "The added matrix invokes `ChatService.ask` through `makeFixture`; that fixture uses a fake LLM, executor/warehouse, audit service, dimensions, reports, and resolver (unchanged lines 1221\u20131267). The period-control rerun test uses the same fixture. The registered suites remain Node and jsdom/Vitest tests, with no Playwright flow through a running frontend, API, and real database. Therefore the named-period override, inheritance/aggregation, amount protection, and user-driven period rerun still lack the required end-to-end proof. The successful close run only executed these lower-boundary suites.",
+        "body": "The amount guard only recognizes its enumerated link words and therefore still misses ordinary unambiguous amount phrases. For example, in `Show an amount that is 2025`, `AMOUNT_BEFORE_NUMBER_PATTERN` fails because `that` is not an `AMOUNT_LINK`; none of the currency, comparison, or suffix guards apply, so `calendarYear` returns 2025 and replaces the model/prior window with calendar year 2025. `Show an amount that should be 2025` fails similarly. The newly added direct cases such as `amount around 2025` do not cover this remaining violation.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 733,
+        "priority": "P1",
+        "title": "Not done: an amount is never read as a year"
+      },
+      {
+        "body": "The added matrix calls `ChatService.ask` through `makeFixture`, whose LLM, executor/warehouse, audit, dimensions, reports, and resolver are fakes; the period-control rerun test uses the same fixture. `ask-period.test.ts` is likewise service-level with fake infrastructure. The registered suites contain no Playwright flow through a running frontend, API, real database, and period-control interaction, so named-period precedence, inheritance/aggregation, amount protection, and user-driven reruns still lack the required end-to-end proof. The successful close run exercised only these lower-boundary Node/jsdom suites.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -25,7 +32,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "ce0355cc4f98c67180db5a755242190f9cccfcad10f0f67f5689c1dc26f427e3"
+    "tree": "8f226c03841de5e50c4c6e732318fcb858b0c1f128e5c19f1292195a67e975a3"
   },
   "status": "fixing",
   "steps": [
@@ -87,6 +94,10 @@
     },
     {
       "at": "2026-10-02T13:03:19+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T13:15:18+00:00",
       "step": "review"
     }
   ],
