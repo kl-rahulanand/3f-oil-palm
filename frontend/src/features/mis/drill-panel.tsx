@@ -278,11 +278,26 @@ function TransactionBody({
         </div>
       )}
       <div className="mis-drill-table-scroll">
-        <table className="mis-drill-table mis-drill-transactions">
+        <table className="mis-drill-table mis-drill-transactions" style={{ minWidth: 1300, tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: 92 }} />
+            <col style={{ width: 112 }} />
+            <col style={{ width: 124 }} />
+            <col style={{ width: 120 }} />
+            <col style={{ width: 208 }} />
+            <col style={{ width: 104 }} />
+            <col style={{ width: 104 }} />
+            <col style={{ width: 104 }} />
+            <col style={{ width: 112 }} />
+            <col style={{ width: 220 }} />
+          </colgroup>
           <thead>
-            <tr>
+            <tr style={{ whiteSpace: "nowrap" }}>
               <th scope="col">Month</th>
               <th scope="col">Posting date</th>
+              <th scope="col">Document no.</th>
+              <th scope="col">Cost centre</th>
+              <th scope="col">Account name</th>
               <th scope="col">Debit</th>
               <th scope="col">Credit</th>
               <th scope="col">Value</th>
@@ -293,25 +308,28 @@ function TransactionBody({
           <tbody>
             {result.lines.length === 0 ? (
               <tr>
-                <td colSpan={7}>No transactions match this Actual.</td>
+                <td colSpan={10}>No transactions match this Actual.</td>
               </tr>
             ) : (
               result.lines.map((line, index) => (
                 <tr key={`${result.page}-${index}`}>
                   <td>{formatMonth(line.month)}</td>
                   <td>{formatDate(line.postingDate)}</td>
+                  <td>{line.txnNo}</td>
+                  <td>{line.costCenter}</td>
+                  <td style={{ overflowWrap: "anywhere" }}>{line.accountName}</td>
                   <td data-numeric="true">{formatMoney(line.debit)}</td>
                   <td data-numeric="true">{formatMoney(line.credit)}</td>
                   <td data-numeric="true">{formatMoney(line.value)}</td>
                   <td>{line.reference ?? "—"}</td>
-                  <td>{line.memo ?? "—"}</td>
+                  <td style={{ overflowWrap: "anywhere" }}>{line.memo ?? "—"}</td>
                 </tr>
               ))
             )}
           </tbody>
           <tfoot>
             <tr className="mis-drill-foot" aria-label={foots ? "Total" : "Total withheld"}>
-              <th colSpan={2} scope="row">
+              <th colSpan={5} scope="row">
                 {foots ? "Total" : "Total withheld"}
               </th>
               {foots ? (

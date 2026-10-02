@@ -49,7 +49,7 @@ LIMIT 25000`);
   buildQueries(predicate: DrillPredicate, page: number, rowLimit: number): DrillQueries {
     const where = buildPredicate(predicate);
     return {
-      pageSql: `SELECT txn.month, txn.posting_date, txn.debit, txn.credit,
+      pageSql: `SELECT txn.month, txn.posting_date, txn.txn_no, txn.cost_center, txn.acct_name, txn.debit, txn.credit,
   (txn.debit - txn.credit)::numeric(18,2) AS value, txn.reference, txn.memo
 FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
@@ -124,12 +124,20 @@ function toLine(row: Record<string, string | number | null>): MisDrillLine {
   return {
     month,
     postingDate,
+    txnNo: requiredText(row.txn_no),
+    costCenter: requiredText(row.cost_center),
+    accountName: requiredText(row.acct_name),
     debit: money(row.debit),
     credit: money(row.credit),
     value: money(row.value),
     reference: row.reference === null ? null : String(row.reference),
     memo: row.memo === null ? null : String(row.memo),
   };
+}
+
+function requiredText(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) throw new Error("Drill query returned a missing text value");
+  return String(value);
 }
 
 export function normalizeDateOnly(value: string | number | null | undefined): string | null {

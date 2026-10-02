@@ -192,7 +192,7 @@ test("a leaf actual requests the drill with the displayed scope the clicked node
   expect(request.pinnedBatches).toBe(response.provenance.activeBatchIds);
 });
 
-test("the transactions table renders the server rows in server order across seven columns with the full result footer equal to the clicked leaf actual in exact paise", async () => {
+test("the transactions table shows document number cost centre and account name after posting date without changing server row order or the full result footer", async () => {
   mocks.runMisDrill.mockResolvedValue(
     drillResponse({
       totalCount: 101,
@@ -200,6 +200,9 @@ test("the transactions table renders the server rows in server order across seve
         {
           month: "2026-07-01",
           postingDate: "2026-07-20",
+          txnNo: "DOC-B",
+          costCenter: "DUB-NUR-B",
+          accountName: "Repairs",
           debit: "4.00",
           credit: "0.00",
           value: "4.00",
@@ -209,6 +212,9 @@ test("the transactions table renders the server rows in server order across seve
         {
           month: "2026-06-01",
           postingDate: "2026-06-04",
+          txnNo: "DOC-A",
+          costCenter: "DUB-NUR-A",
+          accountName: "Diesel",
           debit: "1.00",
           credit: "0.00",
           value: "1.00",
@@ -226,11 +232,22 @@ test("the transactions table renders the server rows in server order across seve
     within(table)
       .getAllByRole("columnheader")
       .map((cell) => cell.textContent),
-  ).toEqual(["Month", "Posting date", "Debit", "Credit", "Value", "Reference", "Memo"]);
+  ).toEqual([
+    "Month",
+    "Posting date",
+    "Document no.",
+    "Cost centre",
+    "Account name",
+    "Debit",
+    "Credit",
+    "Value",
+    "Reference",
+    "Memo",
+  ]);
   const rows = within(table).getAllByRole("row").slice(1, -1);
   expect(rows.map((row) => row.textContent)).toEqual([
-    expect.stringContaining("REF-BSecond"),
-    expect.stringContaining("REF-AFirst"),
+    expect.stringContaining("DOC-BDUB-NUR-BRepairs"),
+    expect.stringContaining("DOC-ADUB-NUR-ADiesel"),
   ]);
   expect(within(table).getByRole("row", { name: "Total" })).toHaveTextContent("₹5.01exact");
   expect(within(table).getByRole("row", { name: "Total" })).toHaveTextContent("Matches the Actual in the report");
@@ -408,6 +425,9 @@ function drillResponse(overrides: Partial<MisDrillResponse> = {}): MisDrillRespo
       {
         month: "2026-07-01",
         postingDate: "2026-07-02",
+        txnNo: "1900001234",
+        costCenter: "DUB-NUR",
+        accountName: "Sprout Cost - Imp",
         debit: "5.01",
         credit: "0.00",
         value: "5.01",

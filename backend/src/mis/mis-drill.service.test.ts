@@ -104,7 +104,7 @@ test("the extracted seam returns a typed replaced outcome instead of throwing an
   assert.equal(outcome.outcome, "replaced");
   if (outcome.outcome === "replaced") {
     assert.equal(outcome.response.batchStatuses[0]?.status, "replaced");
-    assert.equal(outcome.response.footer.value, "0.00");
+    assert.equal(outcome.response.footer.value, "5.01");
   }
 });
 
@@ -116,6 +116,15 @@ test("the assistant asks the seam for twenty rows while the drill panel keeps it
   await fixture.service.read(user, SESSION_ID, prepared.context, 20);
   await fixture.service.run(user, SESSION_ID, request());
   assert.deepEqual(fixture.transactions.limits, [20, 100]);
+});
+
+test("the statement drill response passes document number cost centre and account name through unchanged", async () => {
+  const fixture = makeFixture();
+  const outcome = await fixture.service.run(user, SESSION_ID, request());
+
+  assert.equal(outcome.outcome, "ok");
+  if (outcome.outcome !== "ok") return;
+  assert.deepEqual(outcome.response.lines[0], TRANSACTION_LINE);
 });
 
 function makeFixture(
@@ -249,9 +258,9 @@ class FakeTransactions implements IDrillTransactionsRepository {
   async execute() {
     this.executeCalls += 1;
     return {
-      lines: [],
-      footer: { debit: "0.00" as const, credit: "0.00" as const, value: "0.00" as const },
-      totalCount: 0,
+      lines: [TRANSACTION_LINE],
+      footer: { debit: "5.01" as const, credit: "0.00" as const, value: "5.01" as const },
+      totalCount: 1,
     };
   }
 }
@@ -299,6 +308,18 @@ const BUDGET: ProvenanceBatch = {
 };
 const REPLACEMENT_ACTUAL: ProvenanceBatch = { ...ACTUAL, batchId: "00000000-0000-0000-0000-000000000003" };
 const REPLACEMENT_BUDGET: ProvenanceBatch = { ...BUDGET, batchId: "00000000-0000-0000-0000-000000000004" };
+const TRANSACTION_LINE = {
+  month: "2026-07-01",
+  postingDate: "2026-07-02",
+  txnNo: "1900001234",
+  costCenter: "DUB-NUR",
+  accountName: "Sprout Cost - Imp",
+  debit: "5.01" as const,
+  credit: "0.00" as const,
+  value: "5.01" as const,
+  reference: "REF-1",
+  memo: "Diesel",
+};
 
 const user: AuthUser = {
   id: "00000000-0000-0000-0000-000000000010",

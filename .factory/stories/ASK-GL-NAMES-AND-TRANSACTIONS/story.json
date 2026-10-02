@@ -1,0 +1,41 @@
+{
+  "approval": {
+    "at": "2026-10-02T17:34:22+00:00",
+    "by": "human-via-Claude",
+    "event": "toolu_01QgasbiQzK5myCaNKGUyDjf",
+    "hash": "f94de860224dfda962f1e9a042f0b7e672e5225cacd47ab42c19c75ca621ab4d",
+    "round": 4,
+    "runtime": "claude",
+    "session": "95f602af-e2c3-4ac2-9e21-a78e0aed778d"
+  },
+  "doc": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md",
+  "status": "approved",
+  "steps": [
+    {
+      "at": "2026-10-02T17:06:40+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-02T17:18:00+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-02T17:20:53+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-02T17:22:59+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-02T17:24:49+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-02T17:34:22+00:00",
+      "step": "approved"
+    }
+  ],
+  "title": "Ask names each GL line and opens its transactions",
+  "touches": 1
+}
