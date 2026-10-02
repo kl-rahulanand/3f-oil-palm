@@ -1,0 +1,14 @@
+{
+  "base": "e30193970dadd02df042a99ec0497068b6d61534",
+  "branch": "fix/spec-for-ask-showing-gl-names-and-openin",
+  "done_when": "The spec is saved, confirmed by the owner and on the roadmap",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-02T15:09:27+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Spec for Ask showing GL names and opening an Actual's transactions"
+}
