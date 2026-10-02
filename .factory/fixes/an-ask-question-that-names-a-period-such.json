@@ -5,19 +5,19 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "da43ad6a5f66936c80c2976e7192ff57d935f397948748c9f8e60c3176140671",
-    "commit": "d01829422856b032d237a7eef1dc102659593770",
+    "changed": "06d0f43fa4cbcd252035b8747f99b50628d7e3547a8921b98d66ad91f332621f",
+    "commit": "9c1bb98d06914924f67ded5ec700e05e5c8ec1c6",
     "dismissals": [],
     "findings": [
       {
-        "body": "The parser still mishandles Done-when inputs. `FISCAL_PERIOD_PATTERN` recognizes `FY` and `financial year` but not \u201cfiscal year\u201d, so \u201cShow fiscal year 2025\u201d reaches `YEAR_PREFIX_PATTERN` via `year` and replaces the model window with calendar 2025. That prefix also accepts `of` without checking what follows the number, so \u201cShow an amount of 2025 rupees\u201d is incorrectly interpreted as calendar year 2025, violating the requirement that an amount is never a year. Additionally, \u201cQ3, 2025\u201d detects Q3 but rejects the comma-separated year and anchors the quarter to the prior/current year. These deterministically return the wrong periods on the provider path.",
+        "body": "`calendarYear` accepts a four-digit year only when the preceding text matches the narrow prefix list (or the question consists only of the year). Thus a follow-up such as \u201cWhat were 2025 actuals?\u201d is not recognized as naming 2025: the model window is cleared and the prior window is inherited. Conversely, \u201cShow an amount of 2025\u201d matches the allowed `of` prefix and has no recognized currency suffix, so it is incorrectly converted to calendar year 2025. These directly violate the Done-when requirements that a named year override prior/model windows and that an amount never be read as a year.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 721,
+        "line": 823,
         "priority": "P1",
-        "title": "Not done: Named periods must override the model while fiscal and amount wording retain the model window"
+        "title": "Not done: Named-year follow-ups and unitless amounts still choose the wrong period"
       },
       {
-        "body": "The new coverage still calls `ChatService.ask` through `makeFixture`; unchanged lines 947-1033 show that the LLM, executor, audit, dimensions, and selection resolver are fakes. The frontend period-control tests also mock `api.ask` (`frontend/src/features/assistant/ask-panel.test.tsx:33`), while the repository has no Playwright configuration/specification or browser-test script and the root suite runs Node/Vitest tests only (`package.json:26`). Consequently, named-period follow-ups, no-period inheritance/aggregation, and changing the period control remain unproven through the required browser, running API, real database, and prior-turn transport. The successful hermetic close run does not satisfy that required user-flow proof.",
+        "body": "The added coverage invokes `ChatService.ask` through `makeFixture`, which replaces the provider, executor/database, audit, dimensions, and selection resolver with fakes (`backend/src/chat/chat.service.test.ts:979-1025`). The frontend Ask tests also mock the API (`frontend/src/features/assistant/ask-panel.test.tsx:33-42`), while `package.json:26` runs only Node/Vitest suites and the repository has no Playwright configuration, specification, or browser-test script. Therefore named-period follow-ups, prior-turn transport, no-period inheritance/aggregation, and period-control reruns remain unproven through the required browser, running API, and real database. The successful close run only executed the same lower-boundary tests.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -25,7 +25,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "656d95ca4a349b3f56ec6588d2b1c7a67d5870dfab6541eeaf80318f06e26f08"
+    "tree": "80b639a39450ac4d77c7b4af56ea374dfb717784b8d13b22a5eb407e99ea88a4"
   },
   "status": "fixing",
   "steps": [
@@ -55,6 +55,10 @@
     },
     {
       "at": "2026-10-02T11:40:03+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T11:48:08+00:00",
       "step": "review"
     }
   ],
