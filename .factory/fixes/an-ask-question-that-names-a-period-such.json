@@ -1,7 +1,7 @@
 {
   "base": "37003503adc0b335100f1a87d41ab2b39ba79461",
   "branch": "fix/an-ask-question-that-names-a-period-such",
-  "done_when": "A follow-up that names a period answers for that period whatever window the model emits; a question naming no period still inherits or aggregates as before; changing an answer's period still re-runs on the chosen period",
+  "done_when": "A follow-up that names a period the app reads itself (a month with or without a year, a year, a quarter with or without a year, or last, previous or this month, quarter or year) answers for that period whatever window the model emits; fiscal and other wording (FY, YTD, next month, previous week) keeps the model's window and the period control; a question naming no period still inherits or aggregates as before, and an amount is never read as a year; changing an answer's period still re-runs on the chosen period",
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
