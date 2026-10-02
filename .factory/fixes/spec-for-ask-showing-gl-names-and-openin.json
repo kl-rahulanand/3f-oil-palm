@@ -5,27 +5,34 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "ead356a74cce5a1f2b3762415f219520dd943b5ce7dd7c01dfab1a00cf4634e5",
-    "commit": "812d8446a521cd5991098df2b3d966978a5eb237",
+    "changed": "913fb7fecaecfa88a86a620278fe3cd875dff131acb9ca8f3253e88cfaf53fdd",
+    "commit": "9598707a65b4b055405916ea8d683e4fcbefd933",
     "dismissals": [],
     "findings": [
       {
-        "body": "The specified source for a statement leaf's raw predicate does not contain the required data. `StatementOutlineNode` in `backend/src/warehouse/statement-outline.interface.ts:1` contains a GL code and leaf key, but no plant or cost centre; the existing drill obtains the triples from the resolved mapping in `backend/src/mis/mis-drill.service.ts:107` and uses the outline only for node-to-leaf resolution. Thus an implementation cannot re-derive the promised exact predicate from the pinned outline and may fall back to current mapping or an over-broad GL predicate, risking non-footing results or raw-row exposure. Require the signed context to bind the executed resolved triples, or bind and verify the mapping version/resolved selection separately from the pinned outline.",
+        "body": "The confirmation digest does not cover the current specification. Applying the repository's established body-only SHA-256 convention\u2014confirmed by reproducing the hash in `docs/specs/ask-measure-comparison-filter.md`\u2014gives `34ebcb2f...` for this document, while this field records `777ba735...`. Because this spec has no `## For the builders` boundary, the approval rule at `AGENTS.md:72-76` covers the whole document. The substantive edits made after confirmation therefore need renewed owner confirmation before the Done-when is met.",
         "file": "docs/specs/ask-gl-names-and-transactions.md",
-        "line": 89,
+        "line": 7,
         "priority": "P1",
-        "title": "Bind statement-leaf triples instead of deriving them from the outline"
+        "title": "Not done: The spec is saved, confirmed by the owner and on the roadmap"
       },
       {
-        "body": "The spec supports any time window but repeatedly refers to one pinned budget batch/outline without selecting it. Current Ask provenance can contain a distinct budget batch for every result month (`backend/src/sql/sqlBuilder.ts:219`), and those outline snapshots can differ after partial reloads. The existing statement drill resolves this by selecting the budget batch at the block end (`backend/src/mis/mis-drill.service.ts:203`), but this spec does not adopt that rule or another reconciliation rule. Consequently multi-period GL fallbacks and statement labels can resolve from different outlines depending on implementation or query order. Specify the authoritative period/batch (for example, the time-window end) and bind that choice in the context.",
+        "body": "The prior ambiguity remains: supported answers may span any time window, but the context still binds one unspecified budget batch and outline. Current Ask provenance can include a separate budget batch for each result month (`backend/src/sql/sqlBuilder.ts:219-221`), whose outline snapshots can differ after partial reloads, while the existing statement drill deliberately selects the block-end budget (`backend/src/mis/mis-drill.service.ts:203-206`). Without an equivalent rule here, statement labels and budget-only GL fallbacks can vary by implementation or query order. Specify and bind the authoritative period/batch.",
         "file": "docs/specs/ask-gl-names-and-transactions.md",
         "line": 64,
         "priority": "P2",
         "title": "Define which outline governs a multi-period answer"
+      },
+      {
+        "body": "The contract says the client sends only the context and row key, but the same spec promises transaction results in pages of 100 at line 108 and C3. After the first page, neither field identifies the next page, so the panel cannot request subsequent results without violating the stated request contract. Define a validated page/cursor field as non-authoritative input, or return a signed continuation token.",
+        "file": "docs/specs/ask-gl-names-and-transactions.md",
+        "line": 70,
+        "priority": "P2",
+        "title": "Allow a pagination control in the drill request"
       }
     ],
     "status": "blocked",
-    "tree": "4de1d4d613cfb9e5a9f7f567997730d3a37eb96739499d7ab9b9a8e64a581888"
+    "tree": "07afb513c63b8fc865ef27f5cf1b711bad65093144bc0e4985b5516440fa0dde"
   },
   "status": "fixing",
   "steps": [
@@ -35,6 +42,10 @@
     },
     {
       "at": "2026-10-02T15:45:39+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T15:55:31+00:00",
       "step": "review"
     }
   ],
