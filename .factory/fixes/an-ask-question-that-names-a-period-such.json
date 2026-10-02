@@ -5,19 +5,26 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "a7ec6e0b3ad9aa750b60858adc4960c8f7abbb3823f57e33177c0facae294430",
-    "commit": "f0c8749bfd7a940f7f0cb01ea863442729358b16",
+    "changed": "253b268dd93eb17eeb97f52164ab22b39f199dd62c729cbaf7b60cd084b13aab",
+    "commit": "03d49e0da6a2bbfbd6acde94d11137360b49101e",
     "dismissals": [],
     "findings": [
       {
-        "body": "Fiscal wording is checked only after `parseTimeWindow` returns null. For `Show FY Q1 2025`, the existing parser at `backend/src/chat/timeWindowParse.ts:80` recognizes `Q1 2025` and returns calendar January\u2013March, so the `FISCAL_PERIOD_PATTERN` branch is never evaluated and line 393 replaces the model's fiscal window. The same ordering affects inputs such as `YTD since 1 January`. These questions therefore lose the model's window and period control, contrary to the required fiscal exception.",
+        "body": "Unlike the previously reported fiscal-period case, `by FY` is granularity wording: `FISCAL_GRANULARITY_PATTERN` explicitly removes it when deciding whether a question names a period. However, this earlier check uses the unmodified question. Consequently, a follow-up such as \u201cShow Actual by FY for July 2026\u201d sets `parsedTimeWindow` to null merely because it contains `FY`; `hasTimePeriodWords` then sees July and retains whatever window the model emitted instead of applying July 2026. This violates the requirement that an app-readable named period win regardless of the model window.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 389,
+        "line": 388,
         "priority": "P1",
-        "title": "Not done: fiscal wording can still be overridden by the calendar parser"
+        "title": "Not done: fiscal grouping can suppress a named calendar period"
       },
       {
-        "body": "The new period matrix still invokes `ChatService.ask` through `makeFixture` (`backend/src/chat/chat.service.test.ts:1319`), where the selector, executor/warehouse, audit, dimensions, reports, and resolver are fakes. The rerun test uses the same boundary, while frontend tests mock the API. The registered suite runs Node tests and Vitest (`package.json:26`; `frontend/package.json:9`) and has no Playwright/browser flow through a running API and real database. Thus named-period precedence, inheritance, amount protection, and edited-period reruns remain proven only at mocked service/jsdom boundaries. The successful close run executed those same commands, so this prior blocker remains open.",
+        "body": "The amount disambiguator omits the common linking word `as`. For example, \u201cShow Actual with amount as 2025\u201d reaches `calendarYear`; neither the direct-quantity check nor `LINKED_AMOUNT_YEAR_PATTERN` recognizes the text before 2025, so the code constructs a full-year 2025 window and overrides the model/prior window. This contradicts the explicit requirement that an amount is never read as a year.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 741,
+        "priority": "P1",
+        "title": "Not done: \u201camount as 2025\u201d is still parsed as calendar year 2025"
+      },
+      {
+        "body": "The added matrix and rerun checks still call `ChatService.ask` through `makeFixture`, whose provider, executor/warehouse, audit, dimensions, reports, and resolver are fakes (around lines 1303\u20131333). The registered test command runs Node tests and Vitest, and the repository has no Playwright flow through a running API, real database, and browser. Thus named-period precedence, inheritance, amount protection, and period-control reruns remain proven only at mocked service/jsdom boundaries. The supplied successful close run executed those same non-E2E commands, so the prior blocker remains open.",
         "file": "backend/src/chat/chat.service.test.ts",
         "line": 453,
         "priority": "P1",
@@ -25,7 +32,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "46232bfdc143993b6620a13ecee63cf0def166c1647059f4a1f79ab2ea4a77bd"
+    "tree": "48ec964d26b9f55047b425e59eb832cbf387530ec5a34fd26821660b1df7f248"
   },
   "status": "fixing",
   "steps": [
@@ -111,6 +118,10 @@
     },
     {
       "at": "2026-10-02T14:06:39+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-02T14:17:22+00:00",
       "step": "review"
     }
   ],
