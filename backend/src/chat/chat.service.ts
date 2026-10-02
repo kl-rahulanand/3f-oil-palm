@@ -727,10 +727,15 @@ const AMOUNT_YEAR_PREFIX_PATTERN = /(?:₹|\b(?:rs\.?|inr))\s*$/i;
 const AMOUNT_YEAR_SUFFIX_PATTERN = /^(?:\.\d+|\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)\b)/i;
 const QUANTITY_OF_YEAR_PATTERN =
   /\b(?:amount|total|value|sum|figure|balance|spend|limit|threshold)\s+of(?:\s+exactly)?\s*$/i;
-const COPULA_AMOUNT_PREFIX_PATTERN =
-  /\b(?:actuals?|budgets?|spend(?:ing)?|values?|amounts?|totals?|sums?|figures?|balances?|limits?|thresholds?|expenses?|costs?)(?:\s+(?:amounts?|values?|totals?))?\s+(?:is|was|are|were|equals?)\s*$/i;
-const COMPARISON_YEAR_PREFIX_PATTERN =
-  /(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])\s*$/i;
+const AMOUNT_MODIFIER = String.raw`(?:exactly|about|around|approximately|approx\.?|roughly|nearly|almost|just|only|precisely|at\s+least|at\s+most|close\s+to|up\s+to)`;
+const COPULA_AMOUNT_PREFIX_PATTERN = new RegExp(
+  String.raw`\b(?:actuals?|budgets?|spend(?:ing)?|values?|amounts?|totals?|sums?|figures?|balances?|limits?|thresholds?|expenses?|costs?)(?:\s+(?:amounts?|values?|totals?))?\s+(?:is|was|are|were|equals?|equal\s+to|be)(?:\s+${AMOUNT_MODIFIER})?\s*$`,
+  "i",
+);
+const COMPARISON_YEAR_PREFIX_PATTERN = new RegExp(
+  String.raw`(?:\b(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|at\s+least|at\s+most|exceeding|exceeds|beyond|up\s+to|totaling|totalling|worth|equal\s+to|equals)|={1,2}|!=|<>|[<>]=?|[≤≥≠])(?:\s+${AMOUNT_MODIFIER})?\s*$`,
+  "i",
+);
 const RANGE_ENDPOINT = String.raw`(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(?:rupees?|rs\.?|inr|lakhs?|crores?|k|thousand)?`;
 const NUMBER_RANGE_PATTERNS = [
   new RegExp(`\\bbetween\\s+${RANGE_ENDPOINT}\\s+and\\s+${RANGE_ENDPOINT}\\b`, "i"),
