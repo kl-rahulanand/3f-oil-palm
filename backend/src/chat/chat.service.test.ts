@@ -17,7 +17,7 @@ import { loadConfig } from "../config";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
 import { askSchema } from "./chat.schemas";
-import { ChatService, hasTimePeriodWords, trimPriorTurnsToTokenBudget } from "./chat.service";
+import { ChatService, trimPriorTurnsToTokenBudget } from "./chat.service";
 
 test("trimming retains the newest turns in oldest first order", () => {
   const turns = ["oldest", "middle", "newest"].map((question) => ({
@@ -450,456 +450,153 @@ test("a filtered prior turn is canonical provider context and still supplies the
   assert.deepEqual(fixture.executor.selections[0]?.measureFilters, undefined);
 });
 
-test("a follow-up naming July 2026 uses July when the model emits the last 31 days", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "day", last: 31 },
-    },
-  });
-
-  const response = await fixture.service.ask(
-    userFor("governed-financial"),
-    "session",
-    "Which GL codes spent more than 5 lakh in July 2026?",
-    undefined,
-    undefined,
-    [{ question: "Show Actual by GL code", selection: financialSelection }],
-  );
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "day",
-    from: "2026-07-01",
-    to: "2026-07-31",
-    column: "month",
-  });
-});
-
-test("a follow-up naming a period uses it instead of the prior answer's window", async () => {
-  const selectionWithoutWindow: Selection = { ...financialSelection, timeWindow: undefined };
-  const augustSelection: Selection = {
-    ...financialSelection,
-    timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
-  };
-  const fixture = makeFixture({ selection: selectionWithoutWindow });
-
-  const response = await fixture.service.ask(
-    userFor("governed-financial"),
-    "session",
-    "Show Actual by GL code for July 2026",
-    undefined,
-    undefined,
-    [{ question: "Show Actual by GL code for August 2026", selection: augustSelection }],
-  );
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "day",
-    from: "2026-07-01",
-    to: "2026-07-31",
-    column: "month",
-  });
-});
-
-test("a follow-up naming no period inherits July when the model emits the last 31 days", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "day", last: 31 },
-    },
-  });
-
-  const response = await fixture.service.ask(
-    userFor("governed-financial"),
-    "session",
-    "And which GL codes spent more than 3 lakh?",
-    undefined,
-    undefined,
-    [{ question: "Which GL codes spent more than 5 lakh in July 2026?", selection: financialSelection }],
-  );
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "month",
-    from: "2026-07-01",
-    to: "2026-07-01",
-    column: "month",
-  });
-});
-
-test("a first question using modal May runs without the model's invented window", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "day", last: 31 },
-    },
-  });
-
-  const response = await fixture.service.ask(userFor("governed-financial"), "session", "May I see Actual by GL code?");
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.equal(response.selection?.timeWindow, undefined);
-  assert.equal(response.periodControl?.current, null);
-});
-
-test("a follow-up using modal May inherits July instead of the model's invented window", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "day", last: 31 },
-    },
-  });
-
-  const response = await fixture.service.ask(
-    userFor("governed-financial"),
-    "session",
-    "May I see Actual by GL code?",
-    undefined,
-    undefined,
-    [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
-  );
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "month",
-    from: "2026-07-01",
-    to: "2026-07-01",
-    column: "month",
-  });
-});
-
-test("a bare calendar year overrides a wrong or missing model window", async () => {
-  for (const question of ["What about 2025?", "Show Actual for 2025", "Show Actual in 2025"]) {
-    for (const modelWindow of [{ grain: "month" as const, from: "2026-09-01", to: "2026-09-30" }, undefined]) {
-      const fixture = makeFixture({
-        selection: { ...financialSelection, timeWindow: modelWindow },
-      });
-
-      const response = await fixture.service.ask(
-        userFor("governed-financial"),
-        "session",
-        question,
-        undefined,
-        undefined,
-        [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
-      );
-
-      assert.equal(response.responseClass, ResponseClass.Success);
-      assert.deepEqual(response.selection?.timeWindow, {
-        grain: "day",
-        from: "2025-01-01",
-        to: "2025-12-31",
-        column: "month",
-      });
-    }
-  }
-});
-
-test("a quarter with an explicit year uses that year instead of the prior window's year", async () => {
-  for (const question of [
-    "Show Q3 2025",
-    "Show Q3 of 2025",
-    "Show the third quarter 2025",
-    "Show the third quarter of 2025",
-  ]) {
-    const fixture = makeFixture({
-      selection: {
-        ...financialSelection,
-        timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
-      },
-    });
-
-    const response = await fixture.service.ask(
-      userFor("governed-financial"),
-      "session",
-      question,
-      undefined,
-      undefined,
-      [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
-    );
-
-    assert.equal(response.responseClass, ResponseClass.Success);
-    assert.deepEqual(response.selection?.timeWindow, {
-      grain: "day",
-      from: "2025-07-01",
-      to: "2025-09-30",
-      column: "month",
-    });
-  }
-});
-
-test("a quarter without a year overrides a wrong or missing model window", async (context) => {
+test("Ask selects the intended window across supported ambiguous and no-period phrasings", async (context) => {
   context.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-02T00:00:00Z") });
 
-  for (const question of ["Show Q3", "Show the third quarter"]) {
-    for (const modelWindow of [{ grain: "month" as const, from: "2026-08-01", to: "2026-08-31" }, undefined]) {
-      const fixture = makeFixture({
-        selection: { ...financialSelection, timeWindow: modelWindow },
-      });
-
-      const response = await fixture.service.ask(
-        userFor("governed-financial"),
-        "session",
-        question,
-        undefined,
-        undefined,
-        [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
-      );
-
-      assert.equal(response.responseClass, ResponseClass.Success);
-      assert.deepEqual(response.selection?.timeWindow, {
-        grain: "day",
-        from: "2026-07-01",
-        to: "2026-09-30",
-        column: "month",
-      });
-    }
-  }
-
-  const firstTurn = makeFixture({ selection: { ...financialSelection, timeWindow: undefined } });
-  const response = await firstTurn.service.ask(userFor("governed-financial"), "session", "Show Q3");
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "day",
-    from: "2026-07-01",
+  const wrongModelWindow = {
+    grain: "month" as const,
+    from: "2026-09-01",
     to: "2026-09-30",
     column: "month",
-  });
-});
-
-test("relative calendar periods override a wrong or missing model window", async (context) => {
-  context.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-02T00:00:00Z") });
-
-  const cases = [
-    { question: "Show last month", from: "2026-09-01", to: "2026-09-30" },
-    { question: "Show previous month", from: "2026-09-01", to: "2026-09-30" },
-    { question: "Show this month", from: "2026-10-01", to: "2026-10-02" },
-    { question: "Show last quarter", from: "2026-07-01", to: "2026-09-30" },
-    { question: "Show previous quarter", from: "2026-07-01", to: "2026-09-30" },
-    { question: "Show this quarter", from: "2026-10-01", to: "2026-10-02" },
-    { question: "Show last year", from: "2025-01-01", to: "2025-12-31" },
-    { question: "Show previous year", from: "2025-01-01", to: "2025-12-31" },
+  };
+  const july2026 = { grain: "day" as const, from: "2026-07-01", to: "2026-07-31", column: "month" };
+  const inheritedJuly = { grain: "month" as const, from: "2026-07-01", to: "2026-07-01", column: "month" };
+  const july2025 = { grain: "day" as const, from: "2025-07-01", to: "2025-07-31", column: "month" };
+  const year2025 = { grain: "day" as const, from: "2025-01-01", to: "2025-12-31", column: "month" };
+  const quarterThree2025 = { grain: "day" as const, from: "2025-07-01", to: "2025-09-30", column: "month" };
+  const quarterThree2026 = { grain: "day" as const, from: "2026-07-01", to: "2026-09-30", column: "month" };
+  const cases: Array<{
+    question: string;
+    prior?: boolean;
+    expected: Selection["timeWindow"] | undefined;
+  }> = [
+    { question: "Show July 2025", prior: true, expected: july2025 },
+    { question: "Show July of 2025", prior: true, expected: july2025 },
+    { question: "Show July, 2025", prior: true, expected: july2025 },
+    { question: "Show Jul-2025", prior: true, expected: july2025 },
+    { question: "Show July '25", prior: true, expected: july2025 },
+    { question: "Show 07/2025", prior: true, expected: july2025 },
+    { question: "Show 2025-07", prior: true, expected: july2025 },
+    { question: "Show Jul 25", prior: true, expected: wrongModelWindow },
+    { question: "Show July 2026", prior: true, expected: july2026 },
+    {
+      question: "What about August?",
+      prior: true,
+      expected: { grain: "day", from: "2026-08-01", to: "2026-08-31", column: "month" },
+    },
+    {
+      question: "Show August",
+      expected: { grain: "day", from: "2026-08-01", to: "2026-08-31", column: "month" },
+    },
+    {
+      question: "Show December",
+      expected: { grain: "day", from: "2025-12-01", to: "2025-12-31", column: "month" },
+    },
+    {
+      question: "May?",
+      prior: true,
+      expected: { grain: "day", from: "2026-05-01", to: "2026-05-31", column: "month" },
+    },
+    {
+      question: "Show May",
+      prior: true,
+      expected: { grain: "day", from: "2026-05-01", to: "2026-05-31", column: "month" },
+    },
+    {
+      question: "What about May",
+      prior: true,
+      expected: { grain: "day", from: "2026-05-01", to: "2026-05-31", column: "month" },
+    },
+    { question: "May I see Actual by GL code?", expected: undefined },
+    { question: "May I see Actual by GL code?", prior: true, expected: inheritedJuly },
+    { question: "May show Actual by GL code", expected: undefined },
+    { question: "Show Q3", prior: true, expected: quarterThree2026 },
+    { question: "Show the third quarter", prior: true, expected: quarterThree2026 },
+    {
+      question: "Show Q4",
+      expected: { grain: "day", from: "2026-10-01", to: "2026-12-31", column: "month" },
+    },
+    { question: "Show Q3 2025", prior: true, expected: quarterThree2025 },
+    { question: "Show Q3 of 2025", prior: true, expected: quarterThree2025 },
+    { question: "Show the third quarter 2025", prior: true, expected: quarterThree2025 },
+    { question: "Show the third quarter of 2025", prior: true, expected: quarterThree2025 },
+    { question: "2025?", prior: true, expected: year2025 },
+    { question: "What about 2025?", prior: true, expected: year2025 },
+    { question: "Show Actual in 2025", prior: true, expected: year2025 },
+    { question: "Show Actual for 2025", prior: true, expected: year2025 },
+    { question: "Show Actual during 2025", prior: true, expected: year2025 },
+    { question: "Show Actual of 2025", prior: true, expected: year2025 },
+    { question: "Show Actual since 2025", prior: true, expected: year2025 },
+    { question: "Show Actual from 2025", prior: true, expected: year2025 },
+    { question: "Show Actual until 2025", prior: true, expected: year2025 },
+    { question: "Show Actual till 2025", prior: true, expected: year2025 },
+    { question: "Show Actual through 2025", prior: true, expected: year2025 },
+    { question: "Show Actual to 2025", prior: true, expected: year2025 },
+    { question: "Show Actual by 2025", prior: true, expected: year2025 },
+    { question: "Show Actual about 2025", prior: true, expected: year2025 },
+    { question: "Show Actual before 2025", prior: true, expected: year2025 },
+    { question: "Show Actual after 2025", prior: true, expected: year2025 },
+    { question: "Show year 2025", prior: true, expected: year2025 },
+    { question: "Show calendar 2025", prior: true, expected: year2025 },
+    { question: "Show CY 2025", prior: true, expected: year2025 },
+    { question: "Show Actual totaling 2025", expected: undefined },
+    { question: "Show amounts over 2025", expected: undefined },
+    { question: "Which GL codes spent more than 2025?", expected: undefined },
+    { question: "Show GL code 2025", expected: undefined },
+    { question: "Show Actual totaling 2025", prior: true, expected: inheritedJuly },
+    { question: "Show Actual by month", expected: undefined },
+    { question: "Show Actual by month", prior: true, expected: inheritedJuly },
+    {
+      question: "Show last month",
+      expected: { grain: "day", from: "2026-09-01", to: "2026-09-30", column: "month" },
+    },
+    {
+      question: "Show previous month",
+      expected: { grain: "day", from: "2026-09-01", to: "2026-09-30", column: "month" },
+    },
+    {
+      question: "Show this month",
+      expected: { grain: "day", from: "2026-10-01", to: "2026-10-02", column: "month" },
+    },
+    { question: "Show last quarter", expected: quarterThree2026 },
+    { question: "Show previous quarter", expected: quarterThree2026 },
+    {
+      question: "Show this quarter",
+      expected: { grain: "day", from: "2026-10-01", to: "2026-10-02", column: "month" },
+    },
+    { question: "Show last year", expected: year2025 },
+    { question: "Show previous year", expected: year2025 },
+    {
+      question: "Show this year",
+      expected: { grain: "day", from: "2026-01-01", to: "2026-10-02", column: "month" },
+    },
+    { question: "Compare this FY", prior: true, expected: wrongModelWindow },
+    { question: "Show YTD", prior: true, expected: wrongModelWindow },
+    { question: "Compare next month", prior: true, expected: wrongModelWindow },
+    { question: "Try the previous week", prior: true, expected: wrongModelWindow },
+    { question: "Show Actual by GL code", expected: undefined },
+    { question: "And which GL codes spent more than 3 lakh?", prior: true, expected: inheritedJuly },
   ];
 
-  for (const { question, from, to } of cases) {
-    for (const modelWindow of [{ grain: "month" as const, from: "2024-08-01", to: "2024-08-31" }, undefined]) {
-      const fixture = makeFixture({
-        selection: { ...financialSelection, timeWindow: modelWindow },
-      });
-      const response = await fixture.service.ask(userFor("governed-financial"), "session", question);
-
-      assert.equal(response.responseClass, ResponseClass.Success);
-      assert.deepEqual(response.selection?.timeWindow, {
-        grain: "day",
-        from,
-        to,
-        column: "month",
-      });
-    }
-  }
-});
-
-test("fiscal and other model-owned period wording keeps the model window", async () => {
-  for (const question of [
-    "Compare this FY",
-    "Show FY 2025",
-    "Show the financial year",
-    "Show YTD",
-    "Compare next month",
-    "Try the previous week",
-  ]) {
+  for (const { question, prior, expected } of cases) {
     const fixture = makeFixture({
       selection: {
         ...financialSelection,
-        timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+        timeWindow: { grain: "month", from: "2026-09-01", to: "2026-09-30" },
       },
     });
-
-    const response = await fixture.service.ask(userFor("governed-financial"), "session", question);
-
-    assert.equal(response.responseClass, ResponseClass.Success);
-    assert.deepEqual(
-      response.selection?.timeWindow,
-      {
-        grain: "month",
-        from: "2026-04-01",
-        to: "2026-07-31",
-        column: "month",
-      },
-      question,
-    );
-  }
-});
-
-test("a four-digit amount is not read as a year", async () => {
-  for (const question of ["Show amounts over 2025", "Which GL codes spent more than 2025?"]) {
-    const modelWindow = { grain: "month" as const, from: "2026-09-01", to: "2026-09-30" };
-    const firstTurn = makeFixture({ selection: { ...financialSelection, timeWindow: modelWindow } });
-
-    const firstResponse = await firstTurn.service.ask(userFor("governed-financial"), "session", question);
-
-    assert.equal(firstResponse.responseClass, ResponseClass.Success);
-    assert.equal(firstResponse.selection?.timeWindow, undefined, question);
-
-    const followUp = makeFixture({ selection: { ...financialSelection, timeWindow: modelWindow } });
-    const followUpResponse = await followUp.service.ask(
-      userFor("governed-financial"),
-      "session",
-      question,
-      undefined,
-      undefined,
-      [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
-    );
-
-    assert.equal(followUpResponse.responseClass, ResponseClass.Success);
-    assert.deepEqual(
-      followUpResponse.selection?.timeWindow,
-      {
-        grain: "month",
-        from: "2026-07-01",
-        to: "2026-07-01",
-        column: "month",
-      },
-      question,
-    );
-  }
-});
-
-test("an ordinary follow-up has no period words", () => {
-  for (const question of [
-    "And which GL codes spent more than 3 lakh?",
-    "Show Actual by month",
-    "Which days were highest?",
-    "Show monthly Actual",
-  ]) {
-    assert.equal(hasTimePeriodWords(question), false, question);
-  }
-});
-
-test("what about August after July resolves August 2026 regardless of the model window", async () => {
-  for (const modelWindow of [{ grain: "month" as const, from: "2026-09-01", to: "2026-09-30" }, undefined]) {
-    const fixture = makeFixture({
-      selection: { ...financialSelection, timeWindow: modelWindow },
-    });
-
     const response = await fixture.service.ask(
       userFor("governed-financial"),
       "session",
-      "What about August?",
+      question,
       undefined,
       undefined,
-      [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
+      prior ? [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }] : undefined,
     );
 
-    assert.equal(response.responseClass, ResponseClass.Success);
-    assert.deepEqual(response.selection?.timeWindow, {
-      grain: "day",
-      from: "2026-08-01",
-      to: "2026-08-31",
-      column: "month",
-    });
+    assert.equal(response.responseClass, ResponseClass.Success, question);
+    assert.deepEqual(response.selection?.timeWindow, expected, question);
   }
-});
-
-test("a bare month on a first turn resolves to its latest occurrence regardless of the model window", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "month", from: "2025-09-01", to: "2025-09-30" },
-    },
-  });
-
-  const response = await fixture.service.ask(userFor("governed-financial"), "session", "What about January?");
-  const year = new Date().getUTCFullYear();
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "day",
-    from: `${year}-01-01`,
-    to: `${year}-01-31`,
-    column: "month",
-  });
-});
-
-test("what about May resolves May instead of keeping another model window", async () => {
-  const juneSelection: Selection = {
-    ...financialSelection,
-    timeWindow: { grain: "month", from: "2026-06-01", to: "2026-06-30" },
-  };
-  const fixture = makeFixture({ selection: juneSelection });
-
-  const response = await fixture.service.ask(
-    userFor("governed-financial"),
-    "session",
-    "What about May?",
-    undefined,
-    undefined,
-    [{ question: "Show Actual by GL code for July 2026", selection: financialSelection }],
-  );
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "day",
-    from: "2026-05-01",
-    to: "2026-05-31",
-    column: "month",
-  });
-});
-
-test("show Actual by month aggregates when the model invents a window on a first turn", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "day", last: 31 },
-    },
-  });
-
-  const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show Actual by month");
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.equal(response.selection?.timeWindow, undefined);
-  assert.equal(response.periodControl?.current, null);
-});
-
-test("show Actual by month inherits July when the model invents a follow-up window", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "day", last: 31 },
-    },
-  });
-
-  const response = await fixture.service.ask(
-    userFor("governed-financial"),
-    "session",
-    "Show Actual by month",
-    undefined,
-    undefined,
-    [{ question: "Show Actual for July 2026", selection: financialSelection }],
-  );
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.deepEqual(response.selection?.timeWindow, {
-    grain: "month",
-    from: "2026-07-01",
-    to: "2026-07-01",
-    column: "month",
-  });
-});
-
-test("a question naming no period with no prior turn still covers all loaded data", async () => {
-  const fixture = makeFixture({
-    selection: {
-      ...financialSelection,
-      timeWindow: { grain: "day", last: 31 },
-    },
-  });
-
-  const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show Actual by GL code");
-
-  assert.equal(response.responseClass, ResponseClass.Success);
-  assert.equal(response.selection?.timeWindow, undefined);
-  assert.equal(response.periodControl?.current, null);
 });
 
 test("a period-control rerun keeps its edited August window when the question says July", async () => {
