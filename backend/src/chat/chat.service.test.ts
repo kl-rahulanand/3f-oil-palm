@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { BadRequestException } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
+import { BadRequestException, Module, type InjectionToken } from "@nestjs/common";
+import { ApplicationConfig } from "@nestjs/core/application-config";
+import { NestContainer } from "@nestjs/core/injector/container";
+import { InstanceLoader } from "@nestjs/core/injector/instance-loader";
+import { Injector } from "@nestjs/core/injector/injector";
+import { NoopGraphInspector } from "@nestjs/core/inspector/noop-graph-inspector";
+import { MetadataScanner } from "@nestjs/core/metadata-scanner";
+import { DependenciesScanner } from "@nestjs/core/scanner";
 import {
   MeasureFilterInvalidReason,
   ResponseClass,
@@ -14,13 +20,18 @@ import {
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "../llm/llm.interface";
 import { BedrockLlmProvider } from "../llm/bedrock.provider";
 import { LLM_CONTEXT_CHAR_BUDGET, LLM_MESSAGES } from "../llm/llm.constants";
-import { loadConfig } from "../config";
-import { AppModule } from "../app.module";
+import { DRIZZLE_DB, WAREHOUSE, loadConfig } from "../config";
+import { CoreModule } from "../core/core.module";
+import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
+import { StatementAttestationService } from "../mis/statement-attestation";
 import type { DrillPredicate, DrillSummary } from "../warehouse/drill-transactions.interface";
+import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import { GlNameRepository } from "../warehouse/gl-name.repository";
+import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
 import { AskDrillContextService } from "./ask-drill-context";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
+import { ChatModule } from "./chat.module";
 import { askSchema } from "./chat.schemas";
 import { ChatService, lastMonthBudgetPin, trimPriorTurnsToTokenBudget } from "./chat.service";
 
@@ -385,14 +396,39 @@ test("an all-data GL answer still resolves names from its pinned months but carr
   assert.equal(fixture.transactions.calls.length, 0);
 });
 
-test("the real application module resolves ChatService with the name and drill repositories", async () => {
-  const application = await NestFactory.createApplicationContext(AppModule, { logger: false });
-  try {
-    assert.ok(application.get(ChatService));
-    assert.ok(application.get(GlNameRepository));
-  } finally {
-    await application.close();
-  }
+test("the real ChatModule graph resolves ChatService and its name and drill dependencies without startup hooks", async () => {
+  @Module({ imports: [CoreModule, ChatModule] })
+  class ChatResolutionTestModule {}
+
+  const applicationConfig = new ApplicationConfig();
+  const container = new NestContainer(applicationConfig);
+  const scanner = new DependenciesScanner(container, new MetadataScanner(), NoopGraphInspector, applicationConfig);
+  await scanner.scan(ChatResolutionTestModule);
+  container.replace(DRIZZLE_DB, { isProvider: true, useValue: {} });
+  container.replace(WAREHOUSE, { isProvider: true, useValue: {} });
+  container.replace(AuthoredMeasureRegistry, { isProvider: true, useValue: { published: () => [] } });
+  await new InstanceLoader(container, new Injector(), NoopGraphInspector).createInstancesOfDependencies();
+
+  const resolved = <T>(token: InjectionToken): T => {
+    for (const module of container.getModules().values()) {
+      const instance = module.providers.get(token)?.instance;
+      if (instance) return instance as T;
+    }
+    throw new Error(`Provider did not resolve: ${String(token)}`);
+  };
+  const chat = resolved<ChatService>(ChatService) as unknown as {
+    glNames: GlNameRepository;
+    drillTransactions: DrillTransactionsRepository;
+    drillContexts: AskDrillContextService;
+    outlines: StatementOutlineRepository;
+    statementAttestation: StatementAttestationService;
+  };
+
+  assert.equal(chat.glNames, resolved(GlNameRepository));
+  assert.equal(chat.drillTransactions, resolved(DrillTransactionsRepository));
+  assert.equal(chat.drillContexts, resolved(AskDrillContextService));
+  assert.equal(chat.outlines, resolved(StatementOutlineRepository));
+  assert.equal(chat.statementAttestation, resolved(StatementAttestationService));
 });
 
 test("a grounded selector keeps the report display scope and receives every permitted money comparison operand", async () => {
