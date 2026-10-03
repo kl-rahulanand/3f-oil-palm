@@ -56,7 +56,7 @@ export class AskDrillController {
 function missingContextRequest(body: unknown): AskDrillRequestDto | null {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   const request = body as Record<string, unknown>;
-  if ("context" in request) return null;
+  if ("context" in request && (typeof request.context !== "string" || request.context.trim())) return null;
   if (typeof request.rowKey !== "string" || !request.rowKey.trim() || request.rowKey.length > 200) return null;
   if (!Number.isInteger(request.page) || (request.page as number) < 1 || (request.page as number) > 1_000_000) {
     return null;

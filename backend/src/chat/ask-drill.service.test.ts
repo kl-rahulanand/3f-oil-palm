@@ -175,41 +175,53 @@ test("the Ask route rejects non-integer, zero, and excessive pages as 400 before
   }
 });
 
-test("the Ask drill service audits a missing context as an invalid link and starts no warehouse read", async () => {
-  const events: string[] = [];
-  const warehouse = new FakeWarehouse(events);
-  const { service, audit } = harness(warehouse, events);
+test("the Ask drill service audits missing and blank contexts as invalid links and starts no warehouse read", async () => {
+  for (const context of [undefined, "", "   "] as const) {
+    const events: string[] = [];
+    const warehouse = new FakeWarehouse(events);
+    const { service, audit } = harness(warehouse, events);
+    const request = {
+      ...(context === undefined ? {} : { context }),
+      rowKey: "50001201",
+      page: 1,
+    } as Parameters<AskDrillService["run"]>[2];
 
-  const outcome = await service.run(user, "session-1", { rowKey: "50001201", page: 1 } as unknown as Parameters<
-    AskDrillService["run"]
-  >[2]);
+    const outcome = await service.run(user, "session-1", request);
 
-  assert.deepEqual(outcome, {
-    outcome: "refused",
-    status: 403,
-    message: "This answer link is invalid. Ask again to open its transactions.",
-    batchStatuses: [],
-  });
-  assert.equal(audit.refusals.length, 1);
-  assert.equal(warehouse.executed.length, 0);
-  assert.deepEqual(events, ["audit-refusal"]);
+    assert.deepEqual(outcome, {
+      outcome: "refused",
+      status: 403,
+      message: "This answer link is invalid. Ask again to open its transactions.",
+      batchStatuses: [],
+    });
+    assert.equal(audit.refusals.length, 1);
+    assert.equal(warehouse.executed.length, 0);
+    assert.deepEqual(events, ["audit-refusal"]);
+  }
 });
 
-test("POST Ask drill lets a missing context reach the audited service refusal before returning an error", async () => {
-  const events: string[] = [];
-  const warehouse = new FakeWarehouse(events);
-  const { controller, audit } = harness(warehouse, events);
+test("POST Ask drill lets missing and blank contexts reach the audited service refusal before returning 403", async () => {
+  for (const context of [undefined, "", "   "] as const) {
+    const events: string[] = [];
+    const warehouse = new FakeWarehouse(events);
+    const { controller, audit } = harness(warehouse, events);
+    const request = {
+      ...(context === undefined ? {} : { context }),
+      rowKey: "50001201",
+      page: 1,
+    };
 
-  await assert.rejects(
-    () => controller.run(user, "session-1", { rowKey: "50001201", page: 1 }),
-    (error: unknown) =>
-      error instanceof HttpException &&
-      error.getStatus() === 403 &&
-      error.message === "This answer link is invalid. Ask again to open its transactions.",
-  );
-  assert.equal(audit.refusals.length, 1);
-  assert.equal(warehouse.executed.length, 0);
-  assert.deepEqual(events, ["audit-refusal"]);
+    await assert.rejects(
+      () => controller.run(user, "session-1", request),
+      (error: unknown) =>
+        error instanceof HttpException &&
+        error.getStatus() === 403 &&
+        error.message === "This answer link is invalid. Ask again to open its transactions.",
+    );
+    assert.equal(audit.refusals.length, 1);
+    assert.equal(warehouse.executed.length, 0);
+    assert.deepEqual(events, ["audit-refusal"]);
+  }
 });
 
 test("tampering, expiry, another user, an unlisted row, and every changed-access case return their exact refusal", async () => {
