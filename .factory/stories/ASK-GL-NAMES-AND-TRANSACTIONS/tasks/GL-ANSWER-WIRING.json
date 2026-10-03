@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "02cb483f7a8811753286f533c94741c3981159f520809fdfacedd0d64167a873",
     "commit": "70d1e3b9e2f8c7df7484ad83f2be4d865606666b",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md:154 The approved plan row for this part says Ask's period offering for statement questions is unchanged; the multi-period statement path is proven through the saved and pinned re-run (cold read rounds 12 and 13, dispositions 31 and 33, and the round-19 owner decisions in Notes). The FYTD wording the review calls a coordinator ruling was the worker's round-1 note, which the coordinator had reverted in ea622bc (Restore single-month statement periods). Offering multi-month statement periods in Ask's picker is not in this story's approved What changes for you or Done when.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "`statementPeriodOptions(periods)` removes every multi-period option from the choices returned to ordinary Ask requests. The new `accepted` branch permits FYTD only when an already-edited selection is submitted, so a normal statement question cannot discover or choose the existing FYTD period. This directly conflicts with the coordinator ruling that FYTD must be offered and leaves the required multi-period path reachable only through a hand-crafted/saved selection. Include FYTD in the offered options and cover choosing it through the Ask period flow.",
@@ -21,10 +27,10 @@
         "title": "Later: GL-DRILL-PANEL must consume the signed drill metadata"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "9a2f0a4d6ec610522fcbf2dc525bc4c24e1c4458b8ce8f1e221c1f3030534bce"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-03T10:57:58+00:00",
