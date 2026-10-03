@@ -153,6 +153,36 @@ test("statement labels come from the pinned last-month outline after another out
   ]);
 });
 
+test("an S.No.-less statement leaf uses the same inherited number shown by its statement parent", async () => {
+  const statementParent = outline({
+    nodeKey: "vehicle-maintenance",
+    leafKey: null,
+    glCode: null,
+    sNo: "9.01",
+    label: "Vehicle Maintenance",
+  });
+  const repository = names(
+    [],
+    [
+      statementParent,
+      outline({
+        nodeKey: "petrol",
+        parentKey: statementParent.nodeKey,
+        leafKey: "9.01|55010901|petrol-and-diesel-charges",
+        glCode: "55010901",
+        sNo: null,
+        label: "Petrol and Diesel Charges",
+        sortOrder: 2,
+      }),
+    ],
+  );
+
+  const [label] = await repository.findStatementLabels(["9.01|55010901|petrol-and-diesel-charges"], "budget-july");
+
+  assert.equal(statementParent.sNo, "9.01");
+  assert.equal(label?.label, `${statementParent.sNo} Petrol and Diesel Charges`);
+});
+
 test("statement answers keep raw leaf keys when there is no last-month budget batch", async () => {
   const repository = names();
 
@@ -179,7 +209,17 @@ test(
       const budgetBatchId = await ingestion.replaceBudgetBatch(metadata(), [], fixtureOutline());
       const warehouse = new PostgresAdapter();
       const repository = new GlNameRepository(new SqlValidator(), warehouse, new StatementOutlineRepository(warehouse));
-      const codes = ["50000001", "50000002", "50000003", "50000004", "50000005", "50000006", "50000007", "50000008"];
+      const codes = [
+        "50000001",
+        "50000002",
+        "50000003",
+        "50000004",
+        "50000005",
+        "50000006",
+        "50000007",
+        "50000008",
+        "50000009",
+      ];
       const labels = new Map(
         (
           await repository.findGlCodeLabels(
@@ -241,13 +281,27 @@ test(
         assert.equal(label?.otherLabels.length, 19);
         assert.equal(label?.hiddenOtherLabelCount, maxRows - 18);
       });
+      await context.test("tabs newlines and non-breaking spaces at the ends stay in one normalized name group", () => {
+        assert.deepEqual(labels.get("50000009"), {
+          key: "50000009",
+          label: "Name",
+          otherLabels: ["Other Name"],
+        });
+      });
       await context.test(
-        "statement labels use the pinned outline and stay raw when no budget batch is pinned",
+        "statement labels inherit the statement screen's numbered parent and stay raw when no budget batch is pinned",
         async () => {
-          assert.deepEqual(await repository.findStatementLabels(["statement-leaf"], budgetBatchId), [
-            { key: "statement-leaf", label: "7.1 Pinned Statement", otherLabels: [] },
-          ]);
-          assert.deepEqual(await repository.findStatementLabels(["statement-leaf"]), []);
+          assert.deepEqual(
+            await repository.findStatementLabels(["9.01|55010901|petrol-and-diesel-charges"], budgetBatchId),
+            [
+              {
+                key: "9.01|55010901|petrol-and-diesel-charges",
+                label: "9.01 Petrol and Diesel Charges",
+                otherLabels: [],
+              },
+            ],
+          );
+          assert.deepEqual(await repository.findStatementLabels(["9.01|55010901|petrol-and-diesel-charges"]), []);
         },
       );
     } finally {
@@ -311,6 +365,11 @@ function fixtureActuals(maxRows: number) {
     ...Array.from({ length: maxRows + 1 }, (_, index) =>
       actualRow(++sequence, "50000008", `Distinct Name ${String(index).padStart(4, "0")}`),
     ),
+    actualRow(++sequence, "50000009", "Name"),
+    actualRow(++sequence, "50000009", "\tName\t"),
+    actualRow(++sequence, "50000009", "Name\n"),
+    actualRow(++sequence, "50000009", "\u00a0Name\u00a0"),
+    ...Array.from({ length: 3 }, () => actualRow(++sequence, "50000009", "Other Name")),
   ];
   return rows;
 }
@@ -336,12 +395,29 @@ function fixtureOutline() {
   return [
     dbOutline("blank-line", "3.1", "Must not replace blank SAP lines", 1, "50000003", "blank-leaf"),
     dbOutline("budget-line", "4.1", "Budget-only line", 2, "50000004", "budget-leaf"),
-    dbOutline("statement-line", "7.1", "Pinned Statement", 3, "50000008", "statement-leaf"),
+    dbOutline("vehicle-maintenance", "9.01", "Vehicle Maintenance", 3, null, null),
+    dbOutline(
+      "petrol",
+      null,
+      "Petrol and Diesel Charges",
+      4,
+      "55010901",
+      "9.01|55010901|petrol-and-diesel-charges",
+      "vehicle-maintenance",
+    ),
   ];
 }
 
-function dbOutline(nodeKey: string, sNo: string, label: string, sortOrder: number, glCode: string, leafKey: string) {
-  return { nodeKey, parentKey: null, depth: 1, sNo, label, sortOrder, glCode, leafKey };
+function dbOutline(
+  nodeKey: string,
+  sNo: string | null,
+  label: string,
+  sortOrder: number,
+  glCode: string | null,
+  leafKey: string | null,
+  parentKey: string | null = null,
+) {
+  return { nodeKey, parentKey, depth: parentKey ? 2 : 1, sNo, label, sortOrder, glCode, leafKey };
 }
 
 function assertThrowawayWarehouse(host: string | undefined, port: string | undefined): void {

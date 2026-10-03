@@ -1,6 +1,7 @@
 import { ForbiddenException, Inject, Injectable } from "@nestjs/common";
 import type { AskRowLabel } from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
+import { misOutlineIdentitySNo } from "../ingest/mis-format-outline";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { DrillPredicate } from "./drill-transactions.interface";
 import { buildDrillPredicate } from "./drill-transactions.repository";
@@ -10,6 +11,8 @@ import type { Warehouse } from "./warehouse.interface";
 
 const OBJECTS_TOUCHED = ["sap_transaction", "ingest_batch", "raw_spellings", "normalized_groups", "ranked_names"];
 const NAME_GROUP_LIMIT = 20;
+const SQL_WHITESPACE_CLASS = "[[:space:]\u00a0]";
+const NORMALIZED_ACCOUNT_NAME_SQL = `REGEXP_REPLACE(REGEXP_REPLACE(txn.acct_name, '^${SQL_WHITESPACE_CLASS}+|${SQL_WHITESPACE_CLASS}+$', '', 'g'), '${SQL_WHITESPACE_CLASS}+', ' ', 'g')`;
 
 export interface GlNameRow {
   key: string;
@@ -129,21 +132,20 @@ function glScope(predicate: Extract<DrillPredicate, { mode: "gl-and-plants" }>):
 }
 
 function setWiseNameSelect(batch: GlNameRow[], groupLimit: number): string {
-  const normalizedSpelling = "REGEXP_REPLACE(TRIM(txn.acct_name), '[[:space:]]+', ' ', 'g')";
-  const hasName = "txn.acct_name IS NOT NULL AND TRIM(txn.acct_name) <> ''";
+  const hasName = `txn.acct_name IS NOT NULL AND ${NORMALIZED_ACCOUNT_NAME_SQL} <> ''`;
   const where = batch.map(({ predicate }) => `(${buildDrillPredicate(predicate)})`).join(" OR ");
   return `WITH raw_spellings AS (
   SELECT txn.gl_code,
-    CASE WHEN ${hasName} THEN LOWER(${normalizedSpelling}) ELSE NULL END AS normalized_name,
-    CASE WHEN ${hasName} THEN ${normalizedSpelling} ELSE NULL END AS spelling,
+    CASE WHEN ${hasName} THEN LOWER(${NORMALIZED_ACCOUNT_NAME_SQL}) ELSE NULL END AS normalized_name,
+    CASE WHEN ${hasName} THEN ${NORMALIZED_ACCOUNT_NAME_SQL} ELSE NULL END AS spelling,
     COUNT(*) AS spelling_count,
     SUM(COUNT(*)) OVER (PARTITION BY txn.gl_code) AS scoped_line_count
   FROM sap_transaction AS txn
   INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
   WHERE ${where}
   GROUP BY txn.gl_code,
-    CASE WHEN ${hasName} THEN LOWER(${normalizedSpelling}) ELSE NULL END,
-    CASE WHEN ${hasName} THEN ${normalizedSpelling} ELSE NULL END
+    CASE WHEN ${hasName} THEN LOWER(${NORMALIZED_ACCOUNT_NAME_SQL}) ELSE NULL END,
+    CASE WHEN ${hasName} THEN ${NORMALIZED_ACCOUNT_NAME_SQL} ELSE NULL END
 ), normalized_groups AS (
   SELECT raw_spellings.gl_code,
     raw_spellings.normalized_name,
@@ -179,7 +181,6 @@ LIMIT ${batch.length * groupLimit}`;
 }
 
 function nameSelect(rowOrdinal: number, predicate: DrillPredicate, groupLimit: number): string {
-  const normalizedSpelling = "REGEXP_REPLACE(TRIM(txn.acct_name), '[[:space:]]+', ' ', 'g')";
   const where = buildDrillPredicate(predicate);
   return `(SELECT ${rowOrdinal} AS row_ordinal, name_groups.acct_name,
   name_groups.line_count::text AS line_count,
@@ -197,15 +198,15 @@ LEFT JOIN (
     (ARRAY_AGG(spellings.spelling ORDER BY spellings.spelling_count DESC, spellings.spelling))[1] AS acct_name,
     COUNT(*) OVER () AS name_group_count
   FROM (
-    SELECT LOWER(${normalizedSpelling}) AS normalized_name,
-      ${normalizedSpelling} AS spelling,
+    SELECT LOWER(${NORMALIZED_ACCOUNT_NAME_SQL}) AS normalized_name,
+      ${NORMALIZED_ACCOUNT_NAME_SQL} AS spelling,
       COUNT(*) AS spelling_count
     FROM sap_transaction AS txn
     INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
     WHERE ${where}
       AND txn.acct_name IS NOT NULL
-      AND TRIM(txn.acct_name) <> ''
-    GROUP BY LOWER(${normalizedSpelling}), ${normalizedSpelling}
+      AND ${NORMALIZED_ACCOUNT_NAME_SQL} <> ''
+    GROUP BY LOWER(${NORMALIZED_ACCOUNT_NAME_SQL}), ${NORMALIZED_ACCOUNT_NAME_SQL}
   ) AS spellings
   GROUP BY spellings.normalized_name
   ORDER BY SUM(spellings.spelling_count) DESC,
@@ -255,7 +256,10 @@ function outlineLabels(
   const labels = outline
     .filter(matches)
     .sort((left, right) => left.sortOrder - right.sortOrder || alphabetical(left.nodeKey, right.nodeKey))
-    .map((node) => cleanWhitespace(includeNumber && node.sNo ? `${node.sNo} ${node.label}` : node.label));
+    .map((node) => {
+      const sNo = includeNumber ? misOutlineIdentitySNo(node, outline) : undefined;
+      return cleanWhitespace(sNo ? `${sNo} ${node.label}` : node.label);
+    });
   return [...new Set(labels.filter(Boolean))];
 }
 

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { MAPPING_MASTER, budgetLeafKeysForFormat } from "../mapping/mapping-master";
 import type { MisBudgetInput, MisBudgetOutlineInput } from "../warehouse/ingestion.repository";
 import { MAX_ACTUALS_ROWS } from "./ingest.schemas";
-import { misFormatSlug, stableMisLeafKey } from "./mis-format-outline";
+import { inheritedMisSNo, misFormatSlug, stableMisLeafKey } from "./mis-format-outline";
 import { assertWorkbookArchiveWithinLimits, WorkbookArchiveLimitError, WorkbookRowLimitError } from "./workbook-guard";
 
 export const MIS_BUDGET_FORMAT_ID = "nursery-mis-financial-v1";
@@ -99,7 +99,7 @@ export async function parseMisBudgetWorkbook(buffer: Buffer, rowLimit = MAX_ACTU
       continue;
     }
     const sNo = cellText(row.getCell(requiredColumn(table, "S. No."))) || undefined;
-    const identitySNo = sNo ?? parent?.sNo;
+    const identitySNo = inheritedMisSNo(sNo, parent?.sNo);
     if (!subtotal && !identitySNo) {
       issues.push(issue(["rows", row.number, "sNo"], "Leaf requires an S. No. or a numbered parent"));
       continue;
