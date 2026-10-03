@@ -2,29 +2,22 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-NAMES",
   "review": {
     "blocking_level": "P1",
-    "changed": "dc9033f8c47ea7f707e98c1aa8005c82442a1ef6077befb04e3b0a46319c1771",
-    "commit": "ee67f7f1fdda3169b4383e4107557741936737b4",
+    "changed": "bb56228bf0e3fca1662cb8dbe65910800a380e432c88ff59b8dd6b9d05acad58",
+    "commit": "0f87e10174cdfc266868a816d7a2d385d5dba8ba",
     "dismissals": [],
     "findings": [
       {
-        "body": "The vertical pseudo-element inset makes each collapsed disclosure\u2019s hit area extend into adjacent table rows. The prior Emil ruling counted this as a 44px touch area, but it did not weigh the existing metrics in `frontend/app/globals.css:1498,1737,1742`: 11px text at 1.5 line-height plus 7px vertical cell padding produces a roughly 30.5px row, while `after:-inset-y-4` adds 32px to the button box. Consecutive targets therefore overlap by roughly 18px, so browser hit-testing can toggle the wrong row when a user taps the row padding. Give rows enough height for non-overlapping targets or constrain the expanded hit box to its row.",
-        "file": "frontend/src/features/assistant/ask-panel.tsx",
-        "line": 627,
-        "priority": "P1",
-        "title": "Not done: keep disclosure touch targets within their rows"
-      },
-      {
-        "body": "The UI proof still supplies completed `rowLabels` through a mocked Ask API, while this task intentionally has no production caller for `GlNameRepository`. Consequently there is still no running-API, real-database browser test proving that resolved GL and statement labels reach the table and disclosure. The story assigns that production crossing to GL-ANSWER-WIRING, so this remains deferred advice rather than a blocker for this task alone.",
+        "body": "The UI proof still injects completed `rowLabels` through the mocked Ask API, and this task intentionally has no production caller for `GlNameRepository`. Therefore no running-API, real-database browser test yet proves that resolved GL and statement labels reach the table and disclosure. The story assigns that production crossing to GL-ANSWER-WIRING, so this remains deferred advice rather than a blocker for this branch.",
         "file": "frontend/src/features/assistant/ask-panel.test.tsx",
         "line": 207,
         "priority": "P2",
         "title": "Later: prove labels through the running Ask stack \u2192 GL-ANSWER-WIRING"
       }
     ],
-    "status": "blocked",
-    "tree": "792969b484e6d0f2a9c40e433d6d9a155d2a5da43d1c1f30cb2c1563509cef99"
+    "status": "clean",
+    "tree": "7f6bf859885e60f28bdbe1836c36fa169272c9f03cb99abaa2389e6ebd447eef"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-03T07:21:52+00:00",
@@ -60,6 +53,10 @@
     },
     {
       "at": "2026-10-03T10:42:21+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T10:52:56+00:00",
       "step": "review"
     }
   ]
