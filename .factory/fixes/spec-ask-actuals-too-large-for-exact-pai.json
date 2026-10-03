@@ -1,0 +1,14 @@
+{
+  "base": "46f0725e05c651121bf8795aea817bc84b2c13ab",
+  "branch": "fix/spec-ask-actuals-too-large-for-exact-pai",
+  "done_when": "the confirmed ask-gl-names-and-transactions spec states that an Actual of 2^46 rupees (about 70.37 lakh crore) or more is not clickable, per the owner's decision of 2026-10-03",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-03T11:55:16+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "spec: Ask Actuals too large for exact paise are not clickable"
+}
