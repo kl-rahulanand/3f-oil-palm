@@ -2,33 +2,40 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-NAMES",
   "review": {
     "blocking_level": "P1",
-    "changed": "27c5006bbda8a966d6d06b4e18941b929e3cbd46a10fc730740cd21f78e95101",
-    "commit": "2922330c603ae87dff6a66576451f24c844208ff",
+    "changed": "8e8d794299564213f9faa20ddf5acb262ddbb0997154b53c35931eba9ed8e8fc",
+    "commit": "f58e055d52150718ee8592c9cee6866891b98962",
     "dismissals": [],
     "findings": [
       {
-        "body": "The close run reports TS7022 on this newly added traversal: `parentKey` and `parent` are inferred through the loop-carried `current = parent` assignment and become implicit `any` under the repository's compiler settings. This prevents the backend and the required close command from building. Add explicit types for both locals.",
-        "file": "backend/src/ingest/mis-format-outline.ts",
-        "line": 32,
+        "body": "`toRowLabel` copies every outline label after the first into `otherLabels` and never sets `hiddenOtherLabelCount`. If a budget-only GL occurs under more than twenty distinct MIS labels, the response and disclosure become unbounded, contrary to the required bounded `rowLabels` contract. Apply the same cap used for SAP name groups and carry the remainder in `hiddenOtherLabelCount`; add an overflow case for budget fallback.",
+        "file": "backend/src/warehouse/gl-name.repository.ts",
+        "line": 267,
         "priority": "P1",
-        "title": "Backend does not compile"
+        "title": "Not done: budget-only fallback keeps the label list bounded"
       },
       {
-        "body": "This adds `hiddenOtherLabelCount`, contrary to the coordinator's explicit ruling that the approved `{ key, label, otherLabels }` contract has no count field and that an omitted count must be carried as a trailing `and n more` entry in `otherLabels`. The added field is also absent from the API DTO at `backend/src/chat/chat.schemas.ts:162-166`, so generated clients cannot discover it. Keep the bounded-count representation inside `otherLabels` and remove this contract extension.",
-        "file": "contract/src/api.ts",
-        "line": 504,
+        "body": "This task explicitly requires `backend/src/chat/chat.schemas.test.ts` to be added or changed, but the branch leaves it unchanged and its existing tests do not exercise the newly extended row-label DTO. The Swagger assertion does not satisfy the separately named test obligation.",
+        "file": "backend/src/chat/chat.schemas.ts",
+        "line": 166,
         "priority": "P1",
-        "title": "Not done: bounded names use the approved rowLabels contract"
+        "title": "Not done: backend/src/chat/chat.schemas.test.ts"
       },
       {
-        "body": "The new disclosure uses Tailwind 3's generic `ease-out` instead of the required shared `cubic-bezier(0.23, 1, 0.32, 1)` easing. Its `active:scale` transition also applies to native keyboard activation, despite the stated rule not to animate keyboard-driven actions. The component test currently hard-codes these classes, so it preserves rather than catches the failed emil-design-eng checklist behavior.",
+        "body": "The only test that executes the generated resolver SQL against Postgres is guarded by `WAREHOUSE_DB_TEST`; the supplied close output explicitly reports this test as skipped. The passing tests otherwise feed precomputed rows through fake warehouses, so they cannot catch invalid normalization, grouping, ranking, or scope SQL. A skipped test is hollow under the required test audit, and no close-run evidence shows the optional warehouse-proof command passed.",
+        "file": "backend/src/warehouse/gl-name.repository.test.ts",
+        "line": 199,
+        "priority": "P1",
+        "title": "Not done: the real-Postgres GL name test runs in the close suite"
+      },
+      {
+        "body": "The recorded functional check covers disclosure focus/press behavior and the generated Swagger field only. It does not exercise or report the GL main-name, budget fallback, bare-code and unchanged-order path, nor pinned statement labels, raw-key fallback, or snapshot retention. It therefore skips material behavior from both Done-when items covered by this task.",
         "file": "frontend/src/features/assistant/ask-panel.tsx",
-        "line": 627,
+        "line": 605,
         "priority": "P1",
-        "title": "Not done: disclosure motion follows the frontend convention"
+        "title": "Not done: functional check"
       },
       {
-        "body": "The component test still injects completed `rowLabels` through a mocked Ask API, and the current production tree has no caller of `GlNameRepository`. Consequently there is no running-API, real-database, browser proof that resolved GL and statement labels reach the table. The task plan assigns that production crossing to GL-ANSWER-WIRING, so this remains follow-up advice rather than a blocker for this task alone.",
+        "body": "The component test still injects completed `rowLabels` through a mocked Ask API, and the production tree still has no caller of `GlNameRepository`. Consequently there is no running-API, real-database browser proof that resolved GL and statement labels reach the table. The task plan assigns that production crossing to GL-ANSWER-WIRING, so this remains follow-up advice rather than a blocker for this task alone.",
         "file": "frontend/src/features/assistant/ask-panel.test.tsx",
         "line": 207,
         "priority": "P2",
@@ -36,7 +43,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "40c2ab4a0cf7c8e1d09410c88b59c17f81200402c981e5a533b3041c41b06585"
+    "tree": "4f24c4fa563720e668ad62ec3f94bcb8b99d21a43bc5446fc1a1d8baa24eb7ff"
   },
   "status": "fixing",
   "steps": [
@@ -62,6 +69,10 @@
     },
     {
       "at": "2026-10-03T09:33:43+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T09:50:33+00:00",
       "step": "review"
     }
   ]
