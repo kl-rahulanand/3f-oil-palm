@@ -130,6 +130,64 @@ test("the route compares exact paise for one paisa and a normal cent value", asy
   }
 });
 
+test("a sparse multi-period answer opens with every active month pin and refuses a link missing one", async () => {
+  const actualPins = [
+    { source: "actuals" as const, period: "2026-04-01", batchId: "00000000-0000-0000-0000-000000000004" },
+    { source: "actuals" as const, period: "2026-05-01", batchId: "00000000-0000-0000-0000-000000000005" },
+    { source: "actuals" as const, period: "2026-06-01", batchId: "00000000-0000-0000-0000-000000000006" },
+    { source: "actuals" as const, period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000007" },
+  ];
+  const sparseInput: AskDrillContextInput = {
+    ...input,
+    selection: {
+      ...input.selection,
+      timeWindow: { grain: "month", column: "month", from: "2026-04-01", to: "2026-07-31" },
+    },
+    pinnedActuals: actualPins,
+    rows: [{ key: "50001201", actualPaise: "12501", drillable: true }],
+  };
+  const periods = actualPins.map(({ period }) => period);
+  const openedEvents: string[] = [];
+  const openedWarehouse = new FakeWarehouse(openedEvents, {
+    batches: actualPins.map((pin) => batch(pin, true)),
+    actualPeriods: periods,
+    pageRows: [transaction("125.01")],
+    footer: { total_count: "1", debit: "125.01", credit: "0.00", value: "125.01" },
+  });
+  const opened = harness(openedWarehouse, openedEvents);
+
+  const response = await opened.controller.run(user, "session-1", {
+    context: opened.contexts.issue(sparseInput),
+    rowKey: "50001201",
+    page: 1,
+  });
+
+  assert.equal(response.footer.value, "125.01");
+  assert.equal(response.batchStatuses.length, 4);
+  assert.equal(opened.audit.refusals.length, 0);
+
+  const refusedEvents: string[] = [];
+  const refusedWarehouse = new FakeWarehouse(refusedEvents, {
+    batches: actualPins.map((pin) => batch(pin, true)),
+    actualPeriods: periods,
+  });
+  const refused = harness(refusedWarehouse, refusedEvents);
+  const incomplete = { ...sparseInput, pinnedActuals: actualPins.filter(({ period }) => period !== "2026-06-01") };
+  const outcome = await refused.service.run(user, "session-1", {
+    context: refused.contexts.issue(incomplete),
+    rowKey: "50001201",
+    page: 1,
+  });
+
+  assert.equal(outcome.outcome, "refused");
+  assert.equal(outcome.status, 409);
+  assert.equal(refused.audit.refusals.length, 1);
+  assert.equal(
+    refusedWarehouse.executed.some((sql) => sql.includes("FROM sap_transaction")),
+    false,
+  );
+});
+
 test("a request for a signed oversized no-amount row is refusal-audited before any transaction read", async () => {
   const events: string[] = [];
   const warehouse = new FakeWarehouse(events);
@@ -577,6 +635,7 @@ class FakeWarehouse implements Warehouse {
   executed: string[] = [];
   private readonly config: {
     batches: Array<Record<string, string | number | null>>;
+    actualPeriods: string[];
     pageRows: Array<Record<string, string | number | null>>;
     footer: Record<string, string | number | null>;
   };
@@ -587,6 +646,7 @@ class FakeWarehouse implements Warehouse {
   ) {
     this.config = {
       batches: config.batches ?? [],
+      actualPeriods: config.actualPeriods ?? ["2026-07-01"],
       pageRows: config.pageRows ?? [],
       footer: config.footer ?? { total_count: "0", debit: "0.00", credit: "0.00", value: "0.00" },
     };
@@ -597,7 +657,9 @@ class FakeWarehouse implements Warehouse {
   async execute(sql: string) {
     this.executed.push(sql);
     if (sql.includes("FROM ingest_batch") && sql.includes("id IN")) return { columns: [], rows: this.config.batches };
-    if (sql.includes("SELECT DISTINCT period")) return { columns: [], rows: [{ period: "2026-07-01" }] };
+    if (sql.includes("SELECT DISTINCT period")) {
+      return { columns: [], rows: this.config.actualPeriods.map((period) => ({ period })) };
+    }
     if (sql.includes("COUNT(*)")) {
       this.events.push("transaction-read");
       return { columns: [], rows: [this.config.footer] };

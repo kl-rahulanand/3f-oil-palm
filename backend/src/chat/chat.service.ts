@@ -624,11 +624,17 @@ export class ChatService {
     const keys = result.rows.map((row) => rowKey(row[shape.dimensionId]));
     if (keys.some((key) => key === null)) return {};
     const rowKeys = keys as string[];
-    const actualPins = activeBatchIds.filter(
+    const contributingActualPins = activeBatchIds.filter(
       (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
     );
     const budgetPin = lastMonthBudgetPin(activeBatchIds, selection.timeWindow?.to);
     const signedRange = concreteSelectionRange(selection);
+    const actualPins =
+      signedRange &&
+      selection.measureIds.includes(shape.actualMeasureId) &&
+      user.permissions.measureIds.includes(shape.actualMeasureId)
+        ? await this.drillTransactions.findActiveActualPins(signedRange.from, signedRange.to)
+        : contributingActualPins;
     const predicateRange = signedRange ?? pinnedRange(activeBatchIds);
     const plants = shape.kind === "statement" ? (statementScope ? [statementScope.plant] : []) : ["DUB"];
     const predicates =

@@ -267,6 +267,51 @@ test("a multi-period GL-code answer passes the last month's budget batch to the 
   assert.equal(fixture.names.glCalls[0]?.budgetBatchId, BUDGET_BATCH_ID);
 });
 
+test("a sparse multi-period GL answer signs every active Actual month in its executed window", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+  };
+  const activeActualPins = [
+    { source: "actuals" as const, period: "2026-04-01", batchId: "actual-april" },
+    { source: "actuals" as const, period: "2026-05-01", batchId: "actual-may" },
+    { source: "actuals" as const, period: "2026-06-01", batchId: "actual-june" },
+    { source: "actuals" as const, period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+  ];
+  const fixture = makeFixture({
+    selection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "125.01" }],
+    },
+    activeBatchIds: [activeActualPins[0]!, activeActualPins[3]!],
+    activeActualPins,
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code from April to July 2026",
+    selection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") assert.deepEqual(verified.claims.pinnedActuals, activeActualPins);
+  assert.deepEqual(fixture.transactions.activePinCalls, [{ from: "2026-04-01", to: "2026-07-31" }]);
+  assert.deepEqual(fixture.transactions.calls[0]?.[0]?.predicate.actualBatchIds, [
+    "actual-april",
+    "actual-may",
+    "actual-june",
+    ACTUAL_BATCH_ID,
+  ]);
+});
+
 test("statement label batch selection chooses the last budget month from a multi-month window", () => {
   const window = { grain: "month" as const, from: "2026-06-01", to: "2026-07-01" };
   const julyBudget = { source: "budget" as const, period: "2026-07-01", batchId: BUDGET_BATCH_ID };
@@ -1666,6 +1711,7 @@ function makeFixture(options: {
   failEntryAudit?: boolean;
   labels?: Array<{ key: string; label: string; otherLabels: string[] }>;
   summaries?: DrillSummary[];
+  activeActualPins?: Array<ProvenanceBatch & { source: "actuals" }>;
   statementPeriod?: { value: string; label: string; from: string; to: string };
 }) {
   const llmResult: LlmSelectionResult =
@@ -1682,7 +1728,13 @@ function makeFixture(options: {
   const help = new FakeHelp();
   const semantic = new SemanticLayer();
   const names = new FakeNames(options.labels ?? []);
-  const transactions = new FakeTransactions(options.summaries ?? []);
+  const transactions = new FakeTransactions(
+    options.summaries ?? [],
+    options.activeActualPins ??
+      (options.activeBatchIds ?? []).filter(
+        (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
+      ),
+  );
   const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
   const logs: Array<{ context: Record<string, unknown> }> = [];
   const reports = options.groundedSelection
@@ -1741,8 +1793,17 @@ class FakeNames {
 
 class FakeTransactions {
   readonly calls: Array<Array<{ rowKey: string; predicate: DrillPredicate }>> = [];
+  readonly activePinCalls: Array<{ from: string; to: string }> = [];
 
-  constructor(private readonly summaries: DrillSummary[]) {}
+  constructor(
+    private readonly summaries: DrillSummary[],
+    private readonly activeActualPins: Array<ProvenanceBatch & { source: "actuals" }>,
+  ) {}
+
+  async findActiveActualPins(from: string, to: string) {
+    this.activePinCalls.push({ from, to });
+    return this.activeActualPins;
+  }
 
   async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>) {
     this.calls.push(rows);
