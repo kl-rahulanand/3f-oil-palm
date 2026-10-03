@@ -2,40 +2,26 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-NAMES",
   "review": {
     "blocking_level": "P1",
-    "changed": "8e8d794299564213f9faa20ddf5acb262ddbb0997154b53c35931eba9ed8e8fc",
-    "commit": "f58e055d52150718ee8592c9cee6866891b98962",
+    "changed": "81f5878515a7a54c3e26079c79f273cf494f1b9f3c51393f6008ba91e437a47b",
+    "commit": "c3323906eb2e542844f8084e92d90ec7ea4ab091",
     "dismissals": [],
     "findings": [
       {
-        "body": "`toRowLabel` copies every outline label after the first into `otherLabels` and never sets `hiddenOtherLabelCount`. If a budget-only GL occurs under more than twenty distinct MIS labels, the response and disclosure become unbounded, contrary to the required bounded `rowLabels` contract. Apply the same cap used for SAP name groups and carry the remainder in `hiddenOtherLabelCount`; add an overflow case for budget fallback.",
-        "file": "backend/src/warehouse/gl-name.repository.ts",
-        "line": 267,
-        "priority": "P1",
-        "title": "Not done: budget-only fallback keeps the label list bounded"
-      },
-      {
-        "body": "This task explicitly requires `backend/src/chat/chat.schemas.test.ts` to be added or changed, but the branch leaves it unchanged and its existing tests do not exercise the newly extended row-label DTO. The Swagger assertion does not satisfy the separately named test obligation.",
-        "file": "backend/src/chat/chat.schemas.ts",
-        "line": 166,
-        "priority": "P1",
-        "title": "Not done: backend/src/chat/chat.schemas.test.ts"
-      },
-      {
-        "body": "The only test that executes the generated resolver SQL against Postgres is guarded by `WAREHOUSE_DB_TEST`; the supplied close output explicitly reports this test as skipped. The passing tests otherwise feed precomputed rows through fake warehouses, so they cannot catch invalid normalization, grouping, ranking, or scope SQL. A skipped test is hollow under the required test audit, and no close-run evidence shows the optional warehouse-proof command passed.",
+        "body": "The only test that executes the resolver SQL against PostgreSQL remains skipped unless `WAREHOUSE_DB_TEST=1`. Although this branch adds it to the optional `test:warehouse-proof` script, neither the close command in `forge.toml:7` nor CI invokes that script, and the supplied close output explicitly marks this test skipped. The passing fake-warehouse tests cannot detect invalid normalization, grouping, ranking, or scope SQL, so the required database behavior still has no executed proof.",
         "file": "backend/src/warehouse/gl-name.repository.test.ts",
-        "line": 199,
+        "line": 218,
         "priority": "P1",
         "title": "Not done: the real-Postgres GL name test runs in the close suite"
       },
       {
-        "body": "The recorded functional check covers disclosure focus/press behavior and the generated Swagger field only. It does not exercise or report the GL main-name, budget fallback, bare-code and unchanged-order path, nor pinned statement labels, raw-key fallback, or snapshot retention. It therefore skips material behavior from both Done-when items covered by this task.",
+        "body": "The supplied branch evidence says the worker's last commit has no `Functional check:` paragraph. This user-facing task therefore lacks the required walkthrough of GL main names, budget fallback, bare-code behavior, unchanged order/totals, pinned statement labels, raw-key fallback, disclosure interaction, and snapshot retention.",
         "file": "frontend/src/features/assistant/ask-panel.tsx",
         "line": 605,
         "priority": "P1",
         "title": "Not done: functional check"
       },
       {
-        "body": "The component test still injects completed `rowLabels` through a mocked Ask API, and the production tree still has no caller of `GlNameRepository`. Consequently there is no running-API, real-database browser proof that resolved GL and statement labels reach the table. The task plan assigns that production crossing to GL-ANSWER-WIRING, so this remains follow-up advice rather than a blocker for this task alone.",
+        "body": "The UI proof still supplies completed `rowLabels` through a mocked Ask API, while this task intentionally does not wire `GlNameRepository` into the chat service. Consequently there is no running-API, real-database browser proof that resolved GL and statement labels reach the table. The story plan assigns that production crossing to GL-ANSWER-WIRING, so this remains follow-up advice rather than a blocker for this task alone.",
         "file": "frontend/src/features/assistant/ask-panel.test.tsx",
         "line": 207,
         "priority": "P2",
@@ -43,7 +29,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "4f24c4fa563720e668ad62ec3f94bcb8b99d21a43bc5446fc1a1d8baa24eb7ff"
+    "tree": "2cc238b346b3734503b6e12201fb1ee3f5fa32662eae2d0f48c805c713cd1193"
   },
   "status": "fixing",
   "steps": [
@@ -73,6 +59,10 @@
     },
     {
       "at": "2026-10-03T09:50:33+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T10:09:58+00:00",
       "step": "review"
     }
   ]
