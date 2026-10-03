@@ -47,6 +47,8 @@ const ZERO = BigInt(0);
 const TEN = BigInt(10);
 const ONE_HUNDRED = BigInt(100);
 const ONE_THOUSAND = BigInt(1000);
+const ASK_RELOADED_NOTICE =
+  "This answer was built on data that has since been reloaded; these are the lines it was built from.";
 const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   day: "numeric",
@@ -296,9 +298,9 @@ function TransactionBody({
     const status = "status" in error && typeof error.status === "number" ? error.status : 0;
     const copy = source === "ask" ? askDrillError(status) : statementDrillError(status);
     return (
-      <div className="mis-drill-state" role="alert">
+      <div className="mis-drill-state min-w-0 w-full" role="alert">
         <strong>{copy[0]}</strong>
-        <span>{copy[1]}</span>
+        <span className="w-full max-w-full">{copy[1]}</span>
       </div>
     );
   }
@@ -329,18 +331,22 @@ function TransactionBody({
         <span className="mis-drill-chip">Month ↓</span>
         {pending && <span role="status">Loading page…</span>}
       </div>
-      {source === "ask" && "notice" in result && result.notice && (
-        <div className="mis-drill-notice" role="status">
+      {source === "ask" && replaced.length > 0 ? (
+        <div className="mis-drill-notice min-w-0 w-full" role="status">
+          {ASK_RELOADED_NOTICE}
+        </div>
+      ) : source === "ask" && "notice" in result && result.notice ? (
+        <div className="mis-drill-notice min-w-0 w-full" role="status">
           {result.notice}
         </div>
-      )}
+      ) : null}
       {!foots && (
         <div className="mis-drill-notice" role="alert">
           <strong>Total withheld</strong>
           <span>The transaction total does not foot to this statement line’s Actual.</span>
         </div>
       )}
-      <div className="mis-drill-table-scroll">
+      <div className="mis-drill-table-scroll min-w-0 w-full">
         <table className="mis-drill-table mis-drill-transactions" style={{ minWidth: 1300, tableLayout: "fixed" }}>
           <colgroup>
             <col style={{ width: 92 }} />

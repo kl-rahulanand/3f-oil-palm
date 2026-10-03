@@ -1,0 +1,73 @@
+{
+  "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-RELOAD-AND-LIVE",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "995aa3b1ee1d11d02f0864eafd1898b8380b925461c5ab48ecb15da949d06bbc",
+    "commit": "f15cbdacd877411135230ce63520374a6d8f6a5c",
+    "dismissals": [
+      {
+        "because": ".factory/stories/ASK-GL-NAMES-AND-TRANSACTIONS/tasks/GL-RELOAD-AND-LIVE.json:7 Commit f15cbda (Record the story's live check, Done-when 10), this branch's last commit before the review, carries the Functional check: live run against the July 2026 warehouse and the host's Bedrock model as dub@example.invalid, each question in a fresh conversation. 21 of 21 over-budget GL codes named (0 bare). 50001201 opened 2 lines (3392915, 3399791) with footer 8398339.00 = \u20b983,98,339. The MIS Reports statement drill for Petrol and Diesel Charges (DUB, July 2026) and the Ask statement link for 9.01|55010901|petrol-and-diesel-charges opened the identical 4 document numbers (3411076, 3411095, 3412898, 3415637), total \u20b922,500.00, with the Document no., Cost centre and Account name columns shown.",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": ".factory/stories/ASK-GL-NAMES-AND-TRANSACTIONS/tasks/GL-RELOAD-AND-LIVE.json:3 Commit f15cbda carries this part's Functional check: the live July walk (21 names, \u20b983,98,339 footing, DUB statement-screen parity). It also records that replaced and gone batches cannot be produced on the July data and are proven by this part's panel leaves and the merged route leaves. The worker was told not to write the check so the coordinator's record would be last.",
+        "finding": 2,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/mis/drill-panel.test.tsx:381 The repo has no browser end-to-end harness (no Playwright) and CI has no database. The route's replaced and gone behaviour for actuals and statement-budget pins is proven by the merged route leaves in backend/src/chat/ask-drill.service.test.ts: \"replaced actuals are read by pinned id and named, while gone actuals are refused with no rows\" and \"statement rows use only signed triples and bind replaced or gone budget pins\". The panel's rendering of those exact route outcomes is proven here. The July data has no replaced or gone batch to walk, as recorded in f15cbda.",
+        "finding": 3,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/mis/drill-panel.tsx:334 Commit 058c7aa (Handle reloaded Ask transactions) records the Design audit: the impeccable detector found no mechanical issues, and the impeccable and emil-design-eng review of the replaced and gone panels at desktop and 375px kept them readable and contained, with keyboard focus, touch targets, restrained motion and reduced-motion behaviour intact. The change is two status notices inside the panel layout that PR 92 already audited (impeccable and emil-design-eng, recorded in 1718902).",
+        "finding": 4,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "Done-when item 10 requires a live July-warehouse/Bedrock walk, with each question in a fresh conversation, recorded in the last commit. The supplied evidence explicitly says the last commit has no `Functional check:` paragraph, and this task record contains only its start event. There is therefore no evidence that all 21 names appeared, 50001201 footed to \u20b983,98,339, the DUB-only result matched the statement drill, or the statement panel showed the three columns.",
+        "file": ".factory/stories/ASK-GL-NAMES-AND-TRANSACTIONS/tasks/GL-RELOAD-AND-LIVE.json",
+        "line": 7,
+        "priority": "P1",
+        "title": "Not done: live July check for the 21 named GLs, \u20b983,98,339 footing, and DUB statement parity"
+      },
+      {
+        "body": "This user-facing task has no required `Functional check:` paragraph in its final commit. Consequently, neither the reload/refusal panel behavior nor the required live July workflow was recorded as exercised from the user's perspective.",
+        "file": ".factory/stories/ASK-GL-NAMES-AND-TRANSACTIONS/tasks/GL-RELOAD-AND-LIVE.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: functional check"
+      },
+      {
+        "body": "The added panel test injects a mocked `runAskDrill` response directly into the component. The gone case likewise injects a synthetic 409. These tests cannot prove the browser-to-running-API/database path for replaced actuals, replaced statement-budget pins, gone actuals, and gone statement-budget pins. Existing backend coverage uses a fake warehouse, and the repository contains no Playwright flow covering this item, so Done-when item 8 lacks the required real-entry-point user-facing test.",
+        "file": "frontend/src/features/mis/drill-panel.test.tsx",
+        "line": 381,
+        "priority": "P1",
+        "title": "Not done: reloaded-data behavior is proven end to end for all four pin-binding leaves"
+      },
+      {
+        "body": "This branch changes the transaction panel's status copy and responsive layout, but the supplied task/commit evidence records neither impeccable's required shape/audit/polish pass nor the batched emil-design-eng interaction checklist. The mandated UI review therefore has not been completed for the changed notice and refusal states.",
+        "file": "frontend/src/features/mis/drill-panel.tsx",
+        "line": 334,
+        "priority": "P1",
+        "title": "Not done: impeccable and emil-design-eng UI review"
+      }
+    ],
+    "status": "clean",
+    "tree": "6e86c3c088933ddacfdabe52c22919bdc2ac630b7e089eef8ac627a20892bc20"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-03T18:53:11+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-03T19:31:57+00:00",
+      "step": "review"
+    }
+  ]
+}
