@@ -85,6 +85,50 @@ test("the signed Ask route re-derives a GL-and-answer-plants predicate and foots
   assert.equal(audit.requests[0]?.questionLabel, "Ask transaction drill");
 });
 
+test("two Ask drill pages keep every tied transaction exactly once in deterministic line order", async () => {
+  const predicate: DrillPredicate = {
+    mode: "gl-and-plants",
+    actualBatchIds: [actualPin.batchId],
+    glCode: "50001201",
+    plants: ["DUB"],
+    filters: [],
+    from: "2026-07-01",
+    to: "2026-07-01",
+  };
+  const tied = Array.from({ length: 101 }, (_, index) => {
+    const lineId = String(index + 1).padStart(3, "0");
+    return fixtureTransaction("TIED", "1.00", "0.00", { line_id: lineId, reference: lineId });
+  });
+  const warehouse = new FixtureWarehouse([], predicate, tied);
+  const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
+  const [summary] = await repository.summarize([{ rowKey: "50001201", predicate }]);
+  assert.ok(summary);
+  const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
+  const controller = new AskDrillController(new AskDrillService(contexts, repository, new FakeAudit([])));
+  const context = contexts.issue({
+    ...input,
+    rows: [{ key: "50001201", actualPaise: toPaise(summary.value), drillable: true }],
+  });
+
+  const first = await controller.run(user, "session-1", { context, rowKey: "50001201", page: 1 });
+  const second = await controller.run(user, "session-1", { context, rowKey: "50001201", page: 2 });
+  const identities = [...first.lines, ...second.lines].map(({ txnNo, reference }) => ({
+    txnNo,
+    lineId: reference,
+  }));
+
+  assert.deepEqual([first.lines.length, second.lines.length], [100, 1]);
+  assert.deepEqual([first.totalCount, second.totalCount], [101, 101]);
+  assert.deepEqual(
+    identities,
+    Array.from({ length: 101 }, (_, index) => ({
+      txnNo: "TIED",
+      lineId: String(index + 1).padStart(3, "0"),
+    })),
+  );
+  assert.equal(new Set(identities.map(({ txnNo, lineId }) => `${txnNo}\0${lineId}`)).size, 101);
+});
+
 test("the signed Ask route ignores the unknown and empty-array filters that the answer query ignores", async () => {
   const warehouse = new FakeWarehouse([], {
     batches: [batch(actualPin, true)],
@@ -288,7 +332,9 @@ test("replaced actuals are read by pinned id and named, while gone actuals are r
     new RegExp(actualPin.batchId),
   );
 
-  const gone = harness(new FakeWarehouse([], { batches: [] }), []);
+  const goneEvents: string[] = [];
+  const goneWarehouse = new FakeWarehouse(goneEvents, { batches: [] });
+  const gone = harness(goneWarehouse, goneEvents);
   await assert.rejects(
     () =>
       gone.controller.run(user, "session-1", {
@@ -299,12 +345,13 @@ test("replaced actuals are read by pinned id and named, while gone actuals are r
     (error: unknown) =>
       error instanceof HttpException &&
       error.getStatus() === 409 &&
-      String(error.message).includes("no longer available"),
+      error.message === "The data behind this answer is no longer available. Ask again to open its transactions.",
   );
   assert.equal(
-    gone.warehouse.executed.some((sql) => sql.includes("ORDER BY (txn.debit - txn.credit)")),
+    goneWarehouse.executed.some((sql) => sql.includes("FROM sap_transaction")),
     false,
   );
+  assert.equal(gone.audit.refusals.length, 1);
 });
 
 test("statement rows use only signed triples and bind replaced or gone budget pins without gating on mapping version", async () => {
@@ -349,6 +396,10 @@ test("statement rows use only signed triples and bind replaced or gone budget pi
     page: 1,
   });
   assert.equal(response.batchStatuses.find(({ source }) => source === "budget")?.status, "replaced");
+  assert.equal(
+    response.notice,
+    "This answer was built on data that has since been reloaded; these are the lines it was built from.",
+  );
   assert.match(
     replacedWarehouse.executed.find((sql) => sql.includes("ORDER BY (txn.debit - txn.credit)"))!,
     /txn\.cost_center = 'NURSERY'/,
@@ -374,7 +425,9 @@ test("statement rows use only signed triples and bind replaced or gone budget pi
   assert.deepEqual(empty.lines, []);
   assert.equal(empty.footer.value, "0.00");
 
-  const gone = harness(new FakeWarehouse([], { batches: [batch(actualPin, true)] }), []);
+  const goneEvents: string[] = [];
+  const goneWarehouse = new FakeWarehouse(goneEvents, { batches: [batch(actualPin, true)] });
+  const gone = harness(goneWarehouse, goneEvents);
   await assert.rejects(
     () =>
       gone.controller.run(statementUser, "session-1", {
@@ -382,8 +435,16 @@ test("statement rows use only signed triples and bind replaced or gone budget pi
         rowKey: statement.rows[0]!.key,
         page: 1,
       }),
-    (error: unknown) => error instanceof HttpException && error.getStatus() === 409,
+    (error: unknown) =>
+      error instanceof HttpException &&
+      error.getStatus() === 409 &&
+      error.message === "The data behind this answer is no longer available. Ask again to open its transactions.",
   );
+  assert.equal(
+    goneWarehouse.executed.some((sql) => sql.includes("FROM sap_transaction")),
+    false,
+  );
+  assert.equal(gone.audit.refusals.length, 1);
 });
 
 function harness(warehouse: FakeWarehouse, events: string[]) {
@@ -422,6 +483,7 @@ const fixtureTransactions = [
   fixtureTransaction("outside-plant", "200.00", "0.00", { plant: "H.O" }),
   fixtureTransaction("outside-month", "300.00", "0.00", { month: "2026-06-01" }),
 ];
+type FixtureTransaction = ReturnType<typeof fixtureTransaction>;
 
 class FixtureWarehouse implements Warehouse {
   executed: string[] = [];
@@ -429,6 +491,7 @@ class FixtureWarehouse implements Warehouse {
   constructor(
     private readonly events: string[],
     private readonly predicate: DrillPredicate,
+    private readonly transactions: FixtureTransaction[] = fixtureTransactions,
   ) {}
 
   async explain() {}
@@ -441,7 +504,7 @@ class FixtureWarehouse implements Warehouse {
     if (sql.includes("SELECT DISTINCT period")) {
       return { columns: [], rows: [{ period: "2026-07-01" }] };
     }
-    const rows = fixtureTransactions.filter((row) => matches(row, this.predicate));
+    const rows = this.transactions.filter((row) => matches(row, this.predicate));
     if (sql.includes("feeding_line_count")) {
       return {
         columns: [],
@@ -472,10 +535,15 @@ class FixtureWarehouse implements Warehouse {
     }
     if (sql.includes("FROM sap_transaction")) {
       this.events.push("transaction-read");
+      const paging = sql.match(/LIMIT (\d+) OFFSET (\d+)$/);
+      if (!paging) throw new Error("Fixture page query is missing its limit or offset");
+      const limit = Number(paging[1]);
+      const offset = Number(paging[2]);
       return {
         columns: [],
         rows: [...rows]
-          .sort((left, right) => Number(transactionValue(right) - transactionValue(left)))
+          .sort(compareTransactions)
+          .slice(offset, offset + limit)
           .map((row) => ({ ...row, value: formatPaise(transactionValue(row)) })),
       };
     }
@@ -578,7 +646,7 @@ function fixtureTransaction(
   };
 }
 
-function matches(row: (typeof fixtureTransactions)[number], predicate: DrillPredicate): boolean {
+function matches(row: FixtureTransaction, predicate: DrillPredicate): boolean {
   return (
     predicate.mode === "gl-and-plants" &&
     predicate.actualBatchIds.includes(row.batch_id) &&
@@ -589,11 +657,22 @@ function matches(row: (typeof fixtureTransactions)[number], predicate: DrillPred
   );
 }
 
-function transactionValue(row: (typeof fixtureTransactions)[number]): bigint {
+function transactionValue(row: FixtureTransaction): bigint {
   return BigInt(toPaise(row.debit)) - BigInt(toPaise(row.credit));
 }
 
-function sum(rows: typeof fixtureTransactions, field: "debit" | "credit"): bigint {
+function compareTransactions(left: FixtureTransaction, right: FixtureTransaction): number {
+  const valueDifference = transactionValue(right) - transactionValue(left);
+  if (valueDifference !== 0n) return valueDifference > 0n ? 1 : -1;
+  return (
+    right.month.localeCompare(left.month) ||
+    right.posting_date.localeCompare(left.posting_date) ||
+    left.txn_no.localeCompare(right.txn_no) ||
+    left.line_id.localeCompare(right.line_id)
+  );
+}
+
+function sum(rows: FixtureTransaction[], field: "debit" | "credit"): bigint {
   return rows.reduce((total, row) => total + BigInt(toPaise(row[field])), 0n);
 }
 
