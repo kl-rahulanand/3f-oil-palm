@@ -6,7 +6,7 @@ import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "./warehouse.interface";
 import { DrillTransactionsRepository, normalizeDateOnly } from "./drill-transactions.repository";
-import { toStarRocksMysqlCell } from "./starrocks-mysql.adapter";
+import { StarRocksMysqlAdapter } from "./starrocks-mysql.adapter";
 
 test("the drill page and footer queries share one predicate and emit the deterministic order with a bounded limit the validator accepts", async () => {
   const warehouse = new FakeWarehouse();
@@ -111,36 +111,57 @@ test("the repository returns each transaction's document number cost centre and 
   ]);
 });
 
-test("the repository keeps line and footer money exact through an adapter that coerces numeric decimals", async () => {
-  const repository = new DrillTransactionsRepository(new SqlValidator(), new NumericCoercingWarehouse());
-  const result = await repository.execute(
-    repository.buildQueries(
-      {
-        actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
-        triples: [{ plant: "DUB", costCenter: "DUB-NUR", glCode: "5001" }],
-        plants: ["DUB"],
-        from: "2026-07-01",
-        to: "2026-07-01",
-      },
-      1,
-      100,
-    ),
-  );
+test("the configured StarRocks adapter preserves exact page, footer, and summary money cast as text", async () => {
+  await withStarRocksAdapter(253, async (adapter, receivedSql) => {
+    const repository = new DrillTransactionsRepository(new SqlValidator(), adapter);
+    const predicate = {
+      actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+      triples: [{ plant: "DUB", costCenter: "DUB-NUR", glCode: "5001" }],
+      plants: ["DUB"],
+      from: "2026-07-01",
+      to: "2026-07-01",
+    };
+    const result = await repository.execute(repository.buildQueries(predicate, 1, 100));
+    const summaries = await repository.summarize([{ rowKey: "5001", predicate }]);
 
-  assert.deepEqual(
-    {
-      line: result.lines[0] && {
-        debit: result.lines[0].debit,
-        credit: result.lines[0].credit,
-        value: result.lines[0].value,
+    assert.deepEqual(
+      {
+        line: result.lines[0] && {
+          debit: result.lines[0].debit,
+          credit: result.lines[0].credit,
+          value: result.lines[0].value,
+        },
+        footer: result.footer,
+        summary: summaries[0]?.value,
       },
-      footer: result.footer,
-    },
-    {
-      line: { debit: "90000000000000.01", credit: "0.00", value: "90000000000000.01" },
-      footer: { debit: "90000000000000.01", credit: "0.00", value: "90000000000000.01" },
-    },
-  );
+      {
+        line: { debit: EXACT_MONEY, credit: "0.00", value: EXACT_MONEY },
+        footer: { debit: EXACT_MONEY, credit: "0.00", value: EXACT_MONEY },
+        summary: EXACT_MONEY,
+      },
+    );
+
+    const executed = receivedSql.filter((sql) => !sql.startsWith("EXPLAIN "));
+    const pageSql = executed.find((sql) => sql.includes("OFFSET 0"))!;
+    const footerSql = executed.find((sql) => sql.includes("total_count"))!;
+    const summarySql = executed.find((sql) => sql.includes("feeding_line_count"))!;
+    assert.match(pageSql, /txn\.debit::text AS debit/);
+    assert.match(pageSql, /txn\.credit::text AS credit/);
+    assert.match(pageSql, /\(txn\.debit - txn\.credit\)::numeric\(18,2\)::text AS value/);
+    assert.match(footerSql, /SUM\(txn\.debit\)[\s\S]+::text AS debit/);
+    assert.match(footerSql, /SUM\(txn\.credit\)[\s\S]+::text AS credit/);
+    assert.match(footerSql, /SUM\(txn\.debit - txn\.credit\)[\s\S]+::text AS value/);
+    assert.match(summarySql, /SUM\(txn\.debit - txn\.credit\)::text AS value/);
+  });
+});
+
+test("the configured StarRocks adapter rounds an uncast NEWDECIMAL above the safe integer range", async () => {
+  await withStarRocksAdapter(246, async (adapter) => {
+    const result = await adapter.execute("SELECT uncast_decimal_outputs");
+    assert.equal(typeof result.rows[0]?.value, "number");
+    assert.equal(String(result.rows[0]?.value), "90000000000000.02");
+    assert.notEqual(String(result.rows[0]?.value), EXACT_MONEY);
+  });
 });
 
 test("pinned batch existence and active state are read in one query", async () => {
@@ -363,49 +384,90 @@ class FakeWarehouse implements Warehouse {
   }
 }
 
-class NumericCoercingWarehouse implements Warehouse {
-  async explain() {}
+const EXACT_MONEY = "90000000000000.01";
+const VAR_STRING = 253;
 
-  async execute(sql: string) {
-    const cell = (alias: "debit" | "credit" | "value", value: string) =>
-      toStarRocksMysqlCell(value, !new RegExp(`::text AS ${alias}(?:,|\\n)`).test(sql));
-    if (sql.includes("COUNT(*)")) {
-      return {
-        columns: [],
-        rows: [
-          {
-            total_count: 1,
-            debit: cell("debit", "90000000000000.01"),
-            credit: cell("credit", "0.00"),
-            value: cell("value", "90000000000000.01"),
-          },
-        ],
-      };
-    }
-    return {
-      columns: [],
-      rows: [
-        {
-          month: "2026-07-01",
-          posting_date: "2026-07-14",
-          txn_no: "1900001234",
-          cost_center: "DUB-NUR",
-          acct_name: "Sprout Cost - Imp",
-          debit: cell("debit", "90000000000000.01"),
-          credit: cell("credit", "0.00"),
-          value: cell("value", "90000000000000.01"),
-          reference: null,
-          memo: null,
-        },
-      ],
+type MysqlFieldFixture = { name: string; type: number };
+type InjectedPool = {
+  query(options: { sql: string }): Promise<[Array<Record<string, string | null>>, MysqlFieldFixture[]]>;
+};
+
+async function withStarRocksAdapter(
+  moneyFieldType: number,
+  run: (adapter: StarRocksMysqlAdapter, receivedSql: string[]) => Promise<void>,
+): Promise<void> {
+  const originalHost = process.env.STARROCKS_HOST;
+  const originalCatalog = process.env.STARROCKS_CATALOG;
+  process.env.STARROCKS_HOST = "starrocks.test";
+  process.env.STARROCKS_CATALOG = "default_catalog";
+  try {
+    const receivedSql: string[] = [];
+    const adapter = new StarRocksMysqlAdapter();
+    const pool: InjectedPool = {
+      async query({ sql }) {
+        receivedSql.push(sql);
+        return mysqlResult(sql, moneyFieldType);
+      },
     };
+    (adapter as unknown as { pool: InjectedPool }).pool = pool;
+    await run(adapter, receivedSql);
+  } finally {
+    if (originalHost === undefined) delete process.env.STARROCKS_HOST;
+    else process.env.STARROCKS_HOST = originalHost;
+    if (originalCatalog === undefined) delete process.env.STARROCKS_CATALOG;
+    else process.env.STARROCKS_CATALOG = originalCatalog;
   }
+}
 
-  async freshness() {
-    return null;
+function mysqlResult(sql: string, moneyFieldType: number): [Array<Record<string, string | null>>, MysqlFieldFixture[]] {
+  if (sql.startsWith("EXPLAIN ")) return [[], []];
+  if (sql.includes("feeding_line_count")) {
+    return [
+      [{ row_key: "5001", feeding_line_count: "1", value: EXACT_MONEY }],
+      [
+        { name: "row_key", type: VAR_STRING },
+        { name: "feeding_line_count", type: 8 },
+        { name: "value", type: moneyFieldType },
+      ],
+    ];
   }
-
-  async distinctValues() {
-    return [];
+  if (sql.includes("total_count")) {
+    return [
+      [{ total_count: "1", debit: EXACT_MONEY, credit: "0.00", value: EXACT_MONEY }],
+      [
+        { name: "total_count", type: 8 },
+        { name: "debit", type: moneyFieldType },
+        { name: "credit", type: moneyFieldType },
+        { name: "value", type: moneyFieldType },
+      ],
+    ];
   }
+  return [
+    [
+      {
+        month: "2026-07-01",
+        posting_date: "2026-07-14",
+        txn_no: "1900001234",
+        cost_center: "DUB-NUR",
+        acct_name: "Sprout Cost - Imp",
+        debit: EXACT_MONEY,
+        credit: "0.00",
+        value: EXACT_MONEY,
+        reference: null,
+        memo: null,
+      },
+    ],
+    [
+      { name: "month", type: VAR_STRING },
+      { name: "posting_date", type: VAR_STRING },
+      { name: "txn_no", type: VAR_STRING },
+      { name: "cost_center", type: VAR_STRING },
+      { name: "acct_name", type: VAR_STRING },
+      { name: "debit", type: moneyFieldType },
+      { name: "credit", type: moneyFieldType },
+      { name: "value", type: moneyFieldType },
+      { name: "reference", type: VAR_STRING },
+      { name: "memo", type: VAR_STRING },
+    ],
+  ];
 }
