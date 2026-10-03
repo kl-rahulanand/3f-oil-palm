@@ -122,6 +122,14 @@
     {
       "at": "2026-10-03T12:16:55+00:00",
       "step": "read"
+    },
+    {
+      "at": "2026-10-03T14:55:22+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-03T14:56:27+00:00",
+      "step": "read"
     }
   ],
   "title": "Ask names each GL line and opens its transactions",

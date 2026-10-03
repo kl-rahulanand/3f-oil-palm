@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-03T12:16:55+00:00
-read_hash: 5dfcd8029d1225de79c13b9bbca043333e470266
-round: 26
+read_at: 2026-10-03T14:56:27+00:00
+read_hash: baf13da941776ce1887d34827426e5cb1a51a3df
+round: 28
 passed: yes
-doc_seen: 5dfcd8029d1225de79c13b9bbca043333e470266
-spec_seen: ebc6473926090ed5ec1a4a7466cbf186cf3f9b4c
-notes_seen: 4c18d7d2ee9f770354eb78888f9bcb30ccaa5a36
+doc_seen: baf13da941776ce1887d34827426e5cb1a51a3df
+spec_seen: 2e29a176a8eb775d49a5c3176efb645277582a9c
+notes_seen: 26446d45372e7669cc4ac621be8997eca3a754a5
 ---
 # Cold read notes
 
@@ -274,5 +274,15 @@ No findings.
     Disposition: cut detail 7 now keeps the above-₹90-lakh-crore exactness proof in the drill repository only; GL-ANSWER-WIRING replaces the merged route-level footing leaf for that amount with the size-limit refusal leaf, as C5d requires.
 
 ## Round 26
+
+No findings.
+
+## Round 27
+
+51. Gap: a request with no context cannot reach the service or be audited as required.
+    `AskDrillRequest`, `askDrillSchema`, and its Swagger DTO all currently require a non-empty `context`, so Nest rejects an omitted context before `AskDrillService` and its refusal audit run. Add the contract/schema/Swagger files and their tests to GL-ANSWER-WIRING’s Scope/Tests, make only the missing-context shape reach the service as an invalid link, and prove the authenticated HTTP request writes the refusal audit before any read.
+    Disposition: keep the GL-ANSWER-WIRING branch already handles this without changing the published contract: `ask-drill.controller.ts` recognises a body whose `context` is absent, empty or blank (with a valid `rowKey` and `page`) before schema validation and passes it to `AskDrillService` as an empty context, which refuses it like a tampered link, writes the refusal audit and starts no read. The authenticated HTTP request is proven in the app-DB leaf `ask-drill.controller.db.test.ts` (403, one persisted `mis.drill.refusal`, no warehouse read) and in the live check (commits 6bfe5f1 and 513bda7 on that branch). Valid requests keep `context` required in the contract, schema and Swagger.
+
+## Round 28
 
 No findings.
