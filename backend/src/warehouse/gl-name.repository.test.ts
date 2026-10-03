@@ -103,11 +103,19 @@ test("a bounded name list keeps the true count when normalized groups exceed MAX
   const [label] = await repository.findGlCodeLabels([glRow("50001201")]);
 
   assert.equal(label?.label, "Main name");
-  assert.equal(label?.otherLabels.length, 20);
-  assert.equal(label?.otherLabels.at(-1), `and ${maxRows - 18} more`);
+  assert.equal(label?.otherLabels.length, 19);
+  assert.equal(label?.hiddenOtherLabelCount, maxRows - 18);
 });
 
-test("many answer rows are resolved in bounded batches instead of one warehouse query per row", async () => {
+test("a real SAP account name that reads like an omitted count remains a name", async () => {
+  const repository = names([nameGroupRow("50001201", "Main name", 2, 2), nameGroupRow("50001201", "and 3 more", 1, 2)]);
+
+  assert.deepEqual(await repository.findGlCodeLabels([glRow("50001201")]), [
+    { key: "50001201", label: "Main name", otherLabels: ["and 3 more"] },
+  ]);
+});
+
+test("many answer rows use one sap_transaction scan in each bounded shared-scope batch", async () => {
   const original = process.env.MAX_ROWS;
   delete process.env.MAX_ROWS;
   try {
@@ -121,6 +129,9 @@ test("many answer rows are resolved in bounded batches instead of one warehouse 
     assert.match(warehouse.executed[0]!, /LIMIT 1000$/);
     assert.match(warehouse.executed[1]!, /LIMIT 1000$/);
     assert.match(warehouse.executed[2]!, /LIMIT 20$/);
+    for (const sql of warehouse.executed) {
+      assert.equal(sql.match(/FROM sap_transaction/g)?.length, 1);
+    }
   } finally {
     if (original === undefined) delete process.env.MAX_ROWS;
     else process.env.MAX_ROWS = original;
@@ -227,8 +238,8 @@ test(
         const label = labels.get("50000008");
         assert.equal(label?.label, "Bounded Main");
         assert.equal(label?.otherLabels[0], "Distinct Name 0000");
-        assert.equal(label?.otherLabels.length, 20);
-        assert.equal(label?.otherLabels.at(-1), `and ${maxRows - 18} more`);
+        assert.equal(label?.otherLabels.length, 19);
+        assert.equal(label?.hiddenOtherLabelCount, maxRows - 18);
       });
       await context.test(
         "statement labels use the pinned outline and stay raw when no budget batch is pinned",
@@ -381,8 +392,7 @@ class FakeWarehouse implements Warehouse {
 class EchoNameWarehouse extends FakeWarehouse {
   override async execute(sql: string): Promise<QueryResult> {
     this.executed.push(sql);
-    const ordinals = [...sql.matchAll(/SELECT (\d+) AS row_ordinal/g)].map((match) => Number(match[1]));
-    return { columns: [], rows: ordinals.map((ordinal) => noNameRow(String(ordinal), 0, ordinal)) };
+    return { columns: [], rows: [] };
   }
 }
 

@@ -602,9 +602,9 @@ function ResultRowLabel({
   const [expanded, setExpanded] = useState(false);
   const otherNamesId = useId();
   const visibleLabel = mode === "gl-code" ? `${rawKey} · ${label.label}` : label.label;
-  const hiddenCountMatch = label.otherLabels.at(-1)?.match(/^and ([1-9]\d*) more$/u);
-  const hiddenCount = hiddenCountMatch ? Number(hiddenCountMatch[1]) : 0;
-  const otherNameCount = label.otherLabels.length - (hiddenCount ? 1 : 0) + hiddenCount;
+  const hiddenCount = label.hiddenOtherLabelCount ?? 0;
+  const otherNameCount = label.otherLabels.length + hiddenCount;
+  const accessibleNames = [...label.otherLabels, ...(hiddenCount ? [`and ${hiddenCount} more`] : [])].join(", ");
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "Escape") {
@@ -624,7 +624,7 @@ function ResultRowLabel({
         <>
           {" "}
           <button
-            className="inline-flex h-button min-w-11 origin-center cursor-pointer items-center justify-center border-0 bg-transparent p-0 align-middle font-h2 text-emerald underline underline-offset-2 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald motion-reduce:transform-none"
+            className="relative inline-flex origin-center cursor-pointer items-center justify-center border-0 bg-transparent p-0 align-middle font-h2 text-emerald underline underline-offset-2 transition-transform duration-150 ease-out after:absolute after:-inset-x-2 after:-inset-y-4 after:content-[''] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald motion-reduce:transform-none"
             type="button"
             aria-expanded={expanded}
             aria-controls={otherNamesId}
@@ -633,14 +633,19 @@ function ResultRowLabel({
           >
             <span aria-hidden="true">+{otherNameCount} more</span>
             <span className="sr-only">
-              {otherNameCount} more account names: {label.otherLabels.join(", ")}
+              {otherNameCount} more account names: {accessibleNames}
             </span>
           </button>
           {expanded && (
-            <ul id={otherNamesId} aria-label="Other account names" className="m-0 list-none p-0 text-left">
+            <ul
+              id={otherNamesId}
+              aria-label="Other account names"
+              className="m-0 list-none p-0 text-left text-[0.9em] text-secondary"
+            >
               {label.otherLabels.map((otherLabel) => (
                 <li key={otherLabel}>{otherLabel}</li>
               ))}
+              {hiddenCount > 0 && <li>and {hiddenCount} more</li>}
             </ul>
           )}
         </>

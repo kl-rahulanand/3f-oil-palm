@@ -8,7 +8,7 @@ import type { IPinnedStatementOutlineRepository, StatementOutlineNode } from "./
 import { StatementOutlineRepository } from "./statement-outline.repository";
 import type { Warehouse } from "./warehouse.interface";
 
-const OBJECTS_TOUCHED = ["sap_transaction", "ingest_batch"];
+const OBJECTS_TOUCHED = ["sap_transaction", "ingest_batch", "raw_spellings", "normalized_groups", "ranked_names"];
 const NAME_GROUP_LIMIT = 20;
 
 export interface GlNameRow {
@@ -65,14 +65,40 @@ export class GlNameRepository {
     const resolved: SapNameResult[] = [];
     for (let offset = 0; offset < rows.length; offset += batchSize) {
       const batch = rows.slice(offset, offset + batchSize);
-      const sql = `${batch
-        .map(({ predicate }, rowOrdinal) => nameSelect(rowOrdinal, predicate, groupLimit))
-        .join("\nUNION ALL\n")}
+      const setWise = hasSharedGlScope(batch);
+      const sql = setWise
+        ? setWiseNameSelect(batch, groupLimit)
+        : `${batch
+            .map(({ predicate }, rowOrdinal) => nameSelect(rowOrdinal, predicate, groupLimit))
+            .join("\nUNION ALL\n")}
 LIMIT ${batch.length * groupLimit}`;
       const validation = this.validator.validate(sql, OBJECTS_TOUCHED, config.maxRows);
       if (!validation.ok) throw new ForbiddenException(validation.reason ?? "GL name query blocked");
       await this.warehouse.explain(sql);
       const result = await withTimeout(this.warehouse.execute(sql), config.queryTimeoutMs);
+      if (setWise) {
+        const byKey = new Map<string, Array<Record<string, string | number | null>>>();
+        for (const resultRow of result.rows) {
+          const key = String(resultRow.row_key ?? "");
+          if (!batch.some(({ predicate }) => predicate.mode === "gl-and-plants" && predicate.glCode === key)) {
+            throw new Error("GL name query returned an invalid row key");
+          }
+          const grouped = byKey.get(key) ?? [];
+          grouped.push(resultRow);
+          byKey.set(key, grouped);
+        }
+        for (const { predicate } of batch) {
+          if (predicate.mode !== "gl-and-plants") throw new Error("GL name query mixed incompatible scopes");
+          resolved.push(
+            rankedNames(
+              byKey.get(predicate.glCode) ?? [
+                { acct_name: null, line_count: null, scoped_line_count: "0", name_group_count: "0" },
+              ],
+            ),
+          );
+        }
+        continue;
+      }
       const byOrdinal = new Map<number, Array<Record<string, string | number | null>>>();
       for (const row of result.rows) {
         const rowOrdinal = lineCount(row.row_ordinal);
@@ -89,6 +115,67 @@ LIMIT ${batch.length * groupLimit}`;
     }
     return resolved;
   }
+}
+
+function hasSharedGlScope(batch: GlNameRow[]): boolean {
+  const [first] = batch;
+  if (!first || first.predicate.mode !== "gl-and-plants") return false;
+  const firstScope = glScope(first.predicate);
+  return batch.every(({ predicate }) => predicate.mode === "gl-and-plants" && glScope(predicate) === firstScope);
+}
+
+function glScope(predicate: Extract<DrillPredicate, { mode: "gl-and-plants" }>): string {
+  return buildDrillPredicate({ ...predicate, glCode: "__shared_scope__" });
+}
+
+function setWiseNameSelect(batch: GlNameRow[], groupLimit: number): string {
+  const normalizedSpelling = "REGEXP_REPLACE(TRIM(txn.acct_name), '[[:space:]]+', ' ', 'g')";
+  const hasName = "txn.acct_name IS NOT NULL AND TRIM(txn.acct_name) <> ''";
+  const where = batch.map(({ predicate }) => `(${buildDrillPredicate(predicate)})`).join(" OR ");
+  return `WITH raw_spellings AS (
+  SELECT txn.gl_code,
+    CASE WHEN ${hasName} THEN LOWER(${normalizedSpelling}) ELSE NULL END AS normalized_name,
+    CASE WHEN ${hasName} THEN ${normalizedSpelling} ELSE NULL END AS spelling,
+    COUNT(*) AS spelling_count,
+    SUM(COUNT(*)) OVER (PARTITION BY txn.gl_code) AS scoped_line_count
+  FROM sap_transaction AS txn
+  INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
+  WHERE ${where}
+  GROUP BY txn.gl_code,
+    CASE WHEN ${hasName} THEN LOWER(${normalizedSpelling}) ELSE NULL END,
+    CASE WHEN ${hasName} THEN ${normalizedSpelling} ELSE NULL END
+), normalized_groups AS (
+  SELECT raw_spellings.gl_code,
+    raw_spellings.normalized_name,
+    SUM(raw_spellings.spelling_count) AS line_count,
+    (ARRAY_AGG(raw_spellings.spelling ORDER BY raw_spellings.spelling_count DESC, raw_spellings.spelling))[1] AS acct_name,
+    MAX(raw_spellings.scoped_line_count) AS scoped_line_count
+  FROM raw_spellings
+  GROUP BY raw_spellings.gl_code, raw_spellings.normalized_name
+), ranked_names AS (
+  SELECT normalized_groups.gl_code,
+    normalized_groups.normalized_name,
+    normalized_groups.acct_name,
+    normalized_groups.line_count,
+    normalized_groups.scoped_line_count,
+    SUM(CASE WHEN normalized_groups.normalized_name IS NULL THEN 0 ELSE 1 END)
+      OVER (PARTITION BY normalized_groups.gl_code) AS name_group_count,
+    CASE WHEN normalized_groups.normalized_name IS NOT NULL THEN
+      ROW_NUMBER() OVER (PARTITION BY normalized_groups.gl_code
+        ORDER BY CASE WHEN normalized_groups.normalized_name IS NULL THEN 1 ELSE 0 END,
+          normalized_groups.line_count DESC, normalized_groups.acct_name)
+    ELSE NULL END AS name_rank
+  FROM normalized_groups
+)
+SELECT ranked_names.gl_code AS row_key,
+  ranked_names.acct_name,
+  ranked_names.line_count::text AS line_count,
+  ranked_names.scoped_line_count::text AS scoped_line_count,
+  ranked_names.name_group_count::text AS name_group_count
+FROM ranked_names
+WHERE ranked_names.name_rank <= ${groupLimit} OR ranked_names.name_group_count = 0
+ORDER BY ranked_names.gl_code, ranked_names.name_rank
+LIMIT ${batch.length * groupLimit}`;
 }
 
 function nameSelect(rowOrdinal: number, predicate: DrillPredicate, groupLimit: number): string {
@@ -150,10 +237,13 @@ function rankedNames(rows: Array<Record<string, string | number | null>>): SapNa
   if (nameGroupCount < ranked.length) throw new Error("GL name query returned an invalid name group count");
   const otherLabels = ranked.slice(1).map(({ label }) => label);
   const omitted = nameGroupCount - ranked.length;
-  if (omitted > 0) otherLabels.push(`and ${omitted} more`);
   return {
     hasScopedLines,
-    names: { label: ranked[0]!.label, otherLabels },
+    names: {
+      label: ranked[0]!.label,
+      otherLabels,
+      ...(omitted > 0 ? { hiddenOtherLabelCount: omitted } : {}),
+    },
   };
 }
 

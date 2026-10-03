@@ -501,6 +501,7 @@ export interface AskRowLabel {
   key: string;
   label: string;
   otherLabels: string[];
+  hiddenOtherLabelCount?: number;
 }
 
 export interface AskDrillMetadata {

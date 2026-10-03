@@ -230,9 +230,9 @@ test("the more-names disclosure exposes the full ordered accessible name and tog
 
   fireEvent.keyDown(disclosure, { key: "Enter" });
   expect(disclosure).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByRole("list", { name: "Other account names" })).toHaveTextContent(
-    "Imported sproutsSprout purchases",
-  );
+  const otherNames = screen.getByRole("list", { name: "Other account names" });
+  expect(otherNames).toHaveTextContent("Imported sproutsSprout purchases");
+  expect(otherNames).toHaveClass("text-secondary", "text-[0.9em]");
 
   fireEvent.keyDown(disclosure, { key: "Escape" });
   expect(disclosure).toHaveAttribute("aria-expanded", "false");
@@ -258,9 +258,33 @@ test("the more-names disclosure opens from a touch tap without relying on hover"
   expect(screen.getByRole("list", { name: "Other account names" })).toBeInTheDocument();
 });
 
+test("the inline disclosure keeps row rhythm while its pseudo-element supplies the touch hit area", async () => {
+  mocks.ask.mockResolvedValue(glLabelSuccess());
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", {
+    name: "2 more account names: Imported sprouts, Sprout purchases",
+  });
+  expect(disclosure).not.toHaveClass("h-button");
+  expect(disclosure.className.split(" ").some((className) => className.startsWith("min-h-"))).toBe(false);
+  expect(disclosure).toHaveClass(
+    "relative",
+    "transition-transform",
+    "duration-150",
+    "ease-out",
+    "active:scale-[0.97]",
+    "motion-reduce:transform-none",
+    "after:absolute",
+    "after:-inset-x-2",
+    "after:-inset-y-4",
+    "after:content-['']",
+  );
+});
+
 test("a bounded disclosure announces the true other-name count and says how many names are not shown", async () => {
   const response = glLabelSuccess();
-  response.rowLabels![0]!.otherLabels = ["Imported sprouts", "Sprout purchases", "and 12 more"];
+  response.rowLabels![0]!.hiddenOtherLabelCount = 12;
   mocks.ask.mockResolvedValue(response);
   renderAsk();
   submit("Show Actual by GL code");
@@ -274,6 +298,19 @@ test("a bounded disclosure announces the true other-name count and says how many
   expect(screen.getByRole("list", { name: "Other account names" })).toHaveTextContent(
     "Imported sproutsSprout purchasesand 12 more",
   );
+});
+
+test("an SAP account name that reads 'and 3 more' is disclosed as a name rather than a hidden count", async () => {
+  const response = glLabelSuccess();
+  response.rowLabels![0]!.otherLabels = ["and 3 more"];
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", { name: "1 more account names: and 3 more" });
+  expect(disclosure).toHaveTextContent("+1 more");
+  fireEvent.click(disclosure);
+  expect(screen.getByRole("list", { name: "Other account names" })).toHaveTextContent("and 3 more");
 });
 
 test("statement row labels replace raw leaf keys while an unlabelled statement keeps its raw key", async () => {

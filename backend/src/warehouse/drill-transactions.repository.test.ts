@@ -227,7 +227,8 @@ test("the drill and name resolver use the identical predicate for the same answe
   const nameSql = warehouse.executed[0] ?? "";
 
   assert.equal(drillWhere, expected);
-  assert.equal(nameSql.split(`WHERE ${expected}`).length - 1, 2);
+  assert.equal(nameSql.split(`WHERE (${expected})`).length - 1, 1);
+  assert.equal(nameSql.match(/FROM sap_transaction/g)?.length, 1);
 });
 
 test("a GL-and-plants predicate mirrors every answer-query filter operator and value-shape combination", () => {
@@ -408,6 +409,7 @@ class FakeWarehouse implements Warehouse {
         rows: [
           {
             row_ordinal: "0",
+            row_key: "50001201",
             acct_name: null,
             line_count: null,
             scoped_line_count: "0",
