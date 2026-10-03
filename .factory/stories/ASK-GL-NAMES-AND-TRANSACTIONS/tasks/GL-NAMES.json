@@ -2,34 +2,41 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-NAMES",
   "review": {
     "blocking_level": "P1",
-    "changed": "87b1132d951238526efb4422e7bdd35aa8e5c2dd83f49f46dd92a9875d3b63de",
-    "commit": "c3ff70e41ad1e6f48c80dda82b7ff5d27dda700b",
+    "changed": "7b72028988bf385c520c6930c22120eeb7f0f10ae9989627f23c305759f03753",
+    "commit": "17e23cb17c59a557af86885876a8f4032d5e07df",
     "dismissals": [],
     "findings": [
       {
-        "body": "The branch still adds a new interactive disclosure without evidence of the required impeccable shape/audit/polish pass or a specifically tasked emil-design-eng interaction review. The updated browser walk checks keyboard, touch, focus, and sizing, but it does not claim either required design pass or cover the full visual and interaction checklist, including press feedback and state/copy polish.",
-        "file": "frontend/src/features/assistant/ask-panel.tsx",
-        "line": 627,
+        "body": "The normalization trims only ordinary spaces before collapsing `[[:space:]]`. PostgreSQL `TRIM(text)` does not remove leading/trailing tabs and similar whitespace, so `\"Name\"` and `\"\\tName\\t\"` become different normalized groups (`\"name\"` versus `\" name \"`). They are later displayed identically after JavaScript trimming, producing incorrect group counts, ranking, and \u201c+n more\u201d output. The same expression is repeated in `nameSelect` at line 182, and the tests cover only ordinary spaces.",
+        "file": "backend/src/warehouse/gl-name.repository.ts",
+        "line": 132,
         "priority": "P1",
-        "title": "Not done: impeccable and emil-design-eng pass"
+        "title": "Not done: GL name normalization trims all whitespace"
       },
       {
-        "body": "The component test still injects a completed `rowLabels` response through the mocked Ask API. The updated functional check likewise says it manually attached resolver output in the browser because the production chat service does not emit it yet. Thus there is no running-API/real-database/browser proof that production carries resolved labels into this table; the task plan assigns that wiring and crossing proof to GL-ANSWER-WIRING.",
+        "body": "This prefixes the label only when the leaf node itself has `sNo`. Supported ingested outlines also contain S.No.-less leaf rows: `mis-budget.parser.ts:101-122` inherits `identitySNo` from the numbered parent for the leaf key while persisting the leaf's `sNo` as null. Such rows therefore render only the name (for example, `Petrol and Diesel Charges`) instead of the required inherited number and name (`9.01 Petrol and Diesel Charges`). The new test covers only a leaf with an explicit `sNo`, so this production case is missed.",
+        "file": "backend/src/warehouse/gl-name.repository.ts",
+        "line": 258,
+        "priority": "P1",
+        "title": "Not done: statement lines show their number and pinned name"
+      },
+      {
+        "body": "The supplied functional-check paragraph exercises the live GL-code answer and disclosure presentation, but it never asks for a statement-line answer or observes a pinned `<s_no> <label>` result and the raw-key behavior without a budget pin. The only statement rendering exercise here injects mocked `rowLabels`, so the functional check skips the branch's second covered Done-when item.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 318,
+        "priority": "P1",
+        "title": "Not done: functional check"
+      },
+      {
+        "body": "The component test still injects a completed `rowLabels` response through the mocked Ask API, and there is no production caller of `GlNameRepository` in the current tree. Consequently this branch has no running-API/real-database/browser proof that production carries resolved labels into the table. The task plan assigns that wiring and crossing proof to GL-ANSWER-WIRING, so this remains follow-up advice rather than a blocker for this task alone.",
         "file": "frontend/src/features/assistant/ask-panel.test.tsx",
         "line": 207,
         "priority": "P2",
         "title": "Later: prove labels through the running Ask stack \u2192 GL-ANSWER-WIRING"
-      },
-      {
-        "body": "The batching change reduces network round trips, but it builds each batch by UNIONing one `nameSelect` per row, and every arm independently scans `sap_transaction` once for the scoped count and again for name groups. With the default limits, a valid 1,000-row answer still performs 2,000 scoped scans, with 100 scans packed into each timeout-bounded query. Supported GL answers share their batch/window/plant scope and differ principally by GL code, so they can be resolved set-wise in a single grouped scan per batch.",
-        "file": "backend/src/warehouse/gl-name.repository.ts",
-        "line": 68,
-        "priority": "P2",
-        "title": "Batch resolver still scans transactions twice per answer row"
       }
     ],
     "status": "blocked",
-    "tree": "b54d81616409e2e0b9c3ba1bc4082a4f673f0e91757ddb64e68fd62c3b590b88"
+    "tree": "e61d55a084029377453d683a4c20ccc3c66c9b55a32b6d3c32bcae78579d7bd8"
   },
   "status": "fixing",
   "steps": [
@@ -47,6 +54,10 @@
     },
     {
       "at": "2026-10-03T08:43:30+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T09:09:53+00:00",
       "step": "review"
     }
   ]
