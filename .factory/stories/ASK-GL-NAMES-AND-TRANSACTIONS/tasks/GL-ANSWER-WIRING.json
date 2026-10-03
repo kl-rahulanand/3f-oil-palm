@@ -2,33 +2,48 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-ANSWER-WIRING",
   "review": {
     "blocking_level": "P1",
-    "changed": "02cb483f7a8811753286f533c94741c3981159f520809fdfacedd0d64167a873",
-    "commit": "70d1e3b9e2f8c7df7484ad83f2be4d865606666b",
-    "dismissals": [
-      {
-        "because": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md:154 The approved plan row for this part says Ask's period offering for statement questions is unchanged; the multi-period statement path is proven through the saved and pinned re-run (cold read rounds 12 and 13, dispositions 31 and 33, and the round-19 owner decisions in Notes). The FYTD wording the review calls a coordinator ruling was the worker's round-1 note, which the coordinator had reverted in ea622bc (Restore single-month statement periods). Offering multi-month statement periods in Ask's picker is not in this story's approved What changes for you or Done when.",
-        "finding": 1,
-        "from_base": false
-      }
-    ],
+    "changed": "23cf78ee4b08ab0481a7692818bcd6e8ff8513f1f76ab9338373d0800f763e98",
+    "commit": "6471e0c09a5e3ff2b01b4758bf1f5c5de26859fe",
+    "dismissals": [],
     "findings": [
       {
-        "body": "`statementPeriodOptions(periods)` removes every multi-period option from the choices returned to ordinary Ask requests. The new `accepted` branch permits FYTD only when an already-edited selection is submitted, so a normal statement question cannot discover or choose the existing FYTD period. This directly conflicts with the coordinator ruling that FYTD must be offered and leaves the required multi-period path reachable only through a hand-crafted/saved selection. Include FYTD in the offered options and cover choosing it through the Ask period flow.",
+        "body": "When `selection.timeWindow` is absent, `lastMonthBudgetPin` always returns `undefined`; if the result is budget-only, there are also no Actual pins, so `predicateRange` is null and the name resolver receives neither rows nor the available latest budget batch. The supported all-data Ask path therefore renders bare GL codes even when `activeBatchIds` contains a budget batch whose outline supplies the required fallback label. Derive the effective last pinned month from provenance when the selection has no explicit window and still pass false/empty-Actual predicates for budget-only rows.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 1394,
+        "line": 630,
         "priority": "P1",
-        "title": "Not done: Offer the existing FYTD statement period in Ask"
+        "title": "Not done: Budget-only all-data answers use the pinned MIS label"
       },
       {
-        "body": "The task table explicitly defers rendering `drillable` Actuals as buttons and proving inert cells make no request to GL-DRILL-PANEL. The current frontend does not consume `AskResponse.drill`, so this branch alone does not complete Done-when item 6's user-visible interaction. Per the task assignment, this is a P2 later-task gap rather than a blocker for this backend wiring part.",
+        "body": "The test case named `no Actual grant` is identical to the preceding Budget-only case: both select only `governed-financial.budget` and grant only Budget. Consequently it cannot fail if the user-permission check in `issueAskDrill` is removed; absence of drill metadata is already forced by the selection not containing Actual. The required distinct leaf must exercise an Actual-bearing selection with a reader lacking the Actual grant and prove that neither an Actual value nor drill metadata is returned.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 349,
+        "priority": "P1",
+        "title": "Not done: Prove the reader-without-Actual-grant case"
+      },
+      {
+        "body": "The test named as a `POST` test directly invokes `controller.run`, bypassing Nest routing, guards, body parsing, exception handling, and persistence through the real audit service. It therefore does not satisfy the required real-entry-point proof that a context-less HTTP request reaches the service, writes a refusal audit record, returns 403, and performs no transaction read. Add an HTTP-level test through the initialized application and real audit boundary.",
+        "file": "backend/src/chat/ask-drill.service.test.ts",
+        "line": 215,
+        "priority": "P1",
+        "title": "Not done: Exercise the missing-context refusal through the POST route"
+      },
+      {
+        "body": "The newly added size-limit rule says an oversized row carries no amount, but the unchanged generic context description at lines 82\u201384 still requires an exact-paise Actual \u201cfor every row,\u201d and C5a at lines 223\u2013224 repeats that each row carries one. These mutually exclusive requirements leave the confirmed contract ambiguous despite the implementation's discriminated union. Explicitly exempt the C5d inert variant in both generic descriptions.",
+        "file": "docs/specs/ask-gl-names-and-transactions.md",
+        "line": 74,
+        "priority": "P2",
+        "title": "Keep oversized context rows consistent in the confirmed spec"
+      },
+      {
+        "body": "The task table explicitly defers rendering `drillable` Actuals as buttons and proving inert cells make no request to GL-DRILL-PANEL. The current `frontend/src/features/assistant/ask-panel.tsx` consumes `rowLabels` but not `AskResponse.drill`, so this branch alone does not complete Done-when item 6's user-visible interaction. Per the task assignment, this remains a P2 later-task gap rather than a blocker for the backend wiring implementation.",
         "file": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md",
         "line": 155,
         "priority": "P2",
         "title": "Later: GL-DRILL-PANEL must consume the signed drill metadata"
       }
     ],
-    "status": "clean",
-    "tree": "9a2f0a4d6ec610522fcbf2dc525bc4c24e1c4458b8ce8f1e221c1f3030534bce"
+    "status": "blocked",
+    "tree": "cf4f1b95fe7e0ac4e035eb71c5bd3df00ce8f845e353bc8f4636c81416b88952"
   },
   "status": "fixing",
   "steps": [
@@ -38,6 +53,10 @@
     },
     {
       "at": "2026-10-03T12:41:07+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T14:43:15+00:00",
       "step": "review"
     }
   ]
