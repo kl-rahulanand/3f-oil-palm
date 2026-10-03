@@ -97,3 +97,27 @@ and the Rules below, and leave the flow and the approval steps to the agent coor
   ESLint failures the close missed; workers run `npm run quality` before their last commit.
 - A live functional check asks each question in a fresh Ask conversation: as a follow-up, the
   model can emit a relative window that overrides the month the question names.
+- Hermetic tests pass locally while the app DB on 5432 is running, but CI has no database, so a test
+  that boots the real app module fails only in CI. Run `PGPORT=1 WAREHOUSE_PG_PORT=1 npm run
+  test:hermetic` before a last commit that adds module-resolution or startup tests, and resolve
+  module graphs with `DependenciesScanner` and `InstanceLoader` rather than booting `AppModule`.
+- Gated warehouse tests TRUNCATE tables. Run them only against a throwaway `postgres:16-alpine` on
+  127.0.0.1:5434 (warehouse) or 5435 (app DB), removed afterwards, never against the live-check
+  warehouse on 5433 or the app DB on 5432.
+- Workers run `npm run typecheck` and `npm run structural` as well as `test:hermetic`: the hermetic
+  runner transpiles without type checks, and a TS7022 reached the close.
+- An edit below `## For the builders` needs no new approval but does need a fresh `forge read`,
+  which reads the story worktree's copy. Edit the plan there, read until clean, then copy the plan,
+  its `.read.md` and `story.json` onto the task branch, or forge-pr-check fails. Merge `origin/master`
+  into the story branch after task merges so the reader sees current code.
+- When a new read must reproduce an existing query's predicate, share the original builder (export it)
+  instead of re-implementing its filter rules; mirroring the SqlBuilder's filter semantics cost several
+  review rounds.
+- Worker test builds write `frontend/.next` under a running `next dev` (main-app.js then 404s). Stop
+  the dev servers during worker rounds, and move `.next` aside before restarting them.
+- Live walks browse `http://127.0.0.1:3000`, not localhost, because CORS allows only
+  `FRONTEND_ORIGIN`. Fetch a fresh CSRF token before every scripted POST, since tokens rotate per
+  request.
+- The global exception filter replaces every `HttpException` message with a generic `userMessage`.
+  A refusal the client must explain needs a typed `details.reason` in the envelope; otherwise the
+  client can only map wording by status.
