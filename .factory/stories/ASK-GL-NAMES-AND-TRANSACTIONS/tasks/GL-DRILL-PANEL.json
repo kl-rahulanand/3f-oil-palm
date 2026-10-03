@@ -1,0 +1,85 @@
+{
+  "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-DRILL-PANEL",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "12d954475b917ac896e3669200b426937d39ed82d1dd63047fe080a5214232dc",
+    "commit": "252e6887198487eee004fd3f980a377d0a272b01",
+    "dismissals": [
+      {
+        "because": "frontend/src/features/mis/drill-panel.tsx:457 The backend's global exception filter (backend/src/common/global-exception.filter.ts:75) replaces every refusal message with a generic userMessage, so the client receives only the HTTP status; the statement drill already maps refusals by status for the same reason. A typed refusal reason in the response envelope is a backend change outside this frontend part's Scope, and is moved to a follow-up task on the owner's instruction (2026-10-03) to finish this part in this round. The current mapping always states a reason and the \"Ask again\" recovery. A tampered link (not a normal user path) reads as access changed, and every 409 reads as the data no longer matching the answer.",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.tsx:178 Commit 252e688, this branch's last commit, carries the Functional check: real clicks in the running app (live API, July warehouse, live model, no interception). GL: 21 Actual buttons; 50001201 opened 2 lines (3392915, 3399791) with footer \u20b983,98,339.00 exact. Statement: 20 Actual buttons and no button on any \u20b90 line; 9.01 opened 4 lines with footer \u20b922,500.00, \"Matches the Actual\". Escape restored focus. The worker was told not to write the check so the coordinator's record would be last.",
+        "finding": 2,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:451 The repo has no browser end-to-end harness (no Playwright) and CI has no database. The statement path is proven by recorded live walks: in 252e688 a real click on statement line 9.01 opened 4 lines with footer \u20b922,500.00, and GL-ANSWER-WIRING's merged live check (PR 91) showed that the Ask read for leaf 1.1 returns the same lines (3392915, 3399791) as the statement screen's drill. GL-RELOAD-AND-LIVE runs the story's final live check (Done-when 10), including the statement-screen comparison.",
+        "finding": 3,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:481 There is no browser end-to-end harness in the repo and no database in CI. In 252e688 the running app with real metadata rendered buttons only on Actuals with transactions: 21 of 21 GL Actuals and 20 of 81 statement lines, no Budget cell and no \u20b90 line. The eligibility rules (Budget-only, %-only, no Actual grant, unsupported shapes, no drill object) are proven server-side in GL-ANSWER-WIRING's merged leaves and client-side here.",
+        "finding": 4,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/mis/drill-panel.test.tsx:372 There is no browser end-to-end harness in the repo and no database in CI. The route's refusal outcomes and their audit records are proven at the real HTTP entry point by the merged app-DB leaf ask-drill.controller.db.test.ts and by GL-ANSWER-WIRING's live check: tampered, missing, empty and unlisted-row requests are refused and persisted as mis.drill.refusal before any read. This part's leaves prove the panel's wording for each status. Live expiry cannot be triggered in a walk within the 30-minute TTL.",
+        "finding": 5,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "The panel reduces every refusal to its HTTP status and therefore displays the wrong reason for several route outcomes. For example, the unchanged Ask drill service returns 403 with \u201cThis answer link is invalid\u2026\u201d for a tampered signature and 403 with the access-changed wording for another user, while this branch maps both to the access-changed message. Likewise, all 409 responses are presented as missing data even though the route also uses 409 for footing mismatches and incomplete pins. Preserve a typed refusal reason/message from `/api/chat/drill` instead of guessing from status alone.",
+        "file": "frontend/src/features/mis/drill-panel.tsx",
+        "line": 457,
+        "priority": "P1",
+        "title": "Not done: show each Ask drill refusal's stated reason"
+      },
+      {
+        "body": "The supplied commit evidence says the worker's last commit has no `Functional check:` paragraph. This user-facing task therefore lacks the required exercised walkthrough of opening both GL and statement Actuals, inert cells, paging, stored-answer rerun behavior, and refusal recovery wording.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 178,
+        "priority": "P1",
+        "title": "Not done: functional check"
+      },
+      {
+        "body": "The new statement-line test constructs the Ask response and mocks `runAskDrill`; it verifies only the component's call shape and dialog title. It never exercises a browser against the running API/database or compares the returned transaction rows with the statement screen for the same leaf, period, and batches. The required end-to-end proof for Done-when item 4 is therefore absent.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 451,
+        "priority": "P1",
+        "title": "Not done: clicking a statement Actual opens the statement screen's transactions"
+      },
+      {
+        "body": "The coverage for Done-when item 6 is confined to Vitest with mocked Ask and drill APIs. It cannot prove through the real browser/API boundary that issued metadata makes only transaction-backed Actuals clickable, or that Budget, %, totals, budget-only rows, unsupported answer shapes, and answers without `drill` make no network read. The required Playwright flow with a real database/user is missing.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 481,
+        "priority": "P1",
+        "title": "Not done: only eligible Actuals are interactive while other cells stay inert"
+      },
+      {
+        "body": "The refusal test injects synthetic errors directly into `DrillPanel` and asserts locally hard-coded status text. It never reaches `/api/chat/drill`, so it cannot catch transport-envelope handling (including the incorrect status-only mapping), authentication/authorization changes, expiry, or audit-failure behavior in the browser. Done-when item 7 therefore remains without the required real-entry-point Playwright proof.",
+        "file": "frontend/src/features/mis/drill-panel.test.tsx",
+        "line": 372,
+        "priority": "P1",
+        "title": "Not done: refused openings display their audited route outcome end to end"
+      }
+    ],
+    "status": "clean",
+    "tree": "42238a19949d4d60fccde342a4a50ea6ca739abe7d711adee2de50714bd60c16"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-03T17:36:24+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-03T18:08:04+00:00",
+      "step": "review"
+    }
+  ]
+}

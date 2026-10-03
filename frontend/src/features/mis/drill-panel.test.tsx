@@ -1,4 +1,5 @@
 import type {
+  AskDrillResponse,
   FixedScaleMoney,
   MisDrillResponse,
   MisStatementMeasureBlock,
@@ -9,13 +10,14 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-libra
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { renderWithQuery } from "@/src/test/render";
-import { DrillPanel, type DrillPanelSelection } from "./drill-panel";
+import { DrillPanel, type AskDrillPanelSelection, type DrillPanelSelection } from "./drill-panel";
 import { StatementView as OwnedStatementView, type DrillPanelTarget } from "./statement-view";
 
 const mocks = vi.hoisted(() => ({
   misOptions: vi.fn(),
   runMisStatement: vi.fn(),
   runMisDrill: vi.fn(),
+  runAskDrill: vi.fn(),
   exportMisStatement: vi.fn(),
   csrf: vi.fn(),
   requestOtp: vi.fn(),
@@ -156,6 +158,8 @@ test("the drill panel takes focus traps tab and shift tab closes on escape and o
 
   const dialog = screen.getByRole("dialog");
   const close = screen.getByRole("button", { name: "Close drill-down" });
+  expect(dialog).toHaveClass("max-[560px]:!w-full");
+  expect(close).toHaveClass("!h-11", "!w-11", "focus-visible:active:!transform-none");
   const last = within(dialog).getAllByRole("button").at(-1)!;
   expect(dialog).toHaveFocus();
   fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
@@ -358,6 +362,63 @@ test("a forbidden drill and a failed drill each render alone with no rows counts
   }
 });
 
+test.each([
+  [410, "This answer is too old to open. Ask again to open its transactions."],
+  [403, "Your access has changed since this answer was shown. Ask again."],
+  [409, "The data behind this answer is no longer available. Ask again to open its transactions."],
+  [400, "This line cannot be opened. Ask again."],
+  [503, "Transactions could not be opened right now. Try again."],
+] as const)("an Ask drill refusal with HTTP %i shows its stated recovery wording", async (status, message) => {
+  mocks.runAskDrill.mockRejectedValue(Object.assign(new Error("generic envelope"), { status }));
+  renderWithQuery(<DrillPanel selection={askSelection()} onClose={vi.fn()} />);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent(message);
+  expect(alert).not.toHaveTextContent("generic envelope");
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
+
+test("the Ask transaction panel shows the route notice columns and all-match footer without changing statement copy", async () => {
+  mocks.runAskDrill.mockResolvedValue(
+    askDrillResponse({
+      notice: "This answer was built on data that has since been reloaded; these are the lines it was built from.",
+      batchStatuses: [
+        {
+          source: "actuals",
+          period: "2026-07-01",
+          requestedBatchId: "old-july",
+          status: "replaced",
+          activeBatchId: "new-july",
+        },
+      ],
+    }),
+  );
+  renderWithQuery(<DrillPanel selection={askSelection()} onClose={vi.fn()} />);
+
+  const table = await screen.findByRole("table");
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "This answer was built on data that has since been reloaded; these are the lines it was built from.",
+  );
+  expect(
+    within(table)
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent),
+  ).toEqual([
+    "Month",
+    "Posting date",
+    "Document no.",
+    "Cost centre",
+    "Account name",
+    "Debit",
+    "Credit",
+    "Value",
+    "Reference",
+    "Memo",
+  ]);
+  expect(within(table).getByRole("row", { name: "Total" })).toHaveTextContent("₹125.00exact");
+  expect(within(table).getByRole("row", { name: "Total" })).toHaveTextContent("Matches the Actual in the answer");
+});
+
 test("drilling a leaf inside the aggregate panel replaces the body in place and back returns to the group with focus on the leaf row", async () => {
   mocks.runMisDrill.mockResolvedValue(drillResponse());
   renderWithQuery(<StatementView response={response} />);
@@ -443,6 +504,31 @@ function drillResponse(overrides: Partial<MisDrillResponse> = {}): MisDrillRespo
     budgetBatchId: "budget-july",
     batchStatuses: [],
     ...overrides,
+  };
+}
+
+function askDrillResponse(overrides: Partial<AskDrillResponse> = {}): AskDrillResponse {
+  const statementResponse = drillResponse();
+  return {
+    rowKey: "50001201",
+    lines: statementResponse.lines.map((line) => ({ ...line, debit: "125.00", value: "125.00" })),
+    footer: { debit: "125.00", credit: "0.00", value: "125.00" },
+    totalCount: 1,
+    page: 1,
+    pageSize: 100,
+    batchStatuses: [],
+    ...overrides,
+  };
+}
+
+function askSelection(): AskDrillPanelSelection {
+  return {
+    kind: "ask",
+    context: "signed-answer-context",
+    rowKey: "50001201",
+    label: "50001201 · Sprout Cost - Imp",
+    actual: "125.00",
+    opener: document.createElement("button"),
   };
 }
 
