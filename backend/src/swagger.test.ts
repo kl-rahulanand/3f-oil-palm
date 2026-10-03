@@ -10,6 +10,7 @@ import { ResponseClass, type AskResponse, type ChatStreamEvent } from "@3f/contr
 import { AppModule } from "./app.module";
 import { AuthController } from "./auth/auth.controller";
 import { ChatController } from "./chat/chat.controller";
+import { AskDrillController } from "./chat/ask-drill.controller";
 import { ChatResponseDto, ChatStreamEventDto } from "./chat/chat.schemas";
 import { AuthoredMeasureRegistry } from "./measures/authored-measure.registry";
 import { UsersController } from "./users/users.controller";
@@ -23,6 +24,7 @@ test("controller metadata contains auth, admin, and data API paths without beare
   const paths = [
     ...controllerRoutes(AuthController),
     ...controllerRoutes(ChatController),
+    ...controllerRoutes(AskDrillController),
     ...controllerRoutes(UsersController),
     ...controllerRoutes(GrantsController),
     ...controllerRoutes(ReportsController),
@@ -38,6 +40,7 @@ test("controller metadata contains auth, admin, and data API paths without beare
     "POST /api/auth/refresh",
     "POST /api/auth/logout",
     "POST /api/chat",
+    "POST /api/chat/drill",
     "GET /api/admin/users",
     "POST /api/admin/users",
     "PATCH /api/admin/users/:id",
@@ -89,6 +92,8 @@ test("both chat routes document the explanation union with a named schema", () =
     chips: [],
     selection: { domain: "test", measureIds: [], dimensionIds: [], filters: [] },
     result: { columns: [], rows: [] },
+    rowLabels: [],
+    drill: { context: "signed", rows: [] },
     totals: {},
     chartType: "table",
     availableChartTypes: ["table"],
@@ -186,6 +191,41 @@ test("both chat routes document the explanation union with a named schema", () =
     [...new Set(streamEvents.flatMap((event) => Object.keys(event)))].filter((field) => !streamFields.includes(field)),
     [],
   );
+});
+
+test("POST /api/chat/drill documents its bounded request and typed transaction response", async () => {
+  const originalInit = AuthoredMeasureRegistry.prototype.onModuleInit;
+  AuthoredMeasureRegistry.prototype.onModuleInit = async () => {};
+  let app: INestApplication | undefined;
+  try {
+    app = await NestFactory.create(AppModule, { logger: false });
+    await app.init();
+    const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
+    const operation = document.paths["/api/chat/drill"]?.post;
+    assert.ok(operation);
+    assert.deepEqual(Object.keys(operation.responses).sort(), ["200", "400", "403", "409", "410", "503"]);
+    const requestRef = (
+      operation.requestBody as {
+        content?: { "application/json"?: { schema?: { $ref?: string } } };
+      }
+    ).content?.["application/json"]?.schema?.$ref;
+    const responseRef = (
+      operation.responses["200"] as {
+        content?: { "application/json"?: { schema?: { $ref?: string } } };
+      }
+    ).content?.["application/json"]?.schema?.$ref;
+    assert.equal(requestRef, "#/components/schemas/AskDrillRequestDto");
+    assert.equal(responseRef, "#/components/schemas/AskDrillResponseDto");
+    const request = document.components?.schemas?.AskDrillRequestDto as {
+      required?: string[];
+      properties?: { page?: { minimum?: number; maximum?: number } };
+    };
+    assert.deepEqual(request.required?.sort(), ["context", "page", "rowKey"]);
+    assert.deepEqual(request.properties?.page, { type: "number", minimum: 1, maximum: 1_000_000, example: 1 });
+  } finally {
+    AuthoredMeasureRegistry.prototype.onModuleInit = originalInit;
+    await app?.close();
+  }
 });
 
 test("POST /api/chat documents selection measure filters through the shared selection schema", async () => {

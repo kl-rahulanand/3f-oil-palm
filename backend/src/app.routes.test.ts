@@ -43,6 +43,7 @@ test("the freshness route is allow listed behind auth guard with no action grant
       "POST /api/auth/otp/verify",
       "POST /api/auth/refresh",
       "POST /api/chat",
+      "POST /api/chat/drill",
       "POST /api/chat/stream",
       "POST /api/ingest/actuals",
       "POST /api/ingest/budget",

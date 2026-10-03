@@ -7,6 +7,7 @@ import type {
   DrillPredicate,
   DrillQueries,
   DrillReadResult,
+  DrillSummary,
   IDrillTransactionsRepository,
 } from "./drill-transactions.interface";
 import type { QueryResult, Warehouse } from "./warehouse.interface";
@@ -90,22 +91,59 @@ LIMIT 1`,
       },
     };
   }
+
+  async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>): Promise<DrillSummary[]> {
+    if (rows.length === 0) return [];
+    const sql = `${rows
+      .map(
+        ({ rowKey, predicate }) => `(SELECT ${quote(rowKey)} AS row_key, COUNT(*) AS feeding_line_count,
+  SUM(txn.debit - txn.credit)::text AS value
+FROM sap_transaction AS txn
+INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
+WHERE ${buildPredicate(predicate)}
+LIMIT 1)`,
+      )
+      .join("\nUNION ALL\n")}
+LIMIT 25000`;
+    const config = loadConfig();
+    const validation = this.validator.validate(sql, OBJECTS_TOUCHED, config.maxRows);
+    if (!validation.ok) throw new ForbiddenException(validation.reason ?? "Drill summary query blocked");
+    await this.warehouse.explain(sql);
+    const result = await withTimeout(this.warehouse.execute(sql), config.queryTimeoutMs);
+    return result.rows.map((row) => ({
+      rowKey: requiredText(row.row_key),
+      feedingLineCount: integer(row.feeding_line_count),
+      value: money(row.value),
+    }));
+  }
 }
 
 function buildPredicate(predicate: DrillPredicate): string {
   const batches = predicate.actualBatchIds.length
     ? `txn.batch_id IN (${predicate.actualBatchIds.map(quote).join(", ")})`
     : "FALSE";
-  const triples = predicate.triples.length
-    ? `(${predicate.triples
-        .map(
-          ({ plant, costCenter, glCode }) =>
-            `(txn.plant = ${quote(plant)} AND txn.cost_center = ${quote(costCenter)} AND txn.gl_code = ${quote(glCode)})`,
-        )
-        .join(" OR ")})`
-    : "FALSE";
+  const rowPredicate =
+    predicate.mode === "gl-and-plants"
+      ? [`txn.gl_code = ${quote(predicate.glCode)}`, ...predicate.filters.map(filterPredicate)].join(" AND ")
+      : predicate.triples.length
+        ? `(${predicate.triples
+            .map(
+              ({ plant, costCenter, glCode }) =>
+                `(txn.plant = ${quote(plant)} AND txn.cost_center = ${quote(costCenter)} AND txn.gl_code = ${quote(glCode)})`,
+            )
+            .join(" OR ")})`
+        : "FALSE";
   const plants = predicate.plants.length ? `txn.plant IN (${predicate.plants.map(quote).join(", ")})` : "FALSE";
-  return `${batches} AND ${triples} AND ${plants} AND txn.month >= ${quote(predicate.from)} AND txn.month <= ${quote(predicate.to)} AND batch.source_kind = 'actuals'`;
+  return `${batches} AND ${rowPredicate} AND ${plants} AND txn.month >= ${quote(predicate.from)} AND txn.month <= ${quote(predicate.to)} AND batch.source_kind = 'actuals'`;
+}
+
+function filterPredicate(filter: { dimensionId: string; op: "eq" | "in" | "neq"; value: string | string[] }): string {
+  const column = filter.dimensionId === "gl_code" ? "txn.gl_code" : filter.dimensionId === "month" ? "txn.month" : null;
+  if (!column) throw new Error("Ask drill contains an unsupported dimension filter");
+  const values = Array.isArray(filter.value) ? filter.value : [filter.value];
+  if (filter.op === "neq") return `${column} NOT IN (${values.map(quote).join(", ")})`;
+  if (filter.op === "in" || values.length > 1) return `${column} IN (${values.map(quote).join(", ")})`;
+  return `${column} = ${quote(values[0] ?? "")}`;
 }
 
 function batches(result: QueryResult): DrillBatch[] {

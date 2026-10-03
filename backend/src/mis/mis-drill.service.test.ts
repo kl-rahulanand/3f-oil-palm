@@ -263,6 +263,9 @@ class FakeTransactions implements IDrillTransactionsRepository {
       totalCount: 1,
     };
   }
+  async summarize() {
+    return [];
+  }
 }
 
 class FakeAudit {

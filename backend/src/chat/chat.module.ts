@@ -5,6 +5,9 @@ import { SelectionResolverService } from "../mapping/selection-resolver.service"
 import { ReportsService } from "../reports/reports.service";
 import { MisModule } from "../mis/mis.module";
 import { ChatController } from "./chat.controller";
+import { AskDrillController } from "./ask-drill.controller";
+import { AskDrillContextService, createAskDrillContextFromEnvironment } from "./ask-drill-context";
+import { AskDrillService } from "./ask-drill.service";
 import { ChatService } from "./chat.service";
 import { StatementGroundingService } from "./statement-grounding.service";
 import { StatementExplanationService } from "./statement-explanation.service";
@@ -13,7 +16,7 @@ import { StatementExplanationService } from "./statement-explanation.service";
 // deployments that should answer must set LLM_PROVIDER=bedrock and BEDROCK_MODEL_ID.
 @Module({
   imports: [MisModule],
-  controllers: [ChatController],
+  controllers: [ChatController, AskDrillController],
   providers: [
     ChatService,
     StatementGroundingService,
@@ -22,6 +25,12 @@ import { StatementExplanationService } from "./statement-explanation.service";
     ReportsService,
     SelectionResolverService,
     AuthGuard,
+    AskDrillService,
+    {
+      provide: AskDrillContextService,
+      useFactory: createAskDrillContextFromEnvironment,
+    },
   ],
+  exports: [AskDrillContextService],
 })
 export class ChatModule {}
