@@ -4,7 +4,33 @@
     "blocking_level": "P1",
     "changed": "12d954475b917ac896e3669200b426937d39ed82d1dd63047fe080a5214232dc",
     "commit": "252e6887198487eee004fd3f980a377d0a272b01",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "frontend/src/features/mis/drill-panel.tsx:457 The backend's global exception filter (backend/src/common/global-exception.filter.ts:75) replaces every refusal message with a generic userMessage, so the client receives only the HTTP status; the statement drill already maps refusals by status for the same reason. A typed refusal reason in the response envelope is a backend change outside this frontend part's Scope, and is moved to a follow-up task on the owner's instruction (2026-10-03) to finish this part in this round. The current mapping always states a reason and the \"Ask again\" recovery. A tampered link (not a normal user path) reads as access changed, and every 409 reads as the data no longer matching the answer.",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.tsx:178 Commit 252e688, this branch's last commit, carries the Functional check: real clicks in the running app (live API, July warehouse, live model, no interception). GL: 21 Actual buttons; 50001201 opened 2 lines (3392915, 3399791) with footer \u20b983,98,339.00 exact. Statement: 20 Actual buttons and no button on any \u20b90 line; 9.01 opened 4 lines with footer \u20b922,500.00, \"Matches the Actual\". Escape restored focus. The worker was told not to write the check so the coordinator's record would be last.",
+        "finding": 2,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:451 The repo has no browser end-to-end harness (no Playwright) and CI has no database. The statement path is proven by recorded live walks: in 252e688 a real click on statement line 9.01 opened 4 lines with footer \u20b922,500.00, and GL-ANSWER-WIRING's merged live check (PR 91) showed that the Ask read for leaf 1.1 returns the same lines (3392915, 3399791) as the statement screen's drill. GL-RELOAD-AND-LIVE runs the story's final live check (Done-when 10), including the statement-screen comparison.",
+        "finding": 3,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:481 There is no browser end-to-end harness in the repo and no database in CI. In 252e688 the running app with real metadata rendered buttons only on Actuals with transactions: 21 of 21 GL Actuals and 20 of 81 statement lines, no Budget cell and no \u20b90 line. The eligibility rules (Budget-only, %-only, no Actual grant, unsupported shapes, no drill object) are proven server-side in GL-ANSWER-WIRING's merged leaves and client-side here.",
+        "finding": 4,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/mis/drill-panel.test.tsx:372 There is no browser end-to-end harness in the repo and no database in CI. The route's refusal outcomes and their audit records are proven at the real HTTP entry point by the merged app-DB leaf ask-drill.controller.db.test.ts and by GL-ANSWER-WIRING's live check: tampered, missing, empty and unlisted-row requests are refused and persisted as mis.drill.refusal before any read. This part's leaves prove the panel's wording for each status. Live expiry cannot be triggered in a walk within the 30-minute TTL.",
+        "finding": 5,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The panel reduces every refusal to its HTTP status and therefore displays the wrong reason for several route outcomes. For example, the unchanged Ask drill service returns 403 with \u201cThis answer link is invalid\u2026\u201d for a tampered signature and 403 with the access-changed wording for another user, while this branch maps both to the access-changed message. Likewise, all 409 responses are presented as missing data even though the route also uses 409 for footing mismatches and incomplete pins. Preserve a typed refusal reason/message from `/api/chat/drill` instead of guessing from status alone.",
@@ -42,10 +68,10 @@
         "title": "Not done: refused openings display their audited route outcome end to end"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "42238a19949d4d60fccde342a4a50ea6ca739abe7d711adee2de50714bd60c16"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-03T17:36:24+00:00",
