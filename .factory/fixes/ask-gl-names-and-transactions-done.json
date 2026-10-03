@@ -4,11 +4,32 @@
   "done_when": "The board shows the story as finished, with its outcome.",
   "kind": "story-done",
   "outcome": "Ask answers now name every GL line from its SAP account names and every statement line by number and name, and clicking a transaction-backed Actual opens the SAP lines behind it, adding up to the figure to the paisa; live on July 2026 all 21 over-budget GL codes were named, 50001201 opened to \u20b983,98,339, and a DUB statement line opened the same lines as the statement screen.",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "c32251bb2c1785f315b9ca9f65cf22953486f86cd34b968b48c0022dce5bff4e",
+    "commit": "45fe886c38055be4b15c145c4cc9b91fece974b5",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This updates only the internal story record. The board\u2019s source entry remains `\"status\": \"pending\"` at `plans/roadmap.json:304` and has neither `completed_at` nor `outcome`, unlike the completed neighboring story. Consequently, the board still presents ASK-GL-NAMES-AND-TRANSACTIONS as unfinished and cannot show the recorded outcome. Update that roadmap entry as part of this completion change.",
+        "file": ".factory/stories/ASK-GL-NAMES-AND-TRANSACTIONS/story.json",
+        "line": 22,
+        "priority": "P1",
+        "title": "Not done: The board shows the story as finished, with its outcome."
+      }
+    ],
+    "status": "blocked",
+    "tree": "e2ba5b76ccac0f1c5b785ffbbfd087ec6c784c4111578ffac40800694a5930df"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-03T19:43:59+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-03T19:46:40+00:00",
+      "step": "review"
     }
   ],
   "touches": 0,
