@@ -2,7 +2,7 @@
 slug: ask-gl-names-and-transactions
 title: Ask names each GL line and opens its transactions
 status: draft
-saved: 2026-10-03T11:55:29+00:00
+saved: 2026-10-03T11:58:54+00:00
 ---
 
 # Ask names each GL line and opens its transactions
@@ -66,9 +66,11 @@ figure against its source transactions without switching screens.
   time window, AND whose displayed measures include that domain's Actual, which the reader is
   authorized to see. In any other shape (no breakdown, or a breakdown by month or by several dimensions)
   no Actual is clickable.
-- Size limit: an Actual of 2^46 rupees (about ₹70.37 lakh crore) or more is not clickable, because the
-  answer's figures can no longer carry exact paise at that size; this keeps every signed amount exactly
-  equal to the figure shown (owner decision, 2026-10-03). No 3F figure is near this size.
+- Size limit: an Actual whose absolute value is 2^46 rupees (about ₹70.37 lakh crore) or more, positive
+  or negative, is not clickable, because the answer's figures can no longer carry exact paise at that
+  size; this keeps every signed amount exactly equal to the figure shown (owner decision, 2026-10-03).
+  Such a row's signed context entry carries its key and a not-clickable marker and no amount. No 3F
+  figure is near this size.
 - Each supported Ask answer carries a signed drill context, built the way the statement screen's
   signed context is built (`backend/src/mis/statement-attestation.ts`): it binds the reader, the
   executed selection, the effective plant predicate of the executed query, the pinned actuals
@@ -195,8 +197,10 @@ figure against its source transactions without switching screens.
 - **C5** Every opening writes the typed drill audit record before the read and fails closed when the
   write fails; it records the mapping-master version for attribution only. A reader outside the line's
   plants is refused, audited, and sees no rows.
-- **C5d** An Actual of 2^46 rupees (about ₹70.37 lakh crore) or more is inert and carries no signed amount;
-  a `.01` value just below that limit stays clickable and signs its exact paise.
+- **C5d** An Actual whose absolute value is 2^46 rupees (about ₹70.37 lakh crore) or more is inert: its
+  signed context entry holds only its key and a not-clickable marker, with no amount, and a request for
+  it is refused without a read. Positive and negative `.01` values just below the limit stay clickable
+  and sign their exact paise; positive and negative values at the limit are inert.
 - **C5b** `AskResponse` carries optional typed presentation metadata, `rowLabels` as a list of
   `{ key, label, otherLabels }`, while each `ResultTable` dimension cell keeps its raw GL code or leaf
   key. The client joins labels and the optional `drill.rows` list of `{ key, drillable }` to rows by
