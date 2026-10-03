@@ -200,6 +200,159 @@ test("a successful answer renders its result with the verified badge the provena
   expect(screen.queryByText("✓ Verified")).not.toBeInTheDocument();
 });
 
+test("GL row labels render beside raw keys without changing answer rows totals or order", async () => {
+  const response = glLabelSuccess();
+  const originalRows = structuredClone(response.result!.rows);
+  const originalTotals = structuredClone(response.totals);
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+
+  submit("Show Actual by GL code");
+
+  const table = await screen.findByRole("table");
+  const rows = within(table).getAllByRole("row").slice(1);
+  expect(rows[0]).toHaveTextContent("50001201 · Sprout Cost - Imp");
+  expect(rows[1]).toHaveTextContent("50009999 · Seedlings");
+  expect(response.result!.rows).toEqual(originalRows);
+  expect(response.totals).toEqual(originalTotals);
+});
+
+test("the more-names disclosure exposes the full ordered accessible name and toggles with Enter Space and Escape", async () => {
+  mocks.ask.mockResolvedValue(glLabelSuccess());
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", {
+    name: "2 more account names: Imported sprouts, Sprout purchases",
+  });
+  expect(disclosure).toHaveAccessibleName("2 more account names: Imported sprouts, Sprout purchases");
+  expect(disclosure).toHaveAttribute("aria-expanded", "false");
+
+  fireEvent.keyDown(disclosure, { key: "Enter" });
+  expect(disclosure).toHaveAttribute("aria-expanded", "true");
+  const otherNames = screen.getByRole("list", { name: "Other account names" });
+  expect(otherNames).toHaveTextContent("Imported sproutsSprout purchases");
+  expect(otherNames).toHaveClass("text-secondary");
+  expect(otherNames).not.toHaveClass("text-[0.9em]");
+
+  fireEvent.keyDown(disclosure, { key: "Escape" });
+  expect(disclosure).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("list", { name: "Other account names" })).not.toBeInTheDocument();
+
+  fireEvent.keyDown(disclosure, { key: " " });
+  expect(disclosure).toHaveAttribute("aria-expanded", "true");
+});
+
+test("the more-names disclosure opens from a touch tap without relying on hover", async () => {
+  mocks.ask.mockResolvedValue(glLabelSuccess());
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", {
+    name: "2 more account names: Imported sprouts, Sprout purchases",
+  });
+  fireEvent.pointerDown(disclosure, { pointerType: "touch" });
+  fireEvent.pointerUp(disclosure, { pointerType: "touch" });
+  fireEvent.click(disclosure);
+
+  expect(disclosure).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("list", { name: "Other account names" })).toBeInTheDocument();
+});
+
+test("the inline disclosure keeps its expanded hit area within the table row", async () => {
+  mocks.ask.mockResolvedValue(glLabelSuccess());
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", {
+    name: "2 more account names: Imported sprouts, Sprout purchases",
+  });
+  expect(disclosure).not.toHaveClass("h-button");
+  expect(disclosure.className.split(" ").some((className) => className.startsWith("min-h-"))).toBe(false);
+  expect(disclosure).toHaveClass(
+    "relative",
+    "after:absolute",
+    "after:-inset-x-2",
+    "after:-inset-y-[7px]",
+    "after:content-['']",
+  );
+});
+
+test("the disclosure uses the shared press curve and stays still while keyboard focus is visible", async () => {
+  mocks.ask.mockResolvedValue(glLabelSuccess());
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", {
+    name: "2 more account names: Imported sprouts, Sprout purchases",
+  });
+  expect(disclosure).toHaveStyle({
+    transitionDuration: "140ms",
+    transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)",
+  });
+
+  const matches = vi.spyOn(disclosure, "matches");
+  matches.mockImplementation((selector) => selector === ":focus-visible");
+  fireEvent.pointerDown(disclosure, { pointerType: "mouse" });
+  expect(disclosure).not.toHaveAttribute("data-pointer-pressed");
+
+  matches.mockReturnValue(false);
+  fireEvent.pointerDown(disclosure, { pointerType: "mouse" });
+  expect(disclosure).toHaveAttribute("data-pointer-pressed", "true");
+  fireEvent.pointerUp(disclosure, { pointerType: "mouse" });
+  expect(disclosure).not.toHaveAttribute("data-pointer-pressed");
+});
+
+test("a disclosure beyond MAX_ROWS exposes and renders every other name in order", async () => {
+  const response = glLabelSuccess();
+  const otherLabels = Array.from({ length: 1001 }, (_, index) => `Other account ${String(index).padStart(4, "0")}`);
+  response.rowLabels![0]!.otherLabels = otherLabels;
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", {
+    name: `${otherLabels.length} more account names: ${otherLabels.join(", ")}`,
+  });
+  expect(disclosure).toHaveTextContent(`+${otherLabels.length} more`);
+
+  fireEvent.click(disclosure);
+  const rendered = within(screen.getByRole("list", { name: "Other account names" })).getAllByRole("listitem");
+  expect(rendered).toHaveLength(otherLabels.length);
+  expect(rendered[0]).toHaveTextContent(otherLabels[0]!);
+  expect(rendered.at(-1)).toHaveTextContent(otherLabels.at(-1)!);
+});
+
+test("an SAP account name that reads 'and 3 more' is disclosed as a name rather than a hidden count", async () => {
+  const response = glLabelSuccess();
+  response.rowLabels![0]!.otherLabels = ["and 3 more"];
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", { name: "1 more account names: and 3 more" });
+  expect(disclosure).toHaveTextContent("+1 more");
+  fireEvent.click(disclosure);
+  expect(screen.getByRole("list", { name: "Other account names" })).toHaveTextContent("and 3 more");
+});
+
+test("statement row labels replace raw leaf keys while an unlabelled statement keeps its raw key", async () => {
+  mocks.ask
+    .mockResolvedValueOnce(statementLabelSuccess([{ key: "leaf-sprout", label: "1.1 Sprout Cost", otherLabels: [] }]))
+    .mockResolvedValueOnce(statementLabelSuccess());
+  renderAsk();
+
+  submit("Show labelled statement lines");
+  const labelled = await screen.findByRole("table");
+  expect(within(labelled).getByText("1.1 Sprout Cost")).toBeInTheDocument();
+  expect(within(labelled).queryByText("leaf-sprout")).not.toBeInTheDocument();
+
+  submit("Show actual-only statement lines");
+  await waitFor(() => expect(screen.getAllByRole("table")).toHaveLength(2));
+  const tables = screen.getAllByRole("table");
+  expect(within(tables.at(-1)!).getByText("leaf-sprout")).toBeInTheDocument();
+});
+
 test("the docked panel sends the attested context and the focused node while the ask page sends neither", async () => {
   mocks.ask
     .mockResolvedValueOnce({
@@ -1059,6 +1212,55 @@ const measureFilteredSelection: Selection = {
   measureFilters: appliedMeasureFilters,
   timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-31" },
 };
+
+function glLabelSuccess(): AskResponse {
+  return {
+    ...success,
+    chartType: "table",
+    selection: {
+      domain: "governed-financial",
+      measureIds: ["governed-financial.actual", "governed-financial.budget"],
+      dimensionIds: ["gl_code"],
+      filters: [],
+    },
+    totals: { actual: 200, budget: 280 },
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+      ],
+      rows: [
+        { gl_code: "50001201", actual: "125.00", budget: "200.00" },
+        { gl_code: "50009999", actual: "75.00", budget: "80.00" },
+      ],
+    },
+    rowLabels: [
+      {
+        key: "50001201",
+        label: "Sprout Cost - Imp",
+        otherLabels: ["Imported sprouts", "Sprout purchases"],
+      },
+      { key: "50009999", label: "Seedlings", otherLabels: [] },
+    ],
+  };
+}
+
+function statementLabelSuccess(rowLabels: AskResponse["rowLabels"] = []): AskResponse {
+  return {
+    ...success,
+    chartType: "table",
+    selection,
+    rowLabels,
+    result: {
+      columns: [
+        { key: "leaf_key", label: "Statement leaf", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ leaf_key: "leaf-sprout", actual: "125.00" }],
+    },
+  };
+}
 
 function filteredSuccess(): AskResponse {
   const rawMonthlyPeriodControl = {

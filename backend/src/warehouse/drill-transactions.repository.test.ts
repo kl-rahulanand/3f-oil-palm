@@ -5,7 +5,8 @@ import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "./warehouse.interface";
-import { DrillTransactionsRepository, normalizeDateOnly } from "./drill-transactions.repository";
+import { GlNameRepository } from "./gl-name.repository";
+import { buildDrillPredicate, DrillTransactionsRepository, normalizeDateOnly } from "./drill-transactions.repository";
 import { StarRocksMysqlAdapter } from "./starrocks-mysql.adapter";
 
 test("the drill page and footer queries share one predicate and emit the deterministic order with a bounded limit the validator accepts", async () => {
@@ -199,6 +200,37 @@ test("a GL-and-plants predicate keeps the answer's plants and row GL in both pag
   }
 });
 
+test("the drill and name resolver use the identical predicate for the same answer scope", async () => {
+  const predicate = {
+    mode: "gl-and-plants" as const,
+    actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+    glCode: "50001201",
+    plants: ["DUB"],
+    filters: [{ dimensionId: "month", op: "neq" as const, value: "2026-06-01" }],
+    from: "2026-07-01",
+    to: "2026-07-31",
+  };
+  const warehouse = new FakeWarehouse();
+  const names = new GlNameRepository(new SqlValidator(), warehouse, {
+    findByBudgetPeriod: async () => [],
+    findByBudgetBatchId: async () => [],
+  });
+
+  await names.findGlCodeLabels([{ key: predicate.glCode, predicate }]);
+  const drillSql = new DrillTransactionsRepository(new SqlValidator(), warehouse).buildQueries(
+    predicate,
+    1,
+    100,
+  ).pageSql;
+  const drillWhere = drillSql.match(/WHERE ([\s\S]+?)\nORDER BY/)?.[1];
+  const expected = buildDrillPredicate(predicate);
+  const nameSql = warehouse.executed[0] ?? "";
+
+  assert.equal(drillWhere, expected);
+  assert.equal(nameSql.split(`WHERE (${expected})`).length - 1, 1);
+  assert.equal(nameSql.match(/FROM sap_transaction/g)?.length, 1);
+});
+
 test("a GL-and-plants predicate mirrors every answer-query filter operator and value-shape combination", () => {
   const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
   const builder = new SqlBuilder();
@@ -371,6 +403,19 @@ class FakeWarehouse implements Warehouse {
   async execute(sql: string) {
     this.executed.push(sql);
     if (sql.includes("feeding_line_count")) return { columns: [], rows: this.summaryRows };
+    if (sql.includes("scoped_line_count")) {
+      return {
+        columns: [],
+        rows: [
+          {
+            row_ordinal: "0",
+            row_key: "50001201",
+            scoped_line_count: "0",
+            name_groups: "[]",
+          },
+        ],
+      };
+    }
     return sql.includes("COUNT(*)")
       ? { columns: [], rows: [{ total_count: "0", debit: "0.00", credit: "0.00", value: "0.00" }] }
       : { columns: [], rows: this.pageRows };

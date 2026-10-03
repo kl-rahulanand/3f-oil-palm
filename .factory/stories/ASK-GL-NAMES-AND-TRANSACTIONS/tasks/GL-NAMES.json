@@ -1,0 +1,63 @@
+{
+  "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-NAMES",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "bb56228bf0e3fca1662cb8dbe65910800a380e432c88ff59b8dd6b9d05acad58",
+    "commit": "0f87e10174cdfc266868a816d7a2d385d5dba8ba",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The UI proof still injects completed `rowLabels` through the mocked Ask API, and this task intentionally has no production caller for `GlNameRepository`. Therefore no running-API, real-database browser test yet proves that resolved GL and statement labels reach the table and disclosure. The story assigns that production crossing to GL-ANSWER-WIRING, so this remains deferred advice rather than a blocker for this branch.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 207,
+        "priority": "P2",
+        "title": "Later: prove labels through the running Ask stack \u2192 GL-ANSWER-WIRING"
+      }
+    ],
+    "status": "clean",
+    "tree": "7f6bf859885e60f28bdbe1836c36fa169272c9f03cb99abaa2389e6ebd447eef"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-03T07:21:52+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-03T07:52:22+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T08:19:53+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T08:43:30+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T09:09:53+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T09:33:43+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T09:50:33+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T10:09:58+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T10:42:21+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T10:52:56+00:00",
+      "step": "review"
+    }
+  ]
+}

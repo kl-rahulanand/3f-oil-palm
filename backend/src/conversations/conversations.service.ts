@@ -250,6 +250,7 @@ function answerSnapshot(answer: ConversationAnswerSnapshot): ConversationAnswerS
     ...(answer.title === undefined ? {} : { title: answer.title }),
     ...(answer.chips === undefined ? {} : { chips: answer.chips }),
     ...(answer.result === undefined ? {} : { result: answer.result }),
+    ...(answer.rowLabels === undefined ? {} : { rowLabels: answer.rowLabels }),
     ...(answer.totals === undefined ? {} : { totals: answer.totals }),
     ...(answer.chartType === undefined ? {} : { chartType: answer.chartType }),
     ...(answer.provenance === undefined ? {} : { provenance: answer.provenance }),

@@ -34,6 +34,22 @@
     {
       "at": "2026-10-02T17:34:22+00:00",
       "step": "approved"
+    },
+    {
+      "at": "2026-10-03T10:13:00+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-03T10:16:47+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-03T10:18:54+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-03T10:20:05+00:00",
+      "step": "read"
     }
   ],
   "title": "Ask names each GL line and opens its transactions",

@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T17:24:49+00:00
-read_hash: a5e8d8e560a1edc0f8dee45f5ac790b5ac36a79e
-round: 4
+read_at: 2026-10-03T10:20:04+00:00
+read_hash: ad201eb56d395f0c2b6999514f4a5021eef97f7c
+round: 8
 passed: yes
-doc_seen: a5e8d8e560a1edc0f8dee45f5ac790b5ac36a79e
+doc_seen: ad201eb56d395f0c2b6999514f4a5021eef97f7c
 spec_seen: ebc6473926090ed5ec1a4a7466cbf186cf3f9b4c
-notes_seen: 01a2c2cce009ec695decf09371853dab91095c96
+notes_seen: a603fecb0fbed88eadbd2069def2934a8eea3014
 ---
 # Cold read notes
 
@@ -78,5 +78,59 @@ Only a genuine trade-off goes to the human, as a question with options.
    Disposition: cut one repository operation, summarize, returns count and sum(debit - credit)::text, the existing footer's expression; issuance signs it and a leaf proves issuance and route footer strings match (detail 7).
 
 ## Round 4
+
+No findings.
+
+## Round 5
+
+14. Gap: stored-conversation handling contradicts the confirmed spec.
+   The plan says no screen reopens stored conversations and proves only the snapshot service boundary, but C5b requires a reopened stored answer to make every Actual inert and offer “Ask again.” No task or frontend test delivers that behavior, nor is it deferred in the confirmed spec.
+   Disposition: cut GL-DRILL-PANEL now renders every Actual of an answer with no `drill` object (every stored snapshot) inert with an "Ask again" action, with a leaf on a snapshot-shaped answer; no screen reopens stored conversations today because the conversations module is not mounted.
+
+15. Unproven: item 2: a multi-period answer selects labels from its last-month budget batch and outline.
+   Detail 2 states the rule, but its leaves cover only active-outline replacement, absent budget batch, and snapshot storage. Add this case to `gl-name.repository.test.ts`.
+   Disposition: cut GL-ANSWER-WIRING chooses the batch the resolver uses, so it proves a multi-period answer passes its last month's budget batch to the name resolver; the resolver's own leaf already covers the pinned last-month outline.
+
+16. Unproven: item 6: a %-only answer has no `drill` object and cannot issue a transaction request.
+   The plan proves Budget-only and unauthorized-Actual cases, but not the separately specified %-only case. Add an issuance and inert-cell assertion.
+   Disposition: cut GL-ANSWER-WIRING proves a %-only answer carries no `drill`; GL-DRILL-PANEL proves its cells are inert and make no request.
+
+17. Unproven: item 7: a missing signed context is refused, audited, and read-free.
+   The route leaves name invalid signatures, expiry, and another user, but not an absent context, which the confirmed spec explicitly requires to receive a stated, audited refusal.
+   Disposition: cut GL-ANSWER-WIRING scopes the Ask drill controller and service and proves a request with no context is refused like a tampered link, audited, and starts no read (detail 7).
+
+## Round 6
+
+18. Gap: the stored-answer “Ask again” action cannot be limited to stored answers.
+   `drill` is absent for both stored snapshots and ordinary unsupported live answers. Rendering “Ask again” for every answer without `drill` makes unsupported live Actuals interactive, contrary to item 6’s inert/plain cells. Add an explicit stored-answer source marker or pass that state separately.
+   Disposition: cut GL-DRILL-PANEL takes an explicit stored-answer flag from its caller; only a flagged answer shows "Ask again", and a leaf proves a live answer without `drill` keeps plain inert cells.
+
+19. Gap: bounded `otherLabels` cannot meet the confirmed full-disclosure requirement.
+   `hiddenOtherLabelCount` reports labels the client does not receive, so it cannot reveal the complete ordered list or put it in the accessible name. Keep the complete list in `rowLabels`, or add a specified, authorized retrieval path.
+   Disposition: cut `otherLabels` now carries every other normalized name in order and the count field is gone, so the disclosure and accessible name show the complete list as the confirmed spec requires.
+
+20. Split: `GL-NAMES` → name/outline resolution and response-contract wiring.
+   Its expanded 16-file scope now re-edits the route task’s contract, chat schema, Swagger, and transaction repository, while also changing ingestion parsing and frontend rendering. The route task should own the shared response contract and route files; keep the name resolver, snapshot, and display work together.
+   Disposition: keep GL-NAMES is built and through review; with finding 19 it no longer touches the contract, chat schema or Swagger files, and its remaining shared edits are a pure export of the drill predicate and the outline identity rule so the resolver copies neither.
+
+21. Gap: the no-context route proof is owned by the wrong task.
+   `GL-ANSWER-WIRING` now scopes `ask-drill.controller.ts`, `ask-drill.service.ts`, and its test solely for a route refusal that `GL-DRILL-ROUTE` already owns. Put that leaf in `GL-DRILL-ROUTE` and remove the shared route scope from the wiring task.
+   Disposition: keep GL-DRILL-ROUTE merged as PR 88 and cannot take new work, so the no-context refusal leaf stays with GL-ANSWER-WIRING, the next part to run, and its route scope is limited to that refusal.
+
+## Round 7
+
+22. Disputed keep 20: the remaining shared export is not pinned by the earlier route task.
+   `buildPredicate` is currently module-private, while the plan says `GL-NAMES` will rely on an export from the drill repository without naming its signature or a cross-consumer proof. Pin that public predicate seam and its test in `GL-DRILL-ROUTE`, or specify the independent name-query predicate in `GL-NAMES`.
+   Disposition: cut GL-NAMES now names the seam: it exports the existing builder as `buildDrillPredicate(predicate: DrillPredicate)` with no behaviour change, and a leaf proves the drill and the resolver render the identical predicate.
+
+23. Trap: stale merged-task description.
+   The disposition says `GL-DRILL-ROUTE` has merged, but detail 3 and its task row still describe a new route and its pre-issuance state as work to deliver. Sweep the builder section for the merged state before later parts merge.
+   Disposition: cut the GL-TXN-COLUMNS and GL-DRILL-ROUTE rows are marked merged with their PR numbers, and a note says their rows and detail 3 describe delivered work.
+
+24. Gap: task coverage no longer matches delivered behavior.
+   `GL-ANSWER-WIRING` now implements and tests an item 7 refusal, but covers only 6 and 9; `GL-DRILL-PANEL` implements item 6’s inert-cell rules, but covers only 4 and 10. Add those Done-when items to the respective Covers cells.
+   Disposition: cut GL-ANSWER-WIRING now covers 6, 7 and 9; GL-DRILL-PANEL covers 4, 6 and 10.
+
+## Round 8
 
 No findings.

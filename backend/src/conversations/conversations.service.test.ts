@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ConversationAnswerSnapshot, Selection } from "@3f/contract";
+import type { AskResponse, ConversationAnswerSnapshot, Selection } from "@3f/contract";
 import { ConversationsService } from "./conversations.service";
 
 test("a conversation answer snapshot keeps applied measure filters when a turn is appended", async () => {
@@ -31,6 +31,36 @@ test("a conversation answer snapshot keeps applied measure filters when a turn i
   });
 
   assert.deepEqual(turn.answer.appliedMeasureFilters, measureFilters);
+});
+
+test("a conversation answer snapshot keeps row labels and drops the ephemeral drill link", async () => {
+  const selection: Selection = {
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["gl_code"],
+    filters: [],
+  };
+  const answer: ConversationAnswerSnapshot & Pick<AskResponse, "drill"> = {
+    title: "Actual by GL code",
+    rowLabels: [
+      {
+        key: "50001201",
+        label: "Sprout Cost - Imp",
+        otherLabels: ["Sprout cost"],
+      },
+    ],
+    drill: { context: "signed.answer", rows: [{ key: "50001201", drillable: true }] },
+  };
+  const service = new ConversationsService(conversationDb() as never);
+
+  const turn = await service.appendTurn("user-1", "conversation-1", {
+    question: "Show Actual by GL code",
+    selection,
+    answer,
+  });
+
+  assert.deepEqual(turn.answer.rowLabels, answer.rowLabels);
+  assert.equal("drill" in turn.answer, false);
 });
 
 function conversationDb(): object {

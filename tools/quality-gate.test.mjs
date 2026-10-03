@@ -77,6 +77,7 @@ const hermeticTests = [
   "backend/src/warehouse/drill-transactions.db.test.ts",
   "backend/src/warehouse/drill-transactions.repository.test.ts",
   "backend/src/warehouse/freshness.adapters.test.ts",
+  "backend/src/warehouse/gl-name.repository.test.ts",
   "backend/src/warehouse/gl-month-rollups.db.test.ts",
   "backend/src/warehouse/golden-financial.db.test.ts",
   "backend/src/warehouse/load-freshness.db.test.ts",
@@ -91,6 +92,7 @@ const hermeticTests = [
 const dbTests = [
   "backend/src/admin/access-metadata.controller.test.ts",
   "backend/src/auth/auth.controller.test.ts",
+  "backend/src/conversations/conversations.service.db.test.ts",
   "backend/src/core/audit.service.test.ts",
   "backend/src/core/session.service.test.ts",
   "backend/src/db/migrate.exploration.db.test.ts",
@@ -139,7 +141,7 @@ const expectedWorkspaceScripts = {
     "test:hermetic": `${backendHermeticTestRunner} ${hermeticTests.join(" ")}`,
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
-      "cd .. && STATEMENT_ATTESTATION_SECRETS=warehouse-proof-statement-attestation-secret TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts backend/src/warehouse/load-freshness.db.test.ts backend/src/warehouse/measure-filter.db.test.ts backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+      "cd .. && STATEMENT_ATTESTATION_SECRETS=warehouse-proof-statement-attestation-secret TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts backend/src/warehouse/gl-name.repository.test.ts backend/src/warehouse/load-freshness.db.test.ts backend/src/warehouse/measure-filter.db.test.ts backend/src/warehouse/all-plants-reconciliation.db.test.ts",
     "master:generate": "ts-node -T src/mapping/generate-mapping-master.ts",
   },
   contract: {
