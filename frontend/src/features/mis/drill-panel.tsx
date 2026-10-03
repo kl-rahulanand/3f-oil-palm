@@ -1,13 +1,17 @@
 "use client";
 
 import type {
+  AskDrillResponse,
   FixedScaleMoney,
   MisDrillResponse,
   MisStatementMeasureBlock,
   MisStatementNode,
   MisStatementResolvedResponse,
 } from "@3f/contract";
+import { useMutation } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { api } from "@/src/lib/api";
 import {
   BUDGET_NOT_LOADED_LABEL,
   formatBlockHeading,
@@ -18,7 +22,7 @@ import {
 } from "./statement-view";
 import { useMisDrill } from "./use-mis-statement";
 
-export interface DrillPanelSelection {
+export interface StatementDrillPanelSelection {
   node: MisStatementNode;
   roots: MisStatementNode[];
   blockKey: MisStatementMeasureBlock["key"];
@@ -26,6 +30,18 @@ export interface DrillPanelSelection {
   response: MisStatementResolvedResponse;
   opener: HTMLButtonElement;
 }
+
+export interface AskDrillPanelSelection {
+  kind: "ask";
+  context: string;
+  rowKey: string;
+  label: string;
+  actual: FixedScaleMoney;
+  opener: HTMLButtonElement;
+}
+
+export type DrillPanelSelection = StatementDrillPanelSelection;
+type AnyDrillPanelSelection = DrillPanelSelection | AskDrillPanelSelection;
 
 const ZERO = BigInt(0);
 const TEN = BigInt(10);
@@ -39,19 +55,42 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   timeZone: "UTC",
 });
 
-export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPanelSelection; onClose: () => void }>) {
+export function DrillPanel({
+  selection,
+  onClose,
+}: Readonly<{ selection: AnyDrillPanelSelection; onClose: () => void }>) {
+  const askSelection = isAskSelection(selection) ? selection : null;
+  const statementSelection = isAskSelection(selection) ? null : selection;
+  const isAsk = askSelection !== null;
   const dialogRef = useRef<HTMLDivElement>(null);
   const leafButtons = useRef(new Map<string, HTMLButtonElement>());
   const focusAfterBack = useRef<string | null>(null);
   const [transactionNode, setTransactionNode] = useState<MisStatementNode | null>(
-    selection.roots.length === 0 ? selection.node : null,
+    statementSelection?.roots.length === 0 ? statementSelection.node : null,
   );
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState<MisDrillResponse | null>(null);
-  const { mutate, reset, isPending, isError, error } = useMisDrill();
-  const leaves = flattenLeaves(selection.roots);
-  const activeNode = transactionNode ?? selection.node;
-  const clickedMeasure = measureFor(activeNode, selection.blockKey);
+  const [result, setResult] = useState<MisDrillResponse | AskDrillResponse | null>(null);
+  const {
+    mutate: runStatementDrill,
+    reset: resetStatementDrill,
+    isPending: isStatementPending,
+    isError: isStatementError,
+    error: statementError,
+  } = useMisDrill();
+  const {
+    mutate: runAskDrill,
+    isPending: isAskPending,
+    isError: isAskError,
+    error: askError,
+  } = useMutation({ mutationFn: api.runAskDrill });
+  const leaves = flattenLeaves(statementSelection?.roots ?? []);
+  const activeNode = statementSelection ? (transactionNode ?? statementSelection.node) : null;
+  const clickedMeasure = activeNode && statementSelection ? measureFor(activeNode, statementSelection.blockKey) : null;
+  const clickedActual = askSelection ? askSelection.actual : clickedMeasure!.actual;
+  const isPending = isAsk ? isAskPending : isStatementPending;
+  const isError = isAsk ? isAskError : isStatementError;
+  const error = isAsk ? askError : statementError;
+  const isTransactionView = isAsk || transactionNode !== null;
 
   useEffect(() => {
     dialogRef.current?.focus();
@@ -63,27 +102,35 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
   }, [transactionNode]);
 
   useEffect(() => {
-    if (!transactionNode) {
+    if (!isAsk && !transactionNode) {
       const nodeKey = focusAfterBack.current;
       if (nodeKey) leafButtons.current.get(nodeKey)?.focus();
       focusAfterBack.current = null;
       return;
     }
-    const { department, function: functionName, plant, period } = selection.response.scope;
-    mutate(
+    if (isAsk) {
+      runAskDrill(
+        { context: askSelection.context, rowKey: askSelection.rowKey, page },
+        { onSuccess: setResult, onError: () => setResult(null) },
+      );
+      return;
+    }
+    if (!statementSelection || !transactionNode) return;
+    const { department, function: functionName, plant, period } = statementSelection.response.scope;
+    runStatementDrill(
       {
         department,
         function: functionName,
         plant,
         period,
         nodeKey: transactionNode.nodeKey,
-        block: selection.blockKey,
-        pinnedBatches: selection.response.provenance.activeBatchIds,
+        block: statementSelection.blockKey,
+        pinnedBatches: statementSelection.response.provenance.activeBatchIds,
         page,
       },
       { onSuccess: setResult, onError: () => setResult(null) },
     );
-  }, [mutate, page, selection.blockKey, selection.response, transactionNode]);
+  }, [askSelection, isAsk, page, runAskDrill, runStatementDrill, statementSelection, transactionNode]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
@@ -117,22 +164,23 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
 
   function showAggregate() {
     focusAfterBack.current = transactionNode?.nodeKey ?? null;
-    reset();
+    resetStatementDrill();
     setResult(null);
     setTransactionNode(null);
     setPage(1);
   }
 
-  const aggregateTotals = aggregateTotal(selection, leaves);
-  const transactionFoots = result ? toPaise(result.footer.value) === toPaise(clickedMeasure.actual) : true;
-  const transactionReplaced = result?.batchStatuses.some(({ status }) => status === "replaced") ?? false;
+  const aggregateTotals = statementSelection ? aggregateTotal(statementSelection, leaves) : null;
+  const transactionFoots = result ? toPaise(result.footer.value) === toPaise(clickedActual) : true;
+  const transactionReplaced = !isAsk && (result?.batchStatuses.some(({ status }) => status === "replaced") ?? false);
+  const title = askSelection ? askSelection.label : activeNode!.budgetComponent;
 
   return (
     <div className="mis-drill-layer">
       <div className="mis-drill-scrim" aria-hidden="true" data-testid="drill-scrim" onClick={onClose} />
       <div
         ref={dialogRef}
-        className="mis-drill-panel"
+        className="mis-drill-panel max-[560px]:!w-full"
         role="dialog"
         aria-modal="true"
         aria-labelledby="mis-drill-title"
@@ -145,36 +193,42 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
             <div className="mis-drill-breadcrumb">
               <span className="mis-eyebrow">Drill-down</span>
               <span className="mis-drill-divider" />
-              {transactionNode && selection.roots.length > 0 ? (
-                <button className="mis-drill-back" type="button" onClick={showAggregate}>
-                  {selection.node.budgetComponent}
+              {statementSelection && transactionNode && statementSelection.roots.length > 0 ? (
+                <button
+                  className="mis-drill-back min-h-11 focus-visible:active:!transform-none motion-reduce:transform-none"
+                  type="button"
+                  onClick={showAggregate}
+                >
+                  {statementSelection.node.budgetComponent}
                 </button>
-              ) : (
-                selection.breadcrumb.map((crumb, index) => (
+              ) : statementSelection ? (
+                statementSelection.breadcrumb.map((crumb, index) => (
                   <span key={`${crumb}-${index}`}>
                     {index > 0 && <span aria-hidden="true">›</span>}
                     <span>{crumb}</span>
                   </span>
                 ))
+              ) : (
+                <span>Ask answer</span>
               )}
             </div>
-            <h2 id="mis-drill-title">{activeNode.budgetComponent}</h2>
+            <h2 id="mis-drill-title">{title}</h2>
             <div className="mis-drill-total">
               <strong>
                 {isError || transactionReplaced
                   ? "Transactions unavailable"
-                  : transactionNode
+                  : isTransactionView
                     ? transactionFoots
-                      ? formatMoney(clickedMeasure.actual)
+                      ? formatMoney(clickedActual)
                       : "Total withheld"
-                    : aggregateTotals.foots
-                      ? formatMoney(clickedMeasure.actual)
+                    : aggregateTotals!.foots
+                      ? formatMoney(clickedActual)
                       : "Total withheld"}
               </strong>
               {!isError && !transactionReplaced && (
                 <span>
-                  {formatBlockHeading(clickedMeasure)} ·{" "}
-                  {transactionNode
+                  {isAsk ? "Ask answer" : formatBlockHeading(clickedMeasure!)} ·{" "}
+                  {isTransactionView
                     ? result
                       ? `${result.totalCount} ${result.totalCount === 1 ? "line" : "lines"}`
                       : "Loading transactions…"
@@ -183,25 +237,31 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
               )}
             </div>
           </div>
-          <button className="mis-drill-close" type="button" aria-label="Close drill-down" onClick={onClose}>
-            ✕
+          <button
+            className="mis-drill-close !h-11 !w-11 focus-visible:active:!transform-none motion-reduce:transform-none"
+            type="button"
+            aria-label="Close drill-down"
+            onClick={onClose}
+          >
+            <X size={16} aria-hidden="true" />
           </button>
         </header>
-        {transactionNode ? (
+        {isTransactionView ? (
           <TransactionBody
             result={result}
-            clickedActual={clickedMeasure.actual}
+            clickedActual={clickedActual}
             pending={isPending}
             error={error}
             page={page}
             onPage={setPage}
+            source={isAsk ? "ask" : "statement"}
           />
         ) : (
           <AggregateBody
             leaves={leaves}
-            blockKey={selection.blockKey}
-            totalMeasure={clickedMeasure}
-            totals={aggregateTotals}
+            blockKey={statementSelection!.blockKey}
+            totalMeasure={clickedMeasure!}
+            totals={aggregateTotals!}
             leafButtons={leafButtons.current}
             onOpen={openLeaf}
           />
@@ -211,6 +271,10 @@ export function DrillPanel({ selection, onClose }: Readonly<{ selection: DrillPa
   );
 }
 
+function isAskSelection(selection: AnyDrillPanelSelection): selection is AskDrillPanelSelection {
+  return "kind" in selection && selection.kind === "ask";
+}
+
 function TransactionBody({
   result,
   clickedActual,
@@ -218,25 +282,19 @@ function TransactionBody({
   error,
   page,
   onPage,
+  source,
 }: Readonly<{
-  result: MisDrillResponse | null;
+  result: MisDrillResponse | AskDrillResponse | null;
   clickedActual: FixedScaleMoney;
   pending: boolean;
   error: Error | null;
   page: number;
   onPage: (page: number) => void;
+  source: "statement" | "ask";
 }>) {
   if (error) {
     const status = "status" in error && typeof error.status === "number" ? error.status : 0;
-    const copy =
-      status === 409
-        ? ["Statement out of date", "Generate the statement again before opening its transactions."]
-        : status === 403
-          ? [
-              "Transactions are not available",
-              "Your access does not include these lines. Ask an administrator if you need access.",
-            ]
-          : ["Transactions could not be loaded", "Try opening this Actual again."];
+    const copy = source === "ask" ? askDrillError(status) : statementDrillError(status);
     return (
       <div className="mis-drill-state" role="alert">
         <strong>{copy[0]}</strong>
@@ -255,7 +313,7 @@ function TransactionBody({
   const first = result.totalCount === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
   const last = result.totalCount === 0 ? 0 : first + result.lines.length - 1;
   const replaced = result.batchStatuses.filter(({ status }) => status === "replaced");
-  if (replaced.length > 0)
+  if (source === "statement" && replaced.length > 0)
     return (
       <div className="mis-drill-state" role="alert">
         <strong>Statement batches replaced since generation</strong>
@@ -271,6 +329,11 @@ function TransactionBody({
         <span className="mis-drill-chip">Month ↓</span>
         {pending && <span role="status">Loading page…</span>}
       </div>
+      {source === "ask" && "notice" in result && result.notice && (
+        <div className="mis-drill-notice" role="status">
+          {result.notice}
+        </div>
+      )}
       {!foots && (
         <div className="mis-drill-notice" role="alert">
           <strong>Total withheld</strong>
@@ -338,7 +401,7 @@ function TransactionBody({
                   <MoneyTotal value={result.footer.credit} />
                   <MoneyTotal value={result.footer.value} />
                   <td colSpan={2}>
-                    <small>Matches the Actual in the report</small>
+                    <small>Matches the Actual in the {source === "ask" ? "answer" : "report"}</small>
                   </td>
                 </>
               ) : (
@@ -353,17 +416,52 @@ function TransactionBody({
           {result.totalCount} matching · rows {first}–{last} on screen
         </span>
         <div>
-          <button type="button" disabled={pending || page <= 1} onClick={() => onPage(page - 1)}>
+          <button
+            className="min-h-11 min-w-11 focus-visible:active:!transform-none motion-reduce:transform-none"
+            type="button"
+            disabled={pending || page <= 1}
+            onClick={() => onPage(page - 1)}
+          >
             Previous
           </button>
           <span>Page {result.page}</span>
-          <button type="button" disabled={pending || last >= result.totalCount} onClick={() => onPage(page + 1)}>
+          <button
+            className="min-h-11 min-w-11 focus-visible:active:!transform-none motion-reduce:transform-none"
+            type="button"
+            disabled={pending || last >= result.totalCount}
+            onClick={() => onPage(page + 1)}
+          >
             Next
           </button>
         </div>
       </nav>
     </>
   );
+}
+
+function statementDrillError(status: number): [string, string] {
+  return status === 409
+    ? ["Statement out of date", "Generate the statement again before opening its transactions."]
+    : status === 403
+      ? [
+          "Transactions are not available",
+          "Your access does not include these lines. Ask an administrator if you need access.",
+        ]
+      : ["Transactions could not be loaded", "Try opening this Actual again."];
+}
+
+function askDrillError(status: number): [string, string] {
+  const message =
+    status === 410
+      ? "This answer is too old to open. Ask again to open its transactions."
+      : status === 403
+        ? "Your access has changed since this answer was shown. Ask again."
+        : status === 409
+          ? "The data behind this answer is no longer available. Ask again to open its transactions."
+          : status === 400
+            ? "This line cannot be opened. Ask again."
+            : "Transactions could not be opened right now. Try again.";
+  return ["Transactions could not be opened", message];
 }
 
 function MoneyTotal({ value }: Readonly<{ value: FixedScaleMoney }>) {
@@ -480,7 +578,7 @@ function AggregateBody({
   );
 }
 
-function aggregateTotal(selection: DrillPanelSelection, leaves: MisStatementNode[]) {
+function aggregateTotal(selection: StatementDrillPanelSelection, leaves: MisStatementNode[]) {
   const measures = leaves.map((leaf) => measureFor(leaf, selection.blockKey));
   const actualPaise = measures.reduce((total, measure) => total + toPaise(measure.actual), ZERO);
   const clicked = measureFor(selection.node, selection.blockKey);

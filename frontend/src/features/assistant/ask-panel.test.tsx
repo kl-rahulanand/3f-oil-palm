@@ -15,6 +15,7 @@
 //     request, because a request assertion alone cannot tell continueTurn from a direct api.ask.
 
 import type {
+  AskDrillResponse,
   AskResponse,
   AskStatementGrounding,
   AuthUser,
@@ -32,6 +33,7 @@ import { AskProvider, useAsk } from "./use-ask";
 
 const mocks = vi.hoisted(() => ({
   ask: vi.fn(),
+  runAskDrill: vi.fn(),
   saveQuery: vi.fn(),
   createPin: vi.fn(),
   warehouseFreshness: vi.fn().mockResolvedValue({ status: "unsupported", freshnessKind: "load" }),
@@ -166,6 +168,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   mocks.ask.mockReset();
+  mocks.runAskDrill.mockReset();
   mocks.saveQuery.mockReset();
   mocks.createPin.mockReset();
   mocks.pathname = "/ask";
@@ -351,6 +354,174 @@ test("statement row labels replace raw leaf keys while an unlabelled statement k
   await waitFor(() => expect(screen.getAllByRole("table")).toHaveLength(2));
   const tables = screen.getAllByRole("table");
   expect(within(tables.at(-1)!).getByText("leaf-sprout")).toBeInTheDocument();
+});
+
+test("a drillable GL Actual opens its signed transactions in the shared panel and pages one hundred at a time", async () => {
+  const response = glLabelSuccess();
+  response.drill = {
+    context: "signed-answer-context",
+    rows: [
+      { key: "50001201", drillable: true },
+      { key: "50009999", drillable: false },
+    ],
+  };
+  mocks.ask.mockResolvedValue(response);
+  mocks.runAskDrill.mockResolvedValueOnce(askDrillResponse({ totalCount: 101 })).mockResolvedValueOnce(
+    askDrillResponse({
+      page: 2,
+      totalCount: 101,
+      lines: [
+        {
+          month: "2026-07-01",
+          postingDate: "2026-07-03",
+          txnNo: "DOC-101",
+          costCenter: "DUB-NUR",
+          accountName: "Sprout Cost - Imp",
+          debit: "0.00",
+          credit: "1.00",
+          value: "-1.00",
+          reference: "REF-101",
+          memo: "Last row",
+        },
+      ],
+    }),
+  );
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const table = await screen.findByRole("table");
+  const sproutRow = within(table).getByRole("row", { name: /50001201/ });
+  const actual = within(sproutRow).getByRole("button", {
+    name: "Open transactions for 50001201 · Sprout Cost - Imp, Actual ₹125",
+  });
+  expect(actual.tagName).toBe("BUTTON");
+  expect(actual).toHaveClass("min-h-11", "min-w-11", "focus-visible:active:!transform-none");
+  expect(within(sproutRow).getByText("₹200")).not.toHaveAttribute("role", "button");
+  const inertRow = within(table).getByRole("row", { name: /50009999/ });
+  expect(inertRow).not.toContainElement(screen.queryByRole("button", { name: /50009999.*Actual/ }));
+  fireEvent.click(within(inertRow).getByText("₹75"));
+  fireEvent.click(within(sproutRow).getByText("₹200"));
+  expect(mocks.runAskDrill).not.toHaveBeenCalled();
+
+  fireEvent.pointerDown(actual, { pointerType: "touch" });
+  fireEvent.click(actual);
+
+  expect(await screen.findByRole("dialog", { name: "50001201 · Sprout Cost - Imp" })).toBeInTheDocument();
+  await waitFor(() =>
+    expect(mocks.runAskDrill).toHaveBeenCalledWith({
+      context: "signed-answer-context",
+      rowKey: "50001201",
+      page: 1,
+    }),
+  );
+  expect(screen.getByRole("row", { name: "Total" })).toHaveTextContent("₹125.00exact");
+  expect(screen.getByText("Matches the Actual in the answer")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await waitFor(() =>
+    expect(mocks.runAskDrill).toHaveBeenLastCalledWith({
+      context: "signed-answer-context",
+      rowKey: "50001201",
+      page: 2,
+    }),
+  );
+  expect(await screen.findByText("DOC-101")).toBeInTheDocument();
+});
+
+test("a drillable statement-line Actual opens the signed read for its raw leaf key", async () => {
+  const response = statementLabelSuccess([{ key: "leaf-sprout", label: "1.1 Sprout Cost", otherLabels: [] }]);
+  response.selection = {
+    domain: "mis-statement",
+    measureIds: ["mis-statement.actual_net"],
+    dimensionIds: ["leaf_key"],
+    filters: [],
+  };
+  response.result = {
+    columns: [
+      { key: "leaf_key", label: "Statement leaf", numeric: false },
+      { key: "actual_net", label: "Actual", numeric: true, format: "money" },
+    ],
+    rows: [{ leaf_key: "leaf-sprout", actual_net: "125.00" }],
+  };
+  response.drill = {
+    context: "signed-statement-answer",
+    rows: [{ key: "leaf-sprout", drillable: true }],
+  };
+  mocks.ask.mockResolvedValue(response);
+  mocks.runAskDrill.mockResolvedValue(askDrillResponse({ rowKey: "leaf-sprout" }));
+  renderAsk();
+  submit("Show Actual by statement line");
+
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: "Open transactions for 1.1 Sprout Cost, Actual ₹125",
+    }),
+  );
+
+  await waitFor(() =>
+    expect(mocks.runAskDrill).toHaveBeenCalledWith({
+      context: "signed-statement-answer",
+      rowKey: "leaf-sprout",
+      page: 1,
+    }),
+  );
+  expect(screen.getByRole("dialog", { name: "1.1 Sprout Cost" })).toBeInTheDocument();
+});
+
+test("a live answer without drill metadata keeps every Actual plain and makes no transaction request", async () => {
+  const response = glLabelSuccess();
+  response.selection = {
+    ...response.selection!,
+    measureIds: ["governed-financial.actual", "governed-financial.budget", "governed-financial.percentage"],
+  };
+  response.result!.columns.push({ key: "percentage", label: "%", numeric: false, format: "percent" });
+  response.result!.rows[0]!.percentage = "0.625";
+  response.result!.rows[1]!.percentage = "0.9375";
+  response.totals = { actual: 200, budget: 280, percentage: 0.7143 };
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const table = await screen.findByRole("table");
+  expect(within(table).queryByRole("button", { name: /Open transactions/ })).not.toBeInTheDocument();
+  expect(within(table).queryByRole("button", { name: /Ask again/ })).not.toBeInTheDocument();
+  for (const value of ["₹125", "₹200", "62.5%"] as const) {
+    const cell = within(table).getByText(value).closest("td")!;
+    expect(within(cell).queryByRole("button")).not.toBeInTheDocument();
+    fireEvent.click(cell);
+  }
+  const answer = table.closest("article")!;
+  const totals = within(answer).getByText("₹280").closest("dl")!;
+  expect(within(totals).queryByRole("button")).not.toBeInTheDocument();
+  expect(mocks.runAskDrill).not.toHaveBeenCalled();
+});
+
+test("a stored snapshot shows Ask again beside its inert Actuals and reruns instead of reading transactions", async () => {
+  mocks.ask.mockResolvedValueOnce(glLabelSuccess()).mockResolvedValueOnce({
+    ...glLabelSuccess(),
+    title: "Fresh governed result",
+  });
+  renderAsk({ storedAnswer: true });
+  submit("Show Actual by GL code");
+
+  const table = await screen.findByRole("table");
+  expect(within(table).getAllByRole("button", { name: /Ask again to open transactions/ })).toHaveLength(2);
+  const sproutRow = within(table).getByRole("row", { name: /50001201/ });
+  expect(within(sproutRow).getByText("₹125")).toBeInTheDocument();
+  const askAgain = within(sproutRow).getByRole("button", {
+    name: "Ask again to open transactions for 50001201 · Sprout Cost - Imp, Actual ₹125",
+  });
+  expect(within(sproutRow).getByText("₹200")).toBeInTheDocument();
+  expect(within(sproutRow).queryByRole("button", { name: /Budget/ })).not.toBeInTheDocument();
+
+  fireEvent.click(askAgain);
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({
+    question: "Show Actual by GL code",
+    selection: glLabelSuccess().selection,
+  });
+  expect(mocks.runAskDrill).not.toHaveBeenCalled();
 });
 
 test("the docked panel sends the attested context and the focused node while the ask page sends neither", async () => {
@@ -1153,10 +1324,10 @@ test("an ordinary streaming http error renders as the buffered client does", asy
   expect(screen.queryByText("API request failed with status 500")).not.toBeInTheDocument();
 });
 
-function renderAsk() {
-  return render(
+function renderAsk({ storedAnswer = false }: { storedAnswer?: boolean } = {}) {
+  return renderWithQuery(
     <AskProvider>
-      <AskPanel surface="page" />
+      <AskPanel surface="page" storedAnswer={storedAnswer} />
     </AskProvider>,
   );
 }
@@ -1259,6 +1430,32 @@ function statementLabelSuccess(rowLabels: AskResponse["rowLabels"] = []): AskRes
       ],
       rows: [{ leaf_key: "leaf-sprout", actual: "125.00" }],
     },
+  };
+}
+
+function askDrillResponse(overrides: Partial<AskDrillResponse> = {}): AskDrillResponse {
+  return {
+    rowKey: "50001201",
+    lines: [
+      {
+        month: "2026-07-01",
+        postingDate: "2026-07-02",
+        txnNo: "DOC-1",
+        costCenter: "DUB-NUR",
+        accountName: "Sprout Cost - Imp",
+        debit: "125.00",
+        credit: "0.00",
+        value: "125.00",
+        reference: "REF-1",
+        memo: "Sprout purchase",
+      },
+    ],
+    footer: { debit: "125.00", credit: "0.00", value: "125.00" },
+    totalCount: 1,
+    page: 1,
+    pageSize: 100,
+    batchStatuses: [],
+    ...overrides,
   };
 }
 

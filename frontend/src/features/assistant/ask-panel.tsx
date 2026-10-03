@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { api } from "@/src/lib/api";
 import { formatMoney, formatPercentage } from "../mis/statement-view";
+import { DrillPanel, type AskDrillPanelSelection } from "../mis/drill-panel";
 import { measureFilterLabel } from "../exploration/selection-label";
 import { useAsk, type AskTurn } from "./use-ask";
 import { StatementExplanation } from "./statement-explanation";
@@ -46,6 +47,7 @@ export function AskPanel({
   statement,
   groundingUnavailable,
   onOpenDrill,
+  storedAnswer = false,
 }: Readonly<{
   surface: "docked" | "page";
   onCollapse?: () => void;
@@ -53,10 +55,12 @@ export function AskPanel({
   statement?: MisStatementResolvedResponse;
   groundingUnavailable?: string;
   onOpenDrill?: (nodeKey: string, block: MisStatementMeasureBlock["key"], opener: HTMLButtonElement) => void;
+  storedAnswer?: boolean;
 }>) {
   const { turns, phases, isPending, error, scrollTargetId, clearScrollTarget, ask, askGrounded, continueTurn } =
     useAsk();
   const [draft, setDraft] = useState("");
+  const [askDrill, setAskDrill] = useState<AskDrillPanelSelection | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const visibleTurns = surface === "page" ? turns.filter((turn) => turn.origin === "ungrounded") : turns;
   const suggestions = latestSuggestions(visibleTurns) ?? SEED_QUESTIONS;
@@ -78,96 +82,101 @@ export function AskPanel({
   }
 
   return (
-    <section className="ask-panel" data-surface={surface} aria-label={surface === "docked" ? "Ask panel" : "Ask"}>
-      <header className="ask-header">
-        <div className="ask-heading">
-          <MessageSquareText size={16} aria-hidden="true" />
-          <h1>Ask</h1>
-        </div>
-        {surface === "docked" && (
-          <div className="ask-header-actions">
-            <Link className="ask-open-link" href="/ask" prefetch={false}>
-              <ExternalLink size={13} aria-hidden="true" /> Open in Ask
-            </Link>
-            <button className="ask-collapse" type="button" aria-label="Collapse Ask" onClick={onCollapse}>
-              <X size={14} />
-            </button>
+    <>
+      <section className="ask-panel" data-surface={surface} aria-label={surface === "docked" ? "Ask panel" : "Ask"}>
+        <header className="ask-header">
+          <div className="ask-heading">
+            <MessageSquareText size={16} aria-hidden="true" />
+            <h1>Ask</h1>
           </div>
-        )}
-      </header>
+          {surface === "docked" && (
+            <div className="ask-header-actions">
+              <Link className="ask-open-link" href="/ask" prefetch={false}>
+                <ExternalLink size={13} aria-hidden="true" /> Open in Ask
+              </Link>
+              <button className="ask-collapse" type="button" aria-label="Collapse Ask" onClick={onCollapse}>
+                <X size={14} />
+              </button>
+            </div>
+          )}
+        </header>
 
-      <div className="ask-intro">
-        <p>Ask about this report. Each answer shows its verification status.</p>
-        {groundingUnavailable && (
-          <p className="ask-grounding-unavailable" role="status">
-            {groundingUnavailable}
-          </p>
-        )}
-        <span className="ask-eyebrow">Suggested</span>
-        <div className="ask-suggestions">
-          {suggestions.map((question) => (
-            <button
-              key={question}
-              type="button"
-              disabled={isPending || Boolean(groundingUnavailable)}
-              onClick={() =>
-                void (surface === "docked" && grounding ? askGrounded(question, grounding) : ask(question))
-              }
-            >
-              {question}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="ask-thread" aria-live="polite" ref={threadRef}>
-        {visibleTurns.map((turn) => (
-          <div className="ask-exchange" id={surface === "page" ? turn.id : undefined} key={turn.id}>
-            <p className="ask-question">{turn.question}</p>
-            <Answer
-              turn={turn}
-              isPending={isPending}
-              onAsk={ask}
-              onContinue={continueTurn}
-              statement={statement}
-              onOpenDrill={onOpenDrill}
-            />
-          </div>
-        ))}
-        {phases.length > 0 && (
-          <ol className="ask-progress" aria-label="Answer progress">
-            {phases.map((phase) => (
-              <li key={phase}>{PHASE_LABELS[phase]}</li>
+        <div className="ask-intro">
+          <p>Ask about this report. Each answer shows its verification status.</p>
+          {groundingUnavailable && (
+            <p className="ask-grounding-unavailable" role="status">
+              {groundingUnavailable}
+            </p>
+          )}
+          <span className="ask-eyebrow">Suggested</span>
+          <div className="ask-suggestions">
+            {suggestions.map((question) => (
+              <button
+                key={question}
+                type="button"
+                disabled={isPending || Boolean(groundingUnavailable)}
+                onClick={() =>
+                  void (surface === "docked" && grounding ? askGrounded(question, grounding) : ask(question))
+                }
+              >
+                {question}
+              </button>
             ))}
-          </ol>
-        )}
-        {error && (
-          <p className="ask-failure" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
+          </div>
+        </div>
 
-      <form className="ask-composer" onSubmit={submit}>
-        <label className="sr-only" htmlFor={`ask-question-${surface}`}>
-          Ask about your MIS data
-        </label>
-        <input
-          id={`ask-question-${surface}`}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Ask about your MIS data…"
-          disabled={Boolean(groundingUnavailable)}
-        />
-        <button
-          type="submit"
-          aria-label="Send question"
-          disabled={isPending || !draft.trim() || Boolean(groundingUnavailable)}
-        >
-          <Send size={15} />
-        </button>
-      </form>
-    </section>
+        <div className="ask-thread" aria-live="polite" ref={threadRef}>
+          {visibleTurns.map((turn) => (
+            <div className="ask-exchange" id={surface === "page" ? turn.id : undefined} key={turn.id}>
+              <p className="ask-question">{turn.question}</p>
+              <Answer
+                turn={turn}
+                isPending={isPending}
+                onAsk={ask}
+                onContinue={continueTurn}
+                statement={statement}
+                onOpenDrill={onOpenDrill}
+                storedAnswer={storedAnswer}
+                onOpenAskDrill={setAskDrill}
+              />
+            </div>
+          ))}
+          {phases.length > 0 && (
+            <ol className="ask-progress" aria-label="Answer progress">
+              {phases.map((phase) => (
+                <li key={phase}>{PHASE_LABELS[phase]}</li>
+              ))}
+            </ol>
+          )}
+          {error && (
+            <p className="ask-failure" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <form className="ask-composer" onSubmit={submit}>
+          <label className="sr-only" htmlFor={`ask-question-${surface}`}>
+            Ask about your MIS data
+          </label>
+          <input
+            id={`ask-question-${surface}`}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Ask about your MIS data…"
+            disabled={Boolean(groundingUnavailable)}
+          />
+          <button
+            type="submit"
+            aria-label="Send question"
+            disabled={isPending || !draft.trim() || Boolean(groundingUnavailable)}
+          >
+            <Send size={15} />
+          </button>
+        </form>
+      </section>
+      {askDrill && <DrillPanel selection={askDrill} onClose={() => setAskDrill(null)} />}
+    </>
   );
 }
 
@@ -178,6 +187,8 @@ function Answer({
   onContinue,
   statement,
   onOpenDrill,
+  storedAnswer,
+  onOpenAskDrill,
 }: Readonly<{
   turn: AskTurn;
   isPending: boolean;
@@ -190,6 +201,8 @@ function Answer({
   ) => Promise<boolean>;
   statement?: MisStatementResolvedResponse;
   onOpenDrill?: (nodeKey: string, block: MisStatementMeasureBlock["key"], opener: HTMLButtonElement) => void;
+  storedAnswer: boolean;
+  onOpenAskDrill: (selection: AskDrillPanelSelection) => void;
 }>) {
   const { response, question } = turn;
   if (!response) {
@@ -211,7 +224,16 @@ function Answer({
     );
   }
   if (response.responseClass === "success") {
-    return <SuccessAnswer turn={turn} response={response} isPending={isPending} onContinue={onContinue} />;
+    return (
+      <SuccessAnswer
+        turn={turn}
+        response={response}
+        isPending={isPending}
+        onContinue={onContinue}
+        storedAnswer={storedAnswer}
+        onOpenAskDrill={onOpenAskDrill}
+      />
+    );
   }
   if (response.responseClass === "informational") {
     return (
@@ -287,6 +309,8 @@ function SuccessAnswer({
   response,
   isPending,
   onContinue,
+  storedAnswer,
+  onOpenAskDrill,
 }: Readonly<{
   turn: AskTurn;
   response: AskResponse;
@@ -297,6 +321,8 @@ function SuccessAnswer({
     selection: Selection,
     failurePolicy: "retain" | "clear-on-refusal",
   ) => Promise<boolean>;
+  storedAnswer: boolean;
+  onOpenAskDrill: (selection: AskDrillPanelSelection) => void;
 }>) {
   const [saving, setSaving] = useState<"save" | "pin">();
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string }>();
@@ -357,6 +383,13 @@ function SuccessAnswer({
             chartType={response.chartType}
             rowLabels={response.rowLabels}
             labelMode={response.selection?.domain === "mis-statement" ? "statement" : "gl-code"}
+            selection={response.selection}
+            drill={response.drill}
+            storedAnswer={storedAnswer}
+            onOpenDrill={onOpenAskDrill}
+            onAskAgain={() =>
+              response.selection ? void onContinue(turn.id, turn.question, response.selection, "retain") : undefined
+            }
           />
         ))}
       {response.provenance && <ProvenanceDisclosure provenance={response.provenance} />}
@@ -443,14 +476,35 @@ function ResultVisual({
   chartType = "table",
   rowLabels,
   labelMode,
+  selection,
+  drill,
+  storedAnswer,
+  onOpenDrill,
+  onAskAgain,
 }: Readonly<{
   result: ResultTable;
   chartType?: ChartType;
   rowLabels?: AskRowLabel[];
   labelMode: "gl-code" | "statement";
+  selection?: Selection;
+  drill?: AskResponse["drill"];
+  storedAnswer: boolean;
+  onOpenDrill: (selection: AskDrillPanelSelection) => void;
+  onAskAgain: () => void;
 }>) {
   if (chartType === "table" || !canDraw(result, chartType)) {
-    return <ResultTableView result={result} rowLabels={rowLabels} labelMode={labelMode} />;
+    return (
+      <ResultTableView
+        result={result}
+        rowLabels={rowLabels}
+        labelMode={labelMode}
+        selection={selection}
+        drill={drill}
+        storedAnswer={storedAnswer}
+        onOpenDrill={onOpenDrill}
+        onAskAgain={onAskAgain}
+      />
+    );
   }
   if (chartType === "kpi") {
     return (
@@ -464,7 +518,19 @@ function ResultVisual({
       </dl>
     );
   }
-  return <ResultChart result={result} chartType={chartType} rowLabels={rowLabels} labelMode={labelMode} />;
+  return (
+    <ResultChart
+      result={result}
+      chartType={chartType}
+      rowLabels={rowLabels}
+      labelMode={labelMode}
+      selection={selection}
+      drill={drill}
+      storedAnswer={storedAnswer}
+      onOpenDrill={onOpenDrill}
+      onAskAgain={onAskAgain}
+    />
+  );
 }
 
 function ResultChart({
@@ -472,11 +538,21 @@ function ResultChart({
   chartType,
   rowLabels,
   labelMode,
+  selection,
+  drill,
+  storedAnswer,
+  onOpenDrill,
+  onAskAgain,
 }: Readonly<{
   result: ResultTable;
   chartType: Exclude<ChartType, "kpi" | "table">;
   rowLabels?: AskRowLabel[];
   labelMode: "gl-code" | "statement";
+  selection?: Selection;
+  drill?: AskResponse["drill"];
+  storedAnswer: boolean;
+  onOpenDrill: (selection: AskDrillPanelSelection) => void;
+  onAskAgain: () => void;
 }>) {
   const [recharts, setRecharts] = useState<typeof import("recharts")>();
   useEffect(() => {
@@ -492,7 +568,19 @@ function ResultChart({
     };
   }, []);
 
-  if (!recharts) return <ResultTableView result={result} rowLabels={rowLabels} labelMode={labelMode} />;
+  if (!recharts)
+    return (
+      <ResultTableView
+        result={result}
+        rowLabels={rowLabels}
+        labelMode={labelMode}
+        selection={selection}
+        drill={drill}
+        storedAnswer={storedAnswer}
+        onOpenDrill={onOpenDrill}
+        onAskAgain={onAskAgain}
+      />
+    );
   const { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, XAxis } = recharts;
   const dimensions = result.columns.filter((column) => !column.numeric);
   const measures = result.columns.filter((column) => column.numeric);
@@ -540,7 +628,16 @@ function ResultChart({
           )}
         </ResponsiveContainer>
       </div>
-      <ResultTableView result={result} rowLabels={rowLabels} labelMode={labelMode} />
+      <ResultTableView
+        result={result}
+        rowLabels={rowLabels}
+        labelMode={labelMode}
+        selection={selection}
+        drill={drill}
+        storedAnswer={storedAnswer}
+        onOpenDrill={onOpenDrill}
+        onAskAgain={onAskAgain}
+      />
     </div>
   );
 }
@@ -549,13 +646,28 @@ function ResultTableView({
   result,
   rowLabels,
   labelMode,
+  selection,
+  drill,
+  storedAnswer,
+  onOpenDrill,
+  onAskAgain,
 }: Readonly<{
   result: ResultTable;
   rowLabels?: AskRowLabel[];
   labelMode: "gl-code" | "statement";
+  selection?: Selection;
+  drill?: AskResponse["drill"];
+  storedAnswer: boolean;
+  onOpenDrill: (selection: AskDrillPanelSelection) => void;
+  onAskAgain: () => void;
 }>) {
   const suppressed = new Set(result.suppressedCells?.map(({ row, key }) => `${row}:${key}`));
   const labels = new Map(rowLabels?.map((label) => [label.key, label]));
+  const rowKeyColumn = selection?.dimensionIds.length === 1 ? selection.dimensionIds[0] : undefined;
+  const actualMeasureId =
+    selection?.domain === "governed-financial" ? "governed-financial.actual" : "mis-statement.actual_net";
+  const actualColumn = selection?.measureIds.includes(actualMeasureId) ? actualMeasureId.split(".").at(-1) : undefined;
+  const drillRows = new Map(drill?.rows.map((row) => [row.key, row.drillable]));
   return (
     <div className="ask-table-wrap">
       <table className="ask-table">
@@ -574,12 +686,51 @@ function ResultTableView({
               {result.columns.map((column) => {
                 const value = row[column.key];
                 const label = !column.numeric && typeof value === "string" ? labels.get(value) : undefined;
+                const rawRowKey = rowKeyColumn ? row[rowKeyColumn] : undefined;
+                const rowKey = typeof rawRowKey === "string" ? rawRowKey : undefined;
+                const rowLabel = rowKey ? labels.get(rowKey) : undefined;
+                const displayLabel = rowKey ? visibleRowLabel(rowKey, rowLabel, labelMode) : undefined;
+                const actual = column.key === actualColumn ? asFixedScaleMoney(value) : undefined;
+                const opensTransactions = Boolean(
+                  !storedAnswer && drill && rowKey && actual && drillRows.get(rowKey) === true,
+                );
+                const offersAskAgain = Boolean(storedAnswer && rowKey && actual);
                 return (
                   <td key={column.key} data-numeric={column.numeric || undefined}>
                     {suppressed.has(`${rowIndex}:${column.key}`) ? (
                       "—"
                     ) : label ? (
                       <ResultRowLabel rawKey={String(value)} label={label} mode={labelMode} />
+                    ) : opensTransactions ? (
+                      <button
+                        className="mis-actual-action inline-flex min-h-11 min-w-11 items-center justify-center focus-visible:active:!transform-none motion-reduce:transform-none"
+                        type="button"
+                        aria-label={`Open transactions for ${displayLabel}, Actual ${cell(value, column.format)}`}
+                        onClick={(event) =>
+                          onOpenDrill({
+                            kind: "ask",
+                            context: drill!.context,
+                            rowKey: rowKey!,
+                            label: displayLabel!,
+                            actual: actual!,
+                            opener: event.currentTarget,
+                          })
+                        }
+                      >
+                        {cell(value, column.format)}
+                      </button>
+                    ) : offersAskAgain ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span>{cell(value, column.format)}</span>
+                        <button
+                          className="mis-actual-action inline-flex min-h-11 min-w-11 items-center justify-center focus-visible:active:!transform-none motion-reduce:transform-none"
+                          type="button"
+                          aria-label={`Ask again to open transactions for ${displayLabel}, Actual ${cell(value, column.format)}`}
+                          onClick={onAskAgain}
+                        >
+                          Ask again
+                        </button>
+                      </span>
                     ) : (
                       cell(value, column.format)
                     )}
@@ -592,6 +743,18 @@ function ResultTableView({
       </table>
     </div>
   );
+}
+
+function visibleRowLabel(rawKey: string, label: AskRowLabel | undefined, mode: "gl-code" | "statement"): string {
+  if (!label) return rawKey;
+  return mode === "gl-code" ? `${rawKey} · ${label.label}` : label.label;
+}
+
+function asFixedScaleMoney(value: string | number | null): FixedScaleMoney | undefined {
+  const text = typeof value === "number" ? (Number.isFinite(value) ? value.toFixed(2) : "") : value?.trim();
+  const match = text?.match(/^(-?\d+)(?:\.(\d{1,2}))?$/);
+  if (!match) return undefined;
+  return `${match[1]}.${`${match[2] ?? ""}00`.slice(0, 2)}` as FixedScaleMoney;
 }
 
 function ResultRowLabel({
