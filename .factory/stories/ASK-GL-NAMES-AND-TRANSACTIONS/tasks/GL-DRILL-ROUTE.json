@@ -2,17 +2,10 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-DRILL-ROUTE",
   "review": {
     "blocking_level": "P1",
-    "changed": "1b045860958c628375924469eb4dbd2a21ad8b825fce9697dc0104795cc591dc",
-    "commit": "89a38f2d1bbc89602f752b9a8f0875ddd2ad7a3d",
+    "changed": "9925b0a5ae1671b1e5e56ff0d4dea850d0b5e38a333e567af6941191b0a17fe3",
+    "commit": "b030246fb85009cc1d43c0f1ae96bc61f19f096f",
     "dismissals": [],
     "findings": [
-      {
-        "body": "The new regression test still does not exercise the configured `StarRocksMysqlAdapter`. `NumericCoercingWarehouse` derives the `numeric` flag itself by regex-matching the generated SQL and then calls only `toStarRocksMysqlCell`; it therefore assumes the database reports text metadata for the cast and bypasses the adapter's mysql2 field handling entirely. A regression in the actual adapter path can still round `90000000000000.01` while this test remains green. The prior finding explicitly required coverage through the configured adapter, so exercise that adapter with real or injected mysql2 result metadata instead of synthesizing its conclusion in the warehouse fake.",
-        "file": "backend/src/warehouse/drill-transactions.repository.test.ts",
-        "line": 371,
-        "priority": "P1",
-        "title": "Not done: exact-paise configured-adapter test"
-      },
       {
         "body": "The branch registers and exports the signing seam, but no Ask response invokes the summary/signing service or emits `AskResponse.drill`, and no Actual cell calls the route. The story assigns issuance to GL-ANSWER-WIRING and interaction to GL-DRILL-PANEL, so this remains expected deferred work rather than a blocker for this prerequisite task.",
         "file": "backend/src/chat/chat.module.ts",
@@ -21,10 +14,10 @@
         "title": "Later: make the route reachable from Ask answers \u2192 GL-ANSWER-WIRING and GL-DRILL-PANEL"
       }
     ],
-    "status": "blocked",
-    "tree": "2f1b7f19ecf974701449947b16cc97a150784a8d4bf5b62a5cb47576dd893c0b"
+    "status": "clean",
+    "tree": "afbf60d46665df314a39228bef23909e2072dfa8df5508dcfc5998fc259eb4fe"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-02T18:16:38+00:00",
@@ -52,6 +45,10 @@
     },
     {
       "at": "2026-10-03T05:52:29+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T06:07:09+00:00",
       "step": "review"
     }
   ]
