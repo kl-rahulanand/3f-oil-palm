@@ -1,10 +1,38 @@
 {
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-ANSWER-WIRING",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "02cb483f7a8811753286f533c94741c3981159f520809fdfacedd0d64167a873",
+    "commit": "70d1e3b9e2f8c7df7484ad83f2be4d865606666b",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "`statementPeriodOptions(periods)` removes every multi-period option from the choices returned to ordinary Ask requests. The new `accepted` branch permits FYTD only when an already-edited selection is submitted, so a normal statement question cannot discover or choose the existing FYTD period. This directly conflicts with the coordinator ruling that FYTD must be offered and leaves the required multi-period path reachable only through a hand-crafted/saved selection. Include FYTD in the offered options and cover choosing it through the Ask period flow.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 1394,
+        "priority": "P1",
+        "title": "Not done: Offer the existing FYTD statement period in Ask"
+      },
+      {
+        "body": "The task table explicitly defers rendering `drillable` Actuals as buttons and proving inert cells make no request to GL-DRILL-PANEL. The current frontend does not consume `AskResponse.drill`, so this branch alone does not complete Done-when item 6's user-visible interaction. Per the task assignment, this is a P2 later-task gap rather than a blocker for this backend wiring part.",
+        "file": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md",
+        "line": 155,
+        "priority": "P2",
+        "title": "Later: GL-DRILL-PANEL must consume the signed drill metadata"
+      }
+    ],
+    "status": "blocked",
+    "tree": "9a2f0a4d6ec610522fcbf2dc525bc4c24e1c4458b8ce8f1e221c1f3030534bce"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-03T10:57:58+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-03T12:41:07+00:00",
+      "step": "review"
     }
   ]
 }
