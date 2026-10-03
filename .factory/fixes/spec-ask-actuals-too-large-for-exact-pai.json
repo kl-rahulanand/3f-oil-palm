@@ -3,11 +3,32 @@
   "branch": "fix/spec-ask-actuals-too-large-for-exact-pai",
   "done_when": "the confirmed ask-gl-names-and-transactions spec states that an Actual of 2^46 rupees (about 70.37 lakh crore) or more is not clickable, per the owner's decision of 2026-10-03",
   "kind": "fix",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "0cb991574ccd5bbf0532853ba9090cc3df18f654437b2b20e8c0ec28d09a1080",
+    "commit": "75f0b6ba5d003a2de59f9875ac2fa4431ee8b646",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The new oversized-row variant says its context entry has no amount, but the unchanged context definition at lines 82\u201384 still says that \u201cfor every row\u201d the context binds its exact-paise Actual, and C5a at lines 223\u2013225 repeats that each row carries an exact-paise Actual. Those requirements cannot both be satisfied and could lead an implementation to retain the unsafe amount while claiming C5a compliance. Explicitly exempt size-limited rows in both generic context descriptions.",
+        "file": "docs/specs/ask-gl-names-and-transactions.md",
+        "line": 74,
+        "priority": "P2",
+        "title": "Remove the contradictory requirement to sign an amount for every row"
+      }
+    ],
+    "status": "clean",
+    "tree": "37451cd13a7d913b240a9ae8ea21a08e5656a01b5f37137f6a02a4bb864908c6"
+  },
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-03T11:55:16+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-03T12:10:07+00:00",
+      "step": "review"
     }
   ],
   "why": "spec: Ask Actuals too large for exact paise are not clickable"
