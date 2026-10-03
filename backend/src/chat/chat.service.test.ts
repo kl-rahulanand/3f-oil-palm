@@ -303,7 +303,10 @@ test("a sparse multi-period GL answer signs every active Actual month in its exe
   const verified = fixture.contexts.verify(response.drill!.context, "user-1");
   assert.equal(verified.outcome, "verified");
   if (verified.outcome === "verified") assert.deepEqual(verified.claims.pinnedActuals, activeActualPins);
-  assert.deepEqual(fixture.transactions.activePinCalls, [{ from: "2026-04-01", to: "2026-07-31" }]);
+  assert.deepEqual(fixture.transactions.activePinCalls, [
+    { from: "2026-04-01", to: "2026-07-31" },
+    { from: "2026-04-01", to: "2026-07-31" },
+  ]);
   assert.deepEqual(fixture.transactions.calls[0]?.[0]?.predicate.actualBatchIds, [
     "actual-april",
     "actual-may",
@@ -312,7 +315,7 @@ test("a sparse multi-period GL answer signs every active Actual month in its exe
   ]);
 });
 
-test("a reload between the answer query and complete-window pin lookup leaves the answer inert", async () => {
+test("a contributing month reload between the bracketed pin lookups leaves the answer inert", async () => {
   const executedPin = { source: "actuals" as const, period: "2026-07-01", batchId: ACTUAL_BATCH_ID };
   const reloadedPin = { source: "actuals" as const, period: "2026-07-01", batchId: "actual-july-reloaded" };
   const fixture = makeFixture({
@@ -325,7 +328,7 @@ test("a reload between the answer query and complete-window pin lookup leaves th
       rows: [{ gl_code: "50001201", actual: "125.01" }],
     },
     activeBatchIds: [executedPin],
-    activeActualPins: [reloadedPin],
+    activeActualPinSnapshots: [[executedPin], [reloadedPin]],
     summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
   });
 
@@ -339,6 +342,50 @@ test("a reload between the answer query and complete-window pin lookup leaves th
   assert.equal(response.drill, undefined);
   assert.equal(fixture.transactions.calls.length, 0);
   assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.actualBatchIds, [ACTUAL_BATCH_ID]);
+  assert.deepEqual(fixture.logs, [{ context: { rowKey: "50001201", reason: "active-actual-batch-changed" } }]);
+});
+
+test("a noncontributing month reload between the bracketed pin lookups leaves the answer inert", async () => {
+  const aprilPin = { source: "actuals" as const, period: "2026-04-01", batchId: "actual-april" };
+  const mayPin = { source: "actuals" as const, period: "2026-05-01", batchId: "actual-may" };
+  const reloadedMayPin = { source: "actuals" as const, period: "2026-05-01", batchId: "actual-may-reloaded" };
+  const junePin = { source: "actuals" as const, period: "2026-06-01", batchId: "actual-june" };
+  const julyPin = { source: "actuals" as const, period: "2026-07-01", batchId: ACTUAL_BATCH_ID };
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+    },
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "125.01" }],
+    },
+    activeBatchIds: [aprilPin, julyPin],
+    activeActualPinSnapshots: [
+      [aprilPin, mayPin, junePin, julyPin],
+      [aprilPin, reloadedMayPin, junePin, julyPin],
+    ],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code from April to July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.equal(response.drill, undefined);
+  assert.equal(fixture.transactions.calls.length, 0);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.actualBatchIds, [
+    "actual-april",
+    "actual-may",
+    "actual-june",
+    ACTUAL_BATCH_ID,
+  ]);
   assert.deepEqual(fixture.logs, [{ context: { rowKey: "50001201", reason: "active-actual-batch-changed" } }]);
 });
 
@@ -1742,6 +1789,7 @@ function makeFixture(options: {
   labels?: Array<{ key: string; label: string; otherLabels: string[] }>;
   summaries?: DrillSummary[];
   activeActualPins?: Array<ProvenanceBatch & { source: "actuals" }>;
+  activeActualPinSnapshots?: Array<Array<ProvenanceBatch & { source: "actuals" }>>;
   statementPeriod?: { value: string; label: string; from: string; to: string };
 }) {
   const llmResult: LlmSelectionResult =
@@ -1760,10 +1808,12 @@ function makeFixture(options: {
   const names = new FakeNames(options.labels ?? []);
   const transactions = new FakeTransactions(
     options.summaries ?? [],
-    options.activeActualPins ??
-      (options.activeBatchIds ?? []).filter(
-        (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
-      ),
+    options.activeActualPinSnapshots ?? [
+      options.activeActualPins ??
+        (options.activeBatchIds ?? []).filter(
+          (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
+        ),
+    ],
   );
   const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
   const logs: Array<{ context: Record<string, unknown> }> = [];
@@ -1827,12 +1877,13 @@ class FakeTransactions {
 
   constructor(
     private readonly summaries: DrillSummary[],
-    private readonly activeActualPins: Array<ProvenanceBatch & { source: "actuals" }>,
+    private readonly activeActualPinSnapshots: Array<Array<ProvenanceBatch & { source: "actuals" }>>,
   ) {}
 
   async findActiveActualPins(from: string, to: string) {
+    const snapshotIndex = this.activePinCalls.length;
     this.activePinCalls.push({ from, to });
-    return this.activeActualPins;
+    return this.activeActualPinSnapshots[snapshotIndex] ?? this.activeActualPinSnapshots.at(-1) ?? [];
   }
 
   async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>) {

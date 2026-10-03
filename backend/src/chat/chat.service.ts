@@ -476,6 +476,9 @@ export class ChatService {
     let activeBatchIds: NonNullable<Provenance["activeBatchIds"]> = [];
     let budgetComponentLabels: string[] = [];
     let rowSourcePresence: NonNullable<Provenance["rowSourcePresence"]> = [];
+    const drillPinRange = authorizedAskDrillRange(user, selection);
+    let actualPinsBeforeExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined;
+    let actualPinsAfterExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined;
     let auditFailed = false;
 
     onEvent?.({ type: "phase", phase: "querying" });
@@ -506,6 +509,12 @@ export class ChatService {
             auditFailed = true;
             throw new Error(CHAT_MESSAGES.auditNotRecorded);
           }
+          if (drillPinRange) {
+            actualPinsBeforeExecution = await this.drillTransactions.findActiveActualPins(
+              drillPinRange.from,
+              drillPinRange.to,
+            );
+          }
         },
       });
       result = execution.result;
@@ -514,6 +523,12 @@ export class ChatService {
       activeBatchIds = execution.activeBatchIds;
       budgetComponentLabels = execution.budgetComponentLabels;
       rowSourcePresence = execution.rowSourcePresence;
+      if (drillPinRange) {
+        actualPinsAfterExecution = await this.drillTransactions.findActiveActualPins(
+          drillPinRange.from,
+          drillPinRange.to,
+        );
+      }
       signal?.throwIfAborted();
       // `numeric` means "value/measure column" for rendering (chart axis, headline,
       // alignment) — NOT the raw SQL type. An integer DIMENSION (e.g. activity_hour
@@ -579,7 +594,16 @@ export class ChatService {
     );
     let presentation: Pick<AskResponse, "rowLabels" | "drill"> = {};
     try {
-      presentation = await this.answerPresentation(user, domain, selection, result, activeBatchIds, statementScope);
+      presentation = await this.answerPresentation(
+        user,
+        domain,
+        selection,
+        result,
+        activeBatchIds,
+        statementScope,
+        actualPinsBeforeExecution,
+        actualPinsAfterExecution,
+      );
     } catch (error) {
       return done({ responseClass: ResponseClass.ExecutionFailed, message: (error as Error).message });
     }
@@ -618,6 +642,8 @@ export class ChatService {
     result: ResultTable,
     activeBatchIds: NonNullable<Provenance["activeBatchIds"]>,
     statementScope: MasterResolvedSelection | undefined,
+    actualPinsBeforeExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
+    actualPinsAfterExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
   ): Promise<Pick<AskResponse, "rowLabels" | "drill">> {
     const shape = answerRowShape(selection);
     if (!shape) return {};
@@ -629,13 +655,11 @@ export class ChatService {
     );
     const budgetPin = lastMonthBudgetPin(activeBatchIds, selection.timeWindow?.to);
     const signedRange = concreteSelectionRange(selection);
-    const activeActualPins =
-      signedRange &&
-      selection.measureIds.includes(shape.actualMeasureId) &&
-      user.permissions.measureIds.includes(shape.actualMeasureId)
-        ? await this.drillTransactions.findActiveActualPins(signedRange.from, signedRange.to)
-        : contributingActualPins;
-    const completedActualPins = completeActualPins(contributingActualPins, activeActualPins);
+    const completedActualPins = completeActualPins(
+      contributingActualPins,
+      actualPinsBeforeExecution,
+      actualPinsAfterExecution,
+    );
     const actualPins = completedActualPins.pins;
     const predicateRange = signedRange ?? pinnedRange(activeBatchIds);
     const plants = shape.kind === "statement" ? (statementScope ? [statementScope.plant] : []) : ["DUB"];
@@ -866,6 +890,16 @@ function concreteSelectionRange(selection: Selection): { from: string; to: strin
   return from && to && from <= to ? { from, to } : null;
 }
 
+function authorizedAskDrillRange(user: AuthUser, selection: Selection): { from: string; to: string } | null {
+  const shape = answerRowShape(selection);
+  return shape &&
+    selection.measureIds.includes(shape.actualMeasureId) &&
+    user.permissions.measureIds.includes(shape.actualMeasureId) &&
+    user.permissions.domains.includes(selection.domain)
+    ? concreteSelectionRange(selection)
+    : null;
+}
+
 function pinnedRange(pins: ProvenanceBatch[]): { from: string; to: string } | null {
   const periods = pins.map(({ period }) => period).sort();
   const from = periods[0];
@@ -875,17 +909,20 @@ function pinnedRange(pins: ProvenanceBatch[]): { from: string; to: string } | nu
 
 function completeActualPins(
   contributing: Array<ProvenanceBatch & { source: "actuals" }>,
-  active: Array<ProvenanceBatch & { source: "actuals" }>,
+  before: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
+  after: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
 ): { pins: Array<ProvenanceBatch & { source: "actuals" }>; changed: boolean } {
-  const contributingByPeriod = new Map(contributing.map((pin) => [pin.period, pin]));
-  const changed = active.some((pin) => {
-    const executed = contributingByPeriod.get(pin.period);
-    return executed !== undefined && executed.batchId !== pin.batchId;
-  });
-  const pins = [...contributing, ...active.filter((pin) => !contributingByPeriod.has(pin.period))].sort((left, right) =>
+  if (!before || !after) return { pins: contributing, changed: false };
+  const beforeByPeriod = new Map(before.map((pin) => [pin.period, pin]));
+  const afterByPeriod = new Map(after.map((pin) => [pin.period, pin]));
+  const bracketChanged =
+    beforeByPeriod.size !== afterByPeriod.size ||
+    [...beforeByPeriod].some(([period, pin]) => afterByPeriod.get(period)?.batchId !== pin.batchId);
+  const contributingChanged = contributing.some((pin) => beforeByPeriod.get(pin.period)?.batchId !== pin.batchId);
+  const pins = [...before, ...contributing.filter((pin) => !beforeByPeriod.has(pin.period))].sort((left, right) =>
     `${left.period}\0${left.batchId}`.localeCompare(`${right.period}\0${right.batchId}`),
   );
-  return { pins, changed };
+  return { pins, changed: bracketChanged || contributingChanged };
 }
 
 function predicateForAnswer(
