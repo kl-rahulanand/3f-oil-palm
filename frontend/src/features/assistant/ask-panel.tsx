@@ -602,6 +602,9 @@ function ResultRowLabel({
   const [expanded, setExpanded] = useState(false);
   const otherNamesId = useId();
   const visibleLabel = mode === "gl-code" ? `${rawKey} · ${label.label}` : label.label;
+  const hiddenCountMatch = label.otherLabels.at(-1)?.match(/^and ([1-9]\d*) more$/u);
+  const hiddenCount = hiddenCountMatch ? Number(hiddenCountMatch[1]) : 0;
+  const otherNameCount = label.otherLabels.length - (hiddenCount ? 1 : 0) + hiddenCount;
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "Escape") {
@@ -617,20 +620,20 @@ function ResultRowLabel({
   return (
     <div>
       <span>{visibleLabel}</span>
-      {label.otherLabels.length > 0 && (
+      {otherNameCount > 0 && (
         <>
           {" "}
           <button
-            className="h-button cursor-pointer border-0 bg-transparent p-0 font-h2 text-emerald underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald"
+            className="inline-flex h-button min-w-11 origin-center cursor-pointer items-center justify-center border-0 bg-transparent p-0 align-middle font-h2 text-emerald underline underline-offset-2 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald motion-reduce:transform-none"
             type="button"
             aria-expanded={expanded}
             aria-controls={otherNamesId}
             onClick={() => setExpanded((current) => !current)}
             onKeyDown={handleKeyDown}
           >
-            <span aria-hidden="true">+{label.otherLabels.length} more</span>
+            <span aria-hidden="true">+{otherNameCount} more</span>
             <span className="sr-only">
-              {label.otherLabels.length} more account names: {label.otherLabels.join(", ")}
+              {otherNameCount} more account names: {label.otherLabels.join(", ")}
             </span>
           </button>
           {expanded && (

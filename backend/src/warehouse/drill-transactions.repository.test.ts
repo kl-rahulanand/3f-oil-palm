@@ -403,7 +403,18 @@ class FakeWarehouse implements Warehouse {
     this.executed.push(sql);
     if (sql.includes("feeding_line_count")) return { columns: [], rows: this.summaryRows };
     if (sql.includes("scoped_line_count")) {
-      return { columns: [], rows: [{ acct_name: null, line_count: null, scoped_line_count: "0" }] };
+      return {
+        columns: [],
+        rows: [
+          {
+            row_ordinal: "0",
+            acct_name: null,
+            line_count: null,
+            scoped_line_count: "0",
+            name_group_count: "0",
+          },
+        ],
+      };
     }
     return sql.includes("COUNT(*)")
       ? { columns: [], rows: [{ total_count: "0", debit: "0.00", credit: "0.00", value: "0.00" }] }

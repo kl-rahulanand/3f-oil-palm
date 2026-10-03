@@ -9,6 +9,7 @@ import { StatementOutlineRepository } from "./statement-outline.repository";
 import type { Warehouse } from "./warehouse.interface";
 
 const OBJECTS_TOUCHED = ["sap_transaction", "ingest_batch"];
+const NAME_GROUP_LIMIT = 20;
 
 export interface GlNameRow {
   key: string;
@@ -26,8 +27,9 @@ export class GlNameRepository {
   async findGlCodeLabels(rows: GlNameRow[], budgetBatchId?: string): Promise<AskRowLabel[]> {
     const resolved = new Map<string, AskRowLabel>();
     const budgetOnly = new Set<string>();
-    for (const row of rows) {
-      const result = await this.findSapNames(row.predicate);
+    const sapNames = await this.findSapNames(rows);
+    for (const [index, row] of rows.entries()) {
+      const result = sapNames[index]!;
       if (result.names) resolved.set(row.key, { key: row.key, ...result.names });
       else if (!result.hasScopedLines) budgetOnly.add(row.key);
     }
@@ -55,12 +57,47 @@ export class GlNameRepository {
     });
   }
 
-  private async findSapNames(predicate: DrillPredicate): Promise<SapNameResult> {
+  private async findSapNames(rows: GlNameRow[]): Promise<SapNameResult[]> {
+    if (rows.length === 0) return [];
     const config = loadConfig();
-    const normalizedSpelling = "REGEXP_REPLACE(TRIM(txn.acct_name), '[[:space:]]+', ' ', 'g')";
-    const where = buildDrillPredicate(predicate);
-    const sql = `SELECT name_groups.acct_name, name_groups.line_count::text AS line_count,
-  scoped_total.scoped_line_count::text AS scoped_line_count
+    const groupLimit = Math.max(1, Math.min(NAME_GROUP_LIMIT, config.maxRows));
+    const batchSize = Math.max(1, Math.floor(config.maxRows / groupLimit));
+    const resolved: SapNameResult[] = [];
+    for (let offset = 0; offset < rows.length; offset += batchSize) {
+      const batch = rows.slice(offset, offset + batchSize);
+      const sql = `${batch
+        .map(({ predicate }, rowOrdinal) => nameSelect(rowOrdinal, predicate, groupLimit))
+        .join("\nUNION ALL\n")}
+LIMIT ${batch.length * groupLimit}`;
+      const validation = this.validator.validate(sql, OBJECTS_TOUCHED, config.maxRows);
+      if (!validation.ok) throw new ForbiddenException(validation.reason ?? "GL name query blocked");
+      await this.warehouse.explain(sql);
+      const result = await withTimeout(this.warehouse.execute(sql), config.queryTimeoutMs);
+      const byOrdinal = new Map<number, Array<Record<string, string | number | null>>>();
+      for (const row of result.rows) {
+        const rowOrdinal = lineCount(row.row_ordinal);
+        if (rowOrdinal >= batch.length) throw new Error("GL name query returned an invalid row ordinal");
+        const grouped = byOrdinal.get(rowOrdinal) ?? [];
+        grouped.push(row);
+        byOrdinal.set(rowOrdinal, grouped);
+      }
+      for (let rowOrdinal = 0; rowOrdinal < batch.length; rowOrdinal += 1) {
+        const nameRows = byOrdinal.get(rowOrdinal);
+        if (!nameRows) throw new Error("GL name query omitted an answer row");
+        resolved.push(rankedNames(nameRows));
+      }
+    }
+    return resolved;
+  }
+}
+
+function nameSelect(rowOrdinal: number, predicate: DrillPredicate, groupLimit: number): string {
+  const normalizedSpelling = "REGEXP_REPLACE(TRIM(txn.acct_name), '[[:space:]]+', ' ', 'g')";
+  const where = buildDrillPredicate(predicate);
+  return `(SELECT ${rowOrdinal} AS row_ordinal, name_groups.acct_name,
+  name_groups.line_count::text AS line_count,
+  scoped_total.scoped_line_count::text AS scoped_line_count,
+  COALESCE(name_groups.name_group_count, 0)::text AS name_group_count
 FROM (
   SELECT COUNT(*) AS scoped_line_count
 FROM sap_transaction AS txn
@@ -70,7 +107,8 @@ WHERE ${where}
 LEFT JOIN (
   SELECT spellings.normalized_name,
     SUM(spellings.spelling_count) AS line_count,
-    (ARRAY_AGG(spellings.spelling ORDER BY spellings.spelling_count DESC, spellings.spelling))[1] AS acct_name
+    (ARRAY_AGG(spellings.spelling ORDER BY spellings.spelling_count DESC, spellings.spelling))[1] AS acct_name,
+    COUNT(*) OVER () AS name_group_count
   FROM (
     SELECT LOWER(${normalizedSpelling}) AS normalized_name,
       ${normalizedSpelling} AS spelling,
@@ -83,15 +121,12 @@ LEFT JOIN (
     GROUP BY LOWER(${normalizedSpelling}), ${normalizedSpelling}
   ) AS spellings
   GROUP BY spellings.normalized_name
+  ORDER BY SUM(spellings.spelling_count) DESC,
+    (ARRAY_AGG(spellings.spelling ORDER BY spellings.spelling_count DESC, spellings.spelling))[1]
+  LIMIT ${groupLimit}
 ) AS name_groups ON TRUE
 ORDER BY name_groups.line_count DESC, name_groups.acct_name
-LIMIT ${config.maxRows}`;
-    const validation = this.validator.validate(sql, OBJECTS_TOUCHED, config.maxRows);
-    if (!validation.ok) throw new ForbiddenException(validation.reason ?? "GL name query blocked");
-    await this.warehouse.explain(sql);
-    const result = await withTimeout(this.warehouse.execute(sql), config.queryTimeoutMs);
-    return rankedNames(result.rows);
-  }
+LIMIT ${groupLimit})`;
 }
 
 interface SapNameResult {
@@ -101,35 +136,25 @@ interface SapNameResult {
 
 function rankedNames(rows: Array<Record<string, string | number | null>>): SapNameResult {
   const scopedCount = rows[0]?.scoped_line_count;
-  const hasScopedLines =
-    scopedCount === undefined ? rows.some((row) => lineCount(row.line_count) > 0) : lineCount(scopedCount) > 0;
-  const groups = new Map<string, { count: number; spellings: Map<string, number> }>();
+  const hasScopedLines = lineCount(scopedCount) > 0;
+  const nameGroupCount = lineCount(rows[0]?.name_group_count);
+  const groups: Array<{ count: number; label: string }> = [];
   for (const row of rows) {
     if (row.acct_name === null || row.acct_name === undefined) continue;
-    const spelling = cleanWhitespace(String(row.acct_name));
-    if (!spelling) continue;
-    const count = lineCount(row.line_count);
-    const normalized = spelling.toLocaleLowerCase("en-US");
-    const group = groups.get(normalized) ?? { count: 0, spellings: new Map<string, number>() };
-    group.count += count;
-    group.spellings.set(spelling, (group.spellings.get(spelling) ?? 0) + count);
-    groups.set(normalized, group);
+    const label = cleanWhitespace(String(row.acct_name));
+    if (label) groups.push({ count: lineCount(row.line_count), label });
   }
 
-  const ranked = [...groups.values()]
-    .map((group) => ({ count: group.count, label: representative(group.spellings) }))
-    .sort((left, right) => right.count - left.count || alphabetical(left.label, right.label));
+  const ranked = groups.sort((left, right) => right.count - left.count || alphabetical(left.label, right.label));
   if (!ranked.length) return { hasScopedLines };
+  if (nameGroupCount < ranked.length) throw new Error("GL name query returned an invalid name group count");
+  const otherLabels = ranked.slice(1).map(({ label }) => label);
+  const omitted = nameGroupCount - ranked.length;
+  if (omitted > 0) otherLabels.push(`and ${omitted} more`);
   return {
     hasScopedLines,
-    names: { label: ranked[0]!.label, otherLabels: ranked.slice(1).map(({ label }) => label) },
+    names: { label: ranked[0]!.label, otherLabels },
   };
-}
-
-function representative(spellings: Map<string, number>): string {
-  return [...spellings].sort(([leftLabel, leftCount], [rightLabel, rightCount]) => {
-    return rightCount - leftCount || alphabetical(leftLabel, rightLabel);
-  })[0]![0];
 }
 
 function outlineLabels(

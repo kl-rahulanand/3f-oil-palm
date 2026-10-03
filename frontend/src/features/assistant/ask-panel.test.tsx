@@ -258,6 +258,24 @@ test("the more-names disclosure opens from a touch tap without relying on hover"
   expect(screen.getByRole("list", { name: "Other account names" })).toBeInTheDocument();
 });
 
+test("a bounded disclosure announces the true other-name count and says how many names are not shown", async () => {
+  const response = glLabelSuccess();
+  response.rowLabels![0]!.otherLabels = ["Imported sprouts", "Sprout purchases", "and 12 more"];
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", {
+    name: "14 more account names: Imported sprouts, Sprout purchases, and 12 more",
+  });
+  expect(disclosure).toHaveTextContent("+14 more");
+
+  fireEvent.click(disclosure);
+  expect(screen.getByRole("list", { name: "Other account names" })).toHaveTextContent(
+    "Imported sproutsSprout purchasesand 12 more",
+  );
+});
+
 test("statement row labels replace raw leaf keys while an unlabelled statement keeps its raw key", async () => {
   mocks.ask
     .mockResolvedValueOnce(statementLabelSuccess([{ key: "leaf-sprout", label: "1.1 Sprout Cost", otherLabels: [] }]))
