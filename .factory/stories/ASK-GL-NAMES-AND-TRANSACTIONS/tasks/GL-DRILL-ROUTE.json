@@ -1,0 +1,55 @@
+{
+  "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-DRILL-ROUTE",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "9925b0a5ae1671b1e5e56ff0d4dea850d0b5e38a333e567af6941191b0a17fe3",
+    "commit": "b030246fb85009cc1d43c0f1ae96bc61f19f096f",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The branch registers and exports the signing seam, but no Ask response invokes the summary/signing service or emits `AskResponse.drill`, and no Actual cell calls the route. The story assigns issuance to GL-ANSWER-WIRING and interaction to GL-DRILL-PANEL, so this remains expected deferred work rather than a blocker for this prerequisite task.",
+        "file": "backend/src/chat/chat.module.ts",
+        "line": 34,
+        "priority": "P2",
+        "title": "Later: make the route reachable from Ask answers \u2192 GL-ANSWER-WIRING and GL-DRILL-PANEL"
+      }
+    ],
+    "status": "clean",
+    "tree": "afbf60d46665df314a39228bef23909e2072dfa8df5508dcfc5998fc259eb4fe"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-02T18:16:38+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-03T04:45:41+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T05:00:28+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T05:16:33+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T05:26:26+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T05:36:37+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T05:52:29+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T06:07:09+00:00",
+      "step": "review"
+    }
+  ]
+}

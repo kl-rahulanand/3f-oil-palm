@@ -76,9 +76,10 @@ export class AuditService {
     monthRange: { from: string; to: string };
     pinnedActuals: ProvenanceBatch[];
     pinnedBudgets: ProvenanceBatch[];
-    mappingMasterVersion: number;
+    mappingMasterVersion?: number;
     generatedSql: string;
     objectsTouched: string[];
+    questionLabel?: "MIS statement transaction drill" | "Ask transaction drill";
   }): Promise<number> {
     return this.writeDrillAudit(
       "mis.drill.request",
@@ -92,18 +93,32 @@ export class AuditService {
         monthRange: e.monthRange,
         pinnedActuals: e.pinnedActuals,
         pinnedBudgets: e.pinnedBudgets,
-        mappingMasterVersion: e.mappingMasterVersion,
+        ...(e.mappingMasterVersion === undefined ? {} : { mappingMasterVersion: e.mappingMasterVersion }),
       },
       e.generatedSql,
       e.objectsTouched,
+      e.questionLabel,
     );
   }
 
-  async writeDrillRefusalEvent(e: { actorId: string; sessionId: string; submitted: unknown }): Promise<number> {
-    return this.writeDrillAudit("mis.drill.refusal", e.actorId, e.sessionId, {
-      actorId: e.actorId,
-      submitted: e.submitted as Partial<MisDrillRequest>,
-    });
+  async writeDrillRefusalEvent(e: {
+    actorId: string;
+    sessionId: string;
+    submitted: unknown;
+    questionLabel?: "MIS statement transaction drill" | "Ask transaction drill";
+  }): Promise<number> {
+    return this.writeDrillAudit(
+      "mis.drill.refusal",
+      e.actorId,
+      e.sessionId,
+      {
+        actorId: e.actorId,
+        submitted: e.submitted as Partial<MisDrillRequest>,
+      },
+      undefined,
+      undefined,
+      e.questionLabel,
+    );
   }
 
   async writeExplorationRequestEvent(e: {
@@ -177,6 +192,7 @@ export class AuditService {
     selection: Record<string, unknown>,
     generatedSql?: string,
     objectsTouched?: string[],
+    questionLabel: "MIS statement transaction drill" | "Ask transaction drill" = "MIS statement transaction drill",
   ): Promise<number> {
     const rows = await this.db
       .insert(auditEvents)
@@ -184,7 +200,7 @@ export class AuditService {
         eventType,
         userId,
         sessionId,
-        question: "MIS statement transaction drill",
+        question: questionLabel,
         selection,
         generatedSql: generatedSql ?? null,
         objectsTouched: objectsTouched ?? null,

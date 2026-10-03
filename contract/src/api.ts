@@ -497,6 +497,35 @@ export interface MisDrillResponse {
   batchStatuses: MisDrillBatchStatus[];
 }
 
+export interface AskRowLabel {
+  key: string;
+  label: string;
+  otherLabels: string[];
+}
+
+export interface AskDrillMetadata {
+  context: string;
+  rows: Array<{ key: string; drillable: boolean }>;
+}
+
+/** POST /api/chat/drill */
+export interface AskDrillRequest {
+  context: string;
+  rowKey: string;
+  page: number;
+}
+
+export interface AskDrillResponse {
+  rowKey: string;
+  lines: MisDrillLine[];
+  footer: MisDrillFooter;
+  totalCount: number;
+  page: number;
+  pageSize: 100;
+  batchStatuses: MisDrillBatchStatus[];
+  notice?: string;
+}
+
 export interface PinSnapshot {
   status: "ok" | "error" | "access_revoked";
   result?: ResultTable;
@@ -646,6 +675,10 @@ export interface AskResponse {
    *  can save/pin/edit it and re-run deterministically. Never SQL — just the selection. */
   selection?: Selection;
   result?: ResultTable;
+  /** Server-resolved display text keyed by the raw result row key. */
+  rowLabels?: AskRowLabel[];
+  /** Ephemeral signed transaction links; never persisted in a conversation snapshot. */
+  drill?: AskDrillMetadata;
   /** Ungrouped aggregate value per measure output-key (e.g. { lead_count: 1939 }), present
    *  on Success only when the answer has a breakdown (dimensions). The client shows this as
    *  the headline total instead of summing the visible rows, which over/under-counts for
@@ -744,6 +777,7 @@ export interface ConversationAnswerSnapshot {
   title?: AskResponse["title"];
   chips?: AskResponse["chips"];
   result?: AskResponse["result"];
+  rowLabels?: AskResponse["rowLabels"];
   chartType?: AskResponse["chartType"];
   totals?: AskResponse["totals"];
   provenance?: AskResponse["provenance"];

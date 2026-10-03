@@ -7,6 +7,7 @@ import type {
   DrillPredicate,
   DrillQueries,
   DrillReadResult,
+  DrillSummary,
   IDrillTransactionsRepository,
 } from "./drill-transactions.interface";
 import type { QueryResult, Warehouse } from "./warehouse.interface";
@@ -49,17 +50,18 @@ LIMIT 25000`);
   buildQueries(predicate: DrillPredicate, page: number, rowLimit: number): DrillQueries {
     const where = buildPredicate(predicate);
     return {
-      pageSql: `SELECT txn.month, txn.posting_date, txn.txn_no, txn.cost_center, txn.acct_name, txn.debit, txn.credit,
-  (txn.debit - txn.credit)::numeric(18,2) AS value, txn.reference, txn.memo
+      pageSql: `SELECT txn.month, txn.posting_date, txn.txn_no, txn.cost_center, txn.acct_name,
+  txn.debit::text AS debit, txn.credit::text AS credit,
+  (txn.debit - txn.credit)::numeric(18,2)::text AS value, txn.reference, txn.memo
 FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
 WHERE ${where}
 ORDER BY (txn.debit - txn.credit) DESC, txn.month DESC, txn.posting_date DESC, txn.txn_no, txn.line_id
 LIMIT ${rowLimit} OFFSET ${(page - 1) * rowLimit}`,
       footerSql: `SELECT COUNT(*) AS total_count,
-  COALESCE(SUM(txn.debit), 0)::numeric(18,2) AS debit,
-  COALESCE(SUM(txn.credit), 0)::numeric(18,2) AS credit,
-  COALESCE(SUM(txn.debit - txn.credit), 0)::numeric(18,2) AS value
+  COALESCE(SUM(txn.debit), 0)::numeric(18,2)::text AS debit,
+  COALESCE(SUM(txn.credit), 0)::numeric(18,2)::text AS credit,
+  COALESCE(SUM(txn.debit - txn.credit), 0)::numeric(18,2)::text AS value
 FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
 WHERE ${where}
@@ -90,22 +92,79 @@ LIMIT 1`,
       },
     };
   }
+
+  async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>): Promise<DrillSummary[]> {
+    if (rows.length === 0) return [];
+    const config = loadConfig();
+    const summaries: DrillSummary[] = [];
+    for (let offset = 0; offset < rows.length; offset += config.maxRows) {
+      const batch = rows.slice(offset, offset + config.maxRows);
+      const sql = `${batch
+        .map(
+          ({ rowKey, predicate }) => `(SELECT ${quote(rowKey)} AS row_key, COUNT(*) AS feeding_line_count,
+  SUM(txn.debit - txn.credit)::text AS value
+FROM sap_transaction AS txn
+INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
+WHERE ${buildPredicate(predicate)}
+LIMIT 1)`,
+        )
+        .join("\nUNION ALL\n")}
+LIMIT ${batch.length}`;
+      const validation = this.validator.validate(sql, OBJECTS_TOUCHED, config.maxRows);
+      if (!validation.ok) throw new ForbiddenException(validation.reason ?? "Drill summary query blocked");
+      await this.warehouse.explain(sql);
+      const result = await withTimeout(this.warehouse.execute(sql), config.queryTimeoutMs);
+      summaries.push(
+        ...result.rows.map((row) => ({
+          rowKey: requiredText(row.row_key),
+          feedingLineCount: integer(row.feeding_line_count),
+          value: money(row.value),
+        })),
+      );
+    }
+    return summaries;
+  }
 }
 
 function buildPredicate(predicate: DrillPredicate): string {
   const batches = predicate.actualBatchIds.length
     ? `txn.batch_id IN (${predicate.actualBatchIds.map(quote).join(", ")})`
     : "FALSE";
-  const triples = predicate.triples.length
-    ? `(${predicate.triples
-        .map(
-          ({ plant, costCenter, glCode }) =>
-            `(txn.plant = ${quote(plant)} AND txn.cost_center = ${quote(costCenter)} AND txn.gl_code = ${quote(glCode)})`,
-        )
-        .join(" OR ")})`
-    : "FALSE";
+  const rowPredicate =
+    predicate.mode === "gl-and-plants"
+      ? [
+          `txn.gl_code = ${quote(predicate.glCode)}`,
+          ...predicate.filters.flatMap((filter) => {
+            const sql = filterPredicate(filter);
+            return sql ? [sql] : [];
+          }),
+        ].join(" AND ")
+      : predicate.triples.length
+        ? `(${predicate.triples
+            .map(
+              ({ plant, costCenter, glCode }) =>
+                `(txn.plant = ${quote(plant)} AND txn.cost_center = ${quote(costCenter)} AND txn.gl_code = ${quote(glCode)})`,
+            )
+            .join(" OR ")})`
+        : "FALSE";
   const plants = predicate.plants.length ? `txn.plant IN (${predicate.plants.map(quote).join(", ")})` : "FALSE";
-  return `${batches} AND ${triples} AND ${plants} AND txn.month >= ${quote(predicate.from)} AND txn.month <= ${quote(predicate.to)} AND batch.source_kind = 'actuals'`;
+  return `${batches} AND ${rowPredicate} AND ${plants} AND txn.month >= ${quote(predicate.from)} AND txn.month <= ${quote(predicate.to)} AND batch.source_kind = 'actuals'`;
+}
+
+function filterPredicate(filter: {
+  dimensionId: string;
+  op: "eq" | "in" | "neq";
+  value: string | string[];
+}): string | null {
+  const column = filter.dimensionId === "gl_code" ? "txn.gl_code" : filter.dimensionId === "month" ? "txn.month" : null;
+  if (!column) return null;
+  if (filter.op === "in" && Array.isArray(filter.value)) {
+    return `${column} IN (${filter.value.map(quote).join(", ")})`;
+  }
+  if (typeof filter.value === "string") {
+    return `${column} ${filter.op === "neq" ? "<>" : "="} ${quote(filter.value)}`;
+  }
+  return null;
 }
 
 function batches(result: QueryResult): DrillBatch[] {

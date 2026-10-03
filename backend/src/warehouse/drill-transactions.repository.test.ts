@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import type { AuthUser, SelectionFilter } from "@3f/contract";
+import { SemanticLayer } from "../semantic/semanticLayer";
+import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "./warehouse.interface";
 import { DrillTransactionsRepository, normalizeDateOnly } from "./drill-transactions.repository";
+import { StarRocksMysqlAdapter } from "./starrocks-mysql.adapter";
 
 test("the drill page and footer queries share one predicate and emit the deterministic order with a bounded limit the validator accepts", async () => {
   const warehouse = new FakeWarehouse();
@@ -107,6 +111,59 @@ test("the repository returns each transaction's document number cost centre and 
   ]);
 });
 
+test("the configured StarRocks adapter preserves exact page, footer, and summary money cast as text", async () => {
+  await withStarRocksAdapter(253, async (adapter, receivedSql) => {
+    const repository = new DrillTransactionsRepository(new SqlValidator(), adapter);
+    const predicate = {
+      actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+      triples: [{ plant: "DUB", costCenter: "DUB-NUR", glCode: "5001" }],
+      plants: ["DUB"],
+      from: "2026-07-01",
+      to: "2026-07-01",
+    };
+    const result = await repository.execute(repository.buildQueries(predicate, 1, 100));
+    const summaries = await repository.summarize([{ rowKey: "5001", predicate }]);
+
+    assert.deepEqual(
+      {
+        line: result.lines[0] && {
+          debit: result.lines[0].debit,
+          credit: result.lines[0].credit,
+          value: result.lines[0].value,
+        },
+        footer: result.footer,
+        summary: summaries[0]?.value,
+      },
+      {
+        line: { debit: EXACT_MONEY, credit: "0.00", value: EXACT_MONEY },
+        footer: { debit: EXACT_MONEY, credit: "0.00", value: EXACT_MONEY },
+        summary: EXACT_MONEY,
+      },
+    );
+
+    const executed = receivedSql.filter((sql) => !sql.startsWith("EXPLAIN "));
+    const pageSql = executed.find((sql) => sql.includes("OFFSET 0"))!;
+    const footerSql = executed.find((sql) => sql.includes("total_count"))!;
+    const summarySql = executed.find((sql) => sql.includes("feeding_line_count"))!;
+    assert.match(pageSql, /txn\.debit::text AS debit/);
+    assert.match(pageSql, /txn\.credit::text AS credit/);
+    assert.match(pageSql, /\(txn\.debit - txn\.credit\)::numeric\(18,2\)::text AS value/);
+    assert.match(footerSql, /SUM\(txn\.debit\)[\s\S]+::text AS debit/);
+    assert.match(footerSql, /SUM\(txn\.credit\)[\s\S]+::text AS credit/);
+    assert.match(footerSql, /SUM\(txn\.debit - txn\.credit\)[\s\S]+::text AS value/);
+    assert.match(summarySql, /SUM\(txn\.debit - txn\.credit\)::text AS value/);
+  });
+});
+
+test("the configured StarRocks adapter rounds an uncast NEWDECIMAL above the safe integer range", async () => {
+  await withStarRocksAdapter(246, async (adapter) => {
+    const result = await adapter.execute("SELECT uncast_decimal_outputs");
+    assert.equal(typeof result.rows[0]?.value, "number");
+    assert.equal(String(result.rows[0]?.value), "90000000000000.02");
+    assert.notEqual(String(result.rows[0]?.value), EXACT_MONEY);
+  });
+});
+
 test("pinned batch existence and active state are read in one query", async () => {
   const warehouse = new FakeWarehouse();
   const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
@@ -118,11 +175,194 @@ test("pinned batch existence and active state are read in one query", async () =
   assert.match(warehouse.executed[0]!, /is_active/);
 });
 
+test("a GL-and-plants predicate keeps the answer's plants and row GL in both page and all-match footer", () => {
+  const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
+  const queries = repository.buildQueries(
+    {
+      mode: "gl-and-plants",
+      actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+      glCode: "50001201",
+      plants: ["DUB"],
+      filters: [{ dimensionId: "gl_code", op: "in", value: ["50001201", "50001202"] }],
+      from: "2026-07-01",
+      to: "2026-07-01",
+    },
+    1,
+    100,
+  );
+
+  for (const sql of [queries.pageSql, queries.footerSql]) {
+    assert.match(sql, /txn\.gl_code = '50001201'/);
+    assert.match(sql, /txn\.plant IN \('DUB'\)/);
+    assert.match(sql, /txn\.gl_code IN \('50001201', '50001202'\)/);
+    assert.match(sql, /batch\.source_kind = 'actuals'/);
+  }
+});
+
+test("a GL-and-plants predicate mirrors every answer-query filter operator and value-shape combination", () => {
+  const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
+  const builder = new SqlBuilder();
+  const domain = new SemanticLayer().domain("governed-financial")!;
+  const cases: Array<Pick<SelectionFilter, "op" | "value"> & { expected: string | null }> = [
+    { op: "eq", value: "2026-06-01", expected: "month = '2026-06-01'" },
+    { op: "eq", value: ["2026-06-01"], expected: null },
+    { op: "neq", value: "2026-06-01", expected: "month <> '2026-06-01'" },
+    { op: "neq", value: ["2026-06-01"], expected: null },
+    { op: "in", value: "2026-06-01", expected: "month = '2026-06-01'" },
+    {
+      op: "in",
+      value: ["2026-06-01", "2026-06-02"],
+      expected: "month IN ('2026-06-01', '2026-06-02')",
+    },
+  ];
+
+  for (const example of cases) {
+    const filter: SelectionFilter = { dimensionId: "month", ...example };
+    const answerSql = builder.build(
+      domain,
+      {
+        domain: domain.name,
+        measureIds: ["governed-financial.actual"],
+        dimensionIds: ["gl_code"],
+        filters: [filter],
+        timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
+      },
+      filterUser,
+    ).sql;
+    const { pageSql } = repository.buildQueries(
+      {
+        mode: "gl-and-plants",
+        actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+        glCode: "50001201",
+        plants: ["DUB"],
+        filters: [filter],
+        from: "2026-07-01",
+        to: "2026-07-01",
+      },
+      1,
+      100,
+    );
+    const label = `${example.op} with ${Array.isArray(example.value) ? "array" : "string"} value`;
+    if (example.expected) {
+      assert.ok(answerSql.includes(example.expected), `answer ${label}`);
+      assert.ok(pageSql.includes(`txn.${example.expected}`), `drill ${label}`);
+    } else {
+      assert.doesNotMatch(answerSql, /2026-06-01/, `answer ${label}`);
+      assert.doesNotMatch(pageSql, /2026-06-01/, `drill ${label}`);
+    }
+  }
+});
+
+test("summaries expose feeding-line counts and the exact debit-minus-credit decimal string for issuance", async () => {
+  const warehouse = new FakeWarehouse(
+    [],
+    [
+      { row_key: "50001201", feeding_line_count: "2", value: "8398339.00" },
+      { row_key: "zero-net", feeding_line_count: "2", value: "0.00" },
+    ],
+  );
+  const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
+  const summaries = await repository.summarize([
+    {
+      rowKey: "50001201",
+      predicate: {
+        mode: "gl-and-plants",
+        actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+        glCode: "50001201",
+        plants: ["DUB"],
+        filters: [],
+        from: "2026-07-01",
+        to: "2026-07-01",
+      },
+    },
+    {
+      rowKey: "zero-net",
+      predicate: {
+        mode: "triples",
+        actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+        triples: [{ plant: "DUB", costCenter: "NURSERY", glCode: "50009999" }],
+        plants: ["DUB"],
+        from: "2026-07-01",
+        to: "2026-07-01",
+      },
+    },
+  ]);
+
+  assert.deepEqual(summaries, [
+    { rowKey: "50001201", feedingLineCount: 2, value: "8398339.00" },
+    { rowKey: "zero-net", feedingLineCount: 2, value: "0.00" },
+  ]);
+  assert.match(warehouse.executed[0]!, /SUM\(txn\.debit - txn\.credit\)::text AS value/);
+  assert.match(warehouse.executed[0]!, /^\(SELECT[\s\S]+\nUNION ALL\n\(SELECT/);
+});
+
+test("a summary of the default maximum one thousand row keys passes validation with that exact bound", async () => {
+  const original = process.env.MAX_ROWS;
+  delete process.env.MAX_ROWS;
+  try {
+    const warehouse = new FakeWarehouse();
+    await new DrillTransactionsRepository(new SqlValidator(), warehouse).summarize(summaryInputs(1_000));
+    assert.equal(warehouse.executed.length, 1);
+    assert.match(warehouse.executed[0]!, /LIMIT 1000$/);
+  } finally {
+    if (original === undefined) delete process.env.MAX_ROWS;
+    else process.env.MAX_ROWS = original;
+  }
+});
+
+test("a summary above the configured maximum batches every row key into validator-safe queries", async () => {
+  const original = process.env.MAX_ROWS;
+  delete process.env.MAX_ROWS;
+  try {
+    const warehouse = new FakeWarehouse();
+    await new DrillTransactionsRepository(new SqlValidator(), warehouse).summarize(summaryInputs(1_001));
+    assert.equal(warehouse.executed.length, 2);
+    assert.match(warehouse.executed[0]!, /LIMIT 1000$/);
+    assert.match(warehouse.executed[1]!, /LIMIT 1$/);
+  } finally {
+    if (original === undefined) delete process.env.MAX_ROWS;
+    else process.env.MAX_ROWS = original;
+  }
+});
+
+function summaryInputs(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    rowKey: `row-${index}`,
+    predicate: {
+      mode: "gl-and-plants" as const,
+      actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+      glCode: `5000${index}`,
+      plants: ["DUB"],
+      filters: [],
+      from: "2026-07-01",
+      to: "2026-07-01",
+    },
+  }));
+}
+
+const filterUser: AuthUser = {
+  id: "user-1",
+  email: "finance@example.com",
+  display_name: "Finance",
+  is_active: true,
+  roles: ["admin"],
+  permissions: {
+    actions: ["report"],
+    domains: ["governed-financial"],
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["gl_code", "month"],
+  },
+  scope: [{ attribute: "plant", value: "DUB" }],
+};
+
 class FakeWarehouse implements Warehouse {
   explained: string[] = [];
   executed: string[] = [];
 
-  constructor(private readonly pageRows: Array<Record<string, string | number | null>> = []) {}
+  constructor(
+    private readonly pageRows: Array<Record<string, string | number | null>> = [],
+    private readonly summaryRows: Array<Record<string, string | number | null>> = [],
+  ) {}
 
   async explain(sql: string) {
     this.explained.push(sql);
@@ -130,6 +370,7 @@ class FakeWarehouse implements Warehouse {
 
   async execute(sql: string) {
     this.executed.push(sql);
+    if (sql.includes("feeding_line_count")) return { columns: [], rows: this.summaryRows };
     return sql.includes("COUNT(*)")
       ? { columns: [], rows: [{ total_count: "0", debit: "0.00", credit: "0.00", value: "0.00" }] }
       : { columns: [], rows: this.pageRows };
@@ -141,4 +382,92 @@ class FakeWarehouse implements Warehouse {
   async distinctValues() {
     return [];
   }
+}
+
+const EXACT_MONEY = "90000000000000.01";
+const VAR_STRING = 253;
+
+type MysqlFieldFixture = { name: string; type: number };
+type InjectedPool = {
+  query(options: { sql: string }): Promise<[Array<Record<string, string | null>>, MysqlFieldFixture[]]>;
+};
+
+async function withStarRocksAdapter(
+  moneyFieldType: number,
+  run: (adapter: StarRocksMysqlAdapter, receivedSql: string[]) => Promise<void>,
+): Promise<void> {
+  const originalHost = process.env.STARROCKS_HOST;
+  const originalCatalog = process.env.STARROCKS_CATALOG;
+  process.env.STARROCKS_HOST = "starrocks.test";
+  process.env.STARROCKS_CATALOG = "default_catalog";
+  try {
+    const receivedSql: string[] = [];
+    const adapter = new StarRocksMysqlAdapter();
+    const pool: InjectedPool = {
+      async query({ sql }) {
+        receivedSql.push(sql);
+        return mysqlResult(sql, moneyFieldType);
+      },
+    };
+    (adapter as unknown as { pool: InjectedPool }).pool = pool;
+    await run(adapter, receivedSql);
+  } finally {
+    if (originalHost === undefined) delete process.env.STARROCKS_HOST;
+    else process.env.STARROCKS_HOST = originalHost;
+    if (originalCatalog === undefined) delete process.env.STARROCKS_CATALOG;
+    else process.env.STARROCKS_CATALOG = originalCatalog;
+  }
+}
+
+function mysqlResult(sql: string, moneyFieldType: number): [Array<Record<string, string | null>>, MysqlFieldFixture[]] {
+  if (sql.startsWith("EXPLAIN ")) return [[], []];
+  if (sql.includes("feeding_line_count")) {
+    return [
+      [{ row_key: "5001", feeding_line_count: "1", value: EXACT_MONEY }],
+      [
+        { name: "row_key", type: VAR_STRING },
+        { name: "feeding_line_count", type: 8 },
+        { name: "value", type: moneyFieldType },
+      ],
+    ];
+  }
+  if (sql.includes("total_count")) {
+    return [
+      [{ total_count: "1", debit: EXACT_MONEY, credit: "0.00", value: EXACT_MONEY }],
+      [
+        { name: "total_count", type: 8 },
+        { name: "debit", type: moneyFieldType },
+        { name: "credit", type: moneyFieldType },
+        { name: "value", type: moneyFieldType },
+      ],
+    ];
+  }
+  return [
+    [
+      {
+        month: "2026-07-01",
+        posting_date: "2026-07-14",
+        txn_no: "1900001234",
+        cost_center: "DUB-NUR",
+        acct_name: "Sprout Cost - Imp",
+        debit: EXACT_MONEY,
+        credit: "0.00",
+        value: EXACT_MONEY,
+        reference: null,
+        memo: null,
+      },
+    ],
+    [
+      { name: "month", type: VAR_STRING },
+      { name: "posting_date", type: VAR_STRING },
+      { name: "txn_no", type: VAR_STRING },
+      { name: "cost_center", type: VAR_STRING },
+      { name: "acct_name", type: VAR_STRING },
+      { name: "debit", type: moneyFieldType },
+      { name: "credit", type: moneyFieldType },
+      { name: "value", type: moneyFieldType },
+      { name: "reference", type: VAR_STRING },
+      { name: "memo", type: VAR_STRING },
+    ],
+  ];
 }

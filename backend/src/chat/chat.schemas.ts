@@ -5,6 +5,14 @@ import {
   ASK_PRIOR_TURNS_MAX_ENTRIES,
   ASK_PRIOR_TURNS_MAX_SERIALIZED_CHARS,
   ResponseClass,
+  type AskDrillMetadata,
+  type AskDrillRequest,
+  type AskDrillResponse,
+  type AskRowLabel,
+  type FixedScaleMoney,
+  type MisDrillBatchStatus,
+  type MisDrillFooter,
+  type MisDrillLine,
   type AskResponse,
 } from "@3f/contract";
 import { ExplorationSelectionDto, selectionSchema } from "../saved/saved.schemas";
@@ -96,6 +104,79 @@ export const askSchema = z
   })
   .strict();
 
+export const askDrillSchema = z
+  .object({
+    context: z.string().min(3),
+    rowKey: z.string().trim().min(1).max(200),
+    page: z.number().int().min(1).max(1_000_000),
+  })
+  .strict();
+
+export class AskDrillRequestDto implements AskDrillRequest {
+  @ApiProperty({ description: "Opaque context signed with the Ask answer.", example: "eyJ...signature" })
+  context!: string;
+  @ApiProperty({ description: "Raw result row key.", example: "50001201" })
+  rowKey!: string;
+  @ApiProperty({ type: "integer", minimum: 1, maximum: 1_000_000, example: 1 })
+  page!: number;
+}
+
+class AskDrillLineDto implements MisDrillLine {
+  @ApiProperty({ example: "2026-07-01" }) month!: string;
+  @ApiProperty({ example: "2026-07-14" }) postingDate!: string;
+  @ApiProperty({ example: "1900001234" }) txnNo!: string;
+  @ApiProperty({ example: "DUB-NUR" }) costCenter!: string;
+  @ApiProperty({ example: "Sprout Cost - Imp" }) accountName!: string;
+  @ApiProperty({ example: "125.00" }) debit!: FixedScaleMoney;
+  @ApiProperty({ example: "0.00" }) credit!: FixedScaleMoney;
+  @ApiProperty({ example: "125.00" }) value!: FixedScaleMoney;
+  @ApiProperty({ nullable: true }) reference!: string | null;
+  @ApiProperty({ nullable: true }) memo!: string | null;
+}
+
+class AskDrillFooterDto implements MisDrillFooter {
+  @ApiProperty({ example: "125.00" }) debit!: FixedScaleMoney;
+  @ApiProperty({ example: "0.00" }) credit!: FixedScaleMoney;
+  @ApiProperty({ example: "125.00" }) value!: FixedScaleMoney;
+}
+
+class AskDrillBatchStatusDto implements MisDrillBatchStatus {
+  @ApiProperty({ enum: ["actuals", "budget"] }) source!: "actuals" | "budget";
+  @ApiProperty({ example: "2026-07-01" }) period!: string;
+  @ApiProperty({ format: "uuid" }) requestedBatchId!: string;
+  @ApiProperty({ enum: ["current", "replaced", "gone"] }) status!: "current" | "replaced" | "gone";
+  @ApiProperty({ format: "uuid", nullable: true }) activeBatchId!: string | null;
+}
+
+export class AskDrillResponseDto implements AskDrillResponse {
+  @ApiProperty() rowKey!: string;
+  @ApiProperty({ type: [AskDrillLineDto] }) lines!: MisDrillLine[];
+  @ApiProperty({ type: AskDrillFooterDto }) footer!: MisDrillFooter;
+  @ApiProperty({ type: "integer" }) totalCount!: number;
+  @ApiProperty({ type: "integer" }) page!: number;
+  @ApiProperty({ type: "integer", enum: [100] }) pageSize: 100 = 100;
+  @ApiProperty({ type: [AskDrillBatchStatusDto] }) batchStatuses!: MisDrillBatchStatus[];
+  @ApiPropertyOptional() notice?: string;
+}
+
+class AskRowLabelDto implements AskRowLabel {
+  @ApiProperty() key!: string;
+  @ApiProperty() label!: string;
+  @ApiProperty({ type: [String] }) otherLabels!: string[];
+}
+
+type AskDrillMetadataRow = AskDrillMetadata["rows"][number];
+
+class AskDrillMetadataRowDto implements AskDrillMetadataRow {
+  @ApiProperty() key!: string;
+  @ApiProperty() drillable!: boolean;
+}
+
+class AskDrillMetadataDto implements AskDrillMetadata {
+  @ApiProperty() context!: string;
+  @ApiProperty({ type: [AskDrillMetadataRowDto] }) rows!: AskDrillMetadata["rows"];
+}
+
 export class ChatResponseDto {
   @ApiProperty({ enum: Object.values(ResponseClass) })
   responseClass!: ResponseClass;
@@ -155,6 +236,12 @@ export class ChatResponseDto {
     ],
   })
   result?: AskResponse["result"];
+
+  @ApiPropertyOptional({ type: [AskRowLabelDto] })
+  rowLabels?: AskResponse["rowLabels"];
+
+  @ApiPropertyOptional({ type: AskDrillMetadataDto })
+  drill?: AskResponse["drill"];
 
   @ApiPropertyOptional({ type: "object", additionalProperties: { type: "number" } })
   totals?: AskResponse["totals"];
