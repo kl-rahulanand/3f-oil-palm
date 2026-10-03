@@ -160,9 +160,13 @@ export class AskDrillResponseDto implements AskDrillResponse {
 }
 
 class AskRowLabelDto implements AskRowLabel {
-  @ApiProperty() key!: string;
-  @ApiProperty() label!: string;
-  @ApiProperty({ type: [String] }) otherLabels!: string[];
+  @ApiProperty({ description: "Raw result row key used to match this label to the answer row." }) key!: string;
+  @ApiProperty({ description: "Primary human-readable label for the row." }) label!: string;
+  @ApiProperty({
+    type: [String],
+    description: "Additional labels included in the bounded disclosure, in display order.",
+  })
+  otherLabels!: string[];
   @ApiPropertyOptional({
     type: "integer",
     minimum: 1,

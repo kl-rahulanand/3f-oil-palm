@@ -1,7 +1,9 @@
+import "reflect-metadata";
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { DECORATORS } from "@nestjs/swagger/dist/constants";
 import type { AskPriorTurn, Selection } from "@3f/contract";
-import { askSchema } from "./chat.schemas";
+import { askSchema, ChatResponseDto } from "./chat.schemas";
 
 test("the request schema rejects an oversize prior turns array payload or question before serialization", () => {
   assert.equal(askSchema.safeParse({ question: "Show Actual", priorTurns: turns(9) }).success, false);
@@ -139,6 +141,44 @@ test("Ask accepts a measure filter on a direct selection and a prior turn but re
   );
 });
 
+test("the row-label DTO publishes required label fields and an optional bounded remainder", () => {
+  const rowLabels = Reflect.getMetadata(DECORATORS.API_MODEL_PROPERTIES, ChatResponseDto.prototype, "rowLabels") as {
+    type: Function;
+    required: boolean;
+    isArray: boolean;
+  };
+  const rowLabelDto = rowLabels.type;
+  const properties = Object.fromEntries(
+    modelProperties(rowLabelDto).map((key) => [
+      key,
+      Reflect.getMetadata(DECORATORS.API_MODEL_PROPERTIES, rowLabelDto.prototype, key) as Record<string, unknown>,
+    ]),
+  );
+
+  assert.equal(rowLabels.isArray, true);
+  assert.equal(rowLabels.required, false);
+  assert.deepEqual(properties.key, {
+    type: String,
+    description: "Raw result row key used to match this label to the answer row.",
+  });
+  assert.deepEqual(properties.label, {
+    type: String,
+    description: "Primary human-readable label for the row.",
+  });
+  assert.deepEqual(properties.otherLabels, {
+    type: String,
+    isArray: true,
+    description: "Additional labels included in the bounded disclosure, in display order.",
+  });
+  assert.deepEqual(properties.hiddenOtherLabelCount, {
+    type: "integer",
+    minimum: 1,
+    description: "Number of additional account names beyond the bounded otherLabels list.",
+    required: false,
+    isArray: false,
+  });
+});
+
 const selection: Selection = {
   domain: "governed-financial",
   measureIds: ["governed-financial.actual"],
@@ -151,4 +191,10 @@ function turns(count: number): AskPriorTurn[] {
     question: `Question ${index}`,
     selection,
   }));
+}
+
+function modelProperties(model: Function): string[] {
+  return (
+    (Reflect.getMetadata(DECORATORS.API_MODEL_PROPERTIES_ARRAY, model.prototype) as string[] | undefined) ?? []
+  ).map((property) => property.replace(/^:/, ""));
 }

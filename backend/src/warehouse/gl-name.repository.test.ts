@@ -56,6 +56,25 @@ test("a budget-only code falls back to the first distinct MIS line label in pinn
   ]);
 });
 
+test("a budget-only code bounds MIS labels and reports the exact hidden remainder", async () => {
+  const labels = Array.from({ length: 23 }, (_, index) =>
+    outline({
+      nodeKey: `line-${index}`,
+      sortOrder: index,
+      glCode: "50009999",
+      label: `MIS label ${String(index).padStart(2, "0")}`,
+    }),
+  );
+  const repository = names([noNameRow("50009999", 0)], labels);
+
+  const [label] = await repository.findGlCodeLabels([glRow("50009999")], "budget-july");
+
+  assert.equal(label?.label, "MIS label 00");
+  assert.equal(label?.otherLabels.length, 19);
+  assert.equal(label?.otherLabels.at(-1), "MIS label 19");
+  assert.equal(label?.hiddenOtherLabelCount, 3);
+});
+
 test("a code with neither a scoped SAP name nor a pinned MIS label falls back to its bare code", async () => {
   const repository = names([noNameRow("50009999", 0)], [outline({ glCode: "another-code", label: "Another line" })]);
 

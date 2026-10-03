@@ -264,7 +264,14 @@ function outlineLabels(
 }
 
 function toRowLabel(key: string, labels: string[]): AskRowLabel {
-  return { key, label: labels[0]!, otherLabels: labels.slice(1) };
+  const bounded = labels.slice(0, NAME_GROUP_LIMIT);
+  const omitted = labels.length - bounded.length;
+  return {
+    key,
+    label: bounded[0]!,
+    otherLabels: bounded.slice(1),
+    ...(omitted > 0 ? { hiddenOtherLabelCount: omitted } : {}),
+  };
 }
 
 function cleanWhitespace(value: string): string {
