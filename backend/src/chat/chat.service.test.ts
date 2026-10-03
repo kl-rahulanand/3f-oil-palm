@@ -396,6 +396,49 @@ test("an all-data GL answer still resolves names from its pinned months but carr
   assert.equal(fixture.transactions.calls.length, 0);
 });
 
+test("a budget-only all-data GL answer resolves its MIS fallback from the latest pinned budget", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.budget"],
+    timeWindow: undefined,
+  };
+  const fixture = makeFixture({
+    selection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "budget-only", budget: "10.00" }],
+    },
+    activeBatchIds: [
+      { source: "budget", period: "2026-06-01", batchId: "budget-june" },
+      { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+    ],
+    labels: [{ key: "budget-only", label: "Budget Components", otherLabels: [] }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial", false, ["governed-financial.budget"]),
+    "session",
+    "Show all Budget by GL code",
+  );
+
+  assert.deepEqual(response.rowLabels, fixture.names.labels);
+  assert.equal(response.drill, undefined);
+  assert.equal(fixture.names.glCalls[0]?.budgetBatchId, BUDGET_BATCH_ID);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate, {
+    mode: "gl-and-plants",
+    actualBatchIds: [],
+    glCode: "budget-only",
+    plants: ["DUB"],
+    filters: [],
+    from: "2026-06-01",
+    to: "2026-07-01",
+  });
+  assert.equal(fixture.transactions.calls.length, 0);
+});
+
 test("the real ChatModule graph resolves ChatService and its name and drill dependencies without startup hooks", async () => {
   @Module({ imports: [CoreModule, ChatModule] })
   class ChatResolutionTestModule {}

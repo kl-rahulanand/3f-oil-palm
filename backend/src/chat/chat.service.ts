@@ -629,7 +629,7 @@ export class ChatService {
     );
     const budgetPin = lastMonthBudgetPin(activeBatchIds, selection.timeWindow?.to);
     const signedRange = concreteSelectionRange(selection);
-    const predicateRange = signedRange ?? pinnedActualRange(actualPins);
+    const predicateRange = signedRange ?? pinnedRange(activeBatchIds);
     const plants = shape.kind === "statement" ? (statementScope ? [statementScope.plant] : []) : ["DUB"];
     const predicates =
       predicateRange && plants.length
@@ -833,8 +833,13 @@ function rowKey(value: string | number | null | undefined): string | null {
 }
 
 export function lastMonthBudgetPin(pins: ProvenanceBatch[], to: string | undefined): ProvenanceBatch | undefined {
-  if (!to) return undefined;
-  const month = to.slice(0, 7);
+  const budgets = pins.filter(({ source }) => source === "budget");
+  const month =
+    to?.slice(0, 7) ??
+    budgets
+      .map(({ period }) => period.slice(0, 7))
+      .sort()
+      .at(-1);
   return pins.find((pin) => pin.source === "budget" && pin.period.slice(0, 7) === month);
 }
 
@@ -843,11 +848,8 @@ function concreteSelectionRange(selection: Selection): { from: string; to: strin
   return from && to && from <= to ? { from, to } : null;
 }
 
-function pinnedActualRange(pins: ProvenanceBatch[]): { from: string; to: string } | null {
-  const periods = pins
-    .filter(({ source }) => source === "actuals")
-    .map(({ period }) => period)
-    .sort();
+function pinnedRange(pins: ProvenanceBatch[]): { from: string; to: string } | null {
+  const periods = pins.map(({ period }) => period).sort();
   const from = periods[0];
   const to = periods.at(-1);
   return from && to ? { from, to } : null;
