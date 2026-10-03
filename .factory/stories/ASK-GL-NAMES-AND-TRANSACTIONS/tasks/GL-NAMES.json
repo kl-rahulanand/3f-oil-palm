@@ -4,7 +4,18 @@
     "blocking_level": "P1",
     "changed": "81f5878515a7a54c3e26079c79f273cf494f1b9f3c51393f6008ba91e437a47b",
     "commit": "c3323906eb2e542844f8084e92d90ec7ea4ab091",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/warehouse/gl-name.repository.test.ts:218 The repo has no database in CI (.github/workflows/forge.yml:25 and the forge.toml test command), and every warehouse DB test, including drill-transactions.db.test.ts merged in PR 88, is WAREHOUSE_DB_TEST-gated and run by hand. The coordinator ran test:warehouse-proof on the final code against a throwaway Postgres on 5434: 53 pass, 0 fail, 0 skipped, including the GL and statement label proof (recorded in commit c332390). A CI warehouse job is a repo-wide follow-up.",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.tsx:605 Commit c332390 is the branch's last commit and carries the consolidated Functional check: the real-Postgres proof, the app-DB snapshot proof, read-only July resolution (21/21 GL names, 80/80 statement labels, none without a pin), and browser walks of the final build covering GL names, unchanged order and totals, the disclosure, statement labels and the raw-key fallback. The worker was told not to write one so the coordinator's record would be last.",
+        "finding": 2,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The only test that executes the resolver SQL against PostgreSQL remains skipped unless `WAREHOUSE_DB_TEST=1`. Although this branch adds it to the optional `test:warehouse-proof` script, neither the close command in `forge.toml:7` nor CI invokes that script, and the supplied close output explicitly marks this test skipped. The passing fake-warehouse tests cannot detect invalid normalization, grouping, ranking, or scope SQL, so the required database behavior still has no executed proof.",
@@ -28,10 +39,10 @@
         "title": "Later: prove labels through the running Ask stack \u2192 GL-ANSWER-WIRING"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "2cc238b346b3734503b6e12201fb1ee3f5fa32662eae2d0f48c805c713cd1193"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-03T07:21:52+00:00",
