@@ -16,6 +16,7 @@ import {
   type MeasureFilter,
   type Permissions,
   type Provenance,
+  type ProvenanceBatch,
   type ResultTable,
   type Selection,
 } from "@3f/contract";
@@ -36,6 +37,11 @@ import {
   statementPeriodOptions,
 } from "../mapping/selection-resolver.service";
 import type { MasterResolvedSelection } from "../mapping/selection-resolver.interface";
+import { StatementAttestationService } from "../mis/statement-attestation";
+import type { DrillPredicate } from "../warehouse/drill-transactions.interface";
+import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
+import { GlNameRepository } from "../warehouse/gl-name.repository";
+import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
 import { classifyMeta, glossaryLookup, unsupportedFallbackMessage } from "../help/glossary";
 import { CHAT_MESSAGES } from "./chat.constants";
 import { domainRoutingAmbiguity, requiredTimeWindowClarify } from "./ambiguity";
@@ -44,6 +50,8 @@ import { classifyCausalQuestion, classifyReconciliationQuestion } from "./reconc
 import { classifySmalltalk } from "./smalltalk-guard";
 import { parseTimeWindow } from "./timeWindowParse";
 import { StatementExplanationService } from "./statement-explanation.service";
+import { AskDrillContextService } from "./ask-drill-context";
+import { issueAskDrill, type AskDrillAnswerShape } from "./ask-drill-issuer";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -71,6 +79,11 @@ export class ChatService {
     private readonly selectionResolver: SelectionResolverService,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     private readonly statementExplanation: StatementExplanationService,
+    @Inject(GlNameRepository) private readonly glNames: GlNameRepository,
+    @Inject(DrillTransactionsRepository) private readonly drillTransactions: DrillTransactionsRepository,
+    private readonly drillContexts: AskDrillContextService,
+    @Inject(StatementOutlineRepository) private readonly outlines: StatementOutlineRepository,
+    private readonly statementAttestation: StatementAttestationService,
   ) {}
 
   async ask(
@@ -431,6 +444,7 @@ export class ChatService {
         appliedTimeWindow,
         selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
         this.selectionResolver,
+        usesEditedSelection,
       );
       if (request.kind === "scope")
         return done({
@@ -462,6 +476,9 @@ export class ChatService {
     let activeBatchIds: NonNullable<Provenance["activeBatchIds"]> = [];
     let budgetComponentLabels: string[] = [];
     let rowSourcePresence: NonNullable<Provenance["rowSourcePresence"]> = [];
+    const drillPinRange = authorizedAskDrillRange(user, selection);
+    let actualPinsBeforeExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined;
+    let actualPinsAfterExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined;
     let auditFailed = false;
 
     onEvent?.({ type: "phase", phase: "querying" });
@@ -492,6 +509,12 @@ export class ChatService {
             auditFailed = true;
             throw new Error(CHAT_MESSAGES.auditNotRecorded);
           }
+          if (drillPinRange) {
+            actualPinsBeforeExecution = await this.drillTransactions.findActiveActualPins(
+              drillPinRange.from,
+              drillPinRange.to,
+            );
+          }
         },
       });
       result = execution.result;
@@ -500,6 +523,12 @@ export class ChatService {
       activeBatchIds = execution.activeBatchIds;
       budgetComponentLabels = execution.budgetComponentLabels;
       rowSourcePresence = execution.rowSourcePresence;
+      if (drillPinRange) {
+        actualPinsAfterExecution = await this.drillTransactions.findActiveActualPins(
+          drillPinRange.from,
+          drillPinRange.to,
+        );
+      }
       signal?.throwIfAborted();
       // `numeric` means "value/measure column" for rendering (chart axis, headline,
       // alignment) — NOT the raw SQL type. An integer DIMENSION (e.g. activity_hour
@@ -563,6 +592,21 @@ export class ChatService {
       (await this.selectionResolver.options()).periods,
       appliedTimeWindow?.column ?? selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
     );
+    let presentation: Pick<AskResponse, "rowLabels" | "drill"> = {};
+    try {
+      presentation = await this.answerPresentation(
+        user,
+        domain,
+        selection,
+        result,
+        activeBatchIds,
+        statementScope,
+        actualPinsBeforeExecution,
+        actualPinsAfterExecution,
+      );
+    } catch (error) {
+      return done({ responseClass: ResponseClass.ExecutionFailed, message: (error as Error).message });
+    }
 
     const successResponse: Omit<AskResponse, "sessionId" | "latencyMs"> = {
       responseClass: ResponseClass.Success,
@@ -583,11 +627,108 @@ export class ChatService {
       appliedMeasureFilters: selection.measureFilters,
       periodControl: buildPeriodControl(selection, appliedTimeWindow, answerPeriodOptions),
       viewInReport: buildViewInReport(domain, selection, statementScope, activeBatchIds),
+      ...presentation,
       ...answerMetadata,
     };
 
     onEvent?.({ type: "token", text: provenance.readback });
     return done(successResponse);
+  }
+
+  private async answerPresentation(
+    user: AuthUser,
+    domain: DomainSpec,
+    selection: Selection,
+    result: ResultTable,
+    activeBatchIds: NonNullable<Provenance["activeBatchIds"]>,
+    statementScope: MasterResolvedSelection | undefined,
+    actualPinsBeforeExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
+    actualPinsAfterExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
+  ): Promise<Pick<AskResponse, "rowLabels" | "drill">> {
+    const shape = answerRowShape(selection);
+    if (!shape) return {};
+    const keys = result.rows.map((row) => rowKey(row[shape.dimensionId]));
+    if (keys.some((key) => key === null)) return {};
+    const rowKeys = keys as string[];
+    const contributingActualPins = activeBatchIds.filter(
+      (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
+    );
+    const budgetPin = lastMonthBudgetPin(activeBatchIds, selection.timeWindow?.to);
+    const signedRange = concreteSelectionRange(selection);
+    const completedActualPins = completeActualPins(
+      contributingActualPins,
+      actualPinsBeforeExecution,
+      actualPinsAfterExecution,
+    );
+    const actualPins = completedActualPins.pins;
+    const predicateRange = signedRange ?? pinnedRange(activeBatchIds);
+    const plants = shape.kind === "statement" ? (statementScope ? [statementScope.plant] : []) : ["DUB"];
+    const predicates =
+      predicateRange && plants.length
+        ? rowKeys.map((key) => ({
+            rowKey: key,
+            predicate: predicateForAnswer(
+              shape.kind,
+              key,
+              selection,
+              statementScope,
+              actualPins,
+              plants,
+              predicateRange,
+            ),
+          }))
+        : [];
+    const usablePredicates = predicates.filter(
+      (entry): entry is { rowKey: string; predicate: DrillPredicate } => entry.predicate !== null,
+    );
+    const rowLabels =
+      shape.kind === "gl"
+        ? await this.glNames.findGlCodeLabels(
+            usablePredicates.map(({ rowKey: key, predicate }) => ({ key, predicate })),
+            budgetPin?.batchId,
+          )
+        : await this.glNames.findStatementLabels(rowKeys, budgetPin?.batchId);
+    if (completedActualPins.changed) {
+      for (const key of rowKeys) {
+        this.logger.log("warn", "Ask drill batch changed after answer execution", {
+          module: "ChatService",
+          accountId: user.id,
+          context: { rowKey: key, reason: "active-actual-batch-changed" },
+        });
+      }
+      return rowLabels.length ? { rowLabels } : {};
+    }
+    const issued = await issueAskDrill(
+      {
+        transactions: this.drillTransactions,
+        contexts: this.drillContexts,
+        outlines: this.outlines,
+        statementAttestation: this.statementAttestation,
+      },
+      {
+        user,
+        selection,
+        result,
+        shape,
+        rowKeys,
+        actualPins,
+        budgetPin,
+        range: signedRange,
+        plants,
+        predicates: usablePredicates,
+      },
+    );
+    for (const key of issued.dataMismatchRowKeys) {
+      this.logger.log("warn", "Ask drill summary does not match displayed Actual", {
+        module: "ChatService",
+        accountId: user.id,
+        context: { rowKey: key },
+      });
+    }
+    return {
+      ...(rowLabels.length ? { rowLabels } : {}),
+      ...(issued.drill ? { drill: issued.drill } : {}),
+    };
   }
 
   private chips(domain: DomainSpec, sel: Selection): Chip[] {
@@ -699,6 +840,116 @@ export class ChatService {
 
     return { kind: "selection", selection: { ...selection, filters } };
   }
+}
+
+function answerRowShape(selection: Selection): AskDrillAnswerShape | null {
+  if (
+    selection.domain === "governed-financial" &&
+    selection.dimensionIds.length === 1 &&
+    selection.dimensionIds[0] === "gl_code"
+  ) {
+    return {
+      kind: "gl",
+      dimensionId: "gl_code",
+      actualMeasureId: "governed-financial.actual",
+      actualColumn: "actual",
+    };
+  }
+  if (
+    selection.domain === "mis-statement" &&
+    selection.dimensionIds.length === 1 &&
+    selection.dimensionIds[0] === "leaf_key"
+  ) {
+    return {
+      kind: "statement",
+      dimensionId: "leaf_key",
+      actualMeasureId: "mis-statement.actual_net",
+      actualColumn: "actual_net",
+    };
+  }
+  return null;
+}
+
+function rowKey(value: string | number | null | undefined): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+export function lastMonthBudgetPin(pins: ProvenanceBatch[], to: string | undefined): ProvenanceBatch | undefined {
+  const budgets = pins.filter(({ source }) => source === "budget");
+  const month =
+    to?.slice(0, 7) ??
+    budgets
+      .map(({ period }) => period.slice(0, 7))
+      .sort()
+      .at(-1);
+  return pins.find((pin) => pin.source === "budget" && pin.period.slice(0, 7) === month);
+}
+
+function concreteSelectionRange(selection: Selection): { from: string; to: string } | null {
+  const { from, to } = selection.timeWindow ?? {};
+  return from && to && from <= to ? { from, to } : null;
+}
+
+function authorizedAskDrillRange(user: AuthUser, selection: Selection): { from: string; to: string } | null {
+  const shape = answerRowShape(selection);
+  return shape &&
+    selection.measureIds.includes(shape.actualMeasureId) &&
+    user.permissions.measureIds.includes(shape.actualMeasureId) &&
+    user.permissions.domains.includes(selection.domain)
+    ? concreteSelectionRange(selection)
+    : null;
+}
+
+function pinnedRange(pins: ProvenanceBatch[]): { from: string; to: string } | null {
+  const periods = pins.map(({ period }) => period).sort();
+  const from = periods[0];
+  const to = periods.at(-1);
+  return from && to ? { from, to } : null;
+}
+
+function completeActualPins(
+  contributing: Array<ProvenanceBatch & { source: "actuals" }>,
+  before: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
+  after: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
+): { pins: Array<ProvenanceBatch & { source: "actuals" }>; changed: boolean } {
+  if (!before || !after) return { pins: contributing, changed: false };
+  const beforeByPeriod = new Map(before.map((pin) => [pin.period, pin]));
+  const afterByPeriod = new Map(after.map((pin) => [pin.period, pin]));
+  const bracketChanged =
+    beforeByPeriod.size !== afterByPeriod.size ||
+    [...beforeByPeriod].some(([period, pin]) => afterByPeriod.get(period)?.batchId !== pin.batchId);
+  const contributingChanged = contributing.some((pin) => beforeByPeriod.get(pin.period)?.batchId !== pin.batchId);
+  const pins = [...before, ...contributing.filter((pin) => !beforeByPeriod.has(pin.period))].sort((left, right) =>
+    `${left.period}\0${left.batchId}`.localeCompare(`${right.period}\0${right.batchId}`),
+  );
+  return { pins, changed: bracketChanged || contributingChanged };
+}
+
+function predicateForAnswer(
+  kind: AskDrillAnswerShape["kind"],
+  key: string,
+  selection: Selection,
+  statementScope: MasterResolvedSelection | undefined,
+  actualPins: ProvenanceBatch[],
+  plants: string[],
+  range: { from: string; to: string },
+): DrillPredicate | null {
+  const base = { actualBatchIds: actualPins.map(({ batchId }) => batchId), plants, ...range };
+  return kind === "gl"
+    ? { ...base, mode: "gl-and-plants", glCode: key, filters: selection.filters }
+    : statementScope
+      ? { ...base, mode: "triples", triples: statementTriples(key, statementScope) }
+      : null;
+}
+
+function statementTriples(
+  leafKey: string,
+  statementScope: MasterResolvedSelection | undefined,
+): Array<{ plant: string; costCenter: string; glCode: string }> {
+  return (statementScope?.leafTargets ?? []).flatMap(({ plant, costCenter, glCode, target }) => {
+    const targetLeaf = target.kind === "leaf" ? target.leafKey : "unmapped-GL";
+    return targetLeaf === leafKey ? [{ plant, costCenter, glCode }] : [];
+  });
 }
 
 const PERIOD_WORD_PATTERN = /\b(?:q[1-4]|today|yesterday|since)\b/i;
@@ -1191,6 +1442,7 @@ async function statementRequest(
   window: AppliedTimeWindow | undefined,
   timeColumn: string,
   resolver: SelectionResolverService,
+  allowMultiPeriodRerun = false,
 ): Promise<StatementRequestResult> {
   const value = (attribute: "department" | "function" | "plant") => {
     const values = [
@@ -1212,7 +1464,8 @@ async function statementRequest(
   const periods = (await resolver.options()).periods;
   if (periods.length === 0) return { kind: "no-periods" };
   const options = askPeriodOptions(statementPeriodOptions(periods), timeColumn);
-  const period = window && options.find((option) => windowMatchesPeriod(window, option));
+  const accepted = allowMultiPeriodRerun ? askPeriodOptions(periods, timeColumn) : options;
+  const period = window && accepted.find((option) => windowMatchesPeriod(window, option));
   if (!period) return { kind: "period", options };
 
   try {

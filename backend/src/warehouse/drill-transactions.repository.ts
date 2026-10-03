@@ -47,6 +47,17 @@ LIMIT 25000`);
       .filter((period): period is string => Boolean(period));
   }
 
+  async findActiveActualPins(from: string, to: string): Promise<Array<ProvenanceBatch & { source: "actuals" }>> {
+    const result = await this.warehouse.execute(`SELECT id, source_kind, period, is_active
+FROM ingest_batch
+WHERE source_kind = 'actuals' AND is_active AND period >= ${quote(from)} AND period <= ${quote(to)}
+ORDER BY period
+LIMIT 25000`);
+    return batches(result)
+      .filter((batch): batch is DrillBatch & { source: "actuals" } => batch.source === "actuals")
+      .map(({ isActive: _isActive, ...pin }) => pin);
+  }
+
   buildQueries(predicate: DrillPredicate, page: number, rowLimit: number): DrillQueries {
     const where = buildDrillPredicate(predicate);
     return {

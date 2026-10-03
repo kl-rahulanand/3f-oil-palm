@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, Module, type InjectionToken } from "@nestjs/common";
+import { ApplicationConfig } from "@nestjs/core/application-config";
+import { NestContainer } from "@nestjs/core/injector/container";
+import { InstanceLoader } from "@nestjs/core/injector/instance-loader";
+import { Injector } from "@nestjs/core/injector/injector";
+import { NoopGraphInspector } from "@nestjs/core/inspector/noop-graph-inspector";
+import { MetadataScanner } from "@nestjs/core/metadata-scanner";
+import { DependenciesScanner } from "@nestjs/core/scanner";
 import {
   MeasureFilterInvalidReason,
   ResponseClass,
@@ -13,11 +20,20 @@ import {
 import type { LlmProvider, LlmSelectionInput, LlmSelectionResult } from "../llm/llm.interface";
 import { BedrockLlmProvider } from "../llm/bedrock.provider";
 import { LLM_CONTEXT_CHAR_BUDGET, LLM_MESSAGES } from "../llm/llm.constants";
-import { loadConfig } from "../config";
+import { DRIZZLE_DB, WAREHOUSE, loadConfig } from "../config";
+import { CoreModule } from "../core/core.module";
+import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
+import { StatementAttestationService } from "../mis/statement-attestation";
+import type { DrillPredicate, DrillSummary } from "../warehouse/drill-transactions.interface";
+import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
+import { GlNameRepository } from "../warehouse/gl-name.repository";
+import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
+import { AskDrillContextService } from "./ask-drill-context";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
+import { ChatModule } from "./chat.module";
 import { askSchema } from "./chat.schemas";
-import { ChatService, trimPriorTurnsToTokenBudget } from "./chat.service";
+import { ChatService, lastMonthBudgetPin, trimPriorTurnsToTokenBudget } from "./chat.service";
 
 test("trimming retains the newest turns in oldest first order", () => {
   const turns = ["oldest", "middle", "newest"].map((question) => ({
@@ -69,9 +85,13 @@ test("the llm provider receives the question prior turns and dimension values an
   const fixture = makeFixture({
     selection: financialSelection,
     result: {
-      columns: [{ key: "actual", label: "Actual", numeric: true }],
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true },
+      ],
       rows: [
         {
+          gl_code: "50001201",
           actual: 123.45,
           secret_row_marker: "warehouse-row",
           transaction_line: "transaction-line",
@@ -80,6 +100,8 @@ test("the llm provider receives the question prior turns and dimension values an
       ],
     },
     activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+    labels: [{ key: "50001201", label: "Sprout Cost - Imp", otherLabels: [] }],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "123.45" }],
   });
   const priorTurns: AskPriorTurn[] = [{ question: "Earlier question", selection: financialSelection }];
 
@@ -114,9 +136,479 @@ test("the llm provider receives the question prior turns and dimension values an
     "governed-financial": ["governed-financial.actual"],
   });
   const serialized = JSON.stringify(input);
-  for (const forbidden of ["123.45", "warehouse-row", "transaction-line", "batch-contents", ACTUAL_BATCH_ID]) {
+  for (const forbidden of [
+    "123.45",
+    "warehouse-row",
+    "transaction-line",
+    "batch-contents",
+    "Sprout Cost - Imp",
+    "rowLabels",
+    "drill",
+    "actualPaise",
+    ACTUAL_BATCH_ID,
+  ]) {
     assert.equal(serialized.includes(forbidden), false, forbidden);
   }
+});
+
+test("a GL-code answer carries scoped names and only matching transaction-backed Actuals in its signed drill metadata", async () => {
+  const activeBatchIds: ProvenanceBatch[] = [
+    { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+    { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+  ];
+  const fixture = makeFixture({
+    selection: financialSelection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [
+        { gl_code: "50001201", actual: "8398339.00" },
+        { gl_code: "50009999", actual: "0.00" },
+        { gl_code: "50008888", actual: "0.00" },
+        { gl_code: "50007777", actual: "1.00" },
+      ],
+    },
+    activeBatchIds,
+    labels: [
+      { key: "50001201", label: "Sprout Cost - Imp", otherLabels: ["Sprout cost imported"] },
+      { key: "50009999", label: "Budget fallback", otherLabels: [] },
+      { key: "50008888", label: "Zero net", otherLabels: [] },
+      { key: "50007777", label: "Mismatch", otherLabels: [] },
+    ],
+    summaries: [
+      { rowKey: "50001201", feedingLineCount: 3, value: "8398339.00" },
+      { rowKey: "50009999", feedingLineCount: 0, value: "0.00" },
+      { rowKey: "50008888", feedingLineCount: 2, value: "0.00" },
+      { rowKey: "50007777", feedingLineCount: 1, value: "2.00" },
+    ],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code for July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(response.rowLabels, fixture.names.labels);
+  assert.deepEqual(response.drill?.rows, [
+    { key: "50001201", drillable: true },
+    { key: "50009999", drillable: false },
+    { key: "50008888", drillable: true },
+    { key: "50007777", drillable: false },
+  ]);
+  assert.equal(fixture.names.glCalls.length, 1);
+  assert.equal(fixture.transactions.calls.length, 1);
+  assert.deepEqual(
+    fixture.names.glCalls[0]?.rows.map(({ key, predicate }) => ({ rowKey: key, predicate })),
+    fixture.transactions.calls[0],
+  );
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate, {
+    mode: "gl-and-plants",
+    actualBatchIds: [ACTUAL_BATCH_ID],
+    glCode: "50001201",
+    plants: ["DUB"],
+    filters: [],
+    from: "2026-07-01",
+    to: "2026-07-31",
+  });
+  assert.equal(fixture.names.glCalls[0]?.budgetBatchId, BUDGET_BATCH_ID);
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") {
+    assert.deepEqual(verified.claims.plants, ["DUB"]);
+    assert.deepEqual(verified.claims.pinnedActuals, [activeBatchIds[0]]);
+    assert.equal(verified.claims.budget?.pin.batchId, BUDGET_BATCH_ID);
+    assert.deepEqual(verified.claims.rows, [
+      { key: "50001201", actualPaise: "839833900", drillable: true },
+      { key: "50009999", actualPaise: "0", drillable: false },
+      { key: "50008888", actualPaise: "0", drillable: true },
+      { key: "50007777", actualPaise: "100", drillable: false },
+    ]);
+  }
+  assert.deepEqual(fixture.logs, [{ context: { rowKey: "50007777" } }]);
+});
+
+test("a multi-period GL-code answer passes the last month's budget batch to the name resolver", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    timeWindow: { grain: "month", from: "2026-06-01", to: "2026-07-01" },
+  };
+  const fixture = makeFixture({
+    selection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "125.01" }],
+    },
+    activeBatchIds: [
+      { source: "actuals", period: "2026-06-01", batchId: "actual-june" },
+      { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+      { source: "budget", period: "2026-06-01", batchId: "budget-june" },
+      { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+    ],
+    labels: [{ key: "50001201", label: "Sprout Cost - Imp", otherLabels: [] }],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code from June to July 2026",
+    selection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(response.rowLabels, fixture.names.labels);
+  assert.equal(fixture.names.glCalls[0]?.budgetBatchId, BUDGET_BATCH_ID);
+});
+
+test("a sparse multi-period GL answer signs every active Actual month in its executed window", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+  };
+  const activeActualPins = [
+    { source: "actuals" as const, period: "2026-04-01", batchId: "actual-april" },
+    { source: "actuals" as const, period: "2026-05-01", batchId: "actual-may" },
+    { source: "actuals" as const, period: "2026-06-01", batchId: "actual-june" },
+    { source: "actuals" as const, period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+  ];
+  const fixture = makeFixture({
+    selection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "125.01" }],
+    },
+    activeBatchIds: [activeActualPins[0]!, activeActualPins[3]!],
+    activeActualPins,
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code from April to July 2026",
+    selection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") assert.deepEqual(verified.claims.pinnedActuals, activeActualPins);
+  assert.deepEqual(fixture.transactions.activePinCalls, [
+    { from: "2026-04-01", to: "2026-07-31" },
+    { from: "2026-04-01", to: "2026-07-31" },
+  ]);
+  assert.deepEqual(fixture.transactions.calls[0]?.[0]?.predicate.actualBatchIds, [
+    "actual-april",
+    "actual-may",
+    "actual-june",
+    ACTUAL_BATCH_ID,
+  ]);
+});
+
+test("a contributing month reload between the bracketed pin lookups leaves the answer inert", async () => {
+  const executedPin = { source: "actuals" as const, period: "2026-07-01", batchId: ACTUAL_BATCH_ID };
+  const reloadedPin = { source: "actuals" as const, period: "2026-07-01", batchId: "actual-july-reloaded" };
+  const fixture = makeFixture({
+    selection: financialSelection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "125.01" }],
+    },
+    activeBatchIds: [executedPin],
+    activeActualPinSnapshots: [[executedPin], [reloadedPin]],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code for July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.equal(response.drill, undefined);
+  assert.equal(fixture.transactions.calls.length, 0);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.actualBatchIds, [ACTUAL_BATCH_ID]);
+  assert.deepEqual(fixture.logs, [{ context: { rowKey: "50001201", reason: "active-actual-batch-changed" } }]);
+});
+
+test("a noncontributing month reload between the bracketed pin lookups leaves the answer inert", async () => {
+  const aprilPin = { source: "actuals" as const, period: "2026-04-01", batchId: "actual-april" };
+  const mayPin = { source: "actuals" as const, period: "2026-05-01", batchId: "actual-may" };
+  const reloadedMayPin = { source: "actuals" as const, period: "2026-05-01", batchId: "actual-may-reloaded" };
+  const junePin = { source: "actuals" as const, period: "2026-06-01", batchId: "actual-june" };
+  const julyPin = { source: "actuals" as const, period: "2026-07-01", batchId: ACTUAL_BATCH_ID };
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+    },
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "125.01" }],
+    },
+    activeBatchIds: [aprilPin, julyPin],
+    activeActualPinSnapshots: [
+      [aprilPin, mayPin, junePin, julyPin],
+      [aprilPin, reloadedMayPin, junePin, julyPin],
+    ],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code from April to July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.equal(response.drill, undefined);
+  assert.equal(fixture.transactions.calls.length, 0);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.actualBatchIds, [
+    "actual-april",
+    "actual-may",
+    "actual-june",
+    ACTUAL_BATCH_ID,
+  ]);
+  assert.deepEqual(fixture.logs, [{ context: { rowKey: "50001201", reason: "active-actual-batch-changed" } }]);
+});
+
+test("statement label batch selection chooses the last budget month from a multi-month window", () => {
+  const window = { grain: "month" as const, from: "2026-06-01", to: "2026-07-01" };
+  const julyBudget = { source: "budget" as const, period: "2026-07-01", batchId: BUDGET_BATCH_ID };
+
+  assert.deepEqual(
+    lastMonthBudgetPin([{ source: "budget", period: "2026-06-01", batchId: "budget-june" }, julyBudget], window.to),
+    julyBudget,
+  );
+});
+
+test("a saved multi-period statement re-run labels and binds the final month's budget outline and triples", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+  };
+  const fixture = makeFixture({
+    selection,
+    statementPeriod: { value: "fy26-27-ytd", label: "FYTD", from: "2026-04-01", to: "2026-07-01" },
+    result: {
+      columns: [
+        { key: "leaf_key", label: "Statement line", numeric: false },
+        { key: "actual_net", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ leaf_key: "leaf", actual_net: 125.01 }],
+    },
+    activeBatchIds: [
+      { source: "actuals", period: "2026-04-01", batchId: "actual-april" },
+      { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+      { source: "budget", period: "2026-04-01", batchId: "budget-april" },
+      { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+    ],
+    labels: [{ key: "leaf", label: "1.1 Sprout Cost", otherLabels: [] }],
+    summaries: [{ rowKey: "leaf", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("mis-statement", true),
+    "session",
+    "Re-run saved statement",
+    selection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.names.statementCalls, [{ keys: ["leaf"], budgetBatchId: BUDGET_BATCH_ID }]);
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") {
+    assert.deepEqual(verified.claims.budget, {
+      pin: { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+      outlineDigest: "outline-digest",
+    });
+    assert.deepEqual(verified.claims.rows[0]?.triples, [{ plant: "DUB", costCenter: "Primary", glCode: "5001" }]);
+  }
+});
+
+test("unsupported or unauthorized answer shapes never issue drill metadata or summarize transactions", async () => {
+  const cases: Array<{ name: string; selection: Selection; user: AuthUser }> = [
+    {
+      name: "month breakdown",
+      selection: { ...financialSelection, dimensionIds: ["month"] },
+      user: userFor("governed-financial"),
+    },
+    {
+      name: "no breakdown",
+      selection: { ...financialSelection, dimensionIds: [] },
+      user: userFor("governed-financial"),
+    },
+    {
+      name: "Budget only",
+      selection: { ...financialSelection, measureIds: ["governed-financial.budget"] },
+      user: userFor("governed-financial", false, ["governed-financial.budget"]),
+    },
+    {
+      name: "percentage only",
+      selection: { ...financialSelection, measureIds: ["governed-financial.percentage"] },
+      user: userFor("governed-financial", false, ["governed-financial.percentage"]),
+    },
+  ];
+
+  for (const example of cases) {
+    const fixture = makeFixture({
+      selection: example.selection,
+      result: {
+        columns: [{ key: example.selection.dimensionIds[0] ?? "actual", label: "value", numeric: false }],
+        rows: [],
+      },
+      activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+    });
+    const response = await fixture.service.ask(example.user, "session", example.name);
+    assert.equal(response.drill, undefined, example.name);
+    assert.equal(fixture.transactions.calls.length, 0, example.name);
+  }
+});
+
+test("a reader without the Actual grant receives neither an Actual value nor drill metadata", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+  };
+  const fixture = makeFixture({ selection });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial", false, ["governed-financial.budget"]),
+    "session",
+    "Show Actual and Budget by GL code",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.NotSupported);
+  assert.equal(response.result, undefined);
+  assert.equal(response.drill, undefined);
+  assert.doesNotMatch(JSON.stringify(response), /actualPaise|"actual"/);
+  assert.equal(fixture.transactions.calls.length, 0);
+});
+
+test("an all-data GL answer still resolves names from its pinned months but carries no drill without a fixed window", async () => {
+  const fixture = makeFixture({
+    selection: { ...financialSelection, timeWindow: undefined },
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "10.00" }],
+    },
+    activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+    labels: [{ key: "50001201", label: "Sprout Cost - Imp", otherLabels: [] }],
+  });
+
+  const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show Actual by GL code");
+
+  assert.deepEqual(response.rowLabels, fixture.names.labels);
+  assert.equal(response.drill, undefined);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate, {
+    mode: "gl-and-plants",
+    actualBatchIds: [ACTUAL_BATCH_ID],
+    glCode: "50001201",
+    plants: ["DUB"],
+    filters: [],
+    from: "2026-07-01",
+    to: "2026-07-01",
+  });
+  assert.equal(fixture.transactions.calls.length, 0);
+});
+
+test("a budget-only all-data GL answer resolves its MIS fallback from the latest pinned budget", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.budget"],
+    timeWindow: undefined,
+  };
+  const fixture = makeFixture({
+    selection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "budget-only", budget: "10.00" }],
+    },
+    activeBatchIds: [
+      { source: "budget", period: "2026-06-01", batchId: "budget-june" },
+      { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+    ],
+    labels: [{ key: "budget-only", label: "Budget Components", otherLabels: [] }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial", false, ["governed-financial.budget"]),
+    "session",
+    "Show all Budget by GL code",
+  );
+
+  assert.deepEqual(response.rowLabels, fixture.names.labels);
+  assert.equal(response.drill, undefined);
+  assert.equal(fixture.names.glCalls[0]?.budgetBatchId, BUDGET_BATCH_ID);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate, {
+    mode: "gl-and-plants",
+    actualBatchIds: [],
+    glCode: "budget-only",
+    plants: ["DUB"],
+    filters: [],
+    from: "2026-06-01",
+    to: "2026-07-01",
+  });
+  assert.equal(fixture.transactions.calls.length, 0);
+});
+
+test("the real ChatModule graph resolves ChatService and its name and drill dependencies without startup hooks", async () => {
+  @Module({ imports: [CoreModule, ChatModule] })
+  class ChatResolutionTestModule {}
+
+  const applicationConfig = new ApplicationConfig();
+  const container = new NestContainer(applicationConfig);
+  const scanner = new DependenciesScanner(container, new MetadataScanner(), NoopGraphInspector, applicationConfig);
+  await scanner.scan(ChatResolutionTestModule);
+  container.replace(DRIZZLE_DB, { isProvider: true, useValue: {} });
+  container.replace(WAREHOUSE, { isProvider: true, useValue: {} });
+  container.replace(AuthoredMeasureRegistry, { isProvider: true, useValue: { published: () => [] } });
+  await new InstanceLoader(container, new Injector(), NoopGraphInspector).createInstancesOfDependencies();
+
+  const resolved = <T>(token: InjectionToken): T => {
+    for (const module of container.getModules().values()) {
+      const instance = module.providers.get(token)?.instance;
+      if (instance) return instance as T;
+    }
+    throw new Error(`Provider did not resolve: ${String(token)}`);
+  };
+  const chat = resolved<ChatService>(ChatService) as unknown as {
+    glNames: GlNameRepository;
+    drillTransactions: DrillTransactionsRepository;
+    drillContexts: AskDrillContextService;
+    outlines: StatementOutlineRepository;
+    statementAttestation: StatementAttestationService;
+  };
+
+  assert.equal(chat.glNames, resolved(GlNameRepository));
+  assert.equal(chat.drillTransactions, resolved(DrillTransactionsRepository));
+  assert.equal(chat.drillContexts, resolved(AskDrillContextService));
+  assert.equal(chat.outlines, resolved(StatementOutlineRepository));
+  assert.equal(chat.statementAttestation, resolved(StatementAttestationService));
 });
 
 test("a grounded selector keeps the report display scope and receives every permitted money comparison operand", async () => {
@@ -1284,6 +1776,7 @@ const RESULT: ResultTable = {
   rows: [{ actual: 42.5 }],
 };
 const ACTUAL_BATCH_ID = "00000000-0000-0000-0000-000000000001";
+const BUDGET_BATCH_ID = "00000000-0000-0000-0000-000000000002";
 
 function makeFixture(options: {
   selection?: Selection;
@@ -1293,6 +1786,11 @@ function makeFixture(options: {
   result?: ResultTable;
   activeBatchIds?: ProvenanceBatch[];
   failEntryAudit?: boolean;
+  labels?: Array<{ key: string; label: string; otherLabels: string[] }>;
+  summaries?: DrillSummary[];
+  activeActualPins?: Array<ProvenanceBatch & { source: "actuals" }>;
+  activeActualPinSnapshots?: Array<Array<ProvenanceBatch & { source: "actuals" }>>;
+  statementPeriod?: { value: string; label: string; from: string; to: string };
 }) {
   const llmResult: LlmSelectionResult =
     options.kind === "clarify"
@@ -1307,6 +1805,17 @@ function makeFixture(options: {
   const dimensions = new FakeDimensions();
   const help = new FakeHelp();
   const semantic = new SemanticLayer();
+  const names = new FakeNames(options.labels ?? []);
+  const transactions = new FakeTransactions(
+    options.summaries ?? [],
+    options.activeActualPinSnapshots ?? [
+      options.activeActualPins ??
+        (options.activeBatchIds ?? []).filter(
+          (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
+        ),
+    ],
+  );
+  const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
   const logs: Array<{ context: Record<string, unknown> }> = [];
   const reports = options.groundedSelection
     ? {
@@ -1328,16 +1837,65 @@ function makeFixture(options: {
     dimensions as never,
     reports as never,
     help as never,
-    new FakeSelectionResolver() as never,
+    new FakeSelectionResolver(options.statementPeriod) as never,
     provider,
     {} as never,
+    names as never,
+    transactions as never,
+    contexts,
+    new FakeOutlines() as never,
+    { outlineDigest: () => "outline-digest" } as never,
   );
   Reflect.set(service, "logger", {
     log(_level: string, _message: string, fields: { context?: Record<string, unknown> }) {
       logs.push({ context: fields.context ?? {} });
     },
   });
-  return { service, llm: fakeLlm, executor, audit, dimensions, help, logs };
+  return { service, llm: fakeLlm, executor, audit, dimensions, help, logs, names, transactions, contexts };
+}
+
+class FakeNames {
+  readonly glCalls: Array<{ rows: Array<{ key: string; predicate: DrillPredicate }>; budgetBatchId?: string }> = [];
+  readonly statementCalls: Array<{ keys: string[]; budgetBatchId?: string }> = [];
+
+  constructor(readonly labels: Array<{ key: string; label: string; otherLabels: string[] }>) {}
+
+  async findGlCodeLabels(rows: Array<{ key: string; predicate: DrillPredicate }>, budgetBatchId?: string) {
+    this.glCalls.push({ rows, budgetBatchId });
+    return this.labels;
+  }
+
+  async findStatementLabels(keys: string[], budgetBatchId?: string) {
+    this.statementCalls.push({ keys, budgetBatchId });
+    return this.labels;
+  }
+}
+
+class FakeTransactions {
+  readonly calls: Array<Array<{ rowKey: string; predicate: DrillPredicate }>> = [];
+  readonly activePinCalls: Array<{ from: string; to: string }> = [];
+
+  constructor(
+    private readonly summaries: DrillSummary[],
+    private readonly activeActualPinSnapshots: Array<Array<ProvenanceBatch & { source: "actuals" }>>,
+  ) {}
+
+  async findActiveActualPins(from: string, to: string) {
+    const snapshotIndex = this.activePinCalls.length;
+    this.activePinCalls.push({ from, to });
+    return this.activeActualPinSnapshots[snapshotIndex] ?? this.activeActualPinSnapshots.at(-1) ?? [];
+  }
+
+  async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>) {
+    this.calls.push(rows);
+    return this.summaries;
+  }
+}
+
+class FakeOutlines {
+  async findByBudgetBatchId() {
+    return [{ nodeKey: "leaf", leafKey: "leaf" }];
+  }
 }
 
 function numericTokens(value: unknown): string[] {
@@ -1440,16 +1998,24 @@ class FakeHelp {
 }
 
 class FakeSelectionResolver {
+  constructor(private readonly statementPeriod?: { value: string; label: string; from: string; to: string }) {}
+
   hasMapping() {
     return true;
   }
 
   async options() {
+    const period = {
+      value: "2026-07-01",
+      label: "July 2026",
+      from: "2026-07-01",
+      to: "2026-07-01",
+    };
     return {
       departments: ["Agriculture"],
       functions: ["Nursery"],
       plants: [{ value: "DUB", label: "DUB", aliases: ["DUB"] }],
-      periods: [{ value: "2026-07-01", label: "July 2026", from: "2026-07-01", to: "2026-07-01" }],
+      periods: [period, ...(this.statementPeriod ? [this.statementPeriod] : [])],
     };
   }
 
@@ -1476,7 +2042,11 @@ class FakeSelectionResolver {
   }
 }
 
-function userFor(domain: "governed-financial" | "mis-statement", statementScope = false): AuthUser {
+function userFor(
+  domain: "governed-financial" | "mis-statement",
+  statementScope = false,
+  measureIds?: string[],
+): AuthUser {
   const statement = domain === "mis-statement";
   return {
     id: "user-1",
@@ -1487,7 +2057,7 @@ function userFor(domain: "governed-financial" | "mis-statement", statementScope 
     permissions: {
       actions: ["report"],
       domains: [domain],
-      measureIds: [statement ? "mis-statement.actual_net" : "governed-financial.actual"],
+      measureIds: measureIds ?? [statement ? "mis-statement.actual_net" : "governed-financial.actual"],
       dimensionIds: [statement ? "leaf_key" : "gl_code"],
     },
     scope: statementScope

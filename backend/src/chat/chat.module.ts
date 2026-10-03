@@ -4,6 +4,7 @@ import { HelpService } from "../help/help.service";
 import { SelectionResolverService } from "../mapping/selection-resolver.service";
 import { ReportsService } from "../reports/reports.service";
 import { MisModule } from "../mis/mis.module";
+import { GlNameRepository } from "../warehouse/gl-name.repository";
 import { ChatController } from "./chat.controller";
 import { AskDrillController } from "./ask-drill.controller";
 import { AskDrillContextService, createAskDrillContextFromEnvironment } from "./ask-drill-context";
@@ -26,6 +27,7 @@ import { StatementExplanationService } from "./statement-explanation.service";
     SelectionResolverService,
     AuthGuard,
     AskDrillService,
+    GlNameRepository,
     {
       provide: AskDrillContextService,
       useFactory: createAskDrillContextFromEnvironment,

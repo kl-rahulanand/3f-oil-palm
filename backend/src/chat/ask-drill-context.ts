@@ -5,14 +5,29 @@ import { selectionSchema } from "../saved/saved.schemas";
 
 const pinSchema = z.object({ source: z.enum(["actuals", "budget"]), period: z.string(), batchId: z.string() }).strict();
 const tripleSchema = z.object({ plant: z.string(), costCenter: z.string(), glCode: z.string() }).strict();
-const rowSchema = z
-  .object({
-    key: z.string().min(1),
-    actualPaise: z.string().regex(/^-?(?:0|[1-9]\d*)$/),
-    drillable: z.boolean(),
-    triples: z.array(tripleSchema).optional(),
-  })
-  .strict();
+const rowFields = {
+  key: z.string().min(1),
+  triples: z.array(tripleSchema).optional(),
+};
+const rowSchema = z.discriminatedUnion("drillable", [
+  z
+    .object({
+      ...rowFields,
+      actualPaise: z.string().regex(/^-?(?:0|[1-9]\d*)$/),
+      drillable: z.literal(true),
+    })
+    .strict(),
+  z
+    .object({
+      ...rowFields,
+      actualPaise: z
+        .string()
+        .regex(/^-?(?:0|[1-9]\d*)$/)
+        .optional(),
+      drillable: z.literal(false),
+    })
+    .strict(),
+]);
 const claimsSchema = z
   .object({
     userId: z.string().min(1),
@@ -46,12 +61,13 @@ const claimsSchema = z
     }
   });
 
-export interface AskDrillContextRow {
+interface AskDrillContextRowBase {
   key: string;
-  actualPaise: string;
-  drillable: boolean;
   triples?: Array<{ plant: string; costCenter: string; glCode: string }>;
 }
+
+export type AskDrillContextRow = AskDrillContextRowBase &
+  ({ drillable: true; actualPaise: string } | { drillable: false; actualPaise?: string });
 
 export interface AskDrillContextInput {
   userId: string;

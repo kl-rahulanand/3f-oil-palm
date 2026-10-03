@@ -283,6 +283,11 @@ function chat(explanation: StatementExplanationService, providerInputs: unknown[
       },
     } as never,
     explanation,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
   );
 }
 

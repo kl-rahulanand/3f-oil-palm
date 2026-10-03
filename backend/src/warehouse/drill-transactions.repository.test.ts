@@ -176,6 +176,38 @@ test("pinned batch existence and active state are read in one query", async () =
   assert.match(warehouse.executed[0]!, /is_active/);
 });
 
+test("active Actual pins are read for the inclusive window in period order and converted from warehouse rows", async () => {
+  const warehouse = new FakeWarehouse([
+    {
+      id: "00000000-0000-0000-0000-000000000004",
+      source_kind: "actuals",
+      period: "2026-04-01T00:00:00.000Z",
+      is_active: 1,
+    },
+    {
+      id: "00000000-0000-0000-0000-000000000007",
+      source_kind: "actuals",
+      period: "2026-07-01",
+      is_active: 1,
+    },
+  ]);
+  const pins = await new DrillTransactionsRepository(new SqlValidator(), warehouse).findActiveActualPins(
+    "2026-04-01",
+    "2026-07-31",
+  );
+
+  assert.deepEqual(pins, [
+    { source: "actuals", period: "2026-04-01", batchId: "00000000-0000-0000-0000-000000000004" },
+    { source: "actuals", period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000007" },
+  ]);
+  assert.equal(warehouse.executed.length, 1);
+  assert.match(warehouse.executed[0]!, /source_kind = 'actuals'/);
+  assert.match(warehouse.executed[0]!, /AND is_active/);
+  assert.match(warehouse.executed[0]!, /period >= '2026-04-01'/);
+  assert.match(warehouse.executed[0]!, /period <= '2026-07-31'/);
+  assert.match(warehouse.executed[0]!, /ORDER BY period/);
+});
+
 test("a GL-and-plants predicate keeps the answer's plants and row GL in both page and all-match footer", () => {
   const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
   const queries = repository.buildQueries(

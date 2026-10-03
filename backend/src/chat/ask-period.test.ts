@@ -221,6 +221,9 @@ function financialSelection(timeWindow?: Selection["timeWindow"]): Selection {
 function makeFixture(selection: Selection, periods: string[], activeBatchIds: ProvenanceBatch[] = []) {
   const llm = new FakeLlm({ kind: "selection", selection });
   const executor = new FakeExecutor(activeBatchIds);
+  const activeActualPins = activeBatchIds.filter(
+    (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
+  );
   const service = new ChatService(
     new SemanticLayer(),
     executor as never,
@@ -230,6 +233,11 @@ function makeFixture(selection: Selection, periods: string[], activeBatchIds: Pr
     {} as never,
     new SelectionResolverService(new PeriodWarehouse(periods)),
     llm,
+    {} as never,
+    {} as never,
+    { findActiveActualPins: async () => activeActualPins } as never,
+    {} as never,
+    {} as never,
     {} as never,
   );
   return { service, llm, executor };

@@ -36,7 +36,7 @@ export class AskDrillService {
   ) {}
 
   async run(user: AuthUser, sessionId: string, request: AskDrillRequest): Promise<AskDrillOutcome> {
-    const verification = this.contexts.verify(request.context, user.id);
+    const verification = this.contexts.verify(typeof request.context === "string" ? request.context : "", user.id);
     if (verification.outcome === "refused") {
       return this.refuse(
         user,

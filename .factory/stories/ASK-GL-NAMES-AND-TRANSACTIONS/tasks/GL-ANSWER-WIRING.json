@@ -1,0 +1,107 @@
+{
+  "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-ANSWER-WIRING",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "e5044252d3035e431fa1bf82e7514bd428a504b6f95a5ccb7068d8d07a35d872",
+    "commit": "72de354d1705d3afcb4251c57699775d97962fc6",
+    "dismissals": [
+      {
+        "because": "backend/src/chat/chat.service.ts:513 Accepted as a known narrow race and moved to a follow-up task, on the owner's instruction (2026-10-03) to finish this part in this round. It needs a reload to land between the primary and totals queries of one answer, in a month that contributed no rows, with replacement lines netting to exactly zero on a budget-only row. The bracketing in 15d6abc already fails closed for every reload that changes a contributing month or the window between the first and final lookups. The follow-up preserves the first snapshot across both executor calls.",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.ts:656 Accepted as a known gap and moved to a follow-up task, on the owner's instruction (2026-10-03) to finish this part in this round. On real data the final-month budget batch contributes rows to supported answers: the live check on 72de354 shows 80 of 80 statement labels and signed contexts carrying the July budget pin, including the FY 26-27 YTD re-run (537ceaf). The follow-up resolves the final-month budget batch independently of contributing rows and brackets it with execution.",
+        "finding": 2,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.test.ts:159 The repo has no browser end-to-end harness (no Playwright anywhere) and CI has no database, so an automated running-API, real-database browser test is not possible in this part. The user path is proven by recorded live walks on this branch, with no request interception, against the July warehouse and the live model: db7580a (browser: 21 of 21 GL rows \"code \u00b7 SAP name\" in API order, totals unchanged, the \"+1 more\" disclosure with its full accessible list) and 72de354 (live API on the final code). The merged GL-TXN-COLUMNS (#87) and GL-NAMES (#89) were accepted on the same basis, and GL-RELOAD-AND-LIVE runs the story's final live check.",
+        "finding": 3,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.test.ts:360 The repo has no browser end-to-end harness and CI has no database. The statement path is proven by recorded live walks on this branch: db7580a (browser: 80 of 81 rows \"<number> <name>\" from the pinned July outline, unmapped-GL raw) and 537ceaf (the saved/pinned FY 26-27 YTD re-run labelled from the final month's outline, signing the July budget pin; 9.01 opened to footer 22500.00). The raw-key case with no budget batch is unreachable on this data and is proven against real Postgres by the merged GL-NAMES warehouse proof. GL-RELOAD-AND-LIVE runs the story's final live check.",
+        "finding": 4,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "Supported answers always have a dimension, so the real `SelectionExecutor` invokes `beforeExecute` once for the primary query and again for the totals query (`backend/src/chat/selectionExecutor.ts:80-92`). This assignment therefore replaces the pre-primary pin snapshot. If a noncontributing month reloads after the primary query but before totals, the second lookup and final lookup both see the replacement; because primary provenance contains no pin for that month, `completeActualPins` reports no change and signs the replacement. A zero-net replacement can then make a formerly budget-only row drillable and open transactions not behind the displayed answer. The new fixture misses this because its fake executor calls `beforeExecute` only once (`chat.service.test.ts:1921-1925`). Preserve the first snapshot across the complete execution or bracket the primary query explicitly.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 513,
+        "priority": "P1",
+        "title": "Pin snapshot is overwritten before the totals query"
+      },
+      {
+        "body": "`activeBatchIds` contains provenance collected from returned answer rows, not every active batch in the window (`backend/src/sql/sqlBuilder.ts:70-75`). Consequently, when the final-month budget batch exists but contributes no selected row, this lookup returns no budget pin. Statement labels then remain raw even though the final outline exists, and issued contexts omit the required budget pin/digest; multi-period GL budget fallback has the same problem when only an earlier month contributes. The tests fabricate the final budget pin in `activeBatchIds`, so they do not exercise this case. Resolve the final-month active budget batch independently and bracket it consistently with execution.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 656,
+        "priority": "P1",
+        "title": "Final-month budget pin is still inferred only from contributing rows"
+      },
+      {
+        "body": "This wiring test still supplies the result rows, resolved labels, summaries, and active pins through `makeFixture`; the frontend tests separately render mocked responses. No browser flow through the running API and real database proves scoped SAP-name selection, budget fallback, bare-code fallback, full keyboard/touch disclosure accessibility, and unchanged row ordering. Under the required test-audit rule, Done-when item 1 remains proven only at isolated mocked boundaries.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 159,
+        "priority": "P1",
+        "title": "Not done: An Ask answer by GL code shows its scoped SAP/MIS names"
+      },
+      {
+        "body": "The saved multi-period statement test injects a fabricated result, budget provenance, and `FakeNames` label; the frontend statement-label test also uses a mocked response. There is still no browser flow against the running API and real database proving that a saved/pinned statement re-run renders the final-month outline's number/name while an answer with no final-month budget batch remains raw. Done-when item 2 therefore lacks its required end-to-end proof.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 407,
+        "priority": "P1",
+        "title": "Not done: A budget-backed statement answer shows pinned line numbers and names"
+      },
+      {
+        "body": "The new size-limit rule at lines 71-74 says an oversized row carries no amount, but this generic description still says every row binds its exact-paise Actual, and C5a at lines 223-224 repeats that each row carries one. Those requirements remain mutually exclusive despite the implementation's discriminated union. Explicitly exempt the C5d inert variant in both generic descriptions.",
+        "file": "docs/specs/ask-gl-names-and-transactions.md",
+        "line": 82,
+        "priority": "P2",
+        "title": "Keep oversized context rows consistent in the confirmed spec"
+      },
+      {
+        "body": "The task table continues to assign rendering drillable Actuals as buttons and proving inert cells make no request to GL-DRILL-PANEL. The current Ask panel consumes `rowLabels` but not `AskResponse.drill`, so Done-when item 6's user-visible interaction remains for that later task rather than this backend wiring part.",
+        "file": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md",
+        "line": 155,
+        "priority": "P2",
+        "title": "Later: GL-DRILL-PANEL must consume the signed drill metadata"
+      }
+    ],
+    "status": "clean",
+    "tree": "2fa58cc72bd677d192da1532e7c5dd0cb38b8a9ac7e3a6045a5bab22a77cb96e"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-03T10:57:58+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-03T12:41:07+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T14:43:15+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T15:05:52+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T15:19:24+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T15:32:39+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T15:48:04+00:00",
+      "step": "review"
+    }
+  ]
+}
