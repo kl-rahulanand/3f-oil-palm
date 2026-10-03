@@ -1,10 +1,59 @@
 {
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-DRILL-PANEL",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "12d954475b917ac896e3669200b426937d39ed82d1dd63047fe080a5214232dc",
+    "commit": "252e6887198487eee004fd3f980a377d0a272b01",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The panel reduces every refusal to its HTTP status and therefore displays the wrong reason for several route outcomes. For example, the unchanged Ask drill service returns 403 with \u201cThis answer link is invalid\u2026\u201d for a tampered signature and 403 with the access-changed wording for another user, while this branch maps both to the access-changed message. Likewise, all 409 responses are presented as missing data even though the route also uses 409 for footing mismatches and incomplete pins. Preserve a typed refusal reason/message from `/api/chat/drill` instead of guessing from status alone.",
+        "file": "frontend/src/features/mis/drill-panel.tsx",
+        "line": 457,
+        "priority": "P1",
+        "title": "Not done: show each Ask drill refusal's stated reason"
+      },
+      {
+        "body": "The supplied commit evidence says the worker's last commit has no `Functional check:` paragraph. This user-facing task therefore lacks the required exercised walkthrough of opening both GL and statement Actuals, inert cells, paging, stored-answer rerun behavior, and refusal recovery wording.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 178,
+        "priority": "P1",
+        "title": "Not done: functional check"
+      },
+      {
+        "body": "The new statement-line test constructs the Ask response and mocks `runAskDrill`; it verifies only the component's call shape and dialog title. It never exercises a browser against the running API/database or compares the returned transaction rows with the statement screen for the same leaf, period, and batches. The required end-to-end proof for Done-when item 4 is therefore absent.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 451,
+        "priority": "P1",
+        "title": "Not done: clicking a statement Actual opens the statement screen's transactions"
+      },
+      {
+        "body": "The coverage for Done-when item 6 is confined to Vitest with mocked Ask and drill APIs. It cannot prove through the real browser/API boundary that issued metadata makes only transaction-backed Actuals clickable, or that Budget, %, totals, budget-only rows, unsupported answer shapes, and answers without `drill` make no network read. The required Playwright flow with a real database/user is missing.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 481,
+        "priority": "P1",
+        "title": "Not done: only eligible Actuals are interactive while other cells stay inert"
+      },
+      {
+        "body": "The refusal test injects synthetic errors directly into `DrillPanel` and asserts locally hard-coded status text. It never reaches `/api/chat/drill`, so it cannot catch transport-envelope handling (including the incorrect status-only mapping), authentication/authorization changes, expiry, or audit-failure behavior in the browser. Done-when item 7 therefore remains without the required real-entry-point Playwright proof.",
+        "file": "frontend/src/features/mis/drill-panel.test.tsx",
+        "line": 372,
+        "priority": "P1",
+        "title": "Not done: refused openings display their audited route outcome end to end"
+      }
+    ],
+    "status": "blocked",
+    "tree": "42238a19949d4d60fccde342a4a50ea6ca739abe7d711adee2de50714bd60c16"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-03T17:36:24+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-03T18:08:04+00:00",
+      "step": "review"
     }
   ]
 }
