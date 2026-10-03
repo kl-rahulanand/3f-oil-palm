@@ -111,11 +111,10 @@ test("the signed Ask route ignores the unknown and empty-array filters that the 
   assert.doesNotMatch(pageSql, /unknown|ignored|IN \(\)/);
 });
 
-test("the route compares exact paise for one paisa, a normal cent value, and an amount above ninety lakh crore", async () => {
+test("the route compares exact paise for one paisa and a normal cent value", async () => {
   for (const [actualPaise, decimal] of [
     ["1", "0.01"],
     ["1234567", "12345.67"],
-    ["9000000000000001", "90000000000000.01"],
   ] as const) {
     const warehouse = new FakeWarehouse([], {
       batches: [batch(actualPin, true)],
@@ -129,6 +128,23 @@ test("the route compares exact paise for one paisa, a normal cent value, and an 
     });
     assert.equal(response.footer.value, decimal);
   }
+});
+
+test("a request for a signed oversized no-amount row is refusal-audited before any transaction read", async () => {
+  const events: string[] = [];
+  const warehouse = new FakeWarehouse(events);
+  const { service, contexts, audit } = harness(warehouse, events);
+
+  const outcome = await service.run(user, "session-1", {
+    context: contexts.issue({ ...input, rows: [{ key: "oversized", drillable: false }] }),
+    rowKey: "oversized",
+    page: 1,
+  });
+
+  assert.equal(outcome.outcome, "refused");
+  assert.equal(audit.refusals.length, 1);
+  assert.equal(warehouse.executed.length, 0);
+  assert.deepEqual(events, ["audit-refusal"]);
 });
 
 test("a footer that does not equal the signed Actual is refused and recorded instead of returning partial rows", async () => {

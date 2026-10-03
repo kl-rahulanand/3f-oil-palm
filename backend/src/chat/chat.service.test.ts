@@ -266,6 +266,51 @@ test("statement label batch selection chooses the last budget month from a multi
   );
 });
 
+test("a saved multi-period statement re-run labels and binds the final month's budget outline and triples", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+  };
+  const fixture = makeFixture({
+    selection,
+    statementPeriod: { value: "fy26-27-ytd", label: "FYTD", from: "2026-04-01", to: "2026-07-01" },
+    result: {
+      columns: [
+        { key: "leaf_key", label: "Statement line", numeric: false },
+        { key: "actual_net", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ leaf_key: "leaf", actual_net: 125.01 }],
+    },
+    activeBatchIds: [
+      { source: "actuals", period: "2026-04-01", batchId: "actual-april" },
+      { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+      { source: "budget", period: "2026-04-01", batchId: "budget-april" },
+      { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+    ],
+    labels: [{ key: "leaf", label: "1.1 Sprout Cost", otherLabels: [] }],
+    summaries: [{ rowKey: "leaf", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("mis-statement", true),
+    "session",
+    "Re-run saved statement",
+    selection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.names.statementCalls, [{ keys: ["leaf"], budgetBatchId: BUDGET_BATCH_ID }]);
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") {
+    assert.deepEqual(verified.claims.budget, {
+      pin: { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+      outlineDigest: "outline-digest",
+    });
+    assert.deepEqual(verified.claims.rows[0]?.triples, [{ plant: "DUB", costCenter: "Primary", glCode: "5001" }]);
+  }
+});
+
 test("unsupported or unauthorized answer shapes never issue drill metadata or summarize transactions", async () => {
   const cases: Array<{ name: string; selection: Selection; user: AuthUser }> = [
     {
@@ -1527,6 +1572,7 @@ function makeFixture(options: {
   failEntryAudit?: boolean;
   labels?: Array<{ key: string; label: string; otherLabels: string[] }>;
   summaries?: DrillSummary[];
+  statementPeriod?: { value: string; label: string; from: string; to: string };
 }) {
   const llmResult: LlmSelectionResult =
     options.kind === "clarify"
@@ -1565,7 +1611,7 @@ function makeFixture(options: {
     dimensions as never,
     reports as never,
     help as never,
-    new FakeSelectionResolver() as never,
+    new FakeSelectionResolver(options.statementPeriod) as never,
     provider,
     {} as never,
     names as never,
@@ -1716,6 +1762,8 @@ class FakeHelp {
 }
 
 class FakeSelectionResolver {
+  constructor(private readonly statementPeriod?: { value: string; label: string; from: string; to: string }) {}
+
   hasMapping() {
     return true;
   }
@@ -1731,7 +1779,7 @@ class FakeSelectionResolver {
       departments: ["Agriculture"],
       functions: ["Nursery"],
       plants: [{ value: "DUB", label: "DUB", aliases: ["DUB"] }],
-      periods: [period],
+      periods: [period, ...(this.statementPeriod ? [this.statementPeriod] : [])],
     };
   }
 

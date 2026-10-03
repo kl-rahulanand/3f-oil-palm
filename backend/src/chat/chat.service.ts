@@ -37,9 +37,8 @@ import {
   statementPeriodOptions,
 } from "../mapping/selection-resolver.service";
 import type { MasterResolvedSelection } from "../mapping/selection-resolver.interface";
-import { MAPPING_MASTER } from "../mapping/mapping-master";
 import { StatementAttestationService } from "../mis/statement-attestation";
-import type { DrillPredicate, DrillSummary } from "../warehouse/drill-transactions.interface";
+import type { DrillPredicate } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import { GlNameRepository } from "../warehouse/gl-name.repository";
 import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
@@ -52,6 +51,7 @@ import { classifySmalltalk } from "./smalltalk-guard";
 import { parseTimeWindow } from "./timeWindowParse";
 import { StatementExplanationService } from "./statement-explanation.service";
 import { AskDrillContextService } from "./ask-drill-context";
+import { issueAskDrill, type AskDrillAnswerShape } from "./ask-drill-issuer";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -444,6 +444,7 @@ export class ChatService {
         appliedTimeWindow,
         selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
         this.selectionResolver,
+        usesEditedSelection,
       );
       if (request.kind === "scope")
         return done({
@@ -655,69 +656,37 @@ export class ChatService {
             budgetPin?.batchId,
           )
         : await this.glNames.findStatementLabels(rowKeys, budgetPin?.batchId);
-    const actualAuthorized =
-      selection.measureIds.includes(shape.actualMeasureId) &&
-      user.permissions.measureIds.includes(shape.actualMeasureId) &&
-      user.permissions.domains.includes(selection.domain);
-    if (
-      !actualAuthorized ||
-      !signedRange ||
-      actualPins.length === 0 ||
-      usablePredicates.length !== rowKeys.length ||
-      rowKeys.length === 0
-    ) {
-      return rowLabels.length ? { rowLabels } : {};
+    const issued = await issueAskDrill(
+      {
+        transactions: this.drillTransactions,
+        contexts: this.drillContexts,
+        outlines: this.outlines,
+        statementAttestation: this.statementAttestation,
+      },
+      {
+        user,
+        selection,
+        result,
+        shape,
+        rowKeys,
+        actualPins,
+        budgetPin,
+        range: signedRange,
+        plants,
+        predicates: usablePredicates,
+      },
+    );
+    for (const key of issued.dataMismatchRowKeys) {
+      this.logger.log("warn", "Ask drill summary does not match displayed Actual", {
+        module: "ChatService",
+        accountId: user.id,
+        context: { rowKey: key },
+      });
     }
-
-    const displayedPaise = result.rows.map((row) => moneyToPaise(row[shape.actualColumn]));
-    if (displayedPaise.some((value) => value === null)) return rowLabels.length ? { rowLabels } : {};
-    const summaries = await this.drillTransactions.summarize(usablePredicates);
-    const summaryByKey = new Map(summaries.map((summary) => [summary.rowKey, summary]));
-    const contextRows = rowKeys.map((key, index) => {
-      const summary = summaryByKey.get(key);
-      const signedActual = displayedPaise[index]!;
-      const summarizedPaise = summary ? moneyToPaise(summary.value) : null;
-      const matches = signedActual === summarizedPaise;
-      if (!matches) {
-        this.logger.log("warn", "Ask drill summary does not match displayed Actual", {
-          module: "ChatService",
-          accountId: user.id,
-          context: { rowKey: key },
-        });
-      }
-      return {
-        key,
-        actualPaise: signedActual,
-        drillable: Boolean(matches && summary && summary.feedingLineCount > 0),
-        ...(shape.kind === "statement" ? { triples: statementTriples(key, statementScope) } : {}),
-      };
-    });
-    const budget = await this.signedBudget(budgetPin, selection.measureIds);
-    const context = this.drillContexts.issue({
-      userId: user.id,
-      selection,
-      plants,
-      pinnedActuals: actualPins,
-      ...(budget ? { budget } : {}),
-      ...(shape.kind === "statement" ? { mappingMasterVersion: MAPPING_MASTER.version } : {}),
-      rows: contextRows,
-    });
     return {
       ...(rowLabels.length ? { rowLabels } : {}),
-      drill: {
-        context,
-        rows: contextRows.map(({ key, drillable }) => ({ key, drillable })),
-      },
+      ...(issued.drill ? { drill: issued.drill } : {}),
     };
-  }
-
-  private async signedBudget(
-    pin: ProvenanceBatch | undefined,
-    blocks: string[],
-  ): Promise<{ pin: ProvenanceBatch; outlineDigest: string } | undefined> {
-    if (!pin) return undefined;
-    const outline = await this.outlines.findByBudgetBatchId(pin.batchId);
-    return { pin, outlineDigest: this.statementAttestation.outlineDigest(outline, blocks) };
   }
 
   private chips(domain: DomainSpec, sel: Selection): Chip[] {
@@ -831,21 +800,7 @@ export class ChatService {
   }
 }
 
-type AnswerRowShape =
-  | {
-      kind: "gl";
-      dimensionId: "gl_code";
-      actualMeasureId: "governed-financial.actual";
-      actualColumn: "actual";
-    }
-  | {
-      kind: "statement";
-      dimensionId: "leaf_key";
-      actualMeasureId: "mis-statement.actual_net";
-      actualColumn: "actual_net";
-    };
-
-function answerRowShape(selection: Selection): AnswerRowShape | null {
+function answerRowShape(selection: Selection): AskDrillAnswerShape | null {
   if (
     selection.domain === "governed-financial" &&
     selection.dimensionIds.length === 1 &&
@@ -899,7 +854,7 @@ function pinnedActualRange(pins: ProvenanceBatch[]): { from: string; to: string 
 }
 
 function predicateForAnswer(
-  kind: AnswerRowShape["kind"],
+  kind: AskDrillAnswerShape["kind"],
   key: string,
   selection: Selection,
   statementScope: MasterResolvedSelection | undefined,
@@ -923,15 +878,6 @@ function statementTriples(
     const targetLeaf = target.kind === "leaf" ? target.leafKey : "unmapped-GL";
     return targetLeaf === leafKey ? [{ plant, costCenter, glCode }] : [];
   });
-}
-
-function moneyToPaise(value: string | number | null | undefined): string | null {
-  if (value === null || value === undefined) return null;
-  const match = String(value).match(/^(-?)(\d+)(?:\.(\d+))?$/);
-  if (!match) return null;
-  const fraction = match[3] ?? "";
-  if (fraction.length > 2 && /[^0]/.test(fraction.slice(2))) return null;
-  return BigInt(`${match[1]}${match[2]}${fraction.slice(0, 2).padEnd(2, "0")}`).toString();
 }
 
 const PERIOD_WORD_PATTERN = /\b(?:q[1-4]|today|yesterday|since)\b/i;
@@ -1424,6 +1370,7 @@ async function statementRequest(
   window: AppliedTimeWindow | undefined,
   timeColumn: string,
   resolver: SelectionResolverService,
+  allowMultiPeriodRerun = false,
 ): Promise<StatementRequestResult> {
   const value = (attribute: "department" | "function" | "plant") => {
     const values = [
@@ -1445,7 +1392,8 @@ async function statementRequest(
   const periods = (await resolver.options()).periods;
   if (periods.length === 0) return { kind: "no-periods" };
   const options = askPeriodOptions(statementPeriodOptions(periods), timeColumn);
-  const period = window && options.find((option) => windowMatchesPeriod(window, option));
+  const accepted = allowMultiPeriodRerun ? askPeriodOptions(periods, timeColumn) : options;
+  const period = window && accepted.find((option) => windowMatchesPeriod(window, option));
   if (!period) return { kind: "period", options };
 
   try {
