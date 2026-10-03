@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-02T16:54:54+00:00
-read_hash: 86a9c9b3cf22f4b3b073f97730a8a07d40b6eb2b
-round: 10
+read_at: 2026-10-03T12:00:56+00:00
+read_hash: e856d78acb17171bd7cc512f2b2bfa033bb5d99b
+round: 13
 passed: yes
-doc_seen: 86a9c9b3cf22f4b3b073f97730a8a07d40b6eb2b
+doc_seen: e856d78acb17171bd7cc512f2b2bfa033bb5d99b
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: ad5acc96a8160f2eb036ddb98034653c521730fc
+notes_seen: 15ae29c79d8aff72fc4151cd550f407eb743e1d5
 ---
 # Cold read notes
 
@@ -165,5 +165,25 @@ No findings.
    Disposition: cut C8 adds a hermetic proof that rowLabels, SAP account names, the drill context, amounts and transaction rows are absent from every model request.
 
 ## Round 10
+
+No findings.
+
+## Round 11
+
+28. Contradiction: C5d says an oversized row carries no signed amount, while the Behaviour and C5a require the signed context to bind every row’s exact-paise Actual.
+   - Define an explicit context-row variant for an oversized inert row (key and marker, no amount), and prove the decoded signed context omits that amount while the server cannot open it.
+   Disposition: cut an oversized row's signed context entry is an explicit variant holding only its key and a not-clickable marker, no amount; C5d requires a request for it to be refused without a read.
+
+29. Gap: C5d does not say the limit applies to an Actual’s absolute value.
+   - A negative Actual at or beyond `-2^46` rupees has the same paise-precision problem. Pin `abs(Actual) >= 2^46` as inert and add positive/negative boundary proofs.
+   Disposition: cut the limit is on the absolute value, positive or negative, with boundary proofs on both sides in C5d.
+
+## Round 12
+
+30. Unproven: C5d has no named hermetic proof for both signed boundary cases, the no-amount context variant, and refusal without a raw read.
+   - C8’s generic “signed per-row Actual,” “inert cells,” and footing proofs do not establish that `±(2^46 − .01)` retain exact paise, `±2^46` omit `actualPaise`, or an oversized-row request cannot reach the transaction read.
+   Disposition: cut C8 now names the size-limit proofs: both signs just below the limit sign exact paise, both signs at the limit carry no amount, and a request for an oversized row is refused before any transaction read.
+
+## Round 13
 
 No findings.

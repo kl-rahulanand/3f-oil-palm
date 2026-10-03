@@ -2,9 +2,9 @@
 slug: ask-gl-names-and-transactions
 title: Ask names each GL line and opens its transactions
 status: confirmed
-saved: 2026-10-02T16:30:41+00:00
+saved: 2026-10-03T12:00:09+00:00
 confirmed_by: "Rahul Anand"
-confirmed_hash: 74b4375e670e29bfdd0159a83cc4db61985ae61dcd39d0d3c9a3164b05fe526c
+confirmed_hash: ee62efa41a5a0c7ce2ac0ae1e70f288de6f3db6f7f8b3db58012c8ef3f8e3e42
 ---
 
 # Ask names each GL line and opens its transactions
@@ -68,6 +68,11 @@ figure against its source transactions without switching screens.
   time window, AND whose displayed measures include that domain's Actual, which the reader is
   authorized to see. In any other shape (no breakdown, or a breakdown by month or by several dimensions)
   no Actual is clickable.
+- Size limit: an Actual whose absolute value is 2^46 rupees (about ₹70.37 lakh crore) or more, positive
+  or negative, is not clickable, because the answer's figures can no longer carry exact paise at that
+  size; this keeps every signed amount exactly equal to the figure shown (owner decision, 2026-10-03).
+  Such a row's signed context entry carries its key and a not-clickable marker and no amount. No 3F
+  figure is near this size.
 - Each supported Ask answer carries a signed drill context, built the way the statement screen's
   signed context is built (`backend/src/mis/statement-attestation.ts`): it binds the reader, the
   executed selection, the effective plant predicate of the executed query, the pinned actuals
@@ -194,6 +199,10 @@ figure against its source transactions without switching screens.
 - **C5** Every opening writes the typed drill audit record before the read and fails closed when the
   write fails; it records the mapping-master version for attribution only. A reader outside the line's
   plants is refused, audited, and sees no rows.
+- **C5d** An Actual whose absolute value is 2^46 rupees (about ₹70.37 lakh crore) or more is inert: its
+  signed context entry holds only its key and a not-clickable marker, with no amount, and a request for
+  it is refused without a read. Positive and negative `.01` values just below the limit stay clickable
+  and sign their exact paise; positive and negative values at the limit are inert.
 - **C5b** `AskResponse` carries optional typed presentation metadata, `rowLabels` as a list of
   `{ key, label, otherLabels }`, while each `ResultTable` dimension cell keeps its raw GL code or leaf
   key. The client joins labels and the optional `drill.rows` list of `{ key, drillable }` to rows by
@@ -223,7 +232,9 @@ figure against its source transactions without switching screens.
   budget-only Actuals and empty-state rows are inert and cause no read or audit record; the "+n more"
   disclosure is keyboard- and touch-operable and the full list is in the accessible name; names and
   transaction lines never reach the model.
-- **C8** Hermetic proofs cover normalized name grouping, representative-spelling and group-count
+- **C8** Hermetic proofs cover the size limit: `±(2^46 − 0.01)` rupees stay clickable and sign their exact
+  paise, `±2^46` rupees have a context entry with no amount, and a request for such a row is refused before
+  any transaction read; and normalized name grouping, representative-spelling and group-count
   selection, ties, fallback and disclosure; labels leaving query rows and order unchanged and joining
   the correct drill row by raw key; pinned labels after a re-upload and a stored conversation retaining
   those original labels after another re-upload; a multi-period answer choosing its last-month budget
