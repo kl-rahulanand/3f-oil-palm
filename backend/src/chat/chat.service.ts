@@ -31,7 +31,11 @@ import { AuditService } from "../core/audit.service";
 import { DimensionValuesService } from "../core/dimension-values.service";
 import { ReportsService } from "../reports/reports.service";
 import { HelpService } from "../help/help.service";
-import { SelectionPeriodUnavailableError, SelectionResolverService } from "../mapping/selection-resolver.service";
+import {
+  SelectionPeriodUnavailableError,
+  SelectionResolverService,
+  statementPeriodOptions,
+} from "../mapping/selection-resolver.service";
 import type { MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { MAPPING_MASTER } from "../mapping/mapping-master";
 import { StatementAttestationService } from "../mis/statement-attestation";
@@ -873,7 +877,7 @@ function rowKey(value: string | number | null | undefined): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-function lastMonthBudgetPin(pins: ProvenanceBatch[], to: string | undefined): ProvenanceBatch | undefined {
+export function lastMonthBudgetPin(pins: ProvenanceBatch[], to: string | undefined): ProvenanceBatch | undefined {
   if (!to) return undefined;
   const month = to.slice(0, 7);
   return pins.find((pin) => pin.source === "budget" && pin.period.slice(0, 7) === month);
@@ -1440,7 +1444,7 @@ async function statementRequest(
 
   const periods = (await resolver.options()).periods;
   if (periods.length === 0) return { kind: "no-periods" };
-  const options = askPeriodOptions(periods, timeColumn);
+  const options = askPeriodOptions(statementPeriodOptions(periods), timeColumn);
   const period = window && options.find((option) => windowMatchesPeriod(window, option));
   if (!period) return { kind: "period", options };
 

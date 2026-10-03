@@ -16,7 +16,7 @@ test("a statement question with no period clarifies with the offered periods ins
   assert.equal(response.responseClass, ResponseClass.ClarificationNeeded);
   assert.deepEqual(
     response.periodChoice?.options.map(({ value }) => value),
-    ["2026-07-01", "fy26-27-ytd"],
+    ["2026-07-01"],
   );
   assert.equal(response.periodControl, undefined);
   assert.equal(response.clarify, undefined);
@@ -70,7 +70,7 @@ test("an unoffered same day period a partial month and a multi month range each 
     assert.equal(response.responseClass, ResponseClass.ClarificationNeeded);
     assert.deepEqual(
       response.periodChoice?.options.map(({ value }) => value),
-      ["2026-07-01", "fy26-27-ytd"],
+      ["2026-07-01"],
     );
   }
 });

@@ -22,7 +22,7 @@ import { AskDrillContextService } from "./ask-drill-context";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { ChatController } from "./chat.controller";
 import { askSchema } from "./chat.schemas";
-import { ChatService, trimPriorTurnsToTokenBudget } from "./chat.service";
+import { ChatService, lastMonthBudgetPin, trimPriorTurnsToTokenBudget } from "./chat.service";
 
 test("trimming retains the newest turns in oldest first order", () => {
   const turns = ["oldest", "middle", "newest"].map((question) => ({
@@ -220,47 +220,50 @@ test("a GL-code answer carries scoped names and only matching transaction-backed
   assert.deepEqual(fixture.logs, [{ context: { rowKey: "50007777" } }]);
 });
 
-test("a multi-period statement answer resolves labels and binds the last month's budget outline and row triples", async () => {
+test("a multi-period GL-code answer passes the last month's budget batch to the name resolver", async () => {
   const selection: Selection = {
-    ...statementSelection,
-    timeWindow: { grain: "month", from: "2026-04-01", to: "2026-07-31" },
+    ...financialSelection,
+    timeWindow: { grain: "month", from: "2026-06-01", to: "2026-07-01" },
   };
   const fixture = makeFixture({
     selection,
-    statementPeriod: { value: "fy26-27-ytd", label: "FYTD", from: "2026-04-01", to: "2026-07-01" },
     result: {
       columns: [
-        { key: "leaf_key", label: "Statement line", numeric: false },
-        { key: "actual_net", label: "Actual", numeric: true, format: "money" },
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
       ],
-      rows: [{ leaf_key: "leaf", actual_net: "125.01" }],
+      rows: [{ gl_code: "50001201", actual: "125.01" }],
     },
     activeBatchIds: [
-      { source: "actuals", period: "2026-04-01", batchId: "actual-april" },
+      { source: "actuals", period: "2026-06-01", batchId: "actual-june" },
       { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
-      { source: "budget", period: "2026-04-01", batchId: "budget-april" },
+      { source: "budget", period: "2026-06-01", batchId: "budget-june" },
       { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
     ],
-    labels: [{ key: "leaf", label: "1.1 Sprout Cost", otherLabels: [] }],
-    summaries: [{ rowKey: "leaf", feedingLineCount: 1, value: "125.01" }],
+    labels: [{ key: "50001201", label: "Sprout Cost - Imp", otherLabels: [] }],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
   });
 
   const response = await fixture.service.ask(
-    userFor("mis-statement", true),
+    userFor("governed-financial"),
     "session",
-    "Show FYTD statement Actual by line",
+    "Show Actual by GL code from June to July 2026",
+    selection,
   );
 
   assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
   assert.deepEqual(response.rowLabels, fixture.names.labels);
-  assert.deepEqual(fixture.names.statementCalls, [{ keys: ["leaf"], budgetBatchId: BUDGET_BATCH_ID }]);
-  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
-  assert.equal(verified.outcome, "verified");
-  if (verified.outcome === "verified") {
-    assert.equal(verified.claims.budget?.pin.batchId, BUDGET_BATCH_ID);
-    assert.equal(verified.claims.mappingMasterVersion, 3);
-    assert.deepEqual(verified.claims.rows[0]?.triples, [{ plant: "DUB", costCenter: "Primary", glCode: "5001" }]);
-  }
+  assert.equal(fixture.names.glCalls[0]?.budgetBatchId, BUDGET_BATCH_ID);
+});
+
+test("statement label batch selection chooses the last budget month from a multi-month window", () => {
+  const window = { grain: "month" as const, from: "2026-06-01", to: "2026-07-01" };
+  const julyBudget = { source: "budget" as const, period: "2026-07-01", batchId: BUDGET_BATCH_ID };
+
+  assert.deepEqual(
+    lastMonthBudgetPin([{ source: "budget", period: "2026-06-01", batchId: "budget-june" }, julyBudget], window.to),
+    julyBudget,
+  );
 });
 
 test("unsupported or unauthorized answer shapes never issue drill metadata or summarize transactions", async () => {
@@ -1524,7 +1527,6 @@ function makeFixture(options: {
   failEntryAudit?: boolean;
   labels?: Array<{ key: string; label: string; otherLabels: string[] }>;
   summaries?: DrillSummary[];
-  statementPeriod?: { value: string; label: string; from: string; to: string };
 }) {
   const llmResult: LlmSelectionResult =
     options.kind === "clarify"
@@ -1563,7 +1565,7 @@ function makeFixture(options: {
     dimensions as never,
     reports as never,
     help as never,
-    new FakeSelectionResolver(options.statementPeriod) as never,
+    new FakeSelectionResolver() as never,
     provider,
     {} as never,
     names as never,
@@ -1714,14 +1716,12 @@ class FakeHelp {
 }
 
 class FakeSelectionResolver {
-  constructor(private readonly statementPeriod?: { value: string; label: string; from: string; to: string }) {}
-
   hasMapping() {
     return true;
   }
 
   async options() {
-    const period = this.statementPeriod ?? {
+    const period = {
       value: "2026-07-01",
       label: "July 2026",
       from: "2026-07-01",
