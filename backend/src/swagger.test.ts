@@ -216,12 +216,61 @@ test("POST /api/chat/drill documents its bounded request and typed transaction r
     ).content?.["application/json"]?.schema?.$ref;
     assert.equal(requestRef, "#/components/schemas/AskDrillRequestDto");
     assert.equal(responseRef, "#/components/schemas/AskDrillResponseDto");
-    const request = document.components?.schemas?.AskDrillRequestDto as {
+    type Schema = {
+      type?: string;
+      $ref?: string;
+      allOf?: Schema[];
+      items?: Schema;
       required?: string[];
-      properties?: { page?: { minimum?: number; maximum?: number } };
+      properties?: Record<string, Schema & { minimum?: number; maximum?: number }>;
+      minimum?: number;
+      maximum?: number;
     };
+    const schemas = document.components?.schemas as Record<string, Schema>;
+    const request = schemas.AskDrillRequestDto!;
     assert.deepEqual(request.required?.sort(), ["context", "page", "rowKey"]);
-    assert.deepEqual(request.properties?.page, { type: "number", minimum: 1, maximum: 1_000_000, example: 1 });
+    assert.equal(request.properties?.context?.type, "string");
+    assert.equal(request.properties?.rowKey?.type, "string");
+    assert.deepEqual(
+      {
+        type: request.properties?.page?.type,
+        minimum: request.properties?.page?.minimum,
+        maximum: request.properties?.page?.maximum,
+      },
+      { type: "integer", minimum: 1, maximum: 1_000_000 },
+    );
+
+    const response = schemas.AskDrillResponseDto!;
+    assert.deepEqual(response.required?.sort(), [
+      "batchStatuses",
+      "footer",
+      "lines",
+      "page",
+      "pageSize",
+      "rowKey",
+      "totalCount",
+    ]);
+    assert.equal(response.properties?.rowKey?.type, "string");
+    assert.equal(response.properties?.lines?.type, "array");
+    assert.equal(response.properties?.lines?.items?.$ref, "#/components/schemas/AskDrillLineDto");
+    assert.equal(response.properties?.footer?.$ref, "#/components/schemas/AskDrillFooterDto");
+    assert.equal(response.properties?.batchStatuses?.items?.$ref, "#/components/schemas/AskDrillBatchStatusDto");
+
+    assert.deepEqual(schemas.AskRowLabelDto?.required?.sort(), ["key", "label", "otherLabels"]);
+    assert.equal(schemas.AskRowLabelDto?.properties?.key?.type, "string");
+    assert.equal(schemas.AskRowLabelDto?.properties?.label?.type, "string");
+    assert.equal(schemas.AskRowLabelDto?.properties?.otherLabels?.items?.type, "string");
+    assert.deepEqual(schemas.AskDrillMetadataDto?.required?.sort(), ["context", "rows"]);
+    assert.equal(schemas.AskDrillMetadataDto?.properties?.context?.type, "string");
+    assert.equal(
+      schemas.AskDrillMetadataDto?.properties?.rows?.items?.$ref,
+      "#/components/schemas/AskDrillMetadataRowDto",
+    );
+    assert.deepEqual(schemas.AskDrillMetadataRowDto?.required?.sort(), ["drillable", "key"]);
+    assert.equal(schemas.AskDrillMetadataRowDto?.properties?.key?.type, "string");
+    assert.equal(schemas.AskDrillMetadataRowDto?.properties?.drillable?.type, "boolean");
+    assert.equal(schemas.ChatResponseDto?.properties?.rowLabels?.items?.$ref, "#/components/schemas/AskRowLabelDto");
+    assert.equal(schemas.ChatResponseDto?.properties?.drill?.$ref, "#/components/schemas/AskDrillMetadataDto");
   } finally {
     AuthoredMeasureRegistry.prototype.onModuleInit = originalInit;
     await app?.close();

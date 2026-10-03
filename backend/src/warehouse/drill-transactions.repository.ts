@@ -124,7 +124,13 @@ function buildPredicate(predicate: DrillPredicate): string {
     : "FALSE";
   const rowPredicate =
     predicate.mode === "gl-and-plants"
-      ? [`txn.gl_code = ${quote(predicate.glCode)}`, ...predicate.filters.map(filterPredicate)].join(" AND ")
+      ? [
+          `txn.gl_code = ${quote(predicate.glCode)}`,
+          ...predicate.filters.flatMap((filter) => {
+            const sql = filterPredicate(filter);
+            return sql ? [sql] : [];
+          }),
+        ].join(" AND ")
       : predicate.triples.length
         ? `(${predicate.triples
             .map(
@@ -137,13 +143,20 @@ function buildPredicate(predicate: DrillPredicate): string {
   return `${batches} AND ${rowPredicate} AND ${plants} AND txn.month >= ${quote(predicate.from)} AND txn.month <= ${quote(predicate.to)} AND batch.source_kind = 'actuals'`;
 }
 
-function filterPredicate(filter: { dimensionId: string; op: "eq" | "in" | "neq"; value: string | string[] }): string {
+function filterPredicate(filter: {
+  dimensionId: string;
+  op: "eq" | "in" | "neq";
+  value: string | string[];
+}): string | null {
   const column = filter.dimensionId === "gl_code" ? "txn.gl_code" : filter.dimensionId === "month" ? "txn.month" : null;
   if (!column) throw new Error("Ask drill contains an unsupported dimension filter");
-  const values = Array.isArray(filter.value) ? filter.value : [filter.value];
-  if (filter.op === "neq") return `${column} NOT IN (${values.map(quote).join(", ")})`;
-  if (filter.op === "in" || values.length > 1) return `${column} IN (${values.map(quote).join(", ")})`;
-  return `${column} = ${quote(values[0] ?? "")}`;
+  if (filter.op === "in" && Array.isArray(filter.value)) {
+    return `${column} IN (${filter.value.map(quote).join(", ")})`;
+  }
+  if (typeof filter.value === "string") {
+    return `${column} ${filter.op === "neq" ? "<>" : "="} ${quote(filter.value)}`;
+  }
+  return null;
 }
 
 function batches(result: QueryResult): DrillBatch[] {

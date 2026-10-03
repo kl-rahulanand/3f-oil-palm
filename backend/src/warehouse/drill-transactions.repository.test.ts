@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import type { AuthUser, SelectionFilter } from "@3f/contract";
+import { SemanticLayer } from "../semantic/semanticLayer";
+import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "./warehouse.interface";
 import { DrillTransactionsRepository, normalizeDateOnly } from "./drill-transactions.repository";
@@ -142,6 +145,53 @@ test("a GL-and-plants predicate keeps the answer's plants and row GL in both pag
   }
 });
 
+test("a GL-and-plants predicate mirrors every answer-query filter operator and value-shape combination", () => {
+  const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
+  const builder = new SqlBuilder();
+  const domain = new SemanticLayer().domain("governed-financial")!;
+  const cases: Array<Pick<SelectionFilter, "op" | "value">> = [
+    { op: "eq", value: "2026-06-01" },
+    { op: "eq", value: ["2026-06-01"] },
+    { op: "neq", value: "2026-06-01" },
+    { op: "neq", value: ["2026-06-01"] },
+    { op: "in", value: "2026-06-01" },
+    { op: "in", value: ["2026-06-01", "2026-06-02"] },
+  ];
+
+  for (const example of cases) {
+    const filter: SelectionFilter = { dimensionId: "month", ...example };
+    const answerSql = builder.build(
+      domain,
+      {
+        domain: domain.name,
+        measureIds: ["governed-financial.actual"],
+        dimensionIds: ["gl_code"],
+        filters: [filter],
+        timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
+      },
+      filterUser,
+    ).sql;
+    const { pageSql } = repository.buildQueries(
+      {
+        mode: "gl-and-plants",
+        actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+        glCode: "50001201",
+        plants: ["DUB"],
+        filters: [filter],
+        from: "2026-07-01",
+        to: "2026-07-01",
+      },
+      1,
+      100,
+    );
+    assert.equal(
+      pageSql.includes("2026-06-01"),
+      answerSql.includes("2026-06-01"),
+      `${example.op} with ${Array.isArray(example.value) ? "array" : "string"} value`,
+    );
+  }
+});
+
 test("summaries expose feeding-line counts and the exact debit-minus-credit decimal string for issuance", async () => {
   const warehouse = new FakeWarehouse(
     [],
@@ -184,6 +234,21 @@ test("summaries expose feeding-line counts and the exact debit-minus-credit deci
   assert.match(warehouse.executed[0]!, /SUM\(txn\.debit - txn\.credit\)::text AS value/);
   assert.match(warehouse.executed[0]!, /^\(SELECT[\s\S]+\nUNION ALL\n\(SELECT/);
 });
+
+const filterUser: AuthUser = {
+  id: "user-1",
+  email: "finance@example.com",
+  display_name: "Finance",
+  is_active: true,
+  roles: ["admin"],
+  permissions: {
+    actions: ["report"],
+    domains: ["governed-financial"],
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["gl_code", "month"],
+  },
+  scope: [{ attribute: "plant", value: "DUB" }],
+};
 
 class FakeWarehouse implements Warehouse {
   explained: string[] = [];

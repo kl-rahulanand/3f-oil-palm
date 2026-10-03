@@ -5,8 +5,10 @@ import {
   ASK_PRIOR_TURNS_MAX_ENTRIES,
   ASK_PRIOR_TURNS_MAX_SERIALIZED_CHARS,
   ResponseClass,
+  type AskDrillMetadata,
   type AskDrillRequest,
   type AskDrillResponse,
+  type AskRowLabel,
   type FixedScaleMoney,
   type MisDrillBatchStatus,
   type MisDrillFooter,
@@ -115,7 +117,7 @@ export class AskDrillRequestDto implements AskDrillRequest {
   context!: string;
   @ApiProperty({ description: "Raw result row key.", example: "50001201" })
   rowKey!: string;
-  @ApiProperty({ minimum: 1, maximum: 1_000_000, example: 1 })
+  @ApiProperty({ type: "integer", minimum: 1, maximum: 1_000_000, example: 1 })
   page!: number;
 }
 
@@ -150,11 +152,29 @@ export class AskDrillResponseDto implements AskDrillResponse {
   @ApiProperty() rowKey!: string;
   @ApiProperty({ type: [AskDrillLineDto] }) lines!: MisDrillLine[];
   @ApiProperty({ type: AskDrillFooterDto }) footer!: MisDrillFooter;
-  @ApiProperty() totalCount!: number;
-  @ApiProperty() page!: number;
-  @ApiProperty({ enum: [100] }) pageSize: 100 = 100;
+  @ApiProperty({ type: "integer" }) totalCount!: number;
+  @ApiProperty({ type: "integer" }) page!: number;
+  @ApiProperty({ type: "integer", enum: [100] }) pageSize: 100 = 100;
   @ApiProperty({ type: [AskDrillBatchStatusDto] }) batchStatuses!: MisDrillBatchStatus[];
   @ApiPropertyOptional() notice?: string;
+}
+
+class AskRowLabelDto implements AskRowLabel {
+  @ApiProperty() key!: string;
+  @ApiProperty() label!: string;
+  @ApiProperty({ type: [String] }) otherLabels!: string[];
+}
+
+type AskDrillMetadataRow = AskDrillMetadata["rows"][number];
+
+class AskDrillMetadataRowDto implements AskDrillMetadataRow {
+  @ApiProperty() key!: string;
+  @ApiProperty() drillable!: boolean;
+}
+
+class AskDrillMetadataDto implements AskDrillMetadata {
+  @ApiProperty() context!: string;
+  @ApiProperty({ type: [AskDrillMetadataRowDto] }) rows!: AskDrillMetadata["rows"];
 }
 
 export class ChatResponseDto {
@@ -217,10 +237,10 @@ export class ChatResponseDto {
   })
   result?: AskResponse["result"];
 
-  @ApiPropertyOptional({ type: "array", items: { type: "object" } })
+  @ApiPropertyOptional({ type: [AskRowLabelDto] })
   rowLabels?: AskResponse["rowLabels"];
 
-  @ApiPropertyOptional({ type: "object" })
+  @ApiPropertyOptional({ type: AskDrillMetadataDto })
   drill?: AskResponse["drill"];
 
   @ApiPropertyOptional({ type: "object", additionalProperties: { type: "number" } })

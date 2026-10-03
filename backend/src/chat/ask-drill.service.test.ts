@@ -110,48 +110,93 @@ test("the Ask route rejects non-integer, zero, and excessive pages as 400 before
   }
 });
 
-test("tampering, expiry, another user, an unlisted row, and changed access are refused and audited without a transaction read", async () => {
+test("tampering, expiry, another user, an unlisted row, and every changed-access case return their exact refusal", async () => {
   let now = 1_000_000;
   const events: string[] = [];
   const warehouse = new FakeWarehouse(events, { batches: [batch(actualPin, true)] });
   const contexts = new AskDrillContextService(["secret"], 1, () => now);
   const audit = new FakeAudit(events);
   const service = new AskDrillService(contexts, new DrillTransactionsRepository(new SqlValidator(), warehouse), audit);
+  const controller = new AskDrillController(service);
   const valid = contexts.issue({ ...input, plants: ["DUB", "H.O"] });
-  const cases: Array<{ name: string; context: string; actor: AuthUser; rowKey: string }> = [
-    { name: "tampered", context: `${valid.slice(0, -1)}x`, actor: user, rowKey: "50001201" },
-    { name: "other user", context: valid, actor: { ...user, id: "user-2" }, rowKey: "50001201" },
-    { name: "unlisted row", context: contexts.issue(input), actor: user, rowKey: "forged" },
+  const cases: Array<{
+    name: string;
+    context: string;
+    actor: AuthUser;
+    rowKey: string;
+    status: number;
+    message: string;
+  }> = [
+    {
+      name: "tampered",
+      context: `${valid.slice(0, -1)}x`,
+      actor: user,
+      rowKey: "50001201",
+      status: 403,
+      message: "This answer link is invalid. Ask again to open its transactions.",
+    },
+    {
+      name: "other user",
+      context: valid,
+      actor: { ...user, id: "user-2" },
+      rowKey: "50001201",
+      status: 403,
+      message: "Your access has changed since this answer was shown. Ask again.",
+    },
+    {
+      name: "unlisted row",
+      context: contexts.issue(input),
+      actor: user,
+      rowKey: "forged",
+      status: 400,
+      message: "This answer does not include that row. Ask again.",
+    },
     {
       name: "lost one plant",
       context: valid,
       actor: user,
       rowKey: "50001201",
+      status: 403,
+      message: "Your access has changed since this answer was shown. Ask again.",
     },
     {
       name: "lost Actual",
       context: contexts.issue(input),
       actor: { ...user, permissions: { ...user.permissions, measureIds: [] } },
       rowKey: "50001201",
+      status: 403,
+      message: "Your access has changed since this answer was shown. Ask again.",
     },
     {
       name: "lost domain",
       context: contexts.issue(input),
       actor: { ...user, permissions: { ...user.permissions, domains: [] } },
       rowKey: "50001201",
+      status: 403,
+      message: "Your access has changed since this answer was shown. Ask again.",
     },
   ];
   for (const example of cases) {
-    const outcome = await service.run(example.actor, "session-1", {
-      context: example.context,
-      rowKey: example.rowKey,
-      page: 1,
-    });
-    assert.equal(outcome.outcome, "refused", example.name);
+    await assert.rejects(
+      () =>
+        controller.run(example.actor, "session-1", {
+          context: example.context,
+          rowKey: example.rowKey,
+          page: 1,
+        }),
+      (error: unknown) =>
+        error instanceof HttpException && error.getStatus() === example.status && error.message === example.message,
+      example.name,
+    );
   }
   now = 1_061_000;
-  const expired = await service.run(user, "session-1", { context: valid, rowKey: "50001201", page: 1 });
-  assert.equal(expired.outcome, "refused", "expired");
+  await assert.rejects(
+    () => controller.run(user, "session-1", { context: valid, rowKey: "50001201", page: 1 }),
+    (error: unknown) =>
+      error instanceof HttpException &&
+      error.getStatus() === 410 &&
+      error.message === "This answer is too old to open. Ask again to open its transactions.",
+  );
   assert.equal(audit.refusals.length, cases.length + 1);
   assert.equal(events.includes("transaction-read"), false);
 });
