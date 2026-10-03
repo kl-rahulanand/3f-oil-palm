@@ -2,47 +2,40 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-ANSWER-WIRING",
   "review": {
     "blocking_level": "P1",
-    "changed": "e53541fcc44a633776efb88869563e4c8ed0ff0c061849a71fb04d5761bfdaeb",
-    "commit": "db7580a2e3aaabfe700d69c50f7398bfce743098",
+    "changed": "8ca9a5e3a893cef7857351fa7b490b70bf5e1781247e7f20f304787f9fccf245",
+    "commit": "537ceaf645f6f842cb14ca5553087bde035c131f",
     "dismissals": [],
     "findings": [
       {
-        "body": "After the answer query has returned its contributing `activeBatchIds`, this performs a separate lookup of whatever batches are active now and replaces those executed pins wholesale. If a reload activates batch B between the answer query and this call, the displayed result came from batch A while names and summaries use B. When both batches have the same total but different lines, the signed link is drillable and opens B's transactions rather than the transactions behind the displayed answer; when totals differ, a valid row is incorrectly made inert. Collect the complete window pins from the same execution snapshot, or fail closed when this lookup disagrees with the contributing pins.",
+        "body": "`active_batch_ids` is collected only from rows returned by the answer query (`backend/src/sql/sqlBuilder.ts:74`), so a month whose active batch contributed no selected rows is absent from `contributing`. If that month reloads between the answer query and `findActiveActualPins`, this condition leaves `changed` false because `executed` is undefined, then adds the new batch to the predicates. A budget-only displayed row with Actual 0 can therefore become drillable when the replacement contains different lines netting to 0, and its link opens transactions that were not behind the displayed answer. The new reload test covers only a period already present in provenance. Complete-window pins must come from the execution snapshot, or extra post-query pins must fail closed when their identity cannot be verified.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 636,
+        "line": 883,
         "priority": "P1",
-        "title": "Pin collection can switch the answer to a post-query reload"
+        "title": "Pin completion still accepts a reload in a noncontributing month"
       },
       {
-        "body": "This new repository operation is not called anywhere in `drill-transactions.repository.test.ts`; the sparse-window tests substitute `FakeTransactions.findActiveActualPins`, so they cannot detect an incorrect active-only filter, range bound, row conversion, or ordering in this SQL. The task explicitly requires that repository test file to be added or changed, but it remains unchanged. Add an owner-boundary test that exercises this method and verifies the returned pins and query constraints.",
-        "file": "backend/src/warehouse/drill-transactions.repository.ts",
-        "line": 50,
-        "priority": "P1",
-        "title": "Not done: active Actual pin lookup repository test"
-      },
-      {
-        "body": "The wiring proof still supplies both result rows and expected labels through `FakeExecutor` and `FakeNames`, while the frontend test separately mocks the Ask response. No Playwright flow against the running API and real database proves scoped SAP-name selection, budget fallback, bare-code fallback, complete disclosure accessibility, and unchanged row order through the actual query-to-browser path. Under the required test-audit rule for user-facing Done-when items, these isolated tests are insufficient end-to-end proof.",
+        "body": "The wiring test still fabricates the query result, labels, and summaries through `makeFixture`; the frontend label/disclosure tests separately mock the Ask response. No browser flow against the running API and real database proves scoped SAP-name selection, budget fallback, bare-code fallback, complete keyboard/touch disclosure accessibility, and unchanged row order through the actual query-to-browser path. Under the required test-audit rule for user-facing Done-when items, item 1 remains proven only at isolated boundaries.",
         "file": "backend/src/chat/chat.service.test.ts",
-        "line": 154,
+        "line": 159,
         "priority": "P1",
         "title": "Not done: An Ask answer by GL code shows its scoped SAP/MIS names"
       },
       {
-        "body": "The saved multi-period statement test injects a fabricated result and a fabricated `FakeNames` label, and the frontend test likewise mocks the response. There is still no browser flow through a running API and real database proving that a saved/pinned statement re-run resolves and renders the final-month outline's number/name while an actual-only answer without a budget batch stays raw. Done-when item 2 therefore remains proven only at isolated unit/component boundaries.",
+        "body": "The saved multi-period statement test injects a fabricated result and `FakeNames` label, while the frontend test also supplies a mocked response. There is no browser flow through a running API and real database proving that a saved/pinned statement re-run resolves and renders the final-month outline's number/name while an actual-only answer without a budget batch remains raw. Done-when item 2 therefore lacks the required end-to-end proof.",
         "file": "backend/src/chat/chat.service.test.ts",
-        "line": 325,
+        "line": 360,
         "priority": "P1",
         "title": "Not done: A budget-backed statement answer shows pinned line numbers and names"
       },
       {
-        "body": "The added size-limit rule says an oversized row carries no amount, but the generic context description at lines 82\u201384 still says every row binds its exact-paise Actual, and C5a at lines 223\u2013224 repeats that each row carries one. These requirements remain mutually exclusive despite the implementation's discriminated union. Explicitly exempt the C5d inert variant in both generic descriptions.",
+        "body": "The new size-limit rule says an oversized row carries no amount, but the generic context description at lines 82\u201384 still says every row binds its exact-paise Actual, and C5a at lines 223\u2013224 repeats that each row carries one. These requirements remain mutually exclusive despite the implementation's discriminated union. Explicitly exempt the C5d inert variant in both generic descriptions.",
         "file": "docs/specs/ask-gl-names-and-transactions.md",
         "line": 74,
         "priority": "P2",
         "title": "Keep oversized context rows consistent in the confirmed spec"
       },
       {
-        "body": "The task table still assigns rendering drillable Actuals as buttons and proving inert cells make no request to GL-DRILL-PANEL. The current Ask panel consumes labels but does not consume `AskResponse.drill`, so this branch alone does not complete Done-when item 6's user-visible interaction. Per the explicit task assignment, this remains a later-task gap rather than a blocker attributed to this backend wiring task.",
+        "body": "The task table still assigns rendering drillable Actuals as buttons and proving inert cells make no request to GL-DRILL-PANEL. The current Ask panel consumes labels but not `AskResponse.drill`, so this branch alone does not complete Done-when item 6's user-visible interaction. Per the explicit task assignment, this is a later-task gap rather than a blocker attributed to this backend wiring task.",
         "file": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md",
         "line": 155,
         "priority": "P2",
@@ -50,7 +43,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "686c1026fd3327a3ec4506adeaadb933e5650d974a3f02254083172d4e662b46"
+    "tree": "e26bd807d7273e6b6d007398a904c0b3027244dd989b7c46c1e524b7c92e2699"
   },
   "status": "fixing",
   "steps": [
@@ -72,6 +65,10 @@
     },
     {
       "at": "2026-10-03T15:19:24+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T15:32:39+00:00",
       "step": "review"
     }
   ]
