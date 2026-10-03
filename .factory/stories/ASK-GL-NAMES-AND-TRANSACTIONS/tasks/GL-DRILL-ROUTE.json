@@ -2,33 +2,19 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-DRILL-ROUTE",
   "review": {
     "blocking_level": "P1",
-    "changed": "595eb35c4a332f8845a4cb16fd985d29fe24790e32b312bd9032bbf26b10bfd0",
-    "commit": "2865e224c7a78d27b75dc70721a950021902a1dd",
+    "changed": "f50b520a37869a478929cf665eb62ce82edf2dcb84402bb54236fa86423cf14a",
+    "commit": "60d137823ed9f17687d9844281161e2f3e03d413",
     "dismissals": [],
     "findings": [
       {
-        "body": "`summarize` always emits `LIMIT 25000` and then validates that SQL against `config.maxRows`. The unchanged default is 1,000 (`backend/src/config.ts:188`), and `SqlValidator` rejects any larger limit (`backend/src/sql/sqlValidator.ts:66`). Consequently, deployments using the normal/default configuration cannot execute the required issuance summary at all. Bound the SQL by the number of requested rows and the configured maximum instead of hard-coding 25,000.",
-        "file": "backend/src/warehouse/drill-transactions.repository.ts",
-        "line": 107,
+        "body": "The crossing test hard-codes both the signed `actualPaise` in `input` and the fake route footer, so it never obtains the signed value from `DrillTransactionsRepository.summarize` for the same predicate. A break between the issuance summary and route footer would therefore leave this test green. Add the required crossing leaf that summarizes the fixture predicate, converts that exact decimal string to signed paise, issues the context, and opens it through the route.",
+        "file": "backend/src/chat/ask-drill.service.test.ts",
+        "line": 42,
         "priority": "P1",
-        "title": "Not done: Make the issuance summary respect the configured row limit"
+        "title": "Not done: issuance-summary-to-route footing test"
       },
       {
-        "body": "This condition refuses any unknown filter dimension or empty array. However, the executed answer path preserves unknown filters (`backend/src/chat/chat.service.ts:674`) and `SqlBuilder` silently ignores them (`backend/src/sql/sqlBuilder.ts:97`); empty array-valued `eq`/`neq` filters are likewise valid and ignored. Such a selection can therefore produce and sign a valid answer, but its drill returns \u201ccannot be opened\u201d instead of re-deriving the answer predicate. The drill must share the answer query's ignore semantics or those shapes must be rejected before answer execution.",
-        "file": "backend/src/chat/ask-drill.service.ts",
-        "line": 249,
-        "priority": "P1",
-        "title": "Not done: Re-derive filters that the answer query ignores"
-      },
-      {
-        "body": "The new operator matrix only compares whether the literal `2026-06-01` occurs in both SQL strings. Replacing the drill's `neq` operator with `=` would still leave the literal present and the test green, even though the drill predicate no longer matches the answer predicate. This is a hollow proof of the required predicate re-derivation; assert the actual predicate/operator semantics for each case.",
-        "file": "backend/src/warehouse/drill-transactions.repository.test.ts",
-        "line": 187,
-        "priority": "P1",
-        "title": "Not done: GL filter operator-equivalence test"
-      },
-      {
-        "body": "This branch still only registers and exports the signing seam. No Ask response invokes the summary/signing service or emits `AskResponse.drill`, and no Actual cell calls the route. The story assigns issuance to GL-ANSWER-WIRING and the user interaction to GL-DRILL-PANEL, so this remains expected deferred work rather than a blocker for this prerequisite task.",
+        "body": "The branch registers and exports the signing seam, but no Ask response invokes the summary/signing service or emits `AskResponse.drill`, and no Actual cell calls the route. The story assigns issuance to GL-ANSWER-WIRING and interaction to GL-DRILL-PANEL, so this remains expected deferred work rather than a blocker for this prerequisite task.",
         "file": "backend/src/chat/chat.module.ts",
         "line": 34,
         "priority": "P2",
@@ -36,7 +22,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "f5f9afcbf4a7afb2933d557f38ec892c88d5fc31e914b41374eea62c021727c5"
+    "tree": "48d4791c8f7f9337b751dcfb4ca8ac77bc4a52c205922fe9a9bd0006cd8188de"
   },
   "status": "fixing",
   "steps": [
@@ -50,6 +36,10 @@
     },
     {
       "at": "2026-10-03T05:00:28+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T05:16:33+00:00",
       "step": "review"
     }
   ]
