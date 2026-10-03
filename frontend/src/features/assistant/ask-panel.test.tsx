@@ -259,7 +259,7 @@ test("the more-names disclosure opens from a touch tap without relying on hover"
   expect(screen.getByRole("list", { name: "Other account names" })).toBeInTheDocument();
 });
 
-test("the inline disclosure keeps row rhythm while its pseudo-element supplies the touch hit area", async () => {
+test("the inline disclosure keeps its expanded hit area within the table row", async () => {
   mocks.ask.mockResolvedValue(glLabelSuccess());
   renderAsk();
   submit("Show Actual by GL code");
@@ -273,7 +273,7 @@ test("the inline disclosure keeps row rhythm while its pseudo-element supplies t
     "relative",
     "after:absolute",
     "after:-inset-x-2",
-    "after:-inset-y-4",
+    "after:-inset-y-[7px]",
     "after:content-['']",
   );
 });

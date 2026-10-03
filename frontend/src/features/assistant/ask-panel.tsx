@@ -624,7 +624,7 @@ function ResultRowLabel({
         <>
           {" "}
           <button
-            className="relative inline-flex origin-center cursor-pointer items-center justify-center border-0 bg-transparent p-0 align-middle font-h2 text-emerald underline underline-offset-2 transition-transform after:absolute after:-inset-x-2 after:-inset-y-4 after:content-[''] data-[pointer-pressed=true]:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald motion-reduce:transform-none"
+            className="relative inline-flex origin-center cursor-pointer items-center justify-center border-0 bg-transparent p-0 align-middle font-h2 text-emerald underline underline-offset-2 transition-transform after:absolute after:-inset-x-2 after:-inset-y-[7px] after:content-[''] data-[pointer-pressed=true]:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald motion-reduce:transform-none"
             type="button"
             style={{
               transitionDuration: "140ms",
