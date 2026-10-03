@@ -9,7 +9,17 @@
     "session": "95f602af-e2c3-4ac2-9e21-a78e0aed778d"
   },
   "doc": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md",
-  "status": "approved",
+  "finished": "2026-10-03T19:43:35+00:00",
+  "merged": {
+    "GL-ANSWER-WIRING": "2026-10-03T17:35:55+00:00",
+    "GL-DRILL-PANEL": "2026-10-03T18:52:15+00:00",
+    "GL-DRILL-ROUTE": "2026-10-03T07:21:32+00:00",
+    "GL-NAMES": "2026-10-03T10:57:22+00:00",
+    "GL-RELOAD-AND-LIVE": "2026-10-03T19:43:35+00:00",
+    "GL-TXN-COLUMNS": "2026-10-02T18:16:16+00:00"
+  },
+  "outcome": "Ask answers now name every GL line from its SAP account names and every statement line by number and name, and clicking a transaction-backed Actual opens the SAP lines behind it, adding up to the figure to the paisa; live on July 2026 all 21 over-budget GL codes were named, 50001201 opened to \u20b983,98,339, and a DUB statement line opened the same lines as the statement screen.",
+  "status": "done",
   "steps": [
     {
       "at": "2026-10-02T17:06:40+00:00",
@@ -130,6 +140,10 @@
     {
       "at": "2026-10-03T14:56:27+00:00",
       "step": "read"
+    },
+    {
+      "at": "2026-10-03T19:43:59+00:00",
+      "step": "done"
     }
   ],
   "title": "Ask names each GL line and opens its transactions",

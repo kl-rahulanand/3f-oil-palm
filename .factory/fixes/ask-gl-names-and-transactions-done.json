@@ -1,0 +1,16 @@
+{
+  "base": "789b122f39f27b4dace5137e404682dfb30f033f",
+  "branch": "fix/ask-gl-names-and-transactions-done",
+  "done_when": "The board shows the story as finished, with its outcome.",
+  "kind": "story-done",
+  "outcome": "Ask answers now name every GL line from its SAP account names and every statement line by number and name, and clicking a transaction-backed Actual opens the SAP lines behind it, adding up to the figure to the paisa; live on July 2026 all 21 over-budget GL codes were named, 50001201 opened to \u20b983,98,339, and a DUB statement line opened the same lines as the statement screen.",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-03T19:43:59+00:00",
+      "step": "start"
+    }
+  ],
+  "touches": 0,
+  "why": "Record that Ask names each GL line and opens its transactions is finished, and what it achieved."
+}
