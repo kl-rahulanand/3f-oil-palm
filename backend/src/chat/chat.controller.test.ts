@@ -41,6 +41,11 @@ test("a client disconnect stops frame writes aborts the model call and records n
       },
     },
     {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
   );
   const controller = new ChatController(service);
 

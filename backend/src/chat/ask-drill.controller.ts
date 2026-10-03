@@ -39,10 +39,27 @@ export class AskDrillController {
     @Body() body: unknown,
   ): Promise<AskDrillResponse> {
     const parsed = askDrillSchema.safeParse(body);
-    if (!parsed.success)
+    if (!parsed.success) {
+      const missingContext = missingContextRequest(body);
+      if (missingContext) return this.respond(await this.drills.run(user, sessionId, missingContext));
       throw new BadRequestException(parsed.error.issues.map((issue) => `${issue.path.join(".") || "request"} invalid`));
-    const outcome = await this.drills.run(user, sessionId, parsed.data);
+    }
+    return this.respond(await this.drills.run(user, sessionId, parsed.data));
+  }
+
+  private respond(outcome: Awaited<ReturnType<AskDrillService["run"]>>): AskDrillResponse {
     if ("response" in outcome) return outcome.response;
     throw new HttpException(outcome.message, outcome.status);
   }
+}
+
+function missingContextRequest(body: unknown): AskDrillRequestDto | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const request = body as Record<string, unknown>;
+  if ("context" in request) return null;
+  if (typeof request.rowKey !== "string" || !request.rowKey.trim() || request.rowKey.length > 200) return null;
+  if (!Number.isInteger(request.page) || (request.page as number) < 1 || (request.page as number) > 1_000_000) {
+    return null;
+  }
+  return { context: "", rowKey: request.rowKey.trim(), page: request.page as number };
 }
