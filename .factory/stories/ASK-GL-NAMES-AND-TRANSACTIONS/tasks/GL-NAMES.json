@@ -2,33 +2,33 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-NAMES",
   "review": {
     "blocking_level": "P1",
-    "changed": "7b72028988bf385c520c6930c22120eeb7f0f10ae9989627f23c305759f03753",
-    "commit": "17e23cb17c59a557af86885876a8f4032d5e07df",
+    "changed": "27c5006bbda8a966d6d06b4e18941b929e3cbd46a10fc730740cd21f78e95101",
+    "commit": "2922330c603ae87dff6a66576451f24c844208ff",
     "dismissals": [],
     "findings": [
       {
-        "body": "The normalization trims only ordinary spaces before collapsing `[[:space:]]`. PostgreSQL `TRIM(text)` does not remove leading/trailing tabs and similar whitespace, so `\"Name\"` and `\"\\tName\\t\"` become different normalized groups (`\"name\"` versus `\" name \"`). They are later displayed identically after JavaScript trimming, producing incorrect group counts, ranking, and \u201c+n more\u201d output. The same expression is repeated in `nameSelect` at line 182, and the tests cover only ordinary spaces.",
-        "file": "backend/src/warehouse/gl-name.repository.ts",
-        "line": 132,
+        "body": "The close run reports TS7022 on this newly added traversal: `parentKey` and `parent` are inferred through the loop-carried `current = parent` assignment and become implicit `any` under the repository's compiler settings. This prevents the backend and the required close command from building. Add explicit types for both locals.",
+        "file": "backend/src/ingest/mis-format-outline.ts",
+        "line": 32,
         "priority": "P1",
-        "title": "Not done: GL name normalization trims all whitespace"
+        "title": "Backend does not compile"
       },
       {
-        "body": "This prefixes the label only when the leaf node itself has `sNo`. Supported ingested outlines also contain S.No.-less leaf rows: `mis-budget.parser.ts:101-122` inherits `identitySNo` from the numbered parent for the leaf key while persisting the leaf's `sNo` as null. Such rows therefore render only the name (for example, `Petrol and Diesel Charges`) instead of the required inherited number and name (`9.01 Petrol and Diesel Charges`). The new test covers only a leaf with an explicit `sNo`, so this production case is missed.",
-        "file": "backend/src/warehouse/gl-name.repository.ts",
-        "line": 258,
+        "body": "This adds `hiddenOtherLabelCount`, contrary to the coordinator's explicit ruling that the approved `{ key, label, otherLabels }` contract has no count field and that an omitted count must be carried as a trailing `and n more` entry in `otherLabels`. The added field is also absent from the API DTO at `backend/src/chat/chat.schemas.ts:162-166`, so generated clients cannot discover it. Keep the bounded-count representation inside `otherLabels` and remove this contract extension.",
+        "file": "contract/src/api.ts",
+        "line": 504,
         "priority": "P1",
-        "title": "Not done: statement lines show their number and pinned name"
+        "title": "Not done: bounded names use the approved rowLabels contract"
       },
       {
-        "body": "The supplied functional-check paragraph exercises the live GL-code answer and disclosure presentation, but it never asks for a statement-line answer or observes a pinned `<s_no> <label>` result and the raw-key behavior without a budget pin. The only statement rendering exercise here injects mocked `rowLabels`, so the functional check skips the branch's second covered Done-when item.",
-        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
-        "line": 318,
+        "body": "The new disclosure uses Tailwind 3's generic `ease-out` instead of the required shared `cubic-bezier(0.23, 1, 0.32, 1)` easing. Its `active:scale` transition also applies to native keyboard activation, despite the stated rule not to animate keyboard-driven actions. The component test currently hard-codes these classes, so it preserves rather than catches the failed emil-design-eng checklist behavior.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 627,
         "priority": "P1",
-        "title": "Not done: functional check"
+        "title": "Not done: disclosure motion follows the frontend convention"
       },
       {
-        "body": "The component test still injects a completed `rowLabels` response through the mocked Ask API, and there is no production caller of `GlNameRepository` in the current tree. Consequently this branch has no running-API/real-database/browser proof that production carries resolved labels into the table. The task plan assigns that wiring and crossing proof to GL-ANSWER-WIRING, so this remains follow-up advice rather than a blocker for this task alone.",
+        "body": "The component test still injects completed `rowLabels` through a mocked Ask API, and the current production tree has no caller of `GlNameRepository`. Consequently there is no running-API, real-database, browser proof that resolved GL and statement labels reach the table. The task plan assigns that production crossing to GL-ANSWER-WIRING, so this remains follow-up advice rather than a blocker for this task alone.",
         "file": "frontend/src/features/assistant/ask-panel.test.tsx",
         "line": 207,
         "priority": "P2",
@@ -36,7 +36,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "e61d55a084029377453d683a4c20ccc3c66c9b55a32b6d3c32bcae78579d7bd8"
+    "tree": "40c2ab4a0cf7c8e1d09410c88b59c17f81200402c981e5a533b3041c41b06585"
   },
   "status": "fixing",
   "steps": [
@@ -58,6 +58,10 @@
     },
     {
       "at": "2026-10-03T09:09:53+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T09:33:43+00:00",
       "step": "review"
     }
   ]
