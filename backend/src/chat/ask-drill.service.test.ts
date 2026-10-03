@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { HttpException } from "@nestjs/common";
 import type { AuthUser, ProvenanceBatch } from "@3f/contract";
 import { SqlValidator } from "../sql/sqlValidator";
+import type { DrillPredicate } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import { AskDrillContextService, type AskDrillContextInput } from "./ask-drill-context";
@@ -36,24 +37,46 @@ const input: AskDrillContextInput = {
 
 test("the signed Ask route re-derives a GL-and-answer-plants predicate and foots the page to the signed Actual", async () => {
   const events: string[] = [];
-  const warehouse = new FakeWarehouse(events, {
-    batches: [batch(actualPin, true)],
-    pageRows: [transaction("8398339.00")],
-    footer: { total_count: "1", debit: "8398339.00", credit: "0.00", value: "8398339.00" },
+  const predicate: DrillPredicate = {
+    mode: "gl-and-plants",
+    actualBatchIds: [actualPin.batchId],
+    glCode: "50001201",
+    plants: ["DUB"],
+    filters: [],
+    from: "2026-07-01",
+    to: "2026-07-01",
+  };
+  const warehouse = new FixtureWarehouse(events, predicate);
+  const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
+  const [summary] = await repository.summarize([{ rowKey: "50001201", predicate }]);
+  assert.ok(summary);
+  const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
+  const audit = new FakeAudit(events);
+  const controller = new AskDrillController(new AskDrillService(contexts, repository, audit));
+  const context = contexts.issue({
+    ...input,
+    rows: [{ key: "50001201", actualPaise: toPaise(summary.value), drillable: summary.feedingLineCount > 0 }],
   });
-  const { controller, contexts, audit } = harness(warehouse, events);
+  events.length = 0;
   const response = await controller.run(
     { ...user, scope: [...user.scope, { attribute: "plant", value: "H.O" }] },
     "session-1",
-    { context: contexts.issue(input), rowKey: "50001201", page: 1 },
+    { context, rowKey: "50001201", page: 1 },
   );
 
-  assert.equal(response.footer.value, "8398339.00");
+  assert.equal(response.footer.value, summary.value);
   assert.deepEqual(
     { page: response.page, pageSize: response.pageSize, totalCount: response.totalCount },
-    { page: 1, pageSize: 100, totalCount: 1 },
+    { page: 1, pageSize: 100, totalCount: 3 },
   );
-  assert.equal(response.lines[0]?.txnNo, "1900001234");
+  assert.deepEqual(
+    response.lines.map(({ txnNo, value }) => ({ txnNo, value })),
+    [
+      { txnNo: "inside-rupees", value: "12345.67" },
+      { txnNo: "inside-paisa", value: "0.01" },
+      { txnNo: "inside-credit", value: "-45.67" },
+    ],
+  );
   const pageSql = warehouse.executed.find((sql) => sql.includes("ORDER BY (txn.debit - txn.credit)"))!;
   assert.match(pageSql, /txn\.gl_code = '50001201'/);
   assert.match(pageSql, /txn\.plant IN \('DUB'\)/);
@@ -391,6 +414,83 @@ class FakeAudit {
   }
 }
 
+const fixtureTransactions = [
+  fixtureTransaction("inside-rupees", "12345.67", "0.00"),
+  fixtureTransaction("inside-paisa", "0.01", "0.00"),
+  fixtureTransaction("inside-credit", "0.00", "45.67"),
+  fixtureTransaction("other-gl", "900.00", "0.00", { gl_code: "50001202" }),
+  fixtureTransaction("outside-plant", "200.00", "0.00", { plant: "H.O" }),
+  fixtureTransaction("outside-month", "300.00", "0.00", { month: "2026-06-01" }),
+];
+
+class FixtureWarehouse implements Warehouse {
+  executed: string[] = [];
+
+  constructor(
+    private readonly events: string[],
+    private readonly predicate: DrillPredicate,
+  ) {}
+
+  async explain() {}
+
+  async execute(sql: string) {
+    this.executed.push(sql);
+    if (sql.includes("FROM ingest_batch") && sql.includes("id IN")) {
+      return { columns: [], rows: [batch(actualPin, true)] };
+    }
+    if (sql.includes("SELECT DISTINCT period")) {
+      return { columns: [], rows: [{ period: "2026-07-01" }] };
+    }
+    const rows = fixtureTransactions.filter((row) => matches(row, this.predicate));
+    if (sql.includes("feeding_line_count")) {
+      return {
+        columns: [],
+        rows: [
+          {
+            row_key: "50001201",
+            feeding_line_count: String(rows.length),
+            value: sum(rows, "debit") - sum(rows, "credit"),
+          },
+        ].map((row) => ({ ...row, value: formatPaise(row.value) })),
+      };
+    }
+    if (sql.includes("COUNT(*)")) {
+      this.events.push("transaction-read");
+      const debit = sum(rows, "debit");
+      const credit = sum(rows, "credit");
+      return {
+        columns: [],
+        rows: [
+          {
+            total_count: String(rows.length),
+            debit: formatPaise(debit),
+            credit: formatPaise(credit),
+            value: formatPaise(debit - credit),
+          },
+        ],
+      };
+    }
+    if (sql.includes("FROM sap_transaction")) {
+      this.events.push("transaction-read");
+      return {
+        columns: [],
+        rows: [...rows]
+          .sort((left, right) => Number(transactionValue(right) - transactionValue(left)))
+          .map((row) => ({ ...row, value: formatPaise(transactionValue(row)) })),
+      };
+    }
+    return { columns: [], rows: [] };
+  }
+
+  async freshness() {
+    return null;
+  }
+
+  async distinctValues() {
+    return [];
+  }
+}
+
 class FakeWarehouse implements Warehouse {
   executed: string[] = [];
   private readonly config: {
@@ -452,6 +552,61 @@ function transaction(value: string) {
     reference: "REF-1",
     memo: "Seedlings",
   };
+}
+
+function fixtureTransaction(
+  txnNo: string,
+  debit: string,
+  credit: string,
+  overrides: Partial<Record<string, string>> = {},
+) {
+  return {
+    batch_id: actualPin.batchId,
+    plant: "DUB",
+    gl_code: "50001201",
+    line_id: txnNo,
+    month: "2026-07-01",
+    posting_date: "2026-07-14",
+    txn_no: txnNo,
+    cost_center: "NURSERY",
+    acct_name: "Sprout Cost - Imp",
+    debit,
+    credit,
+    reference: `REF-${txnNo}`,
+    memo: "Fixture line",
+    ...overrides,
+  };
+}
+
+function matches(row: (typeof fixtureTransactions)[number], predicate: DrillPredicate): boolean {
+  return (
+    predicate.mode === "gl-and-plants" &&
+    predicate.actualBatchIds.includes(row.batch_id) &&
+    predicate.glCode === row.gl_code &&
+    predicate.plants.includes(row.plant) &&
+    row.month >= predicate.from &&
+    row.month <= predicate.to
+  );
+}
+
+function transactionValue(row: (typeof fixtureTransactions)[number]): bigint {
+  return BigInt(toPaise(row.debit)) - BigInt(toPaise(row.credit));
+}
+
+function sum(rows: typeof fixtureTransactions, field: "debit" | "credit"): bigint {
+  return rows.reduce((total, row) => total + BigInt(toPaise(row[field])), 0n);
+}
+
+function toPaise(value: string): string {
+  const match = value.match(/^(-?)(\d+)\.(\d{2})$/);
+  if (!match) throw new Error("Fixture money must have exactly two decimal places");
+  return BigInt(`${match[1]}${match[2]}${match[3]}`).toString();
+}
+
+function formatPaise(value: bigint): string {
+  const sign = value < 0n ? "-" : "";
+  const digits = (value < 0n ? -value : value).toString().padStart(3, "0");
+  return `${sign}${digits.slice(0, -2)}.${digits.slice(-2)}`;
 }
 
 const user: AuthUser = {
