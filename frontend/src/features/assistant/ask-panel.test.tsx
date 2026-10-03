@@ -271,16 +271,36 @@ test("the inline disclosure keeps row rhythm while its pseudo-element supplies t
   expect(disclosure.className.split(" ").some((className) => className.startsWith("min-h-"))).toBe(false);
   expect(disclosure).toHaveClass(
     "relative",
-    "transition-transform",
-    "duration-150",
-    "ease-out",
-    "active:scale-[0.97]",
-    "motion-reduce:transform-none",
     "after:absolute",
     "after:-inset-x-2",
     "after:-inset-y-4",
     "after:content-['']",
   );
+});
+
+test("the disclosure uses the shared press curve and stays still while keyboard focus is visible", async () => {
+  mocks.ask.mockResolvedValue(glLabelSuccess());
+  renderAsk();
+  submit("Show Actual by GL code");
+
+  const disclosure = await screen.findByRole("button", {
+    name: "2 more account names: Imported sprouts, Sprout purchases",
+  });
+  expect(disclosure).toHaveStyle({
+    transitionDuration: "140ms",
+    transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)",
+  });
+
+  const matches = vi.spyOn(disclosure, "matches");
+  matches.mockImplementation((selector) => selector === ":focus-visible");
+  fireEvent.pointerDown(disclosure, { pointerType: "mouse" });
+  expect(disclosure).not.toHaveAttribute("data-pointer-pressed");
+
+  matches.mockReturnValue(false);
+  fireEvent.pointerDown(disclosure, { pointerType: "mouse" });
+  expect(disclosure).toHaveAttribute("data-pointer-pressed", "true");
+  fireEvent.pointerUp(disclosure, { pointerType: "mouse" });
+  expect(disclosure).not.toHaveAttribute("data-pointer-pressed");
 });
 
 test("a bounded disclosure announces the true other-name count and says how many names are not shown", async () => {

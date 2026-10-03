@@ -600,6 +600,7 @@ function ResultRowLabel({
   mode,
 }: Readonly<{ rawKey: string; label: AskRowLabel; mode: "gl-code" | "statement" }>) {
   const [expanded, setExpanded] = useState(false);
+  const [pointerPressed, setPointerPressed] = useState(false);
   const otherNamesId = useId();
   const visibleLabel = mode === "gl-code" ? `${rawKey} · ${label.label}` : label.label;
   const hiddenCount = label.hiddenOtherLabelCount ?? 0;
@@ -624,12 +625,22 @@ function ResultRowLabel({
         <>
           {" "}
           <button
-            className="relative inline-flex origin-center cursor-pointer items-center justify-center border-0 bg-transparent p-0 align-middle font-h2 text-emerald underline underline-offset-2 transition-transform duration-150 ease-out after:absolute after:-inset-x-2 after:-inset-y-4 after:content-[''] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald motion-reduce:transform-none"
+            className="relative inline-flex origin-center cursor-pointer items-center justify-center border-0 bg-transparent p-0 align-middle font-h2 text-emerald underline underline-offset-2 transition-transform after:absolute after:-inset-x-2 after:-inset-y-4 after:content-[''] data-[pointer-pressed=true]:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald motion-reduce:transform-none"
             type="button"
+            style={{
+              transitionDuration: "140ms",
+              transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)",
+            }}
+            data-pointer-pressed={pointerPressed || undefined}
             aria-expanded={expanded}
             aria-controls={otherNamesId}
             onClick={() => setExpanded((current) => !current)}
             onKeyDown={handleKeyDown}
+            onPointerDown={(event) => setPointerPressed(!event.currentTarget.matches(":focus-visible"))}
+            onPointerUp={() => setPointerPressed(false)}
+            onPointerCancel={() => setPointerPressed(false)}
+            onPointerLeave={() => setPointerPressed(false)}
+            onBlur={() => setPointerPressed(false)}
           >
             <span aria-hidden="true">+{otherNameCount} more</span>
             <span className="sr-only">

@@ -163,6 +163,12 @@ class AskRowLabelDto implements AskRowLabel {
   @ApiProperty() key!: string;
   @ApiProperty() label!: string;
   @ApiProperty({ type: [String] }) otherLabels!: string[];
+  @ApiPropertyOptional({
+    type: "integer",
+    minimum: 1,
+    description: "Number of additional account names beyond the bounded otherLabels list.",
+  })
+  hiddenOtherLabelCount?: number;
 }
 
 type AskDrillMetadataRow = AskDrillMetadata["rows"][number];

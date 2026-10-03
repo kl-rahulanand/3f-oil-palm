@@ -260,6 +260,11 @@ test("POST /api/chat/drill documents its bounded request and typed transaction r
     assert.equal(schemas.AskRowLabelDto?.properties?.key?.type, "string");
     assert.equal(schemas.AskRowLabelDto?.properties?.label?.type, "string");
     assert.equal(schemas.AskRowLabelDto?.properties?.otherLabels?.items?.type, "string");
+    assert.deepEqual(schemas.AskRowLabelDto?.properties?.hiddenOtherLabelCount, {
+      type: "integer",
+      minimum: 1,
+      description: "Number of additional account names beyond the bounded otherLabels list.",
+    });
     assert.deepEqual(schemas.AskDrillMetadataDto?.required?.sort(), ["context", "rows"]);
     assert.equal(schemas.AskDrillMetadataDto?.properties?.context?.type, "string");
     assert.equal(

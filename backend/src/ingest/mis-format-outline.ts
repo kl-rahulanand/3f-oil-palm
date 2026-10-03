@@ -29,8 +29,10 @@ export function inheritedMisSNo(
 export function misOutlineIdentitySNo(node: MisOutlineIdentity, outline: MisOutlineIdentity[]): string | undefined {
   let current: MisOutlineIdentity | undefined = node;
   while (current) {
-    const parentKey = current.parentKey;
-    const parent = parentKey ? outline.find(({ nodeKey }) => nodeKey === parentKey) : undefined;
+    const parentKey: string | null | undefined = current.parentKey;
+    const parent: MisOutlineIdentity | undefined = parentKey
+      ? outline.find(({ nodeKey }) => nodeKey === parentKey)
+      : undefined;
     const identitySNo = inheritedMisSNo(current.sNo, parent?.sNo);
     if (identitySNo) return identitySNo;
     current = parent;
