@@ -101,6 +101,11 @@ test(
       );
       const april = await fixture.replaceActualsBatch(metadata("2026-04-01"), aprilRows);
       const may = await fixture.replaceActualsBatch(metadata("2026-05-01"), [fixtureRow("MAY", "2026-05-01", "2.02")]);
+      assert.deepEqual(await repository.findActiveActualPins("2026-04-01", JULY), [
+        { source: "actuals", period: "2026-04-01", batchId: april },
+        { source: "actuals", period: "2026-05-01", batchId: may },
+        { source: "actuals", period: JULY, batchId: actual.batchId },
+      ]);
       const ytdStatementRows = await pool.query<{ leaf_key: string; actual_net: string }>(
         new SqlBuilder().build(
           statementDomain,
