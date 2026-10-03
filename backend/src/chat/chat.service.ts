@@ -629,12 +629,14 @@ export class ChatService {
     );
     const budgetPin = lastMonthBudgetPin(activeBatchIds, selection.timeWindow?.to);
     const signedRange = concreteSelectionRange(selection);
-    const actualPins =
+    const activeActualPins =
       signedRange &&
       selection.measureIds.includes(shape.actualMeasureId) &&
       user.permissions.measureIds.includes(shape.actualMeasureId)
         ? await this.drillTransactions.findActiveActualPins(signedRange.from, signedRange.to)
         : contributingActualPins;
+    const completedActualPins = completeActualPins(contributingActualPins, activeActualPins);
+    const actualPins = completedActualPins.pins;
     const predicateRange = signedRange ?? pinnedRange(activeBatchIds);
     const plants = shape.kind === "statement" ? (statementScope ? [statementScope.plant] : []) : ["DUB"];
     const predicates =
@@ -662,6 +664,16 @@ export class ChatService {
             budgetPin?.batchId,
           )
         : await this.glNames.findStatementLabels(rowKeys, budgetPin?.batchId);
+    if (completedActualPins.changed) {
+      for (const key of rowKeys) {
+        this.logger.log("warn", "Ask drill batch changed after answer execution", {
+          module: "ChatService",
+          accountId: user.id,
+          context: { rowKey: key, reason: "active-actual-batch-changed" },
+        });
+      }
+      return rowLabels.length ? { rowLabels } : {};
+    }
     const issued = await issueAskDrill(
       {
         transactions: this.drillTransactions,
@@ -859,6 +871,21 @@ function pinnedRange(pins: ProvenanceBatch[]): { from: string; to: string } | nu
   const from = periods[0];
   const to = periods.at(-1);
   return from && to ? { from, to } : null;
+}
+
+function completeActualPins(
+  contributing: Array<ProvenanceBatch & { source: "actuals" }>,
+  active: Array<ProvenanceBatch & { source: "actuals" }>,
+): { pins: Array<ProvenanceBatch & { source: "actuals" }>; changed: boolean } {
+  const contributingByPeriod = new Map(contributing.map((pin) => [pin.period, pin]));
+  const changed = active.some((pin) => {
+    const executed = contributingByPeriod.get(pin.period);
+    return executed !== undefined && executed.batchId !== pin.batchId;
+  });
+  const pins = [...contributing, ...active.filter((pin) => !contributingByPeriod.has(pin.period))].sort((left, right) =>
+    `${left.period}\0${left.batchId}`.localeCompare(`${right.period}\0${right.batchId}`),
+  );
+  return { pins, changed };
 }
 
 function predicateForAnswer(

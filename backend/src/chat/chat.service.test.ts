@@ -312,6 +312,36 @@ test("a sparse multi-period GL answer signs every active Actual month in its exe
   ]);
 });
 
+test("a reload between the answer query and complete-window pin lookup leaves the answer inert", async () => {
+  const executedPin = { source: "actuals" as const, period: "2026-07-01", batchId: ACTUAL_BATCH_ID };
+  const reloadedPin = { source: "actuals" as const, period: "2026-07-01", batchId: "actual-july-reloaded" };
+  const fixture = makeFixture({
+    selection: financialSelection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "125.01" }],
+    },
+    activeBatchIds: [executedPin],
+    activeActualPins: [reloadedPin],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }],
+  });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial"),
+    "session",
+    "Show Actual by GL code for July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.equal(response.drill, undefined);
+  assert.equal(fixture.transactions.calls.length, 0);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.actualBatchIds, [ACTUAL_BATCH_ID]);
+  assert.deepEqual(fixture.logs, [{ context: { rowKey: "50001201", reason: "active-actual-batch-changed" } }]);
+});
+
 test("statement label batch selection chooses the last budget month from a multi-month window", () => {
   const window = { grain: "month" as const, from: "2026-06-01", to: "2026-07-01" };
   const julyBudget = { source: "budget" as const, period: "2026-07-01", batchId: BUDGET_BATCH_ID };
