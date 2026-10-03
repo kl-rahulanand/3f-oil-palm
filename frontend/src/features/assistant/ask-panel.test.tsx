@@ -496,11 +496,20 @@ test("a live answer without drill metadata keeps every Actual plain and makes no
   expect(mocks.runAskDrill).not.toHaveBeenCalled();
 });
 
-test("a stored snapshot shows Ask again beside its inert Actuals and reruns instead of reading transactions", async () => {
-  mocks.ask.mockResolvedValueOnce(glLabelSuccess()).mockResolvedValueOnce({
+test("a stored turn reruns from Ask again and its refreshed Actual opens transactions", async () => {
+  const refreshed = {
     ...glLabelSuccess(),
     title: "Fresh governed result",
-  });
+    drill: {
+      context: "fresh-signed-context",
+      rows: [
+        { key: "50001201", drillable: true },
+        { key: "50009999", drillable: false },
+      ],
+    },
+  } satisfies AskResponse;
+  mocks.ask.mockResolvedValueOnce(glLabelSuccess()).mockResolvedValueOnce(refreshed);
+  mocks.runAskDrill.mockResolvedValue(askDrillResponse());
   renderAsk({ storedAnswer: true });
   submit("Show Actual by GL code");
 
@@ -521,7 +530,21 @@ test("a stored snapshot shows Ask again beside its inert Actuals and reruns inst
     question: "Show Actual by GL code",
     selection: glLabelSuccess().selection,
   });
-  expect(mocks.runAskDrill).not.toHaveBeenCalled();
+  const refreshedActual = await screen.findByRole("button", {
+    name: "Open transactions for 50001201 · Sprout Cost - Imp, Actual ₹125",
+  });
+  expect(screen.queryByRole("button", { name: /Ask again to open transactions/ })).not.toBeInTheDocument();
+
+  fireEvent.click(refreshedActual);
+
+  await waitFor(() =>
+    expect(mocks.runAskDrill).toHaveBeenCalledWith({
+      context: "fresh-signed-context",
+      rowKey: "50001201",
+      page: 1,
+    }),
+  );
+  expect(screen.getByRole("dialog", { name: "50001201 · Sprout Cost - Imp" })).toBeInTheDocument();
 });
 
 test("the docked panel sends the attested context and the focused node while the ask page sends neither", async () => {

@@ -365,7 +365,6 @@ test("a forbidden drill and a failed drill each render alone with no rows counts
 test.each([
   [410, "This answer is too old to open. Ask again to open its transactions."],
   [403, "Your access has changed since this answer was shown. Ask again."],
-  [409, "The data behind this answer is no longer available. Ask again to open its transactions."],
   [400, "This line cannot be opened. Ask again."],
   [503, "Transactions could not be opened right now. Try again."],
 ] as const)("an Ask drill refusal with HTTP %i shows its stated recovery wording", async (status, message) => {
@@ -378,10 +377,9 @@ test.each([
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
 });
 
-test("the Ask transaction panel shows the route notice columns and all-match footer without changing statement copy", async () => {
+test("a replaced Ask batch shows the reloaded-data wording while keeping its transaction lines", async () => {
   mocks.runAskDrill.mockResolvedValue(
     askDrillResponse({
-      notice: "This answer was built on data that has since been reloaded; these are the lines it was built from.",
       batchStatuses: [
         {
           source: "actuals",
@@ -417,6 +415,19 @@ test("the Ask transaction panel shows the route notice columns and all-match foo
   ]);
   expect(within(table).getByRole("row", { name: "Total" })).toHaveTextContent("₹125.00exact");
   expect(within(table).getByRole("row", { name: "Total" })).toHaveTextContent("Matches the Actual in the answer");
+});
+
+test("a gone Ask batch shows its recovery wording without transaction lines", async () => {
+  mocks.runAskDrill.mockRejectedValue(Object.assign(new Error("gone"), { status: 409 }));
+  renderWithQuery(<DrillPanel selection={askSelection()} onClose={vi.fn()} />);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent(
+    "The data behind this answer is no longer available. Ask again to open its transactions.",
+  );
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByText(/matching · rows/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Matches the Actual in the answer")).not.toBeInTheDocument();
 });
 
 test("drilling a leaf inside the aggregate panel replaces the body in place and back returns to the group with focus on the leaf row", async () => {

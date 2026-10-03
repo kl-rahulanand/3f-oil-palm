@@ -324,6 +324,8 @@ function SuccessAnswer({
   storedAnswer: boolean;
   onOpenAskDrill: (selection: AskDrillPanelSelection) => void;
 }>) {
+  const storedResponse = useRef(storedAnswer ? response : null);
+  const isStoredTurn = storedAnswer && storedResponse.current === response;
   const [saving, setSaving] = useState<"save" | "pin">();
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string }>();
   const comparisonReadout = appliedComparisonReadout(response);
@@ -385,7 +387,7 @@ function SuccessAnswer({
             labelMode={response.selection?.domain === "mis-statement" ? "statement" : "gl-code"}
             selection={response.selection}
             drill={response.drill}
-            storedAnswer={storedAnswer}
+            storedAnswer={isStoredTurn}
             onOpenDrill={onOpenAskDrill}
             onAskAgain={() =>
               response.selection ? void onContinue(turn.id, turn.question, response.selection, "retain") : undefined
