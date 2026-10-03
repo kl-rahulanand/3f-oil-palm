@@ -2,23 +2,16 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-DRILL-ROUTE",
   "review": {
     "blocking_level": "P1",
-    "changed": "aad355486404dc235b8b3727590e29248da6a477b1beee695a59d4f3263079af",
-    "commit": "be811d64dd932d650fca8b4df831bad5b5fde8e4",
+    "changed": "1b045860958c628375924469eb4dbd2a21ad8b825fce9697dc0104795cc591dc",
+    "commit": "89a38f2d1bbc89602f752b9a8f0875ddd2ad7a3d",
     "dismissals": [],
     "findings": [
       {
-        "body": "The footing comparison assumes `result.footer.value` remained an exact decimal string. With the supported `WAREHOUSE_DRIVER=mysql`, however, `StarRocksMysqlAdapter` converts DECIMAL fields through `Number(...)` (`backend/src/warehouse/starrocks-mysql.adapter.ts:42`). The footer query returns `numeric(18,2)`, unlike `summarize`, which explicitly returns text. Thus a valid value such as `90000000000000.01` can reach this comparison as `90000000000000.02` and be falsely refused, while returned line amounts can also be rounded. Cast the page/footer monetary outputs to text before the adapter, and cover the configured adapter rather than supplying strings from a fake warehouse.",
-        "file": "backend/src/chat/ask-drill.service.ts",
-        "line": 115,
+        "body": "The new regression test still does not exercise the configured `StarRocksMysqlAdapter`. `NumericCoercingWarehouse` derives the `numeric` flag itself by regex-matching the generated SQL and then calls only `toStarRocksMysqlCell`; it therefore assumes the database reports text metadata for the cast and bypasses the adapter's mysql2 field handling entirely. A regression in the actual adapter path can still round `90000000000000.01` while this test remains green. The prior finding explicitly required coverage through the configured adapter, so exercise that adapter with real or injected mysql2 result metadata instead of synthesizing its conclusion in the warehouse fake.",
+        "file": "backend/src/warehouse/drill-transactions.repository.test.ts",
+        "line": 371,
         "priority": "P1",
-        "title": "Not done: exact-paise footer survives every supported warehouse adapter"
-      },
-      {
-        "body": "The new two-page test still does not exercise paging under the generated SQL: `FixtureWarehouse` itself calls `compareTransactions` and slices the array. Consequently its ordering and boundary assertions are produced by the mock implementation rather than the repository/database contract, and the test remains green if the database query ceases to provide the claimed stable ordering. The existing real warehouse fixture still reads only page 1. Extend that fixture to read both pages over tied rows and assert their combined transaction identities.",
-        "file": "backend/src/chat/ask-drill.service.test.ts",
-        "line": 102,
-        "priority": "P1",
-        "title": "Not done: stable page boundary test"
+        "title": "Not done: exact-paise configured-adapter test"
       },
       {
         "body": "The branch registers and exports the signing seam, but no Ask response invokes the summary/signing service or emits `AskResponse.drill`, and no Actual cell calls the route. The story assigns issuance to GL-ANSWER-WIRING and interaction to GL-DRILL-PANEL, so this remains expected deferred work rather than a blocker for this prerequisite task.",
@@ -29,7 +22,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "a202491f275bda18166f33fab6a92a37d0bc6cff45f61942794b666d611d405d"
+    "tree": "2f1b7f19ecf974701449947b16cc97a150784a8d4bf5b62a5cb47576dd893c0b"
   },
   "status": "fixing",
   "steps": [
@@ -55,6 +48,10 @@
     },
     {
       "at": "2026-10-03T05:36:37+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T05:52:29+00:00",
       "step": "review"
     }
   ]
