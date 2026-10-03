@@ -344,11 +344,6 @@ test("unsupported or unauthorized answer shapes never issue drill metadata or su
       selection: { ...financialSelection, measureIds: ["governed-financial.percentage"] },
       user: userFor("governed-financial", false, ["governed-financial.percentage"]),
     },
-    {
-      name: "no Actual grant",
-      selection: { ...financialSelection, measureIds: ["governed-financial.budget"] },
-      user: userFor("governed-financial", false, ["governed-financial.budget"]),
-    },
   ];
 
   for (const example of cases) {
@@ -364,6 +359,26 @@ test("unsupported or unauthorized answer shapes never issue drill metadata or su
     assert.equal(response.drill, undefined, example.name);
     assert.equal(fixture.transactions.calls.length, 0, example.name);
   }
+});
+
+test("a reader without the Actual grant receives neither an Actual value nor drill metadata", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+  };
+  const fixture = makeFixture({ selection });
+
+  const response = await fixture.service.ask(
+    userFor("governed-financial", false, ["governed-financial.budget"]),
+    "session",
+    "Show Actual and Budget by GL code",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.NotSupported);
+  assert.equal(response.result, undefined);
+  assert.equal(response.drill, undefined);
+  assert.doesNotMatch(JSON.stringify(response), /actualPaise|"actual"/);
+  assert.equal(fixture.transactions.calls.length, 0);
 });
 
 test("an all-data GL answer still resolves names from its pinned months but carries no drill without a fixed window", async () => {

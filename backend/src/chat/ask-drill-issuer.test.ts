@@ -158,6 +158,25 @@ test("a multi-period statement claim binds the final budget outline digest and r
   }
 });
 
+test("an Actual-bearing answer signs no Actual when the reader holds only the Budget grant", async () => {
+  const answer = glAnswer([{ gl_code: "50001201", actual: 125.01, budget: 100 }], ["50001201"]);
+  answer.selection = {
+    ...selection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+  };
+  answer.user = {
+    ...user,
+    permissions: { ...user.permissions, measureIds: ["governed-financial.budget"] },
+  };
+  const { deps, summarized } = fixture([{ rowKey: "50001201", feedingLineCount: 1, value: "125.01" }]);
+
+  const issued = await issueAskDrill(deps, answer);
+
+  assert.deepEqual(issued, { dataMismatchRowKeys: [] });
+  assert.doesNotMatch(JSON.stringify(issued), /actualPaise|12501/);
+  assert.deepEqual(summarized, []);
+});
+
 function glAnswer(rows: ResultTable["rows"], rowKeys: string[]): AskDrillPreparedAnswer {
   return {
     user,
