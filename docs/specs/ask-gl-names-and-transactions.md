@@ -2,7 +2,7 @@
 slug: ask-gl-names-and-transactions
 title: Ask names each GL line and opens its transactions
 status: draft
-saved: 2026-10-03T11:58:54+00:00
+saved: 2026-10-03T12:00:09+00:00
 ---
 
 # Ask names each GL line and opens its transactions
@@ -230,7 +230,9 @@ figure against its source transactions without switching screens.
   budget-only Actuals and empty-state rows are inert and cause no read or audit record; the "+n more"
   disclosure is keyboard- and touch-operable and the full list is in the accessible name; names and
   transaction lines never reach the model.
-- **C8** Hermetic proofs cover normalized name grouping, representative-spelling and group-count
+- **C8** Hermetic proofs cover the size limit: `±(2^46 − 0.01)` rupees stay clickable and sign their exact
+  paise, `±2^46` rupees have a context entry with no amount, and a request for such a row is refused before
+  any transaction read; and normalized name grouping, representative-spelling and group-count
   selection, ties, fallback and disclosure; labels leaving query rows and order unchanged and joining
   the correct drill row by raw key; pinned labels after a re-upload and a stored conversation retaining
   those original labels after another re-upload; a multi-period answer choosing its last-month budget
