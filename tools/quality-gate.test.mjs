@@ -93,6 +93,7 @@ const hermeticTests = [
 const dbTests = [
   "backend/src/admin/access-metadata.controller.test.ts",
   "backend/src/auth/auth.controller.test.ts",
+  "backend/src/chat/ask-drill.controller.db.test.ts",
   "backend/src/conversations/conversations.service.db.test.ts",
   "backend/src/core/audit.service.test.ts",
   "backend/src/core/session.service.test.ts",
