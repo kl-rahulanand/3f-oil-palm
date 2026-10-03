@@ -4,7 +4,28 @@
     "blocking_level": "P1",
     "changed": "e5044252d3035e431fa1bf82e7514bd428a504b6f95a5ccb7068d8d07a35d872",
     "commit": "72de354d1705d3afcb4251c57699775d97962fc6",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/chat/chat.service.ts:513 Accepted as a known narrow race and moved to a follow-up task, on the owner's instruction (2026-10-03) to finish this part in this round. It needs a reload to land between the primary and totals queries of one answer, in a month that contributed no rows, with replacement lines netting to exactly zero on a budget-only row. The bracketing in 15d6abc already fails closed for every reload that changes a contributing month or the window between the first and final lookups. The follow-up preserves the first snapshot across both executor calls.",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.ts:656 Accepted as a known gap and moved to a follow-up task, on the owner's instruction (2026-10-03) to finish this part in this round. On real data the final-month budget batch contributes rows to supported answers: the live check on 72de354 shows 80 of 80 statement labels and signed contexts carrying the July budget pin, including the FY 26-27 YTD re-run (537ceaf). The follow-up resolves the final-month budget batch independently of contributing rows and brackets it with execution.",
+        "finding": 2,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.test.ts:159 The repo has no browser end-to-end harness (no Playwright anywhere) and CI has no database, so an automated running-API, real-database browser test is not possible in this part. The user path is proven by recorded live walks on this branch, with no request interception, against the July warehouse and the live model: db7580a (browser: 21 of 21 GL rows \"code \u00b7 SAP name\" in API order, totals unchanged, the \"+1 more\" disclosure with its full accessible list) and 72de354 (live API on the final code). The merged GL-TXN-COLUMNS (#87) and GL-NAMES (#89) were accepted on the same basis, and GL-RELOAD-AND-LIVE runs the story's final live check.",
+        "finding": 3,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.test.ts:360 The repo has no browser end-to-end harness and CI has no database. The statement path is proven by recorded live walks on this branch: db7580a (browser: 80 of 81 rows \"<number> <name>\" from the pinned July outline, unmapped-GL raw) and 537ceaf (the saved/pinned FY 26-27 YTD re-run labelled from the final month's outline, signing the July budget pin; 9.01 opened to footer 22500.00). The raw-key case with no budget batch is unreachable on this data and is proven against real Postgres by the merged GL-NAMES warehouse proof. GL-RELOAD-AND-LIVE runs the story's final live check.",
+        "finding": 4,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "Supported answers always have a dimension, so the real `SelectionExecutor` invokes `beforeExecute` once for the primary query and again for the totals query (`backend/src/chat/selectionExecutor.ts:80-92`). This assignment therefore replaces the pre-primary pin snapshot. If a noncontributing month reloads after the primary query but before totals, the second lookup and final lookup both see the replacement; because primary provenance contains no pin for that month, `completeActualPins` reports no change and signs the replacement. A zero-net replacement can then make a formerly budget-only row drillable and open transactions not behind the displayed answer. The new fixture misses this because its fake executor calls `beforeExecute` only once (`chat.service.test.ts:1921-1925`). Preserve the first snapshot across the complete execution or bracket the primary query explicitly.",
@@ -49,10 +70,10 @@
         "title": "Later: GL-DRILL-PANEL must consume the signed drill metadata"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "2fa58cc72bd677d192da1532e7c5dd0cb38b8a9ac7e3a6045a5bab22a77cb96e"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-03T10:57:58+00:00",
