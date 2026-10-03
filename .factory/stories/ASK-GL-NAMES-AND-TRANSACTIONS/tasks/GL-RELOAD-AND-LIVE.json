@@ -1,10 +1,52 @@
 {
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-RELOAD-AND-LIVE",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "995aa3b1ee1d11d02f0864eafd1898b8380b925461c5ab48ecb15da949d06bbc",
+    "commit": "f15cbdacd877411135230ce63520374a6d8f6a5c",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "Done-when item 10 requires a live July-warehouse/Bedrock walk, with each question in a fresh conversation, recorded in the last commit. The supplied evidence explicitly says the last commit has no `Functional check:` paragraph, and this task record contains only its start event. There is therefore no evidence that all 21 names appeared, 50001201 footed to \u20b983,98,339, the DUB-only result matched the statement drill, or the statement panel showed the three columns.",
+        "file": ".factory/stories/ASK-GL-NAMES-AND-TRANSACTIONS/tasks/GL-RELOAD-AND-LIVE.json",
+        "line": 7,
+        "priority": "P1",
+        "title": "Not done: live July check for the 21 named GLs, \u20b983,98,339 footing, and DUB statement parity"
+      },
+      {
+        "body": "This user-facing task has no required `Functional check:` paragraph in its final commit. Consequently, neither the reload/refusal panel behavior nor the required live July workflow was recorded as exercised from the user's perspective.",
+        "file": ".factory/stories/ASK-GL-NAMES-AND-TRANSACTIONS/tasks/GL-RELOAD-AND-LIVE.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: functional check"
+      },
+      {
+        "body": "The added panel test injects a mocked `runAskDrill` response directly into the component. The gone case likewise injects a synthetic 409. These tests cannot prove the browser-to-running-API/database path for replaced actuals, replaced statement-budget pins, gone actuals, and gone statement-budget pins. Existing backend coverage uses a fake warehouse, and the repository contains no Playwright flow covering this item, so Done-when item 8 lacks the required real-entry-point user-facing test.",
+        "file": "frontend/src/features/mis/drill-panel.test.tsx",
+        "line": 381,
+        "priority": "P1",
+        "title": "Not done: reloaded-data behavior is proven end to end for all four pin-binding leaves"
+      },
+      {
+        "body": "This branch changes the transaction panel's status copy and responsive layout, but the supplied task/commit evidence records neither impeccable's required shape/audit/polish pass nor the batched emil-design-eng interaction checklist. The mandated UI review therefore has not been completed for the changed notice and refusal states.",
+        "file": "frontend/src/features/mis/drill-panel.tsx",
+        "line": 334,
+        "priority": "P1",
+        "title": "Not done: impeccable and emil-design-eng UI review"
+      }
+    ],
+    "status": "blocked",
+    "tree": "6e86c3c088933ddacfdabe52c22919bdc2ac630b7e089eef8ac627a20892bc20"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-03T18:53:11+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-03T19:31:57+00:00",
+      "step": "review"
     }
   ]
 }
