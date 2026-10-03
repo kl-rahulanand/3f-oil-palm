@@ -47,7 +47,6 @@ test("a conversation answer snapshot keeps row labels and drops the ephemeral dr
         key: "50001201",
         label: "Sprout Cost - Imp",
         otherLabels: ["Sprout cost"],
-        hiddenOtherLabelCount: 12,
       },
     ],
     drill: { context: "signed.answer", rows: [{ key: "50001201", drillable: true }] },

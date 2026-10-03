@@ -303,22 +303,24 @@ test("the disclosure uses the shared press curve and stays still while keyboard 
   expect(disclosure).not.toHaveAttribute("data-pointer-pressed");
 });
 
-test("a bounded disclosure announces the true other-name count and says how many names are not shown", async () => {
+test("a disclosure beyond MAX_ROWS exposes and renders every other name in order", async () => {
   const response = glLabelSuccess();
-  response.rowLabels![0]!.hiddenOtherLabelCount = 12;
+  const otherLabels = Array.from({ length: 1001 }, (_, index) => `Other account ${String(index).padStart(4, "0")}`);
+  response.rowLabels![0]!.otherLabels = otherLabels;
   mocks.ask.mockResolvedValue(response);
   renderAsk();
   submit("Show Actual by GL code");
 
   const disclosure = await screen.findByRole("button", {
-    name: "14 more account names: Imported sprouts, Sprout purchases, and 12 more",
+    name: `${otherLabels.length} more account names: ${otherLabels.join(", ")}`,
   });
-  expect(disclosure).toHaveTextContent("+14 more");
+  expect(disclosure).toHaveTextContent(`+${otherLabels.length} more`);
 
   fireEvent.click(disclosure);
-  expect(screen.getByRole("list", { name: "Other account names" })).toHaveTextContent(
-    "Imported sproutsSprout purchasesand 12 more",
-  );
+  const rendered = within(screen.getByRole("list", { name: "Other account names" })).getAllByRole("listitem");
+  expect(rendered).toHaveLength(otherLabels.length);
+  expect(rendered[0]).toHaveTextContent(otherLabels[0]!);
+  expect(rendered.at(-1)).toHaveTextContent(otherLabels.at(-1)!);
 });
 
 test("an SAP account name that reads 'and 3 more' is disclosed as a name rather than a hidden count", async () => {

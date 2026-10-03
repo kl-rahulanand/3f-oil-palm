@@ -410,10 +410,8 @@ class FakeWarehouse implements Warehouse {
           {
             row_ordinal: "0",
             row_key: "50001201",
-            acct_name: null,
-            line_count: null,
             scoped_line_count: "0",
-            name_group_count: "0",
+            name_groups: "[]",
           },
         ],
       };

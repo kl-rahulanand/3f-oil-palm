@@ -14,7 +14,7 @@ import type { QueryResult, Warehouse } from "./warehouse.interface";
 const JULY = "2026-07-01";
 
 test("a normalized name group returned by SQL becomes the row label", async () => {
-  const repository = names([nameGroupRow("50001201", "Sprout Cost - Imp", 3, 1)]);
+  const repository = names([completeNameGroupsRow("50001201", [{ label: "Sprout Cost - Imp", count: 3 }])]);
 
   assert.deepEqual(await repository.findGlCodeLabels([glRow("50001201")]), [
     { key: "50001201", label: "Sprout Cost - Imp", otherLabels: [] },
@@ -22,7 +22,12 @@ test("a normalized name group returned by SQL becomes the row label", async () =
 });
 
 test("a tie for most-used normalized name groups is broken alphabetically", async () => {
-  const repository = names([nameGroupRow("50001201", "Sprout Cost", 4, 2), nameGroupRow("50001201", "Labour", 4, 2)]);
+  const repository = names([
+    completeNameGroupsRow("50001201", [
+      { label: "Sprout Cost", count: 4 },
+      { label: "Labour", count: 4 },
+    ]),
+  ]);
 
   assert.deepEqual(await repository.findGlCodeLabels([glRow("50001201")]), [
     { key: "50001201", label: "Labour", otherLabels: ["Sprout Cost"] },
@@ -31,9 +36,11 @@ test("a tie for most-used normalized name groups is broken alphabetically", asyn
 
 test("the more count is represented by distinct normalized names other than the main one", async () => {
   const repository = names([
-    nameGroupRow("55021000", "Salaries & Wages", 8, 3),
-    nameGroupRow("55021000", "Bonus", 3, 3),
-    nameGroupRow("55021000", "Overtime", 1, 3),
+    completeNameGroupsRow("55021000", [
+      { label: "Salaries & Wages", count: 8 },
+      { label: "Bonus", count: 3 },
+      { label: "Overtime", count: 1 },
+    ]),
   ]);
 
   assert.deepEqual(await repository.findGlCodeLabels([glRow("55021000")]), [
@@ -56,7 +63,7 @@ test("a budget-only code falls back to the first distinct MIS line label in pinn
   ]);
 });
 
-test("a budget-only code bounds MIS labels and reports the exact hidden remainder", async () => {
+test("a budget-only code returns every distinct MIS label in outline order", async () => {
   const labels = Array.from({ length: 23 }, (_, index) =>
     outline({
       nodeKey: `line-${index}`,
@@ -70,9 +77,8 @@ test("a budget-only code bounds MIS labels and reports the exact hidden remainde
   const [label] = await repository.findGlCodeLabels([glRow("50009999")], "budget-july");
 
   assert.equal(label?.label, "MIS label 00");
-  assert.equal(label?.otherLabels.length, 19);
-  assert.equal(label?.otherLabels.at(-1), "MIS label 19");
-  assert.equal(label?.hiddenOtherLabelCount, 3);
+  assert.equal(label?.otherLabels.length, 22);
+  assert.equal(label?.otherLabels.at(-1), "MIS label 22");
 });
 
 test("a code with neither a scoped SAP name nor a pinned MIS label falls back to its bare code", async () => {
@@ -91,7 +97,7 @@ test("a code with scoped blank-named SAP lines stays bare even when the pinned o
 });
 
 test("a mixed-plant reader sees names only from the executed query's effective plants", async () => {
-  const warehouse = new FakeWarehouse([[nameGroupRow("50001201", "DUB Sprout Cost", 3, 1)]]);
+  const warehouse = new FakeWarehouse([[completeNameGroupsRow("50001201", [{ label: "DUB Sprout Cost", count: 3 }])]]);
   const repository = new GlNameRepository(new SqlValidator(), warehouse, new FakeOutlines());
 
   const labels = await repository.findGlCodeLabels([
@@ -109,45 +115,51 @@ test("a mixed-plant reader sees names only from the executed query's effective p
   assert.doesNotMatch(warehouse.executed[0]!, /HYD/);
 });
 
-test("a bounded name list keeps the true count when normalized groups exceed MAX_ROWS", async () => {
+test("every normalized name beyond MAX_ROWS is returned in rank order", async () => {
   const maxRows = loadConfig().maxRows;
-  const shown = [
-    nameGroupRow("50001201", "Main name", 50, maxRows + 2),
-    ...Array.from({ length: 19 }, (_, index) =>
-      nameGroupRow("50001201", `Other name ${String(index).padStart(2, "0")}`, 1, maxRows + 2),
-    ),
+  const groups = [
+    { label: "Main name", count: 50 },
+    ...Array.from({ length: maxRows + 1 }, (_, index) => ({
+      label: `Other name ${String(index).padStart(4, "0")}`,
+      count: 1,
+    })),
   ];
-  const repository = names(shown);
+  const repository = names([completeNameGroupsRow("50001201", groups)]);
 
   const [label] = await repository.findGlCodeLabels([glRow("50001201")]);
 
   assert.equal(label?.label, "Main name");
-  assert.equal(label?.otherLabels.length, 19);
-  assert.equal(label?.hiddenOtherLabelCount, maxRows - 18);
+  assert.equal(label?.otherLabels.length, maxRows + 1);
+  assert.equal(label?.otherLabels[0], "Other name 0000");
+  assert.equal(label?.otherLabels.at(-1), `Other name ${String(maxRows).padStart(4, "0")}`);
 });
 
 test("a real SAP account name that reads like an omitted count remains a name", async () => {
-  const repository = names([nameGroupRow("50001201", "Main name", 2, 2), nameGroupRow("50001201", "and 3 more", 1, 2)]);
+  const repository = names([
+    completeNameGroupsRow("50001201", [
+      { label: "Main name", count: 2 },
+      { label: "and 3 more", count: 1 },
+    ]),
+  ]);
 
   assert.deepEqual(await repository.findGlCodeLabels([glRow("50001201")]), [
     { key: "50001201", label: "Main name", otherLabels: ["and 3 more"] },
   ]);
 });
 
-test("many answer rows use one sap_transaction scan in each bounded shared-scope batch", async () => {
+test("many answer rows use one sap_transaction scan in each shared-scope batch", async () => {
   const original = process.env.MAX_ROWS;
   delete process.env.MAX_ROWS;
   try {
     const warehouse = new EchoNameWarehouse();
     const repository = new GlNameRepository(new SqlValidator(), warehouse, new FakeOutlines());
-    const rows = Array.from({ length: 101 }, (_, index) => glRow(`5000${String(index).padStart(4, "0")}`));
+    const rows = Array.from({ length: 1001 }, (_, index) => glRow(`5000${String(index).padStart(4, "0")}`));
 
     await repository.findGlCodeLabels(rows);
 
-    assert.equal(warehouse.executed.length, 3);
+    assert.equal(warehouse.executed.length, 2);
     assert.match(warehouse.executed[0]!, /LIMIT 1000$/);
-    assert.match(warehouse.executed[1]!, /LIMIT 1000$/);
-    assert.match(warehouse.executed[2]!, /LIMIT 20$/);
+    assert.match(warehouse.executed[1]!, /LIMIT 1$/);
     for (const sql of warehouse.executed) {
       assert.equal(sql.match(/FROM sap_transaction/g)?.length, 1);
     }
@@ -293,12 +305,12 @@ test(
           });
         },
       );
-      await context.test("a name count beyond MAX_ROWS is exact while the returned list stays bounded", () => {
+      await context.test("more than MAX_ROWS distinct names all return in rank order", () => {
         const label = labels.get("50000008");
         assert.equal(label?.label, "Bounded Main");
         assert.equal(label?.otherLabels[0], "Distinct Name 0000");
-        assert.equal(label?.otherLabels.length, 19);
-        assert.equal(label?.hiddenOtherLabelCount, maxRows - 18);
+        assert.equal(label?.otherLabels.length, maxRows + 1);
+        assert.equal(label?.otherLabels.at(-1), `Distinct Name ${String(maxRows).padStart(4, "0")}`);
       });
       await context.test("tabs newlines and non-breaking spaces at the ends stay in one normalized name group", () => {
         assert.deepEqual(labels.get("50000009"), {
@@ -491,14 +503,11 @@ class EchoNameWarehouse extends FakeWarehouse {
   }
 }
 
-function nameGroupRow(key: string, accountName: string, lineCountValue: number, groupCount: number) {
+function completeNameGroupsRow(key: string, groups: Array<{ label: string; count: number }>) {
   return {
-    row_ordinal: 0,
     row_key: key,
-    acct_name: accountName,
-    line_count: String(lineCountValue),
-    scoped_line_count: String(lineCountValue),
-    name_group_count: String(groupCount),
+    scoped_line_count: String(groups.reduce((total, group) => total + group.count, 0)),
+    name_groups: JSON.stringify(groups.map(({ label, count }) => [label, count])),
   };
 }
 
@@ -506,10 +515,8 @@ function noNameRow(key: string, scopedLineCount: number, ordinal = 0) {
   return {
     row_ordinal: ordinal,
     row_key: key,
-    acct_name: null,
-    line_count: null,
     scoped_line_count: String(scopedLineCount),
-    name_group_count: "0",
+    name_groups: "[]",
   };
 }
 

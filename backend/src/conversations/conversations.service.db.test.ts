@@ -68,7 +68,6 @@ test("a saved conversation reload keeps row labels exactly and drops the ephemer
         key: "50001201",
         label: "Sprout Cost - Imp",
         otherLabels: ["Imported sprouts"],
-        hiddenOtherLabelCount: 12,
       },
     ],
     drill: { context: "signed.answer", rows: [{ key: "50001201", drillable: true }] },

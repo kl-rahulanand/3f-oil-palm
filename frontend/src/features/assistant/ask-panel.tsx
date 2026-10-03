@@ -603,9 +603,8 @@ function ResultRowLabel({
   const [pointerPressed, setPointerPressed] = useState(false);
   const otherNamesId = useId();
   const visibleLabel = mode === "gl-code" ? `${rawKey} · ${label.label}` : label.label;
-  const hiddenCount = label.hiddenOtherLabelCount ?? 0;
-  const otherNameCount = label.otherLabels.length + hiddenCount;
-  const accessibleNames = [...label.otherLabels, ...(hiddenCount ? [`and ${hiddenCount} more`] : [])].join(", ");
+  const otherNameCount = label.otherLabels.length;
+  const accessibleNames = label.otherLabels.join(", ");
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "Escape") {
@@ -656,7 +655,6 @@ function ResultRowLabel({
               {label.otherLabels.map((otherLabel) => (
                 <li key={otherLabel}>{otherLabel}</li>
               ))}
-              {hiddenCount > 0 && <li>and {hiddenCount} more</li>}
             </ul>
           )}
         </>
