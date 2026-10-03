@@ -77,6 +77,7 @@ const hermeticTests = [
   "backend/src/warehouse/drill-transactions.db.test.ts",
   "backend/src/warehouse/drill-transactions.repository.test.ts",
   "backend/src/warehouse/freshness.adapters.test.ts",
+  "backend/src/warehouse/gl-name.repository.test.ts",
   "backend/src/warehouse/gl-month-rollups.db.test.ts",
   "backend/src/warehouse/golden-financial.db.test.ts",
   "backend/src/warehouse/load-freshness.db.test.ts",

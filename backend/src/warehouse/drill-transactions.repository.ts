@@ -48,7 +48,7 @@ LIMIT 25000`);
   }
 
   buildQueries(predicate: DrillPredicate, page: number, rowLimit: number): DrillQueries {
-    const where = buildPredicate(predicate);
+    const where = buildDrillPredicate(predicate);
     return {
       pageSql: `SELECT txn.month, txn.posting_date, txn.txn_no, txn.cost_center, txn.acct_name,
   txn.debit::text AS debit, txn.credit::text AS credit,
@@ -105,7 +105,7 @@ LIMIT 1`,
   SUM(txn.debit - txn.credit)::text AS value
 FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
-WHERE ${buildPredicate(predicate)}
+WHERE ${buildDrillPredicate(predicate)}
 LIMIT 1)`,
         )
         .join("\nUNION ALL\n")}
@@ -126,7 +126,7 @@ LIMIT ${batch.length}`;
   }
 }
 
-function buildPredicate(predicate: DrillPredicate): string {
+export function buildDrillPredicate(predicate: DrillPredicate): string {
   const batches = predicate.actualBatchIds.length
     ? `txn.batch_id IN (${predicate.actualBatchIds.map(quote).join(", ")})`
     : "FALSE";

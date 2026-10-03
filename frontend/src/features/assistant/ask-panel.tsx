@@ -2,6 +2,7 @@
 
 import {
   type AskResponse,
+  type AskRowLabel,
   type ChartType,
   type FixedScaleMoney,
   type MeasureFormat,
@@ -14,7 +15,7 @@ import {
 } from "@3f/contract";
 import { ExternalLink, MessageSquareText, Send, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { api } from "@/src/lib/api";
 import { formatMoney, formatPercentage } from "../mis/statement-view";
 import { measureFilterLabel } from "../exploration/selection-label";
@@ -351,7 +352,12 @@ function SuccessAnswer({
         (emptyComparisonMessage ? (
           <p className="ask-report-reason">{emptyComparisonMessage}</p>
         ) : (
-          <ResultVisual result={response.result} chartType={response.chartType} />
+          <ResultVisual
+            result={response.result}
+            chartType={response.chartType}
+            rowLabels={response.rowLabels}
+            labelMode={response.selection?.domain === "mis-statement" ? "statement" : "gl-code"}
+          />
         ))}
       {response.provenance && <ProvenanceDisclosure provenance={response.provenance} />}
       <ViewInReport response={response} />
@@ -432,8 +438,20 @@ function SuccessAnswer({
   );
 }
 
-function ResultVisual({ result, chartType = "table" }: Readonly<{ result: ResultTable; chartType?: ChartType }>) {
-  if (chartType === "table" || !canDraw(result, chartType)) return <ResultTableView result={result} />;
+function ResultVisual({
+  result,
+  chartType = "table",
+  rowLabels,
+  labelMode,
+}: Readonly<{
+  result: ResultTable;
+  chartType?: ChartType;
+  rowLabels?: AskRowLabel[];
+  labelMode: "gl-code" | "statement";
+}>) {
+  if (chartType === "table" || !canDraw(result, chartType)) {
+    return <ResultTableView result={result} rowLabels={rowLabels} labelMode={labelMode} />;
+  }
   if (chartType === "kpi") {
     return (
       <dl className="ask-kpis" aria-label="Key results">
@@ -446,13 +464,20 @@ function ResultVisual({ result, chartType = "table" }: Readonly<{ result: Result
       </dl>
     );
   }
-  return <ResultChart result={result} chartType={chartType} />;
+  return <ResultChart result={result} chartType={chartType} rowLabels={rowLabels} labelMode={labelMode} />;
 }
 
 function ResultChart({
   result,
   chartType,
-}: Readonly<{ result: ResultTable; chartType: Exclude<ChartType, "kpi" | "table"> }>) {
+  rowLabels,
+  labelMode,
+}: Readonly<{
+  result: ResultTable;
+  chartType: Exclude<ChartType, "kpi" | "table">;
+  rowLabels?: AskRowLabel[];
+  labelMode: "gl-code" | "statement";
+}>) {
   const [recharts, setRecharts] = useState<typeof import("recharts")>();
   useEffect(() => {
     let mounted = true;
@@ -467,7 +492,7 @@ function ResultChart({
     };
   }, []);
 
-  if (!recharts) return <ResultTableView result={result} />;
+  if (!recharts) return <ResultTableView result={result} rowLabels={rowLabels} labelMode={labelMode} />;
   const { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, XAxis } = recharts;
   const dimensions = result.columns.filter((column) => !column.numeric);
   const measures = result.columns.filter((column) => column.numeric);
@@ -515,13 +540,22 @@ function ResultChart({
           )}
         </ResponsiveContainer>
       </div>
-      <ResultTableView result={result} />
+      <ResultTableView result={result} rowLabels={rowLabels} labelMode={labelMode} />
     </div>
   );
 }
 
-function ResultTableView({ result }: Readonly<{ result: ResultTable }>) {
+function ResultTableView({
+  result,
+  rowLabels,
+  labelMode,
+}: Readonly<{
+  result: ResultTable;
+  rowLabels?: AskRowLabel[];
+  labelMode: "gl-code" | "statement";
+}>) {
   const suppressed = new Set(result.suppressedCells?.map(({ row, key }) => `${row}:${key}`));
+  const labels = new Map(rowLabels?.map((label) => [label.key, label]));
   return (
     <div className="ask-table-wrap">
       <table className="ask-table">
@@ -537,15 +571,83 @@ function ResultTableView({ result }: Readonly<{ result: ResultTable }>) {
         <tbody>
           {result.rows.map((row, rowIndex) => (
             <tr key={result.columns.map((column) => String(row[column.key])).join("|")}>
-              {result.columns.map((column) => (
-                <td key={column.key} data-numeric={column.numeric || undefined}>
-                  {suppressed.has(`${rowIndex}:${column.key}`) ? "—" : cell(row[column.key], column.format)}
-                </td>
-              ))}
+              {result.columns.map((column) => {
+                const value = row[column.key];
+                const label = !column.numeric && typeof value === "string" ? labels.get(value) : undefined;
+                return (
+                  <td key={column.key} data-numeric={column.numeric || undefined}>
+                    {suppressed.has(`${rowIndex}:${column.key}`) ? (
+                      "—"
+                    ) : label ? (
+                      <ResultRowLabel rawKey={String(value)} label={label} mode={labelMode} />
+                    ) : (
+                      cell(value, column.format)
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function ResultRowLabel({
+  rawKey,
+  label,
+  mode,
+}: Readonly<{ rawKey: string; label: AskRowLabel; mode: "gl-code" | "statement" }>) {
+  const [expanded, setExpanded] = useState(false);
+  const otherNamesId = useId();
+  const visibleLabel = mode === "gl-code" ? `${rawKey} · ${label.label}` : label.label;
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "Escape") {
+      setExpanded(false);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setExpanded((current) => !current);
+    }
+  }
+
+  return (
+    <div>
+      <span
+        aria-label={
+          label.otherLabels.length
+            ? `${visibleLabel}. Other account names: ${label.otherLabels.join(", ")}`
+            : visibleLabel
+        }
+      >
+        {visibleLabel}
+      </span>
+      {label.otherLabels.length > 0 && (
+        <>
+          {" "}
+          <button
+            className="h-button cursor-pointer border-0 bg-transparent p-0 font-h2 text-emerald underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald"
+            type="button"
+            aria-label={`${label.otherLabels.length} more account names`}
+            aria-expanded={expanded}
+            aria-controls={otherNamesId}
+            onClick={() => setExpanded((current) => !current)}
+            onKeyDown={handleKeyDown}
+          >
+            +{label.otherLabels.length} more
+          </button>
+          {expanded && (
+            <ul id={otherNamesId} aria-label="Other account names" className="m-0 list-none p-0 text-left">
+              {label.otherLabels.map((otherLabel) => (
+                <li key={otherLabel}>{otherLabel}</li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </div>
   );
 }

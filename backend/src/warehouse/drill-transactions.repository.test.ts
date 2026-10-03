@@ -5,7 +5,8 @@ import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "./warehouse.interface";
-import { DrillTransactionsRepository, normalizeDateOnly } from "./drill-transactions.repository";
+import { GlNameRepository } from "./gl-name.repository";
+import { buildDrillPredicate, DrillTransactionsRepository, normalizeDateOnly } from "./drill-transactions.repository";
 import { StarRocksMysqlAdapter } from "./starrocks-mysql.adapter";
 
 test("the drill page and footer queries share one predicate and emit the deterministic order with a bounded limit the validator accepts", async () => {
@@ -197,6 +198,35 @@ test("a GL-and-plants predicate keeps the answer's plants and row GL in both pag
     assert.match(sql, /txn\.gl_code IN \('50001201', '50001202'\)/);
     assert.match(sql, /batch\.source_kind = 'actuals'/);
   }
+});
+
+test("the drill and name resolver use the identical predicate for the same answer scope", async () => {
+  const predicate = {
+    mode: "gl-and-plants" as const,
+    actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+    glCode: "50001201",
+    plants: ["DUB"],
+    filters: [{ dimensionId: "month", op: "neq" as const, value: "2026-06-01" }],
+    from: "2026-07-01",
+    to: "2026-07-31",
+  };
+  const warehouse = new FakeWarehouse();
+  const names = new GlNameRepository(new SqlValidator(), warehouse, {
+    findByBudgetPeriod: async () => [],
+    findByBudgetBatchId: async () => [],
+  });
+
+  await names.findGlCodeLabels([{ key: predicate.glCode, predicate }]);
+  const drillSql = new DrillTransactionsRepository(new SqlValidator(), warehouse).buildQueries(
+    predicate,
+    1,
+    100,
+  ).pageSql;
+  const drillWhere = drillSql.match(/WHERE ([\s\S]+?)\nORDER BY/)?.[1];
+  const nameWhere = warehouse.executed[0]?.match(/WHERE ([\s\S]+?)\n {2}AND txn\.acct_name/)?.[1];
+
+  assert.equal(nameWhere, drillWhere);
+  assert.equal(nameWhere, buildDrillPredicate(predicate));
 });
 
 test("a GL-and-plants predicate mirrors every answer-query filter operator and value-shape combination", () => {
