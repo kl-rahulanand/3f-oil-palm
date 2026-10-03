@@ -85,50 +85,6 @@ test("the signed Ask route re-derives a GL-and-answer-plants predicate and foots
   assert.equal(audit.requests[0]?.questionLabel, "Ask transaction drill");
 });
 
-test("two Ask drill pages keep every tied transaction exactly once in deterministic line order", async () => {
-  const predicate: DrillPredicate = {
-    mode: "gl-and-plants",
-    actualBatchIds: [actualPin.batchId],
-    glCode: "50001201",
-    plants: ["DUB"],
-    filters: [],
-    from: "2026-07-01",
-    to: "2026-07-01",
-  };
-  const tied = Array.from({ length: 101 }, (_, index) => {
-    const lineId = String(index + 1).padStart(3, "0");
-    return fixtureTransaction("TIED", "1.00", "0.00", { line_id: lineId, reference: lineId });
-  });
-  const warehouse = new FixtureWarehouse([], predicate, tied);
-  const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
-  const [summary] = await repository.summarize([{ rowKey: "50001201", predicate }]);
-  assert.ok(summary);
-  const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
-  const controller = new AskDrillController(new AskDrillService(contexts, repository, new FakeAudit([])));
-  const context = contexts.issue({
-    ...input,
-    rows: [{ key: "50001201", actualPaise: toPaise(summary.value), drillable: true }],
-  });
-
-  const first = await controller.run(user, "session-1", { context, rowKey: "50001201", page: 1 });
-  const second = await controller.run(user, "session-1", { context, rowKey: "50001201", page: 2 });
-  const identities = [...first.lines, ...second.lines].map(({ txnNo, reference }) => ({
-    txnNo,
-    lineId: reference,
-  }));
-
-  assert.deepEqual([first.lines.length, second.lines.length], [100, 1]);
-  assert.deepEqual([first.totalCount, second.totalCount], [101, 101]);
-  assert.deepEqual(
-    identities,
-    Array.from({ length: 101 }, (_, index) => ({
-      txnNo: "TIED",
-      lineId: String(index + 1).padStart(3, "0"),
-    })),
-  );
-  assert.equal(new Set(identities.map(({ txnNo, lineId }) => `${txnNo}\0${lineId}`)).size, 101);
-});
-
 test("the signed Ask route ignores the unknown and empty-array filters that the answer query ignores", async () => {
   const warehouse = new FakeWarehouse([], {
     batches: [batch(actualPin, true)],
@@ -483,7 +439,6 @@ const fixtureTransactions = [
   fixtureTransaction("outside-plant", "200.00", "0.00", { plant: "H.O" }),
   fixtureTransaction("outside-month", "300.00", "0.00", { month: "2026-06-01" }),
 ];
-type FixtureTransaction = ReturnType<typeof fixtureTransaction>;
 
 class FixtureWarehouse implements Warehouse {
   executed: string[] = [];
@@ -491,7 +446,6 @@ class FixtureWarehouse implements Warehouse {
   constructor(
     private readonly events: string[],
     private readonly predicate: DrillPredicate,
-    private readonly transactions: FixtureTransaction[] = fixtureTransactions,
   ) {}
 
   async explain() {}
@@ -504,7 +458,7 @@ class FixtureWarehouse implements Warehouse {
     if (sql.includes("SELECT DISTINCT period")) {
       return { columns: [], rows: [{ period: "2026-07-01" }] };
     }
-    const rows = this.transactions.filter((row) => matches(row, this.predicate));
+    const rows = fixtureTransactions.filter((row) => matches(row, this.predicate));
     if (sql.includes("feeding_line_count")) {
       return {
         columns: [],
@@ -535,15 +489,10 @@ class FixtureWarehouse implements Warehouse {
     }
     if (sql.includes("FROM sap_transaction")) {
       this.events.push("transaction-read");
-      const paging = sql.match(/LIMIT (\d+) OFFSET (\d+)$/);
-      if (!paging) throw new Error("Fixture page query is missing its limit or offset");
-      const limit = Number(paging[1]);
-      const offset = Number(paging[2]);
       return {
         columns: [],
         rows: [...rows]
-          .sort(compareTransactions)
-          .slice(offset, offset + limit)
+          .sort((left, right) => Number(transactionValue(right) - transactionValue(left)))
           .map((row) => ({ ...row, value: formatPaise(transactionValue(row)) })),
       };
     }
@@ -646,7 +595,7 @@ function fixtureTransaction(
   };
 }
 
-function matches(row: FixtureTransaction, predicate: DrillPredicate): boolean {
+function matches(row: (typeof fixtureTransactions)[number], predicate: DrillPredicate): boolean {
   return (
     predicate.mode === "gl-and-plants" &&
     predicate.actualBatchIds.includes(row.batch_id) &&
@@ -657,22 +606,11 @@ function matches(row: FixtureTransaction, predicate: DrillPredicate): boolean {
   );
 }
 
-function transactionValue(row: FixtureTransaction): bigint {
+function transactionValue(row: (typeof fixtureTransactions)[number]): bigint {
   return BigInt(toPaise(row.debit)) - BigInt(toPaise(row.credit));
 }
 
-function compareTransactions(left: FixtureTransaction, right: FixtureTransaction): number {
-  const valueDifference = transactionValue(right) - transactionValue(left);
-  if (valueDifference !== 0n) return valueDifference > 0n ? 1 : -1;
-  return (
-    right.month.localeCompare(left.month) ||
-    right.posting_date.localeCompare(left.posting_date) ||
-    left.txn_no.localeCompare(right.txn_no) ||
-    left.line_id.localeCompare(right.line_id)
-  );
-}
-
-function sum(rows: FixtureTransaction[], field: "debit" | "credit"): bigint {
+function sum(rows: typeof fixtureTransactions, field: "debit" | "credit"): bigint {
   return rows.reduce((total, row) => total + BigInt(toPaise(row[field])), 0n);
 }
 

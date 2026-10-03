@@ -50,17 +50,18 @@ LIMIT 25000`);
   buildQueries(predicate: DrillPredicate, page: number, rowLimit: number): DrillQueries {
     const where = buildPredicate(predicate);
     return {
-      pageSql: `SELECT txn.month, txn.posting_date, txn.txn_no, txn.cost_center, txn.acct_name, txn.debit, txn.credit,
-  (txn.debit - txn.credit)::numeric(18,2) AS value, txn.reference, txn.memo
+      pageSql: `SELECT txn.month, txn.posting_date, txn.txn_no, txn.cost_center, txn.acct_name,
+  txn.debit::text AS debit, txn.credit::text AS credit,
+  (txn.debit - txn.credit)::numeric(18,2)::text AS value, txn.reference, txn.memo
 FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
 WHERE ${where}
 ORDER BY (txn.debit - txn.credit) DESC, txn.month DESC, txn.posting_date DESC, txn.txn_no, txn.line_id
 LIMIT ${rowLimit} OFFSET ${(page - 1) * rowLimit}`,
       footerSql: `SELECT COUNT(*) AS total_count,
-  COALESCE(SUM(txn.debit), 0)::numeric(18,2) AS debit,
-  COALESCE(SUM(txn.credit), 0)::numeric(18,2) AS credit,
-  COALESCE(SUM(txn.debit - txn.credit), 0)::numeric(18,2) AS value
+  COALESCE(SUM(txn.debit), 0)::numeric(18,2)::text AS debit,
+  COALESCE(SUM(txn.credit), 0)::numeric(18,2)::text AS credit,
+  COALESCE(SUM(txn.debit - txn.credit), 0)::numeric(18,2)::text AS value
 FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
 WHERE ${where}

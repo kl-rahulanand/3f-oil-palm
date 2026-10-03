@@ -6,6 +6,7 @@ import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "./warehouse.interface";
 import { DrillTransactionsRepository, normalizeDateOnly } from "./drill-transactions.repository";
+import { toStarRocksMysqlCell } from "./starrocks-mysql.adapter";
 
 test("the drill page and footer queries share one predicate and emit the deterministic order with a bounded limit the validator accepts", async () => {
   const warehouse = new FakeWarehouse();
@@ -108,6 +109,38 @@ test("the repository returns each transaction's document number cost centre and 
       memo: "Seedlings",
     },
   ]);
+});
+
+test("the repository keeps line and footer money exact through an adapter that coerces numeric decimals", async () => {
+  const repository = new DrillTransactionsRepository(new SqlValidator(), new NumericCoercingWarehouse());
+  const result = await repository.execute(
+    repository.buildQueries(
+      {
+        actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+        triples: [{ plant: "DUB", costCenter: "DUB-NUR", glCode: "5001" }],
+        plants: ["DUB"],
+        from: "2026-07-01",
+        to: "2026-07-01",
+      },
+      1,
+      100,
+    ),
+  );
+
+  assert.deepEqual(
+    {
+      line: result.lines[0] && {
+        debit: result.lines[0].debit,
+        credit: result.lines[0].credit,
+        value: result.lines[0].value,
+      },
+      footer: result.footer,
+    },
+    {
+      line: { debit: "90000000000000.01", credit: "0.00", value: "90000000000000.01" },
+      footer: { debit: "90000000000000.01", credit: "0.00", value: "90000000000000.01" },
+    },
+  );
 });
 
 test("pinned batch existence and active state are read in one query", async () => {
@@ -325,6 +358,53 @@ class FakeWarehouse implements Warehouse {
   async freshness() {
     return null;
   }
+  async distinctValues() {
+    return [];
+  }
+}
+
+class NumericCoercingWarehouse implements Warehouse {
+  async explain() {}
+
+  async execute(sql: string) {
+    const cell = (alias: "debit" | "credit" | "value", value: string) =>
+      toStarRocksMysqlCell(value, !new RegExp(`::text AS ${alias}(?:,|\\n)`).test(sql));
+    if (sql.includes("COUNT(*)")) {
+      return {
+        columns: [],
+        rows: [
+          {
+            total_count: 1,
+            debit: cell("debit", "90000000000000.01"),
+            credit: cell("credit", "0.00"),
+            value: cell("value", "90000000000000.01"),
+          },
+        ],
+      };
+    }
+    return {
+      columns: [],
+      rows: [
+        {
+          month: "2026-07-01",
+          posting_date: "2026-07-14",
+          txn_no: "1900001234",
+          cost_center: "DUB-NUR",
+          acct_name: "Sprout Cost - Imp",
+          debit: cell("debit", "90000000000000.01"),
+          credit: cell("credit", "0.00"),
+          value: cell("value", "90000000000000.01"),
+          reference: null,
+          memo: null,
+        },
+      ],
+    };
+  }
+
+  async freshness() {
+    return null;
+  }
+
   async distinctValues() {
     return [];
   }

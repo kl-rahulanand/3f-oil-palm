@@ -24,7 +24,7 @@ test("the destructive drill transactions proof refuses a non-local warehouse hos
 });
 
 test(
-  "WAREHOUSE_DB_TEST proves client July leaf and unmapped drill footing plus fixture based multi period footing in exact paise",
+  "WAREHOUSE_DB_TEST proves client July footing plus fixture multi-period footing and stable two-page identities",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async () => {
     assertLocalWarehouseHost(process.env.WAREHOUSE_PG_HOST);
@@ -96,10 +96,10 @@ test(
       assert.equal(bucket.footer.value, statementByLeaf.get("unmapped-GL"));
 
       const fixture = new IngestionRepository(createWarehouseDb(pool));
-      const april = await fixture.replaceActualsBatch(
-        metadata("2026-04-01"),
-        Array.from({ length: 101 }, (_, index) => fixtureRow(`APR-${index}`, "2026-04-01", "1.01")),
+      const aprilRows = Array.from({ length: 101 }, (_, index) =>
+        fixtureRow("APR-TIED", "2026-04-01", "1.01", String(index).padStart(3, "0")),
       );
+      const april = await fixture.replaceActualsBatch(metadata("2026-04-01"), aprilRows);
       const may = await fixture.replaceActualsBatch(metadata("2026-05-01"), [fixtureRow("MAY", "2026-05-01", "2.02")]);
       const ytdStatementRows = await pool.query<{ leaf_key: string; actual_net: string }>(
         new SqlBuilder().build(
@@ -122,15 +122,25 @@ test(
         ).sql,
       );
       const ytdStatementByLeaf = new Map(ytdStatementRows.rows.map((row) => [row.leaf_key, row.actual_net]));
-      const paged = await repository.execute(
-        repository.buildQueries(
-          { ...leafPredicate, actualBatchIds: [april], from: "2026-04-01", to: "2026-04-01" },
-          1,
-          100,
-        ),
+      const aprilPredicate = {
+        ...leafPredicate,
+        actualBatchIds: [april],
+        from: "2026-04-01",
+        to: "2026-04-01",
+      };
+      const firstPage = await repository.execute(repository.buildQueries(aprilPredicate, 1, 100));
+      const secondPage = await repository.execute(repository.buildQueries(aprilPredicate, 2, 100));
+      const identities = [...firstPage.lines, ...secondPage.lines].map(({ txnNo, reference }) => ({
+        txnNo,
+        lineId: reference,
+      }));
+      assert.deepEqual([firstPage.totalCount, secondPage.totalCount], [101, 101]);
+      assert.deepEqual([firstPage.lines.length, secondPage.lines.length], [100, 1]);
+      assert.deepEqual(
+        identities,
+        aprilRows.map(({ txnNo, lineId }) => ({ txnNo, lineId })),
       );
-      assert.equal(paged.totalCount, 101);
-      assert.equal(paged.lines.length, 100);
+      assert.equal(new Set(identities.map(({ txnNo, lineId }) => `${txnNo}\0${lineId}`)).size, 101);
       const ytd = await repository.execute(
         repository.buildQueries(
           { ...leafPredicate, actualBatchIds: [april, may, actual.batchId], from: "2026-04-01" },
@@ -184,10 +194,10 @@ function metadata(period: string) {
   };
 }
 
-function fixtureRow(txnNo: string, month: string, debit: string) {
+function fixtureRow(txnNo: string, month: string, debit: string, lineId = "1") {
   return {
     txnNo,
-    lineId: "1",
+    lineId,
     postingDate: month,
     month,
     plant: "DUB",
@@ -197,6 +207,7 @@ function fixtureRow(txnNo: string, month: string, debit: string) {
     acctName: "Fixture",
     debit,
     credit: "0.00",
+    reference: lineId,
     raw: {},
   };
 }
