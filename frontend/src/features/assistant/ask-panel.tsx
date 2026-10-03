@@ -640,7 +640,7 @@ function ResultRowLabel({
             <ul
               id={otherNamesId}
               aria-label="Other account names"
-              className="m-0 list-none p-0 text-left text-[0.9em] text-secondary"
+              className="m-0 list-none p-0 text-left text-secondary"
             >
               {label.otherLabels.map((otherLabel) => (
                 <li key={otherLabel}>{otherLabel}</li>

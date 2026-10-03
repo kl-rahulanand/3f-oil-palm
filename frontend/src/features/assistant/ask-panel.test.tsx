@@ -232,7 +232,8 @@ test("the more-names disclosure exposes the full ordered accessible name and tog
   expect(disclosure).toHaveAttribute("aria-expanded", "true");
   const otherNames = screen.getByRole("list", { name: "Other account names" });
   expect(otherNames).toHaveTextContent("Imported sproutsSprout purchases");
-  expect(otherNames).toHaveClass("text-secondary", "text-[0.9em]");
+  expect(otherNames).toHaveClass("text-secondary");
+  expect(otherNames).not.toHaveClass("text-[0.9em]");
 
   fireEvent.keyDown(disclosure, { key: "Escape" });
   expect(disclosure).toHaveAttribute("aria-expanded", "false");
