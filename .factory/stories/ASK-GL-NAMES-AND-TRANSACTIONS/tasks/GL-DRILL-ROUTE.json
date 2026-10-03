@@ -1,10 +1,59 @@
 {
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-DRILL-ROUTE",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "d821fcfb8252d68eba9a6143dfc438aabc8d1c8e59495012795fbcf290cf68de",
+    "commit": "74bd4f005124a23eb2b9397b9a67425d13a5af7d",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "`SelectionFilter` and the shared selection schema permit every operator with either a string or an array, but the existing answer query applies arrays only for `op: \"in\"`; array-valued `eq`/`neq` filters are ignored. This new predicate instead turns array `eq` into `IN` and array `neq` into `NOT IN`. A signed answer using such a valid selection can therefore show a row that the drill excludes, producing an empty footer and a 409 mismatch instead of the row's transactions. Either reject unsupported operator/value combinations before executing the answer or share the answer query's exact filter semantics here.",
+        "file": "backend/src/warehouse/drill-transactions.repository.ts",
+        "line": 144,
+        "priority": "P1",
+        "title": "Not done: Re-derive the executed GL filter predicate"
+      },
+      {
+        "body": "This test asserts only `outcome === \"refused\"` for other-user, lost-plant, lost-Actual, lost-domain, and expired cases. It never checks the required access and expiry messages or their HTTP statuses, so changing either mandated user-facing reason to a generic refusal would leave the suite green. Add controller-boundary assertions for the exact expired and access wording.",
+        "file": "backend/src/chat/ask-drill.service.test.ts",
+        "line": 150,
+        "priority": "P1",
+        "title": "Not done: exact expired and changed-access refusal wording tests"
+      },
+      {
+        "body": "The new `rowLabels` and `drill` properties are documented only as anonymous objects, so generated clients cannot discover `key`, `label`, `otherLabels`, `context`, `rows`, or `drillable`. The changed Swagger test merely checks that the property names exist and therefore passes with these hollow schemas. Define typed DTOs for both structures and assert their generated component shapes.",
+        "file": "backend/src/chat/chat.schemas.ts",
+        "line": 220,
+        "priority": "P1",
+        "title": "Not done: typed Ask metadata Swagger contract test"
+      },
+      {
+        "body": "Runtime validation rejects non-integer pages, but the OpenAPI DTO declares an unconstrained numeric type, and the Swagger test explicitly locks in `type: \"number\"`. Generated clients may consequently treat values such as 1.5 as valid even though the endpoint returns 400. Declare and test the property as an OpenAPI integer.",
+        "file": "backend/src/chat/chat.schemas.ts",
+        "line": 118,
+        "priority": "P2",
+        "title": "Document the page field as an integer"
+      },
+      {
+        "body": "This branch exports the signing seam and registers the read route, but no Ask response issues a context and no Actual cell invokes the route, so the user-facing click described by Done-when 3 is not reachable yet. The planned GL-ANSWER-WIRING task must issue `AskResponse.drill`, and GL-DRILL-PANEL must call this endpoint from the Actual cell.",
+        "file": "backend/src/chat/chat.module.ts",
+        "line": 34,
+        "priority": "P2",
+        "title": "Later: make the route reachable from Ask answers \u2192 GL-ANSWER-WIRING and GL-DRILL-PANEL"
+      }
+    ],
+    "status": "blocked",
+    "tree": "54572237495231a5f74f83b5e777de67b7df09329b634bd961189f9fc96cab31"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-02T18:16:38+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-03T04:45:41+00:00",
+      "step": "review"
     }
   ]
 }
