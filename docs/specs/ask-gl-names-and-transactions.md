@@ -1,8 +1,10 @@
 ---
 slug: ask-gl-names-and-transactions
 title: Ask names each GL line and opens its transactions
-status: draft
+status: confirmed
 saved: 2026-10-03T12:00:09+00:00
+confirmed_by: "Rahul Anand"
+confirmed_hash: ee62efa41a5a0c7ce2ac0ae1e70f288de6f3db6f7f8b3db58012c8ef3f8e3e42
 ---
 
 # Ask names each GL line and opens its transactions
