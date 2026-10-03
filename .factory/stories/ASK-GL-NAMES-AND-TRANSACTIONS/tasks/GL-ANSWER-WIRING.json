@@ -2,40 +2,40 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-ANSWER-WIRING",
   "review": {
     "blocking_level": "P1",
-    "changed": "23cf78ee4b08ab0481a7692818bcd6e8ff8513f1f76ab9338373d0800f763e98",
-    "commit": "6471e0c09a5e3ff2b01b4758bf1f5c5de26859fe",
+    "changed": "2c9075517dd28aa283e768db538e98b4c80d11031b1e82c3bcfb8c7e918157c5",
+    "commit": "7db42776ad45fd626801c5f20f93bb671e9afbdf",
     "dismissals": [],
     "findings": [
       {
-        "body": "When `selection.timeWindow` is absent, `lastMonthBudgetPin` always returns `undefined`; if the result is budget-only, there are also no Actual pins, so `predicateRange` is null and the name resolver receives neither rows nor the available latest budget batch. The supported all-data Ask path therefore renders bare GL codes even when `activeBatchIds` contains a budget batch whose outline supplies the required fallback label. Derive the effective last pinned month from provenance when the selection has no explicit window and still pass false/empty-Actual predicates for budget-only rows.",
+        "body": "`activeBatchIds` contains only batches represented in returned query rows, and this code signs that subset as `pinnedActuals`. For a valid April\u2013July answer with transactions only in April and July, the new link therefore contains only those two pins\u2014the branch's own fixture at `chat.service.test.ts:295-299` models exactly this. On opening, `AskDrillService.bindPins` queries every Actual period in the range and, at `ask-drill.service.ts:184`, refuses the context when May or June has an ingest batch but no signed pin. Thus a row marked drillable with real transactions can produce a link that always fails. Include the complete executed-window Actual pin set or make route completeness validation consistent with contributing pins, and add a route-level sparse-month test.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 630,
+        "line": 627,
         "priority": "P1",
-        "title": "Not done: Budget-only all-data answers use the pinned MIS label"
+        "title": "Multi-period drill links omit zero-contribution month pins"
       },
       {
-        "body": "The test case named `no Actual grant` is identical to the preceding Budget-only case: both select only `governed-financial.budget` and grant only Budget. Consequently it cannot fail if the user-permission check in `issueAskDrill` is removed; absence of drill metadata is already forced by the selection not containing Actual. The required distinct leaf must exercise an Actual-bearing selection with a reader lacking the Actual grant and prove that neither an Actual value nor drill metadata is returned.",
+        "body": "The new wiring proof supplies both the result rows and expected labels through `FakeExecutor` and `FakeNames` (`chat.service.test.ts:1679-1685`), while the frontend test separately mocks the Ask response. No Playwright flow against the running API and real database proves that scoped SAP names, budget fallback, bare-code fallback, complete disclosure accessibility, and unchanged row order survive the actual query-to-browser path. Under the required test-audit rule for user-facing Done-when items, these isolated unit/component tests are not sufficient end-to-end proof.",
         "file": "backend/src/chat/chat.service.test.ts",
-        "line": 349,
+        "line": 154,
         "priority": "P1",
-        "title": "Not done: Prove the reader-without-Actual-grant case"
+        "title": "Not done: An Ask answer by GL code shows its scoped SAP/MIS names"
       },
       {
-        "body": "The test named as a `POST` test directly invokes `controller.run`, bypassing Nest routing, guards, body parsing, exception handling, and persistence through the real audit service. It therefore does not satisfy the required real-entry-point proof that a context-less HTTP request reaches the service, writes a refusal audit record, returns 403, and performs no transaction read. Add an HTTP-level test through the initialized application and real audit boundary.",
-        "file": "backend/src/chat/ask-drill.service.test.ts",
-        "line": 215,
+        "body": "The multi-period statement test injects a fabricated result and a fabricated `FakeNames` label, then asserts only the service's call and signed claims. The existing frontend test likewise mocks the response. There is no browser flow through a running API and real database proving that a saved/pinned statement re-run resolves the final-month outline and renders its number/name while an actual-only answer stays raw. This leaves Done-when item 2 proven only at isolated unit/component boundaries.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 280,
         "priority": "P1",
-        "title": "Not done: Exercise the missing-context refusal through the POST route"
+        "title": "Not done: A budget-backed statement answer shows pinned line numbers and names"
       },
       {
-        "body": "The newly added size-limit rule says an oversized row carries no amount, but the unchanged generic context description at lines 82\u201384 still requires an exact-paise Actual \u201cfor every row,\u201d and C5a at lines 223\u2013224 repeats that each row carries one. These mutually exclusive requirements leave the confirmed contract ambiguous despite the implementation's discriminated union. Explicitly exempt the C5d inert variant in both generic descriptions.",
+        "body": "The added size-limit rule says an oversized row carries no amount, but the unchanged generic context description at lines 82\u201384 still says every row binds its exact-paise Actual, and C5a at lines 223\u2013224 repeats that each row carries one. These requirements remain mutually exclusive despite the implementation's discriminated union. Explicitly exempt the C5d inert variant in both generic descriptions.",
         "file": "docs/specs/ask-gl-names-and-transactions.md",
         "line": 74,
         "priority": "P2",
         "title": "Keep oversized context rows consistent in the confirmed spec"
       },
       {
-        "body": "The task table explicitly defers rendering `drillable` Actuals as buttons and proving inert cells make no request to GL-DRILL-PANEL. The current `frontend/src/features/assistant/ask-panel.tsx` consumes `rowLabels` but not `AskResponse.drill`, so this branch alone does not complete Done-when item 6's user-visible interaction. Per the task assignment, this remains a P2 later-task gap rather than a blocker for the backend wiring implementation.",
+        "body": "The task table still assigns rendering drillable Actuals as buttons and proving inert cells make no request to GL-DRILL-PANEL. The current Ask panel consumes labels but never reads `AskResponse.drill`, so this branch alone does not complete Done-when item 6's user-visible interaction. Per the explicit task assignment, this remains a P2 later-task gap rather than a blocker attributed to this backend wiring task.",
         "file": "plans/ASK-GL-NAMES-AND-TRANSACTIONS.md",
         "line": 155,
         "priority": "P2",
@@ -43,7 +43,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "cf4f1b95fe7e0ac4e035eb71c5bd3df00ce8f845e353bc8f4636c81416b88952"
+    "tree": "0bd4501db82fe26a55e09d0c97e82898f571fcb4ab7e4cd2ccf3ad9229f3f902"
   },
   "status": "fixing",
   "steps": [
@@ -57,6 +57,10 @@
     },
     {
       "at": "2026-10-03T14:43:15+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T15:05:52+00:00",
       "step": "review"
     }
   ]
