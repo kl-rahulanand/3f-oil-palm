@@ -616,28 +616,22 @@ function ResultRowLabel({
 
   return (
     <div>
-      <span
-        aria-label={
-          label.otherLabels.length
-            ? `${visibleLabel}. Other account names: ${label.otherLabels.join(", ")}`
-            : visibleLabel
-        }
-      >
-        {visibleLabel}
-      </span>
+      <span>{visibleLabel}</span>
       {label.otherLabels.length > 0 && (
         <>
           {" "}
           <button
             className="h-button cursor-pointer border-0 bg-transparent p-0 font-h2 text-emerald underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald"
             type="button"
-            aria-label={`${label.otherLabels.length} more account names`}
             aria-expanded={expanded}
             aria-controls={otherNamesId}
             onClick={() => setExpanded((current) => !current)}
             onKeyDown={handleKeyDown}
           >
-            +{label.otherLabels.length} more
+            <span aria-hidden="true">+{label.otherLabels.length} more</span>
+            <span className="sr-only">
+              {label.otherLabels.length} more account names: {label.otherLabels.join(", ")}
+            </span>
           </button>
           {expanded && (
             <ul id={otherNamesId} aria-label="Other account names" className="m-0 list-none p-0 text-left">

@@ -25,15 +25,16 @@ export class GlNameRepository {
 
   async findGlCodeLabels(rows: GlNameRow[], budgetBatchId?: string): Promise<AskRowLabel[]> {
     const resolved = new Map<string, AskRowLabel>();
+    const budgetOnly = new Set<string>();
     for (const row of rows) {
-      const names = await this.findSapNames(row.predicate);
-      if (names) resolved.set(row.key, { key: row.key, ...names });
+      const result = await this.findSapNames(row.predicate);
+      if (result.names) resolved.set(row.key, { key: row.key, ...result.names });
+      else if (!result.hasScopedLines) budgetOnly.add(row.key);
     }
 
-    const missing = rows.filter(({ key }) => !resolved.has(key));
-    if (budgetBatchId && missing.length) {
+    if (budgetBatchId && budgetOnly.size) {
       const outline = await this.outlines.findByBudgetBatchId(budgetBatchId);
-      for (const { key } of missing) {
+      for (const key of budgetOnly) {
         const labels = outlineLabels(outline, ({ glCode }) => glCode === key, false);
         if (labels.length) resolved.set(key, toRowLabel(key, labels));
       }
@@ -54,16 +55,36 @@ export class GlNameRepository {
     });
   }
 
-  private async findSapNames(predicate: DrillPredicate): Promise<Omit<AskRowLabel, "key"> | undefined> {
+  private async findSapNames(predicate: DrillPredicate): Promise<SapNameResult> {
     const config = loadConfig();
-    const sql = `SELECT txn.acct_name, COUNT(*)::text AS line_count
+    const normalizedSpelling = "REGEXP_REPLACE(TRIM(txn.acct_name), '[[:space:]]+', ' ', 'g')";
+    const where = buildDrillPredicate(predicate);
+    const sql = `SELECT name_groups.acct_name, name_groups.line_count::text AS line_count,
+  scoped_total.scoped_line_count::text AS scoped_line_count
+FROM (
+  SELECT COUNT(*) AS scoped_line_count
 FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
-WHERE ${buildDrillPredicate(predicate)}
-  AND txn.acct_name IS NOT NULL
-  AND TRIM(txn.acct_name) <> ''
-GROUP BY txn.acct_name
-ORDER BY COUNT(*) DESC, txn.acct_name
+WHERE ${where}
+) AS scoped_total
+LEFT JOIN (
+  SELECT spellings.normalized_name,
+    SUM(spellings.spelling_count) AS line_count,
+    (ARRAY_AGG(spellings.spelling ORDER BY spellings.spelling_count DESC, spellings.spelling))[1] AS acct_name
+  FROM (
+    SELECT LOWER(${normalizedSpelling}) AS normalized_name,
+      ${normalizedSpelling} AS spelling,
+      COUNT(*) AS spelling_count
+    FROM sap_transaction AS txn
+    INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
+    WHERE ${where}
+      AND txn.acct_name IS NOT NULL
+      AND TRIM(txn.acct_name) <> ''
+    GROUP BY LOWER(${normalizedSpelling}), ${normalizedSpelling}
+  ) AS spellings
+  GROUP BY spellings.normalized_name
+) AS name_groups ON TRUE
+ORDER BY name_groups.line_count DESC, name_groups.acct_name
 LIMIT ${config.maxRows}`;
     const validation = this.validator.validate(sql, OBJECTS_TOUCHED, config.maxRows);
     if (!validation.ok) throw new ForbiddenException(validation.reason ?? "GL name query blocked");
@@ -73,7 +94,15 @@ LIMIT ${config.maxRows}`;
   }
 }
 
-function rankedNames(rows: Array<Record<string, string | number | null>>): Omit<AskRowLabel, "key"> | undefined {
+interface SapNameResult {
+  names?: Omit<AskRowLabel, "key">;
+  hasScopedLines: boolean;
+}
+
+function rankedNames(rows: Array<Record<string, string | number | null>>): SapNameResult {
+  const scopedCount = rows[0]?.scoped_line_count;
+  const hasScopedLines =
+    scopedCount === undefined ? rows.some((row) => lineCount(row.line_count) > 0) : lineCount(scopedCount) > 0;
   const groups = new Map<string, { count: number; spellings: Map<string, number> }>();
   for (const row of rows) {
     if (row.acct_name === null || row.acct_name === undefined) continue;
@@ -90,8 +119,11 @@ function rankedNames(rows: Array<Record<string, string | number | null>>): Omit<
   const ranked = [...groups.values()]
     .map((group) => ({ count: group.count, label: representative(group.spellings) }))
     .sort((left, right) => right.count - left.count || alphabetical(left.label, right.label));
-  if (!ranked.length) return undefined;
-  return { label: ranked[0]!.label, otherLabels: ranked.slice(1).map(({ label }) => label) };
+  if (!ranked.length) return { hasScopedLines };
+  return {
+    hasScopedLines,
+    names: { label: ranked[0]!.label, otherLabels: ranked.slice(1).map(({ label }) => label) },
+  };
 }
 
 function representative(spellings: Map<string, number>): string {

@@ -222,12 +222,10 @@ test("the more-names disclosure exposes the full ordered accessible name and tog
   renderAsk();
   submit("Show Actual by GL code");
 
-  expect(
-    await screen.findByLabelText(
-      "50001201 · Sprout Cost - Imp. Other account names: Imported sprouts, Sprout purchases",
-    ),
-  ).toBeInTheDocument();
-  const disclosure = screen.getByRole("button", { name: "2 more account names" });
+  const disclosure = await screen.findByRole("button", {
+    name: "2 more account names: Imported sprouts, Sprout purchases",
+  });
+  expect(disclosure).toHaveAccessibleName("2 more account names: Imported sprouts, Sprout purchases");
   expect(disclosure).toHaveAttribute("aria-expanded", "false");
 
   fireEvent.keyDown(disclosure, { key: "Enter" });
@@ -249,7 +247,9 @@ test("the more-names disclosure opens from a touch tap without relying on hover"
   renderAsk();
   submit("Show Actual by GL code");
 
-  const disclosure = await screen.findByRole("button", { name: "2 more account names" });
+  const disclosure = await screen.findByRole("button", {
+    name: "2 more account names: Imported sprouts, Sprout purchases",
+  });
   fireEvent.pointerDown(disclosure, { pointerType: "touch" });
   fireEvent.pointerUp(disclosure, { pointerType: "touch" });
   fireEvent.click(disclosure);

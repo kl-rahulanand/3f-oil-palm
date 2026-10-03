@@ -223,10 +223,11 @@ test("the drill and name resolver use the identical predicate for the same answe
     100,
   ).pageSql;
   const drillWhere = drillSql.match(/WHERE ([\s\S]+?)\nORDER BY/)?.[1];
-  const nameWhere = warehouse.executed[0]?.match(/WHERE ([\s\S]+?)\n {2}AND txn\.acct_name/)?.[1];
+  const expected = buildDrillPredicate(predicate);
+  const nameSql = warehouse.executed[0] ?? "";
 
-  assert.equal(nameWhere, drillWhere);
-  assert.equal(nameWhere, buildDrillPredicate(predicate));
+  assert.equal(drillWhere, expected);
+  assert.equal(nameSql.split(`WHERE ${expected}`).length - 1, 2);
 });
 
 test("a GL-and-plants predicate mirrors every answer-query filter operator and value-shape combination", () => {
@@ -401,6 +402,9 @@ class FakeWarehouse implements Warehouse {
   async execute(sql: string) {
     this.executed.push(sql);
     if (sql.includes("feeding_line_count")) return { columns: [], rows: this.summaryRows };
+    if (sql.includes("scoped_line_count")) {
+      return { columns: [], rows: [{ acct_name: null, line_count: null, scoped_line_count: "0" }] };
+    }
     return sql.includes("COUNT(*)")
       ? { columns: [], rows: [{ total_count: "0", debit: "0.00", credit: "0.00", value: "0.00" }] }
       : { columns: [], rows: this.pageRows };
