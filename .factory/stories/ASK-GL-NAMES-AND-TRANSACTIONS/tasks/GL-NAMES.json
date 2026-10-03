@@ -2,48 +2,55 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-NAMES",
   "review": {
     "blocking_level": "P1",
-    "changed": "ba8c90b6bbdca606353775103fa8036684e4eb46a3fa368c5afa848f2581a018",
-    "commit": "ebf500d8db5553229e52988a9a2ea9cbc55292a1",
+    "changed": "fa159b0424a3fbb924b7ae37d8bc8619b6d90a8352d3cf6ea70216609590295c",
+    "commit": "5602e8ab576926f1ea209dc749c9c5a9a7827c2a",
     "dismissals": [],
     "findings": [
       {
-        "body": "`missing` means only \u201cno nonblank SAP name was resolved,\u201d not \u201cno SAP lines exist.\u201d Consequently, a matched or actual-only code whose scoped transactions have null/blank `acct_name` enters the outline fallback and displays an MIS label, although the specification reserves that fallback for codes with no SAP lines and requires an otherwise unnamed code to remain bare. The bare-code test does not catch this because it supplies an outline for a different GL code. Preserve whether any scoped SAP row exists and apply the outline only when that count is zero.",
-        "file": "backend/src/warehouse/gl-name.repository.ts",
-        "line": 33,
+        "body": "This test feeds two case variants as separate warehouse result rows, but the production SQL has already collapsed those spellings into one `name_groups` row before `rankedNames` runs. It therefore tests an intermediate shape production never returns and cannot detect removal of the alphabetical tie-break in `ARRAY_AGG`. The real-Postgres fixture uses unequal spelling counts, so the required \u201cmost frequent original spelling, ties alphabetical\u201d behavior still lacks an effective test. Add an equal-count spelling tie to the real warehouse proof.",
+        "file": "backend/src/warehouse/gl-name.repository.test.ts",
+        "line": 27,
         "priority": "P1",
-        "title": "Not done: only budget-only codes use the MIS fallback"
+        "title": "Not done: original-spelling tie test"
       },
       {
-        "body": "The complete list exists only in `aria-label` on a plain `<span>`. A span maps to the generic role, for which author-provided accessible names are prohibited/ignored by accessibility APIs; while collapsed, the list itself is absent and the button announces only \u201cn more account names.\u201d Testing Library's `findByLabelText` merely finds the attribute and does not verify the browser accessibility tree. Put the full text in screen-reader-visible content or name an element whose role supports naming.",
-        "file": "frontend/src/features/assistant/ask-panel.tsx",
-        "line": 620,
-        "priority": "P1",
-        "title": "Not done: the row\u2019s accessible name includes the full name list"
-      },
-      {
-        "body": "The supplied check explicitly stops at fixture answers through the component boundary. Here the Ask API is mocked with already-resolved `rowLabels`, and the statement fixture likewise injects its finished label, so the check never exercises SAP-name selection, effective plant scope, budget-only detection, pinned-outline lookup, or snapshot persistence\u2014the covered behavior a client depends on. It therefore skips material parts of both Done-when items and would not expose the incorrect unnamed-actual fallback above.",
+        "body": "The new functional-check handoff now exercises resolver semantics against real Postgres, but it explicitly defers the running Ask path and cites only the hermetic suite for the UI. It still does not walk the covered behavior as a client would: rendering labels, operating the disclosure by keyboard and touch, or proving snapshot persistence through the service boundary. Thus material portions of both covered Done-when items remain outside the required functional check.",
         "file": "frontend/src/features/assistant/ask-panel.test.tsx",
         "line": 207,
         "priority": "P1",
         "title": "Not done: functional check"
       },
       {
-        "body": "The query caps raw `acct_name` spellings at `MAX_ROWS` (1000 by default) before whitespace/case normalization and group counting. If a GL has more raw spellings, variants outside the first 1000 are silently omitted; a normalized group spread across those variants can therefore lose counts, become the wrong primary name, or produce the wrong \u201c+n more\u201d list. Normalize/aggregate in SQL before the cap, or page all raw groups before ranking.",
-        "file": "backend/src/warehouse/gl-name.repository.ts",
-        "line": 67,
-        "priority": "P2",
-        "title": "Normalize all scoped spellings before applying the row cap"
+        "body": "This branch adds a new interactive disclosure, but the supplied task record and functional-check handoff contain no impeccable shape/audit/polish pass or specific emil-design-eng interaction review. The review contract requires both for every UI change, including checking keyboard, touch, focus, press feedback, and disclosure behavior. The component tests and generic quality run do not substitute for that required inspection.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 623,
+        "priority": "P1",
+        "title": "Not done: impeccable and emil-design-eng pass"
       },
       {
-        "body": "All added label tests stop at a fake warehouse, fake outline repository, fake conversation transaction, or mocked frontend API response. The required running-API/real-database/browser proof for Done-when items 1 and 2 therefore does not exist. Because this branch intentionally cannot emit `rowLabels` until GL-ANSWER-WIRING integrates the resolver into `ChatService`, that task should add the end-to-end proof instead of treating these component tests as the final user-path coverage.",
+        "body": "The frontend tests still inject finished `rowLabels` through a mocked Ask API, while repository and snapshot tests stop at their individual service boundaries. Consequently there is still no running-API/real-database/browser proof that an Ask response carries the resolved labels into this table. The task plan assigns emitting `rowLabels` to GL-ANSWER-WIRING, so that task must own this end-to-end proof.",
         "file": "frontend/src/features/assistant/ask-panel.test.tsx",
         "line": 207,
         "priority": "P2",
         "title": "Later: prove labels through the running Ask stack \u2192 GL-ANSWER-WIRING"
+      },
+      {
+        "body": "The prior raw-spelling cap defect is repaired because normalization and grouping now happen before the limit. However, `LIMIT maxRows` still silently drops normalized groups beyond the first 1,000. The primary name remains correct, but `otherLabels` and therefore the displayed \u201c+n more\u201d count are incomplete whenever a code has more distinct normalized names than the cap. Page the grouped result or return the complete group count/list through a bounded aggregation.",
+        "file": "backend/src/warehouse/gl-name.repository.ts",
+        "line": 88,
+        "priority": "P2",
+        "title": "Do not truncate the normalized-name disclosure at MAX_ROWS"
+      },
+      {
+        "body": "`findGlCodeLabels` awaits a separate name query for every result row; each query performs an `EXPLAIN` and scans the scoped transactions twice. Since Ask results may contain up to `MAX_ROWS` rows, one answer can cause as many as 2,000 sequential warehouse round trips and repeated scans before it can render. Resolve rows in bounded batches\u2014similar to the repository's summary batching\u2014while preserving each row's predicate.",
+        "file": "backend/src/warehouse/gl-name.repository.ts",
+        "line": 29,
+        "priority": "P2",
+        "title": "Batch GL-name resolution instead of issuing one scan per answer row"
       }
     ],
     "status": "blocked",
-    "tree": "f7e088da2f2cfebb0f83e909690188db4fed32c7d706f5233371cdd0f6c70681"
+    "tree": "a24356db0980dc44f3b034d267606bb1625223dc0043a0d4e7de237acc8484a4"
   },
   "status": "fixing",
   "steps": [
@@ -53,6 +60,10 @@
     },
     {
       "at": "2026-10-03T07:52:22+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T08:19:53+00:00",
       "step": "review"
     }
   ]
