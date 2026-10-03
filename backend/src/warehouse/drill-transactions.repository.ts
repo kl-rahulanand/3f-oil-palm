@@ -94,27 +94,34 @@ LIMIT 1`,
 
   async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>): Promise<DrillSummary[]> {
     if (rows.length === 0) return [];
-    const sql = `${rows
-      .map(
-        ({ rowKey, predicate }) => `(SELECT ${quote(rowKey)} AS row_key, COUNT(*) AS feeding_line_count,
+    const config = loadConfig();
+    const summaries: DrillSummary[] = [];
+    for (let offset = 0; offset < rows.length; offset += config.maxRows) {
+      const batch = rows.slice(offset, offset + config.maxRows);
+      const sql = `${batch
+        .map(
+          ({ rowKey, predicate }) => `(SELECT ${quote(rowKey)} AS row_key, COUNT(*) AS feeding_line_count,
   SUM(txn.debit - txn.credit)::text AS value
 FROM sap_transaction AS txn
 INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
 WHERE ${buildPredicate(predicate)}
 LIMIT 1)`,
-      )
-      .join("\nUNION ALL\n")}
-LIMIT 25000`;
-    const config = loadConfig();
-    const validation = this.validator.validate(sql, OBJECTS_TOUCHED, config.maxRows);
-    if (!validation.ok) throw new ForbiddenException(validation.reason ?? "Drill summary query blocked");
-    await this.warehouse.explain(sql);
-    const result = await withTimeout(this.warehouse.execute(sql), config.queryTimeoutMs);
-    return result.rows.map((row) => ({
-      rowKey: requiredText(row.row_key),
-      feedingLineCount: integer(row.feeding_line_count),
-      value: money(row.value),
-    }));
+        )
+        .join("\nUNION ALL\n")}
+LIMIT ${batch.length}`;
+      const validation = this.validator.validate(sql, OBJECTS_TOUCHED, config.maxRows);
+      if (!validation.ok) throw new ForbiddenException(validation.reason ?? "Drill summary query blocked");
+      await this.warehouse.explain(sql);
+      const result = await withTimeout(this.warehouse.execute(sql), config.queryTimeoutMs);
+      summaries.push(
+        ...result.rows.map((row) => ({
+          rowKey: requiredText(row.row_key),
+          feedingLineCount: integer(row.feeding_line_count),
+          value: money(row.value),
+        })),
+      );
+    }
+    return summaries;
   }
 }
 
@@ -149,7 +156,7 @@ function filterPredicate(filter: {
   value: string | string[];
 }): string | null {
   const column = filter.dimensionId === "gl_code" ? "txn.gl_code" : filter.dimensionId === "month" ? "txn.month" : null;
-  if (!column) throw new Error("Ask drill contains an unsupported dimension filter");
+  if (!column) return null;
   if (filter.op === "in" && Array.isArray(filter.value)) {
     return `${column} IN (${filter.value.map(quote).join(", ")})`;
   }

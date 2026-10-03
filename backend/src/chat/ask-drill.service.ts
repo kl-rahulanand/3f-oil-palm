@@ -245,11 +245,7 @@ function predicateFor(
   if (
     claims.selection.domain === "governed-financial" &&
     claims.selection.dimensionIds.length === 1 &&
-    claims.selection.dimensionIds[0] === "gl_code" &&
-    claims.selection.filters.every(
-      ({ dimensionId, value }) =>
-        (dimensionId === "gl_code" || dimensionId === "month") && (!Array.isArray(value) || value.length > 0),
-    )
+    claims.selection.dimensionIds[0] === "gl_code"
   ) {
     return { ...base, mode: "gl-and-plants", glCode: row.key, filters: claims.selection.filters };
   }

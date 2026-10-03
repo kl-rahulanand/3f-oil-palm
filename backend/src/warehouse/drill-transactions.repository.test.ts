@@ -149,13 +149,17 @@ test("a GL-and-plants predicate mirrors every answer-query filter operator and v
   const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
   const builder = new SqlBuilder();
   const domain = new SemanticLayer().domain("governed-financial")!;
-  const cases: Array<Pick<SelectionFilter, "op" | "value">> = [
-    { op: "eq", value: "2026-06-01" },
-    { op: "eq", value: ["2026-06-01"] },
-    { op: "neq", value: "2026-06-01" },
-    { op: "neq", value: ["2026-06-01"] },
-    { op: "in", value: "2026-06-01" },
-    { op: "in", value: ["2026-06-01", "2026-06-02"] },
+  const cases: Array<Pick<SelectionFilter, "op" | "value"> & { expected: string | null }> = [
+    { op: "eq", value: "2026-06-01", expected: "month = '2026-06-01'" },
+    { op: "eq", value: ["2026-06-01"], expected: null },
+    { op: "neq", value: "2026-06-01", expected: "month <> '2026-06-01'" },
+    { op: "neq", value: ["2026-06-01"], expected: null },
+    { op: "in", value: "2026-06-01", expected: "month = '2026-06-01'" },
+    {
+      op: "in",
+      value: ["2026-06-01", "2026-06-02"],
+      expected: "month IN ('2026-06-01', '2026-06-02')",
+    },
   ];
 
   for (const example of cases) {
@@ -184,11 +188,14 @@ test("a GL-and-plants predicate mirrors every answer-query filter operator and v
       1,
       100,
     );
-    assert.equal(
-      pageSql.includes("2026-06-01"),
-      answerSql.includes("2026-06-01"),
-      `${example.op} with ${Array.isArray(example.value) ? "array" : "string"} value`,
-    );
+    const label = `${example.op} with ${Array.isArray(example.value) ? "array" : "string"} value`;
+    if (example.expected) {
+      assert.ok(answerSql.includes(example.expected), `answer ${label}`);
+      assert.ok(pageSql.includes(`txn.${example.expected}`), `drill ${label}`);
+    } else {
+      assert.doesNotMatch(answerSql, /2026-06-01/, `answer ${label}`);
+      assert.doesNotMatch(pageSql, /2026-06-01/, `drill ${label}`);
+    }
   }
 });
 
@@ -234,6 +241,50 @@ test("summaries expose feeding-line counts and the exact debit-minus-credit deci
   assert.match(warehouse.executed[0]!, /SUM\(txn\.debit - txn\.credit\)::text AS value/);
   assert.match(warehouse.executed[0]!, /^\(SELECT[\s\S]+\nUNION ALL\n\(SELECT/);
 });
+
+test("a summary of the default maximum one thousand row keys passes validation with that exact bound", async () => {
+  const original = process.env.MAX_ROWS;
+  delete process.env.MAX_ROWS;
+  try {
+    const warehouse = new FakeWarehouse();
+    await new DrillTransactionsRepository(new SqlValidator(), warehouse).summarize(summaryInputs(1_000));
+    assert.equal(warehouse.executed.length, 1);
+    assert.match(warehouse.executed[0]!, /LIMIT 1000$/);
+  } finally {
+    if (original === undefined) delete process.env.MAX_ROWS;
+    else process.env.MAX_ROWS = original;
+  }
+});
+
+test("a summary above the configured maximum batches every row key into validator-safe queries", async () => {
+  const original = process.env.MAX_ROWS;
+  delete process.env.MAX_ROWS;
+  try {
+    const warehouse = new FakeWarehouse();
+    await new DrillTransactionsRepository(new SqlValidator(), warehouse).summarize(summaryInputs(1_001));
+    assert.equal(warehouse.executed.length, 2);
+    assert.match(warehouse.executed[0]!, /LIMIT 1000$/);
+    assert.match(warehouse.executed[1]!, /LIMIT 1$/);
+  } finally {
+    if (original === undefined) delete process.env.MAX_ROWS;
+    else process.env.MAX_ROWS = original;
+  }
+});
+
+function summaryInputs(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    rowKey: `row-${index}`,
+    predicate: {
+      mode: "gl-and-plants" as const,
+      actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+      glCode: `5000${index}`,
+      plants: ["DUB"],
+      filters: [],
+      from: "2026-07-01",
+      to: "2026-07-01",
+    },
+  }));
+}
 
 const filterUser: AuthUser = {
   id: "user-1",

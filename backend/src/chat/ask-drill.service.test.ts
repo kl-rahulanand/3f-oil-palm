@@ -62,6 +62,32 @@ test("the signed Ask route re-derives a GL-and-answer-plants predicate and foots
   assert.equal(audit.requests[0]?.questionLabel, "Ask transaction drill");
 });
 
+test("the signed Ask route ignores the unknown and empty-array filters that the answer query ignores", async () => {
+  const warehouse = new FakeWarehouse([], {
+    batches: [batch(actualPin, true)],
+    pageRows: [transaction("8398339.00")],
+    footer: { total_count: "1", debit: "8398339.00", credit: "0.00", value: "8398339.00" },
+  });
+  const { controller, contexts } = harness(warehouse, []);
+  const context = contexts.issue({
+    ...input,
+    selection: {
+      ...input.selection,
+      filters: [
+        { dimensionId: "unknown", op: "eq", value: "ignored" },
+        { dimensionId: "month", op: "eq", value: [] },
+        { dimensionId: "gl_code", op: "neq", value: [] },
+      ],
+    },
+  });
+
+  const response = await controller.run(user, "session-1", { context, rowKey: "50001201", page: 1 });
+
+  assert.equal(response.footer.value, "8398339.00");
+  const pageSql = warehouse.executed.find((sql) => sql.includes("ORDER BY (txn.debit - txn.credit)"))!;
+  assert.doesNotMatch(pageSql, /unknown|ignored|IN \(\)/);
+});
+
 test("the route compares exact paise for one paisa, a normal cent value, and an amount above ninety lakh crore", async () => {
   for (const [actualPaise, decimal] of [
     ["1", "0.01"],
