@@ -2,55 +2,34 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-NAMES",
   "review": {
     "blocking_level": "P1",
-    "changed": "fa159b0424a3fbb924b7ae37d8bc8619b6d90a8352d3cf6ea70216609590295c",
-    "commit": "5602e8ab576926f1ea209dc749c9c5a9a7827c2a",
+    "changed": "87b1132d951238526efb4422e7bdd35aa8e5c2dd83f49f46dd92a9875d3b63de",
+    "commit": "c3ff70e41ad1e6f48c80dda82b7ff5d27dda700b",
     "dismissals": [],
     "findings": [
       {
-        "body": "This test feeds two case variants as separate warehouse result rows, but the production SQL has already collapsed those spellings into one `name_groups` row before `rankedNames` runs. It therefore tests an intermediate shape production never returns and cannot detect removal of the alphabetical tie-break in `ARRAY_AGG`. The real-Postgres fixture uses unequal spelling counts, so the required \u201cmost frequent original spelling, ties alphabetical\u201d behavior still lacks an effective test. Add an equal-count spelling tie to the real warehouse proof.",
-        "file": "backend/src/warehouse/gl-name.repository.test.ts",
-        "line": 27,
-        "priority": "P1",
-        "title": "Not done: original-spelling tie test"
-      },
-      {
-        "body": "The new functional-check handoff now exercises resolver semantics against real Postgres, but it explicitly defers the running Ask path and cites only the hermetic suite for the UI. It still does not walk the covered behavior as a client would: rendering labels, operating the disclosure by keyboard and touch, or proving snapshot persistence through the service boundary. Thus material portions of both covered Done-when items remain outside the required functional check.",
-        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
-        "line": 207,
-        "priority": "P1",
-        "title": "Not done: functional check"
-      },
-      {
-        "body": "This branch adds a new interactive disclosure, but the supplied task record and functional-check handoff contain no impeccable shape/audit/polish pass or specific emil-design-eng interaction review. The review contract requires both for every UI change, including checking keyboard, touch, focus, press feedback, and disclosure behavior. The component tests and generic quality run do not substitute for that required inspection.",
+        "body": "The branch still adds a new interactive disclosure without evidence of the required impeccable shape/audit/polish pass or a specifically tasked emil-design-eng interaction review. The updated browser walk checks keyboard, touch, focus, and sizing, but it does not claim either required design pass or cover the full visual and interaction checklist, including press feedback and state/copy polish.",
         "file": "frontend/src/features/assistant/ask-panel.tsx",
-        "line": 623,
+        "line": 627,
         "priority": "P1",
         "title": "Not done: impeccable and emil-design-eng pass"
       },
       {
-        "body": "The frontend tests still inject finished `rowLabels` through a mocked Ask API, while repository and snapshot tests stop at their individual service boundaries. Consequently there is still no running-API/real-database/browser proof that an Ask response carries the resolved labels into this table. The task plan assigns emitting `rowLabels` to GL-ANSWER-WIRING, so that task must own this end-to-end proof.",
+        "body": "The component test still injects a completed `rowLabels` response through the mocked Ask API. The updated functional check likewise says it manually attached resolver output in the browser because the production chat service does not emit it yet. Thus there is no running-API/real-database/browser proof that production carries resolved labels into this table; the task plan assigns that wiring and crossing proof to GL-ANSWER-WIRING.",
         "file": "frontend/src/features/assistant/ask-panel.test.tsx",
         "line": 207,
         "priority": "P2",
         "title": "Later: prove labels through the running Ask stack \u2192 GL-ANSWER-WIRING"
       },
       {
-        "body": "The prior raw-spelling cap defect is repaired because normalization and grouping now happen before the limit. However, `LIMIT maxRows` still silently drops normalized groups beyond the first 1,000. The primary name remains correct, but `otherLabels` and therefore the displayed \u201c+n more\u201d count are incomplete whenever a code has more distinct normalized names than the cap. Page the grouped result or return the complete group count/list through a bounded aggregation.",
+        "body": "The batching change reduces network round trips, but it builds each batch by UNIONing one `nameSelect` per row, and every arm independently scans `sap_transaction` once for the scoped count and again for name groups. With the default limits, a valid 1,000-row answer still performs 2,000 scoped scans, with 100 scans packed into each timeout-bounded query. Supported GL answers share their batch/window/plant scope and differ principally by GL code, so they can be resolved set-wise in a single grouped scan per batch.",
         "file": "backend/src/warehouse/gl-name.repository.ts",
-        "line": 88,
+        "line": 68,
         "priority": "P2",
-        "title": "Do not truncate the normalized-name disclosure at MAX_ROWS"
-      },
-      {
-        "body": "`findGlCodeLabels` awaits a separate name query for every result row; each query performs an `EXPLAIN` and scans the scoped transactions twice. Since Ask results may contain up to `MAX_ROWS` rows, one answer can cause as many as 2,000 sequential warehouse round trips and repeated scans before it can render. Resolve rows in bounded batches\u2014similar to the repository's summary batching\u2014while preserving each row's predicate.",
-        "file": "backend/src/warehouse/gl-name.repository.ts",
-        "line": 29,
-        "priority": "P2",
-        "title": "Batch GL-name resolution instead of issuing one scan per answer row"
+        "title": "Batch resolver still scans transactions twice per answer row"
       }
     ],
     "status": "blocked",
-    "tree": "a24356db0980dc44f3b034d267606bb1625223dc0043a0d4e7de237acc8484a4"
+    "tree": "b54d81616409e2e0b9c3ba1bc4082a4f673f0e91757ddb64e68fd62c3b590b88"
   },
   "status": "fixing",
   "steps": [
@@ -64,6 +43,10 @@
     },
     {
       "at": "2026-10-03T08:19:53+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T08:43:30+00:00",
       "step": "review"
     }
   ]
