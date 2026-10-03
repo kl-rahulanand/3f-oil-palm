@@ -2,16 +2,23 @@
   "branch": "task/ASK-GL-NAMES-AND-TRANSACTIONS-GL-DRILL-ROUTE",
   "review": {
     "blocking_level": "P1",
-    "changed": "f50b520a37869a478929cf665eb62ce82edf2dcb84402bb54236fa86423cf14a",
-    "commit": "60d137823ed9f17687d9844281161e2f3e03d413",
+    "changed": "48bc6c3976355440d94d66fff44c52b175e0e1b49afe0c77bf1dd6bb53a5cdbb",
+    "commit": "a1c84bdf20f9c580557adcccd829278522177d60",
     "dismissals": [],
     "findings": [
       {
-        "body": "The crossing test hard-codes both the signed `actualPaise` in `input` and the fake route footer, so it never obtains the signed value from `DrillTransactionsRepository.summarize` for the same predicate. A break between the issuance summary and route footer would therefore leave this test green. Add the required crossing leaf that summarizes the fixture predicate, converts that exact decimal string to signed paise, issues the context, and opens it through the route.",
-        "file": "backend/src/chat/ask-drill.service.test.ts",
-        "line": 42,
+        "body": "The paging coverage only locks the SQL text for `ORDER BY`, `LIMIT`, and `OFFSET`; it never executes page 1 and page 2 over tied rows and checks that the boundary has neither duplicates nor omissions. The existing database fixture creates 101 rows but reads only page 1. Consequently the explicitly required stable-page-boundary behavior is not proven at the behavioral boundary; extend that fixture to read both pages and compare their combined transaction identities.",
+        "file": "backend/src/warehouse/drill-transactions.repository.test.ts",
+        "line": 29,
         "priority": "P1",
-        "title": "Not done: issuance-summary-to-route footing test"
+        "title": "Not done: stable page boundary test"
+      },
+      {
+        "body": "The budget-replacement case asserts only the batch status, not the required reload notice, while the gone-budget case asserts only HTTP 409. Likewise, the gone-actual case never checks the refusal audit. Removing the notice for replaced budget data or removing refusal auditing/message/no-read behavior from the gone-budget path would leave these tests green. Add assertions for the exact notice, exact gone wording, no transaction query, and one refusal audit for both gone actual and gone budget cases.",
+        "file": "backend/src/chat/ask-drill.service.test.ts",
+        "line": 351,
+        "priority": "P1",
+        "title": "Not done: replaced/gone budget and refusal-audit tests"
       },
       {
         "body": "The branch registers and exports the signing seam, but no Ask response invokes the summary/signing service or emits `AskResponse.drill`, and no Actual cell calls the route. The story assigns issuance to GL-ANSWER-WIRING and interaction to GL-DRILL-PANEL, so this remains expected deferred work rather than a blocker for this prerequisite task.",
@@ -22,7 +29,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "48d4791c8f7f9337b751dcfb4ca8ac77bc4a52c205922fe9a9bd0006cd8188de"
+    "tree": "ac7dc252dcdf2b2e360b8f9463743af3fb9a0c74e63a55d4cb55a379d5c7eaf1"
   },
   "status": "fixing",
   "steps": [
@@ -40,6 +47,10 @@
     },
     {
       "at": "2026-10-03T05:16:33+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-03T05:26:26+00:00",
       "step": "review"
     }
   ]
