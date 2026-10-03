@@ -8,7 +8,13 @@
     "blocking_level": "P1",
     "changed": "c32251bb2c1785f315b9ca9f65cf22953486f86cd34b968b48c0022dce5bff4e",
     "commit": "45fe886c38055be4b15c145c4cc9b91fece974b5",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "plans/roadmap.json:304 Commit e16c48f marks the ASK-GL-NAMES-AND-TRANSACTIONS roadmap entry status done with completed_at and the outcome sentence recorded in its story.json, matching the finished ASK-MEASURE-FILTER entry, so the board shows the story as finished with its outcome.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "This updates only the internal story record. The board\u2019s source entry remains `\"status\": \"pending\"` at `plans/roadmap.json:304` and has neither `completed_at` nor `outcome`, unlike the completed neighboring story. Consequently, the board still presents ASK-GL-NAMES-AND-TRANSACTIONS as unfinished and cannot show the recorded outcome. Update that roadmap entry as part of this completion change.",
@@ -18,10 +24,10 @@
         "title": "Not done: The board shows the story as finished, with its outcome."
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "e2ba5b76ccac0f1c5b785ffbbfd087ec6c784c4111578ffac40800694a5930df"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-03T19:43:59+00:00",
