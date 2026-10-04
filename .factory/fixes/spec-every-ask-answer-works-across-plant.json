@@ -1,0 +1,31 @@
+{
+  "base": "79860fb49dec3b05a8fd96cfd353679181df9eef",
+  "branch": "fix/spec-every-ask-answer-works-across-plant",
+  "done_when": "docs/specs/ask-multi-plant.md is confirmed by the owner and listed on the roadmap",
+  "kind": "fix",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "a5bb1aabc69b6087c49ac850abdce37c68376641c2f465ac8f6383aa77cbb00f",
+    "commit": "e87a4c51582e128d5c4e596a1e8f9541e4b15766",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "8c2da5f56597dd0e154fc11951a55f7e9a18bb32de087992ea7222100d378807"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T06:32:03+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T07:21:26+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T07:51:54+00:00",
+      "step": "review"
+    }
+  ],
+  "why": "spec: every Ask answer works across plants"
+}
