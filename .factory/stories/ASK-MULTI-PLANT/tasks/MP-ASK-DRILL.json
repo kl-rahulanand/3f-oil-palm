@@ -1,10 +1,38 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-ASK-DRILL",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "5028752e2d919ac39a61cad2187e827b709138ec43746a743d9a13d59e5dcbdd",
+    "commit": "726d8ea9cd6bbd5ecff785db685f99d3bb44d91d",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This file is explicitly required to be added or changed for this part, but the branch does not modify it. The new route behavior derives each transaction predicate from `row.plants`; the existing repository coverage only exercises a single DUB predicate and therefore does not provide the required regression leaf for distinct per-row plant predicates. Add or update the repository test so the changed behavior is independently exercised.",
+        "file": "backend/src/chat/ask-drill.service.ts",
+        "line": 248,
+        "priority": "P1",
+        "title": "Not done: backend/src/warehouse/drill-transactions.repository.test.ts"
+      },
+      {
+        "body": "The backend now emits composite `askRowKey` values for `gl_code \u00d7 plant` and `leaf_key \u00d7 plant`, but the current renderer at `frontend/src/features/assistant/ask-panel.tsx:674` derives a row key only when exactly one dimension is selected and otherwise looks labels up by individual cell values. Consequently, composite labels do not resolve and their Actual cells cannot open the emitted drill links yet. The Tasks table assigns this frontend integration and its browser-facing coverage to MP-ASK-UI-RESULTS.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 1110,
+        "priority": "P2",
+        "title": "Later: MP-ASK-UI-RESULTS must use askRowKey for per-row names and links"
+      }
+    ],
+    "status": "blocked",
+    "tree": "8837fb3a18221e1a8ca136038297effa3f01cd832c57bad65743abecf2c87aaf"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T15:53:36+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T16:13:30+00:00",
+      "step": "review"
     }
   ]
 }
