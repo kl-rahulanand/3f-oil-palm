@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T07:05:39+00:00
+saved: 2026-10-04T07:06:50+00:00
 ---
 
 # Every Ask answer works across plants
@@ -105,6 +105,11 @@ decision 0033.
   then by plant display name. A plant-total question with no statement lines ("Actual by plant") is a
   governed-financial question.
 - Rows that carry a plant show its display name and are keyed by its canonical code.
+- Every row has one row key, derived by one shared function from the result table's row: the `gl_code` or
+  `leaf_key` cell alone for an unsplit answer, and `<gl_code>|<plant>` or `<leaf_key>|<plant>` (canonical
+  plant code) for a plant breakdown. `rowLabels`, `budgetStates` and `drill.rows` are all keyed by it, and
+  the client looks them up through the same function, so the same GL code or line in two plants never
+  shares a name entry, budget state or drill link.
 - Names and clicks apply only to the answer shapes whose row identity is exact: `gl_code`,
   `gl_code × plant`, `leaf_key` and `leaf_key × plant`. Any shape with `month` or another dimension renders
   plain values with no names and no clickable Actual, as today.
@@ -282,6 +287,9 @@ decision 0033.
     with `month` renders inert, proven by a leaf.
   - Drills work for any plant set with composite row keys. A per-plant row reads only its plant; a summed
     row reads only the chosen set; a combined statement row reads each plant's triples.
+  - One GL code and one statement line each appear for both DUB and CHIR in a plant breakdown. Leaves prove
+    each row gets its own name, budget state and drill link through the shared row-key function, and that
+    clicking CHIR's row reads only CHIR's lines.
   - Each foots to the clicked Actual to the paisa. A row whose plant set the reader partly lost is refused.
   - "View in report" is available only for single-plant statement answers.
 - **C9 Saved and pinned.** A saved view or pin keeps its canonical plant set. Leaves prove that a DUB+CHIR
