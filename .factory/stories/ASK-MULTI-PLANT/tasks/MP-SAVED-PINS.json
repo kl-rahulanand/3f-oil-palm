@@ -19,6 +19,11 @@
         "because": "frontend/src/features/assistant/ask-panel.test.tsx:754 the coordinator drove the real save and pin routes on 2026-10-04 (this branch at d20e2a97 on :4001, real Nest app, OTP login, CSRF, app DB, DUB-only user): POST /api/saved with [\"dub\"] and with no plant filter, and POST /api/pins with [\"DUB-NUR\"], each returned HTTP 400 with error.userMessage \"This question's plant choice is not valid. Choose the plants again.\" and details.reason plant-filter-invalid; POST /api/saved with [\"CHIR\"] returned 400 \"You do not have access to Agriculture - Nursery - CHIR.\" with reason plant-not-granted. The dialogs render error.userMessage from ApiError, proven by the ask-panel leaf against that exact envelope shape.",
         "finding": 2,
         "from_base": false
+      },
+      {
+        "because": "frontend/src/features/exploration/pinned-reports.test.tsx:80 the coordinator ran the real flow on 2026-10-04: this branch at d20e2a97 on :4001 with the real Nest app, OTP login, CSRF and the app DB, as the DUB-only user. POST /api/saved with [\"DUB\",\"DUB\"] returned 201 and stored [\"DUB\"]; POST /api/pins with [\"DUB\"] returned 201. Both stored selections were then given CHIR (a plant the user does not hold, as after a revoke); GET /api/saved and GET /api/pins returned runnable false, reason plants_revoked, \"This view includes plants you no longer have access to: Agriculture - Nursery - CHIR. Edit its plants to run it.\"; a direct POST /api/chat re-run with origin saved-view and origin pin was refused blocked_by_policy, refusal plants-revoked, no rows. This branch's frontend on :3001 against it showed both the pinned card and the saved view with that message and no Open button. Test rows were deleted afterwards.",
+        "finding": 1,
+        "from_base": false
       }
     ],
     "findings": [
@@ -51,10 +56,10 @@
         "title": "Not done: Keep the change within the declared scope"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "c748517110d866bf2e595ffe1bb816b3500fccf56480f5fb7a49205b24f1782f"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T13:21:31+00:00",
