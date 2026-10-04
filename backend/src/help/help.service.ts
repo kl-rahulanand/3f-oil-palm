@@ -1,9 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
 import type { AuthUser, DomainSpec, HelpResponse } from "@3f/contract";
 import { loadConfig } from "../config";
 import { DimensionValuesService } from "../core/dimension-values.service";
+import { SelectionResolverService, statementPeriodOptions } from "../mapping/selection-resolver.service";
 import { SemanticLayer } from "../semantic/semanticLayer";
-import { buildTermIndex, type TermIndex, type TermIndexDimension, type TermIndexMeasure } from "./glossary";
+import { buildTermIndex, type TermIndex } from "./glossary";
 
 const ROLE_REFERENCE = [
   { role: "admin", summary: "User and access management." },
@@ -17,6 +18,7 @@ export class HelpService {
   constructor(
     private readonly semantic: SemanticLayer,
     private readonly dimensionValues: DimensionValuesService,
+    @Optional() private readonly selectionResolver?: SelectionResolverService,
   ) {}
 
   async build(user: AuthUser): Promise<HelpResponse> {
@@ -26,14 +28,16 @@ export class HelpService {
     return {
       gettingStarted: [
         "Ask a question about your configured data in plain English.",
-        "Add a time frame like 'last 30 days' when you want a trend or recent numbers.",
+        index.latestPeriodLabel
+          ? `Name a loaded month, such as ${index.latestPeriodLabel}, when you want a specific period.`
+          : "Name a loaded month when you want a specific period.",
         "Not sure where to start? Try one of the examples below.",
       ],
       whatYouCanAsk: {
         measures: index.measures,
         dimensions: index.dimensions.map(({ id, label }) => ({ id, label })),
         filterExamples: buildFilterExamples(index, allowed),
-        timeframes: ["last 7 days", "last 30 days", "this month", "Jan-Mar 2026"],
+        timeframes: index.latestPeriodLabel ? [index.latestPeriodLabel] : [],
         sampleQuestions: buildSampleQuestions(index),
       },
       whatItWont: [
@@ -56,7 +60,13 @@ export class HelpService {
   async buildIndex(user: AuthUser): Promise<TermIndex> {
     const allowed = this.semantic.allowedFor(user.permissions);
     const values = await this.dimensionValuesForAllowedDomains(allowed);
-    return buildTermIndex(allowed, values);
+    const allowedPlants = user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
+    const periods = this.selectionResolver
+      ? statementPeriodOptions(
+          (await this.selectionResolver.options(allowedPlants.length ? allowedPlants : undefined)).periods,
+        )
+      : [];
+    return buildTermIndex(allowed, values, periods.at(-1));
   }
 
   private async dimensionValuesForAllowedDomains(allowedDomains: DomainSpec[]): Promise<Record<string, string[]>> {
@@ -97,70 +107,8 @@ function buildFilterExamples(index: TermIndex, domains: DomainSpec[]): HelpRespo
 }
 
 function buildSampleQuestions(index: TermIndex): HelpResponse["whatYouCanAsk"]["sampleQuestions"] {
-  const dimensionsById = new Map(index.dimensions.map((dimension) => [dimension.id, dimension]));
-  const preferredDimensions = ["state", "agent", "channel", "campaign", "bank", "record_type", "status"]
-    .map((id) => dimensionsById.get(id))
-    .filter((dimension): dimension is TermIndexDimension => Boolean(dimension));
-
-  const fallbackDimensions = index.dimensions.filter(
-    (dimension) => !preferredDimensions.some((preferred) => preferred.id === dimension.id),
-  );
-  const dimensions = [...preferredDimensions, ...fallbackDimensions];
-
-  const measurePreferences = [
-    /conversion/i,
-    /appointment/i,
-    /success/i,
-    /unassigned/i,
-    /rescheduled/i,
-    /call back|callback/i,
-    /to be called/i,
-    /closed|declined/i,
-  ];
-  const preferredMeasures = measurePreferences
-    .map((pattern) => index.measures.find((measure) => pattern.test(measure.label)))
-    .filter((measure): measure is TermIndexMeasure => Boolean(measure));
-  const measures = [
-    ...preferredMeasures,
-    ...index.measures.filter((measure) => !preferredMeasures.some((preferred) => preferred.id === measure.id)),
-  ];
-
-  const samples: HelpResponse["whatYouCanAsk"]["sampleQuestions"] = [];
-  for (const measure of measures) {
-    const dimension = dimensions[samples.length % Math.max(dimensions.length, 1)];
-    if (dimension) {
-      samples.push({
-        question: `${measure.label} by ${dimension.label}`,
-        behaviour: `Shows ${measure.label.toLocaleLowerCase()} broken down by ${dimension.label.toLocaleLowerCase()} as a chart and a sortable table.`,
-      });
-    } else {
-      samples.push({
-        question: `${measure.label} last 30 days`,
-        behaviour: `Totals ${measure.label.toLocaleLowerCase()} over the last 30 days.`,
-      });
-    }
-    if (samples.length >= 8) break;
-  }
-
-  const timeMeasure = measures.find((measure) => !samples.some((sample) => sample.question.startsWith(measure.label)));
-  if (timeMeasure && samples.length < 8) {
-    samples.push({
-      question: `${timeMeasure.label} last 30 days`,
-      behaviour: `Totals ${timeMeasure.label.toLocaleLowerCase()} over the last 30 days.`,
-    });
-  }
-
-  return dedupeSampleQuestions(samples).slice(0, 8);
-}
-
-function dedupeSampleQuestions(
-  samples: HelpResponse["whatYouCanAsk"]["sampleQuestions"],
-): HelpResponse["whatYouCanAsk"]["sampleQuestions"] {
-  const seen = new Set<string>();
-  return samples.filter((sample) => {
-    const key = sample.question.toLocaleLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return index.exampleQuestions.map((question) => ({
+    question,
+    behaviour: "Uses the governed measures, dimensions and loaded period available to your role.",
+  }));
 }

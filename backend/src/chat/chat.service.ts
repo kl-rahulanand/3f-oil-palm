@@ -146,7 +146,12 @@ export class ChatService {
       const explanation = await this.statementExplanation.explain(user, sessionId, question, statementGrounding);
       if (explanation.kind === "causal") {
         const causal = classifyCausalQuestion(question) ?? classifyCausalQuestion("why");
-        return done({ responseClass: ResponseClass.Informational, kind: "informational", ...causal! });
+        return done({
+          responseClass: ResponseClass.Informational,
+          kind: "informational",
+          ...causal!,
+          suggestedQuestions: (await this.help.buildIndex(user)).exampleQuestions.slice(0, 3),
+        });
       }
       if (explanation.kind === "response") {
         const grounding = explanation.response;
@@ -192,17 +197,28 @@ export class ChatService {
           responseClass: ResponseClass.Informational,
           kind: "informational",
           ...reconcile,
+          suggestedQuestions: (await termIndex()).exampleQuestions.slice(0, 3),
         });
       }
       const causal = classifyCausalQuestion(question);
       if (causal) {
-        return done({ responseClass: ResponseClass.Informational, kind: "informational", ...causal });
+        return done({
+          responseClass: ResponseClass.Informational,
+          kind: "informational",
+          ...causal,
+          suggestedQuestions: (await termIndex()).exampleQuestions.slice(0, 3),
+        });
       }
     }
     if (!editedSelection && !reportGrounding) {
       const smalltalk = classifySmalltalk(question);
       if (smalltalk) {
-        return done({ responseClass: ResponseClass.Informational, kind: "informational", ...smalltalk });
+        return done({
+          responseClass: ResponseClass.Informational,
+          kind: "informational",
+          ...smalltalk,
+          suggestedQuestions: (await termIndex()).exampleQuestions.slice(0, 3),
+        });
       }
     }
 

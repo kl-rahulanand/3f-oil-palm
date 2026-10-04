@@ -1,0 +1,46 @@
+{
+  "allow_large": "Owner allowed on 2026-10-04: four files carry the change; the other three register the new test and take glossary.ts off the legacy formatting list",
+  "base": "79860fb49dec3b05a8fd96cfd353679181df9eef",
+  "branch": "fix/ask-s-help-suggestions-still-carry-mbs-q",
+  "done_when": "no Ask suggestion mentions state, leads, RPush, conversion or last 30 days; definition, value, small-talk and fallback answers suggest 3F questions built from the governed vocabulary (e.g. Actual by GL code for the latest loaded month), with a leaf per suggestion source",
+  "kind": "fix",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "ad3aa73cdc2d4959c70fe143bb47cd6b100a4d1db4011787bd7c3c6adbe34400",
+    "commit": "40663fb123f28adc2aa479c6eb92166be1805994",
+    "dismissals": [
+      {
+        "because": "backend/src/help/ask-help-suggestions-still-carry-mbs-q.test.ts:16 the coordinator ran the live check on 2026-10-04 against this branch's backend (port 4001, real app DB and July warehouse, Bedrock) through the HTTP API with OTP login and CSRF: \"What is Actual?\", \"hello\", \"What is GL code?\", \"Why did Actual go up?\" and \"Does this reconcile with SAP?\" each returned suggestedQuestions [\"Actual by GL code for July 2026\", \"Actual and Budget by GL code for July 2026\", \"Which GL codes had Actual over Budget in July 2026?\"], with July 2026 from real period discovery; asking the first returned 67 rows and the third the known 21 over-budget codes. The frontend renders suggestedQuestions unchanged (ask-panel latestSuggestions), so no browser change is under test; this repo has no Playwright suite to extend for this small fix.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "This remains open from the previous review. These tests instantiate `ChatService` with fake dimension and period services; the fallback case bypasses Ask and calls `unsupportedFallbackMessage` directly. The frontend test likewise supplies a mocked response. No test drives the running API with a real database and then verifies in Playwright that definition, value, small-talk, and fallback suggestions are rendered and usable. Consequently regressions in Nest wiring, real latest-period discovery, HTTP/SSE serialization, or browser rendering/click behavior would pass this suite, contrary to the required end-to-end proof for user-facing behavior.",
+        "file": "backend/src/help/ask-help-suggestions-still-carry-mbs-q.test.ts",
+        "line": 16,
+        "priority": "P1",
+        "title": "Not done: Ask suggestions lack required API-and-browser end-to-end coverage"
+      }
+    ],
+    "status": "clean",
+    "tree": "7341921b8dd60af945ef6ee34ab9a961acf96d41f88c67db0e75bd4ff1dd7fcb"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T07:00:52+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T07:27:13+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T07:37:02+00:00",
+      "step": "review"
+    }
+  ],
+  "why": "Ask's help suggestions still carry MBS question templates (by state, last 30 days, leads, RPush)"
+}

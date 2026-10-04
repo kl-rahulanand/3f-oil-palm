@@ -7,6 +7,7 @@
 # D-0005 (2026-09-07) records the removal of backend/src/atlasTokens.test.ts.
 # ASK-MEASURE-FILTER/MEASURE-FILTER-ASK-RECORD (2026-10-02) records the removal of backend/src/conversations/conversations.service.ts.
 # ASK-MEASURE-FILTER/MEASURE-FILTER-ASK-RECORD (2026-10-02) records the removal of backend/src/help/help.service.ts.
+# ASK-HELP-SUGGESTIONS-STILL-CARRY-MBS-Q (2026-10-04) records the removal of backend/src/help/glossary.ts.
 backend/src/admin/access-metadata.controller.test.ts
 backend/src/admin/access-metadata.service.ts
 backend/src/auth/auth.controller.test.ts
@@ -28,7 +29,6 @@ backend/src/core/session.service.ts
 backend/src/db/schema.ts
 backend/src/email/email.service.ts
 backend/src/grants/grants.controller.ts
-backend/src/help/glossary.ts
 backend/src/measures/authored-measure.registry.test.ts
 backend/src/measures/authored-measure.registry.ts
 backend/src/measures/measure-authoring.catalog.ts
