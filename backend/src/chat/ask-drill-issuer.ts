@@ -73,17 +73,23 @@ export async function issueAskDrill(
   const dataMismatchRowKeys: string[] = [];
   const rows = rowKeys.map((key, index): AskDrillContextRow => {
     const actual = displayed[index]!;
-    const triples = shape.kind === "statement" ? predicateTriples(predicates[index]!.predicate) : undefined;
-    if (actual.kind === "oversized") return { key, drillable: false, ...(triples ? { triples } : {}) };
+    const predicate = predicates[index]!.predicate;
+    const triples = shape.kind === "statement" ? predicateTriples(predicate) : undefined;
+    const identity = {
+      key,
+      plants: predicate.plants,
+      ...(predicate.mode === "gl-and-plants" ? { glCode: predicate.glCode } : {}),
+      ...(triples ? { triples } : {}),
+    };
+    if (actual.kind === "oversized") return { ...identity, drillable: false };
 
     const summary = summaryByKey.get(key);
     const matches = summary !== undefined && decimalToPaise(summary.value) === actual.paise;
     if (!matches) dataMismatchRowKeys.push(key);
     return {
-      key,
+      ...identity,
       actualPaise: actual.paise,
       drillable: Boolean(matches && summary.feedingLineCount > 0),
-      ...(triples ? { triples } : {}),
     };
   });
   const budget = answer.budgetPin

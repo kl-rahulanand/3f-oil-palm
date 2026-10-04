@@ -63,6 +63,9 @@ export class AskDrillService {
         HttpStatus.BAD_REQUEST,
         "This answer does not include that row. Ask again.",
       );
+    if (!rowPlantsAuthorized(user, row.plants)) {
+      return this.refuse(user, sessionId, request, HttpStatus.FORBIDDEN, ACCESS_MESSAGE);
+    }
     if (!row.drillable) {
       return this.refuse(
         user,
@@ -218,13 +221,16 @@ export class AskDrillService {
 function currentlyAuthorized(user: AuthUser, claims: AskDrillContextClaims): boolean {
   const actualMeasure =
     claims.selection.domain === "mis-statement" ? "mis-statement.actual_net" : "governed-financial.actual";
-  const heldPlants = new Set(user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value));
   return (
     user.permissions.actions.includes("report") &&
     user.permissions.domains.includes(claims.selection.domain) &&
-    user.permissions.measureIds.includes(actualMeasure) &&
-    claims.plants.every((plant) => heldPlants.has(plant))
+    user.permissions.measureIds.includes(actualMeasure)
   );
+}
+
+function rowPlantsAuthorized(user: AuthUser, plants: string[]): boolean {
+  const heldPlants = new Set(user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value));
+  return plants.every((plant) => heldPlants.has(plant));
 }
 
 function concreteRange(claims: AskDrillContextClaims): { from: string; to: string } | null {
@@ -239,25 +245,31 @@ function predicateFor(
 ): DrillPredicate | null {
   const base = {
     actualBatchIds: claims.pinnedActuals.map(({ batchId }) => batchId),
-    plants: claims.plants,
+    plants: row.plants,
     ...range,
   };
   if (
     claims.selection.domain === "governed-financial" &&
-    claims.selection.dimensionIds.length === 1 &&
-    claims.selection.dimensionIds[0] === "gl_code"
+    isAllowedRowShape(claims.selection.dimensionIds, "gl_code") &&
+    row.glCode
   ) {
-    return { ...base, mode: "gl-and-plants", glCode: row.key, filters: claims.selection.filters };
+    return { ...base, mode: "gl-and-plants", glCode: row.glCode, filters: claims.selection.filters };
   }
   if (
     claims.selection.domain === "mis-statement" &&
-    claims.selection.dimensionIds.length === 1 &&
-    claims.selection.dimensionIds[0] === "leaf_key" &&
+    isAllowedRowShape(claims.selection.dimensionIds, "leaf_key") &&
     row.triples
   ) {
     return { ...base, mode: "triples", triples: row.triples };
   }
   return null;
+}
+
+function isAllowedRowShape(dimensionIds: string[], identity: "gl_code" | "leaf_key"): boolean {
+  return (
+    (dimensionIds.length === 1 && dimensionIds[0] === identity) ||
+    (dimensionIds.length === 2 && dimensionIds.includes(identity) && dimensionIds.includes("plant"))
+  );
 }
 
 function batchStatus(

@@ -100,10 +100,22 @@ test("Actuals just below the size limit stay exact while both signs at the limit
   assert.equal(verified.outcome, "verified");
   if (verified.outcome === "verified") {
     assert.deepEqual(verified.claims.rows, [
-      { key: "positive-below", actualPaise: "7036874417766399", drillable: true },
-      { key: "negative-below", actualPaise: "-7036874417766399", drillable: true },
-      { key: "positive-limit", drillable: false },
-      { key: "negative-limit", drillable: false },
+      {
+        key: "positive-below",
+        plants: ["DUB"],
+        glCode: "positive-below",
+        actualPaise: "7036874417766399",
+        drillable: true,
+      },
+      {
+        key: "negative-below",
+        plants: ["DUB"],
+        glCode: "negative-below",
+        actualPaise: "-7036874417766399",
+        drillable: true,
+      },
+      { key: "positive-limit", plants: ["DUB"], glCode: "positive-limit", drillable: false },
+      { key: "negative-limit", plants: ["DUB"], glCode: "negative-limit", drillable: false },
     ]);
   }
 });

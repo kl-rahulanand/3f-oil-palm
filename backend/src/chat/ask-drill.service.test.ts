@@ -32,7 +32,7 @@ const input: AskDrillContextInput = {
   },
   plants: ["DUB"],
   pinnedActuals: [actualPin],
-  rows: [{ key: "50001201", actualPaise: "839833900", drillable: true }],
+  rows: [{ key: "50001201", plants: ["DUB"], glCode: "50001201", actualPaise: "839833900", drillable: true }],
 };
 
 test("the signed Ask route re-derives a GL-and-answer-plants predicate and foots the page to the signed Actual", async () => {
@@ -55,7 +55,15 @@ test("the signed Ask route re-derives a GL-and-answer-plants predicate and foots
   const controller = new AskDrillController(new AskDrillService(contexts, repository, audit));
   const context = contexts.issue({
     ...input,
-    rows: [{ key: "50001201", actualPaise: toPaise(summary.value), drillable: summary.feedingLineCount > 0 }],
+    rows: [
+      {
+        key: "50001201",
+        plants: ["DUB"],
+        glCode: "50001201",
+        actualPaise: toPaise(summary.value),
+        drillable: summary.feedingLineCount > 0,
+      },
+    ],
   });
   events.length = 0;
   const response = await controller.run(
@@ -83,6 +91,94 @@ test("the signed Ask route re-derives a GL-and-answer-plants predicate and foots
   assert.doesNotMatch(pageSql, /H\.O/);
   assert.ok(events.indexOf("audit-request") < events.indexOf("transaction-read"));
   assert.equal(audit.requests[0]?.questionLabel, "Ask transaction drill");
+});
+
+test("a composite GL row reads only its signed plant and refuses only when that row's plant was lost", async () => {
+  const chirUser = {
+    ...user,
+    scope: [{ attribute: "plant", value: "CHIR" }],
+  };
+  const warehouse = new FakeWarehouse([], {
+    batches: [batch(actualPin, true)],
+    pageRows: [transaction("2.00")],
+    footer: { total_count: "1", debit: "2.00", credit: "0.00", value: "2.00" },
+  });
+  const { service, contexts } = harness(warehouse, []);
+  const context = contexts.issue({
+    ...input,
+    selection: { ...input.selection, dimensionIds: ["gl_code", "plant"] },
+    plants: ["CHIR", "DUB"],
+    rows: [
+      { key: "50001201|DUB", plants: ["DUB"], glCode: "50001201", actualPaise: "100", drillable: true },
+      { key: "50001201|CHIR", plants: ["CHIR"], glCode: "50001201", actualPaise: "200", drillable: true },
+    ],
+  });
+
+  const opened = await service.run(chirUser, "session-1", { context, rowKey: "50001201|CHIR", page: 1 });
+
+  assert.equal(opened.outcome, "ok");
+  const pageSql = warehouse.executed.find((sql) => sql.includes("ORDER BY (txn.debit - txn.credit)"))!;
+  assert.match(pageSql, /txn\.gl_code = '50001201'/);
+  assert.match(pageSql, /txn\.plant IN \('CHIR'\)/);
+  assert.doesNotMatch(pageSql, /DUB/);
+
+  const refused = await service.run(chirUser, "session-1", { context, rowKey: "50001201|DUB", page: 1 });
+  assert.equal(refused.outcome, "refused");
+  assert.equal(refused.status, 403);
+  assert.equal(refused.message, "Your access has changed since this answer was shown. Ask again.");
+});
+
+test("a composite statement click reads only that plant's signed triples", async () => {
+  const chirUser: AuthUser = {
+    ...user,
+    permissions: {
+      ...user.permissions,
+      domains: ["mis-statement"],
+      measureIds: ["mis-statement.actual_net"],
+      dimensionIds: ["leaf_key"],
+    },
+    scope: [{ attribute: "plant", value: "CHIR" }],
+  };
+  const warehouse = new FakeWarehouse([], {
+    batches: [batch(actualPin, true)],
+    pageRows: [transaction("2.00")],
+    footer: { total_count: "1", debit: "2.00", credit: "0.00", value: "2.00" },
+  });
+  const { service, contexts } = harness(warehouse, []);
+  const context = contexts.issue({
+    ...input,
+    selection: {
+      ...input.selection,
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual_net"],
+      dimensionIds: ["leaf_key", "plant"],
+    },
+    plants: ["CHIR", "DUB"],
+    mappingMasterVersion: 7,
+    rows: [
+      {
+        key: "leaf|DUB",
+        plants: ["DUB"],
+        triples: [{ plant: "DUB", costCenter: "DUB-NURSERY", glCode: "50001201" }],
+        actualPaise: "100",
+        drillable: true,
+      },
+      {
+        key: "leaf|CHIR",
+        plants: ["CHIR"],
+        triples: [{ plant: "CHIR", costCenter: "CHIR-NURSERY", glCode: "50001201" }],
+        actualPaise: "200",
+        drillable: true,
+      },
+    ],
+  });
+
+  const opened = await service.run(chirUser, "session-1", { context, rowKey: "leaf|CHIR", page: 1 });
+
+  assert.equal(opened.outcome, "ok");
+  const pageSql = warehouse.executed.find((sql) => sql.includes("ORDER BY (txn.debit - txn.credit)"))!;
+  assert.match(pageSql, /txn\.plant = 'CHIR' AND txn\.cost_center = 'CHIR-NURSERY' AND txn\.gl_code = '50001201'/);
+  assert.doesNotMatch(pageSql, /DUB/);
 });
 
 test("the signed Ask route ignores the unknown and empty-array filters that the answer query ignores", async () => {
@@ -144,7 +240,7 @@ test("a sparse multi-period answer opens with every active month pin and refuses
       timeWindow: { grain: "month", column: "month", from: "2026-04-01", to: "2026-07-31" },
     },
     pinnedActuals: actualPins,
-    rows: [{ key: "50001201", actualPaise: "12501", drillable: true }],
+    rows: [{ key: "50001201", plants: ["DUB"], glCode: "50001201", actualPaise: "12501", drillable: true }],
   };
   const periods = actualPins.map(({ period }) => period);
   const openedEvents: string[] = [];
@@ -194,7 +290,10 @@ test("a request for a signed oversized no-amount row is refusal-audited before a
   const { service, contexts, audit } = harness(warehouse, events);
 
   const outcome = await service.run(user, "session-1", {
-    context: contexts.issue({ ...input, rows: [{ key: "oversized", drillable: false }] }),
+    context: contexts.issue({
+      ...input,
+      rows: [{ key: "oversized", plants: ["DUB"], glCode: "oversized", drillable: false }],
+    }),
     rowKey: "oversized",
     page: 1,
   });
@@ -290,7 +389,11 @@ test("tampering, expiry, another user, an unlisted row, and every changed-access
   const audit = new FakeAudit(events);
   const service = new AskDrillService(contexts, new DrillTransactionsRepository(new SqlValidator(), warehouse), audit);
   const controller = new AskDrillController(service);
-  const valid = contexts.issue({ ...input, plants: ["DUB", "H.O"] });
+  const valid = contexts.issue({
+    ...input,
+    plants: ["DUB", "H.O"],
+    rows: [{ ...input.rows[0]!, plants: ["DUB", "H.O"] }],
+  });
   const cases: Array<{
     name: string;
     context: string;
@@ -448,6 +551,7 @@ test("statement rows use only signed triples and bind replaced or gone budget pi
     rows: [
       {
         key: "1.1|50001201|sprout-cost",
+        plants: ["DUB"],
         actualPaise: "839833900",
         drillable: true,
         triples: [{ plant: "DUB", costCenter: "NURSERY", glCode: "50001201" }],

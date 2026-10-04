@@ -21,6 +21,7 @@ import {
   type ProvenanceBatch,
   type ResultTable,
   type Selection,
+  askRowKey,
 } from "@3f/contract";
 import { LLM_PROVIDER, loadConfig } from "../config";
 import { LLM_CONTEXT_CHAR_BUDGET, LLM_MESSAGES } from "../llm/llm.constants";
@@ -810,7 +811,8 @@ export class ChatService {
         selection,
         result,
         activeBatchIds,
-        statementScope,
+        statementExecutionScope,
+        plantsRead,
         actualPinsBeforeExecution,
         actualPinsAfterExecution,
       );
@@ -854,13 +856,14 @@ export class ChatService {
     selection: Selection,
     result: ResultTable,
     activeBatchIds: NonNullable<Provenance["activeBatchIds"]>,
-    statementScope: MasterResolvedSelection | undefined,
+    statementExecutionScope: MasterResolvedSelection | MasterResolvedPlantSet | undefined,
+    plantsRead: string[],
     actualPinsBeforeExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
     actualPinsAfterExecution: Array<ProvenanceBatch & { source: "actuals" }> | undefined,
   ): Promise<Pick<AskResponse, "rowLabels" | "drill">> {
     const shape = answerRowShape(selection);
     if (!shape) return {};
-    const keys = result.rows.map((row) => rowKey(row[shape.dimensionId]));
+    const keys = result.rows.map((row) => answerRowKey(row, selection.dimensionIds));
     if (keys.some((key) => key === null)) return {};
     const rowKeys = keys as string[];
     const contributingActualPins = activeBatchIds.filter(
@@ -875,19 +878,17 @@ export class ChatService {
     );
     const actualPins = completedActualPins.pins;
     const predicateRange = signedRange ?? pinnedRange(activeBatchIds);
-    const plants =
-      shape.kind === "statement" ? (statementScope ? [statementScope.plant] : []) : selectedPlantCodes(selection);
     const predicates =
-      predicateRange && plants.length
-        ? rowKeys.map((key) => ({
+      predicateRange && plantsRead.length
+        ? rowKeys.map((key, index) => ({
             rowKey: key,
             predicate: predicateForAnswer(
               shape.kind,
-              key,
+              result.rows[index]!,
               selection,
-              statementScope,
+              statementExecutionScope,
               actualPins,
-              plants,
+              plantsForRow(result.rows[index]!, selection, plantsRead),
               predicateRange,
             ),
           }))
@@ -901,7 +902,10 @@ export class ChatService {
             usablePredicates.map(({ rowKey: key, predicate }) => ({ key, predicate })),
             budgetPin?.batchId,
           )
-        : await this.glNames.findStatementLabels(rowKeys, budgetPin?.batchId);
+        : await this.glNames.findStatementLabels(
+            result.rows.map((row, index) => ({ key: rowKeys[index]!, leafKey: String(row.leaf_key) })),
+            budgetPin?.batchId,
+          );
     if (completedActualPins.changed) {
       for (const key of rowKeys) {
         this.logger.log("warn", "Ask drill batch changed after answer execution", {
@@ -928,7 +932,7 @@ export class ChatService {
         actualPins,
         budgetPin,
         range: signedRange,
-        plants,
+        plants: plantsRead,
         predicates: usablePredicates,
       },
     );
@@ -1071,11 +1075,7 @@ export class ChatService {
 }
 
 function answerRowShape(selection: Selection): AskDrillAnswerShape | null {
-  if (
-    selection.domain === "governed-financial" &&
-    selection.dimensionIds.length === 1 &&
-    selection.dimensionIds[0] === "gl_code"
-  ) {
+  if (selection.domain === "governed-financial" && isDrillableDimensions(selection.dimensionIds, "gl_code")) {
     return {
       kind: "gl",
       dimensionId: "gl_code",
@@ -1083,11 +1083,7 @@ function answerRowShape(selection: Selection): AskDrillAnswerShape | null {
       actualColumn: "actual",
     };
   }
-  if (
-    selection.domain === "mis-statement" &&
-    selection.dimensionIds.length === 1 &&
-    selection.dimensionIds[0] === "leaf_key"
-  ) {
+  if (selection.domain === "mis-statement" && isDrillableDimensions(selection.dimensionIds, "leaf_key")) {
     return {
       kind: "statement",
       dimensionId: "leaf_key",
@@ -1098,8 +1094,20 @@ function answerRowShape(selection: Selection): AskDrillAnswerShape | null {
   return null;
 }
 
+function isDrillableDimensions(dimensionIds: string[], identity: "gl_code" | "leaf_key"): boolean {
+  return (
+    (dimensionIds.length === 1 && dimensionIds[0] === identity) ||
+    (dimensionIds.length === 2 && dimensionIds.includes(identity) && dimensionIds.includes("plant"))
+  );
+}
+
 function rowKey(value: string | number | null | undefined): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function answerRowKey(row: ResultTable["rows"][number], dimensionIds: string[]): string | null {
+  if (dimensionIds.some((dimensionId) => row[dimensionId] === null || row[dimensionId] === undefined)) return null;
+  return rowKey(askRowKey(row, dimensionIds));
 }
 
 export function lastMonthBudgetPin(pins: ProvenanceBatch[], to: string | undefined): ProvenanceBatch | undefined {
@@ -1155,29 +1163,36 @@ function completeActualPins(
 
 function predicateForAnswer(
   kind: AskDrillAnswerShape["kind"],
-  key: string,
+  row: ResultTable["rows"][number],
   selection: Selection,
-  statementScope: MasterResolvedSelection | undefined,
+  statementScope: MasterResolvedSelection | MasterResolvedPlantSet | undefined,
   actualPins: ProvenanceBatch[],
   plants: string[],
   range: { from: string; to: string },
 ): DrillPredicate | null {
   const base = { actualBatchIds: actualPins.map(({ batchId }) => batchId), plants, ...range };
   return kind === "gl"
-    ? { ...base, mode: "gl-and-plants", glCode: key, filters: selection.filters }
+    ? { ...base, mode: "gl-and-plants", glCode: String(row.gl_code), filters: selection.filters }
     : statementScope
-      ? { ...base, mode: "triples", triples: statementTriples(key, statementScope) }
+      ? { ...base, mode: "triples", triples: statementTriples(String(row.leaf_key), statementScope, plants) }
       : null;
 }
 
 function statementTriples(
   leafKey: string,
-  statementScope: MasterResolvedSelection | undefined,
+  statementScope: MasterResolvedSelection | MasterResolvedPlantSet | undefined,
+  plants: string[],
 ): Array<{ plant: string; costCenter: string; glCode: string }> {
   return (statementScope?.leafTargets ?? []).flatMap(({ plant, costCenter, glCode, target }) => {
     const targetLeaf = target.kind === "leaf" ? target.leafKey : "unmapped-GL";
-    return targetLeaf === leafKey ? [{ plant, costCenter, glCode }] : [];
+    return targetLeaf === leafKey && plants.includes(plant) ? [{ plant, costCenter, glCode }] : [];
   });
+}
+
+function plantsForRow(row: ResultTable["rows"][number], selection: Selection, plantsRead: string[]): string[] {
+  if (!selection.dimensionIds.includes("plant")) return plantsRead;
+  const plant = typeof row.plant === "string" ? row.plant : "";
+  return plant && plantsRead.includes(plant) ? [plant] : [];
 }
 
 const PERIOD_WORD_PATTERN = /\b(?:q[1-4]|today|yesterday|since)\b/i;

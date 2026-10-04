@@ -7,6 +7,8 @@ const pinSchema = z.object({ source: z.enum(["actuals", "budget"]), period: z.st
 const tripleSchema = z.object({ plant: z.string(), costCenter: z.string(), glCode: z.string() }).strict();
 const rowFields = {
   key: z.string().min(1),
+  plants: z.array(z.string().min(1)).min(1),
+  glCode: z.string().min(1).optional(),
   triples: z.array(tripleSchema).optional(),
 };
 const rowSchema = z.discriminatedUnion("drillable", [
@@ -58,11 +60,25 @@ const claimsSchema = z
       if (!statement && row.triples !== undefined) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["rows", index, "triples"], message: "not allowed" });
       }
+      if (!statement && row.glCode === undefined) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["rows", index, "glCode"], message: "required" });
+      }
+      if (statement && row.glCode !== undefined) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["rows", index, "glCode"], message: "not allowed" });
+      }
+      if (row.plants.some((plant) => !claims.plants.includes(plant))) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["rows", index, "plants"], message: "outside answer" });
+      }
+      if (row.triples?.some(({ plant }) => !row.plants.includes(plant))) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["rows", index, "triples"], message: "outside row" });
+      }
     }
   });
 
 interface AskDrillContextRowBase {
   key: string;
+  plants: string[];
+  glCode?: string;
   triples?: Array<{ plant: string; costCenter: string; glCode: string }>;
 }
 
