@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "8292dc342616ab9f1f795deb46c80183bb0458d09762266ce85e91aa3ab1b989",
     "commit": "c3930b9053625fdd91186cee26ad17b7d8fbc1af",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/warehouse/statement-projection.db.test.ts:24 the coordinator ran the gated warehouse leaves on 2026-10-04 at the branch head (after the independent CHIR oracle commit) against the throwaway postgres:16-alpine on 127.0.0.1:5434 (AGENTS.md Known traps; CI has no database, so the close run skips them by design) with WAREHOUSE_DB_TEST=1: statement-projection.db.test.ts and all-plants-reconciliation.db.test.ts together, tests 6, pass 6, fail 0, skipped 0.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The only real-database proof for the combined statement remains gated by `WAREHOUSE_DB_TEST=1`. The supplied close run shows this exact test as `# SKIP`, with no successful throwaway-Postgres run provided. Therefore the recorded verification never executes the assertions that distinguish the new multi-plant SQL from the old projection. Run this test against the mandated local warehouse before closing the task.",
@@ -28,10 +34,10 @@
         "title": "Later: MP-ASK-BUDGET and MP-ASK-UI-RESULTS must implement budget-state answers and dash cells"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "ca73e6e318d4da7cb75315451c5cc5f1f84084d5f0a4dc45485d46f2af19bf2f"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T12:03:45+00:00",
