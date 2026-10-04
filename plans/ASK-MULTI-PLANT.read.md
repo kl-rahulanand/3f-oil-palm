@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:25:38+00:00
-read_hash: 7f7491d7068088e1d02b4bd0284a75c1cf162dd8
-round: 1
+read_at: 2026-10-04T08:29:31+00:00
+read_hash: c936f285d0a1578bb42ebbd6acfb0f47bd9aeffe
+round: 2
 passed: no
-doc_seen: 7f7491d7068088e1d02b4bd0284a75c1cf162dd8
+doc_seen: c936f285d0a1578bb42ebbd6acfb0f47bd9aeffe
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+notes_seen: a25ad66b26578f591f550999b58520d84cdeb0ad
 ---
 # Cold read notes
 
@@ -60,3 +60,11 @@ Only a genuine trade-off goes to the human, as a question with options.
 10. Trap: destructive gated warehouse tests: items 3 and 4.
    Their database leaves must run only against the documented throwaway ports 5434/5435; the plan notes this, but each task should make it an explicit execution condition.
    Disposition: cut a shared rule makes 5434/5435 an explicit execution condition for every part that adds or changes a gated warehouse test.
+
+## Round 2
+
+11. C1 still has no no-read route for constructing `plantChoice.selection`.
+   The current selector preparation calls `dimensionValuesForAllowedDomains`, which reads the warehouse before `llm.select`; mapping-master picker options do not remove that read. Pin how the base selection is produced before a plant choice, and have the leaf spy on dimension-values reads too.
+
+12. MP-CONTRACT misses `backend/package.json` in Scope.
+   It adds `contract/test/row-key.test.ts`; the repository rule requires every task adding a test file to scope both `backend/package.json` and `tools/quality-gate.test.mjs` so the registered leaf is actually run.
