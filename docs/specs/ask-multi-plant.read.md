@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:44:50+00:00
-read_hash: a5cb1b9d9c75b52a2e930d11cc6e3aa761afa2a3
-round: 19
+read_at: 2026-10-04T08:45:37+00:00
+read_hash: 271946414a42b5273d022f6fa63faa3a1b1f8781
+round: 20
 passed: no
-doc_seen: a5cb1b9d9c75b52a2e930d11cc6e3aa761afa2a3
+doc_seen: 271946414a42b5273d022f6fa63faa3a1b1f8781
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 2d9aa4450d8c1e5c41a069979e8c48d9a5593599
+notes_seen: 4315bf88bd2d0f4fb289482009f02c1760620658
 ---
 # Cold read notes
 
@@ -304,3 +304,9 @@ No findings.
 59. Contradiction: “a plant that gains [a budget] later” exceeds the PoC budget-owner rule.
    Only DUB can gain a newly active DUB budget batch in this scope; a CHIR budget requires decision 0034’s separate plant-keyed-budget story. Limit the re-run statement and C6 proof to DUB’s period batch becoming active.
    Disposition: cut the re-run statement now covers only DUB's missing budget batch becoming active (decision 0034), and C6's leaf proves that case.
+
+## Round 20
+
+60. Unproven: C11 does not pin ordinary dimension filters.
+   The live corpus can retain its domain, measures, dimensions, comparison, and period while gaining a GL/month filter that changes the answer. Record `filters: []` for each corpus prompt and compare it after the change, except for the explicitly discarded selector plant filter on unnamed questions.
+   Disposition: cut C11 now pins ordinary filters: before and after, each corpus answer may carry only a month equality filter on the asked month (the live model emits it on some runs, observed 2026-10-04) plus, after, the plant filter; any other filter fails the probe.
