@@ -94,6 +94,37 @@ test("a continuation targets its turn by a stable id not by question or index", 
   expect(screen.getByTestId("turn-1").dataset.turnId).not.toBe(screen.getByTestId("turn-2").dataset.turnId);
 });
 
+test("a period continuation keeps the plant filter and sends its origin", async () => {
+  const plantSelection: Selection = {
+    ...selection,
+    filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+  };
+  mocks.ask
+    .mockResolvedValueOnce({
+      ...clarification("Original plant-scoped question"),
+      periodChoice: {
+        ...clarification().periodChoice!,
+        question: "Original plant-scoped question",
+        selection: plantSelection,
+      },
+    })
+    .mockResolvedValueOnce(success);
+  renderProvider();
+
+  fireEvent.click(screen.getByRole("button", { name: "Ask same question" }));
+  fireEvent.click(await screen.findByRole("button", { name: "July 2026" }));
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({
+    question: "Original plant-scoped question",
+    selection: {
+      ...plantSelection,
+      timeWindow: clarification().periodChoice!.options[0]!.timeWindow,
+    },
+    origin: "period-choice",
+  });
+});
+
 test("a grounded turn is not rendered on the ask page", async () => {
   mocks.ask.mockResolvedValueOnce(groundedSuccess);
   render(
@@ -533,6 +564,7 @@ function Harness() {
                       timeWindow: turn.response!.periodChoice!.options[0]!.timeWindow,
                     },
                     "retain",
+                    "period-choice",
                   )
                 }
               >

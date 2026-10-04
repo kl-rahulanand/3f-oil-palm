@@ -99,6 +99,29 @@ const periodClarification: AskResponse = {
   viewInReport: { available: false, reason: "Choose a period first." },
 };
 
+const plantChoice = {
+  prompt: "Which plants should this answer cover?",
+  question: "Show Actual by GL code for July 2026",
+  selection: {
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["gl_code"],
+    filters: [],
+  },
+  options: [
+    { value: "DUB", label: "Agriculture - Nursery - DUB" },
+    { value: "CHIR", label: "Agriculture - Nursery - CHIR" },
+  ],
+  allPlants: { label: "All plants" as const, value: ["CHIR", "DUB"] },
+};
+
+const plantClarification: AskResponse = {
+  responseClass: "clarification_needed" as AskResponse["responseClass"],
+  sessionId: "session",
+  plantChoice,
+  viewInReport: { available: false, reason: "Choose plants first." },
+};
+
 const periodControl = {
   current: "2026-07-01",
   coverage: "July 2026",
@@ -927,6 +950,140 @@ test("a period choice renders its prompt and one button per offered period", asy
   expect(within(answer).getByRole("button", { name: "August 2026" })).toBeInTheDocument();
 });
 
+test("a plant choice renders a labelled checkbox for each option and All plants", async () => {
+  mocks.ask.mockResolvedValue(plantClarification);
+  renderAsk();
+
+  submit("Show Actual by GL code for July 2026");
+
+  const prompt = await screen.findByText("Which plants should this answer cover?");
+  const answer = prompt.closest("article")!;
+  expect(within(answer).getByRole("checkbox", { name: "Agriculture - Nursery - DUB" })).toBeInTheDocument();
+  expect(within(answer).getByRole("checkbox", { name: "Agriculture - Nursery - CHIR" })).toBeInTheDocument();
+  expect(within(answer).getByRole("checkbox", { name: "All plants" })).toBeInTheDocument();
+  expect(within(answer).getByRole("button", { name: "Show answer" })).toBeInTheDocument();
+});
+
+test("submitting a plant choice with nothing selected announces what to do and sends nothing", async () => {
+  mocks.ask.mockResolvedValue(plantClarification);
+  renderAsk();
+  submit("Show Actual by GL code for July 2026");
+  const firstPlant = await screen.findByRole("checkbox", { name: "Agriculture - Nursery - DUB" });
+
+  fireEvent.click(screen.getByRole("button", { name: "Show answer" }));
+
+  expect(screen.getByRole("status")).toHaveTextContent("Choose at least one plant");
+  expect(screen.getByRole("checkbox", { name: "All plants" })).toHaveFocus();
+  expect(firstPlant).not.toHaveFocus();
+  expect(mocks.ask).toHaveBeenCalledOnce();
+});
+
+test("choosing two plants sends one sorted plant filter through the plant continuation", async () => {
+  mocks.ask.mockResolvedValueOnce(plantClarification).mockImplementationOnce(() => new Promise(() => {}));
+  renderAsk();
+  submit("Show Actual by GL code for July 2026");
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Agriculture - Nursery - DUB" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Agriculture - Nursery - CHIR" }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Show answer" }));
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({
+    question: plantChoice.question,
+    selection: {
+      ...plantChoice.selection,
+      filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+    },
+    origin: "plant-choice",
+  });
+  expect(screen.getByText(plantChoice.prompt).closest("article")).toHaveFocus();
+});
+
+test("All plants submits the exact plant set offered by the server", async () => {
+  mocks.ask.mockResolvedValueOnce(plantClarification).mockImplementationOnce(() => new Promise(() => {}));
+  renderAsk();
+  submit("Show Actual by GL code for July 2026");
+
+  fireEvent.click(await screen.findByRole("checkbox", { name: "All plants" }));
+  fireEvent.click(screen.getByRole("button", { name: "Show answer" }));
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+  expect(mocks.ask.mock.calls[1]?.[0].selection.filters).toEqual([
+    { dimensionId: "plant", op: "in", value: plantChoice.allPlants.value },
+  ]);
+});
+
+test("a plant choice refusal replaces the picker with its typed reason", async () => {
+  mocks.ask.mockResolvedValueOnce(plantClarification).mockResolvedValueOnce({
+    responseClass: "blocked_by_policy" as AskResponse["responseClass"],
+    sessionId: "session",
+    message: "Access changed.",
+    refusal: { reason: "choice-plants-revoked", plants: ["Agriculture - Nursery - CHIR"] },
+    viewInReport: { available: false, reason: "Access changed." },
+  });
+  renderAsk();
+  submit("Show Actual by GL code for July 2026");
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Agriculture - Nursery - CHIR" }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Show answer" }));
+
+  expect(
+    await screen.findByText("You no longer have access to Agriculture - Nursery - CHIR. Ask again."),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(plantChoice.prompt)).not.toBeInTheDocument();
+});
+
+test("a plant refusal during period choice replaces the period picker with its typed reason", async () => {
+  mocks.ask.mockResolvedValueOnce(periodClarification).mockResolvedValueOnce({
+    responseClass: "blocked_by_policy" as AskResponse["responseClass"],
+    sessionId: "session",
+    message: "Access changed.",
+    refusal: { reason: "choice-plants-revoked", plants: ["Agriculture - Nursery - CHIR"] },
+    viewInReport: { available: false, reason: "Access changed." },
+  });
+  renderAsk();
+  submit("Show the statement");
+
+  fireEvent.click(await screen.findByRole("button", { name: "July 2026" }));
+
+  expect(
+    await screen.findByText("You no longer have access to Agriculture - Nursery - CHIR. Ask again."),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(periodChoice.prompt)).not.toBeInTheDocument();
+});
+
+test("a period after plant choice keeps the plant filter and identifies the period continuation", async () => {
+  const chosenPlants = [{ dimensionId: "plant", op: "in" as const, value: ["CHIR", "DUB"] }];
+  mocks.ask
+    .mockResolvedValueOnce(plantClarification)
+    .mockResolvedValueOnce({
+      ...periodClarification,
+      periodChoice: {
+        ...periodChoice,
+        selection: { ...periodChoice.selection, filters: chosenPlants },
+      },
+    })
+    .mockResolvedValueOnce(success);
+  renderAsk();
+  submit("Show the statement");
+  fireEvent.click(await screen.findByRole("checkbox", { name: "All plants" }));
+  fireEvent.click(screen.getByRole("button", { name: "Show answer" }));
+  const period = await screen.findByRole("button", { name: "July 2026" });
+  await waitFor(() => expect(period).toHaveFocus());
+  fireEvent.click(period);
+
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(3));
+  expect(mocks.ask.mock.calls[2]?.[0]).toEqual({
+    question: periodChoice.question,
+    selection: {
+      ...periodChoice.selection,
+      filters: chosenPlants,
+      timeWindow: periodChoice.options[0]!.timeWindow,
+    },
+    origin: "period-choice",
+  });
+});
+
 test("a successful statement answer renders its period select with the period it ran on selected", async () => {
   mocks.ask.mockResolvedValue({ ...success, periodControl });
   renderAsk();
@@ -1007,6 +1164,7 @@ test("picking another period calls continue turn with the cloned selection and t
   expect(mocks.ask.mock.calls[1]?.[0]).toEqual({
     question: "Show the statement for July 2026",
     selection: { ...selection, timeWindow: periodChoice.options[1]!.timeWindow },
+    origin: "period-choice",
   });
   rejectSwitch(new Error("transport failed"));
   expect(await screen.findByRole("alert")).toHaveTextContent("The period could not be loaded. Try again.");
@@ -1065,6 +1223,7 @@ test("clicking a period posts the cloned selection and the question untrimmed", 
         to: "2026-07-01",
       },
     },
+    origin: "period-choice",
   });
 });
 
@@ -1084,6 +1243,47 @@ test("the untouched clarify options path still appends the chosen words", async 
 
   await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
   expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "Show Actual (July 2026)" });
+});
+
+test("each plant refusal renders the spec copy from its typed reason", async () => {
+  const cases: Array<{ refusal: NonNullable<AskResponse["refusal"]>; copy: string }> = [
+    {
+      refusal: { reason: "plant-not-granted", plants: ["Chirala", "Duvva Nursery"] },
+      copy: "You do not have access to Chirala, Duvva Nursery.",
+    },
+    {
+      refusal: { reason: "plants-revoked", plants: ["Chirala"] },
+      copy: "This view includes plants you no longer have access to: Chirala. Edit its plants to run it.",
+    },
+    {
+      refusal: { reason: "choice-plants-revoked", plants: ["Chirala"] },
+      copy: "You no longer have access to Chirala. Ask again.",
+    },
+    {
+      refusal: { reason: "plant-filter-invalid", plants: [] },
+      copy: "This question's plant choice is not valid. Choose the plants again.",
+    },
+    {
+      refusal: { reason: "no-plants-granted", plants: [] },
+      copy: "You do not have access to any plant.",
+    },
+  ];
+  renderAsk();
+
+  for (const [index, { refusal, copy }] of cases.entries()) {
+    mocks.ask.mockResolvedValueOnce({
+      responseClass: "blocked_by_policy" as AskResponse["responseClass"],
+      sessionId: `session-${index}`,
+      message: "This server message must not choose the client copy.",
+      refusal,
+      viewInReport: { available: false, reason: "Not available." },
+    });
+    submit(`Refusal ${index}`);
+
+    const answer = await screen.findByText(copy);
+    expect(answer).toHaveClass("ask-failure");
+  }
+  expect(screen.queryByText("This server message must not choose the client copy.")).not.toBeInTheDocument();
 });
 
 test("only successful turns become prior turns and the thread survives opening the ask page but not a reload", async () => {

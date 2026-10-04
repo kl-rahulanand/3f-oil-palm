@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type AskRequest,
   type AskResponse,
   type AskRowLabel,
   type ChartType,
@@ -61,6 +62,7 @@ export function AskPanel({
     useAsk();
   const [draft, setDraft] = useState("");
   const [askDrill, setAskDrill] = useState<AskDrillPanelSelection | null>(null);
+  const [continuationFocusTurnId, setContinuationFocusTurnId] = useState<string>();
   const threadRef = useRef<HTMLDivElement>(null);
   const visibleTurns = surface === "page" ? turns.filter((turn) => turn.origin === "ungrounded") : turns;
   const suggestions = latestSuggestions(visibleTurns) ?? SEED_QUESTIONS;
@@ -72,6 +74,32 @@ export function AskPanel({
     target.scrollIntoView({ block: "center" });
     clearScrollTarget();
   }, [clearScrollTarget, scrollTargetId, surface, turns]);
+
+  useEffect(() => {
+    if (!continuationFocusTurnId) return;
+    const exchange = threadRef.current?.querySelector<HTMLElement>(`[data-ask-turn="${continuationFocusTurnId}"]`);
+    const answer = exchange?.querySelector<HTMLElement>(".ask-answer");
+    if (!answer || answer.getAttribute("aria-busy") === "true") return;
+    const nextChoice = answer.querySelector<HTMLElement>("button:not(:disabled), select:not(:disabled)");
+    if (nextChoice) nextChoice.focus();
+    else {
+      answer.tabIndex = -1;
+      answer.focus();
+    }
+    setContinuationFocusTurnId(undefined);
+  }, [continuationFocusTurnId, turns]);
+
+  async function continueAndFocus(
+    turnId: string,
+    question: string,
+    selection: Selection,
+    failurePolicy: "retain" | "clear-on-refusal",
+    requestOrigin?: AskRequest["origin"],
+  ) {
+    const started = await continueTurn(turnId, question, selection, failurePolicy, requestOrigin);
+    if (started && requestOrigin === "plant-choice") setContinuationFocusTurnId(turnId);
+    return started;
+  }
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -127,13 +155,18 @@ export function AskPanel({
 
         <div className="ask-thread" aria-live="polite" ref={threadRef}>
           {visibleTurns.map((turn) => (
-            <div className="ask-exchange" id={surface === "page" ? turn.id : undefined} key={turn.id}>
+            <div
+              className="ask-exchange"
+              id={surface === "page" ? turn.id : undefined}
+              data-ask-turn={turn.id}
+              key={turn.id}
+            >
               <p className="ask-question">{turn.question}</p>
               <Answer
                 turn={turn}
                 isPending={isPending}
                 onAsk={ask}
-                onContinue={continueTurn}
+                onContinue={continueAndFocus}
                 statement={statement}
                 onOpenDrill={onOpenDrill}
                 storedAnswer={storedAnswer}
@@ -198,6 +231,7 @@ function Answer({
     question: string,
     selection: Selection,
     failurePolicy: "retain" | "clear-on-refusal",
+    requestOrigin?: AskRequest["origin"],
   ) => Promise<boolean>;
   statement?: MisStatementResolvedResponse;
   onOpenDrill?: (nodeKey: string, block: MisStatementMeasureBlock["key"], opener: HTMLButtonElement) => void;
@@ -244,6 +278,10 @@ function Answer({
     );
   }
   if (response.responseClass === "clarification_needed") {
+    const plantChoice = response.plantChoice;
+    if (plantChoice) {
+      return <PlantChoiceAnswer turn={turn} choice={plantChoice} onContinue={onContinue} />;
+    }
     const choice = response.periodChoice;
     if (choice) {
       return (
@@ -264,6 +302,7 @@ function Answer({
                       timeWindow: option.timeWindow,
                     },
                     "retain",
+                    "period-choice",
                   )
                 }
               >
@@ -301,7 +340,149 @@ function Answer({
       </article>
     );
   }
+  if (response.responseClass === "blocked_by_policy" && response.refusal) {
+    return <p className="ask-answer ask-failure">{plantRefusalMessage(response.refusal)}</p>;
+  }
   return <p className="ask-answer ask-failure">{response.message}</p>;
+}
+
+function PlantChoiceAnswer({
+  turn,
+  choice,
+  onContinue,
+}: Readonly<{
+  turn: AskTurn;
+  choice: NonNullable<AskResponse["plantChoice"]>;
+  onContinue: (
+    turnId: string,
+    question: string,
+    selection: Selection,
+    failurePolicy: "retain" | "clear-on-refusal",
+    requestOrigin?: AskRequest["origin"],
+  ) => Promise<boolean>;
+}>) {
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [validationMessage, setValidationMessage] = useState<string>();
+  const answerRef = useRef<HTMLElement>(null);
+  const firstOptionRef = useRef<HTMLInputElement>(null);
+  const validationId = useId();
+  const allSelected = choice.allPlants.value.length > 0 && choice.allPlants.value.every((plant) => selected.has(plant));
+
+  function selectPlant(plant: string, checked: boolean) {
+    setValidationMessage(undefined);
+    setSelected((current) => {
+      const next = new Set(current);
+      if (checked) next.add(plant);
+      else next.delete(plant);
+      return next;
+    });
+  }
+
+  function selectAll(checked: boolean) {
+    setValidationMessage(undefined);
+    setSelected(checked ? new Set(choice.allPlants.value) : new Set());
+  }
+
+  function submitPlants(event: FormEvent) {
+    event.preventDefault();
+    if (selected.size === 0) {
+      setValidationMessage("Choose at least one plant");
+      firstOptionRef.current?.focus();
+      return;
+    }
+    const plantCodes = [...selected].sort();
+    setValidationMessage(undefined);
+    answerRef.current?.focus();
+    void onContinue(
+      turn.id,
+      choice.question,
+      {
+        ...choice.selection,
+        filters: [...choice.selection.filters, { dimensionId: "plant", op: "in", value: plantCodes }],
+      },
+      "retain",
+      "plant-choice",
+    );
+  }
+
+  const optionClassName =
+    "flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-full border border-[var(--kl-line)] bg-[var(--kl-white)] px-3 py-2 text-left text-[11.5px] text-[var(--kl-emerald)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--kl-emerald)] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-55";
+
+  return (
+    <article
+      ref={answerRef}
+      className="ask-answer ask-clarification focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kl-emerald)]"
+      aria-busy={turn.isPending || undefined}
+      tabIndex={-1}
+    >
+      <form className="grid min-w-0 gap-3" onSubmit={submitPlants}>
+        <fieldset className="m-0 min-w-0 border-0 p-0" aria-describedby={validationMessage ? validationId : undefined}>
+          <legend className="mb-3 p-0">{choice.prompt}</legend>
+          <div className="ask-options max-h-64 overflow-y-auto overscroll-contain pr-1">
+            <label className={optionClassName}>
+              <input
+                ref={firstOptionRef}
+                className="h-4 w-4 shrink-0 accent-[var(--kl-emerald)]"
+                type="checkbox"
+                checked={allSelected}
+                disabled={turn.isPending}
+                onChange={(event) => selectAll(event.target.checked)}
+              />
+              <span>{choice.allPlants.label}</span>
+            </label>
+            {choice.options.map((option) => (
+              <label className={optionClassName} key={option.value}>
+                <input
+                  className="h-4 w-4 shrink-0 accent-[var(--kl-emerald)]"
+                  type="checkbox"
+                  checked={selected.has(option.value)}
+                  disabled={turn.isPending}
+                  onChange={(event) => selectPlant(option.value, event.target.checked)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {validationMessage && (
+          <p className="ask-period-error" id={validationId} role="status">
+            {validationMessage}
+          </p>
+        )}
+        <div className="ask-options">
+          <button className="min-h-11" type="submit" disabled={turn.isPending}>
+            Show answer
+          </button>
+        </div>
+      </form>
+      {turn.isPending && (
+        <p className="ask-period-status" role="status">
+          Loading the selected plants…
+        </p>
+      )}
+      {turn.error && (
+        <p className="ask-period-error" role="alert">
+          {turn.error}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function plantRefusalMessage(refusal: NonNullable<AskResponse["refusal"]>): string {
+  const plants = refusal.plants.join(", ");
+  switch (refusal.reason) {
+    case "plant-not-granted":
+      return `You do not have access to ${plants}.`;
+    case "plants-revoked":
+      return `This view includes plants you no longer have access to: ${plants}. Edit its plants to run it.`;
+    case "choice-plants-revoked":
+      return `You no longer have access to ${plants}. Ask again.`;
+    case "plant-filter-invalid":
+      return "This question's plant choice is not valid. Choose the plants again.";
+    case "no-plants-granted":
+      return "You do not have access to any plant.";
+  }
 }
 
 function SuccessAnswer({
@@ -320,6 +501,7 @@ function SuccessAnswer({
     question: string,
     selection: Selection,
     failurePolicy: "retain" | "clear-on-refusal",
+    requestOrigin?: AskRequest["origin"],
   ) => Promise<boolean>;
   storedAnswer: boolean;
   onOpenAskDrill: (selection: AskDrillPanelSelection) => void;
@@ -417,6 +599,7 @@ function SuccessAnswer({
                       timeWindow: option.timeWindow,
                     },
                     "retain",
+                    "period-choice",
                   );
                 }
               }}

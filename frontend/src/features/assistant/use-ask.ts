@@ -291,7 +291,16 @@ function resolveContinueResponse(
 ): AskTurn {
   if (response.responseClass === "success")
     return { id: turn.id, origin: turn.origin, question: turn.question, response };
-  if (failurePolicy === "clear-on-refusal" && response.responseClass === "blocked_by_policy") {
+  if (
+    response.responseClass === "clarification_needed" &&
+    (response.plantChoice !== undefined || response.periodChoice !== undefined)
+  ) {
+    return { id: turn.id, origin: turn.origin, question: turn.question, response };
+  }
+  if (
+    response.responseClass === "blocked_by_policy" &&
+    (failurePolicy === "clear-on-refusal" || response.refusal !== undefined)
+  ) {
     return { id: turn.id, origin: turn.origin, question: turn.question, response };
   }
   return {
