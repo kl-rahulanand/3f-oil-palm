@@ -3,7 +3,7 @@
   "branch": "fix/ask-s-help-suggestions-still-carry-mbs-q",
   "done_when": "no Ask suggestion mentions state, leads, RPush, conversion or last 30 days; definition, value, small-talk and fallback answers suggest 3F questions built from the governed vocabulary (e.g. Actual by GL code for the latest loaded month), with a leaf per suggestion source",
   "kind": "fix",
-  "status": "started",
+  "status": "working",
   "steps": [
     {
       "at": "2026-10-04T07:00:52+00:00",
