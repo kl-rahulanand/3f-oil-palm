@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:41:03+00:00
-read_hash: 8c6c7440bc2414acdbf923b209c0a40beb303c0b
-round: 16
+read_at: 2026-10-04T08:42:09+00:00
+read_hash: 958c21bb76e5c6df4047468f9dfd917e66c9efbc
+round: 17
 passed: no
-doc_seen: 8c6c7440bc2414acdbf923b209c0a40beb303c0b
+doc_seen: 958c21bb76e5c6df4047468f9dfd917e66c9efbc
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 9678cb607bd462552c0dd6e015587b8f15ce13c3
+notes_seen: ed5b1d953f5f4d17fab7273282a1c07a8aacc24f
 ---
 # Cold read notes
 
@@ -286,3 +286,9 @@ No findings.
 56. Gap: an unwindowed budget comparison has no defined pre-comparison month set.
    The answer window is defined from Actual “the query read,” but the comparison predicate must exclude unbudgeted plants before that query reads its final rows. Pin that it derives candidate Actual months before comparison filtering, then prove an unwindowed DUB comparison with one unbudgeted Actual month becomes the no-budget informational answer.
    Disposition: cut an unwindowed answer's months come from the active Actual load batches before the query runs, so comparison filtering has its month set first; C6 proves the unwindowed DUB comparison becomes the no-budget answer with no read.
+
+## Round 17
+
+57. Contradiction: the unwindowed no-budget path must read active Actual load batches before it can return an answer that promises “nothing is read.”
+   Define permitted preflight metadata lookups versus prohibited figure reads, including their audit behavior, and make C6 prove that only the former occurs.
+   Disposition: cut a new "What counts as a read" section separates figure reads (data query, totals, names, drill, transactions; audited) from metadata lookups (mapping master, grants, cached vocabulary, load-batch metadata; not audited as data reads), and every "no read" means no figure read; C6 proves the unwindowed no-budget answer runs only metadata lookups.
