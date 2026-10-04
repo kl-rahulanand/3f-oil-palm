@@ -9,6 +9,11 @@
         "because": "frontend/src/features/assistant/ask-panel.tsx:408 the picker adds no new visual language: it reuses the period-choice card, button and token styles. The worker's commit records the review it ran (native labels, focus order, polite live region, 44px touch targets, empty state, theme-token contrast, bounded scrolling list at phone width; no motion added per the Emil review), and the coordinator viewed it in the browser on 2026-10-04 (branch on :3001): labelled checkboxes in a bounded scrolling card, All plants first, Show answer button, the \"Choose at least one plant\" status message on an empty submit. The owner capped review loops for this story.",
         "finding": 3,
         "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:1274 the server-selected refusal reasons were exercised through the running Ask route on 2026-10-04 (real Nest app, OTP login, CSRF, app DB): a direct POST /api/chat with origin saved-view and with origin pin carrying a plant the DUB-only user does not hold returned blocked_by_policy with refusal {reason: plants-revoked, plants: [\"Agriculture - Nursery - CHIR\"]} and the spec copy as message; save and pin requests returned the typed 400 copy for plant-filter-invalid and plant-not-granted. This branch renders refusal.reason with that same copy table, proven per reason in ask-panel.test.tsx against the exact response shape the route returned. The owner capped review loops for this story.",
+        "finding": 2,
+        "from_base": false
       }
     ],
     "findings": [
