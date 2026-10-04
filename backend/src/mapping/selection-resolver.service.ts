@@ -12,7 +12,13 @@ import {
   type MappingMaster,
   type MappingSelection,
 } from "./mapping-master";
-import type { ISelectionResolverService, MasterSelectionResolution } from "./selection-resolver.interface";
+import type {
+  IMultiPlantSelectionResolverService,
+  MasterPlantSetResolution,
+  MasterResolvedSelection,
+  MasterSelectionResolution,
+  ResolvedSelectionPeriod,
+} from "./selection-resolver.interface";
 
 const FY_START = "2026-04-01";
 const FY_END = "2027-03-31";
@@ -27,7 +33,7 @@ export class SelectionPeriodUnavailableError extends Error {
 }
 
 @Injectable()
-export class SelectionResolverService implements ISelectionResolverService {
+export class SelectionResolverService implements IMultiPlantSelectionResolverService {
   constructor(
     @Inject(WAREHOUSE) private readonly warehouse: Warehouse,
     @Optional() private readonly master: MappingMaster = MAPPING_MASTER,
@@ -82,6 +88,56 @@ export class SelectionResolverService implements ISelectionResolverService {
     const period = available.find(({ value }) => value === request.period);
     if (!period) throw new SelectionPeriodUnavailableError();
 
+    return this.resolveSelection(selection, period);
+  }
+
+  async resolvePlants(
+    plants: string[],
+    periodValue: string,
+    knownPeriods?: MisSelectionPeriodOption[],
+  ): Promise<MasterPlantSetResolution> {
+    const canonical = plants.map((plant) => this.canonicalPlant(plant));
+    if (canonical.some((plant) => !plant)) return { outcome: "unresolvable" };
+    const canonicalPlants = unique(canonical.filter((plant): plant is string => Boolean(plant)));
+
+    const selections = canonicalPlants.map((plant) =>
+      this.master.selections.find((selection) => selection.plant_canonical === plant),
+    );
+    if (!selections.length || selections.some((selection) => !selection)) return { outcome: "unresolvable" };
+
+    const available = knownPeriods ?? periodOptions(await this.loadedActualMonths());
+    const period = available.find(({ value }) => value === periodValue);
+    if (!period) throw new SelectionPeriodUnavailableError();
+
+    const resolved = selections.map((selection) => this.resolveSelection(selection!, period));
+    if (resolved.length === 1) return resolved[0];
+    const formats = unique(resolved.map(({ misFormat }) => misFormat));
+    if (formats.length !== 1) return { outcome: "unresolvable" };
+
+    return {
+      outcome: "resolved",
+      plants: resolved.map(({ plant, plantDisplay, department, function: functionName, provisional }) => ({
+        plant,
+        plantDisplay,
+        department,
+        function: functionName,
+        provisional,
+      })),
+      budgetOwnerPlant: resolved[0].budgetOwnerPlant,
+      glCodes: unique(resolved.flatMap(({ glCodes }) => glCodes)),
+      misFormat: formats[0],
+      bucketRows: resolved.flatMap(({ bucketRows }) => bucketRows),
+      triples: resolved.flatMap(({ triples }) => triples),
+      leafTargets: resolved.flatMap(({ leafTargets }) => leafTargets ?? []),
+      masterGlCodes: resolved[0].masterGlCodes,
+      period: resolved[0].period,
+    };
+  }
+
+  private resolveSelection(
+    selection: MappingSelection,
+    period: ResolvedSelectionPeriod & { label?: string },
+  ): MasterResolvedSelection {
     const entries = resolveEntries(selection, this.master);
     return {
       outcome: "resolved",

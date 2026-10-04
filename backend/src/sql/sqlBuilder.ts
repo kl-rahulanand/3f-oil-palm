@@ -19,6 +19,8 @@ export interface GovernedSelectionScope {
     glCode: string;
     target: { kind: "leaf"; leafKey: string } | { kind: "bucket" };
   }>;
+  budgetOwnerPlant?: string;
+  plantDisplayNames?: Record<string, string>;
 }
 
 export interface StatementProjectionPeriod {
@@ -208,6 +210,17 @@ export class SqlBuilder {
     const scopeValues = user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
     if (!scopeValues.length) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
     if (!resolvedScope?.leafTargets?.length) throw new Error("Statement projection requires resolved leaf targets");
+    const resolvedPlants = [...new Set(resolvedScope.leafTargets.map(({ plant }) => plant))].sort();
+    const filteredPlants = selection.filters
+      .filter(({ dimensionId, op, value }) => dimensionId === "plant" && op === "in" && Array.isArray(value))
+      .flatMap(({ value }) => (Array.isArray(value) ? value : []));
+    const effectivePlants = [...new Set(filteredPlants.length ? filteredPlants : resolvedPlants)].sort();
+    const grantedPlants = new Set(scopeValues);
+    const resolvedPlantSet = new Set(resolvedPlants);
+    if (effectivePlants.some((plant) => !grantedPlants.has(plant) || !resolvedPlantSet.has(plant))) {
+      throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
+    }
+    const budgetOwnerPlant = resolvedScope.budgetOwnerPlant ?? this.budgetOwnerPlant();
 
     const measures = selection.measureIds.map((id) => {
       const measure = domain.measures.find((candidate) => candidate.id === id);
@@ -221,6 +234,7 @@ export class SqlBuilder {
     const periodEnd = this.lit(this.nextIsoDate(period.to));
     const periodStart = this.lit(period.from);
     const includesLeaf = dimensions.some(({ column }) => column === "leaf_key");
+    const includesPlant = dimensions.some(({ column }) => column === "plant");
     const selectColumns = [
       ...dimensions.map(({ id, column }) => `relation.${column} AS ${id}`),
       ...measures.map(({ id, expr }) => `${expr} AS ${id.split(".").pop()}`),
@@ -241,6 +255,9 @@ export class SqlBuilder {
         .map((value) => this.lit(value))
         .join(", "),
     );
+    const plantRows = effectivePlants.map((plant) =>
+      [plant, resolvedScope.plantDisplayNames?.[plant] ?? plant].map((value) => this.lit(value)).join(", "),
+    );
     const where = selection.filters.flatMap((filter) => {
       const dimension = domain.dimensions.find(({ id }) => id === filter.dimensionId);
       if (!dimension) return [];
@@ -253,26 +270,35 @@ export class SqlBuilder {
     });
     const join = includesLeaf ? "LEFT JOIN outline_order AS outline\n  ON outline.leaf_key = relation.leaf_key" : "";
     const whereSql = where.length ? `WHERE ${where.join("\n  AND ")}` : "";
-    const groupBy = includesLeaf ? "GROUP BY relation.leaf_key, outline.sort_order" : "";
+    const groupColumns = dimensions.map(({ column }) => `relation.${column}`);
+    if (includesPlant) groupColumns.push("relation.plant_display");
+    if (includesLeaf) groupColumns.push("outline.sort_order");
+    const groupBy = groupColumns.length ? `GROUP BY ${[...new Set(groupColumns)].join(", ")}` : "";
     const having = this.havingClause(domain, selection.measureFilters).trimStart();
-    const orderBy = includesLeaf ? "ORDER BY outline.sort_order NULLS LAST, relation.leaf_key" : "";
+    const orderBy = includesLeaf
+      ? `ORDER BY outline.sort_order NULLS LAST, relation.leaf_key${includesPlant ? ", relation.plant_display" : ""}`
+      : includesPlant
+        ? "ORDER BY relation.plant_display"
+        : "";
     const sql = `WITH leaf_targets AS (
   SELECT * FROM (VALUES (${targetRows.join("),\n    (")})) AS target(plant, cost_center, gl_code, leaf_key)
+), selected_plants AS (
+  SELECT * FROM (VALUES (${plantRows.join("),\n    (")})) AS selected(plant, plant_display)
 ), actual_by_leaf_month AS (
-  SELECT target.leaf_key, actual.month,
+  SELECT target.plant, target.leaf_key, actual.month,
     SUM(actual.actual_net)::numeric(18,2) AS actual_net
   FROM actual_by_key_month AS actual
   INNER JOIN leaf_targets AS target
     ON target.plant = actual.plant
       AND target.cost_center = actual.cost_center
       AND target.gl_code = actual.gl_code
-  WHERE actual.plant IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
+  WHERE actual.plant IN (${effectivePlants.map((value) => this.lit(value)).join(", ")})
     AND actual.month >= ${periodStart} AND actual.month < ${periodEnd}
-  GROUP BY target.leaf_key, actual.month
+  GROUP BY target.plant, target.leaf_key, actual.month
 ), budget_src AS (
-  SELECT leaf_key, month, budget_net, rollover_net
+  SELECT ${this.lit(budgetOwnerPlant)}::text AS plant, leaf_key, month, budget_net, rollover_net
   FROM budget_by_leaf_month
-  WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})
+  WHERE ${this.lit(budgetOwnerPlant)} IN (${effectivePlants.map((value) => this.lit(value)).join(", ")})
     AND month >= ${periodStart} AND month < ${periodEnd}
 ), outline_order AS (
   SELECT outline.leaf_key, MIN(outline.sort_order) AS sort_order
@@ -281,31 +307,51 @@ export class SqlBuilder {
   WHERE batch.source_kind = 'budget' AND batch.is_active AND outline.leaf_key IS NOT NULL
     AND batch.period >= ${periodStart} AND batch.period < ${periodEnd}
   GROUP BY outline.leaf_key
+), statement_months AS (
+  SELECT generate_series(${periodStart}::date, (${periodEnd}::date - INTERVAL '1 day'), INTERVAL '1 month')::date AS month
+), statement_keys AS (
+  SELECT selected.plant, selected.plant_display, outline.leaf_key, month.month
+  FROM selected_plants AS selected
+  CROSS JOIN outline_order AS outline
+  CROSS JOIN statement_months AS month
+  UNION
+  SELECT actual.plant, selected.plant_display, actual.leaf_key, actual.month
+  FROM actual_by_leaf_month AS actual
+  INNER JOIN selected_plants AS selected ON selected.plant = actual.plant
+  UNION
+  SELECT budget.plant, selected.plant_display, budget.leaf_key, budget.month
+  FROM budget_src AS budget
+  INNER JOIN selected_plants AS selected ON selected.plant = budget.plant
 ), statement_relation AS (
-  SELECT COALESCE(actual_src.leaf_key, budget_src.leaf_key) AS leaf_key,
-    COALESCE(actual_src.month, budget_src.month) AS month,
+  SELECT statement_key.plant, statement_key.plant_display, statement_key.leaf_key, statement_key.month,
     COALESCE(actual_src.actual_net, 0)::numeric(18,2) AS actual_net,
     COALESCE(budget_src.budget_net, 0)::numeric(18,2) AS budget_net,
     COALESCE(budget_src.rollover_net, 0)::numeric(18,2) AS rollover_net,
     CASE
-      WHEN actual_src.leaf_key IS NULL THEN 'budget-only'
       WHEN budget_src.leaf_key IS NULL THEN 'actual-only'
+      WHEN actual_src.leaf_key IS NULL THEN 'budget-only'
       ELSE 'matched'
     END AS source_presence,
     actual_batch.id AS actual_batch_id,
     budget_batch.id AS budget_batch_id
-  FROM actual_by_leaf_month AS actual_src
-  FULL OUTER JOIN budget_src
-    ON actual_src.leaf_key = budget_src.leaf_key AND actual_src.month = budget_src.month
+  FROM statement_keys AS statement_key
+  LEFT JOIN actual_by_leaf_month AS actual_src
+    ON actual_src.plant = statement_key.plant
+      AND actual_src.leaf_key = statement_key.leaf_key
+      AND actual_src.month = statement_key.month
+  LEFT JOIN budget_src
+    ON budget_src.plant = statement_key.plant
+      AND budget_src.leaf_key = statement_key.leaf_key
+      AND budget_src.month = statement_key.month
   LEFT JOIN ingest_batch AS actual_batch
     ON actual_src.leaf_key IS NOT NULL
       AND actual_batch.source_kind = 'actuals'
-      AND actual_batch.period = COALESCE(actual_src.month, budget_src.month)
+      AND actual_batch.period = statement_key.month
       AND actual_batch.is_active
   LEFT JOIN ingest_batch AS budget_batch
     ON budget_src.leaf_key IS NOT NULL
       AND budget_batch.source_kind = 'budget'
-      AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
+      AND budget_batch.period = statement_key.month
       AND budget_batch.is_active
 )
 SELECT ${selectColumns.join(",\n  ")}
@@ -321,9 +367,12 @@ LIMIT ${Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows)}
         "mis_budget_outline",
         "ingest_batch",
         "leaf_targets",
+        "selected_plants",
         "actual_by_leaf_month",
         "budget_src",
         "outline_order",
+        "statement_months",
+        "statement_keys",
         "statement_relation",
       ],
     };

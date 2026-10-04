@@ -77,6 +77,62 @@ test("a user granted only DUB is offered only DUB in the selection options and t
   if (resolved.outcome === "resolved") assert.equal(resolved.budgetOwnerPlant, "DUB");
 });
 
+test("resolving several plants keeps each plant's triples and leaf targets while one plant keeps the existing resolution", async () => {
+  const resolver = new SelectionResolverService(new PeriodWarehouse(["2026-07-01"]));
+  const dub = await resolver.resolve({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+  });
+  const onePlant = await resolver.resolvePlants(["DUB"], "2026-07-01");
+
+  assert.deepEqual(onePlant, dub);
+
+  const chir = await resolver.resolve({
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "CHIR",
+    period: "2026-07-01",
+  });
+  const combined = await resolver.resolvePlants(["CHIR", "DUB"], "2026-07-01");
+  assert.equal(chir.outcome, "resolved");
+  assert.equal(combined.outcome, "resolved");
+  assert.ok(combined.outcome === "resolved" && "plants" in combined);
+  if (
+    dub.outcome !== "resolved" ||
+    chir.outcome !== "resolved" ||
+    combined.outcome !== "resolved" ||
+    !("plants" in combined)
+  )
+    return;
+
+  assert.deepEqual(
+    combined.plants.map(({ plant }) => plant),
+    ["CHIR", "DUB"],
+  );
+  assert.equal(combined.budgetOwnerPlant, "DUB");
+  assert.equal(combined.triples.length, dub.triples.length + chir.triples.length);
+  assert.equal(
+    new Set(combined.triples.map(({ plant, costCenter, glCode }) => `${plant}|${costCenter}|${glCode}`)).size,
+    combined.triples.length,
+  );
+  assert.deepEqual(
+    combined.leafTargets
+      ?.filter(({ target }) => target.kind === "leaf" && target.leafKey === "8.1|55021000|salaries")
+      .map(({ plant }) => plant)
+      .sort(),
+    ["CHIR", "DUB"],
+  );
+  assert.deepEqual(
+    [
+      ...new Set(combined.leafTargets?.filter(({ target }) => target.kind === "bucket").map(({ plant }) => plant)),
+    ].sort(),
+    ["CHIR", "DUB"],
+  );
+  assert.deepEqual(await resolver.resolvePlants(["UNKNOWN"], "2026-07-01"), { outcome: "unresolvable" });
+});
+
 test("resolving a department function plant and period through the mapping master returns the cost centres the GL set the MIS format and the bucket rows, returns an unresolvable outcome for a selection the master does not cover so the no mapping configured notice never depends on whether the query returned rows, and derives the financial year to date period from the latest active loaded month rather than the wall clock", async () => {
   const resolver = new SelectionResolverService(new PeriodWarehouse(["2026-07-01"]));
 

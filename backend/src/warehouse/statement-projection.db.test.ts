@@ -12,6 +12,8 @@ import type { QueryResult, Warehouse } from "./warehouse.interface";
 
 const PERIOD = "2026-07-01";
 const FY_YTD_PERIODS = ["2026-04-01", "2026-05-01", "2026-06-01", PERIOD];
+const CHIR_SHARED_LEAF = "9.14|55010305|miscellaneous-expenses";
+const CHIR_SEED_AMOUNT = "1234.56";
 const ACTUALS_PATH = join(__dirname, "../../../docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx");
 const BUDGET_PATH = join(__dirname, "../../../docs/context/2026-08-20-srihari-phase1-data/Nursery MIS Format.xlsx");
 
@@ -20,7 +22,7 @@ test("the destructive statement projection proof refuses a non-local warehouse h
 });
 
 test(
-  "WAREHOUSE_DB_TEST proves the July statement projection has exact leaf month rows totals and no fan out while splitting repeated GLs and retaining the unmapped bucket",
+  "WAREHOUSE_DB_TEST proves one-plant and combined statement lines, zero lines, the unmapped bucket, and owner-only budget by plant",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async () => {
     assertLocalWarehouseHost(process.env.WAREHOUSE_PG_HOST);
@@ -30,6 +32,30 @@ test(
       await pool.query("TRUNCATE sap_transaction, mis_budget, ingest_batch CASCADE");
       const service = new IngestService();
       await service.ingestActuals(upload(ACTUALS_PATH), "statement-proof");
+      const activeActual = await pool.query<{ id: string }>(
+        "SELECT id::text AS id FROM ingest_batch WHERE source_kind = 'actuals' AND period = $1 AND is_active",
+        [PERIOD],
+      );
+      assert.equal(activeActual.rows.length, 1);
+      await pool.query(
+        `INSERT INTO sap_transaction (
+          batch_id, txn_no, line_id, posting_date, month, plant, plant_src,
+          cost_center, gl_code, acct_name, debit, credit
+        ) VALUES ($1, $2, '1', $3, $3, 'CHIR', 'CHIR', 'Admin', '55010305', $4, $5, 0)`,
+        [
+          activeActual.rows[0].id,
+          "statement-proof-chir-shared-leaf",
+          PERIOD,
+          "Seeded CHIR shared leaf",
+          CHIR_SEED_AMOUNT,
+        ],
+      );
+      const seededActual = await pool.query<{ actual_net: string }>(
+        `SELECT SUM(debit - credit)::numeric(18,2)::text AS actual_net
+         FROM sap_transaction WHERE txn_no = $1`,
+        ["statement-proof-chir-shared-leaf"],
+      );
+      assert.equal(seededActual.rows[0].actual_net, CHIR_SEED_AMOUNT);
       await service.ingestBudget(upload(BUDGET_PATH), "statement-proof");
 
       const resolution = await new SelectionResolverService(new PeriodWarehouse()).resolve({
@@ -107,6 +133,141 @@ test(
         assert.equal(row.actual_net, sumMoney(matchingMonths.map(({ actual_net }) => actual_net)));
         assert.equal(row.budget_net, sumMoney(matchingMonths.map(({ budget_net }) => budget_net)));
       }
+
+      const combinedResolution = await new SelectionResolverService(new PeriodWarehouse()).resolvePlants(
+        ["DUB", "CHIR"],
+        PERIOD,
+      );
+      assert.equal(combinedResolution.outcome, "resolved");
+      assert.ok(combinedResolution.outcome === "resolved" && "plants" in combinedResolution);
+      if (combinedResolution.outcome !== "resolved" || !("plants" in combinedResolution)) return;
+
+      const combinedScope = {
+        triples: combinedResolution.triples,
+        glCodes: combinedResolution.glCodes,
+        masterGlCodes: combinedResolution.masterGlCodes,
+        leafTargets: combinedResolution.leafTargets,
+        budgetOwnerPlant: combinedResolution.budgetOwnerPlant,
+        plantDisplayNames: Object.fromEntries(
+          combinedResolution.plants.map(({ plant, plantDisplay }) => [plant, plantDisplay]),
+        ),
+      };
+      const multiPlantUser = {
+        ...user,
+        scope: [
+          { attribute: "plant", value: "DUB" },
+          { attribute: "plant", value: "CHIR" },
+        ],
+      };
+      const multiPlantSelection = {
+        domain: statementDomain.name,
+        measureIds: statementDomain.measures.map(({ id }) => id),
+        dimensionIds: ["leaf_key", "plant"],
+        filters: [{ dimensionId: "plant", op: "in" as const, value: ["CHIR", "DUB"] }],
+        timeWindow: { grain: "month" as const, column: "month", from: PERIOD, to: PERIOD },
+      };
+      const plantRows = (
+        await pool.query<StatementPlantRow>(
+          new SqlBuilder().build(statementDomain, multiPlantSelection, multiPlantUser, true, combinedScope).sql,
+        )
+      ).rows;
+      const combinedRows = (
+        await pool.query<StatementRow>(
+          new SqlBuilder().build(
+            statementDomain,
+            { ...multiPlantSelection, dimensionIds: ["leaf_key"] },
+            multiPlantUser,
+            true,
+            combinedScope,
+          ).sql,
+        )
+      ).rows;
+
+      const chirResolution = await new SelectionResolverService(new PeriodWarehouse()).resolve({
+        department: "Agriculture",
+        function: "Nursery",
+        plant: "CHIR",
+        period: PERIOD,
+      });
+      assert.equal(chirResolution.outcome, "resolved");
+      if (chirResolution.outcome !== "resolved") return;
+      assert.ok(chirResolution.leafTargets);
+      const chirUser = { ...user, scope: [{ attribute: "plant", value: "CHIR" }] };
+      const chirRows = (
+        await pool.query<StatementRow>(
+          new SqlBuilder().build(
+            statementDomain,
+            {
+              domain: statementDomain.name,
+              measureIds: statementDomain.measures.map(({ id }) => id),
+              dimensionIds: ["leaf_key"],
+              filters: [],
+              timeWindow: { grain: "month", column: "month", from: PERIOD, to: PERIOD },
+            },
+            chirUser,
+            true,
+            {
+              triples: chirResolution.triples,
+              glCodes: chirResolution.glCodes,
+              masterGlCodes: chirResolution.masterGlCodes,
+              leafTargets: chirResolution.leafTargets,
+              budgetOwnerPlant: chirResolution.budgetOwnerPlant,
+              plantDisplayNames: { CHIR: chirResolution.plantDisplay },
+            },
+          ).sql,
+        )
+      ).rows;
+
+      assert.equal(plantRows.length, 162);
+      assert.deepEqual(
+        plantRows.slice(0, 2).map(({ leaf_key, plant }) => [leaf_key, plant]),
+        [
+          ["1.1|50001201|sprout-cost", "DUB"],
+          ["1.1|50001201|sprout-cost", "CHIR"],
+        ],
+      );
+      const dubSharedLeaf = rows.find(({ leaf_key }) => leaf_key === CHIR_SHARED_LEAF);
+      const chirSharedLeaf = chirRows.find(({ leaf_key }) => leaf_key === CHIR_SHARED_LEAF);
+      const combinedSharedLeaf = combinedRows.find(({ leaf_key }) => leaf_key === CHIR_SHARED_LEAF);
+      assert.ok(dubSharedLeaf && chirSharedLeaf && combinedSharedLeaf);
+      assert.equal(dubSharedLeaf.actual_net, "3398.00");
+      assert.equal(chirSharedLeaf.actual_net, CHIR_SEED_AMOUNT);
+      assert.notEqual(chirSharedLeaf.actual_net, "0.00");
+      assert.equal(combinedSharedLeaf.actual_net, sumMoney([dubSharedLeaf.actual_net, chirSharedLeaf.actual_net]));
+      assert.equal(combinedSharedLeaf.actual_net, "4632.56");
+
+      const dubActual = sumMoney(rows.map(({ actual_net }) => actual_net));
+      const chirActual = sumMoney(chirRows.map(({ actual_net }) => actual_net));
+      const combinedActual = sumMoney(combinedRows.map(({ actual_net }) => actual_net));
+      assert.equal(dubActual, "11512712.07");
+      assert.equal(chirActual, "681796.45");
+      assert.notEqual(chirActual, "0.00");
+      assert.equal(combinedActual, sumMoney([dubActual, chirActual]));
+      assert.equal(combinedActual, "12194508.52");
+      assert.deepEqual(
+        plantRows
+          .filter(({ plant }) => plant === "DUB")
+          .map(({ leaf_key, actual_net, budget_net }) => [leaf_key, actual_net, budget_net]),
+        rows.map(({ leaf_key, actual_net, budget_net }) => [leaf_key, actual_net, budget_net]),
+      );
+      const chirZero = plantRows.find(
+        ({ plant, leaf_key }) => plant === "CHIR" && leaf_key === "1.1|50001201|sprout-cost",
+      );
+      assert.deepEqual(chirZero, {
+        leaf_key: "1.1|50001201|sprout-cost",
+        plant: "CHIR",
+        actual_net: "0.00",
+        budget_net: "0.00",
+        rollover_net: "0.00",
+        percentage: null,
+        source_presence: '["actual-only"]',
+        active_batch_ids: "[]",
+      });
+      assert.ok(plantRows.filter(({ plant }) => plant === "CHIR").every(({ budget_net }) => budget_net === "0.00"));
+      const combinedBucket = combinedRows.find(({ leaf_key }) => leaf_key === "unmapped-GL");
+      const plantBuckets = plantRows.filter(({ leaf_key }) => leaf_key === "unmapped-GL");
+      assert.ok(combinedBucket);
+      assert.equal(combinedBucket.actual_net, sumMoney(plantBuckets.map(({ actual_net }) => actual_net)));
     } finally {
       await pool.end();
     }
@@ -117,6 +278,14 @@ interface StatementRow {
   leaf_key: string;
   actual_net: string;
   budget_net: string;
+}
+
+interface StatementPlantRow extends StatementRow {
+  plant: string;
+  rollover_net: string;
+  percentage: string | null;
+  source_presence: string;
+  active_batch_ids: string;
 }
 
 const EXPECTED_JULY_LEAVES = [

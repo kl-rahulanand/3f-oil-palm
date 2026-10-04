@@ -7,7 +7,7 @@ import type { Warehouse } from "../warehouse/warehouse.interface";
 import { SqlBuilder, type GovernedSelectionScope } from "./sqlBuilder";
 import { SqlValidator } from "./sqlValidator";
 
-test("the statement projection full outer joins budget and actual at leaf and month grain filtering actuals by the resolved triples before aggregating and leaves the gl code and month relation untouched", () => {
+test("the statement projection joins budget and actual at plant leaf and month grain filtering actuals by the resolved triples before aggregating and leaves the gl code and month relation untouched", () => {
   const builder = new SqlBuilder();
   const statement = builder.build(statementDomain, statementSelection, user, true, scope);
   const actualCte = statement.sql.match(/actual_by_leaf_month AS \(([\s\S]*?)\n\), budget_src/)?.[1] ?? "";
@@ -22,12 +22,14 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   assert.match(actualCte, /target\.gl_code = actual\.gl_code/);
   assert.match(actualCte, /WHERE actual\.plant IN \('DUB'\)/);
   assert.match(actualCte, /actual\.month >= '2026-07-01' AND actual\.month < '2026-07-02'/);
-  assert.match(actualCte, /GROUP BY target\.leaf_key, actual\.month/);
-  assert.ok(actualCte.indexOf("INNER JOIN leaf_targets") < actualCte.indexOf("GROUP BY target.leaf_key"));
+  assert.match(actualCte, /GROUP BY target\.plant, target\.leaf_key, actual\.month/);
+  assert.ok(actualCte.indexOf("INNER JOIN leaf_targets") < actualCte.indexOf("GROUP BY target.plant"));
   assert.match(budgetCte, /FROM budget_by_leaf_month/);
   assert.match(budgetCte, /WHERE 'DUB' IN \('DUB'\)/);
-  assert.match(statement.sql, /FULL OUTER JOIN budget_src/);
-  assert.match(statement.sql, /actual_src\.leaf_key = budget_src\.leaf_key AND actual_src\.month = budget_src\.month/);
+  assert.match(statement.sql, /LEFT JOIN actual_by_leaf_month AS actual_src/);
+  assert.match(statement.sql, /actual_src\.plant = statement_key\.plant/);
+  assert.match(statement.sql, /LEFT JOIN budget_src/);
+  assert.match(statement.sql, /budget_src\.plant = statement_key\.plant/);
   assert.match(statement.sql, /COALESCE\(actual_src\.actual_net, 0\)::numeric\(18,2\)/);
   assert.match(statement.sql, /COALESCE\(budget_src\.budget_net, 0\)::numeric\(18,2\)/);
   assert.match(statement.sql, /outline\.batch_id/);
@@ -36,7 +38,6 @@ test("the statement projection full outer joins budget and actual at leaf and mo
   assert.match(statement.sql, /SUM\(actual_net\) AS actual_net/);
   assert.match(statement.sql, /array_agg\(DISTINCT\(relation\.source_presence\)\)/);
   assert.match(statement.sql, /ORDER BY outline\.sort_order NULLS LAST, relation\.leaf_key/);
-  assert.doesNotMatch(statement.sql, /::date AS month/);
 
   const shipped = builder.build(domain, selection, user, true, scope);
   assert.match(shipped.sql, /GROUP BY gl_code, month/);
@@ -135,6 +136,38 @@ test("the statement projection renders a HAVING for a measure filter and a WHERE
   );
 });
 
+test("the statement projection combines plants after joining budget to the owner plant and orders plant rows by statement then display name", () => {
+  const builder = new SqlBuilder();
+  const selected: Selection = {
+    domain: statementDomain.name,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    dimensionIds: ["leaf_key", "plant"],
+    filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+    timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
+  };
+  const sql = builder.build(statementDomain, selected, multiPlantUser, true, multiPlantScope).sql;
+  const actualCte = sql.match(/actual_by_leaf_month AS \(([\s\S]*?)\n\), budget_src/)?.[1] ?? "";
+  const budgetCte = sql.match(/budget_src AS \(([\s\S]*?)\n\), outline_order/)?.[1] ?? "";
+
+  assert.match(actualCte, /SELECT target\.plant, target\.leaf_key, actual\.month/);
+  assert.match(actualCte, /GROUP BY target\.plant, target\.leaf_key, actual\.month/);
+  assert.match(budgetCte, /SELECT 'DUB'::text AS plant, leaf_key, month/);
+  assert.match(budgetCte, /WHERE 'DUB' IN \('CHIR', 'DUB'\)/);
+  assert.match(sql, /actual_src\.plant = statement_key\.plant/);
+  assert.match(sql, /budget_src\.plant = statement_key\.plant/);
+  assert.match(sql, /relation\.plant AS plant/);
+  assert.match(sql, /GROUP BY relation\.leaf_key, relation\.plant, relation\.plant_display, outline\.sort_order/);
+  assert.match(sql, /ORDER BY outline\.sort_order NULLS LAST, relation\.leaf_key, relation\.plant_display/);
+});
+
+test("a one-plant resolved statement does not expand to the reader's other granted plants", () => {
+  const sql = new SqlBuilder().build(statementDomain, statementSelection, multiPlantUser, true, scope).sql;
+  const selectedPlants = sql.match(/selected_plants AS \(([\s\S]*?)\n\), actual_by_leaf_month/)?.[1] ?? "";
+
+  assert.match(selectedPlants, /VALUES \('DUB', 'DUB'\)/);
+  assert.doesNotMatch(selectedPlants, /CHIR/);
+});
+
 const user: AuthUser = {
   id: "proof-user",
   email: "proof@example.com",
@@ -200,7 +233,7 @@ const statementSelection: Selection = {
   ...selection,
   domain: statementDomain.name,
   measureIds: ["mis-statement.actual_net"],
-  dimensionIds: statementDomain.dimensions.map(({ id }) => id),
+  dimensionIds: ["leaf_key"],
   timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-01" },
 };
 
@@ -217,6 +250,39 @@ const statementUser: AuthUser = {
     ],
     dimensionIds: ["leaf_key"],
   },
+};
+
+const multiPlantUser: AuthUser = {
+  ...statementUser,
+  scope: [
+    { attribute: "plant", value: "DUB" },
+    { attribute: "plant", value: "CHIR" },
+  ],
+};
+
+const multiPlantScope: GovernedSelectionScope = {
+  triples: [
+    { plant: "DUB", costCenter: "Primary", glCode: "50001605" },
+    { plant: "CHIR", costCenter: "Manpower", glCode: "55021000" },
+  ],
+  glCodes: ["50001605", "55021000"],
+  masterGlCodes: ["50001605", "55021000"],
+  budgetOwnerPlant: "DUB",
+  plantDisplayNames: { CHIR: "Chirala", DUB: "Agri - Nursery - DUB" },
+  leafTargets: [
+    {
+      plant: "DUB",
+      costCenter: "Primary",
+      glCode: "50001605",
+      target: { kind: "leaf", leafKey: "4.5|50001605|fertilizers-manures" },
+    },
+    {
+      plant: "CHIR",
+      costCenter: "Manpower",
+      glCode: "55021000",
+      target: { kind: "leaf", leafKey: "8.1|55021000|salaries" },
+    },
+  ],
 };
 
 class StatementWarehouse implements Warehouse {
