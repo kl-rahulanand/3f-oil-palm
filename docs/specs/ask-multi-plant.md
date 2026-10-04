@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:33:13+00:00
+saved: 2026-10-04T08:37:37+00:00
 ---
 
 # Every Ask answer works across plants
@@ -64,7 +64,9 @@ decision 0033.
   audit record. So that its name never reaches the model, the server checks the question before the
   selector is called. Any whole-word match on a canonical code, SAP code or display name of a mapping
   master plant the reader does not hold refuses the question with no provider call. Codes shorter than
-  three characters match only as an upper-case token, so ordinary words are not mistaken for plants.
+  three characters match only as an exact upper-case token, so ordinary words are not mistaken for plants:
+  "CK" names the plant CK, while "ck" names no plant and is treated like any other word, for granted and
+  ungranted plants alike. Every other code, SAP code and display name matches case-insensitively.
 - A plant is recognised only by that whole-word match against the mapping master. No other word is ever
   treated as a plant, so a question whose words match no plant is treated as naming none and gets the
   picker rule, with no "not recognised" notice. Period, measure and GL words ("July", "Actual", "GL") never
@@ -147,8 +149,13 @@ decision 0033.
 
 ### Budget and %
 
-- Budget belongs to the budget owner plant, DUB (decision 0034). Each answer row carries a typed budget
-  state, `AskResponse.budgetStates`, keyed by row key:
+- Budget belongs to the budget owner plant, DUB (decision 0034). A plant has a loaded budget for a row
+  when it is the budget owner and every month the row covers has an active budget batch: the row's own
+  month when the answer groups by month, otherwise every month of the answer's window. A month with no
+  active budget batch makes DUB count as not loaded for that row, as the statement screen treats a
+  period with no budget batch.
+- When an answer includes Budget or %, each row carries a typed budget state, `AskResponse.budgetStates`,
+  keyed by row key:
   `{ key, state: "loaded" | "not-loaded" | "partial", plantsWithBudget, plantsInRow }`.
   - `plantsInRow` is the row's plants within the answer's plant set, as canonical codes, sorted: its one
     plant for a row split by plant, and every chosen plant for a summed row, whether or not that plant
@@ -160,9 +167,15 @@ decision 0033.
   - `partial`: some do. Budget shows a dash labelled "Budget loaded for k of n plants", and the % cell is
     null with the same label. A partial row never shows a budget figure that would compare part of its
     Actual.
+- These rules apply only to the measures the answer shows. An answer with neither Budget nor % (e.g.
+  "Actual by GL code for CHIR") adds no Budget or % column and carries no `budgetStates`.
 - The dashes and labels are rendered from the typed state, each label also the cell's accessible name.
   The result table's Budget and % cells are null for not-loaded and partial rows. No column is ever
   dropped, as `docs/specs/all-plants-statement.md` requires.
+- Actual and Budget are joined at the grain of plant, GL code and month (for statements, plant, line and
+  month) before any aggregation across plants. The budget carries its owner plant and joins only that
+  plant's actual rows, so a DUB+CHIR row never pairs CHIR's Actual with DUB's budget, and no budget or
+  provenance crosses plants.
 - A comparison that needs a budget (e.g. Actual over Budget) reads only the chosen plants that have a
   loaded budget. That restriction is in the query itself, before grouping, ordering, the row limit,
   totals and drill preparation. Every row of such an answer is therefore `loaded`, and its totals cover
@@ -266,7 +279,7 @@ decision 0033.
      warehouse's July Actual for those plants.
   3. "What was the Actual for each MIS statement line in July 2026 for DUB and CHIR?" Expected: one
      combined statement whose lines equal the sum of DUB's and CHIR's MIS statements.
-  4. "Actual by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a Budget dash labelled
+  4. "Actual and Budget by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a Budget dash labelled
      "Budget not loaded for this plant" and a null % cell labelled "not loaded" in a % column that is
      still present.
   5. "What was the Actual for each MIS statement line in July 2026?" Expected: the picker, then the
@@ -302,7 +315,8 @@ decision 0033.
   - A recognised but ungranted plant is refused, named and audited, with no selector call and no read.
   - A question whose words match no plant gets the picker rule, with no notice. Leaves prove "July",
     "Actual", "Budget", "GL" and "statement" never match a plant.
-  - A short code is not matched inside an ordinary word.
+  - A short code is not matched inside an ordinary word. "CK" names CK and is refused when ungranted;
+    "ck" names no plant and gets the picker rule.
   - An edited selection whose plant filter holds a known plant the reader does not hold is refused whole,
     naming it, with no read and an audit record; one holding an empty array is refused as invalid. Neither
     is narrowed to a partial result.
@@ -340,6 +354,12 @@ decision 0033.
     a null % cell labelled "not loaded" in a % column that is still present.
   - Leaves cover DUB only, non-owner only, a mixed summed row, a mixed plant breakdown, a DUB row with a
     real ₹0 budget (loaded), and a comparison whose remaining rows are empty.
+  - A DUB range April–July with no active budget batch for one month: the summed row is `not-loaded`, a
+    month-grouped row is loaded only for months with a batch, and a comparison over a DUB period with no
+    budget batch is the Informational no-budget answer.
+  - At the plant grain, DUB's budget joins only DUB's actual rows: a DUB+CHIR row's budget is DUB's alone
+    (and the row is `partial`), and a CHIR row has no budget, for GL and statement answers.
+  - An Actual-only answer has no Budget or % column and no `budgetStates`.
   - A DUB+CHIR summed row where CHIR has no activity is `partial`, with `plantsInRow` `["CHIR","DUB"]` and
     `plantsWithBudget` `["DUB"]`.
   - A budget comparison reads only plants with a loaded budget, applied in the query before ordering, the
