@@ -461,27 +461,11 @@ export class ChatService {
       }
     }
 
-    if (!hasPlantFilter(selection)) {
-      if (grantedPlants.length > 1) {
-        return done({
-          responseClass: ResponseClass.ClarificationNeeded,
-          plantChoice: {
-            prompt: CHAT_MESSAGES.plantPrompt,
-            question,
-            selection: withoutPlantFilter(selection),
-            ...plantChoiceOptions(grantedPlants),
-          },
-        });
-      }
-      selection = replacePlantFilter(selection, {
-        dimensionId: PLANT_DIMENSION_ID,
-        op: "in",
-        value: grantedPlants,
-      });
+    if (hasPlantFilter(selection)) {
+      const plantValidation = validatePlantFilter({ filters: selection.filters, grantedPlants, origin });
+      if (!plantValidation.ok) return refusePlant(plantValidation.refusal);
+      selection = replacePlantFilter(selection, plantValidation.filter);
     }
-    const plantValidation = validatePlantFilter({ filters: selection.filters, grantedPlants, origin });
-    if (!plantValidation.ok) return refusePlant(plantValidation.refusal);
-    selection = replacePlantFilter(selection, plantValidation.filter);
 
     // Prompt topicality is best-effort; the enforceable boundary is that every emitted id
     // must belong to the registered semantic catalog and the caller's permissions.
@@ -567,6 +551,25 @@ export class ChatService {
         responseClass: ResponseClass.ClarificationNeeded,
         clarify: timeWindowClarify,
       });
+
+    if (!hasPlantFilter(selection)) {
+      if (grantedPlants.length > 1) {
+        return done({
+          responseClass: ResponseClass.ClarificationNeeded,
+          plantChoice: {
+            prompt: CHAT_MESSAGES.plantPrompt,
+            question,
+            selection: withoutPlantFilter(selection),
+            ...plantChoiceOptions(grantedPlants),
+          },
+        });
+      }
+      selection = replacePlantFilter(selection, {
+        dimensionId: PLANT_DIMENSION_ID,
+        op: "in",
+        value: grantedPlants,
+      });
+    }
 
     let statementScope: MasterResolvedSelection | undefined;
     let answerPeriodOptions: AskPeriodOption[] | undefined;

@@ -73,7 +73,7 @@ test("a several-plant reader chooses plants before any figure or period read", a
   assert.deepEqual(response.plantChoice, {
     prompt: "Which plants should this answer cover?",
     question: "Show the MIS statement Actual",
-    selection: { ...statementSelection, filters: [] },
+    selection: { ...statementSelection, filters: [], timeWindow: undefined },
     options: [
       { value: "CHIR", label: "Agriculture - Nursery - CHIR" },
       { value: "DUB", label: "Agri - Nursery - DUB" },
@@ -88,6 +88,48 @@ test("a several-plant reader chooses plants before any figure or period read", a
   assert.equal(fixture.transactions.activePinCalls.length, 0);
   assert.equal(fixture.resolver.optionsCalls, 0);
   assert.equal(fixture.dimensions.plantCalls, 0);
+});
+
+test("a plant choice keeps the server-resolved period when the selector omits it", async () => {
+  const fixture = makeFixture({ selection: { ...financialSelection, timeWindow: undefined } });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  const question = "Actual by GL code for July 2026";
+
+  const choice = await fixture.service.ask(user, "session", question);
+
+  assert.deepEqual(choice.plantChoice?.selection.timeWindow, {
+    grain: "day",
+    from: "2026-07-01",
+    to: "2026-07-31",
+    column: "month",
+  });
+  assert.equal(fixture.executor.calls, 0);
+
+  const selected = choice.plantChoice?.selection;
+  assert.ok(selected);
+  const answer = await fixture.service.ask(
+    user,
+    "session",
+    question,
+    {
+      ...selected,
+      filters: [...selected.filters, { dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "plant-choice",
+  );
+
+  assert.equal(answer.responseClass, ResponseClass.Success);
+  assert.deepEqual(answer.selection?.timeWindow, {
+    grain: "day",
+    from: "2026-07-01",
+    to: "2026-07-31",
+    column: "month",
+  });
 });
 
 test("edited saved pinned and continuation selections without a plant filter use the same plant rule", async () => {
