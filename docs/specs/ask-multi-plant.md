@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T07:26:38+00:00
+saved: 2026-10-04T07:28:40+00:00
 ---
 
 # Every Ask answer works across plants
@@ -147,6 +147,9 @@ decision 0033.
 - Budget belongs to the budget owner plant, DUB (decision 0034). Each answer row carries a typed budget
   state, `AskResponse.budgetStates`, keyed by row key:
   `{ key, state: "loaded" | "not-loaded" | "partial", plantsWithBudget, plantsInRow }`.
+  - `plantsInRow` is the row's plants within the answer's plant set, as canonical codes, sorted: its one
+    plant for a row split by plant, and every chosen plant for a summed row, whether or not that plant
+    had any activity. `plantsWithBudget` is the subset with a loaded budget, sorted the same way.
   - `loaded`: every plant in the row has a loaded budget. Budget and % show as today, including a real
     ₹0 budget.
   - `not-loaded`: no plant in the row has one. Budget shows a dash labelled "Budget not loaded for this
@@ -194,11 +197,22 @@ decision 0033.
   | reason | when | `plants` | copy |
   |---|---|---|---|
   | `plant-not-granted` | a named or submitted plant the reader does not hold | display names of those plants | "You do not have access to <names>." |
-  | `plants-revoked` | a continuation, saved view or pin whose plant is no longer held | display names of the revoked plants | "This view includes plants you no longer have access to: <names>. Edit its plants to run it." (a continuation: "You no longer have access to <names>. Ask again.") |
+  | `plants-revoked` | a saved view or pin re-run whose plant is no longer held | display names of the revoked plants | "This view includes plants you no longer have access to: <names>. Edit its plants to run it." |
+  | `choice-plants-revoked` | a picker or period continuation whose chosen plant is no longer held | display names of the revoked plants | "You no longer have access to <names>. Ask again." |
   | `plant-filter-invalid` | a malformed, empty, non-canonical or unknown filter | `[]` | "This question's plant choice is not valid. Choose the plants again." |
   | `no-plants-granted` | the reader holds no plant | `[]` | "You do not have access to any plant." |
 
   Client leaves render each row's copy from its reason.
+- Checks run in a fixed order, and the first that applies decides: `no-plants-granted`, then
+  `plant-filter-invalid`, then `plant-not-granted` (including the pre-selector name check), then
+  `plants-revoked` or `choice-plants-revoked`. So a reader with no plant who names CHIR is refused as
+  `no-plants-granted`, with no provider call and no read.
+- Saving a view or pinning a report is not an Ask request. A save or pin whose plant filter is invalid or
+  holds a plant the reader does not hold is rejected with HTTP 400 through the existing typed path the
+  global exception filter already uses for measure filters: a typed plant-filter error whose reason
+  (`plant-filter-invalid` or `plant-not-granted`) maps to the same copy as the table above in
+  `error.userMessage`, with `error.details.reason` set. The save and pin dialogs render that
+  `userMessage`.
 
 ### What does not change
 
@@ -270,7 +284,12 @@ decision 0033.
   - A submitted filter holding `dub`, `DUB-NUR` or a display name is refused as `plant-filter-invalid` at
     each ingress (edited, continuation, saved, pinned).
   - A mapping master with two plants whose aliases collide after normalisation fails to load.
-  - A reader with no plant is refused as `no-plants-granted`, audited, with no provider call and no read.
+  - A reader with no plant is refused as `no-plants-granted`, audited, with no provider call and no read,
+    including when the question names CHIR (refusal order).
+  - A save and a pin request with a tampered plant filter get HTTP 400 with the stated `userMessage` and
+    `details.reason`, proven through the global exception filter, separately from an Ask re-run; the
+    dialogs render that message.
+  - A continuation whose chosen plant was revoked is refused as `choice-plants-revoked` with its copy.
   - The selection always carries one canonical, sorted, deduplicated `{ dimensionId: "plant", op: "in" }`
     filter, validated at every ingress.
   - The `plantChoice` type round-trips through the contract, the schemas and Swagger.
@@ -292,6 +311,8 @@ decision 0033.
     a null % cell labelled "not loaded" in a % column that is still present.
   - Leaves cover DUB only, non-owner only, a mixed summed row, a mixed plant breakdown, a DUB row with a
     real ₹0 budget (loaded), and a comparison whose remaining rows are empty.
+  - A DUB+CHIR summed row where CHIR has no activity is `partial`, with `plantsInRow` `["CHIR","DUB"]` and
+    `plantsWithBudget` `["DUB"]`.
   - A budget comparison reads only plants with a loaded budget, applied in the query before ordering, the
     limit and totals. A fixture with more qualifying DUB rows than the row limit, alongside non-owner plants,
     proves no qualifying row is dropped and the totals are exact. The left-out plants are named.
