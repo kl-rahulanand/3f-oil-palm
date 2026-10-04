@@ -7,6 +7,7 @@ interface BudgetStateInput {
   totals?: Record<string, number>;
   budgetOwnerPlant: string;
   answerMonths: readonly string[];
+  answerMonthCount?: number;
   loadedBudgetMonths: readonly string[];
 }
 
@@ -26,7 +27,14 @@ export function applyBudgetStates(input: BudgetStateInput): {
   const budgetStates = input.result.rows.map((row): AskBudgetState => {
     const plantsInRow = (includesPlant ? [String(row.plant)] : selectedPlants).sort(comparePlantCodes);
     const coveredMonths = includesMonth ? [monthStart(String(row.month))] : input.answerMonths.map(monthStart);
-    const { state, plantsWithBudget } = budgetState(plantsInRow, coveredMonths, input.budgetOwnerPlant, loadedMonths);
+    const coveredMonthCount = includesMonth ? 1 : (input.answerMonthCount ?? coveredMonths.length);
+    const { state, plantsWithBudget } = budgetState(
+      plantsInRow,
+      coveredMonths,
+      coveredMonthCount,
+      input.budgetOwnerPlant,
+      loadedMonths,
+    );
     return {
       key: askRowKey(row, input.selection.dimensionIds),
       state,
@@ -35,7 +43,13 @@ export function applyBudgetStates(input: BudgetStateInput): {
     };
   });
   const stateByKey = new Map(budgetStates.map((state) => [state.key, state]));
-  const totalState = budgetState(selectedPlants, input.answerMonths, input.budgetOwnerPlant, loadedMonths).state;
+  const totalState = budgetState(
+    selectedPlants,
+    input.answerMonths,
+    input.answerMonthCount ?? input.answerMonths.length,
+    input.budgetOwnerPlant,
+    loadedMonths,
+  ).state;
   const totals =
     totalState === "loaded" || !input.totals
       ? input.totals
@@ -61,10 +75,15 @@ export function applyBudgetStates(input: BudgetStateInput): {
 function budgetState(
   plants: string[],
   months: readonly string[],
+  coveredMonthCount: number,
   budgetOwnerPlant: string,
   loadedMonths: ReadonlySet<string>,
 ): Pick<AskBudgetState, "state" | "plantsWithBudget"> {
-  const ownerIsLoaded = months.length > 0 && months.every((month) => loadedMonths.has(monthStart(month)));
+  const ownerIsLoaded =
+    coveredMonthCount > 0 &&
+    (months.length > 0
+      ? months.every((month) => loadedMonths.has(monthStart(month)))
+      : loadedMonths.size === coveredMonthCount);
   const plantsWithBudget = plants.includes(budgetOwnerPlant) && ownerIsLoaded ? [budgetOwnerPlant] : [];
   const state =
     plantsWithBudget.length === plants.length ? "loaded" : plantsWithBudget.length === 0 ? "not-loaded" : "partial";

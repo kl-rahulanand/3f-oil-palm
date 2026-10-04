@@ -15,6 +15,7 @@ import {
   type DomainSpec,
   type MeasureSpec,
   type MeasureFilter,
+  type MisSelectionPeriodOption,
   type Permissions,
   type Provenance,
   type ProvenanceBatch,
@@ -62,7 +63,7 @@ import {
   validatePlantFilter,
 } from "./plant-set";
 import { withoutRedundantMonthFilter } from "./redundant-month-filter";
-import { applyBudgetStates, comparisonNeedsBudget, monthsInWindow } from "./ask-budget-states";
+import { applyBudgetStates, comparisonNeedsBudget } from "./ask-budget-states";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -519,11 +520,6 @@ export class ChatService {
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
       else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
-    if (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.from > selection.timeWindow.to)
-      return done({
-        responseClass: ResponseClass.NotSupported,
-        message: CHAT_MESSAGES.invalidDateRange,
-      });
     // Follow-up inheritance: if this turn is a follow-up in the same conversation whose
     // prior selection had a time window, and the current time-bound selection did not,
     // carry the previous window forward instead of re-asking for it.
@@ -535,6 +531,15 @@ export class ChatService {
         selection = { ...selection, timeWindow: priorSelection.timeWindow };
       }
     }
+    if (
+      (selection.timeWindow?.from && !isDateOnly(selection.timeWindow.from)) ||
+      (selection.timeWindow?.to && !isDateOnly(selection.timeWindow.to)) ||
+      (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.from > selection.timeWindow.to)
+    )
+      return done({
+        responseClass: ResponseClass.NotSupported,
+        message: CHAT_MESSAGES.invalidDateRange,
+      });
     const resolved = resolveSelectionTimeWindow(domain, selection);
     selection = resolved.selection;
     selection = withoutRedundantMonthFilter(selection);
@@ -580,50 +585,13 @@ export class ChatService {
     const budgetOwnerPlant = budgetOwnerForPlants(requestedPlants);
     const showsBudgetState = requestedSelection.measureIds.some(isBudgetStateMeasure);
     const needsBudgetComparison = comparisonNeedsBudget(requestedSelection);
-    let answerMonths: string[] = [];
-    let loadedBudgetMonths: string[] = [];
-    if (showsBudgetState || needsBudgetComparison) {
-      const budgetMonths = await answerMonthsForBudget(appliedTimeWindow, this.drillTransactions, signal);
-      if (!budgetMonths) {
-        return done({
-          responseClass: ResponseClass.NotSupported,
-          message: "The requested period is too wide. Choose a shorter period.",
-        });
-      }
-      answerMonths = budgetMonths;
-      loadedBudgetMonths = await loadedBudgetPeriods(answerMonths, this.drillTransactions, signal);
-    }
-    let plantsRead = requestedPlants;
-    let leftOut: AskResponse["leftOut"];
-    if (needsBudgetComparison) {
-      const ownerLoaded = answerMonths.length > 0 && answerMonths.every((month) => loadedBudgetMonths.includes(month));
-      plantsRead = ownerLoaded && requestedPlants.includes(budgetOwnerPlant) ? [budgetOwnerPlant] : [];
-      const omittedPlants = requestedPlants.filter((plant) => !plantsRead.includes(plant));
-      if (omittedPlants.length > 0) {
-        leftOut = { reason: "budget-not-loaded", plants: plantDisplayNames(omittedPlants) };
-      }
-      if (plantsRead.length === 0) {
-        return done({
-          responseClass: ResponseClass.Informational,
-          message: "Budget is not loaded for any chosen plant, so nothing was compared.",
-          selection: requestedSelection,
-          leftOut,
-          viewInReport: { available: false, reason: "Budget is not loaded for any chosen plant." },
-        });
-      }
-      selection = replacePlantFilter(selection, {
-        dimensionId: PLANT_DIMENSION_ID,
-        op: "in",
-        value: plantsRead,
-      });
-    }
-
     let statementExecutionScope: MasterResolvedSelection | MasterResolvedPlantSet | undefined;
     let statementScope: MasterResolvedSelection | undefined;
+    let statementPeriods: MisSelectionPeriodOption[] | undefined;
     let answerPeriodOptions: AskPeriodOption[] | undefined;
     if (domain.name === "mis-statement") {
       const request = await statementRequest(
-        selectedPlantCodes(selection),
+        requestedPlants,
         appliedTimeWindow,
         selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
         this.selectionResolver,
@@ -646,7 +614,52 @@ export class ChatService {
         });
       statementExecutionScope = request.resolution;
       statementScope = "plant" in request.resolution ? request.resolution : undefined;
+      statementPeriods = request.periods;
       answerPeriodOptions = request.options;
+    }
+    let answerMonths: string[] = [];
+    let answerMonthCount = 0;
+    let loadedBudgetMonths: string[] = [];
+    if (showsBudgetState || needsBudgetComparison) {
+      const coverage = await budgetPeriodCoverage(appliedTimeWindow, this.drillTransactions, signal);
+      answerMonths = coverage.answerMonths;
+      answerMonthCount = coverage.answerMonthCount;
+      loadedBudgetMonths = coverage.loadedBudgetMonths;
+    }
+    let plantsRead = requestedPlants;
+    let leftOut: AskResponse["leftOut"];
+    if (needsBudgetComparison) {
+      const ownerLoaded = answerMonthCount > 0 && loadedBudgetMonths.length === answerMonthCount;
+      plantsRead = ownerLoaded && requestedPlants.includes(budgetOwnerPlant) ? [budgetOwnerPlant] : [];
+      const omittedPlants = requestedPlants.filter((plant) => !plantsRead.includes(plant));
+      if (omittedPlants.length > 0) {
+        leftOut = { reason: "budget-not-loaded", plants: plantDisplayNames(omittedPlants) };
+      }
+      if (plantsRead.length === 0) {
+        return done({
+          responseClass: ResponseClass.Informational,
+          message: "Budget is not loaded for any chosen plant, so nothing was compared.",
+          selection: requestedSelection,
+          leftOut,
+          viewInReport: { available: false, reason: "Budget is not loaded for any chosen plant." },
+        });
+      }
+      selection = replacePlantFilter(selection, {
+        dimensionId: PLANT_DIMENSION_ID,
+        op: "in",
+        value: plantsRead,
+      });
+      if (statementExecutionScope && statementPeriods && plantsRead.length !== requestedPlants.length) {
+        const resolution = await this.selectionResolver.resolvePlants(
+          plantsRead,
+          statementExecutionScope.period.value,
+          statementPeriods,
+        );
+        if (resolution.outcome !== "resolved")
+          return done({ responseClass: ResponseClass.NotSupported, message: CHAT_MESSAGES.statementMappingMissing });
+        statementExecutionScope = resolution;
+        statementScope = "plant" in resolution ? resolution : undefined;
+      }
     }
 
     let sql: string;
@@ -709,6 +722,7 @@ export class ChatService {
         totals: execution.totals,
         budgetOwnerPlant,
         answerMonths,
+        answerMonthCount,
         loadedBudgetMonths,
       });
       result = budgetPresentation.result;
@@ -1676,52 +1690,42 @@ function buildViewInReport(
   };
 }
 
-async function loadedBudgetPeriods(
-  periods: string[],
-  batches: Pick<DrillTransactionsRepository, "findBatchStates">,
-  signal?: AbortSignal,
-): Promise<string[]> {
-  if (periods.length === 0) return [];
-  signal?.throwIfAborted();
-  const states = await batches.findBatchStates(
-    periods.map((period) => ({ source: "budget", period, batchId: EMPTY_BATCH_ID })),
-  );
-  signal?.throwIfAborted();
-  const requested = new Set(periods);
-  return [
-    ...new Set(
-      states
-        .filter(({ source, period, isActive }) => source === "budget" && isActive && requested.has(period))
-        .map(({ period }) => period),
-    ),
-  ].sort();
-}
-
-const MAX_BUDGET_PERIODS = 120;
-const EMPTY_BATCH_ID = "00000000-0000-0000-0000-000000000000";
-
-async function answerMonthsForBudget(
+async function budgetPeriodCoverage(
   window: AppliedTimeWindow | undefined,
-  transactions: Pick<DrillTransactionsRepository, "findActiveActualPins">,
+  transactions: Pick<DrillTransactionsRepository, "findActiveActualPins" | "findActiveBudgetPeriods">,
   signal?: AbortSignal,
-): Promise<string[] | undefined> {
-  if (window && monthCount(window.from, window.to) <= MAX_BUDGET_PERIODS) {
-    return monthsInWindow(window.from, window.to);
+): Promise<{ answerMonths: string[]; answerMonthCount: number; loadedBudgetMonths: string[] }> {
+  if (window) {
+    signal?.throwIfAborted();
+    const loadedBudgetMonths = await transactions.findActiveBudgetPeriods(window.from, window.to);
+    signal?.throwIfAborted();
+    return { answerMonths: [], answerMonthCount: monthCount(window.from, window.to), loadedBudgetMonths };
   }
   signal?.throwIfAborted();
-  const pins = await transactions.findActiveActualPins(window?.from ?? "0001-01-01", window?.to ?? "9999-12-31");
+  const pins = await transactions.findActiveActualPins("0001-01-01", "9999-12-31");
   signal?.throwIfAborted();
-  const periods = [...new Set(pins.map(({ period }) => `${period.slice(0, 7)}-01`))].sort();
-  if (!window) return periods.length <= MAX_BUDGET_PERIODS ? periods : undefined;
-  if (periods.length === 0) return [];
-  const clamped = monthsInWindow(periods[0]!, periods.at(-1)!);
-  return clamped.length <= MAX_BUDGET_PERIODS ? clamped : undefined;
+  const answerMonths = [...new Set(pins.map(({ period }) => `${period.slice(0, 7)}-01`))].sort();
+  if (answerMonths.length === 0) return { answerMonths, answerMonthCount: 0, loadedBudgetMonths: [] };
+  const loaded = await transactions.findActiveBudgetPeriods(answerMonths[0]!, answerMonths.at(-1)!);
+  signal?.throwIfAborted();
+  const answers = new Set(answerMonths);
+  return {
+    answerMonths,
+    answerMonthCount: answerMonths.length,
+    loadedBudgetMonths: loaded.filter((period) => answers.has(period)),
+  };
 }
 
 function monthCount(from: string, to: string): number {
   const [fromYear, fromMonth] = from.split("-").map(Number);
   const [toYear, toMonth] = to.split("-").map(Number);
   return (toYear! - fromYear!) * 12 + toMonth! - fromMonth! + 1;
+}
+
+function isDateOnly(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
 function budgetOwnerForPlants(plants: string[]): string {
@@ -1758,6 +1762,7 @@ type StatementRequestResult =
       kind: "resolved";
       resolution: MasterResolvedSelection | MasterResolvedPlantSet;
       options: AskPeriodOption[];
+      periods: MisSelectionPeriodOption[];
     };
 
 async function statementRequest(
@@ -1777,7 +1782,9 @@ async function statementRequest(
   try {
     // `periods` is already loaded above; hand it back so resolvePlants() does not repeat that query.
     const resolution = await resolver.resolvePlants(plants, period.value, periods);
-    return resolution.outcome === "resolved" ? { kind: "resolved", resolution, options } : { kind: "no-mapping" };
+    return resolution.outcome === "resolved"
+      ? { kind: "resolved", resolution, options, periods }
+      : { kind: "no-mapping" };
   } catch (error) {
     if (error instanceof SelectionPeriodUnavailableError) return { kind: "period", options };
     throw error;

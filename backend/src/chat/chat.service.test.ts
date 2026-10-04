@@ -37,6 +37,7 @@ import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import { ChatController } from "./chat.controller";
+import { CHAT_MESSAGES } from "./chat.constants";
 import { ChatModule } from "./chat.module";
 import { askSchema } from "./chat.schemas";
 import { ChatService, lastMonthBudgetPin, trimPriorTurnsToTokenBudget } from "./chat.service";
@@ -301,28 +302,128 @@ test("a narrowed DUB and CHIR statement comparison keeps the several-plants repo
   });
 });
 
-test("an extreme requested window performs one bounded budget-period lookup", async () => {
+test("an explicit 2016 to 2026 comparison stays not loaded when only July 2026 has Budget", async () => {
   const selection: Selection = {
     ...financialSelection,
     measureIds: ["governed-financial.actual", "governed-financial.budget"],
-    timeWindow: { grain: "month", from: "0001-01-01", to: "9999-12-31" },
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+    timeWindow: { grain: "month", from: "2016-01-01", to: "2026-07-31" },
   };
   const fixture = makeFixture({
     selection,
-    activeActualPins: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
-    forbidOutlineBudgetLookups: true,
+    loadedBudgetMonths: ["2026-07-01"],
   });
   const user = userForPlants("governed-financial", ["DUB"]);
   user.permissions.measureIds.push("governed-financial.budget");
 
-  const response = await fixture.service.ask(user, "session", "Show Actual and Budget for DUB across all time");
-
-  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
-  assert.equal(fixture.transactions.batchStateCalls.length, 1);
-  assert.deepEqual(
-    fixture.transactions.batchStateCalls[0]?.map(({ source, period }) => ({ source, period })),
-    [{ source: "budget", period: "2026-07-01" }],
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show Actual over Budget for DUB from 2016 to July 2026",
+    selection,
   );
+
+  assert.equal(response.responseClass, ResponseClass.Informational, JSON.stringify(response));
+  assert.equal(response.message, "Budget is not loaded for any chosen plant, so nothing was compared.");
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2016-01-01", to: "2026-07-31" }]);
+  assert.equal(fixture.executor.calls, 0);
+});
+
+test("an unwindowed statement comparison offers periods before judging July Budget", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    timeWindow: undefined,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    measureFilters: [
+      {
+        measureId: "mis-statement.actual_net",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "mis-statement.budget_net" },
+      },
+    ],
+  };
+  const fixture = makeFixture({
+    selection,
+    activeActualPins: [
+      { source: "actuals", period: "2026-06-01", batchId: "actual-june" },
+      { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+    ],
+    loadedBudgetMonths: ["2026-07-01"],
+  });
+  const user = userForPlants("mis-statement", ["DUB"], true);
+  user.permissions.measureIds.push("mis-statement.budget_net");
+
+  const choice = await fixture.service.ask(user, "session", "Which statement lines are over Budget?");
+
+  assert.equal(choice.responseClass, ResponseClass.ClarificationNeeded, JSON.stringify(choice));
+  assert.deepEqual(
+    choice.periodChoice?.options.map(({ value }) => value),
+    ["2026-07-01"],
+  );
+  assert.equal(fixture.transactions.budgetPeriodCalls.length, 0);
+  assert.equal(fixture.executor.calls, 0);
+
+  const july = await fixture.service.ask(user, "session", choice.periodChoice!.question, {
+    ...choice.periodChoice!.selection,
+    timeWindow: choice.periodChoice!.options[0]!.timeWindow,
+  });
+
+  assert.equal(july.responseClass, ResponseClass.Success, JSON.stringify(july));
+  assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2026-07-01", to: "2026-07-31" }]);
+});
+
+test("an unavailable statement period clarifies before judging Budget", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    measureFilters: [
+      {
+        measureId: "mis-statement.actual_net",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "mis-statement.budget_net" },
+      },
+    ],
+    timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
+  };
+  const fixture = makeFixture({ selection, loadedBudgetMonths: ["2026-07-01"] });
+  const user = userForPlants("mis-statement", ["DUB"], true);
+  user.permissions.measureIds.push("mis-statement.budget_net");
+
+  const response = await fixture.service.ask(user, "session", "Show August statement lines over Budget", selection);
+
+  assert.equal(response.responseClass, ResponseClass.ClarificationNeeded, JSON.stringify(response));
+  assert.deepEqual(
+    response.periodChoice?.options.map(({ value }) => value),
+    ["2026-07-01"],
+  );
+  assert.equal(fixture.transactions.budgetPeriodCalls.length, 0);
+  assert.equal(fixture.executor.calls, 0);
+});
+
+test("a malformed explicit date is refused before any metadata lookup", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    timeWindow: { grain: "month", from: "2026-13-45", to: "2026-13-45" },
+  };
+  const fixture = makeFixture({ selection });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Show Actual and Budget", selection);
+
+  assert.equal(response.responseClass, ResponseClass.NotSupported);
+  assert.equal(response.message, CHAT_MESSAGES.invalidDateRange);
+  assert.equal(fixture.transactions.activePinCalls.length, 0);
+  assert.equal(fixture.transactions.budgetPeriodCalls.length, 0);
+  assert.equal(fixture.executor.calls, 0);
 });
 
 test("a DUB and CHIR budget comparison reads DUB only and names CHIR as left out", async () => {
@@ -2738,6 +2839,7 @@ class FakeTransactions {
   readonly calls: Array<Array<{ rowKey: string; predicate: DrillPredicate }>> = [];
   readonly activePinCalls: Array<{ from: string; to: string }> = [];
   readonly batchStateCalls: ProvenanceBatch[][] = [];
+  readonly budgetPeriodCalls: Array<{ from: string; to: string }> = [];
 
   constructor(
     private readonly summaries: DrillSummary[],
@@ -2756,6 +2858,11 @@ class FakeTransactions {
     return pins
       .filter(({ source, period }) => source === "budget" && this.loadedBudgetMonths.includes(period))
       .map(({ source, period }) => ({ source, period, batchId: BUDGET_BATCH_ID, isActive: true }));
+  }
+
+  async findActiveBudgetPeriods(from: string, to: string) {
+    this.budgetPeriodCalls.push({ from, to });
+    return this.loadedBudgetMonths.filter((period) => period >= from && period <= to);
   }
 
   async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>) {

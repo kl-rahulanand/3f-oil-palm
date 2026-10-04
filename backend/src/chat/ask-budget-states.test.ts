@@ -99,6 +99,20 @@ test("missing range months make a summed owner row not loaded while month rows u
   });
   assert.equal(summed.budgetStates?.[0]?.state, "not-loaded");
   assert.equal(summed.result.rows[0]?.budget, null);
+
+  const completeExplicitRange = applyBudgetStates({
+    selection: {
+      ...baseSelection,
+      filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
+    },
+    result: { columns, rows: [result.rows[0]!] },
+    budgetOwnerPlant: "DUB",
+    answerMonths: [],
+    answerMonthCount: 4,
+    loadedBudgetMonths: ["2026-04-01", "2026-05-01", "2026-06-01", "2026-07-01"],
+  });
+  assert.equal(completeExplicitRange.budgetStates?.[0]?.state, "loaded");
+  assert.equal(completeExplicitRange.result.rows[0]?.budget, "1.00");
 });
 
 test("budget states follow the four requested measure sets without adding or dropping columns", () => {
