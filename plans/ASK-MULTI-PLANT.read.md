@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T09:52:23+00:00
-read_hash: 6f8cddcda317fb8b32011da8025843af75c6a7b8
-round: 8
+read_at: 2026-10-04T09:54:26+00:00
+read_hash: 0d1dcd51f013d5cdb238393fd00bc09e7df6790c
+round: 9
 passed: no
-doc_seen: 6f8cddcda317fb8b32011da8025843af75c6a7b8
+doc_seen: 0d1dcd51f013d5cdb238393fd00bc09e7df6790c
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 97b476d30e8182eca31390ddee232add1ee234d9
+notes_seen: 49e5ad72764bc532c86c41d8f91c5a3ab8fa9bf3
 ---
 # Cold read notes
 
@@ -130,3 +130,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 24. Split: MP-ASK-BUDGET → budget/readout persistence + selection normalisation.
    It now combines budget-state and no-budget response assembly, provenance/readout, stored-answer persistence, and C11a’s unrelated selection rewrite across the central chat service and three test suites. Move C11a back to MP-ASK-CHOICE (and mark it as covering item 10), or make it a small dedicated normalisation task.
    Disposition: cut C11a is its own small part, MP-MONTH-FILTER (a pure helper plus the chat service call, covering 10), after MP-ASK-CHOICE; MP-ASK-BUDGET waits for it and covers 5 and 6 only.
+
+## Round 9
+
+25. New moving-parts inventory is stale after the C11a split.
+    It says there are two pure modules, but MP-MONTH-FILTER adds `redundant-month-filter.ts`. List it with Done-when item 10 and why extraction beats an in-service helper, or fold it into `chat.service.ts`.
+    Disposition: cut the moving-parts line lists all three pure modules with their Done-when items and why each is extracted (its cases are proven without the chat service's dependencies).
