@@ -576,18 +576,12 @@ export class ChatService {
     let answerPeriodOptions: AskPeriodOption[] | undefined;
     if (domain.name === "mis-statement") {
       const request = await statementRequest(
-        user,
         selectedPlantCodes(selection),
         appliedTimeWindow,
         selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
         this.selectionResolver,
         usesEditedSelection,
       );
-      if (request.kind === "scope")
-        return done({
-          responseClass: ResponseClass.BlockedByPolicy,
-          message: CHAT_MESSAGES.statementScope(request.attribute),
-        });
       if (request.kind === "no-mapping")
         return done({ responseClass: ResponseClass.NotSupported, message: CHAT_MESSAGES.statementMappingMissing });
       if (request.kind === "no-periods")
@@ -630,6 +624,12 @@ export class ChatService {
                 glCodes: statementExecutionScope.glCodes,
                 masterGlCodes: statementExecutionScope.masterGlCodes,
                 leafTargets: statementExecutionScope.leafTargets,
+                plantDisplayNames:
+                  "plants" in statementExecutionScope
+                    ? Object.fromEntries(
+                        statementExecutionScope.plants.map(({ plant, plantDisplay }) => [plant, plantDisplay]),
+                      )
+                    : { [statementExecutionScope.plant]: statementExecutionScope.plantDisplay },
               },
             }
           : {}),
@@ -1613,7 +1613,6 @@ function buildViewInReport(
 }
 
 type StatementRequestResult =
-  | { kind: "scope"; attribute: "department" | "function" }
   | { kind: "no-mapping" }
   | { kind: "no-periods" }
   | { kind: "period"; options: AskPeriodOption[] }
@@ -1624,30 +1623,12 @@ type StatementRequestResult =
     };
 
 async function statementRequest(
-  user: AuthUser,
   plants: string[],
   window: AppliedTimeWindow | undefined,
   timeColumn: string,
   resolver: SelectionResolverService,
   allowMultiPeriodRerun = false,
 ): Promise<StatementRequestResult> {
-  const value = (attribute: "department" | "function") => {
-    const values = [
-      ...new Set(user.scope.filter((scope) => scope.attribute === attribute).map((scope) => scope.value)),
-    ];
-    return values.length === 1 ? values[0] : undefined;
-  };
-  const attributes = ["department", "function"] as const;
-  const scope = Object.fromEntries(attributes.map((attribute) => [attribute, value(attribute)])) as Record<
-    (typeof attributes)[number],
-    string | undefined
-  >;
-  const offender = attributes.find((attribute) => !scope[attribute]);
-  if (offender) return { kind: "scope", attribute: offender };
-
-  const mapping = { department: scope.department!, function: scope.function!, plant: plants[0]! };
-  if (plants.length === 1 && !resolver.hasMapping(mapping)) return { kind: "no-mapping" };
-
   const periods = (await resolver.options(plants)).periods;
   if (periods.length === 0) return { kind: "no-periods" };
   const options = askPeriodOptions(statementPeriodOptions(periods), timeColumn);
@@ -1656,11 +1637,8 @@ async function statementRequest(
   if (!period) return { kind: "period", options };
 
   try {
-    // `periods` is already loaded above; hand it back so resolve() does not repeat that query.
-    const resolution =
-      plants.length === 1
-        ? await resolver.resolve({ ...mapping, period: period.value }, periods)
-        : await resolver.resolvePlants(plants, period.value, periods);
+    // `periods` is already loaded above; hand it back so resolvePlants() does not repeat that query.
+    const resolution = await resolver.resolvePlants(plants, period.value, periods);
     return resolution.outcome === "resolved" ? { kind: "resolved", resolution, options } : { kind: "no-mapping" };
   } catch (error) {
     if (error instanceof SelectionPeriodUnavailableError) return { kind: "period", options };

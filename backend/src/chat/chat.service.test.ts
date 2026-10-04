@@ -142,10 +142,6 @@ test("a one-plant statement keeps the existing mapped statement resolution", asy
   );
 
   assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
-  assert.deepEqual(fixture.resolver.resolveCalls, [
-    { department: "Agriculture", function: "Nursery", plant: "DUB", period: "2026-07-01" },
-  ]);
-  assert.deepEqual(fixture.resolver.resolvePlantsCalls, []);
   assert.deepEqual(fixture.executor.resolvedScopes[0]?.triples, [
     { plant: "DUB", costCenter: "Primary", glCode: "5001" },
   ]);
@@ -175,6 +171,10 @@ test("a DUB and CHIR statement runs one combined mapped statement", async () => 
     { plant: "CHIR", costCenter: "Primary", glCode: "5001" },
     { plant: "DUB", costCenter: "Primary", glCode: "5001" },
   ]);
+  assert.deepEqual(fixture.executor.resolvedScopes[0]?.plantDisplayNames, {
+    CHIR: "Agriculture - Nursery - CHIR",
+    DUB: "Agri - Nursery - DUB",
+  });
   assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
   assert.deepEqual(response.viewInReport, {
     available: false,
@@ -2407,6 +2407,7 @@ class FakeExecutor {
         triples: Array<{ plant: string; costCenter: string; glCode: string }>;
         glCodes: string[];
         masterGlCodes: string[];
+        plantDisplayNames?: Record<string, string>;
       }
     | undefined
   > = [];
@@ -2424,6 +2425,7 @@ class FakeExecutor {
         triples: Array<{ plant: string; costCenter: string; glCode: string }>;
         glCodes: string[];
         masterGlCodes: string[];
+        plantDisplayNames?: Record<string, string>;
       };
     },
   ) {
@@ -2560,11 +2562,14 @@ class FakeSelectionResolver {
 
   async resolvePlants(plants: string[], period: string) {
     this.resolvePlantsCalls.push({ plants, period });
+    if (plants.length === 1) {
+      return this.resolve({ department: "Agriculture", function: "Nursery", plant: plants[0], period });
+    }
     return {
       outcome: "resolved" as const,
       plants: plants.map((plant) => ({
         plant,
-        plantDisplay: plant,
+        plantDisplay: plant === "DUB" ? "Agri - Nursery - DUB" : `Agriculture - Nursery - ${plant}`,
         department: "Agriculture",
         function: "Nursery",
         provisional: false,
