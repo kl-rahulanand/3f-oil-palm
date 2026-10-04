@@ -2,9 +2,9 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: confirmed
-saved: 2026-10-04T07:33:07+00:00
+saved: 2026-10-04T08:51:55+00:00
 confirmed_by: "Rahul Anand"
-confirmed_hash: def07537899cbd614041a0bab76872f64dfead589e9416b04e3f30ddf709abdd
+confirmed_hash: 4f32ab27b773c6236d98f8398758d1ab3fd81d44c62c3aec9506a1d98b9ca2d5
 ---
 
 # Every Ask answer works across plants
@@ -34,6 +34,17 @@ decision 0033.
 - Readers who hold exactly one plant, who must see no change beyond honest budget labels.
 
 ## Behaviour
+
+### What counts as a read
+
+- A **figure read** is any warehouse query that returns amounts or lines: the answer's data query, its
+  totals, GL names, drill summaries and transactions. It is audited as today (the execution record is
+  written before the query).
+- A **metadata lookup** returns no amount: the mapping master, the reader's grants, the selector's cached
+  distinct GL-code and month values, and load-batch metadata (which batches are active and which months
+  they cover). It is not audited as a data read, exactly as these lookups are not today.
+- Wherever this spec says "no read" or "nothing is read", it means no figure read; metadata lookups may
+  run.
 
 ### The plant set an answer uses
 
@@ -66,7 +77,9 @@ decision 0033.
   audit record. So that its name never reaches the model, the server checks the question before the
   selector is called. Any whole-word match on a canonical code, SAP code or display name of a mapping
   master plant the reader does not hold refuses the question with no provider call. Codes shorter than
-  three characters match only as an upper-case token, so ordinary words are not mistaken for plants.
+  three characters match only as an exact upper-case token, so ordinary words are not mistaken for plants:
+  "CK" names the plant CK, while "ck" names no plant and is treated like any other word, for granted and
+  ungranted plants alike. Every other code, SAP code and display name matches case-insensitively.
 - A plant is recognised only by that whole-word match against the mapping master. No other word is ever
   treated as a plant, so a question whose words match no plant is treated as naming none and gets the
   picker rule, with no "not recognised" notice. Period, measure and GL words ("July", "Actual", "GL") never
@@ -80,7 +93,10 @@ decision 0033.
 - A reader who holds no plant gets no picker. Any data question is refused as `no-plants-granted` with
   "You do not have access to any plant.", audited as a refusal, with no provider call and no read.
 - A question that names no plant, from a reader holding more than one plant, is answered with a typed
-  plant picker instead of data. No warehouse read runs before a choice. A reader holding exactly one
+  plant picker instead of data. No figure is read before a choice: no data query, totals, names, drill
+  summary. The selector's existing cached lookup of distinct GL-code and month values,
+  which reads no figure, may run first, as it does before today's period choice; plant values never come
+  from it (owner decision, 2026-10-04). A reader holding exactly one
   plant gets that plant without a picker. The picker is `AskResponse.plantChoice`:
   `{ prompt, question, selection, options: [{ value: <canonical code>, label: <display name> }],
   allPlants: { label: "All plants", value: [<every granted canonical code, sorted>] } }`.
@@ -146,8 +162,15 @@ decision 0033.
 
 ### Budget and %
 
-- Budget belongs to the budget owner plant, DUB (decision 0034). Each answer row carries a typed budget
-  state, `AskResponse.budgetStates`, keyed by row key:
+- Budget belongs to the budget owner plant, DUB (decision 0034). A plant has a loaded budget for a row
+  when it is the budget owner and every month the row covers has an active budget batch: the row's own
+  month when the answer groups by month, otherwise every month of the answer's window. An answer with no
+  time window takes as its window every month covered by an active Actual load batch, determined from
+  the load batches before the query runs (and so before any comparison filtering). A month with no
+  active budget batch makes DUB count as not loaded for that row, as the statement screen treats a
+  period with no budget batch.
+- When an answer includes Budget or %, each row carries a typed budget state, `AskResponse.budgetStates`,
+  keyed by row key:
   `{ key, state: "loaded" | "not-loaded" | "partial", plantsWithBudget, plantsInRow }`.
   - `plantsInRow` is the row's plants within the answer's plant set, as canonical codes, sorted: its one
     plant for a row split by plant, and every chosen plant for a summed row, whether or not that plant
@@ -159,11 +182,25 @@ decision 0033.
   - `partial`: some do. Budget shows a dash labelled "Budget loaded for k of n plants", and the % cell is
     null with the same label. A partial row never shows a budget figure that would compare part of its
     Actual.
+- These rules apply only to the measures the answer shows; no measure is added. An answer with neither
+  Budget nor % (e.g. "Actual by GL code for CHIR") adds no Budget or % column and carries no
+  `budgetStates`. The Budget dash applies to a shown Budget column and the "not loaded" % cell to a shown
+  % column.
 - The dashes and labels are rendered from the typed state, each label also the cell's accessible name.
   The result table's Budget and % cells are null for not-loaded and partial rows. No column is ever
   dropped, as `docs/specs/all-plants-statement.md` requires.
+- Actual and Budget are joined at the grain of plant, GL code and month (for statements, plant, line and
+  month) before any aggregation across plants. The budget carries its owner plant and joins only that
+  plant's actual rows, so a DUB+CHIR row never pairs CHIR's Actual with DUB's budget, and no budget or
+  provenance crosses plants.
 - A comparison that needs a budget (e.g. Actual over Budget) reads only the chosen plants that have a
-  loaded budget. That restriction is in the query itself, before grouping, ordering, the row limit,
+  loaded budget for every month of the answer's window, whatever the grouping. A plant missing a budget
+  batch for any month of the window is left out whole, never compared on some months only.
+- The answer's `selection` keeps the plants the reader asked for (e.g. DUB and CHIR), because that is
+  what a saved view or pin stores and re-runs; only the effective query predicate, totals, provenance
+  and drill context use the compared plants (DUB). A re-run recomputes which plants have a budget, so if
+  DUB was left out for a month with no budget batch and that batch is later loaded, the re-run compares
+  DUB. Only DUB can have a budget in this scope (decision 0034). That restriction is in the query itself, before grouping, ordering, the row limit,
   totals and drill preparation. Every row of such an answer is therefore `loaded`, and its totals cover
   exactly the plants compared. When at least one chosen plant was left out, the answer carries a typed
   `AskResponse.leftOut: { reason:
@@ -231,12 +268,22 @@ decision 0033.
   `AskRequest.origin`, the HTTP `error.details.reason` union (adding `plant-filter-invalid` and
   `plant-not-granted` to the measure-filter reasons), and the saved-view and pin status reason (adding
   `plants_revoked` to `grant_revoked` and `definition_unregistered`).
-- Saving a view or pinning a report is not an Ask request. A save or pin whose plant filter is invalid or
-  holds a plant the reader does not hold is rejected with HTTP 400 through the existing typed path the
+- Saving a view or pinning a report is not an Ask request. A save or pin whose plant filter is missing,
+  invalid or holds a plant the reader does not hold is rejected (a missing one as `plant-filter-invalid`,
+  since every successful answer already carries its plant filter, for one-plant readers too) with HTTP 400 through the existing typed path the
   global exception filter already uses for measure filters: a typed plant-filter error whose reason
   (`plant-filter-invalid` or `plant-not-granted`) maps to the same copy as the table above in
   `error.userMessage`, with `error.details.reason` set. The save and pin dialogs render that
   `userMessage`.
+
+### A redundant month filter
+
+- The live model sometimes adds a `month` equality filter on exactly the month its `timeWindow` already
+  names. Before any Ask selection executes, the server removes exactly one shape: a `month` filter with
+  `op` `eq` and a single string value equal to the first day of the one calendar month that the
+  `timeWindow` spans. The answer is unchanged because the window restricts that month. Every other month
+  filter is kept and handled as today: a different month, `in` or `neq`, an array value, a window that
+  spans more than one month, and a selection with no `timeWindow`.
 
 ### What does not change
 
@@ -265,9 +312,9 @@ decision 0033.
      warehouse's July Actual for those plants.
   3. "What was the Actual for each MIS statement line in July 2026 for DUB and CHIR?" Expected: one
      combined statement whose lines equal the sum of DUB's and CHIR's MIS statements.
-  4. "Actual by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a Budget dash labelled
-     "Budget not loaded for this plant" and a null % cell labelled "not loaded" in a % column that is
-     still present.
+  4. "Actual, Budget and % by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a
+     Budget dash labelled "Budget not loaded for this plant" and a null % cell labelled "not loaded" in a
+     % column that is still present.
   5. "What was the Actual for each MIS statement line in July 2026?" Expected: the picker, then the
      period if needed; choosing DUB returns DUB's statement lines with labels.
 - Baseline: 0 of 5 today. Question 1 answers DUB-only while listing all plants; 2 cannot split by plant;
@@ -287,7 +334,8 @@ decision 0033.
 
 - **C1 Picker.**
   - A reader holding several plants who names no plant gets `plantChoice` listing their plants plus "All
-    plants", and a leaf proves no warehouse read ran before the choice.
+    plants", and a leaf proves no figure was read before the choice (no data query, totals, names or drill
+    summary; distinct values only for the non-plant vocabulary columns).
   - A one-plant reader gets the answer directly.
   - An edited selection, and a saved view or pin made before this change, with no plant filter gets the
     picker (several plants) or a singleton filter (one plant), proven by leaves.
@@ -300,7 +348,8 @@ decision 0033.
   - A recognised but ungranted plant is refused, named and audited, with no selector call and no read.
   - A question whose words match no plant gets the picker rule, with no notice. Leaves prove "July",
     "Actual", "Budget", "GL" and "statement" never match a plant.
-  - A short code is not matched inside an ordinary word.
+  - A short code is not matched inside an ordinary word. "CK" names CK and is refused when ungranted;
+    "ck" names no plant and gets the picker rule.
   - An edited selection whose plant filter holds a known plant the reader does not hold is refused whole,
     naming it, with no read and an audit record; one holding an empty array is refused as invalid. Neither
     is narrowed to a partial result.
@@ -310,6 +359,8 @@ decision 0033.
   - A mapping master with two plants whose aliases collide after normalisation fails to load.
   - A reader with no plant is refused as `no-plants-granted`, audited, with no provider call and no read,
     including when the question names CHIR (refusal order).
+  - A new save and a new pin with no plant filter are rejected as `plant-filter-invalid`, for a one-plant
+    and a several-plant reader alike, and nothing is stored.
   - A save and a pin request with a tampered plant filter get HTTP 400 with the stated `userMessage` and
     `details.reason`, proven through the global exception filter, separately from an Ask re-run; the
     dialogs render that message.
@@ -338,11 +389,28 @@ decision 0033.
     a null % cell labelled "not loaded" in a % column that is still present.
   - Leaves cover DUB only, non-owner only, a mixed summed row, a mixed plant breakdown, a DUB row with a
     real ₹0 budget (loaded), and a comparison whose remaining rows are empty.
+  - A DUB range April–July with no active budget batch for one month: the summed row is `not-loaded`, a
+    month-grouped row is loaded only for months with a batch, and a comparison over a DUB period with no
+    budget batch is the Informational no-budget answer.
+  - At the plant grain, DUB's budget joins only DUB's actual rows: a DUB+CHIR row's budget is DUB's alone
+    (and the row is `partial`), and a CHIR row has no budget, for GL and statement answers.
+  - Measure sets: Actual only (no Budget or % column, no `budgetStates`), Actual and Budget (Budget dash
+    only), % only (the "not loaded" % cell only) and all three (both), each for a CHIR row.
+  - A DUB April–July comparison where one month has no budget batch leaves DUB out whole, named in
+    `leftOut`, and becomes the Informational no-budget answer when DUB is the only chosen plant.
+  - An answer with no time window takes its months from the active Actual load batches before the query
+    runs; an Actual month with no DUB budget batch makes the summed DUB row `not-loaded`, and an
+    unwindowed DUB-only comparison with such a month is the Informational no-budget answer: the leaf
+    proves only metadata lookups ran (load batches, grants, mapping master), with no figure read and no
+    execution audit record.
   - A DUB+CHIR summed row where CHIR has no activity is `partial`, with `plantsInRow` `["CHIR","DUB"]` and
     `plantsWithBudget` `["DUB"]`.
   - A budget comparison reads only plants with a loaded budget, applied in the query before ordering, the
     limit and totals. A fixture with more qualifying DUB rows than the row limit, alongside non-owner plants,
     proves no qualifying row is dropped and the totals are exact. The left-out plants are named.
+  - A DUB+CHIR budget comparison keeps DUB and CHIR in its `selection`; saved or pinned and re-run, it
+    again compares DUB and names CHIR as left out. A saved DUB comparison left out for a month with no
+    budget batch compares DUB once that batch is active.
   - A DUB+CHIR budget comparison names CHIR as left out, while its query predicate, totals, drill context
     and "How this was calculated" scope contain DUB only. Naming CHIR in the explanatory copy never adds
     it to the queried scope.
@@ -376,20 +444,33 @@ decision 0033.
 - **C10 Model boundary.** Leaves prove the model receives only the current reader's plant codes and display
   names: no ungranted plant name (the pre-selector check refuses before any provider call), and no figure.
   Plant refusals reach the client as typed `refusal` reasons.
+- **C11a Redundant month filter.** A leaf proves a selector output with `timeWindow` July 2026 and a
+  `month` eq `2026-07-01` filter executes with the filter removed and returns the same rows as without it.
+  Leaves prove each kept case reaches the query unchanged: `month` eq `2026-06-01` with a July window,
+  `month` `in` [`2026-07-01`], `month` `neq` `2026-07-01`, a July–August window, no window, and a
+  selection carrying both the redundant filter and a `gl_code` filter (only the month filter goes).
 - **C11 Live check.**
   - Before the change, a fixed corpus is probed against the live Bedrock model as the seeded admin, and
     each selection recorded. The corpus and its expected selections:
     - "show me list items where Actuals are more than the budget for July 2026": domain
-      `governed-financial`, dimension `gl_code`, measure filter Actual > Budget, period July 2026.
-    - "which GL codes spent more than 5 lakh in July 2026": `governed-financial`, `gl_code`, measure
-      filter Actual > 500000, July 2026.
-    - "Actual by GL code for July 2026": `governed-financial`, `gl_code`, no measure filter, July 2026.
+      `governed-financial`, measures Actual and Budget, dimension `gl_code`, measure filter
+      Actual > Budget, period July 2026.
+    - "which GL codes spent more than 5 lakh in July 2026": `governed-financial`, measure Actual,
+      `gl_code`, measure filter Actual > 500000, July 2026.
+    - "Actual by GL code for July 2026": `governed-financial`, measure Actual, `gl_code`, no measure
+      filter, July 2026.
     - "which statement lines are over budget for July 2026", as the DUB-only user: domain
-      `mis-statement`, dimension `leaf_key`, measure filter Actual > Budget, July 2026.
-    The admin's corpus answers carry no plant filter before the change.
+      `mis-statement`, measures Actual and Budget, dimension `leaf_key`, measure filter Actual > Budget,
+      July 2026.
+    The admin's corpus answers carry no plant filter before the change. The probe compares selections
+    after one normalisation: a `month` equality filter on exactly the month of the selection's
+    `timeWindow` is removed, because the window already carries that period and the live model emits
+    the redundant filter on some runs and not others (observed 2026-10-04, same rows either way). After
+    normalisation every corpus answer's ordinary filters are `[]`; any other filter is a regression.
   - After it, the five success-measure questions are asked as the seeded admin, each in a fresh
     conversation, with their stated results. The corpus is probed again: each selects the same domain,
-    dimensions, measure filter and period as recorded, and the admin's questions now get the plant
+    measures, dimensions, measure filter and period as recorded, its normalised ordinary filters are
+    `[]` apart from the plant filter (from the picker or a named plant), and the admin's questions now get the plant
     picker first.
 
 ## Open items (non-blocking)
