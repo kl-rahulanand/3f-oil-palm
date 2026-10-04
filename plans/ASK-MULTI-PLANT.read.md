@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T09:59:39+00:00
-read_hash: 9ae5bb4fda21515f9042fab2501fce91c2aef45a
-round: 12
+read_at: 2026-10-04T10:00:39+00:00
+read_hash: 7e3d410e9a6fc1fc74d55c6509c871090c07c735
+round: 13
 passed: no
-doc_seen: 9ae5bb4fda21515f9042fab2501fce91c2aef45a
+doc_seen: 7e3d410e9a6fc1fc74d55c6509c871090c07c735
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 406872fe199c5bff30c61f5e1723eb884b348351
+notes_seen: 784c32591a6efd32ddbe44761798d4ed2d8569d6
 ---
 # Cold read notes
 
@@ -166,3 +166,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 31. Unproven: item 2: valid unordered or duplicate filters are canonicalized when creating a saved view or pin.
     Detail 9 names only saved/pin re-runs, while C2 requires canonicalisation at their creation ingress too. Add MP-SAVED-PINS service leaves asserting stored selections are sorted and deduplicated.
     Disposition: cut detail 9 adds the creation-ingress leaves: saving or pinning `["DUB","CHIR","DUB"]` stores `["CHIR","DUB"]`, in saved.service.test.ts and pins.service.test.ts (MP-SAVED-PINS).
+
+## Round 13
+
+32. Unproven: item 2: a selection carrying two plant filters is refused.
+    C2 requires exactly one plant filter, but the named leaves cover malformed values and duplicate values within one filter only. Add a `plant-filter-invalid`, no-read leaf for two plant filters.
+    Disposition: cut detail 9 adds the two-plant-filters leaf: `plant-filter-invalid` with no read in plant-set.test.ts and chat.service.test.ts, and rejected on save and pin.
