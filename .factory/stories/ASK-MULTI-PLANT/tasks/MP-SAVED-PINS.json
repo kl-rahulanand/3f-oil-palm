@@ -14,6 +14,11 @@
         "because": "frontend/src/features/assistant/ask-panel.tsx:353 no new visual element: the save and pin dialogs keep their existing error slot and now show the server's userMessage text, and the cards reuse the existing not-runnable state (message block, Open hidden, Delete kept) already used for grant_revoked. The coordinator viewed both states in the browser on 2026-10-04 (this branch on :3001): the revoked pinned card and saved view show the red message with Delete and no Open, matching the grant_revoked styling. The plant label wording on those cards is MP-ASK-UI-RESULTS's (selection-label.ts).",
         "finding": 3,
         "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:754 the coordinator drove the real save and pin routes on 2026-10-04 (this branch at d20e2a97 on :4001, real Nest app, OTP login, CSRF, app DB, DUB-only user): POST /api/saved with [\"dub\"] and with no plant filter, and POST /api/pins with [\"DUB-NUR\"], each returned HTTP 400 with error.userMessage \"This question's plant choice is not valid. Choose the plants again.\" and details.reason plant-filter-invalid; POST /api/saved with [\"CHIR\"] returned 400 \"You do not have access to Agriculture - Nursery - CHIR.\" with reason plant-not-granted. The dialogs render error.userMessage from ApiError, proven by the ask-panel leaf against that exact envelope shape.",
+        "finding": 2,
+        "from_base": false
       }
     ],
     "findings": [
