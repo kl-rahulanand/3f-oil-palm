@@ -65,6 +65,8 @@ Only a genuine trade-off goes to the human, as a question with options.
 
 11. C1 still has no no-read route for constructing `plantChoice.selection`.
    The current selector preparation calls `dimensionValuesForAllowedDomains`, which reads the warehouse before `llm.select`; mapping-master picker options do not remove that read. Pin how the base selection is produced before a plant choice, and have the leaf spy on dimension-values reads too.
+   Disposition: keep the base selection comes from the selector as today, after its existing cached distinct-value vocabulary lookup (no figure), the same precedent as today's period choice; detail 1 defines C1's "no read" as no figure read and the leaf spies on the executor, the adapter query path, the batch repository and the dimension-values lookup (non-plant columns only).
 
 12. MP-CONTRACT misses `backend/package.json` in Scope.
    It adds `contract/test/row-key.test.ts`; the repository rule requires every task adding a test file to scope both `backend/package.json` and `tools/quality-gate.test.mjs` so the registered leaf is actually run.
+   Disposition: cut MP-CONTRACT now scopes `backend/package.json` beside `tools/quality-gate.test.mjs` and `contract/package.json`.
