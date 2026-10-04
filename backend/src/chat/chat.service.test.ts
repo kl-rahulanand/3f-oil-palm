@@ -28,6 +28,7 @@ import type { DrillPredicate, DrillSummary } from "../warehouse/drill-transactio
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import { GlNameRepository } from "../warehouse/gl-name.repository";
 import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
+import type { Warehouse } from "../warehouse/warehouse.interface";
 import { AskDrillContextService } from "./ask-drill-context";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
@@ -132,7 +133,28 @@ test("a plant choice keeps the server-resolved period when the selector omits it
   });
 });
 
-test("a redundant month filter changes neither rows nor the other executed filters", async () => {
+test("a redundant month filter bypasses a loaded month vocabulary that lacks the selected month", async () => {
+  const withoutMonth = makeFixture({ selection: financialSelection });
+  const withMonth = makeFixture({
+    selection: {
+      ...financialSelection,
+      filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+    },
+  });
+  withoutMonth.dimensions.monthValues = ["2026-06-01"];
+  withMonth.dimensions.monthValues = ["2026-06-01"];
+  const user = userForPlants("governed-financial", ["DUB"]);
+
+  const baseline = await withoutMonth.service.ask(user, "baseline-session", "Actual for July 2026 for DUB");
+  const normalized = await withMonth.service.ask(user, "normalized-session", "Actual for July 2026 for DUB");
+
+  assert.equal(baseline.responseClass, ResponseClass.Success);
+  assert.equal(normalized.responseClass, ResponseClass.Success);
+  assert.deepEqual(normalized.result?.rows, baseline.result?.rows);
+  assert.deepEqual(withMonth.executor.selections[0]?.filters, withoutMonth.executor.selections[0]?.filters);
+});
+
+test("a redundant month filter produces the same rows through the real selection executor", async () => {
   const glCodeFilter = { dimensionId: "gl_code", op: "eq" as const, value: "DUB-01" };
   const withoutMonth = makeFixture({
     selection: { ...financialSelection, filters: [glCodeFilter] },
@@ -143,17 +165,49 @@ test("a redundant month filter changes neither rows nor the other executed filte
       filters: [glCodeFilter, { dimensionId: "month", op: "eq", value: "2026-07-01" }],
     },
   });
+  const withAnotherMonth = makeFixture({
+    selection: {
+      ...financialSelection,
+      filters: [glCodeFilter, { dimensionId: "month", op: "eq", value: "2026-06-01" }],
+    },
+  });
+  const fixtures = [withoutMonth, withMonth, withAnotherMonth];
+  for (const fixture of fixtures) {
+    const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), new FilterSensitiveWarehouse());
+    Reflect.set(fixture.service, "selectionExecutor", {
+      async run(...args: Parameters<SelectionExecutor["run"]>) {
+        fixture.executor.selections.push(args[2]);
+        return executor.run(...args);
+      },
+      async freshness(...args: Parameters<SelectionExecutor["freshness"]>) {
+        return executor.freshness(...args);
+      },
+    });
+  }
   const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.dimensionIds.push("month");
 
-  const baseline = await withoutMonth.service.ask(user, "baseline-session", "Actual by GL code for July 2026 for DUB");
-  const normalized = await withMonth.service.ask(user, "normalized-session", "Actual by GL code for July 2026 for DUB");
+  const [baseline, normalized, kept] = await withQueryTimeout(100, () =>
+    Promise.all([
+      withoutMonth.service.ask(user, "baseline-session", "Actual by GL code for July 2026 for DUB"),
+      withMonth.service.ask(user, "normalized-session", "Actual by GL code for July 2026 for DUB"),
+      withAnotherMonth.service.ask(user, "kept-session", "Actual by GL code for July 2026 for DUB"),
+    ]),
+  );
 
-  assert.equal(baseline.responseClass, ResponseClass.Success);
-  assert.equal(normalized.responseClass, ResponseClass.Success);
+  assert.equal(baseline.responseClass, ResponseClass.Success, JSON.stringify(baseline));
+  assert.equal(normalized.responseClass, ResponseClass.Success, JSON.stringify(normalized));
+  assert.equal(kept.responseClass, ResponseClass.Success, JSON.stringify(kept));
   assert.deepEqual(normalized.result?.rows, baseline.result?.rows);
+  assert.notDeepEqual(kept.result?.rows, baseline.result?.rows);
   assert.deepEqual(withMonth.executor.selections[0]?.filters, withoutMonth.executor.selections[0]?.filters);
   assert.deepEqual(withMonth.executor.selections[0]?.filters, [
     glCodeFilter,
+    { dimensionId: "plant", op: "in", value: ["DUB"] },
+  ]);
+  assert.deepEqual(withAnotherMonth.executor.selections[0]?.filters, [
+    glCodeFilter,
+    { dimensionId: "month", op: "eq", value: "2026-06-01" },
     { dimensionId: "plant", op: "in", value: ["DUB"] },
   ]);
 });
@@ -2513,11 +2567,66 @@ class FakeAudit {
 class FakeDimensions {
   calls = 0;
   plantCalls = 0;
+  monthValues = Array.from({ length: 51 }, (_, index) => `month-${index}`);
   async values(_object: string, column: string) {
     this.calls += 1;
     if (column === "plant") this.plantCalls += 1;
-    if (column === "month") return Array.from({ length: 51 }, (_, index) => `month-${index}`);
+    if (column === "month") return this.monthValues;
     return Array.from({ length: 50 }, (_, index) => `DUB-${String(index).padStart(2, "0")}`);
+  }
+}
+
+class FilterSensitiveWarehouse implements Warehouse {
+  async explain(): Promise<void> {}
+
+  async execute(sql: string) {
+    const keptMonthFilter = /\bmonth = '2026-06-01'/.test(sql);
+    const rows = keptMonthFilter
+      ? []
+      : [
+          {
+            gl_code: "DUB-01",
+            actual: "7.00",
+            source_presence: '["actual-only"]',
+            budget_component_labels: "[]",
+            active_batch_ids: "[]",
+          },
+        ];
+    if (!sql.includes("source_presence")) {
+      return {
+        columns: [{ name: "actual", numeric: true }],
+        rows: keptMonthFilter ? [] : [{ actual: "7.00" }],
+      };
+    }
+    return {
+      columns: [
+        { name: "gl_code", numeric: false },
+        { name: "actual", numeric: true },
+        { name: "source_presence", numeric: false },
+        { name: "budget_component_labels", numeric: false },
+        { name: "active_batch_ids", numeric: false },
+      ],
+      rows,
+    };
+  }
+
+  async freshness(): Promise<string | null> {
+    return null;
+  }
+
+  async distinctValues(): Promise<string[]> {
+    return [];
+  }
+}
+
+async function withQueryTimeout<T>(milliseconds: number, run: () => Promise<T>): Promise<T> {
+  const previous = process.env.QUERY_TIMEOUT_MS;
+  process.env.QUERY_TIMEOUT_MS = String(milliseconds);
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) delete process.env.QUERY_TIMEOUT_MS;
+    else process.env.QUERY_TIMEOUT_MS = previous;
   }
 }
 
