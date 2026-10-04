@@ -111,6 +111,17 @@ test("both chat routes document the explanation union with a named schema", () =
     appliedTimeWindow: { from: "2026-07-01", to: "2026-07-01", column: "month" },
     appliedFilters: [],
     appliedMeasureFilters: [],
+    plantChoice: {
+      prompt: "Which plants should this answer cover?",
+      question: "Actual?",
+      selection: { domain: "test", measureIds: [], dimensionIds: [], filters: [] },
+      options: [{ value: "DUB", label: "DUB Nursery" }],
+      allPlants: { label: "All plants", value: ["DUB"] },
+    },
+    refusal: { reason: "plant-not-granted", plants: ["CHIR Plant"] },
+    leftOut: { reason: "budget-not-loaded", plants: ["CHIR Plant"] },
+    budgetStates: [{ key: "50001201", state: "loaded", plantsWithBudget: ["DUB"], plantsInRow: ["DUB"] }],
+    plantNames: { DUB: "DUB Nursery" },
     periodChoice: {
       prompt: "Pick",
       selection: { domain: "test", measureIds: [], dimensionIds: [], filters: [] },
@@ -128,6 +139,7 @@ test("both chat routes document the explanation union with a named schema", () =
     Object.keys(completeResponse).filter((field) => !responseFields.includes(field)),
     [],
   );
+
   const appliedMeasureFiltersProperty = Reflect.getMetadata(
     DECORATORS.API_MODEL_PROPERTIES,
     ChatResponseDto.prototype,
@@ -277,7 +289,7 @@ test("POST /api/chat/drill documents its bounded request and typed transaction r
   }
 });
 
-test("POST /api/chat documents selection measure filters through the shared selection schema", async () => {
+test("Swagger documents the multi-plant request, response, status, and error unions", async () => {
   const originalInit = AuthoredMeasureRegistry.prototype.onModuleInit;
   AuthoredMeasureRegistry.prototype.onModuleInit = async () => {};
   let app: INestApplication | undefined;
@@ -286,21 +298,78 @@ test("POST /api/chat documents selection measure filters through the shared sele
     app = await NestFactory.create(AppModule, { logger: false });
     await app.init();
     const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
-    const responseSchema = document.paths["/api/chat"]?.post?.responses?.["201"] as {
+    const chatOperation = document.paths["/api/chat"]?.post;
+    const responseSchema = chatOperation?.responses?.["201"] as {
       content?: { "application/json"?: { schema?: { $ref?: string } } };
     };
     const responseRef = responseSchema.content?.["application/json"]?.schema?.$ref;
     assert.equal(responseRef, "#/components/schemas/ChatResponseDto");
 
+    const requestSchema = chatOperation?.requestBody as {
+      content?: { "application/json"?: { schema?: { properties?: { origin?: { enum?: string[] } } } } };
+    };
+    assert.deepEqual(requestSchema.content?.["application/json"]?.schema?.properties?.origin?.enum, [
+      "plant-choice",
+      "period-choice",
+      "saved-view",
+      "pin",
+    ]);
+
     const responseComponent = document.components?.schemas?.ChatResponseDto as {
-      properties?: { selection?: { $ref?: string } };
+      properties?: Record<string, { $ref?: string; items?: { $ref?: string }; additionalProperties?: unknown }>;
     };
     assert.equal(responseComponent.properties?.selection?.$ref, "#/components/schemas/ExplorationSelectionDto");
+    assert.equal(responseComponent.properties?.plantChoice?.$ref, "#/components/schemas/AskPlantChoiceDto");
+    assert.equal(responseComponent.properties?.refusal?.$ref, "#/components/schemas/AskPlantRefusalDto");
+    assert.equal(responseComponent.properties?.leftOut?.$ref, "#/components/schemas/AskLeftOutDto");
+    assert.equal(responseComponent.properties?.budgetStates?.items?.$ref, "#/components/schemas/AskBudgetStateDto");
+    assert.deepEqual(responseComponent.properties?.plantNames?.additionalProperties, { type: "string" });
 
     const selectionComponent = document.components?.schemas?.ExplorationSelectionDto as {
       properties?: Record<string, unknown>;
     };
     assert.ok(selectionComponent.properties?.measureFilters);
+
+    type ObjectSchema = {
+      enum?: string[];
+      required?: string[];
+      properties?: Record<string, ObjectSchema>;
+      oneOf?: ObjectSchema[];
+    };
+    const schemas = document.components?.schemas as Record<string, ObjectSchema>;
+    assert.deepEqual(schemas.AskPlantChoiceDto?.required?.sort(), [
+      "allPlants",
+      "options",
+      "prompt",
+      "question",
+      "selection",
+    ]);
+    assert.deepEqual(schemas.AskPlantRefusalDto?.properties?.reason?.enum, [
+      "plant-not-granted",
+      "plant-filter-invalid",
+      "plants-revoked",
+      "choice-plants-revoked",
+      "no-plants-granted",
+    ]);
+    assert.deepEqual(schemas.AskLeftOutDto?.properties?.reason?.enum, ["budget-not-loaded"]);
+    assert.deepEqual(schemas.AskBudgetStateDto?.properties?.state?.enum, ["loaded", "not-loaded", "partial"]);
+
+    for (const component of ["SavedQueryResponseDto", "PinResponseDto"]) {
+      assert.deepEqual(schemas[component]?.properties?.status?.oneOf?.[1]?.properties?.reason?.enum, [
+        "grant_revoked",
+        "definition_unregistered",
+        "plants_revoked",
+      ]);
+    }
+    assert.deepEqual(schemas.ExplorationErrorDetailsDto?.properties?.reason?.enum, [
+      "not_comparable",
+      "unknown_measure",
+      "self_comparison",
+      "duplicate",
+      "malformed_value",
+      "plant-filter-invalid",
+      "plant-not-granted",
+    ]);
   } finally {
     AuthoredMeasureRegistry.prototype.onModuleInit = originalInit;
     await app?.close();

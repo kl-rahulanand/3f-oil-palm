@@ -8,6 +8,7 @@ import type {
   ErrorPayload,
   ExplorationSelectionStatus,
   MeasureFilter,
+  ErrorDetailsReason,
   SaveQueryRequest,
   SavedQuery,
   Selection,
@@ -165,7 +166,7 @@ export class SavedQueryResponseDto implements SavedQuery {
         type: "object",
         properties: {
           runnable: { type: "boolean", enum: [false] },
-          reason: { type: "string", enum: ["grant_revoked", "definition_unregistered"] },
+          reason: { type: "string", enum: ["grant_revoked", "definition_unregistered", "plants_revoked"] },
           message: { type: "string" },
         },
         required: ["runnable", "reason", "message"],
@@ -198,8 +199,11 @@ class ExplorationErrorDetailsDto {
   @ApiProperty({ type: [ExplorationErrorFieldDto], required: false })
   fieldErrors?: ExplorationErrorFieldDto[];
 
-  @ApiProperty({ enum: Object.values(MeasureFilterInvalidReason), required: false })
-  reason?: MeasureFilterInvalidReason;
+  @ApiProperty({
+    enum: [...Object.values(MeasureFilterInvalidReason), "plant-filter-invalid", "plant-not-granted"],
+    required: false,
+  })
+  reason?: ErrorDetailsReason;
 }
 
 class ExplorationErrorPayloadDto implements ErrorPayload {

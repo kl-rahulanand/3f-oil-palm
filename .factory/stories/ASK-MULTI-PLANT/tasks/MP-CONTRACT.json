@@ -1,0 +1,42 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-CONTRACT",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "a2b0c9fd38798a977811f6b4be8ff4d9ef3fc2e61058e9e51c18c2170b982784",
+    "commit": "d0f6c4196628798f9d511f802f0c57280d9b50e4",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The schema and Swagger now accept `AskRequest.origin`, but the unchanged `ChatController` discards `parsed.data.origin` when invoking `ChatService.ask` in both the regular route (lines 38\u201348) and streaming route (lines 84\u201394). Thus saved-view, pin, and choice continuations remain indistinguishable after validation. MP-ASK-CHOICE must extend the service/controller path and test both routes.",
+        "file": "backend/src/chat/chat.schemas.ts",
+        "line": 108,
+        "priority": "P2",
+        "title": "Later: MP-ASK-CHOICE must forward `origin` through both chat routes"
+      },
+      {
+        "body": "This exported schema has no non-test consumer: pin controllers parse only request schemas and return `PinResponseDto` responses without this validation. Its new test therefore validates a disconnected production seam rather than the actual wire contract. The adjacent Swagger metadata test already checks the real response DTO, so remove `pinStatusSchema` and its hollow test while retaining the DTO enum contract.",
+        "file": "backend/src/pins/pins.schemas.ts",
+        "line": 17,
+        "priority": "P2",
+        "title": "Simpler: remove the test-only `pinStatusSchema` \u2192 test the response DTO directly"
+      }
+    ],
+    "status": "clean",
+    "tree": "ed836278448b2f7716648881543b301ceb82507a723402b462ba9313a3e4ff66"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T10:04:19+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T10:20:44+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T10:28:57+00:00",
+      "step": "review"
+    }
+  ]
+}

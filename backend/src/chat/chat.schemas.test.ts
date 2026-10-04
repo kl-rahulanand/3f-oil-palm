@@ -139,6 +139,14 @@ test("Ask accepts a measure filter on a direct selection and a prior turn but re
   );
 });
 
+test("Ask accepts each plant request origin and rejects an unknown origin", () => {
+  for (const origin of ["plant-choice", "period-choice", "saved-view", "pin"]) {
+    assert.equal(askSchema.safeParse({ question: "Show Actual", origin }).success, true);
+  }
+
+  assert.equal(askSchema.safeParse({ question: "Show Actual", origin: "report-grounding" }).success, false);
+});
+
 const selection: Selection = {
   domain: "governed-financial",
   measureIds: ["governed-financial.actual"],
