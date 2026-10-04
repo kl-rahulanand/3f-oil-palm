@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T10:01:53+00:00
-read_hash: 5320622dcf55b96d19a540103a9bcd6e6e940ae4
-round: 14
+read_at: 2026-10-04T10:33:11+00:00
+read_hash: 6d927d3b84789e3ce40882fcb8767456908b5d4d
+round: 16
 passed: yes
-doc_seen: 5320622dcf55b96d19a540103a9bcd6e6e940ae4
-spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: f9088ab9fb38381fd554715e52e5fcdd4a87d915
+doc_seen: 6d927d3b84789e3ce40882fcb8767456908b5d4d
+spec_seen: 25f0688944de29ca0538c1351091fce3514f8bf9
+notes_seen: 72d3b182eff005cbc9e0ced30592efa6a0ef3924
 ---
 # Cold read notes
 
@@ -174,5 +174,23 @@ Only a genuine trade-off goes to the human, as a question with options.
     Disposition: cut detail 9 adds the two-plant-filters leaf: `plant-filter-invalid` with no read in plant-set.test.ts and chat.service.test.ts, and rejected on save and pin.
 
 ## Round 14
+
+No findings.
+
+## Round 15
+
+33. Split: MP-ASK-CHOICE → plant choice/model boundary (1, 2, 9) + statement Ask handoff (4).
+   It explicitly removes the multi-plant statement refusal, which is required for Done-when 4 but absent from Covers. Adding 4 gives it four items; move that handoff and its leaf to a small follow-on task or MP-STATEMENT-COMBINED.
+   Disposition: cut the multi-plant statement handoff moves to its own part, MP-ASK-STATEMENT (covers 4), after MP-ASK-CHOICE, which keeps 1, 2 and 9.
+
+34. Split: MP-ASK-UI → picker/refusals (1, 9) + result presentation (5, 6, 7).
+   It renders refusal reasons (item 9) and changes row-keyed labels and drill links (item 7), yet Covers lists only 1, 5 and 6. Adding the missing items makes five, across the already large Ask panel and test files.
+   Disposition: cut MP-ASK-UI splits into MP-ASK-UI-CHOICE (picker, origin continuations, refusal copy: 1, 9) and MP-ASK-UI-RESULTS (readout, budget labels, left-out, plant names, row-keyed lookups: 5, 6, 7).
+
+35. MP-ASK-BUDGET must cover Done-when 7.
+   Its `viewInReport` rule for multi-plant statements is the C8 link behaviour: only a single-plant statement can open the report. Add 7 to its Covers cell; it then covers three items, not four.
+   Disposition: cut MP-ASK-BUDGET now covers 5, 6 and 7.
+
+## Round 16
 
 No findings.

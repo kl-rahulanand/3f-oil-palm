@@ -122,10 +122,11 @@ export function loadMappingMaster(value: unknown): MappingMaster {
     }
 
     for (const alias of selectionAliases(selection)) {
-      const claimedBy = aliases.get(alias);
+      const normalisedAlias = normalizePlantAlias(alias);
+      const claimedBy = aliases.get(normalisedAlias);
       if (claimedBy && claimedBy !== selectionKey)
         throw new MappingMasterValidationError("Mapping master reuses a plant alias across selections");
-      aliases.set(alias, selectionKey);
+      aliases.set(normalisedAlias, selectionKey);
     }
   }
 
@@ -177,8 +178,12 @@ export function budgetLeafKeysForFormat(formatId: string, master: MappingMaster 
   ].sort();
 }
 
-function selectionAliases(selection: MappingSelection): string[] {
+export function selectionAliases(selection: MappingSelection): string[] {
   return [selection.plant_canonical, ...selection.plant_aliases.sap, ...selection.plant_aliases.display];
+}
+
+function normalizePlantAlias(alias: string): string {
+  return alias.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 }
 
 function key(...parts: string[]): string {
