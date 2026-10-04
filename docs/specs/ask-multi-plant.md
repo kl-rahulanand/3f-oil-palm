@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:50:43+00:00
+saved: 2026-10-04T08:51:55+00:00
 ---
 
 # Every Ask answer works across plants
@@ -266,8 +266,9 @@ decision 0033.
   `AskRequest.origin`, the HTTP `error.details.reason` union (adding `plant-filter-invalid` and
   `plant-not-granted` to the measure-filter reasons), and the saved-view and pin status reason (adding
   `plants_revoked` to `grant_revoked` and `definition_unregistered`).
-- Saving a view or pinning a report is not an Ask request. A save or pin whose plant filter is invalid or
-  holds a plant the reader does not hold is rejected with HTTP 400 through the existing typed path the
+- Saving a view or pinning a report is not an Ask request. A save or pin whose plant filter is missing,
+  invalid or holds a plant the reader does not hold is rejected (a missing one as `plant-filter-invalid`,
+  since every successful answer already carries its plant filter, for one-plant readers too) with HTTP 400 through the existing typed path the
   global exception filter already uses for measure filters: a typed plant-filter error whose reason
   (`plant-filter-invalid` or `plant-not-granted`) maps to the same copy as the table above in
   `error.userMessage`, with `error.details.reason` set. The save and pin dialogs render that
@@ -356,6 +357,8 @@ decision 0033.
   - A mapping master with two plants whose aliases collide after normalisation fails to load.
   - A reader with no plant is refused as `no-plants-granted`, audited, with no provider call and no read,
     including when the question names CHIR (refusal order).
+  - A new save and a new pin with no plant filter are rejected as `plant-filter-invalid`, for a one-plant
+    and a several-plant reader alike, and nothing is stored.
   - A save and a pin request with a tampered plant filter get HTTP 400 with the stated `userMessage` and
     `details.reason`, proven through the global exception filter, separately from an Ask re-run; the
     dialogs render that message.
