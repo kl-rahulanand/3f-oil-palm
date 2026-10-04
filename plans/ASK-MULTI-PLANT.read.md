@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T09:54:26+00:00
-read_hash: 0d1dcd51f013d5cdb238393fd00bc09e7df6790c
-round: 9
+read_at: 2026-10-04T09:56:54+00:00
+read_hash: 72b7cf700603876226b410f69ff85ba788f3c5e4
+round: 10
 passed: no
-doc_seen: 0d1dcd51f013d5cdb238393fd00bc09e7df6790c
+doc_seen: 72b7cf700603876226b410f69ff85ba788f3c5e4
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 49e5ad72764bc532c86c41d8f91c5a3ab8fa9bf3
+notes_seen: 33c27055fe6b9e3402ead0dc9be383361a083d3a
 ---
 # Cold read notes
 
@@ -136,3 +136,13 @@ Only a genuine trade-off goes to the human, as a question with options.
 25. New moving-parts inventory is stale after the C11a split.
     It says there are two pure modules, but MP-MONTH-FILTER adds `redundant-month-filter.ts`. List it with Done-when item 10 and why extraction beats an in-service helper, or fold it into `chat.service.ts`.
     Disposition: cut the moving-parts line lists all three pure modules with their Done-when items and why each is extracted (its cases are proven without the chat service's dependencies).
+
+## Round 10
+
+26. Unproven: item 10: removing the redundant month filter returns the same rows as no filter.
+    MP-MONTH-FILTER names removal and kept-shape leaves, but not C11a’s execution-equivalence proof. Its chat-service leaf should run both selections and assert identical rows while only the redundant filter is absent from execution.
+    Disposition: cut MP-MONTH-FILTER names the execution-equivalence leaf: both selections run, identical rows, the executed selection lacking only the redundant filter.
+
+27. The moving-parts inventory still omits `contract/src/row-key.ts`.
+    MP-CONTRACT creates this shared pure module, but the summary says the row-key work lives in existing services and lists only three modules. Add it with Done-when 7 and its shared backend/frontend rationale, or correct the inventory.
+    Disposition: cut the inventory lists `contract/src/row-key.ts` with Done-when 7 and why it lives in the contract (backend and frontend derive the same key).
