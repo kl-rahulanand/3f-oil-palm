@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:51:31+00:00
-read_hash: 0c8bd1557f4ed6b4e3777e9347ff44eaf3a684f9
-round: 24
-passed: no
-doc_seen: 0c8bd1557f4ed6b4e3777e9347ff44eaf3a684f9
+read_at: 2026-10-04T08:52:46+00:00
+read_hash: 780e7f0876ce9359a7720c618ea9bca794e07b6e
+round: 25
+passed: yes
+doc_seen: 780e7f0876ce9359a7720c618ea9bca794e07b6e
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 2e31f4860a87f533e1a3f891886ea1346a6b4afb
+notes_seen: e3b38d1d4072f4fb160ec1428685cb821bf50367
 ---
 # Cold read notes
 
@@ -334,3 +334,7 @@ No findings.
 64. Gap: a new save or pin submitted without a plant filter has no defined outcome.
    Pickers apply to Ask runs, while save/pin APIs cannot return one; accepting the request would violate the rule that saved items keep a canonical set. Define its typed rejection or singleton handling and add a save/pin leaf.
    Disposition: cut a new save or pin with no plant filter is rejected as `plant-filter-invalid` (HTTP 400), since every successful answer carries one; C2 proves it for one-plant and several-plant readers.
+
+## Round 25
+
+No findings.
