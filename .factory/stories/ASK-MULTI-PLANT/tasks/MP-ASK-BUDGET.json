@@ -1,10 +1,66 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-ASK-BUDGET",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "f0f1b1b3d1148e033d6c573c6d61869a2e639caa7895a89f5a58bdf327b63d8a",
+    "commit": "d553ebe6bf4be273bfca8e1241d755d42bae2f25",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "`selectionSchema` accepts arbitrary `from`/`to` years without a range bound, while `monthsInWindow` expands the entire range and this loop executes one full outline query per month. An authenticated request covering 0001\u20139999 therefore triggers roughly 120,000 sequential warehouse queries, and these metadata lookups do not observe the request's abort signal. Validate/bound the window and fetch active budget periods in one bounded query.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 1688,
+        "priority": "P1",
+        "title": "Bound client-controlled budget-period lookups"
+      },
+      {
+        "body": "The coordinator ruling covered using the narrowed selection for execution consumers, but `viewInReport` describes the requested answer. This call passes the effective selection, so a DUB+CHIR statement comparison narrowed to DUB no longer appears multi-plant. Additionally, `buildViewInReport` checks measure filters before its multi-plant branch, producing \"cannot apply this comparison\" instead of the required several-plants reason. Use the requested plant set for this decision and prioritize the multi-plant reason.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 829,
+        "priority": "P1",
+        "title": "Not done: multi-plant statement answers use the several-plants report-link reason"
+      },
+      {
+        "body": "This named April\u2013July case omits the missing May row entirely: both grouped rows in the fixture are months listed in `loadedBudgetMonths`. Consequently the test still passes if a month-grouped DUB row with no active budget batch is incorrectly marked loaded. Add the missing-month row and assert its `not-loaded` state and nulled Budget/% cells.",
+        "file": "backend/src/chat/ask-budget-states.test.ts",
+        "line": 58,
+        "priority": "P1",
+        "title": "Not done: missing-budget month-grouped row test"
+      },
+      {
+        "body": "The changed combined-statement test verifies its selection and report-link reason but never checks `plantNames` or `provenance.scope`. The new one/three/four-plant table exercises only governed-financial answers, so a regression restoring department/function or grant-list scope specifically for statements would pass. Assert the exact CHIR+DUB display-name map and plant-only provenance in this statement test.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 261,
+        "priority": "P1",
+        "title": "Not done: combined statement plant readout test"
+      },
+      {
+        "body": "The backend now emits `plantNames`, `budgetStates`, and `leftOut`, but the unchanged Ask UI never reads those fields: null Budget/% values remain unlabeled plain dashes, no plant readout or left-out notice is shown, and the new informational response's `message` is not rendered. The Tasks table assigns the accessible cells and readouts to MP-ASK-UI-RESULTS.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 830,
+        "priority": "P2",
+        "title": "Later: MP-ASK-UI-RESULTS must render the new answer metadata"
+      },
+      {
+        "body": "The current presentation path still recognizes only the single-dimension `gl_code` and `leaf_key` shapes; `gl_code \u00d7 plant` and `leaf_key \u00d7 plant` therefore receive no per-row labels or drill context, and month shapes are not proven inert through the shared row key. The Tasks table assigns this remaining Done-when 7 work to MP-ASK-DRILL.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 833,
+        "priority": "P2",
+        "title": "Later: MP-ASK-DRILL must support composite row identities"
+      }
+    ],
+    "status": "blocked",
+    "tree": "3d972ee06bea2157c51f0e1dcf40fd7da1d685014aeafdf8b82958d030dc4cc1"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T14:35:43+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T15:08:27+00:00",
+      "step": "review"
     }
   ]
 }
