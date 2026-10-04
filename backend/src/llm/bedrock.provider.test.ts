@@ -193,27 +193,30 @@ test("a statement month filter becomes the selection time window when Bedrock om
   }
 });
 
-test("a statement month filter matching the selection time window is dropped", async () => {
-  const fixture = providerWith([
-    toolResponse("emit_selection", {
-      domain: "mis-statement",
-      measureIds: ["mis-statement.actual_net"],
-      dimensionIds: ["leaf_key"],
-      filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
-      timeWindow: { grain: "day", from: "2026-07-01", to: "2026-07-31" },
-    }),
-  ]);
+test("a statement month filter matching either supported single-month window form is dropped", async () => {
+  const windows = [
+    { grain: "month", from: "2026-07-01", to: "2026-07-01" },
+    { grain: "day", from: "2026-07-01", to: "2026-07-31" },
+  ];
 
-  const result = await fixture.provider.select(statementSelectionInput());
+  for (const timeWindow of windows) {
+    const fixture = providerWith([
+      toolResponse("emit_selection", {
+        domain: "mis-statement",
+        measureIds: ["mis-statement.actual_net"],
+        dimensionIds: ["leaf_key"],
+        filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+        timeWindow,
+      }),
+    ]);
 
-  assert.equal(result.kind, "selection");
-  if (result.kind === "selection") {
-    assert.deepEqual(result.selection.filters, []);
-    assert.deepEqual(result.selection.timeWindow, {
-      grain: "day",
-      from: "2026-07-01",
-      to: "2026-07-31",
-    });
+    const result = await fixture.provider.select(statementSelectionInput());
+
+    assert.equal(result.kind, "selection", timeWindow.grain);
+    if (result.kind === "selection") {
+      assert.deepEqual(result.selection.filters, [], timeWindow.grain);
+      assert.deepEqual(result.selection.timeWindow, timeWindow, timeWindow.grain);
+    }
   }
 });
 

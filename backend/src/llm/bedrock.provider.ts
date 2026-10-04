@@ -535,13 +535,19 @@ function reconcileMonthFilters(
   const reconciledFilters = filters.filter((filter) => {
     const filterWindow = monthWindow(filter);
     if (!filterWindow) return true;
-    reconciledWindow ??= filterWindow;
-    return reconciledWindow.from !== filterWindow.from || reconciledWindow.to !== filterWindow.to;
+    if (!reconciledWindow) {
+      reconciledWindow = filterWindow;
+      return false;
+    }
+    const fromMonth = calendarMonth(reconciledWindow.from);
+    return (
+      !fromMonth || fromMonth !== calendarMonth(reconciledWindow.to) || fromMonth !== filterWindow.from.slice(0, 7)
+    );
   });
   return { filters: reconciledFilters, timeWindow: reconciledWindow };
 }
 
-function monthWindow(filter: SelectionFilter): Selection["timeWindow"] | undefined {
+function monthWindow(filter: SelectionFilter): { grain: "day"; from: string; to: string } | undefined {
   if (
     filter.dimensionId !== "month" ||
     filter.op !== "eq" ||
@@ -554,6 +560,12 @@ function monthWindow(filter: SelectionFilter): Selection["timeWindow"] | undefin
   end.setUTCMonth(end.getUTCMonth() + 1);
   end.setUTCDate(0);
   return { grain: "day", from: filter.value, to: end.toISOString().slice(0, 10) };
+}
+
+function calendarMonth(value: string | undefined): string | undefined {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== value ? undefined : value.slice(0, 7);
 }
 
 function parseMeasureFilters(
