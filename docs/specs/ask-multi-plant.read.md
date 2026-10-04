@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:25:38+00:00
-read_hash: 774e919e149314e5d92675a59dca9003b1038def
-round: 9
+read_at: 2026-10-04T07:28:01+00:00
+read_hash: ce4481291750e96c7164ec906a39a8b94d8dd84d
+round: 10
 passed: no
-doc_seen: 774e919e149314e5d92675a59dca9003b1038def
+doc_seen: ce4481291750e96c7164ec906a39a8b94d8dd84d
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: f7135f4dffd92897197f9537aae9c86cf8f5f167
+notes_seen: fe33d5bc2969908436d283eee2b1e0a87fc4b2dc
 ---
 # Cold read notes
 
@@ -194,3 +194,21 @@ No findings.
 37. Gap: alias handling for a directly submitted plant filter is unspecified.
    Filters must be canonical, but canonicalisation is required at every ingress and alias resolution is only explicitly defined for plant names in a question. State whether edited, saved, pinned, and continuation filters containing `dub`, `DUB-NUR`, or a display name are normalized or refused, then prove the chosen rule.
    Disposition: cut a submitted filter value must already be canonical, compared exactly; aliases are refused as `plant-filter-invalid`, resolution applies only to question text; C2 proves it at each ingress.
+
+## Round 10
+
+38. Contradiction: zero-grant and named-ungranted questions have no refusal precedence.
+   A zero-grant reader asking for CHIR qualifies for both `no-plants-granted` and the pre-selector `plant-not-granted` rule. Specify the first-match order and prove it with a no-provider, no-read leaf.
+   Disposition: cut checks run in a fixed first-match order starting with `no-plants-granted`; C2 proves a zero-grant reader naming CHIR gets it with no provider call and no read.
+
+39. Contradiction: `plants-revoked` has two copies but only one typed discriminator.
+   The refusal payload contains only `{ reason, plants }`, while continuations and saved/pinned re-runs require different wording. Split the reason or add a typed context field, then prove both client renderings.
+   Disposition: cut the continuation case is its own reason, `choice-plants-revoked`, with its own copy; C2 proves it.
+
+40. Gap: `budgetStates` does not define each aggregate row’s plant membership.
+   `plantsInRow` could mean every selected/query plant or only plants contributing transactions; that changes whether a DUB+CHIR row is loaded or partial when one plant has zero activity. Pin canonical, sorted collection values and the membership rule, with a zero-activity mixed-row leaf.
+   Disposition: cut `plantsInRow` is the row's plants within the answer's plant set (every chosen plant for a summed row, activity or not), canonical and sorted; C6 adds the zero-activity mixed-row leaf.
+
+41. Trap: typed refusal delivery: C2/C10’s saved and pin creation ingress.
+   A tampered save or pin request is not an Ask request, but C2 requires it to refuse `plant-filter-invalid` and C10 requires typed refusal reasons. Define its response envelope and client rendering so the global exception filter cannot replace the specified copy, and prove it separately from an Ask re-run.
+   Disposition: cut save and pin requests reject a bad plant filter with HTTP 400 through the filter's existing typed path (as measure filters do): `userMessage` from the reason, `details.reason` set; C2 proves it separately from an Ask re-run.
