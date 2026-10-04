@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:28:01+00:00
-read_hash: ce4481291750e96c7164ec906a39a8b94d8dd84d
-round: 10
+read_at: 2026-10-04T07:30:13+00:00
+read_hash: 64ffcf1a513ecdf6134c8c2965c2a5169847acc5
+round: 11
 passed: no
-doc_seen: ce4481291750e96c7164ec906a39a8b94d8dd84d
+doc_seen: 64ffcf1a513ecdf6134c8c2965c2a5169847acc5
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: fe33d5bc2969908436d283eee2b1e0a87fc4b2dc
+notes_seen: d07bead9549311c820de45045c9b1a10b4503639
 ---
 # Cold read notes
 
@@ -212,3 +212,17 @@ No findings.
 41. Trap: typed refusal delivery: C2/C10’s saved and pin creation ingress.
    A tampered save or pin request is not an Ask request, but C2 requires it to refuse `plant-filter-invalid` and C10 requires typed refusal reasons. Define its response envelope and client rendering so the global exception filter cannot replace the specified copy, and prove it separately from an Ask re-run.
    Disposition: cut save and pin requests reject a bad plant filter with HTTP 400 through the filter's existing typed path (as measure filters do): `userMessage` from the reason, `details.reason` set; C2 proves it separately from an Ask re-run.
+
+## Round 11
+
+42. Contradiction: the special revoked reasons are unreachable under the stated refusal order.
+   A revoked continuation, saved view, or pin contains a known plant the reader no longer holds, so `plant-not-granted` fires before either revoked reason. The generic selection request also carries no origin identifying a picker continuation or saved/pinned rerun. Define an origin carrier and precedence that reaches the two revoked reasons, with leaves for both paths.
+   Disposition: cut origin decides the wording: `reportGrounding.reportId` marks a saved or pinned re-run, a new `AskRequest.choiceOrigin` marks a continuation; check 3 picks the revoked reason by origin, else plant-not-granted; C2 proves all three.
+
+43. Gap: the new serialized reason values do not fit the existing shared contract surfaces.
+   `AskResponse.refusal`, HTTP `error.details.reason`, and list status need typed unions; today the error reason admits only measure-filter reasons, while saved/pin status and Swagger admit only `grant_revoked` and `definition_unregistered`. Pin the contract, schemas, and Swagger updates for `plant-filter-invalid`, `plant-not-granted`, both revoked reasons, and `plants_revoked`, with round-trip leaves.
+   Disposition: cut the spec lists every new union value across `refusal.reason`, `leftOut.reason`, `choiceOrigin`, `error.details.reason` and the saved and pin status reason, with schemas and Swagger; C2 adds round-trip leaves.
+
+44. Gap: the no-loaded-budget comparison response is not classified or scoped.
+   It performs no read yet must name every selected plant as left out. Specify its response class and whether it carries selection, provenance, plant coverage, or budget metadata; distinguish the explanatory left-out list from C7’s prohibited informational plant readout, and prove the all-not-loaded case.
+   Disposition: cut the no-budget comparison is Informational with a typed `leftOut` and stated copy, and no table, provenance, plant readout, budget states or drill; `leftOut` is separate from the plant readout; C7 proves it.
