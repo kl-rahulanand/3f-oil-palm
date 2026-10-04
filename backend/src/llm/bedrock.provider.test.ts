@@ -45,6 +45,32 @@ test("the selector schema requires dimension ids so Bedrock always chooses total
   assert.deepEqual(emitSelection?.required, ["domain", "measureIds", "dimensionIds"]);
 });
 
+test("the selector receives the granted plant vocabulary and preserves emitted plant filter casing", async () => {
+  const fixture = providerWith([
+    toolResponse("emit_selection", {
+      domain: "governed-financial",
+      measureIds: ["governed-financial.actual"],
+      dimensionIds: [],
+      filters: [{ dimensionId: "plant", op: "in", value: ["dub"] }],
+    }),
+  ]);
+
+  const result = await fixture.provider.select({
+    ...selectionInput(),
+    dimensionValues: { plant: ["DUB", "Agri - Nursery - DUB"] },
+  });
+
+  const prompt = fixture.requests[0]?.system?.map(({ text }) => text).join("\n") ?? "";
+  assert.match(prompt, /Allowed values for plant: \["DUB", "Agri - Nursery - DUB"\]/);
+  assert.equal(result.kind, "selection");
+  if (result.kind === "selection") {
+    assert.deepEqual(result.selection.filters, [{ dimensionId: "plant", op: "in", value: ["dub"] }]);
+  }
+  const emitSelection = fixture.requests[0]?.toolConfig?.tools[0]?.toolSpec.inputSchema.json as
+    { required?: string[] } | undefined;
+  assert.deepEqual(emitSelection?.required, ["domain", "measureIds", "dimensionIds"]);
+});
+
 test("the selector prompt maps budget comparisons and Indian magnitudes or refuses them", async () => {
   const fixture = providerWith([toolResponse("mark_unsupported", { reason: "recorded response" })]);
 

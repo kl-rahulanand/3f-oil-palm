@@ -14,6 +14,7 @@ export const CHAT_MESSAGES = {
   statementMappingMissing: "No statement mapping is configured for your assigned scope.",
   statementPeriodsMissing: "No statement periods are loaded.",
   statementPeriodPrompt: "Which statement period should this answer use?",
+  plantPrompt: "Which plants should this answer cover?",
   auditNotRecorded: "Could not record audit; query not run.",
   measureNotAvailable: (measureId: string): string => `Measure not available: ${measureId}`,
   dimensionNotAvailable: (dimensionId: string): string => `Dimension not available: ${dimensionId}`,

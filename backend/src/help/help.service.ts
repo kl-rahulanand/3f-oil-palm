@@ -1,5 +1,6 @@
 import { Injectable, Optional } from "@nestjs/common";
 import type { AuthUser, DomainSpec, HelpResponse } from "@3f/contract";
+import { PLANT_DIMENSION_ID, plantChoiceOptions } from "../chat/plant-set";
 import { loadConfig } from "../config";
 import { DimensionValuesService } from "../core/dimension-values.service";
 import { SelectionResolverService, statementPeriodOptions } from "../mapping/selection-resolver.service";
@@ -59,8 +60,8 @@ export class HelpService {
 
   async buildIndex(user: AuthUser): Promise<TermIndex> {
     const allowed = this.semantic.allowedFor(user.permissions);
-    const values = await this.dimensionValuesForAllowedDomains(allowed);
     const allowedPlants = user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value);
+    const values = await this.dimensionValuesForAllowedDomains(allowed, allowedPlants);
     const periods = this.selectionResolver
       ? statementPeriodOptions(
           (await this.selectionResolver.options(allowedPlants.length ? allowedPlants : undefined)).periods,
@@ -69,11 +70,21 @@ export class HelpService {
     return buildTermIndex(allowed, values, periods.at(-1));
   }
 
-  private async dimensionValuesForAllowedDomains(allowedDomains: DomainSpec[]): Promise<Record<string, string[]>> {
+  private async dimensionValuesForAllowedDomains(
+    allowedDomains: DomainSpec[],
+    allowedPlants: string[],
+  ): Promise<Record<string, string[]>> {
     const maxValues = loadConfig().dimensionEnumMax;
     const valuesByDimension: Record<string, string[]> = {};
     for (const domain of allowedDomains) {
       for (const dimension of domain.dimensions) {
+        if (dimension.id === PLANT_DIMENSION_ID) {
+          valuesByDimension[dimension.id] = plantChoiceOptions(allowedPlants).options.flatMap(({ value, label }) => [
+            value,
+            label,
+          ]);
+          continue;
+        }
         const values = await this.dimensionValues.values(domain.goldObject, dimension.column);
         if (values.length > 0 && values.length <= maxValues) {
           valuesByDimension[dimension.id] = values;

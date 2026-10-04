@@ -45,6 +45,7 @@ export class ChatController {
       undefined,
       undefined,
       parsed.data.statementGrounding,
+      parsed.data.origin,
     );
   }
 
@@ -91,6 +92,7 @@ export class ChatController {
             onEvent,
             abort.signal,
             parsed.data.statementGrounding,
+            parsed.data.origin,
           ),
         (event) => {
           if (!abort.signal.aborted && !response.destroyed) {

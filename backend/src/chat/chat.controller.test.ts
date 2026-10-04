@@ -11,6 +11,39 @@ import { ChatController } from "./chat.controller";
 import { ChatService } from "./chat.service";
 import { SelectionExecutor } from "./selectionExecutor";
 
+test("the regular Ask route forwards the parsed request origin", async () => {
+  let call: unknown[] | undefined;
+  const controller = new ChatController({
+    ask: async (...args: unknown[]) => {
+      call = args;
+      return informationalResponse();
+    },
+  } as never);
+
+  await controller.ask(user, "regular-session", { question: "Show Actual", origin: "saved-view" });
+
+  assert.equal(call?.[9], "saved-view");
+});
+
+test("the streaming Ask route forwards the parsed request origin", async () => {
+  let call: unknown[] | undefined;
+  const controller = new ChatController({
+    ask: async (...args: unknown[]) => {
+      call = args;
+      return informationalResponse();
+    },
+  } as never);
+
+  await controller.stream(
+    user,
+    "stream-session",
+    { question: "Show Actual", origin: "pin" },
+    new FakeResponse() as never,
+  );
+
+  assert.equal(call?.[9], "pin");
+});
+
 test("a client disconnect stops frame writes aborts the model call and records no backend error", async () => {
   let signal: AbortSignal | undefined;
   const recordedResponseClasses: ResponseClass[] = [];
