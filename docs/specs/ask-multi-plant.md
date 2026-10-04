@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:40:00+00:00
+saved: 2026-10-04T08:41:38+00:00
 ---
 
 # Every Ask answer works across plants
@@ -152,8 +152,8 @@ decision 0033.
 - Budget belongs to the budget owner plant, DUB (decision 0034). A plant has a loaded budget for a row
   when it is the budget owner and every month the row covers has an active budget batch: the row's own
   month when the answer groups by month, otherwise every month of the answer's window. An answer with no
-  time window covers every month in which the query read any Actual for the chosen plants, and those
-  are its window's months. A month with no
+  time window takes as its window every month covered by an active Actual load batch, determined from
+  the load batches before the query runs (and so before any comparison filtering). A month with no
   active budget batch makes DUB count as not loaded for that row, as the statement screen treats a
   period with no budget batch.
 - When an answer includes Budget or %, each row carries a typed budget state, `AskResponse.budgetStates`,
@@ -368,8 +368,9 @@ decision 0033.
     only), % only (the "not loaded" % cell only) and all three (both), each for a CHIR row.
   - A DUB April–July comparison where one month has no budget batch leaves DUB out whole, named in
     `leftOut`, and becomes the Informational no-budget answer when DUB is the only chosen plant.
-  - An answer with no time window takes its months from the Actual it read; an Actual month with no DUB
-    budget batch makes the summed DUB row `not-loaded`.
+  - An answer with no time window takes its months from the active Actual load batches before the query
+    runs; an Actual month with no DUB budget batch makes the summed DUB row `not-loaded`, and an
+    unwindowed DUB-only comparison with such a month is the Informational no-budget answer with no read.
   - A DUB+CHIR summed row where CHIR has no activity is `partial`, with `plantsInRow` `["CHIR","DUB"]` and
     `plantsWithBudget` `["DUB"]`.
   - A budget comparison reads only plants with a loaded budget, applied in the query before ordering, the
