@@ -1,8 +1,10 @@
 ---
 slug: ask-multi-plant
 title: Every Ask answer works across plants
-status: draft
+status: confirmed
 saved: 2026-10-04T08:51:55+00:00
+confirmed_by: "Rahul Anand"
+confirmed_hash: 4f32ab27b773c6236d98f8398758d1ab3fd81d44c62c3aec9506a1d98b9ca2d5
 ---
 
 # Every Ask answer works across plants
