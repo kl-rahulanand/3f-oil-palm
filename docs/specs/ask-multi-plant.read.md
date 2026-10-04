@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T06:35:01+00:00
-read_hash: a975439534fa0be6fb5a855a31afcc4852f87ea5
-round: 1
+read_at: 2026-10-04T06:56:29+00:00
+read_hash: 6f7e53bd128ed0c061a683ca1b3f169e2f00c19e
+round: 2
 passed: no
-doc_seen: a975439534fa0be6fb5a855a31afcc4852f87ea5
+doc_seen: 6f7e53bd128ed0c061a683ca1b3f169e2f00c19e
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+notes_seen: 0f2178973c0ebb8a6ba7926296c511747cf0b49d
 ---
 # Cold read notes
 
@@ -65,3 +65,38 @@ Only a genuine trade-off goes to the human, as a question with options.
 10. Trap: selector schema/system-prompt regression: C1–C4 and C10.
     - Adding plant selection changes the selector vocabulary/schema. Hermetic replays cannot show whether existing phrasing loses `dimensionIds` or its period, so require a pre-change live Bedrock probe of existing working phrasings and run every C11 question in a fresh conversation.
    Disposition: cut Rules and C11 require a pre-change live Bedrock probe of existing working phrasings and a post-change check in fresh conversations.
+
+## Round 2
+
+11. Gap: the stated plant filter is not a valid `SelectionFilter`.
+    - The contract uses `{ dimensionId, op, value }`, not `{ attribute, operator, values }`. Pin the actual serialized shape and its validation/canonicalization at every ingress.
+    - `Simpler: filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]`; do not introduce a second filter grammar.
+    Disposition: cut the plant set is the existing `{ dimensionId: "plant", op: "in", value: [...] }` filter, canonical and sorted, with no second grammar, validated at every ingress (question, continuation, edited selection, saved view, pin, re-runs).
+
+12. Gap: `plantChoice` is named but its typed contract is undefined.
+    - Period options make one fixed patch; a multi-select plant picker needs option values/labels, an “All plants” snapshot patch, selection/question carriage, and defined submit behavior. Without that, the frontend, API schema, Swagger, saved selections, and continuation handler cannot agree.
+    Disposition: cut `AskResponse.plantChoice` is typed (prompt, question, base selection, options of canonical value and display label, and an allPlants snapshot value), submitted through the edited-selection path, re-validated, and carried in the contract, schemas and Swagger (C2).
+
+13. Contradiction: “% is omitted” conflicts with the confirmed all-plants statement rule.
+    - `all-plants-statement.md` requires Ask to retain the `%` column with a null not-loaded value and label; this draft can omit a value, but must not omit the column. State the null cell and accessible label for `%` as explicitly as for Budget.
+    Disposition: cut the % column stays, with a null cell labelled "not loaded" for not-loaded and partial rows, and no column is ever dropped.
+
+14. Gap: C2/C10 do not ensure an ungranted plant name never reaches the model.
+    - The draft requires server resolution before a warehouse read, but the raw question normally reaches the selector first. Require recognized ungranted-plant refusal before the provider call, and prove no selector invocation occurs; otherwise “no ungranted plant … sent to the model” is false.
+    Disposition: cut the server checks the question for any ungranted plant's code, SAP code or display name before the selector is called and refuses with no provider call; short codes match only as upper-case tokens; C2 and C10 prove it.
+
+15. Contradiction: C7 says every answer states its plant set, but a picker or an unrecognized-name response has no chosen set.
+    - Limit the readout requirement to successful data answers, and specify picker/refusal copy separately. Informational Ask responses likewise have no meaningful plant set.
+    Disposition: cut the plant readout applies to successful data answers only; picker, unrecognised-name and refusal copy is stated separately (C7).
+
+16. Unproven: C5: no named proof covers each-plant mapping, a line unmapped by every chosen plant, the cross-plant `unmapped-GL` sum, and one-plant equivalence to the MIS statement.
+    - These are the cases that make the combined projection safe; a generic combined-statement assertion can pass while dropping or double-counting a mapping triple.
+    Disposition: cut C5 now names the four proofs: each plant's triples feeding a shared line without loss or double-count, a line no plant maps reading ₹0, the cross-plant unmapped-GL sum, and one-plant equivalence.
+
+17. Unproven: C7/C8: no leaf proves the exact effective plant predicate reaches provenance, GL names, composite drill rows, and the transaction footer.
+    - Include a mixed grant where the answer reads fewer plants than the reader holds, plus both GL-code × plant and leaf × plant rows. Their names and drills must not widen to the grant set.
+    Disposition: cut C7 adds a mixed-grant leaf proving the effective predicate reaches provenance, names, composite GL × plant and leaf × plant drill rows and the footer without widening.
+
+18. Trap: typed refusal delivery: C1 and C9.
+    - The global exception filter replaces exception text. The continuation and saved/pin refusal need a typed reason in the response/envelope so the client can reliably render the specified access-changed copy instead of relying on an HTTP message.
+    Disposition: cut every plant refusal is an Ask answer with responseClass BlockedByPolicy and a typed `refusal.reason`, so the exception filter cannot strip its wording.
