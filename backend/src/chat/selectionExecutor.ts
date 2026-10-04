@@ -108,12 +108,26 @@ export class SelectionExecutor {
   }
 
   authorize(user: AuthUser, domain: DomainSpec, selection: Selection): void {
+    const dimensionIds = new Set([
+      ...selection.dimensionIds,
+      ...selection.filters.map(({ dimensionId }) => dimensionId),
+    ]);
+    const grantedPlants = new Set(
+      user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value),
+    );
+    const selectedPlants = selection.filters
+      .filter(({ dimensionId }) => dimensionId === "plant")
+      .flatMap(({ value }) => (Array.isArray(value) ? value : [value]));
     if (
       domain.composed &&
       (!user.permissions.actions.includes("report") ||
         !user.permissions.domains.includes(domain.name) ||
         !operandMeasureIds(selection).every((id) => user.permissions.measureIds.includes(id)) ||
-        !selection.dimensionIds.every((id) => user.permissions.dimensionIds.includes(id)))
+        ![...dimensionIds].every((id) =>
+          id === "plant"
+            ? selectedPlants.every((plant) => grantedPlants.has(plant))
+            : user.permissions.dimensionIds.includes(id),
+        ))
     ) {
       throw new SelectionExecutionBlockedError("governed financial selection is not authorized");
     }

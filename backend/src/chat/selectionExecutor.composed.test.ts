@@ -4,6 +4,7 @@ import type { AuthUser, DomainSpec, Selection } from "@3f/contract";
 import { SelectionResolverService } from "../mapping/selection-resolver.service";
 import { MisSelectionService } from "../mis/mis-selection.service";
 import { SemanticLayer } from "../semantic/semanticLayer";
+import { validateSelectionForUser } from "../semantic/selectionValidation";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "../warehouse/warehouse.interface";
@@ -122,6 +123,50 @@ test("the selection executor authorizes measure filter operands through the disp
       ),
     SelectionExecutionBlockedError,
   );
+});
+
+test("plant dimensions and filters are authorized by plant scope rather than role dimension grants", () => {
+  const semantic = new SemanticLayer();
+  const financial = semantic.domain("governed-financial");
+  assert.ok(financial);
+  const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), new ProvenanceWarehouse());
+  const granted = user({
+    actions: ["report"],
+    domains: [financial.name],
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: [],
+  });
+  granted.scope = [
+    { attribute: "plant", value: "DUB" },
+    { attribute: "plant", value: "CHIR" },
+  ];
+
+  for (const plantSelection of [
+    {
+      domain: financial.name,
+      measureIds: ["governed-financial.actual"],
+      dimensionIds: ["plant"],
+      filters: [{ dimensionId: "plant", op: "in" as const, value: ["CHIR", "DUB"] }],
+    },
+    {
+      domain: financial.name,
+      measureIds: ["governed-financial.actual"],
+      dimensionIds: [],
+      filters: [{ dimensionId: "plant", op: "in" as const, value: ["CHIR", "DUB"] }],
+    },
+  ] satisfies Selection[]) {
+    assert.doesNotThrow(() => validateSelectionForUser(semantic, granted, plantSelection));
+    assert.doesNotThrow(() => executor.authorize(granted, financial, plantSelection));
+  }
+
+  const ungranted: Selection = {
+    domain: financial.name,
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["plant"],
+    filters: [{ dimensionId: "plant", op: "in", value: ["DUB", "LON"] }],
+  };
+  assert.throws(() => validateSelectionForUser(semantic, granted, ungranted), /Dimension not available: plant/);
+  assert.throws(() => executor.authorize(granted, financial, ungranted), SelectionExecutionBlockedError);
 });
 
 const domain: DomainSpec = {

@@ -29,7 +29,7 @@ export class SemanticLayer {
           expr: "SUM(actual_net)",
           grain: "gl_code and month",
           impliedFilters: [],
-          allowedDimensions: ["gl_code", "month"],
+          allowedDimensions: ["gl_code", "month", "plant"],
           timeColumn: "month",
           defaultTimeGrain: "month",
           piiSensitive: false,
@@ -43,7 +43,7 @@ export class SemanticLayer {
           expr: "SUM(budget_net)",
           grain: "gl_code and month",
           impliedFilters: [],
-          allowedDimensions: ["gl_code", "month"],
+          allowedDimensions: ["gl_code", "month", "plant"],
           timeColumn: "month",
           defaultTimeGrain: "month",
           piiSensitive: false,
@@ -77,7 +77,7 @@ END`,
 END`,
           grain: "gl_code and month",
           impliedFilters: [],
-          allowedDimensions: ["gl_code", "month"],
+          allowedDimensions: ["gl_code", "month", "plant"],
           timeColumn: "month",
           defaultTimeGrain: "month",
           piiSensitive: false,
@@ -86,6 +86,7 @@ END`,
       dimensions: [
         { id: "gl_code", label: SEMANTIC_LABELS.dimensions.gl_code, column: "gl_code" },
         { id: "month", label: SEMANTIC_LABELS.dimensions.month, column: "month" },
+        { id: "plant", label: "Plant", column: "plant" },
       ],
     },
     {
@@ -152,7 +153,7 @@ END`,
       .map((d) => ({
         ...d,
         measures: d.measures.filter((m) => perms.measureIds.includes(m.id)),
-        dimensions: d.dimensions.filter((dim) => perms.dimensionIds.includes(dim.id)),
+        dimensions: d.dimensions.filter((dim) => dim.id === "plant" || perms.dimensionIds.includes(dim.id)),
       }));
   }
 

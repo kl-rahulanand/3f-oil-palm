@@ -68,8 +68,8 @@ export async function proveWarehouse(): Promise<void> {
             lineId: "1",
             postingDate: "2099-07-08",
             month: proofPeriod,
-            plant: "DUB",
-            plantSrc: "DUB-NUR",
+            plant: "CHIR",
+            plantSrc: "CHIR-NUR",
             costCenter: "CC1",
             glCode: "50001701",
             acctName: "Sprout transport",
@@ -80,10 +80,17 @@ export async function proveWarehouse(): Promise<void> {
 
         await repository.replaceActualsBatch(metadata, rows);
         const first = await transaction.execute(
-          sql`SELECT actual_net FROM actual_by_key_month WHERE plant = 'DUB' AND cost_center = 'CC1' AND gl_code = '50001701' AND month = ${proofPeriod}`,
+          sql`SELECT plant, actual_net FROM actual_by_gl_month WHERE gl_code = '50001701' AND month = ${proofPeriod} ORDER BY plant`,
         );
-        if ((first.rows[0] as { actual_net?: string } | undefined)?.actual_net !== "110.25") {
-          throw new Error("Warehouse proof expected first actual_net 110.25");
+        const rollups = first.rows as Array<{ plant?: string; actual_net?: string }>;
+        if (
+          rollups.length !== 2 ||
+          rollups[0]?.plant !== "CHIR" ||
+          rollups[0]?.actual_net !== "10.00" ||
+          rollups[1]?.plant !== "DUB" ||
+          rollups[1]?.actual_net !== "100.25"
+        ) {
+          throw new Error("Warehouse proof expected separate CHIR and DUB GL month rollups");
         }
 
         await repository.replaceActualsBatch(metadata, [

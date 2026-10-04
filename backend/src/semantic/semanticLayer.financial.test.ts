@@ -7,7 +7,7 @@ import { SqlValidator } from "../sql/sqlValidator";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import { SemanticLayer } from "./semanticLayer";
 
-test("the governed financial domain registers over the composed actual and budget rollups with an Actual measure summing actual net a Budget measure summing budget net and a percentage measure whose CASE returns the actual over budget ratio when budget is non zero and the month time column bound so period windows apply every measure allowing only the gl code and month dimensions", () => {
+test("the governed financial domain registers plant alongside GL code and month for every measure and exposes plant even when role dimension grants omit it", () => {
   const domain = new SemanticLayer().domain("governed-financial");
 
   assert.ok(domain);
@@ -20,6 +20,7 @@ test("the governed financial domain registers over the composed actual and budge
   assert.deepEqual(domain.dimensions, [
     { id: "gl_code", label: "GL code", column: "gl_code" },
     { id: "month", label: "Month", column: "month" },
+    { id: "plant", label: "Plant", column: "plant" },
   ]);
   assert.deepEqual(
     domain.measures.map(({ id, expr, goldObject, allowedDimensions, timeColumn, defaultTimeGrain, format }) => ({
@@ -36,7 +37,7 @@ test("the governed financial domain registers over the composed actual and budge
         id: "governed-financial.actual",
         expr: "SUM(actual_net)",
         goldObject: "actual_by_gl_month",
-        allowedDimensions: ["gl_code", "month"],
+        allowedDimensions: ["gl_code", "month", "plant"],
         timeColumn: "month",
         defaultTimeGrain: "month",
         format: "money",
@@ -45,7 +46,7 @@ test("the governed financial domain registers over the composed actual and budge
         id: "governed-financial.budget",
         expr: "SUM(budget_net)",
         goldObject: "budget_by_gl_month",
-        allowedDimensions: ["gl_code", "month"],
+        allowedDimensions: ["gl_code", "month", "plant"],
         timeColumn: "month",
         defaultTimeGrain: "month",
         format: "money",
@@ -54,13 +55,24 @@ test("the governed financial domain registers over the composed actual and budge
         id: "governed-financial.percentage",
         expr: percentageExpression,
         goldObject: "actual_by_gl_month",
-        allowedDimensions: ["gl_code", "month"],
+        allowedDimensions: ["gl_code", "month", "plant"],
         timeColumn: "month",
         defaultTimeGrain: "month",
         // The expression yields a ratio, so every surface must render it as a percentage.
         format: "percent",
       },
     ],
+  );
+
+  const allowed = new SemanticLayer().allowedFor({
+    actions: ["report"],
+    domains: ["governed-financial"],
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: ["gl_code"],
+  });
+  assert.deepEqual(
+    allowed[0]?.dimensions.map(({ id }) => id),
+    ["gl_code", "plant"],
   );
 });
 

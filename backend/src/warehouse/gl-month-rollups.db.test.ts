@@ -27,16 +27,18 @@ test(
       await pool.query("TRUNCATE sap_transaction, mis_budget, ingest_batch CASCADE");
       const repository = new IngestionRepository(createWarehouseDb(pool));
       const actualPrior = await repository.replaceActualsBatch(metadata("actual-prior"), [
-        actualRow("P1", "CC-OLD", "999.00"),
+        actualRow("P1", "DUB", "CC-OLD", "999.00"),
       ]);
       const actualReplacement = await repository.replaceActualsBatch(metadata("actual-replacement"), [
-        actualRow("R1", "Primary", "100.00"),
-        actualRow("R2", "Secondary", "30.00", "5.00"),
+        actualRow("R1", "DUB", "Primary", "100.00"),
+        actualRow("R2", "DUB", "Secondary", "30.00", "5.00"),
+        actualRow("R3", "CHIR", "Primary", "75.00"),
       ]);
 
       await assertBatchState(pool, actualPrior, false);
       await assertBatchState(pool, actualReplacement, true);
       assert.deepEqual(await actualRollup(pool), [
+        { plant: "CHIR", gl_code: "50001701", month: PERIOD, actual_net: "75.00" },
         { plant: "DUB", gl_code: "50001701", month: PERIOD, actual_net: "125.00" },
       ]);
 
@@ -84,14 +86,20 @@ function metadata(fixture: string) {
   };
 }
 
-function actualRow(txnNo: string, costCenter: string, debit: string, credit = "0.00"): SapTransactionInput {
+function actualRow(
+  txnNo: string,
+  plant: string,
+  costCenter: string,
+  debit: string,
+  credit = "0.00",
+): SapTransactionInput {
   return {
     txnNo,
     lineId: "1",
     postingDate: "2099-08-07",
     month: PERIOD,
-    plant: "DUB",
-    plantSrc: "DUB-NUR",
+    plant,
+    plantSrc: `${plant}-NUR`,
     costCenter,
     glCode: "50001701",
     acctName: "GL month rollup proof",
@@ -142,7 +150,7 @@ async function assertBatchState(pool: Pool, id: string, isActive: boolean): Prom
 async function actualRollup(pool: Pool) {
   return (
     await pool.query<{ plant: string; gl_code: string; month: string; actual_net: string }>(
-      "SELECT plant, gl_code, month::text, actual_net FROM actual_by_gl_month WHERE month = $1::date ORDER BY gl_code",
+      "SELECT plant, gl_code, month::text, actual_net FROM actual_by_gl_month WHERE month = $1::date ORDER BY plant, gl_code",
       [PERIOD],
     )
   ).rows;
