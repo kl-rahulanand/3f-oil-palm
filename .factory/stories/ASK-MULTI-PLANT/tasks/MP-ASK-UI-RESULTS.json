@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "ee2fb9bd5d14a557fd08f198428815e09cfa8038e7dd806cbc90f0115714e53c",
     "commit": "151a99fd2efea6e0d8a7e0ed19dff7a5e468366f",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "frontend/src/features/assistant/ask-panel.tsx:554 no new visual language: the readout, left-out line and dashes reuse the existing table cell, muted-text and provenance styles. The worker's commit records the UI review it ran (accessible names on every dash, existing high-contrast table text, readouts wrapping at phone width, no motion needed per the Emil checklist), and the coordinator verified the rendered data live on 2026-10-04 (plant names, not-loaded CHIR cells, left-out CHIR, the no-budget message). The owner capped review loops for this story.",
+        "finding": 2,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The new proofs still fabricate `AskResponse` objects through `mocks.ask` and exercise them only in Vitest/jsdom. The repository has no Playwright dependency, configuration, or test command, so nothing drives these user-facing results through a browser, the running Ask API, a real database, and an authenticated user. Consequently the required boundary cannot detect serialization or integration failures affecting plant readouts, budget dashes/left-out notices, or row-specific transaction links. Add a committed Playwright flow covering Done-when 5\u20137 through the actual Ask entry point.",
