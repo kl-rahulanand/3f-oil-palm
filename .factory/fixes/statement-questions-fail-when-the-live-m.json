@@ -7,7 +7,13 @@
     "blocking_level": "P1",
     "changed": "314beb775160febaff163d992c6ce9b8d3e0d9b501b97764ba0b3496e74df091",
     "commit": "afb8080b744e2997e615b456cde876383d033a92",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/llm/bedrock.provider.test.ts:183 the coordinator ran this branch (f84333ba) live on 2026-10-04 on :4001 (real Nest app, OTP login as the seeded admin, CSRF, app DB, July warehouse, live Bedrock): before the fix, master answered \"What was the Actual for each MIS statement line in July 2026?\" with the glossary definition 3 times in 3 and the server logged the parser rejection \"Selection filter dimension is not in the allowed vocabulary: month\"; on this branch the same question reached the plant picker 10 times in 11 (one model reply still fell back and did not recur under logging), and \"What was the Actual for each MIS statement line in July 2026 for DUB and CHIR?\" succeeded 3 times in 3.  The repository has no Playwright suite; the story's live-check part re-asks this exact question through the running Ask endpoint after merge. ",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The added regression tests invoke only `BedrockLlmProvider.select()` and assert the mapped selection. None passes the recorded Bedrock response through `ChatService.ask()` for the exact question or asserts that a multi-plant user receives `plantChoice`. Existing Ask coverage constructs an already-valid selection through a fake LLM, so it would still pass if the provider-to-Ask integration rejected or lost this response. The required user-facing behavior therefore remains proven only at the provider unit boundary, not at the real Ask entry point.",
@@ -17,10 +23,10 @@
         "title": "Not done: the exact July statement question reaches the plant picker through the real Ask entry point"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "2a55ab587efc589991c4613b6167ef6fc7f2aa99046ddcaf23bbf6454078bf59"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T18:14:09+00:00",
