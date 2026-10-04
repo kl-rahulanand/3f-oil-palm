@@ -1,0 +1,14 @@
+{
+  "base": "72e44d1b30c4f03a539f09f6669bfede5536d150",
+  "branch": "fix/the-multi-plant-spec-says-nothing-is-rea",
+  "done_when": "docs/specs/ask-multi-plant.md says no figure is read before a plant choice, allows the selector's cached GL-code and month vocabulary lookup, and is confirmed",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-04T08:33:06+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "The multi-plant spec says nothing is read before the plant picker; the owner ruled it means no figure is read"
+}
