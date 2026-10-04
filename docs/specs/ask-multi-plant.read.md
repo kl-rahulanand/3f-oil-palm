@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:36:53+00:00
-read_hash: e80af5cc82191f2a779ee4c291b72917150b12e9
-round: 14
+read_at: 2026-10-04T08:38:51+00:00
+read_hash: effb9315963c60df9a3d836602df28e0fcd19231
+round: 15
 passed: no
-doc_seen: e80af5cc82191f2a779ee4c291b72917150b12e9
+doc_seen: effb9315963c60df9a3d836602df28e0fcd19231
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: b2711c1bd922afb1fd1c145e32af059cf5bfcf30
+notes_seen: d808173bab8200f3b08c22dd1c7411d32d9b353b
 ---
 # Cold read notes
 
@@ -262,3 +262,21 @@ No findings.
 51. Contradiction: short-code matching conflicts with case-insensitive plant resolution.
    The resolver is case-insensitive for canonical codes, but codes under three characters match only as uppercase tokens. Define the outcome for `CK` versus `ck` (including ungranted access checks) and add it to C2’s normalization proof.
    Disposition: cut short codes match only as an exact upper-case token ("CK" names CK, "ck" names nothing) for granted and ungranted alike; C2 proves it.
+
+## Round 15
+
+52. Gap: the selected-measure rule still cannot produce success question 4’s required `%` column.
+   “Actual and Budget” need not select Percentage, yet the oracle requires a null `%` cell. Specify whether selecting Budget automatically includes `%`, or change the question/oracle; cover Actual-only, Actual+Budget, %-only, and all-three measure sets.
+   Disposition: cut no measure is added; the dash applies to a shown Budget column and the % cell to a shown % column; question 4 now asks for Actual, Budget and Budget %; C6 covers the four measure sets.
+
+53. Gap: budget comparisons are undefined for a partially budgeted time range.
+   Budget availability is now per row/month, but comparison filtering and `leftOut.plants` are plant-only. Define whether a DUB April–July comparison excludes DUB entirely when one month lacks a batch or reads only budgeted months, and how the omitted month is explained; add a C6 leaf.
+   Disposition: cut a comparison compares a plant only when its budget is loaded for every month of the window, otherwise it is left out whole and named; C6 adds the April–July leaf.
+
+54. Gap: “every month of the answer’s window” is undefined for a governed answer with no time window.
+   Such answers are permitted and cover all loaded data. Define the month set used to decide loaded/partial/not-loaded without a window, including an actual month with no budget batch, and prove it.
+   Disposition: cut an answer with no window takes its months from the Actual it read; C6 adds the leaf.
+
+55. Unproven: C11’s live regression corpus does not record expected `measureIds`.
+   The no-filter “Actual by GL code” probe could regress to Budget or Percentage while retaining the stated domain, dimensions, filter, and period. Record and compare the complete expected measure set for every corpus prompt.
+   Disposition: cut every corpus entry now records its full measure set (from the 2026-10-04 probe) and the re-probe compares measures too.
