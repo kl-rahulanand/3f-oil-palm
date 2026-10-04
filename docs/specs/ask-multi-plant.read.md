@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:50:10+00:00
-read_hash: 287a6db440cbe2afb337642ffa6b5a2d763167fb
-round: 23
+read_at: 2026-10-04T08:51:31+00:00
+read_hash: 0c8bd1557f4ed6b4e3777e9347ff44eaf3a684f9
+round: 24
 passed: no
-doc_seen: 287a6db440cbe2afb337642ffa6b5a2d763167fb
+doc_seen: 0c8bd1557f4ed6b4e3777e9347ff44eaf3a684f9
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: f3d3fbf92d95d989dc135b6667a2952457c459b4
+notes_seen: 2e31f4860a87f533e1a3f891886ea1346a6b4afb
 ---
 # Cold read notes
 
@@ -328,3 +328,9 @@ No findings.
 63. Unproven: C11a: non-redundant month-filter cases have no leaf proving the cleanup leaves them to existing handling.
    Pin and test mismatched, range/unwindowed, and multiple-filter selections so only the exact scalar `month`-equals-single-calendar-month case is removed; an over-broad cleanup could silently widen an edited or saved query.
    Disposition: cut the removal is pinned to one exact shape (month, eq, a single value equal to the one calendar month of the window); C11a adds leaves proving the mismatched, in, neq, multi-month, unwindowed and multiple-filter cases reach the query unchanged.
+
+## Round 24
+
+64. Gap: a new save or pin submitted without a plant filter has no defined outcome.
+   Pickers apply to Ask runs, while save/pin APIs cannot return one; accepting the request would violate the rule that saved items keep a canonical set. Define its typed rejection or singleton handling and add a save/pin leaf.
+   Disposition: cut a new save or pin with no plant filter is rejected as `plant-filter-invalid` (HTTP 400), since every successful answer carries one; C2 proves it for one-plant and several-plant readers.
