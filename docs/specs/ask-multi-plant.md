@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:49:04+00:00
+saved: 2026-10-04T08:50:43+00:00
 ---
 
 # Every Ask answer works across plants
@@ -276,9 +276,11 @@ decision 0033.
 ### A redundant month filter
 
 - The live model sometimes adds a `month` equality filter on exactly the month its `timeWindow` already
-  names. Before any Ask selection executes, the server removes such a filter (same month as a
-  single-month `timeWindow`); the answer is unchanged because the window restricts that month. Any other
-  month filter is handled as today.
+  names. Before any Ask selection executes, the server removes exactly one shape: a `month` filter with
+  `op` `eq` and a single string value equal to the first day of the one calendar month that the
+  `timeWindow` spans. The answer is unchanged because the window restricts that month. Every other month
+  filter is kept and handled as today: a different month, `in` or `neq`, an array value, a window that
+  spans more than one month, and a selection with no `timeWindow`.
 
 ### What does not change
 
@@ -439,6 +441,9 @@ decision 0033.
   Plant refusals reach the client as typed `refusal` reasons.
 - **C11a Redundant month filter.** A leaf proves a selector output with `timeWindow` July 2026 and a
   `month` eq `2026-07-01` filter executes with the filter removed and returns the same rows as without it.
+  Leaves prove each kept case reaches the query unchanged: `month` eq `2026-06-01` with a July window,
+  `month` `in` [`2026-07-01`], `month` `neq` `2026-07-01`, a July–August window, no window, and a
+  selection carrying both the redundant filter and a `gl_code` filter (only the month filter goes).
 - **C11 Live check.**
   - Before the change, a fixed corpus is probed against the live Bedrock model as the seeded admin, and
     each selection recorded. The corpus and its expected selections:
