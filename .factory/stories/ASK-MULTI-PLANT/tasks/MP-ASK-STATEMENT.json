@@ -1,10 +1,45 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-ASK-STATEMENT",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "406bc5b87927986679e32f7efa88d546e6ab89bd379a23bac19f5dbbb19e9bb4",
+    "commit": "7c939dd94735163e4b14c31fdb53316b1b954725",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "For a singleton selection, the mapping is still built from the user's legacy department/function scope rather than the selected plant's classification. The seeded admin retains Agriculture/Nursery (`backend/src/db/migrate.ts:78`), while plants such as H.O are Corporate/Office (`backend/src/mapping/plant-classification.ts:60`). Selecting H.O alone therefore fails `hasMapping` and returns \u201cmapping missing,\u201d even though H.O has a valid statement mapping. This violates the requirement that a one-plant answer equal that plant's MIS statement line by line.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 1649,
+        "priority": "P1",
+        "title": "Not done: one-plant statements must use the selected plant\u2019s own mapping"
+      },
+      {
+        "body": "The execution scope forwards triples, GL codes, and leaf targets but drops the resolved plant set's display names. `SqlBuilder` consequently falls back to canonical codes (`backend/src/sql/sqlBuilder.ts:258`) when constructing `plant_display`, despite ordering plant-breakdown rows by that field. For DUB and CHIR this produces CHIR-before-DUB by code rather than the required display-name order (Agri\u2026 before Agriculture\u2026). Forward `plantDisplayNames` from `MasterResolvedPlantSet.plants` in the resolved scope.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 628,
+        "priority": "P1",
+        "title": "Not done: leaf-key \u00d7 plant rows must order by plant display name"
+      },
+      {
+        "body": "The new combined-statement test invokes `ChatService` with a fake resolver that fabricates identical leaf targets and a fake executor that returns a fixed result table. It therefore proves only the call shape and would pass if real resolver metadata were dropped, the SQL failed to combine plants, or returned lines had incorrect values or ordering. No supplied proof drives this task through the real Ask endpoint and warehouse; the close run also skips the existing warehouse projection test. The required user-facing combined and unchanged singleton paths consequently lack end-to-end coverage at the real entry point.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 162,
+        "priority": "P1",
+        "title": "Not done: end-to-end combined-statement Ask test"
+      }
+    ],
+    "status": "blocked",
+    "tree": "9848b0989375add37c9d94b479d5956e23559e1c054f56cfbbfbc9581795bc01"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T13:21:29+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T13:33:08+00:00",
+      "step": "review"
     }
   ]
 }
