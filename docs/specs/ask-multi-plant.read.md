@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:43:54+00:00
-read_hash: 426119a5d9455bd4f409987510834f94518ce141
-round: 18
+read_at: 2026-10-04T08:44:50+00:00
+read_hash: a5cb1b9d9c75b52a2e930d11cc6e3aa761afa2a3
+round: 19
 passed: no
-doc_seen: 426119a5d9455bd4f409987510834f94518ce141
+doc_seen: a5cb1b9d9c75b52a2e930d11cc6e3aa761afa2a3
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 524911d6367a54014bd2dca63df27e27222fb8d8
+notes_seen: 2d9aa4450d8c1e5c41a069979e8c48d9a5593599
 ---
 # Cold read notes
 
@@ -298,3 +298,9 @@ No findings.
 58. Gap: a budget-comparison response does not say whether its saved selection keeps left-out plants.
    A DUB+CHIR comparison executes only DUB, yet `AskResponse.selection` is what the client saves and re-runs. Pin that it preserves the requested DUB+CHIR snapshot while provenance, drill, and effective predicate use DUB; add a save/pin re-run leaf.
    Disposition: cut the response's `selection` keeps the requested plants for save and re-run, while the effective predicate, totals, provenance and drill use the compared plants; C6 adds the save and pin re-run leaf.
+
+## Round 19
+
+59. Contradiction: “a plant that gains [a budget] later” exceeds the PoC budget-owner rule.
+   Only DUB can gain a newly active DUB budget batch in this scope; a CHIR budget requires decision 0034’s separate plant-keyed-budget story. Limit the re-run statement and C6 proof to DUB’s period batch becoming active.
+   Disposition: cut the re-run statement now covers only DUB's missing budget batch becoming active (decision 0034), and C6's leaf proves that case.
