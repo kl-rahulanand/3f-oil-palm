@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "a647484ad048267c830e7ee06129383120db728b70027f1c6c59f586d82d46d9",
     "commit": "394259f0624663b2d5506693b57974637222bcb1",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": ".factory/stories/ASK-MULTI-PLANT/tasks/MP-ASK-CHOICE.json:3 Coordinator live probe, 2026-10-04, branch task/ASK-MULTI-PLANT-MP-ASK-CHOICE at 394259f0 on :4001, live Bedrock, July warehouse, two runs as the admin: - \"show me list items where Actuals are more than the budget for July 2026\": picker (31 plants); base selection governed-financial, Actual+Budget, gl_code, Actual > Budget, July 2026, normalised filters []; choosing DUB: 21 rows, 50001201 first at 8398339.00. - \"which GL codes spent more than 5 lakh in July 2026\": picker; governed-financial, Actual, gl_code, Actual > 500000.00, July 2026, filters []; DUB: 2 rows. - \"Actual by GL code for July 2026\": picker; governed-financial, Actual, gl_code, no measure filter, July 2026, filters []; DUB: 67 rows. - DUB-only user, \"which statement lines are over budget for July 2026\": no picker, success, mis-statement, Actual+Budget, leaf_key, Actual > Budget, July 2026, plant filter [\"DUB\"]. Same domain, measures, dimensions, measure filter and period as the pre-change probe; only the plant filter added. ",
+        "finding": 2,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The strongest new picker/refusal coverage invokes `ChatService` directly with fake executor, audit, dimension, report, help, resolver, and provider dependencies. The controller tests separately mock `ChatService`, so no test proves the behavior through the real Ask endpoint and authentication/application boundary. Under the required test-audit bar, these unit tests cannot be the only proof of the user-facing picker, no-read guarantee, origin-specific refusals, and singleton execution.",
