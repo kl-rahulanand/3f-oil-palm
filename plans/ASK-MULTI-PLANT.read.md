@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:30:52+00:00
-read_hash: 28801408d0fba4bbf1d5fee1c2ffc28ad06eb4b8
-round: 3
+read_at: 2026-10-04T08:32:30+00:00
+read_hash: ab9a96ac9479e04399ca8c7677d572f19b377d56
+round: 4
 passed: no
-doc_seen: 28801408d0fba4bbf1d5fee1c2ffc28ad06eb4b8
+doc_seen: ab9a96ac9479e04399ca8c7677d572f19b377d56
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 6c51718c40d51f3d893bffcfb30de5743344f2cf
+notes_seen: 74e04a1bb7a271e3a00e43f898614cb774b01368
 ---
 # Cold read notes
 
@@ -76,3 +76,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 13. Disputed keep 11: C1 explicitly requires no warehouse read before the choice, not merely no figure read.
    `DimensionValuesService` calls the warehouse adapter’s `distinctValues`; the new leaf cannot truthfully assert both that the adapter query path was not called and that this service performed its vocabulary lookup. The base-selection path must avoid that lookup until after plant choice, or the confirmed spec must change.
    Disposition: keep the owner decided on 2026-10-04 (recorded in the plan's Notes) that C1's no-read rule means no figure read, so the cached distinct-value vocabulary lookup may precede the picker; detail 1's leaf now asserts no `execute`, `freshness` or batch read and `distinctValues` only for non-plant vocabulary columns.
+
+## Round 4
+
+14. Disputed keep 13: the plan now contradicts the unchanged confirmed spec.
+   C1 says “No warehouse read runs before a choice”; `distinctValues` is a warehouse read. An inline owner note cannot silently redefine confirmed C1 while the plan claims to prove it. Update and reconfirm the spec, or retain a genuinely no-read picker path.
+   Disposition: keep the spec itself is being amended to the owner's ruling (C1: no figure read before a choice; the cached GL-code and month vocabulary lookup may run first) in its own fix, and this plan is re-read once that amendment is merged into the story branch.
