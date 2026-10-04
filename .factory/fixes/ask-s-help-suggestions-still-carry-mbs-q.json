@@ -1,0 +1,14 @@
+{
+  "base": "79860fb49dec3b05a8fd96cfd353679181df9eef",
+  "branch": "fix/ask-s-help-suggestions-still-carry-mbs-q",
+  "done_when": "no Ask suggestion mentions state, leads, RPush, conversion or last 30 days; definition, value, small-talk and fallback answers suggest 3F questions built from the governed vocabulary (e.g. Actual by GL code for the latest loaded month), with a leaf per suggestion source",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-04T07:00:52+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Ask's help suggestions still carry MBS question templates (by state, last 30 days, leads, RPush)"
+}
