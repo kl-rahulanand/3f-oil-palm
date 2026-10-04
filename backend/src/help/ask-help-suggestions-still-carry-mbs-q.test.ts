@@ -72,11 +72,11 @@ test("measure-only grants keep definition small-talk and fallback suggestions go
     const response = await ask(question, false, MEASURE_ONLY_USER);
 
     assert.equal(response.responseClass, ResponseClass.Informational, question);
-    assert.deepEqual(response.suggestedQuestions, ["Actual for July 2026"], question);
+    assert.deepEqual(response.suggestedQuestions, ["Actual by Plant for July 2026"], question);
   }
 
   const index = await makeHelpService().buildIndex(MEASURE_ONLY_USER);
-  assert.match(unsupportedFallbackMessage(index), /Try one of: Actual for July 2026\./);
+  assert.match(unsupportedFallbackMessage(index), /Try one of: Actual by Plant for July 2026\./);
 });
 
 test("Ask suggestion sources contain no legacy MBS question literals", () => {

@@ -18,8 +18,17 @@ export function validateSelectionForUser(semantic: SemanticLayer, user: AuthUser
     measures.push(measure);
   }
 
-  for (const dimensionId of selection.dimensionIds) {
-    if (!semantic.dimension(selection.domain, dimensionId) || !user.permissions.dimensionIds.includes(dimensionId)) {
+  const dimensionIds = new Set([...selection.dimensionIds, ...selection.filters.map(({ dimensionId }) => dimensionId)]);
+  const grantedPlants = new Set(user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value));
+  const selectedPlants = selection.filters
+    .filter(({ dimensionId }) => dimensionId === "plant")
+    .flatMap(({ value }) => (Array.isArray(value) ? value : [value]));
+  for (const dimensionId of dimensionIds) {
+    const permitted =
+      dimensionId === "plant"
+        ? selectedPlants.every((plant) => grantedPlants.has(plant))
+        : user.permissions.dimensionIds.includes(dimensionId);
+    if (!semantic.dimension(selection.domain, dimensionId) || !permitted) {
       throw new BadRequestException(`Dimension not available: ${dimensionId}`);
     }
   }

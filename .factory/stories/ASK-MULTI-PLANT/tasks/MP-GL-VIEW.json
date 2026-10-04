@@ -1,0 +1,44 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-GL-VIEW",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "da78f85a1acd71e3f1729a446f2feb9ad2e913fcc08ca86f5bacdaf09161acf9",
+    "commit": "76de0912587785fa824cb777dcd12e7c629a3d62",
+    "dismissals": [
+      {
+        "because": "backend/src/warehouse/gl-month-rollups.db.test.ts:21 the coordinator ran it on 2026-10-04 against the throwaway postgres:16-alpine warehouse on 127.0.0.1:5434 (AGENTS.md Known traps; CI has no database, so the close run skips it by design): WAREHOUSE_DB_TEST=1, the file migrated the throwaway database through 0004 and both leaves passed, tests 2, pass 2, fail 0, skipped 0, including the multi-plant actual_by_gl_month replacement proof.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "The only test that executes migration 0004 and verifies the multi-plant rollup against PostgreSQL is conditionally skipped here, and the supplied close run records it as `SKIP`; no completed handoff evidence shows a separate pass. The passing hermetic checks only inspect SQL text, so an invalid migration or database-specific view failure can merge without the required proof. Run this test against the designated throwaway warehouse and record the passing result.",
+        "file": "backend/src/warehouse/gl-month-rollups.db.test.ts",
+        "line": 21,
+        "priority": "P1",
+        "title": "Not done: backend/src/warehouse/gl-month-rollups.db.test.ts runs the required database proof"
+      },
+      {
+        "body": "This line advertises `plant` as a supported grouping dimension, but the unchanged `SqlBuilder.composedCtes` implementation at backend/src/sql/sqlBuilder.ts:345-383 projects only `gl_code` and `month`, exposes no `plant` column from `financial_relation`, and joins Actual to Budget only on GL/month. A plant filter or breakdown therefore generates an outer `WHERE`/`GROUP BY plant` against a relation without that column. The story assigns the source filtering, plant projection/join, and golden DUB proof to MP-GL-SQL, so this is deferred P2 work rather than a missing deliverable for this task.",
+        "file": "backend/src/semantic/semanticLayer.ts",
+        "line": 32,
+        "priority": "P2",
+        "title": "Later: MP-GL-SQL must make the advertised plant dimension executable"
+      }
+    ],
+    "status": "clean",
+    "tree": "d2b2620ac9f27a1dd6da381648af3bab21d4e2763600320a48d2526154902b49"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T11:17:01+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T11:32:25+00:00",
+      "step": "review"
+    }
+  ]
+}

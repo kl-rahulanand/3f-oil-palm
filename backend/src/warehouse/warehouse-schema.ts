@@ -177,13 +177,12 @@ export const actualByGlMonth = pgView("actual_by_gl_month", {
   actualNet: numeric("actual_net", { precision: 18, scale: 2 }).notNull(),
 }).as(sql`
   SELECT
-    'DUB'::text AS plant,
+    plant,
     gl_code,
     month,
     SUM(actual_net)::numeric(18, 2) AS actual_net
   FROM actual_by_key_month
-  WHERE plant = 'DUB'
-  GROUP BY gl_code, month
+  GROUP BY plant, gl_code, month
 `);
 
 export const budgetByGlMonth = pgView("budget_by_gl_month", {
