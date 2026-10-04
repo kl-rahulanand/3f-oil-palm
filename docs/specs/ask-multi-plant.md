@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T06:57:34+00:00
+saved: 2026-10-04T06:58:13+00:00
 ---
 
 # Every Ask answer works across plants
@@ -35,17 +35,22 @@ decision 0033.
 
 ### The plant set an answer uses
 
-- An answer's plants are carried as one canonical plant filter in the selection:
-  `{ attribute: "plant", operator: "in", values: [...] }`. The values are canonical plant codes,
-  deduplicated and sorted. There is at most one plant filter; any other plant filter shape is
-  refused as invalid.
+- An answer's plants are carried as one existing `SelectionFilter` in the selection:
+  `{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }`. The values are canonical plant codes,
+  deduplicated and sorted. There is no second filter grammar. A selection holds at most one plant filter.
+  Any other plant filter (`eq`, `neq`, a non-array value, an unknown code) is refused as invalid. This
+  validation and canonicalisation runs at every ingress: a new Ask question, a typed-choice continuation,
+  an edited selection, a saved view, a pin and their re-runs.
 - The model chooses plants only from a vocabulary of the reader's granted plants: each plant's
   canonical code and display name. The server, before any warehouse read, resolves every named plant
   to its canonical code through the mapping master. It matches the canonical code, the SAP code or
   the display name, ignoring case and surrounding or repeated whitespace (e.g. "dub", "DUB-NUR",
   "Agri - Nursery - DUB" all mean DUB).
 - A named plant the reader does not hold is refused, naming it, with no warehouse read and a refusal
-  audit record. A name that matches no plant is answered with the plant picker, saying the name was
+  audit record. So that its name never reaches the model, the server checks the question before the
+  selector is called. Any whole-word match on a canonical code, SAP code or display name of a mapping
+  master plant the reader does not hold refuses the question with no provider call. Codes shorter than
+  three characters match only as an upper-case token, so ordinary words are not mistaken for plants. A name that matches no plant is answered with the plant picker, saying the name was
   not recognised.
 - "All plants" stores the exact canonical set of plants the reader held when they chose it. It is a
   snapshot, not a live rule: a saved view does not silently grow when new plants are granted.
@@ -54,17 +59,28 @@ decision 0033.
 
 - A question that names one or more plants is answered for those plants.
 - A question that names no plant, from a reader holding more than one plant, is answered with a typed
-  plant picker (`plantChoice`) instead of data. The picker lists the reader's plants by display name,
-  allows several to be chosen, and adds "All plants". No warehouse read runs before a choice. A reader
-  holding exactly one plant gets that plant without a picker.
+  plant picker instead of data. No warehouse read runs before a choice. A reader holding exactly one
+  plant gets that plant without a picker. The picker is `AskResponse.plantChoice`:
+  `{ prompt, question, selection, options: [{ value: <canonical code>, label: <display name> }],
+  allPlants: { label: "All plants", value: [<every granted canonical code, sorted>] } }`.
+  - `selection` is the base selection without a plant filter.
+  - The client allows several options or "All plants", and submits the original `question` with
+    `selection` plus the plant filter set to the chosen codes (or `allPlants.value`), through the same
+    edited-selection path the period choice uses.
+  - The server re-validates that filter like any other ingress. The contract, the request and response
+    schemas and Swagger all carry the type.
 - When a question needs both a plant and a statement period, the plant is chosen first, then the
   period. Each continuation carries the full base selection plus every choice made so far. On each
   continuation the server re-checks the reader's current grants. If a chosen plant is no longer held,
   or the selection no longer validates, the continuation is refused with its reason and nothing is
   read.
-- The answer always says which plants it covers: one plant by name, up to three by name, or
-  "n plants" with the names in the "How this was calculated" scope. That scope lists exactly the
+- A successful data answer always says which plants it covers: one plant by name, up to three by name,
+  or "n plants" with the names in the "How this was calculated" scope. That scope lists exactly the
   plants the query read, not the reader's whole grant list.
+- Pickers, refusals and informational answers have no plant set and carry no plant readout.
+  - The picker's prompt is "Which plants should this answer cover?".
+  - An unrecognised name adds "I could not find a plant called <name>."
+  - An ungranted plant is refused with "You do not have access to <name>."
 
 ### Plant as a filter and a breakdown
 
@@ -104,11 +120,13 @@ decision 0033.
   - `loaded`: every plant in the row has a loaded budget. Budget and % show as today, including a real
     ₹0 budget.
   - `not-loaded`: no plant in the row has one. Budget shows a dash labelled "Budget not loaded for this
-    plant" (or "...for these plants"), and % is omitted.
-  - `partial`: some do. Budget shows a dash labelled "Budget loaded for k of n plants", and % is omitted.
-    A partial row never shows a budget figure that would compare part of its Actual.
-- The dash and its label are rendered from the typed state, with the label also as the cell's accessible
-  name; the result table's Budget cell is null for not-loaded and partial rows.
+    plant" (or "...for these plants"). The % column stays, with a null cell labelled "not loaded".
+  - `partial`: some do. Budget shows a dash labelled "Budget loaded for k of n plants", and the % cell is
+    null with the same label. A partial row never shows a budget figure that would compare part of its
+    Actual.
+- The dashes and labels are rendered from the typed state, each label also the cell's accessible name.
+  The result table's Budget and % cells are null for not-loaded and partial rows. No column is ever
+  dropped, as `docs/specs/all-plants-statement.md` requires.
 - A comparison that needs a budget (e.g. Actual over Budget) evaluates only `loaded` rows. Not-loaded and
   partial rows are left out. The answer then says "n lines left out because Budget is not loaded for
   their plants". With a plant breakdown, DUB's rows are loaded and compare; the other plants' rows are
@@ -132,6 +150,14 @@ decision 0033.
   grants. If any stored plant is no longer held, the re-run is refused (BlockedByPolicy) with "This view
   includes plants you no longer have access to: <names>. Edit its plants to run it." It is audited as a
   refusal, and no subset is run.
+
+### Refusals
+
+- Every plant refusal is an Ask answer, not an HTTP exception, so the global exception filter cannot strip
+  its wording: an ungranted plant, an invalid plant filter, a continuation whose plant is no longer held,
+  and a saved view or pin with a revoked plant. Each is `responseClass` BlockedByPolicy with a typed
+  `refusal: { reason: "plant-not-granted" | "plant-filter-invalid" | "plants-revoked", plants: [<display
+  names>] }`, and the client renders the stated copy from that reason.
 
 ### What does not change
 
@@ -185,10 +211,14 @@ decision 0033.
   - A one-plant reader gets the answer directly.
   - Plant is chosen before period when both are missing; each continuation carries the full selection and
     re-checks grants.
-- **C2 Plant resolution.** Leaves cover the canonical code, the SAP code, the display name, case and
-  whitespace variants, a recognised but ungranted plant (refused, named, audited, no read), and an
-  unknown name (picker with the not-recognised notice). The selection always carries one canonical,
-  sorted, deduplicated plant filter.
+- **C2 Plant resolution.**
+  - Leaves cover the canonical code, the SAP code, the display name, and case and whitespace variants.
+  - A recognised but ungranted plant is refused, named and audited, with no selector call and no read.
+  - An unknown name gets the picker with the not-recognised notice.
+  - A short code is not matched inside an ordinary word.
+  - The selection always carries one canonical, sorted, deduplicated `{ dimensionId: "plant", op: "in" }`
+    filter, validated at every ingress.
+  - The `plantChoice` type round-trips through the contract, the schemas and Swagger.
 - **C3 Filter and breakdown.**
   - GL-code answers accept plant with gl_code and month in any combination.
   - Statement answers accept leaf_key or leaf_key × plant, keyed `<leaf_key>|<plant>` and ordered by
@@ -197,15 +227,22 @@ decision 0033.
 - **C4 GL answers across plants.** GL-code answers sum actuals over the chosen plants. For DUB alone, the
   over-budget question returns the same 21 codes, with 50001201 at ₹83,98,339.
 - **C5 Combined statement.** A statement question for several plants returns one statement whose lines sum
-  each plant's mapped Actual, with unmapped-GL summed. For one plant it equals that plant's MIS statement
-  line by line.
+  each plant's mapped Actual. Named leaves prove:
+  - each plant's own triples feed a shared line, with no triple dropped or double-counted;
+  - a line no chosen plant maps to reads ₹0;
+  - unmapped-GL sums every chosen plant's unmapped triples;
+  - for one plant the answer equals that plant's MIS statement line by line.
 - **C6 Budget states.**
   - `budgetStates` marks rows loaded, not-loaded or partial, with the dash labels and no % for the last two.
   - Leaves cover DUB only, non-owner only, a mixed summed row, a mixed plant breakdown, a DUB row with a
     real ₹0 budget (loaded), and a comparison whose remaining rows are empty.
   - Budget comparisons evaluate only loaded rows and report how many lines were left out.
-- **C7 Scope readout.** Every answer states its plant set, and the provenance scope lists exactly the plants
-  read.
+- **C7 Scope readout.**
+  - Every successful data answer states its plant set, and the provenance scope lists exactly the plants read.
+  - Pickers, refusals and informational answers carry no plant readout, and use the stated copy.
+  - A leaf with a mixed grant, where the reader holds more plants than the answer reads, proves the effective
+    plant predicate reaches provenance, GL names, composite drill rows (GL-code × plant and leaf × plant) and
+    the transaction footer, and none of them widens to the grant set.
 - **C8 Links and transactions.**
   - Drills work for any plant set with composite row keys. A per-plant row reads only its plant; a summed
     row reads only the chosen set; a combined statement row reads each plant's triples.
@@ -215,7 +252,8 @@ decision 0033.
   view is refused, audited and not run once either plant is revoked, and that an "All plants" view does not
   grow with new grants.
 - **C10 Model boundary.** Leaves prove the model receives only the current reader's plant codes and display
-  names: no ungranted plant, and no figure.
+  names: no ungranted plant name (the pre-selector check refuses before any provider call), and no figure.
+  Plant refusals reach the client as typed `refusal` reasons.
 - **C11 Live check.**
   - Before the change, the existing working Ask phrasings are probed against the live Bedrock model and
     recorded.
