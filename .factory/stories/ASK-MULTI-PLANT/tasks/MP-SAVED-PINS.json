@@ -1,10 +1,52 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-SAVED-PINS",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "d04095333116bb55804a502264ba835b55301df8705856a19e313dd04174e9be",
+    "commit": "d20e2a97653ff042c8c42b61057b181b93ff1c9b",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This test fabricates `plants_revoked` through a mocked frontend API and exercises only jsdom; the backend tests likewise replace `AppDb` with stubs. There is no required end-to-end test that creates a saved view and pin through the running API with a real database, changes plant grants, verifies the disabled cards in a browser, and confirms runnable cards reopen with the correct origin. Done-when item 8 is therefore proven only by unit/component tests.",
+        "file": "frontend/src/features/exploration/pinned-reports.test.tsx",
+        "line": 80,
+        "priority": "P1",
+        "title": "Not done: Saved views and pins keep their plants through the real user flow"
+      },
+      {
+        "body": "The dialog test injects a plain object containing `userMessage`, while the API test mocks `fetch` and the service tests never cross an HTTP route. No browser test against the running API demonstrates that invalid save and pin requests actually return the typed 400 envelope and that both dialogs render its plain-language message. This leaves the user-facing portion of Done-when item 9 unit-only.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 754,
+        "priority": "P1",
+        "title": "Not done: Every save and pin plant refusal states its reason through the real user flow"
+      },
+      {
+        "body": "The branch changes the save/pin error state and both card reopen interactions, but the implementation commit records only the ruling and functional check; it contains no impeccable shape/audit/polish pass or specific emil-design-eng interaction checklist. The task record also contains only its start event and remains `working`. The required UI review for these changed states is therefore missing.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 353,
+        "priority": "P1",
+        "title": "Not done: impeccable and emil-design-eng UI review"
+      },
+      {
+        "body": "This new task-state file is outside every path allowed by MP-SAVED-PINS and contributes only Forge workflow metadata (`status: working`), despite the handoff claiming there are no out-of-scope changes. Remove it from the selected change or explicitly include and justify it in the task scope before merging.",
+        "file": ".factory/stories/ASK-MULTI-PLANT/tasks/MP-SAVED-PINS.json",
+        "line": 1,
+        "priority": "P1",
+        "title": "Not done: Keep the change within the declared scope"
+      }
+    ],
+    "status": "blocked",
+    "tree": "c748517110d866bf2e595ffe1bb816b3500fccf56480f5fb7a49205b24f1782f"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T13:21:31+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T13:39:23+00:00",
+      "step": "review"
     }
   ]
 }
