@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T10:00:39+00:00
-read_hash: 7e3d410e9a6fc1fc74d55c6509c871090c07c735
-round: 13
-passed: no
-doc_seen: 7e3d410e9a6fc1fc74d55c6509c871090c07c735
+read_at: 2026-10-04T10:01:53+00:00
+read_hash: 5320622dcf55b96d19a540103a9bcd6e6e940ae4
+round: 14
+passed: yes
+doc_seen: 5320622dcf55b96d19a540103a9bcd6e6e940ae4
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 784c32591a6efd32ddbe44761798d4ed2d8569d6
+notes_seen: f9088ab9fb38381fd554715e52e5fcdd4a87d915
 ---
 # Cold read notes
 
@@ -172,3 +172,7 @@ Only a genuine trade-off goes to the human, as a question with options.
 32. Unproven: item 2: a selection carrying two plant filters is refused.
     C2 requires exactly one plant filter, but the named leaves cover malformed values and duplicate values within one filter only. Add a `plant-filter-invalid`, no-read leaf for two plant filters.
     Disposition: cut detail 9 adds the two-plant-filters leaf: `plant-filter-invalid` with no read in plant-set.test.ts and chat.service.test.ts, and rejected on save and pin.
+
+## Round 14
+
+No findings.
