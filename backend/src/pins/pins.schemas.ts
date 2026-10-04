@@ -108,7 +108,7 @@ export class PinResponseDto implements Pin {
         type: "object",
         properties: {
           runnable: { type: "boolean", enum: [false] },
-          reason: { type: "string", enum: ["grant_revoked", "definition_unregistered"] },
+          reason: { type: "string", enum: ["grant_revoked", "definition_unregistered", "plants_revoked"] },
           message: { type: "string" },
         },
         required: ["runnable", "reason", "message"],

@@ -8,6 +8,10 @@ import {
   type AskDrillMetadata,
   type AskDrillRequest,
   type AskDrillResponse,
+  type AskBudgetState,
+  type AskLeftOut,
+  type AskPlantChoice,
+  type AskPlantRefusal,
   type AskRowLabel,
   type FixedScaleMoney,
   type MisDrillBatchStatus,
@@ -101,6 +105,7 @@ export const askSchema = z
       .strict()
       .optional(),
     statementGrounding: statementGroundingSchema.optional(),
+    origin: z.enum(["plant-choice", "period-choice", "saved-view", "pin"]).optional(),
   })
   .strict();
 
@@ -166,6 +171,8 @@ class AskRowLabelDto implements AskRowLabel {
 }
 
 type AskDrillMetadataRow = AskDrillMetadata["rows"][number];
+type AskPlantOption = AskPlantChoice["options"][number];
+type AskAllPlants = AskPlantChoice["allPlants"];
 
 class AskDrillMetadataRowDto implements AskDrillMetadataRow {
   @ApiProperty() key!: string;
@@ -175,6 +182,45 @@ class AskDrillMetadataRowDto implements AskDrillMetadataRow {
 class AskDrillMetadataDto implements AskDrillMetadata {
   @ApiProperty() context!: string;
   @ApiProperty({ type: [AskDrillMetadataRowDto] }) rows!: AskDrillMetadata["rows"];
+}
+
+class AskPlantOptionDto implements AskPlantOption {
+  @ApiProperty() value!: string;
+  @ApiProperty() label!: string;
+}
+
+class AskAllPlantsDto implements AskAllPlants {
+  @ApiProperty({ enum: ["All plants"] }) label!: "All plants";
+  @ApiProperty({ type: [String] }) value!: string[];
+}
+
+class AskPlantChoiceDto implements AskPlantChoice {
+  @ApiProperty() prompt!: string;
+  @ApiProperty() question!: string;
+  @ApiProperty({ type: ExplorationSelectionDto }) selection!: AskPlantChoice["selection"];
+  @ApiProperty({ type: [AskPlantOptionDto] }) options!: AskPlantChoice["options"];
+  @ApiProperty({ type: AskAllPlantsDto }) allPlants!: AskPlantChoice["allPlants"];
+}
+
+class AskPlantRefusalDto implements AskPlantRefusal {
+  @ApiProperty({
+    enum: ["plant-not-granted", "plant-filter-invalid", "plants-revoked", "choice-plants-revoked", "no-plants-granted"],
+  })
+  reason!: AskPlantRefusal["reason"];
+
+  @ApiProperty({ type: [String] }) plants!: string[];
+}
+
+class AskLeftOutDto implements AskLeftOut {
+  @ApiProperty({ enum: ["budget-not-loaded"] }) reason!: "budget-not-loaded";
+  @ApiProperty({ type: [String] }) plants!: string[];
+}
+
+class AskBudgetStateDto implements AskBudgetState {
+  @ApiProperty() key!: string;
+  @ApiProperty({ enum: ["loaded", "not-loaded", "partial"] }) state!: AskBudgetState["state"];
+  @ApiProperty({ type: [String] }) plantsWithBudget!: string[];
+  @ApiProperty({ type: [String] }) plantsInRow!: string[];
 }
 
 export class ChatResponseDto {
@@ -304,6 +350,21 @@ export class ChatResponseDto {
     },
   })
   appliedMeasureFilters?: AskResponse["appliedMeasureFilters"];
+
+  @ApiPropertyOptional({ type: AskPlantChoiceDto })
+  plantChoice?: AskResponse["plantChoice"];
+
+  @ApiPropertyOptional({ type: AskPlantRefusalDto })
+  refusal?: AskResponse["refusal"];
+
+  @ApiPropertyOptional({ type: AskLeftOutDto })
+  leftOut?: AskResponse["leftOut"];
+
+  @ApiPropertyOptional({ type: [AskBudgetStateDto] })
+  budgetStates?: AskResponse["budgetStates"];
+
+  @ApiPropertyOptional({ type: "object", additionalProperties: { type: "string" } })
+  plantNames?: AskResponse["plantNames"];
 
   @ApiPropertyOptional({ type: "object" })
   periodChoice?: AskResponse["periodChoice"];

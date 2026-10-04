@@ -31,13 +31,16 @@ export enum MeasureFilterInvalidReason {
   MalformedValue = "malformed_value",
 }
 
+export type PlantFilterInvalidReason = "plant-filter-invalid" | "plant-not-granted";
+export type ErrorDetailsReason = MeasureFilterInvalidReason | PlantFilterInvalidReason;
+
 export interface ErrorPayload {
   errorId: string;
   code: string;
   type: string;
   message: string;
   userMessage: string;
-  details: { fieldErrors?: ErrorFieldDetail[]; reason?: MeasureFilterInvalidReason };
+  details: { fieldErrors?: ErrorFieldDetail[]; reason?: ErrorDetailsReason };
   statusCode: number;
   correlationId: string;
   requestId: string | null;
@@ -245,6 +248,8 @@ export interface AskRequest {
   statementGrounding?: AskStatementGrounding;
   /** Client-held recent turns, bounded again by the server before they reach the model. */
   priorTurns?: AskPriorTurn[];
+  /** Identifies a typed continuation or stored selection so refusals use the right copy. */
+  origin?: "plant-choice" | "period-choice" | "saved-view" | "pin";
 }
 
 /** An editable interpretation chip shown under the question. */
@@ -586,7 +591,7 @@ export type ExplorationSelectionStatus =
   | { runnable: true }
   | {
       runnable: false;
-      reason: "grant_revoked" | "definition_unregistered";
+      reason: "grant_revoked" | "definition_unregistered" | "plants_revoked";
       message: string;
     };
 
@@ -657,6 +662,34 @@ export interface AskPeriodControl {
   coverage?: string;
 }
 
+export interface AskPlantChoice {
+  prompt: string;
+  question: string;
+  selection: Selection;
+  options: Array<{ value: string; label: string }>;
+  allPlants: { label: "All plants"; value: string[] };
+}
+
+export type AskPlantRefusalReason =
+  "plant-not-granted" | "plant-filter-invalid" | "plants-revoked" | "choice-plants-revoked" | "no-plants-granted";
+
+export interface AskPlantRefusal {
+  reason: AskPlantRefusalReason;
+  plants: string[];
+}
+
+export interface AskLeftOut {
+  reason: "budget-not-loaded";
+  plants: string[];
+}
+
+export interface AskBudgetState {
+  key: string;
+  state: "loaded" | "not-loaded" | "partial";
+  plantsWithBudget: string[];
+  plantsInRow: string[];
+}
+
 export interface AskResponse {
   responseClass: ResponseClass;
   sessionId: string;
@@ -699,6 +732,16 @@ export interface AskResponse {
   /** Concrete dimension filters applied to the query, for editable value filters. */
   appliedFilters?: SelectionFilter[];
   appliedMeasureFilters?: MeasureFilter[];
+  /** Offered when the reader must choose the plant set before any figures are read. */
+  plantChoice?: AskPlantChoice;
+  /** Typed reason and display names for plant-policy refusals. */
+  refusal?: AskPlantRefusal;
+  /** Plants omitted from a comparison because their budget is not loaded. */
+  leftOut?: AskLeftOut;
+  /** Budget availability for each result row, keyed by the shared Ask row key. */
+  budgetStates?: AskBudgetState[];
+  /** Display names for exactly the canonical plant codes read by this answer. */
+  plantNames?: Record<string, string>;
   /** Offered only when a statement period needs clarification. */
   periodChoice?: AskPeriodChoice;
   /** Present on successful data answers. */
@@ -788,6 +831,9 @@ export interface ConversationAnswerSnapshot {
   appliedFilters?: AskResponse["appliedFilters"];
   appliedMeasureFilters?: AskResponse["appliedMeasureFilters"];
   appliedTimeWindow?: AskResponse["appliedTimeWindow"];
+  plantNames?: AskResponse["plantNames"];
+  budgetStates?: AskResponse["budgetStates"];
+  leftOut?: AskResponse["leftOut"];
 }
 
 /** GET /api/conversations list item and conversation mutation response. */

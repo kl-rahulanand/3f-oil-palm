@@ -13,6 +13,7 @@ import { loadConfig } from "../config";
 import { configureApp } from "../main";
 import { AuthoredMeasureRegistry } from "../measures/authored-measure.registry";
 import { MeasureFilterInvalidException } from "../semantic/measure-filter-invalid.exception";
+import { PlantFilterInvalidException } from "../semantic/plant-filter-invalid.exception";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -64,6 +65,33 @@ test("a MeasureFilterInvalidException answers HTTP 400 with its type its reason 
     assert.equal(response.body.error.type, "MeasureFilterInvalidException");
     assert.deepEqual(response.body.error.details, { reason: MeasureFilterInvalidReason.NotComparable });
     assert.equal(response.body.error.userMessage, "Only money measures can be compared.");
+  } finally {
+    CsrfGuard.prototype.canActivate = originalCsrfGuard;
+    AuthoredMeasureRegistry.prototype.onModuleInit = originalRegistryInit;
+    await app?.close();
+  }
+});
+
+test("a PlantFilterInvalidException reaches the client as a typed HTTP 400 envelope", async () => {
+  const originalRegistryInit = AuthoredMeasureRegistry.prototype.onModuleInit;
+  const originalCsrfGuard = CsrfGuard.prototype.canActivate;
+  AuthoredMeasureRegistry.prototype.onModuleInit = async () => {};
+  CsrfGuard.prototype.canActivate = () => {
+    throw new PlantFilterInvalidException("plant-not-granted", ["CHIR Plant"]);
+  };
+  let app: INestApplication | undefined;
+
+  try {
+    app = await NestFactory.create(AppModule, { logger: false });
+    configureApp(app, { ...loadConfig(), environment: "Development", swaggerEnabled: false });
+    await app.init();
+    const response = await request(app, "/api/auth/logout", "POST");
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.error.code, "HTTP_400");
+    assert.equal(response.body.error.type, "PlantFilterInvalidException");
+    assert.deepEqual(response.body.error.details, { reason: "plant-not-granted" });
+    assert.equal(response.body.error.userMessage, "You do not have access to CHIR Plant.");
   } finally {
     CsrfGuard.prototype.canActivate = originalCsrfGuard;
     AuthoredMeasureRegistry.prototype.onModuleInit = originalRegistryInit;
