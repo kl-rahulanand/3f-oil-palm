@@ -187,7 +187,9 @@ must prove. Shared rules for every part:
    `DUB-NUR` or a display name is `plant-filter-invalid`. Valid canonical values in any order or with
    duplicates (`["DUB", "CHIR", "DUB"]`) execute as `["CHIR", "DUB"]` at each ingress (new question,
    continuation, edited selection, saved and pinned re-run), proven in `plant-set.test.ts`
-   (MP-PLANT-RULES) and `chat.service.test.ts` (MP-ASK-CHOICE). Save and pin requests reject a bad plant
+   (MP-PLANT-RULES) and `chat.service.test.ts` (MP-ASK-CHOICE); creating a saved view or a pin with
+   `["DUB", "CHIR", "DUB"]` stores `["CHIR", "DUB"]`, proven in `saved.service.test.ts` and
+   `pins.service.test.ts` (MP-SAVED-PINS). Save and pin requests reject a bad plant
    filter with HTTP 400 through a typed `PlantFilterInvalidException` that the global exception filter
    maps like `MeasureFilterInvalidException` (`userMessage` from the reason, `details.reason` set); the
    save and pin dialogs render the server's `userMessage` (`ApiError` carries it). Every new value

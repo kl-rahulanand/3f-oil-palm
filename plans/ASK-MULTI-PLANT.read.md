@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T09:58:21+00:00
-read_hash: 8632618949163b36fe6daa95cc9a162b6d2a1ce9
-round: 11
+read_at: 2026-10-04T09:59:39+00:00
+read_hash: 9ae5bb4fda21515f9042fab2501fce91c2aef45a
+round: 12
 passed: no
-doc_seen: 8632618949163b36fe6daa95cc9a162b6d2a1ce9
+doc_seen: 9ae5bb4fda21515f9042fab2501fce91c2aef45a
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 4fb59a91e3a33b77b89974be139b85a9688f4586
+notes_seen: 406872fe199c5bff30c61f5e1723eb884b348351
 ---
 # Cold read notes
 
@@ -160,3 +160,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 30. Unproven: item 2: duplicate and out-of-order canonical plant filters become sorted and deduplicated.
     The spec requires every executed selection’s plant filter to be canonical, sorted, and deduplicated, but no leaf covers values such as `["DUB", "CHIR", "DUB"]` across ingress paths.
     Disposition: cut detail 9 adds the sort-and-dedupe leaf for `["DUB","CHIR","DUB"]` at each ingress, in plant-set.test.ts and chat.service.test.ts.
+
+## Round 12
+
+31. Unproven: item 2: valid unordered or duplicate filters are canonicalized when creating a saved view or pin.
+    Detail 9 names only saved/pin re-runs, while C2 requires canonicalisation at their creation ingress too. Add MP-SAVED-PINS service leaves asserting stored selections are sorted and deduplicated.
+    Disposition: cut detail 9 adds the creation-ingress leaves: saving or pinning `["DUB","CHIR","DUB"]` stores `["CHIR","DUB"]`, in saved.service.test.ts and pins.service.test.ts (MP-SAVED-PINS).
