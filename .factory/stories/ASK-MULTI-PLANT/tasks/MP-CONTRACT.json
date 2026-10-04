@@ -1,10 +1,38 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-CONTRACT",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "2eb2a7b903373e9d827caf5f129edcf3e534d4de4d479ce76d74412255dbb0cb",
+    "commit": "c4e2572a3f431dc38c83a65ccdbf3cf10fae3ec7",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This required test was neither added nor changed. The existing file only checks invalid chart types, sort directions, and unknown request fields; it does not cover the newly added `plants_revoked` pin status (or any new plant wire shape). The Swagger test provides broader API-document coverage, but the task explicitly requires a pin-schema test that would fail if this pin-specific contract regressed.",
+        "file": "backend/src/pins/pins.schemas.ts",
+        "line": 111,
+        "priority": "P1",
+        "title": "Not done: backend/src/pins/pins.schemas.test.ts"
+      },
+      {
+        "body": "The schema now accepts `AskRequest.origin`, but the unchanged `ChatController` parses the body and calls `ChatService.ask` without passing `parsed.data.origin` on either the regular or streaming route (see `backend/src/chat/chat.controller.ts` lines 38\u201348 and 84\u201394); the service signature also has no origin parameter. Consequently choice, saved-view, and pin requests are currently indistinguishable after validation. MP-ASK-CHOICE is assigned origin-dependent refusal handling, but its listed scope omits `chat.controller.ts`, so that task must add the controller path to its scope and test both routes.",
+        "file": "backend/src/chat/chat.schemas.ts",
+        "line": 108,
+        "priority": "P2",
+        "title": "Later: MP-ASK-CHOICE must forward `origin` through both chat routes"
+      }
+    ],
+    "status": "blocked",
+    "tree": "2e6183757d0724eb8912159bc80fbc15b35ee55f4d98360b2450e678928916f6"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T10:04:19+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T10:20:44+00:00",
+      "step": "review"
     }
   ]
 }
