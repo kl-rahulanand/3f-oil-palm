@@ -14,6 +14,11 @@
         "because": "frontend/src/features/assistant/ask-panel.test.tsx:1274 the server-selected refusal reasons were exercised through the running Ask route on 2026-10-04 (real Nest app, OTP login, CSRF, app DB): a direct POST /api/chat with origin saved-view and with origin pin carrying a plant the DUB-only user does not hold returned blocked_by_policy with refusal {reason: plants-revoked, plants: [\"Agriculture - Nursery - CHIR\"]} and the spec copy as message; save and pin requests returned the typed 400 copy for plant-filter-invalid and plant-not-granted. This branch renders refusal.reason with that same copy table, proven per reason in ask-panel.test.tsx against the exact response shape the route returned. The owner capped review loops for this story.",
         "finding": 2,
         "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:954 the coordinator drove the real flow in a browser on 2026-10-04: this branch at 845936f8, frontend on :3001 against its backend on :4001 (real Nest app, OTP login as the seeded admin holding every plant, CSRF, app DB, July warehouse, live Bedrock). Asking \"Which GL codes had Actual over Budget in July 2026?\" rendered the picker: \"Which plants should this answer cover?\", an All plants checkbox, one labelled checkbox per plant in a scrolling list, and a Show answer submit button. Submitting with nothing ticked showed \"Choose at least one plant\" in a status live region and sent no request. Ticking \"Agri - Nursery - DUB\" and submitting ran the continuation and rendered the answer: 21 GL codes with names, 50001201 \u00b7 Sprout Cost - Imp at 83,98,339 against 80,00,000, Actual > Budget \u00b7 July 2026. The controls reuse the period-choice styling (no new visual language), are real labelled form controls reachable by keyboard, and the list scrolls inside the card.  A one-plant reader (DUB-only user, live :4001 on 2026-10-04) got a direct answer with the singleton plant filter and no picker; picker-before-figure-read and grant re-checks on each ingress are proven server-side in the merged MP-ASK-CHOICE leaves and its live probe. The owner capped review loops for this story. ",
+        "finding": 1,
+        "from_base": false
       }
     ],
     "findings": [
@@ -46,10 +51,10 @@
         "title": "Plant-choice failures are mislabeled as period failures"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "0e9d742dedcef274059575633945af6e6907ee9c7d6965c745fb291e9d6379ea"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T16:43:23+00:00",
