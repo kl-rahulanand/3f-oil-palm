@@ -14,6 +14,9 @@ test("plant names in a question resolve by canonical SAP and display aliases wit
   assert.deepEqual(matchQuestionPlants("Actual for dub, DUB-NUR and  Agri   -   Nursery   -   DUB "), [
     { value: "DUB", label: "Agri - Nursery - DUB" },
   ]);
+  for (const alias of ["dub-nur", "Dub-Nur", "agri - nursery - dub", "AgRi   -  NuRsErY -   DuB"]) {
+    assert.deepEqual(matchQuestionPlants(`Actual for ${alias}`), [{ value: "DUB", label: "Agri - Nursery - DUB" }]);
+  }
   assert.deepEqual(matchQuestionPlants("Actual for chir and Operations   - Unit - VJM"), [
     { value: "CHIR", label: "Agriculture - Nursery - CHIR" },
     { value: "VJM", label: "Operations - Unit - VJM" },
