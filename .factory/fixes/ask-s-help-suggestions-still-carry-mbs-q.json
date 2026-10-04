@@ -6,19 +6,12 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "b294d578eb9b34417d8537033740269b8614c9a8ce9dbf696ec3e1926bda10d8",
-    "commit": "5f04132fccec61592c90c88583033c9ee3aa86f2",
+    "changed": "ad3aa73cdc2d4959c70fe143bb47cd6b100a4d1db4011787bd7c3c6adbe34400",
+    "commit": "40663fb123f28adc2aa479c6eb92166be1805994",
     "dismissals": [],
     "findings": [
       {
-        "body": "`suggestionDomain` requires both a permitted measure and a permitted dimension. Grants are independently configurable, and an aggregate Ask remains valid for a user with the report action, the governed-financial domain, and Actual permission but no dimension grant. For that user this branch builds an empty `exampleQuestions` array: definitions and small-talk expose no suggestions, while the unsupported fallback emits the generic \u201cask for an allowed metric by an allowed field\u201d instead of a governed 3F question. Generate an aggregate question such as \u201cActual for <latest month>\u201d when no permitted dimension is available.",
-        "file": "backend/src/help/glossary.ts",
-        "line": 154,
-        "priority": "P1",
-        "title": "Not done: suggestion sources can return no governed 3F questions"
-      },
-      {
-        "body": "The new regression tests construct `ChatService` directly with fake dimensions and a fake period resolver; the fallback test bypasses Ask entirely and calls `unsupportedFallbackMessage` directly. Consequently they cannot detect failures in Nest wiring, real warehouse period discovery, HTTP serialization, or rendering/clicking the returned suggestions in Ask. No Playwright test exercises these user-facing suggestion sources through the running API with a real database, as required by the test-audit contract.",
+        "body": "This remains open from the previous review. These tests instantiate `ChatService` with fake dimension and period services; the fallback case bypasses Ask and calls `unsupportedFallbackMessage` directly. The frontend test likewise supplies a mocked response. No test drives the running API with a real database and then verifies in Playwright that definition, value, small-talk, and fallback suggestions are rendered and usable. Consequently regressions in Nest wiring, real latest-period discovery, HTTP/SSE serialization, or browser rendering/click behavior would pass this suite, contrary to the required end-to-end proof for user-facing behavior.",
         "file": "backend/src/help/ask-help-suggestions-still-carry-mbs-q.test.ts",
         "line": 16,
         "priority": "P1",
@@ -26,7 +19,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "22527e69c24c256b6628898f1f71ce8492fe5d31a667365bb60c282fdfc31437"
+    "tree": "7341921b8dd60af945ef6ee34ab9a961acf96d41f88c67db0e75bd4ff1dd7fcb"
   },
   "status": "fixing",
   "steps": [
@@ -36,6 +29,10 @@
     },
     {
       "at": "2026-10-04T07:27:13+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T07:37:02+00:00",
       "step": "review"
     }
   ],
