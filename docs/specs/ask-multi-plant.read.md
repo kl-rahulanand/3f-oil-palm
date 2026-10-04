@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:03:55+00:00
-read_hash: 4c52169836c73ae1b532936910cd3b4dfb5a0424
-round: 5
+read_at: 2026-10-04T07:05:04+00:00
+read_hash: 75daeff8ccca7cfe73c5246f05921ea6614f431f
+round: 6
 passed: no
-doc_seen: 4c52169836c73ae1b532936910cd3b4dfb5a0424
+doc_seen: 75daeff8ccca7cfe73c5246f05921ea6614f431f
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: b2ced90e45811cfd47b990a8f2d32a98313fd19f
+notes_seen: d9ff8135bde25ede39000abbbb065f7ec10f824e
 ---
 # Cold read notes
 
@@ -147,3 +147,13 @@ Only a genuine trade-off goes to the human, as a question with options.
 28. Contradiction: C11’s statement regression oracle requires an invalid `% > 100` measure filter.
     - The confirmed comparison spec permits comparisons only between money measures and explicitly refuses `%` as not comparable. The expected selection for “which statement lines are over budget” must be `Actual > Budget`; `%` is only the display/result oracle.
     Disposition: cut the statement corpus question now expects measure filter Actual > Budget; % stays only the result oracle.
+
+## Round 6
+
+29. Gap: an empty plant-picker submission is not defined.
+    - The canonical `in` filter can currently contain `[]`, which is neither a chosen set nor valid SQL. Require at least one selected plant; keep the picker open with an accessible validation message and prove no query runs.
+    Disposition: cut the client requires at least one plant (picker stays open with an announced "Choose at least one plant", nothing sent), and the server refuses an empty array as invalid; C2 proves both.
+
+30. Gap: a direct edited selection can contain a known but ungranted plant.
+    - C2 covers an ungranted name in a question and C9 covers a revoked saved set, but neither covers a tampered/direct `{ dimensionId: "plant", op: "in" }` filter. Revalidate every value against current grants at every ingress and refuse the whole selection—never intersect it down to a partial result.
+    Disposition: cut every plant value is checked against current grants at every ingress; a known ungranted plant refuses the whole selection as plant-not-granted with no read, never intersected; C2 proves it for an edited selection.
