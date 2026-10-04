@@ -125,6 +125,21 @@ test("a mixed-plant reader sees names only from the executed query's effective p
   assert.doesNotMatch(warehouse.executed[0]!, /HYD/);
 });
 
+test("the same GL code resolves independent composite names under each row's plant predicate", async () => {
+  const warehouse = new PredicateNameWarehouse();
+  const repository = new GlNameRepository(new SqlValidator(), warehouse, new FakeOutlines());
+
+  const labels = await repository.findGlCodeLabels([
+    { key: "50001201|DUB", predicate: { ...glPredicate("50001201"), plants: ["DUB"] } },
+    { key: "50001201|CHIR", predicate: { ...glPredicate("50001201"), plants: ["CHIR"] } },
+  ]);
+
+  assert.deepEqual(labels, [
+    { key: "50001201|DUB", label: "DUB Sprout Cost", otherLabels: [] },
+    { key: "50001201|CHIR", label: "CHIR Sprout Cost", otherLabels: [] },
+  ]);
+});
+
 test("every normalized name beyond MAX_ROWS is returned in rank order", async () => {
   const maxRows = loadConfig().maxRows;
   const groups = [
@@ -553,6 +568,24 @@ class EchoNameWarehouse extends FakeWarehouse {
   override async execute(sql: string): Promise<QueryResult> {
     this.executed.push(sql);
     return { columns: [], rows: [] };
+  }
+}
+
+class PredicateNameWarehouse extends FakeWarehouse {
+  override async execute(sql: string): Promise<QueryResult> {
+    this.executed.push(sql);
+    const rows = [...sql.matchAll(/\(SELECT (\d+) AS row_ordinal,([\s\S]*?)LIMIT 1\)/g)].map(
+      ([, rowOrdinal, rowSql]) => {
+        const plants = new Set([...rowSql!.matchAll(/txn\.plant IN \('([^']+)'\)/g)].map((match) => match[1]!));
+        if (plants.size !== 1) throw new Error("GL name query did not keep one row plant predicate");
+        const plant = [...plants][0]!;
+        return {
+          ...completeNameGroupsRow(plant, [{ label: `${plant} Sprout Cost`, count: 1 }]),
+          row_ordinal: Number(rowOrdinal),
+        };
+      },
+    );
+    return { columns: [], rows };
   }
 }
 
