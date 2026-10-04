@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:45:07+00:00
+saved: 2026-10-04T08:46:15+00:00
 ---
 
 # Every Ask answer works across plants
@@ -443,10 +443,13 @@ decision 0033.
     - "which statement lines are over budget for July 2026", as the DUB-only user: domain
       `mis-statement`, measures Actual and Budget, dimension `leaf_key`, measure filter Actual > Budget,
       July 2026.
-    The admin's corpus answers carry no plant filter before the change.
+    The admin's corpus answers carry no plant filter before the change. Their only ordinary filter is
+    at most a `month` equality filter on the asked month (2026-07-01), which the live model emits on
+    some runs and not others with the same answer; any other ordinary filter is a regression.
   - After it, the five success-measure questions are asked as the seeded admin, each in a fresh
     conversation, with their stated results. The corpus is probed again: each selects the same domain,
-    measures, dimensions, measure filter and period as recorded, and the admin's questions now get the plant
+    measures, dimensions, measure filter and period as recorded, its ordinary filters are at most that
+    same month filter plus the plant filter (from the picker or a named plant), and the admin's questions now get the plant
     picker first.
 
 ## Open items (non-blocking)
