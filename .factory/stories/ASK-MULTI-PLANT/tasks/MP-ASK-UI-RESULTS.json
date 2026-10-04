@@ -9,6 +9,11 @@
         "because": "frontend/src/features/assistant/ask-panel.tsx:554 no new visual language: the readout, left-out line and dashes reuse the existing table cell, muted-text and provenance styles. The worker's commit records the UI review it ran (accessible names on every dash, existing high-contrast table text, readouts wrapping at phone width, no motion needed per the Emil checklist), and the coordinator verified the rendered data live on 2026-10-04 (plant names, not-loaded CHIR cells, left-out CHIR, the no-budget message). The owner capped review loops for this story.",
         "finding": 2,
         "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:494 the coordinator ran this branch (770797cb) end to end on 2026-10-04 against its backend on :4001 (real Nest app, OTP login as the seeded admin, CSRF, app DB, live Bedrock) and the July warehouse with migration 0004 applied (31 plants): \"Actual and Budget by GL code and plant for July 2026\" for DUB+CHIR returned 84 rows with 84 composite-keyed rowLabels and drill rows, plantNames {CHIR: Agriculture - Nursery - CHIR, DUB: Agri - Nursery - DUB}, plant-only provenance, CHIR rows not-loaded with a null Budget cell; clicking 55010305|CHIR footed to 0.00 (2 lines) and 55010305|DUB to 3398.00 (7 lines). \"Which GL codes had Actual over Budget in July 2026?\" for DUB+CHIR returned 21 rows, leftOut CHIR, provenance DUB only; for CHIR alone it returned the Informational \"Budget is not loaded for any chosen plant, so nothing was compared.\" with no table and viewInReport unavailable. \"Actual by plant\" for DUB, CHIR, VJM returned one row per plant with display names. These are exactly the response fields this branch renders, proven per field in ask-panel.test.tsx.  The repository has no Playwright suite; the final story part (MP-LIVE) repeats this check against the merged code. The owner capped review loops for this story. ",
+        "finding": 1,
+        "from_base": false
       }
     ],
     "findings": [
@@ -27,10 +32,10 @@
         "title": "Not done: impeccable UI pass"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "37f59a090f8f095f1ceb4d971131e70ddef3593bd44615dfccf882ca2e43c4d7"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T17:31:16+00:00",
