@@ -23,6 +23,7 @@ const hermeticTests = [
   "backend/src/chat/chat.schemas.test.ts",
   "backend/src/chat/chat.service.test.ts",
   "backend/src/chat/chat.sse.test.ts",
+  "backend/src/chat/plant-set.test.ts",
   "backend/src/chat/reconciliation-guard.test.ts",
   "backend/src/chat/selectionExecutor.composed.test.ts",
   "backend/src/chat/smalltalk-guard.test.ts",

@@ -91,6 +91,25 @@ test("the mapping master loader accepts the versioned master and rejects a malfo
   assert.equal(canonicalPlant("UNKNOWN"), "UNKNOWN");
 });
 
+test("the mapping master rejects plant aliases that collide after case and repeated whitespace normalisation", () => {
+  const first = MIS_MAPPING_MASTER.selections[0];
+  const second = MIS_MAPPING_MASTER.selections[1];
+  assert.throws(
+    () =>
+      loadMappingMaster({
+        ...MIS_MAPPING_MASTER,
+        selections: [
+          first,
+          {
+            ...second,
+            plant_aliases: { ...second.plant_aliases, display: ["  agri   - nursery - dub  "] },
+          },
+        ],
+      }),
+    /reuses a plant alias/,
+  );
+});
+
 test("the mapping master resolves a SAP cost centre and GL triple to exactly one statement leaf and records the budget leaf correspondence as provisional with a reason", () => {
   const leaf = resolveMappingTriple({ plant: "DUB-NUR", cost_center: "Primary", gl_code: "50001605" });
   assert.deepEqual(leaf?.target, {
