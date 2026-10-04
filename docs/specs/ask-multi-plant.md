@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:42:53+00:00
+saved: 2026-10-04T08:44:31+00:00
 ---
 
 # Every Ask answer works across plants
@@ -193,7 +193,11 @@ decision 0033.
   provenance crosses plants.
 - A comparison that needs a budget (e.g. Actual over Budget) reads only the chosen plants that have a
   loaded budget for every month of the answer's window, whatever the grouping. A plant missing a budget
-  batch for any month of the window is left out whole, never compared on some months only. That restriction is in the query itself, before grouping, ordering, the row limit,
+  batch for any month of the window is left out whole, never compared on some months only.
+- The answer's `selection` keeps the plants the reader asked for (e.g. DUB and CHIR), because that is
+  what a saved view or pin stores and re-runs; only the effective query predicate, totals, provenance
+  and drill context use the compared plants (DUB). A re-run recomputes which plants have a budget, so a
+  plant that gains one later is compared then. That restriction is in the query itself, before grouping, ordering, the row limit,
   totals and drill preparation. Every row of such an answer is therefore `loaded`, and its totals cover
   exactly the plants compared. When at least one chosen plant was left out, the answer carries a typed
   `AskResponse.leftOut: { reason:
@@ -389,6 +393,8 @@ decision 0033.
   - A budget comparison reads only plants with a loaded budget, applied in the query before ordering, the
     limit and totals. A fixture with more qualifying DUB rows than the row limit, alongside non-owner plants,
     proves no qualifying row is dropped and the totals are exact. The left-out plants are named.
+  - A DUB+CHIR budget comparison keeps DUB and CHIR in its `selection`; saved or pinned and re-run, it
+    again compares DUB and names CHIR as left out.
   - A DUB+CHIR budget comparison names CHIR as left out, while its query predicate, totals, drill context
     and "How this was calculated" scope contain DUB only. Naming CHIR in the explanatory copy never adds
     it to the queried scope.
