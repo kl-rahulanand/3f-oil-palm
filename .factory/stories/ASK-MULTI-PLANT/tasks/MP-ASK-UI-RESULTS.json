@@ -1,10 +1,59 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-ASK-UI-RESULTS",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "ed215077a92467e54c320ea61e70310f4f43d86b18f9c4b7b427ee8cd747403a",
+    "commit": "770797cbef5d2de6e6f10d338f20750c5c5370c2",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "A no-budget response returned after the plant picker is discarded. The backend returns `responseClass: informational` when the selected plants have no loaded budget (`backend/src/chat/chat.service.ts:639-646`), but `resolveContinueResponse` accepts only success, clarification, and policy-block responses before this branch converts everything else into the plant-choice error. Thus a multi-plant reader who chooses CHIR for an over-budget question keeps the picker and sees \u201cThat choice could not be applied\u201d instead of the required informational answer. The new test bypasses this path by submitting the informational fixture as a separate top-level question. Accept the informational continuation and test it through the picker.",
+        "file": "frontend/src/features/assistant/use-ask.ts",
+        "line": 313,
+        "priority": "P1",
+        "title": "Not done: Budget states and comparisons (C6, C7 no-budget case)"
+      },
+      {
+        "body": "All new UI proofs inject fabricated `AskResponse` objects through `mocks.ask` in jsdom. The repository has no Playwright test/config or test command driving a browser through the running API with a real database and user, while these user-facing items require that boundary. Consequently the suite cannot prove that real responses produce the plant readout, budget dashes/left-out state, or row-specific transaction click. Add a committed Playwright flow covering these results through the actual Ask entry point.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 500,
+        "priority": "P1",
+        "title": "Not done: real-entry-point browser coverage for Done-when 5\u20137"
+      },
+      {
+        "body": "The only new composite-key interaction test covers `gl_code \u00d7 plant`, and even it clicks/asserts only CHIR's link. The `leaf_key \u00d7 plant` case in the display-name loop checks only the plant cell; the existing statement drill test is single-dimensional. No test creates DUB and CHIR rows sharing one leaf key and verifies their independent labels, budget states, drill buttons, and CHIR row key, so a statement-specific composite lookup regression would pass. Extend the branch-owned panel test with that named leaf and assert both links in the GL case.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 516,
+        "priority": "P1",
+        "title": "Not done: composite statement-row names, budget states, and links"
+      },
+      {
+        "body": "This change adds visible readouts, accessible budget states, and new table-cell behavior, but the supplied handoff records only a functional check and does not record the required impeccable shape/audit/polish pass or the specifically invoked emil-design-eng interaction checklist. The task record also contains only its start step. Run and record the mandated batched UI inspection for these changed screens before merging.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 554,
+        "priority": "P1",
+        "title": "Not done: impeccable UI pass"
+      },
+      {
+        "body": "This task permits production changes only in `ask-panel.tsx`, but the branch also changes `use-ask.ts` and adds a `use-ask.test.tsx` case solely to alter plant-choice failure copy. That behavior is not part of Done-when 5\u20137 and is not required to render result metadata. Remove it from this task or implement any required presentation within the declared panel scope and its named test file.",
+        "file": "frontend/src/features/assistant/use-ask.ts",
+        "line": 201,
+        "priority": "P1",
+        "title": "Not done: keep MP-ASK-UI-RESULTS within its declared scope"
+      }
+    ],
+    "status": "blocked",
+    "tree": "118b9fbb147bf5604b050fb923ce969ad2fe99525c44120bdc0e6132b8fffdaa"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T17:31:16+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T17:51:54+00:00",
+      "step": "review"
     }
   ]
 }
