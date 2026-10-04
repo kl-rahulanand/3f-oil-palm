@@ -1,0 +1,53 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-GL-SQL",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "cf8a5fb9c882d1fbd6ff29f03e7f4bcd61dcac34ab3ad1126970ce0cca9db71e",
+    "commit": "29b4a11c0c86b4006383a8041559d0284e3f7742",
+    "dismissals": [
+      {
+        "because": "backend/src/warehouse/golden-financial.db.test.ts:92 the coordinator ran the gated warehouse leaves on 2026-10-04 against the throwaway postgres:16-alpine on 127.0.0.1:5434 (AGENTS.md Known traps; CI has no database, so the close run skips them by design) with WAREHOUSE_DB_TEST=1: golden-financial.db.test.ts, measure-filter.db.test.ts and gl-month-rollups.db.test.ts together, tests 8, pass 8, fail 0, skipped 0, including the DUB-only 21-code over-budget leaf with 50001201 at 83,98,339 and the over-limit DUB fixture beside non-owner plants.",
+        "finding": 1,
+        "from_base": false
+      },
+      {
+        "because": "backend/src/warehouse/measure-filter.db.test.ts:23 the coordinator ran the gated warehouse leaves on 2026-10-04 against the throwaway postgres:16-alpine on 127.0.0.1:5434 (AGENTS.md Known traps; CI has no database, so the close run skips them by design) with WAREHOUSE_DB_TEST=1: golden-financial.db.test.ts, measure-filter.db.test.ts and gl-month-rollups.db.test.ts together, tests 8, pass 8, fail 0, skipped 0, including the DUB-only 21-code over-budget leaf with 50001201 at 83,98,339 and the over-limit DUB fixture beside non-owner plants.",
+        "finding": 2,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "The multi-plant breakdown assertions are present, but they remain inside the `WAREHOUSE_DB_TEST`-gated test and the supplied close run records that test as skipped. No separate successful run against the designated throwaway PostgreSQL warehouse is provided, so the four required plant grouping combinations and cross-plant sums have not been executed against the migrated schema.",
+        "file": "backend/src/warehouse/golden-financial.db.test.ts",
+        "line": 92,
+        "priority": "P1",
+        "title": "Not done: backend/src/warehouse/golden-financial.db.test.ts runs the required database proof"
+      },
+      {
+        "body": "This required warehouse proof is still gated by `WAREHOUSE_DB_TEST`, and the supplied close run records it as skipped with no separate passing warehouse run. Consequently the claimed 21-code July result, \u20b983,98,339 value for 50001201, restriction to loaded-budget plants before limiting, and exact filtered totals have not been executed against PostgreSQL.",
+        "file": "backend/src/warehouse/measure-filter.db.test.ts",
+        "line": 23,
+        "priority": "P1",
+        "title": "Not done: backend/src/warehouse/measure-filter.db.test.ts runs the required database proof"
+      }
+    ],
+    "status": "clean",
+    "tree": "bc51d54ad3c139a09e578065f216ad99e5658d15c215897100b27f313102105b"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T11:38:02+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T11:50:01+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T11:57:58+00:00",
+      "step": "review"
+    }
+  ]
+}

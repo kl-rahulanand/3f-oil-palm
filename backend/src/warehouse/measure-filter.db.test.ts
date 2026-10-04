@@ -4,11 +4,9 @@ import { join } from "node:path";
 import test from "node:test";
 import type { AuthUser, Selection } from "@3f/contract";
 import type { Pool } from "pg";
-import { SelectionExecutor } from "../chat/selectionExecutor";
 import { IngestService, type UploadedWorkbook } from "../ingest/ingest.service";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
-import { SqlValidator } from "../sql/sqlValidator";
 import { createWarehouseWritePool } from "./ingestion.repository";
 import { PostgresAdapter } from "./postgres.adapter";
 import { migrateWarehouse } from "./warehouse-migrate";
@@ -22,7 +20,7 @@ test("the destructive measure filter proof refuses a non-local warehouse host", 
 });
 
 test(
-  "WAREHOUSE_DB_TEST proves the July over-budget GL set and totals cover every matching group beyond the page",
+  "WAREHOUSE_DB_TEST proves DUB's July over-budget answer stays at 21 codes and comparison filtering happens before the row limit and totals beside non-owner plants",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async (context) => {
     assertLocalWarehouseHost(process.env.WAREHOUSE_PG_HOST);
@@ -35,19 +33,19 @@ test(
       await ingest.ingestBudget(upload(BUDGET), "measure-filter-proof");
 
       const expected = await overBudgetRelation(pool);
-      assert.ok(
-        expected.length >= 2,
-        `July fixture must contain at least two over-budget GL groups; found ${expected.length}`,
-      );
+      assert.equal(expected.length, 21);
+      assert.equal(expected.find(({ gl_code }) => gl_code === "50001201")?.actual, "8398339.00");
+      assert.ok(await hasNonOwnerActuals(pool), "the fixture must contain non-owner plant actuals beside DUB");
 
       const domain = new SemanticLayer().domain("governed-financial");
       assert.ok(domain);
-      const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), new PostgresAdapter());
+      const builder = new SqlBuilder();
+      const adapter = new PostgresAdapter();
       const selection: Selection = {
         domain: domain.name,
         measureIds: ["governed-financial.actual", "governed-financial.budget"],
         dimensionIds: ["gl_code"],
-        filters: [],
+        filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
         measureFilters: [
           {
             measureId: "governed-financial.actual",
@@ -58,27 +56,28 @@ test(
         timeWindow: { grain: "month", column: "month", from: JULY, to: JULY },
       };
 
-      const allMatches = await executor.run(user, domain, { ...selection, limit: 1000 });
-      const actualSet = allMatches.result.rows.map(({ gl_code }) => String(gl_code)).sort();
+      const queryContext = { budgetOwnerPlant: "DUB", budgetComparisonPlants: ["DUB"] };
+      const allMatches = await adapter.execute(
+        builder.build(domain, { ...selection, limit: 1000 }, user, true, undefined, queryContext).sql,
+      );
+      const actualSet = allMatches.rows.map(({ gl_code }) => String(gl_code)).sort();
       const expectedSet = expected.map(({ gl_code }) => gl_code);
       assert.deepEqual(actualSet, expectedSet);
       context.diagnostic(`July 2026 over-budget GL codes: ${expectedSet.join(", ")}`);
 
-      const onePage = await executor.run(user, domain, { ...selection, limit: 1 });
-      assert.equal(onePage.result.rows.length, 1);
-      const expectedActualTotal = Number(sumMoney(expected.map(({ actual }) => actual)));
-      assert.equal(onePage.totals?.actual, expectedActualTotal);
-      assert.ok(
-        expectedActualTotal > Number(onePage.result.rows[0].actual),
-        "the filtered total must include over-budget groups beyond the one-row page",
+      const rowLimit = 10;
+      const onePage = await adapter.execute(
+        builder.build(domain, { ...selection, limit: rowLimit }, user, true, undefined, queryContext).sql,
       );
-
-      const unfiltered = await executor.run(user, domain, {
-        ...selection,
-        measureFilters: [],
-        limit: 1,
-      });
-      assert.notEqual(onePage.totals?.actual, unfiltered.totals?.actual);
+      assert.equal(onePage.rows.length, rowLimit);
+      const expectedActualTotal = Number(sumMoney(expected.map(({ actual }) => actual)));
+      const totals = await adapter.execute(builder.buildTotals(domain, selection, user, undefined, queryContext).sql);
+      assert.equal(Number(totals.rows[0]?.actual), expectedActualTotal);
+      assert.ok(
+        expectedActualTotal > onePage.rows.reduce((sum, row) => sum + Number(row.actual), 0),
+        "the filtered total must include over-budget groups beyond the limited page",
+      );
+      assert.doesNotMatch(builder.build(domain, selection, user, true, undefined, queryContext).sql, /\bCHIR\b/);
     } finally {
       await pool.end();
     }
@@ -97,7 +96,10 @@ const user: AuthUser = {
     dimensionIds: ["gl_code", "month"],
     actions: ["report"],
   },
-  scope: [{ attribute: "plant", value: "DUB" }],
+  scope: [
+    { attribute: "plant", value: "CHIR" },
+    { attribute: "plant", value: "DUB" },
+  ],
 };
 
 function upload(path: string): UploadedWorkbook {
@@ -132,6 +134,14 @@ async function overBudgetRelation(pool: Pool): Promise<Array<{ gl_code: string; 
       [JULY],
     )
   ).rows;
+}
+
+async function hasNonOwnerActuals(pool: Pool): Promise<boolean> {
+  const result = await pool.query<{ present: boolean }>(
+    "SELECT EXISTS (SELECT 1 FROM actual_by_gl_month WHERE plant <> 'DUB' AND month = $1::date) AS present",
+    [JULY],
+  );
+  return result.rows[0]?.present === true;
 }
 
 function sumMoney(values: string[]): string {
