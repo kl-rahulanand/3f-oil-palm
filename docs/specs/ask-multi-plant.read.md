@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:34:05+00:00
-read_hash: 45e28aec6e205a0007c7777035c7fe544fca3917
-round: 13
+read_at: 2026-10-04T08:52:46+00:00
+read_hash: 780e7f0876ce9359a7720c618ea9bca794e07b6e
+round: 25
 passed: yes
-doc_seen: 45e28aec6e205a0007c7777035c7fe544fca3917
+doc_seen: 780e7f0876ce9359a7720c618ea9bca794e07b6e
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 8f7716d77f7429aed59f2e205a64f7738116c3ee
+notes_seen: e3b38d1d4072f4fb160ec1428685cb821bf50367
 ---
 # Cold read notes
 
@@ -242,5 +242,99 @@ No findings.
    Disposition: cut the no-budget answer's `viewInReport` is unavailable with the stated reason; C7 proves it for a statement question.
 
 ## Round 13
+
+No findings.
+
+## Round 14
+
+48. Gap: “loaded budget” is not defined for the selected period.
+   The confirmed statement spec treats a missing active budget batch for a period as not-loaded, including for DUB. Define the period/window rule for `loaded`, `partial`, comparison exclusion, and an all-not-loaded DUB period; C6 needs a leaf for it.
+   Disposition: cut a row's budget is loaded only when the owner has an active budget batch for every month the row covers; a missing month makes DUB not loaded; C6 adds the range and all-not-loaded DUB period leaves.
+
+49. Gap: the cross-plant composed relation’s grain is not pinned.
+   Actuals must retain canonical plant through the GL and statement relations, and the DUB budget must be associated only with DUB before any multi-plant aggregation. Otherwise a DUB+CHIR actual can join one DUB budget on GL/month and falsely appear loaded. Require a plant-grain relation before aggregation and prove no budget or provenance crosses plants.
+   Disposition: cut actual and budget join at the plant, GL (or line) and month grain before any cross-plant aggregation, the budget carrying its owner plant; C6 proves no budget or provenance crosses plants.
+
+50. Contradiction: budget-state requirements assume Budget and % columns that an Actual-only selection need not contain.
+   Success question 4 asks only for Actual yet requires Budget and % cells, while Ask selections can contain only the requested Actual measure. Specify whether financial answers always add Budget and % or restrict `budgetStates` and the column rules to selected measures; prove the chosen behavior.
+   Disposition: cut the budget rules apply only to shown measures; an Actual-only answer has no Budget or % column and no budgetStates; success question 4 now asks for Actual and Budget.
+
+51. Contradiction: short-code matching conflicts with case-insensitive plant resolution.
+   The resolver is case-insensitive for canonical codes, but codes under three characters match only as uppercase tokens. Define the outcome for `CK` versus `ck` (including ungranted access checks) and add it to C2’s normalization proof.
+   Disposition: cut short codes match only as an exact upper-case token ("CK" names CK, "ck" names nothing) for granted and ungranted alike; C2 proves it.
+
+## Round 15
+
+52. Gap: the selected-measure rule still cannot produce success question 4’s required `%` column.
+   “Actual and Budget” need not select Percentage, yet the oracle requires a null `%` cell. Specify whether selecting Budget automatically includes `%`, or change the question/oracle; cover Actual-only, Actual+Budget, %-only, and all-three measure sets.
+   Disposition: cut no measure is added; the dash applies to a shown Budget column and the % cell to a shown % column; question 4 now asks for Actual, Budget and %; C6 covers the four measure sets.
+
+53. Gap: budget comparisons are undefined for a partially budgeted time range.
+   Budget availability is now per row/month, but comparison filtering and `leftOut.plants` are plant-only. Define whether a DUB April–July comparison excludes DUB entirely when one month lacks a batch or reads only budgeted months, and how the omitted month is explained; add a C6 leaf.
+   Disposition: cut a comparison compares a plant only when its budget is loaded for every month of the window, otherwise it is left out whole and named; C6 adds the April–July leaf.
+
+54. Gap: “every month of the answer’s window” is undefined for a governed answer with no time window.
+   Such answers are permitted and cover all loaded data. Define the month set used to decide loaded/partial/not-loaded without a window, including an actual month with no budget batch, and prove it.
+   Disposition: cut an answer with no window takes its months from the Actual it read; C6 adds the leaf.
+
+55. Unproven: C11’s live regression corpus does not record expected `measureIds`.
+   The no-filter “Actual by GL code” probe could regress to Budget or Percentage while retaining the stated domain, dimensions, filter, and period. Record and compare the complete expected measure set for every corpus prompt.
+   Disposition: cut every corpus entry now records its full measure set (from the 2026-10-04 probe) and the re-probe compares measures too.
+
+## Round 16
+
+56. Gap: an unwindowed budget comparison has no defined pre-comparison month set.
+   The answer window is defined from Actual “the query read,” but the comparison predicate must exclude unbudgeted plants before that query reads its final rows. Pin that it derives candidate Actual months before comparison filtering, then prove an unwindowed DUB comparison with one unbudgeted Actual month becomes the no-budget informational answer.
+   Disposition: cut an unwindowed answer's months come from the active Actual load batches before the query runs, so comparison filtering has its month set first; C6 proves the unwindowed DUB comparison becomes the no-budget answer with no read.
+
+## Round 17
+
+57. Contradiction: the unwindowed no-budget path must read active Actual load batches before it can return an answer that promises “nothing is read.”
+   Define permitted preflight metadata lookups versus prohibited figure reads, including their audit behavior, and make C6 prove that only the former occurs.
+   Disposition: cut a new "What counts as a read" section separates figure reads (data query, totals, names, drill, transactions; audited) from metadata lookups (mapping master, grants, cached vocabulary, load-batch metadata; not audited as data reads), and every "no read" means no figure read; C6 proves the unwindowed no-budget answer runs only metadata lookups.
+
+## Round 18
+
+58. Gap: a budget-comparison response does not say whether its saved selection keeps left-out plants.
+   A DUB+CHIR comparison executes only DUB, yet `AskResponse.selection` is what the client saves and re-runs. Pin that it preserves the requested DUB+CHIR snapshot while provenance, drill, and effective predicate use DUB; add a save/pin re-run leaf.
+   Disposition: cut the response's `selection` keeps the requested plants for save and re-run, while the effective predicate, totals, provenance and drill use the compared plants; C6 adds the save and pin re-run leaf.
+
+## Round 19
+
+59. Contradiction: “a plant that gains [a budget] later” exceeds the PoC budget-owner rule.
+   Only DUB can gain a newly active DUB budget batch in this scope; a CHIR budget requires decision 0034’s separate plant-keyed-budget story. Limit the re-run statement and C6 proof to DUB’s period batch becoming active.
+   Disposition: cut the re-run statement now covers only DUB's missing budget batch becoming active (decision 0034), and C6's leaf proves that case.
+
+## Round 20
+
+60. Unproven: C11 does not pin ordinary dimension filters.
+   The live corpus can retain its domain, measures, dimensions, comparison, and period while gaining a GL/month filter that changes the answer. Record `filters: []` for each corpus prompt and compare it after the change, except for the explicitly discarded selector plant filter on unnamed questions.
+   Disposition: cut C11 now pins ordinary filters: before and after, each corpus answer may carry only a month equality filter on the asked month (the live model emits it on some runs, observed 2026-10-04) plus, after, the plant filter; any other filter fails the probe.
+
+## Round 21
+
+61. Contradiction: C11 permits a month equality filter although the selector contract requires every period to travel only in `timeWindow`.
+   Treating an observed forbidden filter as acceptable bakes a model regression into the baseline and can alter a query; require it to be absent or normalised away in the live probe.
+   Disposition: cut the probe normalises away only a month equality filter on exactly the selection's timeWindow month before comparing, and then requires ordinary filters `[]` (plus the plant filter after), so no other filter can pass.
+
+## Round 22
+
+62. Gap: C11 normalises away a raw month filter in the probe but does not require it to be removed or refused before an Ask selection executes.
+   The selector explicitly forbids period values in filters, and such a filter can make a domain unanswerable. Pin the runtime handling and prove the raw live-model regression cannot reach the query.
+   Disposition: cut the server now removes a month equality filter on exactly a single-month timeWindow's month before any Ask selection executes; C11a proves the query runs without it and returns the same rows.
+
+## Round 23
+
+63. Unproven: C11a: non-redundant month-filter cases have no leaf proving the cleanup leaves them to existing handling.
+   Pin and test mismatched, range/unwindowed, and multiple-filter selections so only the exact scalar `month`-equals-single-calendar-month case is removed; an over-broad cleanup could silently widen an edited or saved query.
+   Disposition: cut the removal is pinned to one exact shape (month, eq, a single value equal to the one calendar month of the window); C11a adds leaves proving the mismatched, in, neq, multi-month, unwindowed and multiple-filter cases reach the query unchanged.
+
+## Round 24
+
+64. Gap: a new save or pin submitted without a plant filter has no defined outcome.
+   Pickers apply to Ask runs, while save/pin APIs cannot return one; accepting the request would violate the rule that saved items keep a canonical set. Define its typed rejection or singleton handling and add a save/pin leaf.
+   Disposition: cut a new save or pin with no plant filter is rejected as `plant-filter-invalid` (HTTP 400), since every successful answer carries one; C2 proves it for one-plant and several-plant readers.
+
+## Round 25
 
 No findings.
