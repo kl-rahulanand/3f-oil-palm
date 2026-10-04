@@ -332,9 +332,16 @@ export function mapBedrockToolUseToSelectionResult(
     };
   }
 
-  const filters = input.filters === undefined ? [] : parseFilters(input.filters);
+  let filters = input.filters === undefined ? [] : parseFilters(input.filters);
   if (!filters) {
     return { kind: "unsupported", reason: LLM_MESSAGES.selectionFiltersMalformed };
+  }
+  let timeWindow = input.timeWindow === undefined ? undefined : parseTimeWindow(input.timeWindow);
+  if (input.timeWindow !== undefined && !timeWindow) {
+    return { kind: "unsupported", reason: LLM_MESSAGES.selectionTimeWindowMalformed };
+  }
+  if (!allowedDimensionIds.has("month")) {
+    ({ filters, timeWindow } = reconcileMonthFilters(filters, timeWindow));
   }
   const invalidFilter = filters.find((filter) => !allowedDimensionIds.has(filter.dimensionId));
   if (invalidFilter) {
@@ -367,11 +374,6 @@ export function mapBedrockToolUseToSelectionResult(
       kind: "unsupported",
       reason: LLM_MESSAGES.selectionMeasureFilterOperandNotAllowed(invalidMeasureOperand.compareTo.measureId),
     };
-  }
-
-  const timeWindow = input.timeWindow === undefined ? undefined : parseTimeWindow(input.timeWindow);
-  if (input.timeWindow !== undefined && !timeWindow) {
-    return { kind: "unsupported", reason: LLM_MESSAGES.selectionTimeWindowMalformed };
   }
 
   const limit = input.limit === undefined ? 100 : parseLimit(input.limit);
@@ -523,6 +525,35 @@ function parseFilters(value: unknown): SelectionFilter[] | undefined {
     filters.push({ dimensionId: filter.dimensionId, op: filter.op, value: parsedValue });
   }
   return filters;
+}
+
+function reconcileMonthFilters(
+  filters: SelectionFilter[],
+  timeWindow: Selection["timeWindow"],
+): { filters: SelectionFilter[]; timeWindow: Selection["timeWindow"] } {
+  let reconciledWindow = timeWindow;
+  const reconciledFilters = filters.filter((filter) => {
+    const filterWindow = monthWindow(filter);
+    if (!filterWindow) return true;
+    reconciledWindow ??= filterWindow;
+    return reconciledWindow.from !== filterWindow.from || reconciledWindow.to !== filterWindow.to;
+  });
+  return { filters: reconciledFilters, timeWindow: reconciledWindow };
+}
+
+function monthWindow(filter: SelectionFilter): Selection["timeWindow"] | undefined {
+  if (
+    filter.dimensionId !== "month" ||
+    filter.op !== "eq" ||
+    typeof filter.value !== "string" ||
+    !/^\d{4}-(?:0[1-9]|1[0-2])-01$/.test(filter.value)
+  ) {
+    return undefined;
+  }
+  const end = new Date(`${filter.value}T00:00:00.000Z`);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  end.setUTCDate(0);
+  return { grain: "day", from: filter.value, to: end.toISOString().slice(0, 10) };
 }
 
 function parseMeasureFilters(
