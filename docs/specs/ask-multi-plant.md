@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T06:55:16+00:00
+saved: 2026-10-04T06:57:34+00:00
 ---
 
 # Every Ask answer works across plants
