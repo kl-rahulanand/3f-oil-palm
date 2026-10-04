@@ -5,27 +5,20 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "daff289858e17771b58a96ce2574af196050e51e60933bd892afb1ea5b735b4e",
-    "commit": "f84333ba52f30758391200ee53e2411fef7a2e46",
+    "changed": "314beb775160febaff163d992c6ce9b8d3e0d9b501b97764ba0b3496e74df091",
+    "commit": "afb8080b744e2997e615b456cde876383d033a92",
     "dismissals": [],
     "findings": [
       {
-        "body": "A valid monthly window can use `{ grain: \"month\", from: \"2026-07-01\", to: \"2026-07-01\" }`; `ask-period.test.ts` explicitly accepts both that form and the expanded July 1\u201331 form. Here, reconciliation compares the raw end dates, so a matching `month = 2026-07-01` filter is retained because its generated window ends July 31. The subsequent dimension check rejects that retained filter because `mis-statement` has no `month` dimension. Thus a normal live-model representation of the same July period still returns unsupported before reaching the plant picker. Canonicalize equivalent month-grain windows before comparing them.",
-        "file": "backend/src/llm/bedrock.provider.ts",
-        "line": 539,
-        "priority": "P1",
-        "title": "Not done: a statement-domain single-month filter must match the selection period and reliably reach the plant picker"
-      },
-      {
-        "body": "The new regression tests stop at `BedrockLlmProvider.select()` and only assert the resulting selection. They never pass the recorded Bedrock response through the Ask entry point or assert a `plantChoice` for the exact question. Existing ChatService coverage supplies an already-valid selection from a fake LLM, so it would continue passing if this mapper rejected the response. Consequently the user-facing Done-when behavior remains proven only by unit tests rather than by the required end-to-end entry-point test.",
+        "body": "The added regression tests invoke only `BedrockLlmProvider.select()` and assert the mapped selection. None passes the recorded Bedrock response through `ChatService.ask()` for the exact question or asserts that a multi-plant user receives `plantChoice`. Existing Ask coverage constructs an already-valid selection through a fake LLM, so it would still pass if the provider-to-Ask integration rejected or lost this response. The required user-facing behavior therefore remains proven only at the provider unit boundary, not at the real Ask entry point.",
         "file": "backend/src/llm/bedrock.provider.test.ts",
-        "line": 173,
+        "line": 183,
         "priority": "P1",
         "title": "Not done: the exact July statement question reaches the plant picker through the real Ask entry point"
       }
     ],
     "status": "blocked",
-    "tree": "f53aeca7331ce4d96ab818db5fdbeb52126b0429a5f3332501335ca16e1a3e02"
+    "tree": "2a55ab587efc589991c4613b6167ef6fc7f2aa99046ddcaf23bbf6454078bf59"
   },
   "status": "fixing",
   "steps": [
@@ -35,6 +28,10 @@
     },
     {
       "at": "2026-10-04T18:25:36+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T18:33:26+00:00",
       "step": "review"
     }
   ],
