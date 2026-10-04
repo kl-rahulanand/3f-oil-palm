@@ -1,6 +1,13 @@
 "use client";
 
-import type { AskPriorTurn, AskResponse, AskStatementGrounding, ChatStreamEvent, Selection } from "@3f/contract";
+import type {
+  AskPriorTurn,
+  AskRequest,
+  AskResponse,
+  AskStatementGrounding,
+  ChatStreamEvent,
+  Selection,
+} from "@3f/contract";
 import {
   createContext,
   createElement,
@@ -33,12 +40,13 @@ interface AskContextValue {
   ask: (question: string) => Promise<void>;
   askGrounded: (question: string, grounding: AskStatementGrounding) => Promise<void>;
   syncStatementIdentity: (identity: string | undefined) => void;
-  rerun: (question: string, selection: Selection) => Promise<boolean>;
+  rerun: (question: string, selection: Selection, origin?: AskRequest["origin"]) => Promise<boolean>;
   continueTurn: (
     turnId: string,
     question: string,
     selection: Selection,
     failurePolicy: ContinueTurnFailurePolicy,
+    requestOrigin?: AskRequest["origin"],
   ) => Promise<boolean>;
 }
 
@@ -90,7 +98,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
   }
 
   async function run(
-    request: Pick<Parameters<typeof api.ask>[0], "question" | "selection" | "statementGrounding">,
+    request: Pick<Parameters<typeof api.ask>[0], "question" | "selection" | "statementGrounding" | "origin">,
     origin: AskTurn["origin"],
     reopen = false,
   ): Promise<boolean> {
@@ -115,7 +123,14 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     pendingOriginRef.current = origin;
     try {
       const response = request.selection
-        ? await api.ask({ question: trimmed, selection: request.selection }, { signal: controller.signal })
+        ? await api.ask(
+            {
+              question: trimmed,
+              selection: request.selection,
+              ...(request.origin ? { origin: request.origin } : {}),
+            },
+            { signal: controller.signal },
+          )
         : await api.ask(
             {
               question: trimmed,
@@ -162,6 +177,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     question: string,
     selection: Selection,
     failurePolicy: ContinueTurnFailurePolicy,
+    requestOrigin?: AskRequest["origin"],
   ): Promise<boolean> {
     if (!question.trim() || isPending || !turns.some((turn) => turn.id === turnId)) return false;
 
@@ -174,7 +190,10 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
     const requestId = ++requestIdRef.current;
     pendingOriginRef.current = "ungrounded";
     try {
-      const response = await api.ask({ question, selection }, { signal: controller.signal });
+      const response = await api.ask(
+        { question, selection, ...(requestOrigin ? { origin: requestOrigin } : {}) },
+        { signal: controller.signal },
+      );
       if (requestId !== requestIdRef.current) return true;
       setTurns((current) =>
         current.map((turn) =>
@@ -244,7 +263,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
         askGrounded: async (question, statementGrounding) => {
           await run({ question, statementGrounding }, "grounded");
         },
-        rerun: (question, selection) => {
+        rerun: (question, selection, requestOrigin) => {
           if (!question.trim() || isPending) return Promise.resolve(false);
           const match = [...turns]
             .reverse()
@@ -254,9 +273,9 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
                 turn.response.selection &&
                 selectionsEqual(turn.response.selection, selection),
             );
-          if (!match) return run({ question, selection }, "ungrounded", true);
+          if (!match) return run({ question, selection, origin: requestOrigin }, "ungrounded", true);
           setScrollTargetId(match.id);
-          return continueTurn(match.id, match.question, selection, "clear-on-refusal");
+          return continueTurn(match.id, match.question, selection, "clear-on-refusal", requestOrigin);
         },
         continueTurn,
       },

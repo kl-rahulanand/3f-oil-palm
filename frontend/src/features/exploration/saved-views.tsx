@@ -66,7 +66,7 @@ export function SavedViews() {
                               return;
                             }
                             router.push("/ask");
-                            void rerun(label.title, item.selection);
+                            void rerun(label.title, item.selection, "saved-view");
                           }}
                         >
                           Open

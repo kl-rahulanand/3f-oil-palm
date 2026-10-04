@@ -11,10 +11,12 @@ import type {
 } from "@3f/contract";
 import { DRIZZLE_DB } from "../config";
 import { AuditService } from "../core/audit.service";
+import { plantChoiceOptions, PLANT_REFUSAL_MESSAGES, validatePlantFilter } from "../chat/plant-set";
 import type { AppDb } from "../db/pool";
 import { dashboardPins } from "../db/schema";
 import { computeDefinitionVersion } from "../semantic/definitionVersion";
 import { canonicalizeSelection, operandMeasureIds } from "../semantic/measure-filter.helper";
+import { PlantFilterInvalidException } from "../semantic/plant-filter-invalid.exception";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { validateSelectionForUser } from "../semantic/selectionValidation";
 import { selectionSchema } from "../saved/saved.schemas";
@@ -35,9 +37,10 @@ export class PinsService {
       action: "create",
       submitted: req,
     });
-    const domain = this.semantic.domain(req.selection.domain);
-    if (!domain) validateSelectionForUser(this.semantic, user, req.selection);
-    const selection = canonicalizeSelection(domain!, req.selection);
+    const withPlants = canonicalPlantSelection(user, req.selection);
+    const domain = this.semantic.domain(withPlants.domain);
+    if (!domain) validateSelectionForUser(this.semantic, user, withPlants);
+    const selection = canonicalizeSelection(domain!, withPlants);
     const selectedMeasures = validateSelectionForUser(this.semantic, user, selection);
     const status = selectionStatus(this.semantic, user, selection);
     await this.auditRefusal(user, sessionId, undefined, status, "create");
@@ -282,12 +285,14 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
       message: "This selection uses a definition that is no longer registered.",
     };
   }
+  const revokedPlants = revokedPlantStatus(user, selection);
+  if (revokedPlants) return revokedPlants;
   if (
     (domain.composed && !user.permissions.actions.includes("report")) ||
     (domain.scopeColumn && !user.scope.some((scope) => scope.attribute === domain.scopeColumn)) ||
     !user.permissions.domains.includes(selection.domain) ||
     measureIds.some((id) => !user.permissions.measureIds.includes(id)) ||
-    [...dimensionIds].some((id) => !user.permissions.dimensionIds.includes(id))
+    [...dimensionIds].some((id) => id !== "plant" && !user.permissions.dimensionIds.includes(id))
   ) {
     return {
       runnable: false,
@@ -300,4 +305,35 @@ function selectionStatus(semantic: SemanticLayer, user: AuthUser, value: unknown
 
 function isSelection(value: unknown): value is Selection {
   return selectionSchema.safeParse(value).success;
+}
+
+function canonicalPlantSelection(user: AuthUser, selection: Selection): Selection {
+  const validation = validatePlantFilter({
+    filters: selection.filters,
+    grantedPlants: user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value),
+  });
+  if (!validation.ok) {
+    if (validation.refusal.reason === "plant-not-granted") {
+      throw new PlantFilterInvalidException("plant-not-granted", validation.refusal.plants);
+    }
+    throw new PlantFilterInvalidException("plant-filter-invalid");
+  }
+  return {
+    ...selection,
+    filters: selection.filters.map((filter) => (filter.dimensionId === "plant" ? validation.filter : filter)),
+  };
+}
+
+function revokedPlantStatus(user: AuthUser, selection: Selection): ExplorationSelectionStatus | undefined {
+  const plantFilter = selection.filters.find(({ dimensionId }) => dimensionId === "plant");
+  if (!plantFilter || plantFilter.op !== "in" || !Array.isArray(plantFilter.value)) return undefined;
+  const grants = new Set(user.scope.filter(({ attribute }) => attribute === "plant").map(({ value }) => value));
+  const revoked = [...new Set(plantFilter.value)].filter((plant) => !grants.has(plant));
+  if (revoked.length === 0) return undefined;
+  const names = plantChoiceOptions(revoked).options.map(({ label }) => label);
+  return {
+    runnable: false,
+    reason: "plants_revoked",
+    message: PLANT_REFUSAL_MESSAGES["plants-revoked"](names),
+  };
 }

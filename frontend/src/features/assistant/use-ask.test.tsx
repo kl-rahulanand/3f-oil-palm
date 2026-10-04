@@ -291,6 +291,25 @@ test("a matched rerun sends the turn question not the report label", async () =>
   expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "What did July actually cost?", selection });
 });
 
+test("saved-view and pin reruns send their origin for unmatched and matched selections", async () => {
+  mocks.ask.mockResolvedValue(success);
+  render(
+    <AskProvider>
+      <OriginHarness />
+    </AskProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Open saved view" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Open pin" }));
+  await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
+
+  expect(mocks.ask.mock.calls.map(([request]) => request)).toEqual([
+    { question: "Saved report", selection, origin: "saved-view" },
+    { question: "Saved report", selection, origin: "pin" },
+  ]);
+});
+
 test("a reopen blocked by policy removes the numbers from the turn", async () => {
   mocks.ask.mockResolvedValueOnce(resultSuccess).mockResolvedValueOnce({
     responseClass: "blocked_by_policy" as AskResponse["responseClass"],
@@ -415,6 +434,20 @@ function ReopenButton() {
     <button type="button" onClick={() => void rerun("Actual · Budget", selection)}>
       Reopen saved report
     </button>
+  );
+}
+
+function OriginHarness() {
+  const { rerun } = useAsk();
+  return (
+    <>
+      <button type="button" onClick={() => void rerun("Saved report", selection, "saved-view")}>
+        Open saved view
+      </button>
+      <button type="button" onClick={() => void rerun("Pinned report", selection, "pin")}>
+        Open pin
+      </button>
+    </>
   );
 }
 

@@ -751,6 +751,25 @@ test("failed save and pin controls show actionable copy without raw API errors",
   expect(screen.queryByText("API request failed with status 500")).not.toBeInTheDocument();
 });
 
+test("save and pin controls show the server's plant refusal in plain words", async () => {
+  mocks.ask.mockResolvedValue(success);
+  mocks.saveQuery.mockRejectedValue({
+    userMessage: "This question's plant choice is not valid. Choose the plants again.",
+  });
+  renderAsk();
+  submit("Show the governed result");
+
+  await screen.findByRole("heading", { name: "Governed result" });
+  fireEvent.click(screen.getByRole("button", { name: "Save view" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "This question's plant choice is not valid. Choose the plants again.",
+  );
+
+  mocks.createPin.mockRejectedValue({ userMessage: "You do not have access to Agriculture - Nursery - CHIR." });
+  fireEvent.click(screen.getByRole("button", { name: "Pin report" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("You do not have access to Agriculture - Nursery - CHIR.");
+});
+
 test("suppressed values and signed pie data render only in the honest table fallback", async () => {
   mocks.ask.mockResolvedValueOnce({
     ...success,

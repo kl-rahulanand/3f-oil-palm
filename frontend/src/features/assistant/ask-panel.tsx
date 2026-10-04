@@ -350,11 +350,12 @@ function SuccessAnswer({
         });
         setNotice({ kind: "success", message: "Pinned report" });
       }
-    } catch {
+    } catch (caught) {
       setNotice({
         kind: "error",
         message:
-          kind === "save" ? "The view could not be saved. Try again." : "The report could not be pinned. Try again.",
+          apiUserMessage(caught) ??
+          (kind === "save" ? "The view could not be saved. Try again." : "The report could not be pinned. Try again."),
       });
     } finally {
       setSaving(undefined);
@@ -471,6 +472,11 @@ function SuccessAnswer({
       )}
     </article>
   );
+}
+
+function apiUserMessage(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("userMessage" in error)) return undefined;
+  return typeof error.userMessage === "string" ? error.userMessage : undefined;
 }
 
 function ResultVisual({
