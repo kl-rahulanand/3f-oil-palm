@@ -3,7 +3,7 @@
   "branch": "fix/statement-questions-fail-when-the-live-m",
   "done_when": "a statement-domain selection whose month filter names one month becomes or matches the selection's period instead of being rejected as unsupported, so 'What was the Actual for each MIS statement line in July 2026?' reliably reaches the plant picker; leaves in bedrock.provider.test.ts",
   "kind": "fix",
-  "status": "started",
+  "status": "working",
   "steps": [
     {
       "at": "2026-10-04T18:14:09+00:00",
