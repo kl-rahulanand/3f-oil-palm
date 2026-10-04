@@ -1,10 +1,8 @@
 ---
 slug: ask-multi-plant
 title: Every Ask answer works across plants
-status: confirmed
-saved: 2026-10-04T07:33:07+00:00
-confirmed_by: "Rahul Anand"
-confirmed_hash: def07537899cbd614041a0bab76872f64dfead589e9416b04e3f30ddf709abdd
+status: draft
+saved: 2026-10-04T08:33:13+00:00
 ---
 
 # Every Ask answer works across plants
@@ -80,7 +78,10 @@ decision 0033.
 - A reader who holds no plant gets no picker. Any data question is refused as `no-plants-granted` with
   "You do not have access to any plant.", audited as a refusal, with no provider call and no read.
 - A question that names no plant, from a reader holding more than one plant, is answered with a typed
-  plant picker instead of data. No warehouse read runs before a choice. A reader holding exactly one
+  plant picker instead of data. No figure is read before a choice: no data query, totals, names, drill
+  summary or batch lookup. The selector's existing cached lookup of distinct GL-code and month values,
+  which reads no figure, may run first, as it does before today's period choice; plant values never come
+  from it (owner decision, 2026-10-04). A reader holding exactly one
   plant gets that plant without a picker. The picker is `AskResponse.plantChoice`:
   `{ prompt, question, selection, options: [{ value: <canonical code>, label: <display name> }],
   allPlants: { label: "All plants", value: [<every granted canonical code, sorted>] } }`.
@@ -287,7 +288,8 @@ decision 0033.
 
 - **C1 Picker.**
   - A reader holding several plants who names no plant gets `plantChoice` listing their plants plus "All
-    plants", and a leaf proves no warehouse read ran before the choice.
+    plants", and a leaf proves no figure was read before the choice (no data query, totals, names, drill
+    summary or batch lookup; distinct values only for the non-plant vocabulary columns).
   - A one-plant reader gets the answer directly.
   - An edited selection, and a saved view or pin made before this change, with no plant filter gets the
     picker (several plants) or a singleton filter (one plant), proven by leaves.
