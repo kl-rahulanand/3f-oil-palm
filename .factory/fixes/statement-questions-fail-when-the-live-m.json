@@ -3,11 +3,39 @@
   "branch": "fix/statement-questions-fail-when-the-live-m",
   "done_when": "a statement-domain selection whose month filter names one month becomes or matches the selection's period instead of being rejected as unsupported, so 'What was the Actual for each MIS statement line in July 2026?' reliably reaches the plant picker; leaves in bedrock.provider.test.ts",
   "kind": "fix",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "daff289858e17771b58a96ce2574af196050e51e60933bd892afb1ea5b735b4e",
+    "commit": "f84333ba52f30758391200ee53e2411fef7a2e46",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "A valid monthly window can use `{ grain: \"month\", from: \"2026-07-01\", to: \"2026-07-01\" }`; `ask-period.test.ts` explicitly accepts both that form and the expanded July 1\u201331 form. Here, reconciliation compares the raw end dates, so a matching `month = 2026-07-01` filter is retained because its generated window ends July 31. The subsequent dimension check rejects that retained filter because `mis-statement` has no `month` dimension. Thus a normal live-model representation of the same July period still returns unsupported before reaching the plant picker. Canonicalize equivalent month-grain windows before comparing them.",
+        "file": "backend/src/llm/bedrock.provider.ts",
+        "line": 539,
+        "priority": "P1",
+        "title": "Not done: a statement-domain single-month filter must match the selection period and reliably reach the plant picker"
+      },
+      {
+        "body": "The new regression tests stop at `BedrockLlmProvider.select()` and only assert the resulting selection. They never pass the recorded Bedrock response through the Ask entry point or assert a `plantChoice` for the exact question. Existing ChatService coverage supplies an already-valid selection from a fake LLM, so it would continue passing if this mapper rejected the response. Consequently the user-facing Done-when behavior remains proven only by unit tests rather than by the required end-to-end entry-point test.",
+        "file": "backend/src/llm/bedrock.provider.test.ts",
+        "line": 173,
+        "priority": "P1",
+        "title": "Not done: the exact July statement question reaches the plant picker through the real Ask entry point"
+      }
+    ],
+    "status": "blocked",
+    "tree": "f53aeca7331ce4d96ab818db5fdbeb52126b0429a5f3332501335ca16e1a3e02"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T18:14:09+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T18:25:36+00:00",
+      "step": "review"
     }
   ],
   "why": "Statement questions fail when the live model adds a month filter to a domain without a month field"
