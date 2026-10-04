@@ -3,11 +3,32 @@
   "branch": "fix/spec-every-ask-answer-works-across-plant",
   "done_when": "docs/specs/ask-multi-plant.md is confirmed by the owner and listed on the roadmap",
   "kind": "fix",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "0461838c95ede50bbd7b4b214627b989075a3ead39aefff58a59afe708a78d34",
+    "commit": "2cb24e7a24d9565dedb31a727aba4ed3dfa982e7",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The spec permits `plant`, `gl_code`, and `month` in any combination, but this shared-key rule only defines keys based on `gl_code`/`leaf_key`, optionally combined with plant. A plant-only row has no such base cell, and rows grouped by month can repeat the same GL/plant key across months. Because `budgetStates` and client lookups are required to use this key, the core \u201cActual by plant\u201d result can lack a defined budget-state key, while multi-month rows can receive another row's state and accessible label. Define keys for every allowed result grain, including plant alone and all month-bearing shapes.",
+        "file": "docs/specs/ask-multi-plant.md",
+        "line": 110,
+        "priority": "P1",
+        "title": "Define unique row keys for plant-only and month-grouped results"
+      }
+    ],
+    "status": "blocked",
+    "tree": "7e60faa0c83b55f467aa55ca3ac0109381228aca58d351dcf010f4ff138b51e4"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T06:32:03+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T07:21:26+00:00",
+      "step": "review"
     }
   ],
   "why": "spec: every Ask answer works across plants"
