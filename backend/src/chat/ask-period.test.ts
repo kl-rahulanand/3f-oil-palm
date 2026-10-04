@@ -30,7 +30,10 @@ test("the period choice carries the base selection the original question and a c
     STATEMENT_QUESTION,
   );
 
-  assert.deepEqual(response.periodChoice?.selection, selection);
+  assert.deepEqual(response.periodChoice?.selection, {
+    ...selection,
+    filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
+  });
   assert.equal(response.periodChoice?.question, STATEMENT_QUESTION);
   assert.deepEqual(response.periodChoice?.options[0], {
     value: "2026-07-01",
@@ -75,8 +78,8 @@ test("an unoffered same day period a partial month and a multi month range each 
   }
 });
 
-test("each of department function and plant absent or ambiguous blocks by policy naming the first offender", async () => {
-  for (const attribute of ["department", "function", "plant"] as const) {
+test("department and function scope gaps still block while plant grants use the Ask plant step", async () => {
+  for (const attribute of ["department", "function"] as const) {
     for (const ambiguous of [false, true]) {
       const user = statementUser();
       user.scope = user.scope.filter((scope) => scope.attribute !== attribute);
@@ -96,10 +99,20 @@ test("each of department function and plant absent or ambiguous blocks by policy
     }
   }
 
-  const first = statementUser();
-  first.scope = [];
-  const response = await makeFixture(statementSelection(), []).service.ask(first, "session", STATEMENT_QUESTION);
-  assert.match(response.message ?? "", /department/);
+  const noPlant = statementUser();
+  noPlant.scope = noPlant.scope.filter(({ attribute }) => attribute !== "plant");
+  const refused = await makeFixture(statementSelection(), []).service.ask(noPlant, "session", STATEMENT_QUESTION);
+  assert.equal(refused.refusal?.reason, "no-plants-granted");
+
+  const severalPlants = statementUser();
+  severalPlants.scope.push({ attribute: "plant", value: "CHIR" });
+  const choice = await makeFixture(statementSelection(), ["2026-07-01"]).service.ask(
+    severalPlants,
+    "session",
+    STATEMENT_QUESTION,
+  );
+  assert.equal(choice.plantChoice?.prompt, "Which plants should this answer cover?");
+  assert.equal(choice.periodChoice, undefined);
 });
 
 test("no mapping and no periods loaded keep distinct outcomes and neither reads as a missing period", async () => {

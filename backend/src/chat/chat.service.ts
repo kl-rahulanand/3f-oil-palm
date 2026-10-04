@@ -5,6 +5,7 @@ import {
   type AskPeriodControl,
   type AskPeriodOption,
   type AskPriorTurn,
+  type AskRequest,
   type AskReportGrounding,
   type AskStatementGrounding,
   type AskResponse,
@@ -53,6 +54,13 @@ import { StatementExplanationService } from "./statement-explanation.service";
 import { AskDrillContextService } from "./ask-drill-context";
 import { issueAskDrill, type AskDrillAnswerShape } from "./ask-drill-issuer";
 import {
+  matchQuestionPlants,
+  plantChoiceOptions,
+  PLANT_DIMENSION_ID,
+  PLANT_REFUSAL_MESSAGES,
+  validatePlantFilter,
+} from "./plant-set";
+import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
   SelectionExecutor,
@@ -96,6 +104,7 @@ export class ChatService {
     onEvent?: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
     statementGrounding?: AskStatementGrounding,
+    origin?: AskRequest["origin"],
   ): Promise<AskResponse> {
     const started = Date.now();
     const cfg = loadConfig();
@@ -136,12 +145,64 @@ export class ChatService {
         message: MEASURE_FILTER_REFUSAL_MESSAGES[error.reason],
       });
     };
+    const refusePlant = (refusal: NonNullable<AskResponse["refusal"]>): AskResponse => {
+      this.logger.log("debug", "Ask turn refused", {
+        module: "ChatService",
+        accountId: user.id,
+        context: { reason: refusal.reason },
+      });
+      return done({
+        responseClass: ResponseClass.BlockedByPolicy,
+        message: PLANT_REFUSAL_MESSAGES[refusal.reason](refusal.plants),
+        refusal,
+      });
+    };
 
     try {
       await this.audit.writeRequestEvent({ userId: user.id, sessionId, question });
     } catch {
       return done({ responseClass: ResponseClass.BackendError, message: CHAT_MESSAGES.auditNotRecorded });
     }
+    const grantedPlants = user.scope
+      .filter(({ attribute }) => attribute === PLANT_DIMENSION_ID)
+      .map(({ value }) => value);
+    if (grantedPlants.length === 0) return refusePlant({ reason: "no-plants-granted", plants: [] });
+
+    const groundedReport = reportGrounding
+      ? this.reports.resolveAuthorizedSelection(user, reportGrounding.reportId, reportGrounding.timeWindow)
+      : undefined;
+    const usesEditedSelection = Boolean(editedSelection && !groundedReport);
+    const groundingPriorTurn = groundedReport
+      ? {
+          question: groundedReport.report.title,
+          selection: cloneSelection(groundedReport.selection),
+        }
+      : undefined;
+
+    let submittedPlantRefusal: NonNullable<AskResponse["refusal"]> | undefined;
+    for (const submitted of [
+      ...(usesEditedSelection && editedSelection ? [editedSelection] : []),
+      ...(clientPriorTurns ?? []).map(({ selection }) => selection),
+      ...(groundingPriorTurn ? [groundingPriorTurn.selection] : []),
+    ]) {
+      if (!hasPlantFilter(submitted)) continue;
+      const validation = validatePlantFilter({ filters: submitted.filters, grantedPlants, origin });
+      if (validation.ok) continue;
+      if (validation.refusal.reason === "plant-filter-invalid") return refusePlant(validation.refusal);
+      submittedPlantRefusal ??= validation.refusal;
+    }
+    if (submittedPlantRefusal) return refusePlant(submittedPlantRefusal);
+
+    const namedPlants = usesEditedSelection ? [] : matchQuestionPlants(question);
+    const grants = new Set(grantedPlants);
+    const ungrantedNamedPlants = namedPlants.filter(({ value }) => !grants.has(value));
+    if (ungrantedNamedPlants.length > 0) {
+      return refusePlant({
+        reason: "plant-not-granted",
+        plants: ungrantedNamedPlants.map(({ label }) => label),
+      });
+    }
+
     if (statementGrounding) {
       const explanation = await this.statementExplanation.explain(user, sessionId, question, statementGrounding);
       if (explanation.kind === "causal") {
@@ -222,25 +283,19 @@ export class ChatService {
       }
     }
 
-    const groundedReport = reportGrounding
-      ? this.reports.resolveAuthorizedSelection(user, reportGrounding.reportId, reportGrounding.timeWindow)
-      : undefined;
-    const usesEditedSelection = Boolean(editedSelection && !groundedReport);
-    const groundingPriorTurn = groundedReport
-      ? {
-          question: groundedReport.report.title,
-          selection: cloneSelection(groundedReport.selection),
-        }
-      : undefined;
-
     let priorTurns: LlmPriorTurn[];
     try {
-      priorTurns = trimPriorTurnsToTokenBudget(
-        [...(clientPriorTurns ?? []), ...(groundingPriorTurn ? [groundingPriorTurn] : [])].map((turn) => ({
-          ...turn,
-          selection: this.canonicalizeKnownSelection(turn.selection),
-        })),
-      );
+      const canonicalPriorTurns: LlmPriorTurn[] = [];
+      for (const turn of [...(clientPriorTurns ?? []), ...(groundingPriorTurn ? [groundingPriorTurn] : [])]) {
+        let priorSelection = this.canonicalizeKnownSelection(turn.selection);
+        if (hasPlantFilter(priorSelection)) {
+          const validation = validatePlantFilter({ filters: priorSelection.filters, grantedPlants, origin });
+          if (!validation.ok) return refusePlant(validation.refusal);
+          priorSelection = replacePlantFilter(priorSelection, validation.filter);
+        }
+        canonicalPriorTurns.push({ ...turn, selection: priorSelection });
+      }
+      priorTurns = trimPriorTurnsToTokenBudget(canonicalPriorTurns);
     } catch (error) {
       if (error instanceof MeasureFilterInvalidException) return refuseMeasureFilter(error);
       throw error;
@@ -268,7 +323,11 @@ export class ChatService {
           domain.measures.filter((measure) => measure.format === "money").map((measure) => measure.id),
         ]),
       );
-      const dimensionValues = await this.dimensionValuesForAllowedDomains(llmAllowedDomains, cfg.dimensionEnumMax);
+      const dimensionValues = await this.dimensionValuesForAllowedDomains(
+        llmAllowedDomains,
+        cfg.dimensionEnumMax,
+        grantedPlants,
+      );
       signal?.throwIfAborted();
       const sel = await this.llm.select(
         {
@@ -370,6 +429,44 @@ export class ChatService {
         });
     }
 
+    if (usesEditedSelection) {
+      if (hasPlantFilter(selection)) {
+        const validation = validatePlantFilter({ filters: selection.filters, grantedPlants, origin });
+        if (!validation.ok) return refusePlant(validation.refusal);
+        selection = replacePlantFilter(selection, validation.filter);
+      }
+    } else {
+      const selectorPlantFilters = selection.filters.filter(({ dimensionId }) => dimensionId === PLANT_DIMENSION_ID);
+      selection = withoutPlantFilter(selection);
+      if (namedPlants.length > 0) {
+        const authoritativeFilter = {
+          dimensionId: PLANT_DIMENSION_ID,
+          op: "in" as const,
+          value: namedPlants.map(({ value }) => value),
+        };
+        if (JSON.stringify(selectorPlantFilters) !== JSON.stringify([authoritativeFilter])) {
+          this.logger.log("debug", "Ask selector plant filter replaced", {
+            module: "ChatService",
+            accountId: user.id,
+            context: { selectorPlantFilters, authoritativePlants: authoritativeFilter.value },
+          });
+        }
+        selection = replacePlantFilter(selection, authoritativeFilter);
+      } else if (selectorPlantFilters.length > 0) {
+        this.logger.log("debug", "Ask selector plant filter discarded", {
+          module: "ChatService",
+          accountId: user.id,
+          context: { selectorPlantFilters },
+        });
+      }
+    }
+
+    if (hasPlantFilter(selection)) {
+      const plantValidation = validatePlantFilter({ filters: selection.filters, grantedPlants, origin });
+      if (!plantValidation.ok) return refusePlant(plantValidation.refusal);
+      selection = replacePlantFilter(selection, plantValidation.filter);
+    }
+
     // Prompt topicality is best-effort; the enforceable boundary is that every emitted id
     // must belong to the registered semantic catalog and the caller's permissions.
     // 2. Validate the selection against the semantic layer AND the user's permissions.
@@ -386,7 +483,10 @@ export class ChatService {
           message: CHAT_MESSAGES.measureNotAvailable(m),
         });
     for (const d of selection.dimensionIds)
-      if (!this.semantic.dimension(selection.domain, d) || !user.permissions.dimensionIds.includes(d))
+      if (
+        !this.semantic.dimension(selection.domain, d) ||
+        (d !== PLANT_DIMENSION_ID && !user.permissions.dimensionIds.includes(d))
+      )
         return done({
           responseClass: ResponseClass.NotSupported,
           message: CHAT_MESSAGES.dimensionNotAvailable(d),
@@ -451,6 +551,25 @@ export class ChatService {
         responseClass: ResponseClass.ClarificationNeeded,
         clarify: timeWindowClarify,
       });
+
+    if (!hasPlantFilter(selection)) {
+      if (grantedPlants.length > 1) {
+        return done({
+          responseClass: ResponseClass.ClarificationNeeded,
+          plantChoice: {
+            prompt: CHAT_MESSAGES.plantPrompt,
+            question,
+            selection: withoutPlantFilter(selection),
+            ...plantChoiceOptions(grantedPlants),
+          },
+        });
+      }
+      selection = replacePlantFilter(selection, {
+        dimensionId: PLANT_DIMENSION_ID,
+        op: "in",
+        value: grantedPlants,
+      });
+    }
 
     let statementScope: MasterResolvedSelection | undefined;
     let answerPeriodOptions: AskPeriodOption[] | undefined;
@@ -598,7 +717,7 @@ export class ChatService {
       .filter((dimension) => isTimeDimension(domain, dimension.id, selection.measureIds))
       .map((dimension) => dimension.id);
     const chart = chooseChart(result, { timeKeys, hint: question });
-    const availableFields = await this.availableFieldsForAnswer(domain, user.permissions, cfg.dimensionEnumMax);
+    const availableFields = await this.availableFieldsForAnswer(domain, user, cfg.dimensionEnumMax);
     const answerMetadata = {
       chartType: chart.chartType,
       availableChartTypes: chart.availableChartTypes,
@@ -678,7 +797,8 @@ export class ChatService {
     );
     const actualPins = completedActualPins.pins;
     const predicateRange = signedRange ?? pinnedRange(activeBatchIds);
-    const plants = shape.kind === "statement" ? (statementScope ? [statementScope.plant] : []) : ["DUB"];
+    const plants =
+      shape.kind === "statement" ? (statementScope ? [statementScope.plant] : []) : selectedPlantCodes(selection);
     const predicates =
       predicateRange && plants.length
         ? rowKeys.map((key) => ({
@@ -774,10 +894,15 @@ export class ChatService {
   private async dimensionValuesForAllowedDomains(
     allowedDomains: DomainSpec[],
     maxValues: number,
+    grantedPlants: string[],
   ): Promise<Record<string, string[]> | undefined> {
     const valuesByDimension: Record<string, string[]> = {};
     for (const domain of allowedDomains) {
       for (const dimension of domain.dimensions) {
+        if (dimension.id === PLANT_DIMENSION_ID) {
+          valuesByDimension[dimension.id] = plantVocabulary(grantedPlants);
+          continue;
+        }
         const values = await this.dimensionValues.values(domain.goldObject, dimension.column);
         if (values.length > 0 && values.length <= maxValues) {
           valuesByDimension[dimension.id] = values;
@@ -789,16 +914,21 @@ export class ChatService {
 
   private async availableFieldsForAnswer(
     domain: DomainSpec,
-    permissions: Permissions,
+    user: AuthUser,
     maxValues: number,
   ): Promise<AvailableFields> {
-    const availableFields = availableFieldsForDomain(domain, permissions);
+    const availableFields = availableFieldsForDomain(domain, user.permissions);
     const dimensions: AvailableFields["dimensions"] = [];
 
     for (const field of availableFields.dimensions) {
       const dimension = domain.dimensions.find((candidate) => candidate.id === field.id);
       if (!dimension) {
         dimensions.push(field);
+        continue;
+      }
+
+      if (dimension.id === PLANT_DIMENSION_ID) {
+        dimensions.push({ ...field, values: plantVocabulary(grantedPlantCodes(user)) });
         continue;
       }
 
@@ -828,6 +958,10 @@ export class ChatService {
 
     const filters = [];
     for (const filter of selection.filters) {
+      if (filter.dimensionId === PLANT_DIMENSION_ID) {
+        filters.push(filter);
+        continue;
+      }
       const dimension = domain.dimensions.find((candidate) => candidate.id === filter.dimensionId);
       if (!dimension) {
         filters.push(filter);
@@ -1388,12 +1522,41 @@ export interface AvailableFields {
   measures: { id: string; label: string }[];
 }
 
+function grantedPlantCodes(user: AuthUser): string[] {
+  return user.scope.filter(({ attribute }) => attribute === PLANT_DIMENSION_ID).map(({ value }) => value);
+}
+
+function plantVocabulary(grantedPlants: string[]): string[] {
+  return plantChoiceOptions(grantedPlants).options.flatMap(({ value, label }) => [value, label]);
+}
+
+function hasPlantFilter(selection: Selection): boolean {
+  return selection.filters.some(({ dimensionId }) => dimensionId === PLANT_DIMENSION_ID);
+}
+
+function selectedPlantCodes(selection: Selection): string[] {
+  const filter = selection.filters.find(({ dimensionId }) => dimensionId === PLANT_DIMENSION_ID);
+  return filter?.op === "in" && Array.isArray(filter.value) ? filter.value : [];
+}
+
+function withoutPlantFilter(selection: Selection): Selection {
+  return {
+    ...selection,
+    filters: selection.filters.filter(({ dimensionId }) => dimensionId !== PLANT_DIMENSION_ID),
+  };
+}
+
+function replacePlantFilter(selection: Selection, plantFilter: Selection["filters"][number]): Selection {
+  const base = withoutPlantFilter(selection);
+  return { ...base, filters: [...base.filters, plantFilter] };
+}
+
 export function availableFieldsForDomain(domain: DomainSpec, permissions: Permissions): AvailableFields {
   const blockedColumns = new Set(domain.blockedColumns ?? []);
 
   return {
     dimensions: domain.dimensions
-      .filter((dimension) => permissions.dimensionIds.includes(dimension.id))
+      .filter((dimension) => dimension.id === PLANT_DIMENSION_ID || permissions.dimensionIds.includes(dimension.id))
       .filter((dimension) => !blockedColumns.has(dimension.column))
       .map((dimension) => ({ id: dimension.id, label: dimension.label })),
     measures: domain.measures

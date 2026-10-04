@@ -35,6 +35,29 @@ test("help finds a figure comparison in any domain with two permitted money meas
   );
 });
 
+test("help lists only granted canonical plant codes and display names without reading warehouse plant values", async () => {
+  const columns: string[] = [];
+  const service = new HelpService(new SemanticLayer(), {
+    async values(_object: string, column: string) {
+      columns.push(column);
+      return column === "plant" ? ["WAREHOUSE-ONLY"] : [];
+    },
+  } as never);
+  const user = financeUser();
+  user.scope.push({ attribute: "plant", value: "CHIR" });
+
+  const response = await service.build(user);
+
+  assert.deepEqual(
+    response.whatYouCanAsk.filterExamples.find(({ dimensionLabel }) => dimensionLabel === "Plant"),
+    {
+      dimensionLabel: "Plant",
+      values: ["CHIR", "Agriculture - Nursery - CHIR", "DUB", "Agri - Nursery - DUB"],
+    },
+  );
+  assert.equal(columns.includes("plant"), false);
+});
+
 function financeUser(): AuthUser {
   return {
     id: "user-1",

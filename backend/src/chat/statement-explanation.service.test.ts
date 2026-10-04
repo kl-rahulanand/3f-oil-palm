@@ -392,7 +392,7 @@ const grounding: AskStatementGrounding = {
   nodeMetadata: [],
   nodeAmounts: [{ nodeKey: "leaf", block: "selected", actualPaise: "10001" }],
 };
-const user = { id: "user", scope: [] } as unknown as AuthUser;
+const user = { id: "user", scope: [{ attribute: "plant", value: "DUB" }] } as unknown as AuthUser;
 
 function responseOf(decision: Awaited<ReturnType<StatementExplanationService["explain"]>>): StatementGroundingResponse {
   if (decision.kind !== "response") throw new Error(`expected response, received ${decision.kind}`);

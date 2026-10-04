@@ -30,10 +30,418 @@ import { GlNameRepository } from "../warehouse/gl-name.repository";
 import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
 import { AskDrillContextService } from "./ask-drill-context";
 import { SemanticLayer } from "../semantic/semanticLayer";
+import { SqlBuilder } from "../sql/sqlBuilder";
+import { SqlValidator } from "../sql/sqlValidator";
 import { ChatController } from "./chat.controller";
 import { ChatModule } from "./chat.module";
 import { askSchema } from "./chat.schemas";
 import { ChatService, lastMonthBudgetPin, trimPriorTurnsToTokenBudget } from "./chat.service";
+import { SelectionExecutor } from "./selectionExecutor";
+
+test("a several-plant reader chooses plants before any figure or period read", async () => {
+  const fixture = makeFixture({ selection: { ...statementSelection, filters: [] } });
+  const adapterCalls = { execute: 0, freshness: 0 };
+  let executorCalls = 0;
+  const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), {
+    async explain() {},
+    async execute() {
+      adapterCalls.execute += 1;
+      return RESULT;
+    },
+    async freshness() {
+      adapterCalls.freshness += 1;
+      return null;
+    },
+  } as never);
+  Reflect.set(fixture.service, "selectionExecutor", {
+    async run(...args: Parameters<SelectionExecutor["run"]>) {
+      executorCalls += 1;
+      return executor.run(...args);
+    },
+    async freshness() {
+      return executor.freshness(new SemanticLayer().domain("mis-statement")!);
+    },
+  });
+  const response = await fixture.service.ask(
+    userForPlants("mis-statement", ["DUB", "CHIR"], true),
+    "session",
+    "Show the MIS statement Actual",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.ClarificationNeeded);
+  assert.equal(response.periodChoice, undefined);
+  assert.deepEqual(response.plantChoice, {
+    prompt: "Which plants should this answer cover?",
+    question: "Show the MIS statement Actual",
+    selection: { ...statementSelection, filters: [], timeWindow: undefined },
+    options: [
+      { value: "CHIR", label: "Agriculture - Nursery - CHIR" },
+      { value: "DUB", label: "Agri - Nursery - DUB" },
+    ],
+    allPlants: { label: "All plants", value: ["CHIR", "DUB"] },
+  });
+  assert.equal(executorCalls, 0);
+  assert.deepEqual(adapterCalls, { execute: 0, freshness: 0 });
+  assert.equal(fixture.names.glCalls.length, 0);
+  assert.equal(fixture.names.statementCalls.length, 0);
+  assert.equal(fixture.transactions.calls.length, 0);
+  assert.equal(fixture.transactions.activePinCalls.length, 0);
+  assert.equal(fixture.resolver.optionsCalls, 0);
+  assert.equal(fixture.dimensions.plantCalls, 0);
+});
+
+test("a plant choice keeps the server-resolved period when the selector omits it", async () => {
+  const fixture = makeFixture({ selection: { ...financialSelection, timeWindow: undefined } });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  const question = "Actual by GL code for July 2026";
+
+  const choice = await fixture.service.ask(user, "session", question);
+
+  assert.deepEqual(choice.plantChoice?.selection.timeWindow, {
+    grain: "day",
+    from: "2026-07-01",
+    to: "2026-07-31",
+    column: "month",
+  });
+  assert.equal(fixture.executor.calls, 0);
+
+  const selected = choice.plantChoice?.selection;
+  assert.ok(selected);
+  const answer = await fixture.service.ask(
+    user,
+    "session",
+    question,
+    {
+      ...selected,
+      filters: [...selected.filters, { dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "plant-choice",
+  );
+
+  assert.equal(answer.responseClass, ResponseClass.Success);
+  assert.deepEqual(answer.selection?.timeWindow, {
+    grain: "day",
+    from: "2026-07-01",
+    to: "2026-07-31",
+    column: "month",
+  });
+});
+
+test("edited saved pinned and continuation selections without a plant filter use the same plant rule", async () => {
+  for (const origin of [undefined, "saved-view", "pin"] as const) {
+    const fixture = makeFixture({ selection: financialSelection });
+    const response = await fixture.service.ask(
+      userForPlants("governed-financial", ["DUB", "CHIR"]),
+      "session",
+      "Show selected Actual",
+      financialSelection,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      origin,
+    );
+    assert.equal(response.plantChoice?.prompt, "Which plants should this answer cover?", String(origin));
+    assert.equal(fixture.executor.calls, 0, String(origin));
+  }
+
+  const singleton = makeFixture({ selection: financialSelection });
+  const singletonResponse = await singleton.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "Show selected Actual",
+    financialSelection,
+  );
+  assert.equal(singletonResponse.responseClass, ResponseClass.Success);
+  assert.deepEqual(singleton.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(
+    singletonResponse.availableFields?.dimensions.find(({ id }) => id === "plant"),
+    {
+      id: "plant",
+      label: "Plant",
+      values: ["DUB", "Agri - Nursery - DUB"],
+    },
+  );
+});
+
+test("named plants override the selector while no named plant discards it and one grant runs directly", async () => {
+  const named = makeFixture({
+    selection: {
+      ...financialSelection,
+      filters: [{ dimensionId: "plant", op: "in", value: ["VJM"] }],
+    },
+  });
+  const namedResponse = await named.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR", "VJM"]),
+    "session",
+    "Show Actual for dub and CHIR",
+  );
+  assert.equal(namedResponse.responseClass, ResponseClass.Success);
+  assert.deepEqual(named.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(named.logs[0]?.context, {
+    selectorPlantFilters: [{ dimensionId: "plant", op: "in", value: ["VJM"] }],
+    authoritativePlants: ["CHIR", "DUB"],
+  });
+
+  const unnamed = makeFixture({
+    selection: {
+      ...financialSelection,
+      filters: [{ dimensionId: "plant", op: "in", value: ["CHIR"] }],
+    },
+  });
+  const unnamedResponse = await unnamed.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR"]),
+    "session",
+    "Show Actual",
+  );
+  assert.equal(unnamedResponse.responseClass, ResponseClass.ClarificationNeeded);
+  assert.deepEqual(unnamedResponse.plantChoice?.selection.filters, []);
+
+  const singleton = makeFixture({ selection: { ...financialSelection, filters: [] } });
+  const singletonResponse = await singleton.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "Show Actual",
+  );
+  assert.equal(singletonResponse.responseClass, ResponseClass.Success);
+  assert.deepEqual(singleton.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+});
+
+test("an ungranted plant name is refused before the provider or any figure read and short codes stay case-sensitive", async () => {
+  for (const question of [
+    "Show Actual for CHIR",
+    "Show Actual for Agriculture   - Nursery - CHIR",
+    "Show Actual for CK",
+  ]) {
+    const fixture = makeFixture({ selection: financialSelection });
+    const response = await fixture.service.ask(userForPlants("governed-financial", ["DUB"]), "session", question);
+    assert.equal(response.responseClass, ResponseClass.BlockedByPolicy, question);
+    assert.equal(response.refusal?.reason, "plant-not-granted", question);
+    assert.equal(fixture.llm.inputs.length, 0, question);
+    assert.equal(fixture.executor.calls, 0, question);
+  }
+
+  const lower = makeFixture({ selection: financialSelection });
+  const response = await lower.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR"]),
+    "session",
+    "check actual for ck",
+  );
+  assert.equal(response.plantChoice?.prompt, "Which plants should this answer cover?");
+
+  const noGrants = makeFixture({ selection: financialSelection });
+  const noGrantResponse = await noGrants.service.ask(
+    userForPlants("governed-financial", []),
+    "session",
+    "Show Actual for CHIR",
+  );
+  assert.equal(noGrantResponse.refusal?.reason, "no-plants-granted");
+  assert.equal(noGrants.llm.inputs.length, 0);
+  assert.equal(noGrants.executor.calls, 0);
+
+  const noGrantCausal = makeFixture({ selection: financialSelection });
+  const noGrantCausalResponse = await noGrantCausal.service.ask(
+    userForPlants("governed-financial", []),
+    "session",
+    "Why is Actual high?",
+  );
+  assert.equal(noGrantCausalResponse.refusal?.reason, "no-plants-granted");
+  assert.equal(noGrantCausal.help.calls, 0);
+});
+
+test("plant refusals run before informational shortcuts without forcing a picker", async () => {
+  const ungrantedName = makeFixture({ selection: financialSelection });
+  const ungrantedResponse = await ungrantedName.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "Why is Actual high for CHIR?",
+  );
+  assert.equal(ungrantedResponse.refusal?.reason, "plant-not-granted");
+  assert.equal(ungrantedName.help.calls, 0);
+  assert.equal(ungrantedName.llm.inputs.length, 0);
+
+  const invalidPrior = makeFixture({ selection: financialSelection });
+  const invalidResponse = await invalidPrior.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "Why is Actual high?",
+    undefined,
+    undefined,
+    [
+      {
+        question: "Earlier",
+        selection: {
+          ...financialSelection,
+          filters: [{ dimensionId: "plant", op: "eq", value: "DUB" }],
+        },
+      },
+    ],
+  );
+  assert.equal(invalidResponse.refusal?.reason, "plant-filter-invalid");
+  assert.equal(invalidPrior.help.calls, 0);
+
+  const informational = makeFixture({ selection: financialSelection });
+  const informationalResponse = await informational.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR"]),
+    "session",
+    "Why is Actual high?",
+  );
+  assert.equal(informationalResponse.responseClass, ResponseClass.Informational);
+  assert.equal(informationalResponse.plantChoice, undefined);
+});
+
+test("every Ask ingress canonicalises valid plant filters and refuses invalid or revoked filters without a read", async () => {
+  const canonical = makeFixture({ selection: financialSelection });
+  const canonicalResponse = await canonical.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR"]),
+    "session",
+    "Show selected Actual",
+    {
+      ...financialSelection,
+      filters: [{ dimensionId: "plant", op: "in", value: ["DUB", "CHIR", "DUB"] }],
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "plant-choice",
+  );
+  assert.equal(canonicalResponse.responseClass, ResponseClass.Success);
+  assert.deepEqual(canonical.executor.selections[0]?.filters, [
+    { dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] },
+  ]);
+
+  for (const [origin, reason] of [
+    ["saved-view", "plants-revoked"],
+    ["pin", "plants-revoked"],
+    ["plant-choice", "choice-plants-revoked"],
+    ["period-choice", "choice-plants-revoked"],
+    [undefined, "plant-not-granted"],
+  ] as const) {
+    const fixture = makeFixture({ selection: financialSelection });
+    const response = await fixture.service.ask(
+      userForPlants("governed-financial", ["DUB"]),
+      "session",
+      "Show selected Actual",
+      {
+        ...financialSelection,
+        filters: [{ dimensionId: "plant", op: "in", value: ["DUB", "CHIR"] }],
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      origin,
+    );
+    assert.equal(response.refusal?.reason, reason, String(origin));
+    assert.equal(fixture.executor.calls, 0, String(origin));
+  }
+
+  const invalid = makeFixture({ selection: financialSelection });
+  const invalidResponse = await invalid.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR"]),
+    "session",
+    "Show selected Actual",
+    {
+      ...financialSelection,
+      filters: [
+        { dimensionId: "plant", op: "in", value: ["DUB"] },
+        { dimensionId: "plant", op: "in", value: ["CHIR"] },
+      ],
+    },
+  );
+  assert.equal(invalidResponse.refusal?.reason, "plant-filter-invalid");
+  assert.equal(invalid.executor.calls, 0);
+
+  for (const filter of [
+    { dimensionId: "plant", op: "in" as const, value: ["dub"] },
+    { dimensionId: "plant", op: "eq" as const, value: "DUB" },
+    { dimensionId: "plant", op: "in" as const, value: [] },
+    { dimensionId: "plant", op: "in" as const, value: ["DUB-NUR"] },
+  ]) {
+    const fixture = makeFixture({ selection: financialSelection });
+    const response = await fixture.service.ask(
+      userForPlants("governed-financial", ["DUB"]),
+      "session",
+      "Show selected Actual",
+      { ...financialSelection, filters: [filter] },
+    );
+    assert.equal(response.refusal?.reason, "plant-filter-invalid", JSON.stringify(filter));
+    assert.equal(fixture.executor.calls, 0, JSON.stringify(filter));
+  }
+
+  const prior = makeFixture({ selection: financialSelection });
+  const priorResponse = await prior.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "Show Actual",
+    undefined,
+    undefined,
+    [
+      {
+        question: "Earlier",
+        selection: {
+          ...financialSelection,
+          filters: [{ dimensionId: "plant", op: "in", value: ["CHIR"] }],
+        },
+      },
+    ],
+  );
+  assert.equal(priorResponse.refusal?.reason, "plant-not-granted");
+  assert.equal(prior.llm.inputs.length, 0);
+
+  const ordered = makeFixture({ selection: financialSelection });
+  const orderedResponse = await ordered.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "Show Actual for CHIR",
+    undefined,
+    undefined,
+    [
+      {
+        question: "Revoked first",
+        selection: {
+          ...financialSelection,
+          filters: [{ dimensionId: "plant", op: "in", value: ["CHIR"] }],
+        },
+      },
+      {
+        question: "Invalid second",
+        selection: {
+          ...financialSelection,
+          filters: [{ dimensionId: "plant", op: "eq", value: "DUB" }],
+        },
+      },
+    ],
+  );
+  assert.equal(orderedResponse.refusal?.reason, "plant-filter-invalid");
+  assert.equal(ordered.llm.inputs.length, 0);
+
+  const grounded = makeFixture({
+    selection: financialSelection,
+    groundedSelection: {
+      ...financialSelection,
+      filters: [{ dimensionId: "plant", op: "in", value: ["CHIR"] }],
+    },
+  });
+  const groundedResponse = await grounded.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "Show Actual",
+    undefined,
+    { reportId: "report", timeWindow: { from: "2026-07-01", to: "2026-07-31" } },
+  );
+  assert.equal(groundedResponse.refusal?.reason, "plant-not-granted");
+  assert.equal(grounded.executor.calls, 0);
+});
 
 test("trimming retains the newest turns in oldest first order", () => {
   const turns = ["oldest", "middle", "newest"].map((question) => ({
@@ -132,6 +540,8 @@ test("the llm provider receives the question prior turns and dimension values an
   assert.deepEqual(input.dimensionValues?.gl_code?.at(0), "DUB-00");
   assert.deepEqual(input.dimensionValues?.gl_code?.at(-1), "DUB-49");
   assert.equal("month" in (input.dimensionValues ?? {}), false);
+  assert.deepEqual(input.dimensionValues?.plant, ["DUB", "Agri - Nursery - DUB"]);
+  assert.equal(fixture.dimensions.plantCalls, 0);
   assert.deepEqual(input.comparableMeasureIdsByDomain, {
     "governed-financial": ["governed-financial.actual"],
   });
@@ -210,7 +620,7 @@ test("a GL-code answer carries scoped names and only matching transaction-backed
     actualBatchIds: [ACTUAL_BATCH_ID],
     glCode: "50001201",
     plants: ["DUB"],
-    filters: [],
+    filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
     from: "2026-07-01",
     to: "2026-07-31",
   });
@@ -229,6 +639,32 @@ test("a GL-code answer carries scoped names and only matching transaction-backed
     ]);
   }
   assert.deepEqual(fixture.logs, [{ context: { rowKey: "50007777" } }]);
+});
+
+test("a GL-code answer scopes name and transaction reads to the chosen plants", async () => {
+  const fixture = makeFixture({
+    selection: financialSelection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "50001201", actual: "1.00" }],
+    },
+    activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+    labels: [{ key: "50001201", label: "Sprout Cost - Imp", otherLabels: [] }],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "1.00" }],
+  });
+
+  const response = await fixture.service.ask(
+    userForPlants("governed-financial", ["CHIR"]),
+    "session",
+    "Show Actual by GL code for CHIR in July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.plants, ["CHIR"]);
+  assert.deepEqual(fixture.transactions.calls[0]?.[0]?.predicate.plants, ["CHIR"]);
 });
 
 test("a multi-period GL-code answer passes the last month's budget batch to the name resolver", async () => {
@@ -526,7 +962,7 @@ test("an all-data GL answer still resolves names from its pinned months but carr
     actualBatchIds: [ACTUAL_BATCH_ID],
     glCode: "50001201",
     plants: ["DUB"],
-    filters: [],
+    filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
     from: "2026-07-01",
     to: "2026-07-01",
   });
@@ -569,7 +1005,7 @@ test("a budget-only all-data GL answer resolves its MIS fallback from the latest
     actualBatchIds: [],
     glCode: "budget-only",
     plants: ["DUB"],
-    filters: [],
+    filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
     from: "2026-06-01",
     to: "2026-07-01",
   });
@@ -1830,6 +2266,7 @@ function makeFixture(options: {
         },
       }
     : {};
+  const resolver = new FakeSelectionResolver(options.statementPeriod);
   const service = new ChatService(
     semantic,
     executor as never,
@@ -1837,7 +2274,7 @@ function makeFixture(options: {
     dimensions as never,
     reports as never,
     help as never,
-    new FakeSelectionResolver(options.statementPeriod) as never,
+    resolver as never,
     provider,
     {} as never,
     names as never,
@@ -1851,7 +2288,7 @@ function makeFixture(options: {
       logs.push({ context: fields.context ?? {} });
     },
   });
-  return { service, llm: fakeLlm, executor, audit, dimensions, help, logs, names, transactions, contexts };
+  return { service, llm: fakeLlm, executor, audit, dimensions, help, logs, names, transactions, contexts, resolver };
 }
 
 class FakeNames {
@@ -1913,6 +2350,7 @@ class FakeLlm implements LlmProvider {
 
 class FakeExecutor {
   calls = 0;
+  freshnessCalls = 0;
   readonly selections: Selection[] = [];
   constructor(
     private readonly result: ResultTable,
@@ -1932,6 +2370,7 @@ class FakeExecutor {
     };
   }
   async freshness() {
+    this.freshnessCalls += 1;
     return "2026-07-01";
   }
 }
@@ -1974,8 +2413,10 @@ class FakeAudit {
 
 class FakeDimensions {
   calls = 0;
+  plantCalls = 0;
   async values(_object: string, column: string) {
     this.calls += 1;
+    if (column === "plant") this.plantCalls += 1;
     if (column === "month") return Array.from({ length: 51 }, (_, index) => `month-${index}`);
     return Array.from({ length: 50 }, (_, index) => `DUB-${String(index).padStart(2, "0")}`);
   }
@@ -1998,6 +2439,7 @@ class FakeHelp {
 }
 
 class FakeSelectionResolver {
+  optionsCalls = 0;
   constructor(private readonly statementPeriod?: { value: string; label: string; from: string; to: string }) {}
 
   hasMapping() {
@@ -2005,6 +2447,7 @@ class FakeSelectionResolver {
   }
 
   async options() {
+    this.optionsCalls += 1;
     const period = {
       value: "2026-07-01",
       label: "July 2026",
@@ -2068,4 +2511,17 @@ function userFor(
         ]
       : [{ attribute: "plant", value: "DUB" }],
   };
+}
+
+function userForPlants(
+  domain: "governed-financial" | "mis-statement",
+  plants: string[],
+  statementScope = false,
+): AuthUser {
+  const user = userFor(domain, statementScope);
+  user.scope = [
+    ...user.scope.filter(({ attribute }) => attribute !== "plant"),
+    ...plants.map((value) => ({ attribute: "plant", value })),
+  ];
+  return user;
 }
