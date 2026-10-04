@@ -2,27 +2,27 @@
   "branch": "task/ASK-MULTI-PLANT-MP-PLANT-RULES",
   "review": {
     "blocking_level": "P1",
-    "changed": "40b769680c2746f215f1846b9c6f031f6d362e665156d795d50e2a56a66d6be2",
-    "commit": "86f29e8ca1809374f617946fb0ebab2a3dd4644c",
+    "changed": "d46a6f7b86d8a656d30097178bde481b73c20e95c7f855cc33cb7532076a959e",
+    "commit": "afd3ebbeaacf548493874eea40d4915d07cba06a",
     "dismissals": [],
     "findings": [
       {
-        "body": "The allowed scope is limited to the six implementation and test paths, but this branch still rewrites the story task decomposition and read record and changes `.factory/stories/ASK-MULTI-PLANT/story.json` plus its task record. The handoff names no necessary out-of-scope changes, and none of these files is needed to deliver or test the plant-rules module. Remove these independently changed planning and Factory files from this patch.",
+        "body": "The allowed scope is limited to the six implementation and test paths, but the branch still rewrites the story task decomposition and read record and changes `.factory/stories/ASK-MULTI-PLANT/story.json` plus its task record. The handoff names no necessary out-of-scope changes, and these files are not needed to deliver or test the plant-rules module. The previously reported gap therefore remains open; remove these independently changed planning and Factory files from this patch.",
         "file": "plans/ASK-MULTI-PLANT.md",
         "line": 221,
         "priority": "P1",
         "title": "Remove the unrelated out-of-scope planning and Factory changes"
       },
       {
-        "body": "The coordinator ruled that picker choices and `allPlants.value` should use the same deterministic canonical-code order, but the options use locale-dependent `localeCompare` while this line re-sorts their values using JavaScript's UTF-16 default comparator. These comparators are not equivalent, particularly with current mixed-case canonical codes such as `NLR` and `Nandyal`, so the visible option order can diverge from the submitted All-plants order and vary by host locale. This differing pair of comparators is new evidence not addressed by the ruling; reuse the already sorted option order or the same explicit comparator for both.",
-        "file": "backend/src/chat/plant-set.ts",
-        "line": 71,
-        "priority": "P2",
-        "title": "Keep picker options and All plants in the same canonical order"
+        "body": "This test proves that `no-plants-granted` precedes invalid-filter handling, but its remaining cases all use a valid `in` filter. It never exercises an invalid filter that also names an ungranted plant with nonempty grants\u2014for example `eq \"CHIR\"`, grants `[\"DUB\"]`, and `origin: \"saved-view\"`. Consequently, a regression that checks revocation before filter validity could return `plants-revoked` instead of the required `plant-filter-invalid` while every added test still passes. Add that overlapping case to prove the specified full order: no grants, invalid filter, then origin-specific revocation.",
+        "file": "backend/src/chat/plant-set.test.ts",
+        "line": 65,
+        "priority": "P1",
+        "title": "Not done: the plant-filter refusal-order test"
       }
     ],
     "status": "blocked",
-    "tree": "b3176f670986f403cfe6ea13c666e1cef5d18da1e2be590f53a44f0329a0302f"
+    "tree": "2ad313446b3df345baa1a4a425735a31f7ed08ab7ba7c0ebc5d14816137a3615"
   },
   "status": "fixing",
   "steps": [
@@ -36,6 +36,10 @@
     },
     {
       "at": "2026-10-04T10:57:31+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T11:05:16+00:00",
       "step": "review"
     }
   ]
