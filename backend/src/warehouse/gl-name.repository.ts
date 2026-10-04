@@ -18,6 +18,11 @@ export interface GlNameRow {
   predicate: DrillPredicate;
 }
 
+export interface StatementNameRow {
+  key: string;
+  leafKey: string;
+}
+
 @Injectable()
 export class GlNameRepository {
   constructor(
@@ -38,9 +43,10 @@ export class GlNameRepository {
 
     if (budgetBatchId && budgetOnly.size) {
       const outline = await this.outlines.findByBudgetBatchId(budgetBatchId);
-      for (const key of budgetOnly) {
-        const labels = outlineLabels(outline, ({ glCode }) => glCode === key, false);
-        if (labels.length) resolved.set(key, toRowLabel(key, labels));
+      for (const row of rows.filter(({ key }) => budgetOnly.has(key))) {
+        const glCode = row.predicate.mode === "gl-and-plants" ? row.predicate.glCode : undefined;
+        const labels = outlineLabels(outline, (node) => node.glCode === glCode, false);
+        if (labels.length) resolved.set(row.key, toRowLabel(row.key, labels));
       }
     }
 
@@ -50,11 +56,11 @@ export class GlNameRepository {
     });
   }
 
-  async findStatementLabels(keys: string[], budgetBatchId?: string): Promise<AskRowLabel[]> {
-    if (!budgetBatchId || keys.length === 0) return [];
+  async findStatementLabels(rows: StatementNameRow[], budgetBatchId?: string): Promise<AskRowLabel[]> {
+    if (!budgetBatchId || rows.length === 0) return [];
     const outline = await this.outlines.findByBudgetBatchId(budgetBatchId);
-    return keys.flatMap((key) => {
-      const labels = outlineLabels(outline, ({ leafKey }) => leafKey === key, true);
+    return rows.flatMap(({ key, leafKey }) => {
+      const labels = outlineLabels(outline, (node) => node.leafKey === leafKey, true);
       return labels.length ? [toRowLabel(key, labels)] : [];
     });
   }

@@ -227,27 +227,63 @@ test("active Budget periods are read once for an inclusive range", async () => {
   assert.match(warehouse.executed[0]!, /LIMIT 25000/);
 });
 
-test("a GL-and-plants predicate keeps the answer's plants and row GL in both page and all-match footer", () => {
-  const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
-  const queries = repository.buildQueries(
-    {
-      mode: "gl-and-plants",
+test("each GL row's plant set independently scopes its predicate, page, footer, and summary", async () => {
+  const cases = [
+    { plants: ["CHIR"], plantClause: "txn.plant IN ('CHIR')" },
+    { plants: ["DUB"], plantClause: "txn.plant IN ('DUB')" },
+    { plants: ["CHIR", "DUB"], plantClause: "txn.plant IN ('CHIR', 'DUB')" },
+  ];
+
+  for (const example of cases) {
+    const warehouse = new FakeWarehouse();
+    const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
+    const predicate = {
+      mode: "gl-and-plants" as const,
       actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
       glCode: "50001201",
-      plants: ["DUB"],
-      filters: [{ dimensionId: "gl_code", op: "in", value: ["50001201", "50001202"] }],
+      plants: example.plants,
+      filters: [{ dimensionId: "gl_code", op: "in" as const, value: ["50001201", "50001202"] }],
       from: "2026-07-01",
       to: "2026-07-01",
-    },
-    1,
-    100,
-  );
+    };
+    const queries = repository.buildQueries(predicate, 1, 100);
+    await repository.summarize([{ rowKey: example.plants.join("+"), predicate }]);
 
-  for (const sql of [queries.pageSql, queries.footerSql]) {
-    assert.match(sql, /txn\.gl_code = '50001201'/);
-    assert.match(sql, /txn\.plant IN \('DUB'\)/);
-    assert.match(sql, /txn\.gl_code IN \('50001201', '50001202'\)/);
-    assert.match(sql, /batch\.source_kind = 'actuals'/);
+    for (const sql of [buildDrillPredicate(predicate), queries.pageSql, queries.footerSql, warehouse.executed[0]!]) {
+      assert.deepEqual(sql.match(/txn\.plant IN \([^)]*\)/g), [example.plantClause]);
+      assert.match(sql, /txn\.gl_code = '50001201'/);
+      assert.match(sql, /txn\.gl_code IN \('50001201', '50001202'\)/);
+      assert.match(sql, /batch\.source_kind = 'actuals'/);
+    }
+  }
+});
+
+test("each statement row predicate keeps that plant's own triples in its page, footer, and summary", async () => {
+  const cases = [
+    { plant: "CHIR", costCenter: "CHIR-NUR", otherPlant: "DUB" },
+    { plant: "DUB", costCenter: "DUB-NUR", otherPlant: "CHIR" },
+  ];
+
+  for (const example of cases) {
+    const warehouse = new FakeWarehouse();
+    const repository = new DrillTransactionsRepository(new SqlValidator(), warehouse);
+    const predicate = {
+      mode: "triples" as const,
+      actualBatchIds: ["00000000-0000-0000-0000-000000000001"],
+      triples: [{ plant: example.plant, costCenter: example.costCenter, glCode: "50001201" }],
+      plants: [example.plant],
+      from: "2026-07-01",
+      to: "2026-07-01",
+    };
+    const queries = repository.buildQueries(predicate, 1, 100);
+    await repository.summarize([{ rowKey: example.plant, predicate }]);
+    const ownTriple = `(txn.plant = '${example.plant}' AND txn.cost_center = '${example.costCenter}' AND txn.gl_code = '50001201')`;
+
+    for (const sql of [buildDrillPredicate(predicate), queries.pageSql, queries.footerSql, warehouse.executed[0]!]) {
+      assert.deepEqual(sql.match(/txn\.plant IN \([^)]*\)/g), [`txn.plant IN ('${example.plant}')`]);
+      assert.ok(sql.includes(ownTriple));
+      assert.ok(!sql.includes(`txn.plant = '${example.otherPlant}'`));
+    }
   }
 });
 

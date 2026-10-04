@@ -19,9 +19,9 @@ const input: AskDrillContextInput = {
   plants: ["DUB"],
   pinnedActuals: [{ source: "actuals", period: "2026-07-01", batchId: "00000000-0000-0000-0000-000000000001" }],
   rows: [
-    { key: "one-paisa", actualPaise: "1", drillable: true },
-    { key: "normal", actualPaise: "1234567", drillable: true },
-    { key: "inert", drillable: false },
+    { key: "one-paisa", plants: ["DUB"], glCode: "one-paisa", actualPaise: "1", drillable: true },
+    { key: "normal", plants: ["DUB"], glCode: "normal", actualPaise: "1234567", drillable: true },
+    { key: "inert", plants: ["DUB"], glCode: "inert", drillable: false },
   ],
 };
 
@@ -70,6 +70,7 @@ test("statement contexts bind each row's triples, mapping version, and optional 
     rows: [
       {
         key: "1.1|50001201|sprout-cost",
+        plants: ["DUB"],
         actualPaise: "839833900",
         drillable: true,
         triples: [{ plant: "DUB", costCenter: "NURSERY", glCode: "50001201" }],
@@ -83,6 +84,26 @@ test("statement contexts bind each row's triples, mapping version, and optional 
 
   const withoutBudget = { ...statement, budget: undefined };
   assert.equal(service.verify(service.issue(withoutBudget), "user-1").outcome, "verified");
+});
+
+test("each signed answer row binds its own plant set and GL identity", () => {
+  const service = new AskDrillContextService(["secret"], 30, () => 1_000_000);
+  const perPlant: AskDrillContextInput = {
+    ...input,
+    plants: ["DUB", "CHIR"],
+    selection: { ...input.selection, dimensionIds: ["gl_code", "plant"] },
+    rows: [
+      { key: "50001201|DUB", plants: ["DUB"], glCode: "50001201", actualPaise: "100", drillable: true },
+      { key: "50001201|CHIR", plants: ["CHIR"], glCode: "50001201", actualPaise: "200", drillable: true },
+    ],
+  };
+
+  const verified = service.verify(service.issue(perPlant), "user-1");
+
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") {
+    assert.deepEqual(verified.claims.rows, perPlant.rows);
+  }
 });
 
 test("tampered, expired, and other-user Ask answer contexts are refused without trusting their claims", () => {

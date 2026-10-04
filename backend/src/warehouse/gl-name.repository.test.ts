@@ -63,6 +63,16 @@ test("a budget-only code falls back to the first distinct MIS line label in pinn
   ]);
 });
 
+test("budget-only plant rows keep their composite answer key while matching the predicate's GL code", async () => {
+  const repository = names([noNameRow("50009999", 0)], [outline({ glCode: "50009999", label: "CHIR seedlings" })]);
+  const row = glRow("50009999|CHIR");
+  row.predicate = { ...glPredicate("50009999"), plants: ["CHIR"] };
+
+  assert.deepEqual(await repository.findGlCodeLabels([row], "budget-july"), [
+    { key: "50009999|CHIR", label: "CHIR seedlings", otherLabels: [] },
+  ]);
+});
+
 test("a budget-only code returns every distinct MIS label in outline order", async () => {
   const labels = Array.from({ length: 23 }, (_, index) =>
     outline({
@@ -113,6 +123,21 @@ test("a mixed-plant reader sees names only from the executed query's effective p
   assert.deepEqual(labels, [{ key: "50001201", label: "DUB Sprout Cost", otherLabels: [] }]);
   assert.match(warehouse.executed[0]!, /txn\.plant IN \('DUB'\)/);
   assert.doesNotMatch(warehouse.executed[0]!, /HYD/);
+});
+
+test("the same GL code resolves independent composite names under each row's plant predicate", async () => {
+  const warehouse = new PredicateNameWarehouse();
+  const repository = new GlNameRepository(new SqlValidator(), warehouse, new FakeOutlines());
+
+  const labels = await repository.findGlCodeLabels([
+    { key: "50001201|DUB", predicate: { ...glPredicate("50001201"), plants: ["DUB"] } },
+    { key: "50001201|CHIR", predicate: { ...glPredicate("50001201"), plants: ["CHIR"] } },
+  ]);
+
+  assert.deepEqual(labels, [
+    { key: "50001201|DUB", label: "DUB Sprout Cost", otherLabels: [] },
+    { key: "50001201|CHIR", label: "CHIR Sprout Cost", otherLabels: [] },
+  ]);
 });
 
 test("every normalized name beyond MAX_ROWS is returned in rank order", async () => {
@@ -179,9 +204,28 @@ test("statement labels come from the pinned last-month outline after another out
   outlines.activeBatchId = "budget-august";
   const repository = new GlNameRepository(new SqlValidator(), new FakeWarehouse(), outlines);
 
-  assert.deepEqual(await repository.findStatementLabels(["leaf-sprout"], "budget-july"), [
-    { key: "leaf-sprout", label: "1.1 Sprout Cost", otherLabels: [] },
-  ]);
+  assert.deepEqual(
+    await repository.findStatementLabels([{ key: "leaf-sprout", leafKey: "leaf-sprout" }], "budget-july"),
+    [{ key: "leaf-sprout", label: "1.1 Sprout Cost", otherLabels: [] }],
+  );
+});
+
+test("statement plant rows keep composite answer keys while matching the shared outline leaf", async () => {
+  const repository = names([], [outline({ leafKey: "leaf-sprout", sNo: "1.1", label: "Sprout Cost" })]);
+
+  assert.deepEqual(
+    await repository.findStatementLabels(
+      [
+        { key: "leaf-sprout|DUB", leafKey: "leaf-sprout" },
+        { key: "leaf-sprout|CHIR", leafKey: "leaf-sprout" },
+      ],
+      "budget-july",
+    ),
+    [
+      { key: "leaf-sprout|DUB", label: "1.1 Sprout Cost", otherLabels: [] },
+      { key: "leaf-sprout|CHIR", label: "1.1 Sprout Cost", otherLabels: [] },
+    ],
+  );
 });
 
 test("an S.No.-less statement leaf uses the same inherited number shown by its statement parent", async () => {
@@ -208,7 +252,15 @@ test("an S.No.-less statement leaf uses the same inherited number shown by its s
     ],
   );
 
-  const [label] = await repository.findStatementLabels(["9.01|55010901|petrol-and-diesel-charges"], "budget-july");
+  const [label] = await repository.findStatementLabels(
+    [
+      {
+        key: "9.01|55010901|petrol-and-diesel-charges",
+        leafKey: "9.01|55010901|petrol-and-diesel-charges",
+      },
+    ],
+    "budget-july",
+  );
 
   assert.equal(statementParent.sNo, "9.01");
   assert.equal(label?.label, `${statementParent.sNo} Petrol and Diesel Charges`);
@@ -217,7 +269,7 @@ test("an S.No.-less statement leaf uses the same inherited number shown by its s
 test("statement answers keep raw leaf keys when there is no last-month budget batch", async () => {
   const repository = names();
 
-  assert.deepEqual(await repository.findStatementLabels(["leaf-sprout"]), []);
+  assert.deepEqual(await repository.findStatementLabels([{ key: "leaf-sprout", leafKey: "leaf-sprout" }]), []);
 });
 
 test("the destructive GL name proof refuses every target except the throwaway warehouse on port 5434", () => {
@@ -323,7 +375,15 @@ test(
         "statement labels inherit the statement screen's numbered parent and stay raw when no budget batch is pinned",
         async () => {
           assert.deepEqual(
-            await repository.findStatementLabels(["9.01|55010901|petrol-and-diesel-charges"], budgetBatchId),
+            await repository.findStatementLabels(
+              [
+                {
+                  key: "9.01|55010901|petrol-and-diesel-charges",
+                  leafKey: "9.01|55010901|petrol-and-diesel-charges",
+                },
+              ],
+              budgetBatchId,
+            ),
             [
               {
                 key: "9.01|55010901|petrol-and-diesel-charges",
@@ -332,7 +392,15 @@ test(
               },
             ],
           );
-          assert.deepEqual(await repository.findStatementLabels(["9.01|55010901|petrol-and-diesel-charges"]), []);
+          assert.deepEqual(
+            await repository.findStatementLabels([
+              {
+                key: "9.01|55010901|petrol-and-diesel-charges",
+                leafKey: "9.01|55010901|petrol-and-diesel-charges",
+              },
+            ]),
+            [],
+          );
         },
       );
     } finally {
@@ -500,6 +568,24 @@ class EchoNameWarehouse extends FakeWarehouse {
   override async execute(sql: string): Promise<QueryResult> {
     this.executed.push(sql);
     return { columns: [], rows: [] };
+  }
+}
+
+class PredicateNameWarehouse extends FakeWarehouse {
+  override async execute(sql: string): Promise<QueryResult> {
+    this.executed.push(sql);
+    const rows = [...sql.matchAll(/\(SELECT (\d+) AS row_ordinal,([\s\S]*?)LIMIT 1\)/g)].map(
+      ([, rowOrdinal, rowSql]) => {
+        const plants = new Set([...rowSql!.matchAll(/txn\.plant IN \('([^']+)'\)/g)].map((match) => match[1]!));
+        if (plants.size !== 1) throw new Error("GL name query did not keep one row plant predicate");
+        const plant = [...plants][0]!;
+        return {
+          ...completeNameGroupsRow(plant, [{ label: `${plant} Sprout Cost`, count: 1 }]),
+          row_ordinal: Number(rowOrdinal),
+        };
+      },
+    );
+    return { columns: [], rows };
   }
 }
 

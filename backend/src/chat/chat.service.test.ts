@@ -1151,7 +1151,8 @@ test("a GL-code answer carries scoped names and only matching transaction-backed
 
   assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
   assert.deepEqual(response.rowLabels, fixture.names.labels);
-  assert.deepEqual(response.drill?.rows, [
+  assert.ok(response.drill, JSON.stringify(response));
+  assert.deepEqual(response.drill.rows, [
     { key: "50001201", drillable: true },
     { key: "50009999", drillable: false },
     { key: "50008888", drillable: true },
@@ -1180,16 +1181,166 @@ test("a GL-code answer carries scoped names and only matching transaction-backed
     assert.deepEqual(verified.claims.pinnedActuals, [activeBatchIds[0]]);
     assert.equal(verified.claims.budget?.pin.batchId, BUDGET_BATCH_ID);
     assert.deepEqual(verified.claims.rows, [
-      { key: "50001201", actualPaise: "839833900", drillable: true },
-      { key: "50009999", actualPaise: "0", drillable: false },
-      { key: "50008888", actualPaise: "0", drillable: true },
-      { key: "50007777", actualPaise: "100", drillable: false },
+      { key: "50001201", plants: ["DUB"], glCode: "50001201", actualPaise: "839833900", drillable: true },
+      { key: "50009999", plants: ["DUB"], glCode: "50009999", actualPaise: "0", drillable: false },
+      { key: "50008888", plants: ["DUB"], glCode: "50008888", actualPaise: "0", drillable: true },
+      { key: "50007777", plants: ["DUB"], glCode: "50007777", actualPaise: "100", drillable: false },
     ]);
   }
   assert.deepEqual(fixture.logs, [{ context: { rowKey: "50007777" } }]);
 });
 
-test("a GL-code answer scopes name and transaction reads to the chosen plants", async () => {
+test("GL-code rows split by plant carry composite-keyed names budgets and drills for only that row's plant", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    dimensionIds: ["gl_code", "plant"],
+  };
+  const fixture = makeFixture({
+    selection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "plant", label: "Plant", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+      ],
+      rows: [
+        { gl_code: "50001201", plant: "DUB", actual: "1.00", budget: "1.00" },
+        { gl_code: "50001201", plant: "CHIR", actual: "2.00", budget: null },
+      ],
+    },
+    activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+    labels: [
+      { key: "50001201|DUB", label: "DUB Sprout Cost", otherLabels: [] },
+      { key: "50001201|CHIR", label: "CHIR Sprout Cost", otherLabels: [] },
+    ],
+    summaries: [
+      { rowKey: "50001201|DUB", feedingLineCount: 1, value: "1.00" },
+      { rowKey: "50001201|CHIR", feedingLineCount: 1, value: "2.00" },
+    ],
+  });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show Actual and Budget by GL code for DUB and CHIR in July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(response.rowLabels, fixture.names.labels);
+  assert.deepEqual(response.budgetStates, [
+    { key: "50001201|DUB", state: "loaded", plantsInRow: ["DUB"], plantsWithBudget: ["DUB"] },
+    { key: "50001201|CHIR", state: "not-loaded", plantsInRow: ["CHIR"], plantsWithBudget: [] },
+  ]);
+  assert.ok(response.drill, JSON.stringify(response));
+  assert.deepEqual(response.drill.rows, [
+    { key: "50001201|DUB", drillable: true },
+    { key: "50001201|CHIR", drillable: true },
+  ]);
+  assert.deepEqual(
+    fixture.names.glCalls[0]?.rows.map(({ key, predicate }) => ({ key, plants: predicate.plants })),
+    [
+      { key: "50001201|DUB", plants: ["DUB"] },
+      { key: "50001201|CHIR", plants: ["CHIR"] },
+    ],
+  );
+  assert.deepEqual(
+    fixture.transactions.calls[0]?.map(({ rowKey, predicate }) => ({ rowKey, plants: predicate.plants })),
+    [
+      { rowKey: "50001201|DUB", plants: ["DUB"] },
+      { rowKey: "50001201|CHIR", plants: ["CHIR"] },
+    ],
+  );
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") {
+    assert.deepEqual(
+      verified.claims.rows.map(({ key, plants }) => ({ key, plants })),
+      [
+        { key: "50001201|DUB", plants: ["DUB"] },
+        { key: "50001201|CHIR", plants: ["CHIR"] },
+      ],
+    );
+  }
+});
+
+test("statement rows split by plant carry composite keys and each plant's own triples", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    dimensionIds: ["leaf_key", "plant"],
+  };
+  const fixture = makeFixture({
+    selection,
+    result: {
+      columns: [
+        { key: "leaf_key", label: "Statement line", numeric: false },
+        { key: "plant", label: "Plant", numeric: false },
+        { key: "actual_net", label: "Actual", numeric: true, format: "money" },
+        { key: "budget_net", label: "Budget", numeric: true, format: "money" },
+      ],
+      rows: [
+        { leaf_key: "leaf", plant: "DUB", actual_net: "1.00", budget_net: "1.00" },
+        { leaf_key: "leaf", plant: "CHIR", actual_net: "2.00", budget_net: null },
+      ],
+    },
+    activeBatchIds: [
+      { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+      { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+    ],
+    labels: [
+      { key: "leaf|DUB", label: "1.1 Sprout Cost", otherLabels: [] },
+      { key: "leaf|CHIR", label: "1.1 Sprout Cost", otherLabels: [] },
+    ],
+    summaries: [
+      { rowKey: "leaf|DUB", feedingLineCount: 1, value: "1.00" },
+      { rowKey: "leaf|CHIR", feedingLineCount: 1, value: "2.00" },
+    ],
+  });
+
+  const user = userForPlants("mis-statement", ["DUB", "CHIR"], true);
+  user.permissions.measureIds.push("mis-statement.budget_net");
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show statement Actual by plant for DUB and CHIR in July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(response.rowLabels, fixture.names.labels);
+  assert.deepEqual(response.drill?.rows, [
+    { key: "leaf|DUB", drillable: true },
+    { key: "leaf|CHIR", drillable: true },
+  ]);
+  assert.deepEqual(response.budgetStates, [
+    { key: "leaf|DUB", state: "loaded", plantsInRow: ["DUB"], plantsWithBudget: ["DUB"] },
+    { key: "leaf|CHIR", state: "not-loaded", plantsInRow: ["CHIR"], plantsWithBudget: [] },
+  ]);
+  assert.deepEqual(
+    fixture.transactions.calls[0]?.map(({ rowKey, predicate }) => ({
+      rowKey,
+      plants: predicate.plants,
+      triples: predicate.triples,
+    })),
+    [
+      {
+        rowKey: "leaf|DUB",
+        plants: ["DUB"],
+        triples: [{ plant: "DUB", costCenter: "Primary", glCode: "5001" }],
+      },
+      {
+        rowKey: "leaf|CHIR",
+        plants: ["CHIR"],
+        triples: [{ plant: "CHIR", costCenter: "Primary", glCode: "5001" }],
+      },
+    ],
+  );
+});
+
+test("a mixed-grant summed row keeps names and drill context on the effective plant set", async () => {
   const fixture = makeFixture({
     selection: financialSelection,
     result: {
@@ -1197,22 +1348,63 @@ test("a GL-code answer scopes name and transaction reads to the chosen plants", 
         { key: "gl_code", label: "GL code", numeric: false },
         { key: "actual", label: "Actual", numeric: true, format: "money" },
       ],
-      rows: [{ gl_code: "50001201", actual: "1.00" }],
+      rows: [{ gl_code: "50001201", actual: "3.00" }],
     },
     activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
-    labels: [{ key: "50001201", label: "Sprout Cost - Imp", otherLabels: [] }],
-    summaries: [{ rowKey: "50001201", feedingLineCount: 1, value: "1.00" }],
+    labels: [{ key: "50001201", label: "Shared Sprout Cost", otherLabels: [] }],
+    summaries: [{ rowKey: "50001201", feedingLineCount: 2, value: "3.00" }],
   });
 
   const response = await fixture.service.ask(
-    userForPlants("governed-financial", ["CHIR"]),
+    userForPlants("governed-financial", ["DUB", "CHIR", "VJM"]),
     "session",
-    "Show Actual by GL code for CHIR in July 2026",
+    "Show Actual by GL code for DUB and CHIR in July 2026",
   );
 
-  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
-  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.plants, ["CHIR"]);
-  assert.deepEqual(fixture.transactions.calls[0]?.[0]?.predicate.plants, ["CHIR"]);
+  assert.deepEqual(response.rowLabels, fixture.names.labels);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.plants, ["CHIR", "DUB"]);
+  assert.equal(response.provenance?.scope.includes("VJM"), false);
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") {
+    assert.deepEqual(verified.claims.plants, ["CHIR", "DUB"]);
+    assert.deepEqual(verified.claims.rows[0]?.plants, ["CHIR", "DUB"]);
+  }
+});
+
+test("month-bearing and plant-only shapes carry no names or drill metadata", async () => {
+  const shapes = [
+    { dimensions: ["plant"], row: { plant: "DUB", actual: "1.00" } },
+    { dimensions: ["month"], row: { month: "2026-07-01", actual: "1.00" } },
+    { dimensions: ["month", "plant"], row: { month: "2026-07-01", plant: "DUB", actual: "1.00" } },
+    { dimensions: ["gl_code", "month"], row: { gl_code: "50001201", month: "2026-07-01", actual: "1.00" } },
+    {
+      dimensions: ["gl_code", "month", "plant"],
+      row: { gl_code: "50001201", month: "2026-07-01", plant: "DUB", actual: "1.00" },
+    },
+  ];
+
+  for (const { dimensions, row } of shapes) {
+    const selection = { ...financialSelection, dimensionIds: dimensions };
+    const fixture = makeFixture({
+      selection,
+      result: {
+        columns: [
+          ...dimensions.map((key) => ({ key, label: key, numeric: false })),
+          { key: "actual", label: "Actual", numeric: true, format: "money" as const },
+        ],
+        rows: [row as Record<string, string | number | null>],
+      },
+      activeBatchIds: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+    });
+
+    const response = await fixture.service.ask(userFor("governed-financial"), "session", "Show Actual", selection);
+
+    assert.equal(response.rowLabels, undefined, dimensions.join(" x "));
+    assert.equal(response.drill, undefined, dimensions.join(" x "));
+    assert.equal(fixture.names.glCalls.length, 0, dimensions.join(" x "));
+    assert.equal(fixture.transactions.calls.length, 0, dimensions.join(" x "));
+  }
 });
 
 test("a multi-period GL-code answer passes the last month's budget batch to the name resolver", async () => {
@@ -1416,7 +1608,9 @@ test("a saved multi-period statement re-run labels and binds the final month's b
   );
 
   assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
-  assert.deepEqual(fixture.names.statementCalls, [{ keys: ["leaf"], budgetBatchId: BUDGET_BATCH_ID }]);
+  assert.deepEqual(fixture.names.statementCalls, [
+    { keys: [{ key: "leaf", leafKey: "leaf" }], budgetBatchId: BUDGET_BATCH_ID },
+  ]);
   const verified = fixture.contexts.verify(response.drill!.context, "user-1");
   assert.equal(verified.outcome, "verified");
   if (verified.outcome === "verified") {
@@ -2852,7 +3046,10 @@ function makeFixture(options: {
 
 class FakeNames {
   readonly glCalls: Array<{ rows: Array<{ key: string; predicate: DrillPredicate }>; budgetBatchId?: string }> = [];
-  readonly statementCalls: Array<{ keys: string[]; budgetBatchId?: string }> = [];
+  readonly statementCalls: Array<{
+    keys: Array<{ key: string; leafKey: string }>;
+    budgetBatchId?: string;
+  }> = [];
 
   constructor(readonly labels: Array<{ key: string; label: string; otherLabels: string[] }>) {}
 
@@ -2861,7 +3058,7 @@ class FakeNames {
     return this.labels;
   }
 
-  async findStatementLabels(keys: string[], budgetBatchId?: string) {
+  async findStatementLabels(keys: Array<{ key: string; leafKey: string }>, budgetBatchId?: string) {
     this.statementCalls.push({ keys, budgetBatchId });
     return this.labels;
   }
