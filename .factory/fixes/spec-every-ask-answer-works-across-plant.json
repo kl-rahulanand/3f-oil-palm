@@ -1,0 +1,14 @@
+{
+  "base": "79860fb49dec3b05a8fd96cfd353679181df9eef",
+  "branch": "fix/spec-every-ask-answer-works-across-plant",
+  "done_when": "docs/specs/ask-multi-plant.md is confirmed by the owner and listed on the roadmap",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-04T06:32:03+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "spec: every Ask answer works across plants"
+}
