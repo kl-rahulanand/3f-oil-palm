@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:29:31+00:00
-read_hash: c936f285d0a1578bb42ebbd6acfb0f47bd9aeffe
-round: 2
+read_at: 2026-10-04T08:30:52+00:00
+read_hash: 28801408d0fba4bbf1d5fee1c2ffc28ad06eb4b8
+round: 3
 passed: no
-doc_seen: c936f285d0a1578bb42ebbd6acfb0f47bd9aeffe
+doc_seen: 28801408d0fba4bbf1d5fee1c2ffc28ad06eb4b8
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: a25ad66b26578f591f550999b58520d84cdeb0ad
+notes_seen: 6c51718c40d51f3d893bffcfb30de5743344f2cf
 ---
 # Cold read notes
 
@@ -70,3 +70,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 12. MP-CONTRACT misses `backend/package.json` in Scope.
    It adds `contract/test/row-key.test.ts`; the repository rule requires every task adding a test file to scope both `backend/package.json` and `tools/quality-gate.test.mjs` so the registered leaf is actually run.
    Disposition: cut MP-CONTRACT now scopes `backend/package.json` beside `tools/quality-gate.test.mjs` and `contract/package.json`.
+
+## Round 3
+
+13. Disputed keep 11: C1 explicitly requires no warehouse read before the choice, not merely no figure read.
+   `DimensionValuesService` calls the warehouse adapter’s `distinctValues`; the new leaf cannot truthfully assert both that the adapter query path was not called and that this service performed its vocabulary lookup. The base-selection path must avoid that lookup until after plant choice, or the confirmed spec must change.
+   Disposition: keep the owner decided on 2026-10-04 (recorded in the plan's Notes) that C1's no-read rule means no figure read, so the cached distinct-value vocabulary lookup may precede the picker; detail 1's leaf now asserts no `execute`, `freshness` or batch read and `distinctValues` only for non-plant vocabulary columns.

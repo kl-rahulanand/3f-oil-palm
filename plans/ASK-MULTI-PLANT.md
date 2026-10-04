@@ -83,9 +83,10 @@ must prove. Shared rules for every part:
    month values (`DimensionValuesService`), which reads no figure, exactly as before today's period
    choice. Plant values never come from that lookup: they come from the mapping master and the reader's
    grants. "No read before the choice" (C1) therefore means no figure read: no executor query, totals,
-   names, drill summary or batch lookup. Leaves: no read before the choice (the executor, the adapter's
-   query path and the batch repository spies are not called, and the dimension-values spy is called only
-   for non-plant vocabulary columns),
+   names, drill summary or batch lookup (owner decision of 2026-10-04, Notes). Leaves: no figure read
+   before the choice (the executor, the adapter's `execute` and `freshness` calls and the batch repository
+   spies are not called; the adapter's `distinctValues`, reached only through the dimension-values
+   service, is called only for the non-plant vocabulary columns),
    one-plant reader answered directly, edited, saved and pinned selections without a plant filter, plant
    before period, each continuation re-checks grants.
 2. Resolution and model boundary (C2, C10). A pre-selector check over the question text runs before
@@ -192,6 +193,11 @@ must prove. Shared rules for every part:
 New moving parts: warehouse migration `0004` recreating `actual_by_gl_month` across every plant (Done-when 3). The plant step, row keys and budget states live in existing services and two pure modules (`plant-set.ts`, `ask-budget-states.ts`); no new service, store or job.
 
 ## Notes
+
+- Owner decisions:
+  - 2026-10-04: the spec's "no warehouse read runs before a choice" (C1) means no figure is read. The
+    selector's existing cached lookup of distinct GL-code and month values may run before the plant
+    picker, as it does before today's period choice; plant values never come from it.
 
 - Pre-change probe, recorded by the coordinator on 2026-10-04 against master (live Bedrock, July
   warehouse), as the admin unless stated:
