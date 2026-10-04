@@ -89,6 +89,7 @@ test(
         firstBudgetRows,
         budgetOutline(firstBudgetRows),
       );
+      await assertPlantBreakdowns(pool);
       const before = await executeGoldenQuery(pool);
 
       assertGoldenRow(before.adapterRows, fixture.matched, actualBatchId, firstBudgetBatchId);
@@ -217,13 +218,53 @@ async function executeGoldenQuery(pool: Pool) {
   const selection: Selection = {
     domain: domain.name,
     measureIds: domain.measures.map(({ id }) => id),
-    dimensionIds: domain.dimensions.map(({ id }) => id),
-    filters: [],
+    dimensionIds: ["gl_code", "month"],
+    filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
   };
   const built = new SqlBuilder().build(domain, selection, user);
   const adapterRows = (await new PostgresAdapter().execute(built.sql)).rows;
   const rawRows = (await pool.query<RawGoldenRow>(built.sql.replace(/\nLIMIT \d+$/, "\nLIMIT 1000"))).rows;
   return { adapterRows, rawRows };
+}
+
+async function assertPlantBreakdowns(pool: Pool): Promise<void> {
+  const domain = new SemanticLayer().domain("governed-financial");
+  assert.ok(domain);
+  const base: Selection = {
+    domain: domain.name,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    dimensionIds: [],
+    filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+  };
+  const builder = new SqlBuilder();
+  for (const dimensionIds of [["plant"], ["gl_code", "plant"], ["month", "plant"], ["gl_code", "month", "plant"]]) {
+    const rows: PlantBreakdownRow[] = (
+      await pool.query<PlantBreakdownRow>(builder.build(domain, { ...base, dimensionIds }, multiPlantUser).sql)
+    ).rows;
+    const chir: PlantBreakdownRow | undefined = rows.find(
+      (row: PlantBreakdownRow) => row.plant === "CHIR" && (!row.gl_code || row.gl_code === "MATCHED"),
+    );
+    const dub: PlantBreakdownRow | undefined = rows.find(
+      (row: PlantBreakdownRow) => row.plant === "DUB" && (!row.gl_code || row.gl_code === "MATCHED"),
+    );
+    assert.equal(chir?.actual, "900.00");
+    assert.equal(chir?.budget, "0.00");
+    if (dimensionIds.includes("gl_code")) {
+      assert.equal(dub?.actual, "125.00");
+      assert.equal(dub?.budget, "200.00");
+    } else {
+      assert.equal(dub?.actual, "300.00");
+      assert.equal(dub?.budget, "750.00");
+    }
+  }
+
+  const summed = (
+    await pool.query<{ gl_code: string; actual: string; budget: string }>(
+      builder.build(domain, { ...base, dimensionIds: ["gl_code"] }, multiPlantUser).sql,
+    )
+  ).rows.find((row) => row.gl_code === "MATCHED");
+  assert.equal(summed?.actual, "1025.00");
+  assert.equal(summed?.budget, "200.00");
 }
 
 function assertGoldenRow(
@@ -258,6 +299,13 @@ interface RawGoldenRow {
   source_presence: string;
   budget_component_labels: string | null;
   active_batch_ids: string;
+}
+
+interface PlantBreakdownRow {
+  plant: string;
+  gl_code?: string;
+  actual: string;
+  budget: string;
 }
 
 function assertRawProvenance(
@@ -330,6 +378,7 @@ function actualRows(): SapTransactionInput[] {
     actualRow("Z1", "Zero", "0.00", "0.00", "PCT-ZERO"),
     actualRow("P1", "Positive", "50.00", "0.00", "PCT-POSITIVE"),
     actualRow("N1", "Negative", "0.00", "50.00", "PCT-NEGATIVE"),
+    actualRow("C1", "Admin", "900.00", "0.00", "MATCHED", "CHIR"),
   ];
 }
 
@@ -350,14 +399,15 @@ function actualRow(
   debit: string,
   credit: string,
   glCode: string,
+  plant = "DUB",
 ): SapTransactionInput {
   return {
     txnNo,
     lineId: "1",
     postingDate: "2099-10-07",
     month: PERIOD,
-    plant: "DUB",
-    plantSrc: "DUB-NUR",
+    plant,
+    plantSrc: `${plant}-NUR`,
     costCenter,
     glCode,
     acctName: "Golden financial proof",
@@ -421,4 +471,12 @@ const user: AuthUser = {
   roles: ["admin"],
   permissions: { domains: [], measureIds: [], dimensionIds: [], actions: [] },
   scope: [{ attribute: "plant", value: "DUB" }],
+};
+
+const multiPlantUser: AuthUser = {
+  ...user,
+  scope: [
+    { attribute: "plant", value: "CHIR" },
+    { attribute: "plant", value: "DUB" },
+  ],
 };

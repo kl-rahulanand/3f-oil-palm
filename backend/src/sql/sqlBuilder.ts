@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { AuthUser, DomainSpec, MeasureFilter, MeasureSpec, Selection } from "@3f/contract";
 import { loadConfig } from "../config";
+import { MAPPING_MASTER } from "../mapping/mapping-master";
 import { SQL_BUILDER_MESSAGES } from "./sql.constants";
 
 export interface BuiltQuery {
@@ -25,6 +26,11 @@ export interface StatementProjectionPeriod {
   to: string;
 }
 
+export interface GovernedFinancialQueryContext {
+  budgetOwnerPlant?: string;
+  budgetComparisonPlants?: string[];
+}
+
 /**
  * The ONE SQL-construction path (eng review C1). Composes SQL from a VALIDATED selection
  * using each measure's verified expr, and injects the RBAC row predicate from trusted
@@ -41,6 +47,7 @@ export class SqlBuilder {
     user: AuthUser,
     includeProvenance = true,
     resolvedScope?: GovernedSelectionScope,
+    queryContext?: GovernedFinancialQueryContext,
   ): BuiltQuery {
     if (domain.goldObject === "statement_relation") {
       const { from, to } = selection.timeWindow ?? {};
@@ -96,6 +103,7 @@ export class SqlBuilder {
     for (const f of selection.filters) {
       const dim = domain.dimensions.find((d) => d.id === f.dimensionId);
       if (!dim) continue;
+      if (domain.composed && dim.column === domain.scopeColumn) continue;
       if (f.op === "in" && Array.isArray(f.value)) {
         where.push(`${dim.column} IN (${f.value.map((v) => this.lit(v)).join(", ")})`);
       } else if (typeof f.value === "string") {
@@ -131,7 +139,13 @@ export class SqlBuilder {
     const whereSql = where.length ? `\nWHERE ${where.join("\n  AND ")}` : "";
 
     const composedCtes = domain.composed
-      ? this.composedCtes(domain.composed.sources, scopePredicate, scopeValues, timePredicate, resolvedScope)
+      ? this.composedCtes(
+          domain.composed.sources,
+          this.effectivePlants(selection, scopeValues, queryContext?.budgetComparisonPlants),
+          queryContext?.budgetOwnerPlant ?? this.budgetOwnerPlant(),
+          timePredicate,
+          resolvedScope,
+        )
       : undefined;
     const sql =
       (composedCtes ? `${composedCtes}\n` : "") +
@@ -163,12 +177,13 @@ export class SqlBuilder {
     selection: Selection,
     user: AuthUser,
     resolvedScope?: GovernedSelectionScope,
+    queryContext?: GovernedFinancialQueryContext,
   ): BuiltQuery {
     if (!selection.measureFilters?.length) {
-      return this.build(domain, { ...selection, dimensionIds: [] }, user, false, resolvedScope);
+      return this.build(domain, { ...selection, dimensionIds: [] }, user, false, resolvedScope, queryContext);
     }
 
-    const grouped = this.build(domain, selection, user, false, resolvedScope);
+    const grouped = this.build(domain, selection, user, false, resolvedScope, queryContext);
     const measures = selection.measureIds.map((id) => this.measure(domain, id));
     const totals = measures.map((measure) => {
       const alias = measure.id.split(".").pop()!;
@@ -337,35 +352,35 @@ LIMIT ${Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows)}
 
   private composedCtes(
     [actualSource, budgetSource]: [string, string],
-    scopePredicate: string | undefined,
-    scopeValues: string[],
+    effectivePlants: string[],
+    budgetOwnerPlant: string,
     timePredicate?: string,
     resolvedScope?: GovernedSelectionScope,
   ): string {
-    if (!scopePredicate) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
     const actualRelation = resolvedScope ? "actual_by_key_month" : actualSource;
     const actualProjection = resolvedScope
-      ? "gl_code, month, SUM(actual_net)::numeric(18,2) AS actual_net"
-      : "gl_code, month, actual_net";
+      ? "plant, gl_code, month, SUM(actual_net)::numeric(18,2) AS actual_net"
+      : "plant, gl_code, month, actual_net";
     const triplePredicate = resolvedScope
       ? `\n    AND (plant, cost_center, gl_code) IN (${resolvedScope.triples
           .map(({ plant, costCenter, glCode }) => `(${this.lit(plant)}, ${this.lit(costCenter)}, ${this.lit(glCode)})`)
           .join(", ")})`
       : "";
-    const actualGroupBy = resolvedScope ? "\n  GROUP BY gl_code, month" : "";
+    const actualGroupBy = resolvedScope ? "\n  GROUP BY plant, gl_code, month" : "";
     const budgetPredicate = resolvedScope
       ? `\n    AND (gl_code IN (${resolvedScope.glCodes.map((value) => this.lit(value)).join(", ")}) OR gl_code NOT IN (${resolvedScope.masterGlCodes.map((value) => this.lit(value)).join(", ")}))`
       : "";
     return `WITH actual_src AS (
   SELECT ${actualProjection}
   FROM ${actualRelation}
-  WHERE ${scopePredicate}${timePredicate ? `\n    AND ${timePredicate}` : ""}${triplePredicate}${actualGroupBy}
+  WHERE plant IN (${effectivePlants.map((value) => this.lit(value)).join(", ")})${timePredicate ? `\n    AND ${timePredicate}` : ""}${triplePredicate}${actualGroupBy}
 ), budget_src AS (
-  SELECT gl_code, month, budget_net, rollover_net, budget_component_labels
+  SELECT ${this.lit(budgetOwnerPlant)}::text AS plant, gl_code, month, budget_net, rollover_net, budget_component_labels
   FROM ${budgetSource}
-  WHERE 'DUB' IN (${scopeValues.map((value) => this.lit(value)).join(", ")})${timePredicate ? `\n    AND ${timePredicate}` : ""}${budgetPredicate}
+  WHERE ${this.lit(budgetOwnerPlant)} IN (${effectivePlants.map((value) => this.lit(value)).join(", ")})${timePredicate ? `\n    AND ${timePredicate}` : ""}${budgetPredicate}
 ), financial_relation AS (
-  SELECT COALESCE(actual_src.gl_code, budget_src.gl_code) AS gl_code,
+  SELECT COALESCE(actual_src.plant, budget_src.plant) AS plant,
+    COALESCE(actual_src.gl_code, budget_src.gl_code) AS gl_code,
     COALESCE(actual_src.month, budget_src.month) AS month,
     COALESCE(actual_src.actual_net, 0)::numeric(18,2) AS actual_net,
     COALESCE(budget_src.budget_net, 0)::numeric(18,2) AS budget_net,
@@ -380,7 +395,7 @@ LIMIT ${Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows)}
     budget_batch.id AS budget_batch_id
   FROM actual_src
   FULL OUTER JOIN budget_src
-    ON actual_src.gl_code = budget_src.gl_code AND actual_src.month = budget_src.month
+    ON actual_src.plant = budget_src.plant AND actual_src.gl_code = budget_src.gl_code AND actual_src.month = budget_src.month
   LEFT JOIN ingest_batch actual_batch
     ON actual_src.gl_code IS NOT NULL
       AND actual_batch.source_kind = 'actuals'
@@ -392,6 +407,32 @@ LIMIT ${Math.min(selection.limit ?? loadConfig().maxRows, loadConfig().maxRows)}
       AND budget_batch.period = COALESCE(actual_src.month, budget_src.month)
       AND budget_batch.is_active
 )`;
+  }
+
+  private effectivePlants(selection: Selection, grantedPlants: string[], budgetComparisonPlants?: string[]): string[] {
+    const selectedPlants = selection.filters
+      .filter(({ dimensionId, op, value }) => dimensionId === "plant" && op === "in" && Array.isArray(value))
+      .flatMap(({ value }) => (Array.isArray(value) ? value : []));
+    const chosenPlants = selectedPlants.length ? selectedPlants : grantedPlants;
+    const granted = new Set(grantedPlants);
+    if (chosenPlants.some((plant) => !granted.has(plant))) {
+      throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
+    }
+    const chosen = new Set(chosenPlants);
+    if (budgetComparisonPlants?.some((plant) => !chosen.has(plant))) {
+      throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
+    }
+    const effective = [...new Set(budgetComparisonPlants ?? chosenPlants)];
+    if (!effective.length) throw new Error(SQL_BUILDER_MESSAGES.missingScopeForScopedDomain);
+    return effective;
+  }
+
+  private budgetOwnerPlant(): string {
+    const owners = [
+      ...new Set(Object.values(MAPPING_MASTER.formats).map(({ budget_owner_plant }) => budget_owner_plant)),
+    ];
+    if (owners.length !== 1) throw new Error("Governed financial query requires one budget owner plant");
+    return owners[0];
   }
 
   /** Quote a trusted (validated) scope/filter value. TODO: replace literals with bind params. */

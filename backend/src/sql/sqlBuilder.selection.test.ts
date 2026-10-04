@@ -18,12 +18,12 @@ test("the composed builder narrows to a resolved selection by filtering the trip
   const actualCte = selected.sql.match(/actual_src AS \(([\s\S]*?)\n\), budget_src/)?.[1] ?? "";
   const budgetCte = selected.sql.match(/budget_src AS \(([\s\S]*?)\n\), financial_relation/)?.[1] ?? "";
 
-  assert.match(actualCte, /SELECT gl_code, month, SUM\(actual_net\)::numeric\(18,2\) AS actual_net/);
+  assert.match(actualCte, /SELECT plant, gl_code, month, SUM\(actual_net\)::numeric\(18,2\) AS actual_net/);
   assert.match(actualCte, /FROM actual_by_key_month/);
   assert.match(actualCte, /WHERE plant IN \('DUB'\)/);
   assert.match(actualCte, /month >= '2026-04-01' AND month < '2026-07-02'/);
   assert.match(actualCte, /\(plant, cost_center, gl_code\) IN \(\('DUB', 'Primary', '5000'\)\)/);
-  assert.match(actualCte, /GROUP BY gl_code, month$/);
+  assert.match(actualCte, /GROUP BY plant, gl_code, month$/);
   assert.match(budgetCte, /FROM budget_by_gl_month/);
   assert.match(budgetCte, /month >= '2026-04-01' AND month < '2026-07-02'/);
   assert.match(budgetCte, /gl_code IN \('5000'\) OR gl_code NOT IN \('5000', '6000'\)/);
