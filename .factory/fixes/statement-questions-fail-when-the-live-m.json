@@ -1,0 +1,14 @@
+{
+  "base": "a19091bd4d93954a200eb0067a28bd50cf8dca64",
+  "branch": "fix/statement-questions-fail-when-the-live-m",
+  "done_when": "a statement-domain selection whose month filter names one month becomes or matches the selection's period instead of being rejected as unsupported, so 'What was the Actual for each MIS statement line in July 2026?' reliably reaches the plant picker; leaves in bedrock.provider.test.ts",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-04T18:14:09+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Statement questions fail when the live model adds a month filter to a domain without a month field"
+}
