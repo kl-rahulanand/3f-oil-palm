@@ -1,10 +1,38 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-MONTH-FILTER",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "83a8cb278b76ecb42f8c532faecd9b0bb328c49db1ac98f6f7ee232eec05eaab",
+    "commit": "67a7f7093b5fafaeb7718839d26038124eba7ae3",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The helper is called only after `normalizeFilterValues`. That earlier step looks up the `month` dimension and can return a clarification when the exact redundant value is absent from the loaded distinct values\u2014for example, for a valid single-month window with no warehouse rows. The request then exits before this line, whereas the equivalent selection without the month filter would execute and return no rows. Resolve the final time window and drop the redundant filter before ordinary filter-value normalization. The service test misses this because its fake month vocabulary exceeds `dimensionEnumMax`, bypassing normalization.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 545,
+        "priority": "P1",
+        "title": "Not done: remove the redundant month filter before normalization can reject it"
+      },
+      {
+        "body": "The asserted row equivalence is supplied entirely by `FakeExecutor`, which returns the same fixed `RESULT` for every selection and ignores all filters. This assertion therefore passes even if the real selection/SQL path would produce different rows; it proves only the mock. Keep the executed-selection assertion, but run both cases through the real `SelectionExecutor` and a filter-sensitive warehouse boundary or the gated warehouse so the required identical-row behavior can actually fail when broken.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 148,
+        "priority": "P1",
+        "title": "Not done: prove row equivalence without a constant-result executor"
+      }
+    ],
+    "status": "blocked",
+    "tree": "000bd88117be79e864acfb00f31f65bf82c43653036bf832b5bf5465a1c280d9"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T13:54:47+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T14:04:53+00:00",
+      "step": "review"
     }
   ]
 }
