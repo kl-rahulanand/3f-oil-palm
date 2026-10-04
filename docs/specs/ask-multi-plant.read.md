@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:32:23+00:00
-read_hash: aba607e77cbfaf057c8d1db84f1afae6570e9ce5
-round: 12
-passed: no
-doc_seen: aba607e77cbfaf057c8d1db84f1afae6570e9ce5
+read_at: 2026-10-04T07:34:05+00:00
+read_hash: 45e28aec6e205a0007c7777035c7fe544fca3917
+round: 13
+passed: yes
+doc_seen: 45e28aec6e205a0007c7777035c7fe544fca3917
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 1a12ac1cbf817d972476f73ab0df5e16f32e8f77
+notes_seen: 8f7716d77f7429aed59f2e205a64f7738116c3ee
 ---
 # Cold read notes
 
@@ -240,3 +240,7 @@ No findings.
 47. Gap: the no-budget informational statement response leaves “View in report” undefined.
    `viewInReport` is a required response field, while C8 permits it for a single-plant statement answer; a CHIR-only over-budget statement question has no result or provenance. Specify whether it is unavailable and its reason, then prove the no-budget path cannot offer an unrelated report link.
    Disposition: cut the no-budget answer's `viewInReport` is unavailable with the stated reason; C7 proves it for a statement question.
+
+## Round 13
+
+No findings.
