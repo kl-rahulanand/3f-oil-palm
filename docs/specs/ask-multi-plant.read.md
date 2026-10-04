@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:48:36+00:00
-read_hash: 9556773e6f8012ba81f88a2cdad0c149847d23d9
-round: 22
+read_at: 2026-10-04T08:50:10+00:00
+read_hash: 287a6db440cbe2afb337642ffa6b5a2d763167fb
+round: 23
 passed: no
-doc_seen: 9556773e6f8012ba81f88a2cdad0c149847d23d9
+doc_seen: 287a6db440cbe2afb337642ffa6b5a2d763167fb
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 972527193c60b69a45b40c344461ee249dab75a3
+notes_seen: f3d3fbf92d95d989dc135b6667a2952457c459b4
 ---
 # Cold read notes
 
@@ -322,3 +322,9 @@ No findings.
 62. Gap: C11 normalises away a raw month filter in the probe but does not require it to be removed or refused before an Ask selection executes.
    The selector explicitly forbids period values in filters, and such a filter can make a domain unanswerable. Pin the runtime handling and prove the raw live-model regression cannot reach the query.
    Disposition: cut the server now removes a month equality filter on exactly a single-month timeWindow's month before any Ask selection executes; C11a proves the query runs without it and returns the same rows.
+
+## Round 23
+
+63. Unproven: C11a: non-redundant month-filter cases have no leaf proving the cleanup leaves them to existing handling.
+   Pin and test mismatched, range/unwindowed, and multiple-filter selections so only the exact scalar `month`-equals-single-calendar-month case is removed; an over-broad cleanup could silently widen an edited or saved query.
+   Disposition: cut the removal is pinned to one exact shape (month, eq, a single value equal to the one calendar month of the window); C11a adds leaves proving the mismatched, in, neq, multi-month, unwindowed and multiple-filter cases reach the query unchanged.
