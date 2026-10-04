@@ -258,8 +258,228 @@ test("a DUB and CHIR statement runs one combined mapped statement", async () => 
   assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
   assert.deepEqual(response.viewInReport, {
     available: false,
-    reason: "The answer does not resolve to one statement selector set.",
+    reason: "This answer covers several plants and cannot open one statement.",
   });
+});
+
+test("a DUB and CHIR budget comparison reads DUB only and names CHIR as left out", async () => {
+  const comparison: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const activeBatchIds: ProvenanceBatch[] = [
+    { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+    { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+  ];
+  const fixture = makeFixture({
+    selection: comparison,
+    activeBatchIds,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "5001", actual: "12.00", budget: "10.00" }],
+    },
+    summaries: [{ rowKey: "5001", feedingLineCount: 1, value: "12.00" }],
+  });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Actual over Budget for DUB and CHIR in July 2026");
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(response.leftOut, {
+    reason: "budget-not-loaded",
+    plants: ["Agriculture - Nursery - CHIR"],
+  });
+  assert.deepEqual(response.plantNames, { DUB: "Agri - Nursery - DUB" });
+  assert.equal(response.provenance?.scope, "plant=Agri - Nursery - DUB");
+  assert.deepEqual(response.budgetStates, [
+    { key: "5001", state: "loaded", plantsInRow: ["DUB"], plantsWithBudget: ["DUB"] },
+  ]);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.plants, ["DUB"]);
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") assert.deepEqual(verified.claims.plants, ["DUB"]);
+
+  const rerun = await fixture.service.ask(
+    user,
+    "session",
+    "Run the saved comparison",
+    response.selection,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "saved-view",
+  );
+  assert.deepEqual(fixture.executor.selections[1]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(rerun.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(rerun.leftOut, response.leftOut);
+});
+
+test("a summed DUB and CHIR row stays partial when CHIR has no activity", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget", "governed-financial.percentage"],
+  };
+  const fixture = makeFixture({
+    selection,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+        { key: "percentage", label: "%", numeric: true, format: "percent" },
+      ],
+      rows: [{ gl_code: "5001", actual: "12.00", budget: "10.00", percentage: "1.2" }],
+    },
+  });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget", "governed-financial.percentage");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Actual Budget and percentage for DUB and CHIR in July 2026",
+  );
+
+  assert.deepEqual(response.budgetStates, [
+    { key: "5001", state: "partial", plantsInRow: ["CHIR", "DUB"], plantsWithBudget: ["DUB"] },
+  ]);
+  assert.deepEqual(response.result?.rows[0], { gl_code: "5001", actual: "12.00", budget: null, percentage: null });
+});
+
+test("a budget comparison with no loaded plant returns the no-budget informational answer without a figure read", async () => {
+  const comparison: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const fixture = makeFixture({ selection: comparison });
+  const user = userForPlants("governed-financial", ["CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Actual over Budget for CHIR in July 2026");
+
+  assert.equal(response.responseClass, ResponseClass.Informational);
+  assert.equal(response.message, "Budget is not loaded for any chosen plant, so nothing was compared.");
+  assert.deepEqual(response.leftOut, {
+    reason: "budget-not-loaded",
+    plants: ["Agriculture - Nursery - CHIR"],
+  });
+  assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR"] }]);
+  assert.deepEqual(response.viewInReport, {
+    available: false,
+    reason: "Budget is not loaded for any chosen plant.",
+  });
+  assert.equal(response.result, undefined);
+  assert.equal(response.provenance, undefined);
+  assert.equal(response.plantNames, undefined);
+  assert.equal(response.budgetStates, undefined);
+  assert.equal(response.drill, undefined);
+  assert.equal(fixture.executor.calls, 0);
+  assert.equal(fixture.audit.requests, 1, "only the turn entry is audited; no execution audit is written");
+});
+
+test("an unwindowed DUB comparison uses active Actual months and reads no figures when one lacks Budget", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    timeWindow: undefined,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const fixture = makeFixture({
+    selection,
+    loadedBudgetMonths: ["2026-07-01"],
+    activeActualPins: [
+      { source: "actuals", period: "2026-06-01", batchId: "actual-june" },
+      { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+    ],
+  });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Show the selected comparison for DUB");
+
+  assert.equal(response.responseClass, ResponseClass.Informational);
+  assert.deepEqual(response.leftOut, { reason: "budget-not-loaded", plants: ["Agri - Nursery - DUB"] });
+  assert.deepEqual(fixture.transactions.activePinCalls, [{ from: "0001-01-01", to: "9999-12-31" }]);
+  assert.equal(fixture.executor.calls, 0);
+  assert.equal(fixture.audit.requests, 1);
+});
+
+test("a DUB-only comparison with loaded Budget has no left-out notice", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const fixture = makeFixture({ selection, result: { columns: [], rows: [] } });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Actual over Budget for DUB in July 2026");
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.equal(response.leftOut, undefined);
+  assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+});
+
+test("successful answers expose exactly the one three or four plants they read", async () => {
+  const cases = [
+    { plants: ["DUB"], scope: "plant=Agri - Nursery - DUB" },
+    {
+      plants: ["CHIR", "DUB", "VJM"],
+      scope: "plant=Agriculture - Nursery - CHIR, plant=Agri - Nursery - DUB, plant=Operations - Unit - VJM",
+    },
+    {
+      plants: ["AP-AGRI", "CHIR", "DUB", "VJM"],
+      scope:
+        "plant=Operations - Unit - AP-AGRI, plant=Agriculture - Nursery - CHIR, plant=Agri - Nursery - DUB, plant=Operations - Unit - VJM",
+    },
+  ];
+  for (const entry of cases) {
+    const fixture = makeFixture({ selection: financialSelection });
+    const response = await fixture.service.ask(
+      userForPlants("governed-financial", [...entry.plants, "CK"]),
+      "session",
+      `Show Actual for ${entry.plants.join(" and ")} in July 2026`,
+    );
+    assert.deepEqual(Object.keys(response.plantNames ?? {}), [...entry.plants].sort(), entry.plants.join(","));
+    assert.equal(response.provenance?.scope, entry.scope, entry.plants.join(","));
+    assert.doesNotMatch(response.provenance?.scope ?? "", /department=|function=|plant=CK/);
+  }
 });
 
 test("edited saved pinned and continuation selections without a plant filter use the same plant rule", async () => {
@@ -2141,7 +2361,10 @@ test("a measure-filtered answer records comparison chips readback and applied fi
       compareTo: { kind: "value", value: "000500000.00" },
     },
   ];
-  const fixture = makeFixture({ selection: { ...financialSelection, measureFilters } });
+  const fixture = makeFixture({
+    selection: { ...financialSelection, measureFilters },
+    activeActualPins: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+  });
   const user = userFor("governed-financial");
   user.permissions.measureIds.push("governed-financial.budget");
 
@@ -2357,6 +2580,7 @@ function makeFixture(options: {
   activeActualPins?: Array<ProvenanceBatch & { source: "actuals" }>;
   activeActualPinSnapshots?: Array<Array<ProvenanceBatch & { source: "actuals" }>>;
   statementPeriod?: { value: string; label: string; from: string; to: string };
+  loadedBudgetMonths?: string[];
 }) {
   const llmResult: LlmSelectionResult =
     options.kind === "clarify"
@@ -2397,6 +2621,7 @@ function makeFixture(options: {
       }
     : {};
   const resolver = new FakeSelectionResolver(options.statementPeriod);
+  const outlines = new FakeOutlines(options.loadedBudgetMonths ?? ["2026-07-01"]);
   const service = new ChatService(
     semantic,
     executor as never,
@@ -2410,7 +2635,7 @@ function makeFixture(options: {
     names as never,
     transactions as never,
     contexts,
-    new FakeOutlines() as never,
+    outlines as never,
     { outlineDigest: () => "outline-digest" } as never,
   );
   Reflect.set(service, "logger", {
@@ -2460,6 +2685,13 @@ class FakeTransactions {
 }
 
 class FakeOutlines {
+  constructor(private readonly loadedBudgetMonths: string[]) {}
+
+  async findActiveBudgetOutline(period: string) {
+    if (!this.loadedBudgetMonths.includes(period)) throw new Error("Active budget outline is unavailable");
+    return { batchId: BUDGET_BATCH_ID, nodes: [{ nodeKey: "leaf", leafKey: "leaf" }] };
+  }
+
   async findByBudgetBatchId() {
     return [{ nodeKey: "leaf", leafKey: "leaf" }];
   }

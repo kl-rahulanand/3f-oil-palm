@@ -63,6 +63,31 @@ test("a conversation answer snapshot keeps row labels and drops the ephemeral dr
   assert.equal("drill" in turn.answer, false);
 });
 
+test("a conversation answer snapshot keeps plant names budget states and left-out plants", async () => {
+  const selection: Selection = {
+    domain: "governed-financial",
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    dimensionIds: ["gl_code"],
+    filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+  };
+  const answer: ConversationAnswerSnapshot = {
+    plantNames: { DUB: "Agri - Nursery - DUB" },
+    budgetStates: [{ key: "5001", state: "loaded", plantsInRow: ["DUB"], plantsWithBudget: ["DUB"] }],
+    leftOut: { reason: "budget-not-loaded", plants: ["Agriculture - Nursery - CHIR"] },
+  };
+  const service = new ConversationsService(conversationDb() as never);
+
+  const turn = await service.appendTurn("user-1", "conversation-1", {
+    question: "Which lines are over budget?",
+    selection,
+    answer,
+  });
+
+  assert.deepEqual(turn.answer.plantNames, answer.plantNames);
+  assert.deepEqual(turn.answer.budgetStates, answer.budgetStates);
+  assert.deepEqual(turn.answer.leftOut, answer.leftOut);
+});
+
 function conversationDb(): object {
   return {
     transaction: async (run: (tx: object) => Promise<unknown>) => run(conversationTransaction()),

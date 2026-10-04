@@ -38,6 +38,7 @@ import {
   statementPeriodOptions,
 } from "../mapping/selection-resolver.service";
 import type { MasterResolvedPlantSet, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
+import { MAPPING_MASTER } from "../mapping/mapping-master";
 import { StatementAttestationService } from "../mis/statement-attestation";
 import type { DrillPredicate } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
@@ -61,6 +62,7 @@ import {
   validatePlantFilter,
 } from "./plant-set";
 import { withoutRedundantMonthFilter } from "./redundant-month-filter";
+import { applyBudgetStates, comparisonNeedsBudget, monthsInWindow } from "./ask-budget-states";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -573,6 +575,50 @@ export class ChatService {
       });
     }
 
+    const requestedSelection = selection;
+    const requestedPlants = selectedPlantCodes(requestedSelection);
+    const budgetOwnerPlant = budgetOwnerForPlants(requestedPlants);
+    const showsBudgetState = requestedSelection.measureIds.some(isBudgetStateMeasure);
+    const needsBudgetComparison = comparisonNeedsBudget(requestedSelection);
+    let answerMonths: string[] = [];
+    let loadedBudgetMonths: string[] = [];
+    if (showsBudgetState || needsBudgetComparison) {
+      answerMonths = appliedTimeWindow
+        ? monthsInWindow(appliedTimeWindow.from, appliedTimeWindow.to)
+        : [
+            ...new Set(
+              (await this.drillTransactions.findActiveActualPins("0001-01-01", "9999-12-31")).map(
+                ({ period }) => `${period.slice(0, 7)}-01`,
+              ),
+            ),
+          ].sort();
+      loadedBudgetMonths = await loadedBudgetPeriods(answerMonths, this.outlines);
+    }
+    let plantsRead = requestedPlants;
+    let leftOut: AskResponse["leftOut"];
+    if (needsBudgetComparison) {
+      const ownerLoaded = answerMonths.length > 0 && answerMonths.every((month) => loadedBudgetMonths.includes(month));
+      plantsRead = ownerLoaded && requestedPlants.includes(budgetOwnerPlant) ? [budgetOwnerPlant] : [];
+      const omittedPlants = requestedPlants.filter((plant) => !plantsRead.includes(plant));
+      if (omittedPlants.length > 0) {
+        leftOut = { reason: "budget-not-loaded", plants: plantDisplayNames(omittedPlants) };
+      }
+      if (plantsRead.length === 0) {
+        return done({
+          responseClass: ResponseClass.Informational,
+          message: "Budget is not loaded for any chosen plant, so nothing was compared.",
+          selection: requestedSelection,
+          leftOut,
+          viewInReport: { available: false, reason: "Budget is not loaded for any chosen plant." },
+        });
+      }
+      selection = replacePlantFilter(selection, {
+        dimensionId: PLANT_DIMENSION_ID,
+        op: "in",
+        value: plantsRead,
+      });
+    }
+
     let statementExecutionScope: MasterResolvedSelection | MasterResolvedPlantSet | undefined;
     let statementScope: MasterResolvedSelection | undefined;
     let answerPeriodOptions: AskPeriodOption[] | undefined;
@@ -606,6 +652,7 @@ export class ChatService {
 
     let sql: string;
     let result: ResultTable;
+    let budgetStates: AskResponse["budgetStates"];
     let totals: Record<string, number> | undefined;
     let activeBatchIds: NonNullable<Provenance["activeBatchIds"]> = [];
     let budgetComponentLabels: string[] = [];
@@ -657,7 +704,15 @@ export class ChatService {
           }
         },
       });
-      result = execution.result;
+      const budgetPresentation = applyBudgetStates({
+        selection,
+        result: execution.result,
+        budgetOwnerPlant,
+        answerMonths,
+        loadedBudgetMonths,
+      });
+      result = budgetPresentation.result;
+      budgetStates = budgetPresentation.budgetStates;
       totals = execution.totals;
       sql = execution.sql;
       activeBatchIds = execution.activeBatchIds;
@@ -696,7 +751,8 @@ export class ChatService {
     // 8. Format + provenance. Persist the successful answer in the durable conversation.
     onEvent?.({ type: "phase", phase: "summarizing" });
     const impliedFilters = selectedMeasures.flatMap((measure) => measure.impliedFilters);
-    const scope = user.scope.map((s) => `${s.attribute}=${s.value}`).join(", ") || "all permitted";
+    const plantNames = Object.fromEntries(plantsRead.map((plant) => [plant, plantDisplayName(plant)]));
+    const scope = plantsRead.map((plant) => `plant=${plantNames[plant]}`).join(", ");
     const provenance: Provenance = {
       verified: isVerifiedSelection(selection, (domainName, measureId) => this.semantic.measure(domainName, measureId)),
       measureIds: selection.measureIds,
@@ -755,7 +811,7 @@ export class ChatService {
       chips: this.chips(domain, selection),
       // The fully-resolved selection (post normalize + time-window) so the client can
       // save/pin/edit it and re-run deterministically (H1/I1). Never SQL — just the selection.
-      selection,
+      selection: requestedSelection,
       result,
       ...(result.rows.length === 0 && selection.measureFilters?.length
         ? { message: emptyMeasureFilterMessage(domain, selection, appliedTimeWindow, answerPeriodOptions) }
@@ -763,10 +819,13 @@ export class ChatService {
       ...(totals ? { totals } : {}),
       provenance,
       appliedTimeWindow,
-      appliedFilters: selection.filters,
+      appliedFilters: requestedSelection.filters,
       appliedMeasureFilters: selection.measureFilters,
       periodControl: buildPeriodControl(selection, appliedTimeWindow, answerPeriodOptions),
       viewInReport: buildViewInReport(domain, selection, statementScope, activeBatchIds),
+      plantNames,
+      ...(budgetStates ? { budgetStates } : {}),
+      ...(leftOut ? { leftOut } : {}),
       ...presentation,
       ...answerMetadata,
     };
@@ -1601,6 +1660,9 @@ function buildViewInReport(
   if (domain.name !== "mis-statement") {
     return { available: false, reason: "This answer was not executed against the MIS statement." };
   }
+  if (selectedPlantCodes(selection).length > 1) {
+    return { available: false, reason: "This answer covers several plants and cannot open one statement." };
+  }
   if (!statementScope) {
     return { available: false, reason: "The answer does not resolve to one statement selector set." };
   }
@@ -1612,6 +1674,48 @@ function buildViewInReport(
     period: statementScope.period.value,
     activeBatchIds,
   };
+}
+
+async function loadedBudgetPeriods(
+  periods: string[],
+  outlines: Pick<StatementOutlineRepository, "findActiveBudgetOutline">,
+): Promise<string[]> {
+  const loaded: string[] = [];
+  for (const period of periods) {
+    try {
+      await outlines.findActiveBudgetOutline(period);
+      loaded.push(period);
+    } catch (error) {
+      if ((error as Error).message !== "Active budget outline is unavailable") throw error;
+    }
+  }
+  return loaded;
+}
+
+function budgetOwnerForPlants(plants: string[]): string {
+  const formats = new Set(
+    MAPPING_MASTER.selections
+      .filter(({ plant_canonical }) => plants.includes(plant_canonical))
+      .map(({ mis_format }) => mis_format),
+  );
+  const format = [...formats][0];
+  if (!format) throw new Error("Selected plants are missing from the mapping master");
+  return MAPPING_MASTER.formats[format].budget_owner_plant;
+}
+
+function plantDisplayNames(plants: string[]): string[] {
+  return plants.map(plantDisplayName);
+}
+
+function plantDisplayName(plant: string): string {
+  return (
+    MAPPING_MASTER.selections.find(({ plant_canonical }) => plant_canonical === plant)?.plant_aliases.display[0] ??
+    plant
+  );
+}
+
+function isBudgetStateMeasure(measureId: string): boolean {
+  return ["budget", "budget_net", "percentage"].includes(measureId.split(".").at(-1)!);
 }
 
 type StatementRequestResult =

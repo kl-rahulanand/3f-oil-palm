@@ -259,5 +259,8 @@ function answerSnapshot(answer: ConversationAnswerSnapshot): ConversationAnswerS
     ...(answer.appliedFilters === undefined ? {} : { appliedFilters: answer.appliedFilters }),
     ...(answer.appliedMeasureFilters === undefined ? {} : { appliedMeasureFilters: answer.appliedMeasureFilters }),
     ...(answer.appliedTimeWindow === undefined ? {} : { appliedTimeWindow: answer.appliedTimeWindow }),
+    ...(answer.plantNames === undefined ? {} : { plantNames: answer.plantNames }),
+    ...(answer.budgetStates === undefined ? {} : { budgetStates: answer.budgetStates }),
+    ...(answer.leftOut === undefined ? {} : { leftOut: answer.leftOut }),
   };
 }
