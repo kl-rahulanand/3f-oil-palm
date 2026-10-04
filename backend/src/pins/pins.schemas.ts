@@ -12,6 +12,19 @@ import type {
 import { z } from "zod";
 import { ExplorationSelectionDto, chartTypeSchema, selectionSchema } from "../saved/saved.schemas";
 
+const pinStatusReasonSchema = z.enum(["grant_revoked", "definition_unregistered", "plants_revoked"]);
+
+export const pinStatusSchema = z.union([
+  z.object({ runnable: z.literal(true) }).strict(),
+  z
+    .object({
+      runnable: z.literal(false),
+      reason: pinStatusReasonSchema,
+      message: z.string(),
+    })
+    .strict(),
+]) satisfies z.ZodType<ExplorationSelectionStatus>;
+
 export const chartViewSchema = z
   .object({
     chartType: chartTypeSchema.optional(),
@@ -108,7 +121,7 @@ export class PinResponseDto implements Pin {
         type: "object",
         properties: {
           runnable: { type: "boolean", enum: [false] },
-          reason: { type: "string", enum: ["grant_revoked", "definition_unregistered", "plants_revoked"] },
+          reason: { type: "string", enum: pinStatusReasonSchema.options },
           message: { type: "string" },
         },
         required: ["runnable", "reason", "message"],
