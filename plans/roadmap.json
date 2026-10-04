@@ -304,7 +304,14 @@
       "status": "done",
       "order": 14,
       "completed_at": "2026-10-03T19:47:22+00:00",
-      "outcome": "Ask answers now name every GL line from its SAP account names and every statement line by number and name, and clicking a transaction-backed Actual opens the SAP lines behind it, adding up to the figure to the paisa; live on July 2026 all 21 over-budget GL codes were named, 50001201 opened to ₹83,98,339, and a DUB statement line opened the same lines as the statement screen."
+      "outcome": "Ask answers now name every GL line from its SAP account names and every statement line by number and name, and clicking a transaction-backed Actual opens the SAP lines behind it, adding up to the figure to the paisa; live on July 2026 all 21 over-budget GL codes were named, 50001201 opened to \u20b983,98,339, and a DUB statement line opened the same lines as the statement screen."
+    },
+    {
+      "key": "ASK-MULTI-PLANT",
+      "title": "Every Ask answer works across plants",
+      "spec": "docs/specs/ask-multi-plant.md",
+      "status": "pending",
+      "order": 15
     }
   ],
   "epics": [
