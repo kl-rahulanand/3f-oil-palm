@@ -491,6 +491,175 @@ test("a drillable statement-line Actual opens the signed read for its raw leaf k
   expect(screen.getByRole("dialog", { name: "1.1 Sprout Cost" })).toBeInTheDocument();
 });
 
+test("DUB and CHIR rows of one GL code keep their own name budget state and drill link", async () => {
+  const response = plantBreakdownSuccess("gl_code");
+  response.budgetStates = [
+    { key: "50001201|DUB", state: "loaded", plantsInRow: ["DUB"], plantsWithBudget: ["DUB"] },
+    { key: "50001201|CHIR", state: "not-loaded", plantsInRow: ["CHIR"], plantsWithBudget: [] },
+  ];
+  mocks.ask.mockResolvedValue(response);
+  mocks.runAskDrill.mockResolvedValue(askDrillResponse({ rowKey: "50001201|CHIR" }));
+  renderAsk();
+
+  submit("Show Actual by GL code and plant");
+
+  const table = await screen.findByRole("table");
+  const dub = within(table).getByRole("row", { name: /Duvva Sprout Cost/ });
+  const chir = within(table).getByRole("row", { name: /Chirala Sprout Cost/ });
+  expect(dub).toHaveTextContent("Duvva Nursery");
+  expect(dub).toHaveTextContent("₹90");
+  expect(chir).toHaveTextContent("Chirala Nursery");
+  expect(chir).not.toHaveTextContent("₹90");
+  expect(within(chir).getByLabelText("Budget not loaded for this plant")).toHaveTextContent("—");
+  expect(within(chir).getByLabelText("not loaded")).toHaveTextContent("—");
+
+  fireEvent.click(
+    within(chir).getByRole("button", {
+      name: "Open transactions for 50001201 · Chirala Sprout Cost, Actual ₹50",
+    }),
+  );
+
+  await waitFor(() =>
+    expect(mocks.runAskDrill).toHaveBeenCalledWith({
+      context: "signed-plant-breakdown",
+      rowKey: "50001201|CHIR",
+      page: 1,
+    }),
+  );
+});
+
+test("plant cells show display names for every supported plant result shape", async () => {
+  for (const shape of ["plant", "month-plant", "gl_code", "leaf_key"] as const) {
+    mocks.ask.mockResolvedValueOnce(plantBreakdownSuccess(shape));
+    submitPlantShape(shape);
+    await waitFor(() =>
+      expect(screen.getAllByRole("table")).toHaveLength(
+        shape === "plant" ? 1 : shape === "month-plant" ? 2 : shape === "gl_code" ? 3 : 4,
+      ),
+    );
+    const table = screen.getAllByRole("table").at(-1)!;
+    const plantCell = within(table).getByRole("cell", { name: "Chirala Nursery" });
+    expect(plantCell).toHaveTextContent("Chirala Nursery");
+    expect(plantCell).not.toHaveTextContent(/^CHIR$/);
+  }
+});
+
+test("not-loaded and partial budget states keep Budget and percent columns with accessible dashes", async () => {
+  const response = glLabelSuccess();
+  response.selection = {
+    ...response.selection!,
+    measureIds: ["governed-financial.actual", "governed-financial.budget", "governed-financial.percentage"],
+  };
+  response.result = {
+    columns: [
+      { key: "gl_code", label: "GL code", numeric: false },
+      { key: "actual", label: "Actual", numeric: true, format: "money" },
+      { key: "budget", label: "Budget", numeric: true, format: "money" },
+      { key: "percentage", label: "%", numeric: true, format: "percent" },
+    ],
+    rows: [
+      { gl_code: "one-plant", actual: "50.00", budget: null, percentage: null },
+      { gl_code: "two-plants", actual: "60.00", budget: null, percentage: null },
+      { gl_code: "partial", actual: "70.00", budget: null, percentage: null },
+    ],
+  };
+  response.rowLabels = [];
+  response.budgetStates = [
+    { key: "one-plant", state: "not-loaded", plantsInRow: ["CHIR"], plantsWithBudget: [] },
+    { key: "two-plants", state: "not-loaded", plantsInRow: ["CHIR", "VJM"], plantsWithBudget: [] },
+    { key: "partial", state: "partial", plantsInRow: ["CHIR", "DUB"], plantsWithBudget: ["DUB"] },
+  ];
+  mocks.ask.mockResolvedValue(response);
+  renderAsk();
+
+  submit("Show Actual Budget and percentage");
+
+  const table = await screen.findByRole("table");
+  expect(within(table).getByRole("columnheader", { name: "Budget" })).toBeInTheDocument();
+  expect(within(table).getByRole("columnheader", { name: "%" })).toBeInTheDocument();
+  const onePlant = within(table).getByRole("row", { name: /one-plant/ });
+  expect(within(onePlant).getByLabelText("Budget not loaded for this plant")).toHaveTextContent("—");
+  expect(within(onePlant).getByLabelText("not loaded")).toHaveTextContent("—");
+  const twoPlants = within(table).getByRole("row", { name: /two-plants/ });
+  expect(within(twoPlants).getByLabelText("Budget not loaded for these plants")).toHaveTextContent("—");
+  expect(within(twoPlants).getByLabelText("not loaded")).toHaveTextContent("—");
+  const partial = within(table).getByRole("row", { name: /partial/ });
+  expect(within(partial).getAllByLabelText("Budget loaded for 1 of 2 plants")).toHaveLength(2);
+});
+
+test("one three and four plant answers use compact readouts and keep the full provenance scope", async () => {
+  const cases = [
+    { names: { DUB: "Duvva Nursery" }, readout: "Duvva Nursery" },
+    {
+      names: { CHIR: "Chirala Nursery", DUB: "Duvva Nursery", VJM: "Vijayawada Unit" },
+      readout: "Chirala Nursery, Duvva Nursery, Vijayawada Unit",
+    },
+    {
+      names: {
+        "AP-AGRI": "Andhra Pradesh Agriculture",
+        CHIR: "Chirala Nursery",
+        DUB: "Duvva Nursery",
+        VJM: "Vijayawada Unit",
+      },
+      readout: "4 plants",
+    },
+  ] as const;
+  renderAsk();
+
+  for (const [index, entry] of cases.entries()) {
+    const scope = Object.values(entry.names)
+      .map((name) => `plant=${name}`)
+      .join(", ");
+    mocks.ask.mockResolvedValueOnce({
+      ...success,
+      title: `Plant answer ${index + 1}`,
+      chartType: "table",
+      plantNames: entry.names,
+      provenance: { ...success.provenance!, scope },
+    });
+    submit(`Show plant answer ${index + 1}`);
+    const answer = (await screen.findByRole("heading", { name: `Plant answer ${index + 1}` })).closest("article")!;
+    expect(within(answer).getByLabelText("Plants in answer")).toHaveTextContent(entry.readout);
+    fireEvent.click(within(answer).getByText("How this was calculated"));
+    expect(within(answer).getByText(scope)).toBeInTheDocument();
+  }
+
+  const fourPlantAnswer = screen.getByRole("heading", { name: "Plant answer 3" }).closest("article")!;
+  const fourPlantReadout = within(fourPlantAnswer).getByLabelText("Plants in answer");
+  expect(fourPlantReadout).toHaveClass("min-w-0", "break-words");
+  expect(fourPlantReadout).not.toHaveTextContent("Andhra Pradesh Agriculture");
+});
+
+test("left-out plants render apart from the readout and a no-budget informational answer shows its message without a table", async () => {
+  mocks.ask
+    .mockResolvedValueOnce({
+      ...success,
+      plantNames: { DUB: "Duvva Nursery" },
+      leftOut: { reason: "budget-not-loaded", plants: ["Chirala Nursery"] },
+    })
+    .mockResolvedValueOnce({
+      responseClass: "informational" as AskResponse["responseClass"],
+      sessionId: "session",
+      message: "Budget is not loaded for any chosen plant, so nothing was compared.",
+      leftOut: { reason: "budget-not-loaded", plants: ["Chirala Nursery"] },
+      viewInReport: { available: false, reason: "Budget is not loaded for any chosen plant." },
+    });
+  renderAsk();
+
+  submit("Compare DUB and CHIR");
+  const successAnswer = (await screen.findByRole("heading", { name: "Governed result" })).closest("article")!;
+  expect(within(successAnswer).getByLabelText("Plants in answer")).toHaveTextContent("Duvva Nursery");
+  expect(within(successAnswer).getByText("Left out because Budget is not loaded: Chirala Nursery")).toBeInTheDocument();
+
+  submit("Compare CHIR");
+  const message = await screen.findByText("Budget is not loaded for any chosen plant, so nothing was compared.");
+  const informational = message.closest("article")!;
+  expect(within(informational).getByText("Left out because Budget is not loaded: Chirala Nursery")).toBeInTheDocument();
+  expect(within(informational).queryByRole("table")).not.toBeInTheDocument();
+  expect(within(informational).queryByLabelText("Plants in answer")).not.toBeInTheDocument();
+  expect(within(informational).queryByText("How this was calculated")).not.toBeInTheDocument();
+});
+
 test("a live answer without drill metadata keeps every Actual plain and makes no transaction request", async () => {
   const response = glLabelSuccess();
   response.selection = {
@@ -1673,6 +1842,93 @@ function statementLabelSuccess(rowLabels: AskResponse["rowLabels"] = []): AskRes
       rows: [{ leaf_key: "leaf-sprout", actual: "125.00" }],
     },
   };
+}
+
+function plantBreakdownSuccess(shape: "plant" | "month-plant" | "gl_code" | "leaf_key"): AskResponse {
+  const dimensionIds =
+    shape === "plant"
+      ? ["plant"]
+      : shape === "month-plant"
+        ? ["month", "plant"]
+        : shape === "gl_code"
+          ? ["gl_code", "plant"]
+          : ["leaf_key", "plant"];
+  const identityColumn = shape === "leaf_key" ? "leaf_key" : shape === "gl_code" ? "gl_code" : undefined;
+  const actualKey = shape === "leaf_key" ? "actual_net" : "actual";
+  const budgetKey = shape === "leaf_key" ? "budget_net" : "budget";
+  const columns = [
+    ...(identityColumn
+      ? [{ key: identityColumn, label: identityColumn === "gl_code" ? "GL code" : "Statement leaf", numeric: false }]
+      : []),
+    ...(shape === "month-plant" ? [{ key: "month", label: "Month", numeric: false }] : []),
+    { key: "plant", label: "Plant", numeric: false },
+    { key: actualKey, label: "Actual", numeric: true, format: "money" as const },
+    { key: budgetKey, label: "Budget", numeric: true, format: "money" as const },
+    { key: "percentage", label: "%", numeric: true, format: "percent" as const },
+  ];
+  const identity = identityColumn
+    ? { [identityColumn]: identityColumn === "gl_code" ? "50001201" : "leaf-sprout" }
+    : {};
+  const row = (plant: "DUB" | "CHIR", actual: string, budget: string | null, percentage: string | null) => ({
+    ...identity,
+    ...(shape === "month-plant" ? { month: "2026-07-01" } : {}),
+    plant,
+    [actualKey]: actual,
+    [budgetKey]: budget,
+    percentage,
+  });
+  const keyPrefix =
+    identityColumn === "gl_code"
+      ? "50001201"
+      : identityColumn === "leaf_key"
+        ? "leaf-sprout"
+        : shape === "month-plant"
+          ? "2026-07-01"
+          : "";
+  const key = (plant: string) => (keyPrefix ? `${keyPrefix}|${plant}` : plant);
+  return {
+    ...success,
+    chartType: "table",
+    selection: {
+      domain: shape === "leaf_key" ? "mis-statement" : "governed-financial",
+      measureIds:
+        shape === "leaf_key"
+          ? ["mis-statement.actual_net", "mis-statement.budget_net", "mis-statement.percentage"]
+          : ["governed-financial.actual", "governed-financial.budget", "governed-financial.percentage"],
+      dimensionIds,
+      filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+    },
+    result: { columns, rows: [row("DUB", "100.00", "90.00", "1.111"), row("CHIR", "50.00", null, null)] },
+    plantNames: { CHIR: "Chirala Nursery", DUB: "Duvva Nursery" },
+    rowLabels: identityColumn
+      ? [
+          {
+            key: key("DUB"),
+            label: identityColumn === "gl_code" ? "Duvva Sprout Cost" : "Duvva Sprout line",
+            otherLabels: [],
+          },
+          {
+            key: key("CHIR"),
+            label: identityColumn === "gl_code" ? "Chirala Sprout Cost" : "Chirala Sprout line",
+            otherLabels: [],
+          },
+        ]
+      : undefined,
+    drill: identityColumn
+      ? {
+          context: "signed-plant-breakdown",
+          rows: [
+            { key: key("DUB"), drillable: true },
+            { key: key("CHIR"), drillable: true },
+          ],
+        }
+      : undefined,
+  };
+}
+
+function submitPlantShape(shape: "plant" | "month-plant" | "gl_code" | "leaf_key") {
+  if (!screen.queryByRole("region", { name: "Ask" })) renderAsk();
+  submit(`Show ${shape} plant shape`);
 }
 
 function askDrillResponse(overrides: Partial<AskDrillResponse> = {}): AskDrillResponse {
