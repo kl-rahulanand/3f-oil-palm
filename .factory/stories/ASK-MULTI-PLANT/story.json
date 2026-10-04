@@ -1,0 +1,12 @@
+{
+  "doc": "plans/ASK-MULTI-PLANT.md",
+  "status": "planning",
+  "steps": [
+    {
+      "at": "2026-10-04T08:11:38+00:00",
+      "step": "start"
+    }
+  ],
+  "title": "Every Ask answer works across plants",
+  "touches": 0
+}
