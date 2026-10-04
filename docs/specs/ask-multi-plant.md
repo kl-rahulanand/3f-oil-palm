@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T07:28:40+00:00
+saved: 2026-10-04T07:31:12+00:00
 ---
 
 # Every Ask answer works across plants
@@ -163,9 +163,13 @@ decision 0033.
 - A comparison that needs a budget (e.g. Actual over Budget) reads only the chosen plants that have a
   loaded budget. That restriction is in the query itself, before grouping, ordering, the row limit,
   totals and drill preparation. Every row of such an answer is therefore `loaded`, and its totals cover
-  exactly the plants compared. The answer says which chosen plants were left out: "Left out because
-  Budget is not loaded: <names>". When no chosen plant has a budget, nothing is read and the answer says
-  so with the same readout.
+  exactly the plants compared. The answer carries a typed `AskResponse.leftOut: { reason:
+  "budget-not-loaded", plants: [<display names>] }`, rendered as "Left out because Budget is not loaded:
+  <names>". This is an explanation of what was not compared, separate from the plant readout, which names
+  only the plants read.
+- When no chosen plant has a budget, nothing is read. The answer is `responseClass` Informational with
+  the same `leftOut` and the copy "Budget is not loaded for any chosen plant, so nothing was compared." It
+  carries no result table, no provenance, no plant readout, no `budgetStates` and no drill context.
 
 ### Names, transactions and links
 
@@ -203,10 +207,24 @@ decision 0033.
   | `no-plants-granted` | the reader holds no plant | `[]` | "You do not have access to any plant." |
 
   Client leaves render each row's copy from its reason.
-- Checks run in a fixed order, and the first that applies decides: `no-plants-granted`, then
-  `plant-filter-invalid`, then `plant-not-granted` (including the pre-selector name check), then
-  `plants-revoked` or `choice-plants-revoked`. So a reader with no plant who names CHIR is refused as
-  `no-plants-granted`, with no provider call and no read.
+- The request's origin decides which reason a no-longer-held plant gets. A saved view or pin re-run is
+  identified by the existing server-resolved `reportGrounding.reportId`. A picker or period continuation
+  is identified by a new optional `AskRequest.choiceOrigin: "plant-choice" | "period-choice"`, which the
+  client sets when it submits a choice. It only selects the refusal wording and never widens access.
+- Checks run in a fixed order, and the first that applies decides:
+  1. `no-plants-granted`;
+  2. `plant-filter-invalid`;
+  3. a plant the reader does not hold: `plants-revoked` for a saved view or pin re-run,
+     `choice-plants-revoked` for a request with `choiceOrigin`, otherwise `plant-not-granted` (including
+     the pre-selector name check).
+  So a reader with no plant who names CHIR is refused as `no-plants-granted`, with no provider call and no
+  read.
+- The contract carries every new value as a typed union, with matching request and response schemas and
+  Swagger: `AskResponse.refusal.reason` (`plant-not-granted`, `plant-filter-invalid`, `plants-revoked`,
+  `choice-plants-revoked`, `no-plants-granted`), `AskResponse.leftOut.reason` (`budget-not-loaded`),
+  `AskRequest.choiceOrigin`, the HTTP `error.details.reason` union (adding `plant-filter-invalid` and
+  `plant-not-granted` to the measure-filter reasons), and the saved-view and pin status reason (adding
+  `plants_revoked` to `grant_revoked` and `definition_unregistered`).
 - Saving a view or pinning a report is not an Ask request. A save or pin whose plant filter is invalid or
   holds a plant the reader does not hold is rejected with HTTP 400 through the existing typed path the
   global exception filter already uses for measure filters: a typed plant-filter error whose reason
@@ -289,7 +307,10 @@ decision 0033.
   - A save and a pin request with a tampered plant filter get HTTP 400 with the stated `userMessage` and
     `details.reason`, proven through the global exception filter, separately from an Ask re-run; the
     dialogs render that message.
-  - A continuation whose chosen plant was revoked is refused as `choice-plants-revoked` with its copy.
+  - A continuation whose chosen plant was revoked is refused as `choice-plants-revoked` with its copy, and
+    a saved view or pin re-run as `plants-revoked`, each reached through its origin; the same plant in a
+    request with no origin is `plant-not-granted`.
+  - Every new reason value round-trips through the contract, the schemas and Swagger.
   - The selection always carries one canonical, sorted, deduplicated `{ dimensionId: "plant", op: "in" }`
     filter, validated at every ingress.
   - The `plantChoice` type round-trips through the contract, the schemas and Swagger.
@@ -322,6 +343,9 @@ decision 0033.
 - **C7 Scope readout.**
   - Every successful data answer states its plant set, and the provenance scope lists exactly the plants read.
   - Pickers, refusals and informational answers carry no plant readout, and use the stated copy.
+  - A budget comparison for CHIR alone is the Informational no-budget answer with `leftOut` naming CHIR,
+    no result table, no provenance, no plant readout and no read. `leftOut` is rendered apart from the
+    plant readout.
   - A leaf with a mixed grant, where the reader holds more plants than the answer reads, proves the effective
     plant predicate reaches provenance, GL names, composite drill rows (GL-code × plant and leaf × plant) and
     the transaction footer, and none of them widens to the grant set.
