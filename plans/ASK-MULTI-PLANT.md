@@ -154,7 +154,9 @@ must prove. Shared rules for every part:
    "n plants" with names in "How this was calculated"); `provenance.scope` lists exactly the plants the
    query read, never the grant list, and no longer lists department or function grants for GL answers.
    A combined statement's readout names its plants, not one plant's department and function. Pickers,
-   refusals and informational answers carry no readout. Leaf: a mixed grant (reader holds more plants
+   refusals and informational answers carry no readout. Leaves: the readout for one, three and four
+   plants (three names; then "4 plants" with all four names only in "How this was calculated"), in
+   `chat.service.test.ts` (MP-ASK-BUDGET) and `ask-panel.test.tsx` (MP-ASK-UI); a mixed grant (reader holds more plants
    than the answer reads) proves provenance, names, composite drill rows and the transaction footer stay
    on the effective plant set.
 7. Names and drills (C8). Names and drills only for `gl_code`, `gl_code × plant`, `leaf_key`,

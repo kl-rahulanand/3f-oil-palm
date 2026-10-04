@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T09:48:56+00:00
-read_hash: d7e7cab968dd85c66828ad1108a525df2560833f
-round: 6
+read_at: 2026-10-04T09:51:16+00:00
+read_hash: f53ae4bd0654ac133325de5aaea65e941b367237
+round: 7
 passed: no
-doc_seen: d7e7cab968dd85c66828ad1108a525df2560833f
+doc_seen: f53ae4bd0654ac133325de5aaea65e941b367237
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 651eb15cc8dab63368027e14f6fb8b66dd1502a6
+notes_seen: 1e5012c9e56de8e23d67331324b02e246cc366ed
 ---
 # Cold read notes
 
@@ -118,3 +118,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 22. MP-STATEMENT-COMBINED now delivers budget behaviour without covering item 5.
    Its new DUB-only statement-budget join and CHIR-no-budget leaf are C6 behaviour, but its Covers cell remains only 4. Add item 5 so the task table matches the work.
    Disposition: cut MP-STATEMENT-COMBINED now covers 4 and 5.
+
+## Round 7
+
+23. The plant-readout formatting branches have no named proof.
+   Item 6 requires one-to-three plants by name, and four or more as “n plants” with names only in “How this was calculated.” The plan names only a mixed-grant leaf. Unproven: item 6. Add UI/backend leaves for the three-name boundary and the four-plant disclosure.
+   Disposition: cut detail 6 names the one, three and four plant readout leaves in the backend (MP-ASK-BUDGET) and the panel (MP-ASK-UI).
