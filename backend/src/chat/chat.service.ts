@@ -60,6 +60,7 @@ import {
   PLANT_REFUSAL_MESSAGES,
   validatePlantFilter,
 } from "./plant-set";
+import { withoutRedundantMonthFilter } from "./redundant-month-filter";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -502,13 +503,6 @@ export class ChatService {
         });
     }
 
-    const normalizedSelection = await this.normalizeFilterValues(selection, domain, cfg.dimensionEnumMax);
-    if (normalizedSelection.kind === "clarify")
-      return done({
-        responseClass: ResponseClass.ClarificationNeeded,
-        clarify: normalizedSelection.clarify,
-      });
-    selection = normalizedSelection.selection;
     // On the provider path, an explicit period in the user's words is authoritative.
     // With no period language, discard a guessed model window so inheritance or all-data applies.
     // Edited selections are period-control re-runs and must keep the window the user chose.
@@ -541,6 +535,14 @@ export class ChatService {
     }
     const resolved = resolveSelectionTimeWindow(domain, selection);
     selection = resolved.selection;
+    selection = withoutRedundantMonthFilter(selection);
+    const normalizedSelection = await this.normalizeFilterValues(selection, domain, cfg.dimensionEnumMax);
+    if (normalizedSelection.kind === "clarify")
+      return done({
+        responseClass: ResponseClass.ClarificationNeeded,
+        clarify: normalizedSelection.clarify,
+      });
+    selection = normalizedSelection.selection;
     const appliedTimeWindow = resolved.appliedTimeWindow;
     const selectedMeasures = selection.measureIds
       .map((id) => this.semantic.measure(selection.domain, id))

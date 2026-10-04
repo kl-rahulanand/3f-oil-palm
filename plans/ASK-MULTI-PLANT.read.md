@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T10:33:11+00:00
-read_hash: 6d927d3b84789e3ce40882fcb8767456908b5d4d
-round: 16
+read_at: 2026-10-04T13:54:24+00:00
+read_hash: d7b3037e9e2b7ca2f7f5a616e4212582dfb8e95b
+round: 20
 passed: yes
-doc_seen: 6d927d3b84789e3ce40882fcb8767456908b5d4d
+doc_seen: d7b3037e9e2b7ca2f7f5a616e4212582dfb8e95b
 spec_seen: 25f0688944de29ca0538c1351091fce3514f8bf9
-notes_seen: 72d3b182eff005cbc9e0ced30592efa6a0ef3924
+notes_seen: 457416a7d79376c76b7c577551aebd14b38ae1c7
 ---
 # Cold read notes
 
@@ -192,5 +192,27 @@ No findings.
    Disposition: cut MP-ASK-BUDGET now covers 5, 6 and 7.
 
 ## Round 16
+
+No findings.
+
+## Round 17
+
+36. The new saved/pin selection-label requirement has no display-name source or owning criterion.
+   `selectionLabel` receives only a `Selection`, while saved-view and pin list items carry only that selection; `AskResponse.plantNames` is neither present nor available there. Pin a list-response mapping/source for canonical code → display name and its tests, and place it under C9/MP-SAVED-PINS (or remove this non-spec addition).
+   Disposition: cut the label now reads "Plant: <canonical codes>" from a `plant` entry in the contract's dimension labels, so it needs no display-name source; MP-ASK-UI-RESULTS scopes contract/src/api.ts and proves it in selection-label.test.ts.
+
+## Round 18
+
+37. The new shared `SEMANTIC_LABELS.dimensions.plant` is late contract work with no first owner.
+   Both MP-CONTRACT and MP-ASK-UI-RESULTS scope `contract/src/api.ts`, but only the late UI task introduces and proves the label. Pin it in MP-CONTRACT and let the UI consume it; if this saved/pin-card change remains, trace it to item 8 rather than MP-ASK-UI-RESULTS’s current 5–7 coverage.
+   Disposition: cut the plant label wording on saved and pinned cards is removed from this story (it is not in the spec and the contract part is already merged); it becomes a separate follow-up.
+
+## Round 19
+
+38. Cut or defer: the orphaned `selection-label.ts` work in MP-ASK-UI-RESULTS.
+   The label behaviour was removed, but both the source file and its test remain in that task’s Scope and Tests cells without delivering any Done-when item. Remove them from this story task.
+   Disposition: cut selection-label.ts and its test are removed from MP-ASK-UI-RESULTS's Scope and Tests.
+
+## Round 20
 
 No findings.

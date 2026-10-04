@@ -1,0 +1,35 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-MONTH-FILTER",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "231fa5f28cd1de529f18855566a06ff108492feaac613434958f57a690234a57",
+    "commit": "931c12a69e8efc6001f23f8bfa9746d2f4937541",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "Done-when 10 is not yet complete because `docs/memory/ask-multi-plant-live-check.md` is absent, so the five July success-measure questions and the post-change corpus have not been recorded against the completed story. The Tasks table explicitly assigns this check to the later `MP-LIVE` task after `MP-ASK-UI-RESULTS`, so this is advisory for that task rather than a blocker for MP-MONTH-FILTER.",
+        "file": "plans/ASK-MULTI-PLANT.md",
+        "line": 229,
+        "priority": "P2",
+        "title": "Later: run and record the post-change live check in MP-LIVE"
+      }
+    ],
+    "status": "clean",
+    "tree": "d63d548819d340dcf9a7de590f1976f7a3aa10417cbcacdffeb23e2205f17208"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T13:54:47+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T14:04:53+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T14:15:24+00:00",
+      "step": "review"
+    }
+  ]
+}
