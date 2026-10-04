@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:47:55+00:00
+saved: 2026-10-04T08:49:04+00:00
 ---
 
 # Every Ask answer works across plants
@@ -273,6 +273,13 @@ decision 0033.
   `error.userMessage`, with `error.details.reason` set. The save and pin dialogs render that
   `userMessage`.
 
+### A redundant month filter
+
+- The live model sometimes adds a `month` equality filter on exactly the month its `timeWindow` already
+  names. Before any Ask selection executes, the server removes such a filter (same month as a
+  single-month `timeWindow`); the answer is unchanged because the window restricts that month. Any other
+  month filter is handled as today.
+
 ### What does not change
 
 - Readers with one plant see the same answers, apart from honest budget labels.
@@ -430,6 +437,8 @@ decision 0033.
 - **C10 Model boundary.** Leaves prove the model receives only the current reader's plant codes and display
   names: no ungranted plant name (the pre-selector check refuses before any provider call), and no figure.
   Plant refusals reach the client as typed `refusal` reasons.
+- **C11a Redundant month filter.** A leaf proves a selector output with `timeWindow` July 2026 and a
+  `month` eq `2026-07-01` filter executes with the filter removed and returns the same rows as without it.
 - **C11 Live check.**
   - Before the change, a fixed corpus is probed against the live Bedrock model as the seeded admin, and
     each selection recorded. The corpus and its expected selections:
