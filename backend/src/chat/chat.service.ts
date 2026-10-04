@@ -37,7 +37,7 @@ import {
   SelectionResolverService,
   statementPeriodOptions,
 } from "../mapping/selection-resolver.service";
-import type { MasterResolvedSelection } from "../mapping/selection-resolver.interface";
+import type { MasterResolvedPlantSet, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
 import { StatementAttestationService } from "../mis/statement-attestation";
 import type { DrillPredicate } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
@@ -571,11 +571,13 @@ export class ChatService {
       });
     }
 
+    let statementExecutionScope: MasterResolvedSelection | MasterResolvedPlantSet | undefined;
     let statementScope: MasterResolvedSelection | undefined;
     let answerPeriodOptions: AskPeriodOption[] | undefined;
     if (domain.name === "mis-statement") {
       const request = await statementRequest(
         user,
+        selectedPlantCodes(selection),
         appliedTimeWindow,
         selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
         this.selectionResolver,
@@ -601,7 +603,8 @@ export class ChatService {
             options: request.options,
           },
         });
-      statementScope = request.resolution;
+      statementExecutionScope = request.resolution;
+      statementScope = "plant" in request.resolution ? request.resolution : undefined;
       answerPeriodOptions = request.options;
     }
 
@@ -620,13 +623,13 @@ export class ChatService {
     try {
       const execution = await this.selectionExecutor.run(user, domain, selection, {
         signal,
-        ...(statementScope
+        ...(statementExecutionScope
           ? {
               resolvedScope: {
-                triples: statementScope.triples,
-                glCodes: statementScope.glCodes,
-                masterGlCodes: statementScope.masterGlCodes,
-                leafTargets: statementScope.leafTargets,
+                triples: statementExecutionScope.triples,
+                glCodes: statementExecutionScope.glCodes,
+                masterGlCodes: statementExecutionScope.masterGlCodes,
+                leafTargets: statementExecutionScope.leafTargets,
               },
             }
           : {}),
@@ -1610,26 +1613,31 @@ function buildViewInReport(
 }
 
 type StatementRequestResult =
-  | { kind: "scope"; attribute: "department" | "function" | "plant" }
+  | { kind: "scope"; attribute: "department" | "function" }
   | { kind: "no-mapping" }
   | { kind: "no-periods" }
   | { kind: "period"; options: AskPeriodOption[] }
-  | { kind: "resolved"; resolution: MasterResolvedSelection; options: AskPeriodOption[] };
+  | {
+      kind: "resolved";
+      resolution: MasterResolvedSelection | MasterResolvedPlantSet;
+      options: AskPeriodOption[];
+    };
 
 async function statementRequest(
   user: AuthUser,
+  plants: string[],
   window: AppliedTimeWindow | undefined,
   timeColumn: string,
   resolver: SelectionResolverService,
   allowMultiPeriodRerun = false,
 ): Promise<StatementRequestResult> {
-  const value = (attribute: "department" | "function" | "plant") => {
+  const value = (attribute: "department" | "function") => {
     const values = [
       ...new Set(user.scope.filter((scope) => scope.attribute === attribute).map((scope) => scope.value)),
     ];
     return values.length === 1 ? values[0] : undefined;
   };
-  const attributes = ["department", "function", "plant"] as const;
+  const attributes = ["department", "function"] as const;
   const scope = Object.fromEntries(attributes.map((attribute) => [attribute, value(attribute)])) as Record<
     (typeof attributes)[number],
     string | undefined
@@ -1637,10 +1645,10 @@ async function statementRequest(
   const offender = attributes.find((attribute) => !scope[attribute]);
   if (offender) return { kind: "scope", attribute: offender };
 
-  const mapping = { department: scope.department!, function: scope.function!, plant: scope.plant! };
-  if (!resolver.hasMapping(mapping)) return { kind: "no-mapping" };
+  const mapping = { department: scope.department!, function: scope.function!, plant: plants[0]! };
+  if (plants.length === 1 && !resolver.hasMapping(mapping)) return { kind: "no-mapping" };
 
-  const periods = (await resolver.options()).periods;
+  const periods = (await resolver.options(plants)).periods;
   if (periods.length === 0) return { kind: "no-periods" };
   const options = askPeriodOptions(statementPeriodOptions(periods), timeColumn);
   const accepted = allowMultiPeriodRerun ? askPeriodOptions(periods, timeColumn) : options;
@@ -1649,7 +1657,10 @@ async function statementRequest(
 
   try {
     // `periods` is already loaded above; hand it back so resolve() does not repeat that query.
-    const resolution = await resolver.resolve({ ...mapping, period: period.value }, periods);
+    const resolution =
+      plants.length === 1
+        ? await resolver.resolve({ ...mapping, period: period.value }, periods)
+        : await resolver.resolvePlants(plants, period.value, periods);
     return resolution.outcome === "resolved" ? { kind: "resolved", resolution, options } : { kind: "no-mapping" };
   } catch (error) {
     if (error instanceof SelectionPeriodUnavailableError) return { kind: "period", options };

@@ -57,6 +57,76 @@ test("a request carrying an edited selection makes zero selector calls", async (
   assert.equal(fixture.llm.calls, 1);
 });
 
+test("a plant choice is carried into the statement period choice and its continuation", async () => {
+  const fixture = makeFixture(statementSelection(), ["2026-07-01"]);
+  const user = statementUser();
+  user.scope.push({ attribute: "plant", value: "CHIR" });
+
+  const plantChoice = await fixture.service.ask(user, "session", STATEMENT_QUESTION);
+  const selectedPlants: Selection = {
+    ...plantChoice.plantChoice!.selection,
+    filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
+  };
+  const periodChoice = await fixture.service.ask(
+    user,
+    "session",
+    plantChoice.plantChoice!.question,
+    selectedPlants,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "plant-choice",
+  );
+
+  assert.equal(periodChoice.responseClass, ResponseClass.ClarificationNeeded);
+  assert.deepEqual(periodChoice.periodChoice?.selection.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+
+  const answer = await fixture.service.ask(
+    user,
+    "session",
+    periodChoice.periodChoice!.question,
+    {
+      ...periodChoice.periodChoice!.selection,
+      timeWindow: periodChoice.periodChoice!.options[0].timeWindow,
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "period-choice",
+  );
+
+  assert.equal(answer.responseClass, ResponseClass.Success, JSON.stringify(answer));
+  assert.deepEqual(answer.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+});
+
+test("a revoked plant on a statement period continuation is refused as choice-plants-revoked", async () => {
+  const fixture = makeFixture(statementSelection(), ["2026-07-01"]);
+  const response = await fixture.service.ask(
+    statementUser(),
+    "session",
+    STATEMENT_QUESTION,
+    {
+      ...statementSelection(JULY_WINDOW),
+      filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "period-choice",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.BlockedByPolicy);
+  assert.equal(response.refusal?.reason, "choice-plants-revoked");
+  assert.deepEqual(response.refusal?.plants, ["Agriculture - Nursery - CHIR"]);
+  assert.equal(fixture.executor.calls, 0);
+});
+
 test("an unoffered same day period a partial month and a multi month range each clarify", async () => {
   const windows = [
     { grain: "month" as const, from: "2026-08-01", to: "2026-08-01" },
