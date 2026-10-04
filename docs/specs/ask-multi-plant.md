@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:37:37+00:00
+saved: 2026-10-04T08:39:43+00:00
 ---
 
 # Every Ask answer works across plants
@@ -151,7 +151,9 @@ decision 0033.
 
 - Budget belongs to the budget owner plant, DUB (decision 0034). A plant has a loaded budget for a row
   when it is the budget owner and every month the row covers has an active budget batch: the row's own
-  month when the answer groups by month, otherwise every month of the answer's window. A month with no
+  month when the answer groups by month, otherwise every month of the answer's window. An answer with no
+  time window covers every month in which the query read any Actual for the chosen plants, and those
+  are its window's months. A month with no
   active budget batch makes DUB count as not loaded for that row, as the statement screen treats a
   period with no budget batch.
 - When an answer includes Budget or %, each row carries a typed budget state, `AskResponse.budgetStates`,
@@ -167,8 +169,10 @@ decision 0033.
   - `partial`: some do. Budget shows a dash labelled "Budget loaded for k of n plants", and the % cell is
     null with the same label. A partial row never shows a budget figure that would compare part of its
     Actual.
-- These rules apply only to the measures the answer shows. An answer with neither Budget nor % (e.g.
-  "Actual by GL code for CHIR") adds no Budget or % column and carries no `budgetStates`.
+- These rules apply only to the measures the answer shows; no measure is added. An answer with neither
+  Budget nor % (e.g. "Actual by GL code for CHIR") adds no Budget or % column and carries no
+  `budgetStates`. The Budget dash applies to a shown Budget column and the "not loaded" % cell to a shown
+  % column.
 - The dashes and labels are rendered from the typed state, each label also the cell's accessible name.
   The result table's Budget and % cells are null for not-loaded and partial rows. No column is ever
   dropped, as `docs/specs/all-plants-statement.md` requires.
@@ -177,7 +181,8 @@ decision 0033.
   plant's actual rows, so a DUB+CHIR row never pairs CHIR's Actual with DUB's budget, and no budget or
   provenance crosses plants.
 - A comparison that needs a budget (e.g. Actual over Budget) reads only the chosen plants that have a
-  loaded budget. That restriction is in the query itself, before grouping, ordering, the row limit,
+  loaded budget for every month of the answer's window, whatever the grouping. A plant missing a budget
+  batch for any month of the window is left out whole, never compared on some months only. That restriction is in the query itself, before grouping, ordering, the row limit,
   totals and drill preparation. Every row of such an answer is therefore `loaded`, and its totals cover
   exactly the plants compared. When at least one chosen plant was left out, the answer carries a typed
   `AskResponse.leftOut: { reason:
@@ -279,9 +284,9 @@ decision 0033.
      warehouse's July Actual for those plants.
   3. "What was the Actual for each MIS statement line in July 2026 for DUB and CHIR?" Expected: one
      combined statement whose lines equal the sum of DUB's and CHIR's MIS statements.
-  4. "Actual and Budget by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a Budget dash labelled
-     "Budget not loaded for this plant" and a null % cell labelled "not loaded" in a % column that is
-     still present.
+  4. "Actual, Budget and Budget % by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a
+     Budget dash labelled "Budget not loaded for this plant" and a null % cell labelled "not loaded" in a
+     % column that is still present.
   5. "What was the Actual for each MIS statement line in July 2026?" Expected: the picker, then the
      period if needed; choosing DUB returns DUB's statement lines with labels.
 - Baseline: 0 of 5 today. Question 1 answers DUB-only while listing all plants; 2 cannot split by plant;
@@ -359,7 +364,12 @@ decision 0033.
     budget batch is the Informational no-budget answer.
   - At the plant grain, DUB's budget joins only DUB's actual rows: a DUB+CHIR row's budget is DUB's alone
     (and the row is `partial`), and a CHIR row has no budget, for GL and statement answers.
-  - An Actual-only answer has no Budget or % column and no `budgetStates`.
+  - Measure sets: Actual only (no Budget or % column, no `budgetStates`), Actual and Budget (Budget dash
+    only), % only (the "not loaded" % cell only) and all three (both), each for a CHIR row.
+  - A DUB April–July comparison where one month has no budget batch leaves DUB out whole, named in
+    `leftOut`, and becomes the Informational no-budget answer when DUB is the only chosen plant.
+  - An answer with no time window takes its months from the Actual it read; an Actual month with no DUB
+    budget batch makes the summed DUB row `not-loaded`.
   - A DUB+CHIR summed row where CHIR has no activity is `partial`, with `plantsInRow` `["CHIR","DUB"]` and
     `plantsWithBudget` `["DUB"]`.
   - A budget comparison reads only plants with a loaded budget, applied in the query before ordering, the
@@ -402,16 +412,19 @@ decision 0033.
   - Before the change, a fixed corpus is probed against the live Bedrock model as the seeded admin, and
     each selection recorded. The corpus and its expected selections:
     - "show me list items where Actuals are more than the budget for July 2026": domain
-      `governed-financial`, dimension `gl_code`, measure filter Actual > Budget, period July 2026.
-    - "which GL codes spent more than 5 lakh in July 2026": `governed-financial`, `gl_code`, measure
-      filter Actual > 500000, July 2026.
-    - "Actual by GL code for July 2026": `governed-financial`, `gl_code`, no measure filter, July 2026.
+      `governed-financial`, measures Actual and Budget, dimension `gl_code`, measure filter
+      Actual > Budget, period July 2026.
+    - "which GL codes spent more than 5 lakh in July 2026": `governed-financial`, measure Actual,
+      `gl_code`, measure filter Actual > 500000, July 2026.
+    - "Actual by GL code for July 2026": `governed-financial`, measure Actual, `gl_code`, no measure
+      filter, July 2026.
     - "which statement lines are over budget for July 2026", as the DUB-only user: domain
-      `mis-statement`, dimension `leaf_key`, measure filter Actual > Budget, July 2026.
+      `mis-statement`, measures Actual and Budget, dimension `leaf_key`, measure filter Actual > Budget,
+      July 2026.
     The admin's corpus answers carry no plant filter before the change.
   - After it, the five success-measure questions are asked as the seeded admin, each in a fresh
     conversation, with their stated results. The corpus is probed again: each selects the same domain,
-    dimensions, measure filter and period as recorded, and the admin's questions now get the plant
+    measures, dimensions, measure filter and period as recorded, and the admin's questions now get the plant
     picker first.
 
 ## Open items (non-blocking)
