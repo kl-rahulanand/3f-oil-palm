@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:47:31+00:00
-read_hash: a0fc800280a80e0fb9a87ddbb0839c41eb149c76
-round: 21
+read_at: 2026-10-04T08:48:36+00:00
+read_hash: 9556773e6f8012ba81f88a2cdad0c149847d23d9
+round: 22
 passed: no
-doc_seen: a0fc800280a80e0fb9a87ddbb0839c41eb149c76
+doc_seen: 9556773e6f8012ba81f88a2cdad0c149847d23d9
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: e4f83dadd2c7f43ce9bcec3199b4e4bc7eb54f63
+notes_seen: 972527193c60b69a45b40c344461ee249dab75a3
 ---
 # Cold read notes
 
@@ -316,3 +316,9 @@ No findings.
 61. Contradiction: C11 permits a month equality filter although the selector contract requires every period to travel only in `timeWindow`.
    Treating an observed forbidden filter as acceptable bakes a model regression into the baseline and can alter a query; require it to be absent or normalised away in the live probe.
    Disposition: cut the probe normalises away only a month equality filter on exactly the selection's timeWindow month before comparing, and then requires ordinary filters `[]` (plus the plant filter after), so no other filter can pass.
+
+## Round 22
+
+62. Gap: C11 normalises away a raw month filter in the probe but does not require it to be removed or refused before an Ask selection executes.
+   The selector explicitly forbids period values in filters, and such a filter can make a domain unanswerable. Pin the runtime handling and prove the raw live-model regression cannot reach the query.
+   Disposition: cut the server now removes a month equality filter on exactly a single-month timeWindow's month before any Ask selection executes; C11a proves the query runs without it and returns the same rows.
