@@ -2,19 +2,19 @@
   "branch": "task/ASK-MULTI-PLANT-MP-ASK-DRILL",
   "review": {
     "blocking_level": "P1",
-    "changed": "5028752e2d919ac39a61cad2187e827b709138ec43746a743d9a13d59e5dcbdd",
-    "commit": "726d8ea9cd6bbd5ecff785db685f99d3bb44d91d",
+    "changed": "a0f03a713573cec2fdbc6554d59cfcdd815bb9956f307459b36a9b3a86458a53",
+    "commit": "56a662ba7da61f8db5d04d3879ad0f009f680d0c",
     "dismissals": [],
     "findings": [
       {
-        "body": "This file is explicitly required to be added or changed for this part, but the branch does not modify it. The new route behavior derives each transaction predicate from `row.plants`; the existing repository coverage only exercises a single DUB predicate and therefore does not provide the required regression leaf for distinct per-row plant predicates. Add or update the repository test so the changed behavior is independently exercised.",
-        "file": "backend/src/chat/ask-drill.service.ts",
-        "line": 248,
+        "body": "This assertion only compares the response with labels preloaded into `FakeNames`, whose implementation returns those labels unchanged. It therefore still passes if `GlNameRepository` collapses two rows sharing a GL code, applies DUB's scope to CHIR, or returns the same plant's name twice. The repository test at `backend/src/warehouse/gl-name.repository.test.ts:109` queries only one DUB-scoped row, and its real-database test also builds only DUB predicates. Add the required two-row resolver proof using the same GL code with distinct DUB and CHIR transaction names and assert both composite-keyed results; this is the explicit per-plant-name leaf and the current mock-based test does not exercise it.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 1233,
         "priority": "P1",
-        "title": "Not done: backend/src/warehouse/drill-transactions.repository.test.ts"
+        "title": "Not done: DUB and CHIR rows of one GL code resolve independent names"
       },
       {
-        "body": "The backend now emits composite `askRowKey` values for `gl_code \u00d7 plant` and `leaf_key \u00d7 plant`, but the current renderer at `frontend/src/features/assistant/ask-panel.tsx:674` derives a row key only when exactly one dimension is selected and otherwise looks labels up by individual cell values. Consequently, composite labels do not resolve and their Actual cells cannot open the emitted drill links yet. The Tasks table assigns this frontend integration and its browser-facing coverage to MP-ASK-UI-RESULTS.",
+        "body": "The backend now emits composite `askRowKey` values for `gl_code \u00d7 plant` and `leaf_key \u00d7 plant`, but the current renderer at `frontend/src/features/assistant/ask-panel.tsx:674` derives a row key only when exactly one dimension is selected and otherwise looks labels up by individual cell values. Composite labels therefore do not resolve and their Actual cells cannot open the emitted drill links yet. The Tasks table assigns this frontend integration and browser-facing coverage to MP-ASK-UI-RESULTS.",
         "file": "backend/src/chat/chat.service.ts",
         "line": 1110,
         "priority": "P2",
@@ -22,7 +22,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "8837fb3a18221e1a8ca136038297effa3f01cd832c57bad65743abecf2c87aaf"
+    "tree": "a097d6dfee8eecd00ef599a3aa8f8d0f511e3d863b32ecfec60b08edf69494c4"
   },
   "status": "fixing",
   "steps": [
@@ -32,6 +32,10 @@
     },
     {
       "at": "2026-10-04T16:13:30+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T16:22:34+00:00",
       "step": "review"
     }
   ]
