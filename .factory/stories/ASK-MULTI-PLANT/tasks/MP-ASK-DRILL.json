@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "4bdc4fc8f81bc2e77aca0d03aa7a901495f50818916ef886c8a48a043e039d6a",
     "commit": "01eaa55241b897158f069dba24590b851bad1329",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/warehouse/gl-name.repository.test.ts:129 the coordinator ran this branch's real GlNameRepository (head 01eaa552, real SqlValidator and PostgresAdapter) against real PostgreSQL on 2026-10-04: the July warehouse on 127.0.0.1:5433, read-only, active actuals batch 3551916c-7518-4b78-8e72-28c6b390dd9d. GL code 55010305 carries different stored account names per plant (DUB: \"Bank charges\", \"Miscellaneous\"; CHIR: \"Miscellaneous Expenses\"). One findGlCodeLabels call with two composite rows, 55010305|CHIR under a CHIR-only predicate and 55010305|DUB under a DUB-only predicate, returned 55010305|CHIR -> \"Miscellaneous Expenses\" (no others) and 55010305|DUB -> \"Bank charges\" + [\"Miscellaneous\"]: distinct, plant-scoped, not collapsed. The owner capped this story's review loops on 2026-10-04.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The replacement test still does not exercise the repository against distinct stored DUB and CHIR names. `PredicateNameWarehouse` parses each generated SQL predicate and manufactures the expected `${plant} Sprout Cost` result itself, so the test proves the mock and can pass without validating PostgreSQL's multi-row query behavior. The gated real-database test still calls `dbPredicate` only with its default DUB scope and never resolves the same GL code under two plant predicates. Extend that real repository test with one GL code having distinct DUB and CHIR transaction names and assert both composite-keyed labels.",
@@ -21,10 +27,10 @@
         "title": "Later: MP-ASK-UI-RESULTS must use askRowKey for per-row names and links"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "e13b870f0e5da50cfbba6450c050db7a1013d19a5887f0c3fdc4555377fb02aa"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T15:53:36+00:00",
