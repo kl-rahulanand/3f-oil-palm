@@ -259,10 +259,70 @@ test("a DUB and CHIR statement runs one combined mapped statement", async () => 
     DUB: "Agri - Nursery - DUB",
   });
   assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(response.plantNames, {
+    CHIR: "Agriculture - Nursery - CHIR",
+    DUB: "Agri - Nursery - DUB",
+  });
+  assert.equal(response.provenance?.scope, "plant=Agriculture - Nursery - CHIR, plant=Agri - Nursery - DUB");
   assert.deepEqual(response.viewInReport, {
     available: false,
     reason: "This answer covers several plants and cannot open one statement.",
   });
+});
+
+test("a narrowed DUB and CHIR statement comparison keeps the several-plants report reason", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    measureFilters: [
+      {
+        measureId: "mis-statement.actual_net",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "mis-statement.budget_net" },
+      },
+    ],
+  };
+  const fixture = makeFixture({ selection });
+  const user = userForPlants("mis-statement", ["DUB", "CHIR"], true);
+  user.permissions.measureIds.push("mis-statement.budget_net");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show statement lines over Budget for DUB and CHIR in July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(response.viewInReport, {
+    available: false,
+    reason: "This answer covers several plants and cannot open one statement.",
+  });
+});
+
+test("an extreme requested window performs one bounded budget-period lookup", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    timeWindow: { grain: "month", from: "0001-01-01", to: "9999-12-31" },
+  };
+  const fixture = makeFixture({
+    selection,
+    activeActualPins: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+    forbidOutlineBudgetLookups: true,
+  });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Show Actual and Budget for DUB across all time");
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.equal(fixture.transactions.batchStateCalls.length, 1);
+  assert.deepEqual(
+    fixture.transactions.batchStateCalls[0]?.map(({ source, period }) => ({ source, period })),
+    [{ source: "budget", period: "2026-07-01" }],
+  );
 });
 
 test("a DUB and CHIR budget comparison reads DUB only and names CHIR as left out", async () => {
@@ -2587,6 +2647,7 @@ function makeFixture(options: {
   activeActualPinSnapshots?: Array<Array<ProvenanceBatch & { source: "actuals" }>>;
   statementPeriod?: { value: string; label: string; from: string; to: string };
   loadedBudgetMonths?: string[];
+  forbidOutlineBudgetLookups?: boolean;
 }) {
   const llmResult: LlmSelectionResult =
     options.kind === "clarify"
@@ -2610,6 +2671,7 @@ function makeFixture(options: {
           (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
         ),
     ],
+    options.loadedBudgetMonths ?? ["2026-07-01"],
   );
   const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
   const logs: Array<{ context: Record<string, unknown> }> = [];
@@ -2627,7 +2689,10 @@ function makeFixture(options: {
       }
     : {};
   const resolver = new FakeSelectionResolver(options.statementPeriod);
-  const outlines = new FakeOutlines(options.loadedBudgetMonths ?? ["2026-07-01"]);
+  const outlines = new FakeOutlines(
+    options.loadedBudgetMonths ?? ["2026-07-01"],
+    options.forbidOutlineBudgetLookups ?? false,
+  );
   const service = new ChatService(
     semantic,
     executor as never,
@@ -2672,16 +2737,25 @@ class FakeNames {
 class FakeTransactions {
   readonly calls: Array<Array<{ rowKey: string; predicate: DrillPredicate }>> = [];
   readonly activePinCalls: Array<{ from: string; to: string }> = [];
+  readonly batchStateCalls: ProvenanceBatch[][] = [];
 
   constructor(
     private readonly summaries: DrillSummary[],
     private readonly activeActualPinSnapshots: Array<Array<ProvenanceBatch & { source: "actuals" }>>,
+    private readonly loadedBudgetMonths: string[],
   ) {}
 
   async findActiveActualPins(from: string, to: string) {
     const snapshotIndex = this.activePinCalls.length;
     this.activePinCalls.push({ from, to });
     return this.activeActualPinSnapshots[snapshotIndex] ?? this.activeActualPinSnapshots.at(-1) ?? [];
+  }
+
+  async findBatchStates(pins: ProvenanceBatch[]) {
+    this.batchStateCalls.push(pins);
+    return pins
+      .filter(({ source, period }) => source === "budget" && this.loadedBudgetMonths.includes(period))
+      .map(({ source, period }) => ({ source, period, batchId: BUDGET_BATCH_ID, isActive: true }));
   }
 
   async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>) {
@@ -2691,9 +2765,13 @@ class FakeTransactions {
 }
 
 class FakeOutlines {
-  constructor(private readonly loadedBudgetMonths: string[]) {}
+  constructor(
+    private readonly loadedBudgetMonths: string[],
+    private readonly forbidBudgetLookups: boolean,
+  ) {}
 
   async findActiveBudgetOutline(period: string) {
+    assert.equal(this.forbidBudgetLookups, false, "budget periods must use one bounded batch lookup");
     if (!this.loadedBudgetMonths.includes(period)) throw new StatementOutlineUnavailableError();
     return { batchId: BUDGET_BATCH_ID, nodes: [{ nodeKey: "leaf", leafKey: "leaf" }] };
   }

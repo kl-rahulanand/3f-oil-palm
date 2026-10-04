@@ -43,10 +43,7 @@ import { StatementAttestationService } from "../mis/statement-attestation";
 import type { DrillPredicate } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import { GlNameRepository } from "../warehouse/gl-name.repository";
-import {
-  StatementOutlineRepository,
-  StatementOutlineUnavailableError,
-} from "../warehouse/statement-outline.repository";
+import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
 import { classifyMeta, glossaryLookup, unsupportedFallbackMessage } from "../help/glossary";
 import { CHAT_MESSAGES } from "./chat.constants";
 import { domainRoutingAmbiguity, requiredTimeWindowClarify } from "./ambiguity";
@@ -586,16 +583,15 @@ export class ChatService {
     let answerMonths: string[] = [];
     let loadedBudgetMonths: string[] = [];
     if (showsBudgetState || needsBudgetComparison) {
-      answerMonths = appliedTimeWindow
-        ? monthsInWindow(appliedTimeWindow.from, appliedTimeWindow.to)
-        : [
-            ...new Set(
-              (await this.drillTransactions.findActiveActualPins("0001-01-01", "9999-12-31")).map(
-                ({ period }) => `${period.slice(0, 7)}-01`,
-              ),
-            ),
-          ].sort();
-      loadedBudgetMonths = await loadedBudgetPeriods(answerMonths, this.outlines);
+      const budgetMonths = await answerMonthsForBudget(appliedTimeWindow, this.drillTransactions, signal);
+      if (!budgetMonths) {
+        return done({
+          responseClass: ResponseClass.NotSupported,
+          message: "The requested period is too wide. Choose a shorter period.",
+        });
+      }
+      answerMonths = budgetMonths;
+      loadedBudgetMonths = await loadedBudgetPeriods(answerMonths, this.drillTransactions, signal);
     }
     let plantsRead = requestedPlants;
     let leftOut: AskResponse["leftOut"];
@@ -826,7 +822,7 @@ export class ChatService {
       appliedFilters: requestedSelection.filters,
       appliedMeasureFilters: selection.measureFilters,
       periodControl: buildPeriodControl(selection, appliedTimeWindow, answerPeriodOptions),
-      viewInReport: buildViewInReport(domain, selection, statementScope, activeBatchIds),
+      viewInReport: buildViewInReport(domain, requestedSelection, statementScope, activeBatchIds),
       plantNames,
       ...(budgetStates ? { budgetStates } : {}),
       ...(leftOut ? { leftOut } : {}),
@@ -1658,14 +1654,14 @@ function buildViewInReport(
   statementScope: MasterResolvedSelection | undefined,
   activeBatchIds: NonNullable<Provenance["activeBatchIds"]>,
 ): NonNullable<AskResponse["viewInReport"]> {
-  if (selection.measureFilters?.length) {
-    return { available: false, reason: "The MIS statement cannot apply this comparison." };
-  }
   if (domain.name !== "mis-statement") {
     return { available: false, reason: "This answer was not executed against the MIS statement." };
   }
   if (selectedPlantCodes(selection).length > 1) {
     return { available: false, reason: "This answer covers several plants and cannot open one statement." };
+  }
+  if (selection.measureFilters?.length) {
+    return { available: false, reason: "The MIS statement cannot apply this comparison." };
   }
   if (!statementScope) {
     return { available: false, reason: "The answer does not resolve to one statement selector set." };
@@ -1682,18 +1678,50 @@ function buildViewInReport(
 
 async function loadedBudgetPeriods(
   periods: string[],
-  outlines: Pick<StatementOutlineRepository, "findActiveBudgetOutline">,
+  batches: Pick<DrillTransactionsRepository, "findBatchStates">,
+  signal?: AbortSignal,
 ): Promise<string[]> {
-  const loaded: string[] = [];
-  for (const period of periods) {
-    try {
-      await outlines.findActiveBudgetOutline(period);
-      loaded.push(period);
-    } catch (error) {
-      if (!(error instanceof StatementOutlineUnavailableError)) throw error;
-    }
+  if (periods.length === 0) return [];
+  signal?.throwIfAborted();
+  const states = await batches.findBatchStates(
+    periods.map((period) => ({ source: "budget", period, batchId: EMPTY_BATCH_ID })),
+  );
+  signal?.throwIfAborted();
+  const requested = new Set(periods);
+  return [
+    ...new Set(
+      states
+        .filter(({ source, period, isActive }) => source === "budget" && isActive && requested.has(period))
+        .map(({ period }) => period),
+    ),
+  ].sort();
+}
+
+const MAX_BUDGET_PERIODS = 120;
+const EMPTY_BATCH_ID = "00000000-0000-0000-0000-000000000000";
+
+async function answerMonthsForBudget(
+  window: AppliedTimeWindow | undefined,
+  transactions: Pick<DrillTransactionsRepository, "findActiveActualPins">,
+  signal?: AbortSignal,
+): Promise<string[] | undefined> {
+  if (window && monthCount(window.from, window.to) <= MAX_BUDGET_PERIODS) {
+    return monthsInWindow(window.from, window.to);
   }
-  return loaded;
+  signal?.throwIfAborted();
+  const pins = await transactions.findActiveActualPins(window?.from ?? "0001-01-01", window?.to ?? "9999-12-31");
+  signal?.throwIfAborted();
+  const periods = [...new Set(pins.map(({ period }) => `${period.slice(0, 7)}-01`))].sort();
+  if (!window) return periods.length <= MAX_BUDGET_PERIODS ? periods : undefined;
+  if (periods.length === 0) return [];
+  const clamped = monthsInWindow(periods[0]!, periods.at(-1)!);
+  return clamped.length <= MAX_BUDGET_PERIODS ? clamped : undefined;
+}
+
+function monthCount(from: string, to: string): number {
+  const [fromYear, fromMonth] = from.split("-").map(Number);
+  const [toYear, toMonth] = to.split("-").map(Number);
+  return (toYear! - fromYear!) * 12 + toMonth! - fromMonth! + 1;
 }
 
 function budgetOwnerForPlants(plants: string[]): string {

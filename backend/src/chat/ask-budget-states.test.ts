@@ -56,6 +56,7 @@ test("missing range months make a summed owner row not loaded while month rows u
     columns: [...columns, { key: "month", label: "Month", numeric: false }],
     rows: [
       { gl_code: "5001", month: "2026-04-30", actual: "1.00", budget: "1.00", percentage: "1" },
+      { gl_code: "5001", month: "2026-05-31", actual: "1.00", budget: "0.00", percentage: "0" },
       { gl_code: "5001", month: "2026-07-31", actual: "1.00", budget: "1.00", percentage: "1" },
     ],
   };
@@ -74,9 +75,17 @@ test("missing range months make a summed owner row not loaded while month rows u
     grouped.budgetStates?.map(({ key, state }) => ({ key, state })),
     [
       { key: "5001|2026-04-01", state: "loaded" },
+      { key: "5001|2026-05-01", state: "not-loaded" },
       { key: "5001|2026-07-01", state: "loaded" },
     ],
   );
+  assert.deepEqual(grouped.result.rows[1], {
+    gl_code: "5001",
+    month: "2026-05-31",
+    actual: "1.00",
+    budget: null,
+    percentage: null,
+  });
 
   const summed = applyBudgetStates({
     selection: {
