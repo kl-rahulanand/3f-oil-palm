@@ -2,48 +2,41 @@
   "branch": "task/ASK-MULTI-PLANT-MP-ASK-BUDGET",
   "review": {
     "blocking_level": "P1",
-    "changed": "2aae306cd9d4f772eb955232432b88cca3087d099ecd67feab882d8bd59d81fa",
-    "commit": "96feef217b1d6c5878fc469e2cf95b7ec9098647",
+    "changed": "8461b90eee31ad5b5c51d05aa1cef3859717b8de15101f0513e2ef22421afe37",
+    "commit": "dd6ae27ed47a684155ff2dea2d663845e5359e31",
     "dismissals": [],
     "findings": [
       {
-        "body": "For every explicit window longer than 120 months, this fallback replaces the requested window with only the span between the first and last active Actual pin. That silently drops requested leading and trailing months, although the budget-state definition requires an ungrouped row to cover every month of the explicit answer window. For example, a 2016\u20132026 request with only a July 2026 Actual pin and Budget batch is treated as loaded and its comparison runs, despite the other requested months having no Budget. Reject an over-limit explicit range or perform a bounded availability query without changing which months the row covers; the new extreme-window test currently enshrines the incorrect success case.",
+        "body": "This lookup passes the exact lower date even though `ingest_batch.period` stores the first day of each month. Any window beginning after day 1 excludes that month's active budget batch while `monthCount` still counts the month. For example, a relative \"last 3 months\" window starting on July 4 queries budget periods from July 4, omits the July 1 batch, and falsely returns the no-budget answer even when every covered month has Budget. Normalize the lower bound to the month's first day and add a non-month-boundary range test.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 1717,
+        "line": 1700,
         "priority": "P1",
-        "title": "Not done: explicit budget ranges assess every month in the answer window"
+        "title": "Not done: budget ranges include the starting month"
       },
       {
-        "body": "Budget availability and the early no-budget return now run before `statementRequest` at line 624. Consequently, an unwindowed statement comparison examines every active Actual month globally and can return the no-budget informational response merely because one historical month lacks Budget, without offering the statement's available period choices\u2014even when a selectable period such as July has Budget loaded. Defer this decision until the statement period has been resolved.",
+        "body": "The backend emits `plantNames`, `budgetStates`, and `leftOut`, but the unchanged Ask UI does not consume them. Its informational branch at `frontend/src/features/assistant/ask-panel.tsx:238` renders only `definition`, so the no-budget `message` is blank; null Budget/% cells also lack the required accessible labels and no plant or left-out readout appears. The Tasks table assigns this presentation work to MP-ASK-UI-RESULTS.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 585,
-        "priority": "P2",
-        "title": "Resolve a statement period before returning the no-budget answer"
-      },
-      {
-        "body": "The Ask selection schema still accepts arbitrary `timeWindow.from` and `to` strings (`backend/src/saved/saved.schemas.ts:53-54`). If parsing makes `monthCount` non-finite, this new call sends those raw values to the warehouse before the guarded execution block. A malformed budget-bearing request can therefore cause a database date error to escape `ask()` instead of producing a governed response. Validate real date-only values before performing these metadata reads.",
-        "file": "backend/src/chat/chat.service.ts",
-        "line": 1712,
-        "priority": "P2",
-        "title": "Validate date strings before the new metadata lookup"
-      },
-      {
-        "body": "The backend emits `plantNames`, `budgetStates`, and `leftOut`, but the unchanged Ask UI does not consume them. Its informational branch (`frontend/src/features/assistant/ask-panel.tsx:238-243`) also renders only `definition`, so the new no-budget `message` produces a blank answer; null Budget/% cells still lack the required accessible labels and no plant or left-out readout is shown. The Tasks table assigns this presentation work to MP-ASK-UI-RESULTS.",
-        "file": "backend/src/chat/chat.service.ts",
-        "line": 826,
+        "line": 840,
         "priority": "P2",
         "title": "Later: MP-ASK-UI-RESULTS must render the new answer metadata"
       },
       {
-        "body": "The current presentation path still recognizes only the single-dimension `gl_code` and `leaf_key` shapes (`answerRowShape` at lines 1059-1084). Thus `gl_code \u00d7 plant` and `leaf_key \u00d7 plant` receive no per-row labels or drill context, while the required inert month shapes are not proven through the shared composite key. The Tasks table assigns this remaining Done-when 7 work to MP-ASK-DRILL.",
+        "body": "The current `answerRowShape` path still recognizes only single-dimension `gl_code` and `leaf_key` answers (`backend/src/chat/chat.service.ts:1039`). Consequently, `gl_code \u00d7 plant` and `leaf_key \u00d7 plant` cannot receive per-row labels or drill contexts, and the required inert composite month shapes are not yet proven through `askRowKey`. The Tasks table assigns this work to MP-ASK-DRILL.",
         "file": "backend/src/chat/chat.service.ts",
-        "line": 829,
+        "line": 843,
         "priority": "P2",
         "title": "Later: MP-ASK-DRILL must support composite row identities"
+      },
+      {
+        "body": "`monthsInWindow` is newly exported but has no production or test caller. The implemented coverage path deliberately uses a bounded metadata query plus `monthCount`, so this second unbounded month-expansion API adds dead surface and an alternative range algorithm that no Done-when item needs. Remove it rather than retaining an unused export.",
+        "file": "backend/src/chat/ask-budget-states.ts",
+        "line": 93,
+        "priority": "P2",
+        "title": "Simpler: unused month enumerator \u2192 remove it"
       }
     ],
     "status": "blocked",
-    "tree": "4e3fd38c71f67a59a15c03b854106bdf11ee854ab2b77ec8b037110f0d2cc254"
+    "tree": "eee99f08228bfd4790d0fbdda2f0ae309320c5d6f6b35d574a78f0fbfdd6ee18"
   },
   "status": "fixing",
   "steps": [
@@ -57,6 +50,10 @@
     },
     {
       "at": "2026-10-04T15:21:27+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T15:38:28+00:00",
       "step": "review"
     }
   ]
