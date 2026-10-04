@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:45:37+00:00
-read_hash: 271946414a42b5273d022f6fa63faa3a1b1f8781
-round: 20
+read_at: 2026-10-04T08:47:31+00:00
+read_hash: a0fc800280a80e0fb9a87ddbb0839c41eb149c76
+round: 21
 passed: no
-doc_seen: 271946414a42b5273d022f6fa63faa3a1b1f8781
+doc_seen: a0fc800280a80e0fb9a87ddbb0839c41eb149c76
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 4315bf88bd2d0f4fb289482009f02c1760620658
+notes_seen: e4f83dadd2c7f43ce9bcec3199b4e4bc7eb54f63
 ---
 # Cold read notes
 
@@ -310,3 +310,9 @@ No findings.
 60. Unproven: C11 does not pin ordinary dimension filters.
    The live corpus can retain its domain, measures, dimensions, comparison, and period while gaining a GL/month filter that changes the answer. Record `filters: []` for each corpus prompt and compare it after the change, except for the explicitly discarded selector plant filter on unnamed questions.
    Disposition: cut C11 now pins ordinary filters: before and after, each corpus answer may carry only a month equality filter on the asked month (the live model emits it on some runs, observed 2026-10-04) plus, after, the plant filter; any other filter fails the probe.
+
+## Round 21
+
+61. Contradiction: C11 permits a month equality filter although the selector contract requires every period to travel only in `timeWindow`.
+   Treating an observed forbidden filter as acceptable bakes a model regression into the baseline and can alter a query; require it to be absent or normalised away in the live probe.
+   Disposition: cut the probe normalises away only a month equality filter on exactly the selection's timeWindow month before comparing, and then requires ordinary filters `[]` (plus the plant filter after), so no other filter can pass.
