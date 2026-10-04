@@ -9,6 +9,11 @@
         "because": "backend/src/warehouse/golden-financial.db.test.ts:92 the coordinator ran the gated warehouse leaves on 2026-10-04 against the throwaway postgres:16-alpine on 127.0.0.1:5434 (AGENTS.md Known traps; CI has no database, so the close run skips them by design) with WAREHOUSE_DB_TEST=1: golden-financial.db.test.ts, measure-filter.db.test.ts and gl-month-rollups.db.test.ts together, tests 8, pass 8, fail 0, skipped 0, including the DUB-only 21-code over-budget leaf with 50001201 at 83,98,339 and the over-limit DUB fixture beside non-owner plants.",
         "finding": 1,
         "from_base": false
+      },
+      {
+        "because": "backend/src/warehouse/measure-filter.db.test.ts:23 the coordinator ran the gated warehouse leaves on 2026-10-04 against the throwaway postgres:16-alpine on 127.0.0.1:5434 (AGENTS.md Known traps; CI has no database, so the close run skips them by design) with WAREHOUSE_DB_TEST=1: golden-financial.db.test.ts, measure-filter.db.test.ts and gl-month-rollups.db.test.ts together, tests 8, pass 8, fail 0, skipped 0, including the DUB-only 21-code over-budget leaf with 50001201 at 83,98,339 and the over-limit DUB fixture beside non-owner plants.",
+        "finding": 2,
+        "from_base": false
       }
     ],
     "findings": [
@@ -27,10 +32,10 @@
         "title": "Not done: backend/src/warehouse/measure-filter.db.test.ts runs the required database proof"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "bc51d54ad3c139a09e578065f216ad99e5658d15c215897100b27f313102105b"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T11:38:02+00:00",
