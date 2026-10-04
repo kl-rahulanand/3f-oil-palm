@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:05:04+00:00
-read_hash: 75daeff8ccca7cfe73c5246f05921ea6614f431f
-round: 6
+read_at: 2026-10-04T07:06:33+00:00
+read_hash: 1708d7e1c08017399a5a54aaacf310becdc77e56
+round: 7
 passed: no
-doc_seen: 75daeff8ccca7cfe73c5246f05921ea6614f431f
+doc_seen: 1708d7e1c08017399a5a54aaacf310becdc77e56
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: d9ff8135bde25ede39000abbbb065f7ec10f824e
+notes_seen: d2c253a5e0077d8862363a614e51252df27ccda4
 ---
 # Cold read notes
 
@@ -157,3 +157,10 @@ Only a genuine trade-off goes to the human, as a question with options.
 30. Gap: a direct edited selection can contain a known but ungranted plant.
     - C2 covers an ungranted name in a question and C9 covers a revoked saved set, but neither covers a tampered/direct `{ dimensionId: "plant", op: "in" }` filter. Revalidate every value against current grants at every ingress and refuse the whole selection—never intersect it down to a partial result.
     Disposition: cut every plant value is checked against current grants at every ingress; a known ungranted plant refuses the whole selection as plant-not-granted with no read, never intersected; C2 proves it for an edited selection.
+
+## Round 7
+
+31. Gap: composite row keys are not defined at the response/table boundary.
+    - `ResultTable` exposes separate `gl_code`/`plant` or `leaf_key`/`plant` cells, while existing labels and drill metadata are keyed by one raw dimension value. Define the shared composite-key derivation and require `rowLabels`, `budgetStates`, and `drill.rows` to use it, so the same GL or leaf in DUB and CHIR cannot receive the other row’s name, budget state, or drill link.
+    - Unproven: C7/C8 need a two-plant same-GL/leaf case that proves metadata and clicks remain associated with their own row.
+    Disposition: cut one shared row-key function (unsplit cell, or `<code>|<plant>` for a breakdown) keys rowLabels, budgetStates and drill.rows on both sides; C8 adds the same-GL and same-line DUB and CHIR proof.
