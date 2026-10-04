@@ -1697,7 +1697,9 @@ async function budgetPeriodCoverage(
 ): Promise<{ answerMonths: string[]; answerMonthCount: number; loadedBudgetMonths: string[] }> {
   if (window) {
     signal?.throwIfAborted();
-    const loadedBudgetMonths = await transactions.findActiveBudgetPeriods(window.from, window.to);
+    const fromMonth = `${window.from.slice(0, 7)}-01`;
+    const toMonth = `${window.to.slice(0, 7)}-01`;
+    const loadedBudgetMonths = await transactions.findActiveBudgetPeriods(fromMonth, toMonth);
     signal?.throwIfAborted();
     return { answerMonths: [], answerMonthCount: monthCount(window.from, window.to), loadedBudgetMonths };
   }

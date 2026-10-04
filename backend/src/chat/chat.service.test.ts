@@ -331,8 +331,40 @@ test("an explicit 2016 to 2026 comparison stays not loaded when only July 2026 h
 
   assert.equal(response.responseClass, ResponseClass.Informational, JSON.stringify(response));
   assert.equal(response.message, "Budget is not loaded for any chosen plant, so nothing was compared.");
-  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2016-01-01", to: "2026-07-31" }]);
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2016-01-01", to: "2026-07-01" }]);
   assert.equal(fixture.executor.calls, 0);
+});
+
+test("a range starting after day one still includes its first Budget month", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+    timeWindow: { grain: "month", from: "2026-07-04", to: "2026-09-30" },
+  };
+  const fixture = makeFixture({
+    selection,
+    loadedBudgetMonths: ["2026-07-01", "2026-08-01", "2026-09-01"],
+  });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show Actual over Budget for DUB from July to September",
+    selection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2026-07-01", to: "2026-09-01" }]);
+  assert.equal(fixture.executor.calls, 1);
 });
 
 test("an unwindowed statement comparison offers periods before judging July Budget", async () => {
@@ -376,7 +408,7 @@ test("an unwindowed statement comparison offers periods before judging July Budg
 
   assert.equal(july.responseClass, ResponseClass.Success, JSON.stringify(july));
   assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
-  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2026-07-01", to: "2026-07-31" }]);
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2026-07-01", to: "2026-07-01" }]);
 });
 
 test("an unavailable statement period clarifies before judging Budget", async () => {

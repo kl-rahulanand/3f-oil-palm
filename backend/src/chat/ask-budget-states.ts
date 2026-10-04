@@ -90,16 +90,6 @@ function budgetState(
   return { state, plantsWithBudget };
 }
 
-export function monthsInWindow(from: string, to: string): string[] {
-  const start = new Date(`${monthStart(from)}T00:00:00.000Z`);
-  const end = new Date(`${monthStart(to)}T00:00:00.000Z`);
-  const months: string[] = [];
-  for (const cursor = start; cursor <= end; cursor.setUTCMonth(cursor.getUTCMonth() + 1)) {
-    months.push(cursor.toISOString().slice(0, 7) + "-01");
-  }
-  return months;
-}
-
 export function comparisonNeedsBudget(selection: Selection): boolean {
   return Boolean(
     selection.measureFilters?.some(
