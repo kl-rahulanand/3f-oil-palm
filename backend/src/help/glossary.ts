@@ -151,7 +151,7 @@ export function buildTermIndex(
     if (!dimensionLabel) return [];
     return dimensionValueList.map((value) => ({ dimensionId, dimensionLabel, value }));
   });
-  const suggestionDomain = domains.find((domain) => domain.measures.length > 0 && domain.dimensions.length > 0);
+  const suggestionDomain = domains.find((domain) => domain.measures.length > 0);
   const firstMeasure = suggestionDomain?.measures[0];
   const secondMeasure = suggestionDomain?.measures[1];
   const firstDimensionSpec =
@@ -168,9 +168,13 @@ export function buildTermIndex(
   const latestPeriodLabel = latestPeriod ? displayMonth(latestPeriod.value, latestPeriod.label) : undefined;
   const periodClause = latestPeriodLabel ? ` for ${latestPeriodLabel}` : "";
   const exampleQuestions = [
-    firstMeasure && firstDimension ? `${firstMeasure.label} by ${firstDimension.label}${periodClause}` : undefined,
-    firstMeasure && secondMeasure && firstDimension
-      ? `${firstMeasure.label} and ${secondMeasure.label} by ${firstDimension.label}${periodClause}`
+    firstMeasure
+      ? `${firstMeasure.label}${firstDimension ? ` by ${firstDimension.label}` : ""}${periodClause}`
+      : undefined,
+    firstMeasure && secondMeasure
+      ? `${firstMeasure.label} and ${secondMeasure.label}${
+          firstDimension ? ` by ${firstDimension.label}` : ""
+        }${periodClause}`
       : undefined,
     actual && budget && firstDimension
       ? `Which ${pluralize(firstDimension.label)} had ${actual.label} over ${budget.label}${

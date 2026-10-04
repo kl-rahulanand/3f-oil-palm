@@ -67,6 +67,18 @@ test("unsupported fallbacks suggest permitted 3F questions for the latest loaded
   assert.match(unsupportedFallbackMessage(index), new RegExp(EXPECTED_QUESTIONS.join("; ").replaceAll("?", "\\?")));
 });
 
+test("measure-only grants keep definition small-talk and fallback suggestions governed", async () => {
+  for (const question of ["What is Actual?", "hello"]) {
+    const response = await ask(question, false, MEASURE_ONLY_USER);
+
+    assert.equal(response.responseClass, ResponseClass.Informational, question);
+    assert.deepEqual(response.suggestedQuestions, ["Actual for July 2026"], question);
+  }
+
+  const index = await makeHelpService().buildIndex(MEASURE_ONLY_USER);
+  assert.match(unsupportedFallbackMessage(index), /Try one of: Actual for July 2026\./);
+});
+
 test("Ask suggestion sources contain no legacy MBS question literals", () => {
   const forbidden = /\b(?:state|leads?|rpush|conversion)\b|last 30 days/i;
   for (const path of [
@@ -79,7 +91,7 @@ test("Ask suggestion sources contain no legacy MBS question literals", () => {
   }
 });
 
-async function ask(question: string, statementGrounded = false) {
+async function ask(question: string, statementGrounded = false, user = USER) {
   const semantic = new SemanticLayer();
   const resolver = new PeriodResolver();
   const service = new ChatService(
@@ -99,7 +111,7 @@ async function ask(question: string, statementGrounded = false) {
     {} as never,
   );
   return service.ask(
-    USER,
+    user,
     "session",
     question,
     undefined,
@@ -153,4 +165,13 @@ const USER: AuthUser = {
     dimensionIds: ["gl_code", "month"],
   },
   scope: [{ attribute: "plant", value: "DUB" }],
+};
+
+const MEASURE_ONLY_USER: AuthUser = {
+  ...USER,
+  permissions: {
+    ...USER.permissions,
+    measureIds: ["governed-financial.actual"],
+    dimensionIds: [],
+  },
 };
