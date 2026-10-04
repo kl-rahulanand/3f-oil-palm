@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T09:56:54+00:00
-read_hash: 72b7cf700603876226b410f69ff85ba788f3c5e4
-round: 10
+read_at: 2026-10-04T09:58:21+00:00
+read_hash: 8632618949163b36fe6daa95cc9a162b6d2a1ce9
+round: 11
 passed: no
-doc_seen: 72b7cf700603876226b410f69ff85ba788f3c5e4
+doc_seen: 8632618949163b36fe6daa95cc9a162b6d2a1ce9
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 33c27055fe6b9e3402ead0dc9be383361a083d3a
+notes_seen: 4fb59a91e3a33b77b89974be139b85a9688f4586
 ---
 # Cold read notes
 
@@ -146,3 +146,17 @@ Only a genuine trade-off goes to the human, as a question with options.
 27. The moving-parts inventory still omits `contract/src/row-key.ts`.
     MP-CONTRACT creates this shared pure module, but the summary says the row-key work lives in existing services and lists only three modules. Add it with Done-when 7 and its shared backend/frontend rationale, or correct the inventory.
     Disposition: cut the inventory lists `contract/src/row-key.ts` with Done-when 7 and why it lives in the contract (backend and frontend derive the same key).
+
+## Round 11
+
+28. C1 still says the picker is produced before “any warehouse read,” while allowing `distinctValues` to read the warehouse.
+    Replace that phrase with “before any figure read” so it matches the confirmed spec and the stated leaf.
+    Disposition: cut detail 1 now says before any figure read.
+
+29. Unproven: item 7: month-bearing result shapes render inert.
+    The plan declares only four drillable shapes but names no leaf proving a `month` shape has no labels, drill link, or clickable Actual. Add it to MP-ASK-DRILL.
+    Disposition: cut detail 7 adds the inert month-bearing shapes leaf to MP-ASK-DRILL (no rowLabels, no drill, plain Actuals).
+
+30. Unproven: item 2: duplicate and out-of-order canonical plant filters become sorted and deduplicated.
+    The spec requires every executed selection’s plant filter to be canonical, sorted, and deduplicated, but no leaf covers values such as `["DUB", "CHIR", "DUB"]` across ingress paths.
+    Disposition: cut detail 9 adds the sort-and-dedupe leaf for `["DUB","CHIR","DUB"]` at each ingress, in plant-set.test.ts and chat.service.test.ts.

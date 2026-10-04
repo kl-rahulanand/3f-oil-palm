@@ -88,7 +88,7 @@ must prove. Shared rules for every part:
 1. Picker (C1). `AskResponse.plantChoice` exactly as the spec types it, prompt "Which plants should this
    answer cover?", options built from the mapping master alone (`MAPPING_MASTER` plants filtered to the
    reader's grants; value canonical code, label display name; never `SelectionResolverService.options`,
-   which reads load batches), `allPlants.value` the sorted granted codes. Produced before any warehouse read
+   which reads load batches), `allPlants.value` the sorted granted codes. Produced before any figure read
    and before the period choice; the client submits the original question with `selection` plus the
    chosen plant filter and `origin: "plant-choice"` through the edited-selection path; a period choice
    after it carries the plant filter and `origin: "period-choice"`. A selection without a plant filter
@@ -169,7 +169,8 @@ must prove. Shared rules for every part:
    answer's reason says it covers several plants. Leaves: a row-key leaf per allowed shape (plant,
    month, month × plant, gl_code × month, gl_code × month × plant and the four drillable shapes); one GL
    code and one statement line for both DUB and CHIR each get their own name, budget state and drill
-   link, and CHIR's click reads only CHIR's lines.
+   link, and CHIR's click reads only CHIR's lines; a `month`, `month × plant` and `gl_code × month`
+   answer carries no `rowLabels` and no `drill`, and its Actuals render as plain cells (MP-ASK-DRILL).
 8. Saved and pinned (C9). Saved views and pins store the canonical plant filter; their list status
    gains `plants_revoked` with "This view includes plants you no longer have access to: <names>. Edit
    its plants to run it." and the card is disabled; a re-run that reaches Ask anyway, with `origin`
@@ -183,7 +184,10 @@ must prove. Shared rules for every part:
    invalid filter, then by `origin`: `plants-revoked`, `choice-plants-revoked`, else
    `plant-not-granted`; a request carrying only `reportGrounding` and no `origin` with a revoked plant is
    `plant-not-granted`, proven in `chat.service.test.ts`). A submitted filter value must already be canonical (exact compare): `dub`,
-   `DUB-NUR` or a display name is `plant-filter-invalid`. Save and pin requests reject a bad plant
+   `DUB-NUR` or a display name is `plant-filter-invalid`. Valid canonical values in any order or with
+   duplicates (`["DUB", "CHIR", "DUB"]`) execute as `["CHIR", "DUB"]` at each ingress (new question,
+   continuation, edited selection, saved and pinned re-run), proven in `plant-set.test.ts`
+   (MP-PLANT-RULES) and `chat.service.test.ts` (MP-ASK-CHOICE). Save and pin requests reject a bad plant
    filter with HTTP 400 through a typed `PlantFilterInvalidException` that the global exception filter
    maps like `MeasureFilterInvalidException` (`userMessage` from the reason, `details.reason` set); the
    save and pin dialogs render the server's `userMessage` (`ApiError` carries it). Every new value
