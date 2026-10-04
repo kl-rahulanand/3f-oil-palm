@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "dffc97adae4b7b9b666e434110b037bcc0d047bbe687f986525dade63ae4e0a3",
     "commit": "7ef811dc6cabe5dc8b467eae515a6a7e95227794",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "plans/ASK-MULTI-PLANT.md:221 these are Forge's own story records, not this part's code: the plan's builder section (split into 14 parts after the owner's approval, re-read clean in round 16), its read record, and the story and task JSON that forge task start and forge read write. Forge carries them onto every task branch so forge-pr-check can verify the plan's read hash; no implementation file outside the part's scope changed.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The allowed scope is limited to the six implementation and test paths, but the branch still rewrites the story task decomposition and read record and changes `.factory/stories/ASK-MULTI-PLANT/story.json` plus its task record. The handoff names no necessary out-of-scope changes, and these files are not needed to deliver or test the plant-rules module. The previously reported gap remains open; remove these independently changed planning and Factory files from this patch.",
@@ -14,10 +20,10 @@
         "title": "Remove the unrelated out-of-scope planning and Factory changes"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "891d430b8dcbc56714a4a47c3e3dc26c4d308c77b3b8350a07d8c1993654aee3"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T10:35:44+00:00",
