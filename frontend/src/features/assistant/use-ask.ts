@@ -198,7 +198,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
       setTurns((current) =>
         current.map((turn) =>
           turn.id === turnId && turn.response
-            ? resolveContinueResponse({ ...turn, response: turn.response }, response, failurePolicy)
+            ? resolveContinueResponse({ ...turn, response: turn.response }, response, failurePolicy, requestOrigin)
             : turn,
         ),
       );
@@ -207,7 +207,7 @@ export function AskProvider({ children, pathname = "/ask" }: Readonly<{ children
       setTurns((current) =>
         current.map((turn) =>
           turn.id === turnId && turn.response
-            ? resolveContinueError({ ...turn, response: turn.response }, caught, failurePolicy)
+            ? resolveContinueError({ ...turn, response: turn.response }, caught, failurePolicy, requestOrigin)
             : turn,
         ),
       );
@@ -288,8 +288,9 @@ function resolveContinueResponse(
   turn: AskTurn & { response: AskResponse },
   response: AskResponse,
   failurePolicy: ContinueTurnFailurePolicy,
+  requestOrigin?: AskRequest["origin"],
 ): AskTurn {
-  if (response.responseClass === "success")
+  if (response.responseClass === "success" || response.responseClass === "informational")
     return { id: turn.id, origin: turn.origin, question: turn.question, response };
   if (
     response.responseClass === "clarification_needed" &&
@@ -309,7 +310,9 @@ function resolveContinueResponse(
     error:
       failurePolicy === "clear-on-refusal"
         ? (response.message ?? "This report could not be reopened. Try again.")
-        : "That period could not be loaded. Choose a period to try again.",
+        : requestOrigin === "plant-choice"
+          ? "That choice could not be applied. Try again."
+          : "That period could not be loaded. Choose a period to try again.",
   };
 }
 
@@ -317,6 +320,7 @@ function resolveContinueError(
   turn: AskTurn & { response: AskResponse },
   error: unknown,
   failurePolicy: ContinueTurnFailurePolicy,
+  requestOrigin?: AskRequest["origin"],
 ): AskTurn {
   if (failurePolicy === "clear-on-refusal" && isAccessRefusal(error)) {
     return {
@@ -338,7 +342,9 @@ function resolveContinueError(
     error:
       failurePolicy === "clear-on-refusal"
         ? "This report could not be reopened. Try again."
-        : "The period could not be loaded. Try again.",
+        : requestOrigin === "plant-choice"
+          ? "That choice could not be applied. Try again."
+          : "The period could not be loaded. Try again.",
   };
 }
 

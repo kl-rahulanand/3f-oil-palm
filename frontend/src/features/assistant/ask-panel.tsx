@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  askRowKey,
   type AskRequest,
   type AskResponse,
   type AskRowLabel,
@@ -274,6 +275,8 @@ function Answer({
       <article className="ask-answer ask-information">
         {response.title && <h2>{response.title}</h2>}
         {response.definition && <p>{response.definition}</p>}
+        {response.message && <p>{response.message}</p>}
+        <LeftOutReadout leftOut={response.leftOut} />
       </article>
     );
   }
@@ -548,6 +551,8 @@ function SuccessAnswer({
     <article className="ask-answer ask-success" aria-busy={turn.isPending || undefined}>
       {response.provenance?.verified && <span className="ask-verified">✓ Verified</span>}
       {response.title && <h2>{response.title}</h2>}
+      <PlantReadout plantNames={response.plantNames} />
+      <LeftOutReadout leftOut={response.leftOut} />
       {comparisonReadout && <p className="ask-report-reason">{comparisonReadout}</p>}
       {response.totals && (
         <dl className="ask-totals">
@@ -567,6 +572,8 @@ function SuccessAnswer({
             result={response.result}
             chartType={response.chartType}
             rowLabels={response.rowLabels}
+            budgetStates={response.budgetStates}
+            plantNames={response.plantNames}
             labelMode={response.selection?.domain === "mis-statement" ? "statement" : "gl-code"}
             selection={response.selection}
             drill={response.drill}
@@ -666,6 +673,8 @@ function ResultVisual({
   result,
   chartType = "table",
   rowLabels,
+  budgetStates,
+  plantNames,
   labelMode,
   selection,
   drill,
@@ -676,6 +685,8 @@ function ResultVisual({
   result: ResultTable;
   chartType?: ChartType;
   rowLabels?: AskRowLabel[];
+  budgetStates?: AskResponse["budgetStates"];
+  plantNames?: AskResponse["plantNames"];
   labelMode: "gl-code" | "statement";
   selection?: Selection;
   drill?: AskResponse["drill"];
@@ -688,6 +699,8 @@ function ResultVisual({
       <ResultTableView
         result={result}
         rowLabels={rowLabels}
+        budgetStates={budgetStates}
+        plantNames={plantNames}
         labelMode={labelMode}
         selection={selection}
         drill={drill}
@@ -714,6 +727,8 @@ function ResultVisual({
       result={result}
       chartType={chartType}
       rowLabels={rowLabels}
+      budgetStates={budgetStates}
+      plantNames={plantNames}
       labelMode={labelMode}
       selection={selection}
       drill={drill}
@@ -728,6 +743,8 @@ function ResultChart({
   result,
   chartType,
   rowLabels,
+  budgetStates,
+  plantNames,
   labelMode,
   selection,
   drill,
@@ -738,6 +755,8 @@ function ResultChart({
   result: ResultTable;
   chartType: Exclude<ChartType, "kpi" | "table">;
   rowLabels?: AskRowLabel[];
+  budgetStates?: AskResponse["budgetStates"];
+  plantNames?: AskResponse["plantNames"];
   labelMode: "gl-code" | "statement";
   selection?: Selection;
   drill?: AskResponse["drill"];
@@ -764,6 +783,8 @@ function ResultChart({
       <ResultTableView
         result={result}
         rowLabels={rowLabels}
+        budgetStates={budgetStates}
+        plantNames={plantNames}
         labelMode={labelMode}
         selection={selection}
         drill={drill}
@@ -822,6 +843,8 @@ function ResultChart({
       <ResultTableView
         result={result}
         rowLabels={rowLabels}
+        budgetStates={budgetStates}
+        plantNames={plantNames}
         labelMode={labelMode}
         selection={selection}
         drill={drill}
@@ -836,6 +859,8 @@ function ResultChart({
 function ResultTableView({
   result,
   rowLabels,
+  budgetStates,
+  plantNames,
   labelMode,
   selection,
   drill,
@@ -845,6 +870,8 @@ function ResultTableView({
 }: Readonly<{
   result: ResultTable;
   rowLabels?: AskRowLabel[];
+  budgetStates?: AskResponse["budgetStates"];
+  plantNames?: AskResponse["plantNames"];
   labelMode: "gl-code" | "statement";
   selection?: Selection;
   drill?: AskResponse["drill"];
@@ -854,7 +881,8 @@ function ResultTableView({
 }>) {
   const suppressed = new Set(result.suppressedCells?.map(({ row, key }) => `${row}:${key}`));
   const labels = new Map(rowLabels?.map((label) => [label.key, label]));
-  const rowKeyColumn = selection?.dimensionIds.length === 1 ? selection.dimensionIds[0] : undefined;
+  const states = new Map(budgetStates?.map((state) => [state.key, state]));
+  const dimensionIds = selection?.dimensionIds.map((dimensionId) => dimensionId.split(".").at(-1)!) ?? [];
   const actualMeasureId =
     selection?.domain === "governed-financial" ? "governed-financial.actual" : "mis-statement.actual_net";
   const actualColumn = selection?.measureIds.includes(actualMeasureId) ? actualMeasureId.split(".").at(-1) : undefined;
@@ -872,67 +900,112 @@ function ResultTableView({
           </tr>
         </thead>
         <tbody>
-          {result.rows.map((row, rowIndex) => (
-            <tr key={result.columns.map((column) => String(row[column.key])).join("|")}>
-              {result.columns.map((column) => {
-                const value = row[column.key];
-                const label = !column.numeric && typeof value === "string" ? labels.get(value) : undefined;
-                const rawRowKey = rowKeyColumn ? row[rowKeyColumn] : undefined;
-                const rowKey = typeof rawRowKey === "string" ? rawRowKey : undefined;
-                const rowLabel = rowKey ? labels.get(rowKey) : undefined;
-                const displayLabel = rowKey ? visibleRowLabel(rowKey, rowLabel, labelMode) : undefined;
-                const actual = column.key === actualColumn ? asFixedScaleMoney(value) : undefined;
-                const opensTransactions = Boolean(
-                  !storedAnswer && drill && rowKey && actual && drillRows.get(rowKey) === true,
-                );
-                const offersAskAgain = Boolean(storedAnswer && rowKey && actual);
-                return (
-                  <td key={column.key} data-numeric={column.numeric || undefined}>
-                    {suppressed.has(`${rowIndex}:${column.key}`) ? (
-                      "—"
-                    ) : label ? (
-                      <ResultRowLabel rawKey={String(value)} label={label} mode={labelMode} />
-                    ) : opensTransactions ? (
-                      <button
-                        className="mis-actual-action inline-flex min-h-11 min-w-11 items-center justify-center focus-visible:active:!transform-none motion-reduce:transform-none"
-                        type="button"
-                        aria-label={`Open transactions for ${displayLabel}, Actual ${cell(value, column.format)}`}
-                        onClick={(event) =>
-                          onOpenDrill({
-                            kind: "ask",
-                            context: drill!.context,
-                            rowKey: rowKey!,
-                            label: displayLabel!,
-                            actual: actual!,
-                            opener: event.currentTarget,
-                          })
-                        }
-                      >
-                        {cell(value, column.format)}
-                      </button>
-                    ) : offersAskAgain ? (
-                      <span className="inline-flex items-center gap-2">
-                        <span>{cell(value, column.format)}</span>
+          {result.rows.map((row, rowIndex) => {
+            const rowKey = dimensionIds.every((dimensionId) => row[dimensionId] !== undefined)
+              ? askRowKey(row, dimensionIds)
+              : "";
+            const rowLabel = labels.get(rowKey);
+            const budgetState = states.get(rowKey);
+            const rawIdentity = typeof row.gl_code === "string" ? row.gl_code : String(row.leaf_key ?? rowKey);
+            const displayLabel = visibleRowLabel(rawIdentity, rowLabel, labelMode);
+            return (
+              <tr key={rowKey || result.columns.map((column) => String(row[column.key])).join("|")}>
+                {result.columns.map((column) => {
+                  const value = row[column.key];
+                  const label = column.key === "gl_code" || column.key === "leaf_key" ? rowLabel : undefined;
+                  const budgetLabel = budgetCellLabel(budgetState, column.key);
+                  const actual = column.key === actualColumn ? asFixedScaleMoney(value) : undefined;
+                  const opensTransactions = Boolean(
+                    !storedAnswer && drill && rowKey && actual && drillRows.get(rowKey) === true,
+                  );
+                  const offersAskAgain = Boolean(storedAnswer && rowKey && actual);
+                  return (
+                    <td key={column.key} data-numeric={column.numeric || undefined} aria-label={budgetLabel}>
+                      {suppressed.has(`${rowIndex}:${column.key}`) ? (
+                        "—"
+                      ) : budgetLabel ? (
+                        "—"
+                      ) : label ? (
+                        <ResultRowLabel rawKey={String(value)} label={label} mode={labelMode} />
+                      ) : column.key === "plant" && typeof value === "string" ? (
+                        (plantNames?.[value] ?? value)
+                      ) : opensTransactions ? (
                         <button
                           className="mis-actual-action inline-flex min-h-11 min-w-11 items-center justify-center focus-visible:active:!transform-none motion-reduce:transform-none"
                           type="button"
-                          aria-label={`Ask again to open transactions for ${displayLabel}, Actual ${cell(value, column.format)}`}
-                          onClick={onAskAgain}
+                          aria-label={`Open transactions for ${displayLabel}, Actual ${cell(value, column.format)}`}
+                          onClick={(event) =>
+                            onOpenDrill({
+                              kind: "ask",
+                              context: drill!.context,
+                              rowKey: rowKey!,
+                              label: displayLabel,
+                              actual: actual!,
+                              opener: event.currentTarget,
+                            })
+                          }
                         >
-                          Ask again
+                          {cell(value, column.format)}
                         </button>
-                      </span>
-                    ) : (
-                      cell(value, column.format)
-                    )}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
+                      ) : offersAskAgain ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span>{cell(value, column.format)}</span>
+                          <button
+                            className="mis-actual-action inline-flex min-h-11 min-w-11 items-center justify-center focus-visible:active:!transform-none motion-reduce:transform-none"
+                            type="button"
+                            aria-label={`Ask again to open transactions for ${displayLabel}, Actual ${cell(value, column.format)}`}
+                            onClick={onAskAgain}
+                          >
+                            Ask again
+                          </button>
+                        </span>
+                      ) : (
+                        cell(value, column.format)
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function budgetCellLabel(
+  state: NonNullable<AskResponse["budgetStates"]>[number] | undefined,
+  columnKey: string,
+): string | undefined {
+  if (!state || state.state === "loaded") return undefined;
+  const isBudget = columnKey === "budget" || columnKey === "budget_net";
+  const isPercentage = columnKey === "percentage";
+  if (!isBudget && !isPercentage) return undefined;
+  if (state.state === "partial") {
+    return `Budget loaded for ${state.plantsWithBudget.length} of ${state.plantsInRow.length} plants`;
+  }
+  if (isPercentage) return "not loaded";
+  return state.plantsInRow.length === 1 ? "Budget not loaded for this plant" : "Budget not loaded for these plants";
+}
+
+function PlantReadout({ plantNames }: Readonly<{ plantNames: AskResponse["plantNames"] }>) {
+  const names = Object.values(plantNames ?? {});
+  if (names.length === 0) return null;
+  return (
+    <p className="ask-report-reason min-w-0 break-words" aria-label="Plants in answer">
+      <span className="ask-report-reason-label">{names.length === 1 ? "Plant" : "Plants"}</span>
+      {names.length <= 3 ? names.join(", ") : `${names.length} plants`}
+    </p>
+  );
+}
+
+function LeftOutReadout({ leftOut }: Readonly<{ leftOut: AskResponse["leftOut"] }>) {
+  if (!leftOut) return null;
+  return (
+    <p className="ask-report-reason min-w-0 break-words">
+      Left out because Budget is not loaded: {leftOut.plants.join(", ")}
+    </p>
   );
 }
 

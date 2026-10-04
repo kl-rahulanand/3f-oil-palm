@@ -184,7 +184,7 @@ test("a grounded explanation is cleared when a different statement is generated 
   expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/);
 });
 
-test("a non success typed response keeps the clarification and its period buttons", async () => {
+test("an informational period continuation replaces the clarification with the answer", async () => {
   mocks.ask.mockResolvedValueOnce(clarification()).mockResolvedValueOnce({
     responseClass: "informational" as AskResponse["responseClass"],
     sessionId: "session",
@@ -196,10 +196,10 @@ test("a non success typed response keeps the clarification and its period button
   fireEvent.click(screen.getByRole("button", { name: "Ask same question" }));
   fireEvent.click(await screen.findByRole("button", { name: "July 2026" }));
 
-  expect(await screen.findByRole("alert")).toBeInTheDocument();
-  expect(screen.getByText("Choose a period")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "July 2026" })).toBeEnabled();
-  expect(screen.queryByText("A glossary definition.")).not.toBeInTheDocument();
+  expect(await screen.findByText("Actual")).toBeInTheDocument();
+  expect(screen.queryByText("Choose a period")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "July 2026" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 test("a continuation whose transport throws keeps the clarification and its period buttons", async () => {
@@ -211,6 +211,41 @@ test("a continuation whose transport throws keeps the clarification and its peri
   expect(await screen.findByRole("alert")).toBeInTheDocument();
   expect(screen.getByText("Choose a period")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "July 2026" })).toBeEnabled();
+});
+
+test("a failed plant choice uses plant-neutral recovery copy", async () => {
+  mocks.ask
+    .mockResolvedValueOnce({
+      responseClass: "clarification_needed" as AskResponse["responseClass"],
+      sessionId: "session",
+      plantChoice: {
+        prompt: "Which plants should this answer cover?",
+        question: "Show Actual by plant",
+        selection: {
+          domain: "governed-financial",
+          measureIds: ["governed-financial.actual"],
+          dimensionIds: ["plant"],
+          filters: [],
+        },
+        options: [{ value: "DUB", label: "Duvva Nursery" }],
+        allPlants: { label: "All plants", value: ["DUB"] },
+      },
+      viewInReport: { available: false, reason: "Choose plants first." },
+    })
+    .mockRejectedValueOnce(new Error("network down"));
+  render(
+    <AskProvider>
+      <AskPanel surface="page" />
+    </AskProvider>,
+  );
+
+  fireEvent.change(screen.getByLabelText("Ask about your MIS data"), { target: { value: "Show Actual by plant" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send question" }));
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Duvva Nursery" }));
+  fireEvent.click(screen.getByRole("button", { name: "Show answer" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("That choice could not be applied. Try again.");
+  expect(screen.queryByText(/period could not be loaded/i)).not.toBeInTheDocument();
 });
 
 test("reopening a report already answered reruns that turn and appends nothing", async () => {

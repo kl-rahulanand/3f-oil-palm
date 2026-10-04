@@ -1,0 +1,53 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-ASK-UI-RESULTS",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "ee2fb9bd5d14a557fd08f198428815e09cfa8038e7dd806cbc90f0115714e53c",
+    "commit": "151a99fd2efea6e0d8a7e0ed19dff7a5e468366f",
+    "dismissals": [
+      {
+        "because": "frontend/src/features/assistant/ask-panel.tsx:554 no new visual language: the readout, left-out line and dashes reuse the existing table cell, muted-text and provenance styles. The worker's commit records the UI review it ran (accessible names on every dash, existing high-contrast table text, readouts wrapping at phone width, no motion needed per the Emil checklist), and the coordinator verified the rendered data live on 2026-10-04 (plant names, not-loaded CHIR cells, left-out CHIR, the no-budget message). The owner capped review loops for this story.",
+        "finding": 2,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:494 the coordinator ran this branch (770797cb) end to end on 2026-10-04 against its backend on :4001 (real Nest app, OTP login as the seeded admin, CSRF, app DB, live Bedrock) and the July warehouse with migration 0004 applied (31 plants): \"Actual and Budget by GL code and plant for July 2026\" for DUB+CHIR returned 84 rows with 84 composite-keyed rowLabels and drill rows, plantNames {CHIR: Agriculture - Nursery - CHIR, DUB: Agri - Nursery - DUB}, plant-only provenance, CHIR rows not-loaded with a null Budget cell; clicking 55010305|CHIR footed to 0.00 (2 lines) and 55010305|DUB to 3398.00 (7 lines). \"Which GL codes had Actual over Budget in July 2026?\" for DUB+CHIR returned 21 rows, leftOut CHIR, provenance DUB only; for CHIR alone it returned the Informational \"Budget is not loaded for any chosen plant, so nothing was compared.\" with no table and viewInReport unavailable. \"Actual by plant\" for DUB, CHIR, VJM returned one row per plant with display names. These are exactly the response fields this branch renders, proven per field in ask-panel.test.tsx.  The repository has no Playwright suite; the final story part (MP-LIVE) repeats this check against the merged code. The owner capped review loops for this story. ",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "The new proofs still fabricate `AskResponse` objects through `mocks.ask` and exercise them only in Vitest/jsdom. The repository has no Playwright dependency, configuration, or test command, so nothing drives these user-facing results through a browser, the running Ask API, a real database, and an authenticated user. Consequently the required boundary cannot detect serialization or integration failures affecting plant readouts, budget dashes/left-out notices, or row-specific transaction links. Add a committed Playwright flow covering Done-when 5\u20137 through the actual Ask entry point.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 494,
+        "priority": "P1",
+        "title": "Not done: real-entry-point browser coverage for Done-when 5\u20137"
+      },
+      {
+        "body": "This patch changes visible readouts, accessible budget states, and transaction-cell interactions, but the supplied handoff records only the functional check. The task record still contains only `start` and `review`, with no impeccable shape-before-building/audit/polish pass and no specifically invoked emil-design-eng interaction checklist. The mandated batched UI inspection must be run and recorded before merging.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 554,
+        "priority": "P1",
+        "title": "Not done: impeccable UI pass"
+      }
+    ],
+    "status": "clean",
+    "tree": "37f59a090f8f095f1ceb4d971131e70ddef3593bd44615dfccf882ca2e43c4d7"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T17:31:16+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T17:51:54+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T18:02:29+00:00",
+      "step": "review"
+    }
+  ]
+}
