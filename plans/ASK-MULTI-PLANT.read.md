@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T09:46:37+00:00
-read_hash: 7e3d5ac104824914326b8da4a7a3c14cedc451f3
-round: 5
+read_at: 2026-10-04T09:48:56+00:00
+read_hash: d7e7cab968dd85c66828ad1108a525df2560833f
+round: 6
 passed: no
-doc_seen: 7e3d5ac104824914326b8da4a7a3c14cedc451f3
+doc_seen: d7e7cab968dd85c66828ad1108a525df2560833f
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 6db2bf4b04fb8b513e4b387f4c71d52db10c4952
+notes_seen: 651eb15cc8dab63368027e14f6fb8b66dd1502a6
 ---
 # Cold read notes
 
@@ -100,3 +100,21 @@ Only a genuine trade-off goes to the human, as a question with options.
 18. The `reportGrounding` refusal-order case has no named proof.
    The confirmed spec requires a revoked plant with report grounding but no `origin` to return `plant-not-granted`; the plan repeats the rule but names no leaf for it. Unproven: item 9. Add the case to MP-ASK-CHOICE’s chat-service tests.
    Disposition: cut detail 9 names the reportGrounding-only revoked case as `plant-not-granted`, proven in chat.service.test.ts by MP-ASK-CHOICE.
+
+## Round 6
+
+19. `plantNames` is not persisted with conversation turns.
+   Conversation snapshots deliberately copy only listed render fields, and neither the snapshot type nor `conversations.service.ts` is in scope. Reopening a saved Ask answer will lose plant display names. Unproven: items 3, 5, and 6. Add the field, copy, and persistence leaf to the contract/budget work.
+   Disposition: cut `ConversationAnswerSnapshot` gains plantNames, budgetStates and leftOut (MP-CONTRACT) and the conversation service keeps them with a persistence leaf (MP-ASK-BUDGET, scope added).
+
+20. `plantNames` contradicts the confirmed `leftOut` shape.
+   The spec defines `leftOut.plants` as display names, but the plan says the client renders `leftOut` through a map keyed by canonical codes; it has no canonical key to look up. Keep `leftOut` rendered directly from its display names, or amend and reconfirm the spec.
+   Disposition: cut `plantNames` covers plants read only; `leftOut.plants` stays display names per the spec and renders directly.
+
+21. C11a is still absent from MP-ASK-CHOICE’s Covers cell.
+   Its delivery and test name the work, but the task remains marked only 1, 2, and 9. It also covers Done-when item 10 through C11a; record that mapping.
+   Disposition: cut C11a moves to MP-ASK-BUDGET, which now covers 5, 6 and 10 (detail 10 records C11a); MP-ASK-CHOICE stays at 1, 2 and 9.
+
+22. MP-STATEMENT-COMBINED now delivers budget behaviour without covering item 5.
+   Its new DUB-only statement-budget join and CHIR-no-budget leaf are C6 behaviour, but its Covers cell remains only 4. Add item 5 so the task table matches the work.
+   Disposition: cut MP-STATEMENT-COMBINED now covers 4 and 5.
