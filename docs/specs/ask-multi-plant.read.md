@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:00:53+00:00
-read_hash: 4bcd10be240e5c1041a19c245263701b4fa7baf2
-round: 4
+read_at: 2026-10-04T07:03:55+00:00
+read_hash: 4c52169836c73ae1b532936910cd3b4dfb5a0424
+round: 5
 passed: no
-doc_seen: 4bcd10be240e5c1041a19c245263701b4fa7baf2
+doc_seen: 4c52169836c73ae1b532936910cd3b4dfb5a0424
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 9ba525a4fd16f3a7909f070b8fb4f08f065c9864
+notes_seen: b2ced90e45811cfd47b990a8f2d32a98313fd19f
 ---
 # Cold read notes
 
@@ -141,3 +141,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 27. Unproven: C6/C7 do not jointly prove the comparison answer’s provenance excludes left-out plants.
     - A DUB+CHIR budget comparison must report CHIR as left out while its query, totals, drill context, and “How this was calculated” scope contain DUB only. Add that exact mixed-budget proof; naming CHIR in the explanatory copy must not make it appear as queried scope.
     Disposition: cut C6 adds the DUB+CHIR comparison proof: CHIR named as left out while the predicate, totals, drill context and provenance scope hold DUB only.
+
+## Round 5
+
+28. Contradiction: C11’s statement regression oracle requires an invalid `% > 100` measure filter.
+    - The confirmed comparison spec permits comparisons only between money measures and explicitly refuses `%` as not comparable. The expected selection for “which statement lines are over budget” must be `Actual > Budget`; `%` is only the display/result oracle.
+    Disposition: cut the statement corpus question now expects measure filter Actual > Budget; % stays only the result oracle.
