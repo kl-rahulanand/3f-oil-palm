@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T06:56:29+00:00
-read_hash: 6f7e53bd128ed0c061a683ca1b3f169e2f00c19e
-round: 2
+read_at: 2026-10-04T07:00:53+00:00
+read_hash: 4bcd10be240e5c1041a19c245263701b4fa7baf2
+round: 4
 passed: no
-doc_seen: 6f7e53bd128ed0c061a683ca1b3f169e2f00c19e
+doc_seen: 4bcd10be240e5c1041a19c245263701b4fa7baf2
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 0f2178973c0ebb8a6ba7926296c511747cf0b49d
+notes_seen: 9ba525a4fd16f3a7909f070b8fb4f08f065c9864
 ---
 # Cold read notes
 
@@ -100,3 +100,44 @@ Only a genuine trade-off goes to the human, as a question with options.
 18. Trap: typed refusal delivery: C1 and C9.
     - The global exception filter replaces exception text. The continuation and saved/pin refusal need a typed reason in the response/envelope so the client can reliably render the specified access-changed copy instead of relying on an HTTP message.
     Disposition: cut every plant refusal is an Ask answer with responseClass BlockedByPolicy and a typed `refusal.reason`, so the exception filter cannot strip its wording.
+
+## Round 3
+
+19. Gap: an executable selection without a plant filter is not defined.
+    - `at most one` permits zero, so an edited or legacy saved/pinned selection can still bypass the picker and run over the full grant. Require exactly one canonical plant filter before any data query; a multi-plant reader with none gets `plantChoice`, while a one-plant reader gets an injected singleton filter.
+    - Unproven: C1/C9: no leaf covers a direct edited selection or legacy saved/pinned selection with no plant filter.
+    Disposition: cut every selection that runs a data query holds exactly one plant filter; a selection without one (edited, or an older saved view or pin) gets the picker for multi-plant readers or a singleton filter for one-plant readers, with leaves in C1.
+
+20. Gap: named-plant resolution is not made authoritative over the selector output.
+    - The model receives canonical/display vocabulary but not SAP aliases, while the server recognizes SAP aliases in the question. Specify that server-resolved named plants create the authoritative filter (and reject a conflicting edited/model filter), rather than allowing the selector to omit or widen the named set.
+    Disposition: cut for a new question the server-resolved named plants set the filter, replacing the selector's (difference logged); a selector filter is discarded when no plant is named; an edited selection's filter is authoritative once validated; C1 proves it.
+
+21. Contradiction: C6 still requires “no %” for not-loaded and partial rows.
+    - Behaviour now correctly requires a retained `%` column with a labelled null cell. Replace C6’s “no %” with that exact cell rule so its acceptance test cannot approve column removal.
+    Disposition: cut C6 now requires a null % cell labelled "not loaded" in a retained % column, never column removal.
+
+22. Gap: C3’s permitted GL-code × month shapes have no safe row identity for names or drills.
+    - `<gl_code>|<plant>` is not unique for GL-code × month or GL-code × plant × month, yet C3 allows both and C8 says links work for any plant set. Either make multi-dimension rows inert, or bind every grouping value—including month—in row labels, the signed key, and the transaction predicate.
+    Disposition: cut names and clicks apply only to gl_code, gl_code × plant, leaf_key and leaf_key × plant; any shape with month renders inert as today; C8 proves it.
+
+23. Gap: budget-comparison exclusion must happen before ordering, limiting, totals, and drill preparation.
+    - `budgetStates` is response metadata; filtering rows after it is built can omit qualifying DUB rows beyond the limit and produce wrong totals. Pin a query-level loaded-budget predicate and prove a fixture with more loaded matches than the page limit, plus partial/not-loaded rows.
+    Disposition: cut a budget comparison restricts the query itself to chosen plants with a loaded budget, before grouping, ordering, the limit, totals and drill preparation, and names the left-out plants; C6 adds the over-limit fixture.
+
+## Round 4
+
+24. Contradiction: success-measure question 4 still expects CHIR to show “no %”.
+    - Behaviour and C6 now require a retained `%` column with a labelled null cell. Change the oracle to “a null % cell labelled ‘not loaded’,” so the live check cannot approve column removal.
+    Disposition: cut success-measure question 4 now expects a null % cell labelled "not loaded" in a retained % column.
+
+25. Gap: “a name that matches no plant” has no deterministic detection rule.
+    - The pre-selector matcher can recognize known aliases, but cannot know that an arbitrary unmatched word is intended as a plant; the selector cannot emit it because its vocabulary excludes it. Define the grammar/source of an unknown plant candidate, including ordinary period words such as “July,” and prove it does not spuriously trigger the picker.
+    Disposition: cut a plant is recognised only by the whole-word mapping-master match; no other word is treated as a plant, so an unmatched question gets the picker with no notice; C2 proves period, measure and GL words never match.
+
+26. Gap: C11’s live regression probe is not reproducible.
+    - “Existing working Ask phrasings” are neither listed nor given expected pre-change selections. Name the fixed prompt corpus and its expected domain, dimensions, filters, and period so the before/after comparison can actually detect a selector regression.
+    Disposition: cut C11 names a fixed four-question corpus with its expected domain, dimension, measure filter and period, probed before and after.
+
+27. Unproven: C6/C7 do not jointly prove the comparison answer’s provenance excludes left-out plants.
+    - A DUB+CHIR budget comparison must report CHIR as left out while its query, totals, drill context, and “How this was calculated” scope contain DUB only. Add that exact mixed-budget proof; naming CHIR in the explanatory copy must not make it appear as queried scope.
+    Disposition: cut C6 adds the DUB+CHIR comparison proof: CHIR named as left out while the predicate, totals, drill context and provenance scope hold DUB only.
