@@ -1,10 +1,52 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-ASK-UI-CHOICE",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "11d79f0bf021a2bb7c922f498f8604507eb8e682570315514e1bd1549de1148b",
+    "commit": "845936f89237a6b7310190d08921ac539aaff7c4",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The new picker tests stub `api.ask` and inject a `plantClarification` response directly into jsdom. The repository has no Playwright flow driving a browser through the running API with a real user/database, so this coverage cannot prove that several grants produce the picker before figure reads, a singleton grant answers directly, all ingresses re-check grants, or the selected plants survive the real plant-to-period round trip. The supplied functional-check paragraph also does not identify a running API or database. Done-when item 1 therefore lacks the required real-entry-point test.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 954,
+        "priority": "P1",
+        "title": "Not done: A no-plant question gets the required picker/direct-answer flow"
+      },
+      {
+        "body": "This table test fabricates each `blocked_by_policy` response through the mocked frontend API. It never exercises request-origin serialization, the running Ask route, grant changes, or the server-selected refusal reason before checking the rendered copy. Although the save/pin portion has separate task evidence, this branch leaves the Ask portion of Done-when item 9 proven only at the component boundary; no required browser/API/database test exists, and the functional-check paragraph does not establish those real boundaries.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 1274,
+        "priority": "P1",
+        "title": "Not done: Every plant refusal states its reason in plain words in Ask"
+      },
+      {
+        "body": "This change introduces a new styled, scrollable checkbox picker and its validation/loading/error states. The commit records a generic UI checklist and an Emil interaction review, but it does not attest or record impeccable's required shape-before-building pass followed by its audit and polish pass. Run and record that required visual-design review for the changed picker before merging.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 408,
+        "priority": "P1",
+        "title": "Not done: impeccable UI pass"
+      },
+      {
+        "body": "The picker submits through the generic `\"retain\"` continuation policy. If this request rejects, `resolveContinueError` in `use-ask.ts:341` displays \u201cThe period could not be loaded. Try again.\u201d; a resolved non-success response similarly uses \u201cThat period could not be loaded\u201d at `use-ask.ts:312`. At this point the user selected plants and may not have reached a period choice, so the recovery message identifies the wrong failed action. Pass continuation context or use a plant-neutral failure message, and cover the picker failure path.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 403,
+        "priority": "P2",
+        "title": "Plant-choice failures are mislabeled as period failures"
+      }
+    ],
+    "status": "blocked",
+    "tree": "0e9d742dedcef274059575633945af6e6907ee9c7d6965c745fb291e9d6379ea"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T16:43:23+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T17:08:40+00:00",
+      "step": "review"
     }
   ]
 }
