@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:42:09+00:00
-read_hash: 958c21bb76e5c6df4047468f9dfd917e66c9efbc
-round: 17
+read_at: 2026-10-04T08:43:54+00:00
+read_hash: 426119a5d9455bd4f409987510834f94518ce141
+round: 18
 passed: no
-doc_seen: 958c21bb76e5c6df4047468f9dfd917e66c9efbc
+doc_seen: 426119a5d9455bd4f409987510834f94518ce141
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: ed5b1d953f5f4d17fab7273282a1c07a8aacc24f
+notes_seen: 524911d6367a54014bd2dca63df27e27222fb8d8
 ---
 # Cold read notes
 
@@ -292,3 +292,9 @@ No findings.
 57. Contradiction: the unwindowed no-budget path must read active Actual load batches before it can return an answer that promises “nothing is read.”
    Define permitted preflight metadata lookups versus prohibited figure reads, including their audit behavior, and make C6 prove that only the former occurs.
    Disposition: cut a new "What counts as a read" section separates figure reads (data query, totals, names, drill, transactions; audited) from metadata lookups (mapping master, grants, cached vocabulary, load-batch metadata; not audited as data reads), and every "no read" means no figure read; C6 proves the unwindowed no-budget answer runs only metadata lookups.
+
+## Round 18
+
+58. Gap: a budget-comparison response does not say whether its saved selection keeps left-out plants.
+   A DUB+CHIR comparison executes only DUB, yet `AskResponse.selection` is what the client saves and re-runs. Pin that it preserves the requested DUB+CHIR snapshot while provenance, drill, and effective predicate use DUB; add a save/pin re-run leaf.
+   Disposition: cut the response's `selection` keeps the requested plants for save and re-run, while the effective predicate, totals, provenance and drill use the compared plants; C6 adds the save and pin re-run leaf.
