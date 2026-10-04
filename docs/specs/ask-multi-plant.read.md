@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:30:13+00:00
-read_hash: 64ffcf1a513ecdf6134c8c2965c2a5169847acc5
-round: 11
+read_at: 2026-10-04T07:32:23+00:00
+read_hash: aba607e77cbfaf057c8d1db84f1afae6570e9ce5
+round: 12
 passed: no
-doc_seen: 64ffcf1a513ecdf6134c8c2965c2a5169847acc5
+doc_seen: aba607e77cbfaf057c8d1db84f1afae6570e9ce5
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: d07bead9549311c820de45045c9b1a10b4503639
+notes_seen: 1a12ac1cbf817d972476f73ab0df5e16f32e8f77
 ---
 # Cold read notes
 
@@ -226,3 +226,17 @@ No findings.
 44. Gap: the no-loaded-budget comparison response is not classified or scoped.
    It performs no read yet must name every selected plant as left out. Specify its response class and whether it carries selection, provenance, plant coverage, or budget metadata; distinguish the explanatory left-out list from C7’s prohibited informational plant readout, and prove the all-not-loaded case.
    Disposition: cut the no-budget comparison is Informational with a typed `leftOut` and stated copy, and no table, provenance, plant readout, budget states or drill; `leftOut` is separate from the plant readout; C7 proves it.
+
+## Round 12
+
+45. Contradiction: `reportGrounding.reportId` does not identify saved-view or pin reruns.
+   It identifies a docked MIS report; saved and pinned cards reopen through the generic `selection` Ask path and deliberately send no report grounding. Using it would both fail to reach `plants-revoked` for a stale card and misclassify a docked report request. Add a saved/pin origin carrier or use the generic reason, with leaves for each source.
+   Disposition: cut a new `AskRequest.origin` (plant-choice, period-choice, saved-view, pin) set by the client carries the source; `reportGrounding` is not an origin; C2 proves each source and the no-origin case.
+
+46. Gap: `leftOut` presence for a comparison with no omitted plants is unspecified.
+   The behaviour says every budget comparison carries and renders `leftOut`, which would add an empty “Left out” message to DUB-only comparisons that must remain unchanged. Define omission versus an empty payload and prove the DUB-only case renders no left-out copy.
+   Disposition: cut `leftOut` is omitted when no plant was left out; C7 proves a DUB-only comparison renders no left-out copy.
+
+47. Gap: the no-budget informational statement response leaves “View in report” undefined.
+   `viewInReport` is a required response field, while C8 permits it for a single-plant statement answer; a CHIR-only over-budget statement question has no result or provenance. Specify whether it is unavailable and its reason, then prove the no-budget path cannot offer an unrelated report link.
+   Disposition: cut the no-budget answer's `viewInReport` is unavailable with the stated reason; C7 proves it for a statement question.
