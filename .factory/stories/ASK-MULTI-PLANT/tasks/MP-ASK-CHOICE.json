@@ -9,6 +9,11 @@
         "because": ".factory/stories/ASK-MULTI-PLANT/tasks/MP-ASK-CHOICE.json:3 Coordinator live probe, 2026-10-04, branch task/ASK-MULTI-PLANT-MP-ASK-CHOICE at 394259f0 on :4001, live Bedrock, July warehouse, two runs as the admin: - \"show me list items where Actuals are more than the budget for July 2026\": picker (31 plants); base selection governed-financial, Actual+Budget, gl_code, Actual > Budget, July 2026, normalised filters []; choosing DUB: 21 rows, 50001201 first at 8398339.00. - \"which GL codes spent more than 5 lakh in July 2026\": picker; governed-financial, Actual, gl_code, Actual > 500000.00, July 2026, filters []; DUB: 2 rows. - \"Actual by GL code for July 2026\": picker; governed-financial, Actual, gl_code, no measure filter, July 2026, filters []; DUB: 67 rows. - DUB-only user, \"which statement lines are over budget for July 2026\": no picker, success, mis-statement, Actual+Budget, leaf_key, Actual > Budget, July 2026, plant filter [\"DUB\"]. Same domain, measures, dimensions, measure filter and period as the pre-change probe; only the plant filter added. ",
         "finding": 2,
         "from_base": false
+      },
+      {
+        "because": "backend/src/chat/chat.service.test.ts:37 the coordinator drove the real Ask endpoint end to end on 2026-10-04: this branch at 394259f0 served on :4001 with the real Nest app, OTP login and CSRF, the app DB, the July warehouse and live Bedrock; POST /api/chat returned the plantChoice picker (31 plants, no figures) for three admin questions, POST /api/chat with the picker's selection plus the DUB plant filter and origin plant-choice ran and returned 21, 2 and 67 rows, and a DUB-only reader got a direct answer with the singleton plant filter. Origin-specific refusals are proven in chat.service.test.ts and the controller leaves forward origin on both routes; the browser half lands with MP-ASK-UI-CHOICE, which renders the picker.",
+        "finding": 1,
+        "from_base": false
       }
     ],
     "findings": [
@@ -48,10 +53,10 @@
         "title": "Later: MP-SAVED-PINS must validate and preserve plant filters"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "f33e5cc022072ee36224a5c9b826e91d685261bbf0daee1760a6f9d0d744fc1b"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-04T12:37:15+00:00",
