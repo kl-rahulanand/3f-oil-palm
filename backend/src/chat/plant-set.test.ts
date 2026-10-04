@@ -72,6 +72,26 @@ test("plant filter refusals use no-grant invalid and origin-specific revoked ord
     { ok: false, refusal: { reason: "no-plants-granted", plants: [] } },
   );
 
+  for (const origin of ["saved-view", "pin", "plant-choice", undefined] as const) {
+    assert.deepEqual(
+      validatePlantFilter({
+        filters: [{ dimensionId: "plant", op: "eq", value: "CHIR" }],
+        grantedPlants: ["DUB"],
+        origin,
+      }),
+      { ok: false, refusal: { reason: "plant-filter-invalid", plants: [] } },
+    );
+  }
+
+  assert.deepEqual(
+    validatePlantFilter({
+      filters: [{ dimensionId: "plant", op: "in", value: [] }],
+      grantedPlants: ["DUB"],
+      origin: "pin",
+    }),
+    { ok: false, refusal: { reason: "plant-filter-invalid", plants: [] } },
+  );
+
   for (const [origin, reason] of [
     ["saved-view", "plants-revoked"],
     ["pin", "plants-revoked"],
