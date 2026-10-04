@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:06:33+00:00
-read_hash: 1708d7e1c08017399a5a54aaacf310becdc77e56
-round: 7
-passed: no
-doc_seen: 1708d7e1c08017399a5a54aaacf310becdc77e56
+read_at: 2026-10-04T07:07:08+00:00
+read_hash: 3fc48130a54e42ee013d8e027012529b60cfdae8
+round: 8
+passed: yes
+doc_seen: 3fc48130a54e42ee013d8e027012529b60cfdae8
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: d2c253a5e0077d8862363a614e51252df27ccda4
+notes_seen: 698aa9389cd6f54011438f4e3669b768e7b5256e
 ---
 # Cold read notes
 
@@ -164,3 +164,7 @@ Only a genuine trade-off goes to the human, as a question with options.
     - `ResultTable` exposes separate `gl_code`/`plant` or `leaf_key`/`plant` cells, while existing labels and drill metadata are keyed by one raw dimension value. Define the shared composite-key derivation and require `rowLabels`, `budgetStates`, and `drill.rows` to use it, so the same GL or leaf in DUB and CHIR cannot receive the other row’s name, budget state, or drill link.
     - Unproven: C7/C8 need a two-plant same-GL/leaf case that proves metadata and clicks remain associated with their own row.
     Disposition: cut one shared row-key function (unsplit cell, or `<code>|<plant>` for a breakdown) keys rowLabels, budgetStates and drill.rows on both sides; C8 adds the same-GL and same-line DUB and CHIR proof.
+
+## Round 8
+
+No findings.
