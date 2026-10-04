@@ -267,7 +267,7 @@ No findings.
 
 52. Gap: the selected-measure rule still cannot produce success question 4’s required `%` column.
    “Actual and Budget” need not select Percentage, yet the oracle requires a null `%` cell. Specify whether selecting Budget automatically includes `%`, or change the question/oracle; cover Actual-only, Actual+Budget, %-only, and all-three measure sets.
-   Disposition: cut no measure is added; the dash applies to a shown Budget column and the % cell to a shown % column; question 4 now asks for Actual, Budget and Budget %; C6 covers the four measure sets.
+   Disposition: cut no measure is added; the dash applies to a shown Budget column and the % cell to a shown % column; question 4 now asks for Actual, Budget and %; C6 covers the four measure sets.
 
 53. Gap: budget comparisons are undefined for a partially budgeted time range.
    Budget availability is now per row/month, but comparison filtering and `leftOut.plants` are plant-only. Define whether a DUB April–July comparison excludes DUB entirely when one month lacks a batch or reads only budgeted months, and how the omitted month is explained; add a C6 leaf.
