@@ -1,10 +1,59 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-ASK-CHOICE",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "a647484ad048267c830e7ee06129383120db728b70027f1c6c59f586d82d46d9",
+    "commit": "394259f0624663b2d5506693b57974637222bcb1",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The strongest new picker/refusal coverage invokes `ChatService` directly with fake executor, audit, dimension, report, help, resolver, and provider dependencies. The controller tests separately mock `ChatService`, so no test proves the behavior through the real Ask endpoint and authentication/application boundary. Under the required test-audit bar, these unit tests cannot be the only proof of the user-facing picker, no-read guarantee, origin-specific refusals, and singleton execution.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 37,
+        "priority": "P1",
+        "title": "Not done: end-to-end Ask plant-selection test"
+      },
+      {
+        "body": "The task record contains only the start event and remains `working`; there is no recorded post-change Bedrock probe in the branch or supplied evidence. This task explicitly cannot close until the live corpus still selects the recorded domains, measures, dimensions, comparisons, and periods after adding the granted plant vocabulary. The hermetic close run and mocked provider test do not perform that functional check.",
+        "file": ".factory/stories/ASK-MULTI-PLANT/tasks/MP-ASK-CHOICE.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: coordinator live selector probe"
+      },
+      {
+        "body": "After the picker returns, the statement path calls `statementRequest` without the validated plant filter. That helper still derives one plant from the user's entire scope, so a reader granted several plants who chooses even one plant is refused for ambiguous plant scope instead of receiving the period choice; choosing several plants likewise cannot execute. The Tasks table assigns plant-to-period and multi-plant statement continuation to MP-ASK-STATEMENT.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 577,
+        "priority": "P2",
+        "title": "Later: MP-ASK-STATEMENT must carry chosen plants into statement continuation"
+      },
+      {
+        "body": "This branch emits `plantChoice`, but the unchanged client has no `plantChoice` rendering, non-empty validation, or request `origin`; `use-ask.ts` still sends continuations as only `{ question, selection }`. Consequently users cannot choose plants, see the required live-region error, or submit `plant-choice`/`period-choice` origins yet. The Tasks table assigns this work to MP-ASK-UI-CHOICE.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 559,
+        "priority": "P2",
+        "title": "Later: MP-ASK-UI-CHOICE must render and submit the plant picker"
+      },
+      {
+        "body": "The new Ask ingress validation handles stale saved/pinned selections only after they reach ChatService. The unchanged saved and pin creation paths still do not call `validatePlantFilter`, canonicalize duplicate plant values, produce the typed HTTP 400, or send the corresponding origin on reopen. This remaining Done-when 9 work is assigned to MP-SAVED-PINS.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 189,
+        "priority": "P2",
+        "title": "Later: MP-SAVED-PINS must validate and preserve plant filters"
+      }
+    ],
+    "status": "blocked",
+    "tree": "f33e5cc022072ee36224a5c9b826e91d685261bbf0daee1760a6f9d0d744fc1b"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T12:37:15+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T13:15:04+00:00",
+      "step": "review"
     }
   ]
 }
