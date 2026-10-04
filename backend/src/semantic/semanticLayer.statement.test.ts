@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { SemanticLayer } from "./semanticLayer";
 
-test("the statement semantic domain registers governed range measures with only the statement leaf dimension", () => {
+test("the statement semantic domain registers governed range measures with statement leaf and plant dimensions", () => {
   const domain = new SemanticLayer().domain("mis-statement");
 
   assert.ok(domain);
@@ -15,11 +15,11 @@ test("the statement semantic domain registers governed range measures with only 
   );
   assert.deepEqual(
     domain.dimensions.map(({ id }) => id),
-    ["leaf_key"],
+    ["leaf_key", "plant"],
   );
   assert.ok(domain.measures.every(({ grain }) => grain === "statement leaf and period range"));
   assert.deepEqual(
     domain.measures.map(({ allowedDimensions }) => allowedDimensions),
-    domain.measures.map(() => ["leaf_key"]),
+    domain.measures.map(() => ["leaf_key", "plant"]),
   );
 });

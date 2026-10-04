@@ -136,7 +136,10 @@ END`,
 END`,
         ),
       ],
-      dimensions: [{ id: "leaf_key", label: SEMANTIC_LABELS.dimensions.leaf_key, column: "leaf_key" }],
+      dimensions: [
+        { id: "leaf_key", label: SEMANTIC_LABELS.dimensions.leaf_key, column: "leaf_key" },
+        { id: "plant", label: "Plant", column: "plant" },
+      ],
     },
   ];
 
@@ -200,7 +203,7 @@ function statementMeasure(
     ...(totalsOverAliases ? { totalsOverAliases } : {}),
     grain: "statement leaf and period range",
     impliedFilters: [],
-    allowedDimensions: ["leaf_key"],
+    allowedDimensions: ["leaf_key", "plant"],
     timeColumn: "month",
     defaultTimeGrain: "month",
     piiSensitive: false,

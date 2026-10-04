@@ -32,8 +32,37 @@ export interface MasterUnresolvableSelection {
 
 export type MasterSelectionResolution = MasterResolvedSelection | MasterUnresolvableSelection;
 
+export interface MasterResolvedPlantSet {
+  outcome: "resolved";
+  plants: Array<{
+    plant: string;
+    plantDisplay: string;
+    department: string;
+    function: string;
+    provisional: boolean;
+  }>;
+  budgetOwnerPlant: string;
+  glCodes: string[];
+  misFormat: string;
+  bucketRows: MappingEntry[];
+  triples: GovernedSelectionScope["triples"];
+  leafTargets: NonNullable<GovernedSelectionScope["leafTargets"]>;
+  masterGlCodes: string[];
+  period: ResolvedSelectionPeriod;
+}
+
+export type MasterPlantSetResolution = MasterResolvedSelection | MasterResolvedPlantSet | MasterUnresolvableSelection;
+
 export interface ISelectionResolverService {
   options(allowedPlants?: string[]): Promise<MisSelectionOptionsResponse>;
   canonicalPlant(plant: string): string | undefined;
   resolve(request: MisSelectionRunRequest): Promise<MasterSelectionResolution>;
+}
+
+export interface IMultiPlantSelectionResolverService extends ISelectionResolverService {
+  resolvePlants(
+    plants: string[],
+    period: string,
+    knownPeriods?: MisSelectionOptionsResponse["periods"],
+  ): Promise<MasterPlantSetResolution>;
 }

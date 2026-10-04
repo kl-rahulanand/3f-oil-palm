@@ -20,7 +20,7 @@ test("the destructive statement projection proof refuses a non-local warehouse h
 });
 
 test(
-  "WAREHOUSE_DB_TEST proves the July statement projection has exact leaf month rows totals and no fan out while splitting repeated GLs and retaining the unmapped bucket",
+  "WAREHOUSE_DB_TEST proves one-plant and combined statement lines, zero lines, the unmapped bucket, and owner-only budget by plant",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async () => {
     assertLocalWarehouseHost(process.env.WAREHOUSE_PG_HOST);
@@ -107,6 +107,93 @@ test(
         assert.equal(row.actual_net, sumMoney(matchingMonths.map(({ actual_net }) => actual_net)));
         assert.equal(row.budget_net, sumMoney(matchingMonths.map(({ budget_net }) => budget_net)));
       }
+
+      const combinedResolution = await new SelectionResolverService(new PeriodWarehouse()).resolvePlants(
+        ["DUB", "CHIR"],
+        PERIOD,
+      );
+      assert.equal(combinedResolution.outcome, "resolved");
+      assert.ok(combinedResolution.outcome === "resolved" && "plants" in combinedResolution);
+      if (combinedResolution.outcome !== "resolved" || !("plants" in combinedResolution)) return;
+
+      const combinedScope = {
+        triples: combinedResolution.triples,
+        glCodes: combinedResolution.glCodes,
+        masterGlCodes: combinedResolution.masterGlCodes,
+        leafTargets: combinedResolution.leafTargets,
+        budgetOwnerPlant: combinedResolution.budgetOwnerPlant,
+        plantDisplayNames: Object.fromEntries(
+          combinedResolution.plants.map(({ plant, plantDisplay }) => [plant, plantDisplay]),
+        ),
+      };
+      const multiPlantUser = {
+        ...user,
+        scope: [
+          { attribute: "plant", value: "DUB" },
+          { attribute: "plant", value: "CHIR" },
+        ],
+      };
+      const multiPlantSelection = {
+        domain: statementDomain.name,
+        measureIds: statementDomain.measures.map(({ id }) => id),
+        dimensionIds: ["leaf_key", "plant"],
+        filters: [{ dimensionId: "plant", op: "in" as const, value: ["CHIR", "DUB"] }],
+        timeWindow: { grain: "month" as const, column: "month", from: PERIOD, to: PERIOD },
+      };
+      const plantRows = (
+        await pool.query<StatementPlantRow>(
+          new SqlBuilder().build(statementDomain, multiPlantSelection, multiPlantUser, true, combinedScope).sql,
+        )
+      ).rows;
+      const combinedRows = (
+        await pool.query<StatementRow>(
+          new SqlBuilder().build(
+            statementDomain,
+            { ...multiPlantSelection, dimensionIds: ["leaf_key"] },
+            multiPlantUser,
+            true,
+            combinedScope,
+          ).sql,
+        )
+      ).rows;
+
+      assert.equal(plantRows.length, 162);
+      assert.deepEqual(
+        plantRows.slice(0, 2).map(({ leaf_key, plant }) => [leaf_key, plant]),
+        [
+          ["1.1|50001201|sprout-cost", "DUB"],
+          ["1.1|50001201|sprout-cost", "CHIR"],
+        ],
+      );
+      for (const row of combinedRows) {
+        const matchingPlants = plantRows.filter(({ leaf_key }) => leaf_key === row.leaf_key);
+        assert.equal(row.actual_net, sumMoney(matchingPlants.map(({ actual_net }) => actual_net)));
+        assert.equal(row.budget_net, sumMoney(matchingPlants.map(({ budget_net }) => budget_net)));
+      }
+      assert.deepEqual(
+        plantRows
+          .filter(({ plant }) => plant === "DUB")
+          .map(({ leaf_key, actual_net, budget_net }) => [leaf_key, actual_net, budget_net]),
+        rows.map(({ leaf_key, actual_net, budget_net }) => [leaf_key, actual_net, budget_net]),
+      );
+      const chirZero = plantRows.find(
+        ({ plant, leaf_key }) => plant === "CHIR" && leaf_key === "1.1|50001201|sprout-cost",
+      );
+      assert.deepEqual(chirZero, {
+        leaf_key: "1.1|50001201|sprout-cost",
+        plant: "CHIR",
+        actual_net: "0.00",
+        budget_net: "0.00",
+        rollover_net: "0.00",
+        percentage: null,
+        source_presence: '["actual-only"]',
+        active_batch_ids: "[]",
+      });
+      assert.ok(plantRows.filter(({ plant }) => plant === "CHIR").every(({ budget_net }) => budget_net === "0.00"));
+      const combinedBucket = combinedRows.find(({ leaf_key }) => leaf_key === "unmapped-GL");
+      const plantBuckets = plantRows.filter(({ leaf_key }) => leaf_key === "unmapped-GL");
+      assert.ok(combinedBucket);
+      assert.equal(combinedBucket.actual_net, sumMoney(plantBuckets.map(({ actual_net }) => actual_net)));
     } finally {
       await pool.end();
     }
@@ -117,6 +204,14 @@ interface StatementRow {
   leaf_key: string;
   actual_net: string;
   budget_net: string;
+}
+
+interface StatementPlantRow extends StatementRow {
+  plant: string;
+  rollover_net: string;
+  percentage: string | null;
+  source_presence: string;
+  active_batch_ids: string;
 }
 
 const EXPECTED_JULY_LEAVES = [
