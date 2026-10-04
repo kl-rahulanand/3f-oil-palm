@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:39:43+00:00
+saved: 2026-10-04T08:40:00+00:00
 ---
 
 # Every Ask answer works across plants
@@ -284,7 +284,7 @@ decision 0033.
      warehouse's July Actual for those plants.
   3. "What was the Actual for each MIS statement line in July 2026 for DUB and CHIR?" Expected: one
      combined statement whose lines equal the sum of DUB's and CHIR's MIS statements.
-  4. "Actual, Budget and Budget % by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a
+  4. "Actual, Budget and % by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a
      Budget dash labelled "Budget not loaded for this plant" and a null % cell labelled "not loaded" in a
      % column that is still present.
   5. "What was the Actual for each MIS statement line in July 2026?" Expected: the picker, then the
