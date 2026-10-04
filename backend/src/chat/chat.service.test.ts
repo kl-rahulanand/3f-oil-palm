@@ -132,6 +132,32 @@ test("a plant choice keeps the server-resolved period when the selector omits it
   });
 });
 
+test("a redundant month filter changes neither rows nor the other executed filters", async () => {
+  const glCodeFilter = { dimensionId: "gl_code", op: "eq" as const, value: "DUB-01" };
+  const withoutMonth = makeFixture({
+    selection: { ...financialSelection, filters: [glCodeFilter] },
+  });
+  const withMonth = makeFixture({
+    selection: {
+      ...financialSelection,
+      filters: [glCodeFilter, { dimensionId: "month", op: "eq", value: "2026-07-01" }],
+    },
+  });
+  const user = userForPlants("governed-financial", ["DUB"]);
+
+  const baseline = await withoutMonth.service.ask(user, "baseline-session", "Actual by GL code for July 2026 for DUB");
+  const normalized = await withMonth.service.ask(user, "normalized-session", "Actual by GL code for July 2026 for DUB");
+
+  assert.equal(baseline.responseClass, ResponseClass.Success);
+  assert.equal(normalized.responseClass, ResponseClass.Success);
+  assert.deepEqual(normalized.result?.rows, baseline.result?.rows);
+  assert.deepEqual(withMonth.executor.selections[0]?.filters, withoutMonth.executor.selections[0]?.filters);
+  assert.deepEqual(withMonth.executor.selections[0]?.filters, [
+    glCodeFilter,
+    { dimensionId: "plant", op: "in", value: ["DUB"] },
+  ]);
+});
+
 test("a one-plant statement keeps the existing mapped statement resolution", async () => {
   const fixture = makeFixture({ selection: statementSelection });
 

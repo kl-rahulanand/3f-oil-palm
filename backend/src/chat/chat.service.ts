@@ -60,6 +60,7 @@ import {
   PLANT_REFUSAL_MESSAGES,
   validatePlantFilter,
 } from "./plant-set";
+import { withoutRedundantMonthFilter } from "./redundant-month-filter";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -541,6 +542,7 @@ export class ChatService {
     }
     const resolved = resolveSelectionTimeWindow(domain, selection);
     selection = resolved.selection;
+    selection = withoutRedundantMonthFilter(selection);
     const appliedTimeWindow = resolved.appliedTimeWindow;
     const selectedMeasures = selection.measureIds
       .map((id) => this.semantic.measure(selection.domain, id))
