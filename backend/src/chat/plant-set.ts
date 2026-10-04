@@ -3,6 +3,10 @@ import { MAPPING_MASTER, type MappingMaster, type MappingSelection, selectionAli
 
 export const PLANT_DIMENSION_ID = "plant";
 
+export function comparePlantCodes(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 export interface PlantOption {
   value: string;
   label: string;
@@ -23,7 +27,7 @@ export function matchQuestionPlants(question: string): PlantOption[] {
   return MAPPING_MASTER.selections
     .filter((selection) => selectionMatchesQuestion(question, selection))
     .map(toPlantOption)
-    .sort(compareOptions);
+    .sort((left, right) => comparePlantCodes(left.value, right.value));
 }
 
 export function validatePlantFilter({
@@ -48,7 +52,7 @@ export function validatePlantFilter({
   const canonicalPlants = new Set(MAPPING_MASTER.selections.map(({ plant_canonical }) => plant_canonical));
   if (plantFilter.value.some((plant) => !canonicalPlants.has(plant))) return refusal("plant-filter-invalid");
 
-  const plants = [...new Set(plantFilter.value)].sort();
+  const plants = [...new Set(plantFilter.value)].sort(comparePlantCodes);
   const grants = new Set(grantedPlants);
   const revoked = plants.filter((plant) => !grants.has(plant));
   if (revoked.length > 0) {
@@ -64,10 +68,10 @@ export function plantChoiceOptions(grantedPlants: readonly string[]): Pick<AskPl
   const options = MAPPING_MASTER.selections
     .filter(({ plant_canonical }) => grants.has(plant_canonical))
     .map(toPlantOption)
-    .sort(compareOptions);
+    .sort((left, right) => comparePlantCodes(left.value, right.value));
   return {
     options,
-    allPlants: { label: "All plants", value: options.map(({ value }) => value).sort() },
+    allPlants: { label: "All plants", value: options.map(({ value }) => value).sort(comparePlantCodes) },
   };
 }
 
@@ -92,16 +96,12 @@ function toPlantOption(selection: MappingSelection): PlantOption {
   return { value: selection.plant_canonical, label: selection.plant_aliases.display[0] };
 }
 
-function compareOptions(left: PlantOption, right: PlantOption): number {
-  return left.value.localeCompare(right.value);
-}
-
 function displayNames(plants: readonly string[], master: MappingMaster): string[] {
   const requested = new Set(plants);
   return master.selections
     .filter(({ plant_canonical }) => requested.has(plant_canonical))
     .map(toPlantOption)
-    .sort(compareOptions)
+    .sort((left, right) => comparePlantCodes(left.value, right.value))
     .map(({ label }) => label);
 }
 

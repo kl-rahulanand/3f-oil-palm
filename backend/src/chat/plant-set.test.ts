@@ -116,3 +116,23 @@ test("picker choices come from the mapping master and refusal messages use the s
   );
   assert.equal(PLANT_REFUSAL_MESSAGES["no-plants-granted"]([]), "You do not have access to any plant.");
 });
+
+test("picker options all-plants values and validated filters share canonical code-unit order", () => {
+  assert.deepEqual(plantChoiceOptions(["Nandyal", "NLR"]), {
+    options: [
+      { value: "NLR", label: "Agriculture - Nursery - NLR" },
+      { value: "Nandyal", label: "Agriculture - Nursery - Nandyal" },
+    ],
+    allPlants: { label: "All plants", value: ["NLR", "Nandyal"] },
+  });
+  assert.deepEqual(
+    validatePlantFilter({
+      filters: [{ dimensionId: "plant", op: "in", value: ["Nandyal", "NLR"] }],
+      grantedPlants: ["Nandyal", "NLR"],
+    }),
+    {
+      ok: true,
+      filter: { dimensionId: "plant", op: "in", value: ["NLR", "Nandyal"] },
+    },
+  );
+});
