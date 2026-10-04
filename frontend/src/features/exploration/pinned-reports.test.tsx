@@ -65,7 +65,10 @@ test("a pinned row renders metadata only in position order with a changed defini
 
   fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]!);
   await waitFor(() =>
-    expect(mocks.ask).toHaveBeenCalledWith({ question: "Budget", selection }, { signal: expect.any(AbortSignal) }),
+    expect(mocks.ask).toHaveBeenCalledWith(
+      { question: "Budget", selection, origin: "pin" },
+      { signal: expect.any(AbortSignal) },
+    ),
   );
   expect(mocks.push).toHaveBeenCalledWith("/ask");
 
@@ -74,11 +77,12 @@ test("a pinned row renders metadata only in position order with a changed defini
   expect(mocks.deletePin).toHaveBeenCalledWith("first");
 });
 
-test("a non runnable row renders its refusal message and offers no open control on both surfaces", async () => {
+test("a plants-revoked row renders its reason and offers no open control on both surfaces", async () => {
   const status = {
     runnable: false as const,
-    reason: "grant_revoked" as const,
-    message: "You no longer have permission to run this selection.",
+    reason: "plants_revoked" as const,
+    message:
+      "This view includes plants you no longer have access to: Agriculture - Nursery - CHIR. Edit its plants to run it.",
   };
   mocks.pins.mockResolvedValue([pin("pin", "Restricted pin", 0, false, status)]);
   renderPins();
@@ -158,7 +162,7 @@ test("opening a pin sends its stored measure comparison to Ask intact", async ()
 
   await waitFor(() =>
     expect(mocks.ask).toHaveBeenCalledWith(
-      { question: "Actual · Budget", selection: measureFilteredSelection },
+      { question: "Actual · Budget", selection: measureFilteredSelection, origin: "pin" },
       { signal: expect.any(AbortSignal) },
     ),
   );
@@ -204,7 +208,7 @@ test("opening a pin that matches an existing turn reruns it rather than appendin
   fireEvent.click(screen.getByRole("button", { name: "Open" }));
 
   await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
-  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "What was the budget?", selection });
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "What was the budget?", selection, origin: "pin" });
   expect(screen.getByTestId("thread-length")).toHaveTextContent("1");
   expect(mocks.push).toHaveBeenCalledWith("/ask");
 });
@@ -234,8 +238,8 @@ test("opening two reports that share a label title but differ produces two disti
 
   await waitFor(() => expect(screen.getByTestId("thread-length")).toHaveTextContent("2"));
   expect(mocks.ask.mock.calls.map(([request]) => request)).toEqual([
-    { question: "Actual · Budget", selection: byMonth },
-    { question: "Actual · Budget", selection: byGlCode },
+    { question: "Actual · Budget", selection: byMonth, origin: "pin" },
+    { question: "Actual · Budget", selection: byGlCode, origin: "pin" },
   ]);
 });
 

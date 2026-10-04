@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, ApiError } from "./api";
 import { afterEach, expect, test, vi } from "vitest";
 
 function response(status = 200, body: unknown = { ok: true }, headers: HeadersInit = {}): Response {
@@ -250,7 +250,7 @@ function resultForTrim() {
   };
 }
 
-test("opening a saved view posts the stored selection with no report grounding", async () => {
+test("opening a saved view posts the stored selection and origin with no report grounding", async () => {
   Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=rerun-token" });
   const result = {
     responseClass: "success",
@@ -269,20 +269,50 @@ test("opening a saved view posts the stored selection with no report grounding",
   };
 
   const signal = new AbortController().signal;
-  await api.ask({ question: "Actual", selection }, { signal });
+  await api.ask({ question: "Actual", selection, origin: "saved-view" }, { signal });
 
   const [url, init] = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/api/chat"))!;
   expect(String(url)).toBe("http://127.0.0.1:4000/api/chat");
   expect(init).toMatchObject({
     method: "POST",
     credentials: "include",
-    body: JSON.stringify({ question: "Actual", selection }),
+    body: JSON.stringify({ question: "Actual", selection, origin: "saved-view" }),
     signal,
   });
   expect(fetchMock.mock.calls.every(([, init]) => init?.signal === signal)).toBe(true);
   expect((init?.headers as Record<string, string>)["x-csrf-token"]).toBe("rerun-token");
-  expect(Object.keys(JSON.parse(String(init?.body))).sort()).toEqual(["question", "selection"]);
+  expect(Object.keys(JSON.parse(String(init?.body))).sort()).toEqual(["origin", "question", "selection"]);
   expect(JSON.parse(String(init?.body))).not.toHaveProperty("reportGrounding");
+});
+
+test("an API error carries the server's plain-language user message", async () => {
+  Object.defineProperty(document, "cookie", { configurable: true, get: () => "3f_csrf=error-token" });
+  const fetchMock = vi.fn(async (input: string | URL | Request) =>
+    String(input).endsWith("/api/saved")
+      ? response(400, {
+          success: false,
+          data: null,
+          error: {
+            userMessage: "This question's plant choice is not valid. Choose the plants again.",
+          },
+        })
+      : response(),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(
+    api.saveQuery({
+      selection: {
+        domain: "governed-financial",
+        measureIds: ["governed-financial.actual"],
+        dimensionIds: [],
+        filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
+      },
+    }),
+  ).rejects.toMatchObject({
+    status: 400,
+    userMessage: "This question's plant choice is not valid. Choose the plants again.",
+  } satisfies Partial<ApiError>);
 });
 
 test("saved-view and pin mutations use their governed routes with csrf", async () => {

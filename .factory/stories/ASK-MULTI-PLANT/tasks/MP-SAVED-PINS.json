@@ -1,0 +1,73 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-SAVED-PINS",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "d04095333116bb55804a502264ba835b55301df8705856a19e313dd04174e9be",
+    "commit": "d20e2a97653ff042c8c42b61057b181b93ff1c9b",
+    "dismissals": [
+      {
+        "because": ".factory/stories/ASK-MULTI-PLANT/tasks/MP-SAVED-PINS.json:1 this is Forge's own task record, written by forge task start and forge work for every task branch so the close and forge-pr-check can track the part; it is not implementation and no product file outside the part's scope changed.",
+        "finding": 4,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.tsx:353 no new visual element: the save and pin dialogs keep their existing error slot and now show the server's userMessage text, and the cards reuse the existing not-runnable state (message block, Open hidden, Delete kept) already used for grant_revoked. The coordinator viewed both states in the browser on 2026-10-04 (this branch on :3001): the revoked pinned card and saved view show the red message with Delete and no Open, matching the grant_revoked styling. The plant label wording on those cards is MP-ASK-UI-RESULTS's (selection-label.ts).",
+        "finding": 3,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/assistant/ask-panel.test.tsx:754 the coordinator drove the real save and pin routes on 2026-10-04 (this branch at d20e2a97 on :4001, real Nest app, OTP login, CSRF, app DB, DUB-only user): POST /api/saved with [\"dub\"] and with no plant filter, and POST /api/pins with [\"DUB-NUR\"], each returned HTTP 400 with error.userMessage \"This question's plant choice is not valid. Choose the plants again.\" and details.reason plant-filter-invalid; POST /api/saved with [\"CHIR\"] returned 400 \"You do not have access to Agriculture - Nursery - CHIR.\" with reason plant-not-granted. The dialogs render error.userMessage from ApiError, proven by the ask-panel leaf against that exact envelope shape.",
+        "finding": 2,
+        "from_base": false
+      },
+      {
+        "because": "frontend/src/features/exploration/pinned-reports.test.tsx:80 the coordinator ran the real flow on 2026-10-04: this branch at d20e2a97 on :4001 with the real Nest app, OTP login, CSRF and the app DB, as the DUB-only user. POST /api/saved with [\"DUB\",\"DUB\"] returned 201 and stored [\"DUB\"]; POST /api/pins with [\"DUB\"] returned 201. Both stored selections were then given CHIR (a plant the user does not hold, as after a revoke); GET /api/saved and GET /api/pins returned runnable false, reason plants_revoked, \"This view includes plants you no longer have access to: Agriculture - Nursery - CHIR. Edit its plants to run it.\"; a direct POST /api/chat re-run with origin saved-view and origin pin was refused blocked_by_policy, refusal plants-revoked, no rows. This branch's frontend on :3001 against it showed both the pinned card and the saved view with that message and no Open button. Test rows were deleted afterwards.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "This test fabricates `plants_revoked` through a mocked frontend API and exercises only jsdom; the backend tests likewise replace `AppDb` with stubs. There is no required end-to-end test that creates a saved view and pin through the running API with a real database, changes plant grants, verifies the disabled cards in a browser, and confirms runnable cards reopen with the correct origin. Done-when item 8 is therefore proven only by unit/component tests.",
+        "file": "frontend/src/features/exploration/pinned-reports.test.tsx",
+        "line": 80,
+        "priority": "P1",
+        "title": "Not done: Saved views and pins keep their plants through the real user flow"
+      },
+      {
+        "body": "The dialog test injects a plain object containing `userMessage`, while the API test mocks `fetch` and the service tests never cross an HTTP route. No browser test against the running API demonstrates that invalid save and pin requests actually return the typed 400 envelope and that both dialogs render its plain-language message. This leaves the user-facing portion of Done-when item 9 unit-only.",
+        "file": "frontend/src/features/assistant/ask-panel.test.tsx",
+        "line": 754,
+        "priority": "P1",
+        "title": "Not done: Every save and pin plant refusal states its reason through the real user flow"
+      },
+      {
+        "body": "The branch changes the save/pin error state and both card reopen interactions, but the implementation commit records only the ruling and functional check; it contains no impeccable shape/audit/polish pass or specific emil-design-eng interaction checklist. The task record also contains only its start event and remains `working`. The required UI review for these changed states is therefore missing.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 353,
+        "priority": "P1",
+        "title": "Not done: impeccable and emil-design-eng UI review"
+      },
+      {
+        "body": "This new task-state file is outside every path allowed by MP-SAVED-PINS and contributes only Forge workflow metadata (`status: working`), despite the handoff claiming there are no out-of-scope changes. Remove it from the selected change or explicitly include and justify it in the task scope before merging.",
+        "file": ".factory/stories/ASK-MULTI-PLANT/tasks/MP-SAVED-PINS.json",
+        "line": 1,
+        "priority": "P1",
+        "title": "Not done: Keep the change within the declared scope"
+      }
+    ],
+    "status": "clean",
+    "tree": "c748517110d866bf2e595ffe1bb816b3500fccf56480f5fb7a49205b24f1782f"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T13:21:31+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T13:39:23+00:00",
+      "step": "review"
+    }
+  ]
+}

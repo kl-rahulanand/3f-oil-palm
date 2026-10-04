@@ -69,7 +69,7 @@ export function PinnedReports() {
                               return;
                             }
                             router.push("/ask");
-                            void rerun(label.title, pin.selection);
+                            void rerun(label.title, pin.selection, "pin");
                           }}
                         >
                           Open

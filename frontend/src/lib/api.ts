@@ -32,9 +32,33 @@ const XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadshe
 const EXPORT_FALLBACK_FILENAME = "financial-mis-statement.xlsx";
 
 export class ApiError extends Error {
-  constructor(public readonly status: number) {
+  constructor(
+    public readonly status: number,
+    public readonly userMessage?: string,
+  ) {
     super(`API request failed with status ${status}`);
   }
+}
+
+async function apiError(response: Response): Promise<ApiError> {
+  let userMessage: string | undefined;
+  try {
+    const body: unknown = await response.json();
+    if (
+      typeof body === "object" &&
+      body !== null &&
+      "error" in body &&
+      typeof body.error === "object" &&
+      body.error !== null &&
+      "userMessage" in body.error &&
+      typeof body.error.userMessage === "string"
+    ) {
+      userMessage = body.error.userMessage;
+    }
+  } catch {
+    // Some failures have no JSON envelope; callers still receive the status.
+  }
+  return new ApiError(response.status, userMessage);
 }
 
 function csrfCookie(): string {
@@ -63,7 +87,7 @@ async function postResponse(path: string, body: object, refreshOn401 = false, si
     await post<AuthRefreshResponse>("/api/auth/refresh", {}, false, signal);
     return postResponse(path, body, false, signal);
   }
-  if (!response.ok) throw new ApiError(response.status);
+  if (!response.ok) throw await apiError(response);
   return response;
 }
 
@@ -83,7 +107,7 @@ async function remove(path: string, refreshOn401 = false): Promise<{ ok: true }>
     await post<AuthRefreshResponse>("/api/auth/refresh", {});
     return remove(path);
   }
-  if (!response.ok) throw new ApiError(response.status);
+  if (!response.ok) throw await apiError(response);
   return response.json() as Promise<{ ok: true }>;
 }
 
@@ -123,11 +147,13 @@ async function request<T = unknown>(path: string, refreshOn401 = false, signal?:
     await post<AuthRefreshResponse>("/api/auth/refresh", {}, false, signal);
     return request<T>(path, false, signal);
   }
-  if (!response.ok) throw new ApiError(response.status);
+  if (!response.ok) throw await apiError(response);
   return response.json() as Promise<T>;
 }
 
-function boundedAskRequest(request: Pick<AskRequest, "question" | "priorTurns" | "selection" | "statementGrounding">) {
+function boundedAskRequest(
+  request: Pick<AskRequest, "question" | "priorTurns" | "selection" | "statementGrounding" | "origin">,
+) {
   if (!request.priorTurns?.length) return request;
   const priorTurns: AskPriorTurn[] = request.priorTurns.slice(-ASK_PRIOR_TURNS_MAX_ENTRIES).map((turn) => ({
     ...turn,
@@ -154,7 +180,7 @@ export const api = {
   runMisStatement: (selection: MisSelectionRunRequest) =>
     post<MisStatementRouteResponse>("/api/mis/statement", selection, true),
   ask: (
-    request: Pick<AskRequest, "question" | "priorTurns" | "selection" | "statementGrounding">,
+    request: Pick<AskRequest, "question" | "priorTurns" | "selection" | "statementGrounding" | "origin">,
     options?: AskStreamOptions,
   ) =>
     request.selection

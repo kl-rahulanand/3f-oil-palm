@@ -7,6 +7,7 @@ import type { AppDb } from "../db/pool";
 import { dashboardPins } from "../db/schema";
 import { computeDefinitionVersion } from "../semantic/definitionVersion";
 import { SemanticLayer } from "../semantic/semanticLayer";
+import { PlantFilterInvalidException } from "../semantic/plant-filter-invalid.exception";
 import { PinsService } from "./pins.service";
 
 test("creating and listing a pin returns no stored result table and no snapshot is written", async () => {
@@ -24,6 +25,112 @@ test("creating and listing a pin returns no stored result table and no snapshot 
     assert.equal("snapshot" in pin, false);
     assert.equal("lastRefresh" in pin, false);
   }
+});
+
+test("one-plant and several-plant readers cannot pin a selection without a plant filter", async () => {
+  for (const scope of [USER.scope, [...USER.scope, { attribute: "plant", value: "CHIR" }]]) {
+    let stored = false;
+    const db = {
+      insert() {
+        stored = true;
+        throw new Error("invalid pin must not be stored");
+      },
+    } as unknown as AppDb;
+
+    await assert.rejects(
+      () =>
+        new PinsService(db, new SemanticLayer(), audit()).create({ ...USER, scope }, SESSION_ID, {
+          selection: { ...SELECTION, filters: [] },
+        }),
+      (error) => error instanceof PlantFilterInvalidException && error.reason === "plant-filter-invalid",
+    );
+    assert.equal(stored, false);
+  }
+});
+
+test("pinning canonical plant codes deduplicates and sorts the stored snapshot", async () => {
+  let stored: Selection | undefined;
+  const db = {
+    insert: () => ({
+      values: (value: { selection: Selection }) => ({
+        returning: async () => {
+          stored = value.selection;
+          return [pinRow(value.selection)];
+        },
+      }),
+    }),
+  } as unknown as AppDb;
+  const user = { ...USER, scope: [...USER.scope, { attribute: "plant", value: "CHIR" }] };
+
+  await new PinsService(db, new SemanticLayer(), audit()).create(user, SESSION_ID, {
+    selection: {
+      ...SELECTION,
+      filters: [{ dimensionId: "plant", op: "in", value: ["DUB", "CHIR", "DUB"] }],
+    },
+  });
+
+  assert.deepEqual(stored?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+});
+
+test("pinning an invalid, duplicate, non-canonical or ungranted plant filter stores nothing and returns the typed reason", async () => {
+  const cases: Array<{ filters: Selection["filters"]; reason: "plant-filter-invalid" | "plant-not-granted" }> = [
+    { filters: [{ dimensionId: "plant", op: "eq", value: "DUB" }], reason: "plant-filter-invalid" },
+    {
+      filters: [
+        { dimensionId: "plant", op: "in", value: ["DUB"] },
+        { dimensionId: "plant", op: "in", value: ["CHIR"] },
+      ],
+      reason: "plant-filter-invalid",
+    },
+    { filters: [{ dimensionId: "plant", op: "in", value: ["DUB-NUR"] }], reason: "plant-filter-invalid" },
+    { filters: [{ dimensionId: "plant", op: "in", value: ["CHIR"] }], reason: "plant-not-granted" },
+  ];
+
+  for (const testCase of cases) {
+    let stored = false;
+    const db = {
+      insert() {
+        stored = true;
+        throw new Error("invalid pin must not be stored");
+      },
+    } as unknown as AppDb;
+
+    await assert.rejects(
+      () =>
+        new PinsService(db, new SemanticLayer(), audit()).create(USER, SESSION_ID, {
+          selection: { ...SELECTION, filters: testCase.filters },
+        }),
+      (error) => error instanceof PlantFilterInvalidException && error.reason === testCase.reason,
+    );
+    assert.equal(stored, false);
+  }
+});
+
+test("a revoked plant disables a pin by name while later grants do not expand its stored snapshot", async () => {
+  const snapshot: Selection = {
+    ...SELECTION,
+    filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+  };
+  const service = new PinsService(pinDb(pinRow(snapshot), []), new SemanticLayer(), audit());
+
+  const [revoked] = await service.list(USER, SESSION_ID);
+  assert.deepEqual(revoked.selection.filters, snapshot.filters);
+  assert.deepEqual(revoked.status, {
+    runnable: false,
+    reason: "plants_revoked",
+    message:
+      "This view includes plants you no longer have access to: Agriculture - Nursery - CHIR. Edit its plants to run it.",
+  });
+
+  const [expanded] = await service.list(
+    {
+      ...USER,
+      scope: [...USER.scope, { attribute: "plant", value: "CHIR" }, { attribute: "plant", value: "CK" }],
+    },
+    SESSION_ID,
+  );
+  assert.deepEqual(expanded.selection.filters, snapshot.filters);
+  assert.deepEqual(expanded.status, { runnable: true });
 });
 
 test("a selection naming a measure the semantic layer no longer registers is reported rather than returned as runnable", async () => {
@@ -95,7 +202,7 @@ test("a pin refusal is audited before a reorder can commit", async () => {
           sessionId: SESSION_ID,
           resource: "pins",
           action: "reorder",
-          submitted: { id: row.id, reason: "grant_revoked" },
+          submitted: { id: row.id, reason: "plants_revoked" },
         },
       ]);
       throw new Error("audit unavailable");
@@ -208,7 +315,7 @@ const SELECTION: Selection = {
   domain: "governed-financial",
   measureIds: ["governed-financial.actual"],
   dimensionIds: ["month"],
-  filters: [],
+  filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
 };
 const USER: AuthUser = {
   id: "00000000-0000-0000-0000-000000000010",

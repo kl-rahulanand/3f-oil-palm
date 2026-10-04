@@ -62,7 +62,10 @@ test("a saved row is labelled from the shared catalog and an unregistered defini
   expect(screen.getAllByRole("button", { name: "Open" })).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: "Open" }));
   await waitFor(() =>
-    expect(mocks.ask).toHaveBeenCalledWith({ question: "Actual", selection }, { signal: expect.any(AbortSignal) }),
+    expect(mocks.ask).toHaveBeenCalledWith(
+      { question: "Actual", selection, origin: "saved-view" },
+      { signal: expect.any(AbortSignal) },
+    ),
   );
   expect(mocks.push).toHaveBeenCalledWith("/ask");
 });
@@ -144,7 +147,7 @@ test("opening a saved view sends its stored measure comparison to Ask intact", a
 
   await waitFor(() =>
     expect(mocks.ask).toHaveBeenCalledWith(
-      { question: "Actual · Budget", selection: measureFilteredSelection },
+      { question: "Actual · Budget", selection: measureFilteredSelection, origin: "saved-view" },
       { signal: expect.any(AbortSignal) },
     ),
   );
@@ -169,7 +172,7 @@ test("opening a saved view that matches an existing turn reruns it rather than a
   fireEvent.click(screen.getByRole("button", { name: "Open" }));
 
   await waitFor(() => expect(mocks.ask).toHaveBeenCalledTimes(2));
-  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "What was the actual?", selection });
+  expect(mocks.ask.mock.calls[1]?.[0]).toEqual({ question: "What was the actual?", selection, origin: "saved-view" });
   expect(screen.getByTestId("thread-length")).toHaveTextContent("1");
   expect(mocks.push).toHaveBeenCalledWith("/ask");
 });
