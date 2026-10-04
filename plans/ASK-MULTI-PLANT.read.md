@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T08:32:30+00:00
-read_hash: ab9a96ac9479e04399ca8c7677d572f19b377d56
-round: 4
+read_at: 2026-10-04T09:46:37+00:00
+read_hash: 7e3d5ac104824914326b8da4a7a3c14cedc451f3
+round: 5
 passed: no
-doc_seen: ab9a96ac9479e04399ca8c7677d572f19b377d56
+doc_seen: 7e3d5ac104824914326b8da4a7a3c14cedc451f3
 spec_seen: 983c0579061af49e59e4c9fca0342b92886718aa
-notes_seen: 74e04a1bb7a271e3a00e43f898614cb774b01368
+notes_seen: 6db2bf4b04fb8b513e4b387f4c71d52db10c4952
 ---
 # Cold read notes
 
@@ -82,3 +82,21 @@ Only a genuine trade-off goes to the human, as a question with options.
 14. Disputed keep 13: the plan now contradicts the unchanged confirmed spec.
    C1 says “No warehouse read runs before a choice”; `distinctValues` is a warehouse read. An inline owner note cannot silently redefine confirmed C1 while the plan claims to prove it. Update and reconfirm the spec, or retain a genuinely no-read picker path.
    Disposition: keep the spec itself is being amended to the owner's ruling (C1: no figure read before a choice; the cached GL-code and month vocabulary lookup may run first) in its own fix, and this plan is re-read once that amendment is merged into the story branch.
+
+## Round 5
+
+15. Plant display names have no pinned answer wire shape.
+   `rowLabels` are keyed by full `askRowKey`, while result rows carry canonical plant codes; neither the contract nor a backend task defines a code-to-display-name mapping for plant-only, month×plant, or GL×plant rows. Unproven: item 3’s “Rows show plant display names.” Pin and emit the mapping before MP-ASK-UI, then prove each shape renders it.
+   Disposition: cut `AskResponse.plantNames` (code to display name for every plant read or left out) is pinned by MP-CONTRACT, emitted by MP-ASK-BUDGET and rendered by MP-ASK-UI with a leaf per plant-bearing shape.
+
+16. The statement-side budget join is unowned.
+   C6 requires DUB’s budget to join only DUB actuals at plant grain for both GL and statement answers. MP-GL-SQL is explicitly GL-only, while MP-STATEMENT-COMBINED’s leaves cover actual triples but not the budget join. Unproven: item 5. Assign the statement join and a DUB+CHIR statement plant-breakdown leaf to MP-STATEMENT-COMBINED.
+   Disposition: cut MP-STATEMENT-COMBINED owns the statement budget join at plant grain with a DUB+CHIR leaf_key × plant leaf.
+
+17. C11a and the revised live-corpus assertions are not fully traced to a task.
+   The redundant-month-filter behaviour appears only inside detail 2, but no task lists C11a in Covers or names its leaf. The live detail and recorded baseline also omit the spec’s required selected measures and normalised ordinary-filter comparison. Add C11a to MP-ASK-CHOICE’s delivery, Covers, and named test; make MP-LIVE record and compare measures plus normalised filters.
+   Disposition: cut MP-ASK-CHOICE delivers C11a with its named leaves; MP-LIVE and the recorded baseline now carry measures and the normalised-filter comparison.
+
+18. The `reportGrounding` refusal-order case has no named proof.
+   The confirmed spec requires a revoked plant with report grounding but no `origin` to return `plant-not-granted`; the plan repeats the rule but names no leaf for it. Unproven: item 9. Add the case to MP-ASK-CHOICE’s chat-service tests.
+   Disposition: cut detail 9 names the reportGrounding-only revoked case as `plant-not-granted`, proven in chat.service.test.ts by MP-ASK-CHOICE.
