@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T07:00:07+00:00
+saved: 2026-10-04T07:03:23+00:00
 ---
 
 # Every Ask answer works across plants
@@ -57,8 +57,11 @@ decision 0033.
   audit record. So that its name never reaches the model, the server checks the question before the
   selector is called. Any whole-word match on a canonical code, SAP code or display name of a mapping
   master plant the reader does not hold refuses the question with no provider call. Codes shorter than
-  three characters match only as an upper-case token, so ordinary words are not mistaken for plants. A name that matches no plant is answered with the plant picker, saying the name was
-  not recognised.
+  three characters match only as an upper-case token, so ordinary words are not mistaken for plants.
+- A plant is recognised only by that whole-word match against the mapping master. No other word is ever
+  treated as a plant, so a question whose words match no plant is treated as naming none and gets the
+  picker rule, with no "not recognised" notice. Period, measure and GL words ("July", "Actual", "GL") never
+  match a plant.
 - "All plants" stores the exact canonical set of plants the reader held when they chose it. It is a
   snapshot, not a live rule: a saved view does not silently grow when new plants are granted.
 
@@ -86,7 +89,6 @@ decision 0033.
   plants the query read, not the reader's whole grant list.
 - Pickers, refusals and informational answers have no plant set and carry no plant readout.
   - The picker's prompt is "Which plants should this answer cover?".
-  - An unrecognised name adds "I could not find a plant called <name>."
   - An ungranted plant is refused with "You do not have access to <name>."
 
 ### Plant as a filter and a breakdown
@@ -199,7 +201,8 @@ decision 0033.
   3. "What was the Actual for each MIS statement line in July 2026 for DUB and CHIR?" Expected: one
      combined statement whose lines equal the sum of DUB's and CHIR's MIS statements.
   4. "Actual by GL code for July 2026 for CHIR". Expected: CHIR's GL rows, with a Budget dash labelled
-     "Budget not loaded for this plant" and no %.
+     "Budget not loaded for this plant" and a null % cell labelled "not loaded" in a % column that is
+     still present.
   5. "What was the Actual for each MIS statement line in July 2026?" Expected: the picker, then the
      period if needed; choosing DUB returns DUB's statement lines with labels.
 - Baseline: 0 of 5 today. Question 1 answers DUB-only while listing all plants; 2 cannot split by plant;
@@ -230,7 +233,8 @@ decision 0033.
 - **C2 Plant resolution.**
   - Leaves cover the canonical code, the SAP code, the display name, and case and whitespace variants.
   - A recognised but ungranted plant is refused, named and audited, with no selector call and no read.
-  - An unknown name gets the picker with the not-recognised notice.
+  - A question whose words match no plant gets the picker rule, with no notice. Leaves prove "July",
+    "Actual", "Budget", "GL" and "statement" never match a plant.
   - A short code is not matched inside an ordinary word.
   - The selection always carries one canonical, sorted, deduplicated `{ dimensionId: "plant", op: "in" }`
     filter, validated at every ingress.
@@ -256,6 +260,9 @@ decision 0033.
   - A budget comparison reads only plants with a loaded budget, applied in the query before ordering, the
     limit and totals. A fixture with more qualifying DUB rows than the row limit, alongside non-owner plants,
     proves no qualifying row is dropped and the totals are exact. The left-out plants are named.
+  - A DUB+CHIR budget comparison names CHIR as left out, while its query predicate, totals, drill context
+    and "How this was calculated" scope contain DUB only. Naming CHIR in the explanatory copy never adds
+    it to the queried scope.
 - **C7 Scope readout.**
   - Every successful data answer states its plant set, and the provenance scope lists exactly the plants read.
   - Pickers, refusals and informational answers carry no plant readout, and use the stated copy.
@@ -276,11 +283,20 @@ decision 0033.
   names: no ungranted plant name (the pre-selector check refuses before any provider call), and no figure.
   Plant refusals reach the client as typed `refusal` reasons.
 - **C11 Live check.**
-  - Before the change, the existing working Ask phrasings are probed against the live Bedrock model and
-    recorded.
+  - Before the change, a fixed corpus is probed against the live Bedrock model as the seeded admin, and
+    each selection recorded. The corpus and its expected selections:
+    - "show me list items where Actuals are more than the budget for July 2026": domain
+      `governed-financial`, dimension `gl_code`, measure filter Actual > Budget, period July 2026.
+    - "which GL codes spent more than 5 lakh in July 2026": `governed-financial`, `gl_code`, measure
+      filter Actual > 500000, July 2026.
+    - "Actual by GL code for July 2026": `governed-financial`, `gl_code`, no measure filter, July 2026.
+    - "which statement lines are over budget for July 2026", as the DUB-only user: domain
+      `mis-statement`, dimension `leaf_key`, measure filter % > 100, July 2026.
+    The admin's corpus answers carry no plant filter before the change.
   - After it, the five success-measure questions are asked as the seeded admin, each in a fresh
-    conversation, with their stated results, and the pre-change phrasings still select the same
-    dimensions and period.
+    conversation, with their stated results. The corpus is probed again: each selects the same domain,
+    dimensions, measure filter and period as recorded, and the admin's questions now get the plant
+    picker first.
 
 ## Open items (non-blocking)
 
