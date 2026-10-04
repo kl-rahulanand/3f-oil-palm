@@ -39,6 +39,7 @@ const hermeticTests = [
   "backend/src/db/migrate.trim.test.ts",
   "backend/src/db/seed-users.test.ts",
   "backend/src/health/health.controller.test.ts",
+  "backend/src/help/ask-help-suggestions-still-carry-mbs-q.test.ts",
   "backend/src/help/help.service.test.ts",
   "backend/src/ingest/ingest.controller.test.ts",
   "backend/src/ingest/ingest.service.test.ts",
@@ -208,7 +209,6 @@ ceaa15512931da9c7b4874e9f73b45e2f1143fa11c36b2f52a6ebfb0821dd75b backend/src/cor
 5414f861e89f339709c595131720b7dad8d3891181b2fb1b243d948f8fd78605 backend/src/db/schema.ts
 fdd5b42a8c71a4ae157087975610d937c371c2e9ed32399478f3f61fb8db6d69 backend/src/email/email.service.ts
 96b9245a12b5beba3a4a566481760658363ba82bc02f7bfe037a8e6b8848bd60 backend/src/grants/grants.controller.ts
-21329c9cd7465e056e914be589f1105116539b9befc7c56fa825c51572ead0b7 backend/src/help/glossary.ts
 f97f5a40ebac02d0c31e0adb3cfc1ed19d1c134e0e943623714824594a44bf2b backend/src/measures/authored-measure.registry.test.ts
 96d894688cfebd5a2b8b54d3b53b1324ff9cec8d15ca6e01887de97fb6d89d9d backend/src/measures/authored-measure.registry.ts
 0dfcb8c559afbec03ba57263bdb948ad28b582a555bf8d8cf60b579fce0ab4b3 backend/src/measures/measure-authoring.catalog.ts

@@ -1,4 +1,5 @@
-import type { DomainSpec, MeasureSpec } from "@3f/contract";
+// ASK-HELP-SUGGESTIONS-STILL-CARRY-MBS-Q (2026-10-04): formatted here and removed this file from .prettierignore.
+import type { DomainSpec, MeasureSpec, MisSelectionPeriodOption } from "@3f/contract";
 
 export type DefinitionKind = "measure" | "dimension" | "value" | "meta";
 
@@ -27,6 +28,7 @@ export interface TermIndex {
   dimensions: TermIndexDimension[];
   values: TermIndexValue[];
   exampleQuestions: string[];
+  latestPeriodLabel?: string;
 }
 
 export interface GlossaryLookupResult {
@@ -41,9 +43,7 @@ export function definitionFor(measure: MeasureSpec): string {
   const aggregation = aggregationPhrase(measure.expr);
   const noun = measure.label.toLocaleLowerCase();
   const grain = sentenceFragment(measure.grain);
-  const filters = measure.impliedFilters.length
-    ? ` Always applies: ${measure.impliedFilters.join("; ")}.`
-    : "";
+  const filters = measure.impliedFilters.length ? ` Always applies: ${measure.impliedFilters.join("; ")}.` : "";
   return `${measure.label} - ${aggregation} ${noun} (${grain}).${filters}`;
 }
 
@@ -70,8 +70,6 @@ export function glossaryLookup(question: string, index: TermIndex): GlossaryLook
 
   const normalizedQuestion = normalize(question);
   const candidates: Array<GlossaryLookupResult & { score: number }> = [];
-  const firstMeasure = index.measures[0];
-
   for (const measure of index.measures) {
     const terms = [measure.label, measure.id, ...measure.synonyms];
     const matched = bestTermMatch(normalizedQuestion, terms);
@@ -81,10 +79,7 @@ export function glossaryLookup(question: string, index: TermIndex): GlossaryLook
       term: matched.term,
       title: measure.label,
       definition: measure.definition,
-      suggestedQuestions: [
-        `${measure.label} by state`,
-        `${measure.label} last 30 days`,
-      ],
+      suggestedQuestions: index.exampleQuestions.slice(0, 3),
       score: 300 + matched.score,
     });
   }
@@ -97,7 +92,7 @@ export function glossaryLookup(question: string, index: TermIndex): GlossaryLook
       term: matched.term,
       title: dimension.label,
       definition: dimension.definition,
-      suggestedQuestions: firstMeasure ? [`${firstMeasure.label} by ${dimension.label}`] : [],
+      suggestedQuestions: index.exampleQuestions.slice(0, 3),
       score: 200 + matched.score,
     });
   }
@@ -105,16 +100,12 @@ export function glossaryLookup(question: string, index: TermIndex): GlossaryLook
   for (const value of index.values) {
     const matched = bestTermMatch(normalizedQuestion, [value.value]);
     if (!matched) continue;
-    const firstMeasureLabel = firstMeasure?.label ?? "Leads";
     candidates.push({
       definitionKind: "value",
       term: value.value,
       title: value.value,
       definition: `${value.value} is a value of the ${value.dimensionLabel} field.`,
-      suggestedQuestions: [
-        `${firstMeasureLabel} for ${value.value}`,
-        `Fresh vs RPush lead count`,
-      ],
+      suggestedQuestions: index.exampleQuestions.slice(0, 3),
       score: 400 + matched.score,
     });
   }
@@ -135,6 +126,7 @@ export function unsupportedFallbackMessage(index: TermIndex): string {
 export function buildTermIndex(
   domains: DomainSpec[],
   dimensionValues: Record<string, string[]>,
+  latestPeriod?: MisSelectionPeriodOption,
 ): TermIndex {
   const measures = domains.flatMap((domain) =>
     domain.measures.map((measure) => ({
@@ -159,12 +151,32 @@ export function buildTermIndex(
     if (!dimensionLabel) return [];
     return dimensionValueList.map((value) => ({ dimensionId, dimensionLabel, value }));
   });
-  const firstMeasure = measures[0];
-  const firstDimension = dimensions.find((dimension) => dimension.id === "state") ?? dimensions[0];
+  const suggestionDomain = domains.find((domain) => domain.measures.length > 0 && domain.dimensions.length > 0);
+  const firstMeasure = suggestionDomain?.measures[0];
+  const secondMeasure = suggestionDomain?.measures[1];
+  const firstDimensionSpec =
+    suggestionDomain?.dimensions.find((dimension) => dimension.id === "gl_code") ??
+    suggestionDomain?.dimensions.find((dimension) => dimension.id === "leaf_key") ??
+    suggestionDomain?.dimensions[0];
+  const firstDimension = dimensions.find((dimension) => dimension.id === firstDimensionSpec?.id);
+  const actual = suggestionDomain?.measures.find(
+    (measure) => measure.format === "money" && /(?:^|\.)(?:actual|actual_net)$/.test(measure.id),
+  );
+  const budget = suggestionDomain?.measures.find(
+    (measure) => measure.format === "money" && /(?:^|\.)(?:budget|budget_net)$/.test(measure.id),
+  );
+  const latestPeriodLabel = latestPeriod ? displayMonth(latestPeriod.value, latestPeriod.label) : undefined;
+  const periodClause = latestPeriodLabel ? ` for ${latestPeriodLabel}` : "";
   const exampleQuestions = [
-    firstMeasure && firstDimension ? `${firstMeasure.label} by ${firstDimension.label}` : undefined,
-    firstMeasure ? `${firstMeasure.label} last 30 days` : undefined,
-    measures.find((measure) => /conversion/i.test(measure.label)) ? "Conversion % by state" : undefined,
+    firstMeasure && firstDimension ? `${firstMeasure.label} by ${firstDimension.label}${periodClause}` : undefined,
+    firstMeasure && secondMeasure && firstDimension
+      ? `${firstMeasure.label} and ${secondMeasure.label} by ${firstDimension.label}${periodClause}`
+      : undefined,
+    actual && budget && firstDimension
+      ? `Which ${pluralize(firstDimension.label)} had ${actual.label} over ${budget.label}${
+          latestPeriodLabel ? ` in ${latestPeriodLabel}` : ""
+        }?`
+      : undefined,
   ].filter((value): value is string => Boolean(value));
 
   return {
@@ -173,7 +185,33 @@ export function buildTermIndex(
     dimensions,
     values,
     exampleQuestions: [...new Set(exampleQuestions)],
+    ...(latestPeriodLabel ? { latestPeriodLabel } : {}),
   };
+}
+
+function displayMonth(value: string, fallback: string): string {
+  const match = /^(\d{4})-(\d{2})-01$/.exec(value);
+  if (!match) return fallback;
+  const month = Number(match[2]);
+  const monthName = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ][month - 1];
+  return monthName ? `${monthName} ${match[1]}` : fallback;
+}
+
+function pluralize(label: string): string {
+  return label.endsWith("s") ? label : `${label}s`;
 }
 
 function aggregationPhrase(expr: string): string {
@@ -209,7 +247,11 @@ function containsTerm(question: string, term: string): boolean {
 }
 
 function normalize(value: string): string {
-  return value.toLocaleLowerCase().replace(/[_./-]+/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .toLocaleLowerCase()
+    .replace(/[_./-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function dedupeById<T extends { id: string }>(items: T[]): T[] {
