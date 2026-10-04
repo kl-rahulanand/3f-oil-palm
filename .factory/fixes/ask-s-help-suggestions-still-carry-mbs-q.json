@@ -4,11 +4,39 @@
   "branch": "fix/ask-s-help-suggestions-still-carry-mbs-q",
   "done_when": "no Ask suggestion mentions state, leads, RPush, conversion or last 30 days; definition, value, small-talk and fallback answers suggest 3F questions built from the governed vocabulary (e.g. Actual by GL code for the latest loaded month), with a leaf per suggestion source",
   "kind": "fix",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "b294d578eb9b34417d8537033740269b8614c9a8ce9dbf696ec3e1926bda10d8",
+    "commit": "5f04132fccec61592c90c88583033c9ee3aa86f2",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "`suggestionDomain` requires both a permitted measure and a permitted dimension. Grants are independently configurable, and an aggregate Ask remains valid for a user with the report action, the governed-financial domain, and Actual permission but no dimension grant. For that user this branch builds an empty `exampleQuestions` array: definitions and small-talk expose no suggestions, while the unsupported fallback emits the generic \u201cask for an allowed metric by an allowed field\u201d instead of a governed 3F question. Generate an aggregate question such as \u201cActual for <latest month>\u201d when no permitted dimension is available.",
+        "file": "backend/src/help/glossary.ts",
+        "line": 154,
+        "priority": "P1",
+        "title": "Not done: suggestion sources can return no governed 3F questions"
+      },
+      {
+        "body": "The new regression tests construct `ChatService` directly with fake dimensions and a fake period resolver; the fallback test bypasses Ask entirely and calls `unsupportedFallbackMessage` directly. Consequently they cannot detect failures in Nest wiring, real warehouse period discovery, HTTP serialization, or rendering/clicking the returned suggestions in Ask. No Playwright test exercises these user-facing suggestion sources through the running API with a real database, as required by the test-audit contract.",
+        "file": "backend/src/help/ask-help-suggestions-still-carry-mbs-q.test.ts",
+        "line": 16,
+        "priority": "P1",
+        "title": "Not done: Ask suggestions lack required API-and-browser end-to-end coverage"
+      }
+    ],
+    "status": "blocked",
+    "tree": "22527e69c24c256b6628898f1f71ce8492fe5d31a667365bb60c282fdfc31437"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T07:00:52+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T07:27:13+00:00",
+      "step": "review"
     }
   ],
   "why": "Ask's help suggestions still carry MBS question templates (by state, last 30 days, leads, RPush)"
