@@ -2,26 +2,19 @@
   "branch": "task/ASK-MULTI-PLANT-MP-GL-SQL",
   "review": {
     "blocking_level": "P1",
-    "changed": "5e9bf7e5001ea4c70ada7a3670f460ec6a69babb1e44c46909c95094880a326a",
-    "commit": "a9303c5f638379c2592457282a66317d06113e70",
+    "changed": "cf8a5fb9c882d1fbd6ff29f03e7f4bcd61dcac34ab3ad1126970ce0cca9db71e",
+    "commit": "29b4a11c0c86b4006383a8041559d0284e3f7742",
     "dismissals": [],
     "findings": [
       {
-        "body": "This required test was not changed, and its existing fixture remains single-plant: it defines no `plant` dimension, selects no plant filter, and grants only DUB. Consequently it cannot fail if the new plant-aware join or multi-plant aggregation corrupts row-aligned provenance. Add the required several-plant provenance proof covering the new plant join and coarser grouping.",
-        "file": "backend/src/sql/sqlBuilder.ts",
-        "line": 382,
-        "priority": "P1",
-        "title": "Not done: backend/src/sql/sqlBuilder.provenance.test.ts"
-      },
-      {
-        "body": "The new multi-plant breakdown assertions are inside the gated warehouse test, but the supplied close run records this test as `SKIP`, and no separate completed handoff records a passing run against the designated throwaway PostgreSQL warehouse. The hermetic run therefore does not prove that the four plant grouping combinations execute correctly against the real migrated schema.",
+        "body": "The multi-plant breakdown assertions are present, but they remain inside the `WAREHOUSE_DB_TEST`-gated test and the supplied close run records that test as skipped. No separate successful run against the designated throwaway PostgreSQL warehouse is provided, so the four required plant grouping combinations and cross-plant sums have not been executed against the migrated schema.",
         "file": "backend/src/warehouse/golden-financial.db.test.ts",
         "line": 92,
         "priority": "P1",
         "title": "Not done: backend/src/warehouse/golden-financial.db.test.ts runs the required database proof"
       },
       {
-        "body": "The required July regression and pre-limit comparison proof is guarded by `WAREHOUSE_DB_TEST`, and the supplied close run records it as `SKIP`; there is no separate passing warehouse run in the handoff. Thus the claimed 21-code result, \u20b983,98,339 value, loaded-budget plant restriction, limit behavior, and totals have not been executed against PostgreSQL.",
+        "body": "This required warehouse proof is still gated by `WAREHOUSE_DB_TEST`, and the supplied close run records it as skipped with no separate passing warehouse run. Consequently the claimed 21-code July result, \u20b983,98,339 value for 50001201, restriction to loaded-budget plants before limiting, and exact filtered totals have not been executed against PostgreSQL.",
         "file": "backend/src/warehouse/measure-filter.db.test.ts",
         "line": 23,
         "priority": "P1",
@@ -29,7 +22,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "fbbb72944abaf69d5754cba540d263b8b2ab16d466be5a9422c400c0ab8849a1"
+    "tree": "bc51d54ad3c139a09e578065f216ad99e5658d15c215897100b27f313102105b"
   },
   "status": "fixing",
   "steps": [
@@ -39,6 +32,10 @@
     },
     {
       "at": "2026-10-04T11:50:01+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T11:57:58+00:00",
       "step": "review"
     }
   ]
