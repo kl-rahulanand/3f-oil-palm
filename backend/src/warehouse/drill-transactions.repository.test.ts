@@ -208,6 +208,25 @@ test("active Actual pins are read for the inclusive window in period order and c
   assert.match(warehouse.executed[0]!, /ORDER BY period/);
 });
 
+test("active Budget periods are read once for an inclusive range", async () => {
+  const warehouse = new FakeWarehouse([{ period: "2026-04-01T00:00:00.000Z" }, { period: "2026-07-01" }]);
+
+  const periods = await new DrillTransactionsRepository(new SqlValidator(), warehouse).findActiveBudgetPeriods(
+    "2016-01-01",
+    "2026-07-31",
+  );
+
+  assert.deepEqual(periods, ["2026-04-01", "2026-07-01"]);
+  assert.equal(warehouse.executed.length, 1);
+  assert.match(warehouse.executed[0]!, /SELECT DISTINCT period/);
+  assert.match(warehouse.executed[0]!, /source_kind = 'budget'/);
+  assert.match(warehouse.executed[0]!, /AND is_active/);
+  assert.match(warehouse.executed[0]!, /period >= '2016-01-01'/);
+  assert.match(warehouse.executed[0]!, /period <= '2026-07-31'/);
+  assert.match(warehouse.executed[0]!, /ORDER BY period/);
+  assert.match(warehouse.executed[0]!, /LIMIT 25000/);
+});
+
 test("a GL-and-plants predicate keeps the answer's plants and row GL in both page and all-match footer", () => {
   const repository = new DrillTransactionsRepository(new SqlValidator(), new FakeWarehouse());
   const queries = repository.buildQueries(

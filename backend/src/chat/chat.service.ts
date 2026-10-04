@@ -15,6 +15,7 @@ import {
   type DomainSpec,
   type MeasureSpec,
   type MeasureFilter,
+  type MisSelectionPeriodOption,
   type Permissions,
   type Provenance,
   type ProvenanceBatch,
@@ -38,6 +39,7 @@ import {
   statementPeriodOptions,
 } from "../mapping/selection-resolver.service";
 import type { MasterResolvedPlantSet, MasterResolvedSelection } from "../mapping/selection-resolver.interface";
+import { MAPPING_MASTER } from "../mapping/mapping-master";
 import { StatementAttestationService } from "../mis/statement-attestation";
 import type { DrillPredicate } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
@@ -61,6 +63,7 @@ import {
   validatePlantFilter,
 } from "./plant-set";
 import { withoutRedundantMonthFilter } from "./redundant-month-filter";
+import { applyBudgetStates, comparisonNeedsBudget } from "./ask-budget-states";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -517,11 +520,6 @@ export class ChatService {
       if (parsedTimeWindow) selection = { ...selection, timeWindow: parsedTimeWindow };
       else if (!hasTimePeriodWords(question)) selection = { ...selection, timeWindow: undefined };
     }
-    if (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.from > selection.timeWindow.to)
-      return done({
-        responseClass: ResponseClass.NotSupported,
-        message: CHAT_MESSAGES.invalidDateRange,
-      });
     // Follow-up inheritance: if this turn is a follow-up in the same conversation whose
     // prior selection had a time window, and the current time-bound selection did not,
     // carry the previous window forward instead of re-asking for it.
@@ -533,6 +531,15 @@ export class ChatService {
         selection = { ...selection, timeWindow: priorSelection.timeWindow };
       }
     }
+    if (
+      (selection.timeWindow?.from && !isDateOnly(selection.timeWindow.from)) ||
+      (selection.timeWindow?.to && !isDateOnly(selection.timeWindow.to)) ||
+      (selection.timeWindow?.from && selection.timeWindow.to && selection.timeWindow.from > selection.timeWindow.to)
+    )
+      return done({
+        responseClass: ResponseClass.NotSupported,
+        message: CHAT_MESSAGES.invalidDateRange,
+      });
     const resolved = resolveSelectionTimeWindow(domain, selection);
     selection = resolved.selection;
     selection = withoutRedundantMonthFilter(selection);
@@ -573,12 +580,18 @@ export class ChatService {
       });
     }
 
+    const requestedSelection = selection;
+    const requestedPlants = selectedPlantCodes(requestedSelection);
+    const budgetOwnerPlant = budgetOwnerForPlants(requestedPlants);
+    const showsBudgetState = requestedSelection.measureIds.some(isBudgetStateMeasure);
+    const needsBudgetComparison = comparisonNeedsBudget(requestedSelection);
     let statementExecutionScope: MasterResolvedSelection | MasterResolvedPlantSet | undefined;
     let statementScope: MasterResolvedSelection | undefined;
+    let statementPeriods: MisSelectionPeriodOption[] | undefined;
     let answerPeriodOptions: AskPeriodOption[] | undefined;
     if (domain.name === "mis-statement") {
       const request = await statementRequest(
-        selectedPlantCodes(selection),
+        requestedPlants,
         appliedTimeWindow,
         selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
         this.selectionResolver,
@@ -601,11 +614,57 @@ export class ChatService {
         });
       statementExecutionScope = request.resolution;
       statementScope = "plant" in request.resolution ? request.resolution : undefined;
+      statementPeriods = request.periods;
       answerPeriodOptions = request.options;
+    }
+    let answerMonths: string[] = [];
+    let answerMonthCount = 0;
+    let loadedBudgetMonths: string[] = [];
+    if (showsBudgetState || needsBudgetComparison) {
+      const coverage = await budgetPeriodCoverage(appliedTimeWindow, this.drillTransactions, signal);
+      answerMonths = coverage.answerMonths;
+      answerMonthCount = coverage.answerMonthCount;
+      loadedBudgetMonths = coverage.loadedBudgetMonths;
+    }
+    let plantsRead = requestedPlants;
+    let leftOut: AskResponse["leftOut"];
+    if (needsBudgetComparison) {
+      const ownerLoaded = answerMonthCount > 0 && loadedBudgetMonths.length === answerMonthCount;
+      plantsRead = ownerLoaded && requestedPlants.includes(budgetOwnerPlant) ? [budgetOwnerPlant] : [];
+      const omittedPlants = requestedPlants.filter((plant) => !plantsRead.includes(plant));
+      if (omittedPlants.length > 0) {
+        leftOut = { reason: "budget-not-loaded", plants: plantDisplayNames(omittedPlants) };
+      }
+      if (plantsRead.length === 0) {
+        return done({
+          responseClass: ResponseClass.Informational,
+          message: "Budget is not loaded for any chosen plant, so nothing was compared.",
+          selection: requestedSelection,
+          leftOut,
+          viewInReport: { available: false, reason: "Budget is not loaded for any chosen plant." },
+        });
+      }
+      selection = replacePlantFilter(selection, {
+        dimensionId: PLANT_DIMENSION_ID,
+        op: "in",
+        value: plantsRead,
+      });
+      if (statementExecutionScope && statementPeriods && plantsRead.length !== requestedPlants.length) {
+        const resolution = await this.selectionResolver.resolvePlants(
+          plantsRead,
+          statementExecutionScope.period.value,
+          statementPeriods,
+        );
+        if (resolution.outcome !== "resolved")
+          return done({ responseClass: ResponseClass.NotSupported, message: CHAT_MESSAGES.statementMappingMissing });
+        statementExecutionScope = resolution;
+        statementScope = "plant" in resolution ? resolution : undefined;
+      }
     }
 
     let sql: string;
     let result: ResultTable;
+    let budgetStates: AskResponse["budgetStates"];
     let totals: Record<string, number> | undefined;
     let activeBatchIds: NonNullable<Provenance["activeBatchIds"]> = [];
     let budgetComponentLabels: string[] = [];
@@ -657,8 +716,18 @@ export class ChatService {
           }
         },
       });
-      result = execution.result;
-      totals = execution.totals;
+      const budgetPresentation = applyBudgetStates({
+        selection,
+        result: execution.result,
+        totals: execution.totals,
+        budgetOwnerPlant,
+        answerMonths,
+        answerMonthCount,
+        loadedBudgetMonths,
+      });
+      result = budgetPresentation.result;
+      budgetStates = budgetPresentation.budgetStates;
+      totals = budgetPresentation.totals;
       sql = execution.sql;
       activeBatchIds = execution.activeBatchIds;
       budgetComponentLabels = execution.budgetComponentLabels;
@@ -696,7 +765,8 @@ export class ChatService {
     // 8. Format + provenance. Persist the successful answer in the durable conversation.
     onEvent?.({ type: "phase", phase: "summarizing" });
     const impliedFilters = selectedMeasures.flatMap((measure) => measure.impliedFilters);
-    const scope = user.scope.map((s) => `${s.attribute}=${s.value}`).join(", ") || "all permitted";
+    const plantNames = Object.fromEntries(plantsRead.map((plant) => [plant, plantDisplayName(plant)]));
+    const scope = plantsRead.map((plant) => `plant=${plantNames[plant]}`).join(", ");
     const provenance: Provenance = {
       verified: isVerifiedSelection(selection, (domainName, measureId) => this.semantic.measure(domainName, measureId)),
       measureIds: selection.measureIds,
@@ -755,7 +825,7 @@ export class ChatService {
       chips: this.chips(domain, selection),
       // The fully-resolved selection (post normalize + time-window) so the client can
       // save/pin/edit it and re-run deterministically (H1/I1). Never SQL — just the selection.
-      selection,
+      selection: requestedSelection,
       result,
       ...(result.rows.length === 0 && selection.measureFilters?.length
         ? { message: emptyMeasureFilterMessage(domain, selection, appliedTimeWindow, answerPeriodOptions) }
@@ -763,10 +833,13 @@ export class ChatService {
       ...(totals ? { totals } : {}),
       provenance,
       appliedTimeWindow,
-      appliedFilters: selection.filters,
+      appliedFilters: requestedSelection.filters,
       appliedMeasureFilters: selection.measureFilters,
       periodControl: buildPeriodControl(selection, appliedTimeWindow, answerPeriodOptions),
-      viewInReport: buildViewInReport(domain, selection, statementScope, activeBatchIds),
+      viewInReport: buildViewInReport(domain, requestedSelection, statementScope, activeBatchIds),
+      plantNames,
+      ...(budgetStates ? { budgetStates } : {}),
+      ...(leftOut ? { leftOut } : {}),
       ...presentation,
       ...answerMetadata,
     };
@@ -1595,11 +1668,14 @@ function buildViewInReport(
   statementScope: MasterResolvedSelection | undefined,
   activeBatchIds: NonNullable<Provenance["activeBatchIds"]>,
 ): NonNullable<AskResponse["viewInReport"]> {
-  if (selection.measureFilters?.length) {
-    return { available: false, reason: "The MIS statement cannot apply this comparison." };
-  }
   if (domain.name !== "mis-statement") {
     return { available: false, reason: "This answer was not executed against the MIS statement." };
+  }
+  if (selectedPlantCodes(selection).length > 1) {
+    return { available: false, reason: "This answer covers several plants and cannot open one statement." };
+  }
+  if (selection.measureFilters?.length) {
+    return { available: false, reason: "The MIS statement cannot apply this comparison." };
   }
   if (!statementScope) {
     return { available: false, reason: "The answer does not resolve to one statement selector set." };
@@ -1614,6 +1690,72 @@ function buildViewInReport(
   };
 }
 
+async function budgetPeriodCoverage(
+  window: AppliedTimeWindow | undefined,
+  transactions: Pick<DrillTransactionsRepository, "findActiveActualPins" | "findActiveBudgetPeriods">,
+  signal?: AbortSignal,
+): Promise<{ answerMonths: string[]; answerMonthCount: number; loadedBudgetMonths: string[] }> {
+  if (window) {
+    signal?.throwIfAborted();
+    const fromMonth = `${window.from.slice(0, 7)}-01`;
+    const toMonth = `${window.to.slice(0, 7)}-01`;
+    const loadedBudgetMonths = await transactions.findActiveBudgetPeriods(fromMonth, toMonth);
+    signal?.throwIfAborted();
+    return { answerMonths: [], answerMonthCount: monthCount(window.from, window.to), loadedBudgetMonths };
+  }
+  signal?.throwIfAborted();
+  const pins = await transactions.findActiveActualPins("0001-01-01", "9999-12-31");
+  signal?.throwIfAborted();
+  const answerMonths = [...new Set(pins.map(({ period }) => `${period.slice(0, 7)}-01`))].sort();
+  if (answerMonths.length === 0) return { answerMonths, answerMonthCount: 0, loadedBudgetMonths: [] };
+  const loaded = await transactions.findActiveBudgetPeriods(answerMonths[0]!, answerMonths.at(-1)!);
+  signal?.throwIfAborted();
+  const answers = new Set(answerMonths);
+  return {
+    answerMonths,
+    answerMonthCount: answerMonths.length,
+    loadedBudgetMonths: loaded.filter((period) => answers.has(period)),
+  };
+}
+
+function monthCount(from: string, to: string): number {
+  const [fromYear, fromMonth] = from.split("-").map(Number);
+  const [toYear, toMonth] = to.split("-").map(Number);
+  return (toYear! - fromYear!) * 12 + toMonth! - fromMonth! + 1;
+}
+
+function isDateOnly(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+}
+
+function budgetOwnerForPlants(plants: string[]): string {
+  const formats = new Set(
+    MAPPING_MASTER.selections
+      .filter(({ plant_canonical }) => plants.includes(plant_canonical))
+      .map(({ mis_format }) => mis_format),
+  );
+  const format = [...formats][0];
+  if (!format) throw new Error("Selected plants are missing from the mapping master");
+  return MAPPING_MASTER.formats[format].budget_owner_plant;
+}
+
+function plantDisplayNames(plants: string[]): string[] {
+  return plants.map(plantDisplayName);
+}
+
+function plantDisplayName(plant: string): string {
+  return (
+    MAPPING_MASTER.selections.find(({ plant_canonical }) => plant_canonical === plant)?.plant_aliases.display[0] ??
+    plant
+  );
+}
+
+function isBudgetStateMeasure(measureId: string): boolean {
+  return ["budget", "budget_net", "percentage"].includes(measureId.split(".").at(-1)!);
+}
+
 type StatementRequestResult =
   | { kind: "no-mapping" }
   | { kind: "no-periods" }
@@ -1622,6 +1764,7 @@ type StatementRequestResult =
       kind: "resolved";
       resolution: MasterResolvedSelection | MasterResolvedPlantSet;
       options: AskPeriodOption[];
+      periods: MisSelectionPeriodOption[];
     };
 
 async function statementRequest(
@@ -1641,7 +1784,9 @@ async function statementRequest(
   try {
     // `periods` is already loaded above; hand it back so resolvePlants() does not repeat that query.
     const resolution = await resolver.resolvePlants(plants, period.value, periods);
-    return resolution.outcome === "resolved" ? { kind: "resolved", resolution, options } : { kind: "no-mapping" };
+    return resolution.outcome === "resolved"
+      ? { kind: "resolved", resolution, options, periods }
+      : { kind: "no-mapping" };
   } catch (error) {
     if (error instanceof SelectionPeriodUnavailableError) return { kind: "period", options };
     throw error;

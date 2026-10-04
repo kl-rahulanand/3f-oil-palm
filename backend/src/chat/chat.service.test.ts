@@ -27,13 +27,17 @@ import { StatementAttestationService } from "../mis/statement-attestation";
 import type { DrillPredicate, DrillSummary } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import { GlNameRepository } from "../warehouse/gl-name.repository";
-import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
+import {
+  StatementOutlineRepository,
+  StatementOutlineUnavailableError,
+} from "../warehouse/statement-outline.repository";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import { AskDrillContextService } from "./ask-drill-context";
 import { SemanticLayer } from "../semantic/semanticLayer";
 import { SqlBuilder } from "../sql/sqlBuilder";
 import { SqlValidator } from "../sql/sqlValidator";
 import { ChatController } from "./chat.controller";
+import { CHAT_MESSAGES } from "./chat.constants";
 import { ChatModule } from "./chat.module";
 import { askSchema } from "./chat.schemas";
 import { ChatService, lastMonthBudgetPin, trimPriorTurnsToTokenBudget } from "./chat.service";
@@ -256,10 +260,424 @@ test("a DUB and CHIR statement runs one combined mapped statement", async () => 
     DUB: "Agri - Nursery - DUB",
   });
   assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(response.plantNames, {
+    CHIR: "Agriculture - Nursery - CHIR",
+    DUB: "Agri - Nursery - DUB",
+  });
+  assert.equal(response.provenance?.scope, "plant=Agriculture - Nursery - CHIR, plant=Agri - Nursery - DUB");
   assert.deepEqual(response.viewInReport, {
     available: false,
-    reason: "The answer does not resolve to one statement selector set.",
+    reason: "This answer covers several plants and cannot open one statement.",
   });
+});
+
+test("a narrowed DUB and CHIR statement comparison keeps the several-plants report reason", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    measureFilters: [
+      {
+        measureId: "mis-statement.actual_net",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "mis-statement.budget_net" },
+      },
+    ],
+  };
+  const fixture = makeFixture({ selection });
+  const user = userForPlants("mis-statement", ["DUB", "CHIR"], true);
+  user.permissions.measureIds.push("mis-statement.budget_net");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show statement lines over Budget for DUB and CHIR in July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(response.viewInReport, {
+    available: false,
+    reason: "This answer covers several plants and cannot open one statement.",
+  });
+});
+
+test("an explicit 2016 to 2026 comparison stays not loaded when only July 2026 has Budget", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+    timeWindow: { grain: "month", from: "2016-01-01", to: "2026-07-31" },
+  };
+  const fixture = makeFixture({
+    selection,
+    loadedBudgetMonths: ["2026-07-01"],
+  });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show Actual over Budget for DUB from 2016 to July 2026",
+    selection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Informational, JSON.stringify(response));
+  assert.equal(response.message, "Budget is not loaded for any chosen plant, so nothing was compared.");
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2016-01-01", to: "2026-07-01" }]);
+  assert.equal(fixture.executor.calls, 0);
+});
+
+test("a range starting after day one still includes its first Budget month", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+    timeWindow: { grain: "month", from: "2026-07-04", to: "2026-09-30" },
+  };
+  const fixture = makeFixture({
+    selection,
+    loadedBudgetMonths: ["2026-07-01", "2026-08-01", "2026-09-01"],
+  });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show Actual over Budget for DUB from July to September",
+    selection,
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2026-07-01", to: "2026-09-01" }]);
+  assert.equal(fixture.executor.calls, 1);
+});
+
+test("an unwindowed statement comparison offers periods before judging July Budget", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    timeWindow: undefined,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    measureFilters: [
+      {
+        measureId: "mis-statement.actual_net",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "mis-statement.budget_net" },
+      },
+    ],
+  };
+  const fixture = makeFixture({
+    selection,
+    activeActualPins: [
+      { source: "actuals", period: "2026-06-01", batchId: "actual-june" },
+      { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+    ],
+    loadedBudgetMonths: ["2026-07-01"],
+  });
+  const user = userForPlants("mis-statement", ["DUB"], true);
+  user.permissions.measureIds.push("mis-statement.budget_net");
+
+  const choice = await fixture.service.ask(user, "session", "Which statement lines are over Budget?");
+
+  assert.equal(choice.responseClass, ResponseClass.ClarificationNeeded, JSON.stringify(choice));
+  assert.deepEqual(
+    choice.periodChoice?.options.map(({ value }) => value),
+    ["2026-07-01"],
+  );
+  assert.equal(fixture.transactions.budgetPeriodCalls.length, 0);
+  assert.equal(fixture.executor.calls, 0);
+
+  const july = await fixture.service.ask(user, "session", choice.periodChoice!.question, {
+    ...choice.periodChoice!.selection,
+    timeWindow: choice.periodChoice!.options[0]!.timeWindow,
+  });
+
+  assert.equal(july.responseClass, ResponseClass.Success, JSON.stringify(july));
+  assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2026-07-01", to: "2026-07-01" }]);
+});
+
+test("an unavailable statement period clarifies before judging Budget", async () => {
+  const selection: Selection = {
+    ...statementSelection,
+    measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+    measureFilters: [
+      {
+        measureId: "mis-statement.actual_net",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "mis-statement.budget_net" },
+      },
+    ],
+    timeWindow: { grain: "month", from: "2026-08-01", to: "2026-08-31" },
+  };
+  const fixture = makeFixture({ selection, loadedBudgetMonths: ["2026-07-01"] });
+  const user = userForPlants("mis-statement", ["DUB"], true);
+  user.permissions.measureIds.push("mis-statement.budget_net");
+
+  const response = await fixture.service.ask(user, "session", "Show August statement lines over Budget", selection);
+
+  assert.equal(response.responseClass, ResponseClass.ClarificationNeeded, JSON.stringify(response));
+  assert.deepEqual(
+    response.periodChoice?.options.map(({ value }) => value),
+    ["2026-07-01"],
+  );
+  assert.equal(fixture.transactions.budgetPeriodCalls.length, 0);
+  assert.equal(fixture.executor.calls, 0);
+});
+
+test("a malformed explicit date is refused before any metadata lookup", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    timeWindow: { grain: "month", from: "2026-13-45", to: "2026-13-45" },
+  };
+  const fixture = makeFixture({ selection });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Show Actual and Budget", selection);
+
+  assert.equal(response.responseClass, ResponseClass.NotSupported);
+  assert.equal(response.message, CHAT_MESSAGES.invalidDateRange);
+  assert.equal(fixture.transactions.activePinCalls.length, 0);
+  assert.equal(fixture.transactions.budgetPeriodCalls.length, 0);
+  assert.equal(fixture.executor.calls, 0);
+});
+
+test("a DUB and CHIR budget comparison reads DUB only and names CHIR as left out", async () => {
+  const comparison: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const activeBatchIds: ProvenanceBatch[] = [
+    { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+    { source: "budget", period: "2026-07-01", batchId: BUDGET_BATCH_ID },
+  ];
+  const fixture = makeFixture({
+    selection: comparison,
+    activeBatchIds,
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+      ],
+      rows: [{ gl_code: "5001", actual: "12.00", budget: "10.00" }],
+    },
+    summaries: [{ rowKey: "5001", feedingLineCount: 1, value: "12.00" }],
+  });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Actual over Budget for DUB and CHIR in July 2026");
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(response.leftOut, {
+    reason: "budget-not-loaded",
+    plants: ["Agriculture - Nursery - CHIR"],
+  });
+  assert.deepEqual(response.plantNames, { DUB: "Agri - Nursery - DUB" });
+  assert.equal(response.provenance?.scope, "plant=Agri - Nursery - DUB");
+  assert.deepEqual(response.budgetStates, [
+    { key: "5001", state: "loaded", plantsInRow: ["DUB"], plantsWithBudget: ["DUB"] },
+  ]);
+  assert.deepEqual(fixture.names.glCalls[0]?.rows[0]?.predicate.plants, ["DUB"]);
+  const verified = fixture.contexts.verify(response.drill!.context, "user-1");
+  assert.equal(verified.outcome, "verified");
+  if (verified.outcome === "verified") assert.deepEqual(verified.claims.plants, ["DUB"]);
+
+  const rerun = await fixture.service.ask(
+    user,
+    "session",
+    "Run the saved comparison",
+    response.selection,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "saved-view",
+  );
+  assert.deepEqual(fixture.executor.selections[1]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+  assert.deepEqual(rerun.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(rerun.leftOut, response.leftOut);
+});
+
+test("a summed DUB and CHIR row stays partial when CHIR has no activity", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget", "governed-financial.percentage"],
+  };
+  const fixture = makeFixture({
+    selection,
+    totals: { actual: 12, budget: 10, percentage: 1.2 },
+    result: {
+      columns: [
+        { key: "gl_code", label: "GL code", numeric: false },
+        { key: "actual", label: "Actual", numeric: true, format: "money" },
+        { key: "budget", label: "Budget", numeric: true, format: "money" },
+        { key: "percentage", label: "%", numeric: true, format: "percent" },
+      ],
+      rows: [{ gl_code: "5001", actual: "12.00", budget: "10.00", percentage: "1.2" }],
+    },
+  });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget", "governed-financial.percentage");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Actual Budget and percentage for DUB and CHIR in July 2026",
+  );
+
+  assert.deepEqual(response.budgetStates, [
+    { key: "5001", state: "partial", plantsInRow: ["CHIR", "DUB"], plantsWithBudget: ["DUB"] },
+  ]);
+  assert.deepEqual(response.result?.rows[0], { gl_code: "5001", actual: "12.00", budget: null, percentage: null });
+  assert.deepEqual(response.totals, { actual: 12 });
+});
+
+test("a budget comparison with no loaded plant returns the no-budget informational answer without a figure read", async () => {
+  const comparison: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const fixture = makeFixture({ selection: comparison });
+  const user = userForPlants("governed-financial", ["CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Actual over Budget for CHIR in July 2026");
+
+  assert.equal(response.responseClass, ResponseClass.Informational);
+  assert.equal(response.message, "Budget is not loaded for any chosen plant, so nothing was compared.");
+  assert.deepEqual(response.leftOut, {
+    reason: "budget-not-loaded",
+    plants: ["Agriculture - Nursery - CHIR"],
+  });
+  assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR"] }]);
+  assert.deepEqual(response.viewInReport, {
+    available: false,
+    reason: "Budget is not loaded for any chosen plant.",
+  });
+  assert.equal(response.result, undefined);
+  assert.equal(response.provenance, undefined);
+  assert.equal(response.plantNames, undefined);
+  assert.equal(response.budgetStates, undefined);
+  assert.equal(response.drill, undefined);
+  assert.equal(fixture.executor.calls, 0);
+  assert.equal(fixture.audit.requests, 1, "only the turn entry is audited; no execution audit is written");
+});
+
+test("an unwindowed DUB comparison uses active Actual months and reads no figures when one lacks Budget", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    timeWindow: undefined,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const fixture = makeFixture({
+    selection,
+    loadedBudgetMonths: ["2026-07-01"],
+    activeActualPins: [
+      { source: "actuals", period: "2026-06-01", batchId: "actual-june" },
+      { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
+    ],
+  });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Show the selected comparison for DUB");
+
+  assert.equal(response.responseClass, ResponseClass.Informational);
+  assert.deepEqual(response.leftOut, { reason: "budget-not-loaded", plants: ["Agri - Nursery - DUB"] });
+  assert.deepEqual(fixture.transactions.activePinCalls, [{ from: "0001-01-01", to: "9999-12-31" }]);
+  assert.equal(fixture.executor.calls, 0);
+  assert.equal(fixture.audit.requests, 1);
+});
+
+test("a DUB-only comparison with loaded Budget has no left-out notice", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+  };
+  const fixture = makeFixture({ selection, result: { columns: [], rows: [] } });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(user, "session", "Actual over Budget for DUB in July 2026");
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.equal(response.leftOut, undefined);
+  assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+});
+
+test("successful answers expose exactly the one three or four plants they read", async () => {
+  const cases = [
+    { plants: ["DUB"], scope: "plant=Agri - Nursery - DUB" },
+    {
+      plants: ["CHIR", "DUB", "VJM"],
+      scope: "plant=Agriculture - Nursery - CHIR, plant=Agri - Nursery - DUB, plant=Operations - Unit - VJM",
+    },
+    {
+      plants: ["AP-AGRI", "CHIR", "DUB", "VJM"],
+      scope:
+        "plant=Operations - Unit - AP-AGRI, plant=Agriculture - Nursery - CHIR, plant=Agri - Nursery - DUB, plant=Operations - Unit - VJM",
+    },
+  ];
+  for (const entry of cases) {
+    const fixture = makeFixture({ selection: financialSelection });
+    const response = await fixture.service.ask(
+      userForPlants("governed-financial", [...entry.plants, "CK"]),
+      "session",
+      `Show Actual for ${entry.plants.join(" and ")} in July 2026`,
+    );
+    assert.deepEqual(Object.keys(response.plantNames ?? {}), [...entry.plants].sort(), entry.plants.join(","));
+    assert.equal(response.provenance?.scope, entry.scope, entry.plants.join(","));
+    assert.doesNotMatch(response.provenance?.scope ?? "", /department=|function=|plant=CK/);
+  }
 });
 
 test("edited saved pinned and continuation selections without a plant filter use the same plant rule", async () => {
@@ -2141,7 +2559,10 @@ test("a measure-filtered answer records comparison chips readback and applied fi
       compareTo: { kind: "value", value: "000500000.00" },
     },
   ];
-  const fixture = makeFixture({ selection: { ...financialSelection, measureFilters } });
+  const fixture = makeFixture({
+    selection: { ...financialSelection, measureFilters },
+    activeActualPins: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+  });
   const user = userFor("governed-financial");
   user.permissions.measureIds.push("governed-financial.budget");
 
@@ -2350,6 +2771,7 @@ function makeFixture(options: {
   llm?: LlmProvider;
   groundedSelection?: Selection;
   result?: ResultTable;
+  totals?: Record<string, number>;
   activeBatchIds?: ProvenanceBatch[];
   failEntryAudit?: boolean;
   labels?: Array<{ key: string; label: string; otherLabels: string[] }>;
@@ -2357,6 +2779,8 @@ function makeFixture(options: {
   activeActualPins?: Array<ProvenanceBatch & { source: "actuals" }>;
   activeActualPinSnapshots?: Array<Array<ProvenanceBatch & { source: "actuals" }>>;
   statementPeriod?: { value: string; label: string; from: string; to: string };
+  loadedBudgetMonths?: string[];
+  forbidOutlineBudgetLookups?: boolean;
 }) {
   const llmResult: LlmSelectionResult =
     options.kind === "clarify"
@@ -2366,7 +2790,7 @@ function makeFixture(options: {
         : { kind: "selection", selection: options.selection! };
   const fakeLlm = new FakeLlm(llmResult);
   const provider = options.llm ?? fakeLlm;
-  const executor = new FakeExecutor(options.result ?? RESULT, options.activeBatchIds ?? []);
+  const executor = new FakeExecutor(options.result ?? RESULT, options.activeBatchIds ?? [], options.totals);
   const audit = new FakeAudit(options.failEntryAudit ?? false);
   const dimensions = new FakeDimensions();
   const help = new FakeHelp();
@@ -2380,6 +2804,7 @@ function makeFixture(options: {
           (pin): pin is ProvenanceBatch & { source: "actuals" } => pin.source === "actuals",
         ),
     ],
+    options.loadedBudgetMonths ?? ["2026-07-01"],
   );
   const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
   const logs: Array<{ context: Record<string, unknown> }> = [];
@@ -2397,6 +2822,10 @@ function makeFixture(options: {
       }
     : {};
   const resolver = new FakeSelectionResolver(options.statementPeriod);
+  const outlines = new FakeOutlines(
+    options.loadedBudgetMonths ?? ["2026-07-01"],
+    options.forbidOutlineBudgetLookups ?? false,
+  );
   const service = new ChatService(
     semantic,
     executor as never,
@@ -2410,7 +2839,7 @@ function makeFixture(options: {
     names as never,
     transactions as never,
     contexts,
-    new FakeOutlines() as never,
+    outlines as never,
     { outlineDigest: () => "outline-digest" } as never,
   );
   Reflect.set(service, "logger", {
@@ -2441,16 +2870,31 @@ class FakeNames {
 class FakeTransactions {
   readonly calls: Array<Array<{ rowKey: string; predicate: DrillPredicate }>> = [];
   readonly activePinCalls: Array<{ from: string; to: string }> = [];
+  readonly batchStateCalls: ProvenanceBatch[][] = [];
+  readonly budgetPeriodCalls: Array<{ from: string; to: string }> = [];
 
   constructor(
     private readonly summaries: DrillSummary[],
     private readonly activeActualPinSnapshots: Array<Array<ProvenanceBatch & { source: "actuals" }>>,
+    private readonly loadedBudgetMonths: string[],
   ) {}
 
   async findActiveActualPins(from: string, to: string) {
     const snapshotIndex = this.activePinCalls.length;
     this.activePinCalls.push({ from, to });
     return this.activeActualPinSnapshots[snapshotIndex] ?? this.activeActualPinSnapshots.at(-1) ?? [];
+  }
+
+  async findBatchStates(pins: ProvenanceBatch[]) {
+    this.batchStateCalls.push(pins);
+    return pins
+      .filter(({ source, period }) => source === "budget" && this.loadedBudgetMonths.includes(period))
+      .map(({ source, period }) => ({ source, period, batchId: BUDGET_BATCH_ID, isActive: true }));
+  }
+
+  async findActiveBudgetPeriods(from: string, to: string) {
+    this.budgetPeriodCalls.push({ from, to });
+    return this.loadedBudgetMonths.filter((period) => period >= from && period <= to);
   }
 
   async summarize(rows: Array<{ rowKey: string; predicate: DrillPredicate }>) {
@@ -2460,6 +2904,17 @@ class FakeTransactions {
 }
 
 class FakeOutlines {
+  constructor(
+    private readonly loadedBudgetMonths: string[],
+    private readonly forbidBudgetLookups: boolean,
+  ) {}
+
+  async findActiveBudgetOutline(period: string) {
+    assert.equal(this.forbidBudgetLookups, false, "budget periods must use one bounded batch lookup");
+    if (!this.loadedBudgetMonths.includes(period)) throw new StatementOutlineUnavailableError();
+    return { batchId: BUDGET_BATCH_ID, nodes: [{ nodeKey: "leaf", leafKey: "leaf" }] };
+  }
+
   async findByBudgetBatchId() {
     return [{ nodeKey: "leaf", leafKey: "leaf" }];
   }
@@ -2494,6 +2949,7 @@ class FakeExecutor {
   constructor(
     private readonly result: ResultTable,
     private readonly activeBatchIds: ProvenanceBatch[],
+    private readonly totals?: Record<string, number>,
   ) {}
   async run(
     _user: unknown,
@@ -2515,7 +2971,7 @@ class FakeExecutor {
     await options.beforeExecute?.({ selection, sql: "SELECT governed", objectsTouched: [selection.domain] });
     return {
       result: this.result,
-      totals: undefined,
+      totals: this.totals,
       sql: "SELECT governed",
       activeBatchIds: this.activeBatchIds,
       budgetComponentLabels: [],

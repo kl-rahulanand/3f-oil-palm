@@ -15,6 +15,7 @@ const expectedCommands = {
 const hermeticTests = [
   "backend/src/app.routes.test.ts",
   "backend/src/branding.identifiers.test.ts",
+  "backend/src/chat/ask-budget-states.test.ts",
   "backend/src/chat/ask-drill-context.test.ts",
   "backend/src/chat/ask-drill-issuer.test.ts",
   "backend/src/chat/ask-drill.service.test.ts",

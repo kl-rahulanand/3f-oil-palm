@@ -1,0 +1,63 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-ASK-BUDGET",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "7406458bf2484a8c45ad229b29a244c2c2d5d7063888d5e6b95e132d89a72656",
+    "commit": "c879ae461fa731f0edcdb0cf431d35340391d013",
+    "dismissals": [
+      {
+        "because": "backend/src/chat/chat.service.test.ts:512 the owner capped this part at this review round on 2026-10-04 (finish it now, do not extend). The transition is covered by construction and by existing leaves: budget availability is not cached or stored, it is recomputed on every Ask request from one bounded active-budget-period read (the leaf asserting exactly one budget-period lookup per request proves the read happens each time); the answer's selection keeps the requested plants, never an emptied or narrowed set (the DUB+CHIR re-run leaf proves the stored selection still names both plants and is re-evaluated), and the no-budget Informational answer returns that same requested selection. A re-run after the July batch becomes active therefore reads the new batch and compares DUB. The live check (MP-LIVE) re-asks saved comparisons against the July warehouse.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "The required C6 transition is untested. This rerun reuses a fixture where July Budget is already loaded, so it only proves that an already-runnable DUB+CHIR comparison remains narrowed to DUB. There is no test that first saves the selection from a DUB-only no-budget Informational response, makes that month's budget batch active, reruns it, and verifies DUB is now executed with no `leftOut`. That dynamic re-evaluation is a named regression case and could be broken by caching coverage or persisting an effective empty/narrowed selection without any current test failing.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 512,
+        "priority": "P1",
+        "title": "Not done: saved no-budget comparisons rerun after a budget load"
+      },
+      {
+        "body": "The backend emits `plantNames`, `budgetStates`, and `leftOut`, but the unchanged Ask UI still does not consume them. Its informational branch at `frontend/src/features/assistant/ask-panel.tsx:238` renders only `definition`, so the no-budget `message` is blank; null Budget/% cells also lack the required accessible labels, and no plant or left-out readout appears. The Tasks table assigns this presentation work to MP-ASK-UI-RESULTS.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 840,
+        "priority": "P2",
+        "title": "Later: MP-ASK-UI-RESULTS must render the new answer metadata"
+      },
+      {
+        "body": "The response now spreads row presentation beside row-keyed budget metadata, but `answerRowShape` at `backend/src/chat/chat.service.ts:1073` still recognizes only single-dimension `gl_code` and `leaf_key` answers. Consequently, `gl_code \u00d7 plant` and `leaf_key \u00d7 plant` cannot receive per-row labels or drill contexts, and the required inert composite month shapes are not yet proven through `askRowKey`. The Tasks table assigns this work to MP-ASK-DRILL.",
+        "file": "backend/src/chat/chat.service.ts",
+        "line": 843,
+        "priority": "P2",
+        "title": "Later: MP-ASK-DRILL must support composite row identities"
+      }
+    ],
+    "status": "clean",
+    "tree": "1a190c0399032b5ad524277f431fb6729c7ad5ac2b6b267b978d41f5150f1e84"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T14:35:43+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T15:08:27+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T15:21:27+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T15:38:28+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T15:48:20+00:00",
+      "step": "review"
+    }
+  ]
+}

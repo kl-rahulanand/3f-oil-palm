@@ -58,6 +58,17 @@ LIMIT 25000`);
       .map(({ isActive: _isActive, ...pin }) => pin);
   }
 
+  async findActiveBudgetPeriods(from: string, to: string): Promise<string[]> {
+    const result = await this.warehouse.execute(`SELECT DISTINCT period
+FROM ingest_batch
+WHERE source_kind = 'budget' AND is_active AND period >= ${quote(from)} AND period <= ${quote(to)}
+ORDER BY period
+LIMIT 25000`);
+    return result.rows
+      .map(({ period }) => normalizeDateOnly(period))
+      .filter((period): period is string => Boolean(period));
+  }
+
   buildQueries(predicate: DrillPredicate, page: number, rowLimit: number): DrillQueries {
     const where = buildDrillPredicate(predicate);
     return {
