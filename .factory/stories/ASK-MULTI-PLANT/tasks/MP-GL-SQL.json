@@ -1,10 +1,45 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-GL-SQL",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "5e9bf7e5001ea4c70ada7a3670f460ec6a69babb1e44c46909c95094880a326a",
+    "commit": "a9303c5f638379c2592457282a66317d06113e70",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This required test was not changed, and its existing fixture remains single-plant: it defines no `plant` dimension, selects no plant filter, and grants only DUB. Consequently it cannot fail if the new plant-aware join or multi-plant aggregation corrupts row-aligned provenance. Add the required several-plant provenance proof covering the new plant join and coarser grouping.",
+        "file": "backend/src/sql/sqlBuilder.ts",
+        "line": 382,
+        "priority": "P1",
+        "title": "Not done: backend/src/sql/sqlBuilder.provenance.test.ts"
+      },
+      {
+        "body": "The new multi-plant breakdown assertions are inside the gated warehouse test, but the supplied close run records this test as `SKIP`, and no separate completed handoff records a passing run against the designated throwaway PostgreSQL warehouse. The hermetic run therefore does not prove that the four plant grouping combinations execute correctly against the real migrated schema.",
+        "file": "backend/src/warehouse/golden-financial.db.test.ts",
+        "line": 92,
+        "priority": "P1",
+        "title": "Not done: backend/src/warehouse/golden-financial.db.test.ts runs the required database proof"
+      },
+      {
+        "body": "The required July regression and pre-limit comparison proof is guarded by `WAREHOUSE_DB_TEST`, and the supplied close run records it as `SKIP`; there is no separate passing warehouse run in the handoff. Thus the claimed 21-code result, \u20b983,98,339 value, loaded-budget plant restriction, limit behavior, and totals have not been executed against PostgreSQL.",
+        "file": "backend/src/warehouse/measure-filter.db.test.ts",
+        "line": 23,
+        "priority": "P1",
+        "title": "Not done: backend/src/warehouse/measure-filter.db.test.ts runs the required database proof"
+      }
+    ],
+    "status": "blocked",
+    "tree": "fbbb72944abaf69d5754cba540d263b8b2ab16d466be5a9422c400c0ab8849a1"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T11:38:02+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T11:50:01+00:00",
+      "step": "review"
     }
   ]
 }
