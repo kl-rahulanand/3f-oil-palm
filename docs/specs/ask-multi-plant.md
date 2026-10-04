@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T08:41:38+00:00
+saved: 2026-10-04T08:42:53+00:00
 ---
 
 # Every Ask answer works across plants
@@ -32,6 +32,17 @@ decision 0033.
 - Readers who hold exactly one plant, who must see no change beyond honest budget labels.
 
 ## Behaviour
+
+### What counts as a read
+
+- A **figure read** is any warehouse query that returns amounts or lines: the answer's data query, its
+  totals, GL names, drill summaries and transactions. It is audited as today (the execution record is
+  written before the query).
+- A **metadata lookup** returns no amount: the mapping master, the reader's grants, the selector's cached
+  distinct GL-code and month values, and load-batch metadata (which batches are active and which months
+  they cover). It is not audited as a data read, exactly as these lookups are not today.
+- Wherever this spec says "no read" or "nothing is read", it means no figure read; metadata lookups may
+  run.
 
 ### The plant set an answer uses
 
@@ -81,7 +92,7 @@ decision 0033.
   "You do not have access to any plant.", audited as a refusal, with no provider call and no read.
 - A question that names no plant, from a reader holding more than one plant, is answered with a typed
   plant picker instead of data. No figure is read before a choice: no data query, totals, names, drill
-  summary or batch lookup. The selector's existing cached lookup of distinct GL-code and month values,
+  summary. The selector's existing cached lookup of distinct GL-code and month values,
   which reads no figure, may run first, as it does before today's period choice; plant values never come
   from it (owner decision, 2026-10-04). A reader holding exactly one
   plant gets that plant without a picker. The picker is `AskResponse.plantChoice`:
@@ -306,8 +317,8 @@ decision 0033.
 
 - **C1 Picker.**
   - A reader holding several plants who names no plant gets `plantChoice` listing their plants plus "All
-    plants", and a leaf proves no figure was read before the choice (no data query, totals, names, drill
-    summary or batch lookup; distinct values only for the non-plant vocabulary columns).
+    plants", and a leaf proves no figure was read before the choice (no data query, totals, names or drill
+    summary; distinct values only for the non-plant vocabulary columns).
   - A one-plant reader gets the answer directly.
   - An edited selection, and a saved view or pin made before this change, with no plant filter gets the
     picker (several plants) or a singleton filter (one plant), proven by leaves.
@@ -370,7 +381,9 @@ decision 0033.
     `leftOut`, and becomes the Informational no-budget answer when DUB is the only chosen plant.
   - An answer with no time window takes its months from the active Actual load batches before the query
     runs; an Actual month with no DUB budget batch makes the summed DUB row `not-loaded`, and an
-    unwindowed DUB-only comparison with such a month is the Informational no-budget answer with no read.
+    unwindowed DUB-only comparison with such a month is the Informational no-budget answer: the leaf
+    proves only metadata lookups ran (load batches, grants, mapping master), with no figure read and no
+    execution audit record.
   - A DUB+CHIR summed row where CHIR has no activity is `partial`, with `plantsInRow` `["CHIR","DUB"]` and
     `plantsWithBudget` `["DUB"]`.
   - A budget comparison reads only plants with a loaded budget, applied in the query before ordering, the
