@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:34:05+00:00
-read_hash: 45e28aec6e205a0007c7777035c7fe544fca3917
-round: 13
-passed: yes
-doc_seen: 45e28aec6e205a0007c7777035c7fe544fca3917
+read_at: 2026-10-04T08:36:53+00:00
+read_hash: e80af5cc82191f2a779ee4c291b72917150b12e9
+round: 14
+passed: no
+doc_seen: e80af5cc82191f2a779ee4c291b72917150b12e9
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 8f7716d77f7429aed59f2e205a64f7738116c3ee
+notes_seen: b2711c1bd922afb1fd1c145e32af059cf5bfcf30
 ---
 # Cold read notes
 
@@ -244,3 +244,21 @@ No findings.
 ## Round 13
 
 No findings.
+
+## Round 14
+
+48. Gap: “loaded budget” is not defined for the selected period.
+   The confirmed statement spec treats a missing active budget batch for a period as not-loaded, including for DUB. Define the period/window rule for `loaded`, `partial`, comparison exclusion, and an all-not-loaded DUB period; C6 needs a leaf for it.
+   Disposition: cut a row's budget is loaded only when the owner has an active budget batch for every month the row covers; a missing month makes DUB not loaded; C6 adds the range and all-not-loaded DUB period leaves.
+
+49. Gap: the cross-plant composed relation’s grain is not pinned.
+   Actuals must retain canonical plant through the GL and statement relations, and the DUB budget must be associated only with DUB before any multi-plant aggregation. Otherwise a DUB+CHIR actual can join one DUB budget on GL/month and falsely appear loaded. Require a plant-grain relation before aggregation and prove no budget or provenance crosses plants.
+   Disposition: cut actual and budget join at the plant, GL (or line) and month grain before any cross-plant aggregation, the budget carrying its owner plant; C6 proves no budget or provenance crosses plants.
+
+50. Contradiction: budget-state requirements assume Budget and % columns that an Actual-only selection need not contain.
+   Success question 4 asks only for Actual yet requires Budget and % cells, while Ask selections can contain only the requested Actual measure. Specify whether financial answers always add Budget and % or restrict `budgetStates` and the column rules to selected measures; prove the chosen behavior.
+   Disposition: cut the budget rules apply only to shown measures; an Actual-only answer has no Budget or % column and no budgetStates; success question 4 now asks for Actual and Budget.
+
+51. Contradiction: short-code matching conflicts with case-insensitive plant resolution.
+   The resolver is case-insensitive for canonical codes, but codes under three characters match only as uppercase tokens. Define the outcome for `CK` versus `ck` (including ungranted access checks) and add it to C2’s normalization proof.
+   Disposition: cut short codes match only as an exact upper-case token ("CK" names CK, "ck" names nothing) for granted and ungranted alike; C2 proves it.
