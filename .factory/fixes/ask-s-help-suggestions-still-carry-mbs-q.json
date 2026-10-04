@@ -1,4 +1,5 @@
 {
+  "allow_large": "Owner allowed on 2026-10-04: four files carry the change; the other three register the new test and take glossary.ts off the legacy formatting list",
   "base": "79860fb49dec3b05a8fd96cfd353679181df9eef",
   "branch": "fix/ask-s-help-suggestions-still-carry-mbs-q",
   "done_when": "no Ask suggestion mentions state, leads, RPush, conversion or last 30 days; definition, value, small-talk and fallback answers suggest 3F questions built from the governed vocabulary (e.g. Actual by GL code for the latest loaded month), with a leaf per suggestion source",
