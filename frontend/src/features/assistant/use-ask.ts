@@ -290,7 +290,7 @@ function resolveContinueResponse(
   failurePolicy: ContinueTurnFailurePolicy,
   requestOrigin?: AskRequest["origin"],
 ): AskTurn {
-  if (response.responseClass === "success")
+  if (response.responseClass === "success" || response.responseClass === "informational")
     return { id: turn.id, origin: turn.origin, question: turn.question, response };
   if (
     response.responseClass === "clarification_needed" &&

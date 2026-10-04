@@ -184,7 +184,7 @@ test("a grounded explanation is cleared when a different statement is generated 
   expect(screen.getByTestId("turn-origins")).toHaveTextContent(/^ungrounded$/);
 });
 
-test("a non success typed response keeps the clarification and its period buttons", async () => {
+test("an informational period continuation replaces the clarification with the answer", async () => {
   mocks.ask.mockResolvedValueOnce(clarification()).mockResolvedValueOnce({
     responseClass: "informational" as AskResponse["responseClass"],
     sessionId: "session",
@@ -196,10 +196,10 @@ test("a non success typed response keeps the clarification and its period button
   fireEvent.click(screen.getByRole("button", { name: "Ask same question" }));
   fireEvent.click(await screen.findByRole("button", { name: "July 2026" }));
 
-  expect(await screen.findByRole("alert")).toBeInTheDocument();
-  expect(screen.getByText("Choose a period")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "July 2026" })).toBeEnabled();
-  expect(screen.queryByText("A glossary definition.")).not.toBeInTheDocument();
+  expect(await screen.findByText("Actual")).toBeInTheDocument();
+  expect(screen.queryByText("Choose a period")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "July 2026" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 test("a continuation whose transport throws keeps the clarification and its period buttons", async () => {

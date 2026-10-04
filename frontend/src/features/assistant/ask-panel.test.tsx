@@ -513,16 +513,63 @@ test("DUB and CHIR rows of one GL code keep their own name budget state and dril
   expect(within(chir).getByLabelText("Budget not loaded for this plant")).toHaveTextContent("—");
   expect(within(chir).getByLabelText("not loaded")).toHaveTextContent("—");
 
-  fireEvent.click(
-    within(chir).getByRole("button", {
-      name: "Open transactions for 50001201 · Chirala Sprout Cost, Actual ₹50",
+  expect(
+    within(dub).getByRole("button", {
+      name: "Open transactions for 50001201 · Duvva Sprout Cost, Actual ₹100",
     }),
-  );
+  ).toBeInTheDocument();
+  const chirTransactions = within(chir).getByRole("button", {
+    name: "Open transactions for 50001201 · Chirala Sprout Cost, Actual ₹50",
+  });
+  expect(chirTransactions).toBeInTheDocument();
+  fireEvent.click(chirTransactions);
 
   await waitFor(() =>
     expect(mocks.runAskDrill).toHaveBeenCalledWith({
       context: "signed-plant-breakdown",
       rowKey: "50001201|CHIR",
+      page: 1,
+    }),
+  );
+});
+
+test("DUB and CHIR rows of one statement leaf keep their own name budget state and drill link", async () => {
+  const response = plantBreakdownSuccess("leaf_key");
+  response.budgetStates = [
+    { key: "leaf-sprout|DUB", state: "loaded", plantsInRow: ["DUB"], plantsWithBudget: ["DUB"] },
+    { key: "leaf-sprout|CHIR", state: "not-loaded", plantsInRow: ["CHIR"], plantsWithBudget: [] },
+  ];
+  mocks.ask.mockResolvedValue(response);
+  mocks.runAskDrill.mockResolvedValue(askDrillResponse({ rowKey: "leaf-sprout|CHIR" }));
+  renderAsk();
+
+  submit("Show Actual by statement leaf and plant");
+
+  const table = await screen.findByRole("table");
+  const dub = within(table).getByRole("row", { name: /Duvva Sprout line/ });
+  const chir = within(table).getByRole("row", { name: /Chirala Sprout line/ });
+  expect(dub).toHaveTextContent("Duvva Nursery");
+  expect(dub).toHaveTextContent("₹90");
+  expect(chir).toHaveTextContent("Chirala Nursery");
+  expect(chir).not.toHaveTextContent("₹90");
+  expect(within(chir).getByLabelText("Budget not loaded for this plant")).toHaveTextContent("—");
+  expect(within(chir).getByLabelText("not loaded")).toHaveTextContent("—");
+
+  expect(
+    within(dub).getByRole("button", {
+      name: "Open transactions for Duvva Sprout line, Actual ₹100",
+    }),
+  ).toBeInTheDocument();
+  const chirTransactions = within(chir).getByRole("button", {
+    name: "Open transactions for Chirala Sprout line, Actual ₹50",
+  });
+  expect(chirTransactions).toBeInTheDocument();
+  fireEvent.click(chirTransactions);
+
+  await waitFor(() =>
+    expect(mocks.runAskDrill).toHaveBeenCalledWith({
+      context: "signed-plant-breakdown",
+      rowKey: "leaf-sprout|CHIR",
       page: 1,
     }),
   );
@@ -1200,6 +1247,33 @@ test("a plant choice refusal replaces the picker with its typed reason", async (
     await screen.findByText("You no longer have access to Agriculture - Nursery - CHIR. Ask again."),
   ).toBeInTheDocument();
   expect(screen.queryByText(plantChoice.prompt)).not.toBeInTheDocument();
+});
+
+test("a no-budget plant choice replaces the picker with its informational answer", async () => {
+  const question = "Which GL codes are over Budget for July 2026?";
+  mocks.ask
+    .mockResolvedValueOnce({
+      ...plantClarification,
+      plantChoice: { ...plantChoice, question },
+    })
+    .mockResolvedValueOnce({
+      responseClass: "informational" as AskResponse["responseClass"],
+      sessionId: "session",
+      message: "Budget is not loaded for any chosen plant, so nothing was compared.",
+      leftOut: { reason: "budget-not-loaded", plants: ["Chirala Nursery"] },
+      viewInReport: { available: false, reason: "Budget is not loaded for any chosen plant." },
+    });
+  renderAsk();
+  submit(question);
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Agriculture - Nursery - CHIR" }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Show answer" }));
+
+  const message = await screen.findByText("Budget is not loaded for any chosen plant, so nothing was compared.");
+  const answer = message.closest("article")!;
+  expect(within(answer).getByText("Left out because Budget is not loaded: Chirala Nursery")).toBeInTheDocument();
+  expect(within(answer).queryByText(plantChoice.prompt)).not.toBeInTheDocument();
+  expect(within(answer).queryByRole("alert")).not.toBeInTheDocument();
 });
 
 test("a plant refusal during period choice replaces the period picker with its typed reason", async () => {
