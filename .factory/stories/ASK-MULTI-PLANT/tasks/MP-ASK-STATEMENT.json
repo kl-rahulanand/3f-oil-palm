@@ -1,0 +1,41 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-ASK-STATEMENT",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "3fd45733161c54bc45510840012358fa7753be1db5133ea18bfe9c0370eef862",
+    "commit": "e88f12ca7ba1f57b3a5b889bbd32e98d8431df91",
+    "dismissals": [
+      {
+        "because": "backend/src/chat/chat.service.test.ts:159 the coordinator drove the real Ask endpoint end to end on 2026-10-04: this branch at e88f12ca on :4001 with the real Nest app, OTP login, CSRF, the app DB, the July warehouse and live Bedrock, asking \"What was the Actual for each MIS statement line in July 2026?\" as the seeded admin and answering the plant picker. DUB alone: 81 lines, total 11512712.07, line 1.1 at 8398339.00. CHIR alone: 81 lines, total 680561.89. DUB+CHIR combined: 81 lines, total 12193273.96, and every line equals DUB plus CHIR to the paisa (0 mismatches, CHIR non-zero on 7 lines). H.O alone (Corporate/Office, outside the admin's Agriculture/Nursery scope): success, 80 lines. \"...by plant...\" for DUB+CHIR: each line DUB then CHIR, display-name order.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "This test constructs `ChatService` with a fake resolver that fabricates the combined leaf targets and a fake executor that returns a fixed result without running `SqlBuilder` or the warehouse. It asserts only the scope passed to that fake, not that the Ask endpoint returns combined lines equal to each plant's statement or preserves the singleton statement line by line. It would therefore pass if the real resolver-to-SQL integration dropped or double-counted leaves. The existing warehouse projection test bypasses the Ask entry point and was skipped in the supplied close run, so the required user-facing behavior still lacks end-to-end proof through the real API and database.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 159,
+        "priority": "P1",
+        "title": "Not done: end-to-end combined-statement Ask test"
+      }
+    ],
+    "status": "clean",
+    "tree": "3bf2c38a97951c871d09f7eebdb58c3e4814b06d4c3a31c54d743491bee34036"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T13:21:29+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-04T13:33:08+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-04T13:41:38+00:00",
+      "step": "review"
+    }
+  ]
+}

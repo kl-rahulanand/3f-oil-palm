@@ -57,6 +57,76 @@ test("a request carrying an edited selection makes zero selector calls", async (
   assert.equal(fixture.llm.calls, 1);
 });
 
+test("a plant choice is carried into the statement period choice and its continuation", async () => {
+  const fixture = makeFixture(statementSelection(), ["2026-07-01"]);
+  const user = statementUser();
+  user.scope.push({ attribute: "plant", value: "CHIR" });
+
+  const plantChoice = await fixture.service.ask(user, "session", STATEMENT_QUESTION);
+  const selectedPlants: Selection = {
+    ...plantChoice.plantChoice!.selection,
+    filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }],
+  };
+  const periodChoice = await fixture.service.ask(
+    user,
+    "session",
+    plantChoice.plantChoice!.question,
+    selectedPlants,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "plant-choice",
+  );
+
+  assert.equal(periodChoice.responseClass, ResponseClass.ClarificationNeeded);
+  assert.deepEqual(periodChoice.periodChoice?.selection.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+
+  const answer = await fixture.service.ask(
+    user,
+    "session",
+    periodChoice.periodChoice!.question,
+    {
+      ...periodChoice.periodChoice!.selection,
+      timeWindow: periodChoice.periodChoice!.options[0].timeWindow,
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "period-choice",
+  );
+
+  assert.equal(answer.responseClass, ResponseClass.Success, JSON.stringify(answer));
+  assert.deepEqual(answer.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
+});
+
+test("a revoked plant on a statement period continuation is refused as choice-plants-revoked", async () => {
+  const fixture = makeFixture(statementSelection(), ["2026-07-01"]);
+  const response = await fixture.service.ask(
+    statementUser(),
+    "session",
+    STATEMENT_QUESTION,
+    {
+      ...statementSelection(JULY_WINDOW),
+      filters: [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }],
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "period-choice",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.BlockedByPolicy);
+  assert.equal(response.refusal?.reason, "choice-plants-revoked");
+  assert.deepEqual(response.refusal?.plants, ["Agriculture - Nursery - CHIR"]);
+  assert.equal(fixture.executor.calls, 0);
+});
+
 test("an unoffered same day period a partial month and a multi month range each clarify", async () => {
   const windows = [
     { grain: "month" as const, from: "2026-08-01", to: "2026-08-01" },
@@ -78,7 +148,7 @@ test("an unoffered same day period a partial month and a multi month range each 
   }
 });
 
-test("department and function scope gaps still block while plant grants use the Ask plant step", async () => {
+test("legacy department and function scope neither selects nor blocks the chosen plant mapping", async () => {
   for (const attribute of ["department", "function"] as const) {
     for (const ambiguous of [false, true]) {
       const user = statementUser();
@@ -87,15 +157,14 @@ test("department and function scope gaps still block while plant grants use the 
         user.scope.push({ attribute, value: "one" }, { attribute, value: "two" });
       }
 
-      const response = await makeFixture(statementSelection(), ["2026-07-01"]).service.ask(
+      const response = await makeFixture(statementSelection(JULY_WINDOW), ["2026-07-01"]).service.ask(
         user,
         "session",
-        STATEMENT_QUESTION,
+        `${STATEMENT_QUESTION} for July 2026`,
       );
-      assert.equal(response.responseClass, ResponseClass.BlockedByPolicy);
-      assert.match(response.message ?? "", new RegExp(attribute));
-      assert.match(response.message ?? "", /administrator/);
-      assert.equal(response.periodChoice, undefined);
+      assert.equal(response.responseClass, ResponseClass.Success, `${attribute}:${ambiguous}`);
+      assert.equal(response.viewInReport.available && response.viewInReport.department, "Agriculture");
+      assert.equal(response.viewInReport.available && response.viewInReport.function, "Nursery");
     }
   }
 
@@ -115,29 +184,38 @@ test("department and function scope gaps still block while plant grants use the 
   assert.equal(choice.periodChoice, undefined);
 });
 
-test("no mapping and no periods loaded keep distinct outcomes and neither reads as a missing period", async () => {
-  const noMappingUser = statementUser();
-  noMappingUser.scope = noMappingUser.scope.map((scope) =>
-    scope.attribute === "function" ? { ...scope, value: "Mill" } : scope,
-  );
+test("a chosen H.O statement uses its Corporate Office mapping instead of the reader's legacy Nursery scope", async () => {
+  const fixture = makeFixture(statementSelection(JULY_WINDOW), ["2026-07-01"]);
+  const user = statementUser();
+  user.scope = user.scope.map((scope) => (scope.attribute === "plant" ? { attribute: "plant", value: "H.O" } : scope));
 
-  const noMapping = await makeFixture(statementSelection(), []).service.ask(
-    noMappingUser,
-    "session",
-    STATEMENT_QUESTION,
-  );
+  const response = await fixture.service.ask(user, "session", "Show the H.O statement for July 2026", {
+    ...statementSelection(JULY_WINDOW),
+    filters: [{ dimensionId: "plant", op: "in", value: ["H.O"] }],
+  });
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(response.viewInReport, {
+    available: true,
+    department: "Corporate",
+    function: "Office",
+    plant: "H.O",
+    period: "2026-07-01",
+    activeBatchIds: [],
+  });
+  assert.ok(fixture.executor.resolvedScopes[0]?.triples.length);
+  assert.ok(fixture.executor.resolvedScopes[0]?.triples.every(({ plant }) => plant === "H.O"));
+});
+
+test("no statement periods loaded is reported as missing periods", async () => {
   const noPeriods = await makeFixture(statementSelection(), []).service.ask(
     statementUser(),
     "session",
     STATEMENT_QUESTION,
   );
 
-  assert.equal(noMapping.responseClass, ResponseClass.NotSupported);
-  assert.equal(noMapping.message, CHAT_MESSAGES.statementMappingMissing);
   assert.equal(noPeriods.responseClass, ResponseClass.NotSupported);
   assert.equal(noPeriods.message, CHAT_MESSAGES.statementPeriodsMissing);
-  assert.notEqual(noMapping.message, noPeriods.message);
-  assert.equal(noMapping.periodChoice, undefined);
   assert.equal(noPeriods.periodChoice, undefined);
 });
 
@@ -267,9 +345,28 @@ class FakeLlm implements LlmProvider {
 
 class FakeExecutor {
   calls = 0;
+  readonly resolvedScopes: Array<
+    | {
+        triples: Array<{ plant: string; costCenter: string; glCode: string }>;
+        plantDisplayNames?: Record<string, string>;
+      }
+    | undefined
+  > = [];
   constructor(private readonly activeBatchIds: ProvenanceBatch[]) {}
-  async run(_user: unknown, _domain: unknown, selection: Selection, options: { beforeExecute?: Function }) {
+  async run(
+    _user: unknown,
+    _domain: unknown,
+    selection: Selection,
+    options: {
+      beforeExecute?: Function;
+      resolvedScope?: {
+        triples: Array<{ plant: string; costCenter: string; glCode: string }>;
+        plantDisplayNames?: Record<string, string>;
+      };
+    },
+  ) {
     this.calls += 1;
+    this.resolvedScopes.push(options.resolvedScope);
     await options.beforeExecute?.({ selection, sql: "SELECT governed", objectsTouched: [selection.domain] });
     return {
       result: RESULT,

@@ -132,6 +132,56 @@ test("a plant choice keeps the server-resolved period when the selector omits it
   });
 });
 
+test("a one-plant statement keeps the existing mapped statement resolution", async () => {
+  const fixture = makeFixture({ selection: statementSelection });
+
+  const response = await fixture.service.ask(
+    userForPlants("mis-statement", ["DUB"], true),
+    "session",
+    "Show the MIS statement Actual for DUB in July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.executor.resolvedScopes[0]?.triples, [
+    { plant: "DUB", costCenter: "Primary", glCode: "5001" },
+  ]);
+  assert.deepEqual(response.viewInReport, {
+    available: true,
+    department: "Agriculture",
+    function: "Nursery",
+    plant: "DUB",
+    period: "2026-07-01",
+    activeBatchIds: [],
+  });
+});
+
+test("a DUB and CHIR statement runs one combined mapped statement", async () => {
+  const fixture = makeFixture({ selection: statementSelection });
+
+  const response = await fixture.service.ask(
+    userForPlants("mis-statement", ["DUB", "CHIR"], true),
+    "session",
+    "Show the MIS statement Actual for DUB and CHIR in July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success, JSON.stringify(response));
+  assert.deepEqual(fixture.resolver.resolveCalls, []);
+  assert.deepEqual(fixture.resolver.resolvePlantsCalls, [{ plants: ["CHIR", "DUB"], period: "2026-07-01" }]);
+  assert.deepEqual(fixture.executor.resolvedScopes[0]?.triples, [
+    { plant: "CHIR", costCenter: "Primary", glCode: "5001" },
+    { plant: "DUB", costCenter: "Primary", glCode: "5001" },
+  ]);
+  assert.deepEqual(fixture.executor.resolvedScopes[0]?.plantDisplayNames, {
+    CHIR: "Agriculture - Nursery - CHIR",
+    DUB: "Agri - Nursery - DUB",
+  });
+  assert.deepEqual(response.selection?.filters, [{ dimensionId: "plant", op: "in", value: ["CHIR", "DUB"] }]);
+  assert.deepEqual(response.viewInReport, {
+    available: false,
+    reason: "The answer does not resolve to one statement selector set.",
+  });
+});
+
 test("edited saved pinned and continuation selections without a plant filter use the same plant rule", async () => {
   for (const origin of [undefined, "saved-view", "pin"] as const) {
     const fixture = makeFixture({ selection: financialSelection });
@@ -2352,13 +2402,36 @@ class FakeExecutor {
   calls = 0;
   freshnessCalls = 0;
   readonly selections: Selection[] = [];
+  readonly resolvedScopes: Array<
+    | {
+        triples: Array<{ plant: string; costCenter: string; glCode: string }>;
+        glCodes: string[];
+        masterGlCodes: string[];
+        plantDisplayNames?: Record<string, string>;
+      }
+    | undefined
+  > = [];
   constructor(
     private readonly result: ResultTable,
     private readonly activeBatchIds: ProvenanceBatch[],
   ) {}
-  async run(_user: unknown, _domain: unknown, selection: Selection, options: { beforeExecute?: Function }) {
+  async run(
+    _user: unknown,
+    _domain: unknown,
+    selection: Selection,
+    options: {
+      beforeExecute?: Function;
+      resolvedScope?: {
+        triples: Array<{ plant: string; costCenter: string; glCode: string }>;
+        glCodes: string[];
+        masterGlCodes: string[];
+        plantDisplayNames?: Record<string, string>;
+      };
+    },
+  ) {
     this.calls += 1;
     this.selections.push(selection);
+    this.resolvedScopes.push(options.resolvedScope);
     await options.beforeExecute?.({ selection, sql: "SELECT governed", objectsTouched: [selection.domain] });
     return {
       result: this.result,
@@ -2440,6 +2513,8 @@ class FakeHelp {
 
 class FakeSelectionResolver {
   optionsCalls = 0;
+  readonly resolveCalls: Array<{ department: string; function: string; plant: string; period: string }> = [];
+  readonly resolvePlantsCalls: Array<{ plants: string[]; period: string }> = [];
   constructor(private readonly statementPeriod?: { value: string; label: string; from: string; to: string }) {}
 
   hasMapping() {
@@ -2463,6 +2538,7 @@ class FakeSelectionResolver {
   }
 
   async resolve(request: { department: string; function: string; plant: string; period: string }) {
+    this.resolveCalls.push(request);
     return {
       outcome: "resolved" as const,
       ...request,
@@ -2481,6 +2557,36 @@ class FakeSelectionResolver {
           target: { kind: "leaf" as const, leafKey: "leaf" },
         },
       ],
+    };
+  }
+
+  async resolvePlants(plants: string[], period: string) {
+    this.resolvePlantsCalls.push({ plants, period });
+    if (plants.length === 1) {
+      return this.resolve({ department: "Agriculture", function: "Nursery", plant: plants[0], period });
+    }
+    return {
+      outcome: "resolved" as const,
+      plants: plants.map((plant) => ({
+        plant,
+        plantDisplay: plant === "DUB" ? "Agri - Nursery - DUB" : `Agriculture - Nursery - ${plant}`,
+        department: "Agriculture",
+        function: "Nursery",
+        provisional: false,
+      })),
+      budgetOwnerPlant: "DUB",
+      period: { value: period, from: period, to: period },
+      glCodes: ["5001"],
+      masterGlCodes: ["5001"],
+      misFormat: "nursery-mis-financial-v1",
+      bucketRows: [],
+      triples: plants.map((plant) => ({ plant, costCenter: "Primary", glCode: "5001" })),
+      leafTargets: plants.map((plant) => ({
+        plant,
+        costCenter: "Primary",
+        glCode: "5001",
+        target: { kind: "leaf" as const, leafKey: "leaf" },
+      })),
     };
   }
 }
