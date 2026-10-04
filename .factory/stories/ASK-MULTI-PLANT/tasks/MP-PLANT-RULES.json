@@ -1,10 +1,38 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-PLANT-RULES",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "51f8daf80b6b698df61b7cd19a350e5327c6a23d2433f3e78be48ed13b4a0d0c",
+    "commit": "5b30646766c66101c553fe1404043fc2e78dcb6c",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The required matcher coverage includes case variants for canonical, SAP, and display-name aliases. This test uses lowercase only for canonical codes; `DUB-NUR` and both display names retain their mapping-master case. Consequently, changing SAP/display matching from case-insensitive to case-sensitive would leave the suite green. Add lowercase or mixed-case assertions for both an SAP alias and a display alias.",
+        "file": "backend/src/chat/plant-set.test.ts",
+        "line": 14,
+        "priority": "P1",
+        "title": "Not done: case-variant leaves for SAP and display-name matching"
+      },
+      {
+        "body": "This task's allowed paths are limited to the six implementation/test files, but the change also rewrites the story task decomposition and read record and modifies `.factory/stories/ASK-MULTI-PLANT/story.json` plus its task record. The handoff declares no necessary out-of-scope changes, and none of these edits is needed by the plant-rules module or its tests. Remove these independently changed planning/Factory files from this scoped patch.",
+        "file": "plans/ASK-MULTI-PLANT.md",
+        "line": 221,
+        "priority": "P1",
+        "title": "Remove the unrelated out-of-scope planning and Factory changes"
+      }
+    ],
+    "status": "blocked",
+    "tree": "0dbe0d84377d59e972d379b9a9ff53fde0f962121b583b7a62aa5297ee61d2ce"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T10:35:44+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-04T10:49:16+00:00",
+      "step": "review"
     }
   ]
 }
