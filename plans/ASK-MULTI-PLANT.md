@@ -60,7 +60,15 @@ must prove. Shared rules for every part:
 - **Budget owner** comes from the mapping master's `formats.budget_owner_plant` (DUB), never a new
   literal. A plant "has a loaded budget" for a row when it is the budget owner and every month the row
   covers (the row's own month when `month` is grouped, otherwise every month of the answer's window)
-  has an active budget batch; a missing month makes the owner count as not loaded for that row.
+  has an active budget batch; a missing month makes the owner count as not loaded for that row. An
+  answer with no time window takes its months from the active Actual load batches before the query runs.
+  A comparison compares a plant only when its budget is loaded for every month of the window; otherwise
+  the plant is left out whole. Actual and Budget join at the plant, GL code (or line) and month grain,
+  the budget carrying its owner plant, before any cross-plant aggregation. Budget states, dashes and %
+  cells apply only to the measures the answer shows; no measure is added.
+- **Reads** follow the spec's "What counts as a read": a figure read (data query, totals, names, drill,
+  transactions) is audited as today; a metadata lookup (mapping master, grants, cached GL-code and month
+  vocabulary, load-batch metadata) is not. "No read" in any leaf means no figure read.
 - **Gated warehouse tests** (`*.db.test.ts` under `WAREHOUSE_DB_TEST=1`) truncate tables: a part that
   adds or changes one runs it only against the throwaway Postgres on 5434/5435 (AGENTS.md Known traps),
   never the dev warehouse on 5433.
@@ -100,8 +108,10 @@ must prove. Shared rules for every part:
    reader's granted codes and display names; `normalizeFilterValues` never case-folds a plant filter.
    Leaves: canonical, SAP and display-name matches with case and whitespace variants; "July", "Actual",
    "Budget", "GL" and "statement" never match; `CK` not matched inside "check"; an ungranted name refused
-   with no provider call (the provider spy is not called) and no read; the model input carries no
-   ungranted plant and no figure.
+   with no provider call (the provider spy is not called) and no read; "CK" names CK (refused when
+   ungranted) while "ck" names no plant; the model input carries no ungranted plant and no figure. The
+   redundant month filter (spec C11a) is removed before any Ask selection executes, only in its one
+   exact shape, with the spec's kept-case leaves.
 3. GL answers across plants (C3, C4). Warehouse migration `0004` recreates `actual_by_gl_month` grouped
    by `plant, gl_code, month` over `actual_by_key_month` for every plant (journal entry added; the
    schema definition and its leaf follow). The governed-financial domain gains a `plant` dimension
@@ -130,7 +140,10 @@ must prove. Shared rules for every part:
    Leaves: the spec's C6 list, a DUB range April–July with no active budget batch for one month (the
    summed row is `not-loaded` for DUB, a month-grouped row loaded only for the months with a batch), the over-limit fixture with more qualifying DUB rows than the
    row limit beside non-owner plants, the DUB+CHIR zero-activity partial row, and a DUB+CHIR comparison
-   whose predicate, totals, drill context and provenance hold DUB only while `leftOut` names CHIR.
+   whose predicate, totals, drill context and provenance hold DUB only while `leftOut` names CHIR and its
+   `selection` keeps DUB and CHIR (re-run, it compares DUB again); the four measure sets (Actual only,
+   Actual and Budget, % only, all three) for a CHIR row; the unwindowed DUB comparison with an Actual
+   month lacking a budget batch giving the no-budget answer with only metadata lookups.
 6. Plant readout (C7). A successful data answer states its plant set (one or up to three names, else
    "n plants" with names in "How this was calculated"); `provenance.scope` lists exactly the plants the
    query read, never the grant list, and no longer lists department or function grants for GL answers.
@@ -153,7 +166,8 @@ must prove. Shared rules for every part:
    gains `plants_revoked` with "This view includes plants you no longer have access to: <names>. Edit
    its plants to run it." and the card is disabled; a re-run that reaches Ask anyway, with `origin`
    `saved-view` or `pin`, is the `plants-revoked` answer, audited, with no subset run; an "All plants"
-   view does not grow with new grants. Both cards send their `origin` on reopen. The server-side
+   view does not grow with new grants. Both cards send their `origin` on reopen. A new save or pin with
+   no plant filter is rejected as `plant-filter-invalid` and nothing is stored. The server-side
    re-run leaf (a saved-view and a pin `origin` with a revoked plant gives the `plants-revoked` answer,
    audited, with no read) belongs to MP-ASK-CHOICE, which owns the Ask plant step.
 9. Refusals (C2, C10). Every plant refusal of an Ask request is a BlockedByPolicy answer with
