@@ -1,10 +1,8 @@
 ---
 slug: ask-multi-plant
 title: Every Ask answer works across plants
-status: confirmed
-saved: 2026-10-04T07:06:50+00:00
-confirmed_by: "Rahul Anand"
-confirmed_hash: 79f7dcab858de925ab6345235abb4b6a9fe5c62dba4878eb9d7bf8b7923c4f80
+status: draft
+saved: 2026-10-04T07:21:58+00:00
 ---
 
 # Every Ask answer works across plants
@@ -107,11 +105,13 @@ decision 0033.
   then by plant display name. A plant-total question with no statement lines ("Actual by plant") is a
   governed-financial question.
 - Rows that carry a plant show its display name and are keyed by its canonical code.
-- Every row has one row key, derived by one shared function from the result table's row: the `gl_code` or
-  `leaf_key` cell alone for an unsplit answer, and `<gl_code>|<plant>` or `<leaf_key>|<plant>` (canonical
-  plant code) for a plant breakdown. `rowLabels`, `budgetStates` and `drill.rows` are all keyed by it, and
-  the client looks them up through the same function, so the same GL code or line in two plants never
-  shares a name entry, budget state or drill link.
+- Every row has one row key, derived by one shared function from the result table's row: the row's
+  grouping cells in a fixed order (`gl_code` or `leaf_key`, then `month` as `YYYY-MM-01`, then `plant` as
+  its canonical code), joined with `|`, using only the cells the answer groups by. So `gl_code` alone gives
+  `50001201`, a plant breakdown `50001201|CHIR`, a plant-only answer `CHIR`, and a month-and-plant answer
+  `2026-07-01|CHIR`. The key is unique per row for every allowed shape. `rowLabels`, `budgetStates` and
+  `drill.rows` are all keyed by it, and the client looks them up through the same function, so the same
+  GL code, line, plant or month in two rows never shares a name entry, budget state or drill link.
 - Names and clicks apply only to the answer shapes whose row identity is exact: `gl_code`,
   `gl_code × plant`, `leaf_key` and `leaf_key × plant`. Any shape with `month` or another dimension renders
   plain values with no names and no clickable Actual, as today.
@@ -289,6 +289,8 @@ decision 0033.
     with `month` renders inert, proven by a leaf.
   - Drills work for any plant set with composite row keys. A per-plant row reads only its plant; a summed
     row reads only the chosen set; a combined statement row reads each plant's triples.
+  - The row-key function gives a unique key for every allowed shape: `plant` alone, `month × plant`,
+    `gl_code × month × plant`, and the four drillable shapes, proven by a leaf per shape.
   - One GL code and one statement line each appear for both DUB and CHIR in a plant breakdown. Leaves prove
     each row gets its own name, budget state and drill link through the shared row-key function, and that
     clicking CHIR's row reads only CHIR's lines.
