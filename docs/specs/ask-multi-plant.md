@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T07:21:58+00:00
+saved: 2026-10-04T07:26:38+00:00
 ---
 
 # Every Ask answer works across plants
@@ -46,6 +46,9 @@ decision 0033.
   hold refuses the whole selection as `plant-not-granted`, naming it, with no read. A filter is never
   intersected down to the granted part. This validation and canonicalisation runs at every ingress: a new
   Ask question, a typed-choice continuation, an edited selection, a saved view, a pin and their re-runs.
+  A submitted filter value must already be a canonical code, compared exactly. A SAP code, a display name
+  or a different case (`dub`, `DUB-NUR`, "Agri - Nursery - DUB") in a filter is refused as
+  `plant-filter-invalid`; alias resolution applies only to plant names in question text.
 - The model chooses plants only from a vocabulary of the reader's granted plants: each plant's
   canonical code and display name. For a new question, the plants the server resolves from the question
   text are authoritative. They set the plant filter, replacing whatever the selector emitted, and a
@@ -54,7 +57,9 @@ decision 0033.
   validated. The server, before any warehouse read, resolves every named plant
   to its canonical code through the mapping master. It matches the canonical code, the SAP code or
   the display name, ignoring case and surrounding or repeated whitespace (e.g. "dub", "DUB-NUR",
-  "Agri - Nursery - DUB" all mean DUB).
+  "Agri - Nursery - DUB" all mean DUB). Loading the mapping master rejects any alias that collides with
+  another plant's alias after this normalisation, so the load fails before any resolver, model or
+  warehouse path uses it.
 - A named plant the reader does not hold is refused, naming it, with no warehouse read and a refusal
   audit record. So that its name never reaches the model, the server checks the question before the
   selector is called. Any whole-word match on a canonical code, SAP code or display name of a mapping
@@ -70,6 +75,8 @@ decision 0033.
 ### Choosing the plants
 
 - A question that names one or more plants is answered for those plants.
+- A reader who holds no plant gets no picker. Any data question is refused as `no-plants-granted` with
+  "You do not have access to any plant.", audited as a refusal, with no provider call and no read.
 - A question that names no plant, from a reader holding more than one plant, is answered with a typed
   plant picker instead of data. No warehouse read runs before a choice. A reader holding exactly one
   plant gets that plant without a picker. The picker is `AskResponse.plantChoice`:
@@ -171,18 +178,27 @@ decision 0033.
 
 ### Saved views and pins
 
-- Saved views and pins keep the canonical plant set. A re-run checks it against the reader's current
-  grants. If any stored plant is no longer held, the re-run is refused (BlockedByPolicy) with "This view
-  includes plants you no longer have access to: <names>. Edit its plants to run it." It is audited as a
-  refusal, and no subset is run.
+- Saved views and pins keep the canonical plant set. Their lists already mark a card not runnable with a
+  reason and a message, and disable reopening it. A revoked plant joins that path: the status gains the
+  reason `plants_revoked` with the message "This view includes plants you no longer have access to:
+  <names>. Edit its plants to run it.", and the card is disabled as for `grant_revoked`.
+- A re-run that reaches the server anyway (a stale list, a direct request) re-checks the plants and is
+  refused as the Ask answer `plants-revoked` above, audited as a refusal, and no subset is run.
 
 ### Refusals
 
-- Every plant refusal is an Ask answer, not an HTTP exception, so the global exception filter cannot strip
-  its wording: an ungranted plant, an invalid plant filter, a continuation whose plant is no longer held,
-  and a saved view or pin with a revoked plant. Each is `responseClass` BlockedByPolicy with a typed
-  `refusal: { reason: "plant-not-granted" | "plant-filter-invalid" | "plants-revoked", plants: [<display
-  names>] }`, and the client renders the stated copy from that reason.
+- Every plant refusal of an Ask request is an Ask answer, not an HTTP exception, so the global exception
+  filter cannot strip its wording. Each is `responseClass` BlockedByPolicy with a typed
+  `refusal: { reason, plants }`, and the client renders the copy from the reason:
+
+  | reason | when | `plants` | copy |
+  |---|---|---|---|
+  | `plant-not-granted` | a named or submitted plant the reader does not hold | display names of those plants | "You do not have access to <names>." |
+  | `plants-revoked` | a continuation, saved view or pin whose plant is no longer held | display names of the revoked plants | "This view includes plants you no longer have access to: <names>. Edit its plants to run it." (a continuation: "You no longer have access to <names>. Ask again.") |
+  | `plant-filter-invalid` | a malformed, empty, non-canonical or unknown filter | `[]` | "This question's plant choice is not valid. Choose the plants again." |
+  | `no-plants-granted` | the reader holds no plant | `[]` | "You do not have access to any plant." |
+
+  Client leaves render each row's copy from its reason.
 
 ### What does not change
 
@@ -251,6 +267,10 @@ decision 0033.
     naming it, with no read and an audit record; one holding an empty array is refused as invalid. Neither
     is narrowed to a partial result.
   - The picker with nothing chosen shows "Choose at least one plant" and sends no request.
+  - A submitted filter holding `dub`, `DUB-NUR` or a display name is refused as `plant-filter-invalid` at
+    each ingress (edited, continuation, saved, pinned).
+  - A mapping master with two plants whose aliases collide after normalisation fails to load.
+  - A reader with no plant is refused as `no-plants-granted`, audited, with no provider call and no read.
   - The selection always carries one canonical, sorted, deduplicated `{ dimensionId: "plant", op: "in" }`
     filter, validated at every ingress.
   - The `plantChoice` type round-trips through the contract, the schemas and Swagger.
@@ -289,16 +309,18 @@ decision 0033.
     with `month` renders inert, proven by a leaf.
   - Drills work for any plant set with composite row keys. A per-plant row reads only its plant; a summed
     row reads only the chosen set; a combined statement row reads each plant's triples.
-  - The row-key function gives a unique key for every allowed shape: `plant` alone, `month × plant`,
-    `gl_code × month × plant`, and the four drillable shapes, proven by a leaf per shape.
+  - The row-key function gives a unique key for every allowed shape: `plant` alone, `month` alone,
+    `month × plant`, `gl_code × month`, `gl_code × month × plant`, and the four drillable shapes, proven by
+    a leaf per shape.
   - One GL code and one statement line each appear for both DUB and CHIR in a plant breakdown. Leaves prove
     each row gets its own name, budget state and drill link through the shared row-key function, and that
     clicking CHIR's row reads only CHIR's lines.
   - Each foots to the clicked Actual to the paisa. A row whose plant set the reader partly lost is refused.
   - "View in report" is available only for single-plant statement answers.
-- **C9 Saved and pinned.** A saved view or pin keeps its canonical plant set. Leaves prove that a DUB+CHIR
-  view is refused, audited and not run once either plant is revoked, and that an "All plants" view does not
-  grow with new grants.
+- **C9 Saved and pinned.** A saved view or pin keeps its canonical plant set. Leaves prove that once either
+  plant of a DUB+CHIR view or pin is revoked, its list status is `plants_revoked` with the stated message
+  and the card is disabled; that a direct re-run is refused as the `plants-revoked` Ask answer, audited and
+  not run; and that an "All plants" view does not grow with new grants.
 - **C10 Model boundary.** Leaves prove the model receives only the current reader's plant codes and display
   names: no ungranted plant name (the pre-selector check refuses before any provider call), and no figure.
   Plant refusals reach the client as typed `refusal` reasons.
