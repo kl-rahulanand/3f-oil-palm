@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T07:03:23+00:00
+saved: 2026-10-04T07:04:30+00:00
 ---
 
 # Every Ask answer works across plants
@@ -291,7 +291,7 @@ decision 0033.
       filter Actual > 500000, July 2026.
     - "Actual by GL code for July 2026": `governed-financial`, `gl_code`, no measure filter, July 2026.
     - "which statement lines are over budget for July 2026", as the DUB-only user: domain
-      `mis-statement`, dimension `leaf_key`, measure filter % > 100, July 2026.
+      `mis-statement`, dimension `leaf_key`, measure filter Actual > Budget, July 2026.
     The admin's corpus answers carry no plant filter before the change.
   - After it, the five success-measure questions are asked as the seeded admin, each in a fresh
     conversation, with their stated results. The corpus is probed again: each selects the same domain,
