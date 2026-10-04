@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-04T07:07:08+00:00
-read_hash: 3fc48130a54e42ee013d8e027012529b60cfdae8
-round: 8
-passed: yes
-doc_seen: 3fc48130a54e42ee013d8e027012529b60cfdae8
+read_at: 2026-10-04T07:25:38+00:00
+read_hash: 774e919e149314e5d92675a59dca9003b1038def
+round: 9
+passed: no
+doc_seen: 774e919e149314e5d92675a59dca9003b1038def
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 698aa9389cd6f54011438f4e3669b768e7b5256e
+notes_seen: f7135f4dffd92897197f9537aae9c86cf8f5f167
 ---
 # Cold read notes
 
@@ -168,3 +168,29 @@ Only a genuine trade-off goes to the human, as a question with options.
 ## Round 8
 
 No findings.
+
+## Round 9
+
+32. Unproven: C8: the allowed `month` and `gl_code × month` shapes have no row-key leaves.
+   C3 permits every GL-code combination, but C8 omits these two shapes. They are inert for names and drills, yet still need unique keys for row metadata such as budget state.
+   Disposition: cut C8's row-key leaves now include `month` alone and `gl_code × month`.
+
+33. Gap: normalized plant aliases can become ambiguous.
+   Matching ignores case and repeated whitespace, while the mapping master’s uniqueness guarantee is only for raw aliases. Require master-load validation to reject aliases that collide after normalization, before any resolver, model, or warehouse path uses them, and prove it with a leaf.
+   Disposition: cut loading the mapping master rejects aliases that collide after normalisation; C2 proves it.
+
+34. Gap: a reader with zero current plant grants has no defined outcome.
+   They cannot receive a singleton filter, and the picker’s required non-empty choice would offer an invalid empty “All plants” set. Define the typed refusal, user copy, audit/provider/read behavior, and a leaf proving it.
+   Disposition: cut a reader with no plant is refused as `no-plants-granted` with stated copy, audited, no provider call and no read; C2 proves it.
+
+35. Gap: not every typed plant-refusal reason has defined client copy and payload semantics.
+   The document gives copy for ungranted plants and revoked saved views, but not `plant-filter-invalid` or a revoked continuation. An unknown or malformed filter also cannot supply the promised display-name `plants` list. Pin the exact message and whether that list is empty or omitted for each reason, with client leaves.
+   Disposition: cut the Refusals table pins each reason's trigger, `plants` payload (`[]` for invalid and no-plants) and copy; client leaves render each.
+
+36. Contradiction: revoked saved-view and pin handling is not reconciled with the existing non-runnable-card path.
+   Those surfaces currently preflight access and disable reopening, while the spec requires every plant refusal—including saved and pinned re-runs—to be a typed Ask answer. Specify one path, including whether the card remains openable to receive the Ask refusal, and prove C9 through that path.
+   Disposition: cut saved views and pins use the existing non-runnable card path with a new `plants_revoked` status reason; a direct re-run gets the Ask refusal; C9 proves both.
+
+37. Gap: alias handling for a directly submitted plant filter is unspecified.
+   Filters must be canonical, but canonicalisation is required at every ingress and alias resolution is only explicitly defined for plant names in a question. State whether edited, saved, pinned, and continuation filters containing `dub`, `DUB-NUR`, or a display name are normalized or refused, then prove the chosen rule.
+   Disposition: cut a submitted filter value must already be canonical, compared exactly; aliases are refused as `plant-filter-invalid`, resolution applies only to question text; C2 proves it at each ingress.
