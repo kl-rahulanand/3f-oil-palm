@@ -104,6 +104,11 @@ test("budget states follow the four requested measure sets without adding or dro
     },
   ];
   for (const entry of cases) {
+    const selectedTotals = Object.fromEntries(
+      Object.entries({ actual: 1, budget: 2, percentage: 0.5 }).filter(([key]) =>
+        entry.measureIds.some((measureId) => measureId.endsWith(`.${key}`)),
+      ),
+    );
     const selectedColumns = columns.filter(
       ({ key }) => key === "gl_code" || entry.measureIds.some((measureId) => measureId.endsWith(`.${key}`)),
     );
@@ -117,6 +122,7 @@ test("budget states follow the four requested measure sets without adding or dro
         columns: selectedColumns,
         rows: [{ gl_code: "5001", actual: "1.00", budget: "2.00", percentage: "0.5" }],
       },
+      totals: selectedTotals,
       budgetOwnerPlant: "DUB",
       answerMonths: ["2026-07-01"],
       loadedBudgetMonths: ["2026-07-01"],
@@ -124,5 +130,41 @@ test("budget states follow the four requested measure sets without adding or dro
     assert.equal(Boolean(output.budgetStates), entry.state, entry.measureIds.join(","));
     assert.deepEqual(output.result.columns, selectedColumns);
     for (const key of entry.nulled) assert.equal(output.result.rows[0]?.[key], null);
+    const expectedTotals = Object.fromEntries(
+      Object.entries(selectedTotals).filter(([key]) => !entry.nulled.includes(key)),
+    );
+    assert.deepEqual(output.totals, Object.keys(expectedTotals).length > 0 ? expectedTotals : undefined);
   }
+});
+
+test("statement Budget and percentage totals are omitted for a plant without Budget", () => {
+  const output = applyBudgetStates({
+    selection: {
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual_net", "mis-statement.budget_net", "mis-statement.percentage"],
+      dimensionIds: ["leaf_key"],
+      filters: [{ dimensionId: "plant", op: "in", value: ["CHIR"] }],
+    },
+    result: {
+      columns: [
+        { key: "leaf_key", label: "Statement line", numeric: false },
+        { key: "actual_net", label: "Actual", numeric: true, format: "money" },
+        { key: "budget_net", label: "Budget", numeric: true, format: "money" },
+        { key: "percentage", label: "%", numeric: true, format: "percent" },
+      ],
+      rows: [{ leaf_key: "leaf", actual_net: "1.00", budget_net: "0.00", percentage: "over-budget" }],
+    },
+    totals: { actual_net: 1, budget_net: 0, percentage: 0 },
+    budgetOwnerPlant: "DUB",
+    answerMonths: ["2026-07-01"],
+    loadedBudgetMonths: ["2026-07-01"],
+  });
+
+  assert.deepEqual(output.result.rows[0], {
+    leaf_key: "leaf",
+    actual_net: "1.00",
+    budget_net: null,
+    percentage: null,
+  });
+  assert.deepEqual(output.totals, { actual_net: 1 });
 });

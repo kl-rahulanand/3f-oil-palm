@@ -4,6 +4,7 @@ import { comparePlantCodes } from "./plant-set";
 interface BudgetStateInput {
   selection: Selection;
   result: ResultTable;
+  totals?: Record<string, number>;
   budgetOwnerPlant: string;
   answerMonths: readonly string[];
   loadedBudgetMonths: readonly string[];
@@ -11,11 +12,12 @@ interface BudgetStateInput {
 
 export function applyBudgetStates(input: BudgetStateInput): {
   result: ResultTable;
+  totals?: Record<string, number>;
   budgetStates?: AskBudgetState[];
 } {
   const budgetKey = measureOutputKey(input.selection.measureIds, ["budget", "budget_net"]);
   const percentageKey = measureOutputKey(input.selection.measureIds, ["percentage"]);
-  if (!budgetKey && !percentageKey) return { result: input.result };
+  if (!budgetKey && !percentageKey) return { result: input.result, ...(input.totals ? { totals: input.totals } : {}) };
 
   const selectedPlants = selectedPlantCodes(input.selection);
   const loadedMonths = new Set(input.loadedBudgetMonths.map(monthStart));
@@ -24,15 +26,7 @@ export function applyBudgetStates(input: BudgetStateInput): {
   const budgetStates = input.result.rows.map((row): AskBudgetState => {
     const plantsInRow = (includesPlant ? [String(row.plant)] : selectedPlants).sort(comparePlantCodes);
     const coveredMonths = includesMonth ? [monthStart(String(row.month))] : input.answerMonths.map(monthStart);
-    const ownerIsLoaded = coveredMonths.length > 0 && coveredMonths.every((month) => loadedMonths.has(month));
-    const plantsWithBudget =
-      plantsInRow.includes(input.budgetOwnerPlant) && ownerIsLoaded ? [input.budgetOwnerPlant] : [];
-    const state =
-      plantsWithBudget.length === plantsInRow.length
-        ? "loaded"
-        : plantsWithBudget.length === 0
-          ? "not-loaded"
-          : "partial";
+    const { state, plantsWithBudget } = budgetState(plantsInRow, coveredMonths, input.budgetOwnerPlant, loadedMonths);
     return {
       key: askRowKey(row, input.selection.dimensionIds),
       state,
@@ -41,8 +35,14 @@ export function applyBudgetStates(input: BudgetStateInput): {
     };
   });
   const stateByKey = new Map(budgetStates.map((state) => [state.key, state]));
+  const totalState = budgetState(selectedPlants, input.answerMonths, input.budgetOwnerPlant, loadedMonths).state;
+  const totals =
+    totalState === "loaded" || !input.totals
+      ? input.totals
+      : Object.fromEntries(Object.entries(input.totals).filter(([key]) => key !== budgetKey && key !== percentageKey));
   return {
     budgetStates,
+    ...(totals && Object.keys(totals).length > 0 ? { totals } : {}),
     result: {
       columns: input.result.columns,
       rows: input.result.rows.map((row) => {
@@ -56,6 +56,19 @@ export function applyBudgetStates(input: BudgetStateInput): {
       }),
     },
   };
+}
+
+function budgetState(
+  plants: string[],
+  months: readonly string[],
+  budgetOwnerPlant: string,
+  loadedMonths: ReadonlySet<string>,
+): Pick<AskBudgetState, "state" | "plantsWithBudget"> {
+  const ownerIsLoaded = months.length > 0 && months.every((month) => loadedMonths.has(monthStart(month)));
+  const plantsWithBudget = plants.includes(budgetOwnerPlant) && ownerIsLoaded ? [budgetOwnerPlant] : [];
+  const state =
+    plantsWithBudget.length === plants.length ? "loaded" : plantsWithBudget.length === 0 ? "not-loaded" : "partial";
+  return { state, plantsWithBudget };
 }
 
 export function monthsInWindow(from: string, to: string): string[] {

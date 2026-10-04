@@ -27,7 +27,10 @@ import { StatementAttestationService } from "../mis/statement-attestation";
 import type { DrillPredicate, DrillSummary } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import { GlNameRepository } from "../warehouse/gl-name.repository";
-import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
+import {
+  StatementOutlineRepository,
+  StatementOutlineUnavailableError,
+} from "../warehouse/statement-outline.repository";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import { AskDrillContextService } from "./ask-drill-context";
 import { SemanticLayer } from "../semantic/semanticLayer";
@@ -337,6 +340,7 @@ test("a summed DUB and CHIR row stays partial when CHIR has no activity", async 
   };
   const fixture = makeFixture({
     selection,
+    totals: { actual: 12, budget: 10, percentage: 1.2 },
     result: {
       columns: [
         { key: "gl_code", label: "GL code", numeric: false },
@@ -360,6 +364,7 @@ test("a summed DUB and CHIR row stays partial when CHIR has no activity", async 
     { key: "5001", state: "partial", plantsInRow: ["CHIR", "DUB"], plantsWithBudget: ["DUB"] },
   ]);
   assert.deepEqual(response.result?.rows[0], { gl_code: "5001", actual: "12.00", budget: null, percentage: null });
+  assert.deepEqual(response.totals, { actual: 12 });
 });
 
 test("a budget comparison with no loaded plant returns the no-budget informational answer without a figure read", async () => {
@@ -2573,6 +2578,7 @@ function makeFixture(options: {
   llm?: LlmProvider;
   groundedSelection?: Selection;
   result?: ResultTable;
+  totals?: Record<string, number>;
   activeBatchIds?: ProvenanceBatch[];
   failEntryAudit?: boolean;
   labels?: Array<{ key: string; label: string; otherLabels: string[] }>;
@@ -2590,7 +2596,7 @@ function makeFixture(options: {
         : { kind: "selection", selection: options.selection! };
   const fakeLlm = new FakeLlm(llmResult);
   const provider = options.llm ?? fakeLlm;
-  const executor = new FakeExecutor(options.result ?? RESULT, options.activeBatchIds ?? []);
+  const executor = new FakeExecutor(options.result ?? RESULT, options.activeBatchIds ?? [], options.totals);
   const audit = new FakeAudit(options.failEntryAudit ?? false);
   const dimensions = new FakeDimensions();
   const help = new FakeHelp();
@@ -2688,7 +2694,7 @@ class FakeOutlines {
   constructor(private readonly loadedBudgetMonths: string[]) {}
 
   async findActiveBudgetOutline(period: string) {
-    if (!this.loadedBudgetMonths.includes(period)) throw new Error("Active budget outline is unavailable");
+    if (!this.loadedBudgetMonths.includes(period)) throw new StatementOutlineUnavailableError();
     return { batchId: BUDGET_BATCH_ID, nodes: [{ nodeKey: "leaf", leafKey: "leaf" }] };
   }
 
@@ -2726,6 +2732,7 @@ class FakeExecutor {
   constructor(
     private readonly result: ResultTable,
     private readonly activeBatchIds: ProvenanceBatch[],
+    private readonly totals?: Record<string, number>,
   ) {}
   async run(
     _user: unknown,
@@ -2747,7 +2754,7 @@ class FakeExecutor {
     await options.beforeExecute?.({ selection, sql: "SELECT governed", objectsTouched: [selection.domain] });
     return {
       result: this.result,
-      totals: undefined,
+      totals: this.totals,
       sql: "SELECT governed",
       activeBatchIds: this.activeBatchIds,
       budgetComponentLabels: [],

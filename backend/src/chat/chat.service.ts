@@ -43,7 +43,10 @@ import { StatementAttestationService } from "../mis/statement-attestation";
 import type { DrillPredicate } from "../warehouse/drill-transactions.interface";
 import { DrillTransactionsRepository } from "../warehouse/drill-transactions.repository";
 import { GlNameRepository } from "../warehouse/gl-name.repository";
-import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
+import {
+  StatementOutlineRepository,
+  StatementOutlineUnavailableError,
+} from "../warehouse/statement-outline.repository";
 import { classifyMeta, glossaryLookup, unsupportedFallbackMessage } from "../help/glossary";
 import { CHAT_MESSAGES } from "./chat.constants";
 import { domainRoutingAmbiguity, requiredTimeWindowClarify } from "./ambiguity";
@@ -707,13 +710,14 @@ export class ChatService {
       const budgetPresentation = applyBudgetStates({
         selection,
         result: execution.result,
+        totals: execution.totals,
         budgetOwnerPlant,
         answerMonths,
         loadedBudgetMonths,
       });
       result = budgetPresentation.result;
       budgetStates = budgetPresentation.budgetStates;
-      totals = execution.totals;
+      totals = budgetPresentation.totals;
       sql = execution.sql;
       activeBatchIds = execution.activeBatchIds;
       budgetComponentLabels = execution.budgetComponentLabels;
@@ -1686,7 +1690,7 @@ async function loadedBudgetPeriods(
       await outlines.findActiveBudgetOutline(period);
       loaded.push(period);
     } catch (error) {
-      if ((error as Error).message !== "Active budget outline is unavailable") throw error;
+      if (!(error instanceof StatementOutlineUnavailableError)) throw error;
     }
   }
   return loaded;
