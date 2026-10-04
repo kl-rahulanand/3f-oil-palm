@@ -2,7 +2,7 @@
 slug: ask-multi-plant
 title: Every Ask answer works across plants
 status: draft
-saved: 2026-10-04T07:04:30+00:00
+saved: 2026-10-04T07:05:39+00:00
 ---
 
 # Every Ask answer works across plants
@@ -41,9 +41,11 @@ decision 0033.
   exactly one plant filter. One with none, including an edited selection or a saved view or pin made before
   this change, gets the plant picker if the reader holds several plants, or a singleton filter of their one
   plant if they hold one.
-  Any other plant filter (`eq`, `neq`, a non-array value, an unknown code) is refused as invalid. This
-  validation and canonicalisation runs at every ingress: a new Ask question, a typed-choice continuation,
-  an edited selection, a saved view, a pin and their re-runs.
+  Any other plant filter (`eq`, `neq`, a non-array value, an empty array, an unknown code) is refused as
+  invalid. Every value is also checked against the reader's current grants: a known plant they do not
+  hold refuses the whole selection as `plant-not-granted`, naming it, with no read. A filter is never
+  intersected down to the granted part. This validation and canonicalisation runs at every ingress: a new
+  Ask question, a typed-choice continuation, an edited selection, a saved view, a pin and their re-runs.
 - The model chooses plants only from a vocabulary of the reader's granted plants: each plant's
   canonical code and display name. For a new question, the plants the server resolves from the question
   text are authoritative. They set the plant filter, replacing whatever the selector emitted, and a
@@ -74,6 +76,8 @@ decision 0033.
   `{ prompt, question, selection, options: [{ value: <canonical code>, label: <display name> }],
   allPlants: { label: "All plants", value: [<every granted canonical code, sorted>] } }`.
   - `selection` is the base selection without a plant filter.
+  - The client requires at least one plant. With none chosen, the picker stays open with the message
+    "Choose at least one plant", announced to assistive technology, and nothing is sent.
   - The client allows several options or "All plants", and submits the original `question` with
     `selection` plus the plant filter set to the chosen codes (or `allPlants.value`), through the same
     edited-selection path the period choice uses.
@@ -236,6 +240,10 @@ decision 0033.
   - A question whose words match no plant gets the picker rule, with no notice. Leaves prove "July",
     "Actual", "Budget", "GL" and "statement" never match a plant.
   - A short code is not matched inside an ordinary word.
+  - An edited selection whose plant filter holds a known plant the reader does not hold is refused whole,
+    naming it, with no read and an audit record; one holding an empty array is refused as invalid. Neither
+    is narrowed to a partial result.
+  - The picker with nothing chosen shows "Choose at least one plant" and sends no request.
   - The selection always carries one canonical, sorted, deduplicated `{ dimensionId: "plant", op: "in" }`
     filter, validated at every ingress.
   - The `plantChoice` type round-trips through the contract, the schemas and Swagger.
