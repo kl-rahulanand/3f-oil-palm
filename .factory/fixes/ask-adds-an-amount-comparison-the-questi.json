@@ -1,0 +1,14 @@
+{
+  "base": "b17585917d814485f383c371e998caea46c07f27",
+  "branch": "fix/ask-adds-an-amount-comparison-the-questi",
+  "done_when": "an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and the DUB and CHIR each-line statement lists all 81 lines in 4 of 4 live runs; leaves for kept and dropped forms",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-05T07:50:22+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Ask adds an amount comparison the question never stated, so a 'for each statement line' answer for DUB and CHIR drops its zero lines"
+}
