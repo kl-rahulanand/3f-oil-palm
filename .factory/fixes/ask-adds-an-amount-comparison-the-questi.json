@@ -3,11 +3,32 @@
   "branch": "fix/ask-adds-an-amount-comparison-the-questi",
   "done_when": "an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and the DUB and CHIR each-line statement lists all 81 lines in 4 of 4 live runs; leaves for kept and dropped forms",
   "kind": "fix",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "bf2485181b71dea4ee5c5a8eed829a3375bd7e2d000fc5624de85c1a0b553118",
+    "commit": "78c03ddeda7922ffdbf7ee3ac64c9dfc35593873",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The required Done-when is not met. `statesAmountComparison` treats any non-date digit as an amount, so identifier-only questions such as \u201cActual for GL 50001201\u201d or \u201cstatement line 9.01\u201d retain a selector-invented `Actual > 0` filter and can still drop zero lines. The selector prompt at `backend/src/llm/llm.constants.ts:56` was not updated with the required explicit prohibition against adding unstated comparisons. Finally, the added tests use fake selector/executor fixtures; there is no real-entry-point proof or recorded 4-of-4 live result showing all 81 DUB/CHIR lines. Required title: `Not done: an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and the DUB and CHIR each-line statement lists all 81 lines in 4 of 4 live runs; leaves for kept and dropped forms`.",
+        "file": "backend/src/chat/unstated-amount-filter.ts",
+        "line": 39,
+        "priority": "P1",
+        "title": "Not done: amount guard, selector prompt, 81-line live runs, and kept/dropped leaves"
+      }
+    ],
+    "status": "blocked",
+    "tree": "2c01fe230beb1af66ac3ad492580d93bac0c3e1ddbf8e6022d6c78db9ad876e2"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-05T07:50:22+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T08:09:36+00:00",
+      "step": "review"
     }
   ],
   "why": "Ask adds an amount comparison the question never stated, so a 'for each statement line' answer for DUB and CHIR drops its zero lines"
