@@ -3612,6 +3612,8 @@ for (const [question, value] of [
   ["show only non-zero lines", "0.00"],
   ["lines with a negative Actual", "0.00"],
   ["Keep the report threshold and cap it at 200", "200.00"],
+  ["GL codes that spent more than five lakh in July 2026", "500000.00"],
+  ["Actual over 2 crore in FY 2026-27", "20000000.00"],
 ] as const) {
   test(`an amount comparison is kept when the question states its amount: ${question}`, () => {
     const result = withoutUnstatedAmountFilters({ ...amountBase, measureFilters: [amountFilter(value)] }, question);
@@ -3632,7 +3634,10 @@ for (const question of [
   "Actual for the years 2025 and 2026",
 ]) {
   test(`an invented Actual > 0 is dropped for: ${question}`, () => {
-    assert.equal(statedAmounts(question).includes(0), false);
+    assert.deepEqual(
+      statedAmounts(question).filter((amount) => [0, 2025, 2026, 9.01, 50001201].includes(amount)),
+      [],
+    );
     const result = withoutUnstatedAmountFilters({ ...amountBase, measureFilters: [aboveZero] }, question);
     assert.deepEqual(result.selection.measureFilters, []);
   });
