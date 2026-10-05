@@ -4,11 +4,32 @@
   "done_when": "The board shows the story as finished, with its outcome.",
   "kind": "story-done",
   "outcome": "Ask answers across every plant: a plant picker with All plants, plant filters and breakdowns, combined statements that add up each plant's own, Budget-not-loaded dashes, and plant-safe names, transactions and saved views; the live check answered all five success questions on every run",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "95d6fb9c05d70ba548353506828fa7b2881ebed5be47399ec1b99ed23dd39518",
+    "commit": "b47c18f8ff4f1292b6c75fa8a5bdd5403c8cec50",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This changes only the internal story record. The board\u2019s source entry remains `\"status\": \"pending\"` at `plans/roadmap.json:313` and still lacks both `completed_at` and `outcome`; the completed neighboring entries contain all three fields. Consequently, the board continues to show ASK-MULTI-PLANT as unfinished and cannot display the recorded outcome. Update the roadmap entry as part of this completion change.",
+        "file": ".factory/stories/ASK-MULTI-PLANT/story.json",
+        "line": 30,
+        "priority": "P1",
+        "title": "Not done: The board shows the story as finished, with its outcome."
+      }
+    ],
+    "status": "blocked",
+    "tree": "d409b6698f6c6bb98934a12349b1b7762a5f53765f0ad5899f1221ef78e88247"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-05T09:55:47+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T10:04:20+00:00",
+      "step": "review"
     }
   ],
   "touches": 0,
