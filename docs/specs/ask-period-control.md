@@ -2,7 +2,7 @@
 slug: ask-period-control
 title: Recoverable periods in Ask
 status: draft
-saved: 2026-10-05T07:50:12+00:00
+saved: 2026-10-05T07:58:11+00:00
 ---
 
 # Recoverable periods in Ask
@@ -133,7 +133,10 @@ never produce a refusal.
    longer checked here and never block a statement.
 2. No mapping configured for the resolved triple. `NotSupported`, its own message. The resolver
    already checks mapping before period availability and that order is kept.
-3. No periods loaded at all. `NotSupported`, its own message, distinct from a missing period.
+3. No periods loaded at all. `NotSupported`, its own message, distinct from a missing period. For a
+   statement, the offered periods are the loaded statement periods, the same whichever plants were
+   chosen; "no periods loaded" means none for any plant. A chosen plant with no actual rows in an
+   offered period still answers, its lines at ₹0, as `ask-multi-plant.md` specifies.
 4. Period missing, not among the offered periods, or spanning more than one of them.
    `ClarificationNeeded` with the period choice above.
 
@@ -187,7 +190,8 @@ read, in `provenance.activeBatchIds`.
    missing period; a same-day period that is not offered; a partial-month range; a multi-month
    range; an empty period list; no granted plant; no
    mapping; a successful statement answer; a successful governed answer with a window; a successful
-   governed answer with no window; a failed replacement; and a replacement refused for revoked
+   governed answer with no window; a statement for a chosen plant with no actual rows in an offered
+  period while another plant has some (answers with its lines at ₹0); a failed replacement; and a replacement refused for revoked
   access, proven in the Ask panel to leave the previous answer readable, clear the pending state,
   show the refusal against that answer and keep the question as typed. Any claim made against the live PoC
    additionally names its sample count and no live claim rests on a single run.
@@ -225,8 +229,9 @@ read, in `provenance.activeBatchIds`.
 ## Out of scope
 
 - Changing which periods the warehouse offers, or the FY-YTD definition.
-- Letting a user choose among several granted plants, departments or functions - a new authorized
-  selector capability that no current data exercises.
+- Letting a user choose among several departments or functions - a new authorized selector
+  capability that no current data exercises. Choosing among granted plants is governed by
+  `ask-multi-plant.md`.
 - Rendering the measure and dimension chips, or making them editable.
 - Showing batch ids in the Ask panel's "How this was calculated" disclosure. They travel in the
   response and criterion 8 checks them there; the disclosure currently renders only readback,
