@@ -5,28 +5,22 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "5e79a6e37da953b90cbdd4fa5f4ccbc6dac75c427a4e44dceed1784f6b3c6a15",
-    "commit": "58a94c62e752b961491efece7f648dbe5bc549f0",
-    "dismissals": [
-      {
-        "because": "backend/src/chat/unstated-amount-filter.ts:10 Equality is not a measure-filter operator: the contract and the selector schema allow only gt, gte, lt and lte (bedrock.provider.ts measureFilterSchema), so 'Actual is 500' or 'equals 500' cannot produce a value filter for this guard to drop. The selector prompt line was built and measured live twice on 2026-10-05 and left out on evidence: both wordings shifted 'Show the MIS statement for July 2026 for DUB and CHIR' to a single total (3 of 4 and 1 of 4 runs; 4 of 4 with lines without it); commit 011ec202 records this. The live proof was run by the coordinator through the running API, real warehouse and live Bedrock on this branch (port 4001): the DUB and CHIR each-line statement listed all 81 lines 4 of 4 (master 22 lines 3 of 4), four other line questions 4 of 4 unchanged, the ASK-MULTI-PLANT success and probe questions unchanged on 2 runs each; recorded in the Functional check paragraphs of 78c03dde and 011ec202. The repo has no browser or running-API test harness; kept and dropped forms each have named leaves in chat.service.test.ts.",
-        "finding": 1,
-        "from_base": false
-      }
-    ],
+    "changed": "639f14e3bebfe671935370ef246dc72275a6e351c2227915292204099a6f15cb",
+    "commit": "5fdb99a961239d1cb05e9975019c84e3090fbae1",
+    "dismissals": [],
     "findings": [
       {
-        "body": "New evidence not covered by the prior dismissal: `STATED_NUMBER` treats every numeral as an amount without distinguishing dates or identifiers. For the existing question \u201cWhat was the Actual for each MIS statement line in July 2026 for DUB and CHIR?\u201d, `statedAmounts` therefore includes `2026`; if the selector adds `Actual > 2026`, the guard keeps that invented comparison. The same occurs with statement-line identifiers such as `9.01`. Conversely, a stated amount written naturally as \u201cmore than five lakh\u201d produces no parsed amount and its legitimate `500000` filter is dropped. The new tests conceal the first case by checking only that these questions do not contain zero. Thus the branch still fails the required kept/dropped invariant despite the accepted live-run evidence.",
+        "body": "The new identifier exclusion only removes counts when the noun precedes the numeral (`plants 3`), while natural input commonly uses the opposite order. The branch's own case \u201cActual for the 3 plants in July 2026\u201d therefore leaves `3` in `statedAmounts`; if the selector emits `Actual > 3`, the guard keeps that invented amount filter. The test masks this exact failure by omitting `3` from the amounts it asserts absent and then exercising only the unrelated `> 0` filter. This is new evidence not covered by the prior dismissal, and it breaks both the kept/dropped invariant and its required regression proof.",
         "file": "backend/src/chat/unstated-amount-filter.ts",
-        "line": 16,
+        "line": 27,
         "priority": "P1",
-        "title": "Not done: amount guard, selector prompt, 81-line live runs, and kept/dropped leaves"
+        "title": "Not done: an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and"
       }
     ],
-    "status": "clean",
-    "tree": "a768c9edac845b56ae675b6976a01dab7fc3ef968325228aa77f4436067b9f00"
+    "status": "blocked",
+    "tree": "cedcd0e6dd325da8b7bc9360ffb0827e4039d261b338ed4627427e733bfd9f59"
   },
-  "status": "waiting for checks",
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-05T07:50:22+00:00",
@@ -42,6 +36,10 @@
     },
     {
       "at": "2026-10-05T08:45:29+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T09:02:45+00:00",
       "step": "review"
     }
   ],
