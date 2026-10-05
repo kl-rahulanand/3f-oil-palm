@@ -1787,7 +1787,7 @@ button {
 }
 .ask-report-reason-label {
   display: block;
-  color: var(--kl-caption-ui);
+  color: var(--kl-slate);
   font-family: var(--font-mono);
   font-size: 9.5px;
   letter-spacing: 0.06em;
