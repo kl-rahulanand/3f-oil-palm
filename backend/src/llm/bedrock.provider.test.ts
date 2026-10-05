@@ -170,6 +170,190 @@ test("recorded measure filters are parsed intact and malformed or cross-domain o
   });
 });
 
+test("a statement month filter becomes the selection time window when Bedrock omits one", async () => {
+  const fixture = providerWith([
+    toolResponse("emit_selection", {
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual_net"],
+      dimensionIds: ["leaf_key"],
+      filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+    }),
+  ]);
+
+  const result = await fixture.provider.select(statementSelectionInput());
+
+  assert.equal(result.kind, "selection");
+  if (result.kind === "selection") {
+    assert.deepEqual(result.selection.filters, []);
+    assert.deepEqual(result.selection.timeWindow, {
+      grain: "day",
+      from: "2026-07-01",
+      to: "2026-07-31",
+    });
+  }
+});
+
+test("a statement month filter matching either supported single-month window form is dropped", async () => {
+  const windows = [
+    { grain: "month", from: "2026-07-01", to: "2026-07-01" },
+    { grain: "day", from: "2026-07-01", to: "2026-07-31" },
+  ];
+
+  for (const timeWindow of windows) {
+    const fixture = providerWith([
+      toolResponse("emit_selection", {
+        domain: "mis-statement",
+        measureIds: ["mis-statement.actual_net"],
+        dimensionIds: ["leaf_key"],
+        filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+        timeWindow,
+      }),
+    ]);
+
+    const result = await fixture.provider.select(statementSelectionInput());
+
+    assert.equal(result.kind, "selection", timeWindow.grain);
+    if (result.kind === "selection") {
+      assert.deepEqual(result.selection.filters, [], timeWindow.grain);
+      assert.deepEqual(result.selection.timeWindow, timeWindow, timeWindow.grain);
+    }
+  }
+});
+
+for (const [shape, timeWindow] of [
+  ["an open-ended", { grain: "month", from: "2026-07-01" }],
+  ["an end-only", { grain: "month", to: "2026-07-01" }],
+  ["a last-one-month", { grain: "month", last: 1 }],
+] as const) {
+  test(`a statement month filter replaces ${shape} selection window`, async () => {
+    const fixture = providerWith([
+      toolResponse("emit_selection", {
+        domain: "mis-statement",
+        measureIds: ["mis-statement.actual_net"],
+        dimensionIds: ["leaf_key"],
+        filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+        timeWindow,
+      }),
+    ]);
+
+    const result = await fixture.provider.select(statementSelectionInput());
+
+    assert.equal(result.kind, "selection");
+    if (result.kind === "selection") {
+      assert.deepEqual(result.selection.filters, []);
+      assert.deepEqual(result.selection.timeWindow, { grain: "day", from: "2026-07-01", to: "2026-07-31" });
+    }
+  });
+}
+
+test("a statement month filter for a different month than the selection window is rejected", async () => {
+  const fixture = providerWith([
+    toolResponse("emit_selection", {
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual_net"],
+      dimensionIds: ["leaf_key"],
+      filters: [{ dimensionId: "month", op: "eq", value: "2026-06-01" }],
+      timeWindow: { grain: "month", from: "2026-07-01", to: "2026-07-31" },
+    }),
+  ]);
+
+  assert.deepEqual(await fixture.provider.select(statementSelectionInput()), {
+    kind: "unsupported",
+    reason: LLM_MESSAGES.selectionFilterDimensionNotAllowed("month"),
+  });
+});
+
+test("a statement month filter conflicting with an explicit window that also carries last is rejected", async () => {
+  const fixture = providerWith([
+    toolResponse("emit_selection", {
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual_net"],
+      dimensionIds: ["leaf_key"],
+      filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+      timeWindow: { grain: "month", last: 1, from: "2026-06-01", to: "2026-06-30" },
+    }),
+  ]);
+
+  assert.deepEqual(await fixture.provider.select(statementSelectionInput()), {
+    kind: "unsupported",
+    reason: LLM_MESSAGES.selectionFilterDimensionNotAllowed("month"),
+  });
+});
+
+test("a statement month filter using in remains unsupported", async () => {
+  const fixture = providerWith([
+    toolResponse("emit_selection", {
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual_net"],
+      dimensionIds: ["leaf_key"],
+      filters: [{ dimensionId: "month", op: "in", value: ["2026-07-01"] }],
+    }),
+  ]);
+
+  assert.deepEqual(await fixture.provider.select(statementSelectionInput()), {
+    kind: "unsupported",
+    reason: LLM_MESSAGES.selectionFilterDimensionNotAllowed("month"),
+  });
+});
+
+test("statement month filters outside the exact equality rule remain unsupported", async () => {
+  const cases = [
+    {
+      name: "the value is not the first day",
+      filter: { dimensionId: "month", op: "eq", value: "2026-07-02" },
+    },
+    {
+      name: "the equality value is an array",
+      filter: { dimensionId: "month", op: "eq", value: ["2026-07-01"] },
+    },
+    {
+      name: "the window spans another month",
+      filter: { dimensionId: "month", op: "eq", value: "2026-07-01" },
+      timeWindow: { grain: "month", from: "2026-07-01", to: "2026-08-31" },
+    },
+  ];
+
+  for (const { name, filter, timeWindow } of cases) {
+    const fixture = providerWith([
+      toolResponse("emit_selection", {
+        domain: "mis-statement",
+        measureIds: ["mis-statement.actual_net"],
+        dimensionIds: ["leaf_key"],
+        filters: [filter],
+        ...(timeWindow ? { timeWindow } : {}),
+      }),
+    ]);
+
+    assert.deepEqual(
+      await fixture.provider.select(statementSelectionInput()),
+      {
+        kind: "unsupported",
+        reason: LLM_MESSAGES.selectionFilterDimensionNotAllowed("month"),
+      },
+      name,
+    );
+  }
+});
+
+test("a governed financial month filter remains a dimension filter", async () => {
+  const fixture = providerWith([
+    toolResponse("emit_selection", {
+      domain: "governed-financial",
+      measureIds: ["governed-financial.actual"],
+      dimensionIds: [],
+      filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+    }),
+  ]);
+
+  const result = await fixture.provider.select(selectionInput());
+
+  assert.equal(result.kind, "selection");
+  if (result.kind === "selection") {
+    assert.deepEqual(result.selection.filters, [{ dimensionId: "month", op: "eq", value: "2026-07-01" }]);
+    assert.equal(result.selection.timeWindow, undefined);
+  }
+});
+
 test("the selector converse request carries an explicit max tokens cap", async () => {
   const fixture = providerWith([toolResponse("mark_unsupported", { reason: "Outside the governed vocabulary" })]);
 
@@ -306,6 +490,16 @@ function selectionInput() {
       "governed-financial": ["governed-financial.actual", "governed-financial.budget"],
       "mis-statement": ["mis-statement.actual_net"],
     },
+  };
+}
+
+function statementSelectionInput() {
+  const domain = new SemanticLayer().domain("mis-statement");
+  assert.ok(domain);
+  return {
+    question: "What was the Actual for each MIS statement line in July 2026?",
+    allowedDomains: [{ ...domain, measures: domain.measures.filter(({ id }) => id === "mis-statement.actual_net") }],
+    comparableMeasureIdsByDomain: { "mis-statement": ["mis-statement.actual_net"] },
   };
 }
 

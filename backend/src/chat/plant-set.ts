@@ -30,6 +30,30 @@ export function matchQuestionPlants(question: string): PlantOption[] {
     .sort((left, right) => comparePlantCodes(left.value, right.value));
 }
 
+/**
+ * The plants a question chooses: the plants it names, less any named after a negating word ("except DUB",
+ * "other than H.O"). When it names plants only to leave them out, the reader's other granted plants are
+ * chosen. Undefined when the question names no plant; empty when nothing is left to answer for.
+ */
+export function questionPlantSet(question: string, grantedPlants: readonly string[]): string[] | undefined {
+  const mentions = plantMentions(question);
+  if (mentions.length === 0) return undefined;
+
+  const included = new Set<string>();
+  const excluded = new Set<string>();
+  let previous: { end: number; excluded: boolean } | undefined;
+  for (const mention of mentions) {
+    const before = question.slice(previous?.end ?? 0, mention.start);
+    const isExcluded =
+      NEGATED_TAIL.test(before) || (previous !== undefined && previous.excluded && LIST_JOIN.test(before));
+    (isExcluded ? excluded : included).add(mention.plant);
+    previous = { end: mention.end, excluded: isExcluded };
+  }
+
+  const chosen = included.size > 0 ? [...included] : [...grantedPlants];
+  return [...new Set(chosen.filter((plant) => !excluded.has(plant)))].sort(comparePlantCodes);
+}
+
 export function validatePlantFilter({
   filters,
   grantedPlants,
@@ -75,6 +99,37 @@ export function plantChoiceOptions(grantedPlants: readonly string[]): Pick<AskPl
   };
 }
 
+const NEGATED_TAIL =
+  /(?<![\p{L}\p{N}])(?:except(?:\s+for)?|excluding|exclude|other\s+than|but\s+not|apart\s+from|without|not)(?:\s|,|the(?![\p{L}\p{N}])|plants?(?![\p{L}\p{N}]))*$/iu;
+const LIST_JOIN = /^(?:\s|,|&|\/|(?:and|or|nor|the|plants?)(?![\p{L}\p{N}]))*$/iu;
+
+interface PlantMention {
+  plant: string;
+  start: number;
+  end: number;
+}
+
+function plantMentions(question: string): PlantMention[] {
+  const mentions: PlantMention[] = [];
+  for (const selection of MAPPING_MASTER.selections) {
+    const codeAliases = new Set([selection.plant_canonical, ...selection.plant_aliases.sap]);
+    for (const alias of selectionAliases(selection)) {
+      const caseSensitive = codeAliases.has(alias) && alias.length < 3;
+      for (const match of question.matchAll(wholeAliasPattern(alias, caseSensitive, "g"))) {
+        mentions.push({ plant: selection.plant_canonical, start: match.index, end: match.index + match[0].length });
+      }
+    }
+  }
+
+  mentions.sort((left, right) => left.start - right.start || right.end - left.end);
+  const outermost: PlantMention[] = [];
+  for (const mention of mentions) {
+    if (outermost.length > 0 && mention.start < outermost[outermost.length - 1].end) continue;
+    outermost.push(mention);
+  }
+  return outermost;
+}
+
 function selectionMatchesQuestion(question: string, selection: MappingSelection): boolean {
   const codeAliases = new Set([selection.plant_canonical, ...selection.plant_aliases.sap]);
   return selectionAliases(selection).some((alias) => {
@@ -83,13 +138,13 @@ function selectionMatchesQuestion(question: string, selection: MappingSelection)
   });
 }
 
-function wholeAliasPattern(alias: string, caseSensitive: boolean): RegExp {
+function wholeAliasPattern(alias: string, caseSensitive: boolean, flags = ""): RegExp {
   const pattern = alias
     .trim()
     .split(/\s+/)
     .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("\\s+");
-  return new RegExp(`(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`, caseSensitive ? "u" : "iu");
+  return new RegExp(`(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`, `${flags}${caseSensitive ? "u" : "iu"}`);
 }
 
 function toPlantOption(selection: MappingSelection): PlantOption {
