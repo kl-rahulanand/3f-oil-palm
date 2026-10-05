@@ -2,7 +2,7 @@
 slug: ask-period-control
 title: Recoverable periods in Ask
 status: draft
-saved: 2026-10-05T07:29:43+00:00
+saved: 2026-10-05T07:36:58+00:00
 ---
 
 # Recoverable periods in Ask
@@ -92,7 +92,9 @@ offered periods come from the active actual batches restricted to the chosen pla
 do not narrow the list. They are each month with at least one actual row for those plants, newest
 first, plus one "financial year to date" option running from 1 April of the financial year that
 contains the newest such month (April to March, so January 2027 belongs to the year starting
-1 April 2026) through the last day of that month. Every option is a complete window and applies to
+1 April 2026) through the last day of that month. When that window is the same as a month option
+(the newest month is April), the year-to-date option is left out, so no two options share a window
+and the current option is always unique. Every option is a complete window and applies to
 both sides of the comparison. A question that names a period answers directly.
 
 When the selection filters Actual against Budget (the second trigger form), an option is offered only
@@ -117,10 +119,10 @@ within the asker's access scope and any filters the question applied" wording be
 `periodControl.coverage`), rendered once there and not repeated lower down. The over- and under-budget
 readout no longer repeats the period, since the line above now carries it.
 
-**Scope problems explain rather than offer.** `statementRequest` cannot distinguish "no department"
-from "several departments", and department and function are provisioned scope attributes, not
-selectable semantic dimensions. Both cases return a plain message naming the attribute and saying
-an administrator must set it.
+**Scope problems explain rather than offer.** A reader who holds no plant gets the plain refusal
+`ask-multi-plant.md` specifies, with no period options. Amended 2026-10-05: department and function
+were once checked here, but a statement now resolves its mapping from the chosen plant set, so they
+never produce a refusal.
 
 **Failure precedence is fixed and total**, because four different causes currently collapse into one
 `undefined`. In order, first match wins:
@@ -196,8 +198,9 @@ read, in `provenance.activeBatchIds`.
     call; chosen plants with no month of actuals get the `NotSupported` message above; and a
     comparison filter offers only windows a chosen plant has budget for, with leaves for a month that
     has actuals but no budget batch (not offered for a comparison filter, offered for side by side),
-    a year to date containing a month with no budget batch (not offered for a comparison filter), and
-    no comparable window (the no-budget answer).
+    a year to date containing a month with no budget batch (not offered for a comparison filter),
+    no comparable window (the no-budget answer), and April as the newest month (no year-to-date
+    option).
 11. The same question naming a period answers directly; a question showing only Actual or only
     Budget with no period still answers over all loaded data; and over-budget for July 2026 on DUB
     after choosing July is unchanged: 21 codes, with 50001201 at 83,98,339.
