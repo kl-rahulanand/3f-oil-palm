@@ -42,6 +42,7 @@ import { ChatModule } from "./chat.module";
 import { askSchema } from "./chat.schemas";
 import { ChatService, lastMonthBudgetPin, trimPriorTurnsToTokenBudget } from "./chat.service";
 import { SelectionExecutor } from "./selectionExecutor";
+import { statesAmountComparison, withoutUnstatedAmountFilters } from "./unstated-amount-filter";
 
 test("a several-plant reader chooses plants before any figure or period read", async () => {
   const fixture = makeFixture({ selection: { ...statementSelection, filters: [] } });
@@ -716,6 +717,49 @@ test("edited saved pinned and continuation selections without a plant filter use
       values: ["DUB", "Agri - Nursery - DUB"],
     },
   );
+});
+
+test("an Ask question that states no amount runs without the selector's added amount comparison", async () => {
+  const fixture = makeFixture({
+    selection: {
+      ...financialSelection,
+      measureFilters: [
+        { measureId: "governed-financial.actual", op: "gt", compareTo: { kind: "value", value: "0.00" } },
+      ],
+    },
+  });
+
+  const response = await fixture.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR"]),
+    "session",
+    "What was the Actual for each GL code in July 2026 for DUB and CHIR?",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(fixture.executor.selections[0]?.measureFilters ?? [], []);
+  assert.deepEqual(fixture.logs.at(-1)?.context, {
+    droppedMeasureFilters: [
+      { measureId: "governed-financial.actual", op: "gt", compareTo: { kind: "value", value: "0.00" } },
+    ],
+  });
+});
+
+test("an Ask question that states an amount keeps its amount comparison", async () => {
+  const filter = {
+    measureId: "governed-financial.actual",
+    op: "gt" as const,
+    compareTo: { kind: "value" as const, value: "500000.00" },
+  };
+  const fixture = makeFixture({ selection: { ...financialSelection, measureFilters: [filter] } });
+
+  const response = await fixture.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "which GL codes spent more than 5 lakh in July 2026",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.Success);
+  assert.deepEqual(fixture.executor.selections[0]?.measureFilters, [filter]);
 });
 
 test("named plants override the selector while no named plant discards it and one grant runs directly", async () => {
@@ -2848,7 +2892,7 @@ test("a measure-filtered answer records comparison chips readback and applied fi
   const user = userFor("governed-financial");
   user.permissions.measureIds.push("governed-financial.budget");
 
-  const response = await fixture.service.ask(user, "session", "Show the selected comparisons");
+  const response = await fixture.service.ask(user, "session", "Show codes over budget with Actual of at most 5 lakh");
 
   assert.deepEqual(
     response.chips?.filter(({ kind }) => kind === "filter").map(({ label }) => label),
@@ -3506,4 +3550,79 @@ function userForPlants(
     ...plants.map((value) => ({ attribute: "plant", value })),
   ];
   return user;
+}
+
+const aboveZero: NonNullable<Selection["measureFilters"]>[number] = {
+  measureId: "mis-statement.actual_net",
+  op: "gt",
+  compareTo: { kind: "value", value: "0.00" },
+};
+const overBudget: NonNullable<Selection["measureFilters"]>[number] = {
+  measureId: "mis-statement.actual_net",
+  op: "gt",
+  compareTo: { kind: "measure", measureId: "mis-statement.budget_net" },
+};
+const amountBase: Selection = {
+  domain: "mis-statement",
+  measureIds: ["mis-statement.actual_net", "mis-statement.budget_net"],
+  dimensionIds: ["leaf_key"],
+  filters: [],
+  timeWindow: { grain: "month", from: "2026-07-01", to: "2026-07-31" },
+};
+
+test("an amount comparison the question never states is dropped", () => {
+  const result = withoutUnstatedAmountFilters(
+    { ...amountBase, measureFilters: [aboveZero] },
+    "What was the Actual for each MIS statement line in July 2026 for DUB and CHIR?",
+  );
+  assert.deepEqual(result.selection.measureFilters, []);
+  assert.deepEqual(result.dropped, [aboveZero]);
+});
+
+test("a measure-to-measure comparison is kept when the question states no amount", () => {
+  const result = withoutUnstatedAmountFilters(
+    { ...amountBase, measureFilters: [overBudget, aboveZero] },
+    "which statement lines are over budget for July 2026",
+  );
+  assert.deepEqual(result.selection.measureFilters, [overBudget]);
+  assert.deepEqual(result.dropped, [aboveZero]);
+});
+
+test("an amount comparison carried from the previous turn is kept", () => {
+  const prior = { ...amountBase, measureFilters: [aboveZero] };
+  const result = withoutUnstatedAmountFilters({ ...amountBase, measureFilters: [aboveZero] }, "now for CHIR", prior);
+  assert.deepEqual(result.selection.measureFilters, [aboveZero]);
+  assert.deepEqual(result.dropped, []);
+});
+
+for (const question of [
+  "which GL codes spent more than 5 lakh in July 2026",
+  "GL codes with Actual over ₹50,000",
+  "lines where Actual is above zero",
+  "codes with Actual of at least 1000",
+  "codes with Actual less than 0",
+  "codes with Actual > 100000",
+  "codes with Actual between 1 lakh and 5 lakh",
+  "show only non-zero lines",
+  "lines with a negative Actual",
+  "Keep the report threshold and cap it at 200",
+]) {
+  test(`an amount comparison is kept when the question states it: ${question}`, () => {
+    assert.equal(statesAmountComparison(question), true);
+    const result = withoutUnstatedAmountFilters({ ...amountBase, measureFilters: [aboveZero] }, question);
+    assert.deepEqual(result.selection.measureFilters, [aboveZero]);
+  });
+}
+
+for (const question of [
+  "What was the Actual for each MIS statement line in July 2026 for DUB and CHIR?",
+  "Actual by GL code for July 2026",
+  "Show the MIS statement for H.O for June 2026",
+  "Which GL codes had Actual over Budget in July 2026?",
+  "Actual for DUB from 2026-07-01 to 2026-07-31",
+  "Actual for FY2026 by GL code",
+]) {
+  test(`no amount comparison is stated by: ${question}`, () => {
+    assert.equal(statesAmountComparison(question), false);
+  });
 }
