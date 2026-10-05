@@ -16,7 +16,10 @@ const STATED_NUMBER =
 const STATED_ZERO = /(?<![\p{L}\p{N}])(?:zero|nil|positive|negative|non-?\s?zero)(?![\p{L}\p{N}])/iu;
 const MONTH_NAMES =
   "january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec";
-/** Dates, years and identifiers whose numbers are never amounts: ISO dates, a year after a month or FY, a GL code or line. */
+/**
+ * Dates, years, identifiers and counts whose numbers are never amounts: ISO dates, a year after a month or FY, a GL
+ * code or line, and a count of plants, lines, codes or months ("the 3 plants", "last 3 months").
+ */
 const NOT_AMOUNTS = [
   /\d{4}-\d{2}(?:-\d{2})?/gu,
   new RegExp(
@@ -27,6 +30,7 @@ const NOT_AMOUNTS = [
     String.raw`(?<![\p{L}\p{N}])(?:gl(?:\s+codes?)?|codes?|accounts?|lines?|statement\s+lines?|s\.?\s?no\.?|plants?|leaf)\s*#?\s*\d[\d.]*`,
     "giu",
   ),
+  /(?<![\p{L}\p{N}.])\d[\d.]*\s+(?:gl\s+codes?|codes?|accounts?|lines?|statement\s+lines?|plants?|months?|quarters?|years?|days?|weeks?|rows?|items?)(?![\p{L}\p{N}])/giu,
 ];
 const NUMBER_WORDS: Record<string, number> = {
   one: 1,

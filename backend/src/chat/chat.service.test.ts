@@ -3632,10 +3632,11 @@ for (const question of [
   "What is the Actual on statement line 9.01 for July 2026?",
   "Actual for the 3 plants in July 2026",
   "Actual for the years 2025 and 2026",
+  "Top 3 GL codes by Actual for the last 3 months",
 ]) {
   test(`an invented Actual > 0 is dropped for: ${question}`, () => {
     assert.deepEqual(
-      statedAmounts(question).filter((amount) => [0, 2025, 2026, 9.01, 50001201].includes(amount)),
+      statedAmounts(question).filter((amount) => [0, 3, 2025, 2026, 9.01, 50001201].includes(amount)),
       [],
     );
     const result = withoutUnstatedAmountFilters({ ...amountBase, measureFilters: [aboveZero] }, question);
