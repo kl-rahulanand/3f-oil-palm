@@ -761,6 +761,30 @@ test("named plants override the selector while no named plant discards it and on
   assert.deepEqual(singleton.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
 });
 
+for (const [wording, question, plants] of [
+  ["except", "Actual by plant for July 2026 except DUB", ["CHIR", "H.O", "VJM"]],
+  ["excluding", "Actual by GL code for July 2026 for DUB excluding CHIR", ["DUB"]],
+  ["other than", "Actual by GL code for July 2026 for all plants other than H.O", ["CHIR", "DUB", "VJM"]],
+  ["but not", "Actual by GL code for July 2026 for DUB and VJM but not VJM", ["DUB"]],
+  ["without", "Actual by plant for July 2026 without CHIR", ["DUB", "H.O", "VJM"]],
+] as const) {
+  test(`an Ask question with ${wording} answers without the plant it names`, async () => {
+    const fixture = makeFixture({
+      selection: { ...financialSelection, filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }] },
+    });
+
+    const response = await fixture.service.ask(
+      userForPlants("governed-financial", ["DUB", "CHIR", "H.O", "VJM"]),
+      "session",
+      question,
+    );
+
+    assert.equal(response.responseClass, ResponseClass.Success);
+    assert.equal(response.plantChoice, undefined);
+    assert.deepEqual(fixture.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: plants }]);
+  });
+}
+
 test("a plant named after except answers for the reader's other plants and an empty set is refused before the provider", async () => {
   const except = makeFixture({
     selection: { ...financialSelection, filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }] },
