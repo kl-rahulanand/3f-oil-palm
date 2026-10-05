@@ -1,0 +1,16 @@
+{
+  "base": "ea2cacfec50f05fe50dc18cdc0a6d75a536ad870",
+  "branch": "fix/ask-multi-plant-done",
+  "done_when": "The board shows the story as finished, with its outcome.",
+  "kind": "story-done",
+  "outcome": "Ask answers across every plant: a plant picker with All plants, plant filters and breakdowns, combined statements that add up each plant's own, Budget-not-loaded dashes, and plant-safe names, transactions and saved views; the live check answered all five success questions on every run",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-05T09:55:47+00:00",
+      "step": "start"
+    }
+  ],
+  "touches": 0,
+  "why": "Record that Every Ask answer works across plants is finished, and what it achieved."
+}
