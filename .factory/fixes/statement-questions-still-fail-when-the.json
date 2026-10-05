@@ -5,20 +5,20 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "c97388ffb90148b8dfb26eb8bad23a5343fa76c0c5620b24e830ba00f0f9c64d",
-    "commit": "465d88a55b52a651767481f4dc35b0452a24c59c",
+    "changed": "6a4ae715606ada393b64e91455cc4b741a06b30e1b0049a59951352e8411ba5a",
+    "commit": "53b92fe0944f1bb75978cfa86db3805228851b51",
     "dismissals": [],
     "findings": [
       {
-        "body": "`isPartialWindow` treats any window containing `last` as partial even when both `from` and `to` are also present. The tool schema (lines 173\u2013182) and `parseTimeWindow` (lines 608\u2013624) allow all three fields together, so a model response such as `last: 1, from: \"2026-06-01\", to: \"2026-06-30\"` alongside a July month filter is silently rewritten to July instead of rejecting the conflicting explicit from-to period. The `last` condition is unnecessary for genuine relative windows because those already lack `from` or `to`; remove it or reject mixed relative/explicit windows. The existing conflict test does not cover this accepted shape.",
-        "file": "backend/src/llm/bedrock.provider.ts",
-        "line": 552,
+        "body": "The three new acceptance cases call `ChatService.ask` directly through `makeFixture`, which supplies fake dimensions, repositories, executor, and a synthetic Bedrock response. The explicit-conflict case is likewise covered only at provider level. There is no test through the running API with a real database and browser flow, so the required user-facing proof is missing; regressions in request transport, real plant lookup, or frontend rendering could still pass every added test.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 1814,
         "priority": "P1",
-        "title": "Not done: on a domain without a month field, a single month filter becomes the answer's period whatever partial period the model also sent;/"
+        "title": "Not done: partial statement windows reach the plant picker through the running app"
       }
     ],
     "status": "blocked",
-    "tree": "b10badd1d3ed99e23c62d54f4bfdd85ff3e791d545354360a0b9726822a15511"
+    "tree": "788cc502fa8e88d770983df053dd4e5bc4cde582f0d15b1e0fa307d0a5737c73"
   },
   "status": "fixing",
   "steps": [
@@ -32,6 +32,10 @@
     },
     {
       "at": "2026-10-05T06:40:17+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T06:58:50+00:00",
       "step": "review"
     }
   ],
