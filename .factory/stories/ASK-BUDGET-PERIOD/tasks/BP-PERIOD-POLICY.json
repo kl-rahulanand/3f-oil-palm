@@ -1,10 +1,23 @@
 {
   "branch": "task/ASK-BUDGET-PERIOD-BP-PERIOD-POLICY",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "81cc679285968f876bf3bd380bfb1528772bcf7af896fc3313cc8fe8014b71fe",
+    "commit": "a96fad7d737372de46ef7cef7fa17a2ae4d0a8bc",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "b49274c598fe11f04e7dbf710a9ff12ae353fcc530d64ede5de4f0da9078f45a"
+  },
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-05T09:22:07+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T09:49:15+00:00",
+      "step": "review"
     }
   ]
 }
