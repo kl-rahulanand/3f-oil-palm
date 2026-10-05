@@ -2,7 +2,7 @@
 slug: ask-period-control
 title: Recoverable periods in Ask
 status: draft
-saved: 2026-10-05T07:26:56+00:00
+saved: 2026-10-05T07:27:02+00:00
 ---
 
 # Recoverable periods in Ask
@@ -193,7 +193,8 @@ read, in `provenance.activeBatchIds`.
   fresh conversation and each asked 4 times against the live model, how many runs show the period
   choice and, after choosing July 2026, the expected answer: "Which GL codes had Actual over
   Budget?" (21 codes, 50001201 at 83,98,339), "Show Actual and Budget by GL code" (Budget for July
-  only) and "Which GL codes are under budget?" (July on both sides).
+  only) and "Which GL codes are under budget?" (July on both sides), each answer showing
+  "1 Jul 2026 – 31 Jul 2026" under its title.
 - Baseline: 0 of 12 on 2026-10-05; each answered at once with the full-year budget against July's
   actuals (8 codes for the first question).
 - Target: 12 of 12, and "Show Actual by GL code" with no period still answers at once 4 of 4.
