@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-05T07:47:45+00:00
-read_hash: 189a0255d695a08560e325a621c91a9553e0dbed
-round: 5
+read_at: 2026-10-05T08:22:05+00:00
+read_hash: 1f340c34d803e87830715e81505b7e75e93e1a01
+round: 10
 passed: yes
-doc_seen: 189a0255d695a08560e325a621c91a9553e0dbed
+doc_seen: 1f340c34d803e87830715e81505b7e75e93e1a01
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: e3a66737499b2e1b5740d907e0df692c157a57f3
+notes_seen: ff0001f15023cc6753d1e23f25c56f95e31ba8c3
 ---
 # Cold read notes
 
@@ -72,5 +72,41 @@ Only a genuine trade-off goes to the human, as a question with options.
    Disposition: cut switching is now limited to answers that ran on a window; a no-window answer shows its coverage sentence and no switch, as shipped.
 
 ## Round 5
+
+No findings.
+
+## Round 6
+
+12. Disputed keep 1: the Out of scope list still excludes choosing among several granted plants.
+   The behaviour requires plant choice first, and confirmed `ask-multi-plant.md` explicitly reopens and governs that choice. Remove or narrow this stale exclusion.
+   Disposition: cut the out-of-scope item now covers only departments and functions and points plant choice to ask-multi-plant.
+
+13. Gap: a statement’s outcome is undefined when its chosen plants have no actual rows but other plants do.
+   Its offered list must be empty to avoid unusable choices, yet “no periods loaded at all” could mean globally or for the selected plant set. Define the response class/message and add a hermetic leaf where another granted/warehouse plant has actuals but the chosen statement plant has none.
+   Disposition: keep statement periods are the loaded statement periods for every plant set; a plant with no rows answers at ₹0; criterion 9 names the leaf.
+
+## Round 7
+
+14. Unproven: item 10 does not explicitly require a percentage-only trigger leaf.
+   `governed-financial.percentage` without both explicit measures must clarify, and still offer an Actual month with no Budget as a dashed percentage answer. “One leaf per trigger form” can otherwise be satisfied by side-by-side and filter cases alone.
+   Disposition: keep criterion 10 now names a percentage-alone leaf, including an Actual month with no budget offered and answered with not-loaded cells.
+
+15. Cut or defer: the rule for a future measure that reads both Actual and Budget.
+   No such measure, metadata flag, or acceptance case exists. Add it when that measure is introduced; the current three governed measures fully cover this change.
+   Disposition: cut the future-measure sentence is removed.
+
+## Round 8
+
+16. Unproven: items 10–11 lack a leaf for the stated fixed-amount non-trigger.
+   Require an Actual-only or Budget-only fixed-amount filter with no period to answer over all loaded data and offer no period choice; otherwise a generic “mentions Budget” implementation can wrongly clarify.
+   Disposition: keep criterion 11 now names leaves for Actual alone, Budget alone and an Actual-only fixed-amount filter, none offering a period choice.
+
+## Round 9
+
+17. Disputed keep 16: the fixed-amount leaf covers Actual only, not Budget.
+   The behaviour says any fixed-amount filter does not trigger clarification. Add `Budget > ₹5 lakh` without a period, proving it remains an all-loaded-data answer with no period choice.
+   Disposition: keep criterion 11 now also names a Budget-only fixed-amount leaf.
+
+## Round 10
 
 No findings.
