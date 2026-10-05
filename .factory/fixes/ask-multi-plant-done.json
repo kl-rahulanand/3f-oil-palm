@@ -8,7 +8,13 @@
     "blocking_level": "P1",
     "changed": "95d6fb9c05d70ba548353506828fa7b2881ebed5be47399ec1b99ed23dd39518",
     "commit": "b47c18f8ff4f1292b6c75fa8a5bdd5403c8cec50",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "plans/roadmap.json:313 Fixed in commit 6a1418eb on this branch: the ASK-MULTI-PLANT roadmap entry now has status done, completed_at 2026-10-05T09:55:47+00:00 (the story's done step) and the same outcome sentence as .factory/stories/ASK-MULTI-PLANT/story.json, matching the completed neighbouring entries. The close did not re-review because plans/ is outside the reviewed tree digest.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "This changes only the internal story record. The board\u2019s source entry remains `\"status\": \"pending\"` at `plans/roadmap.json:313` and still lacks both `completed_at` and `outcome`; the completed neighboring entries contain all three fields. Consequently, the board continues to show ASK-MULTI-PLANT as unfinished and cannot display the recorded outcome. Update the roadmap entry as part of this completion change.",
@@ -18,10 +24,10 @@
         "title": "Not done: The board shows the story as finished, with its outcome."
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "d409b6698f6c6bb98934a12349b1b7762a5f53765f0ad5899f1221ef78e88247"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-05T09:55:47+00:00",
