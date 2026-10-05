@@ -1793,6 +1793,15 @@ button {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.ask-answer-context {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.ask-answer-context:empty {
+  display: none;
+}
 .ask-period-control {
   display: flex;
   align-items: center;
@@ -1826,12 +1835,6 @@ button {
 .ask-period-control select:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-.ask-period-coverage {
-  border-top: 1px solid var(--kl-line);
-  color: var(--kl-slate);
-  padding-top: var(--space-3);
-  font-size: 11px;
 }
 .ask-preserve-actions {
   display: flex;

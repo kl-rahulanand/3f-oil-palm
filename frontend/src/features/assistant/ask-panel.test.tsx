@@ -816,15 +816,18 @@ test("the docked panel sends the attested context and the focused node while the
   expect(mocks.ask.mock.calls[1]?.[0]).not.toHaveProperty("statementGrounding");
 });
 
-test("a successful filtered answer shows its comparison and applied period under the title", async () => {
-  mocks.ask.mockResolvedValue(filteredSuccess());
+test("a comparison answer shows exact dates under the title without repeating its period in the comparison readout", async () => {
+  mocks.ask.mockResolvedValue(answerWithWindow(filteredSuccess(), "2026-07-01", "2026-07-31"));
   renderAsk();
 
   submit("Show lines over budget for July 2026");
 
   const title = await screen.findByRole("heading", { name: "Governed result" });
   const answer = title.closest("article")!;
-  expect(within(answer).getByText("Actual > Budget · July 2026")).toBeInTheDocument();
+  expect(within(answer).getByText("1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
+  expect(within(answer).getByLabelText("Period: 1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
+  expect(within(answer).getByText("Actual > Budget")).toBeInTheDocument();
+  expect(within(answer).queryByText("Actual > Budget · July 2026")).not.toBeInTheDocument();
 });
 
 test("a fractional comparison threshold keeps its paise in the answer readout", async () => {
@@ -841,36 +844,41 @@ test("a fractional comparison threshold keeps its paise in the answer readout", 
 
   submit("Show lines above 500000.49 for July 2026");
 
-  expect(await screen.findByText("Actual > ₹5,00,000.49 · July 2026")).toBeInTheDocument();
+  expect(await screen.findByText("Actual > ₹5,00,000.49")).toBeInTheDocument();
 });
 
-test("a filtered answer derives the readout period when its period control is absent", async () => {
-  const restored = filteredSuccess();
+test("a filtered answer derives its exact period line when its period control is absent", async () => {
+  const restored = answerWithWindow(filteredSuccess(), "2026-07-01", "2026-07-31");
   delete restored.periodControl;
   mocks.ask.mockResolvedValue(restored);
   renderAsk();
 
   submit("Show lines over budget for July 2026");
 
-  expect(await screen.findByText("Actual > Budget · July 2026")).toBeInTheDocument();
+  expect(await screen.findByLabelText("Period: 1 Jul 2026 – 31 Jul 2026")).toHaveTextContent(
+    "1 Jul 2026 – 31 Jul 2026",
+  );
+  expect(screen.getByText("Actual > Budget")).toBeInTheDocument();
 });
 
-test("a partial non-month window keeps its exact dates in the answer readout", async () => {
+test("a partial non-month window keeps its exact dates in the period line", async () => {
   mocks.ask.mockResolvedValue(postingDateWindowSuccess());
   renderAsk();
 
   submit("Show lines over budget from 10 to 20 July 2026");
 
-  expect(await screen.findByText("Actual > Budget · 10 Jul 2026 – 20 Jul 2026")).toBeInTheDocument();
+  expect(await screen.findByText("10 Jul 2026 – 20 Jul 2026")).toBeInTheDocument();
+  expect(screen.getByText("Actual > Budget")).toBeInTheDocument();
 });
 
-test("a whole-month non-month window keeps its exact dates in the answer readout", async () => {
+test("a whole-month non-month window keeps its exact dates in the period line", async () => {
   mocks.ask.mockResolvedValue(postingDateWindowSuccess("2026-07-01", "2026-07-31"));
   renderAsk();
 
   submit("Show lines over budget by posting date for July 2026");
 
-  expect(await screen.findByText("Actual > Budget · 1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
+  expect(await screen.findByText("1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
+  expect(screen.getByText("Actual > Budget")).toBeInTheDocument();
 });
 
 test("an empty filtered answer shows a plain message in place of the blank table", async () => {
@@ -897,10 +905,13 @@ test("an empty filtered answer keeps exact dates for a partial non-month window"
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
 });
 
-test("rerunning a stored comparison sends it intact and shows the fresh answer readout", async () => {
+test("rerunning a stored comparison sends it intact and shows the fresh comparison and period readouts", async () => {
   mocks.ask
-    .mockResolvedValueOnce(filteredSuccess())
-    .mockResolvedValueOnce({ ...filteredSuccess(), title: "Rerun governed result" });
+    .mockResolvedValueOnce(answerWithWindow(filteredSuccess(), "2026-07-01", "2026-07-31"))
+    .mockResolvedValueOnce({
+      ...answerWithWindow(filteredSuccess(), "2026-07-01", "2026-07-31"),
+      title: "Rerun governed result",
+    });
   render(
     <AskProvider>
       <AskPanel surface="page" />
@@ -909,11 +920,12 @@ test("rerunning a stored comparison sends it intact and shows the fresh answer r
   );
 
   submit("Show lines over budget for July 2026");
-  await screen.findByText("Actual > Budget · July 2026");
+  await screen.findByText("1 Jul 2026 – 31 Jul 2026");
   fireEvent.click(screen.getByRole("button", { name: "Rerun filtered report" }));
 
   const rerun = (await screen.findByRole("heading", { name: "Rerun governed result" })).closest("article")!;
-  expect(within(rerun).getByText("Actual > Budget · July 2026")).toBeInTheDocument();
+  expect(within(rerun).getByText("Actual > Budget")).toBeInTheDocument();
+  expect(within(rerun).getByText("1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
   expect(mocks.ask).toHaveBeenNthCalledWith(
     2,
     { question: "Show lines over budget for July 2026", selection: measureFilteredSelection },
@@ -1336,20 +1348,31 @@ test("a successful statement answer renders its period select with the period it
   expect(await screen.findByRole("combobox", { name: "Period" })).toHaveValue("2026-07-01");
 });
 
-test("a successful governed answer with a window renders its period select", async () => {
+test("a July answer shows its exact dates and period select", async () => {
   mocks.ask.mockResolvedValue({
-    ...success,
+    ...answerWithWindow(success, "2026-07-01", "2026-07-31"),
     selection: { ...selection, domain: "governed-financial" },
-    periodControl,
   });
   renderAsk();
 
   submit("Show Actual and Budget by GL code for July");
 
+  expect(await screen.findByText("1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
   expect(await screen.findByRole("combobox", { name: "Period" })).toHaveValue("2026-07-01");
 });
 
-test("a successful answer with no window shows its coverage and no period select", async () => {
+test("a year-to-date answer shows its exact dates", async () => {
+  mocks.ask.mockResolvedValue(answerWithWindow(success, "2026-04-01", "2026-07-31"));
+  renderAsk();
+
+  submit("Show Actual and Budget by GL code for the financial year to date");
+
+  expect(await screen.findByLabelText("Period: 1 Apr 2026 – 31 Jul 2026")).toHaveTextContent(
+    "1 Apr 2026 – 31 Jul 2026",
+  );
+});
+
+test("a successful answer with no window shows its coverage exactly once and no period select", async () => {
   mocks.ask.mockResolvedValue({
     ...success,
     periodControl: { ...periodControl, current: null, coverage: "All loaded months" },
@@ -1358,8 +1381,23 @@ test("a successful answer with no window shows its coverage and no period select
 
   submit("Show Actual and Budget by GL code");
 
-  expect(await screen.findByText("All loaded months")).toBeInTheDocument();
+  expect(await screen.findByLabelText("Period: All loaded months")).toHaveTextContent("All loaded months");
+  expect(screen.getAllByText("All loaded months")).toHaveLength(1);
   expect(screen.queryByRole("combobox", { name: "Period" })).not.toBeInTheDocument();
+});
+
+test("switching the period updates the exact dates under the answer title", async () => {
+  mocks.ask
+    .mockResolvedValueOnce(answerWithWindow(success, "2026-07-01", "2026-07-31", "2026-07-01"))
+    .mockResolvedValueOnce(answerWithWindow(success, "2026-08-01", "2026-08-31", "2026-08-01"));
+  renderAsk();
+  submit("Show Actual and Budget by GL code for July 2026");
+
+  expect(await screen.findByLabelText("Period: 1 Jul 2026 – 31 Jul 2026")).toBeInTheDocument();
+  fireEvent.change(screen.getByRole("combobox", { name: "Period" }), { target: { value: "2026-08-01" } });
+
+  expect(await screen.findByLabelText("Period: 1 Aug 2026 – 31 Aug 2026")).toBeInTheDocument();
+  expect(screen.queryByText("1 Jul 2026 – 31 Jul 2026")).not.toBeInTheDocument();
 });
 
 test("a non success response carrying a period control still renders no period select", async () => {
@@ -2051,6 +2089,25 @@ function filteredSuccess(): AskResponse {
         { key: "budget", label: "Budget", numeric: true, format: "money" },
       ],
       rows: [{ gl_code: "50001202", actual: "600000.00", budget: "500000.00" }],
+    },
+  };
+}
+
+function answerWithWindow(response: AskResponse, from: string, to: string, current = "2026-07-01"): AskResponse {
+  return {
+    ...response,
+    appliedTimeWindow: { column: "month", from, to },
+    periodControl: {
+      ...periodControl,
+      current,
+      options: periodControl.options.map((option) => ({
+        ...option,
+        timeWindow: {
+          ...option.timeWindow,
+          from: option.value === current ? from : option.timeWindow.from,
+          to: option.value === current ? to : option.timeWindow.to,
+        },
+      })),
     },
   };
 }
