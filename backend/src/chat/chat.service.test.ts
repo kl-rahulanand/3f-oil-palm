@@ -3621,6 +3621,9 @@ for (const question of [
   "Which GL codes had Actual over Budget in July 2026?",
   "Actual for DUB from 2026-07-01 to 2026-07-31",
   "Actual for FY2026 by GL code",
+  "Actual for GL 50001201 by month",
+  "What is the Actual on statement line 9.01 for July 2026?",
+  "Actual for the 3 plants in July 2026",
 ]) {
   test(`no amount comparison is stated by: ${question}`, () => {
     assert.equal(statesAmountComparison(question), false);
