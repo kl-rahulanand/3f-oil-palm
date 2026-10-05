@@ -1,8 +1,10 @@
 ---
 slug: ask-period-control
 title: Recoverable periods in Ask
-status: draft
+status: confirmed
 saved: 2026-10-05T07:39:23+00:00
+confirmed_by: "Rahul Anand"
+confirmed_hash: f5d2bf94f08429ffc8ca2b3990d11f25350d50c7d0f4f55623a5889c4412ed82
 ---
 
 # Recoverable periods in Ask
