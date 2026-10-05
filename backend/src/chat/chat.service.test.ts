@@ -761,6 +761,42 @@ test("named plants override the selector while no named plant discards it and on
   assert.deepEqual(singleton.executor.selections[0]?.filters, [{ dimensionId: "plant", op: "in", value: ["DUB"] }]);
 });
 
+test("a plant named after except answers for the reader's other plants and an empty set is refused before the provider", async () => {
+  const except = makeFixture({
+    selection: { ...financialSelection, filters: [{ dimensionId: "plant", op: "in", value: ["DUB"] }] },
+  });
+  const exceptResponse = await except.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR", "VJM"]),
+    "session",
+    "Actual by plant for July 2026 except DUB",
+  );
+  assert.equal(exceptResponse.responseClass, ResponseClass.Success);
+  assert.equal(exceptResponse.plantChoice, undefined);
+  assert.deepEqual(except.executor.selections[0]?.filters, [
+    { dimensionId: "plant", op: "in", value: ["CHIR", "VJM"] },
+  ]);
+
+  const nothingLeft = makeFixture({ selection: financialSelection });
+  const nothingLeftResponse = await nothingLeft.service.ask(
+    userForPlants("governed-financial", ["DUB"]),
+    "session",
+    "Actual for July 2026 except DUB",
+  );
+  assert.equal(nothingLeftResponse.responseClass, ResponseClass.BlockedByPolicy);
+  assert.equal(nothingLeftResponse.refusal?.reason, "plant-filter-invalid");
+  assert.equal(nothingLeft.llm.inputs.length, 0);
+  assert.equal(nothingLeft.executor.calls, 0);
+
+  const ungranted = makeFixture({ selection: financialSelection });
+  const ungrantedResponse = await ungranted.service.ask(
+    userForPlants("governed-financial", ["DUB", "CHIR"]),
+    "session",
+    "Actual for July 2026 except VJM",
+  );
+  assert.equal(ungrantedResponse.refusal?.reason, "plant-not-granted");
+  assert.equal(ungranted.llm.inputs.length, 0);
+});
+
 test("an ungranted plant name is refused before the provider or any figure read and short codes stay case-sensitive", async () => {
   for (const question of [
     "Show Actual for CHIR",

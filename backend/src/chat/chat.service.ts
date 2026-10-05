@@ -59,6 +59,7 @@ import { issueAskDrill, type AskDrillAnswerShape } from "./ask-drill-issuer";
 import {
   matchQuestionPlants,
   plantChoiceOptions,
+  questionPlantSet,
   PLANT_DIMENSION_ID,
   PLANT_REFUSAL_MESSAGES,
   validatePlantFilter,
@@ -207,6 +208,8 @@ export class ChatService {
         plants: ungrantedNamedPlants.map(({ label }) => label),
       });
     }
+    const questionPlants = usesEditedSelection ? undefined : questionPlantSet(question, grantedPlants);
+    if (questionPlants?.length === 0) return refusePlant({ reason: "plant-filter-invalid", plants: [] });
 
     if (statementGrounding) {
       const explanation = await this.statementExplanation.explain(user, sessionId, question, statementGrounding);
@@ -443,11 +446,11 @@ export class ChatService {
     } else {
       const selectorPlantFilters = selection.filters.filter(({ dimensionId }) => dimensionId === PLANT_DIMENSION_ID);
       selection = withoutPlantFilter(selection);
-      if (namedPlants.length > 0) {
+      if (questionPlants) {
         const authoritativeFilter = {
           dimensionId: PLANT_DIMENSION_ID,
           op: "in" as const,
-          value: namedPlants.map(({ value }) => value),
+          value: questionPlants,
         };
         if (JSON.stringify(selectorPlantFilters) !== JSON.stringify([authoritativeFilter])) {
           this.logger.log("debug", "Ask selector plant filter replaced", {
