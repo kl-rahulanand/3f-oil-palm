@@ -5,8 +5,8 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "542692d6ab575c127520ae17b726acbd06daf107d6d8baeaa1afb70b64fb7516",
-    "commit": "011ec202544006d2cb2445eb934ac57abb837e19",
+    "changed": "5e79a6e37da953b90cbdd4fa5f4ccbc6dac75c427a4e44dceed1784f6b3c6a15",
+    "commit": "58a94c62e752b961491efece7f648dbe5bc549f0",
     "dismissals": [
       {
         "because": "backend/src/chat/unstated-amount-filter.ts:10 Equality is not a measure-filter operator: the contract and the selector schema allow only gt, gte, lt and lte (bedrock.provider.ts measureFilterSchema), so 'Actual is 500' or 'equals 500' cannot produce a value filter for this guard to drop. The selector prompt line was built and measured live twice on 2026-10-05 and left out on evidence: both wordings shifted 'Show the MIS statement for July 2026 for DUB and CHIR' to a single total (3 of 4 and 1 of 4 runs; 4 of 4 with lines without it); commit 011ec202 records this. The live proof was run by the coordinator through the running API, real warehouse and live Bedrock on this branch (port 4001): the DUB and CHIR each-line statement listed all 81 lines 4 of 4 (master 22 lines 3 of 4), four other line questions 4 of 4 unchanged, the ASK-MULTI-PLANT success and probe questions unchanged on 2 runs each; recorded in the Functional check paragraphs of 78c03dde and 011ec202. The repo has no browser or running-API test harness; kept and dropped forms each have named leaves in chat.service.test.ts.",
@@ -16,15 +16,15 @@
     ],
     "findings": [
       {
-        "body": "The required Done-when remains unmet. Although bare identifiers are now excluded, the guard still drops legitimate comparisons such as \u201cShow Actual is 500\u201d or \u201cspend equals 500\u201d: these state an amount comparison, but the pattern on this line recognizes neither `is` nor `equals`, so the value filter is removed at line 41. The unchanged selector prompt at `backend/src/llm/llm.constants.ts:56-61` still does not say never to add an unstated comparison. Finally, the new Ask tests use `FakeLlm` and `FakeExecutor` (`chat.service.test.ts:3117-3119`) and return one fixture row; neither they nor the supplied branch record prove that DUB and CHIR return all 81 statement lines in 4 of 4 live runs through the real API, database, and Bedrock selector. Required title: `Not done: an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and the DUB and CHIR each-line statement lists all 81 lines in 4 of 4 live runs; leaves for kept and dropped forms`.",
+        "body": "New evidence not covered by the prior dismissal: `STATED_NUMBER` treats every numeral as an amount without distinguishing dates or identifiers. For the existing question \u201cWhat was the Actual for each MIS statement line in July 2026 for DUB and CHIR?\u201d, `statedAmounts` therefore includes `2026`; if the selector adds `Actual > 2026`, the guard keeps that invented comparison. The same occurs with statement-line identifiers such as `9.01`. Conversely, a stated amount written naturally as \u201cmore than five lakh\u201d produces no parsed amount and its legitimate `500000` filter is dropped. The new tests conceal the first case by checking only that these questions do not contain zero. Thus the branch still fails the required kept/dropped invariant despite the accepted live-run evidence.",
         "file": "backend/src/chat/unstated-amount-filter.ts",
-        "line": 10,
+        "line": 16,
         "priority": "P1",
         "title": "Not done: amount guard, selector prompt, 81-line live runs, and kept/dropped leaves"
       }
     ],
     "status": "clean",
-    "tree": "89481767af89f788c93cc39735eabd3fa877fd4abbc02359f5b242e996e7efc5"
+    "tree": "a768c9edac845b56ae675b6976a01dab7fc3ef968325228aa77f4436067b9f00"
   },
   "status": "waiting for checks",
   "steps": [
@@ -38,6 +38,10 @@
     },
     {
       "at": "2026-10-05T08:17:24+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T08:45:29+00:00",
       "step": "review"
     }
   ],
