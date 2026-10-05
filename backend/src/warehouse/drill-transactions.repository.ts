@@ -58,6 +58,18 @@ LIMIT 25000`);
       .map(({ isActive: _isActive, ...pin }) => pin);
   }
 
+  async findActiveActualMonthsForPlants(plants: string[]): Promise<string[]> {
+    if (plants.length === 0) return [];
+    const result = await this.warehouse.execute(`SELECT DISTINCT txn.month
+FROM sap_transaction AS txn
+INNER JOIN ingest_batch AS batch ON batch.id = txn.batch_id
+WHERE batch.source_kind = 'actuals' AND batch.is_active
+  AND txn.plant IN (${plants.map(quote).join(", ")})
+ORDER BY txn.month DESC
+LIMIT 25000`);
+    return result.rows.map(({ month }) => normalizeDateOnly(month)).filter((month): month is string => Boolean(month));
+  }
+
   async findActiveBudgetPeriods(from: string, to: string): Promise<string[]> {
     const result = await this.warehouse.execute(`SELECT DISTINCT period
 FROM ingest_batch

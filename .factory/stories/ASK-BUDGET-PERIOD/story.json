@@ -1,0 +1,41 @@
+{
+  "approval": {
+    "at": "2026-10-05T09:21:47+00:00",
+    "by": "human-via-Claude",
+    "event": "toolu_014Lr1BSDutoKFY9EUq521aD",
+    "hash": "728869ce450907cae4dad10d49fa541fb3f8f7f9305eae38442f69e757b78243",
+    "round": 4,
+    "runtime": "claude",
+    "session": "95f602af-e2c3-4ac2-9e21-a78e0aed778d"
+  },
+  "doc": "plans/ASK-BUDGET-PERIOD.md",
+  "status": "approved",
+  "steps": [
+    {
+      "at": "2026-10-05T08:41:35+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-05T08:54:18+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-05T09:04:41+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-05T09:14:30+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-05T09:19:09+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-05T09:21:47+00:00",
+      "step": "approved"
+    }
+  ],
+  "title": "Actual-versus-Budget answers ask for the period and every answer shows its dates",
+  "touches": 1
+}

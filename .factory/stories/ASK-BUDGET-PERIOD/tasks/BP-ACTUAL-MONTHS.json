@@ -1,0 +1,31 @@
+{
+  "branch": "task/ASK-BUDGET-PERIOD-BP-ACTUAL-MONTHS",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "fbe8b1c9f95fa7768cecd56c4e75531af8279ab0e8a8c8d253b97ce9764ed088",
+    "commit": "abbe2628cb2446add4df4a3edafdb606087ca29a",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This part stops at adding the active-actual-month lookup; it does not yet implement Done-when 1's trigger, month/YTD option policy, ClarificationNeeded response, continuation handling, or answer period control. The story's Tasks table explicitly assigns those pieces to BP-PERIOD-POLICY and BP-ASK-WIRING, so this is deferred P2 advice rather than a blocker for BP-ACTUAL-MONTHS.",
+        "file": "backend/src/warehouse/drill-transactions.repository.ts",
+        "line": 61,
+        "priority": "P2",
+        "title": "Later: Complete the comparison-period flow in BP-PERIOD-POLICY and BP-ASK-WIRING"
+      }
+    ],
+    "status": "clean",
+    "tree": "81aaf21a1dcb9cd577108b6ebf852a4d9f5e35a7e6ea34eda72575ed08e3659e"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-05T09:22:05+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-05T09:40:46+00:00",
+      "step": "review"
+    }
+  ]
+}
