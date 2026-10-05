@@ -42,7 +42,7 @@ import { ChatModule } from "./chat.module";
 import { askSchema } from "./chat.schemas";
 import { ChatService, lastMonthBudgetPin, trimPriorTurnsToTokenBudget } from "./chat.service";
 import { SelectionExecutor } from "./selectionExecutor";
-import { statesAmountComparison, withoutUnstatedAmountFilters } from "./unstated-amount-filter";
+import { statedAmounts, withoutUnstatedAmountFilters } from "./unstated-amount-filter";
 
 test("a several-plant reader chooses plants before any figure or period read", async () => {
   const fixture = makeFixture({ selection: { ...statementSelection, filters: [] } });
@@ -3595,22 +3595,27 @@ test("an amount comparison carried from the previous turn is kept", () => {
   assert.deepEqual(result.dropped, []);
 });
 
-for (const question of [
-  "which GL codes spent more than 5 lakh in July 2026",
-  "GL codes with Actual over ₹50,000",
-  "lines where Actual is above zero",
-  "codes with Actual of at least 1000",
-  "codes with Actual less than 0",
-  "codes with Actual > 100000",
-  "codes with Actual between 1 lakh and 5 lakh",
-  "show only non-zero lines",
-  "lines with a negative Actual",
-  "Keep the report threshold and cap it at 200",
-]) {
-  test(`an amount comparison is kept when the question states it: ${question}`, () => {
-    assert.equal(statesAmountComparison(question), true);
-    const result = withoutUnstatedAmountFilters({ ...amountBase, measureFilters: [aboveZero] }, question);
-    assert.deepEqual(result.selection.measureFilters, [aboveZero]);
+function amountFilter(value: string): NonNullable<Selection["measureFilters"]>[number] {
+  return { measureId: "mis-statement.actual_net", op: "gt", compareTo: { kind: "value", value } };
+}
+
+for (const [question, value] of [
+  ["which GL codes spent more than 5 lakh in July 2026", "500000.00"],
+  ["GL codes with Actual over ₹5,00,000", "500000.00"],
+  ["GL codes with Actual over 1.2 crore", "12000000.00"],
+  ["GL codes with Actual over 50k", "50000.00"],
+  ["lines where Actual is above zero", "0.00"],
+  ["codes with Actual of at least 1000", "1000.00"],
+  ["codes with Actual > 100000", "100000.00"],
+  ["Actual below -100", "-100.00"],
+  ["Actual greater than or equal to 500", "500.00"],
+  ["show only non-zero lines", "0.00"],
+  ["lines with a negative Actual", "0.00"],
+  ["Keep the report threshold and cap it at 200", "200.00"],
+] as const) {
+  test(`an amount comparison is kept when the question states its amount: ${question}`, () => {
+    const result = withoutUnstatedAmountFilters({ ...amountBase, measureFilters: [amountFilter(value)] }, question);
+    assert.deepEqual(result.selection.measureFilters, [amountFilter(value)]);
   });
 }
 
@@ -3624,8 +3629,20 @@ for (const question of [
   "Actual for GL 50001201 by month",
   "What is the Actual on statement line 9.01 for July 2026?",
   "Actual for the 3 plants in July 2026",
+  "Actual for the years 2025 and 2026",
 ]) {
-  test(`no amount comparison is stated by: ${question}`, () => {
-    assert.equal(statesAmountComparison(question), false);
+  test(`an invented Actual > 0 is dropped for: ${question}`, () => {
+    assert.equal(statedAmounts(question).includes(0), false);
+    const result = withoutUnstatedAmountFilters({ ...amountBase, measureFilters: [aboveZero] }, question);
+    assert.deepEqual(result.selection.measureFilters, []);
   });
 }
+
+test("each amount comparison is checked on its own, so a stated one never keeps an invented one", () => {
+  const result = withoutUnstatedAmountFilters(
+    { ...amountBase, measureFilters: [amountFilter("500.00"), aboveZero] },
+    "Actual less than 500",
+  );
+  assert.deepEqual(result.selection.measureFilters, [amountFilter("500.00")]);
+  assert.deepEqual(result.dropped, [aboveZero]);
+});

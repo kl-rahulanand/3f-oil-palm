@@ -1,20 +1,19 @@
 import type { MeasureFilter, Selection } from "@3f/contract";
 
-const CURRENCY = String.raw`(?:₹|rs\.?|inr|rupees?)`;
-const NUMBER = String.raw`(?:${CURRENCY}\s*)?(?:\d[\d,]*(?:\.\d+)?|zero|nil)`;
-const COMPARISON = String.raw`(?:over|above|below|under|more\s+than|less\s+than|greater\s+than|fewer\s+than|at\s+least|at\s+most|exceed(?:s|ed|ing)?|beyond|up\s+to|between|within|>=?|<=?|≥|≤|=)`;
-const THRESHOLD = String.raw`(?:cap(?:ped|s)?|limit(?:ed|s)?|threshold|ceiling|floor|minimum|maximum|min|max)(?:\s+(?:it|them|that|this|of|at|to|is|was))*`;
-const MODIFIER = String.raw`(?:about|around|roughly|approximately|approx\.?|nearly|just|only|exactly)`;
-const BOUNDARY_BEFORE = String.raw`(?<![\p{L}\p{N}])`;
-const STATED_AMOUNT = [
-  new RegExp(String.raw`${BOUNDARY_BEFORE}(?:${COMPARISON}|${THRESHOLD})\s*(?:${MODIFIER}\s+)?${NUMBER}`, "iu"),
-  new RegExp(
-    String.raw`${BOUNDARY_BEFORE}\d[\d,]*(?:\.\d+)?\s*(?:lakhs?|crores?|k|thousand|million)(?![\p{L}\p{N}])`,
-    "iu",
-  ),
-  new RegExp(String.raw`${CURRENCY}\s*\d`, "iu"),
-  /(?<![\p{L}\p{N}])(?:positive|negative|non-?\s?zero)(?![\p{L}\p{N}])/iu,
-];
+const MAGNITUDES: Record<string, number> = {
+  k: 1e3,
+  thousand: 1e3,
+  lakh: 1e5,
+  lakhs: 1e5,
+  million: 1e6,
+  mn: 1e6,
+  cr: 1e7,
+  crore: 1e7,
+  crores: 1e7,
+};
+const STATED_NUMBER =
+  /(?<![\p{L}\p{N}.])(-?)\s*(\d[\d,]*(?:\.\d+)?)(?:\s*(lakhs?|crores?|cr|k|thousand|million|mn)(?![\p{L}\p{N}]))?/giu;
+const STATED_ZERO = /(?<![\p{L}\p{N}])(?:zero|nil|positive|negative|non-?\s?zero)(?![\p{L}\p{N}])/iu;
 
 export interface UnstatedAmountFilterResult {
   selection: Selection;
@@ -22,9 +21,10 @@ export interface UnstatedAmountFilterResult {
 }
 
 /**
- * An amount comparison (a measure filter against a fixed value) applies only when the question states an amount
- * ("more than 5 lakh", "cap it at 200", "above zero", "non-zero") or the previous turn already carried it. The selector may not
- * add one on its own, for example to hide the zero lines of a "for each line" answer.
+ * An amount comparison (a measure filter against a fixed value) applies only when the question states that amount
+ * ("more than 5 lakh", "below -100", "cap it at 200", "above zero", "non-zero") or the previous turn already carried
+ * the same filter. Each filter is checked on its own, so one stated amount never keeps another the selector added,
+ * for example "Actual > 0" hiding the zero lines of a "for each line" answer.
  */
 export function withoutUnstatedAmountFilters(
   selection: Selection,
@@ -32,24 +32,38 @@ export function withoutUnstatedAmountFilters(
   priorSelection?: Selection,
 ): UnstatedAmountFilterResult {
   const measureFilters = selection.measureFilters ?? [];
-  if (measureFilters.length === 0 || statesAmountComparison(question)) return { selection, dropped: [] };
+  if (!measureFilters.some((filter) => filter.compareTo.kind === "value")) return { selection, dropped: [] };
 
+  const amounts = statedAmounts(question);
   const carried = new Set((priorSelection?.measureFilters ?? []).map(filterKey));
   const kept: MeasureFilter[] = [];
   const dropped: MeasureFilter[] = [];
   for (const filter of measureFilters) {
-    (filter.compareTo.kind === "value" && !carried.has(filterKey(filter)) ? dropped : kept).push(filter);
+    const stated =
+      filter.compareTo.kind !== "value" ||
+      carried.has(filterKey(filter)) ||
+      amounts.some((amount) =>
+        sameAmount(amount, Number(filter.compareTo.kind === "value" ? filter.compareTo.value : NaN)),
+      );
+    (stated ? kept : dropped).push(filter);
   }
   return dropped.length === 0 ? { selection, dropped } : { selection: { ...selection, measureFilters: kept }, dropped };
 }
 
-/**
- * A question states an amount comparison when a number follows a comparison or threshold word ("more than 5 lakh",
- * "cap it at 200", "above zero"), carries a currency or magnitude ("₹50,000", "5 lakh"), or names a sign
- * ("non-zero"). A bare number such as GL code 50001201, statement line 9.01 or a year is not an amount.
- */
-export function statesAmountComparison(question: string): boolean {
-  return STATED_AMOUNT.some((pattern) => pattern.test(question));
+/** Every amount the question names: its numbers with any magnitude applied, and 0 for zero or sign words. */
+export function statedAmounts(question: string): number[] {
+  const amounts: number[] = [];
+  for (const match of question.matchAll(STATED_NUMBER)) {
+    const [, sign, digits, magnitude] = match;
+    const value = Number(digits.replace(/,/g, "")) * (magnitude ? MAGNITUDES[magnitude.toLowerCase()] : 1);
+    if (Number.isFinite(value)) amounts.push(sign ? -value : value);
+  }
+  if (STATED_ZERO.test(question)) amounts.push(0);
+  return amounts;
+}
+
+function sameAmount(stated: number, filterValue: number): boolean {
+  return Number.isFinite(filterValue) && Math.abs(stated - filterValue) < 0.005;
 }
 
 function filterKey(filter: MeasureFilter): string {
