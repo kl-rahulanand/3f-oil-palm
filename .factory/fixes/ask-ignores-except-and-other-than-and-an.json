@@ -3,7 +3,7 @@
   "branch": "fix/ask-ignores-except-and-other-than-and-an",
   "done_when": "plants named after except, excluding, other than, but not or without are removed from the plant set instead of chosen: 'Actual by plant except DUB' covers every granted plant but DUB, 'for DUB excluding CHIR' covers DUB, 'all plants other than H.O' covers all but H.O; leaves for each",
   "kind": "fix",
-  "status": "started",
+  "status": "working",
   "steps": [
     {
       "at": "2026-10-05T06:18:32+00:00",
