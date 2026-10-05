@@ -9,7 +9,25 @@
     "session": "95f602af-e2c3-4ac2-9e21-a78e0aed778d"
   },
   "doc": "plans/ASK-MULTI-PLANT.md",
-  "status": "approved",
+  "finished": "2026-10-05T09:54:51+00:00",
+  "merged": {
+    "MP-ASK-BUDGET": "2026-10-04T15:53:13+00:00",
+    "MP-ASK-CHOICE": "2026-10-04T13:21:13+00:00",
+    "MP-ASK-DRILL": "2026-10-04T16:43:06+00:00",
+    "MP-ASK-STATEMENT": "2026-10-04T13:53:53+00:00",
+    "MP-ASK-UI-CHOICE": "2026-10-04T17:30:45+00:00",
+    "MP-ASK-UI-RESULTS": "2026-10-04T18:10:49+00:00",
+    "MP-CONTRACT": "2026-10-04T10:35:12+00:00",
+    "MP-GL-SQL": "2026-10-04T12:03:24+00:00",
+    "MP-GL-VIEW": "2026-10-04T11:37:45+00:00",
+    "MP-LIVE": "2026-10-05T09:54:51+00:00",
+    "MP-MONTH-FILTER": "2026-10-04T14:35:14+00:00",
+    "MP-PLANT-RULES": "2026-10-04T11:16:46+00:00",
+    "MP-SAVED-PINS": "2026-10-04T13:54:05+00:00",
+    "MP-STATEMENT-COMBINED": "2026-10-04T12:36:55+00:00"
+  },
+  "outcome": "Ask answers across every plant: a plant picker with All plants, plant filters and breakdowns, combined statements that add up each plant's own, Budget-not-loaded dashes, and plant-safe names, transactions and saved views; the live check answered all five success questions on every run",
+  "status": "done",
   "steps": [
     {
       "at": "2026-10-04T08:11:38+00:00",
@@ -98,6 +116,10 @@
     {
       "at": "2026-10-04T13:54:25+00:00",
       "step": "read"
+    },
+    {
+      "at": "2026-10-05T09:55:47+00:00",
+      "step": "done"
     }
   ],
   "title": "Every Ask answer works across plants",
