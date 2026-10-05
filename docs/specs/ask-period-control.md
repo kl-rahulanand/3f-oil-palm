@@ -1,10 +1,8 @@
 ---
 slug: ask-period-control
 title: Recoverable periods in Ask
-status: confirmed
-saved: 2026-10-05T07:39:23+00:00
-confirmed_by: "Rahul Anand"
-confirmed_hash: f5d2bf94f08429ffc8ca2b3990d11f25350d50c7d0f4f55623a5889c4412ed82
+status: draft
+saved: 2026-10-05T07:50:12+00:00
 ---
 
 # Recoverable periods in Ask
@@ -237,3 +235,6 @@ read, in `provenance.activeBatchIds`.
   answers saved after it carry the period the person chose.
 - `requiredTimeWindowClarify`'s day-range options, which are wrong for a monthly statement but
   belong to a different gate.
+
+## Roadmap
+- ASK-BUDGET-PERIOD: Actual-versus-Budget answers ask for the period and every answer shows its dates
