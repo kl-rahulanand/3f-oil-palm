@@ -535,7 +535,7 @@ function reconcileMonthFilters(
   const reconciledFilters = filters.filter((filter) => {
     const filterWindow = monthWindow(filter);
     if (!filterWindow) return true;
-    if (!reconciledWindow) {
+    if (!reconciledWindow || isPartialWindow(reconciledWindow)) {
       reconciledWindow = filterWindow;
       return false;
     }
@@ -545,6 +545,11 @@ function reconcileMonthFilters(
     );
   });
   return { filters: reconciledFilters, timeWindow: reconciledWindow };
+}
+
+/** A window missing its start or its end (open-ended or relative) names no fixed period of its own. */
+function isPartialWindow(timeWindow: NonNullable<Selection["timeWindow"]>): boolean {
+  return timeWindow.from === undefined || timeWindow.to === undefined;
 }
 
 function monthWindow(filter: SelectionFilter): { grain: "day"; from: string; to: string } | undefined {

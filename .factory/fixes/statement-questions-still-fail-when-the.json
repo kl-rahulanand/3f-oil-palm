@@ -1,0 +1,49 @@
+{
+  "base": "2197b8dd59b082e79f44bbb6e2639627fbe4a96f",
+  "branch": "fix/statement-questions-still-fail-when-the",
+  "done_when": "on a domain without a month field, a single month filter becomes the answer's period whatever partial period the model also sent; the open, last-1-month and end-only shapes seen live all reach the plant picker, and only a conflicting explicit from-to period is still rejected; leaves per shape",
+  "kind": "fix",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "6a4ae715606ada393b64e91455cc4b741a06b30e1b0049a59951352e8411ba5a",
+    "commit": "53b92fe0944f1bb75978cfa86db3805228851b51",
+    "dismissals": [
+      {
+        "because": "backend/src/chat/chat.service.test.ts:1814 The repo has no browser or running-API test harness for Ask (test:hermetic and test:db list every registered suite); each recorded shape has its own Ask-flow leaf through ChatService with the real provider parser. The running-API, real-database leg was run by the coordinator on 2026-10-05 against this branch on port 4001 with live Bedrock, the admin user and the July warehouse: 'What was the Actual for each MIS statement line in July 2026?' x6 all reached the plant picker then answered 81 statement rows for July (before the fix 3 of 6 fell back to a definition); 'Show the MIS statement by plant in July 2026 for DUB and CHIR' x3 answered for CHIR+DUB; 'Show the MIS statement for H.O for June 2026' x3 answered; 12/12. The later commit only narrows the partial-window rule for windows carrying last plus explicit from-to, which the live shapes do not use.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "The three new acceptance cases call `ChatService.ask` directly through `makeFixture`, which supplies fake dimensions, repositories, executor, and a synthetic Bedrock response. The explicit-conflict case is likewise covered only at provider level. There is no test through the running API with a real database and browser flow, so the required user-facing proof is missing; regressions in request transport, real plant lookup, or frontend rendering could still pass every added test.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 1814,
+        "priority": "P1",
+        "title": "Not done: partial statement windows reach the plant picker through the running app"
+      }
+    ],
+    "status": "clean",
+    "tree": "788cc502fa8e88d770983df053dd4e5bc4cde582f0d15b1e0fa307d0a5737c73"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-05T06:18:31+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-05T06:33:59+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T06:40:17+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T06:58:50+00:00",
+      "step": "review"
+    }
+  ],
+  "why": "Statement questions still fail when the model sends the month with an open, relative or end-only period"
+}

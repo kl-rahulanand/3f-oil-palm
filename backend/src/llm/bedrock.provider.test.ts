@@ -220,6 +220,32 @@ test("a statement month filter matching either supported single-month window for
   }
 });
 
+for (const [shape, timeWindow] of [
+  ["an open-ended", { grain: "month", from: "2026-07-01" }],
+  ["an end-only", { grain: "month", to: "2026-07-01" }],
+  ["a last-one-month", { grain: "month", last: 1 }],
+] as const) {
+  test(`a statement month filter replaces ${shape} selection window`, async () => {
+    const fixture = providerWith([
+      toolResponse("emit_selection", {
+        domain: "mis-statement",
+        measureIds: ["mis-statement.actual_net"],
+        dimensionIds: ["leaf_key"],
+        filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+        timeWindow,
+      }),
+    ]);
+
+    const result = await fixture.provider.select(statementSelectionInput());
+
+    assert.equal(result.kind, "selection");
+    if (result.kind === "selection") {
+      assert.deepEqual(result.selection.filters, []);
+      assert.deepEqual(result.selection.timeWindow, { grain: "day", from: "2026-07-01", to: "2026-07-31" });
+    }
+  });
+}
+
 test("a statement month filter for a different month than the selection window is rejected", async () => {
   const fixture = providerWith([
     toolResponse("emit_selection", {
@@ -228,6 +254,23 @@ test("a statement month filter for a different month than the selection window i
       dimensionIds: ["leaf_key"],
       filters: [{ dimensionId: "month", op: "eq", value: "2026-06-01" }],
       timeWindow: { grain: "month", from: "2026-07-01", to: "2026-07-31" },
+    }),
+  ]);
+
+  assert.deepEqual(await fixture.provider.select(statementSelectionInput()), {
+    kind: "unsupported",
+    reason: LLM_MESSAGES.selectionFilterDimensionNotAllowed("month"),
+  });
+});
+
+test("a statement month filter conflicting with an explicit window that also carries last is rejected", async () => {
+  const fixture = providerWith([
+    toolResponse("emit_selection", {
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual_net"],
+      dimensionIds: ["leaf_key"],
+      filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+      timeWindow: { grain: "month", last: 1, from: "2026-06-01", to: "2026-06-30" },
     }),
   ]);
 
