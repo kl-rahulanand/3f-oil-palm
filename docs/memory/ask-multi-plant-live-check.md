@@ -24,21 +24,37 @@ Result: 5 of 5 on every run (target 5 of 5); no plant-scope refusal for any read
 
 ## Pre-change probe re-run (plan Notes, 2026-10-04)
 
-The admin now gets the plant picker on these (the probe's admin answers were DUB-only while listing
-every plant); choosing DUB reproduces the pre-change selection and rows.
+The admin now gets the plant picker on the first three (the probe's admin answers were DUB-only while
+listing every plant); choosing DUB reproduces the pre-change selection. Each question below returned the
+same full normalised selection on all 3 runs. In every one the domain and measures match the probe, the
+month filter the selector sent was normalised away (no ordinary filter remains), the period is
+July 2026 (`{grain: "day", column: "month", from: "2026-07-01", to: "2026-07-31"}`), and the only
+filter is the server's plant filter.
 
-| Question | Before | After (DUB chosen) |
-| --- | --- | --- |
-| show me list items where Actuals are more than the budget for July 2026 | Actual and Budget, `gl_code`, Actual > Budget, 21 rows | same, 21 rows |
-| which GL codes spent more than 5 lakh in July 2026 | Actual, `gl_code`, Actual > 500000.00, 2 rows | same, 2 rows, total 89,52,532.00 |
-| Actual by GL code for July 2026 | Actual, `gl_code`, 67 rows | same, 67 rows, total 1,15,12,712.07 |
-| which statement lines are over budget for July 2026 (DUB-only user, no picker) | Actual and Budget, `leaf_key`, Actual > Budget, 14 rows | same, 14 rows |
+| Question | Domain | Measures | Dimensions | Filters | Measure filters | Rows | Probe rows |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| show me list items where Actuals are more than the budget for July 2026 | governed-financial | actual, budget | gl_code | plant in [DUB] | actual > budget | 21 | 21 |
+| which GL codes spent more than 5 lakh in July 2026 | governed-financial | actual | gl_code | plant in [DUB] | actual > 500000.00 | 2 (total 89,52,532.00) | 2 |
+| Actual by GL code for July 2026 | governed-financial | actual | gl_code | plant in [DUB] | none | 67 (total 1,15,12,712.07) | 67 |
+| which statement lines are over budget for July 2026 (DUB-only user, no picker) | mis-statement | actual_net, budget_net | leaf_key | plant in [DUB] | actual_net > budget_net | 14 | 14 |
+
+## Full selections of the success questions (identical on all 3 runs)
+
+| # | Domain | Measures | Dimensions | Filters | Measure filters | Period |
+| - | --- | --- | --- | --- | --- | --- |
+| 1 | governed-financial | actual, budget | gl_code | plant in [DUB] | actual > budget | July 2026 |
+| 2 | governed-financial | actual | plant | plant in all 31 granted plants | none | July 2026 |
+| 3 | mis-statement | actual_net | leaf_key | plant in [CHIR, DUB] | actual_net > 0.00 | July 2026 |
+| 4 | governed-financial | actual, budget, percentage | gl_code | plant in [CHIR] | none | July 2026 |
+| 5 | mis-statement | actual_net | leaf_key | plant in [DUB] | none | July 2026 |
 
 ## Observations carried forward
 
-- A combined statement for several plants lists only the lines with a non-zero Actual (22), while a
-  one-plant statement lists every mapped line (81) including zeros. The totals and every listed line
-  are correct; the difference is presentation only.
+- Question 3's selector added a measure filter "Actual greater than 0.00" on all 3 runs, so the
+  combined statement lists the 22 lines with Actual and omits the 59 zero lines; the one-plant
+  statements (questions 3 per plant and 5) carry no such filter and list all 81 lines. Every listed
+  line and the total equal the per-plant sums, so the answer is correct; the extra filter is the
+  model's reading of the question, not the combined-statement code.
 - Post-merge QA findings that remain open are in the coordinator's QA notes of 2026-10-05; the period
   rule for Actual-versus-Budget questions with no period is being amended in
   `docs/specs/ask-period-control.md`.
