@@ -1,10 +1,26 @@
 {
   "doc": "plans/ASK-BUDGET-PERIOD.md",
-  "status": "planning",
+  "status": "read",
   "steps": [
     {
       "at": "2026-10-05T08:41:35+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T08:54:18+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-05T09:04:41+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-05T09:14:30+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-05T09:19:09+00:00",
+      "step": "read"
     }
   ],
   "title": "Actual-versus-Budget answers ask for the period and every answer shows its dates",
