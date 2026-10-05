@@ -515,6 +515,7 @@ function SuccessAnswer({
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string }>();
   const comparisonReadout = appliedComparisonReadout(response);
   const emptyComparisonMessage = appliedComparisonEmptyMessage(response);
+  const periodReadout = answerPeriodReadout(response);
 
   async function preserve(kind: "save" | "pin") {
     if (!response.selection) return;
@@ -551,7 +552,15 @@ function SuccessAnswer({
     <article className="ask-answer ask-success" aria-busy={turn.isPending || undefined}>
       {response.provenance?.verified && <span className="ask-verified">✓ Verified</span>}
       {response.title && <h2>{response.title}</h2>}
-      <PlantReadout plantNames={response.plantNames} />
+      <div className="ask-answer-context">
+        <PlantReadout plantNames={response.plantNames} />
+        {periodReadout && (
+          <p className="ask-report-reason min-w-0 break-words" aria-label={`Period: ${periodReadout}`}>
+            <span className="ask-report-reason-label">Period</span>
+            {periodReadout}
+          </p>
+        )}
+      </div>
       <LeftOutReadout leftOut={response.leftOut} />
       {comparisonReadout && <p className="ask-report-reason">{comparisonReadout}</p>}
       {response.totals && (
@@ -586,39 +595,36 @@ function SuccessAnswer({
         ))}
       {response.provenance && <ProvenanceDisclosure provenance={response.provenance} />}
       <ViewInReport response={response} />
-      {response.periodControl &&
-        (response.periodControl.current === null ? (
-          <p className="ask-period-coverage">{response.periodControl.coverage}</p>
-        ) : (
-          <label className="ask-period-control">
-            <span>Period</span>
-            <select
-              value={response.periodControl.current}
-              disabled={isPending}
-              onChange={(event) => {
-                const option = response.periodControl?.options.find(({ value }) => value === event.target.value);
-                if (option && response.selection) {
-                  void onContinue(
-                    turn.id,
-                    turn.question,
-                    {
-                      ...response.selection,
-                      timeWindow: option.timeWindow,
-                    },
-                    "retain",
-                    "period-choice",
-                  );
-                }
-              }}
-            >
-              {response.periodControl.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
+      {response.periodControl && response.periodControl.current !== null && (
+        <label className="ask-period-control">
+          <span>Period</span>
+          <select
+            value={response.periodControl.current}
+            disabled={isPending}
+            onChange={(event) => {
+              const option = response.periodControl?.options.find(({ value }) => value === event.target.value);
+              if (option && response.selection) {
+                void onContinue(
+                  turn.id,
+                  turn.question,
+                  {
+                    ...response.selection,
+                    timeWindow: option.timeWindow,
+                  },
+                  "retain",
+                  "period-choice",
+                );
+              }
+            }}
+          >
+            {response.periodControl.options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {turn.isPending && (
         <p className="ask-period-status" role="status">
           Loading the selected period…
@@ -1194,10 +1200,16 @@ function formatForKey(result: ResultTable | undefined, key: string): MeasureForm
 }
 
 function appliedComparisonReadout(response: AskResponse): string | undefined {
-  const comparisons = appliedComparisonLabels(response);
-  if (!comparisons) return undefined;
-  const period = appliedPeriodLabel(response);
-  return period ? `${comparisons} · ${period}` : comparisons;
+  return appliedComparisonLabels(response);
+}
+
+function answerPeriodReadout(response: AskResponse): string | undefined {
+  const window = response.appliedTimeWindow;
+  if (!window) return response.periodControl?.current === null ? response.periodControl.coverage : undefined;
+  const from = formatExactDate(window.from);
+  const to = formatExactDate(window.to);
+  if (!from || !to) return undefined;
+  return from === to ? from : `${from} – ${to}`;
 }
 
 function appliedComparisonEmptyMessage(response: AskResponse): string | undefined {
