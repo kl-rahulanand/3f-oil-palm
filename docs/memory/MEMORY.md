@@ -15,8 +15,3 @@ note drifts.
 - [Decisions during planning stale the requirements grill](decisions-during-planning-stale-the-requirements-grill.md)
   — mint and accept a story's decisions BEFORE recording its requirements pass, or pay for
   a second cold read and a second human round at `plan save`.
-
-## Live checks
-
-- [ASK-MULTI-PLANT live check](ask-multi-plant-live-check.md) — 2026-10-05: 5 of 5 success
-  questions, 3 runs each, probe answers unchanged after choosing DUB.
