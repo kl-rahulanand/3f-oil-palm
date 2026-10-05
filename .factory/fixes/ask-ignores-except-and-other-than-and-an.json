@@ -3,11 +3,32 @@
   "branch": "fix/ask-ignores-except-and-other-than-and-an",
   "done_when": "plants named after except, excluding, other than, but not or without are removed from the plant set instead of chosen: 'Actual by plant except DUB' covers every granted plant but DUB, 'for DUB excluding CHIR' covers DUB, 'all plants other than H.O' covers all but H.O; leaves for each",
   "kind": "fix",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "df77d3be9b0fefaece4ccba6cf0ccdb03307efe0ee65b8fd1b19bb4ac646a3f0",
+    "commit": "066ff2343303e297bbeacae8a434e89ac0acea9f",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The added test calls `ChatService` directly through `makeFixture`, which injects `FakeLlm`, `FakeExecutor`, and other fakes (`backend/src/chat/chat.service.test.ts:2998`). Moreover, only `except DUB` reaches that mocked service; `excluding CHIR` and `other than H.O` are exercised only as `questionPlantSet` unit assertions, while `but not` and `without` occur only in the helper-test loop. There are no named tests for each wording through the running API and browser flow with a real database, as required for this user-facing Done-when item. Add end-to-end Ask-flow leaves covering each required exclusion form and asserting the resulting plant-filtered answer.",
+        "file": "backend/src/chat/chat.service.test.ts",
+        "line": 764,
+        "priority": "P1",
+        "title": "Not done: each exclusion wording has an end-to-end Ask-flow test"
+      }
+    ],
+    "status": "blocked",
+    "tree": "33a9900d437ae568e767ebc570f71fe9aee12c824f14b8acb90d1dc39ed4b1e8"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-05T06:18:32+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T06:44:57+00:00",
+      "step": "review"
     }
   ],
   "why": "Ask ignores except and other than and answers for the excluded plant"
