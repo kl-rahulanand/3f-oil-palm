@@ -263,6 +263,23 @@ test("a statement month filter for a different month than the selection window i
   });
 });
 
+test("a statement month filter conflicting with an explicit window that also carries last is rejected", async () => {
+  const fixture = providerWith([
+    toolResponse("emit_selection", {
+      domain: "mis-statement",
+      measureIds: ["mis-statement.actual_net"],
+      dimensionIds: ["leaf_key"],
+      filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+      timeWindow: { grain: "month", last: 1, from: "2026-06-01", to: "2026-06-30" },
+    }),
+  ]);
+
+  assert.deepEqual(await fixture.provider.select(statementSelectionInput()), {
+    kind: "unsupported",
+    reason: LLM_MESSAGES.selectionFilterDimensionNotAllowed("month"),
+  });
+});
+
 test("a statement month filter using in remains unsupported", async () => {
   const fixture = providerWith([
     toolResponse("emit_selection", {

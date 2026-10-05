@@ -547,9 +547,9 @@ function reconcileMonthFilters(
   return { filters: reconciledFilters, timeWindow: reconciledWindow };
 }
 
-/** An open-ended (only from or only to) or relative (last N) window names no fixed period of its own. */
+/** A window missing its start or its end (open-ended or relative) names no fixed period of its own. */
 function isPartialWindow(timeWindow: NonNullable<Selection["timeWindow"]>): boolean {
-  return timeWindow.last !== undefined || timeWindow.from === undefined || timeWindow.to === undefined;
+  return timeWindow.from === undefined || timeWindow.to === undefined;
 }
 
 function monthWindow(filter: SelectionFilter): { grain: "day"; from: string; to: string } | undefined {
