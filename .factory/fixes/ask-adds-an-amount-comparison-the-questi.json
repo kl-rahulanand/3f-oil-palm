@@ -5,20 +5,20 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "639f14e3bebfe671935370ef246dc72275a6e351c2227915292204099a6f15cb",
-    "commit": "5fdb99a961239d1cb05e9975019c84e3090fbae1",
+    "changed": "40f992cfc3cfc48985bbfbd183eb592f64ba09d536dc73284bdda6e96da19c75",
+    "commit": "6c090e8e830df57358a46987079d37e4cf5de391",
     "dismissals": [],
     "findings": [
       {
-        "body": "The new identifier exclusion only removes counts when the noun precedes the numeral (`plants 3`), while natural input commonly uses the opposite order. The branch's own case \u201cActual for the 3 plants in July 2026\u201d therefore leaves `3` in `statedAmounts`; if the selector emits `Actual > 3`, the guard keeps that invented amount filter. The test masks this exact failure by omitting `3` from the amounts it asserts absent and then exercising only the unrelated `> 0` filter. This is new evidence not covered by the prior dismissal, and it breaks both the kept/dropped invariant and its required regression proof.",
+        "body": "The guard matches only the numeric operand and never checks whether the selected operator agrees with the question. Consequently, `Actual > 500` is retained for \u201cActual less than 500,\u201d and `Actual > 0` is retained for \u201clines with a negative Actual,\u201d producing the opposite result from the requested comparison. The changed tests mask this defect because `amountFilter()` always creates `op: \"gt\"`; lines 3610, 3613, 3614, and 3650 then assert that filter for \u201cbelow,\u201d \u201cnegative,\u201d \u201ccap,\u201d and \u201cless than\u201d wording. This operator-polarity evidence was not considered by the prior dismissal, which addressed equality support, prompt wording, and live-run line counts. The kept/dropped logic must validate the stated comparison direction, with inverted forms covered as dropped leaves.",
         "file": "backend/src/chat/unstated-amount-filter.ts",
-        "line": 27,
+        "line": 87,
         "priority": "P1",
         "title": "Not done: an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and"
       }
     ],
     "status": "blocked",
-    "tree": "cedcd0e6dd325da8b7bc9360ffb0827e4039d261b338ed4627427e733bfd9f59"
+    "tree": "fd6f95fdecf24e1c5575927650aa36ed629c0639c6a2c2654379f1098fe09576"
   },
   "status": "fixing",
   "steps": [
@@ -40,6 +40,10 @@
     },
     {
       "at": "2026-10-05T09:02:45+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T09:12:45+00:00",
       "step": "review"
     }
   ],
