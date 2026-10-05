@@ -3,11 +3,32 @@
   "branch": "fix/statement-questions-still-fail-when-the",
   "done_when": "on a domain without a month field, a single month filter becomes the answer's period whatever partial period the model also sent; the open, last-1-month and end-only shapes seen live all reach the plant picker, and only a conflicting explicit from-to period is still rejected; leaves per shape",
   "kind": "fix",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "363af2bd997e9c5506d3525d56f90f2e1c598d63d0428495c8c2db9a299d289b",
+    "commit": "c76238568c338c333948c6d8e837e140b1148c4c",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The new regression test loops over all three windows inside one test and calls only `BedrockLlmProvider.select`. It therefore neither invokes the Ask flow nor asserts that `plantChoice` is returned, and the runner exposes one combined leaf instead of separate open-ended, end-only, and last-one-month leaves. The required plant-picker handoff could regress while this test remains green. Add separately named end-to-end leaves exercising each recorded shape through the real Ask entry point and asserting the picker.",
+        "file": "backend/src/llm/bedrock.provider.test.ts",
+        "line": 223,
+        "priority": "P1",
+        "title": "Not done: each partial-period shape reaches the plant picker in its own test leaf"
+      }
+    ],
+    "status": "blocked",
+    "tree": "d4952e3f6a8072c86dab13c8a55fb7e9290c317b9fac9d3ca91dcb38e9dad68d"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-05T06:18:31+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T06:33:59+00:00",
+      "step": "review"
     }
   ],
   "why": "Statement questions still fail when the model sends the month with an open, relative or end-only period"
