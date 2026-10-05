@@ -2,7 +2,7 @@
 slug: ask-period-control
 title: Recoverable periods in Ask
 status: draft
-saved: 2026-10-05T07:21:47+00:00
+saved: 2026-10-05T07:26:56+00:00
 ---
 
 # Recoverable periods in Ask
@@ -65,22 +65,43 @@ recovery and a settled answer never share one field:
   carrying a COMPLETE `timeWindow` - `grain`, `column`, `from`, `to` - plus its `value` and `label`.
   A period-less base selection has no `timeWindow` and `Selection.timeWindow` requires a `grain`,
   so the option supplies the whole window and the client never invents a field.
-- A successful data response gains a **period control**: the same shape, with the entry matching
-  the window the answer actually ran on marked as current.
+- A successful data response gains a **period control** (`AskResponse.periodControl`): the same
+  `options` entries, with `current` holding the `value` of the entry matching the window the answer
+  ran on, or null with a `coverage` sentence when it ran on no window. It does not repeat the base
+  selection or the question; the client uses the answer's own `selection` and the turn's question.
 
 In both cases the client clones the base selection with the chosen window and posts it as
 `AskRequest.selection`, which `chat.service.ts:146` runs verbatim, skipping the selector. Today's
 `options: string[]` / `resumesQuestion` path is untouched for its existing users.
 
 **An Actual-versus-Budget answer with no period asks for the period**, in the governed-financial
-domain, with the same typed period choice. It applies when the selection shows an actual measure and
-a budget measure together (side by side, as a variance or as a percentage of budget) or filters one
-against the other (over or under budget). The plant choice comes first, so nothing is read before
-either choice. The offered periods are each month with loaded actuals, plus the financial year to
-date from April through the latest month with loaded actuals, each a complete window on both sides
-of the comparison. A question that names a period answers directly, and an answer that shows only
-Actual or only Budget keeps the all-loaded-data rule. With no month of loaded actuals there is
-nothing to compare, and the existing no-budget or no-data answer stands.
+domain, with the same typed period choice. The trigger is mechanical, read from the selection after
+the server has applied its plant set:
+
+- its `measureIds` contain `governed-financial.actual` together with `governed-financial.budget`, or
+  contain `governed-financial.percentage` (Actual as a percentage of Budget) with or without others; or
+- a `measureFilters` entry compares one of those two measures against the other (Actual over Budget,
+  Budget over Actual, either operator).
+
+`governed-financial.budget` alone, `governed-financial.actual` alone, and a filter against a fixed
+amount ("more than 5 lakh") do not trigger it and keep the all-loaded-data rule. A measure added later
+that reads both Actual and Budget joins the first rule when it is added.
+
+The plant choice comes first (`ask-multi-plant.md`), so nothing is read before either choice. The
+offered periods come from the active actual batches restricted to the chosen plant set; other filters
+do not narrow the list. They are each month with at least one actual row for those plants, newest
+first, plus one "financial year to date" option running from 1 April of the financial year that
+contains the newest such month (April to March, so January 2027 belongs to the year starting
+1 April 2026) through the last day of that month. Every option is a complete window and applies to
+both sides of the comparison. A question that names a period answers directly. When the chosen
+plants have no month of actuals, Ask answers `NotSupported` with "No actuals are loaded for the
+chosen plants, so there is nothing to compare against Budget." and offers no period.
+
+**Every successful data answer shows its period under the title**, beside the plants it covers, as
+exact dates: "1 Jul 2026 – 31 Jul 2026" for July, "1 Apr 2026 – 31 Aug 2026" for a year to date. The
+dates are the window the answer ran on (`appliedTimeWindow`), so changing the period updates the line.
+An answer with no window says "All loaded data" in the same place. The over- and under-budget
+readout no longer repeats the period, since the line above now carries it.
 
 **Scope problems explain rather than offer.** `statementRequest` cannot distinguish "no department"
 from "several departments", and department and function are provisioned scope attributes, not
@@ -90,8 +111,10 @@ an administrator must set it.
 **Failure precedence is fixed and total**, because four different causes currently collapse into one
 `undefined`. In order, first match wins:
 
-1. Scope - any of department, function, plant absent or ambiguous. `BlockedByPolicy`, naming the
-   first offending attribute in that order, with no period options.
+1. Scope - department or function absent or ambiguous. `BlockedByPolicy`, naming the first
+   offending attribute in that order, with no period options. Plant is decided earlier by
+   `ask-multi-plant.md` (amended 2026-10-05): no granted plant is refused, several are resolved by
+   the plant choice, so plant never reaches this step.
 2. No mapping configured for the resolved triple. `NotSupported`, its own message. The resolver
    already checks mapping before period availability and that order is kept.
 3. No periods loaded at all. `NotSupported`, its own message, distinct from a missing period.
@@ -116,7 +139,8 @@ is shown against it rather than blanking it.
 
 **A re-run is a fresh governed query, not a snapshot.** It re-authorizes, audits and reads the
 currently active batches, so under decision 0028 an identical choice may legitimately return
-different values after a reload; the response carries the batch ids that produced what is on screen.
+different values after a reload; the response carries the batch ids that produced what is on screen, every active batch the query
+read, in `provenance.activeBatchIds`.
 
 ## Acceptance criteria
 
@@ -146,15 +170,22 @@ different values after a reload; the response carries the batch ids that produce
    missing period; a same-day period that is not offered; a partial-month range; a multi-month
    range; an empty period list; each of department, function and plant absent and ambiguous; no
    mapping; a successful statement answer; a successful governed answer with a window; a successful
-   governed answer with no window; and a failed replacement. Any claim made against the live PoC
+   governed answer with no window; a failed replacement; and a replacement refused for revoked
+  access, proven in the Ask panel to leave the previous answer readable, clear the pending state,
+  show the refusal against that answer and keep the question as typed. Any claim made against the live PoC
    additionally names its sample count and no live claim rests on a single run.
 10. A governed-financial Ask question that shows Actual and Budget together, or filters one against
-    the other, and names no period returns `ClarificationNeeded` with a period choice after any plant
-    choice, reads no figure before the choice, and offers each month with loaded actuals plus the
-    year to date through the latest of them; choosing an option answers with no selector call.
+    the other (the trigger above, one leaf per trigger form), and names no period returns
+    `ClarificationNeeded` with a period choice after any plant choice, reads no figure before the
+    choice, and offers each month with actuals for the chosen plants, newest first, plus the
+    financial year to date through the newest of them; choosing an option answers with no selector
+    call; and chosen plants with no month of actuals get the `NotSupported` message above.
 11. The same question naming a period answers directly; a question showing only Actual or only
     Budget with no period still answers over all loaded data; and over-budget for July 2026 on DUB
     after choosing July is unchanged: 21 codes, with 50001201 at 83,98,339.
+12. Every successful data answer shows its period under the title as exact from and to dates of the
+    window it ran on, or "All loaded data" with no window; switching the period updates the line;
+    and the over- or under-budget readout does not repeat it.
 
 ## Success measure
 
