@@ -5,8 +5,8 @@ metadata:
   type: project
 ---
 
-Run by the coordinator on 2026-10-05 against master at the merge of #113 (this story's parts #98-#110,
-plus fixes #111, #112 and #113), live Bedrock, the July 2026 warehouse with migration 0004 applied,
+Run by the coordinator on 2026-10-05 against master at the merge of #115 (this story's parts #98-#110,
+plus fixes #111, #112, #113 and #115), live Bedrock, the July 2026 warehouse with migration 0004 applied,
 backend on port 4001, mock OTP. Each question in a fresh conversation, each run 3 times; every figure
 below was the same on all 3 runs and was checked against the warehouse or the per-plant answers.
 
@@ -16,7 +16,7 @@ below was the same on all 3 runs and was checked against the warehouse or the pe
 | - | --- | --- | --- | --- |
 | 1 | Which GL codes had Actual over Budget in July 2026? | plant picker, chose DUB | 21 GL codes, Actual 1,08,06,145.73 against Budget 82,34,666.97; 50001201 at 83,98,339.00 (Budget 80,00,000.00) | matches the pre-change probe |
 | 2 | Actual by plant for July 2026 | plant picker, chose All plants | 31 rows, total 11,02,73,718.00 | equals the warehouse's July `actual_by_gl_month` sum over all plants |
-| 3 | What was the Actual for each MIS statement line in July 2026 for DUB and CHIR? | no picker (plants named) | one combined statement, 22 lines, total 1,21,93,273.96 | every line equals DUB's line plus CHIR's line to the paisa (0 mismatches over 81 keys); DUB 1,15,12,712.07 + CHIR 6,80,561.89 |
+| 3 | What was the Actual for each MIS statement line in July 2026 for DUB and CHIR? | no picker (plants named) | one combined statement, all 81 lines, total 1,21,93,273.96 | every line equals DUB's line plus CHIR's line to the paisa (0 mismatches over 81 keys); DUB 1,15,12,712.07 + CHIR 6,80,561.89 |
 | 4 | Actual, Budget and % by GL code for July 2026 for CHIR | no picker | 17 CHIR GL rows, Actual 6,80,561.89; Budget and % columns present, all 17 rows "not-loaded" with null Budget and % | CHIR has no loaded budget |
 | 5 | What was the Actual for each MIS statement line in July 2026? | plant picker, chose DUB | 81 DUB statement lines, 80 labelled, total 1,15,12,712.07 | the unlabelled line is `unmapped-GL`, as before this story |
 
@@ -44,17 +44,16 @@ filter is the server's plant filter.
 | - | --- | --- | --- | --- | --- | --- |
 | 1 | governed-financial | actual, budget | gl_code | plant in [DUB] | actual > budget | July 2026 |
 | 2 | governed-financial | actual | plant | plant in all 31 granted plants | none | July 2026 |
-| 3 | mis-statement | actual_net | leaf_key | plant in [CHIR, DUB] | actual_net > 0.00 | July 2026 |
+| 3 | mis-statement | actual_net | leaf_key | plant in [CHIR, DUB] | none | July 2026 |
 | 4 | governed-financial | actual, budget, percentage | gl_code | plant in [CHIR] | none | July 2026 |
 | 5 | mis-statement | actual_net | leaf_key | plant in [DUB] | none | July 2026 |
 
 ## Observations carried forward
 
-- Question 3's selector added a measure filter "Actual greater than 0.00" on all 3 runs, so the
-  combined statement lists the 22 lines with Actual and omits the 59 zero lines; the one-plant
-  statements (questions 3 per plant and 5) carry no such filter and list all 81 lines. Every listed
-  line and the total equal the per-plant sums, so the answer is correct; the extra filter is the
-  model's reading of the question, not the combined-statement code.
+- Before #115, question 3's selector added a measure filter "Actual greater than 0.00" on 3 of 4
+  runs, so the combined statement listed only its 22 non-zero lines. #115 keeps an amount comparison
+  only when the question states the amount, and on this run question 3 listed all 81 lines on every
+  run with no measure filter.
 - Post-merge QA findings that remain open are in the coordinator's QA notes of 2026-10-05; the period
   rule for Actual-versus-Budget questions with no period is being amended in
   `docs/specs/ask-period-control.md`.
