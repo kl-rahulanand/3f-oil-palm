@@ -1,0 +1,14 @@
+{
+  "base": "2197b8dd59b082e79f44bbb6e2639627fbe4a96f",
+  "branch": "fix/statement-questions-still-fail-when-the",
+  "done_when": "on a domain without a month field, a single month filter becomes the answer's period whatever partial period the model also sent; the open, last-1-month and end-only shapes seen live all reach the plant picker, and only a conflicting explicit from-to period is still rejected; leaves per shape",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-05T06:18:31+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Statement questions still fail when the model sends the month with an open, relative or end-only period"
+}
