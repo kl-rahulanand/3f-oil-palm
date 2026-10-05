@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "2fa8b853b32616a707c0f6c5faa55835baeafa7b62d747be68102b2cd980feff",
     "commit": "e685e5cabd3afd9903d96e8853ec33562041b970",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "frontend/src/features/assistant/ask-panel.tsx:555 The UI review is recorded in commit 8f3d2068 'Finish the answer-context UI review' on this branch: impeccable's Operate-mode shape, the batched desktop and iPhone-width audit and the polish pass, and the emil-design-eng interaction checklist as a before/after table (label contrast raised from 2.6:1 to about 5.2:1, static metadata kept, native labelled Period select kept), plus the browser functional walk. The review saw only the later merge commit e685e5ca, whose message forge wrote when merging master, so it missed that handoff.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The new visible answer-context layout and period readout still lack the required impeccable shape/audit/polish pass and specifically tasked emil-design-eng interaction checklist. The supplied handoff records only the browser functional walk, while the task record itself retains this finding and remains blocked/fixing, so the mandatory UI inspection is unresolved.",
@@ -14,10 +20,10 @@
         "title": "Not done: impeccable and emil-design-eng UI review"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "aaf6946ab0077fd86dc7fc52460441e0d260ab262047814a9596c4ae5de047c5"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-05T09:22:09+00:00",
