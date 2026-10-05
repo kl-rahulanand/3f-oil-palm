@@ -65,6 +65,7 @@ import {
   validatePlantFilter,
 } from "./plant-set";
 import { withoutRedundantMonthFilter } from "./redundant-month-filter";
+import { withoutUnstatedAmountFilters } from "./unstated-amount-filter";
 import { applyBudgetStates, comparisonNeedsBudget } from "./ask-budget-states";
 import {
   type AppliedTimeWindow,
@@ -547,6 +548,17 @@ export class ChatService {
     const resolved = resolveSelectionTimeWindow(domain, selection);
     selection = resolved.selection;
     selection = withoutRedundantMonthFilter(selection);
+    if (!usesEditedSelection) {
+      const amountFilters = withoutUnstatedAmountFilters(selection, question, priorSelection);
+      if (amountFilters.dropped.length > 0) {
+        this.logger.log("debug", "Ask selector amount comparison dropped", {
+          module: "ChatService",
+          accountId: user.id,
+          context: { droppedMeasureFilters: amountFilters.dropped },
+        });
+      }
+      selection = amountFilters.selection;
+    }
     const normalizedSelection = await this.normalizeFilterValues(selection, domain, cfg.dimensionEnumMax);
     if (normalizedSelection.kind === "clarify")
       return done({
