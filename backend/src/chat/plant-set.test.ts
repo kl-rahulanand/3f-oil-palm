@@ -6,6 +6,7 @@ import {
   PLANT_REFUSAL_MESSAGES,
   matchQuestionPlants,
   plantChoiceOptions,
+  questionPlantSet,
   validatePlantFilter,
 } from "./plant-set";
 
@@ -25,6 +26,43 @@ test("plant names in a question resolve by canonical SAP and display aliases wit
   for (const question of ["check July Actual Budget GL statement", "actual for ck", "TASKS"]) {
     assert.deepEqual(matchQuestionPlants(question), [], question);
   }
+});
+
+test("a plant named after a negating word is left out of the question's plant set", () => {
+  const granted = ["CHIR", "DUB", "H.O", "VJM"];
+  for (const word of [
+    "except",
+    "except for",
+    "excluding",
+    "exclude",
+    "other than",
+    "but not",
+    "apart from",
+    "without",
+    "not",
+  ]) {
+    assert.deepEqual(questionPlantSet(`Actual for July 2026 ${word} DUB`, granted), ["CHIR", "H.O", "VJM"], word);
+    assert.deepEqual(questionPlantSet(`Actual for CHIR and VJM ${word} DUB`, granted), ["CHIR", "VJM"], word);
+  }
+
+  assert.deepEqual(questionPlantSet("Actual by plant for July 2026 except DUB", granted), ["CHIR", "H.O", "VJM"]);
+  assert.deepEqual(questionPlantSet("Actual by GL code for July 2026 for all plants other than H.O", granted), [
+    "CHIR",
+    "DUB",
+    "VJM",
+  ]);
+  assert.deepEqual(questionPlantSet("Actual by GL code for July 2026 for DUB excluding CHIR", granted), ["DUB"]);
+  assert.deepEqual(questionPlantSet("Actual except DUB and CHIR", granted), ["H.O", "VJM"]);
+  assert.deepEqual(questionPlantSet("Actual except the DUB, CHIR or Operations - Unit - VJM plants", granted), ["H.O"]);
+  assert.deepEqual(questionPlantSet("Actual for DUB, not CHIR, and VJM", granted), ["DUB"]);
+  assert.deepEqual(questionPlantSet("Actual excluding Agri - Nursery - DUB", granted), ["CHIR", "H.O", "VJM"]);
+
+  assert.deepEqual(questionPlantSet("Actual for DUB and CHIR", granted), ["CHIR", "DUB"]);
+  assert.deepEqual(questionPlantSet("Which codes are not over budget for DUB", granted), ["DUB"]);
+  assert.deepEqual(questionPlantSet("Actual for another DUB view", granted), ["DUB"]);
+  assert.equal(questionPlantSet("Actual for July 2026 except budget", granted), undefined);
+  assert.deepEqual(questionPlantSet("Actual except DUB", ["DUB"]), []);
+  assert.deepEqual(questionPlantSet("Actual for DUB except DUB", granted), []);
 });
 
 test("the plant filter is exactly one canonical in-filter and valid values are sorted and deduplicated", () => {
