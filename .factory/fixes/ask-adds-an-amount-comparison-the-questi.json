@@ -5,20 +5,20 @@
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "changed": "bf2485181b71dea4ee5c5a8eed829a3375bd7e2d000fc5624de85c1a0b553118",
-    "commit": "78c03ddeda7922ffdbf7ee3ac64c9dfc35593873",
+    "changed": "542692d6ab575c127520ae17b726acbd06daf107d6d8baeaa1afb70b64fb7516",
+    "commit": "011ec202544006d2cb2445eb934ac57abb837e19",
     "dismissals": [],
     "findings": [
       {
-        "body": "The required Done-when is not met. `statesAmountComparison` treats any non-date digit as an amount, so identifier-only questions such as \u201cActual for GL 50001201\u201d or \u201cstatement line 9.01\u201d retain a selector-invented `Actual > 0` filter and can still drop zero lines. The selector prompt at `backend/src/llm/llm.constants.ts:56` was not updated with the required explicit prohibition against adding unstated comparisons. Finally, the added tests use fake selector/executor fixtures; there is no real-entry-point proof or recorded 4-of-4 live result showing all 81 DUB/CHIR lines. Required title: `Not done: an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and the DUB and CHIR each-line statement lists all 81 lines in 4 of 4 live runs; leaves for kept and dropped forms`.",
+        "body": "The required Done-when remains unmet. Although bare identifiers are now excluded, the guard still drops legitimate comparisons such as \u201cShow Actual is 500\u201d or \u201cspend equals 500\u201d: these state an amount comparison, but the pattern on this line recognizes neither `is` nor `equals`, so the value filter is removed at line 41. The unchanged selector prompt at `backend/src/llm/llm.constants.ts:56-61` still does not say never to add an unstated comparison. Finally, the new Ask tests use `FakeLlm` and `FakeExecutor` (`chat.service.test.ts:3117-3119`) and return one fixture row; neither they nor the supplied branch record prove that DUB and CHIR return all 81 statement lines in 4 of 4 live runs through the real API, database, and Bedrock selector. Required title: `Not done: an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and the DUB and CHIR each-line statement lists all 81 lines in 4 of 4 live runs; leaves for kept and dropped forms`.",
         "file": "backend/src/chat/unstated-amount-filter.ts",
-        "line": 39,
+        "line": 10,
         "priority": "P1",
         "title": "Not done: amount guard, selector prompt, 81-line live runs, and kept/dropped leaves"
       }
     ],
     "status": "blocked",
-    "tree": "2c01fe230beb1af66ac3ad492580d93bac0c3e1ddbf8e6022d6c78db9ad876e2"
+    "tree": "89481767af89f788c93cc39735eabd3fa877fd4abbc02359f5b242e996e7efc5"
   },
   "status": "fixing",
   "steps": [
@@ -28,6 +28,10 @@
     },
     {
       "at": "2026-10-05T08:09:36+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T08:17:24+00:00",
       "step": "review"
     }
   ],
