@@ -3,11 +3,24 @@
   "branch": "fix/actual-vs-budget-answers-with-no-period",
   "done_when": "the period-control spec says any answer showing Actual and Budget together with no period asks for the period first, after the plant choice, and the spec is confirmed",
   "kind": "fix",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "14f69a0d36cc0255d0992704ffaec4c66a449b256fb2eb46e16ec3322d3cf641",
+    "commit": "89d5fc901385855ed7f8a02db39d5011aadf67aa",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "a8a9cd0915dbe1200d13944d9fa904d7be98f422206ab06c83f742d15145bd88"
+  },
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-05T07:21:03+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T08:36:40+00:00",
+      "step": "review"
     }
   ],
   "why": "Actual-vs-Budget answers with no period compare one month of actuals against a full year of budget"
