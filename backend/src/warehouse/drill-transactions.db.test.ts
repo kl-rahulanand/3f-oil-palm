@@ -24,6 +24,26 @@ test("the destructive drill transactions proof refuses a non-local warehouse hos
 });
 
 test(
+  "WAREHOUSE_DB_TEST returns July for a CHIR and VJM plant set when only CHIR has Actual rows",
+  { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
+  async () => {
+    assertLocalWarehouseHost(process.env.WAREHOUSE_PG_HOST);
+    await migrateWarehouse();
+    const pool = await createWarehouseWritePool();
+    try {
+      await pool.query("TRUNCATE sap_transaction, mis_budget, ingest_batch CASCADE");
+      const fixture = new IngestionRepository(createWarehouseDb(pool));
+      await fixture.replaceActualsBatch(metadata(JULY), [fixtureRow("CHIR-JULY", JULY, "1.00", "1", "CHIR")]);
+      const repository = new DrillTransactionsRepository(new SqlValidator(), new PostgresAdapter());
+
+      assert.deepEqual(await repository.findActiveActualMonthsForPlants(["CHIR", "VJM"]), [JULY]);
+    } finally {
+      await pool.end();
+    }
+  },
+);
+
+test(
   "WAREHOUSE_DB_TEST proves client July footing plus fixture multi-period footing and stable two-page identities",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async () => {
@@ -199,14 +219,14 @@ function metadata(period: string) {
   };
 }
 
-function fixtureRow(txnNo: string, month: string, debit: string, lineId = "1") {
+function fixtureRow(txnNo: string, month: string, debit: string, lineId = "1", plant = "DUB") {
   return {
     txnNo,
     lineId,
     postingDate: month,
     month,
-    plant: "DUB",
-    plantSrc: "DUB-NUR",
+    plant,
+    plantSrc: `${plant}-NUR`,
     costCenter: "Imported Sprouts",
     glCode: "50001201",
     acctName: "Fixture",

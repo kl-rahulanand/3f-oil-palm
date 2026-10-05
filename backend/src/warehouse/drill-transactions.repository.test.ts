@@ -208,6 +208,24 @@ test("active Actual pins are read for the inclusive window in period order and c
   assert.match(warehouse.executed[0]!, /ORDER BY period/);
 });
 
+test("active Actual months are read newest first for the quoted plant set", async () => {
+  const warehouse = new FakeWarehouse([{ month: "2026-07-01T00:00:00.000Z" }, { month: "2026-04-01" }]);
+
+  const months = await new DrillTransactionsRepository(new SqlValidator(), warehouse).findActiveActualMonthsForPlants([
+    "CHIR",
+    "VJ'M",
+  ]);
+
+  assert.deepEqual(months, ["2026-07-01", "2026-04-01"]);
+  assert.equal(warehouse.executed.length, 1);
+  assert.match(warehouse.executed[0]!, /FROM sap_transaction AS txn/);
+  assert.match(warehouse.executed[0]!, /INNER JOIN ingest_batch AS batch ON batch\.id = txn\.batch_id/);
+  assert.match(warehouse.executed[0]!, /batch\.source_kind = 'actuals'/);
+  assert.match(warehouse.executed[0]!, /batch\.is_active/);
+  assert.match(warehouse.executed[0]!, /txn\.plant IN \('CHIR', 'VJ''M'\)/);
+  assert.match(warehouse.executed[0]!, /ORDER BY txn\.month DESC/);
+});
+
 test("active Budget periods are read once for an inclusive range", async () => {
   const warehouse = new FakeWarehouse([{ period: "2026-04-01T00:00:00.000Z" }, { period: "2026-07-01" }]);
 
