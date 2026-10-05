@@ -1,0 +1,31 @@
+{
+  "branch": "task/ASK-MULTI-PLANT-MP-LIVE",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "9f9efbd1cbf10d1663d96ffcf5cc1c7cc336a95135532b1a4cb13d5b78c939c3",
+    "commit": "3a7d761524d41ee0824adf8bfe6239786686c5b0",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "13430582a6d4ff697f3490adaefa6ee03c58ecfc1859df9a19a08a6bb3f9b907"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-04T18:11:10+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-05T07:35:00+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T07:46:42+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-05T09:31:08+00:00",
+      "step": "review"
+    }
+  ]
+}
