@@ -1,8 +1,8 @@
 ---
 slug: ask-period-control
 title: Recoverable periods in Ask
-status: confirmed
-saved: 2026-09-15T06:02:46+00:00
+status: draft
+saved: 2026-10-05T07:21:47+00:00
 ---
 
 # Recoverable periods in Ask
@@ -36,10 +36,16 @@ A period the user has explicitly clicked must never be re-guessed.
 `periods` include `FY 26-27 YTD`, a twelve-month range, while `statementPeriod` needs a single
 period point. Measured: `... (FY 26-27 YTD)` is `not_supported` 4/4.
 
-**A governed-financial answer can legitimately have no period at all.** `Show Actual and Budget by
-GL code` succeeds 4/4 with **no time window**, summing every loaded month (budget 32,000,000
-against July's 8,000,000); its readback carries no period clause. Nothing may invent a period for
-such an answer.
+**A governed-financial answer can legitimately have no period at all.** `Show Actual by GL code`
+sums every loaded month and its readback says so. Nothing may invent a period for such an answer.
+
+**An answer that sets Actual against Budget cannot.** Amended 2026-10-05 after the multi-plant QA:
+`Which GL codes had Actual over Budget?` with no period compared July's actuals (the only loaded
+actual month) against the full year's budget (April to March) and returned 8 codes, against 21 for
+July on its own; `Show Actual and Budget by GL code` showed budget 32,000,000 against July's
+8,000,000 the same way. Each side is "all loaded data", but the two sides cover different months, so
+the comparison reads as underspending. The owner chose that such a question asks for the period
+rather than guess one.
 
 **Three different failures share one dead end.** `chat.service.ts` returns `NotSupported` at
 `:322` (no selector set or no period), `:331` (`SelectionPeriodUnavailableError` - the period is
@@ -65,6 +71,16 @@ recovery and a settled answer never share one field:
 In both cases the client clones the base selection with the chosen window and posts it as
 `AskRequest.selection`, which `chat.service.ts:146` runs verbatim, skipping the selector. Today's
 `options: string[]` / `resumesQuestion` path is untouched for its existing users.
+
+**An Actual-versus-Budget answer with no period asks for the period**, in the governed-financial
+domain, with the same typed period choice. It applies when the selection shows an actual measure and
+a budget measure together (side by side, as a variance or as a percentage of budget) or filters one
+against the other (over or under budget). The plant choice comes first, so nothing is read before
+either choice. The offered periods are each month with loaded actuals, plus the financial year to
+date from April through the latest month with loaded actuals, each a complete window on both sides
+of the comparison. A question that names a period answers directly, and an answer that shows only
+Actual or only Budget keeps the all-loaded-data rule. With no month of loaded actuals there is
+nothing to compare, and the existing no-budget or no-data answer stands.
 
 **Scope problems explain rather than offer.** `statementRequest` cannot distinguish "no department"
 from "several departments", and department and function are provisioned scope attributes, not
@@ -132,6 +148,25 @@ different values after a reload; the response carries the batch ids that produce
    mapping; a successful statement answer; a successful governed answer with a window; a successful
    governed answer with no window; and a failed replacement. Any claim made against the live PoC
    additionally names its sample count and no live claim rests on a single run.
+10. A governed-financial Ask question that shows Actual and Budget together, or filters one against
+    the other, and names no period returns `ClarificationNeeded` with a period choice after any plant
+    choice, reads no figure before the choice, and offers each month with loaded actuals plus the
+    year to date through the latest of them; choosing an option answers with no selector call.
+11. The same question naming a period answers directly; a question showing only Actual or only
+    Budget with no period still answers over all loaded data; and over-budget for July 2026 on DUB
+    after choosing July is unchanged: 21 codes, with 50001201 at 83,98,339.
+
+## Success measure
+
+- Metric: of three no-period questions asked by the seeded DUB reader on the July data, each in a
+  fresh conversation and each asked 4 times against the live model, how many runs show the period
+  choice and, after choosing July 2026, the expected answer: "Which GL codes had Actual over
+  Budget?" (21 codes, 50001201 at 83,98,339), "Show Actual and Budget by GL code" (Budget for July
+  only) and "Which GL codes are under budget?" (July on both sides).
+- Baseline: 0 of 12 on 2026-10-05; each answered at once with the full-year budget against July's
+  actuals (8 codes for the first question).
+- Target: 12 of 12, and "Show Actual by GL code" with no period still answers at once 4 of 4.
+- Check date: 2026-10-12
 
 ## Out of scope
 
@@ -142,5 +177,7 @@ different values after a reload; the response carries the batch ids that produce
 - Showing batch ids in the Ask panel's "How this was calculated" disclosure. They travel in the
   response and criterion 8 checks them there; the disclosure currently renders only readback,
   measures, scope and freshness, and widening it is a separate gap.
+- Saved views and pins saved with no period before the 2026-10-05 amendment keep running as saved;
+  answers saved after it carry the period the person chose.
 - `requiredTimeWindowClarify`'s day-range options, which are wrong for a monthly statement but
   belong to a different gate.
