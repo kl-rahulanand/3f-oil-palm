@@ -2,7 +2,7 @@
 slug: ask-period-control
 title: Recoverable periods in Ask
 status: draft
-saved: 2026-10-05T07:36:58+00:00
+saved: 2026-10-05T07:39:23+00:00
 ---
 
 # Recoverable periods in Ask
@@ -137,8 +137,9 @@ never produce a refusal.
 4. Period missing, not among the offered periods, or spanning more than one of them.
    `ClarificationNeeded` with the period choice above.
 
-**Every successful data answer shows the period it ran on and lets the user change it**, in both
-domains. A statement answer offers the loaded months. A governed-financial answer offers the same
+**Every successful data answer that ran on a window shows that period and lets the user change
+it**, in both domains. An answer that ran on no window shows its coverage sentence and offers no
+switch, as today; asking again with a period gives one. A statement answer offers the loaded months. A governed-financial answer offers the same
 months plus the window it actually ran on, marked current. An answer that resolved to no window
 states that it covers **all loaded data within the asker's access scope and any filters the question
 applied** - governed queries inject the user's plant scope at `sqlBuilder.ts:88`, so "all loaded
@@ -171,8 +172,8 @@ read, in `provenance.activeBatchIds`.
 4. The four failure causes resolve in the fixed order scope, no mapping, no periods loaded, period -
    each with its own response class and message, and a scope failure (no granted plant) offers no
    periods.
-5. A successful data answer in either domain carries a period control whose current entry is the
-   window the answer ran on; choosing another replaces that answer in place, the replacement's
+5. A successful data answer in either domain that ran on a window carries a period control whose
+   current entry is that window; choosing another replaces that answer in place, the replacement's
    control shows the new period, and the asked question is unchanged.
 6. A successful answer that resolved to no window states that it covers all loaded data within the
    asker's access scope and any filters the question applied; informational, clarification and
