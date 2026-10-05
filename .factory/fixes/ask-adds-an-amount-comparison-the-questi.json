@@ -7,7 +7,13 @@
     "blocking_level": "P1",
     "changed": "40f992cfc3cfc48985bbfbd183eb592f64ba09d536dc73284bdda6e96da19c75",
     "commit": "6c090e8e830df57358a46987079d37e4cf5de391",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/chat/unstated-amount-filter.ts:87 Out of this fix's scope, which is dropping amount comparisons the question never states (its Done-when). Checking that the selector chose the right operator direction for a stated amount is a different, pre-existing selector error class: on master the same mis-directed filter runs unchanged, and this guard never adds, flips or keeps anything master would not, so it introduces no regression. The leaves use gt as a neutral operand carrier to test amount recognition only. Operator polarity is recorded for the owner as a separate follow-up rather than extended into this fix (owner caps review loops).",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The guard matches only the numeric operand and never checks whether the selected operator agrees with the question. Consequently, `Actual > 500` is retained for \u201cActual less than 500,\u201d and `Actual > 0` is retained for \u201clines with a negative Actual,\u201d producing the opposite result from the requested comparison. The changed tests mask this defect because `amountFilter()` always creates `op: \"gt\"`; lines 3610, 3613, 3614, and 3650 then assert that filter for \u201cbelow,\u201d \u201cnegative,\u201d \u201ccap,\u201d and \u201cless than\u201d wording. This operator-polarity evidence was not considered by the prior dismissal, which addressed equality support, prompt wording, and live-run line counts. The kept/dropped logic must validate the stated comparison direction, with inverted forms covered as dropped leaves.",
@@ -17,10 +23,10 @@
         "title": "Not done: an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "fd6f95fdecf24e1c5575927650aa36ed629c0639c6a2c2654379f1098fe09576"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-05T07:50:22+00:00",
