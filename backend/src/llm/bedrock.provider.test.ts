@@ -220,14 +220,12 @@ test("a statement month filter matching either supported single-month window for
   }
 });
 
-test("a statement month filter replaces an open-ended, end-only or relative selection window", async () => {
-  const windows = [
-    { grain: "month", from: "2026-07-01" },
-    { grain: "month", to: "2026-07-01" },
-    { grain: "month", last: 1 },
-  ];
-
-  for (const timeWindow of windows) {
+for (const [shape, timeWindow] of [
+  ["an open-ended", { grain: "month", from: "2026-07-01" }],
+  ["an end-only", { grain: "month", to: "2026-07-01" }],
+  ["a last-one-month", { grain: "month", last: 1 }],
+] as const) {
+  test(`a statement month filter replaces ${shape} selection window`, async () => {
     const fixture = providerWith([
       toolResponse("emit_selection", {
         domain: "mis-statement",
@@ -239,15 +237,14 @@ test("a statement month filter replaces an open-ended, end-only or relative sele
     ]);
 
     const result = await fixture.provider.select(statementSelectionInput());
-    const name = JSON.stringify(timeWindow);
 
-    assert.equal(result.kind, "selection", name);
+    assert.equal(result.kind, "selection");
     if (result.kind === "selection") {
-      assert.deepEqual(result.selection.filters, [], name);
-      assert.deepEqual(result.selection.timeWindow, { grain: "day", from: "2026-07-01", to: "2026-07-31" }, name);
+      assert.deepEqual(result.selection.filters, []);
+      assert.deepEqual(result.selection.timeWindow, { grain: "day", from: "2026-07-01", to: "2026-07-31" });
     }
-  }
-});
+  });
+}
 
 test("a statement month filter for a different month than the selection window is rejected", async () => {
   const fixture = providerWith([

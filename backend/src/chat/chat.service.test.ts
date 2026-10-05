@@ -1806,6 +1806,34 @@ test("a grounded selector keeps the report display scope and receives every perm
   });
 });
 
+for (const [shape, timeWindow] of [
+  ["an open-ended", { grain: "month", from: "2026-07-01" }],
+  ["an end-only", { grain: "month", to: "2026-07-01" }],
+  ["a last-one-month", { grain: "month", last: 1 }],
+] as const) {
+  test(`a statement month filter with ${shape} provider window reaches the plant picker`, async () => {
+    const provider = bedrockProviderWith({
+      ...statementSelection,
+      filters: [{ dimensionId: "month", op: "eq", value: "2026-07-01" }],
+      timeWindow,
+    });
+    const fixture = makeFixture({ llm: provider });
+
+    const response = await fixture.service.ask(
+      userForPlants("mis-statement", ["DUB", "CHIR"], true),
+      "session",
+      "What was the Actual for each MIS statement line in July 2026?",
+    );
+
+    assert.equal(response.responseClass, ResponseClass.ClarificationNeeded);
+    assert.equal(response.kind, undefined);
+    assert.deepEqual(response.plantChoice?.allPlants, { label: "All plants", value: ["CHIR", "DUB"] });
+    assert.equal(response.plantChoice?.selection.domain, "mis-statement");
+    assert.deepEqual(response.plantChoice?.selection.filters, []);
+    assert.equal(fixture.executor.calls, 0);
+  });
+}
+
 test("a recorded provider comparison reaches Ask execution canonical with its operand displayed", async () => {
   const provider = bedrockProviderWith({
     domain: "governed-financial",
