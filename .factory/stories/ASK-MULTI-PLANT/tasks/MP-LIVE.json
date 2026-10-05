@@ -1,10 +1,45 @@
 {
   "branch": "task/ASK-MULTI-PLANT-MP-LIVE",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "f86af4bece547bfd3a4091bb73b8749068000711d7b01552ee86e13d462b846f",
+    "commit": "758f7fa3723d8491a7a7b96cd7980d5601044338",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The corpus re-run records only abbreviated output such as measures, dimension, measure filter, and row count, then says the result is \u201csame.\u201d It never records the required domain, July period, normalized ordinary filters `[]`, or resulting plant filter for each run. Therefore the document cannot establish that the post-change corpus selected the same complete selection as the pre-change probe, which is an explicit completion gate for Done-when 10. Record the full normalized selection for all four questions.",
+        "file": "docs/memory/ask-multi-plant-live-check.md",
+        "line": 32,
+        "priority": "P1",
+        "title": "Not done: A live check as the admin on July data preserves all recorded selections"
+      },
+      {
+        "body": "The supplied commit evidence states that the worker\u2019s last commit has no `Functional check:` paragraph. This user-facing task requires that paragraph to record the client-level walk of all five success questions and the corpus re-probe; the standalone memory note does not satisfy the required commit-message handoff.",
+        "file": "docs/memory/ask-multi-plant-live-check.md",
+        "line": 8,
+        "priority": "P1",
+        "title": "Not done: functional check"
+      },
+      {
+        "body": "MP-LIVE\u2019s approved Scope contains only `docs/memory/ask-multi-plant-live-check.md`. Adding this index entry is not needed to execute or record the required live check and changes `docs/memory/MEMORY.md` outside that scope. Revert this edit or formally add the index to the task scope before landing it.",
+        "file": "docs/memory/MEMORY.md",
+        "line": 21,
+        "priority": "P1",
+        "title": "Remove the unneeded out-of-scope memory index edit"
+      }
+    ],
+    "status": "blocked",
+    "tree": "57d9f3d6f0dc28bb6c5223731f04efbf7bce49f2cbd96d8b0ea91dc94d88c13a"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-04T18:11:10+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T07:35:00+00:00",
+      "step": "review"
     }
   ]
 }
