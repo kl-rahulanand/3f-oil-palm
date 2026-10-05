@@ -2,7 +2,7 @@
 slug: ask-period-control
 title: Recoverable periods in Ask
 status: draft
-saved: 2026-10-05T08:13:19+00:00
+saved: 2026-10-05T08:18:20+00:00
 ---
 
 # Recoverable periods in Ask
@@ -209,8 +209,8 @@ read, in `provenance.activeBatchIds`.
     option).
 11. The same question naming a period answers directly; a question showing only Actual or only
     Budget with no period still answers over all loaded data, with a leaf each for Actual alone, Budget
-    alone, and an Actual-only filter against a fixed amount ("more than 5 lakh"), none of which offers a
-    period choice; and over-budget for July 2026 on DUB
+    alone, an Actual-only filter against a fixed amount ("Actual more than 5 lakh") and a Budget-only filter
+    against a fixed amount ("Budget more than 5 lakh"), none of which offers a period choice; and over-budget for July 2026 on DUB
     after choosing July is unchanged: 21 codes, with 50001201 at 83,98,339.
 12. Every successful data answer shows its period under the title as exact from and to dates of the
     window it ran on, or with no window the single coverage sentence of criterion 6; switching the period updates the line;
