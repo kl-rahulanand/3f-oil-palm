@@ -1,0 +1,12 @@
+{
+  "doc": "plans/ASK-BUDGET-PERIOD.md",
+  "status": "planning",
+  "steps": [
+    {
+      "at": "2026-10-05T08:41:35+00:00",
+      "step": "start"
+    }
+  ],
+  "title": "Actual-versus-Budget answers ask for the period and every answer shows its dates",
+  "touches": 0
+}
