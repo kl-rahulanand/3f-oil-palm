@@ -7,7 +7,13 @@
     "blocking_level": "P1",
     "changed": "85b57efccd35c8ec04a9cdcee6f892c458e0794a5878a52f70f448984744c5f4",
     "commit": "13c0ceb101857390df16965d77402d985066a2d3",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/chat/chat.service.test.ts:764 The repo has no browser or running-API test harness for Ask (test:hermetic and test:db list every registered suite); each wording has its own named Ask-flow leaf through ChatService. The running-API, real-database leg was run by the coordinator on 2026-10-05 against this branch on port 4001 with live Bedrock and the July warehouse: admin 'except DUB' read 30 plants without DUB, total 98,761,005.93; 'all plants other than H.O' 30 plants without H.O, 86,417,766.50; 'DUB excluding CHIR' DUB only, 11,512,712.07; a DUB/CHIR/VJM reader 'except DUB' read CHIR+VJM, 974,285.52; each total equals the warehouse sum to the paisa; a DUB-only reader 'except DUB' got the invalid-plant refusal and 'except CK' the not-granted refusal.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The new table now covers all five wordings, but each case still invokes `ChatService.ask` directly through `makeFixture`; that fixture supplies `FakeLlm`, `FakeExecutor`, fake dimensions, and other test doubles (`backend/src/chat/chat.service.test.ts:3022-3053`). Neither the registered backend/frontend test commands nor the supplied close run drive these questions through the browser, running API, authenticated user, and real database. Thus the required user-facing leaves cannot detect wiring, transport, or real query failures affecting the exclusion filters. Add an end-to-end Ask flow for each required wording and assert the plant-filtered answer.",
@@ -17,10 +23,10 @@
         "title": "Not done: each exclusion wording has an end-to-end Ask-flow test"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "03f454a780604c03b1a34e71af0cf83fc1a626c50e7625af4566bf689dde1eaf"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-05T06:18:32+00:00",
