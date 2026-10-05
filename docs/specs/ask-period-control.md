@@ -2,7 +2,7 @@
 slug: ask-period-control
 title: Recoverable periods in Ask
 status: draft
-saved: 2026-10-05T07:58:11+00:00
+saved: 2026-10-05T08:01:45+00:00
 ---
 
 # Recoverable periods in Ask
@@ -84,8 +84,7 @@ the server has applied its plant set:
   Budget over Actual, either operator).
 
 `governed-financial.budget` alone, `governed-financial.actual` alone, and a filter against a fixed
-amount ("more than 5 lakh") do not trigger it and keep the all-loaded-data rule. A measure added later
-that reads both Actual and Budget joins the first rule when it is added.
+amount ("more than 5 lakh") do not trigger it and keep the all-loaded-data rule.
 
 The plant choice comes first (`ask-multi-plant.md`), so nothing is read before either choice. The
 offered periods come from the active actual batches restricted to the chosen plant set; other filters
@@ -196,13 +195,15 @@ read, in `provenance.activeBatchIds`.
   show the refusal against that answer and keep the question as typed. Any claim made against the live PoC
    additionally names its sample count and no live claim rests on a single run.
 10. A governed-financial Ask question that shows Actual and Budget together, or filters one against
-    the other (the trigger above, one leaf per trigger form), and names no period returns
+    the other (the trigger above, one leaf each for Actual with Budget, percentage alone, and a
+    comparison filter), and names no period returns
     `ClarificationNeeded` with a period choice after any plant choice, reads no figure before the
     choice, and offers each month with actuals for the chosen plants, newest first, plus the
     financial year to date through the newest of them; choosing an option answers with no selector
     call; chosen plants with no month of actuals get the `NotSupported` message above; and a
     comparison filter offers only windows a chosen plant has budget for, with leaves for a month that
-    has actuals but no budget batch (not offered for a comparison filter, offered for side by side),
+    has actuals but no budget batch (not offered for a comparison filter, offered for side by side
+    and for percentage alone, which answers with the "not loaded" percentage cells),
     a year to date containing a month with no budget batch (not offered for a comparison filter),
     no comparable window (the no-budget answer), and April as the newest month (no year-to-date
     option).
