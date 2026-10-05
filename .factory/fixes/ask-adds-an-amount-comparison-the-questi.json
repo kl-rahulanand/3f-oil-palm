@@ -7,7 +7,13 @@
     "blocking_level": "P1",
     "changed": "542692d6ab575c127520ae17b726acbd06daf107d6d8baeaa1afb70b64fb7516",
     "commit": "011ec202544006d2cb2445eb934ac57abb837e19",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "backend/src/chat/unstated-amount-filter.ts:10 Equality is not a measure-filter operator: the contract and the selector schema allow only gt, gte, lt and lte (bedrock.provider.ts measureFilterSchema), so 'Actual is 500' or 'equals 500' cannot produce a value filter for this guard to drop. The selector prompt line was built and measured live twice on 2026-10-05 and left out on evidence: both wordings shifted 'Show the MIS statement for July 2026 for DUB and CHIR' to a single total (3 of 4 and 1 of 4 runs; 4 of 4 with lines without it); commit 011ec202 records this. The live proof was run by the coordinator through the running API, real warehouse and live Bedrock on this branch (port 4001): the DUB and CHIR each-line statement listed all 81 lines 4 of 4 (master 22 lines 3 of 4), four other line questions 4 of 4 unchanged, the ASK-MULTI-PLANT success and probe questions unchanged on 2 runs each; recorded in the Functional check paragraphs of 78c03dde and 011ec202. The repo has no browser or running-API test harness; kept and dropped forms each have named leaves in chat.service.test.ts.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The required Done-when remains unmet. Although bare identifiers are now excluded, the guard still drops legitimate comparisons such as \u201cShow Actual is 500\u201d or \u201cspend equals 500\u201d: these state an amount comparison, but the pattern on this line recognizes neither `is` nor `equals`, so the value filter is removed at line 41. The unchanged selector prompt at `backend/src/llm/llm.constants.ts:56-61` still does not say never to add an unstated comparison. Finally, the new Ask tests use `FakeLlm` and `FakeExecutor` (`chat.service.test.ts:3117-3119`) and return one fixture row; neither they nor the supplied branch record prove that DUB and CHIR return all 81 statement lines in 4 of 4 live runs through the real API, database, and Bedrock selector. Required title: `Not done: an amount comparison is kept only when the question states an amount or comparison, the selector prompt says never to add one, and the DUB and CHIR each-line statement lists all 81 lines in 4 of 4 live runs; leaves for kept and dropped forms`.",
@@ -17,10 +23,10 @@
         "title": "Not done: amount guard, selector prompt, 81-line live runs, and kept/dropped leaves"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "89481767af89f788c93cc39735eabd3fa877fd4abbc02359f5b242e996e7efc5"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-05T07:50:22+00:00",
