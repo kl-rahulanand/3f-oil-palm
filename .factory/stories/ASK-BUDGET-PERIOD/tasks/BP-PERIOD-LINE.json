@@ -1,10 +1,31 @@
 {
   "branch": "task/ASK-BUDGET-PERIOD-BP-PERIOD-LINE",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "162e665590afe55d7e871da8ee53d6f6333ed27faa0dfbe40f5bbcd092855ffd",
+    "commit": "37557a1a98991f3f5d94aa9904634a4c1d435b27",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This adds a new visible answer-context layout and period readout, but the supplied handoff records only a functional browser walk. Neither the task record nor the supplied commit evidence records impeccable's required shape/audit/polish pass or a specifically tasked emil-design-eng interaction checklist. The mandatory batched UI inspection therefore remains incomplete for the changed layout.",
+        "file": "frontend/src/features/assistant/ask-panel.tsx",
+        "line": 555,
+        "priority": "P1",
+        "title": "Not done: impeccable and emil-design-eng UI review"
+      }
+    ],
+    "status": "blocked",
+    "tree": "b30d881d44b8e46cfceccdca5e04aa00614a2a21e8cc1bee5d0868d38f58acb6"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-05T09:22:09+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-05T10:00:21+00:00",
+      "step": "review"
     }
   ]
 }
