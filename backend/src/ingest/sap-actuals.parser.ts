@@ -38,8 +38,9 @@ export interface SapActualsRow {
 }
 
 export interface ParsedSapActuals {
-  period: string;
-  rows: SapActualsRow[];
+  periods: Array<{ period: string; rows: SapActualsRow[] }>;
+  totalRowCount: number;
+  skippedRowCount: number;
   validationResult: Record<string, unknown>;
 }
 
@@ -65,11 +66,12 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
     throw validationError([issue(["file", "headers"], "Required SAP headers were not found")]);
   }
 
-  const issues: z.ZodIssue[] = [];
-  const rows: SapActualsRow[] = [];
+  const structuralIssues: z.ZodIssue[] = [];
+  const rowsByPeriod = new Map<string, SapActualsRow[]>();
+  const skippedByPeriod: Record<string, { rowCount: number; reasons: Record<string, number> }> = {};
   const identities = new Set<string>();
   let dataRowCount = 0;
-  let period: string | undefined;
+  let skippedRowCount = 0;
 
   const populatedRows: Row[] = [];
   header.worksheet.eachRow((row, rowNumber) => {
@@ -94,10 +96,6 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
     const postingDate = parsePostingDate(row.getCell(requiredColumn(header, "Posting Date")));
     if (!postingDate) rowIssues.push(issue(["rows", rowNumber, "postingDate"], "Posting Date is invalid"));
     const rowPeriod = postingDate ? `${postingDate.slice(0, 7)}-01` : undefined;
-    if (rowPeriod && !period) period = rowPeriod;
-    if (rowPeriod && period && rowPeriod !== period) {
-      rowIssues.push(issue(["rows", rowNumber, "month"], "Posting Date must be in one period"));
-    }
     const monthToken = text("Month").trim().toLowerCase();
     if (!postingDate || monthToken !== MONTHS[Number(postingDate.slice(5, 7)) - 1]) {
       rowIssues.push(issue(["rows", rowNumber, "month"], "Month must match Posting Date"));
@@ -114,16 +112,15 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
       rowIssues.push(issue(["rows", rowNumber, "actual"], "Debit minus Credit exceeds numeric(18,2)"));
     }
 
-    if (txnNo && lineId) {
+    if (!rowIssues.length && txnNo && lineId) {
       const identity = `${txnNo}\u0000${lineId}`;
       if (identities.has(identity)) {
-        rowIssues.push(issue(["rows", rowNumber, "lineId"], "Transaction line is duplicated"));
+        structuralIssues.push(issue(["rows", rowNumber, "lineId"], "Transaction line is duplicated"));
       } else {
         identities.add(identity);
       }
     }
 
-    issues.push(...rowIssues);
     if (
       rowIssues.length ||
       !postingDate ||
@@ -131,9 +128,19 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
       debit === undefined ||
       credit === undefined ||
       actual === undefined
-    )
+    ) {
+      skippedRowCount += 1;
+      const diagnosticPeriod = rowPeriod ?? "unknown";
+      const diagnostic = (skippedByPeriod[diagnosticPeriod] ??= { rowCount: 0, reasons: {} });
+      diagnostic.rowCount += 1;
+      for (const { message } of rowIssues) {
+        diagnostic.reasons[message] = (diagnostic.reasons[message] ?? 0) + 1;
+      }
       continue;
+    }
 
+    const rows = rowsByPeriod.get(rowPeriod) ?? [];
+    rowsByPeriod.set(rowPeriod, rows);
     rows.push({
       txnNo,
       lineId,
@@ -154,16 +161,23 @@ export async function parseSapActualsWorkbook(buffer: Buffer, rowLimit = MAX_ACT
     });
   }
 
-  if (!rows.length && !issues.length) issues.push(issue(["rows"], "Workbook contains no data rows"));
-  if (issues.length) throw validationError(issues);
+  if (structuralIssues.length) throw validationError(structuralIssues);
+  const totalRowCount = [...rowsByPeriod.values()].reduce((total, rows) => total + rows.length, 0);
+  if (!totalRowCount) throw validationError([issue(["rows"], "Workbook contains no valid SAP rows")]);
+  const periods = [...rowsByPeriod.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([period, rows]) => ({ period, rows }));
 
   return {
-    period: period!,
-    rows,
+    periods,
+    totalRowCount,
+    skippedRowCount,
     validationResult: {
       valid: true,
-      rowCount: rows.length,
-      period,
+      dataRowCount,
+      rowCount: totalRowCount,
+      skippedRowCount,
+      skippedByPeriod,
       headerRow: header.rowNumber,
     },
   };
@@ -192,6 +206,8 @@ function findHeader(worksheets: Worksheet[]): LocatedHeader | undefined {
         counts.set(name, count);
         rawColumns.push([count === 1 ? name : `${name}_${count}`, column]);
       });
+      const accountNameColumn = columns.get("AcctName") ?? columns.get("MIS GL Name");
+      if (accountNameColumn) columns.set("AcctName", accountNameColumn);
       if (SAP_ACTUALS_REQUIRED_HEADERS.every((required) => columns.has(required))) {
         located = { worksheet, rowNumber, columns, rawColumns };
       }

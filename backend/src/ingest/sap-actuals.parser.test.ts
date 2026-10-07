@@ -15,7 +15,7 @@ const HEADERS = [
   "Plant",
   "Cost Center",
   "MIS GL Code",
-  "AcctName",
+  "MIS GL Name",
   "Debit",
   "Credit",
   "ShortName",
@@ -28,7 +28,7 @@ const HEADERS = [
   "Loc.",
 ];
 
-test("the SAP actuals parser identifies the sheet by its required header set, tolerates blank lead rows and the duplicate Comments column, derives a single period from Posting Date, validates every row before any write, nets Actual as Debit minus Credit at paise, uses the row number as the source identity when Line_Id is blank, and normalizes DUB-NUR to DUB keeping original and canonical keys plus the full raw row", async () => {
+test("the SAP actuals parser accepts the new MIS GL Name heading, groups valid rows by Posting Date month, skips invalid rows with period diagnostics, nets Actual as Debit minus Credit at paise, and keeps the full raw row", async () => {
   const parsed = await parseSapActualsWorkbook(
     await workbookBuffer([
       sapRow({ rowNumber: 101, transactionNumber: "TXN-1", lineId: "", debit: 10.1, credit: 0.03 }),
@@ -44,10 +44,13 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
     ]),
   );
 
-  assert.equal(parsed.period, "2026-07-01");
+  assert.deepEqual(
+    parsed.periods.map(({ period }) => period),
+    ["2026-07-01"],
+  );
   assert.equal(parsed.validationResult.rowCount, 2);
   assert.deepEqual(
-    parsed.rows.map(({ lineId, plant, plantSrc, debit, credit, actual }) => ({
+    parsed.periods[0].rows.map(({ lineId, plant, plantSrc, debit, credit, actual }) => ({
       lineId,
       plant,
       plantSrc,
@@ -71,7 +74,7 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
     Object.fromEntries(
       ["ShortName", "LineMemo", "Comments", "Comments_2", "Origin", "Reference 1", "Loc."].map((key) => [
         key,
-        parsed.rows[0].raw[key],
+        parsed.periods[0].rows[0].raw[key],
       ]),
     ),
     {
@@ -84,56 +87,54 @@ test("the SAP actuals parser identifies the sheet by its required header set, to
       "Loc.": "Nursery",
     },
   );
-  assert.equal(parsed.rows[0].memo, "Line memo");
-  assert.equal(parsed.rows[0].reference, "REF-1");
-  assert.equal(Object.values(parsed.rows[1].raw).includes("ignored"), false);
+  assert.equal(parsed.periods[0].rows[0].memo, "Line memo");
+  assert.equal(parsed.periods[0].rows[0].reference, "REF-1");
+  assert.equal(Object.values(parsed.periods[0].rows[1].raw).includes("ignored"), false);
 
-  await assert.rejects(
-    parseSapActualsWorkbook(
-      await workbookBuffer([
-        sapRow({ rowNumber: 103, transactionNumber: "TXN-3", lineId: "3", debit: "bad" }),
-        sapRow({
-          rowNumber: 104,
-          transactionNumber: "TXN-4",
-          lineId: "4",
-          date: new Date("2026-08-01T00:00:00Z"),
-          month: "Aug",
-        }),
-      ]),
-    ),
-    (error: unknown) => {
-      assert.ok(error instanceof z.ZodError);
-      assert.deepEqual(
-        error.issues.map(({ path }) => path),
-        [
-          ["rows", 4, "debit"],
-          ["rows", 5, "month"],
-        ],
-      );
-      return true;
-    },
+  const mixed = await parseSapActualsWorkbook(
+    await workbookBuffer([
+      sapRow({ rowNumber: 103, transactionNumber: "TXN-3", lineId: "3", debit: "bad" }),
+      sapRow({ rowNumber: 104, transactionNumber: "TXN-4", lineId: "4" }),
+      sapRow({
+        rowNumber: 105,
+        transactionNumber: "TXN-5",
+        lineId: "5",
+        date: new Date("2026-08-01T00:00:00Z"),
+        month: "Aug",
+      }),
+    ]),
   );
+  assert.deepEqual(
+    mixed.periods.map(({ period, rows }) => ({ period, txnNos: rows.map(({ txnNo }) => txnNo) })),
+    [
+      { period: "2026-07-01", txnNos: ["TXN-4"] },
+      { period: "2026-08-01", txnNos: ["TXN-5"] },
+    ],
+  );
+  assert.equal(mixed.totalRowCount, 2);
+  assert.equal(mixed.skippedRowCount, 1);
+  assert.deepEqual(mixed.validationResult.skippedByPeriod, {
+    "2026-07-01": { rowCount: 1, reasons: { "debit must have at most two decimal places": 1 } },
+  });
 
   for (const malformed of ["1,00", "1,2,3", "1.001"]) {
-    await assert.rejects(
-      parseSapActualsWorkbook(
-        await workbookBuffer([
-          sapRow({ rowNumber: 109, transactionNumber: `TXN-${malformed}`, lineId: "9", debit: malformed }),
-        ]),
-      ),
-      (error: unknown) => error instanceof z.ZodError && error.issues[0]?.path.join(".") === "rows.4.debit",
+    const skipped = await parseSapActualsWorkbook(
+      await workbookBuffer([
+        sapRow({ rowNumber: 109, transactionNumber: `TXN-${malformed}`, lineId: "9", debit: malformed }),
+        sapRow({ rowNumber: 110, transactionNumber: `TXN-VALID-${malformed}`, lineId: "10" }),
+      ]),
     );
+    assert.equal(skipped.skippedRowCount, 1);
   }
 
   for (const malformed of ["JulXYZ", "Jul 2027"]) {
-    await assert.rejects(
-      parseSapActualsWorkbook(
-        await workbookBuffer([
-          sapRow({ rowNumber: 111, transactionNumber: `TXN-${malformed}`, lineId: "11", month: malformed }),
-        ]),
-      ),
-      (error: unknown) => error instanceof z.ZodError && error.issues[0]?.path.join(".") === "rows.4.month",
+    const skipped = await parseSapActualsWorkbook(
+      await workbookBuffer([
+        sapRow({ rowNumber: 111, transactionNumber: `TXN-${malformed}`, lineId: "11", month: malformed }),
+        sapRow({ rowNumber: 112, transactionNumber: `TXN-VALID-${malformed}`, lineId: "12" }),
+      ]),
     );
+    assert.equal(skipped.skippedRowCount, 1);
   }
 
   await assert.rejects(

@@ -3,13 +3,21 @@ import type { IngestActualsResponse, IngestBudgetResponse } from "@3f/contract";
 import { z } from "zod";
 
 export const MAX_ACTUALS_UPLOAD_BYTES = 15 * 1024 * 1024;
-export const MAX_ACTUALS_ROWS = 25_000;
+export const MAX_ACTUALS_ROWS = 50_000;
 
 export const ingestActualsResponseSchema = z
   .object({
-    batchId: z.string().uuid(),
-    period: z.string().regex(/^\d{4}-\d{2}-01$/),
-    rowCount: z.number().int().nonnegative(),
+    periods: z.array(
+      z
+        .object({
+          period: z.string().regex(/^\d{4}-\d{2}-01$/),
+          batchId: z.string().uuid(),
+          rowCount: z.number().int().nonnegative(),
+        })
+        .strict(),
+    ),
+    totalRowCount: z.number().int().nonnegative(),
+    skippedRowCount: z.number().int().nonnegative(),
   })
   .strict();
 
@@ -49,11 +57,22 @@ export class IngestBudgetMultipartDto {
 }
 
 export class IngestActualsResponseDto implements IngestActualsResponse {
-  @ApiProperty({ example: "ed401db9-ab53-4543-8da3-77e8aac62c59" })
-  batchId!: string;
+  @ApiProperty({ type: () => [IngestActualsPeriodResponseDto] })
+  periods!: IngestActualsPeriodResponseDto[];
 
+  @ApiProperty({ example: 19442 })
+  totalRowCount!: number;
+
+  @ApiProperty({ example: 15037 })
+  skippedRowCount!: number;
+}
+
+class IngestActualsPeriodResponseDto {
   @ApiProperty({ example: "2026-07-01" })
   period!: string;
+
+  @ApiProperty({ example: "ed401db9-ab53-4543-8da3-77e8aac62c59" })
+  batchId!: string;
 
   @ApiProperty({ example: 4113 })
   rowCount!: number;

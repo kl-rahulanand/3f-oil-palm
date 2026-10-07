@@ -41,7 +41,7 @@ const HEADERS = [
   "Loc.",
 ];
 
-test("the ingest service validates every parsed row before any write, rejects an invalid or mixed-period file with row-level diagnostics and makes no repository call, and on success calls replaceActualsBatch exactly once with the authenticated uploader metadata", async () => {
+test("the ingest service skips invalid SAP rows and atomically replaces every valid month with diagnostics and authenticated uploader metadata", async () => {
   const service = new RecordingIngestService();
   const validBuffer = await workbookBuffer([sapRow({ rowNumber: 200, transactionNumber: "TXN-FILE", lineId: "1" })]);
   await assert.rejects(
@@ -62,7 +62,7 @@ test("the ingest service validates every parsed row before any write, rejects an
   );
   assert.equal(service.calls.length, 0);
 
-  const invalid = asUpload(
+  const mixed = asUpload(
     await workbookBuffer([
       sapRow({ rowNumber: 201, transactionNumber: "TXN-BAD", lineId: "1", debit: "bad" }),
       sapRow({
@@ -72,49 +72,52 @@ test("the ingest service validates every parsed row before any write, rejects an
         date: new Date("2026-08-01T00:00:00Z"),
         month: "Aug",
       }),
+      sapRow({ rowNumber: 203, transactionNumber: "TXN-OK", lineId: "3" }),
     ]),
   );
 
-  await assert.rejects(service.ingestActuals(invalid, "user-1"), (error: unknown) => {
-    assert.ok(error instanceof z.ZodError);
-    assert.deepEqual(
-      error.issues.map(({ path }) => path),
-      [
-        ["rows", 4, "debit"],
-        ["rows", 5, "month"],
-      ],
-    );
-    return true;
-  });
-  assert.equal(service.calls.length, 0);
-
-  const response = await service.ingestActuals(
-    asUpload(
-      await workbookBuffer([
-        sapRow({ rowNumber: 203, transactionNumber: "TXN-OK", lineId: "", debit: 10.1, credit: 0.03 }),
-      ]),
-    ),
-    "authenticated-user-id",
-  );
+  const response = await service.ingestActuals(mixed, "authenticated-user-id");
 
   assert.deepEqual(response, {
-    batchId: "11111111-1111-4111-8111-111111111111",
-    period: "2026-07-01",
-    rowCount: 1,
+    periods: [
+      { period: "2026-07-01", batchId: "11111111-1111-4111-8111-000000000001", rowCount: 1 },
+      { period: "2026-08-01", batchId: "11111111-1111-4111-8111-000000000002", rowCount: 1 },
+    ],
+    totalRowCount: 2,
+    skippedRowCount: 1,
   });
-  assert.equal(service.calls.length, 1);
-  assert.deepEqual(service.calls[0].metadata, {
-    period: "2026-07-01",
-    uploadedBy: "authenticated-user-id",
-    validationResult: { valid: true, rowCount: 1, period: "2026-07-01", headerRow: 3 },
-    reconciliationResult: {},
-  });
-  assert.equal(service.calls[0].rows[0].lineId, "203");
-  assert.equal(service.calls[0].rows[0].plant, "DUB");
-  assert.equal(service.calls[0].rows[0].raw?.Comments_2, "Second comment");
-  assert.equal(service.calls[0].rows[0].memo, "Line memo");
-  assert.equal(service.calls[0].rows[0].reference, "REF-1");
-  assert.equal("actual" in service.calls[0].rows[0], false);
+  assert.equal(service.transactionCount, 1);
+  assert.equal(service.calls.length, 2);
+  assert.deepEqual(service.activePeriods, ["2026-07-01", "2026-08-01"]);
+  assert.deepEqual(
+    service.calls.map(({ metadata, rows }) => ({
+      period: metadata.period,
+      uploadedBy: metadata.uploadedBy,
+      periodRowCount: metadata.validationResult.periodRowCount,
+      skippedRowCount: metadata.validationResult.skippedRowCount,
+      txnNo: rows[0].txnNo,
+    })),
+    [
+      {
+        period: "2026-07-01",
+        uploadedBy: "authenticated-user-id",
+        periodRowCount: 1,
+        skippedRowCount: 1,
+        txnNo: "TXN-OK",
+      },
+      {
+        period: "2026-08-01",
+        uploadedBy: "authenticated-user-id",
+        periodRowCount: 1,
+        skippedRowCount: 1,
+        txnNo: "TXN-MIXED",
+      },
+    ],
+  );
+
+  service.failOnActualCall = 4;
+  await assert.rejects(service.ingestActuals(mixed, "user-2"), /later period failed/);
+  assert.deepEqual(service.activePeriods, ["2026-07-01", "2026-08-01"]);
 });
 
 test("the ingest service validates the whole budget workbook before any write, makes no repository call on an invalid workbook, and on success replaces every present period through replaceBudgetBatch inside one outer all-or-nothing transaction so a failure on a later period rolls back every earlier one, without touching sap_transaction", async () => {
@@ -185,7 +188,7 @@ test("the ingest service validates the whole budget workbook before any write, m
 });
 
 test(
-  "WAREHOUSE_DB_TEST actuals ingest retains the prior batch and activates one paise-precise replacement with raw data",
+  "WAREHOUSE_DB_TEST actuals ingest atomically replaces every month, retains prior batches, and rolls back a later-month failure",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async () => {
     await migrateWarehouse();
@@ -203,6 +206,15 @@ test(
             debit: 1,
             credit: 0.01,
           }),
+          sapRow({
+            rowNumber: 302,
+            transactionNumber: `DB-FIRST-OCT-${suffix}`,
+            lineId: "2",
+            date: new Date("2098-10-15T00:00:00Z"),
+            month: "Oct",
+            debit: 2,
+            credit: 0.02,
+          }),
         ]),
       ),
       `db-proof-${suffix}`,
@@ -211,13 +223,22 @@ test(
       asUpload(
         await workbookBuffer([
           sapRow({
-            rowNumber: 302,
+            rowNumber: 303,
             transactionNumber: `DB-SECOND-${suffix}`,
-            lineId: "2",
+            lineId: "3",
             date: new Date("2098-09-16T00:00:00Z"),
             month: "Sep",
             debit: 10,
             credit: 2.5,
+          }),
+          sapRow({
+            rowNumber: 304,
+            transactionNumber: `DB-SECOND-OCT-${suffix}`,
+            lineId: "4",
+            date: new Date("2098-10-16T00:00:00Z"),
+            month: "Oct",
+            debit: 20,
+            credit: 5,
           }),
         ]),
       ),
@@ -228,21 +249,62 @@ test(
     try {
       const batches = await pool.query<{ id: string; is_active: boolean }>(
         "SELECT id, is_active FROM ingest_batch WHERE id = ANY($1::uuid[]) ORDER BY id",
-        [[first.batchId, replacement.batchId]],
+        [[...first.periods, ...replacement.periods].map(({ batchId }) => batchId)],
       );
-      assert.equal(batches.rows.length, 2);
-      assert.equal(batches.rows.find(({ id }) => id === first.batchId)?.is_active, false);
-      assert.equal(batches.rows.find(({ id }) => id === replacement.batchId)?.is_active, true);
+      assert.equal(batches.rows.length, 4);
+      assert.ok(
+        first.periods.every(({ batchId }) => batches.rows.find(({ id }) => id === batchId)?.is_active === false),
+      );
+      assert.ok(
+        replacement.periods.every(({ batchId }) => batches.rows.find(({ id }) => id === batchId)?.is_active === true),
+      );
 
       const rawRows = await pool.query<{ batch_id: string; raw: Record<string, string> }>(
         "SELECT batch_id, raw FROM sap_transaction WHERE batch_id = ANY($1::uuid[]) ORDER BY batch_id",
-        [[first.batchId, replacement.batchId]],
+        [[...first.periods, ...replacement.periods].map(({ batchId }) => batchId)],
       );
-      assert.equal(rawRows.rows.length, 2);
+      assert.equal(rawRows.rows.length, 4);
       assert.equal(
-        rawRows.rows.find(({ batch_id }) => batch_id === replacement.batchId)?.raw.Comments_2,
+        rawRows.rows.find(({ batch_id }) => batch_id === replacement.periods[0].batchId)?.raw.Comments_2,
         "Second comment",
       );
+
+      await assert.rejects(
+        new InvalidSecondPeriodActualsService().ingestActuals(
+          asUpload(
+            await workbookBuffer([
+              sapRow({
+                rowNumber: 305,
+                transactionNumber: `DB-FAIL-SEP-${suffix}`,
+                lineId: "5",
+                date: new Date("2098-09-17T00:00:00Z"),
+                month: "Sep",
+              }),
+              sapRow({
+                rowNumber: 306,
+                transactionNumber: `DB-FAIL-OCT-${suffix}`,
+                lineId: "6",
+                date: new Date("2098-10-17T00:00:00Z"),
+                month: "Oct",
+              }),
+            ]),
+          ),
+          `db-fail-${suffix}`,
+        ),
+      );
+      const stillActive = await pool.query<{ id: string }>(
+        "SELECT id FROM ingest_batch WHERE source_kind = 'actuals' AND is_active AND period = ANY($1::date[]) ORDER BY period",
+        [replacement.periods.map(({ period }) => period)],
+      );
+      assert.deepEqual(
+        stillActive.rows.map(({ id }) => id),
+        replacement.periods.map(({ batchId }) => batchId),
+      );
+      const failedBatches = await pool.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM ingest_batch WHERE uploaded_by = $1",
+        [`db-fail-${suffix}`],
+      );
+      assert.equal(failedBatches.rows[0].count, "0");
 
       const gold = await pool.query<{ actual_net: string }>(
         "SELECT actual_net FROM actual_by_key_month WHERE plant = $1 AND cost_center = $2 AND gl_code = $3 AND month = $4",
@@ -324,19 +386,36 @@ test(
 
 class RecordingIngestService extends IngestService {
   readonly calls: Array<{ metadata: CandidateBatchMetadata; rows: SapTransactionInput[] }> = [];
+  readonly activePeriods: string[] = [];
+  transactionCount = 0;
+  failOnActualCall?: number;
 
-  protected override async replaceActualsBatch(
-    metadata: CandidateBatchMetadata,
-    rows: SapTransactionInput[],
-  ): Promise<string> {
-    this.calls.push({ metadata, rows });
-    return "11111111-1111-4111-8111-111111111111";
+  protected override async withActualsRepository<T>(run: (repository: IIngestionRepository) => Promise<T>): Promise<T> {
+    this.transactionCount += 1;
+    const snapshot = [...this.activePeriods];
+    const repository: IIngestionRepository = {
+      replaceActualsBatch: async (metadata, rows) => {
+        this.calls.push({ metadata, rows });
+        if (this.calls.length === this.failOnActualCall) throw new Error("later period failed");
+        if (!this.activePeriods.includes(metadata.period)) this.activePeriods.push(metadata.period);
+        return `11111111-1111-4111-8111-${this.calls.length.toString().padStart(12, "0")}`;
+      },
+      replaceBudgetBatch: async () => {
+        throw new Error("budget must not be touched");
+      },
+    };
+    try {
+      return await run(repository);
+    } catch (error) {
+      this.activePeriods.splice(0, this.activePeriods.length, ...snapshot);
+      throw error;
+    }
   }
 }
 
 class RowLimitIngestService extends RecordingIngestService {
   protected override parseWorkbook(): Promise<ParsedSapActuals> {
-    return Promise.reject(new WorkbookRowLimitError(25_000));
+    return Promise.reject(new WorkbookRowLimitError(50_000));
   }
 }
 
@@ -385,6 +464,14 @@ class InvalidSecondPeriodBudgetService extends IngestService {
   protected override async parseBudgetWorkbook(buffer: Buffer): Promise<ParsedMisBudget> {
     const parsed = await super.parseBudgetWorkbook(buffer);
     parsed.periods[1].rows[0].period = parsed.periods[0].period;
+    return parsed;
+  }
+}
+
+class InvalidSecondPeriodActualsService extends IngestService {
+  protected override async parseWorkbook(buffer: Buffer): Promise<ParsedSapActuals> {
+    const parsed = await super.parseWorkbook(buffer);
+    parsed.periods[1].rows[0].txnNo = undefined as unknown as string;
     return parsed;
   }
 }

@@ -75,9 +75,9 @@ export type WarehouseFreshnessResponse = WarehouseLoadFreshness;
 
 /** POST /api/ingest/actuals */
 export interface IngestActualsResponse {
-  batchId: string;
-  period: string;
-  rowCount: number;
+  periods: Array<{ period: string; batchId: string; rowCount: number }>;
+  totalRowCount: number;
+  skippedRowCount: number;
 }
 
 /** POST /api/ingest/budget */

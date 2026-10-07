@@ -30,24 +30,41 @@ export class IngestService {
   async ingestActuals(file: UploadedWorkbook | undefined, uploadedBy: string): Promise<IngestActualsResponse> {
     validateFile(file);
     const parsed = await withUploadLimitErrors(this.parseWorkbook(file.buffer));
-    const metadata: CandidateBatchMetadata = {
-      period: parsed.period,
-      uploadedBy,
-      validationResult: parsed.validationResult,
-      reconciliationResult: {},
-    };
-    const rows = parsed.rows.map(({ actual: _actual, ...row }) => row);
-    const batchId = await this.replaceActualsBatch(metadata, rows);
+    const periods = await this.withActualsRepository(async (repository) => {
+      const results: IngestActualsResponse["periods"] = [];
+      for (const current of parsed.periods) {
+        const rows = current.rows.map(({ actual: _actual, ...row }) => row);
+        const batchId = await repository.replaceActualsBatch(
+          {
+            period: current.period,
+            uploadedBy,
+            validationResult: {
+              ...parsed.validationResult,
+              period: current.period,
+              periodRowCount: rows.length,
+            },
+            reconciliationResult: {},
+          },
+          rows,
+        );
+        results.push({ period: current.period, batchId, rowCount: rows.length });
+      }
+      return results;
+    });
     const response = ingestActualsResponseSchema.parse({
-      batchId,
-      period: parsed.period,
-      rowCount: rows.length,
+      periods,
+      totalRowCount: parsed.totalRowCount,
+      skippedRowCount: parsed.skippedRowCount,
     });
 
     this.logger.log("info", "SAP actuals batch ingested", {
       module: "Ingest",
       accountId: uploadedBy,
-      context: { batchId, period: parsed.period, rowCount: rows.length },
+      context: {
+        periodCount: periods.length,
+        rowCount: parsed.totalRowCount,
+        skippedRowCount: parsed.skippedRowCount,
+      },
     });
     return response;
   }
@@ -104,10 +121,10 @@ export class IngestService {
     return parseMisBudgetWorkbook(buffer);
   }
 
-  protected async replaceActualsBatch(metadata: CandidateBatchMetadata, rows: SapTransactionInput[]): Promise<string> {
+  protected async withActualsRepository<T>(run: (repository: IIngestionRepository) => Promise<T>): Promise<T> {
     const pool = await createWarehouseWritePool();
     try {
-      return await new IngestionRepository(createWarehouseDb(pool)).replaceActualsBatch(metadata, rows);
+      return await createWarehouseDb(pool).transaction((transaction) => run(new IngestionRepository(transaction)));
     } finally {
       await pool.end();
     }
