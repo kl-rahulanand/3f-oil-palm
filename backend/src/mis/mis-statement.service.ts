@@ -41,6 +41,7 @@ const SOURCE_ORDER: SourcePresence[] = ["matched", "budget-only", "actual-only"]
 interface Amounts {
   actual: bigint;
   budget: bigint;
+  rollover: bigint;
   labels: string[];
   sourcePresence: SourcePresence[];
 }
@@ -208,6 +209,7 @@ export class MisStatementService implements IMisStatementService, IMisStatementD
       current.actual += toPaise(row.actual_net);
       if (budgetLoaded) {
         current.budget += toPaise(row.budget_net);
+        current.rollover += toPaise(row.rollover_net);
         if (typeof row.percentage === "string" && !isNumeric(row.percentage)) current.labels.push(row.percentage);
       }
       current.sourcePresence = mergePresence(
@@ -331,7 +333,7 @@ function toMeasureBlock(
     ...definition,
     budgetState,
     budget: formatMoney(amounts.budget),
-    rollover: null,
+    rollover: formatMoney(amounts.rollover),
     actual: formatMoney(amounts.actual),
     percentage: percentage(amounts),
     sourcePresence: amounts.sourcePresence,
@@ -339,7 +341,7 @@ function toMeasureBlock(
 }
 
 function emptyAmounts(): Amounts {
-  return { actual: 0n, budget: 0n, labels: [], sourcePresence: [] };
+  return { actual: 0n, budget: 0n, rollover: 0n, labels: [], sourcePresence: [] };
 }
 
 function copyAmounts(amounts: Amounts | undefined): Amounts {
@@ -353,6 +355,7 @@ function sumAmounts(nodes: MutableNode[], index: number): Amounts {
     const amount = node.amounts[index] ?? emptyAmounts();
     total.actual += amount.actual;
     total.budget += amount.budget;
+    total.rollover += amount.rollover;
     total.sourcePresence = mergePresence(total.sourcePresence, amount.sourcePresence);
     return total;
   }, emptyAmounts());

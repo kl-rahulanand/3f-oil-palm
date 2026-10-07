@@ -326,7 +326,10 @@ export class SqlBuilder {
   SELECT statement_key.plant, statement_key.plant_display, statement_key.leaf_key, statement_key.month,
     COALESCE(actual_src.actual_net, 0)::numeric(18,2) AS actual_net,
     COALESCE(budget_src.budget_net, 0)::numeric(18,2) AS budget_net,
-    COALESCE(budget_src.rollover_net, 0)::numeric(18,2) AS rollover_net,
+    CASE WHEN statement_key.month = ${this.lit(period.to)}
+      THEN COALESCE(budget_src.rollover_net, 0)
+      ELSE 0
+    END::numeric(18,2) AS rollover_net,
     CASE
       WHEN budget_src.leaf_key IS NULL THEN 'actual-only'
       WHEN actual_src.leaf_key IS NULL THEN 'budget-only'

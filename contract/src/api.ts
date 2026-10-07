@@ -390,7 +390,6 @@ interface MisStatementMeasureBlockBase {
   label: string;
   from: string;
   to: string;
-  rollover: null;
   actual: FixedScaleMoney;
   sourcePresence: SourcePresence[];
 }
@@ -398,12 +397,14 @@ interface MisStatementMeasureBlockBase {
 export interface MisStatementLoadedMeasureBlock extends MisStatementMeasureBlockBase {
   budgetState: "loaded";
   budget: FixedScaleMoney;
+  rollover: FixedScaleMoney;
   percentage: string | null;
 }
 
 export interface MisStatementNotLoadedMeasureBlock extends MisStatementMeasureBlockBase {
   budgetState: "not-loaded";
   budget: null;
+  rollover: null;
   percentage: null;
 }
 

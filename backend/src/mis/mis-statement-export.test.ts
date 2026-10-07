@@ -30,6 +30,7 @@ test("the export renders a dash and a not loaded note from the budget state alon
             ...block("selected", "2026-07-01", "0.00", "12.34", null),
             budgetState: "not-loaded" as const,
             budget: null,
+            rollover: null,
             percentage: null,
           },
         ],
@@ -42,6 +43,7 @@ test("the export renders a dash and a not loaded note from the budget state alon
           ...block("selected", "2026-07-01", "0.00", "12.34", null),
           budgetState: "not-loaded" as const,
           budget: null,
+          rollover: null,
           percentage: null,
         },
       ],
@@ -133,7 +135,7 @@ test("the export route calls the statement service once and branches before sett
   assert.equal(new ReportGuard().canActivate(context(user)), true);
 });
 
-test("the reopened workbook equals the statement payload cell by cell on the financial mis worksheet including derived parent subtotals the grand total row the unmapped GL line and the empty rollover column", async () => {
+test("the reopened workbook equals the statement payload cell by cell including stored roll-over for leaves parents and the grand total", async () => {
   const worksheet = await reopen(statement());
 
   assert.equal(worksheet.name, "Financial MIS");
@@ -163,19 +165,19 @@ test("the reopened workbook equals the statement payload cell by cell on the fin
     "Actual",
     "%",
   ]);
-  assert.deepEqual(cells(worksheet, 3, 11), ["1", "Derived parent", null, 101, null, 80, 0.8, 200, null, 181, 0.9]);
-  assert.deepEqual(cells(worksheet, 4, 11), ["1.1", "Leaf one", "5001", 40, null, 30, 0.75, 80, null, 70, 0.875]);
-  assert.deepEqual(cells(worksheet, 5, 11), ["1.2", "Leaf two", "5002", 61, null, 50, 0.8264, 120, null, 111, 0.9205]);
+  assert.deepEqual(cells(worksheet, 3, 11), ["1", "Derived parent", null, 101, 101, 80, 0.8, 200, 200, 181, 0.9]);
+  assert.deepEqual(cells(worksheet, 4, 11), ["1.1", "Leaf one", "5001", 40, 40, 30, 0.75, 80, 80, 70, 0.875]);
+  assert.deepEqual(cells(worksheet, 5, 11), ["1.2", "Leaf two", "5002", 61, 61, 50, 0.8264, 120, 120, 111, 0.9205]);
   assert.deepEqual(cells(worksheet, 6, 11), [
     null,
     "unmapped-GL",
     null,
     0,
-    null,
+    0,
     5,
     "over-budget",
     0,
-    null,
+    0,
     8,
     "over-budget",
   ]);
@@ -184,11 +186,11 @@ test("the reopened workbook equals the statement payload cell by cell on the fin
     "Grand Total",
     "Grand Total",
     101,
-    null,
+    101,
     85,
     0.8506,
     200,
-    null,
+    200,
     189,
     0.9404,
   ]);
@@ -222,7 +224,7 @@ test("amounts are numbers rounded to the rupee with a rupee format a numeric per
   assert.equal(worksheet.getCell("G3").numFmt, "0.00%");
   assert.equal(worksheet.getCell("G4").value, "credit / negative actual");
   assert.equal(worksheet.getCell("G5").value, "NA");
-  assert.equal(worksheet.getCell("E3").value, null);
+  assert.equal(worksheet.getCell("E3").value, 2);
 });
 
 test("a text cell whose value begins with an equals plus minus or at sign is neutralised so it does not reopen as a formula", async () => {
@@ -315,7 +317,7 @@ function block(
     from: key === "fy26-27-ytd" ? "2026-04-01" : "2026-07-01",
     to: "2026-07-31",
     budget,
-    rollover: null,
+    rollover: budget,
     actual,
     percentage,
     sourcePresence: [],

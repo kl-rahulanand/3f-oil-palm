@@ -91,7 +91,7 @@ function writeMeasures(row: Row, blocks: MisStatementMeasureBlock[]): void {
       return;
     }
     writeMoney(row, firstColumn, block.budget);
-    row.getCell(firstColumn + 1).value = null;
+    writeMoney(row, firstColumn + 1, block.rollover);
     writeMoney(row, firstColumn + 2, block.actual);
     const percentageCell = row.getCell(firstColumn + 3);
     if (block.percentage === null) {

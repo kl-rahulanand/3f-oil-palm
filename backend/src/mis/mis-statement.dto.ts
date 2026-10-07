@@ -44,15 +44,21 @@ const measureBaseSchema = z.object({
   label: z.string(),
   from: z.string(),
   to: z.string(),
-  rollover: z.null(),
   actual: fixedScaleMoneySchema,
   sourcePresence: z.array(z.enum(["matched", "budget-only", "actual-only"])),
 });
 const measureSchema: z.ZodType<MisStatementMeasureBlock> = z.discriminatedUnion("budgetState", [
   measureBaseSchema
-    .extend({ budgetState: z.literal("loaded"), budget: fixedScaleMoneySchema, percentage: z.string().nullable() })
+    .extend({
+      budgetState: z.literal("loaded"),
+      budget: fixedScaleMoneySchema,
+      rollover: fixedScaleMoneySchema,
+      percentage: z.string().nullable(),
+    })
     .strict(),
-  measureBaseSchema.extend({ budgetState: z.literal("not-loaded"), budget: z.null(), percentage: z.null() }).strict(),
+  measureBaseSchema
+    .extend({ budgetState: z.literal("not-loaded"), budget: z.null(), rollover: z.null(), percentage: z.null() })
+    .strict(),
 ]);
 const statementNodeSchema: z.ZodType<MisStatementNode> = z.lazy(() =>
   z
@@ -136,9 +142,6 @@ class MisStatementMeasureBlockBaseDto {
   @ApiProperty({ example: "2026-07-01" })
   to!: string;
 
-  @ApiProperty({ type: String, example: null, nullable: true })
-  rollover: null = null;
-
   @ApiProperty({ example: "11512712.07" })
   actual!: FixedScaleMoney;
 
@@ -156,6 +159,9 @@ class MisStatementLoadedMeasureBlockDto
   @ApiProperty({ example: "10050136.29" })
   budget!: FixedScaleMoney;
 
+  @ApiProperty({ example: "21934539.02" })
+  rollover!: FixedScaleMoney;
+
   @ApiProperty({ type: String, example: "1.1455", nullable: true })
   percentage!: string | null;
 }
@@ -169,6 +175,9 @@ class MisStatementNotLoadedMeasureBlockDto
 
   @ApiProperty({ type: String, example: null, nullable: true })
   budget: null = null;
+
+  @ApiProperty({ type: String, example: null, nullable: true })
+  rollover: null = null;
 
   @ApiProperty({ type: String, example: null, nullable: true })
   percentage: null = null;

@@ -2140,7 +2140,7 @@ function statementFixture(): MisStatementResolvedResponse {
     to: "2026-07-01",
     budgetState: "loaded" as const,
     budget: "100.00" as const,
-    rollover: null,
+    rollover: "0.00" as const,
     actual: "50.00" as const,
     percentage: "0.5",
     sourcePresence: ["matched" as const],

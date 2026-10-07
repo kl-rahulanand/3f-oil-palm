@@ -90,7 +90,7 @@ test(
     assert.equal(canonical.grandTotal.measures[0].budget, "10050136.29");
     assert.ok(allBlocks(canonical).every(({ budgetState }) => budgetState === "loaded"));
     assert.equal(DUB_BASELINE.sourceCommit, "d532693");
-    assert.deepEqual(toBaseline(canonical), {
+    assert.deepEqual(withoutRollover(toBaseline(canonical)), {
       plant: DUB_BASELINE.plant,
       period: DUB_BASELINE.period,
       provenance: DUB_BASELINE.provenance,
@@ -104,14 +104,15 @@ test(
     const workbook = new Workbook();
     await workbook.xlsx.load(canonicalExport as unknown as Parameters<typeof workbook.xlsx.load>[0]);
     const worksheet = workbook.getWorksheet("Financial MIS")!;
-    const baselineRows = [...flattenBaseline(DUB_BASELINE.tree), DUB_BASELINE.grandTotal];
+    const canonicalBaseline = toBaseline(canonical);
+    const baselineRows = [...flattenBaseline(canonicalBaseline.tree), canonicalBaseline.grandTotal];
     assert.equal(worksheet.rowCount, baselineRows.length + 2);
     baselineRows.forEach(({ measures }, index) => {
       const row = worksheet.getRow(index + 3);
       assert.deepEqual(
         measures.flatMap(({ budget, rollover, actual, percentage }) => [
           roundedRupees(budget),
-          rollover,
+          rollover === null ? null : roundedRupees(rollover),
           roundedRupees(actual),
           percentage === null ? "NA" : Number.isFinite(Number(percentage)) ? Number(percentage) : percentage,
         ]),
@@ -212,7 +213,7 @@ function allBlocks(statement: MisStatementResolvedResponse) {
 interface BaselineMeasure {
   key: string;
   budget: string;
-  rollover: null;
+  rollover: string | null;
   actual: string;
   percentage: string | null;
   sourcePresence: string[];
@@ -259,6 +260,19 @@ function toBaseline(statement: MisStatementResolvedResponse) {
 
 function flattenBaseline(nodes: BaselineNode[]): BaselineNode[] {
   return nodes.flatMap((node) => [node, ...flattenBaseline(node.children ?? [])]);
+}
+
+function withoutRollover(baseline: ReturnType<typeof toBaseline>) {
+  const node = ({ measures, children, ...rest }: BaselineNode): BaselineNode => ({
+    ...rest,
+    measures: measures.map((measure) => ({ ...measure, rollover: null })),
+    ...(children ? { children: children.map(node) } : {}),
+  });
+  return {
+    ...baseline,
+    tree: baseline.tree.map(node),
+    grandTotal: node(baseline.grandTotal),
+  };
 }
 
 function roundedRupees(value: string): number {

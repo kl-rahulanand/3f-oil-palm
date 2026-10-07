@@ -31,7 +31,7 @@ function fixture(): MisStatementResolvedResponse {
     to: "2026-07-01",
     budgetState: "loaded" as const,
     budget: "20.00" as const,
-    rollover: null,
+    rollover: "0.00" as const,
     actual: actual as FixedScaleMoney,
     percentage: "0.5",
     sourcePresence: ["matched" as const],
