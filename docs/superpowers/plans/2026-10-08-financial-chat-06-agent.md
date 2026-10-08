@@ -7,7 +7,7 @@
 **Goal:** Resolve factual questions safely, clarify ambiguity and assemble accurate UI-ready answers.
 **Architecture:** A bounded selection loop uses catalog/lookup metadata; server graph nodes execute
 financial reads and transaction preparation, then assemble numeric answers without an LLM.
-**Tech Stack:** Pinned TypeScript LangGraph, in-memory checkpointer, NestJS and the selected direct Claude/OpenAI LangChain adapter. Provider/model is not selected yet.
+**Tech Stack:** Pinned TypeScript LangGraph, in-memory checkpointer, NestJS and ChatAnthropic for direct Claude Sonnet 5.5 (claude-sonnet-5-5).
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Global constraints:** [Master](2026-10-08-financial-chat-master.md).
 **Dependencies:** Stages 1, 4, 5.
@@ -57,11 +57,15 @@ user and handle context; model cannot supply authorization. Do not add general S
 - [ ] Write marker-payload cases excludes_money_rows_handles_and_raw_state,
       lookup_vocab_is_current_grant_scoped, malformed_tool_call_denied, tool_loop_bounded,
       vendor_timeout_typed and injected_sql_or_code_never_executes.
-- [ ] Build a fresh selector provider with ChatAnthropic or ChatOpenAI after the owner selects
-      provider/model. Configure FINANCIAL_CHAT_MODEL_PROVIDER and FINANCIAL_CHAT_MODEL_ID plus
-      only the selected backend API credential; use validated timeouts. No old prompts or mandatory
-      AWS SDK/Mumbai setting. Test the selected model's actual supported parameters/tool API.
-      Mock vendor is development/hermetic only; final proof uses the real selected provider.
+- [ ] Build the fresh selector with ChatAnthropic from @langchain/anthropic. Configure
+      FINANCIAL_CHAT_MODEL_PROVIDER=anthropic, FINANCIAL_CHAT_MODEL_ID=claude-sonnet-5-5 and
+      backend-only ANTHROPIC_API_KEY. Keep one provider interface, without OpenAI implementation/
+      key requirements or automatic fallback. No old prompts or AWS SDK/Mumbai setting.
+      Mock vendor is development/hermetic only; final proof uses real Claude Sonnet 5.5.
+- [ ] Test this model's supported tool API: avoid forced tool choice and non-default sampling
+      parameters; validate ordinary tool/structured selections on the server. Pin supported
+      thinking/effort/token settings and bound retries/latency. Never stream raw thinking blocks
+      as financial answers. Model unavailability is an explicit failure, not silent substitution.
 - [ ] Model sees user text, sanitized confirmed/pending selection and capped permitted vocabulary.
       Result/tool message history with money/transactions stays out of provider calls, retries,
       tracing and logs. User-pasted figures are user content, not server-result permission.

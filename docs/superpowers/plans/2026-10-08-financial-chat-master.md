@@ -8,7 +8,7 @@
 
 **Architecture:** Original Excel -> independent validated import -> additive agent_financial warehouse schema -> one FinancialDataService -> four governed tools -> TypeScript LangGraph in NestJS -> fixed local React components. Existing report ingestion and reads remain independent and unchanged.
 
-**Tech Stack:** Existing Node >=20, CommonJS NestJS 10, Next.js 15, React 19, TypeScript, pg/Drizzle, ExcelJS, Zod and Recharts. Pin compatible LangGraph/React transport packages in stage 1; integrate the selected direct Claude or OpenAI API inside NestJS. Provider/model selection remains open; no mandatory Bedrock. No new database server, vector store, queue or component hosting.
+**Tech Stack:** Existing Node >=20, CommonJS NestJS 10, Next.js 15, React 19, TypeScript, pg/Drizzle, ExcelJS, Zod and Recharts. Pin compatible LangGraph/React transport packages in stage 1; use ChatAnthropic with Claude Sonnet 5.5 (claude-sonnet-5-5) through Anthropic directly inside NestJS. OpenAI evaluation is later; no Bedrock or dual-provider fallback. No new database server, vector store, queue or component hosting.
 
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Predecessor:** [Original nine-stage draft](2026-10-08-langgraph-financial-chat.md).
@@ -40,6 +40,9 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
   [0041](../../decisions/0041-use-stored-rollover-values.md) govern. Accepted records win.
 - New chat is independent of old chat logic. Reuse only existing auth, RBAC, CSRF, audit,
   configuration, logging and standard errors. Do not import old selector/prompts/executor.
+- [0046](../../decisions/0046-financial-chat-claude-sonnet-first.md) locks the initial provider:
+  anthropic / claude-sonnet-5-5 with server-only ANTHROPIC_API_KEY. Keep the interface switchable;
+  do not build OpenAI now, require its key or silently substitute if model access is absent.
 - All displayed amounts come from validated warehouse results. Model selects governed
   vocabulary; it never supplies SQL, joins, budget allocation, mapping or financial arithmetic.
 - Model receives user text, sanitized conversational selection and capped permitted dimension
@@ -191,6 +194,9 @@ tested at its owning boundary and exercised in final acceptance.
 No forecasts, causal advice, source writes, revised-budget approvals, mapping admin, vector
 retrieval, durable conversation store, saved/pin migration, report migration or old-Ask cutover.
 No new unassigned-review UI, freshness/provenance badges or production-readiness claim.
+OpenAI comparison is deferred until after the Claude-first PoC; use the same saved test questions
+and selections to compare correctness, clarification, latency and measured usage. A later
+provider change still requires checking model/API compatibility and data handling.
 A stale Excel formula cache cannot be independently certified; require recalculated saved workbook.
 One process means restart/scale-out loses memory; production persistence requires a later decision.
 The previous 10-15 working-day estimate is provisional; schedule after compatibility/data proof.

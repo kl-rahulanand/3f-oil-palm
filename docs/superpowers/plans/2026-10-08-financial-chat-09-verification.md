@@ -6,8 +6,8 @@
 
 **Goal:** Prove the complete financial chat is accurate, authorized and safe for a PoC demo.
 **Architecture:** Independent source/SQL oracles plus real API/DB/browser flows and repeatable
-live selected-model probes. Existing report outputs are baselined before any new migration/load.
-**Tech Stack:** Existing test runners, disposable Postgres 16, Playwright if absent, and the real selected direct model API.
+live Claude Sonnet probes. Existing report outputs are baselined before any new migration/load.
+**Tech Stack:** Existing test runners, disposable Postgres 16, Playwright if absent, and real Anthropic Claude Sonnet 5.5.
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Global constraints:** [Master](2026-10-08-financial-chat-master.md).
 **Dependencies:** All prior stages; baseline report capture must happen before stage 2 applies changes.
@@ -72,7 +72,7 @@ No invented passing screenshots or unexplained "all tests green" statement.
 
 ### 9C: Live model and data-boundary proof
 
-- [ ] Real selected provider with explicitly configured model ID: probe each base question three times
+- [ ] Direct Anthropic claude-sonnet-5-5: probe each base question three times
       in a fresh conversation. The mock selector is not acceptance evidence.
 - [ ] Pin expected selections for month, range, FY YTD, trend, repeated GL/component, Unmapped,
       missing Budget, ambiguous component and transaction requests. Test follow-ups in separately
@@ -87,6 +87,10 @@ No invented passing screenshots or unexplained "all tests green" statement.
       inventing a latency SLA absent a user decision; observed results inform scheduling.
 
 ### 9D: Quality gates, runbook and safe enablement
+
+Keep the Claude question/expected-selection set and sanitized correctness/latency/usage report
+as the baseline for a later OpenAI comparison. Do not run OpenAI or add its key/adapter to this
+initial acceptance gate; later evaluation must use identical source scopes and financial rules.
 
 - [ ] Inspect registration and executed named leaves, not exit code alone. Run npm run quality,
       npm run typecheck, npm run structural, npm run test:hermetic and relevant disposable DB/browser

@@ -18,7 +18,7 @@ registered financial components adapted from the shadcn template. Auth/audit inf
 shared; existing chat logic and report read paths are not used by the new agent.
 
 **Tech stack:** Existing NestJS, Next.js 15, React 19, TypeScript, Drizzle/pg, Zod and Recharts;
-LangGraph TypeScript with in-memory checkpoints; selected direct Claude/OpenAI API; compatible
+LangGraph TypeScript with in-memory checkpoints; direct Anthropic Claude Sonnet 5.5; compatible
 LangGraph React stream packages and shadcn components pinned after the first compatibility proof.
 
 **Spec:** [langgraph-financial-chat.md](../../specs/langgraph-financial-chat.md).
@@ -200,7 +200,7 @@ signal)` and structured response/UI events, with server-owned conversation state
 - [ ] Implement graph nodes: context/catalogue, select/resolve, clarify or validate, query,
       prepare transactions, deterministic answer/UI assembly. Register all four tools; never pass
       money/result/transaction tool messages back into the external model's history.
-- [ ] Use a fresh configurable direct-model selection provider after provider/model selection.
+- [ ] Use ChatAnthropic with claude-sonnet-5-5 through the direct Anthropic API.
       Cap model output/tool rounds, distinguish malformed selection from unsupported,
       and validate every requested field before warehouse work.
 - [ ] Use LangGraph's in-memory checkpointer; owner-bound IDs, idle expiry and one run per
@@ -288,4 +288,4 @@ approval through Plan Mode as AGENTS.md requires. No implementation is authorize
 - [Generative UI and client-side component registration](https://docs.langchain.com/langsmith/generative-ui-react).
 - [shadcn chatbot template](https://github.com/shadcn-ui/chatbot-template).
 - [Official custom React transport guide](https://github.com/langchain-ai/langgraphjs/blob/main/libs/sdk-react/docs/custom-transport.md).
-- Decisions 0042, 0043, 0044 and 0045; the constitution; existing backend/frontend test registries.
+- Decisions 0042, 0043, 0044, 0045 and 0046; the constitution; existing backend/frontend test registries.
