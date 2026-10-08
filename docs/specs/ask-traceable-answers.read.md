@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-08T08:19:09+00:00
-read_hash: 7129cc841dc239335a4d68ccf87be1119d570454
-round: 4
+read_at: 2026-10-08T08:27:37+00:00
+read_hash: 2da110bf576282f03dcd9a3e801a764d0369e0db
+round: 10
 passed: yes
-doc_seen: 7129cc841dc239335a4d68ccf87be1119d570454
+doc_seen: 2da110bf576282f03dcd9a3e801a764d0369e0db
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 1b3be9fbcc94d4546dfbf14aaf02d58b3295a1cf
+notes_seen: 53d1be7190a38a24c81937b7924dc9c3483d72c6
 ---
 # Cold read notes
 
@@ -98,5 +98,47 @@ Only a genuine trade-off goes to the human, as a question with options.
     Disposition: keep The exact signed-money boundary now applies to rows, KPI and total, with positive and negative below-limit and at-limit proofs named.
 
 ## Round 4
+
+No findings.
+
+## Round 5
+
+19. Gap: a referential question with no successful prior selection has no defined outcome.
+    A first-turn “Show these Actuals” or a turn after only refusals has no selection to inherit, yet the spec neither defines a clarification/refusal nor whether Bedrock is called. Pin the user-facing outcome, audit/selector behavior, and a proof under acceptance criteria 3 and 10.
+    Disposition: keep Missing follow-up context now returns a typed clarification with fixed wording after the turn-entry audit and before any selector, SQL, provenance or drill work; first-turn and post-refusal proofs are named.
+
+## Round 6
+
+20. Gap: the `__actual_total__` target has no request/response transport contract.
+    `/api/chat/drill` currently accepts `rowKey`, while the spec says the reserved total key is never a row key and has a separate context. Define the submitted target field/discriminant, response semantics and schema, then prove KPI and total clicks work while a forged reserved row key is refused.
+    Disposition: keep The drill request and response now use an explicit row-or-total target union; total metadata keeps its renderer identity, and a forged reserved row target is refused before a warehouse read.
+
+21. Unproven: item 1: selector output that conflicts with an explicit period, plant, measure or comparison.
+    Reconciliation says these facts are checked, but does not state whether the server corrects a conflicting governed selection or returns which clarification. Name that deterministic outcome and a hermetic proof using an April-only or wrong-plant selector result.
+    Disposition: keep Explicit deterministic facts now replace conflicting selector slots without a second selector call, followed by normal catalog/grant validation; fixtures cover every reconciled slot.
+
+## Round 7
+
+22. Gap: explicit fixed-amount comparisons are promised to replace inherited filters but are not reconciled.
+    The deterministic facts and correction rules cover comparison wording, not its amount. Define how “and Actual above ₹5 lakh” replaces a prior ₹1 lakh filter, including malformed amounts, and prove it under items 1, 3 and 10.
+    Disposition: keep Fixed amounts now have deterministic accepted forms, exact normalization, replacement semantics and a typed pre-selector malformed-amount clarification, with both proofs named.
+
+23. Gap: a shared-year range that crosses December is ambiguous.
+    `Nov-Feb 2026` can mean November 2025–February 2026, November 2026–February 2027, or a reversed 2026 range. Specify one outcome and a proof; the current supported shared-year and cross-year rules do not decide it.
+    Disposition: keep A shared year now applies to both endpoints and crossing December is a reversed range; valid cross-year input must state both years, with proofs for both forms.
+
+## Round 8
+
+24. Gap: “valid comma grouping” and fixed-scale decimals are not defined precisely.
+    Specify whether Western grouping is accepted alongside Indian grouping, and how inputs such as `₹5,000,00` or `₹1.234` are refused rather than rounded or misread. Name accepted and malformed boundary proofs under items 3 and 10.
+    Disposition: keep The grammar now defines ungrouped, Western and Indian forms, restricts magnitude suffixes, forbids rounding and names accepted and malformed boundary proofs.
+
+## Round 9
+
+25. Simpler: fractional-paise multiplication rule and proof → remove.
+    With one or two input decimal places and whole-number lakh/lac/crore multipliers, conversion to paise is always exact. The stated malformed case is unreachable under the grammar, so it adds a needless parser branch and test.
+    Disposition: keep Removed the unreachable malformed case and its proof; accepted magnitudes still convert exactly.
+
+## Round 10
 
 No findings.

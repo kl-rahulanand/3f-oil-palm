@@ -39,6 +39,11 @@ client's SAP and Budget workbooks during the demo.
   filter; an explicit period replaces the time window; `now by X` replaces the dimensions while
   `and by X` adds X; explicitly named measures replace the displayed measures; and an explicit
   amount or comparison replaces the corresponding measure filter.
+- If a question uses one of those follow-up signals but the conversation has no successful prior
+  selection, Ask returns `ClarificationNeeded` with `interpretationIssue.reason` set to
+  `follow-up-context-missing` and says "I don't have a previous successful answer to apply this
+  to. Please restate the full question." The turn-entry audit occurs, but the selector, SQL,
+  provenance and drill paths do not run and the response carries no result.
 - In both a new question and a follow-up, `Actual and Budget` with no comparison words means a
   side-by-side answer and clears inherited Actual-versus-Budget filters, fixed-amount filters and
   limit. A question without a follow-up signal inherits no dimension filter, measure filter,
@@ -52,8 +57,19 @@ client's SAP and Budget workbooks during the demo.
 - One server-side reconciliation step checks only facts that can be read deterministically from
   the current question: complete month endpoints, requested Actual/Budget measures, a named plant,
   "by month", and explicit comparison wording.
+- For each checked fact, the current question is authoritative over a conflicting selector result:
+  the server replaces an April-only window with both stated endpoints, replaces the selected plant
+  with the explicitly named governed plant, replaces the displayed measures with the explicitly
+  requested Actual/Budget set, adds or removes the month dimension to match explicit grouping, and
+  adds, replaces or clears the comparison according to the current words. It then runs ordinary
+  catalog and grant validation on the reconciled selection. This correction is deterministic and
+  does not call the selector again; if the words cannot produce one governed value, the typed
+  clarification rules apply and nothing executes.
 - Supported ranges include compact and spaced month-years (`Apr2026`, `Apr 2026`, `April 2026`),
   a dash or `to`, a shared year (`Apr-Aug 2026`) and ranges crossing a year boundary.
+- A shared year applies to both endpoints. Therefore `Nov-Feb 2026` is reversed and receives the
+  `period-reversed` clarification; a cross-year range must state both years, for example
+  `Nov 2025 to Feb 2026`.
 - Two stated endpoints remain two endpoints. Period parsing produces one of five stable typed
   issues before any data read:
   - `period-incomplete`: a connector such as `to` has no second endpoint; clarification says
@@ -74,6 +90,19 @@ client's SAP and Budget workbooks during the demo.
   (for example over/under Budget, exceeds, greater/less than, or a comparison symbol), or a clearly
   referential follow-up inherits it. "Actual and Budget" means show both and does not mean Actual
   greater than Budget.
+- A fixed comparison amount in the current question is parsed deterministically from a signed
+  decimal with optional `₹`, `Rs` or `INR`. After removing that prefix, an amount is either
+  ungrouped digits, Western grouping `\d{1,3}(,\d{3})+`, or Indian grouping
+  `\d{1,2}(,\d{2})*,\d{3}`, with an optional decimal point followed by one or two digits. An
+  optional `lakh`, `lac` or `crore` multiplier is accepted only on an ungrouped number. The parser
+  multiplies with decimal arithmetic and converts exactly to the existing two-decimal fixed-scale
+  string; it never rounds. Thus `and Actual above ₹5 lakh` replaces an inherited
+  `Actual > ₹1,00,000` filter with `Actual > 500000.00`. Western `₹500,000` and Indian
+  `₹5,00,000` are the same amount; malformed grouping such as `₹5,000,00`, more than two decimal
+  places such as `₹1.234` are malformed. A comparison whose amount is present but malformed returns
+  `ClarificationNeeded` with `interpretationIssue.reason` `comparison-amount-malformed`, says
+  "I couldn't understand that comparison amount. Use a number such as ₹5 lakh or ₹5,00,000.",
+  and performs no selector, SQL, provenance or drill work after the turn-entry audit.
 - The reconciliation step does not become a second general natural-language parser. Language not
   covered by these safety rules stays with the governed selector; an irreconcilable conflict asks
   one question instead of executing.
@@ -95,6 +124,13 @@ client's SAP and Budget workbooks during the demo.
 - A single ungrouped Actual KPI and an Actual total are distinct drill targets, separate from row
   metadata. `AskDrillMetadata.total` carries label `Actual total`, key `__actual_total__`, its own
   signed context and `drillable`; the reserved key is never accepted as a row key.
+- The drill transport replaces the ambiguous `rowKey` request/response field with a required
+  `target` discriminated union: `{ kind: "row", key: string }` or `{ kind: "total" }`. A row click
+  sends its row context and row target; a KPI or total click sends its own context and the total
+  target. The success response echoes the same target alongside the existing page, rows, footer
+  and batch status. `__actual_total__` remains only the metadata identity used by the renderer and
+  signed claims; submitting it as `{ kind: "row", key: "__actual_total__" }` is refused as
+  `drill-target-unknown` before a warehouse read.
 - The exported `buildAskDrillTargetPredicate` is the sole owner of selection/row-to-raw-line
   translation. Its input is the executed selection, effective plants, applied window, complete
   actual pins, optional result row and optional resolved statement triples; its output is one
@@ -186,11 +222,17 @@ Each footer equals its displayed Actual in exact paise. Budget remains inert.
    month, DUB, the full range and no comparison; the same question in a fresh conversation produces
    the same selection.
    Standalone questions using `above Budget` or `previous financial year` also receive no prior
-   turns; each explicit comparison or period is interpreted from its own words.
+   turns; each explicit comparison or period is interpreted from its own words. April-only,
+   wrong-plant, wrong-measure, wrong-grouping and stale-comparison selector fixtures are corrected
+   from the explicit current words before catalog validation and execution.
 2. Compact, spaced, shared-year and cross-year ranges preserve both endpoints; malformed, reversed
-   and domain-incompatible ranges never execute as a silently changed period.
+   and domain-incompatible ranges never execute as a silently changed period. A shared-year range
+   across December is reversed, while the same endpoints with both years stated is cross-year.
 3. Explicit over/under-budget questions keep the correct comparison, while side-by-side Actual and
-   Budget questions never gain one. Referential follow-ups inherit only omitted slots.
+   Budget questions never gain one. Referential follow-ups inherit only omitted slots. An explicit
+   fixed comparison amount replaces an inherited amount exactly, and a malformed amount is
+   clarified before the selector. A first-turn follow-up and a follow-up after only refused turns return the typed
+   `follow-up-context-missing` clarification after the turn-entry audit and before the selector.
 4. The existing readback shows the exact applied measures, plants, period, grouping and comparison,
    and every executed selection remains within the semantic catalog and the user's grants.
 5. Live Actual values drill for every dimension set in the explicit matrix, and the canonical keys
@@ -215,11 +257,14 @@ Each footer equals its displayed Actual in exact paise. Budget remains inert.
 10. Named proofs cover: complete-after-over-budget and fresh-conversation parity; every accepted
     range spelling; incomplete, malformed, reversed, multiple and statement-incompatible ranges;
     each allowed and one disallowed dimension set; KPI, unfiltered total and comparison total
-    beyond display limit; an unwindowed contiguous and non-contiguous Actual answer; the decoded
+    clicks through the target union; a forged reserved row key; a comparison total beyond display
+    limit; an unwindowed contiguous and non-contiguous Actual answer; the decoded
     total union carrying no hidden amount or transaction data; all four fixed bounds; negative and
     offsetting-zero Actuals; row, KPI and total values at both sides of the signed-money boundary;
     a 65,537-character request refused and audited before decode; stored and chart inertness; every
-    typed drill refusal; saved/pinned rerun; and audit-before-read.
+    typed drill refusal; first-turn and post-refusal missing follow-up context with zero selector
+    calls; ungrouped, Western-grouped, Indian-grouped and lakh/crore amounts; malformed grouping,
+    excess decimal places; saved/pinned rerun; and audit-before-read.
 11. Hermetic selection tests, drill contract/service tests, frontend interaction tests, typecheck,
     structural build and quality checks pass. Gated warehouse proofs run only against the throwaway
     test database.
