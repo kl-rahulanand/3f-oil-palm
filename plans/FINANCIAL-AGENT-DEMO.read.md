@@ -1,12 +1,12 @@
 ---
 reader: claude (opus)
-read_at: 2026-10-08T18:42:38+00:00
-read_hash: 6f44209f13bfada93d9d195c5eafc2ba0281412c
-round: 4
-passed: no
-doc_seen: 6f44209f13bfada93d9d195c5eafc2ba0281412c
+read_at: 2026-10-08T18:43:44+00:00
+read_hash: 94ced9052ed342f7954740d6c4e7faf8bba3d78a
+round: 5
+passed: yes
+doc_seen: 94ced9052ed342f7954740d6c4e7faf8bba3d78a
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: a0df6c9c606dc4f0e61f3b7c4dd30430ced6f6ac
+notes_seen: ecd891e29b3d0f9066307b14968316f52f227a77
 ---
 
 # Cold read notes
@@ -207,3 +207,7 @@ Only a genuine trade-off goes to the human, as a question with options.
     - The leaves check only `FINANCIAL_CHAT_DUAL_DB_TEST=1`, so anyone setting that variable by hand skips the target check.
     - The wrapper is an `.mjs` file under `backend/src`, where `backend/src/**/*.ts` lint, format and typecheck never reach it.
     - Move the target check into a shared TypeScript guard that each dual-DB leaf calls before writing, as FIXTURES already does for its own refusal. Name a test of it in BASELINE's Tests cell, or move the wrapper under `tools/` so lint and format cover it, and test it there.
+
+## Round 5
+
+No findings.
