@@ -1,0 +1,12 @@
+{
+  "doc": "plans/FINANCIAL-AGENT-DEMO.md",
+  "status": "planning",
+  "steps": [
+    {
+      "at": "2026-10-08T18:13:16+00:00",
+      "step": "start"
+    }
+  ],
+  "title": "New financial chat with monthly trends and traceable Actuals",
+  "touches": 0
+}
