@@ -321,6 +321,13 @@
       "spec": "docs/specs/ask-period-control.md",
       "status": "pending",
       "order": 16
+    },
+    {
+      "key": "FINANCIAL-AGENT-DEMO",
+      "title": "New financial chat with monthly trends and traceable Actuals",
+      "spec": "docs/specs/langgraph-financial-chat.md",
+      "status": "pending",
+      "order": 17
     }
   ],
   "epics": [
