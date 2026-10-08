@@ -78,6 +78,8 @@ This technical lifecycle is a proposed implementation detail, not a revised-budg
 - [ ] Store coverage explicitly even for all-zero months; loaded-zero cannot be inferred from the
       presence of nonzero facts. Coverage is relational identity plus batch metadata, never a guessed
       value from a missing row.
+      Pin completeness evidence to each Plant/month and generation, including confirmed empty
+      months. No blanket all-known-Plants coverage from a workbook or nonzero-row presence.
 - [ ] Apply through the existing warehouse migration runner twice to prove journal idempotency.
       Capture legacy catalog definitions before/after; app migrations cannot create these tables.
 - [ ] Test failed generation invisibility, atomic switch and old-generation retention. No DROP,

@@ -87,6 +87,11 @@ subtotal from verified hierarchy/formula evidence, not merely a nonempty GL code
       A reject must not silently reduce a supposedly complete dataset.
 - [ ] Independently sum Budget and closing Roll-over leaves per Plant/month. Record absent monthly
       coverage separately from loaded-zero. Compare source tree leaf sums to facts before activation.
+- [ ] Require explicit Actual completeness evidence per declared Plant/month, retained with the
+      batch and checked during reconciliation/activation. Specify the loader's coverage input
+      and evidence format before implementation; no automatic all-known-Plants expansion and
+      no completeness inferred from some transaction rows. Cover confirmed empty months and
+      missing/unconfirmed coverage; do not certify unsupported coverage.
 - [ ] Produce same-scope legacy comparison evidence with load/scope/inclusion rules recorded.
       Complete-source totals may exceed legacy retained-row totals; explain the rows, never force equality.
 - [ ] Test loader failure halfway through writes, duplicate rerun, changed-file replacement, failed

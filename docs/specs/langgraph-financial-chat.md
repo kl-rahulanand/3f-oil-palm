@@ -80,6 +80,10 @@ operator load-reconciliation evidence, not in this PoC's chat or a new review en
 
 Coverage is explicit per Plant/month for Actual and Budget. A loaded Actual month with no
 matching lines is zero; an unloaded month is unavailable and a chart gap, not zero.
+Actual is loaded only with confirmed complete coverage for that specific Plant/month in
+the active validated generation (decision 0048). A workbook load, another Plant's rows,
+or some rows for the requested Plant does not alone prove completeness. Without confirmation,
+the complete Actual is null/"Actual data not loaded"; no transactions alone never implies zero.
 An incomplete Actual range does not get a complete-looking total; any available-only
 subtotal is labelled separately. If any selected Plant/month lacks Budget, full comparison
 Budget and percentage are null, alongside an explicitly labelled available-only Budget
@@ -249,8 +253,10 @@ model reply never displayed as fact; current Plant
 access on lookup and query; audit entries and typed refusals without financial payloads.
 
 Acceptance evidence for 2: D4-D6/D8/D12; April-start and cross-year boundaries; partial
-Actual/Budget, loaded-zero and closing-month missing Roll-over; exact table/tooltips with
-chart gaps; amount and percentage deltas with prior zero/missing values; no average of ratios.
+Actual/Budget, loaded-zero and closing-month missing Roll-over; confirmed complete
+Plant/month with no rows versus no coverage, and partial rows without confirmed completeness;
+exact table/tooltips with chart gaps; amount and percentage deltas with prior zero/missing
+values; no average of ratios.
 
 Acceptance evidence for 3: all named follow-ups; explicit month wins over relative context;
 ambiguous component and transaction reference; another user's conversation; refresh/replay
@@ -290,7 +296,7 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0047 and existing model/financial rules cited above.
+accepted decisions 0042-0048 and existing model/financial rules cited above.
 
 ## Roadmap
 

@@ -71,6 +71,9 @@ not the entire Plant's Unmapped bucket.
 - [ ] Aggregate Budget independently from monthly leaf facts. With no Actual lines but confirmed
       loaded Actual coverage return real zero; distinguish an unloaded Actual period/no matches
       and label the state rather than claiming a zero of data never loaded.
+      Per decision 0048, unconfirmed completeness returns null/"Actual data not loaded",
+      even if partial rows exist. Test confirmed-empty Plant/month, identical empty scope
+      without coverage, and partial rows without completeness; keep partial subtotals labelled.
 - [ ] Write budget_zero_is_loaded, other_plant_budget_not_loaded and missing_month_marks_partial.
       Coverage is per Plant/month, even when grouping collapses it.
 - [ ] Write actual_only_gl_keeps_actual_and_missing_budget_line. In loaded Plant/month coverage,

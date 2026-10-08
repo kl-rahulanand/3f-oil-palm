@@ -75,6 +75,9 @@ No invented passing screenshots or unexplained "all tests green" statement.
       asks to rerun. Test one-hour expiry with controlled time and actual backend restart for memory loss.
 - [ ] Inspect chart/table/tooltips for exact equality and missing gaps; keyboard/light/dark/mobile
       walkthrough and flag-off route/API behavior. No fixed sleeps or Playwright retries.
+      Prove a no-row Plant/month is zero only with confirmed complete coverage. Without
+      coverage, or with partial rows but unconfirmed completeness, show "Actual data not loaded"
+      and chart gaps, not a complete zero or total.
 - [ ] Toggle the runtime feature flag with the same frontend build and prove that missing new-model
       configuration cannot prevent reports or old Ask from starting or answering.
 

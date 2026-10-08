@@ -135,6 +135,11 @@ Only a genuine trade-off goes to the human, as a question with options.
     The demo case IDs, the golden amounts and the model API parameters are each assigned to a stage that only a later story can define. The spec should say "the implementing story pins …" or name the step that owns each one.
 
 26. Actual coverage per Plant is undefined, so loaded-zero and unloaded can't be told apart for a Plant with no lines.
+    Disposition: keep: Owner accepted decision 0048: only confirmed complete Plant/month
+    coverage permits zero for an empty set. Workbook load or transaction presence alone
+    does not certify completeness; unconfirmed coverage is "Actual data not loaded".
+    Spec acceptance 2 and schema/import/query/UI/verification plans cover both empty states
+    and partial rows without confirmation. Coverage input/evidence format is an implementation seam.
     "Coverage is explicit per Plant/month", but a load is one workbook. The spec should say whether a loaded month counts as loaded for every known Plant, or only for Plants that have at least one line. This decides whether D8, for a Plant with no April lines, shows zero or "unavailable". Unproven: item 2: a permitted Plant with no lines in a loaded month.
 
 27. Budget for a GL with Actuals but no Budget leaf, in a loaded DUB month, is not pinned.

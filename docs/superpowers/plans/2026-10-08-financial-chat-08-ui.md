@@ -63,6 +63,8 @@ component fallback. The final answer is renderable independently of earlier part
 - [ ] Render one result model in text/table/chart; no client reaggregation, percentages or deltas.
       Monthly rows chronological, labelled axes, series distinguished beyond color, exact table
       accessible alongside chart. Missing/unloaded values are gaps, not zero or interpolated lines.
+      Display "Actual data not loaded" for unconfirmed Plant/month completeness; show zero
+      only for confirmed complete coverage with no matching lines, never from absence alone.
 - [ ] Explain available Budget subtotal versus incomplete full comparison. Zero denominator is
       Not applicable. No fake/loading/example amounts as real financial results.
       An Actual-only GL in a loaded Budget month displays "No Budget line for this GL"

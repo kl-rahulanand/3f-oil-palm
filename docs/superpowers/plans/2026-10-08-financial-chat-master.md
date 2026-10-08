@@ -61,6 +61,9 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
   with no Budget leaf in a loaded Plant/month: "No Budget line for this GL", null Budget
   and Not applicable percentage. Keep its Actual row and prepared transaction drill-down.
 - Actual = sum(Debit - Credit). Percentage = matching aggregate Actual / Budget * 100.
+  [0048](../../decisions/0048-financial-chat-actual-coverage.md) requires confirmed complete
+  Actual coverage for each Plant/month before an empty set can be ₹0. Otherwise complete
+  Actual is null/"Actual data not loaded". A workbook load or some rows is not completeness.
   Never average percentages. Zero/missing denominator is Not applicable.
   Partial Budget coverage cannot yield a complete-looking comparison or percentage.
 - Stored monthly Roll-over is a balance: range/YTD uses closing month, never sum across months.
