@@ -222,7 +222,6 @@ and selections to compare correctness, clarification, latency and measured usage
 provider change still requires checking model/API compatibility and data handling.
 A stale Excel formula cache cannot be independently certified; require recalculated saved workbook.
 One process means restart/scale-out loses memory; production persistence requires a later decision.
-The previous 10-15 working-day estimate is provisional; schedule after compatibility/data proof.
 
 ## Official references checked on 2026-10-08
 
