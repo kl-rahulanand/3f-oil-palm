@@ -3,11 +3,32 @@
   "branch": "fix/define-trustworthy-ask-trends-and-transa",
   "done_when": "The combined capability is specified and ready for a story plan",
   "kind": "fix",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "0ff8dc0d4461617cf02490983990b13569227549caf96d0c0ae7999a501d8a64",
+    "commit": "25989508075294fe8ad938cdda7ac4157922c61e",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The only no-window drill rule is restricted to Actual-only answers, but the inherited period contract explicitly preserves older saved views and pins containing Actual and Budget with no period (`docs/specs/ask-period-control.md:244`; also `plans/ASK-BUDGET-PERIOD.md:101`). Those selections still rerun and produce live Actuals, while criterion 9 here promises fresh drill links on saved/pinned reruns. The spec therefore leaves their required drill range undefined and names no proof for them; a planner cannot determine whether to derive the range from Actual pins or make these targets inert, the latter contradicting the stated \u201cevery live Actual\u201d capability. Define the no-window rule for any rerun containing Actual and add the corresponding saved/pinned mixed-measure proof.",
+        "file": "docs/specs/ask-traceable-answers.md",
+        "line": 170,
+        "priority": "P1",
+        "title": "Not done: The combined capability is specified and ready for a story plan"
+      }
+    ],
+    "status": "blocked",
+    "tree": "15461844f9d3a2fff5b4fe168884d769ce51ef11f10e0243cae0e6632aa66579"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-08T08:01:44+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-08T08:55:42+00:00",
+      "step": "review"
     }
   ],
   "why": "Define trustworthy Ask trends and transaction verification"
