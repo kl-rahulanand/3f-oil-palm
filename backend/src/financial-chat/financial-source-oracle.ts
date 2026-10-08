@@ -176,8 +176,7 @@ function inspectBudget(header: HeaderLocation): FinancialSourceOracle["budget"] 
     const row = header.worksheet.getRow(rowNumber);
     if (startsNewBudgetTable(row)) break;
     if (isEmpty(row, header.columns)) continue;
-    if (!cellText(cell(row, header, "Budget Components")) || !cellText(cell(row, header, "GL Codes"))) continue;
-    if (periods.some(({ budgetColumn }) => /\$?[A-Z]{1,3}\$?\d+/i.test(row.getCell(budgetColumn).formula))) continue;
+    if (!cellText(cell(row, header, "Budget Components")) || row.outlineLevel === 0) continue;
     rowCount += 1;
     for (const period of periods) {
       const budgetLabel = `Budget row ${rowNumber}`;

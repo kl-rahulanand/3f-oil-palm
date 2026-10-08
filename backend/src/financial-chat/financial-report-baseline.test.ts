@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -10,6 +10,7 @@ import { NestFactory } from "@nestjs/core";
 import { ResponseClass, type AskResponse, type AuthUser, type MisStatementNode, type Selection } from "@3f/contract";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Workbook } from "exceljs";
+import type { Pool } from "pg";
 import { AuthGuard } from "../auth/auth.guard";
 import { AUTH_COOKIE_NAMES } from "../auth/cookies";
 import { ChatController } from "../chat/chat.controller";
@@ -44,7 +45,11 @@ import { createWarehouseWritePool } from "../warehouse/ingestion.repository";
 import { PostgresAdapter } from "../warehouse/postgres.adapter";
 import { StatementOutlineRepository } from "../warehouse/statement-outline.repository";
 import { migrateWarehouse } from "../warehouse/warehouse-migrate";
-import { assertDisposableFinancialDatabases } from "./financial-disposable-db.guard";
+import {
+  assertDisposableFinancialDatabases,
+  assertTrustedFinancialBaselineDirectory,
+  type FinancialDatabaseTargets,
+} from "./financial-disposable-db.guard";
 import {
   prepareLegacyFinancialSource,
   snapshotFinancialWorkbook,
@@ -131,7 +136,7 @@ test("the generated source oracle independently preserves source rows, signs, co
     budget.addRow([
       "1",
       "Nursery total",
-      "",
+      "TOTAL",
       { formula: "SUM(D5:D6)", result: 90.005 },
       { formula: "SUM(E5:E6)", result: 4.004 },
       { formula: "SUM(F5:F6)", result: 90 },
@@ -141,12 +146,15 @@ test("the generated source oracle independently preserves source rows, signs, co
       "1",
       "Seed",
       "4100",
-      "80.005",
+      { formula: "D6+70.005", result: 80.005 },
       { formula: "4.004", result: 4.004, ref: "E5:E6", shareType: "shared" },
       "90",
       "5",
     ]);
-    budget.addRow(["2", "Freight", "4200", "10", { sharedFormula: "E5", result: 0 }, "", ""]);
+    budget.addRow(["2", "Freight", "", "10", { sharedFormula: "E5", result: 0 }, "", ""]);
+    budget.getRow(4).outlineLevel = 0;
+    budget.getRow(5).outlineLevel = 1;
+    budget.getRow(6).outlineLevel = 1;
 
     await writeFile(path, Buffer.from(await workbook.xlsx.writeBuffer()));
     const source = await inspectFinancialSource(path);
@@ -235,17 +243,34 @@ test("the source oracle rejects a missing Actual debit and credit instead of tre
   }
 });
 
-test("the baseline writer retains the first snapshot for a checksummed source", async () => {
+test("the baseline writer accepts an exact replay and rejects changed outputs for a checksummed source", async () => {
   const directory = await mkdtemp(join(tmpdir(), "3f-financial-baseline-retention-"));
   const checkout = join(directory, "checkout");
   const destination = join(directory, "snapshot");
   try {
     const artifactPath = await writeFinancialBaselineArtifact(baselineArtifact("first"), checkout, destination);
     const retained = await readFile(artifactPath, "utf8");
-    await writeFinancialBaselineArtifact(baselineArtifact("second"), checkout, destination);
+    await writeFinancialBaselineArtifact(baselineArtifact("first"), checkout, destination);
     assert.equal(await readFile(artifactPath, "utf8"), retained);
+    await assert.rejects(
+      writeFinancialBaselineArtifact(baselineArtifact("second"), checkout, destination),
+      /does not match the captured financial baseline/,
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("the baseline writer rejects an untrusted external directory before writing", async () => {
+  const destination = join(tmpdir(), `untrusted-financial-baseline-${process.pid}-${Date.now()}`);
+  try {
+    await assert.rejects(
+      writeFinancialBaselineArtifact(baselineArtifact("first"), join(tmpdir(), "checkout"), destination),
+      /trusted task temporary directory/,
+    );
+    assert.equal(existsSync(destination), false);
+  } finally {
+    await rm(destination, { recursive: true, force: true });
   }
 });
 
@@ -257,6 +282,7 @@ test("the export baseline records sheet values rather than volatile workbook byt
 });
 
 const realSource = process.env.FINANCIAL_CHAT_SOURCE_FILE;
+const FIXED_BASELINE_USER_ID = "00000000-0000-4000-8000-0000000000b1";
 const realSourceSkip =
   process.env.FINANCIAL_CHAT_DUAL_DB_TEST !== "1"
     ? "FINANCIAL_CHAT_DUAL_DB_TEST is disabled; real-source acceptance requires the guarded runner"
@@ -265,17 +291,25 @@ const realSourceSkip =
       : false;
 
 test(
-  "FINANCIAL_CHAT_DUAL_DB_TEST preserves real-source report export drill and old Ask HTTP outputs",
+  "FINANCIAL_CHAT_DUAL_DB_TEST restores the fixed real-source dataset and preserves report export drill and old Ask HTTP outputs",
   { skip: realSourceSkip },
   async () => {
-    assertDisposableFinancialDatabases(process.env);
+    const targets = assertDisposableFinancialDatabases(process.env);
     const sourcePath = realSource!;
     const oracle = await inspectFinancialSource(sourcePath);
     const legacy = await prepareLegacyFinancialSource(sourcePath);
+    const checkout = join(__dirname, "../../..");
+    const baselineDirectory = assertTrustedFinancialBaselineDirectory(
+      process.env.FINANCIAL_CHAT_BASELINE_DIR ?? join(tmpdir(), "3f-financial-chat-baseline"),
+      checkout,
+    );
+    const savedDataset = await readBaselineDataset(baselineDirectory, oracle.sha256, targets);
     assert.equal(legacy.sha256, oracle.sha256);
     assert.equal(legacy.excludedActualRows, oracle.actual.legacyCompatible.excludedRowCount);
     assert.ok(legacy.actualSourcePlants.includes("DUB-NUR"));
     assert.ok(oracle.actual.byPlantMonth.some(({ plant }) => plant === "DUB"));
+    assert.equal(oracle.budget.rowCount, 78);
+    assert.ok(oracle.budget.periods.every(({ leafCount }) => leafCount === 78));
 
     await migrateWarehouse();
     const warehousePool = await createWarehouseWritePool();
@@ -284,30 +318,35 @@ test(
     let app: INestApplication | undefined;
     try {
       await migrate(appDb, { migrationsFolder: join(__dirname, "../../drizzle") });
-      await warehousePool.query("TRUNCATE sap_transaction, mis_budget, ingest_batch CASCADE");
-      await appPool.query("TRUNCATE audit_events, users, roles CASCADE");
-      await appDb.insert(roles).values({ name: "admin", label: "Administrator" });
-      const inserted = await appDb
-        .insert(users)
-        .values({ email: "financial-baseline@example.test", displayName: "Financial baseline", isActive: true })
-        .returning({ id: users.id });
-      const user = baselineUser(inserted[0]!.id);
-      await appDb.insert(userRoles).values({ userId: user.id, role: "admin" });
-      await appDb
-        .insert(rolePerms)
-        .values([
-          ...user.permissions.actions.map((grantId) => ({ role: "admin", grantType: "action", grantId })),
-          ...user.permissions.domains.map((grantId) => ({ role: "admin", grantType: "domain", grantId })),
-          ...user.permissions.measureIds.map((grantId) => ({ role: "admin", grantType: "measure", grantId })),
-          ...user.permissions.dimensionIds.map((grantId) => ({ role: "admin", grantType: "dimension", grantId })),
-        ]);
-      await appDb.insert(userScope).values(user.scope.map((scope) => ({ userId: user.id, ...scope })));
+      const user = baselineUser(FIXED_BASELINE_USER_ID);
+      let actualBatchIds: string[];
+      let budgetBatchIds: string[];
+      if (savedDataset) {
+        await restoreDatabaseSnapshot(warehousePool, savedDataset.warehouse);
+        await restoreDatabaseSnapshot(appPool, savedDataset.app);
+        actualBatchIds = savedDataset.actualBatchIds;
+        budgetBatchIds = savedDataset.budgetBatchIds;
+      } else {
+        await resetDisposableDatabase(warehousePool);
+        await resetDisposableDatabase(appPool);
+        await seedBaselineAccess(appDb, user);
+        const ingest = new IngestService();
+        const actualLoads = [];
+        for (const { upload } of legacy.actuals) actualLoads.push(await ingest.ingestActuals(upload, user.id));
+        const budgetLoad = await ingest.ingestBudget(legacy.budget, user.id);
+        actualBatchIds = actualLoads.map(({ batchId }) => batchId);
+        budgetBatchIds = budgetLoad.periods.map(({ batchId }) => batchId);
+        await writeBaselineDataset(
+          baselineDirectory,
+          oracle.sha256,
+          targets,
+          actualBatchIds,
+          budgetBatchIds,
+          await captureDatabaseSnapshot(warehousePool, targets.warehouse, oracle.sha256),
+          await captureDatabaseSnapshot(appPool, targets.app, oracle.sha256),
+        );
+      }
       const accessToken = (await new SessionService(appDb).create(user.id)).accessToken;
-
-      const ingest = new IngestService();
-      const actualLoads = [];
-      for (const { upload } of legacy.actuals) actualLoads.push(await ingest.ingestActuals(upload, user.id));
-      const budgetLoad = await ingest.ingestBudget(legacy.budget, user.id);
 
       const budgetMonths = new Set(oracle.budget.periods.map(({ reportingMonth }) => reportingMonth));
       const period = oracle.actual.legacyCompatible.byPlantMonth
@@ -389,16 +428,16 @@ test(
         {
           sourceSha256: oracle.sha256,
           sourceName: sourcePath.split(/[\\/]/).at(-1)!,
-          actualBatchIds: actualLoads.map(({ batchId }) => batchId),
-          budgetBatchIds: budgetLoad.periods.map(({ batchId }) => batchId),
+          actualBatchIds,
+          budgetBatchIds,
           scope: { plant: "DUB", period },
           report: withoutVolatileReportFields(report),
           exportSnapshot: snapshotFinancialWorkbook(exported),
           drill,
           ask: withoutVolatileAskFields(ask.response),
         },
-        join(__dirname, "../../.."),
-        process.env.FINANCIAL_CHAT_BASELINE_DIR,
+        checkout,
+        baselineDirectory,
       );
       assert.ok(existsSync(artifactPath));
       assert.equal((await appDb.select().from(auditEvents)).length >= 1, true);
@@ -409,6 +448,212 @@ test(
     }
   },
 );
+
+type DatabaseTarget = FinancialDatabaseTargets["warehouse"];
+
+interface DatabaseSnapshot {
+  version: 1;
+  sourceSha256: string;
+  target: DatabaseTarget;
+  tables: Array<{ name: string; rows: unknown[] }>;
+}
+
+interface SavedBaselineDataset {
+  actualBatchIds: string[];
+  budgetBatchIds: string[];
+  warehouse: DatabaseSnapshot;
+  app: DatabaseSnapshot;
+}
+
+async function readBaselineDataset(
+  directory: string,
+  sourceSha256: string,
+  targets: FinancialDatabaseTargets,
+): Promise<SavedBaselineDataset | undefined> {
+  const manifestPath = join(directory, "dataset-manifest.json");
+  const warehousePath = join(directory, "warehouse-dataset.json");
+  const appPath = join(directory, "app-dataset.json");
+  const present = [manifestPath, warehousePath, appPath].map(existsSync);
+  if (present.every((value) => !value)) return undefined;
+  if (!present.every(Boolean)) throw new Error("Financial baseline dataset is incomplete and refuses database writes");
+
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    version?: unknown;
+    sourceSha256?: unknown;
+    targets?: unknown;
+    actualBatchIds?: unknown;
+    budgetBatchIds?: unknown;
+  };
+  if (
+    manifest.version !== 1 ||
+    manifest.sourceSha256 !== sourceSha256 ||
+    !sameTargets(manifest.targets, targets) ||
+    !stringArray(manifest.actualBatchIds) ||
+    !stringArray(manifest.budgetBatchIds)
+  ) {
+    throw new Error("Financial baseline dataset identity is invalid and refuses database writes");
+  }
+  const warehouse = parseDatabaseSnapshot(await readFile(warehousePath, "utf8"), sourceSha256, targets.warehouse);
+  const app = parseDatabaseSnapshot(await readFile(appPath, "utf8"), sourceSha256, targets.app);
+  return {
+    actualBatchIds: manifest.actualBatchIds,
+    budgetBatchIds: manifest.budgetBatchIds,
+    warehouse,
+    app,
+  };
+}
+
+async function captureDatabaseSnapshot(
+  pool: Pool,
+  target: DatabaseTarget,
+  sourceSha256: string,
+): Promise<DatabaseSnapshot> {
+  const names = await publicTableNames(pool);
+  const tables: DatabaseSnapshot["tables"] = [];
+  for (const name of names) {
+    const result = await pool.query<{ rows: unknown[] }>(
+      `SELECT COALESCE(jsonb_agg(to_jsonb(record) ORDER BY to_jsonb(record)::text), '[]'::jsonb) AS rows FROM public.${quoted(name)} AS record`,
+    );
+    tables.push({ name, rows: result.rows[0]!.rows });
+  }
+  return { version: 1, sourceSha256, target, tables };
+}
+
+async function writeBaselineDataset(
+  directory: string,
+  sourceSha256: string,
+  targets: FinancialDatabaseTargets,
+  actualBatchIds: string[],
+  budgetBatchIds: string[],
+  warehouse: DatabaseSnapshot,
+  app: DatabaseSnapshot,
+): Promise<void> {
+  await mkdir(directory, { recursive: true });
+  const files = ["warehouse-dataset.json", "app-dataset.json", "dataset-manifest.json"];
+  if (files.some((name) => existsSync(join(directory, name)))) {
+    throw new Error("Financial baseline dataset already exists and cannot be replaced");
+  }
+  const temporary = files.map((name) => join(directory, `.${name}.${process.pid}.tmp`));
+  try {
+    await writeFile(temporary[0]!, `${JSON.stringify(warehouse)}\n`, { flag: "wx" });
+    await writeFile(temporary[1]!, `${JSON.stringify(app)}\n`, { flag: "wx" });
+    await writeFile(
+      temporary[2]!,
+      `${JSON.stringify({ version: 1, sourceSha256, targets, actualBatchIds, budgetBatchIds }, null, 2)}\n`,
+      { flag: "wx" },
+    );
+    for (let index = 0; index < files.length; index += 1) {
+      await rename(temporary[index]!, join(directory, files[index]!));
+    }
+  } finally {
+    await Promise.all(temporary.map((path) => rm(path, { force: true })));
+  }
+}
+
+async function restoreDatabaseSnapshot(pool: Pool, snapshot: DatabaseSnapshot): Promise<void> {
+  const currentTables = await publicTableNames(pool);
+  const current = new Set(currentTables);
+  if (snapshot.tables.some(({ name }) => !current.has(name))) {
+    throw new Error("Financial baseline dataset does not match the disposable database schema");
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SET LOCAL session_replication_role = replica");
+    if (currentTables.length) {
+      await client.query(`TRUNCATE ${currentTables.map((name) => `public.${quoted(name)}`).join(", ")} CASCADE`);
+    }
+    for (const table of snapshot.tables) {
+      if (!table.rows.length) continue;
+      const identifier = `public.${quoted(table.name)}`;
+      await client.query(
+        `INSERT INTO ${identifier} SELECT * FROM jsonb_populate_recordset(NULL::${identifier}, $1::jsonb)`,
+        [JSON.stringify(table.rows)],
+      );
+      const count = await client.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${identifier}`);
+      if (count.rows[0]!.count !== String(table.rows.length)) {
+        throw new Error("Financial baseline dataset restore row count does not match");
+      }
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function resetDisposableDatabase(pool: Pool): Promise<void> {
+  const tables = await publicTableNames(pool);
+  if (tables.length) await pool.query(`TRUNCATE ${tables.map((name) => `public.${quoted(name)}`).join(", ")} CASCADE`);
+}
+
+async function publicTableNames(pool: Pool): Promise<string[]> {
+  const result = await pool.query<{ table_name: string }>(
+    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name",
+  );
+  return result.rows.map(({ table_name }) => table_name);
+}
+
+function parseDatabaseSnapshot(raw: string, sourceSha256: string, target: DatabaseTarget): DatabaseSnapshot {
+  const value = JSON.parse(raw) as Partial<DatabaseSnapshot>;
+  if (
+    value.version !== 1 ||
+    value.sourceSha256 !== sourceSha256 ||
+    !sameTarget(value.target, target) ||
+    !Array.isArray(value.tables) ||
+    value.tables.some(
+      (table) =>
+        !table ||
+        typeof table.name !== "string" ||
+        !/^[A-Za-z_][A-Za-z0-9_]*$/.test(table.name) ||
+        !Array.isArray(table.rows),
+    ) ||
+    new Set(value.tables.map(({ name }) => name)).size !== value.tables.length
+  ) {
+    throw new Error("Financial baseline database snapshot is invalid and refuses database writes");
+  }
+  return value as DatabaseSnapshot;
+}
+
+function sameTargets(value: unknown, expected: FinancialDatabaseTargets): boolean {
+  if (!value || typeof value !== "object") return false;
+  const targets = value as Partial<FinancialDatabaseTargets>;
+  return sameTarget(targets.warehouse, expected.warehouse) && sameTarget(targets.app, expected.app);
+}
+
+function sameTarget(value: unknown, expected: DatabaseTarget): boolean {
+  if (!value || typeof value !== "object") return false;
+  const target = value as Partial<DatabaseTarget>;
+  return target.host === expected.host && target.port === expected.port && target.database === expected.database;
+}
+
+function stringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string" && entry.length > 0);
+}
+
+function quoted(identifier: string): string {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) throw new Error("Financial baseline table name is invalid");
+  return `"${identifier}"`;
+}
+
+async function seedBaselineAccess(appDb: ReturnType<typeof createDb>, user: AuthUser): Promise<void> {
+  await appDb.insert(roles).values({ name: "admin", label: "Administrator" });
+  await appDb
+    .insert(users)
+    .values({ id: user.id, email: user.email, displayName: user.display_name, isActive: user.is_active });
+  await appDb.insert(userRoles).values({ userId: user.id, role: "admin" });
+  await appDb
+    .insert(rolePerms)
+    .values([
+      ...user.permissions.actions.map((grantId) => ({ role: "admin", grantType: "action", grantId })),
+      ...user.permissions.domains.map((grantId) => ({ role: "admin", grantType: "domain", grantId })),
+      ...user.permissions.measureIds.map((grantId) => ({ role: "admin", grantType: "measure", grantId })),
+      ...user.permissions.dimensionIds.map((grantId) => ({ role: "admin", grantType: "dimension", grantId })),
+    ]);
+  await appDb.insert(userScope).values(user.scope.map((scope) => ({ userId: user.id, ...scope })));
+}
 
 async function oldAskOverHttp(
   appDb: ReturnType<typeof createDb>,

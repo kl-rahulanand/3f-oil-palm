@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import type { UploadedWorkbook } from "../ingest/ingest.service";
 import { Workbook, type CellValue, type Row, type Worksheet } from "exceljs";
+import { assertTrustedFinancialBaselineDirectory } from "./financial-disposable-db.guard";
 
 const ACTUAL_HEADERS = [
   "Transaction Number",
@@ -125,11 +127,7 @@ export async function writeFinancialBaselineArtifact(
   checkout: string,
   directory = join(tmpdir(), "3f-financial-chat-baseline"),
 ): Promise<string> {
-  const target = resolve(directory);
-  const root = resolve(checkout);
-  if (!isAbsolute(target) || !relative(root, target).startsWith("..")) {
-    throw new Error("Financial baseline artifacts must stay outside the Git checkout");
-  }
+  const target = assertTrustedFinancialBaselineDirectory(directory, checkout);
   await mkdir(target, { recursive: true });
   const metadataPath = join(target, "source-metadata.json");
   let metadataExists = false;
@@ -152,7 +150,10 @@ export async function writeFinancialBaselineArtifact(
   if (!metadataExists) await writeFile(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`);
   const artifactPath = join(target, "legacy-backend-baseline.json");
   try {
-    await readFile(artifactPath);
+    const prior = JSON.parse(await readFile(artifactPath, "utf8")) as FinancialBaselineArtifact;
+    if (!isDeepStrictEqual(prior, artifact)) {
+      throw new Error("Current financial output does not match the captured financial baseline");
+    }
     return artifactPath;
   } catch (error) {
     if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
