@@ -61,6 +61,13 @@ complete-customer-Actual demo is promised until a later confirmed coverage proce
 
 ### 9B: Exercise complete running application
 
+Prove mandatory labelled real-source available-data Actual subtotals, their prepared exact
+transactions and cap counting, while complete Actual/ratio/changes remain unavailable.
+Use spec's real-workbook D1-D12 expectations. Synthetic fixture harness rejects wrong
+host/port and non-synthetic confirmation before writes; every synthetic UI result is labelled.
+Exercise invalid/negative/fractional/zero/past-end page and over-limit size, empty page 1,
+changed continuation size and refresh/second-tab metadata with spec's typed 400 reasons.
+
 Verify signed monthly monetary deltas and null/Not applicable percentage change for
 negative-to-positive, negative-to-negative and zero-prior cases, plus missing periods and
 ordinary positive-prior arithmetic. Preserve drill-down; Actual-vs-Budget ratios are unchanged.
@@ -110,6 +117,11 @@ Include missing Cost Center/Section buckets, exact totals and prepared transacti
       configuration cannot prevent reports or old Ask from starting or answering.
 
 ### 9C: Live model and data-boundary proof
+
+After the final change to any instruction module, tool schema or cache placement, rerun
+three fresh D1-D12 probes and isolated follow-ups on that revision. Earlier revision
+evidence is invalid. Prove static prefix equality across users with different grants,
+without putting vocabulary in tool schemas. Vendor prerequisites still gate real calls.
 
 Record owner confirmation of application API/model access, billing and client retention/
 residency requirements before real new-chat Anthropic calls. Until then fake-model/synthetic

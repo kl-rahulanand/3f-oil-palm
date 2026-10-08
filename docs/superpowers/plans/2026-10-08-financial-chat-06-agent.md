@@ -60,6 +60,11 @@ Decision 0053 adds instruction modules, not another agent framework. Bundle code
 guidance for comparisons, monthly trends, required-scope clarification and transaction
 requests. Compose in stable order with core safety rules always present; do not load user
 skills, execute instruction files or let modules override validation/authorization.
+Always bundle all modules in that static prefix. Do not select modules per question;
+never embed permission-scoped value enums in tool definitions. Provider-boundary proof
+requires identical static prefix bytes across users/grants and differing dynamic context.
+Deterministic assembly retains partial Actual subtotals/details, complete-Actual nulls and
+mandatory synthetic fixture labels; the model still sees no resulting money/rows.
 
 Develop with a fake selector first and validated warehouse reads. Use synthetic questions
 until the owner records application API/model access, billing and client data-handling

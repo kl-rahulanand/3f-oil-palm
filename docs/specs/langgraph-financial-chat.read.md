@@ -1,12 +1,12 @@
 ---
 reader: claude (opus)
-read_at: 2026-10-08T17:41:27+00:00
-read_hash: 53ed750ef7fceeba0f3d6a1b64484fa04b8871c7
-round: 3
+read_at: 2026-10-08T18:08:44+00:00
+read_hash: cd617c67e049e596af6b40687709956047c29be2
+round: 4
 passed: no
-doc_seen: 53ed750ef7fceeba0f3d6a1b64484fa04b8871c7
+doc_seen: cd617c67e049e596af6b40687709956047c29be2
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 7d7408338a9628c4429d7dd6334c1e1f88ac07d8
+notes_seen: 448910153be32283c6a35144bc57f58817192348
 ---
 
 # Cold read notes
@@ -237,3 +237,45 @@ Trap: the global exception filter replaces messages: items 3 and 4.
     scopes explicitly failed while exact summary remains visible. Controlled-time proof is required;
     this does not claim an owner-approved overall latency target or measured performance.
     Up to 200 full-total reads plus first pages must finish before the answer shows. Acceptance 6 only measures timing and sets no target. The spec should give a bound on answer preparation time. It should also say what the user sees when preparation times out. It could be the same detail-failed state per cell while the exact summary still shows, or a typed refusal. Unproven: item 4: preparation times out on a large answer.
+
+## Round 4
+
+41. The spec doesn't say whether real-data answers show the available-only Actual amounts and their transactions.
+    Disposition: keep: Spec now mandates a distinct labelled available-data Actual subtotal
+    with prepared drill/counting, never used for complete ratios/deltas/chart series, and
+    pins real-workbook display for D1-D12 without asserting completeness.
+    Under decision 0054, every real DUB answer has a null complete Actual. The only real-data route to the Why's "inspect the transactions behind an Actual" is the "available-only subtotal", which line 99 makes optional ("any available-only subtotal is labelled separately"). The spec should pin four things:
+    - whether real-source answers always show a labelled available-only Actual next to "Actual data not loaded";
+    - whether that amount is clickable, with a prepared page that counts toward the 200 cap;
+    - that it never feeds percentage, month-to-month change or Roll-over arithmetic;
+    - what each of D1–D12 shows on the real workbook.
+
+    Unproven: item 4: drill-down on an available-only Actual; item 2: no percentage or change computed from available-only amounts.
+
+42. Synthetic complete-coverage fixtures need the confirmation mechanism that decision 0054 defers, and nothing keeps it away from customer data.
+    Disposition: keep: Spec uses a test-owned real-loader harness restricted to synthetic:
+    batches and throwaway 127.0.0.1:5434, rejects non-synthetic confirmation, carries visible
+    Synthetic test data labels, and adds no production confirmation endpoint/CLI option.
+    The numeric Actual, loaded-zero and drill-down proofs depend on a generation marked "complete coverage". The spec doesn't say how a fixture gets that mark. It also doesn't say what stops the same mark being applied to the real DUB generation, or how the UI labels synthetic results so they are never shown as customer data. Activating a fixture generation in the demo warehouse would also replace the real active generation.
+    Pin a coverage seam that only an explicitly synthetic source identity can use. Results from it need a visible "synthetic" label, and they load only into a disposable warehouse. Trap: gated warehouse tests TRUNCATE tables: item 5 (fixtures go to :5434, never :5433). Unproven: item 5: a coverage declaration on a non-synthetic source is refused.
+
+43. The spec doesn't say how instruction modules are chosen or where vocabulary goes, and both decide whether the cache prefix stays static.
+    Disposition: keep: All four modules always occupy the fixed static prefix; schemas
+    contain no per-user value enums, and permitted vocabulary follows the breakpoint.
+    Acceptance requires identical prefix bytes across users with different grants.
+    "Instruction modules guide comparisons, trends, clarification and transaction requests", but nothing says how a module is picked: always loaded, chosen by a server router, or chosen by the model. Two cases break the cached prefix:
+    - modules composed per question before the breakpoint;
+    - permitted vocabulary injected into tool schemas as enums, which makes "static tool definitions" dynamic.
+
+    The spec should pin that all modules sit in the static prefix, or are added after the breakpoint, and that per-user vocabulary never appears in tool definitions. Unproven: item 6: two users with different Plant grants get the same cached prefix.
+
+44. Trap: a prompt or tool-schema change shifts live model output that hermetic replays cannot see: item 6.
+    Disposition: keep: Acceptance 6 requires all three fresh D1-D12 runs/follow-ups on the
+    final instruction/tool-schema/cache revision; changes invalidate earlier live evidence.
+    Instruction modules, cache-breakpoint placement and tool definitions will keep changing across the story, and real calls stay blocked until the vendor check. Acceptance 6 should require rerunning the three fresh live runs of D1–D12 and the follow-ups after the last change to any instruction module, tool schema or cache placement. Live results from an earlier prompt version should not count.
+
+45. Continuation paging's refusal and boundary cases are unpinned.
+    Disposition: keep: Spec pins invalid_pagination/page_size_changed/page_out_of_range
+    400 reasons, first-page empty validity and totalPages formula, and authorized prepared/
+    state metadata for refresh/second-tab clients. Contracts and acceptance inherit them.
+    A rejected page-size change has no typed `details.reason`. After a refresh, the client may not know the pinned size and would hit that refusal. The spec also doesn't say what page 0, a negative or non-integer page, a size above 100, or a page past the end returns. Trap: the global exception filter replaces messages: item 4. Unproven: item 4: a size change after a refresh or in a second tab; item 4: an out-of-range page.

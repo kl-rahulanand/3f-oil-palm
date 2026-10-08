@@ -22,6 +22,13 @@ shared Actual predicate. One transactions tool serves preparation and subsequent
 
 ## Interfaces and identities
 
+Available-data Actual subtotals also receive prepared exact contributing-row handles;
+they remain visibly partial and count toward the same distinct-scope cap. Test equality
+of those full row sets and refusal to treat their amount as complete Actual.
+Use the spec's totalPages formula and typed paging reasons; return prepared/pinned/default
+size metadata in authorized page/state replies. After refresh/second tab fetch metadata
+before continuation, never silently repin or skip rows. Prove malformed and past-end pages.
+
 query produces per-cell/total drilldownId only for Actual. Store owner, result association,
 cell identity, resolved dates/Plants/filters, mapping version, source batches,
 expected matchingActualTotal, issued/last-used timestamps and expiry. Never accept client SQL

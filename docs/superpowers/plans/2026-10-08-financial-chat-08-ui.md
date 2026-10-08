@@ -27,6 +27,12 @@ LangGraph transport; locally registered fixed components consume one verified se
 
 ## Component contracts
 
+Render available-data Actual subtotals with the exact completeness-unconfirmed label and
+prepared clickable handles, separate from complete Actual/"Actual data not loaded".
+Do not draw them into complete-Actual series or compute ratios/deltas from them. Every
+synthetic result prominently says "Synthetic test data". Paging after refresh uses current
+authorized pinned-size metadata and explains typed invalid/change/past-end outcomes.
+
 | Component               | Input and behavior                                                        |
 | ----------------------- | ------------------------------------------------------------------------- |
 | FinancialTotal          | Scope, server totals/states and Actual handle; short deterministic answer |

@@ -111,7 +111,16 @@ synthetic complete-coverage fixtures through the real application and warehouse,
 invented customer confirmation. A complete-customer-Actual demo awaits a later confirmed
 coverage process; this limitation does not block implementation of the supported rules.
 An incomplete Actual range does not get a complete-looking total; any available-only
-subtotal is labelled separately. If any selected Plant/month lacks Budget, full comparison
+subtotal is labelled separately. For a reconciled source with unconfirmed coverage,
+always include the exact sum of present matching rows as "Available-data Actual subtotal —
+completeness unconfirmed", beside the null complete Actual/"Actual data not loaded".
+It is a distinct partial-value field, never a replacement for complete Actual; an empty
+matching set has an explicitly labelled zero available-row subtotal, not a complete zero.
+Prepare its exact transactions and allow clicking that subtotal, counting it toward the
+same 200 distinct scopes. It never feeds percentages, month-to-month changes or complete
+Actual chart points. Monthly complete-Actual series retains gaps; available-row subtotals
+are visible in the exact-value table. Budget/Roll-over calculations remain independent.
+If any selected Plant/month lacks Budget, full comparison
 Budget and percentage are null, alongside an explicitly labelled available-only Budget
 subtotal and missing coverage. Thus DUB plus another Plant, or YTD missing one Budget month,
 cannot divide complete Actual by partial Budget. Loaded zero remains a real Budget value;
@@ -149,6 +158,15 @@ for that handle; later size changes are rejected. For page >= 2, offset is
 10 + (page - 2) * pinned continuation size. Stable order is posting date, transaction
 number, line ID, then unique internal row ID, on the same immutable source generation.
 Acceptance traverses the entire set once without omissions/duplicates across this boundary.
+Page and limit must be integers: page >= 1 and limit 1-100; page 1's prepared size is
+fixed at 10. Invalid input is 400 with details.reason="invalid_pagination" and field errors.
+For an empty set, page 1 is valid and totalPages is 1. For a nonempty set, totalPages is
+1 + ceil(max(totalItems - 10, 0) / continuationLimit), using the pinned limit or default
+20 before it is pinned. Pages beyond totalPages give 400/"page_out_of_range", not a
+successful invented empty page. Changing a pinned continuation size gives 400/
+"page_size_changed" with the authorized pinned size. Prepared/state/page metadata exposes
+preparedSize=10, nullable pinnedContinuationLimit and defaultContinuationLimit=20 so
+refresh/second-tab clients fetch current authorized metadata rather than guess sizes.
 Preparation has a shared 30-second deadline for the answer's detail batch; bounded workers
 stop launching reads at expiry and cancel outstanding reads. Completed details remain ready;
 unfinished scopes become explicitly detail-failed with retry/rerun guidance while the exact
@@ -189,6 +207,12 @@ authorization and warehouse-read rules apply regardless of cache hits. Cache mis
 expiry or an ineligible short prefix do not change answers; do not pad prompts to
 meet minimum size. Verify pinned SDK/model support and measure aggregate cache
 write/read usage without logging prompts or results. Memory remains process-local.
+All four instruction modules are always bundled into that prefix in a fixed order;
+there is no per-question skill router or model-loaded instruction file. Tool definitions
+use static structural schemas and governed dimension/measure names, not per-user Plant
+or value enums. Current permitted values live only in dynamic metadata after the
+breakpoint. Two users with different grants therefore share identical static prefix
+bytes, while server checks and dynamic vocabulary remain independently scoped.
 
 Only user-authored text, sanitized confirmed/pending selections and permitted capped
 vocabulary enter the dynamic part of model requests, alongside trusted static instructions
@@ -276,6 +300,28 @@ fixtures to prove numerical comparisons, trends and prepared transaction behavio
 expects unavailable complete Actual for any unconfirmed Plant/month, never a complete-looking
 combined Actual total. Golden import sums remain independently checked even when the UI
 cannot present them as complete financial answers.
+
+Real-workbook display expectations with unconfirmed Actual coverage: D1/D2/D3/D5 show
+null complete Actual plus exact labelled available-data subtotals with prepared pages,
+valid Budget and no Actual/Budget percentage. D4 shows complete-Actual chart gaps and
+null Actual changes, available-data monthly subtotals in its table, and independently
+valid Budget trends/changes. D6 shows only source-backed Budget Roll-over balances.
+D7 shows available-data Cost Center subtotals/details and null complete Actual.
+D8 shows the same per-current-Plant Actual states and partial Budget, never a complete
+combined Actual or ratio. D9 clarifies; D10 refuses unsupported Budget allocation;
+D11 refuses causal inference. D12 preserves available-data subtotals for reconciled
+months, and September with no loaded generation coverage stays unavailable, with no
+fabricated subtotal or transaction handle. Numeric confirmed complete-Actual behavior
+is proved separately using synthetic fixtures.
+
+Synthetic coverage proof uses a test-owned fixture harness, not a production completeness
+API/CLI option. It invokes the real loader with synthetic workbook rows in a throwaway
+warehouse at 127.0.0.1:5434 and may mark complete coverage only for a batch whose source
+identity starts "synthetic:". Reject non-synthetic identities and any other host/port
+before fixture writes. Normal imports cannot request complete coverage. Carry that
+source classification into results and visibly label every fixture result "Synthetic
+test data"; never activate fixtures in the real demo warehouse or overwrite its active
+generation. Acceptance proves attempted non-synthetic confirmation is refused.
 
 | Case | Question                                                                                       | Expected selection or outcome                                                     |
 | ---- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -369,6 +415,10 @@ outcomes with no fallback; measured timing/usage. Live runs are gated outside CI
 by mocks. Hermetic module resolution uses DependenciesScanner/InstanceLoader, not real
 AppModule startup; truncating DB tests use only disposable warehouse :5434/app :5435, never
 live warehouse :5433/app :5432, and each named leaf is registered and observed executing.
+The final accepted instruction-module/tool-schema/cache-breakpoint revision must be the
+one used for all three fresh live D1-D12 runs and isolated follow-ups. Any later change
+to those bytes invalidates earlier model-selection acceptance evidence and reruns the
+set; vendor prerequisites cannot be bypassed to perform this check early.
 
 ## Out of scope
 

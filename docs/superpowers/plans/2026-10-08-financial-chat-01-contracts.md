@@ -25,6 +25,10 @@ NestJS-to-React proof chooses compatible packages without copying Agent Server d
 
 ## Interfaces
 
+Include distinct availableActualSubtotal/partial state and handle fields; they never replace
+complete Actual. Carry synthetic source classification and paging metadata/errors exactly
+as pinned by the spec. Contract cases distinguish partial empty zero from complete loaded zero.
+
 Produces every canonical type in the master, strict input/output validators, FinancialChatEvent
 and the transport mapping consumed by stages 6-8. Define Money as a signed fixed-two-decimal
 string; identifiers never become JS numbers. Percentage is a server decimal string or null

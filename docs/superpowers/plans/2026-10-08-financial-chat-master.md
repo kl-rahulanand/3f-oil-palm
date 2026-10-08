@@ -123,6 +123,14 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
 
 ## Canonical cross-stage interfaces
 
+Every query/result/UI follows the spec's distinct available-data Actual subtotal contract:
+exact present-row sum, visibly completeness-unconfirmed, prepared drill and 200-scope counting,
+never a complete Actual/ratio/delta/chart point. Synthetic fixture source classification is
+carried into results/UI as "Synthetic test data". Normal imports cannot declare completeness;
+the test-only harness restricts synthetic identities to disposable :5434, rejecting real batches.
+Paging error reasons, prepared/pinned/default size metadata and totalPages formulas come from
+the spec; stage 1 defines them and stages 5/7/8 consume them without re-invention.
+
 Stage 1 defines and exports these names; later stages must not invent alternate shapes.
 
 | Type or entry point                                                 | Responsibility                                                                                                                                     |

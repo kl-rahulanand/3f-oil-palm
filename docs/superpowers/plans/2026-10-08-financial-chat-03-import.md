@@ -23,6 +23,11 @@ row, reconciles exact source sums and atomically activates the complete PoC work
 
 ## Input and output interfaces
 
+Stage 9's test-owned harness calls the real loader with explicit synthetic source identity
+and synthetic workbooks only on 127.0.0.1:5434. Its fixture completeness setup rejects any
+non-synthetic batch/other destination; normal loader/CLI has no completeness override.
+Persist source classification for query/UI's mandatory "Synthetic test data" label.
+
 parseFinancialWorkbook(buffer, declaredBudgetOwner): ParsedFinancialWorkbook returns normalized
 Actual lines, monthly Budget leaves, hierarchy, row evidence, coverage and structured validation.
 Retain genuine Budget leaves without GL as nullable-GL facts; missing GL is not a reason

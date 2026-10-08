@@ -23,6 +23,12 @@ Actual and Budget aggregate independently at compatible grain before joining.
 
 ## Interfaces
 
+For reconciled but unconfirmed Actual coverage, complete Actual remains null and every
+matching total/group includes a distinct exact available-data subtotal and its prepared
+drill scope, including an explicitly partial zero for no matching rows. Never use it for
+percentages, deltas or complete chart points. Unloaded source periods have no invented
+subtotal/handle. Source classification must reach results for synthetic-data labelling.
+
 Produces getCatalog(userId), findValues(userId, dimensionId, search) and query(userId, selection)
 with exact signatures from the master. financial-predicate.ts owns a ResolvedFinancialScope:
 current authorized Plants, resolved date bounds, filters, mapping version, pinned source batches,
