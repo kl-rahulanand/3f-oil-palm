@@ -305,6 +305,87 @@ test("percentage alone still offers every Actual month when no Budget batch is l
   assert.equal(fixture.executor.calls, 0);
 });
 
+test("side-by-side and percentage period continuations show unavailable Budget cells after the choice", async () => {
+  const cases: Array<{
+    name: string;
+    question: string;
+    selection: Selection;
+    result: ResultTable;
+    expectedRow: ResultTable["rows"][number];
+  }> = [
+    {
+      name: "side by side",
+      question: "Show Actual and Budget by GL code",
+      selection: {
+        ...financialSelection,
+        measureIds: ["governed-financial.actual", "governed-financial.budget"],
+        timeWindow: undefined,
+      },
+      result: {
+        columns: [
+          { key: "gl_code", label: "GL code", numeric: false },
+          { key: "actual", label: "Actual", numeric: true, format: "money" },
+          { key: "budget", label: "Budget", numeric: true, format: "money" },
+        ],
+        rows: [{ gl_code: "5001", actual: "12.00", budget: "10.00" }],
+      },
+      expectedRow: { gl_code: "5001", actual: "12.00", budget: null },
+    },
+    {
+      name: "percentage",
+      question: "Show Actual as a percentage of Budget by GL code",
+      selection: {
+        ...financialSelection,
+        measureIds: ["governed-financial.percentage"],
+        timeWindow: undefined,
+      },
+      result: {
+        columns: [
+          { key: "gl_code", label: "GL code", numeric: false },
+          { key: "percentage", label: "%", numeric: true, format: "percent" },
+        ],
+        rows: [{ gl_code: "5001", percentage: "1.2" }],
+      },
+      expectedRow: { gl_code: "5001", percentage: null },
+    },
+  ];
+
+  for (const entry of cases) {
+    const fixture = makeFixture({
+      selection: entry.selection,
+      result: entry.result,
+      activeActualMonthsByPlants: { DUB: ["2026-07-01"] },
+      loadedBudgetMonths: [],
+    });
+    const user = userForPlants("governed-financial", ["DUB"]);
+    user.permissions.measureIds.push("governed-financial.budget", "governed-financial.percentage");
+
+    const choice = await fixture.service.ask(user, `session-${entry.name}`, entry.question);
+    assert.equal(choice.responseClass, ResponseClass.ClarificationNeeded, entry.name);
+
+    const answer = await fixture.service.ask(
+      user,
+      `session-${entry.name}`,
+      choice.periodChoice!.question,
+      { ...choice.periodChoice!.selection, timeWindow: choice.periodChoice!.options[0]!.timeWindow },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "period-choice",
+    );
+
+    assert.equal(answer.responseClass, ResponseClass.Success, entry.name);
+    assert.deepEqual(answer.result?.rows[0], entry.expectedRow, entry.name);
+    assert.deepEqual(answer.budgetStates, [
+      { key: "5001", state: "not-loaded", plantsInRow: ["DUB"], plantsWithBudget: [] },
+    ]);
+    assert.equal(fixture.llm.inputs.length, 1, `${entry.name}: the continuation must not call the selector`);
+    assert.equal(fixture.executor.calls, 1, entry.name);
+  }
+});
+
 test("comparison-period outcomes explain no actuals and no comparable budget before any figure read", async () => {
   const selection: Selection = {
     ...financialSelection,
@@ -489,14 +570,10 @@ test("a follow-up comparison inherits July but a prior answer with no window ask
 test("a statement plant with no rows in another plant's offered month answers with zero-valued lines", async () => {
   const fixture = makeFixture({
     selection: { ...statementSelection, timeWindow: undefined },
-    result: {
-      columns: [
-        { key: "leaf_key", label: "Line", numeric: false },
-        { key: "actual_net", label: "Actual", numeric: true, format: "money" },
-      ],
-      rows: [{ leaf_key: "fertilizer", actual_net: "0.00" }],
-    },
   });
+  const warehouse = new RowlessStatementWarehouse();
+  const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), warehouse);
+  Reflect.set(fixture.service, "selectionExecutor", executor);
 
   const choice = await fixture.service.ask(
     userForPlants("mis-statement", ["CHIR"], true),
@@ -512,7 +589,16 @@ test("a statement plant with no rows in another plant's offered month answers wi
 
   assert.equal(choice.responseClass, ResponseClass.ClarificationNeeded);
   assert.equal(answer.responseClass, ResponseClass.Success, JSON.stringify(answer));
-  assert.deepEqual(answer.result?.rows, [{ leaf_key: "fertilizer", actual_net: "0.00" }]);
+  assert.deepEqual(answer.result?.rows, [{ leaf_key: "leaf", actual_net: "0.00" }]);
+  assert.deepEqual(fixture.resolver.resolveCalls, [
+    { department: "Agriculture", function: "Nursery", plant: "CHIR", period: "2026-07-01" },
+  ]);
+  assert.equal(
+    warehouse.actualRows.some(({ plant }) => plant === "CHIR"),
+    false,
+  );
+  assert.match(warehouse.executedSql, /\('CHIR', 'Primary', '5001', 'leaf'\)/);
+  assert.match(warehouse.executedSql, /COALESCE\(actual_src\.actual_net, 0\)::numeric\(18,2\)/);
 });
 
 test("a redundant month filter bypasses a loaded month vocabulary that lacks the selected month", async () => {
@@ -3789,6 +3875,50 @@ class FilterSensitiveWarehouse implements Warehouse {
         { name: "active_batch_ids", numeric: false },
       ],
       rows,
+    };
+  }
+
+  async freshness(): Promise<string | null> {
+    return null;
+  }
+
+  async distinctValues(): Promise<string[]> {
+    return [];
+  }
+}
+
+class RowlessStatementWarehouse implements Warehouse {
+  readonly actualRows = [{ plant: "DUB", costCenter: "Primary", glCode: "5001", amount: "25.00" }];
+  executedSql = "";
+
+  async explain(sql: string): Promise<void> {
+    assert.match(sql, /LIMIT \d+$/);
+  }
+
+  async execute(sql: string) {
+    this.executedSql = sql;
+    assert.match(sql, /FROM statement_relation AS relation/);
+    const actual = this.actualRows
+      .filter(({ plant }) => plant === "CHIR")
+      .reduce((sum, row) => sum + Number(row.amount), 0)
+      .toFixed(2);
+    return {
+      columns: [
+        { name: "leaf_key", numeric: false },
+        { name: "actual_net", numeric: true },
+        { name: "source_presence", numeric: false },
+        { name: "budget_component_labels", numeric: false },
+        { name: "active_batch_ids", numeric: false },
+      ],
+      rows: [
+        {
+          leaf_key: "leaf",
+          actual_net: actual,
+          source_presence: '["actual-only"]',
+          budget_component_labels: "[]",
+          active_batch_ids: "[]",
+        },
+      ],
     };
   }
 
