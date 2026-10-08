@@ -57,6 +57,10 @@ authorize attaching a different conversation's result to this resource.
       State/list access checks owner before exposing even clarification choices.
 - [ ] Pin flag FINANCIAL_CHAT_ENABLED, default false, in validated configuration and example env.
       Separate frontend visibility from server enforcement; hiding a link is not authorization.
+- [ ] Validate FINANCIAL_CHAT_MODEL_PROVIDER, FINANCIAL_CHAT_MODEL_ID and the selected server-only
+      OPENAI_API_KEY or ANTHROPIC_API_KEY. No unused-provider key requirement; never prefix model
+      credentials with NEXT_PUBLIC_. Provider processing/retention/residency must be checked before
+      enabling real requests; direct APIs do not inherit the old Mumbai guarantee.
 - [ ] Document all fields, paths, query limits, auth/session and typed errors in Swagger.
       details.reason survives the global generic userMessage replacement. No raw SQL/stack traces.
 

@@ -8,7 +8,7 @@
 
 **Architecture:** Original Excel -> independent validated import -> additive agent_financial warehouse schema -> one FinancialDataService -> four governed tools -> TypeScript LangGraph in NestJS -> fixed local React components. Existing report ingestion and reads remain independent and unchanged.
 
-**Tech Stack:** Existing Node >=20, CommonJS NestJS 10, Next.js 15, React 19, TypeScript, pg/Drizzle, ExcelJS, Zod and Recharts. Pin compatible LangGraph/React transport packages in stage 1; keep the existing AWS SDK and Bedrock Mumbai provider boundary. No new database server, vector store, queue, model vendor or component hosting.
+**Tech Stack:** Existing Node >=20, CommonJS NestJS 10, Next.js 15, React 19, TypeScript, pg/Drizzle, ExcelJS, Zod and Recharts. Pin compatible LangGraph/React transport packages in stage 1; integrate the selected direct Claude or OpenAI API inside NestJS. Provider/model selection remains open; no mandatory Bedrock. No new database server, vector store, queue or component hosting.
 
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Predecessor:** [Original nine-stage draft](2026-10-08-langgraph-financial-chat.md).
@@ -36,7 +36,7 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
 - Decisions [0042](../../decisions/0042-agent-ready-financial-warehouse.md),
   [0043](../../decisions/0043-langgraph-financial-chat-poc.md),
   [0044](../../decisions/0044-typescript-chat-preserves-reports.md),
-  [0027](../../decisions/0027-assistant-llm-bedrock-mumbai.md) and
+  [0045](../../decisions/0045-financial-chat-model-provider-neutral.md) and
   [0041](../../decisions/0041-use-stored-rollover-values.md) govern. Accepted records win.
 - New chat is independent of old chat logic. Reuse only existing auth, RBAC, CSRF, audit,
   configuration, logging and standard errors. Do not import old selector/prompts/executor.
@@ -151,7 +151,7 @@ Each row identifies implementation ownership and the independent acceptance proo
 | Month/range/April FY YTD and monthly deltas        | 4, 6          | Golden dates, sums, gaps and closing Roll-over            |
 | Missing/zero/partial Budget; percentage            | 1, 4, 8       | Null/zero separation and aggregate ratio oracle           |
 | Four tools, deterministic money and UI assembly    | 4, 5, 6       | Real tool trace with exact server amounts                 |
-| Bedrock Mumbai and payload exclusions              | 6, 9          | Inspected sanitized real requests; marker fixtures        |
+| Selected direct model and payload exclusions       | 6, 9          | Inspected sanitized real requests; marker fixtures        |
 | Prepared Actual first pages in response            | 5, 6, 8       | Detail ready before final completion                      |
 | Transaction columns, pagination/full total         | 1, 5, 8       | Full set equality beyond first page                       |
 | Source replacement, handle expiry/ownership        | 5, 7          | Pin/expiry tests; no fallback load                        |

@@ -58,6 +58,9 @@ Each UI block references the same query result/scope, not a second independent m
 - [ ] Inspect published and installed package types for the same compatible versions. Prove
       CommonJS loading, Node >=20, React 19, Zod compatibility, cancellation and local UI blocks.
       Do not select versions from memory or import incompatible old/new SDK React APIs together.
+- [ ] Include the selected ChatAnthropic/ChatOpenAI adapter in compatibility proof after the
+      owner chooses provider/model. Configure model ID explicitly, verify supported tool/structured
+      output request shape and keep API credentials backend-only. No model selection is implied here.
 - [ ] Build a minimal real custom NestJS command/stream flow and render a registered FinancialTotal
       fixture in React; fixture values are explicitly synthetic, never presented as real source data.
 - [ ] Pin supported command names, serialization, event order, resume cursor and terminal errors
@@ -73,7 +76,7 @@ Each UI block references the same query result/scope, not a second independent m
 
 - [ ] Run npm -w @3f/contract run test, npm run build:contract, npm run typecheck and focused
       adapter tests; inspect named leaves. Run npm run quality and npm run structural with dev
-      servers stopped. Hermetic protocol proof must not require Bedrock or a live DB.
+      servers stopped. Hermetic protocol proof must not require an external model API or a live DB.
 - [ ] Record package versions, imports, accepted command/event examples and tested compile/runtime
       paths. Later stages consume these exact names and fixtures.
 - [ ] Commit only scoped files on the Forge task branch; no edits to existing report/chat code.

@@ -6,8 +6,8 @@
 
 **Goal:** Prove the complete financial chat is accurate, authorized and safe for a PoC demo.
 **Architecture:** Independent source/SQL oracles plus real API/DB/browser flows and repeatable
-live Bedrock probes. Existing report outputs are baselined before any new migration/load.
-**Tech Stack:** Existing test runners, disposable Postgres 16, Playwright if absent, real Bedrock Mumbai.
+live selected-model probes. Existing report outputs are baselined before any new migration/load.
+**Tech Stack:** Existing test runners, disposable Postgres 16, Playwright if absent, and the real selected direct model API.
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Global constraints:** [Master](2026-10-08-financial-chat-master.md).
 **Dependencies:** All prior stages; baseline report capture must happen before stage 2 applies changes.
@@ -72,7 +72,7 @@ No invented passing screenshots or unexplained "all tests green" statement.
 
 ### 9C: Live model and data-boundary proof
 
-- [ ] Real AWS Bedrock in ap-south-1 with configured model ID: probe each base question three times
+- [ ] Real selected provider with explicitly configured model ID: probe each base question three times
       in a fresh conversation. The mock selector is not acceptance evidence.
 - [ ] Pin expected selections for month, range, FY YTD, trend, repeated GL/component, Unmapped,
       missing Budget, ambiguous component and transaction requests. Test follow-ups in separately

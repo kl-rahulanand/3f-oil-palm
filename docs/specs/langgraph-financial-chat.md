@@ -51,8 +51,9 @@ Finance and management users, restricted to their currently permitted Plants.
 
 Accepted decisions [0042](../decisions/0042-agent-ready-financial-warehouse.md),
 [0043](../decisions/0043-langgraph-financial-chat-poc.md) and
-[0044](../decisions/0044-typescript-chat-preserves-reports.md) govern this design. Decision
-[0027](../decisions/0027-assistant-llm-bedrock-mumbai.md) still governs external model inputs.
+[0044](../decisions/0044-typescript-chat-preserves-reports.md) govern this design.
+[0045](../decisions/0045-financial-chat-model-provider-neutral.md) corrects the inherited provider
+assumption: configurable direct Claude or OpenAI integration; exact provider/model remains open.
 Amounts and transaction rows remain inside the app. Every query is authorized and audited;
 SQL, joins and money calculations belong to server code. Only reconciled loads may be queried.
 Existing auth, CSRF, audit and error infrastructure may be used; existing chat logic is not reused.
@@ -82,7 +83,7 @@ Schedule the functional acceptance check at story approval before demo rollout.
    never changes its scope or exposes another user's data.
 5. New data loads reconcile to the source and preserve unmatched valid rows; existing statements,
    Excel exports and report drill-down produce the same results before and after the new load.
-6. The chat works with a real Bedrock model in Mumbai; inspected model requests contain no
+6. The chat works with the selected real model/provider; inspected model requests contain no
    server-sourced result rows, money values, transaction lines or drill-down handles.
 
 ## Out of scope

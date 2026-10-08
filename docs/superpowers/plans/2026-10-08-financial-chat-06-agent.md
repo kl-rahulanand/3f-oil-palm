@@ -7,7 +7,7 @@
 **Goal:** Resolve factual questions safely, clarify ambiguity and assemble accurate UI-ready answers.
 **Architecture:** A bounded selection loop uses catalog/lookup metadata; server graph nodes execute
 financial reads and transaction preparation, then assemble numeric answers without an LLM.
-**Tech Stack:** Pinned TypeScript LangGraph, in-memory checkpointer, NestJS and existing AWS SDK Converse.
+**Tech Stack:** Pinned TypeScript LangGraph, in-memory checkpointer, NestJS and the selected direct Claude/OpenAI LangChain adapter. Provider/model is not selected yet.
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Global constraints:** [Master](2026-10-08-financial-chat-master.md).
 **Dependencies:** Stages 1, 4, 5.
@@ -27,7 +27,7 @@ FinancialChatService.run(userId, conversationId, input, signal): AsyncIterable<F
 accepts typed user question or clarification reply from stage 1. Server owns conversation IDs.
 State includes owner, sanitized user questions, confirmed FinancialSelection, pending candidate/
 missing fields/choices, latest result identity, UI results and prepared details kept server-side,
-run identity/status and expiry. Bedrock serialization is a positive allowlist, not full state.
+run identity/status and expiry. External model serialization is a positive allowlist, not full state.
 
 Tools are exactly get_financial_catalog, find_dimension_values, query_financials,
 get_actual_transactions, with stage 1 schema and stage 4/5 service signatures. Server injects
@@ -52,14 +52,16 @@ user and handle context; model cannot supply authorization. Do not add general S
 - [ ] Reject forecasts, recommendations and causal "why" with plain supported alternatives.
       Facts about observed month changes remain supported, without inferred causes.
 
-### 6B: Bedrock boundary and bounded agent execution
+### 6B: Model boundary and bounded agent execution
 
 - [ ] Write marker-payload cases excludes_money_rows_handles_and_raw_state,
       lookup_vocab_is_current_grant_scoped, malformed_tool_call_denied, tool_loop_bounded,
       vendor_timeout_typed and injected_sql_or_code_never_executes.
-- [ ] Build a fresh selector provider on existing AWS SDK, AWS_REGION ap-south-1 and configured
-      BEDROCK_MODEL_ID; use existing validated model/query timeouts. Do not reuse old prompts.
-      Mock vendor is development/hermetic only; final PoC proof uses real Bedrock.
+- [ ] Build a fresh selector provider with ChatAnthropic or ChatOpenAI after the owner selects
+      provider/model. Configure FINANCIAL_CHAT_MODEL_PROVIDER and FINANCIAL_CHAT_MODEL_ID plus
+      only the selected backend API credential; use validated timeouts. No old prompts or mandatory
+      AWS SDK/Mumbai setting. Test the selected model's actual supported parameters/tool API.
+      Mock vendor is development/hermetic only; final proof uses the real selected provider.
 - [ ] Model sees user text, sanitized confirmed/pending selection and capped permitted vocabulary.
       Result/tool message history with money/transactions stays out of provider calls, retries,
       tracing and logs. User-pasted figures are user content, not server-result permission.

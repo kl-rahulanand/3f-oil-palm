@@ -18,7 +18,7 @@ registered financial components adapted from the shadcn template. Auth/audit inf
 shared; existing chat logic and report read paths are not used by the new agent.
 
 **Tech stack:** Existing NestJS, Next.js 15, React 19, TypeScript, Drizzle/pg, Zod and Recharts;
-LangGraph TypeScript with in-memory checkpoints; AWS Bedrock Converse in ap-south-1; compatible
+LangGraph TypeScript with in-memory checkpoints; selected direct Claude/OpenAI API; compatible
 LangGraph React stream packages and shadcn components pinned after the first compatibility proof.
 
 **Spec:** [langgraph-financial-chat.md](../../specs/langgraph-financial-chat.md).
@@ -200,8 +200,8 @@ signal)` and structured response/UI events, with server-owned conversation state
 - [ ] Implement graph nodes: context/catalogue, select/resolve, clarify or validate, query,
       prepare transactions, deterministic answer/UI assembly. Register all four tools; never pass
       money/result/transaction tool messages back into the external model's history.
-- [ ] Use a fresh Bedrock selection provider on the existing AWS SDK, Mumbai and configured
-      model ID. Cap model output/tool rounds, distinguish malformed selection from unsupported,
+- [ ] Use a fresh configurable direct-model selection provider after provider/model selection.
+      Cap model output/tool rounds, distinguish malformed selection from unsupported,
       and validate every requested field before warehouse work.
 - [ ] Use LangGraph's in-memory checkpointer; owner-bound IDs, idle expiry and one run per
       conversation. Restart makes unknown conversation IDs a clear context-expired response.
@@ -256,7 +256,7 @@ Playwright config/dependency/script wiring if not already available on the rebas
       unauthorized Plant, unknown-Plant exclusion, missing Budget and follow-ups with real API/DB.
 - [ ] Independently reconcile new totals/transaction sets against source and golden SQL/Decimal
       oracles; do not validate a query only by calling its own builder again.
-- [ ] Probe the real Bedrock model: explicit month, range, FY YTD, trends, repeated GL/component,
+- [ ] Probe the real selected model: explicit month, range, FY YTD, trends, repeated GL/component,
       Unmapped, missing Budget, component clarification and detail questions. Run three fresh
       conversations per base question; test follow-ups in separately prepared conversations.
 - [ ] Capture actual tool sequence, exclusions in model inputs, full financial equality and
@@ -276,7 +276,8 @@ limits; keep contract/registry ownership explicit and avoid concurrent edits to 
 
 New moving parts: TypeScript LangGraph, its compatible React/protocol packages, needed shadcn
 components and browser acceptance tooling if absent. No new database server, vector store,
-hosted component service, durable chat store or model provider is introduced.
+hosted component service or durable chat store is introduced. The chosen direct-model adapter
+is a new integration, not permission to add multiple providers or automatic vendor fallback.
 
 The owner reviews this spec/plan. Once approved, confirm the spec, add its roadmap entry and
 create the Forge story, cold-read until clean, and present its exact owner-facing text for
@@ -287,4 +288,4 @@ approval through Plan Mode as AGENTS.md requires. No implementation is authorize
 - [Generative UI and client-side component registration](https://docs.langchain.com/langsmith/generative-ui-react).
 - [shadcn chatbot template](https://github.com/shadcn-ui/chatbot-template).
 - [Official custom React transport guide](https://github.com/langchain-ai/langgraphjs/blob/main/libs/sdk-react/docs/custom-transport.md).
-- Decisions 0042, 0043, 0044 and 0027; the constitution; existing backend/frontend test registries.
+- Decisions 0042, 0043, 0044 and 0045; the constitution; existing backend/frontend test registries.
