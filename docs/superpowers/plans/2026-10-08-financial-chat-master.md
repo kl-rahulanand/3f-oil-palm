@@ -57,6 +57,9 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
   Do not invent an unassigned-review entitlement; an explicit existing entitlement is required.
 - Budget owner is DUB for this workbook only. Missing Budget is null with
   "Budget not loaded for this Plant or month"; loaded zero is not missing.
+  [0047](../../decisions/0047-financial-chat-missing-gl-budget.md) distinguishes a GL
+  with no Budget leaf in a loaded Plant/month: "No Budget line for this GL", null Budget
+  and Not applicable percentage. Keep its Actual row and prepared transaction drill-down.
 - Actual = sum(Debit - Credit). Percentage = matching aggregate Actual / Budget * 100.
   Never average percentages. Zero/missing denominator is Not applicable.
   Partial Budget coverage cannot yield a complete-looking comparison or percentage.

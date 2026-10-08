@@ -65,6 +65,8 @@ component fallback. The final answer is renderable independently of earlier part
       accessible alongside chart. Missing/unloaded values are gaps, not zero or interpolated lines.
 - [ ] Explain available Budget subtotal versus incomplete full comparison. Zero denominator is
       Not applicable. No fake/loading/example amounts as real financial results.
+      An Actual-only GL in a loaded Budget month displays "No Budget line for this GL"
+      and Not applicable percentage, while its exact Actual remains clickable with prepared details.
 - [ ] Use shadcn Chart wrappers on installed Recharts, theme tokens and native elements where suitable.
       No second chart library or hand-rolled dialog/table primitive.
 

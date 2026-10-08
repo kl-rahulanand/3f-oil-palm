@@ -38,6 +38,8 @@ Finance and management users, restricted to their currently permitted Plants.
   keeping the permitted provisional assignments and their reasons provisional.
 - The current Budget belongs to DUB. Other Plants and missing months carry a distinct
   "Budget not loaded for this Plant or month" state. Zero is a real loaded value.
+  In a loaded Plant/month, an Actual-only GL instead shows null Budget with
+  "No Budget line for this GL"; its Actual and prepared transaction drill-down remain.
 - Percentage is Actual / Budget * 100; zero/missing denominators are Not applicable.
   Range/YTD Roll-over is the closing month's value, following decision 0041.
 - Render totals as short answers, comparisons as tables, and trends as charts plus exact-value
@@ -84,6 +86,10 @@ Budget and percentage are null, alongside an explicitly labelled available-only 
 subtotal and missing coverage. Thus DUB plus another Plant, or YTD missing one Budget month,
 cannot divide complete Actual by partial Budget. Loaded zero remains a real Budget value;
 zero or missing denominator is Not applicable.
+For a GL with Actuals but no Budget leaf in a loaded Plant/month, preserve the Actual
+row and all contributing transactions. Budget is null with "No Budget line for this GL",
+and percentage is null/Not applicable, following decision 0047. Never create a zero
+Budget, remove the Actual row or disable its drill-down because its Budget is absent.
 
 Monthly Roll-over shows that month's stored leaf balance. A range/YTD summary takes only
 the closing month's balance across the selected Plants/components. Missing closing-month
@@ -237,7 +243,9 @@ two-leaf fixture; it never guesses a leaf from its GL alone.
 
 Acceptance evidence for 1: D1-D3/D7-D10; named Actual-only source dimensions; Unmapped Plant
 numerator and provisional component mapping; repeated GL fan-out prevention; unsupported
-Cost Center Budget; prose-only numeric model reply never displayed as fact; current Plant
+Cost Center Budget; Actual-only GL in a loaded Budget month retains exact Actual,
+null Budget/"No Budget line for this GL" and Not applicable percentage; prose-only numeric
+model reply never displayed as fact; current Plant
 access on lookup and query; audit entries and typed refusals without financial payloads.
 
 Acceptance evidence for 2: D4-D6/D8/D12; April-start and cross-year boundaries; partial
@@ -251,7 +259,9 @@ after revocation; idle/capacity/result eviction; actual process restart; cancell
 Acceptance evidence for 4: total/Plant/month/GL/component/Unmapped/zero-net Actual identity
 sets and full totals including more than 10 transactions; 50-scope overflow narrows before
 execution; first-page failure is honest; expired/revoked/cross-conversation handles denied;
-replacement generation never switches page sets. Budget/Roll-over/percentage are not clickable.
+replacement generation never switches page sets; Actual-only GL with absent Budget keeps
+its prepared first page, full reconciled transaction total and further paging.
+Budget/Roll-over/percentage are not clickable.
 
 Acceptance evidence for 5: real loader failure/rerun/replacement/activation; original row
 counts and exact independent sums including unknown Plants; formula-cache failure; no
@@ -280,7 +290,7 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0046 and existing model/financial rules cited above.
+accepted decisions 0042-0047 and existing model/financial rules cited above.
 
 ## Roadmap
 

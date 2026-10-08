@@ -73,6 +73,10 @@ not the entire Plant's Unmapped bucket.
       and label the state rather than claiming a zero of data never loaded.
 - [ ] Write budget_zero_is_loaded, other_plant_budget_not_loaded and missing_month_marks_partial.
       Coverage is per Plant/month, even when grouping collapses it.
+- [ ] Write actual_only_gl_keeps_actual_and_missing_budget_line. In loaded Plant/month coverage,
+      absent GL Budget leaves return null/"No Budget line for this GL" and Not applicable
+      percentage. Preserve Actual-only groups in the aggregate join; never coalesce absent Budget
+      to zero or discard their contributing Actuals. Stage 5 must retain their drill-down.
 - [ ] If coverage is incomplete, expose actual total and the explicitly labelled available Budget
       subtotal with incomplete state; the complete comparison Budget and percentage remain null.
       Do not divide full-scope Actual by available-only Budget or auto-restrict the question.

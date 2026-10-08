@@ -53,6 +53,9 @@ or unknown where authorized; transaction identifiers stay strings.
 - [ ] Enforce at most 50 distinct prepared scopes including overall total. Deduplicate identical
       coordinates; if the answer cannot fit, ask to narrow rather than prepare an incomplete promise.
 - [ ] Budget/Roll-over/% cells never get transaction handles.
+      Missing Budget does not disable an Actual handle: prove an Actual-only GL in a loaded
+      Plant/month has its prepared first page and further paging, with the full contributing
+      transaction total equal to its displayed Actual.
 
 ### 5B: Prepare pages and preserve generation
 

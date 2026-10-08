@@ -47,6 +47,9 @@ Each UI block references the same query result/scope, not a second independent m
       comparisons. Stage 4's catalog narrows combinations; schema never permits SQL/filter code.
 - [ ] Define complete confirmed selection versus incomplete pending candidate. Distinguish empty
       Actual dataset, unloaded Actual period, no matches, zero net, absent Budget and detail failure.
+      Distinguish unloaded Plant/month Budget from no Budget line for a GL in loaded coverage.
+      For the latter keep exact Actual and its drill reference, null Budget with the specific
+      label and null/Not applicable percentage; loaded zero remains a separate state.
 - [ ] Pin errors with details.reason, fieldErrors and correlation support. Clarification contains
       missing fields and permission-scoped choices, not a default hidden selection.
 - [ ] Define query/drill references, page/full total identity and response/event version. Make a

@@ -62,6 +62,9 @@ No invented passing screenshots or unexplained "all tests green" statement.
       follow-up "now by GL"/"same for August", clarification completion and unsupported causal question.
 - [ ] Cover DUB/non-DUB Budget states, loaded-zero, missing one month, negative/offsetting Actuals,
       known-Plant Unmapped and exclusion of Plant unknown in ordinary results.
+      Include a GL with Actuals but no Budget leaf in a loaded Plant/month: keep the row,
+      show null Budget/"No Budget line for this GL" and Not applicable percentage, open its
+      prepared transactions and page to the independently reconciled full Actual total.
 - [ ] Open every promised Actual shape (total/Plant/month/GL/component), verify prepared first-page
       bundle existed before final completion, and page beyond 10 rows to the independently expected
       full set/total. Budget is not clickable; page sum is not full total.

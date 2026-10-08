@@ -32,6 +32,8 @@ LangGraph React stream packages and shadcn components pinned after the first com
 - Missing required scope clarifies. Known-Plant missing component mapping is Unmapped.
   Missing/unresolved Plant is Plant unknown and excluded from ordinary Plant answers.
 - Current Nursery Budget owner is DUB. Missing Budget is null/not-loaded, distinct from zero.
+  An Actual-only GL in a loaded Plant/month instead shows "No Budget line for this GL",
+  null Budget and Not applicable percentage; its Actual and prepared transaction drill-down remain.
   Percentage uses matching totals; range Roll-over uses the closing month's stored balance.
 - Keep legacy tables/views, ingestion contracts, report generation, exports and report drill
   reads intact. Implement the new loader from the original workbook, not legacy retained rows.
