@@ -37,8 +37,10 @@ export function assertDisposableFinancialDatabases(environment: Environment): Fi
     environment.FINANCIAL_CHAT_DUAL_DB_TEST !== "1" ||
     warehouse.host !== "127.0.0.1" ||
     warehouse.port !== 5434 ||
+    warehouse.database !== "financial_proof" ||
     app.host !== "127.0.0.1" ||
-    app.port !== 5435
+    app.port !== 5435 ||
+    app.database !== "financial_proof"
   ) {
     throw new Error("Financial chat proof refuses database writes outside disposable 127.0.0.1:5434/:5435 targets");
   }

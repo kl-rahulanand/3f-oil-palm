@@ -2,6 +2,22 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { Workbook, type Cell, type CellValue, type Row, type Worksheet } from "exceljs";
 
+interface BudgetPeriodEvidence {
+  reportingMonth: string;
+  budget: string | null;
+  rollover: string | null;
+}
+
+interface BudgetHierarchyRow {
+  sourceRow: number;
+  parentSourceRow: number | null;
+  outlineLevel: number;
+  isLeaf: boolean;
+  component: string;
+  glCode: string | null;
+  periods: BudgetPeriodEvidence[];
+}
+
 export interface FinancialSourceOracle {
   sha256: string;
   actual: {
@@ -36,11 +52,12 @@ export interface FinancialSourceOracle {
   };
   budget: {
     rowCount: number;
+    hierarchy: BudgetHierarchyRow[];
     leaves: Array<{
       sourceRow: number;
       component: string;
       glCode: string | null;
-      periods: Array<{ reportingMonth: string; budget: string | null; rollover: string | null }>;
+      periods: BudgetPeriodEvidence[];
     }>;
     periods: Array<{ reportingMonth: string; leafCount: number; budget: string; rollover: string }>;
   };
@@ -213,40 +230,64 @@ function inspectBudget(header: HeaderLocation): FinancialSourceOracle["budget"] 
   const totals = new Map(
     periods.map(({ reportingMonth }) => [reportingMonth, { leafCount: 0, budget: 0n, rollover: 0n }]),
   );
-  let rowCount = 0;
-  const leaves: FinancialSourceOracle["budget"]["leaves"] = [];
+  const hierarchy: BudgetHierarchyRow[] = [];
+  const ancestors: BudgetHierarchyRow[] = [];
   for (let rowNumber = header.row + 2; rowNumber <= header.worksheet.rowCount; rowNumber += 1) {
     const row = header.worksheet.getRow(rowNumber);
     if (startsNewBudgetTable(row)) break;
     if (isEmpty(row, header.columns)) continue;
-    if (!cellText(cell(row, header, "Budget Components")) || row.outlineLevel === 0) continue;
-    rowCount += 1;
-    const leafPeriods: FinancialSourceOracle["budget"]["leaves"][number]["periods"] = [];
+    const component = cellText(cell(row, header, "Budget Components"));
+    if (!component) continue;
+    const outlineLevel = row.outlineLevel ?? 0;
+    while (ancestors.at(-1) && ancestors.at(-1)!.outlineLevel >= outlineLevel) ancestors.pop();
+    const rowPeriods: BudgetPeriodEvidence[] = [];
     for (const period of periods) {
       const budgetLabel = `Budget row ${rowNumber}`;
       const rolloverLabel = `Roll-over row ${rowNumber}`;
       const budgetText = financialText(row.getCell(period.budgetColumn), budgetLabel);
       const rolloverText = financialText(row.getCell(period.rolloverColumn), rolloverLabel);
-      leafPeriods.push({
+      rowPeriods.push({
         reportingMonth: period.reportingMonth,
         budget: nullable(budgetText),
         rollover: nullable(rolloverText),
       });
+    }
+    const hierarchyRow: BudgetHierarchyRow = {
+      sourceRow: rowNumber,
+      parentSourceRow: ancestors.at(-1)?.sourceRow ?? null,
+      outlineLevel,
+      isLeaf: false,
+      component,
+      glCode: nullable(optionalCellText(row, header, "GL Codes")),
+      periods: rowPeriods,
+    };
+    hierarchy.push(hierarchyRow);
+    ancestors.push(hierarchyRow);
+  }
+  const parentRows = new Set(
+    hierarchy.flatMap(({ parentSourceRow }) => (parentSourceRow === null ? [] : [parentSourceRow])),
+  );
+  for (const row of hierarchy) row.isLeaf = row.parentSourceRow !== null && !parentRows.has(row.sourceRow);
+  const leaves = hierarchy
+    .filter(({ isLeaf }) => isLeaf)
+    .map(({ sourceRow, component, glCode, periods: leafPeriods }) => ({
+      sourceRow,
+      component,
+      glCode,
+      periods: leafPeriods,
+    }));
+  for (const leaf of leaves) {
+    for (const period of leaf.periods) {
       const total = totals.get(period.reportingMonth)!;
       total.leafCount += 1;
-      if (!budgetText && !rolloverText) continue;
-      total.budget += money(budgetText || "0", budgetLabel);
-      total.rollover += money(rolloverText || "0", rolloverLabel);
+      if (!period.budget && !period.rollover) continue;
+      total.budget += money(period.budget || "0", `Budget row ${leaf.sourceRow}`);
+      total.rollover += money(period.rollover || "0", `Roll-over row ${leaf.sourceRow}`);
     }
-    leaves.push({
-      sourceRow: rowNumber,
-      component: cellText(cell(row, header, "Budget Components")),
-      glCode: nullable(optionalCellText(row, header, "GL Codes")),
-      periods: leafPeriods,
-    });
   }
   return {
-    rowCount,
+    rowCount: leaves.length,
+    hierarchy,
     leaves,
     periods: periods.map(({ reportingMonth }) => {
       const total = totals.get(reportingMonth)!;

@@ -150,24 +150,38 @@ test("the generated source oracle independently preserves source rows, signs, co
       "1",
       "Nursery total",
       "TOTAL",
-      { formula: "SUM(D5:D6)", result: 90.005 },
-      { formula: "SUM(E5:E6)", result: 4.004 },
-      { formula: "SUM(F5:F6)", result: 90 },
-      { formula: "SUM(G5:G6)", result: 5 },
+      { formula: "SUM(D6:D9)", result: 100.005 },
+      { formula: "SUM(E6:E9)", result: 7 },
+      { formula: "SUM(F6:F9)", result: 103 },
+      { formula: "SUM(G6:G9)", result: 8 },
     ]);
     budget.addRow([
       "1",
+      "Supplies subtotal",
+      "4100",
+      { formula: "SUM(D6:D8)", result: 97.01 },
+      { formula: "SUM(E6:E8)", result: 6.001 },
+      { formula: "SUM(F6:F8)", result: 100 },
+      { formula: "SUM(G6:G8)", result: 7 },
+    ]);
+    budget.addRow([
+      "1.1",
       "Seed",
       "4100",
-      { formula: "D6+70.005", result: 80.005 },
-      { formula: "4.004", result: 4.004, ref: "E5:E6", shareType: "shared" },
+      { formula: "D7+70.005", result: 80.005 },
+      { formula: "4.004", result: 4.004, ref: "E6:E7", shareType: "shared" },
       "90",
       "5",
     ]);
-    budget.addRow(["2", "Freight", "", "10", { sharedFormula: "E5", result: 0.001 }, "", ""]);
+    budget.addRow(["1.2", "Seed reserve", "4100", "7.005", "1.996", "10", "2"]);
+    budget.addRow(["1.3", "Freight", "", "10", { sharedFormula: "E6", result: 0.001 }, "", ""]);
+    budget.addRow(["2", "Water", "4200", "2.995", "0.999", "3", "1"]);
     budget.getRow(4).outlineLevel = 0;
     budget.getRow(5).outlineLevel = 1;
-    budget.getRow(6).outlineLevel = 1;
+    budget.getRow(6).outlineLevel = 2;
+    budget.getRow(7).outlineLevel = 2;
+    budget.getRow(8).outlineLevel = 2;
+    budget.getRow(9).outlineLevel = 1;
 
     await writeFile(path, Buffer.from(await workbook.xlsx.writeBuffer()));
     const source = await inspectFinancialSource(path);
@@ -322,10 +336,37 @@ test("the generated source oracle independently preserves source rows, signs, co
       },
     });
     assert.deepEqual(source.budget, {
-      rowCount: 2,
-      leaves: [
+      rowCount: 4,
+      hierarchy: [
+        {
+          sourceRow: 4,
+          parentSourceRow: null,
+          outlineLevel: 0,
+          isLeaf: false,
+          component: "Nursery total",
+          glCode: "TOTAL",
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "100.005", rollover: "7" },
+            { reportingMonth: "2026-05-01", budget: "103", rollover: "8" },
+          ],
+        },
         {
           sourceRow: 5,
+          parentSourceRow: 4,
+          outlineLevel: 1,
+          isLeaf: false,
+          component: "Supplies subtotal",
+          glCode: "4100",
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "97.01", rollover: "6.001" },
+            { reportingMonth: "2026-05-01", budget: "100", rollover: "7" },
+          ],
+        },
+        {
+          sourceRow: 6,
+          parentSourceRow: 5,
+          outlineLevel: 2,
+          isLeaf: true,
           component: "Seed",
           glCode: "4100",
           periods: [
@@ -334,7 +375,22 @@ test("the generated source oracle independently preserves source rows, signs, co
           ],
         },
         {
-          sourceRow: 6,
+          sourceRow: 7,
+          parentSourceRow: 5,
+          outlineLevel: 2,
+          isLeaf: true,
+          component: "Seed reserve",
+          glCode: "4100",
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "7.005", rollover: "1.996" },
+            { reportingMonth: "2026-05-01", budget: "10", rollover: "2" },
+          ],
+        },
+        {
+          sourceRow: 8,
+          parentSourceRow: 5,
+          outlineLevel: 2,
+          isLeaf: true,
           component: "Freight",
           glCode: null,
           periods: [
@@ -342,10 +398,60 @@ test("the generated source oracle independently preserves source rows, signs, co
             { reportingMonth: "2026-05-01", budget: null, rollover: null },
           ],
         },
+        {
+          sourceRow: 9,
+          parentSourceRow: 4,
+          outlineLevel: 1,
+          isLeaf: true,
+          component: "Water",
+          glCode: "4200",
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "2.995", rollover: "0.999" },
+            { reportingMonth: "2026-05-01", budget: "3", rollover: "1" },
+          ],
+        },
+      ],
+      leaves: [
+        {
+          sourceRow: 6,
+          component: "Seed",
+          glCode: "4100",
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "80.005", rollover: "4.004" },
+            { reportingMonth: "2026-05-01", budget: "90", rollover: "5" },
+          ],
+        },
+        {
+          sourceRow: 7,
+          component: "Seed reserve",
+          glCode: "4100",
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "7.005", rollover: "1.996" },
+            { reportingMonth: "2026-05-01", budget: "10", rollover: "2" },
+          ],
+        },
+        {
+          sourceRow: 8,
+          component: "Freight",
+          glCode: null,
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "10", rollover: "0.001" },
+            { reportingMonth: "2026-05-01", budget: null, rollover: null },
+          ],
+        },
+        {
+          sourceRow: 9,
+          component: "Water",
+          glCode: "4200",
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "2.995", rollover: "0.999" },
+            { reportingMonth: "2026-05-01", budget: "3", rollover: "1" },
+          ],
+        },
       ],
       periods: [
-        { reportingMonth: "2026-04-01", leafCount: 2, budget: "90.01", rollover: "4.00" },
-        { reportingMonth: "2026-05-01", leafCount: 2, budget: "90.00", rollover: "5.00" },
+        { reportingMonth: "2026-04-01", leafCount: 4, budget: "100.02", rollover: "7.00" },
+        { reportingMonth: "2026-05-01", leafCount: 4, budget: "103.00", rollover: "8.00" },
       ],
     });
   } finally {

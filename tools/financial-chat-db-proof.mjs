@@ -21,8 +21,10 @@ if (missing.length) fail(`Missing ${missing.join(", ")}; financial chat DB proof
 if (
   process.env.WAREHOUSE_PG_HOST !== "127.0.0.1" ||
   process.env.WAREHOUSE_PG_PORT !== "5434" ||
+  process.env.WAREHOUSE_PG_DATABASE !== "financial_proof" ||
   process.env.PGHOST !== "127.0.0.1" ||
-  process.env.PGPORT !== "5435"
+  process.env.PGPORT !== "5435" ||
+  process.env.PGDATABASE !== "financial_proof"
 ) {
   fail("Financial chat DB proof accepts only disposable 127.0.0.1:5434 warehouse and :5435 app targets.");
 }

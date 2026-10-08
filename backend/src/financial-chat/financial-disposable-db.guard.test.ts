@@ -8,18 +8,18 @@ const disposableEnvironment = {
   WAREHOUSE_PG_PORT: "5434",
   WAREHOUSE_PG_USER: "proof",
   WAREHOUSE_PG_PASSWORD: "proof",
-  WAREHOUSE_PG_DATABASE: "financial_chat_warehouse_proof",
+  WAREHOUSE_PG_DATABASE: "financial_proof",
   PGHOST: "127.0.0.1",
   PGPORT: "5435",
   PGUSER: "proof",
   PGPASSWORD: "proof",
-  PGDATABASE: "financial_chat_app_proof",
+  PGDATABASE: "financial_proof",
 };
 
 test("the financial DB proof accepts only the two explicit disposable targets", () => {
   assert.deepEqual(assertDisposableFinancialDatabases(disposableEnvironment), {
-    warehouse: { host: "127.0.0.1", port: 5434, database: "financial_chat_warehouse_proof" },
-    app: { host: "127.0.0.1", port: 5435, database: "financial_chat_app_proof" },
+    warehouse: { host: "127.0.0.1", port: 5434, database: "financial_proof" },
+    app: { host: "127.0.0.1", port: 5435, database: "financial_proof" },
   });
 });
 
@@ -30,6 +30,15 @@ test("the financial DB proof refuses wrong hosts and ports before writes", () =>
     { PGHOST: "localhost" },
     { PGPORT: "5432" },
   ]) {
+    assert.throws(
+      () => assertDisposableFinancialDatabases({ ...disposableEnvironment, ...change }),
+      /refuses database writes/,
+    );
+  }
+});
+
+test("the financial DB proof refuses either wrong database identity before writes", () => {
+  for (const change of [{ WAREHOUSE_PG_DATABASE: "live_warehouse" }, { PGDATABASE: "live_app" }]) {
     assert.throws(
       () => assertDisposableFinancialDatabases({ ...disposableEnvironment, ...change }),
       /refuses database writes/,
