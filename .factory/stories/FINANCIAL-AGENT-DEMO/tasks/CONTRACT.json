@@ -1,10 +1,52 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-CONTRACT",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "4eb849f626b5f7387be29a4667cd55f140cf6efe21bf66c13744dffd39d25075",
+    "commit": "74cfd74112b212041cbc2415891c8a00754dc4c2",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The result value union has no field capable of carrying the available-only Budget subtotal required when some selected Plant/months have Budget and others do not. With mixed coverage, the schema permits only a null `budget: not_loaded` and therefore discards the exact Budget from covered coordinates. This prevents D8 and range/YTD answers from satisfying the confirmed requirement in `docs/specs/langgraph-financial-chat.md:134-137`. Add a distinct partial-Budget value and positive/negative mixed-coverage tests, while keeping complete Budget and percentage unavailable.",
+        "file": "contract/src/financial-tools.ts",
+        "line": 338,
+        "priority": "P1",
+        "title": "Not done: partial Budget answers retain an exact labelled available subtotal"
+      },
+      {
+        "body": "The continuation negative control is hollow: it changes the fixture to page 2 with 21 total items but retains only the original single transaction. Parsing therefore throws from the transaction-count check even if the pinned-limit guard is removed. Likewise, the preceding totalPages case still has the wrong page-1 row count, so it would throw if the totalPages formula broke. Add valid multi-page fixtures that isolate the 10-row prepared page, page-2 offset, pinned limit, size-change rejection, and totalPages formula.",
+        "file": "contract/test/financial-tools.test.ts",
+        "line": 350,
+        "priority": "P1",
+        "title": "Not done: transaction pagination validation"
+      },
+      {
+        "body": "`financialSelectionSchema` accepts duplicate `plantIds`, although `financialQueryResultSchema` later rejects any result whose embedded selection contains duplicates. Thus an input such as `[\"DUB\", \"DUB\"]` passes the strict `query_financials` input schema but no corresponding output can pass validation. Enforce uniqueness in the selection schema and cover it in the selection-validation test.",
+        "file": "contract/src/financial-tools.ts",
+        "line": 105,
+        "priority": "P2",
+        "title": "Reject duplicate Plants at the selection boundary"
+      },
+      {
+        "body": "The result refinement checks only that requested value keys are present; it never rejects additional known measure keys. For example, an Actual-only selection can validate rows and totals containing Budget, Roll-over, or percentage values as long as their coverage states are internally consistent. This defeats the claimed strict selection/result boundary and allows server mistakes to return financial data outside the confirmed selection. Require each value set to equal the selected measures plus explicitly requested derived comparison fields.",
+        "file": "contract/src/financial-tools.ts",
+        "line": 457,
+        "priority": "P2",
+        "title": "Reject unrequested financial values in validated results"
+      }
+    ],
+    "status": "blocked",
+    "tree": "dcefd9191101a342637f860c65ac823d1744dfd5fc06769685dcf87a1e411aa1"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-08T23:08:40+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-08T23:56:49+00:00",
+      "step": "review"
     }
   ]
 }
