@@ -8,6 +8,7 @@ export interface FinancialSourceOracle {
     columns: string[];
     rows: Array<{
       sourceRow: number;
+      sourceCells: Record<string, string | null>;
       transactionNumber: string | null;
       lineId: string | null;
       postingDate: string;
@@ -142,6 +143,9 @@ function inspectActual(header: HeaderLocation): FinancialSourceOracle["actual"] 
     rowCount += 1;
     rows.push({
       sourceRow: rowNumber,
+      sourceCells: Object.fromEntries(
+        header.columns.map(({ name, column }) => [name, nullable(cellText(row.getCell(column)))]),
+      ),
       transactionNumber: nullable(optionalCellText(row, header, "Transaction Number")),
       lineId: nullable(optionalCellText(row, header, "Line_Id") || optionalCellText(row, header, "#")),
       postingDate,
