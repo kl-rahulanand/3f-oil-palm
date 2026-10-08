@@ -1,12 +1,12 @@
 ---
 reader: claude (opus)
-read_at: 2026-10-08T18:26:44+00:00
-read_hash: fe1b49fb1a625753c98d86a540d3164428db349d
-round: 1
+read_at: 2026-10-08T18:33:49+00:00
+read_hash: 2875c3997a0e1d61423816c47c28d99df0b7d85e
+round: 2
 passed: no
-doc_seen: fe1b49fb1a625753c98d86a540d3164428db349d
+doc_seen: 2875c3997a0e1d61423816c47c28d99df0b7d85e
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+notes_seen: f0382f39c2fdcdb74a92ce47f4912463ab336cd0
 ---
 
 # Cold read notes
@@ -130,3 +130,54 @@ Only a genuine trade-off goes to the human, as a question with options.
     - Done-when 6 and LIVE (and so ROLLOUT and story completion) need the owner to record account/model access, billing, retention and residency, and nothing records it yet.
     - Decision 0051 explicitly says these checks are not complete.
     - Name who records it and where; otherwise list done-when 6 as blocked until then so the story does not stall at LIVE.
+
+## Round 2
+
+17. Gap: the new routing rule conflicts with the quality gate's test partition.
+    Disposition: keep: Pin every leaf to the existing gate partition; warehouse leaves also register as gated hermetic, API controller proof uses in-memory collaborators, and actual disposable-DB/HTTP acceptance is separately required.
+    - The gate requires every `backend/src/**/*.test.ts` to appear in `dbTests` or `hermeticTests`. A leaf that only "joins test:warehouse-proof" fails "every backend test must be declared hermetic or DB-backed".
+    - Every existing warehouse-proof leaf is also listed in `hermeticTests`, where it skips unless `WAREHOUSE_DB_TEST=1` is set. The rule should say gated DB leaves join both lists and skip without that variable.
+    - Routing API and app-DB leaves to `test:db` means they run in neither Forge's test command (`test:hermetic`) nor CI. That includes API's main HTTP proof (auth/CSRF, cross-conversation denial, paging errors), which close would never see execute.
+    - The existing `chat.controller.test.ts` is hermetic, so pin API's controller leaf as hermetic with in-memory fakes. Keep `test:db` only for leaves that truly need the app DB.
+
+18. Gap: old Ask has no recorded-selection provider for BASELINE's browser capture.
+    Disposition: keep: Old Ask backend parity overrides LLM_PROVIDER only in-process; legacy Playwright tests unchanged mock clarification. No production replay switch or CoreModule change.
+    - `LLM_PROVIDER` resolves to `BedrockLlmProvider` or `MockLlmProvider` in `core.module.ts`, and the mock always returns the same clarification.
+    - Driving old Ask "through its real API/UI using recorded governed selections at its LLM_PROVIDER boundary" in Playwright against a running backend needs a replay provider and config switch. That means editing `core.module.ts`/`config.ts`: shared old code outside BASELINE's Scope, against "existing chat unchanged".
+    - Pin one of two options:
+      - Capture old-Ask parity in-process: a backend test overriding the `LLM_PROVIDER` token with recorded selections. The UI spec then covers only the mock clarification path.
+      - Name the provider-switch edit, its Scope and why it leaves old behaviour unchanged.
+
+19. Split: BASELINE → backend source oracle and report/export/drill baseline | Playwright install with legacy UI/old-Ask capture.
+    Disposition: keep: Split backend BASELINE from LEGACY-UI Playwright/setup/capture; both precede migrations and the established UI harness precedes FIXTURES.
+    - BASELINE now holds:
+      - the independent oracle
+      - generated synthetic legacy workbooks
+      - real-snapshot restore through the existing ingestion API onto :5434/:5435
+      - recorded old-Ask selections
+      - the Playwright install and config
+      - a legacy browser spec
+      - backend, gate, frontend, root and lockfile edits
+    - That is well past about 400 lines for one done-when item, and everything else waits on it.
+
+20. Gap: the real supplied workbook is an input shared by several tasks, and no task pins how it is supplied.
+    Disposition: keep: BASELINE owns FINANCIAL_CHAT_SOURCE_FILE and recorded SHA-256, consumed by all real-source runs. Missing input explicitly skips real cases and leaves acceptance pending; generated cases still execute.
+    - BASELINE (checksum and snapshot), BROWSER (real source), REGRESSION (same snapshot) and ROLLOUT (three-shell walk) all need it. The space-and-parenthesis filename is not in Git: only `Nursery MIS Format.xlsx` is tracked.
+    - BASELINE should pin the environment variable or argument that names the file, the recorded checksum, and what a registered leaf does when the file is absent (skip with a stated reason, or run on the synthetic stand-in).
+
+21. Shared lines without an After link: BASELINE and TRANSPORT both edit `package-lock.json`, `backend/package.json`, `frontend/package.json` and `tools/quality-gate.test.mjs`.
+    Disposition: keep: Native TRANSPORT has no frontend manifest scope. Serialize every shared manifest/gate/lockfile change across all task chains, rebase and regenerate lockfile with npm install.
+    - CONTRACT and RESPONSE also edit the gate while BASELINE runs in parallel.
+    - The Notes serialize only "backend task chains", and a lockfile conflict cannot be fixed by a textual rebase.
+    - Drop `frontend/package.json` from TRANSPORT: the native-fetch transport adds no frontend dependency.
+    - Then either make TRANSPORT run after BASELINE, or extend the serialization note to every task that edits the shared manifests, lockfile or gate, with the lockfile regenerated on rebase.
+
+22. Split: MODEL → central flag/model/key/retry/timeout config with safe-startup proof | Claude provider, four instruction modules, static cache prefix and vendor-error mapping.
+    Disposition: keep: Separate CONFIG owns central settings/env/safe-startup leaf; MODEL owns provider/instructions/cache/error mapping and depends on CONFIG.
+    - The config half is what API and STREAM consume, and is separable.
+    - The provider half alone, with its prefix-equality and payload-exclusion tests, approaches the size limit.
+
+23. Trap: stale present tense after merges: item 6.
+    Disposition: keep: Vendor prerequisite wording is conditional until owner confirmation, not a stale present-tense claim.
+    - "This is currently pending, not inferred from decision 0051" in the review-pinned seams becomes false once the owner records the vendor prerequisites. It is the kind of sentence that has cost later read rounds.
+    - Phrase it as a condition ("until the owner records…") rather than a present-tense state.
