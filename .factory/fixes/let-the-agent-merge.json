@@ -1,0 +1,13 @@
+{
+  "branch": "fix/let-the-agent-merge",
+  "done_when": "The default branch's forge.toml sets merge = \"agent\".",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-08T22:03:55+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Let the agent merge this repo's ready pull requests."
+}
