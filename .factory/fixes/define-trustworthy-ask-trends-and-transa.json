@@ -1,0 +1,14 @@
+{
+  "base": "d14840e76678fc582d903812969d9d2385ca3a96",
+  "branch": "fix/define-trustworthy-ask-trends-and-transa",
+  "done_when": "The combined capability is specified and ready for a story plan",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-08T08:01:44+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Define trustworthy Ask trends and transaction verification"
+}
