@@ -69,6 +69,9 @@ metadata, not client-generated permissions; clear cached data when access is rev
       arithmetic. Use locale grouping/currency labels and tabular figures; keep sign and two decimals.
       Numeric chart coordinates may be approximations, but tooltips/table show original exact strings.
 - [ ] Render one result model in text/table/chart; no client reaggregation, percentages or deltas.
+      Monthly percentage change with a negative prior says "Not applicable — previous month
+      was negative", while keeping the server's exact monetary delta. Do not confuse this
+      with Actual-vs-Budget percentage or calculate an absolute-denominator substitute.
       Monthly rows chronological, labelled axes, series distinguished beyond color, exact table
       accessible alongside chart. Missing/unloaded values are gaps, not zero or interpolated lines.
       Keep "<Dimension> not assigned" Actual groups visible with prepared drill-down.

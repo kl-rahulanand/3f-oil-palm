@@ -168,7 +168,7 @@ service; controllers/agent never import its tables or repositories directly.
       the compatible requested grain before joining; attach Budget once and preserve Unmapped.
 - [ ] Test explicit loaded-zero/missing-month states, aggregate percentage, parent totals,
       single month/range/FY YTD, closing-month Roll-over and monthly chart ordering/gaps.
-- [ ] Calculate exact-money monthly deltas server-side; previous zero/missing denominators
+- [ ] Calculate exact-money monthly deltas server-side; previous zero/negative/missing denominators
       yield unavailable percentage changes. Credits retain their source signs.
 - [ ] Reject unsupported Budget groupings (e.g. Cost Center without approved allocation),
       log/audit refusals and enforce aggregate row limits without returning truncated totals.

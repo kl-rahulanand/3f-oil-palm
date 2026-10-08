@@ -110,7 +110,11 @@ Unknown Plant remains operator-only. These buckets are not invented master IDs.
 - [ ] Return chronological month rows across requested scope. Actual coverage gaps remain unavailable,
       while a loaded month with no lines is zero. Budget absence is a null gap, not zero/interpolation.
 - [ ] Monthly absolute change is current minus previous where both months are available; percentage
-      change is Not applicable for previous zero/missing value. No causal explanation/forecast.
+      change is Not applicable for previous zero, negative or missing value. Negative prior
+      receives its specific explanation; monetary delta remains exact when both periods
+      exist. Test negative-to-positive and negative-to-negative cases, positive prior and
+      zero/missing separately; never use absolute prior. Actual-vs-Budget percentage is
+      unchanged. No causal explanation/forecast.
 - [ ] Range/YTD sums Actual/Budget flows and takes closing month's stored Roll-over, respecting its
       coverage. Missing closing Roll-over cannot fall back to an earlier month.
 - [ ] Apply approved measure filters after correct aggregation and define returned total scope

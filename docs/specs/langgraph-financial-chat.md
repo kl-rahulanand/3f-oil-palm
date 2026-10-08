@@ -115,7 +115,10 @@ the closing month's balance across the selected Plants/components. Missing closi
 coverage makes the complete balance unavailable; never fall back to an earlier month or sum
 balances over time. Monthly absolute change is current minus previous for Actual, Budget
 and Roll-over where both periods are available. Percentage change is that change divided
-by the previous value times 100; prior zero or missing data is Not applicable. Derived
+by the previous value times 100 only when the previous value is positive. Prior zero,
+negative or missing data gives null/Not applicable, following decision 0052. For a
+negative prior show "previous month was negative"; retain the exact monetary change
+when both periods are available. Do not use an absolute-value denominator. Derived
 Actual/Budget percentage is not itself subject to percentage-change arithmetic.
 
 ### Prepared transactions, loads and memory
@@ -295,7 +298,8 @@ access on lookup and query; audit entries and typed refusals without financial p
 Acceptance evidence for 2: D4-D6/D8/D12; April-start and cross-year boundaries; partial
 Actual/Budget, loaded-zero and closing-month missing Roll-over; confirmed complete
 Plant/month with no rows versus no coverage, and partial rows without confirmed completeness;
-exact table/tooltips with chart gaps; amount and percentage deltas with prior zero/missing
+exact table/tooltips with chart gaps; amount and percentage deltas with prior positive,
+zero, negative and missing
 values; no average of ratios.
 
 Acceptance evidence for 3: all named follow-ups; explicit month wins over relative context;
@@ -340,7 +344,7 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0051 and existing model/financial rules cited above.
+accepted decisions 0042-0052 and existing model/financial rules cited above.
 
 ## Roadmap
 

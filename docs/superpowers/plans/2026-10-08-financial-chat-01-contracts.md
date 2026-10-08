@@ -29,6 +29,9 @@ Produces every canonical type in the master, strict input/output validators, Fin
 and the transport mapping consumed by stages 6-8. Define Money as a signed fixed-two-decimal
 string; identifiers never become JS numbers. Percentage is a server decimal string or null
 with reason; stage 4 owns calculation, stage 8 formatting.
+Monthly percentage-change reasons distinguish missing data, zero prior and negative prior;
+negative prior keeps the monetary delta and explanation "previous month was negative".
+These states are separate from Actual-vs-Budget percentage.
 
 Define component prop unions for FinancialTotal, FinancialComparison, MonthlyTrend and
 ClarificationCard; transaction bundles are indexed by opaque drilldownId with ready/error status.

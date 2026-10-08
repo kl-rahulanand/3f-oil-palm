@@ -201,6 +201,9 @@ Trap: the global exception filter replaces messages: items 3 and 4.
 ## Round 3
 
 36. Nothing says who confirms which Plant/months have complete Actual data, so every demo answer could come back "Actual data not loaded".
+    Owner note: the completeness-confirmation process was deferred for the PoC. Decision
+    0048 is not revoked: do not infer complete coverage or claim DUB April-August confirmed.
+    This finding remains open; no clean review or successful loaded-data demo is claimed.
     Decision 0048 says only confirmed complete coverage allows a value or a zero. But the loader is described only as reading the original workbook with explicit DUB Budget ownership, and nothing says what supplies the confirmation. The workbook does not declare completeness, and the disposition leaves the format open. The spec should name:
     - who confirms coverage (the operator, as a declared Plant/month list given to the CLI);
     - that DUB April–August 2026 is confirmed for the demo.
@@ -219,6 +222,10 @@ Trap: the global exception filter replaces messages: items 3 and 4.
     Decision 0050 forbids allocating Budget to Unmapped, but the spec gives labels only for "No Budget line for this GL" and "Budget not loaded". In D3, the Unmapped row's Budget cell needs a defined null state and label, and its percentage needs "Not applicable". It should also be clear that the comparison's Budget total excludes it. Unproven: item 1: D3's Unmapped row Budget and percentage cells.
 
 39. Percentage change with a negative prior value is undefined.
+    Disposition: keep: Owner accepted decision 0052 after a source-backed workbook example.
+    Spec and contract/query/UI/verification plans now return null/Not applicable for negative
+    or zero prior, preserve monetary change, explain negative prior and use no absolute-value
+    denominator. Acceptance covers negative-to-positive/negative-to-negative and positive prior.
     Net Actual can be negative after credits. "Change / previous × 100" then gives a misleading sign; for example, going from −100 to +50 reads as −150%. The spec should pin the rule: Not applicable for a negative prior, or divide by the absolute prior. Unproven: item 2: a month-to-month change from a negative prior month.
 
 40. Preparing up to 200 drill-down pages before an answer completes has no time limit or timeout behaviour.

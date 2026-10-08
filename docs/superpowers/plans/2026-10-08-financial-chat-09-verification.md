@@ -53,6 +53,10 @@ No invented passing screenshots or unexplained "all tests green" statement.
 
 ### 9B: Exercise complete running application
 
+Verify signed monthly monetary deltas and null/Not applicable percentage change for
+negative-to-positive, negative-to-negative and zero-prior cases, plus missing periods and
+ordinary positive-prior arithmetic. Preserve drill-down; Actual-vs-Budget ratios are unchanged.
+
 Verify Unmapped's null Budget/specific label and Not applicable percentage without allocation.
 Traverse prepared 10 rows then continuation pages of pinned 20 rows through the entire
 immutable set exactly once, with changed continuation limit rejected. Expire the shared

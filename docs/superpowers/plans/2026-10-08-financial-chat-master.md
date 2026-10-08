@@ -78,6 +78,10 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
   Actual coverage for each Plant/month before an empty set can be ₹0. Otherwise complete
   Actual is null/"Actual data not loaded". A workbook load or some rows is not completeness.
   Never average percentages. Zero/missing denominator is Not applicable.
+  [0052](../../decisions/0052-financial-chat-nonpositive-trend-baseline.md) separately
+  governs month-to-month percentage change: calculate only for a positive prior value;
+  zero/negative prior is Not applicable, with negative-prior explanation. Monetary
+  change remains exact when both periods exist; Actual-vs-Budget percentage is unchanged.
   Partial Budget coverage cannot yield a complete-looking comparison or percentage.
 - Stored monthly Roll-over is a balance: range/YTD uses closing month, never sum across months.
   Do not recalculate Excel Roll-over formulas. New importer reports missing cached results and
