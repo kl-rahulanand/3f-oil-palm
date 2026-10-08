@@ -1,12 +1,12 @@
 ---
 reader: claude (opus)
-read_at: 2026-10-08T18:33:49+00:00
-read_hash: 2875c3997a0e1d61423816c47c28d99df0b7d85e
-round: 2
+read_at: 2026-10-08T18:41:06+00:00
+read_hash: 0d29761649a055715d97ee84ed5890f133506238
+round: 3
 passed: no
-doc_seen: 2875c3997a0e1d61423816c47c28d99df0b7d85e
+doc_seen: 0d29761649a055715d97ee84ed5890f133506238
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: f0382f39c2fdcdb74a92ce47f4912463ab336cd0
+notes_seen: 2eb9dc1ca214ba4ecbe02ce5b8d8dd69ccd4ccbd
 ---
 
 # Cold read notes
@@ -181,3 +181,20 @@ Only a genuine trade-off goes to the human, as a question with options.
     Disposition: keep: Vendor prerequisite wording is conditional until owner confirmation, not a stale present-tense claim.
     - "This is currently pending, not inferred from decision 0051" in the review-pinned seams becomes false once the owner records the vendor prerequisites. It is the kind of sentence that has cost later read rounds.
     - Phrase it as a condition ("until the owner records…") rather than a present-tense state.
+
+## Round 3
+
+24. Trap: CI has no Playwright and no database: LEGACY-UI.
+    Disposition: keep: LEGACY-UI generated and real-source checks are local disposable-DB browser runs with evidence; only the pure generated oracle runs in immutable CI.
+    - LEGACY-UI's Tests cell promises "generated CI" runs of `legacy-financial-baseline.spec.ts`.
+    - The CI workflow is pinned as immutable by the gate and runs only `npm ci` and `npm run verify:ci`. There is no Playwright step, no browser and no database, so no spec in `frontend/e2e/` ever runs in CI.
+    - Reword it as a local run against disposable :5434/:5435 with recorded evidence. Only the pure generated-source oracle in BASELINE's backend leaf runs in CI.
+
+25. Gap: no runner exists for leaves that need both the warehouse and the app database.
+    Disposition: keep: BASELINE owns cross-platform test:financial-chat-db-proof runner/gate pin; both dual-DB leaves also register hermetic and skip without FINANCIAL_CHAT_DUAL_DB_TEST=1. Runner validates disposable warehouse/app targets before setting the flag or writing; REGRESSION appends its leaf.
+    - BASELINE's in-process old-Ask parity test and REGRESSION's `financial-chat.acceptance.test.ts` (process restart, grants, pins) need both a warehouse and an app DB.
+    - The routing rule offers only `test:warehouse-proof`, which sets `WAREHOUSE_DB_TEST=1` for the warehouse, or `test:db`, which covers the app DB alone. No row says which one each of these leaves joins.
+    - Pin in BASELINE, the first task that needs it:
+      - the runner and gate list for dual-DB leaves;
+      - the environment flags they skip on;
+      - that both targets are confirmed as 127.0.0.1:5434 and :5435 before any write.
