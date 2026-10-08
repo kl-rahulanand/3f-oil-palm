@@ -1,8 +1,10 @@
 ---
 slug: ask-traceable-answers
 title: Complete Ask questions stay complete and every live Actual is traceable
-status: draft
+status: confirmed
 saved: 2026-10-08T08:56:09+00:00
+confirmed_by: "Project owner via Codex"
+confirmed_hash: f244c1a0006e00421e4b9887e6e426b880e3908e274b980cdb0a0cbd84503419
 ---
 
 # Complete Ask questions stay complete and every live Actual is traceable
