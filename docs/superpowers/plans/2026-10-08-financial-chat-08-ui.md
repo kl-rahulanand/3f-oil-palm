@@ -86,6 +86,8 @@ component fallback. The final answer is renderable independently of earlier part
       interaction review rather than claiming those skills ran.
 - [ ] Expose /financial-chat only when enabled. Do not replace/redirect old Ask or report dock in
       this stage; separate cutover is an explicit future approved scope.
+- [ ] Obtain availability from stage 7's authenticated runtime capability response; flag changes
+      update the page/navigation without rebuilding the frontend. A disabled response clears cache.
 
 ## Verification and handoff
 

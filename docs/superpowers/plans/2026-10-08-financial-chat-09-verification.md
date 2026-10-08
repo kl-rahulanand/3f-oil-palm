@@ -42,6 +42,9 @@ No invented passing screenshots or unexplained "all tests green" statement.
       rounding policy and counts of unknown/unmapped/rejected rows.
 - [ ] After new migration/import repeat existing report/import/export/drill tests against the same
       legacy snapshot; demonstrate unchanged schemas/contracts and financial contents.
+- [ ] Baseline and repeat existing Ask through its real API and UI with a fixed warehouse snapshot
+      and vendor-boundary fixture. Preserve its contracts/results without importing its code into
+      the new agent. No old selector/schema/prompt is changed by this story.
 - [ ] Compare chat/report only when Plant/time/component/GL, source generation and inclusion rules
       genuinely match. Broader new-source retained rows are an explained difference, not a forced match.
       A same-scope unexplained difference blocks acceptance.
@@ -69,6 +72,8 @@ No invented passing screenshots or unexplained "all tests green" statement.
       asks to rerun. Test one-hour expiry with controlled time and actual backend restart for memory loss.
 - [ ] Inspect chart/table/tooltips for exact equality and missing gaps; keyboard/light/dark/mobile
       walkthrough and flag-off route/API behavior. No fixed sleeps or Playwright retries.
+- [ ] Toggle the runtime feature flag with the same frontend build and prove that missing new-model
+      configuration cannot prevent reports or old Ask from starting or answering.
 
 ### 9C: Live model and data-boundary proof
 

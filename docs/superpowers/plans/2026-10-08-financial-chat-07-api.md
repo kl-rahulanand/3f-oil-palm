@@ -88,8 +88,11 @@ authorize attaching a different conversation's result to this resource.
       Resolve old controllers too, with feature flag both off/on.
 - [ ] Audit allowed/refused query, drill, load/run identity and failure class using existing audit
       service; no raw transaction rows, prompts, secret/token/handle payloads or financial result blobs.
-- [ ] Verify config missing required model inputs fails clearly when enabled; flag-off does not
-      introduce a startup dependency on new active financial tables or external hosting.
+- [ ] Missing/invalid new-model inputs produce typed per-request model-unavailable failures,
+      not backend startup failure that would break reports/old Ask. Flag-off adds no model key,
+      active financial-table or external-hosting startup dependency.
+- [ ] Expose authenticated runtime capability metadata for the frontend feature gate. Do not
+      freeze this flag in NEXT_PUBLIC build-time configuration; test on/off with one frontend build.
 
 ## Verification and handoff
 

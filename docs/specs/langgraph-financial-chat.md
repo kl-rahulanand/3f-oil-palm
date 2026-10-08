@@ -11,6 +11,8 @@ saved: 2026-10-08T14:33:55+00:00
 
 Finance needs to ask factual questions across SAP Actual and Nursery Budget dimensions,
 compare monthly spending with Budget, and inspect the transactions behind an Actual.
+They also need monthly changes and the workbook's stored Roll-over balances, without
+manually summing monthly sheets. The demo questions below make these jobs checkable.
 The owner requested a new chat built from scratch and approved the data and agent decisions
 in this conversation. Existing report generation must keep working during the PoC.
 
@@ -25,14 +27,15 @@ Finance and management users, restricted to their currently permitted Plants.
   or ambiguous. Follow-ups reuse confirmed scope and apply only explicit changes.
 - Answer factual totals, Actual/Budget comparisons, monthly trends, month-to-month changes
   and transaction-detail questions for single months, month ranges and April-start Financial YTD.
-- Actual-only queries support the approved typed source dimensions. Cross-source comparisons
-  support only dimensions with a reviewed Budget correspondence. No Cost Center Budget allocation.
+- Actual-only queries support the fixed typed source dimensions below. Cross-source comparisons
+  support only the native Budget grain or recorded component mapping. No Cost Center Budget allocation.
 - The new Actual table retains every financially valid source line, including unknown Plants
   and missing Cost Centers. Known-Plant unmapped rows remain in permitted Plant totals.
-  Unknown-Plant rows are excluded from ordinary Plant answers and retained for reconciliation.
+  Unknown-Plant rows appear only in operator reconciliation evidence, never in this PoC chat.
 - Nursery Budget stores only monthly source leaf amounts, separately from its hierarchy.
   Actuals originate in financial transactions; percentage is derived from matching aggregate
-  Actual and Budget. Mapping uses approved Plant/Cost Center/GL to stable component identity.
+  Actual and Budget. Mapping uses recorded Plant/Cost Center/GL to stable component identity,
+  keeping the permitted provisional assignments and their reasons provisional.
 - The current Budget belongs to DUB. Other Plants and missing months carry a distinct
   "Budget not loaded for this Plant or month" state. Zero is a real loaded value.
 - Percentage is Actual / Budget * 100; zero/missing denominators are Not applicable.
@@ -46,6 +49,119 @@ Finance and management users, restricted to their currently permitted Plants.
   clear restart/new-chat message. Refresh resumes only while the process still holds the state.
 - The new tables sit beside existing warehouse tables. Existing statements, exports, report
   drill-down and ingestion contracts remain unchanged and are regression-tested.
+
+### Supported scope and calculations
+
+Core dimensions are Plant, Month, GL, Cost Center and Nursery Component, including
+recorded hierarchy parents. Actual-only source dimensions also include Section,
+Consideration, Short Name, Contra Account, Origin and Location; the fixed server catalog
+declares their valid combinations. Memo, Comments and Reference remain transaction detail,
+not grouping dimensions. Unsupported dimensions or combinations receive a clear refusal.
+Budget, Roll-over and percentage support totals and compatible Plant/Month/GL/Component
+groupings, never Cost Center or the Actual-only extra dimensions. GL-bearing Budget leaves
+remain distinct component leaves; GL grouping sums them once without multiplying Actuals.
+
+An explicit named Plant, explicit list, or "all my Plants" supplies Plant scope. The last
+means the current permitted Plant set pinned for this result, not all warehouse Plants.
+Missing Plant still asks for clarification. YTD requires an explicit or previously confirmed
+closing month/year; it never silently uses today's month.
+
+Actual is the sum of Debit minus Credit, including credits and known-Plant Unmapped rows.
+Plant or GL totals without a component filter include those Unmapped Actuals in their
+percentage numerator. "Matching aggregate" means the same selected Plant/time/GL scope,
+not silently dropping Actuals without a component match. Component answers use only the
+recorded component mapping; their totals exclude the Plant's unrelated Unmapped bucket.
+The recorded provisional assignments permitted by decision 0022 may be seeded with their
+reason/version and remain provisional. No runtime inference or new business-approved
+status is implied; absent targets stay Unmapped. Unknown-Plant rows are available only in
+operator load-reconciliation evidence, not in this PoC's chat or a new review entitlement.
+
+Coverage is explicit per Plant/month for Actual and Budget. A loaded Actual month with no
+matching lines is zero; an unloaded month is unavailable and a chart gap, not zero.
+An incomplete Actual range does not get a complete-looking total; any available-only
+subtotal is labelled separately. If any selected Plant/month lacks Budget, full comparison
+Budget and percentage are null, alongside an explicitly labelled available-only Budget
+subtotal and missing coverage. Thus DUB plus another Plant, or YTD missing one Budget month,
+cannot divide complete Actual by partial Budget. Loaded zero remains a real Budget value;
+zero or missing denominator is Not applicable.
+
+Monthly Roll-over shows that month's stored leaf balance. A range/YTD summary takes only
+the closing month's balance across the selected Plants/components. Missing closing-month
+coverage makes the complete balance unavailable; never fall back to an earlier month or sum
+balances over time. Monthly absolute change is current minus previous for Actual, Budget
+and Roll-over where both periods are available. Percentage change is that change divided
+by the previous value times 100; prior zero or missing data is Not applicable. Derived
+Actual/Budget percentage is not itself subject to percentage-change arithmetic.
+
+### Prepared transactions, loads and memory
+
+Clickable Actual coordinates include supported row cells, monthly chart points, whole-scope
+totals and the known-Plant Unmapped bucket. A multi-Plant total pins every selected Plant.
+Bound an answer to 50 distinct Actual scopes including its overall total, deduplicating
+identical coordinates. If it would exceed that bound, ask the user to narrow the question
+before execution; no silent truncation or on-click-only preparation replaces this promise.
+The graph prepares page 1 with 10 rows before completing the answer. Further pages default
+to 20 rows, maximum 100, and start at page 1. A preparation failure leaves the exact summary
+visible with an explicit detail-failed state, not a ready/clickable claim. Page sums are
+never the full matching Actual total. Zero-net Actual can still have offsetting transactions.
+
+An authorized operator uses the dedicated original-workbook CLI loader with explicit DUB
+Budget ownership. It writes an inactive immutable generation, independently reconciles
+counts and amounts, and atomically activates the complete validated workbook. An identical
+rerun is idempotent. A failed first load leaves chat data unavailable; a failed replacement
+leaves the previous reconciled generation active and reports failure to the operator.
+Missing cached formula amounts block use rather than becoming zero. No new public upload
+endpoint, revised-budget approval workflow or change to existing report ingestion is added.
+Each result/detail handle pins its source and mapping generation. A replacement may not
+change a page's contributing lines: retained pins stay readable, otherwise ask to rerun.
+
+PoC memory is process-local: one active run per conversation, one-hour idle expiry, at most
+20 active conversations per account and 200 per process, 40 sanitized context turns, three
+retained result bundles per conversation and 256 replay events per run. Capacity refuses
+new creation explicitly; expired/evicted conversations behave like lost restart context.
+Evicted results ask to rerun. Refresh, state retrieval, replay, prepared-page emission and
+pagination all recheck ownership and current grants. Revocation denies the entire pinned
+Plant scope, rather than silently shrinking totals, and the client clears denied result
+caches. Another user's IDs confer no access. Cancellation cannot emit or commit a late answer.
+
+### Model, errors, audit and coexistence
+
+Only user-authored text, sanitized confirmed/pending selections and permitted capped
+vocabulary enter model requests. Rendered prior answers, result rows, prepared pages,
+money, source batches and handles never enter model history, retries, traces or logs.
+Every financial answer and UI block comes from deterministic server templates and validated
+results, not model prose. A prose-only, malformed or unknown-tool model reply never becomes
+a financial answer; bounded validation leads to clarification or a fixed typed refusal.
+No SQL, generated code or model-authored arithmetic executes. Selection rounds are capped
+at five; the implementing story pins compatible supported API parameters, finite retries and timeouts.
+
+Existing exception handling hides messages, so refusals carry typed details.reason:
+unsupported selection, context expired, permission changed, drill expired, data unavailable,
+model unavailable/timeout/rate-limit and cancellation. UI messages say what happened and
+what to do next. Capacity limits, concurrent runs, query-too-broad narrowing, feature disabled
+and access denied also have distinct typed reasons. Missing/invalid new-model configuration
+returns a per-request model-unavailable refusal when enabled; it must not prevent backend
+startup or disrupt reports/old Ask. Flag-off also starts without a key. No automatic substitution.
+Audit entries record actor, authorized/refused action, resolved nonfinancial scope, opaque
+internal load/run references and failure category, not prompts, amounts, rows or raw handles.
+
+Existing Ask stays reachable and unchanged. New chat has its own flag-gated Financial Chat
+navigation entry and /financial-chat page, new endpoints and independent logic/components.
+FINANCIAL_CHAT_ENABLED defaults false and is enforced by the backend as well as the UI.
+The frontend reads feature availability from an authenticated runtime backend response,
+not a build-time NEXT_PUBLIC flag. Toggling the flag works without rebuilding the frontend.
+No copied/imported old-chat prompts, selector, executor, tools, state or UI; only shared
+application auth, permission, CSRF, audit, config, logging and errors may be used.
+Old-chat cutover/removal is a separate scope, not part of this build. Baseline/regression
+evidence includes old Ask as well as statements, imports, report drill and exports.
+
+Before any real new-chat Anthropic request, the project owner records confirmation of
+account/model access, billing, processing/retention terms and acceptable residency under the
+client's data-handling obligations. A team Claude Code login is not an application API key
+or evidence of this check. Until confirmed, use synthetic questions and a fake vendor in
+local/hermetic development; blocked access is reported, not bypassed. Live application
+probes are separately gated/manual outside CI, measure timing/usage, and inspect allowed
+payloads without logging secrets or customer results.
 
 ## Rules
 
@@ -73,6 +189,37 @@ Existing auth, CSRF, audit and error infrastructure may be used; existing chat l
 This is a provisional internal review checkpoint for the draft, not a promised delivery date.
 Schedule the functional acceptance check at story approval before demo rollout.
 
+### Named demonstration and follow-up cases
+
+These cases fix the semantic selection independently of any model wording. The implementing
+story assigns shared typed IDs; before a live run, its import/acceptance tasks record exact source-derived
+golden amounts and transaction identities for these same scopes. Expected values must not
+be produced by the production parser/query under test.
+
+| Case | Question                                                                                       | Expected selection or outcome                                                     |
+| ---- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| D1   | Actual vs Budget for DUB in April 2026                                                         | DUB; April 1-30 2026; Actual/Budget; total                                        |
+| D2   | Actual vs Budget for DUB in April 2026 by GL                                                   | D1 scope; GL grouping; repeated Budget GL leaves summed once                      |
+| D3   | Actual vs Budget for DUB in April 2026 by nursery component                                    | D1 scope; component grouping using recorded mapping                               |
+| D4   | Monthly Actual and Budget trends for DUB from April to August 2026, with month-to-month change | DUB; April 1-August 31 2026; month grouping; monetary deltas                      |
+| D5   | Actual vs Budget for DUB, financial YTD ending August 2026                                     | DUB; April 1-August 31 2026; total, not calendar YTD                              |
+| D6   | Show monthly Roll-over Budget for DUB from April to August 2026 and its period balance         | Stored monthly balances; overall balance only August                              |
+| D7   | Show Actual for DUB in April 2026 by Cost Center                                               | DUB; April 2026; Actual-only; Cost Center grouping                                |
+| D8   | Actual vs Budget for all my Plants in April 2026                                               | Explicit current permitted Plant set; partial Budget labelled; no DUB replication |
+| D9   | Show Actual vs Budget                                                                          | Clarify Plant and period before querying; retain requested measures               |
+| D10  | Show Budget for DUB in April 2026 by Cost Center                                               | Fixed unsupported-combination refusal; no Budget allocation                       |
+| D11  | Why did DUB spending increase in August 2026?                                                  | Causal explanation unsupported; offer factual month-change query                  |
+| D12  | Show Actual for DUB from April to September 2026 by month                                      | Loaded months preserved; unloaded September unavailable/gap                       |
+
+Follow-up cases: after D1, "now by GL" keeps Plant/month/measures; after D4, "same for August
+2026" selects only August; after a relative-period selection, an explicitly named April
+2026 overrides that relative window; "financial YTD" with no confirmed closing period asks;
+answering D9's clarification completes D9 rather than starting a detached request; requesting
+transactions after a multi-cell answer asks which Actual, while selecting a specific Actual
+opens its prepared matching page; a follow-up after a numeric answer sends no rendered
+answer/money back to the model. Repeated component-label ambiguity is proved with a synthetic
+two-leaf fixture; it never guesses a leaf from its GL alone.
+
 ## Acceptance criteria
 
 1. Authorized questions return exact totals and comparisons at supported dimensions without
@@ -88,6 +235,42 @@ Schedule the functional acceptance check at story approval before demo rollout.
 6. The chat works with real Claude Sonnet 5.5 through Anthropic directly; inspected model requests contain no
    server-sourced result rows, money values, transaction lines or drill-down handles.
 
+Acceptance evidence for 1: D1-D3/D7-D10; named Actual-only source dimensions; Unmapped Plant
+numerator and provisional component mapping; repeated GL fan-out prevention; unsupported
+Cost Center Budget; prose-only numeric model reply never displayed as fact; current Plant
+access on lookup and query; audit entries and typed refusals without financial payloads.
+
+Acceptance evidence for 2: D4-D6/D8/D12; April-start and cross-year boundaries; partial
+Actual/Budget, loaded-zero and closing-month missing Roll-over; exact table/tooltips with
+chart gaps; amount and percentage deltas with prior zero/missing values; no average of ratios.
+
+Acceptance evidence for 3: all named follow-ups; explicit month wins over relative context;
+ambiguous component and transaction reference; another user's conversation; refresh/replay
+after revocation; idle/capacity/result eviction; actual process restart; cancellation races.
+
+Acceptance evidence for 4: total/Plant/month/GL/component/Unmapped/zero-net Actual identity
+sets and full totals including more than 10 transactions; 50-scope overflow narrows before
+execution; first-page failure is honest; expired/revoked/cross-conversation handles denied;
+replacement generation never switches page sets. Budget/Roll-over/percentage are not clickable.
+
+Acceptance evidence for 5: real loader failure/rerun/replacement/activation; original row
+counts and exact independent sums including unknown Plants; formula-cache failure; no
+reconciled generation state; before/after old Ask, report/import/export/drill baseline at
+the same legacy snapshot with flag on/off. Same-scope unexplained chat/report differences
+block acceptance; different inclusion rules are explained, not forced equal. If cached formula
+results are absent, the operator requests a recalculated and saved workbook, imported as a new
+source identity. No formula execution or overwrite of the original is automatic; the legacy
+zero/count rule stays unchanged. Run the real CLI with the supplied space/parenthesis-containing
+filename using correctly quoted path arguments in PowerShell, cmd and Git Bash.
+
+Acceptance evidence for 6: owner-confirmed vendor precondition; three fresh real-model runs
+per D1-D12 plus isolated follow-ups; outgoing marker exclusions after numeric answers and
+on retries/tracing; missing key/model access, timeout/rate-limit and cancel give fixed typed
+outcomes with no fallback; measured timing/usage. Live runs are gated outside CI, not passed
+by mocks. Hermetic module resolution uses DependenciesScanner/InstanceLoader, not real
+AppModule startup; truncating DB tests use only disposable warehouse :5434/app :5435, never
+live warehouse :5433/app :5432, and each named leaf is registered and observed executing.
+
 ## Out of scope
 
 Forecasts, causal explanations, recommendations, source writes, mapping administration,
@@ -97,8 +280,8 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0044 and existing model/financial rules cited above.
+accepted decisions 0042-0046 and existing model/financial rules cited above.
 
 ## Roadmap
 
-- LANGGRAPH-FINANCIAL-CHAT: New financial chat with monthly trends and traceable Actuals
+- FINANCIAL-AGENT-DEMO: New financial chat with monthly trends and traceable Actuals
