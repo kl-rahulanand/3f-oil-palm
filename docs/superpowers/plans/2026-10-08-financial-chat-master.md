@@ -60,6 +60,9 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
   [0047](../../decisions/0047-financial-chat-missing-gl-budget.md) distinguishes a GL
   with no Budget leaf in a loaded Plant/month: "No Budget line for this GL", null Budget
   and Not applicable percentage. Keep its Actual row and prepared transaction drill-down.
+  [0049](../../decisions/0049-financial-chat-budget-without-gl.md) retains Budget leaves
+  without GL under "GL not assigned" in GL groupings, included once in Budget totals.
+  Never invent a GL or use the group as an inferred Actual mapping.
 - Actual = sum(Debit - Credit). Percentage = matching aggregate Actual / Budget * 100.
   [0048](../../decisions/0048-financial-chat-actual-coverage.md) requires confirmed complete
   Actual coverage for each Plant/month before an empty set can be ₹0. Otherwise complete

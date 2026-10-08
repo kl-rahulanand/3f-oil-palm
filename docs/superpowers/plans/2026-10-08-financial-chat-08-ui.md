@@ -69,6 +69,8 @@ component fallback. The final answer is renderable independently of earlier part
       Not applicable. No fake/loading/example amounts as real financial results.
       An Actual-only GL in a loaded Budget month displays "No Budget line for this GL"
       and Not applicable percentage, while its exact Actual remains clickable with prepared details.
+      Keep "GL not assigned" rows visible for Budget leaves without GL. Do not hide null-key
+      groups or calculate their totals in React; Budget cells remain non-clickable.
 - [ ] Use shadcn Chart wrappers on installed Recharts, theme tokens and native elements where suitable.
       No second chart library or hand-rolled dialog/table primitive.
 

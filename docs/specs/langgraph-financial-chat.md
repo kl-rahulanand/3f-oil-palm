@@ -62,6 +62,10 @@ not grouping dimensions. Unsupported dimensions or combinations receive a clear 
 Budget, Roll-over and percentage support totals and compatible Plant/Month/GL/Component
 groupings, never Cost Center or the Actual-only extra dimensions. GL-bearing Budget leaves
 remain distinct component leaves; GL grouping sums them once without multiplying Actuals.
+Budget leaves with missing GL appear once under "GL not assigned", following decision 0049.
+Do not invent a GL or omit their amounts: GL groups plus this group reconcile to the
+same-scope Budget total when coverage is complete. This group is not a guessed mapping
+to Actuals, and hierarchy subtotal rows remain excluded from Budget facts.
 
 An explicit named Plant, explicit list, or "all my Plants" supplies Plant scope. The last
 means the current permitted Plant set pinned for this result, not all warehouse Plants.
@@ -246,8 +250,10 @@ two-leaf fixture; it never guesses a leaf from its GL alone.
    server-sourced result rows, money values, transaction lines or drill-down handles.
 
 Acceptance evidence for 1: D1-D3/D7-D10; named Actual-only source dimensions; Unmapped Plant
-numerator and provisional component mapping; repeated GL fan-out prevention; unsupported
-Cost Center Budget; Actual-only GL in a loaded Budget month retains exact Actual,
+numerator and provisional component mapping; repeated GL fan-out prevention;
+Budget leaves without GL stay visible as "GL not assigned" and reconcile grouped Budget
+to the same-scope total;
+unsupported Cost Center Budget; Actual-only GL in a loaded Budget month retains exact Actual,
 null Budget/"No Budget line for this GL" and Not applicable percentage; prose-only numeric
 model reply never displayed as fact; current Plant
 access on lookup and query; audit entries and typed refusals without financial payloads.
@@ -296,7 +302,7 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0048 and existing model/financial rules cited above.
+accepted decisions 0042-0049 and existing model/financial rules cited above.
 
 ## Roadmap
 

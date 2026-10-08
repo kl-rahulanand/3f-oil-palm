@@ -25,6 +25,8 @@ row, reconciles exact source sums and atomically activates the complete PoC work
 
 parseFinancialWorkbook(buffer, declaredBudgetOwner): ParsedFinancialWorkbook returns normalized
 Actual lines, monthly Budget leaves, hierarchy, row evidence, coverage and structured validation.
+Retain genuine Budget leaves without GL as nullable-GL facts; missing GL is not a reason
+to reject a leaf or infer a code. Leaf classification still excludes hierarchy subtotal rows.
 loadFinancialWorkbook(path, declaredBudgetOwner, importingActor): Promise<FinancialLoadReport>
 returns batch identity, counts, monthly Debit/Credit/Actual/Budget/Roll-over reconciliations,
 unknown/unmapped counts, rounding deltas, errors and activated flag. Define these in this module.

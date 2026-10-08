@@ -34,6 +34,8 @@ stable component identity and explicit availability metadata.
 | ingestion_batch          | id, source/dataset identity, source checksum, parser/mapping version, declared budget owner, state, active generation, Actual/Budget month coverage, counts, validation/reconciliation/error JSON, source timestamps and importing actor                                                                                                                                                                                                 |
 
 Actual is one source transaction line, unique by batch_id + transaction_number + line_id.
+Budget leaf GL is nullable: preserve source-missing GL without a invented master entry.
+The "GL not assigned" grouping identity is a query/contract label, not a fabricated GL code.
 Source evidence includes original row index even when identifiers cannot resolve.
 Budget is one source GL-bearing leaf per month/Plant/load, unique by
 batch_id + plant_id + budget_component_id + reporting_month; parent rows never become facts.

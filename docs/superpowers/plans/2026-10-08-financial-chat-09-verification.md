@@ -65,6 +65,9 @@ No invented passing screenshots or unexplained "all tests green" statement.
       Include a GL with Actuals but no Budget leaf in a loaded Plant/month: keep the row,
       show null Budget/"No Budget line for this GL" and Not applicable percentage, open its
       prepared transactions and page to the independently reconciled full Actual total.
+      Include multiple Budget leaves without GL: "GL not assigned" remains visible, each leaf
+      counts once, and grouped Budget reconciles to the complete same-scope total without
+      inventing GL codes or Actual mappings.
 - [ ] Open every promised Actual shape (total/Plant/month/GL/component), verify prepared first-page
       bundle existed before final completion, and page beyond 10 rows to the independently expected
       full set/total. Budget is not clickable; page sum is not full total.

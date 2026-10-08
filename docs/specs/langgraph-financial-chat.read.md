@@ -143,10 +143,11 @@ Only a genuine trade-off goes to the human, as a question with options.
     "Coverage is explicit per Plant/month", but a load is one workbook. The spec should say whether a loaded month counts as loaded for every known Plant, or only for Plants that have at least one line. This decides whether D8, for a Plant with no April lines, shows zero or "unavailable". Unproven: item 2: a permitted Plant with no lines in a loaded month.
 
 27. Budget for a GL with Actuals but no Budget leaf, in a loaded DUB month, is not pinned.
-    Owner decision (2026-10-08): decision 0047 settles the Actual-only GL case: null Budget
-    labelled "No Budget line for this GL", Not applicable percentage, exact Actual retained
-    with prepared transactions. Spec and affected plans include this acceptance case.
-    The Budget-leaf-without-GL grouping part remains open; this finding is not fully disposed.
+    Disposition: keep: Owner decisions 0047 and 0049 settle both cases. Actual-only GLs
+    retain exact Actual/prepared transactions with null Budget/"No Budget line for this GL"
+    and Not applicable percentage. Budget leaves without GL appear once under "GL not assigned",
+    included in same-scope Budget totals, without inferred Actual mapping. Spec acceptance 1
+    and contract/import/query/UI/verification plans cover retained rows and total reconciliation.
     In D2, a GL that has Actual lines but no Budget leaf could show Budget as zero, as no Budget line, or as "not loaded". Each gives a different % display and a different total. It is also unstated where a Budget leaf without a GL goes in a GL grouping, and whether the GL rows still add up to the Plant total. Unproven: item 1: D2 with Actual-only GLs and Budget leaves that have no GL.
 
 28. D3 doesn't say whether a component grouping shows an Unmapped row.
