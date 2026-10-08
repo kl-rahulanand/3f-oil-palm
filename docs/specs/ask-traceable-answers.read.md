@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-08T08:44:04+00:00
-read_hash: b026c9c14b05b4f564bd978086f370a7bcca00b7
-round: 15
+read_at: 2026-10-08T08:59:30+00:00
+read_hash: b334ba1513c5f07f838f957d2778fca55717d1fe
+round: 16
 passed: yes
-doc_seen: b026c9c14b05b4f564bd978086f370a7bcca00b7
+doc_seen: b334ba1513c5f07f838f957d2778fca55717d1fe
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: e43714b6ae13525e1b29deae209c5f98dd028021
+notes_seen: 34c0bb1377f211d71bad8bfb5180bd1bd5834f3b
 ---
 # Cold read notes
 
@@ -170,5 +170,9 @@ No findings.
    Disposition: keep The five period issues now have one explicit precedence order, and compound-invalid proofs cover each boundary.
 
 ## Round 15
+
+No findings.
+
+## Round 16
 
 No findings.
