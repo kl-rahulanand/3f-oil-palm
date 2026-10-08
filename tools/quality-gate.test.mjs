@@ -42,6 +42,8 @@ const hermeticTests = [
   "backend/src/core/dimension-values.service.test.ts",
   "backend/src/db/migrate.trim.test.ts",
   "backend/src/db/seed-users.test.ts",
+  "backend/src/financial-chat/financial-disposable-db.guard.test.ts",
+  "backend/src/financial-chat/financial-report-baseline.test.ts",
   "backend/src/health/health.controller.test.ts",
   "backend/src/help/ask-help-suggestions-still-carry-mbs-q.test.ts",
   "backend/src/help/help.service.test.ts",
@@ -149,6 +151,7 @@ const expectedWorkspaceScripts = {
     "test:db": `${backendTestRunner} ${dbTests.join(" ")}`,
     "test:warehouse-proof":
       "cd .. && STATEMENT_ATTESTATION_SECRETS=warehouse-proof-statement-attestation-secret TS_NODE_PROJECT=backend/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 WAREHOUSE_DB_TEST=1 node --require ts-node/register --test --test-concurrency=1 backend/src/warehouse/reconciliation.repository.test.ts backend/src/warehouse/gl-month-rollups.db.test.ts backend/src/warehouse/composed-relation.db.test.ts backend/src/warehouse/golden-financial.db.test.ts backend/src/mapping/mapping-master.db.test.ts backend/src/warehouse/statement-projection.db.test.ts backend/src/warehouse/selection-slice.db.test.ts backend/src/warehouse/drill-transactions.db.test.ts backend/src/warehouse/gl-name.repository.test.ts backend/src/warehouse/load-freshness.db.test.ts backend/src/warehouse/measure-filter.db.test.ts backend/src/warehouse/all-plants-reconciliation.db.test.ts",
+    "test:financial-chat-db-proof": "node ../tools/financial-chat-db-proof.mjs",
     "master:generate": "ts-node -T src/mapping/generate-mapping-master.ts",
   },
   contract: {
@@ -284,8 +287,9 @@ function validateIgnoredBaseline(ignore, readPath = readFileSync) {
   );
   for (const path of ignoredPaths) {
     assert.ok(ignoredBaselineHashes.has(path), `${path} has no pinned D-0006 baseline hash`);
+    const contents = Buffer.from(readPath(path)).toString("utf8").replaceAll("\r\n", "\n");
     assert.equal(
-      createHash("sha256").update(readPath(path)).digest("hex"),
+      createHash("sha256").update(contents).digest("hex"),
       ignoredBaselineHashes.get(path),
       `${path} changed while still excluded by D-0006`,
     );
@@ -326,7 +330,7 @@ function validateGate({
   }
   assert.equal(frontendPackage.dependencies["@3f/contract"], "0.0.0");
   assert.deepEqual(
-    frontendIgnore.split("\n").filter(Boolean),
+    frontendIgnore.split(/\r?\n/).filter(Boolean),
     [".next/", "next-env.d.ts", "*.tsbuildinfo"],
     "frontend generated build files must remain ignored",
   );
@@ -357,7 +361,7 @@ test("the four FACTORY commands are declared in .envrc and name scripts that exi
     frontendPackage,
     frontendIgnore: readFileSync("frontend/.gitignore", "utf8"),
     frontendTsconfig: JSON.parse(readFileSync("frontend/tsconfig.json", "utf8")),
-    workflow: readFileSync(".github/workflows/quality.yml", "utf8"),
+    workflow: readFileSync(".github/workflows/quality.yml", "utf8").replaceAll("\r\n", "\n"),
     ignore: readFileSync(".prettierignore", "utf8"),
     testFiles: backendTests(),
   };
@@ -460,7 +464,7 @@ test("the quality gate runs all three workspaces and independently pins backend 
   const contractScripts = JSON.parse(readFileSync("contract/package.json", "utf8")).scripts;
   const provenance = Object.fromEntries(
     readFileSync("backend/VENDORED_FROM", "utf8")
-      .split("\n")
+      .split(/\r?\n/)
       .filter(Boolean)
       .map((line) => line.split(/:\s+/, 2)),
   );
