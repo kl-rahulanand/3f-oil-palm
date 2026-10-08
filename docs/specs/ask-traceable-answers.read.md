@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-08T08:27:37+00:00
-read_hash: 2da110bf576282f03dcd9a3e801a764d0369e0db
-round: 10
+read_at: 2026-10-08T08:32:19+00:00
+read_hash: 9a10daad1b4ee3e76be42e6d7b91b335a53c8487
+round: 11
 passed: yes
-doc_seen: 2da110bf576282f03dcd9a3e801a764d0369e0db
+doc_seen: 9a10daad1b4ee3e76be42e6d7b91b335a53c8487
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 53d1be7190a38a24c81937b7924dc9c3483d72c6
+notes_seen: cafdc1f2a1e4ca40029d2c168c3a85744afd2729
 ---
 # Cold read notes
 
@@ -140,5 +140,9 @@ No findings.
     Disposition: keep Removed the unreachable malformed case and its proof; accepted magnitudes still convert exactly.
 
 ## Round 10
+
+No findings.
+
+## Round 11
 
 No findings.
