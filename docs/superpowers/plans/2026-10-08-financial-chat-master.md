@@ -45,8 +45,17 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
   do not build OpenAI now, require its key or silently substitute if model access is absent.
 - All displayed amounts come from validated warehouse results. Model selects governed
   vocabulary; it never supplies SQL, joins, budget allocation, mapping or financial arithmetic.
-- Model receives user text, sanitized conversational selection and capped permitted dimension
-  vocabulary only. No server money, result rows, transaction lines, batches or drill IDs.
+- [0053](../../decisions/0053-financial-chat-skills-and-prompt-caching.md) adds trusted,
+  bundled instruction modules for comparisons, trends, clarification and transaction requests.
+  Core safety rules always apply; no new agent framework or user-uploaded skill execution.
+  Explicit Claude caching covers static instructions/tool definitions only, before all dynamic
+  context. Start with five-minute TTL; verify pinned SDK/model eligibility and usage counters.
+  No permissions, vocabulary, user text, selections, history or financial results in that prefix.
+  Hits never bypass current access or warehouse-read rules; misses/expiry/short prefixes use
+  normal execution. Do not pad prompts for eligibility. Conversation memory stays separate.
+- Model receives trusted static instructions/tool definitions plus user text, sanitized
+  conversational selection and capped permitted dimension vocabulary only. No server money,
+  result rows, transaction lines, batches or drill IDs.
   External tracing must not capture those results; no new LangSmith data upload is authorized.
 - Required Plant, period and measure must be explicit or previously confirmed. Ambiguous
   component/name/reference asks for clarification. No silent financial defaults.
@@ -178,6 +187,7 @@ Each row identifies implementation ownership and the independent acceptance proo
 | Missing/zero/partial Budget; percentage            | 1, 4, 8       | Null/zero separation and aggregate ratio oracle           |
 | Four tools, deterministic money and UI assembly    | 4, 5, 6       | Real tool trace with exact server amounts                 |
 | Selected direct model and payload exclusions       | 6, 9          | Inspected sanitized real requests; marker fixtures        |
+| Trusted skills and static-prefix prompt caching    | 1, 6, 9       | Cache boundary, usage and cached/uncached correctness     |
 | Prepared Actual first pages in response            | 5, 6, 8       | Detail ready before final completion                      |
 | Transaction columns, pagination/full total         | 1, 5, 8       | Full set equality beyond first page                       |
 | Source replacement, handle expiry/ownership        | 5, 7          | Pin/expiry tests; no fallback load                        |

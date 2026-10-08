@@ -206,6 +206,10 @@ signal)` and structured response/UI events, with server-owned conversation state
 - [ ] Use ChatAnthropic with claude-sonnet-5-5 through the direct Anthropic API.
       Cap model output/tool rounds, distinguish malformed selection from unsupported,
       and validate every requested field before warehouse work.
+- [ ] Apply decision 0053 through stage 6: trusted bundled financial instruction modules and
+      explicit static instructions/tool-prefix caching, no additional agent framework. Dynamic
+      context and financial results are never cached in that prefix. Memory, current authorization
+      and warehouse-read rules remain independent; stages 1/9 prove SDK support and real usage.
 - [ ] Use LangGraph's in-memory checkpointer; owner-bound IDs, idle expiry and one run per
       conversation. Restart makes unknown conversation IDs a clear context-expired response.
 - [ ] Test provider payload exclusions with amount/transaction marker fixtures; test cancellation,

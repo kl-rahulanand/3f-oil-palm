@@ -18,6 +18,8 @@ financial reads and transaction preparation, then assemble numeric answers witho
   financial-chat.state.ts, financial-chat.tools.ts, financial-selector.provider.ts,
   financial-chat.service.ts, financial-chat.graph.test.ts and financial-selector.provider.test.ts.
 - Create financial-answer.helper.ts only if deterministic assembly needs a distinct responsibility.
+- Keep trusted financial skill instructions as small constants in financial-selector.provider.ts;
+  split into financial-instructions.helper.ts only if composition warrants a separate owner.
 - Modify backend/package.json, package-lock.json and tools/quality-gate.test.mjs for pinned packages/leaves.
 - Import exported FinancialDataService and existing auth/audit/config services; no old-chat logic.
 
@@ -54,6 +56,11 @@ user and handle context; model cannot supply authorization. Do not add general S
 
 ### 6B: Model boundary and bounded agent execution
 
+Decision 0053 adds instruction modules, not another agent framework. Bundle code-authored
+guidance for comparisons, monthly trends, required-scope clarification and transaction
+requests. Compose in stable order with core safety rules always present; do not load user
+skills, execute instruction files or let modules override validation/authorization.
+
 Develop with a fake selector first and validated warehouse reads. Use synthetic questions
 until the owner records application API/model access, billing and client data-handling
 confirmation. No real new-chat Anthropic calls before that check; fake success cannot
@@ -67,11 +74,23 @@ substitute for live-Claude acceptance.
       backend-only ANTHROPIC_API_KEY. Keep one provider interface, without OpenAI implementation/
       key requirements or automatic fallback. No old prompts or AWS SDK/Mumbai setting.
       Mock vendor is development/hermetic only; final proof uses real Claude Sonnet 5.5.
+- [ ] Apply stage 1's proven explicit cache breakpoint only to the stable instruction/tool
+      prefix with five-minute TTL. All dynamic context follows it; no user text, selections,
+      permission-scoped vocabulary, grants, history, handles or financial records in the prefix.
+      Keep tool serialization/instruction order stable; changed definitions naturally miss.
+      Cache miss, expiry or model minimum-size ineligibility uses normal model execution, not
+      stale answers or prompt padding. No automatic whole-conversation caching.
+- [ ] Extend existing provider payload-exclusion cases at the real outbound boundary to verify
+      cached-prefix isolation when users/grants/context change, and same validated behavior on
+      hits/misses/disabled caching. Stage 9 proves real cache counters; hermetic mocks do not.
+      Record only aggregate creation/read token counts and timing through existing telemetry,
+      with unavailable counters marked unavailable. No new prompt/result trace uploads.
 - [ ] Test this model's supported tool API: avoid forced tool choice and non-default sampling
       parameters; validate ordinary tool/structured selections on the server. Pin supported
       thinking/effort/token settings and bound retries/latency. Never stream raw thinking blocks
       as financial answers. Model unavailability is an explicit failure, not silent substitution.
-- [ ] Model sees user text, sanitized confirmed/pending selection and capped permitted vocabulary.
+- [ ] Model sees trusted static instructions/tool definitions plus user text, sanitized
+      confirmed/pending selection and capped permitted vocabulary.
       Result/tool message history with money/transactions stays out of provider calls, retries,
       tracing and logs. User-pasted figures are user content, not server-result permission.
 - [ ] Graph can call catalog/lookup while selecting; query and transaction results are internal.

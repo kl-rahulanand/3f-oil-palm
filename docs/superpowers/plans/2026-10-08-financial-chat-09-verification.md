@@ -121,6 +121,13 @@ Unmapped/missing buckets and chart/table deduplication. Do not assume source sel
 - [ ] Record selected scope, tool sequence, exact result equality and response detail readiness.
       Selector/prompt changes repeat existing successful phrasing probes before and after;
       hermetic recorded outputs cannot prove live behavior stayed stable.
+- [ ] Extend the same live provider-boundary proof for trusted instruction modules and explicit
+      static-only caching: compare cache-on/off selections and exact server results with the same
+      source scope, and record actual cache-write/read tokens and timing on repeat requests.
+      Verify user/grant/context changes remain outside the cached prefix and current authorization
+      still governs reads/delivery. Prove expiry/miss/short-prefix handling without prompt padding;
+      an ineligible prefix is an honest no-hit result, not an invented saving. Use sanitized
+      metadata only; vendor prerequisites still apply and no new framework is introduced.
 - [ ] Record total/model/query/preparation timing and bounded work on large selections. Avoid
       inventing a latency SLA absent a user decision; observed results inform scheduling.
 

@@ -23,6 +23,9 @@ Finance and management users, restricted to their currently permitted Plants.
 ## Behaviour
 
 - One new TypeScript LangGraph agent runs inside NestJS and uses four governed financial tools.
+- Trusted financial instruction modules guide comparisons, trends, clarification and
+  transaction requests. Explicit Claude prompt caching reuses static instructions/tool
+  definitions only; it does not cache financial answers or replace conversation memory.
 - Ask for clarification whenever required Plant, period, measure or named component is missing
   or ambiguous. Follow-ups reuse confirmed scope and apply only explicit changes.
 - Answer factual totals, Actual/Budget comparisons, monthly trends, month-to-month changes
@@ -167,8 +170,21 @@ caches. Another user's IDs confer no access. Cancellation cannot emit or commit 
 
 ### Model, errors, audit and coexistence
 
+Decision 0053 adds lightweight, code-authored skills inside the existing LangGraph
+design, not another agent framework. Core safety instructions always apply; skills
+cannot calculate money, broaden access or execute user-supplied instructions/code.
+Use an explicit five-minute Claude cache breakpoint at the end of the stable static
+instructions/tool definitions, before dynamic context. User text, current permitted
+vocabulary, selections, permissions and conversation history remain outside that
+prefix; server financial results remain outside model requests entirely. Current
+authorization and warehouse-read rules apply regardless of cache hits. Cache misses,
+expiry or an ineligible short prefix do not change answers; do not pad prompts to
+meet minimum size. Verify pinned SDK/model support and measure aggregate cache
+write/read usage without logging prompts or results. Memory remains process-local.
+
 Only user-authored text, sanitized confirmed/pending selections and permitted capped
-vocabulary enter model requests. Rendered prior answers, result rows, prepared pages,
+vocabulary enter the dynamic part of model requests, alongside trusted static instructions
+and tool definitions. Rendered prior answers, result rows, prepared pages,
 money, source batches and handles never enter model history, retries, traces or logs.
 Every financial answer and UI block comes from deterministic server templates and validated
 results, not model prose. A prose-only, malformed or unknown-tool model reply never becomes
@@ -327,7 +343,10 @@ source identity. No formula execution or overwrite of the original is automatic;
 zero/count rule stays unchanged. Run the real CLI with the supplied space/parenthesis-containing
 filename using correctly quoted path arguments in PowerShell, cmd and Git Bash.
 
-Acceptance evidence for 6: owner-confirmed vendor precondition; three fresh real-model runs
+Acceptance evidence for 6: trusted instruction modules and explicit static-only cache
+boundary; cached/uncached equivalent validated selections and exact server answers;
+aggregate cache counters with honest misses/expiry/short-prefix outcomes; no dynamic
+context cached and no new framework. Owner-confirmed vendor precondition; three fresh real-model runs
 per D1-D12 plus isolated follow-ups; outgoing marker exclusions after numeric answers and
 on retries/tracing; missing key/model access, timeout/rate-limit and cancel give fixed typed
 outcomes with no fallback; measured timing/usage. Live runs are gated outside CI, not passed
@@ -344,7 +363,7 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0052 and existing model/financial rules cited above.
+accepted decisions 0042-0053 and existing model/financial rules cited above.
 
 ## Roadmap
 
