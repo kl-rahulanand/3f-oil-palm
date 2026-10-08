@@ -2,34 +2,27 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-BASELINE",
   "review": {
     "blocking_level": "P1",
-    "changed": "d22e9835e3b61bee56da2d9459ba5603d4d4342bc3880cb7f1a080bb2041c62b",
-    "commit": "b9b3a7d6b2a4ab7bbb20bd7f09bf1725ebd418ed",
+    "changed": "6441591156466540e131ce30200d0d05907cb2b65d4072876b95b82607b28a29",
+    "commit": "f54e9f0e9fc4cb136763f6c24bfaa7e9b4a4771a",
     "dismissals": [],
     "findings": [
       {
-        "body": "The oracle collapses Actual data to columns, counts, and sums, and Budget data to counts and sums. It never returns independent expected source rows, so the generated test cannot verify the two Comments values, transaction/line identities, nullable Cost Center/GL identifiers, or row evidence it places in the workbook. A future importer could drop or swap those fields while still matching every oracle assertion. The required CI oracle needs hard-coded row-level expectations independent of the production parser.",
+        "body": "The new row-level expectations fix much of the prior gap, but the oracle still does not retain every populated Actual column. The generated fixture supplies values for `Month`, `MIS GL Name`, and `ContraAct`, while the `actual.rows` schema has no fields for them; the test asserts only that those headers exist. A later importer could blank or alter those cell values and still satisfy this oracle, so it does not provide the required independent all-column source expectations.",
         "file": "backend/src/financial-chat/financial-source-oracle.ts",
-        "line": 7,
+        "line": 9,
         "priority": "P1",
         "title": "Not done: unconditional generated-source oracle"
       },
       {
-        "body": "The old-Ask snapshot explicitly removes the entire `drill` field. Consequently, Ask can stop issuing transaction links or emit incorrect row-to-drill metadata without changing the saved baseline. The separate report check does not close this gap because it reconstructs triples itself and calls `DrillTransactionsRepository` directly, bypassing the report/Ask drill issuance boundary. Normalize only volatile tokens while preserving stable drill metadata and assert the issued drill path.",
-        "file": "backend/src/financial-chat/financial-report-baseline.test.ts",
-        "line": 760,
-        "priority": "P1",
-        "title": "Not done: gated real-source report/export/drill and in-process old-Ask HTTP parity"
-      },
-      {
-        "body": "This task is restricted to the baseline/oracle, disposable-DB guard, backend manifest, and proof tooling, but the branch also adds the listed decisions, full specification, and nine-stage implementation plans. The baseline implementation does not consume these files, and merging them here publishes thousands of lines owned by the wider story rather than this scoped part. Split those documentation additions into their owning planning change.",
-        "file": "docs/specs/langgraph-financial-chat.md",
+        "body": "The declared BASELINE scope excludes `plans/**` and `.factory/**`, but this branch adds the full story plan, cold-read record, approval metadata, and task review state. None is consumed by the baseline implementation or its tests, and they describe the wider multi-stage story rather than this task. The prior scope issue therefore remains in the new evidence even though the previously cited specification file is absent; split these four out-of-scope artifacts into their owning planning change.",
+        "file": "plans/FINANCIAL-AGENT-DEMO.md",
         "line": 1,
         "priority": "P1",
-        "title": "Keep unrelated financial-chat specifications out of the BASELINE change"
+        "title": "Keep unrelated story-planning artifacts out of the BASELINE change"
       }
     ],
     "status": "blocked",
-    "tree": "62636b5284f1da2533d587de4fa108c6328254777530c9fa29d61464ec81b1d1"
+    "tree": "f7690359289e12103206c43fca77b7b55e729a65441f2c3e530a0b50b823b894"
   },
   "status": "fixing",
   "steps": [
@@ -39,6 +32,10 @@
     },
     {
       "at": "2026-10-08T21:05:06+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-08T21:56:10+00:00",
       "step": "review"
     }
   ]
