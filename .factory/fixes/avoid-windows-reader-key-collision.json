@@ -1,0 +1,14 @@
+{
+  "base": "d14840e76678fc582d903812969d9d2385ca3a96",
+  "branch": "fix/avoid-windows-reader-key-collision",
+  "done_when": "The traceable Ask story uses a key that does not collide case-insensitively with its spec slug.",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-08T09:37:11+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "avoid Windows reader key collision"
+}
