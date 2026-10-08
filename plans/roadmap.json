@@ -321,6 +321,13 @@
       "spec": "docs/specs/ask-period-control.md",
       "status": "pending",
       "order": 16
+    },
+    {
+      "key": "ASK-TRACEABLE-ANSWERS",
+      "title": "Ask preserves complete questions and opens every live Actual transaction set",
+      "spec": "docs/specs/ask-traceable-answers.md",
+      "status": "pending",
+      "order": 17
     }
   ],
   "epics": [
