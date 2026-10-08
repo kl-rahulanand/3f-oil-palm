@@ -27,6 +27,10 @@ Stage 9's test-owned harness calls the real loader with explicit synthetic sourc
 and synthetic workbooks only on 127.0.0.1:5434. Its fixture completeness setup rejects any
 non-synthetic batch/other destination; normal loader/CLI has no completeness override.
 Persist source classification for query/UI's mandatory "Synthetic test data" label.
+Persist batch sourceReportingMonths as the sorted distinct valid Actual posting-month
+set, including unknown Plants; do not fill intermediate months or borrow Budget months.
+This is source presence, never business completeness. Queries distinguish an empty
+Plant in this set (partial zero) from an outside-set month (no subtotal/handle).
 
 parseFinancialWorkbook(buffer, declaredBudgetOwner): ParsedFinancialWorkbook returns normalized
 Actual lines, monthly Budget leaves, hierarchy, row evidence, coverage and structured validation.

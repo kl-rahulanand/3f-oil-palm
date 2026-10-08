@@ -1,12 +1,12 @@
 ---
 reader: claude (opus)
-read_at: 2026-10-08T18:08:44+00:00
-read_hash: cd617c67e049e596af6b40687709956047c29be2
-round: 4
+read_at: 2026-10-08T18:11:48+00:00
+read_hash: e4564f1e4dddf2d6724a56f1f5e16f290eaf2786
+round: 5
 passed: no
-doc_seen: cd617c67e049e596af6b40687709956047c29be2
+doc_seen: e4564f1e4dddf2d6724a56f1f5e16f290eaf2786
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 448910153be32283c6a35144bc57f58817192348
+notes_seen: bfd4585b13007a7d299926fce1865b6da92cdf79
 ---
 
 # Cold read notes
@@ -279,3 +279,18 @@ Trap: the global exception filter replaces messages: items 3 and 4.
     400 reasons, first-page empty validity and totalPages formula, and authorized prepared/
     state metadata for refresh/second-tab clients. Contracts and acceptance inherit them.
     A rejected page-size change has no typed `details.reason`. After a refresh, the client may not know the pinned size and would hit that refusal. The spec also doesn't say what page 0, a negative or non-integer page, a size above 100, or a page past the end returns. Trap: the global exception filter replaces messages: item 4. Unproven: item 4: a size change after a refresh or in a second tab; item 4: an out-of-range page.
+
+## Round 5
+
+46. The spec doesn't define which months the active generation's source covers, so a labelled zero and "unavailable" can't be told apart.
+    Disposition: keep: Immutable batch sourceReportingMonths is the distinct valid Actual
+    posting-month set, including unknown Plants, not a continuous span or completeness.
+    Covered empty Plant gives partial zero/empty page; outside-set months have no subtotal
+    or handle. Acceptance 2 includes empty Plant, out-of-set and noncontinuous months.
+    An empty matching set gets "an explicitly labelled zero available-row subtotal". D12's September, which has "no loaded generation coverage", gets no subtotal and no handle. Nothing defines what puts a Plant/month inside a generation's source coverage: the months that have any rows in the Actual sheet, a month range the loader declares, or the workbook's reporting period. Without that, a Plant with no April rows and a month after the file ends could each show either outcome. The spec should pin the rule and state where the loader records it. Unproven: item 2: a permitted Plant with no rows in a covered month, versus a month outside the source span.
+
+47. Criterion 2 says trends and their exact-value tables "agree", but real-data trends now differ by design.
+    Disposition: keep: Criterion 2 now compares complete-Actual/Budget series with their
+    corresponding table columns; available-data subtotals are explicitly table-only and
+    cannot fill gaps. Acceptance 2 pins the D4 partial table/gapped chart case.
+    On the real workbook, the chart keeps complete-Actual gaps while the table shows available-data monthly subtotals (D4). Read literally, a tester comparing chart points with table cells would fail that case. Criterion 2, or its acceptance evidence, should say that agreement means the complete-Actual and Budget series match the corresponding table cells. The available-data subtotal column is then shown only in the table, never as a chart point. Unproven: item 2: the D4 real-workbook chart has no point where the table shows an available-data subtotal.

@@ -110,6 +110,15 @@ and corresponding gaps/null comparisons. Numeric Actual/zero/drill cases use exp
 synthetic complete-coverage fixtures through the real application and warehouse, not
 invented customer confirmation. A complete-customer-Actual demo awaits a later confirmed
 coverage process; this limitation does not block implementation of the supported rules.
+Separately record sourceReportingMonths on the immutable ingestion batch as the sorted
+distinct posting months of every valid Actual source row, including unknown-Plant rows.
+It is a set, not an inferred continuous span or complete Plant/month coverage. A permitted
+Plant with no matching rows in one of these months has a zero available-row subtotal
+(explicitly partial) and an empty prepared page. A month outside this set has unavailable
+Actual with no subtotal/handle. A source-covered range can sum its available rows but
+never claim completeness; missing source months are explicitly listed and excluded from
+any labelled available-only subtotal, with no invented empty-month facts. Budget coverage
+does not establish Actual sourceReportingMonths.
 An incomplete Actual range does not get a complete-looking total; any available-only
 subtotal is labelled separately. For a reconciled source with unconfirmed coverage,
 always include the exact sum of present matching rows as "Available-data Actual subtotal —
@@ -351,7 +360,8 @@ two-leaf fixture; it never guesses a leaf from its GL alone.
 
 1. Authorized questions return exact totals and comparisons at supported dimensions without
    guessing required scope, fabricating financial values or allocating Budget.
-2. Monthly trends and their exact-value tables agree, preserve missing-data gaps, and calculate
+2. Complete-Actual and Budget chart series agree with their corresponding exact-value table
+   columns, preserve missing-data gaps, and calculate
    period/YTD totals and closing-month Roll-over correctly.
 3. Clarification and follow-ups work with isolated memory; revoked permissions take effect on
    the next query and pagination; a process restart loses context visibly.
@@ -379,6 +389,9 @@ Plant/month with no rows versus no coverage, and partial rows without confirmed 
 exact table/tooltips with chart gaps; amount and percentage deltas with prior positive,
 zero, negative and missing
 values; no average of ratios.
+Available-data Actual subtotals occupy a separately labelled table-only column, not a
+complete-Actual chart point. Prove an empty Plant in a source-covered month versus a
+month outside sourceReportingMonths, plus a noncontinuous source month set.
 
 Acceptance evidence for 3: all named follow-ups; explicit month wins over relative context;
 ambiguous component and transaction reference; another user's conversation; refresh/replay
