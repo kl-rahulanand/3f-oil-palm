@@ -31,9 +31,11 @@ client's SAP and Budget workbooks during the demo.
 - Prior turns are supplied to the selector only when the current question begins with `and`,
   `also`, `now`, `then`, `what about` or `how about`, or contains one of the referential terms
   `these`, `those`, `them`, `same plant`, `same period`, `that result` or `those results`. The
-  leading signals match whole words only; `above`, `previous` and other ordinary financial words
-  are never follow-up signals. These are the complete, deterministic follow-up signals; a question
-  with none is selected without prior turns and therefore starts a new selection.
+  leading and referential signals are case-insensitive whole tokens; multiword signals require the
+  complete phrase with only whitespace between its words. Substrings such as `theme` do not match
+  `them`. `above`, `previous` and other ordinary financial words are never follow-up signals. These
+  are the complete, deterministic follow-up signals; a question with none is selected without
+  prior turns and therefore starts a new selection.
 - A referential follow-up starts from the most recent successful prior selection only. It may
   inherit only a slot the current question does not state. An explicit plant replaces the plant
   filter; an explicit period replaces the time window; `now by X` replaces the dimensions while
@@ -60,8 +62,9 @@ client's SAP and Budget workbooks during the demo.
 - For each checked fact, the current question is authoritative over a conflicting selector result:
   the server replaces an April-only window with both stated endpoints, replaces the selected plant
   with the explicitly named governed plant, replaces the displayed measures with the explicitly
-  requested Actual/Budget set, adds or removes the month dimension to match explicit grouping, and
-  adds, replaces or clears the comparison according to the current words. It then runs ordinary
+  requested Actual/Budget set, replaces dimensions with exactly `[month]` for a bare `by month`,
+  and adds, replaces or clears the comparison according to the current words. Other grouping
+  wording stays with the governed selector. The server then runs ordinary
   catalog and grant validation on the reconciled selection. This correction is deterministic and
   does not call the selector again; if the words cannot produce one governed value, the typed
   clarification rules apply and nothing executes.
@@ -84,6 +87,9 @@ client's SAP and Budget workbooks during the demo.
     typed `periodChoice` says "Choose one month for this statement." It carries the reconciled base
     selection, the original question and only offered complete windows, and choosing one posts that
     selection with zero selector calls exactly as `ask-period-control.md` requires.
+  When more than one issue applies, exactly one is returned using this precedence:
+  `period-multiple`, `period-incomplete`, `period-malformed`, `period-reversed`, then
+  `period-domain-unsupported`.
   Each is a `ClarificationNeeded` response carrying `interpretationIssue.reason`; it carries no
   result, SQL, provenance or drill metadata. The turn-entry audit still occurs.
 - A measure comparison is kept or added only when the current question explicitly asks for one
@@ -224,10 +230,12 @@ Each footer equals its displayed Actual in exact paise. Budget remains inert.
    Standalone questions using `above Budget` or `previous financial year` also receive no prior
    turns; each explicit comparison or period is interpreted from its own words. April-only,
    wrong-plant, wrong-measure, wrong-grouping and stale-comparison selector fixtures are corrected
-   from the explicit current words before catalog validation and execution.
+   from the explicit current words before catalog validation and execution; the wrong-grouping
+   fixture includes stale `gl_code` being removed from a bare `by month` request.
 2. Compact, spaced, shared-year and cross-year ranges preserve both endpoints; malformed, reversed
    and domain-incompatible ranges never execute as a silently changed period. A shared-year range
    across December is reversed, while the same endpoints with both years stated is cross-year.
+   Compound-invalid inputs return the single issue selected by the stated precedence.
 3. Explicit over/under-budget questions keep the correct comparison, while side-by-side Actual and
    Budget questions never gain one. Referential follow-ups inherit only omitted slots. An explicit
    fixed comparison amount replaces an inherited amount exactly, and a malformed amount is
@@ -263,8 +271,10 @@ Each footer equals its displayed Actual in exact paise. Budget remains inert.
     offsetting-zero Actuals; row, KPI and total values at both sides of the signed-money boundary;
     a 65,537-character request refused and audited before decode; stored and chart inertness; every
     typed drill refusal; first-turn and post-refusal missing follow-up context with zero selector
-    calls; ungrouped, Western-grouped, Indian-grouped and lakh/crore amounts; malformed grouping,
-    excess decimal places; saved/pinned rerun; and audit-before-read.
+    calls; whole-token follow-up signals and a `theme` non-match; ungrouped, Western-grouped,
+    Indian-grouped and lakh/crore amounts; malformed grouping,
+    excess decimal places; compound period failures at each precedence boundary; saved/pinned
+    rerun; and audit-before-read.
 11. Hermetic selection tests, drill contract/service tests, frontend interaction tests, typecheck,
     structural build and quality checks pass. Gated warehouse proofs run only against the throwaway
     test database.

@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-08T08:32:19+00:00
-read_hash: 9a10daad1b4ee3e76be42e6d7b91b335a53c8487
-round: 11
+read_at: 2026-10-08T08:44:04+00:00
+read_hash: b026c9c14b05b4f564bd978086f370a7bcca00b7
+round: 15
 passed: yes
-doc_seen: 9a10daad1b4ee3e76be42e6d7b91b335a53c8487
+doc_seen: b026c9c14b05b4f564bd978086f370a7bcca00b7
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: cafdc1f2a1e4ca40029d2c168c3a85744afd2729
+notes_seen: e43714b6ae13525e1b29deae209c5f98dd028021
 ---
 # Cold read notes
 
@@ -144,5 +144,31 @@ No findings.
 No findings.
 
 ## Round 11
+
+No findings.
+
+## Round 12
+
+26. Disputed keep 21: month-grouping reconciliation still permits extra selector dimensions.
+   “Adds or removes the month dimension” can turn a stale `[gl_code]` result into `[gl_code, month]`, not the required five monthly rows. Pin replacement with exactly `[month]` for a complete bare “by month” request, preserve selector handling for explicitly multi-dimension wording, and prove a stale extra `gl_code` is removed.
+   Disposition: keep A bare `by month` now replaces dimensions with exactly month; explicit governed multi-dimension wording replaces them with exactly the named set, and the stale-GL proof is named.
+
+27. Gap: referential follow-up terms lack whole-word or phrase-boundary rules.
+   Only leading cues are explicitly whole-word matched. Define equivalent boundaries for `these`, `those`, `them`, and the multiword cues, and prove a complete question containing a substring such as “theme” does not receive prior context.
+   Disposition: keep Every follow-up signal now uses case-insensitive whole-token matching, multiword signals require the complete whitespace-separated phrase, and a `theme` non-match proof is named.
+
+## Round 13
+
+28. Simpler: explicit multi-dimension reconciliation → reconcile only bare `by month`; leave other grouping wording to the governed selector.
+   “Such as” creates an unbounded second language parser without a pinned grammar or proofs. The target question and success measure need only bare `by month`; if multi-dimension correction remains, define every accepted spelling, conjunction, ordering and duplicate rule, with fixtures for each.
+   Disposition: keep Removed multi-dimension parsing; only the target's bare `by month` is reconciled, while other grouping wording remains with the governed selector.
+
+## Round 14
+
+29. Gap: compound period failures have no precedence rule.
+   A question containing an incomplete range plus another range can satisfy both `period-incomplete` and `period-multiple`; a malformed endpoint plus two ranges can likewise satisfy two reasons. Define the deterministic precedence and add a proof, so every such input produces one stable clarification.
+   Disposition: keep The five period issues now have one explicit precedence order, and compound-invalid proofs cover each boundary.
+
+## Round 15
 
 No findings.
