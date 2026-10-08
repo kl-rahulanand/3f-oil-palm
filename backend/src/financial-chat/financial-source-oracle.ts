@@ -87,9 +87,15 @@ function inspectActual(header: HeaderLocation): FinancialSourceOracle["actual"] 
     if (rowNumber <= header.row || isEmpty(row, header.columns)) return;
     const postingDate = dateText(cell(row, header, "Posting Date"));
     if (!postingDate) throw new Error(`Actual source row ${rowNumber} has an invalid Posting Date`);
-    const rowDebit = money(cell(row, header, "Debit"), `Actual row ${rowNumber} Debit`);
-    const rowCredit = money(cell(row, header, "Credit"), `Actual row ${rowNumber} Credit`);
-    const plant = cellText(cell(row, header, "Plant")) || null;
+    const debitLabel = `Actual row ${rowNumber} Debit`;
+    const creditLabel = `Actual row ${rowNumber} Credit`;
+    const debitText = financialText(cell(row, header, "Debit"), debitLabel);
+    const creditText = financialText(cell(row, header, "Credit"), creditLabel);
+    if (!debitText && !creditText) throw new Error(`Actual row ${rowNumber} Debit and Credit are missing`);
+    const rowDebit = money(debitText || "0", debitLabel);
+    const rowCredit = money(creditText || "0", creditLabel);
+    const plantSource = cellText(cell(row, header, "Plant"));
+    const plant = plantSource ? canonicalPlant(plantSource) : null;
     const reportingMonth = `${postingDate.slice(0, 7)}-01`;
     const key = `${plant ?? ""}\u0000${reportingMonth}`;
     const group = byPlantMonth.get(key) ?? { plant, reportingMonth, rowCount: 0, actual: 0n };
@@ -140,10 +146,16 @@ function inspectActual(header: HeaderLocation): FinancialSourceOracle["actual"] 
 
 function legacyCompatible(row: Row, header: HeaderLocation): boolean {
   return (
-    ["Transaction Number", "Posting Date", "Plant", "Cost Center", "MIS GL Code", "AcctName"].every((name) =>
+    ["Transaction Number", "Posting Date", "Plant", "Cost Center", "MIS GL Code"].every((name) =>
       cellText(cell(row, header, name)),
-    ) && Boolean(optionalCellText(row, header, "Line_Id") || optionalCellText(row, header, "#"))
+    ) &&
+    Boolean(optionalCellText(row, header, "AcctName") || optionalCellText(row, header, "MIS GL Name")) &&
+    Boolean(optionalCellText(row, header, "Line_Id") || optionalCellText(row, header, "#"))
   );
+}
+
+function canonicalPlant(plant: string): string {
+  return plant === "DUB-NUR" ? "DUB" : plant;
 }
 
 function inspectBudget(header: HeaderLocation): FinancialSourceOracle["budget"] {
@@ -160,20 +172,25 @@ function inspectBudget(header: HeaderLocation): FinancialSourceOracle["budget"] 
     periods.map(({ reportingMonth }) => [reportingMonth, { leafCount: 0, budget: 0n, rollover: 0n }]),
   );
   let rowCount = 0;
-  header.worksheet.eachRow((row, rowNumber) => {
-    if (rowNumber <= header.row + 1 || isEmpty(row, header.columns)) return;
-    if (!cellText(cell(row, header, "Budget Components"))) return;
+  for (let rowNumber = header.row + 2; rowNumber <= header.worksheet.rowCount; rowNumber += 1) {
+    const row = header.worksheet.getRow(rowNumber);
+    if (startsNewBudgetTable(row)) break;
+    if (isEmpty(row, header.columns)) continue;
+    if (!cellText(cell(row, header, "Budget Components")) || !cellText(cell(row, header, "GL Codes"))) continue;
+    if (periods.some(({ budgetColumn }) => /\$?[A-Z]{1,3}\$?\d+/i.test(row.getCell(budgetColumn).formula))) continue;
     rowCount += 1;
     for (const period of periods) {
-      const budgetText = cellText(row.getCell(period.budgetColumn));
-      const rolloverText = cellText(row.getCell(period.rolloverColumn));
-      if (!budgetText && !rolloverText) continue;
+      const budgetLabel = `Budget row ${rowNumber}`;
+      const rolloverLabel = `Roll-over row ${rowNumber}`;
+      const budgetText = financialText(row.getCell(period.budgetColumn), budgetLabel);
+      const rolloverText = financialText(row.getCell(period.rolloverColumn), rolloverLabel);
       const total = totals.get(period.reportingMonth)!;
       total.leafCount += 1;
-      total.budget += money(row.getCell(period.budgetColumn), `Budget row ${rowNumber}`);
-      total.rollover += money(row.getCell(period.rolloverColumn), `Roll-over row ${rowNumber}`);
+      if (!budgetText && !rolloverText) continue;
+      total.budget += money(budgetText || "0", budgetLabel);
+      total.rollover += money(rolloverText || "0", rolloverLabel);
     }
-  });
+  }
   return {
     rowCount,
     periods: periods.map(({ reportingMonth }) => {
@@ -186,6 +203,11 @@ function inspectBudget(header: HeaderLocation): FinancialSourceOracle["budget"] 
       };
     }),
   };
+}
+
+function startsNewBudgetTable(row: Row): boolean {
+  const first = cellText(row.getCell(1));
+  return /^Table-\d+/i.test(first) || /^Table-\d+/i.test(cellText(row.getCell(2))) || first === "S. No.";
 }
 
 function cell(row: Row, header: HeaderLocation, name: string): Cell {
@@ -205,7 +227,7 @@ function isEmpty(row: Row, columns: HeaderLocation["columns"]): boolean {
 
 function cellText(cell: Cell): string {
   const value = formulaValue(cell.value);
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? "" : value.toISOString().slice(0, 10);
   if (typeof value === "object" && value !== null && "richText" in value) {
     return value.richText
       .map(({ text }) => text)
@@ -216,7 +238,9 @@ function cellText(cell: Cell): string {
 }
 
 function formulaValue(value: CellValue): CellValue {
-  return typeof value === "object" && value !== null && "formula" in value ? (value.result ?? null) : value;
+  return typeof value === "object" && value !== null && ("formula" in value || "sharedFormula" in value)
+    ? (value.result ?? null)
+    : value;
 }
 
 function dateText(cell: Cell): string | undefined {
@@ -240,8 +264,14 @@ function monthText(cell: Cell): string | undefined {
   return `${year}-${String(month).padStart(2, "0")}-01`;
 }
 
-function money(cell: Cell, label: string): bigint {
-  const text = cellText(cell).replaceAll(",", "") || "0";
+function financialText(cell: Cell, label: string): string {
+  const value = formulaValue(cell.value);
+  if (value instanceof Date && Number.isNaN(value.getTime())) throw new Error(`${label} is invalid`);
+  return cellText(cell);
+}
+
+function money(raw: string, label: string): bigint {
+  const text = raw.replaceAll(",", "");
   const match = text.match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
   if (!match) throw new Error(`${label} is not a decimal amount`);
   const fraction = match[3] ?? "";
