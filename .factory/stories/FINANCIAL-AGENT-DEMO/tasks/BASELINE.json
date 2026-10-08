@@ -2,33 +2,27 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-BASELINE",
   "review": {
     "blocking_level": "P1",
-    "changed": "6441591156466540e131ce30200d0d05907cb2b65d4072876b95b82607b28a29",
-    "commit": "f54e9f0e9fc4cb136763f6c24bfaa7e9b4a4771a",
-    "dismissals": [
-      {
-        "because": "AGENTS.md:110 The project explicitly requires copying the story plan, its .read.md and story.json onto the task branch or forge-pr-check fails. BASELINE.json is Forge-generated task review state, not product code. Installed Forge review.py:32,198-199 declares .factory/ and plans/ BOOKKEEPING and excludes them from task scope checks. Removing required workflow records would violate the repository workflow; the actual unrelated stage planning edits were removed in f54e9f0e. Source-oracle finding 1 remains valid.",
-        "finding": 2,
-        "from_base": false
-      }
-    ],
+    "changed": "298149467f27c229176aad61622834caf3355ebf036bd965204bbf6288898f80",
+    "commit": "8484e1fb3c20b1ad541b0e8d15459483fdaeec21",
+    "dismissals": [],
     "findings": [
       {
-        "body": "The new row-level expectations fix much of the prior gap, but the oracle still does not retain every populated Actual column. The generated fixture supplies values for `Month`, `MIS GL Name`, and `ContraAct`, while the `actual.rows` schema has no fields for them; the test asserts only that those headers exist. A later importer could blank or alter those cell values and still satisfy this oracle, so it does not provide the required independent all-column source expectations.",
-        "file": "backend/src/financial-chat/financial-source-oracle.ts",
-        "line": 9,
+        "body": "The guard validates only the flag, host, and port; it accepts any database name. Consequently, `WAREHOUSE_PG_DATABASE=live_warehouse` and `PGDATABASE=live_app` pass when exposed on the expected loopback ports, after which the baseline code can truncate every public table. The manual-bypass test uses live-looking names only together with invalid ports, so it never detects this gap. Validate explicit disposable database identities (or a reliable server-side disposable marker) and test changing each database name alone before any write.",
+        "file": "backend/src/financial-chat/financial-disposable-db.guard.ts",
+        "line": 36,
         "priority": "P1",
-        "title": "Not done: unconditional generated-source oracle"
+        "title": "Not done: destructive proof rejects real database identities"
       },
       {
-        "body": "The declared BASELINE scope excludes `plans/**` and `.factory/**`, but this branch adds the full story plan, cold-read record, approval metadata, and task review state. None is consumed by the baseline implementation or its tests, and they describe the wider multi-stage story rather than this task. The prior scope issue therefore remains in the new evidence even though the previously cited specification file is absent; split these four out-of-scope artifacts into their owning planning change.",
-        "file": "plans/FINANCIAL-AGENT-DEMO.md",
-        "line": 1,
+        "body": "Although `sourceCells` closes the prior Actual-column gap, the Budget oracle still classifies every populated row above outline level zero as a leaf. A normal nested outline with a level-1 subtotal parent and level-2 children therefore includes the parent as a financial leaf, causing fan-out, and the returned oracle contains no parent hierarchy with which later imports can be reconciled. The generated fixture only has a level-0 parent and level-1 leaves, so it cannot catch this. Add nested hierarchy/repeated-GL coverage and preserve/assert the independent Budget hierarchy rather than discarding every parent.",
+        "file": "backend/src/financial-chat/financial-source-oracle.ts",
+        "line": 222,
         "priority": "P1",
-        "title": "Keep unrelated story-planning artifacts out of the BASELINE change"
+        "title": "Not done: unconditional generated-source oracle"
       }
     ],
     "status": "blocked",
-    "tree": "f7690359289e12103206c43fca77b7b55e729a65441f2c3e530a0b50b823b894"
+    "tree": "d2bae38e9eb288f64e4d29866cb1ea84a6fc8e02d656b2b8e30279cdf8b28746"
   },
   "status": "fixing",
   "steps": [
@@ -42,6 +36,10 @@
     },
     {
       "at": "2026-10-08T21:56:10+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-08T22:33:24+00:00",
       "step": "review"
     }
   ]
