@@ -1,5 +1,9 @@
 # New Financial Chat Implementation Plan
 
+> Expanded on 2026-10-08 into the [master coverage checklist](2026-10-08-financial-chat-master.md)
+> and nine linked stage plans. Use that bundle for implementation detail; this document retains
+> the original overview. Accepted decisions and the spec remain authoritative.
+
 > **For agentic workers:** Use the repository's Forge story/task workflow for execution.
 > Read this plan, its spec and the accepted decisions before editing code. This is a draft
 > for owner review; it does not approve implementation or alter an already approved story.
