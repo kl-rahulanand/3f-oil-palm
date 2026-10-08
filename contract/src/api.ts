@@ -75,9 +75,9 @@ export type WarehouseFreshnessResponse = WarehouseLoadFreshness;
 
 /** POST /api/ingest/actuals */
 export interface IngestActualsResponse {
-  batchId: string;
-  period: string;
-  rowCount: number;
+  periods: Array<{ period: string; batchId: string; rowCount: number }>;
+  totalRowCount: number;
+  skippedRowCount: number;
 }
 
 /** POST /api/ingest/budget */
@@ -390,7 +390,6 @@ interface MisStatementMeasureBlockBase {
   label: string;
   from: string;
   to: string;
-  rollover: null;
   actual: FixedScaleMoney;
   sourcePresence: SourcePresence[];
 }
@@ -398,12 +397,14 @@ interface MisStatementMeasureBlockBase {
 export interface MisStatementLoadedMeasureBlock extends MisStatementMeasureBlockBase {
   budgetState: "loaded";
   budget: FixedScaleMoney;
+  rollover: FixedScaleMoney;
   percentage: string | null;
 }
 
 export interface MisStatementNotLoadedMeasureBlock extends MisStatementMeasureBlockBase {
   budgetState: "not-loaded";
   budget: null;
+  rollover: null;
   percentage: null;
 }
 

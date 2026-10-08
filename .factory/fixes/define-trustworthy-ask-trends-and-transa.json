@@ -1,0 +1,31 @@
+{
+  "base": "d14840e76678fc582d903812969d9d2385ca3a96",
+  "branch": "fix/define-trustworthy-ask-trends-and-transa",
+  "done_when": "The combined capability is specified and ready for a story plan",
+  "kind": "fix",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "778086f310b2b809d09a68fe3886ab8bb232296ada39e9e28498d853309f2403",
+    "commit": "149b028bf86d1297cc20111a68370dd48af06b07",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "183c4c37e2dee6d157ad79ce2e7873e32e40e4bff5ff12d06af1adcff45d558f"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-08T08:01:44+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-08T08:55:42+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-08T09:04:14+00:00",
+      "step": "review"
+    }
+  ],
+  "why": "Define trustworthy Ask trends and transaction verification"
+}

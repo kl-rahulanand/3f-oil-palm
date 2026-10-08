@@ -296,7 +296,9 @@ function MeasureCells({
       <td role="gridcell" data-numeric="true">
         {formatMoney(measure.budget)}
       </td>
-      <td role="gridcell" data-numeric="true" aria-label="Roll-over unavailable" />
+      <td role="gridcell" data-numeric="true">
+        {formatMoney(measure.rollover)}
+      </td>
       {actual}
       <td role="gridcell" className="mis-statement-block-end" data-numeric="true">
         {formatPercentage(measure.percentage)}

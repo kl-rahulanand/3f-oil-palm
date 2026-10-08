@@ -593,7 +593,7 @@ function measure(
     to: "2026-07-01",
     budgetState: "loaded",
     budget,
-    rollover: null,
+    rollover: "0.00" as const,
     actual,
     percentage: budget === "0.00" ? (actual === "0.00" ? null : "over-budget") : "0.5",
     sourcePresence: ["matched"],

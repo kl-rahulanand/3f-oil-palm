@@ -50,6 +50,10 @@ row that is being stored still **fails the ingest**: that is a real figure, and 
 it would invent a number. After parent subtotals are skipped this is expected to be
 unreachable for this workbook — every uncomputed Budget cell sits on a parent `SUM` row.
 
+Decision 0041 later exposes computed stored Roll-over values in the MIS statement and export.
+This record's zero-and-count handling remains the rule only for cells whose cached formula result
+is absent; it does not turn a computed value into zero.
+
 > **Amended 2026-09-11 (implementation).** This record originally said a parent is a row
 > whose Budget cell is an *uncomputed* `SUM()`. That was drawn from an incomplete reading and
 > is **too narrow**: the budget table has **17** `SUM()` parent rows, and **10 of them carry a

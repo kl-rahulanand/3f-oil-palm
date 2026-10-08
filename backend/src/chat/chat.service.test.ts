@@ -138,6 +138,469 @@ test("a plant choice keeps the server-resolved period when the selector omits it
   });
 });
 
+test("a no-period Actual-versus-Budget question chooses plants then a period before any figure read", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    timeWindow: undefined,
+  };
+  const fixture = makeFixture({
+    selection,
+    activeActualMonthsByPlants: {
+      "CHIR,DUB": ["2026-07-01", "2026-06-01"],
+    },
+  });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+  const question = "Show Actual and Budget by GL code";
+
+  const plantChoice = await fixture.service.ask(user, "session", question);
+
+  assert.equal(plantChoice.responseClass, ResponseClass.ClarificationNeeded);
+  assert.equal(plantChoice.plantChoice?.prompt, "Which plants should this answer cover?");
+  assert.equal(plantChoice.periodChoice, undefined);
+  assert.deepEqual(fixture.transactions.actualMonthCalls, []);
+  assert.equal(fixture.executor.calls, 0);
+  assert.equal(fixture.executor.freshnessCalls, 0);
+  assert.equal(fixture.transactions.calls.length, 0);
+  assert.equal(fixture.transactions.activePinCalls.length, 0);
+  assert.equal(fixture.names.glCalls.length, 0);
+
+  const selectedPlants = {
+    ...plantChoice.plantChoice!.selection,
+    filters: [
+      ...plantChoice.plantChoice!.selection.filters,
+      { dimensionId: "plant", op: "in" as const, value: ["CHIR", "DUB"] },
+    ],
+  };
+  const periodChoice = await fixture.service.ask(
+    user,
+    "session",
+    question,
+    selectedPlants,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "plant-choice",
+  );
+
+  assert.equal(periodChoice.responseClass, ResponseClass.ClarificationNeeded);
+  const { timeWindow: _timeWindow, ...baseSelectedPlants } = selectedPlants;
+  assert.deepEqual(periodChoice.periodChoice, {
+    prompt: "Which period should this comparison cover?",
+    question,
+    selection: baseSelectedPlants,
+    options: [
+      {
+        value: "2026-07-01",
+        label: "July 2026",
+        timeWindow: { grain: "month", column: "month", from: "2026-07-01", to: "2026-07-31" },
+      },
+      {
+        value: "2026-06-01",
+        label: "June 2026",
+        timeWindow: { grain: "month", column: "month", from: "2026-06-01", to: "2026-06-30" },
+      },
+      {
+        value: "2026-04-01:2026-07-31",
+        label: "Financial year to date (April – July 2026)",
+        timeWindow: { grain: "month", column: "month", from: "2026-04-01", to: "2026-07-31" },
+      },
+    ],
+  });
+  assert.deepEqual(fixture.transactions.actualMonthCalls, [["CHIR", "DUB"]]);
+  assert.equal(fixture.executor.calls, 0);
+  assert.equal(fixture.executor.freshnessCalls, 0);
+  assert.equal(fixture.transactions.calls.length, 0);
+  assert.equal(fixture.transactions.activePinCalls.length, 0);
+  assert.equal(fixture.names.glCalls.length, 0);
+
+  const chosen = periodChoice.periodChoice!.options[0]!;
+  const answer = await fixture.service.ask(
+    user,
+    "session",
+    question,
+    { ...periodChoice.periodChoice!.selection, timeWindow: chosen.timeWindow },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    "period-choice",
+  );
+
+  assert.equal(answer.responseClass, ResponseClass.Success, JSON.stringify(answer));
+  assert.equal(fixture.llm.inputs.length, 1, "neither typed choice returns to the selector");
+  assert.deepEqual(answer.periodControl, {
+    current: "2026-07-01",
+    options: periodChoice.periodChoice!.options,
+  });
+  assert.equal(fixture.executor.calls, 1);
+});
+
+test("an over-budget period choice keeps only windows with budget for a chosen budget-owner plant", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+    timeWindow: undefined,
+  };
+  const fixture = makeFixture({
+    selection,
+    activeActualMonthsByPlants: {
+      "CHIR,DUB": ["2026-08-01", "2026-07-01"],
+      DUB: ["2026-08-01", "2026-07-01"],
+    },
+    loadedBudgetMonths: ["2026-04-01", "2026-05-01", "2026-06-01", "2026-07-01"],
+  });
+  const user = userForPlants("governed-financial", ["DUB", "CHIR"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Which GL codes had Actual over Budget for DUB and CHIR?",
+  );
+
+  assert.equal(response.responseClass, ResponseClass.ClarificationNeeded);
+  assert.deepEqual(
+    response.periodChoice?.options.map(({ value }) => value),
+    ["2026-07-01"],
+  );
+  assert.deepEqual(fixture.transactions.actualMonthCalls, [["CHIR", "DUB"], ["DUB"]]);
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2026-04-01", to: "2026-08-01" }]);
+  assert.equal(fixture.executor.calls, 0);
+});
+
+test("percentage alone still offers every Actual month when no Budget batch is loaded", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.percentage"],
+    timeWindow: undefined,
+  };
+  const fixture = makeFixture({
+    selection,
+    activeActualMonthsByPlants: { DUB: ["2026-07-01"] },
+    loadedBudgetMonths: [],
+  });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.percentage");
+
+  const response = await fixture.service.ask(user, "session", "Show Actual as a percentage of Budget");
+
+  assert.equal(response.responseClass, ResponseClass.ClarificationNeeded);
+  assert.deepEqual(
+    response.periodChoice?.options.map(({ value }) => value),
+    ["2026-07-01", "2026-04-01:2026-07-31"],
+  );
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, []);
+  assert.equal(fixture.executor.calls, 0);
+});
+
+test("side-by-side and percentage period continuations show unavailable Budget cells after the choice", async () => {
+  const cases: Array<{
+    name: string;
+    question: string;
+    selection: Selection;
+    result: ResultTable;
+    expectedRow: ResultTable["rows"][number];
+  }> = [
+    {
+      name: "side by side",
+      question: "Show Actual and Budget by GL code",
+      selection: {
+        ...financialSelection,
+        measureIds: ["governed-financial.actual", "governed-financial.budget"],
+        timeWindow: undefined,
+      },
+      result: {
+        columns: [
+          { key: "gl_code", label: "GL code", numeric: false },
+          { key: "actual", label: "Actual", numeric: true, format: "money" },
+          { key: "budget", label: "Budget", numeric: true, format: "money" },
+        ],
+        rows: [{ gl_code: "5001", actual: "12.00", budget: "10.00" }],
+      },
+      expectedRow: { gl_code: "5001", actual: "12.00", budget: null },
+    },
+    {
+      name: "percentage",
+      question: "Show Actual as a percentage of Budget by GL code",
+      selection: {
+        ...financialSelection,
+        measureIds: ["governed-financial.percentage"],
+        timeWindow: undefined,
+      },
+      result: {
+        columns: [
+          { key: "gl_code", label: "GL code", numeric: false },
+          { key: "percentage", label: "%", numeric: true, format: "percent" },
+        ],
+        rows: [{ gl_code: "5001", percentage: "1.2" }],
+      },
+      expectedRow: { gl_code: "5001", percentage: null },
+    },
+  ];
+
+  for (const entry of cases) {
+    const fixture = makeFixture({
+      selection: entry.selection,
+      result: entry.result,
+      activeActualMonthsByPlants: { DUB: ["2026-07-01"] },
+      loadedBudgetMonths: [],
+    });
+    const user = userForPlants("governed-financial", ["DUB"]);
+    user.permissions.measureIds.push("governed-financial.budget", "governed-financial.percentage");
+
+    const choice = await fixture.service.ask(user, `session-${entry.name}`, entry.question);
+    assert.equal(choice.responseClass, ResponseClass.ClarificationNeeded, entry.name);
+
+    const answer = await fixture.service.ask(
+      user,
+      `session-${entry.name}`,
+      choice.periodChoice!.question,
+      { ...choice.periodChoice!.selection, timeWindow: choice.periodChoice!.options[0]!.timeWindow },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "period-choice",
+    );
+
+    assert.equal(answer.responseClass, ResponseClass.Success, entry.name);
+    assert.deepEqual(answer.result?.rows[0], entry.expectedRow, entry.name);
+    assert.deepEqual(answer.budgetStates, [
+      { key: "5001", state: "not-loaded", plantsInRow: ["DUB"], plantsWithBudget: [] },
+    ]);
+    assert.equal(fixture.llm.inputs.length, 1, `${entry.name}: the continuation must not call the selector`);
+    assert.equal(fixture.executor.calls, 1, entry.name);
+  }
+});
+
+test("comparison-period outcomes explain no actuals and no comparable budget before any figure read", async () => {
+  const selection: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+    timeWindow: undefined,
+  };
+
+  const noActuals = makeFixture({ selection, activeActualMonthsByPlants: { DUB: [] } });
+  const dubUser = userForPlants("governed-financial", ["DUB"]);
+  dubUser.permissions.measureIds.push("governed-financial.budget");
+  const noActualsResponse = await noActuals.service.ask(dubUser, "session", "Which lines are over Budget?");
+
+  assert.equal(noActualsResponse.responseClass, ResponseClass.NotSupported);
+  assert.equal(
+    noActualsResponse.message,
+    "No actuals are loaded for the chosen plants, so there is nothing to compare against Budget.",
+  );
+  assert.equal(noActualsResponse.periodChoice, undefined);
+  assert.equal(noActuals.executor.calls, 0);
+
+  const noBudget = makeFixture({ selection, activeActualMonthsByPlants: { CHIR: ["2026-07-01"] } });
+  const chirUser = userForPlants("governed-financial", ["CHIR"]);
+  chirUser.permissions.measureIds.push("governed-financial.budget");
+  const noBudgetResponse = await noBudget.service.ask(chirUser, "session", "Which lines are over Budget?");
+
+  assert.equal(noBudgetResponse.responseClass, ResponseClass.Informational);
+  assert.equal(noBudgetResponse.message, "Budget is not loaded for any chosen plant, so nothing was compared.");
+  assert.deepEqual(noBudgetResponse.leftOut, {
+    reason: "budget-not-loaded",
+    plants: ["Agriculture - Nursery - CHIR"],
+  });
+  assert.deepEqual(noBudgetResponse.viewInReport, {
+    available: false,
+    reason: "Budget is not loaded for any chosen plant.",
+  });
+  assert.equal(noBudgetResponse.periodChoice, undefined);
+  assert.equal(noBudget.executor.calls, 0);
+});
+
+test("named-period single-measure amount-filter and edited comparison selections still answer directly", async () => {
+  const actual = "governed-financial.actual";
+  const budget = "governed-financial.budget";
+  const cases: Array<{
+    name: string;
+    question: string;
+    selection: Selection;
+    edited?: boolean;
+    origin?: "saved-view" | "pin";
+  }> = [
+    {
+      name: "named comparison period",
+      question: "Which GL codes had Actual over Budget in July 2026?",
+      selection: {
+        ...financialSelection,
+        measureIds: [actual, budget],
+        measureFilters: [{ measureId: actual, op: "gt", compareTo: { kind: "measure", measureId: budget } }],
+      },
+    },
+    {
+      name: "Actual alone",
+      question: "Show Actual by GL code",
+      selection: { ...financialSelection, timeWindow: undefined },
+    },
+    {
+      name: "Budget alone",
+      question: "Show Budget by GL code",
+      selection: { ...financialSelection, measureIds: [budget], timeWindow: undefined },
+    },
+    {
+      name: "Actual fixed amount",
+      question: "Show Actual more than 5 lakh",
+      selection: {
+        ...financialSelection,
+        measureFilters: [{ measureId: actual, op: "gt", compareTo: { kind: "value", value: "500000" } }],
+        timeWindow: undefined,
+      },
+    },
+    {
+      name: "Budget fixed amount",
+      question: "Show Budget more than 5 lakh",
+      selection: {
+        ...financialSelection,
+        measureIds: [budget],
+        measureFilters: [{ measureId: budget, op: "gt", compareTo: { kind: "value", value: "500000" } }],
+        timeWindow: undefined,
+      },
+    },
+    {
+      name: "saved no-period comparison",
+      question: "Run the saved comparison",
+      selection: { ...financialSelection, measureIds: [actual, budget], timeWindow: undefined },
+      edited: true,
+      origin: "saved-view",
+    },
+    {
+      name: "pinned no-period comparison",
+      question: "Run the pinned comparison",
+      selection: { ...financialSelection, measureIds: [actual, budget], timeWindow: undefined },
+      edited: true,
+      origin: "pin",
+    },
+  ];
+
+  for (const entry of cases) {
+    const fixture = makeFixture({
+      selection: entry.selection,
+      activeActualPins: [{ source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID }],
+    });
+    const user = userForPlants("governed-financial", ["DUB"]);
+    user.permissions.measureIds.push(budget);
+    const response = await fixture.service.ask(
+      user,
+      `session-${entry.name}`,
+      entry.question,
+      entry.edited ? entry.selection : undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      entry.origin,
+    );
+
+    assert.equal(response.responseClass, ResponseClass.Success, entry.name);
+    assert.equal(response.periodChoice, undefined, entry.name);
+    assert.equal(fixture.executor.calls, 1, entry.name);
+  }
+});
+
+test("a follow-up comparison inherits July but a prior answer with no window asks for a period", async () => {
+  const comparison: Selection = {
+    ...financialSelection,
+    measureIds: ["governed-financial.actual", "governed-financial.budget"],
+    measureFilters: [
+      {
+        measureId: "governed-financial.actual",
+        op: "gt",
+        compareTo: { kind: "measure", measureId: "governed-financial.budget" },
+      },
+    ],
+    timeWindow: undefined,
+  };
+  const julyPrior = { ...comparison, timeWindow: { grain: "month" as const, from: "2026-07-01", to: "2026-07-31" } };
+  const inherited = makeFixture({ selection: comparison });
+  const user = userForPlants("governed-financial", ["DUB"]);
+  user.permissions.measureIds.push("governed-financial.budget");
+
+  const answer = await inherited.service.ask(user, "session", "And which of those GL codes?", undefined, undefined, [
+    { question: "Which GL codes had Actual over Budget in July 2026?", selection: julyPrior },
+  ]);
+
+  assert.equal(answer.responseClass, ResponseClass.Success, JSON.stringify(answer));
+  assert.equal(answer.periodChoice, undefined);
+  assert.deepEqual(inherited.executor.selections[0]?.timeWindow, {
+    grain: "month",
+    column: "month",
+    from: "2026-07-01",
+    to: "2026-07-31",
+  });
+
+  const unwindowed = makeFixture({
+    selection: comparison,
+    activeActualMonthsByPlants: { DUB: ["2026-07-01"] },
+    loadedBudgetMonths: ["2026-07-01"],
+  });
+  const choice = await unwindowed.service.ask(user, "session", "And which of those GL codes?", undefined, undefined, [
+    { question: "Show Actual by GL code", selection: { ...financialSelection, timeWindow: undefined } },
+  ]);
+
+  assert.equal(choice.responseClass, ResponseClass.ClarificationNeeded);
+  assert.equal(choice.periodChoice?.prompt, "Which period should this comparison cover?");
+  assert.equal(unwindowed.executor.calls, 0);
+});
+
+test("a statement plant with no rows in another plant's offered month answers with zero-valued lines", async () => {
+  const fixture = makeFixture({
+    selection: { ...statementSelection, timeWindow: undefined },
+  });
+  const warehouse = new RowlessStatementWarehouse();
+  const executor = new SelectionExecutor(new SqlBuilder(), new SqlValidator(), warehouse);
+  Reflect.set(fixture.service, "selectionExecutor", executor);
+
+  const choice = await fixture.service.ask(
+    userForPlants("mis-statement", ["CHIR"], true),
+    "session",
+    "Show the MIS statement Actual for CHIR",
+  );
+  const answer = await fixture.service.ask(
+    userForPlants("mis-statement", ["CHIR"], true),
+    "session",
+    choice.periodChoice!.question,
+    { ...choice.periodChoice!.selection, timeWindow: choice.periodChoice!.options[0]!.timeWindow },
+  );
+
+  assert.equal(choice.responseClass, ResponseClass.ClarificationNeeded);
+  assert.equal(answer.responseClass, ResponseClass.Success, JSON.stringify(answer));
+  assert.deepEqual(answer.result?.rows, [{ leaf_key: "leaf", actual_net: "0.00" }]);
+  assert.deepEqual(fixture.resolver.resolveCalls, [
+    { department: "Agriculture", function: "Nursery", plant: "CHIR", period: "2026-07-01" },
+  ]);
+  assert.equal(
+    warehouse.actualRows.some(({ plant }) => plant === "CHIR"),
+    false,
+  );
+  assert.match(warehouse.executedSql, /\('CHIR', 'Primary', '5001', 'leaf'\)/);
+  assert.match(warehouse.executedSql, /COALESCE\(actual_src\.actual_net, 0\)::numeric\(18,2\)/);
+});
+
 test("a redundant month filter bypasses a loaded month vocabulary that lacks the selected month", async () => {
   const withoutMonth = makeFixture({ selection: financialSelection });
   const withMonth = makeFixture({
@@ -599,7 +1062,7 @@ test("a budget comparison with no loaded plant returns the no-budget information
   assert.equal(fixture.audit.requests, 1, "only the turn entry is audited; no execution audit is written");
 });
 
-test("an unwindowed DUB comparison uses active Actual months and reads no figures when one lacks Budget", async () => {
+test("an unwindowed DUB comparison offers only the active Actual month that has Budget", async () => {
   const selection: Selection = {
     ...financialSelection,
     timeWindow: undefined,
@@ -619,15 +1082,21 @@ test("an unwindowed DUB comparison uses active Actual months and reads no figure
       { source: "actuals", period: "2026-06-01", batchId: "actual-june" },
       { source: "actuals", period: "2026-07-01", batchId: ACTUAL_BATCH_ID },
     ],
+    activeActualMonthsByPlants: { DUB: ["2026-06-01", "2026-07-01"] },
   });
   const user = userForPlants("governed-financial", ["DUB"]);
   user.permissions.measureIds.push("governed-financial.budget");
 
   const response = await fixture.service.ask(user, "session", "Show the selected comparison for DUB");
 
-  assert.equal(response.responseClass, ResponseClass.Informational);
-  assert.deepEqual(response.leftOut, { reason: "budget-not-loaded", plants: ["Agri - Nursery - DUB"] });
-  assert.deepEqual(fixture.transactions.activePinCalls, [{ from: "0001-01-01", to: "9999-12-31" }]);
+  assert.equal(response.responseClass, ResponseClass.ClarificationNeeded);
+  assert.deepEqual(
+    response.periodChoice?.options.map(({ value }) => value),
+    ["2026-07-01"],
+  );
+  assert.deepEqual(fixture.transactions.actualMonthCalls, [["DUB"]]);
+  assert.deepEqual(fixture.transactions.budgetPeriodCalls, [{ from: "2026-04-01", to: "2026-07-01" }]);
+  assert.deepEqual(fixture.transactions.activePinCalls, []);
   assert.equal(fixture.executor.calls, 0);
   assert.equal(fixture.audit.requests, 1);
 });
@@ -2892,7 +3361,11 @@ test("a measure-filtered answer records comparison chips readback and applied fi
   const user = userFor("governed-financial");
   user.permissions.measureIds.push("governed-financial.budget");
 
-  const response = await fixture.service.ask(user, "session", "Show codes over budget with Actual of at most 5 lakh");
+  const response = await fixture.service.ask(
+    user,
+    "session",
+    "Show codes over budget with Actual of at most 5 lakh in July 2026",
+  );
 
   assert.deepEqual(
     response.chips?.filter(({ kind }) => kind === "filter").map(({ label }) => label),
@@ -3106,6 +3579,7 @@ function makeFixture(options: {
   activeActualPinSnapshots?: Array<Array<ProvenanceBatch & { source: "actuals" }>>;
   statementPeriod?: { value: string; label: string; from: string; to: string };
   loadedBudgetMonths?: string[];
+  activeActualMonthsByPlants?: Record<string, string[]>;
   forbidOutlineBudgetLookups?: boolean;
 }) {
   const llmResult: LlmSelectionResult =
@@ -3131,6 +3605,7 @@ function makeFixture(options: {
         ),
     ],
     options.loadedBudgetMonths ?? ["2026-07-01"],
+    options.activeActualMonthsByPlants ?? {},
   );
   const contexts = new AskDrillContextService(["secret"], 30, () => 1_000_000);
   const logs: Array<{ context: Record<string, unknown> }> = [];
@@ -3201,12 +3676,20 @@ class FakeTransactions {
   readonly activePinCalls: Array<{ from: string; to: string }> = [];
   readonly batchStateCalls: ProvenanceBatch[][] = [];
   readonly budgetPeriodCalls: Array<{ from: string; to: string }> = [];
+  readonly actualMonthCalls: string[][] = [];
 
   constructor(
     private readonly summaries: DrillSummary[],
     private readonly activeActualPinSnapshots: Array<Array<ProvenanceBatch & { source: "actuals" }>>,
     private readonly loadedBudgetMonths: string[],
+    private readonly activeActualMonthsByPlants: Record<string, string[]>,
   ) {}
+
+  async findActiveActualMonthsForPlants(plants: string[]) {
+    const sorted = [...plants].sort();
+    this.actualMonthCalls.push(sorted);
+    return this.activeActualMonthsByPlants[sorted.join(",")] ?? [];
+  }
 
   async findActiveActualPins(from: string, to: string) {
     const snapshotIndex = this.activePinCalls.length;
@@ -3392,6 +3875,50 @@ class FilterSensitiveWarehouse implements Warehouse {
         { name: "active_batch_ids", numeric: false },
       ],
       rows,
+    };
+  }
+
+  async freshness(): Promise<string | null> {
+    return null;
+  }
+
+  async distinctValues(): Promise<string[]> {
+    return [];
+  }
+}
+
+class RowlessStatementWarehouse implements Warehouse {
+  readonly actualRows = [{ plant: "DUB", costCenter: "Primary", glCode: "5001", amount: "25.00" }];
+  executedSql = "";
+
+  async explain(sql: string): Promise<void> {
+    assert.match(sql, /LIMIT \d+$/);
+  }
+
+  async execute(sql: string) {
+    this.executedSql = sql;
+    assert.match(sql, /FROM statement_relation AS relation/);
+    const actual = this.actualRows
+      .filter(({ plant }) => plant === "CHIR")
+      .reduce((sum, row) => sum + Number(row.amount), 0)
+      .toFixed(2);
+    return {
+      columns: [
+        { name: "leaf_key", numeric: false },
+        { name: "actual_net", numeric: true },
+        { name: "source_presence", numeric: false },
+        { name: "budget_component_labels", numeric: false },
+        { name: "active_batch_ids", numeric: false },
+      ],
+      rows: [
+        {
+          leaf_key: "leaf",
+          actual_net: actual,
+          source_presence: '["actual-only"]',
+          budget_component_labels: "[]",
+          active_batch_ids: "[]",
+        },
+      ],
     };
   }
 

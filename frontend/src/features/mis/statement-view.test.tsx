@@ -138,7 +138,7 @@ test("the statement renders inline below the selector as a tree in outline order
   expect(screen.getByRole("row", { name: "Grand total" })).toHaveTextContent("₹1,500");
 });
 
-test("block headings use the spec labels formatted from each blocks range and money renders in indian grouping rounded to the rupee with rollover empty", () => {
+test("block headings use the spec labels and budget actual and stored roll-over render in indian grouping rounded to the rupee", () => {
   const response = {
     ...resolved,
     tree: [
@@ -155,9 +155,9 @@ test("block headings use the spec labels formatted from each blocks range and mo
   expect(screen.getByRole("columnheader", { name: "FY 26-27 (YTD to Jul)" })).toBeInTheDocument();
   const cells = within(screen.getByRole("row", { name: /Materials/ })).getAllByRole("gridcell");
   expect(cells[2]).toHaveTextContent("₹12,34,568");
-  expect(cells[3]).toBeEmptyDOMElement();
+  expect(cells[3]).toHaveTextContent("₹12,34,568");
   expect(cells[4]).toHaveTextContent("−₹1,235");
-  expect(cells[7]).toBeEmptyDOMElement();
+  expect(cells[7]).toHaveTextContent("₹12,34,567");
 });
 
 test("a non numeric percentage label is kept verbatim a null percentage renders as NA and a single block response renders one block", () => {
@@ -385,7 +385,7 @@ test("a not loaded parent row and the grand total row render the same dashes and
   }
 });
 
-test("a loaded block and a block without a budget state render exactly as before whatever the amount holds only the state decides", () => {
+test("a loaded block renders its stored roll-over while only the budget state decides whether money is available", () => {
   const response = {
     ...resolved,
     tree: [
@@ -403,7 +403,10 @@ test("a loaded block and a block without a budget state render exactly as before
   expect(row).toHaveTextContent("₹987");
   expect(within(row).getAllByText("50%")).toHaveLength(2);
   expect(within(row).queryByLabelText("Budget not loaded for this plant")).not.toBeInTheDocument();
-  expect(within(row).getAllByLabelText("Roll-over unavailable")).toHaveLength(2);
+  expect(within(row).queryByLabelText("Roll-over unavailable")).not.toBeInTheDocument();
+  const cells = within(row).getAllByRole("gridcell");
+  expect(cells[3]).toHaveTextContent("₹123");
+  expect(cells[7]).toHaveTextContent("₹987");
 });
 
 test("the header renders the plant display name and the provisional labels mark from the scope readout and nothing for DUB", () => {
@@ -439,7 +442,7 @@ function measure(
     to: "2026-07-01",
     budgetState: "loaded",
     budget,
-    rollover: null,
+    rollover: budget,
     actual,
     percentage,
     sourcePresence: ["matched"],

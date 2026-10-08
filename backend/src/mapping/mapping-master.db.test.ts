@@ -25,7 +25,8 @@ test(
         size: buffer.length,
         buffer,
       };
-      const { batchId } = await new IngestService().ingestActuals(upload, "mapping-master-proof");
+      const { periods } = await new IngestService().ingestActuals(upload, "mapping-master-proof");
+      const batchId = periods[0].batchId;
       const ingested = await pool.query<{ plant_src: string; cost_center: string; gl_code: string }>(
         `SELECT plant_src, cost_center, gl_code
          FROM sap_transaction

@@ -125,25 +125,28 @@ test(
       const service = new IngestService();
 
       const first = await service.ingestActuals(upload, "july-dub-reconciliation-first");
-      assert.equal(first.rowCount, parsed.rows.length);
-      await assertBatchIntegrity(pool, first.batchId, parsed.rows.length);
+      const firstBatchId = first.periods[0].batchId;
+      const parsedRows = parsed.periods[0].rows;
+      assert.equal(first.totalRowCount, parsedRows.length);
+      await assertBatchIntegrity(pool, firstBatchId, parsedRows.length);
       assertReconciliation(await reconcileActualsByKeyMonth(pool, expectation), expectation);
 
       const replacement = await service.ingestActuals(upload, "july-dub-reconciliation-replacement");
-      assert.notEqual(replacement.batchId, first.batchId);
-      await assertBatchIntegrity(pool, first.batchId, parsed.rows.length);
-      await assertBatchIntegrity(pool, replacement.batchId, parsed.rows.length);
+      const replacementBatchId = replacement.periods[0].batchId;
+      assert.notEqual(replacementBatchId, firstBatchId);
+      await assertBatchIntegrity(pool, firstBatchId, parsedRows.length);
+      await assertBatchIntegrity(pool, replacementBatchId, parsedRows.length);
 
       const batches = await pool.query<{ id: string; is_active: boolean }>(
         `SELECT id, is_active
          FROM ingest_batch
          WHERE id = ANY($1::uuid[])
          ORDER BY id`,
-        [[first.batchId, replacement.batchId]],
+        [[firstBatchId, replacementBatchId]],
       );
       assert.equal(batches.rows.length, 2);
-      assert.equal(batches.rows.find(({ id }) => id === first.batchId)?.is_active, false);
-      assert.equal(batches.rows.find(({ id }) => id === replacement.batchId)?.is_active, true);
+      assert.equal(batches.rows.find(({ id }) => id === firstBatchId)?.is_active, false);
+      assert.equal(batches.rows.find(({ id }) => id === replacementBatchId)?.is_active, true);
 
       const active = await pool.query<{ id: string }>(
         `SELECT id
@@ -151,7 +154,7 @@ test(
          WHERE source_kind = 'actuals' AND period = $1::date AND is_active`,
         [expectation.period],
       );
-      assert.deepEqual(active.rows, [{ id: replacement.batchId }]);
+      assert.deepEqual(active.rows, [{ id: replacementBatchId }]);
       assertReconciliation(await reconcileActualsByKeyMonth(pool, expectation), expectation);
     } finally {
       await pool.end();

@@ -54,6 +54,7 @@ test(
       await pool.query("TRUNCATE sap_transaction, mis_budget, ingest_batch CASCADE");
       const ingest = new IngestService();
       const actual = await ingest.ingestActuals(upload(ACTUALS_PATH), "drill-proof");
+      const actualBatchId = actual.periods[0].batchId;
       await ingest.ingestBudget(upload(BUDGET_PATH), "drill-proof");
       const resolution = await new SelectionResolverService(new PeriodWarehouse()).resolve({
         department: "Agriculture",
@@ -88,7 +89,7 @@ test(
       const statementByLeaf = new Map(statementRows.rows.map((row) => [row.leaf_key, row.actual_net]));
 
       const leafPredicate = {
-        actualBatchIds: [actual.batchId],
+        actualBatchIds: [actualBatchId],
         triples: leafTargets
           .filter(({ target }) => target.kind === "leaf" && target.leafKey === LEAF_KEY)
           .map(({ plant, costCenter, glCode }) => ({ plant, costCenter, glCode })),
@@ -124,7 +125,7 @@ test(
       assert.deepEqual(await repository.findActiveActualPins("2026-04-01", JULY), [
         { source: "actuals", period: "2026-04-01", batchId: april },
         { source: "actuals", period: "2026-05-01", batchId: may },
-        { source: "actuals", period: JULY, batchId: actual.batchId },
+        { source: "actuals", period: JULY, batchId: actualBatchId },
       ]);
       const ytdStatementRows = await pool.query<{ leaf_key: string; actual_net: string }>(
         new SqlBuilder().build(
@@ -168,7 +169,7 @@ test(
       assert.equal(new Set(identities.map(({ txnNo, lineId }) => `${txnNo}\0${lineId}`)).size, 101);
       const ytd = await repository.execute(
         repository.buildQueries(
-          { ...leafPredicate, actualBatchIds: [april, may, actual.batchId], from: "2026-04-01" },
+          { ...leafPredicate, actualBatchIds: [april, may, actualBatchId], from: "2026-04-01" },
           1,
           100,
         ),

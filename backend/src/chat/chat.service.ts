@@ -67,6 +67,7 @@ import {
 import { withoutRedundantMonthFilter } from "./redundant-month-filter";
 import { withoutUnstatedAmountFilters } from "./unstated-amount-filter";
 import { applyBudgetStates, comparisonNeedsBudget } from "./ask-budget-states";
+import { comparisonPeriodOutcome, hasBudgetComparisonFilter, needsComparisonPeriod } from "./ask-budget-period";
 import {
   type AppliedTimeWindow,
   SelectionExecutionBlockedError,
@@ -605,6 +606,46 @@ export class ChatService {
     let statementScope: MasterResolvedSelection | undefined;
     let statementPeriods: MisSelectionPeriodOption[] | undefined;
     let answerPeriodOptions: AskPeriodOption[] | undefined;
+    const canAskForComparisonPeriod =
+      (!usesEditedSelection && origin !== "saved-view" && origin !== "pin") || origin === "plant-choice";
+    if (
+      needsComparisonPeriod(requestedSelection) &&
+      ((!appliedTimeWindow && canAskForComparisonPeriod) || origin === "period-choice")
+    ) {
+      const outcome = await loadComparisonPeriodOutcome(
+        requestedSelection,
+        requestedPlants,
+        budgetOwnerPlant,
+        selectedMeasures.find(({ timeColumn }) => timeColumn)?.timeColumn ?? "month",
+        this.drillTransactions,
+        signal,
+      );
+      if (outcome.kind === "no-actuals") {
+        return done({ responseClass: ResponseClass.NotSupported, message: CHAT_MESSAGES.comparisonNoActuals });
+      }
+      if (outcome.kind === "no-budget") {
+        const leftOut = { reason: "budget-not-loaded" as const, plants: plantDisplayNames(outcome.leftOut) };
+        return done({
+          responseClass: ResponseClass.Informational,
+          message: CHAT_MESSAGES.comparisonNoBudget,
+          selection: requestedSelection,
+          leftOut,
+          viewInReport: { available: false, reason: CHAT_MESSAGES.comparisonNoBudgetReport },
+        });
+      }
+      answerPeriodOptions = outcome.options;
+      if (!appliedTimeWindow) {
+        return done({
+          responseClass: ResponseClass.ClarificationNeeded,
+          periodChoice: {
+            prompt: CHAT_MESSAGES.comparisonPeriodPrompt,
+            selection: withoutTimeWindow(requestedSelection),
+            question,
+            options: outcome.options,
+          },
+        });
+      }
+    }
     if (domain.name === "mis-statement") {
       const request = await statementRequest(
         requestedPlants,
@@ -654,10 +695,10 @@ export class ChatService {
       if (plantsRead.length === 0) {
         return done({
           responseClass: ResponseClass.Informational,
-          message: "Budget is not loaded for any chosen plant, so nothing was compared.",
+          message: CHAT_MESSAGES.comparisonNoBudget,
           selection: requestedSelection,
           leftOut,
-          viewInReport: { available: false, reason: "Budget is not loaded for any chosen plant." },
+          viewInReport: { available: false, reason: CHAT_MESSAGES.comparisonNoBudgetReport },
         });
       }
       selection = replacePlantFilter(selection, {
@@ -1718,6 +1759,70 @@ function buildViewInReport(
     period: statementScope.period.value,
     activeBatchIds,
   };
+}
+
+async function loadComparisonPeriodOutcome(
+  selection: Selection,
+  chosenPlants: string[],
+  budgetOwnerPlant: string,
+  timeColumn: string,
+  transactions: Pick<DrillTransactionsRepository, "findActiveActualMonthsForPlants" | "findActiveBudgetPeriods">,
+  signal?: AbortSignal,
+) {
+  signal?.throwIfAborted();
+  const actualMonths = await transactions.findActiveActualMonthsForPlants(chosenPlants);
+  signal?.throwIfAborted();
+  if (actualMonths.length === 0) {
+    return comparisonPeriodOutcome({
+      chosenPlants,
+      actualMonths,
+      budgetedPlants: [],
+      budgetedActualMonths: [],
+      loadedBudgetMonths: [],
+      comparisonFilter: hasBudgetComparisonFilter(selection),
+      timeColumn,
+    });
+  }
+
+  const comparisonFilter = hasBudgetComparisonFilter(selection);
+  const budgetedPlants = chosenPlants.includes(budgetOwnerPlant) ? [budgetOwnerPlant] : [];
+  const budgetedActualMonths = comparisonFilter
+    ? samePlants(chosenPlants, budgetedPlants)
+      ? actualMonths
+      : await transactions.findActiveActualMonthsForPlants(budgetedPlants)
+    : [];
+  signal?.throwIfAborted();
+  const loadedBudgetMonths =
+    comparisonFilter && budgetedActualMonths.length > 0
+      ? await transactions.findActiveBudgetPeriods(
+          comparisonBudgetRangeStart(budgetedActualMonths),
+          [...budgetedActualMonths].sort().at(-1)!,
+        )
+      : [];
+  signal?.throwIfAborted();
+  return comparisonPeriodOutcome({
+    chosenPlants,
+    actualMonths,
+    budgetedPlants,
+    budgetedActualMonths,
+    loadedBudgetMonths,
+    comparisonFilter,
+    timeColumn,
+  });
+}
+
+function comparisonBudgetRangeStart(months: string[]): string {
+  const ordered = [...months].sort();
+  const newest = ordered.at(-1)!;
+  const newestYear = Number(newest.slice(0, 4));
+  const newestMonth = Number(newest.slice(5, 7));
+  const financialYearStart = `${newestMonth < 4 ? newestYear - 1 : newestYear}-04-01`;
+  return ordered[0]! < financialYearStart ? ordered[0]! : financialYearStart;
+}
+
+function samePlants(left: string[], right: string[]): boolean {
+  const sortedRight = [...right].sort();
+  return left.length === right.length && [...left].sort().every((plant, index) => plant === sortedRight[index]);
 }
 
 async function budgetPeriodCoverage(

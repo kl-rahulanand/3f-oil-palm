@@ -42,13 +42,14 @@ test("the DUB statement keeps identical values tree and provenance and carries a
   assert.equal(response.outcome, "resolved");
   if (response.outcome !== "resolved") return;
   assert.deepEqual(
-    response.grandTotal.measures.map(({ budgetState, budget, actual, percentage }) => ({
+    response.grandTotal.measures.map(({ budgetState, budget, rollover, actual, percentage }) => ({
       budgetState,
       budget,
+      rollover,
       actual,
       percentage,
     })),
-    [{ budgetState: "loaded", budget: "101.00", actual: "50.50", percentage: "0.5" }],
+    [{ budgetState: "loaded", budget: "101.00", rollover: "141.40", actual: "50.50", percentage: "0.5" }],
   );
   assert.deepEqual(response.provenance.activeBatchIds, [budgetBatch]);
 });
@@ -72,7 +73,7 @@ test("every resolved statement response populates the attested context and the p
   );
 });
 
-test("the response schema rejects a not loaded block with money and a loaded block with a null budget", () => {
+test("the response schema keeps roll-over money exclusive to loaded budget blocks", () => {
   const { misStatementResponseSchema } = require("./mis-statement.dto") as {
     misStatementResponseSchema?: { parse(value: unknown): unknown };
   };
@@ -106,16 +107,23 @@ test("the response schema rejects a not loaded block with money and a loaded blo
     label: "2026-07-01",
     from: "2026-07-01",
     to: "2026-07-01",
-    rollover: null,
     actual: "1.00",
     sourcePresence: [],
   };
-  assert.throws(() =>
+  assert.doesNotThrow(() =>
     misStatementResponseSchema.parse({
       ...base,
       grandTotal: {
         ...base.grandTotal,
-        measures: [{ ...block, budgetState: "not-loaded", budget: "1.00", percentage: null }],
+        measures: [
+          {
+            ...block,
+            budgetState: "loaded",
+            budget: "1.00",
+            rollover: "2.00",
+            percentage: "100.00",
+          },
+        ],
       },
     }),
   );
@@ -124,7 +132,49 @@ test("the response schema rejects a not loaded block with money and a loaded blo
       ...base,
       grandTotal: {
         ...base.grandTotal,
-        measures: [{ ...block, budgetState: "loaded", budget: null, percentage: null }],
+        measures: [
+          {
+            ...block,
+            budgetState: "not-loaded",
+            budget: null,
+            rollover: "2.00",
+            percentage: null,
+          },
+        ],
+      },
+    }),
+  );
+  assert.throws(() =>
+    misStatementResponseSchema.parse({
+      ...base,
+      grandTotal: {
+        ...base.grandTotal,
+        measures: [
+          {
+            ...block,
+            budgetState: "loaded",
+            budget: "1.00",
+            rollover: null,
+            percentage: "100.00",
+          },
+        ],
+      },
+    }),
+  );
+  assert.throws(() =>
+    misStatementResponseSchema.parse({
+      ...base,
+      grandTotal: {
+        ...base.grandTotal,
+        measures: [
+          {
+            ...block,
+            budgetState: "not-loaded",
+            budget: "1.00",
+            rollover: null,
+            percentage: null,
+          },
+        ],
       },
     }),
   );
@@ -228,16 +278,21 @@ test("the statement service builds the tree from the outline of the budget batch
     to: "2026-07-01",
     budget: "30.30",
     budgetState: "loaded",
-    rollover: null,
+    rollover: "80.80",
     actual: "15.15",
     percentage: "0.5",
     sourcePresence: ["matched"],
   });
   assert.deepEqual(
-    response.grandTotal.measures.map(({ budget, actual, percentage }) => ({ budget, actual, percentage })),
+    response.grandTotal.measures.map(({ budget, rollover, actual, percentage }) => ({
+      budget,
+      rollover,
+      actual,
+      percentage,
+    })),
     [
-      { budget: "50.50", actual: "25.25", percentage: "0.5" },
-      { budget: "101.00", actual: "50.50", percentage: "0.5" },
+      { budget: "50.50", rollover: "111.10", actual: "25.25", percentage: "0.5" },
+      { budget: "101.00", rollover: "141.40", actual: "50.50", percentage: "0.5" },
     ],
   );
   assert.equal(executor.calls.length, 2);
@@ -307,7 +362,7 @@ test("the unmapped GL line is present with its own actual and zero budget counte
     to: "2026-07-01",
     budget: "0.00",
     budgetState: "loaded",
-    rollover: null,
+    rollover: "0.00",
     actual: "3.33",
     percentage: "over-budget",
     sourcePresence: ["actual-only"],
@@ -438,29 +493,39 @@ class FakeExecutor {
         leaf_key: "shade",
         actual_net: ytd ? "20.20" : "10.10",
         budget_net: ytd ? "40.40" : "20.20",
+        rollover_net: ytd ? "50.50" : "30.30",
         percentage: "0.5",
       },
       {
         leaf_key: "diesel",
         actual_net: ytd ? "20.20" : "10.10",
         budget_net: ytd ? "40.40" : "20.20",
+        rollover_net: "60.60",
         percentage: "0.5",
       },
       {
         leaf_key: "repairs",
         actual_net: ytd ? "10.10" : "5.05",
         budget_net: ytd ? "20.20" : "10.10",
+        rollover_net: ytd ? "30.30" : "20.20",
         percentage: "0.5",
       },
     ];
     if (this.mixedZeroBudget) {
       rows = [
-        { leaf_key: "shade", actual_net: "0.00", budget_net: "0.00", percentage: null },
-        { leaf_key: "diesel", actual_net: "10.00", budget_net: "0.00", percentage: "over-budget" },
+        { leaf_key: "shade", actual_net: "0.00", budget_net: "0.00", rollover_net: "0.00", percentage: null },
+        {
+          leaf_key: "diesel",
+          actual_net: "10.00",
+          budget_net: "0.00",
+          rollover_net: "0.00",
+          percentage: "over-budget",
+        },
         {
           leaf_key: "repairs",
           actual_net: "-20.00",
           budget_net: "0.00",
+          rollover_net: "0.00",
           percentage: "credit / negative actual",
         },
       ];
@@ -471,6 +536,7 @@ class FakeExecutor {
         leaf_key: "unmapped-GL",
         actual_net: "3.33",
         budget_net: "0.00",
+        rollover_net: "0.00",
         percentage: "over-budget",
       });
       rowSourcePresence.push("actual-only");
@@ -480,6 +546,7 @@ class FakeExecutor {
         leaf_key: `leaf-${index}`,
         actual_net: "0.00",
         budget_net: "0.00",
+        rollover_net: "0.00",
         percentage: null,
       }));
     }

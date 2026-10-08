@@ -45,6 +45,26 @@ test("the statement projection joins budget and actual at plant leaf and month g
   assert.doesNotMatch(shipped.sql, /leaf_targets|budget_by_leaf_month|statement_relation/);
 });
 
+test("the statement projection uses only the closing month's stored roll-over for a multi-month block", () => {
+  const builder = new SqlBuilder();
+  const sql = builder.build(
+    statementDomain,
+    {
+      ...statementSelection,
+      measureIds: ["mis-statement.rollover_net"],
+      timeWindow: { grain: "month", column: "month", from: "2026-04-01", to: "2026-07-01" },
+    },
+    statementUser,
+    true,
+    scope,
+  ).sql;
+
+  assert.match(
+    sql,
+    /CASE WHEN statement_key\.month = '2026-07-01'\s+THEN COALESCE\(budget_src\.rollover_net, 0\)\s+ELSE 0\s+END::numeric\(18,2\) AS rollover_net/,
+  );
+});
+
 test("the statement query runs through the selection executor validate explain execute path with its mandatory bounded limit rather than being built by hand", async () => {
   const warehouse = new StatementWarehouse();
   const domain = new SemanticLayer().domain("mis-statement");
