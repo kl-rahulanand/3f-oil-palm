@@ -102,6 +102,14 @@ Actual is loaded only with confirmed complete coverage for that specific Plant/m
 the active validated generation (decision 0048). A workbook load, another Plant's rows,
 or some rows for the requested Plant does not alone prove completeness. Without confirmation,
 the complete Actual is null/"Actual data not loaded"; no transactions alone never implies zero.
+Decision 0054 defers the business/operator completeness-confirmation process for this
+PoC. A reconciled import may activate with unconfirmed Actual coverage; faithful import
+is not upstream completeness. The supplied workbook starts unconfirmed, including DUB
+April-August: do not infer certification. Its real demo shows unavailable complete Actual
+and corresponding gaps/null comparisons. Numeric Actual/zero/drill cases use explicitly
+synthetic complete-coverage fixtures through the real application and warehouse, not
+invented customer confirmation. A complete-customer-Actual demo awaits a later confirmed
+coverage process; this limitation does not block implementation of the supported rules.
 An incomplete Actual range does not get a complete-looking total; any available-only
 subtotal is labelled separately. If any selected Plant/month lacks Budget, full comparison
 Budget and percentage are null, alongside an explicitly labelled available-only Budget
@@ -261,6 +269,14 @@ story assigns shared typed IDs; before a live run, its import/acceptance tasks r
 golden amounts and transaction identities for these same scopes. Expected values must not
 be produced by the production parser/query under test.
 
+For every named case, expected display is conditional on coverage, not an assertion that
+DUB is confirmed. Under decision 0054 the real workbook's complete Actual is unavailable;
+record those outcomes honestly and use separately labelled synthetic complete-coverage
+fixtures to prove numerical comparisons, trends and prepared transaction behavior. D8 also
+expects unavailable complete Actual for any unconfirmed Plant/month, never a complete-looking
+combined Actual total. Golden import sums remain independently checked even when the UI
+cannot present them as complete financial answers.
+
 | Case | Question                                                                                       | Expected selection or outcome                                                     |
 | ---- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | D1   | Actual vs Budget for DUB in April 2026                                                         | DUB; April 1-30 2026; Actual/Budget; total                                        |
@@ -363,7 +379,7 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0053 and existing model/financial rules cited above.
+accepted decisions 0042-0054 and existing model/financial rules cited above.
 
 ## Roadmap
 

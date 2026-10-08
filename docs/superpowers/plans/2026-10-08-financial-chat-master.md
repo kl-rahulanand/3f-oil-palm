@@ -86,6 +86,11 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
   [0048](../../decisions/0048-financial-chat-actual-coverage.md) requires confirmed complete
   Actual coverage for each Plant/month before an empty set can be ₹0. Otherwise complete
   Actual is null/"Actual data not loaded". A workbook load or some rows is not completeness.
+  [0054](../../decisions/0054-financial-chat-deferred-actual-completeness.md) defers the
+  confirmation process, not this rule. Permit reconciled import activation with unconfirmed
+  Actual coverage; real workbook demo shows unavailable complete Actual, not certified DUB
+  values. Separately labelled synthetic complete-coverage fixtures prove numeric/zero/drill
+  behavior. Future complete-customer-Actual demonstration needs explicit confirmation.
   Never average percentages. Zero/missing denominator is Not applicable.
   [0052](../../decisions/0052-financial-chat-nonpositive-trend-baseline.md) separately
   governs month-to-month percentage change: calculate only for a positive prior value;

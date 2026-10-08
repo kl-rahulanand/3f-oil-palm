@@ -201,9 +201,12 @@ Trap: the global exception filter replaces messages: items 3 and 4.
 ## Round 3
 
 36. Nothing says who confirms which Plant/months have complete Actual data, so every demo answer could come back "Actual data not loaded".
-    Owner note: the completeness-confirmation process was deferred for the PoC. Decision
-    0048 is not revoked: do not infer complete coverage or claim DUB April-August confirmed.
-    This finding remains open; no clean review or successful loaded-data demo is claimed.
+    Disposition: keep: Owner accepted decision 0054 defers the confirmation process as
+    an explicit PoC limitation, not decision 0048's accuracy rule. Spec/import/acceptance
+    now permit faithful activation with unconfirmed Actual coverage, require unavailable
+    real-source complete Actual (including DUB), and separate synthetic complete-coverage
+    numerical/drill proof. D8's coverage-dependent outcome is explicit. No complete-data
+    customer demo or independent clean review is claimed by this disposition.
     Decision 0048 says only confirmed complete coverage allows a value or a zero. But the loader is described only as reading the original workbook with explicit DUB Budget ownership, and nothing says what supplies the confirmation. The workbook does not declare completeness, and the disposition leaves the format open. The spec should name:
     - who confirms coverage (the operator, as a declared Plant/month list given to the CLI);
     - that DUB April–August 2026 is confirmed for the demo.

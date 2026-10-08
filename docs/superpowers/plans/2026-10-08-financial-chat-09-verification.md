@@ -34,6 +34,14 @@ No invented passing screenshots or unexplained "all tests green" statement.
 
 ### 9A: Establish independent source/report baselines early
 
+Decision 0054 accepts deferred business completeness confirmation. The actual source
+import remains independently reconciled but its Actual coverage is unconfirmed. Use
+the real workbook to prove faithful loading and unavailable complete-Actual states;
+use explicitly synthetic complete-coverage fixtures on disposable databases for exact
+numeric/zero/trend/drill acceptance. Never present those fixtures as confirmed client
+values. Named live questions prove selection and the coverage-dependent outcome; no
+complete-customer-Actual demo is promised until a later confirmed coverage process.
+
 - [ ] Before stage 2 migration, capture existing statement rows/totals/hierarchy, monthly/YTD/
       Roll-over, exported workbook values/formulas/outline and report transaction identity sets
       from a fixed authorized snapshot. Compare semantics, not volatile export ZIP timestamps.
@@ -158,6 +166,8 @@ initial acceptance gate; later evaluation must use identical source scopes and f
 ### Final acceptance checklist
 
 - [ ] Every spec Behaviour/Rules/Acceptance item has an implementation owner and passing evidence.
+- [ ] Separate real-source unconfirmed/unavailable evidence from synthetic complete-coverage
+      numeric proof; record the owner-accepted deferred process without inventing certification.
 - [ ] Every promised clickable Actual has prepared exact matching transaction data or an explicit
       failed state; no fabricated values or unprepared "ready" claim.
 - [ ] Clarification/no defaults, authorized follow-ups and permission changes behave correctly.
