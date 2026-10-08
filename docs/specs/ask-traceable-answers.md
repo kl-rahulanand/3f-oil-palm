@@ -1,10 +1,8 @@
 ---
 slug: ask-traceable-answers
 title: Complete Ask questions stay complete and every live Actual is traceable
-status: confirmed
-saved: 2026-10-08T08:27:55+00:00
-confirmed_by: "Project owner via Codex"
-confirmed_hash: c420ec0022e199a64ab2ef6fae30c129e4cbbdd8e8ed350e0f0402c171ecbe68
+status: draft
+saved: 2026-10-08T08:32:54+00:00
 ---
 
 # Complete Ask questions stay complete and every live Actual is traceable
@@ -300,3 +298,7 @@ Each footer equals its displayed Actual in exact paise. Budget remains inert.
 - `docs/specs/ask-period-control.md`.
 - `docs/specs/ask-gl-names-and-transactions.md`.
 - `docs/specs/actuals-drill-down.md`.
+
+## Roadmap
+
+- ASK-TRACEABLE-ANSWERS: Ask preserves complete questions and opens every live Actual transaction set
