@@ -1,0 +1,14 @@
+{
+  "base": "d14840e76678fc582d903812969d9d2385ca3a96",
+  "branch": "fix/plan-the-new-typescript-financial-chat-p",
+  "done_when": "A reviewable specification and implementation plan cover the agreed new schema, four tools, memory, trends and Actual drill-down while preserving existing reports.",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-08T14:28:00+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Plan the new TypeScript financial chat PoC"
+}
