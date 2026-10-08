@@ -310,8 +310,10 @@
       "key": "ASK-MULTI-PLANT",
       "title": "Every Ask answer works across plants",
       "spec": "docs/specs/ask-multi-plant.md",
-      "status": "pending",
-      "order": 15
+      "status": "done",
+      "order": 15,
+      "completed_at": "2026-10-05T09:55:47+00:00",
+      "outcome": "Ask answers across every plant: a plant picker with All plants, plant filters and breakdowns, combined statements that add up each plant's own, Budget-not-loaded dashes, and plant-safe names, transactions and saved views; the live check answered all five success questions on every run"
     },
     {
       "key": "ASK-BUDGET-PERIOD",
