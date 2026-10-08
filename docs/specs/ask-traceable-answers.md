@@ -1,10 +1,8 @@
 ---
 slug: ask-traceable-answers
 title: Complete Ask questions stay complete and every live Actual is traceable
-status: confirmed
-saved: 2026-10-08T08:32:54+00:00
-confirmed_by: "Project owner via Codex"
-confirmed_hash: 8f0801df7d5196ca32d7410a847f6769e4de6108cf466a3e22b71a391fbfb040
+status: draft
+saved: 2026-10-08T08:56:09+00:00
 ---
 
 # Complete Ask questions stay complete and every live Actual is traceable
@@ -167,11 +165,13 @@ client's SAP and Budget workbooks during the demo.
   no hidden group amount, transaction row, name or memo. Those coordinates remain inside the signed
   context and never reach Bedrock. A proof decodes the context and asserts that only predicate
   coordinates, pins and the one displayed total amount are present.
-- When an Actual-only answer has no time window, its drill range is derived from the contributing
-  actual provenance pins: first day of the earliest pinned month through the last day of the latest
-  pinned month. The predicate still restricts by the exact pinned batch ids, so a gap between months
-  cannot pull in an unpinned month. A month row further narrows to its month and pin. No pins, an
-  invalid pin period or more than the batch bound makes the affected targets inert.
+- When any live answer containing Actual has no time window, including an older saved or pinned
+  Actual-and-Budget selection, its Actual drill range is derived from the contributing Actual
+  provenance pins: first day of the earliest pinned month through the last day of the latest pinned
+  month. The predicate still restricts by the exact pinned batch ids, so a gap between months cannot
+  pull in an unpinned month. A month row further narrows to its month and pin. No pins, an invalid
+  pin period or more than the batch bound makes the affected targets inert. Other measures remain
+  inert as usual.
 - Every context binds the current user, exact Actual in paise, effective plants, complete time
   window, pinned actual batches and the row or total predicate. Context size and row count remain
   bounded by fixed rules: at most 100 displayed row targets, 100 total-union members, 24 monthly
@@ -268,7 +268,8 @@ Each footer equals its displayed Actual in exact paise. Budget remains inert.
     range spelling; incomplete, malformed, reversed, multiple and statement-incompatible ranges;
     each allowed and one disallowed dimension set; KPI, unfiltered total and comparison total
     clicks through the target union; a forged reserved row key; a comparison total beyond display
-    limit; an unwindowed contiguous and non-contiguous Actual answer; the decoded
+    limit; unwindowed contiguous and non-contiguous Actual answers plus an unwindowed saved and
+    pinned Actual-and-Budget rerun; the decoded
     total union carrying no hidden amount or transaction data; all four fixed bounds; negative and
     offsetting-zero Actuals; row, KPI and total values at both sides of the signed-money boundary;
     a 65,537-character request refused and audited before decode; stored and chart inertness; every
