@@ -7,7 +7,7 @@
 **Goal:** Expose the new graph and transaction pages securely through the existing application.
 **Architecture:** Thin NestJS controllers adapt typed commands/events using stage 1's pinned
 protocol. Existing session/RBAC/CSRF/audit infrastructure protects every resource.
-**Tech Stack:** NestJS, shared Zod/DTOs, typed frame adapter and native credential-aware React fetch/ReadableStream.
+**Tech Stack:** NestJS, shared Zod/DTOs, SDK transport adapter and credential-aware React fetch.
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Global constraints:** [Master](2026-10-08-financial-chat-master.md).
 **Dependencies:** Stage 1 transport proof and stage 6 service.
@@ -24,15 +24,15 @@ protocol. Existing session/RBAC/CSRF/audit infrastructure protects every resourc
 
 ## Resource map and interfaces
 
-| Resource                                                                 | Behavior                                                       |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| POST /api/v1/financial-conversations                                     | Create an empty owner-bound in-memory conversation             |
-| GET /api/v1/financial-conversations/:id                                  | Authorized sanitized state/resume metadata                     |
-| POST /api/v1/financial-conversations/:id/commands                        | Typed command adapter: start/reply/cancel as proved in stage 1 |
-| GET /api/v1/financial-conversations/:id/stream                           | Pinned authenticated event subscription/replay cursor          |
-| GET /api/v1/financial-conversations/:id/actual-transactions/:drilldownId | Reauthorized handle page via FinancialDataService.transactions |
+| Resource                                                                 | Behavior                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| POST /api/v1/financial-conversations                                     | Create an empty owner-bound in-memory conversation                  |
+| GET /api/v1/financial-conversations/:id                                  | Authorized sanitized state/resume metadata                          |
+| POST /api/v1/financial-conversations/:id/commands                        | Pinned SDK command adapter: start/reply/cancel as proved in stage 1 |
+| GET /api/v1/financial-conversations/:id/stream                           | Pinned authenticated event subscription/replay cursor               |
+| GET /api/v1/financial-conversations/:id/actual-transactions/:drilldownId | Reauthorized handle page via FinancialDataService.transactions      |
 
-Stage 1 pins typed command/event spellings and adapter argument shape; resource intent above
+Stage 1 pins SDK command/event spellings and adapter argument shape; resource intent above
 does not authorize an untested pseudo-Agent Server API. If the chosen adapter needs a different
 HTTP verb/frame, record the exact mapping before dependent code. Streaming frames are typed
 protocol events, while ordinary resource responses/errors use the standard envelope.

@@ -6,8 +6,7 @@
 
 **Goal:** Pin the shared response/tool seam and prove streaming inside the existing stack.
 **Architecture:** Shared validated types isolate domain results from transport frames. A minimal
-NestJS-to-React proof uses native fetch/ReadableStream with typed frames, without a
-frontend LangGraph SDK or copying Agent Server deployment.
+NestJS-to-React proof chooses compatible packages without copying Agent Server deployment.
 **Tech Stack:** TypeScript, Zod, existing CommonJS Node/NestJS and Next/React; pinned LangGraph packages.
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Global constraints:** All [master rules/interfaces/limits](2026-10-08-financial-chat-master.md) apply.
@@ -74,8 +73,7 @@ Each UI block references the same query result/scope, not a second independent m
 
 - [ ] Inspect published and installed package types for the same compatible versions. Prove
       CommonJS loading, Node >=20, React 19, Zod compatibility, cancellation and local UI blocks.
-      Do not select versions from memory; frontend transport uses native fetch/ReadableStream,
-      not an additional LangGraph React SDK. Prove backend SDK imports independently.
+      Do not select versions from memory or import incompatible old/new SDK React APIs together.
 - [ ] Pin @langchain/anthropic / ChatAnthropic compatibility for claude-sonnet-5-5. Configure
       provider=anthropic and the explicit model ID with backend-only ANTHROPIC_API_KEY. Prove
       ordinary tool-call/structured selection handling without unsupported forced tool use or
@@ -88,7 +86,7 @@ Each UI block references the same query result/scope, not a second independent m
 - [ ] Build a minimal real custom NestJS command/stream flow and render a registered FinancialTotal
       fixture in React; fixture values are explicitly synthetic, never presented as real source data.
 - [ ] Pin supported command names, serialization, event order, resume cursor and terminal errors
-      in a protocol note. Typed frame mapping is owned by stream-adapter, not business services.
+      in a protocol note. SDK-specific protocol is owned by stream-adapter, not business services.
 - [ ] Prove split/chunked frames, duplicate delivery, disconnect/reconnect and unknown event behavior.
       A duplicate terminal/UI event must not duplicate the answer or trigger another warehouse query.
 - [ ] Keep /api/v1/financial-conversations/:id namespace and credential-aware fetch integration.
