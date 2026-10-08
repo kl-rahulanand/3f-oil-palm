@@ -1,8 +1,10 @@
 ---
 slug: langgraph-financial-chat
 title: New financial chat with monthly trends and traceable Actuals
-status: draft
+status: confirmed
 saved: 2026-10-08T14:33:55+00:00
+confirmed_by: "Project owner (confirmed in chat)"
+confirmed_hash: 68d2f94c1d9fb485d06ad6de4c9419a57d9e34ffd34ce5e6d5977a4d12755b88
 ---
 
 # New financial chat with monthly trends and traceable Actuals
