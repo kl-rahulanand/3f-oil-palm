@@ -6,6 +6,21 @@ export interface FinancialSourceOracle {
   sha256: string;
   actual: {
     columns: string[];
+    rows: Array<{
+      sourceRow: number;
+      transactionNumber: string | null;
+      lineId: string | null;
+      postingDate: string;
+      plant: string | null;
+      costCenter: string | null;
+      glCode: string | null;
+      debit: string | null;
+      credit: string | null;
+      section: string | null;
+      origin: string | null;
+      comments: string | null;
+      comments2: string | null;
+    }>;
     rowCount: number;
     debit: string;
     credit: string;
@@ -20,6 +35,12 @@ export interface FinancialSourceOracle {
   };
   budget: {
     rowCount: number;
+    leaves: Array<{
+      sourceRow: number;
+      component: string;
+      glCode: string | null;
+      periods: Array<{ reportingMonth: string; budget: string | null; rollover: string | null }>;
+    }>;
     periods: Array<{ reportingMonth: string; leafCount: number; budget: string; rollover: string }>;
   };
 }
@@ -83,6 +104,7 @@ function inspectActual(header: HeaderLocation): FinancialSourceOracle["actual"] 
     { plant: string; reportingMonth: string; rowCount: number; actual: bigint }
   >();
   let legacyRowCount = 0;
+  const rows: FinancialSourceOracle["actual"]["rows"] = [];
   header.worksheet.eachRow((row, rowNumber) => {
     if (rowNumber <= header.row || isEmpty(row, header.columns)) return;
     const postingDate = dateText(cell(row, header, "Posting Date"));
@@ -118,6 +140,21 @@ function inspectActual(header: HeaderLocation): FinancialSourceOracle["actual"] 
     debit += rowDebit;
     credit += rowCredit;
     rowCount += 1;
+    rows.push({
+      sourceRow: rowNumber,
+      transactionNumber: nullable(optionalCellText(row, header, "Transaction Number")),
+      lineId: nullable(optionalCellText(row, header, "Line_Id") || optionalCellText(row, header, "#")),
+      postingDate,
+      plant: nullable(plantSource),
+      costCenter: nullable(optionalCellText(row, header, "Cost Center")),
+      glCode: nullable(optionalCellText(row, header, "MIS GL Code")),
+      debit: nullable(debitText),
+      credit: nullable(creditText),
+      section: nullable(optionalCellText(row, header, "Section")),
+      origin: nullable(optionalCellText(row, header, "Origin")),
+      comments: nullable(optionalCellText(row, header, "Comments")),
+      comments2: nullable(optionalCellText(row, header, "Comments_2")),
+    });
   });
   const groups = [...byPlantMonth.values()].sort((left, right) =>
     `${left.plant ?? ""}\u0000${left.reportingMonth}`.localeCompare(
@@ -126,6 +163,7 @@ function inspectActual(header: HeaderLocation): FinancialSourceOracle["actual"] 
   );
   return {
     columns: header.columns.map(({ name }) => name),
+    rows,
     rowCount,
     debit: formatMoney(debit),
     credit: formatMoney(credit),
@@ -172,26 +210,40 @@ function inspectBudget(header: HeaderLocation): FinancialSourceOracle["budget"] 
     periods.map(({ reportingMonth }) => [reportingMonth, { leafCount: 0, budget: 0n, rollover: 0n }]),
   );
   let rowCount = 0;
+  const leaves: FinancialSourceOracle["budget"]["leaves"] = [];
   for (let rowNumber = header.row + 2; rowNumber <= header.worksheet.rowCount; rowNumber += 1) {
     const row = header.worksheet.getRow(rowNumber);
     if (startsNewBudgetTable(row)) break;
     if (isEmpty(row, header.columns)) continue;
     if (!cellText(cell(row, header, "Budget Components")) || row.outlineLevel === 0) continue;
     rowCount += 1;
+    const leafPeriods: FinancialSourceOracle["budget"]["leaves"][number]["periods"] = [];
     for (const period of periods) {
       const budgetLabel = `Budget row ${rowNumber}`;
       const rolloverLabel = `Roll-over row ${rowNumber}`;
       const budgetText = financialText(row.getCell(period.budgetColumn), budgetLabel);
       const rolloverText = financialText(row.getCell(period.rolloverColumn), rolloverLabel);
+      leafPeriods.push({
+        reportingMonth: period.reportingMonth,
+        budget: nullable(budgetText),
+        rollover: nullable(rolloverText),
+      });
       const total = totals.get(period.reportingMonth)!;
       total.leafCount += 1;
       if (!budgetText && !rolloverText) continue;
       total.budget += money(budgetText || "0", budgetLabel);
       total.rollover += money(rolloverText || "0", rolloverLabel);
     }
+    leaves.push({
+      sourceRow: rowNumber,
+      component: cellText(cell(row, header, "Budget Components")),
+      glCode: nullable(optionalCellText(row, header, "GL Codes")),
+      periods: leafPeriods,
+    });
   }
   return {
     rowCount,
+    leaves,
     periods: periods.map(({ reportingMonth }) => {
       const total = totals.get(reportingMonth)!;
       return {
@@ -218,6 +270,10 @@ function cell(row: Row, header: HeaderLocation, name: string): Cell {
 function optionalCellText(row: Row, header: HeaderLocation, name: string): string {
   const column = header.columns.find((candidate) => candidate.name === name)?.column;
   return column ? cellText(row.getCell(column)) : "";
+}
+
+function nullable(value: string): string | null {
+  return value || null;
 }
 
 function isEmpty(row: Row, columns: HeaderLocation["columns"]): boolean {

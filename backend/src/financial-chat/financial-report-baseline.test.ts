@@ -7,14 +7,23 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { Module, type INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { ResponseClass, type AskResponse, type AuthUser, type MisStatementNode, type Selection } from "@3f/contract";
+import {
+  ResponseClass,
+  type AskDrillResponse,
+  type AskResponse,
+  type AuthUser,
+  type MisStatementNode,
+  type Selection,
+} from "@3f/contract";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Workbook } from "exceljs";
 import type { Pool } from "pg";
 import { AuthGuard } from "../auth/auth.guard";
 import { AUTH_COOKIE_NAMES } from "../auth/cookies";
 import { ChatController } from "../chat/chat.controller";
-import { AskDrillContextService } from "../chat/ask-drill-context";
+import { AskDrillController } from "../chat/ask-drill.controller";
+import { AskDrillContextService, type AskDrillContextClaims } from "../chat/ask-drill-context";
+import { AskDrillService } from "../chat/ask-drill.service";
 import { ChatService } from "../chat/chat.service";
 import { SelectionExecutor } from "../chat/selectionExecutor";
 import { StatementExplanationService } from "../chat/statement-explanation.service";
@@ -78,6 +87,7 @@ test("the generated source oracle independently preserves source rows, signs, co
       "Comments",
       "Comments",
       "ContraAct",
+      "Origin",
     ]);
     actual.addRow([
       "Nursery",
@@ -94,6 +104,7 @@ test("the generated source oracle independently preserves source rows, signs, co
       "left",
       "right",
       "",
+      "SAP",
     ]);
     actual.addRow([
       "Nursery",
@@ -103,12 +114,13 @@ test("the generated source oracle independently preserves source rows, signs, co
       "apr",
       "",
       "",
-      "4200",
+      "",
       "Freight",
-      "0",
+      "-2.005",
       "10.005",
       "",
       "kept",
+      "",
       "",
     ]);
     actual.addRow([
@@ -126,6 +138,7 @@ test("the generated source oracle independently preserves source rows, signs, co
       "",
       "",
       "",
+      "Manual",
     ]);
 
     const budget = workbook.addWorksheet("Nursery Financial MIS");
@@ -151,7 +164,7 @@ test("the generated source oracle independently preserves source rows, signs, co
       "90",
       "5",
     ]);
-    budget.addRow(["2", "Freight", "", "10", { sharedFormula: "E5", result: 0 }, "", ""]);
+    budget.addRow(["2", "Freight", "", "10", { sharedFormula: "E5", result: 0.001 }, "", ""]);
     budget.getRow(4).outlineLevel = 0;
     budget.getRow(5).outlineLevel = 1;
     budget.getRow(6).outlineLevel = 1;
@@ -189,14 +202,62 @@ test("the generated source oracle independently preserves source rows, signs, co
         "Comments",
         "Comments_2",
         "ContraAct",
+        "Origin",
+      ],
+      rows: [
+        {
+          sourceRow: 2,
+          transactionNumber: "T-1",
+          lineId: "1",
+          postingDate: "2026-04-05",
+          plant: "DUB-NUR",
+          costCenter: "CC-1",
+          glCode: "4100",
+          debit: "100.125",
+          credit: "5.12",
+          section: "Nursery",
+          origin: "SAP",
+          comments: "left",
+          comments2: "right",
+        },
+        {
+          sourceRow: 3,
+          transactionNumber: "T-2",
+          lineId: "1",
+          postingDate: "2026-04-06",
+          plant: null,
+          costCenter: null,
+          glCode: null,
+          debit: "-2.005",
+          credit: "10.005",
+          section: "Nursery",
+          origin: null,
+          comments: null,
+          comments2: "kept",
+        },
+        {
+          sourceRow: 4,
+          transactionNumber: "T-3",
+          lineId: "1",
+          postingDate: "2026-05-01",
+          plant: "DUB-NUR",
+          costCenter: "CC-1",
+          glCode: "4100",
+          debit: "20",
+          credit: "0",
+          section: "Nursery",
+          origin: "Manual",
+          comments: null,
+          comments2: null,
+        },
       ],
       rowCount: 3,
-      debit: "120.13",
+      debit: "118.12",
       credit: "15.13",
-      actual: "105.00",
+      actual: "102.99",
       reportingMonths: ["2026-04-01", "2026-05-01"],
       byPlantMonth: [
-        { plant: null, reportingMonth: "2026-04-01", rowCount: 1, actual: "-10.01" },
+        { plant: null, reportingMonth: "2026-04-01", rowCount: 1, actual: "-12.02" },
         { plant: "DUB", reportingMonth: "2026-04-01", rowCount: 1, actual: "95.01" },
         { plant: "DUB", reportingMonth: "2026-05-01", rowCount: 1, actual: "20.00" },
       ],
@@ -211,6 +272,26 @@ test("the generated source oracle independently preserves source rows, signs, co
     });
     assert.deepEqual(source.budget, {
       rowCount: 2,
+      leaves: [
+        {
+          sourceRow: 5,
+          component: "Seed",
+          glCode: "4100",
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "80.005", rollover: "4.004" },
+            { reportingMonth: "2026-05-01", budget: "90", rollover: "5" },
+          ],
+        },
+        {
+          sourceRow: 6,
+          component: "Freight",
+          glCode: null,
+          periods: [
+            { reportingMonth: "2026-04-01", budget: "10", rollover: "0.001" },
+            { reportingMonth: "2026-05-01", budget: null, rollover: null },
+          ],
+        },
+      ],
       periods: [
         { reportingMonth: "2026-04-01", leafCount: 2, budget: "90.01", rollover: "4.00" },
         { reportingMonth: "2026-05-01", leafCount: 2, budget: "90.00", rollover: "5.00" },
@@ -423,6 +504,40 @@ test(
       assert.equal(ask.response.responseClass, ResponseClass.Success);
       assert.equal(ask.response.selection?.domain, "governed-financial");
       assert.deepEqual(ask.response.selection?.measureIds, ["governed-financial.actual"]);
+      assert.equal(
+        ask.drills.length,
+        ask.response.drill?.rows.filter(({ drillable }) => drillable).length,
+        "every clickable Actual must open through its issued Ask drill context",
+      );
+      assert.ok(ask.drills.length > 0, "the recorded old Ask answer must expose at least one clickable Actual");
+      for (const issued of ask.drills) {
+        const claim = ask.claims.rows.find(({ key }) => key === issued.rowKey);
+        assert.ok(claim?.drillable && claim.glCode, `issued drill claims must identify ${issued.rowKey}`);
+        const expected: TransactionEvidence[] = oracle.actual.rows
+          .filter(
+            (row) =>
+              row.plant === "DUB-NUR" && row.glCode === claim.glCode && `${row.postingDate.slice(0, 7)}-01` === period,
+          )
+          .map(({ transactionNumber, postingDate, costCenter, debit, credit }) => ({
+            txnNo: transactionNumber,
+            postingDate,
+            costCenter,
+            debit: sourceMoney(debit),
+            credit: sourceMoney(credit),
+          }))
+          .sort(compareEvidence);
+        const opened: TransactionEvidence[] = issued.pages
+          .flatMap(({ lines }) => lines)
+          .map(({ txnNo, postingDate, costCenter, debit, credit }) => ({
+            txnNo,
+            postingDate,
+            costCenter,
+            debit,
+            credit,
+          }))
+          .sort(compareEvidence);
+        assert.deepEqual(opened, expected, `issued Ask drill ${issued.rowKey} must open its source transactions`);
+      }
 
       const artifactPath = await writeFinancialBaselineArtifact(
         {
@@ -434,7 +549,10 @@ test(
           report: withoutVolatileReportFields(report),
           exportSnapshot: snapshotFinancialWorkbook(exported),
           drill,
-          ask: withoutVolatileAskFields(ask.response),
+          ask: {
+            response: stableAskSnapshot(ask.response, ask.claims),
+            openedDrills: ask.drills,
+          },
         },
         checkout,
         baselineDirectory,
@@ -660,7 +778,12 @@ async function oldAskOverHttp(
   warehouse: PostgresAdapter,
   period: string,
   accessToken: string,
-): Promise<{ app: INestApplication; response: AskResponse }> {
+): Promise<{
+  app: INestApplication;
+  response: AskResponse;
+  claims: AskDrillContextClaims;
+  drills: Array<{ rowKey: string; pages: AskDrillResponse[] }>;
+}> {
   const semantic = new SemanticLayer();
   const validator = new SqlValidator();
   const executor = new SelectionExecutor(new SqlBuilder(), validator, warehouse);
@@ -682,13 +805,14 @@ async function oldAskOverHttp(
     },
   };
   const audit = new AuditService(appDb);
+  const drillContexts = new AskDrillContextService(["financial-baseline"], 30);
   const attestation = new StatementAttestationService(["financial-baseline"], 30);
   const statements = new MisStatementService(resolver, semantic, executor, outlines, attestation);
-  const drills = new MisDrillService(resolver, statements, outlines, drillTransactions, audit);
-  const grounding = new StatementGroundingService(attestation, drills);
+  const statementDrills = new MisDrillService(resolver, statements, outlines, drillTransactions, audit);
+  const grounding = new StatementGroundingService(attestation, statementDrills);
   class BaselineHttpModule {}
   Module({
-    controllers: [ChatController],
+    controllers: [ChatController, AskDrillController],
     providers: [
       { provide: SemanticLayer, useValue: semantic },
       { provide: SelectionExecutor, useValue: executor },
@@ -698,27 +822,62 @@ async function oldAskOverHttp(
       { provide: HelpService, useValue: new HelpService(semantic, dimensionValues, resolver) },
       { provide: SelectionResolverService, useValue: resolver },
       { provide: LLM_PROVIDER, useValue: recordedProvider },
-      { provide: StatementExplanationService, useValue: new StatementExplanationService(grounding, drills) },
+      { provide: StatementExplanationService, useValue: new StatementExplanationService(grounding, statementDrills) },
       { provide: GlNameRepository, useValue: glNames },
       { provide: DrillTransactionsRepository, useValue: drillTransactions },
-      { provide: AskDrillContextService, useValue: new AskDrillContextService(["financial-baseline"], 30) },
+      { provide: AskDrillContextService, useValue: drillContexts },
       { provide: StatementOutlineRepository, useValue: outlines },
       { provide: StatementAttestationService, useValue: attestation },
       ChatService,
       { provide: SessionService, useValue: new SessionService(appDb) },
       { provide: RbacService, useValue: new RbacService(appDb, warehouse, semantic) },
       AuthGuard,
+      AskDrillService,
     ],
   })(BaselineHttpModule);
   const app = await NestFactory.create(BaselineHttpModule, { logger: false, abortOnError: false });
   await app.listen(0, "127.0.0.1");
-  const response = await fetch(`${await app.getUrl()}/api/chat`, {
-    method: "POST",
-    headers: { "content-type": "application/json", cookie: `${AUTH_COOKIE_NAMES.access}=${accessToken}` },
-    body: JSON.stringify({ question: "Show Actual by GL for the recorded DUB month" }),
-  });
-  assert.equal(response.status, 201);
-  return { app, response: (await response.json()) as AskResponse };
+  try {
+    const monthLabel = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+      new Date(`${period}T00:00:00Z`),
+    );
+    const response = await fetch(`${await app.getUrl()}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: `${AUTH_COOKIE_NAMES.access}=${accessToken}` },
+      body: JSON.stringify({ question: `Show Actual by GL for ${monthLabel} in DUB` }),
+    });
+    assert.equal(response.status, 201);
+    const answer = (await response.json()) as AskResponse;
+    assert.ok(answer.drill, "the recorded old Ask answer must issue transaction drill metadata");
+    const verification = drillContexts.verify(answer.drill.context, FIXED_BASELINE_USER_ID);
+    assert.equal(verification.outcome, "verified");
+    if (verification.outcome !== "verified") throw new Error("Old Ask issued an unverifiable drill context");
+    const openedDrills: Array<{ rowKey: string; pages: AskDrillResponse[] }> = [];
+    for (const row of answer.drill.rows.filter(({ drillable }) => drillable)) {
+      const pages: AskDrillResponse[] = [];
+      let page = 1;
+      do {
+        const opened = await fetch(`${await app.getUrl()}/api/chat/drill`, {
+          method: "POST",
+          headers: { "content-type": "application/json", cookie: `${AUTH_COOKIE_NAMES.access}=${accessToken}` },
+          body: JSON.stringify({ context: answer.drill.context, rowKey: row.key, page }),
+        });
+        assert.equal(opened.status, 200, `issued Ask drill ${row.key} page ${page} must open`);
+        const result = (await opened.json()) as AskDrillResponse;
+        assert.equal(result.rowKey, row.key);
+        assert.equal(result.page, page);
+        assert.equal(result.footer.value, pages[0]?.footer.value ?? result.footer.value);
+        assert.deepEqual(result.batchStatuses, pages[0]?.batchStatuses ?? result.batchStatuses);
+        pages.push(result);
+        page += 1;
+      } while ((page - 1) * pages[0]!.pageSize < pages[0]!.totalCount);
+      openedDrills.push({ rowKey: row.key, pages });
+    }
+    return { app, response: answer, claims: verification.claims, drills: openedDrills };
+  } catch (error) {
+    await app.close();
+    throw error;
+  }
 }
 
 function baselineUser(id: string): AuthUser {
@@ -757,9 +916,43 @@ function withoutVolatileReportFields<T extends { attestedContext?: unknown }>(re
   return stable;
 }
 
-function withoutVolatileAskFields(response: AskResponse): Omit<AskResponse, "latencyMs" | "sessionId" | "drill"> {
-  const { latencyMs: _latencyMs, sessionId: _sessionId, drill: _drill, ...stable } = response;
-  return stable;
+function stableAskSnapshot(response: AskResponse, claims: AskDrillContextClaims): unknown {
+  const { latencyMs: _latencyMs, sessionId: _sessionId, ...stable } = response;
+  const { exp: _exp, ...stableClaims } = claims;
+  return {
+    ...stable,
+    ...(response.drill
+      ? {
+          drill: { ...response.drill, context: "<issued-token>" },
+          drillClaims: { ...stableClaims, exp: "<expiry>" },
+        }
+      : {}),
+  };
+}
+
+function sourceMoney(raw: string | null): string {
+  assert.notEqual(raw, null, "a legacy-compatible source transaction must contain Debit and Credit");
+  const match = raw!.replaceAll(",", "").match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
+  assert.ok(match, "source transaction money must be decimal text");
+  const fraction = match[3] ?? "";
+  let paise = BigInt(match[2]!) * 100n + BigInt(fraction.slice(0, 2).padEnd(2, "0"));
+  if (fraction[2] && Number(fraction[2]) >= 5) paise += 1n;
+  if (match[1] === "-") paise = -paise;
+  const sign = paise < 0 ? "-" : "";
+  const absolute = paise < 0 ? -paise : paise;
+  return `${sign}${absolute / 100n}.${String(absolute % 100n).padStart(2, "0")}`;
+}
+
+interface TransactionEvidence {
+  txnNo: string | null;
+  postingDate: string;
+  costCenter: string | null;
+  debit: string;
+  credit: string;
+}
+
+function compareEvidence(left: TransactionEvidence, right: TransactionEvidence): number {
+  return JSON.stringify(left).localeCompare(JSON.stringify(right));
 }
 
 async function writeMinimalOracle(
