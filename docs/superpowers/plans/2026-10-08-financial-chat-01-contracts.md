@@ -52,6 +52,7 @@ Each UI block references the same query result/scope, not a second independent m
       label and null/Not applicable percentage; loaded zero remains a separate state.
       Define a stable missing-GL grouping identity and "GL not assigned" display label,
       distinct from real GL codes, for retained Budget leaves without a GL.
+      Pin nullable Actual "<Dimension> not assigned" buckets distinct from real master IDs.
 - [ ] Pin errors with details.reason, fieldErrors and correlation support. Clarification contains
       missing fields and permission-scoped choices, not a default hidden selection.
 - [ ] Define query/drill references, page/full total identity and response/event version. Make a

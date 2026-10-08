@@ -54,6 +54,11 @@ user and handle context; model cannot supply authorization. Do not add general S
 
 ### 6B: Model boundary and bounded agent execution
 
+Develop with a fake selector first and validated warehouse reads. Use synthetic questions
+until the owner records application API/model access, billing and client data-handling
+confirmation. No real new-chat Anthropic calls before that check; fake success cannot
+substitute for live-Claude acceptance.
+
 - [ ] Write marker-payload cases excludes_money_rows_handles_and_raw_state,
       lookup_vocab_is_current_grant_scoped, malformed_tool_call_denied, tool_loop_bounded,
       vendor_timeout_typed and injected_sql_or_code_never_executes.

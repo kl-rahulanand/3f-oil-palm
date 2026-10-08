@@ -54,6 +54,9 @@ authorize attaching a different conversation's result to this resource.
 - [ ] Require CSRF on creation/commands/cancellation, named CORS origins and existing rate-limit/
       security-header policy. No new permissive origin or public financial stream.
 - [ ] Use current backend grants; do not broaden entitlements just to make chat demo work.
+      Require existing financial-report permission plus current Plant grants, including
+      replay/prepared cache/pagination. No report permission denies direct endpoints.
+      No Plant grants gives typed guidance with no financial data, not a default Plant.
       State/list access checks owner before exposing even clarification choices.
 - [ ] Pin flag FINANCIAL_CHAT_ENABLED, default false, in validated configuration and example env.
       Separate frontend visibility from server enforcement; hiding a link is not authorization.

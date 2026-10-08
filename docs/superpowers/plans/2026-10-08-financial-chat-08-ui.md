@@ -44,6 +44,10 @@ drill-down usable. Distinguish hierarchy subtotals from leaves; do not add them 
 
 ### 8A: Chat lifecycle and clarification
 
+No financial-report permission shows access denied; report permission with no Plant grants
+shows guidance to request access and no financial data. Use authenticated server capability
+metadata, not client-generated permissions; clear cached data when access is revoked.
+
 - [ ] Write user-flow tests incomplete_question_shows_clarification, choice_completes_pending_request,
       followup_reuses_confirmed_scope, new_chat_empty, refresh_resumes_live_id and
       stale_restart_shows_new_chat_guidance.
@@ -65,6 +69,7 @@ drill-down usable. Distinguish hierarchy subtotals from leaves; do not add them 
 - [ ] Render one result model in text/table/chart; no client reaggregation, percentages or deltas.
       Monthly rows chronological, labelled axes, series distinguished beyond color, exact table
       accessible alongside chart. Missing/unloaded values are gaps, not zero or interpolated lines.
+      Keep "<Dimension> not assigned" Actual groups visible with prepared drill-down.
       Display "Actual data not loaded" for unconfirmed Plant/month completeness; show zero
       only for confirmed complete coverage with no matching lines, never from absence alone.
 - [ ] Explain available Budget subtotal versus incomplete full comparison. Zero denominator is

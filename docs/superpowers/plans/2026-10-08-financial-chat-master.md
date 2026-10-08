@@ -52,6 +52,12 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
   component/name/reference asks for clarification. No silent financial defaults.
 - Check current Plant permissions on catalog values, queries, transaction pages, resume,
   stream/replay and reused state. IDs are opaque, not authority. Unknown/missing grants deny.
+  [0051](../../decisions/0051-financial-chat-remaining-poc-rules.md) requires existing
+  financial-report permission plus Plant grants. No report permission denies access;
+  no Plant grants shows guidance with no data. Recheck both on reads and cached delivery.
+  Missing Actual dimensions stay in "<Dimension> not assigned" groups with prepared details.
+  Develop with a fake model first; real-Claude calls require recorded owner confirmation of
+  application API/model access, billing and client retention/residency obligations.
 - Known-Plant rows without mapping remain Unmapped in that Plant's Actual total.
   [0050](../../decisions/0050-financial-chat-unmapped-component-group.md) includes a
   separate Unmapped row with prepared transactions in unfiltered component breakdowns.
@@ -123,18 +129,18 @@ Task-specific types (load report, query scope, graph state) have one defining ow
 
 These are draft technical defaults, not additional accepted business decisions.
 
-| Limit                             | Proposed value                                   |
-| --------------------------------- | ------------------------------------------------ |
-| Question                          | 2,000 characters                                 |
-| Active runs                       | One per conversation                             |
-| Visible aggregate rows            | 50, plus an explicitly labelled full-scope total |
-| Prepared distinct Actual scopes   | 50 total, including an overall clickable total   |
-| Prepared transaction page         | 10 rows                                          |
-| Subsequent default/max page       | 20 / 100 rows                                    |
-| Model/tool selection rounds       | Five                                             |
-| Idle conversation/handle lifetime | One hour                                         |
-| Dimension vocabulary              | Existing dimensionEnumMax                        |
-| Model/SQL timeout                 | Existing validated configuration                 |
+| Limit                             | Proposed value                                    |
+| --------------------------------- | ------------------------------------------------- |
+| Question                          | 2,000 characters                                  |
+| Active runs                       | One per conversation                              |
+| Visible aggregate rows            | 199, plus an explicitly labelled full-scope total |
+| Prepared distinct Actual scopes   | 200 total, including an overall clickable total   |
+| Prepared transaction page         | 10 rows                                           |
+| Subsequent default/max page       | 20 / 100 rows                                     |
+| Model/tool selection rounds       | Five                                              |
+| Idle conversation/handle lifetime | One hour                                          |
+| Dimension vocabulary              | Existing dimensionEnumMax                         |
+| Model/SQL timeout                 | Existing validated configuration                  |
 
 If rows plus overall drill exceed the scope limit, reject/narrow before execution rather than
 silently omitting promised detail. Never truncate totals or call a page sum the full total.

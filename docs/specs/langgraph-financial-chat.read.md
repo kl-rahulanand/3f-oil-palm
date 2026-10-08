@@ -31,7 +31,7 @@ Only a genuine trade-off goes to the human, as a question with options.
    Sonnet 5.5 rejects forced tool use (decision 0046), so the model can reply in prose, possibly with a guessed figure, instead of calling a tool. The spec needs a rule: all answer text comes from server templates, and a model reply without a valid selection is shown as a clarification or a fixed refusal, never as model prose. Unproven: item 1: the model answers in prose that contains a number.
 
 3. "Every clickable Actual has a prepared page" (criterion 4) conflicts with decision 0043's requirement that preparation be bounded.
-   Disposition: keep: Prepared-transactions section pins 50 distinct scopes, pre-execution narrowing and explicit preparation failures; acceptance 4 proves them.
+   Disposition: keep: Prepared-transactions section pins 200 distinct scopes per owner decision 0051, pre-execution narrowing and explicit preparation failures; acceptance 4 proves them.
    A comparison by GL or a 12-month trend could mean hundreds of prepared pages. The spec should set a cap on how many pages are prepared per answer. Above the cap, those Actuals are either loaded on click or not clickable, and a preparation that fails must say so rather than look ready. The spec should also say which Actuals are clickable: grand totals, the Unmapped bucket, multi-Plant totals. Unproven: item 4: cap exceeded; item 4: a prepared page fails while the summary succeeds.
 
 4. Totals across Plants or months with partial Budget coverage are not pinned.
@@ -151,13 +151,17 @@ Only a genuine trade-off goes to the human, as a question with options.
     In D2, a GL that has Actual lines but no Budget leaf could show Budget as zero, as no Budget line, or as "not loaded". Each gives a different % display and a different total. It is also unstated where a Budget leaf without a GL goes in a GL grouping, and whether the GL rows still add up to the Plant total. Unproven: item 1: D2 with Actual-only GLs and Budget leaves that have no GL.
 
 28. D3 doesn't say whether a component grouping shows an Unmapped row.
-    Owner decision (2026-10-08): accepted 0050 includes Unmapped with prepared transactions
-    in unfiltered component breakdowns and preserves filtered-component exclusions.
-    Spec and query/drill/UI/verification plans cover row and total reconciliation.
-    Missing Cost Center and other nullable Actual-dimension labels remain to decide.
+    Disposition: keep: Owner decisions 0050/0051 retain Unmapped and missing Actual
+    dimension buckets with prepared transactions and grouped-to-total reconciliation.
+    Spec and contract/query/drill/UI/verification plans cover the missing Cost Center
+    and other nullable Actual dimensions.
     Component totals exclude the Unmapped bucket, but the Unmapped bucket is listed as a clickable coordinate. The spec should say whether a "by component" answer shows an Unmapped row, so the table adds up to the Plant total. Likewise, D7 doesn't say how lines with a missing Cost Center appear, nor how nulls appear in the other Actual-only dimensions. Unproven: item 1: D3's Unmapped row; D7's missing-Cost-Center row.
 
 29. D3 may break the 50-scope cap.
+    Disposition: keep: Owner decision 0051 replaces 50 with 200, counting all advertised
+    distinct Actual scopes including parents, total, zero/empty and missing buckets, with
+    chart/table deduplication. Spec/stage 9 require source profiling of named demo selections
+    before live acceptance plus 200/201 capacity proof, not an assumed fit.
     A Nursery component grouping that includes recorded hierarchy parents can have more than 50 rows. The spec doesn't say whether parent rows and components with zero Actual count as Actual scopes. If they do, D3 is forced into "please narrow", which contradicts its expected outcome. The spec should state how scopes are counted and confirm that D1–D12 fit under the cap.
 
 30. The typed refusal list is missing several outcomes the spec itself introduces.
@@ -173,6 +177,9 @@ Only a genuine trade-off goes to the human, as a question with options.
 Trap: the global exception filter replaces messages: items 3 and 4.
 
 31. Who may use the new chat is not stated.
+    Disposition: keep: Owner decision 0051 requires existing financial-report permission
+    plus current Plant grants. Spec/stages 4/7/8/9 cover no-report denial, no-Plant guidance
+    without data, and revoked report permission on replay/stream/paging.
     The flag turns the feature on, but no role or permission grant gives a user access. The spec doesn't say what a signed-in user with zero permitted Plants sees on the page or when asking a question. Unproven: item 3: a user with no Plant grants; a user without the chat permission calls the endpoints directly.
 
 32. "Missing model configuration fails clearly" could take the whole backend down.

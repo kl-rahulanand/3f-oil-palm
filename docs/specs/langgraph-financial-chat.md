@@ -85,6 +85,10 @@ The recorded provisional assignments permitted by decision 0022 may be seeded wi
 reason/version and remain provisional. No runtime inference or new business-approved
 status is implied; absent targets stay Unmapped. Unknown-Plant rows are available only in
 operator load-reconciliation evidence, not in this PoC's chat or a new review entitlement.
+Other nullable Actual dimensions stay in "<Dimension> not assigned" groups, including
+"Cost Center not assigned", retaining Actuals and prepared transactions. Unfiltered leaf
+groups plus the missing bucket reconcile to the same-scope total. Never invent master data
+(decision 0051).
 
 Coverage is explicit per Plant/month for Actual and Budget. A loaded Actual month with no
 matching lines is zero; an unloaded month is unavailable and a chart gap, not zero.
@@ -115,9 +119,12 @@ Actual/Budget percentage is not itself subject to percentage-change arithmetic.
 
 Clickable Actual coordinates include supported row cells, monthly chart points, whole-scope
 totals and the known-Plant Unmapped bucket. A multi-Plant total pins every selected Plant.
-Bound an answer to 50 distinct Actual scopes including its overall total, deduplicating
+Bound an answer to 200 distinct Actual scopes including its overall total, deduplicating
 identical coordinates. If it would exceed that bound, ask the user to narrow the question
 before execution; no silent truncation or on-click-only preparation replaces this promise.
+Count advertised parent subtotals, Unmapped, missing buckets and zero/empty Actual cells.
+Identical table/chart scopes share one page. Profile named demo selections against the
+reconciled source before live acceptance and verify 200 accepted/201 narrowing; no assumed fit.
 The graph prepares page 1 with 10 rows before completing the answer. Further pages default
 to 20 rows, maximum 100, and start at page 1. A preparation failure leaves the exact summary
 visible with an explicit detail-failed state, not a ready/clickable claim. Page sums are
@@ -163,6 +170,11 @@ startup or disrupt reports/old Ask. Flag-off also starts without a key. No autom
 Audit entries record actor, authorized/refused action, resolved nonfinancial scope, opaque
 internal load/run references and failure category, not prompts, amounts, rows or raw handles.
 
+Require existing financial-report permission plus current Plant grants. Without report
+permission deny page/API access; with report permission but no Plants show guidance to
+request Plant access and no financial data. Recheck both on reads, resume, cached replay
+and pagination. The story pins the exact existing grant through exported auth services.
+
 Existing Ask stays reachable and unchanged. New chat has its own flag-gated Financial Chat
 navigation entry and /financial-chat page, new endpoints and independent logic/components.
 FINANCIAL_CHAT_ENABLED defaults false and is enforced by the backend as well as the UI.
@@ -180,6 +192,9 @@ or evidence of this check. Until confirmed, use synthetic questions and a fake v
 local/hermetic development; blocked access is reported, not bypassed. Live application
 probes are separately gated/manual outside CI, measure timing/usage, and inspect allowed
 payloads without logging secrets or customer results.
+Develop with a fake model first; financial values still come from validated warehouse
+reads. Decision 0051 approves this prerequisite, not a claim that vendor/access/billing/
+retention/residency checks are complete. A fake model does not prove live-Claude correctness.
 
 ## Rules
 
@@ -273,9 +288,11 @@ values; no average of ratios.
 Acceptance evidence for 3: all named follow-ups; explicit month wins over relative context;
 ambiguous component and transaction reference; another user's conversation; refresh/replay
 after revocation; idle/capacity/result eviction; actual process restart; cancellation races.
+No-report permission denies direct API access; no Plant grants shows guidance without
+data; report-permission revocation prevents replay, streaming and pagination.
 
 Acceptance evidence for 4: total/Plant/month/GL/component/Unmapped/zero-net Actual identity
-sets and full totals including more than 10 transactions; 50-scope overflow narrows before
+sets and full totals including more than 10 transactions; 200-scope overflow narrows before
 execution; first-page failure is honest; expired/revoked/cross-conversation handles denied;
 replacement generation never switches page sets; Actual-only GL with absent Budget keeps
 its prepared first page, full reconciled transaction total and further paging.
@@ -308,7 +325,7 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0050 and existing model/financial rules cited above.
+accepted decisions 0042-0051 and existing model/financial rules cited above.
 
 ## Roadmap
 

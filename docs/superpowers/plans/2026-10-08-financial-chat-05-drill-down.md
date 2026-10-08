@@ -50,8 +50,11 @@ or unknown where authorized; transaction identifiers stay strings.
 - [ ] Before marking a value drillable, summarize the full transaction set and compare exact paise
       to the displayed Actual. Mismatch returns a typed detail error and audit finding, never wrong rows.
       Zero net can still have contributing offsetting transactions.
-- [ ] Enforce at most 50 distinct prepared scopes including overall total. Deduplicate identical
+- [ ] Enforce at most 200 distinct prepared scopes including overall total. Deduplicate identical
       coordinates; if the answer cannot fit, ask to narrow rather than prepare an incomplete promise.
+      Count parents, zero/empty Actuals, Unmapped and other missing buckets. Table/chart
+      coordinates with identical contributing scopes share a page. Prove 200 fits/201 narrows
+      before partial preparation. Missing-dimension buckets retain exact transaction detail.
 - [ ] Budget/Roll-over/% cells never get transaction handles.
       The component breakdown's Unmapped Actual row receives its own exact prepared
       transaction scope, without a fabricated component ID or excluded contributing lines.
@@ -88,4 +91,4 @@ or unknown where authorized; transaction identifiers stay strings.
 **Done when:** Every advertised clickable Actual has a reconciled prepared first page and full
 matching total, and further pages never change identity, source or owner.
 **Review focus:** Offset pagination over reload; equivalent sums hiding wrong lines; revoked grants
-on prepared cache; 50 rows plus total limit overflow; zero-net offsetting transactions.
+on prepared cache; 200 scopes including total limit overflow; zero-net offsetting transactions.

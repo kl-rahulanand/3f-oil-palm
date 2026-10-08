@@ -55,6 +55,10 @@ complete total, including repeated GLs and multiple missing-GL leaves.
 
 ### 4A: Validate and authorize vocabulary/selections
 
+Require existing financial-report permission and Plant access through exported auth services.
+The story pins the exact existing grant before coding; never broaden grants or reuse old-chat
+logic. Test no report permission and no Plant grants at service entry points.
+
 - [ ] Write boundary cases hides_unauthorized_dimension_values, rejects_unknown_grants,
       rejects_unsupported_budget_cost_center, rejects_unapproved_dimension and
       resolves_approved_alias_without_guessing. Check lookup scope before querying source values.
@@ -68,6 +72,10 @@ complete total, including repeated GLs and multiple missing-GL leaves.
       within a consistent snapshot, and audit accepted/refused selections without financial rows.
 
 ### 4B: Implement exact aggregation and coverage
+
+Retain nullable supported Actual dimensions under "<Dimension> not assigned", with exact
+contributing scopes and grouped-to-total reconciliation. Test missing Cost Center/Section;
+Unknown Plant remains operator-only. These buckets are not invented master IDs.
 
 - [ ] Write real-DB cases repeated_gl_does_not_fan_out, parent_matches_leaf_sum,
       unmapped_included_once, unknown_plant_not_in_ordinary_total and

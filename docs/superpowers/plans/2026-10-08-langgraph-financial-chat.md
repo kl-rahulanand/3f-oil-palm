@@ -81,7 +81,8 @@ Service signatures:
 All services resolve current grants server-side; browser/model requests cannot supply grants.
 
 PoC defaults to validate in Task 1: 2,000-character question; one active run per conversation;
-50 visible aggregate rows plus complete totals; up to 50 first-page drill scopes per response;
+199 visible aggregate rows plus complete totals; up to 200 first-page drill scopes per response,
+including totals, following accepted decision 0051;
 transaction first page 10 rows, subsequent page default 20/max 100; five bounded model/tool
 selection rounds; one-hour idle conversation/handle expiry. Reject oversize selections and
 ask to narrow grouping instead of silently truncating or omitting promised drill-downs.

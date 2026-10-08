@@ -53,6 +53,10 @@ No invented passing screenshots or unexplained "all tests green" statement.
 
 ### 9B: Exercise complete running application
 
+Prove no report permission denies direct endpoints, no Plant grants shows guidance without
+data, and revoking report permission blocks replay/stream/prepared cache/pagination.
+Include missing Cost Center/Section buckets, exact totals and prepared transaction sets.
+
 - [ ] Provision throwaway postgres:16-alpine warehouse :5434 and app :5435 with validated absolute
       targets; migrate and seed disposable authenticated users through approved app/API entry points.
       Browser creates test data through app API where available; financial fixtures load through the
@@ -88,6 +92,13 @@ No invented passing screenshots or unexplained "all tests green" statement.
       configuration cannot prevent reports or old Ask from starting or answering.
 
 ### 9C: Live model and data-boundary proof
+
+Record owner confirmation of application API/model access, billing and client retention/
+residency requirements before real new-chat Anthropic calls. Until then fake-model/synthetic
+development is allowed but this live gate stays pending.
+Profile named demo selections against reconciled source and record distinct scopes before
+live probes. Prove 200 accepted scopes and 201 narrowing, including parents/totals/empty/
+Unmapped/missing buckets and chart/table deduplication. Do not assume source selections fit.
 
 - [ ] Direct Anthropic claude-sonnet-5-5: probe each base question three times
       in a fresh conversation. The mock selector is not acceptance evidence.
