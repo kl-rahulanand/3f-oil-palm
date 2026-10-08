@@ -53,6 +53,10 @@ files, acceptance items and executed tests. Preserve one end-to-end client-visib
 - Check current Plant permissions on catalog values, queries, transaction pages, resume,
   stream/replay and reused state. IDs are opaque, not authority. Unknown/missing grants deny.
 - Known-Plant rows without mapping remain Unmapped in that Plant's Actual total.
+  [0050](../../decisions/0050-financial-chat-unmapped-component-group.md) includes a
+  separate Unmapped row with prepared transactions in unfiltered component breakdowns.
+  Mapped leaves plus Unmapped reconcile to Plant Actual; parent subtotals are not added again.
+  A named component/parent filter excludes unrelated Unmapped lines. No Budget allocation.
   Plant unknown stays stored and reconciled but is excluded from ordinary Plant answers.
   Do not invent an unassigned-review entitlement; an explicit existing entitlement is required.
 - Budget owner is DUB for this workbook only. Missing Budget is null with

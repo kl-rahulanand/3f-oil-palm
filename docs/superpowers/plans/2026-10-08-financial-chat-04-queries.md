@@ -44,6 +44,9 @@ Component filter resolves stable identity, not a substring or global GL fallback
 A GL Actual total and GL Budget use the same explicit Plant/month scope; do not multiply Budget
 by the number of Actual rows/Cost Centers. Parent component totals include only their leaves,
 not the entire Plant's Unmapped bucket.
+An unfiltered component breakdown additionally includes a separate Unmapped row for
+known-Plant Actuals without mapping. Prove mapped leaves plus this row reconcile to
+same-scope Plant Actual, without counting derived parent subtotals again or allocating Budget.
 Retain Budget leaves without GL in the "GL not assigned" group. Sum them once, without
 inventing an Actual mapping. Prove grouped Budget including this group equals the same-scope
 complete total, including repeated GLs and multiple missing-GL leaves.

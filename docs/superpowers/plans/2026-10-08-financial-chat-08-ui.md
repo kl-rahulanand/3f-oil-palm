@@ -37,6 +37,8 @@ LangGraph transport; locally registered fixed components consume one verified se
 
 Unknown component IDs/props fail validation; no eval/runtime-generated React or remote executable
 component fallback. The final answer is renderable independently of earlier partial frames.
+Unfiltered component comparisons keep the server's Unmapped row visible and its Actual
+drill-down usable. Distinguish hierarchy subtotals from leaves; do not add them again.
 
 ## Tasks
 

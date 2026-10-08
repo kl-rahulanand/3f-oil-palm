@@ -151,6 +151,10 @@ Only a genuine trade-off goes to the human, as a question with options.
     In D2, a GL that has Actual lines but no Budget leaf could show Budget as zero, as no Budget line, or as "not loaded". Each gives a different % display and a different total. It is also unstated where a Budget leaf without a GL goes in a GL grouping, and whether the GL rows still add up to the Plant total. Unproven: item 1: D2 with Actual-only GLs and Budget leaves that have no GL.
 
 28. D3 doesn't say whether a component grouping shows an Unmapped row.
+    Owner decision (2026-10-08): accepted 0050 includes Unmapped with prepared transactions
+    in unfiltered component breakdowns and preserves filtered-component exclusions.
+    Spec and query/drill/UI/verification plans cover row and total reconciliation.
+    Missing Cost Center and other nullable Actual-dimension labels remain to decide.
     Component totals exclude the Unmapped bucket, but the Unmapped bucket is listed as a clickable coordinate. The spec should say whether a "by component" answer shows an Unmapped row, so the table adds up to the Plant total. Likewise, D7 doesn't say how lines with a missing Cost Center appear, nor how nulls appear in the other Actual-only dimensions. Unproven: item 1: D3's Unmapped row; D7's missing-Cost-Center row.
 
 29. D3 may break the 50-scope cap.

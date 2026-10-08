@@ -76,7 +76,11 @@ Actual is the sum of Debit minus Credit, including credits and known-Plant Unmap
 Plant or GL totals without a component filter include those Unmapped Actuals in their
 percentage numerator. "Matching aggregate" means the same selected Plant/time/GL scope,
 not silently dropping Actuals without a component match. Component answers use only the
-recorded component mapping; their totals exclude the Plant's unrelated Unmapped bucket.
+recorded component mapping. Named-component or hierarchy-parent filters exclude unrelated
+Unmapped lines. An unfiltered component breakdown includes a separate "Unmapped" row
+for known-Plant Actuals without mapping, with prepared drill-down (decision 0050).
+Mapped leaf rows plus Unmapped reconcile to the same-scope Plant Actual; hierarchy
+parents are subtotals, not rows to sum again. Never allocate Budget to Unmapped.
 The recorded provisional assignments permitted by decision 0022 may be seeded with their
 reason/version and remain provisional. No runtime inference or new business-approved
 status is implied; absent targets stay Unmapped. Unknown-Plant rows are available only in
@@ -250,7 +254,9 @@ two-leaf fixture; it never guesses a leaf from its GL alone.
    server-sourced result rows, money values, transaction lines or drill-down handles.
 
 Acceptance evidence for 1: D1-D3/D7-D10; named Actual-only source dimensions; Unmapped Plant
-numerator and provisional component mapping; repeated GL fan-out prevention;
+numerator and provisional component mapping; unfiltered component breakdown includes
+Unmapped and reconciles to Plant Actual, while named-component filters exclude unrelated
+Unmapped lines; repeated GL fan-out prevention;
 Budget leaves without GL stay visible as "GL not assigned" and reconcile grouped Budget
 to the same-scope total;
 unsupported Cost Center Budget; Actual-only GL in a loaded Budget month retains exact Actual,
@@ -302,7 +308,7 @@ external component hosting, vector retrieval and production deployment hardening
 ## Source
 
 Owner confirmations in this chat on 2026-10-08; the supplied financial/Nursery workbook;
-accepted decisions 0042-0049 and existing model/financial rules cited above.
+accepted decisions 0042-0050 and existing model/financial rules cited above.
 
 ## Roadmap
 

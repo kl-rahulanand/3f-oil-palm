@@ -71,6 +71,9 @@ No invented passing screenshots or unexplained "all tests green" statement.
 - [ ] Open every promised Actual shape (total/Plant/month/GL/component), verify prepared first-page
       bundle existed before final completion, and page beyond 10 rows to the independently expected
       full set/total. Budget is not clickable; page sum is not full total.
+      Include the component breakdown's Unmapped row: mapped leaves plus Unmapped equal
+      Plant Actual, its full contributing transaction set reconciles, and a named-component
+      filter does not include unrelated Unmapped lines or allocate Budget.
 - [ ] Revoke Plant access between summary/preparation/page/replay; deny access without returning a
       partial mismatched set. Test cross-user IDs, guessed handles, forbidden lookup, session expiry,
       no-CSRF command, duplicate command, disconnect/resume, cancellation and one-run conflict.
