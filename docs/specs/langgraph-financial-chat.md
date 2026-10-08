@@ -81,6 +81,9 @@ Unmapped lines. An unfiltered component breakdown includes a separate "Unmapped"
 for known-Plant Actuals without mapping, with prepared drill-down (decision 0050).
 Mapped leaf rows plus Unmapped reconcile to the same-scope Plant Actual; hierarchy
 parents are subtotals, not rows to sum again. Never allocate Budget to Unmapped.
+Unmapped's Budget is null/"No Budget assigned to Unmapped" and its percentage is
+null/Not applicable. Its row contributes no Budget; the comparison's Budget total
+comes only from actual Budget leaf facts, with existing incomplete-coverage rules.
 The recorded provisional assignments permitted by decision 0022 may be seeded with their
 reason/version and remain provisional. No runtime inference or new business-approved
 status is implied; absent targets stay Unmapped. Unknown-Plant rows are available only in
@@ -126,7 +129,17 @@ Count advertised parent subtotals, Unmapped, missing buckets and zero/empty Actu
 Identical table/chart scopes share one page. Profile named demo selections against the
 reconciled source before live acceptance and verify 200 accepted/201 narrowing; no assumed fit.
 The graph prepares page 1 with 10 rows before completing the answer. Further pages default
-to 20 rows, maximum 100, and start at page 1. A preparation failure leaves the exact summary
+to 20 rows, maximum 100. Prepared page 1 occupies the first 10 rows; continuation page 2
+starts at row 11, never at row 21. The first continuation request pins its page size
+for that handle; later size changes are rejected. For page >= 2, offset is
+10 + (page - 2) * pinned continuation size. Stable order is posting date, transaction
+number, line ID, then unique internal row ID, on the same immutable source generation.
+Acceptance traverses the entire set once without omissions/duplicates across this boundary.
+Preparation has a shared 30-second deadline for the answer's detail batch; bounded workers
+stop launching reads at expiry and cancel outstanding reads. Completed details remain ready;
+unfinished scopes become explicitly detail-failed with retry/rerun guidance while the exact
+summary remains visible. This is a work bound, not a promised overall response latency.
+A preparation failure leaves the exact summary
 visible with an explicit detail-failed state, not a ready/clickable claim. Page sums are
 never the full matching Actual total. Zero-net Actual can still have offsetting transactions.
 
@@ -294,6 +307,8 @@ data; report-permission revocation prevents replay, streaming and pagination.
 Acceptance evidence for 4: total/Plant/month/GL/component/Unmapped/zero-net Actual identity
 sets and full totals including more than 10 transactions; 200-scope overflow narrows before
 execution; first-page failure is honest; expired/revoked/cross-conversation handles denied;
+prepared-to-continuation traversal covers every line once with a pinned page size;
+batch preparation deadline cancels remaining work and renders honest detail-failed states;
 replacement generation never switches page sets; Actual-only GL with absent Budget keeps
 its prepared first page, full reconciled transaction total and further paging.
 Budget/Roll-over/percentage are not clickable.

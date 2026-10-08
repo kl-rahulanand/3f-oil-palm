@@ -39,6 +39,8 @@ Unknown component IDs/props fail validation; no eval/runtime-generated React or 
 component fallback. The final answer is renderable independently of earlier partial frames.
 Unfiltered component comparisons keep the server's Unmapped row visible and its Actual
 drill-down usable. Distinguish hierarchy subtotals from leaves; do not add them again.
+Unmapped Budget says "No Budget assigned to Unmapped"; percentage says "Not applicable".
+Preparation timeouts preserve the exact answer with honest per-scope detail failure guidance.
 
 ## Tasks
 

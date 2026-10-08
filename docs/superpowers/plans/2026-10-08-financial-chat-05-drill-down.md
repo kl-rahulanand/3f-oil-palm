@@ -72,6 +72,10 @@ or unknown where authorized; transaction identifiers stay strings.
       descending choice in the stage 1 page contract. No unstable offset over changing active facts.
 - [ ] Return page 1 with 10 rows; API default subsequent page 20/max 100, page starting at 1.
       Reject malformed/out-of-range input; an empty set has honest zero/count metadata.
+      Continuation page 2 starts after the 10 prepared rows. On the first continuation request
+      pin limit (default 20/max 100) to the handle; later changes are rejected. For page >= 2,
+      offset = 10 + (page - 2) * pinned limit. Stable ordering includes an internal unique ID.
+      Prove no omission/duplication when prepared size differs from continuation size.
 - [ ] Recheck current permissions before each read; if any pinned Plant is no longer authorized,
       deny the scope rather than return a smaller inconsistent set. Server-held page data is not a
       grant cache; verify again before returning previously prepared data.
@@ -80,6 +84,9 @@ or unknown where authorized; transaction identifiers stay strings.
 - [ ] Define bounded parallel preparation batches without adding a queue. A partial detail failure
       marks only that handle failed; summary stays exact but UI cannot claim details ready.
       Stage 6 must call this tool before final completion, not defer every first page until click.
+      Use a shared 30-second preparation deadline per answer; stop new work and cancel in-flight
+      reads at expiry. Preserve ready scopes, mark unfinished scopes detail-failed, and keep the
+      exact summary visible. Verify cancellation and no late cache/ready writes using controlled time.
 
 ## Verification and handoff
 

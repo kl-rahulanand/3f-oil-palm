@@ -47,6 +47,8 @@ not the entire Plant's Unmapped bucket.
 An unfiltered component breakdown additionally includes a separate Unmapped row for
 known-Plant Actuals without mapping. Prove mapped leaves plus this row reconcile to
 same-scope Plant Actual, without counting derived parent subtotals again or allocating Budget.
+Unmapped Budget is null/"No Budget assigned to Unmapped", percentage null/Not applicable;
+it contributes no Budget to the comparison total. Test this separately from absent GL Budget.
 Retain Budget leaves without GL in the "GL not assigned" group. Sum them once, without
 inventing an Actual mapping. Prove grouped Budget including this group equals the same-scope
 complete total, including repeated GLs and multiple missing-GL leaves.

@@ -1,12 +1,12 @@
 ---
 reader: claude (opus)
-read_at: 2026-10-08T17:13:11+00:00
-read_hash: eadc9f40bfa7ec402fd69ef24aaea99fa931e1a2
-round: 2
+read_at: 2026-10-08T17:41:27+00:00
+read_hash: 53ed750ef7fceeba0f3d6a1b64484fa04b8871c7
+round: 3
 passed: no
-doc_seen: eadc9f40bfa7ec402fd69ef24aaea99fa931e1a2
+doc_seen: 53ed750ef7fceeba0f3d6a1b64484fa04b8871c7
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: 6c596f8e2732a2f67e47ce488c2da8e051434e16
+notes_seen: 7d7408338a9628c4429d7dd6334c1e1f88ac07d8
 ---
 
 # Cold read notes
@@ -197,3 +197,33 @@ Trap: the global exception filter replaces messages: items 3 and 4.
 35. Trap: Windows shells: item 5.
     Disposition: keep: Acceptance 5 runs the real supplied path with quoting in PowerShell/cmd/Git Bash.
     The supplied workbook is named `5 Months Financial Data - Knack labs POC (1).xlsx`, which contains spaces and parentheses. The CLI loader's path argument needs a PowerShell, cmd and Git Bash quoting case. No acceptance evidence for item 5 runs the loader on such a path.
+
+## Round 3
+
+36. Nothing says who confirms which Plant/months have complete Actual data, so every demo answer could come back "Actual data not loaded".
+    Decision 0048 says only confirmed complete coverage allows a value or a zero. But the loader is described only as reading the original workbook with explicit DUB Budget ownership, and nothing says what supplies the confirmation. The workbook does not declare completeness, and the disposition leaves the format open. The spec should name:
+    - who confirms coverage (the operator, as a declared Plant/month list given to the CLI);
+    - that DUB April–August 2026 is confirmed for the demo.
+
+    D8's expected outcome mentions only partial Budget. It should also expect "Actual data not loaded" for permitted Plants without confirmed coverage, and should not total their Actuals as if complete. Unproven: item 5: a load with no coverage declaration; item 2: D8 with Plants whose coverage is unconfirmed.
+
+37. Paging offsets are ambiguous when page 1 has 10 rows and later pages have 20.
+    Disposition: keep: Spec and stages 1/5/9 pin page 2 at row 11, continuation size per
+    handle and offset 10 + (page - 2) * pinned size, with stable immutable ordering and
+    full-set traversal proof. Size changes are rejected rather than shifting offsets.
+    "Page 1 with 10 rows; further pages default to 20 rows… and start at page 1" does not say where page 2 begins. It could start at row 11 or at row 21, so rows 11–20 could be skipped or shown twice. The spec should pin cursor- or offset-based continuation from the end of the prepared page. It should also fix a stable transaction order, such as posting date, transaction number, then line ID, so pages neither repeat nor drop lines. Unproven: item 4: paging after the prepared page covers every line exactly once.
+
+38. The Unmapped row's Budget and percentage display is not pinned.
+    Disposition: keep: Spec and stages 1/4/8/9 pin null Budget/"No Budget assigned to
+    Unmapped", null/Not applicable percentage and no contribution/allocation to Budget totals.
+    Decision 0050 forbids allocating Budget to Unmapped, but the spec gives labels only for "No Budget line for this GL" and "Budget not loaded". In D3, the Unmapped row's Budget cell needs a defined null state and label, and its percentage needs "Not applicable". It should also be clear that the comparison's Budget total excludes it. Unproven: item 1: D3's Unmapped row Budget and percentage cells.
+
+39. Percentage change with a negative prior value is undefined.
+    Net Actual can be negative after credits. "Change / previous × 100" then gives a misleading sign; for example, going from −100 to +50 reads as −150%. The spec should pin the rule: Not applicable for a negative prior, or divide by the absolute prior. Unproven: item 2: a month-to-month change from a negative prior month.
+
+40. Preparing up to 200 drill-down pages before an answer completes has no time limit or timeout behaviour.
+    Disposition: keep: Spec and stages 1/5/8/9 require a shared 30-second detail-preparation
+    deadline, cancellation/no new work on expiry, completed scopes retained and unfinished
+    scopes explicitly failed while exact summary remains visible. Controlled-time proof is required;
+    this does not claim an owner-approved overall latency target or measured performance.
+    Up to 200 full-total reads plus first pages must finish before the answer shows. Acceptance 6 only measures timing and sets no target. The spec should give a bound on answer preparation time. It should also say what the user sees when preparation times out. It could be the same detail-failed state per cell while the exact summary still shows, or a typed refusal. Unproven: item 4: preparation times out on a large answer.

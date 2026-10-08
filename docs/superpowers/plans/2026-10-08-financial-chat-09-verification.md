@@ -53,6 +53,12 @@ No invented passing screenshots or unexplained "all tests green" statement.
 
 ### 9B: Exercise complete running application
 
+Verify Unmapped's null Budget/specific label and Not applicable percentage without allocation.
+Traverse prepared 10 rows then continuation pages of pinned 20 rows through the entire
+immutable set exactly once, with changed continuation limit rejected. Expire the shared
+30-second preparation deadline using controlled time and prove cancellation, preserved
+ready scopes, unfinished detail failures and exact summary, not fabricated ready states.
+
 Prove no report permission denies direct endpoints, no Plant grants shows guidance without
 data, and revoking report permission blocks replay/stream/prepared cache/pagination.
 Include missing Cost Center/Section buckets, exact totals and prepared transaction sets.

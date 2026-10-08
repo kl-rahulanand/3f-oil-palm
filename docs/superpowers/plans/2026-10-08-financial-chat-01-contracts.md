@@ -53,6 +53,9 @@ Each UI block references the same query result/scope, not a second independent m
       Define a stable missing-GL grouping identity and "GL not assigned" display label,
       distinct from real GL codes, for retained Budget leaves without a GL.
       Pin nullable Actual "<Dimension> not assigned" buckets distinct from real master IDs.
+      Pin Unmapped Budget as null/"No Budget assigned to Unmapped" and percentage
+      null/Not applicable. Transaction handles record prepared size 10 and the pinned
+      continuation size; reject subsequent size changes and include typed preparation timeout.
 - [ ] Pin errors with details.reason, fieldErrors and correlation support. Clarification contains
       missing fields and permission-scoped choices, not a default hidden selection.
 - [ ] Define query/drill references, page/full total identity and response/event version. Make a
