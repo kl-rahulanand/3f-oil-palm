@@ -1,12 +1,12 @@
 ---
 reader: claude (opus)
-read_at: 2026-10-08T18:11:48+00:00
-read_hash: e4564f1e4dddf2d6724a56f1f5e16f290eaf2786
-round: 5
-passed: no
-doc_seen: e4564f1e4dddf2d6724a56f1f5e16f290eaf2786
+read_at: 2026-10-08T18:12:59+00:00
+read_hash: 4b54ec90861089d4ef5a777f3d4dcf99b2ed7ca6
+round: 6
+passed: yes
+doc_seen: 4b54ec90861089d4ef5a777f3d4dcf99b2ed7ca6
 spec_seen: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-notes_seen: bfd4585b13007a7d299926fce1865b6da92cdf79
+notes_seen: 00c15aef32655312f8fd5d4bba5cfc1d900088d4
 ---
 
 # Cold read notes
@@ -294,3 +294,7 @@ Trap: the global exception filter replaces messages: items 3 and 4.
     corresponding table columns; available-data subtotals are explicitly table-only and
     cannot fill gaps. Acceptance 2 pins the D4 partial table/gapped chart case.
     On the real workbook, the chart keeps complete-Actual gaps while the table shows available-data monthly subtotals (D4). Read literally, a tester comparing chart points with table cells would fail that case. Criterion 2, or its acceptance evidence, should say that agreement means the complete-Actual and Budget series match the corresponding table cells. The available-data subtotal column is then shown only in the table, never as a chart point. Unproven: item 2: the D4 real-workbook chart has no point where the table shows an available-data subtotal.
+
+## Round 6
+
+No findings.
