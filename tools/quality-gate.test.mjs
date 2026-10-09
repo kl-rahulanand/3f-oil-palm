@@ -44,6 +44,7 @@ const hermeticTests = [
   "backend/src/db/seed-users.test.ts",
   "backend/src/financial-chat/financial-disposable-db.guard.test.ts",
   "backend/src/financial-chat/financial-report-baseline.test.ts",
+  "backend/src/financial-chat/stream-adapter.test.ts",
   "backend/src/health/health.controller.test.ts",
   "backend/src/help/ask-help-suggestions-still-carry-mbs-q.test.ts",
   "backend/src/help/help.service.test.ts",
