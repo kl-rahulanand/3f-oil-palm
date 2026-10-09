@@ -294,6 +294,16 @@ test(
           WHERE id = $1`,
         [firstBatchId],
       );
+      await assert.rejects(
+        pool.query(
+          `UPDATE agent_financial.ingestion_batch
+              SET state = 'active', activated_at_utc = now(),
+                  validation_result = '{"rewrittenAtActivation":true}'::jsonb
+            WHERE id = $1`,
+          [firstBatchId],
+        ),
+        /ingestion_batch validation evidence is immutable/,
+      );
       await pool.query(
         `UPDATE agent_financial.ingestion_batch
             SET state = 'active', activated_at_utc = now()
@@ -383,6 +393,64 @@ test(
           [firstBatchId],
         ),
         /active ingestion_batch metadata is immutable/,
+      );
+
+      const failedBatchId = await insertBatch(pool, randomUUID(), plantId, "failed");
+      await pool.query(
+        `UPDATE agent_financial.ingestion_batch
+            SET state = 'failed', validated_at_utc = now(),
+                validation_result = '{"valid":false}'::jsonb,
+                errors = '[{"reason":"schema proof"}]'::jsonb
+          WHERE id = $1`,
+        [failedBatchId],
+      );
+      await assert.rejects(
+        pool.query(
+          `UPDATE agent_financial.ingestion_batch
+              SET reconciliation_result = '{"rewrittenAfterFailure":true}'::jsonb
+            WHERE id = $1`,
+          [failedBatchId],
+        ),
+        /failed ingestion_batch metadata is immutable/,
+      );
+
+      const invalidTimestampCases: Array<[string, string]> = [
+        ["staged batch with validation time", "SET validated_at_utc = now()"],
+        ["staged batch with activation time", "SET activated_at_utc = now()"],
+        ["validated batch without validation time", "SET state = 'validated'"],
+        [
+          "validated batch with activation time",
+          "SET state = 'validated', validated_at_utc = now(), activated_at_utc = now()",
+        ],
+        ["failed batch without validation time", "SET state = 'failed'"],
+        [
+          "failed batch with activation time",
+          "SET state = 'failed', validated_at_utc = now(), activated_at_utc = now()",
+        ],
+      ];
+      for (const [label, assignment] of invalidTimestampCases) {
+        const batchId = await insertBatch(pool, randomUUID(), plantId, label);
+        await assert.rejects(
+          pool.query(`UPDATE agent_financial.ingestion_batch ${assignment} WHERE id = $1`, [batchId]),
+          /ingestion_batch timestamps are inconsistent for state/,
+          label,
+        );
+      }
+      const chronologyBatchId = await insertBatch(pool, randomUUID(), plantId, "chronology");
+      await pool.query(
+        `UPDATE agent_financial.ingestion_batch
+            SET state = 'validated', validated_at_utc = now()
+          WHERE id = $1`,
+        [chronologyBatchId],
+      );
+      await assert.rejects(
+        pool.query(
+          `UPDATE agent_financial.ingestion_batch
+              SET state = 'active', activated_at_utc = validated_at_utc - interval '1 second'
+            WHERE id = $1`,
+          [chronologyBatchId],
+        ),
+        /ingestion_batch timestamps are inconsistent for state/,
       );
     } finally {
       await pool.end();

@@ -306,11 +306,36 @@ BEGIN
 	) THEN
 		RAISE EXCEPTION 'active ingestion_batch metadata is immutable';
 	END IF;
-	IF NEW."state" IN ('validated', 'active', 'superseded') AND NEW."validated_at_utc" IS NULL THEN
-		RAISE EXCEPTION 'validated ingestion_batch requires validated_at_utc';
+	IF TG_OP = 'UPDATE' AND OLD."state" = 'validated' AND NEW."state" = 'active' AND ROW(
+		NEW."source_reporting_months", NEW."actual_coverage", NEW."budget_coverage",
+		NEW."source_counts", NEW."validation_result", NEW."reconciliation_result",
+		NEW."errors", NEW."validated_at_utc"
+	) IS DISTINCT FROM ROW(
+		OLD."source_reporting_months", OLD."actual_coverage", OLD."budget_coverage",
+		OLD."source_counts", OLD."validation_result", OLD."reconciliation_result",
+		OLD."errors", OLD."validated_at_utc"
+	) THEN
+		RAISE EXCEPTION 'ingestion_batch validation evidence is immutable';
 	END IF;
-	IF NEW."state" = 'active' AND NEW."activated_at_utc" IS NULL THEN
-		RAISE EXCEPTION 'active ingestion_batch requires activated_at_utc';
+	IF TG_OP = 'UPDATE' AND OLD."state" = 'failed' AND ROW(
+		NEW."source_reporting_months", NEW."actual_coverage", NEW."budget_coverage",
+		NEW."source_counts", NEW."validation_result", NEW."reconciliation_result",
+		NEW."errors", NEW."validated_at_utc", NEW."activated_at_utc"
+	) IS DISTINCT FROM ROW(
+		OLD."source_reporting_months", OLD."actual_coverage", OLD."budget_coverage",
+		OLD."source_counts", OLD."validation_result", OLD."reconciliation_result",
+		OLD."errors", OLD."validated_at_utc", OLD."activated_at_utc"
+	) THEN
+		RAISE EXCEPTION 'failed ingestion_batch metadata is immutable';
+	END IF;
+	IF NOT (
+		(NEW."state" = 'staged' AND NEW."validated_at_utc" IS NULL AND NEW."activated_at_utc" IS NULL) OR
+		(NEW."state" = 'validated' AND NEW."validated_at_utc" IS NOT NULL AND NEW."activated_at_utc" IS NULL) OR
+		(NEW."state" IN ('active', 'superseded') AND NEW."validated_at_utc" IS NOT NULL
+			AND NEW."activated_at_utc" IS NOT NULL AND NEW."activated_at_utc" >= NEW."validated_at_utc") OR
+		(NEW."state" = 'failed' AND NEW."validated_at_utc" IS NOT NULL AND NEW."activated_at_utc" IS NULL)
+	) THEN
+		RAISE EXCEPTION 'ingestion_batch timestamps are inconsistent for state';
 	END IF;
 	RETURN NEW;
 END;
