@@ -2,26 +2,12 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-LOAD",
   "review": {
     "blocking_level": "P1",
-    "changed": "3b9ccbd4726f9184b552c4acb3d58ad5a073415ed9007331ba17f8b1d714d1b6",
-    "commit": "0bf00babfe363077f222b90761c490805fedc19e",
+    "changed": "432e402ab0b29c5161317c35bcc9ff1822ddf237062f7675c20bf23f4113e8c6",
+    "commit": "acf44a64b501549b7061d9219c04b924eb2c68c6",
     "dismissals": [],
     "findings": [
       {
-        "body": "The loader hard-codes every generation as non-synthetic. Consequently, the generated workbook used by the disposable-database harness is persisted with `isSynthetic: false`, and the unit test explicitly expects that incorrect provenance. This violates the requirement that every synthetic result be labelled; the test harness needs a guarded test-only way to mark its generated batch without exposing a production completeness override.",
-        "file": "backend/src/financial-data/financial-loader.ts",
-        "line": 212,
-        "priority": "P1",
-        "title": "Not done: every synthetic result is labelled"
-      },
-      {
-        "body": "Batch-level `sourceReportingMonths` is populated only from the Actual parser. A valid Budget month absent from the Actual sheet will therefore be omitted from the ingestion batch and CLI report even though budget rows and `budgetCoverage` for that month are persisted. The required source-month metadata should use the union of the Actual and Budget parser month sets, with a test where those sets differ.",
-        "file": "backend/src/financial-data/financial-loader.ts",
-        "line": 213,
-        "priority": "P1",
-        "title": "Not done: source-month metadata includes all workbook months"
-      },
-      {
-        "body": "This file remains outside every permitted path and contains only branch workflow/review state, not implementation or test evidence needed by the operator loader. Its presence contradicts the declared absence of unnecessary out-of-scope changes and should be removed from the branch.",
+        "body": "This file remains outside every permitted path and contains only branch workflow/review state, not implementation or test evidence needed by the operator loader. Its presence contradicts the declared absence of necessary out-of-scope changes and should be removed from the branch.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/LOAD.json",
         "line": 1,
         "priority": "P1",
@@ -29,7 +15,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "b4269e604dd619b0a56d3a041f65c8a169f179f2d19198bff9209499e4b95ad5"
+    "tree": "8ec34a612ddc39157306cfa2a03627af5956decc49954bbf85420c75b485a380"
   },
   "status": "fixing",
   "steps": [
@@ -43,6 +29,10 @@
     },
     {
       "at": "2026-10-09T23:20:30+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T23:41:03+00:00",
       "step": "review"
     }
   ]
