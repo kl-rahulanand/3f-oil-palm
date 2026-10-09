@@ -38,46 +38,46 @@ test(
       assert.deepEqual(duplicateResult, { batchId: firstResult.batchId, activated: false, idempotent: true });
       assert.equal(await identityCount(pool, first), 1);
 
-      const concurrent = generation(fixture, "b", "20.00");
-      const [left, right] = await Promise.all([
-        repository.activateGeneration(concurrent),
-        repository.activateGeneration(concurrent),
-      ]);
-      assert.equal(left.batchId, right.batchId);
-      assert.equal([left, right].filter(({ idempotent }) => idempotent).length, 1);
-      assert.equal(await identityCount(pool, concurrent), 1);
-      assert.deepEqual(await batchStates(pool, fixture.datasetKey), [
-        [firstResult.batchId, "superseded"],
-        [left.batchId, "active"],
-      ]);
+      const concurrentLeft = generation(fixture, "b", "20.00");
+      const concurrentRight = generation(fixture, "c", "30.00");
+      const [left, right] = await raceDistinctReplacements(pool, repository, concurrentLeft, concurrentRight);
+      assert.notEqual(left.batchId, right.batchId);
+      assert.deepEqual(
+        [left, right].map(({ activated, idempotent }) => ({ activated, idempotent })),
+        [
+          { activated: true, idempotent: false },
+          { activated: true, idempotent: false },
+        ],
+      );
+      const racedStates = await selectedBatchStates(pool, [left.batchId, right.batchId]);
+      assert.equal(racedStates.filter((state) => state === "active").length, 1);
+      assert.equal(racedStates.filter((state) => state === "superseded").length, 1);
+      const beforeFailure = await generationInventory(pool, fixture.datasetKey);
+      assertInventoryComplete(beforeFailure, ["a", "b", "c"]);
+      assert.equal(beforeFailure.filter(({ state }) => state === "active").length, 1);
+      assert.equal(beforeFailure.filter(({ state }) => state === "superseded").length, 2);
 
-      const failed = generation(fixture, "c", "30.00");
+      const failed = generation(fixture, "d", "40.00");
       failed.actuals.push({ ...failed.actuals[0]! });
       await assert.rejects(repository.activateGeneration(failed));
       assert.equal(await identityCount(pool, failed), 0, "a failed replacement must roll back its batch and rows");
-      assert.deepEqual(await activeGeneration(pool, fixture.datasetKey), {
-        id: left.batchId,
-        checksum: concurrent.metadata.sourceChecksumSha256,
-        actual: "20.00",
-        budget: "40.00",
-        component: "Concurrent b",
-      });
+      assert.deepEqual(await generationInventory(pool, fixture.datasetKey), beforeFailure);
 
-      const replacement = generation(fixture, "d", "40.00");
+      const replacement = generation(fixture, "e", "50.00");
       const replacementResult = await repository.activateGeneration(replacement);
       assert.equal(replacementResult.activated, true);
-      assert.deepEqual(await activeGeneration(pool, fixture.datasetKey), {
-        id: replacementResult.batchId,
-        checksum: replacement.metadata.sourceChecksumSha256,
-        actual: "40.00",
-        budget: "80.00",
-        component: "Concurrent d",
-      });
-      assert.deepEqual(await retainedFacts(pool, fixture.datasetKey), [
-        ["a", "10.00", "20.00", "Concurrent a", "superseded"],
-        ["b", "20.00", "40.00", "Concurrent b", "superseded"],
-        ["d", "40.00", "80.00", "Concurrent d", "active"],
-      ]);
+      const finalInventory = await generationInventory(pool, fixture.datasetKey);
+      assertInventoryComplete(finalInventory, ["a", "b", "c", "e"]);
+      assert.deepEqual(
+        finalInventory.map(({ generation: suffix, state }) => [suffix, state]),
+        [
+          ["a", "superseded"],
+          ["b", "superseded"],
+          ["c", "superseded"],
+          ["e", "active"],
+        ],
+      );
+      assert.equal(finalInventory.find(({ state }) => state === "active")?.id, replacementResult.batchId);
     } finally {
       await pool.end();
     }
@@ -87,17 +87,17 @@ test(
 interface Fixture {
   datasetKey: string;
   plantId: string;
-  costCenterId: string;
-  glAccountId: string;
+  costCenterIds: [string, string];
+  glAccountIds: [string, string];
 }
 
 async function seedFixture(pool: Pool): Promise<Fixture> {
   const key = randomUUID();
-  const fixture = {
+  const fixture: Fixture = {
     datasetKey: `financial-load-${key}`,
     plantId: randomUUID(),
-    costCenterId: randomUUID(),
-    glAccountId: randomUUID(),
+    costCenterIds: [randomUUID(), randomUUID()],
+    glAccountIds: [randomUUID(), randomUUID()],
   };
   await pool.query(
     `INSERT INTO agent_financial.plant (id, code, name, source_aliases, created_by_actor)
@@ -107,26 +107,28 @@ async function seedFixture(pool: Pool): Promise<Fixture> {
   await pool.query(
     `INSERT INTO agent_financial.cost_center
        (id, plant_id, source_system, code, name, source_aliases, created_by_actor)
-     VALUES ($1, $2, 'SAP', $3, 'Load proof cost center', ARRAY[]::text[], 'load-proof')`,
-    [fixture.costCenterId, fixture.plantId, `CC-${key}`],
+     VALUES ($1, $2, 'SAP', $3, 'Load proof cost center one', ARRAY[]::text[], 'load-proof'),
+            ($4, $2, 'SAP', $5, 'Load proof cost center two', ARRAY[]::text[], 'load-proof')`,
+    [fixture.costCenterIds[0], fixture.plantId, `CC-1-${key}`, fixture.costCenterIds[1], `CC-2-${key}`],
   );
   await pool.query(
     `INSERT INTO agent_financial.gl_account
        (id, source_system, code, name, source_aliases, created_by_actor)
-     VALUES ($1, 'SAP', $2, 'Load proof GL', ARRAY[]::text[], 'load-proof')`,
-    [fixture.glAccountId, `GL-${key}`],
+     VALUES ($1, 'SAP', $2, 'Load proof GL one', ARRAY[]::text[], 'load-proof'),
+            ($3, 'SAP', $4, 'Load proof GL two', ARRAY[]::text[], 'load-proof')`,
+    [fixture.glAccountIds[0], `GL-1-${key}`, fixture.glAccountIds[1], `GL-2-${key}`],
   );
   return fixture;
 }
 
 function generation(fixture: Fixture, suffix: string, actualAmount: string): FinancialGenerationInput {
   const checksum = suffix.repeat(64);
-  const componentKey = `component-${suffix}`;
   const amounts = {
     "10.00": { budget: "20.00", rollover: "30.00" },
     "20.00": { budget: "40.00", rollover: "60.00" },
     "30.00": { budget: "60.00", rollover: "90.00" },
     "40.00": { budget: "80.00", rollover: "120.00" },
+    "50.00": { budget: "100.00", rollover: "150.00" },
   }[actualAmount];
   assert.ok(amounts, "the load proof requires hand-checked expected amounts");
   return {
@@ -142,67 +144,59 @@ function generation(fixture: Fixture, suffix: string, actualAmount: string): Fin
       sourceReportingMonths: ["2099-07-01"],
       actualCoverage: [],
       budgetCoverage: [{ plantId: fixture.plantId, month: "2099-07-01", completeness: "confirmed" }],
-      sourceCounts: { actual: 1, budget: 1 },
+      sourceCounts: { actual: 2, budget: 2, components: 2, mappings: 2 },
       validationResult: { valid: true },
       reconciliationResult: { reconciled: true },
       importedByActor: "load-proof",
     },
-    components: [
-      {
-        componentKey,
-        parentComponentKey: null,
-        sNo: suffix,
-        componentName: `Concurrent ${suffix}`,
-        depth: 0,
-        sortOrder: 0,
-        isLeaf: true,
-        sourceRowNumber: 1,
-        sourceRow: { component: suffix },
-      },
-    ],
-    actuals: [
-      {
-        sourceSystem: "SAP",
-        transactionNumber: `TX-${suffix}`,
-        lineId: "1",
-        sourceRowNumber: 1,
-        postingDate: "2099-07-15",
-        plantId: fixture.plantId,
-        costCenterId: fixture.costCenterId,
-        glAccountId: fixture.glAccountId,
-        sourcePlantCode: "DUB",
-        sourceCostCenterCode: "CC",
-        sourceGlCode: "GL",
-        debit: actualAmount,
-        credit: "0.00",
-        sourceRow: { generation: suffix },
-      },
-    ],
-    budgets: [
-      {
-        plantId: fixture.plantId,
-        componentKey,
-        reportingMonth: "2099-07-01",
-        glAccountId: fixture.glAccountId,
-        rolloverEnabled: true,
-        budgetAmount: amounts.budget,
-        rolloverAmount: amounts.rollover,
-        sourceRowNumber: 1,
-        sourceRow: { generation: suffix },
-      },
-    ],
-    mappings: [
-      {
-        plantId: fixture.plantId,
-        costCenterId: fixture.costCenterId,
-        glAccountId: fixture.glAccountId,
-        componentKey,
-        approvalStatus: "provisional",
-        approvalReason: "Synthetic load proof",
-        approvedBy: "load-proof",
-        provenance: { fixture: true },
-      },
-    ],
+    components: [0, 1].map((index) => ({
+      componentKey: `component-${suffix}-${index + 1}`,
+      parentComponentKey: null,
+      sNo: `${suffix}.${index + 1}`,
+      componentName: `Concurrent ${suffix} ${index + 1}`,
+      depth: 0,
+      sortOrder: index,
+      isLeaf: true,
+      sourceRowNumber: index + 1,
+      sourceRow: { generation: suffix },
+    })),
+    actuals: [0, 1].map((index) => ({
+      sourceSystem: "SAP",
+      transactionNumber: `TX-${suffix}-${index + 1}`,
+      lineId: "1",
+      sourceRowNumber: index + 1,
+      postingDate: "2099-07-15",
+      plantId: fixture.plantId,
+      costCenterId: fixture.costCenterIds[index]!,
+      glAccountId: fixture.glAccountIds[index]!,
+      sourcePlantCode: "DUB",
+      sourceCostCenterCode: `CC-${index + 1}`,
+      sourceGlCode: `GL-${index + 1}`,
+      debit: actualAmount,
+      credit: "0.00",
+      sourceRow: { generation: suffix },
+    })),
+    budgets: [0, 1].map((index) => ({
+      plantId: fixture.plantId,
+      componentKey: `component-${suffix}-${index + 1}`,
+      reportingMonth: "2099-07-01",
+      glAccountId: fixture.glAccountIds[index]!,
+      rolloverEnabled: true,
+      budgetAmount: amounts.budget,
+      rolloverAmount: amounts.rollover,
+      sourceRowNumber: index + 1,
+      sourceRow: { generation: suffix },
+    })),
+    mappings: [0, 1].map((index) => ({
+      plantId: fixture.plantId,
+      costCenterId: fixture.costCenterIds[index]!,
+      glAccountId: fixture.glAccountIds[index]!,
+      componentKey: `component-${suffix}-${index + 1}`,
+      approvalStatus: "provisional",
+      approvalReason: "Synthetic load proof",
+      approvedBy: "load-proof",
+      provenance: { generation: suffix },
+    })),
   };
 }
 
@@ -221,50 +215,194 @@ async function identityCount(pool: Pool, input: FinancialGenerationInput): Promi
   return Number(result.rows[0].count);
 }
 
-async function batchStates(pool: Pool, datasetKey: string): Promise<string[][]> {
-  const result = await pool.query<{ id: string; state: string }>(
-    `SELECT id, state FROM agent_financial.ingestion_batch
-      WHERE dataset_key = $1 ORDER BY created_at_utc, id`,
-    [datasetKey],
-  );
-  return result.rows.map(({ id, state }) => [id, state]);
+type ActivationResult = Awaited<ReturnType<FinancialLoadRepository["activateGeneration"]>>;
+
+async function raceDistinctReplacements(
+  pool: Pool,
+  repository: FinancialLoadRepository,
+  left: FinancialGenerationInput,
+  right: FinancialGenerationInput,
+): Promise<[ActivationResult, ActivationResult]> {
+  await installInsertBlocker(pool);
+  const blocker = await pool.connect();
+  let released = false;
+  let outcomesPromise: Promise<PromiseSettledResult<ActivationResult>[]> | undefined;
+  try {
+    await blocker.query("BEGIN");
+    await blocker.query("SELECT pg_advisory_xact_lock(1700000001, 1700000002)");
+    outcomesPromise = Promise.allSettled([repository.activateGeneration(left), repository.activateGeneration(right)]);
+    assert.equal(
+      await waitForInsertBlockerWaiters(pool),
+      1,
+      "only one distinct replacement may reach its insert while another load owns the dataset",
+    );
+    await blocker.query("COMMIT");
+    released = true;
+    const outcomes = await outcomesPromise;
+    assert.equal(outcomes[0].status, "fulfilled");
+    assert.equal(outcomes[1].status, "fulfilled");
+    return [
+      (outcomes[0] as PromiseFulfilledResult<ActivationResult>).value,
+      (outcomes[1] as PromiseFulfilledResult<ActivationResult>).value,
+    ];
+  } finally {
+    if (!released) {
+      await blocker.query("ROLLBACK");
+    }
+    blocker.release();
+    await outcomesPromise;
+    await removeInsertBlocker(pool);
+  }
 }
 
-async function activeGeneration(pool: Pool, datasetKey: string): Promise<Record<string, string>> {
-  const result = await pool.query<Record<string, string>>(
-    `SELECT b.id, b.source_checksum_sha256 AS checksum, a.actual_amount AS actual,
-            n.budget_amount AS budget, c.component_name AS component
-       FROM agent_financial.ingestion_batch b
-       JOIN agent_financial.financial_actual a ON a.batch_id = b.id
-       JOIN agent_financial.nursery_budget n ON n.batch_id = b.id
-       JOIN agent_financial.nursery_budget_component c
-         ON c.batch_id = n.batch_id AND c.id = n.budget_component_id
-      WHERE b.dataset_key = $1 AND b.state = 'active'`,
-    [datasetKey],
+async function installInsertBlocker(pool: Pool): Promise<void> {
+  await removeInsertBlocker(pool);
+  await pool.query(
+    `CREATE FUNCTION agent_financial.load_proof_block_insert() RETURNS trigger
+       LANGUAGE plpgsql AS $$
+       BEGIN
+         PERFORM pg_advisory_xact_lock(1700000001, 1700000002);
+         RETURN NEW;
+       END
+       $$`,
   );
-  assert.equal(result.rowCount, 1);
-  return result.rows[0]!;
+  await pool.query(
+    `CREATE TRIGGER load_proof_block_insert
+       BEFORE INSERT ON agent_financial.ingestion_batch
+       FOR EACH ROW EXECUTE FUNCTION agent_financial.load_proof_block_insert()`,
+  );
 }
 
-async function retainedFacts(pool: Pool, datasetKey: string): Promise<string[][]> {
-  const result = await pool.query<Record<string, string>>(
-    `SELECT left(b.source_checksum_sha256, 1) AS generation, a.actual_amount AS actual,
-            n.budget_amount AS budget, c.component_name AS component, b.state
+async function removeInsertBlocker(pool: Pool): Promise<void> {
+  await pool.query("DROP TRIGGER IF EXISTS load_proof_block_insert ON agent_financial.ingestion_batch");
+  await pool.query("DROP FUNCTION IF EXISTS agent_financial.load_proof_block_insert()");
+}
+
+async function waitForInsertBlockerWaiters(pool: Pool): Promise<number> {
+  let waiting = 0;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const result = await pool.query<{ count: number }>(
+      `SELECT count(*)::int AS count
+         FROM pg_locks
+        WHERE locktype = 'advisory' AND NOT granted
+          AND classid = 1700000001::oid
+          AND objid = 1700000002::oid`,
+    );
+    waiting = Math.max(waiting, result.rows[0]!.count);
+  }
+  return waiting;
+}
+
+async function selectedBatchStates(pool: Pool, batchIds: string[]): Promise<string[]> {
+  const result = await pool.query<{ state: string }>(
+    `SELECT state FROM agent_financial.ingestion_batch
+      WHERE id = ANY($1::uuid[]) ORDER BY state`,
+    [batchIds],
+  );
+  return result.rows.map(({ state }) => state);
+}
+
+interface GenerationInventory {
+  generation: string;
+  id: string;
+  state: string;
+  sourceCounts: Record<string, number>;
+  actualCount: number;
+  budgetCount: number;
+  componentCount: number;
+  mappingCount: number;
+  actualGenerations: string[];
+  budgetGenerations: string[];
+  componentGenerations: string[];
+  mappingGenerations: string[];
+  mappingComponentKeys: string[];
+}
+
+async function generationInventory(pool: Pool, datasetKey: string): Promise<GenerationInventory[]> {
+  const result = await pool.query<{
+    generation: string;
+    id: string;
+    state: string;
+    source_counts: Record<string, number>;
+    actual_count: number;
+    budget_count: number;
+    component_count: number;
+    mapping_count: number;
+    actual_generations: string[];
+    budget_generations: string[];
+    component_generations: string[];
+    mapping_generations: string[];
+    mapping_component_keys: string[];
+  }>(
+    `SELECT left(b.source_checksum_sha256, 1) AS generation, b.id, b.state, b.source_counts,
+            (SELECT count(*)::int FROM agent_financial.financial_actual a
+              WHERE a.batch_id = b.id) AS actual_count,
+            (SELECT count(*)::int FROM agent_financial.nursery_budget n
+              WHERE n.batch_id = b.id) AS budget_count,
+            (SELECT count(*)::int FROM agent_financial.nursery_budget_component c
+              WHERE c.batch_id = b.id) AS component_count,
+            (SELECT count(*)::int FROM agent_financial.actual_budget_mapping m
+              WHERE m.mapping_version_id = b.id) AS mapping_count,
+            ARRAY(SELECT DISTINCT a.source_row->>'generation'
+                    FROM agent_financial.financial_actual a
+                   WHERE a.batch_id = b.id ORDER BY 1) AS actual_generations,
+            ARRAY(SELECT DISTINCT n.source_row->>'generation'
+                    FROM agent_financial.nursery_budget n
+                   WHERE n.batch_id = b.id ORDER BY 1) AS budget_generations,
+            ARRAY(SELECT DISTINCT c.source_row->>'generation'
+                    FROM agent_financial.nursery_budget_component c
+                   WHERE c.batch_id = b.id ORDER BY 1) AS component_generations,
+            ARRAY(SELECT DISTINCT m.provenance->>'generation'
+                    FROM agent_financial.actual_budget_mapping m
+                   WHERE m.mapping_version_id = b.id ORDER BY 1) AS mapping_generations,
+            ARRAY(SELECT m.budget_component_key
+                    FROM agent_financial.actual_budget_mapping m
+                   WHERE m.mapping_version_id = b.id ORDER BY m.budget_component_key) AS mapping_component_keys
        FROM agent_financial.ingestion_batch b
-       JOIN agent_financial.financial_actual a ON a.batch_id = b.id
-       JOIN agent_financial.nursery_budget n ON n.batch_id = b.id
-       JOIN agent_financial.nursery_budget_component c
-         ON c.batch_id = b.id AND c.id = n.budget_component_id
-      WHERE b.dataset_key = $1 ORDER BY generation`,
+      WHERE b.dataset_key = $1
+      ORDER BY generation`,
     [datasetKey],
   );
-  return result.rows.map(({ generation: suffix, actual, budget, component, state }) => [
-    suffix,
-    actual,
-    budget,
-    component,
-    state,
-  ]);
+  return result.rows.map((row) => ({
+    generation: row.generation,
+    id: row.id,
+    state: row.state,
+    sourceCounts: row.source_counts,
+    actualCount: row.actual_count,
+    budgetCount: row.budget_count,
+    componentCount: row.component_count,
+    mappingCount: row.mapping_count,
+    actualGenerations: row.actual_generations,
+    budgetGenerations: row.budget_generations,
+    componentGenerations: row.component_generations,
+    mappingGenerations: row.mapping_generations,
+    mappingComponentKeys: row.mapping_component_keys,
+  }));
+}
+
+function assertInventoryComplete(inventory: GenerationInventory[], expectedGenerations: string[]): void {
+  assert.deepEqual(
+    inventory.map(({ generation: suffix }) => suffix),
+    expectedGenerations,
+  );
+  for (const row of inventory) {
+    const expectedCounts = { actual: 2, budget: 2, components: 2, mappings: 2 };
+    assert.deepEqual(row.sourceCounts, expectedCounts);
+    assert.deepEqual(
+      {
+        actual: row.actualCount,
+        budget: row.budgetCount,
+        components: row.componentCount,
+        mappings: row.mappingCount,
+      },
+      expectedCounts,
+    );
+    assert.deepEqual(row.actualGenerations, [row.generation]);
+    assert.deepEqual(row.budgetGenerations, [row.generation]);
+    assert.deepEqual(row.componentGenerations, [row.generation]);
+    assert.deepEqual(row.mappingGenerations, [row.generation]);
+    assert.deepEqual(row.mappingComponentKeys, [`component-${row.generation}-1`, `component-${row.generation}-2`]);
+  }
 }
 
 function assertDisposableWarehouse(
