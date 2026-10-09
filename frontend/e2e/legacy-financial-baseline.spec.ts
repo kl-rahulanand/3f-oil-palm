@@ -29,6 +29,9 @@ test.describe("legacy financial BASELINE", () => {
   test("proof controls reject unsafe runtime settings, linked evidence paths, and invalid exports", async () => {
     expect(configExit({ BIND_HOST: "0.0.0.0" })).not.toBe(0);
     expect(configExit({ WAREHOUSE_DRIVER: "http" })).not.toBe(0);
+    expect(configExit({ NEXT_PUBLIC_API_BASE_URL: "https://example.invalid" })).not.toBe(0);
+    expect(configExit({ FRONTEND_ORIGIN: "https://example.invalid" })).not.toBe(0);
+    expect(configExit({ PORT: "4100" })).not.toBe(0);
 
     const junctionRoot = await mkdtemp(join(tmpdir(), "3f-financial-evidence-control-"));
     const junction = join(junctionRoot, "3f-financial-linked-evidence");

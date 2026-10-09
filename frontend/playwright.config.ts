@@ -14,6 +14,9 @@ const expected = {
   PGHOST: "127.0.0.1",
   PGPORT: "5435",
   PGDATABASE: "financial_proof",
+  NEXT_PUBLIC_API_BASE_URL: "http://127.0.0.1:4000",
+  FRONTEND_ORIGIN: "http://127.0.0.1:3000",
+  PORT: "4000",
 } as const;
 
 export function assertLegacyProofRuntime(environment: NodeJS.ProcessEnv): void {
@@ -99,6 +102,14 @@ function samePath(left: string, right: string): boolean {
 assertLegacyProofRuntime(process.env);
 // Failure traces can contain financial rows; canonicalize before Playwright can write them.
 const outputDir = trustedTaskDirectory(join(tmpdir(), "3f-financial-legacy-ui-playwright"), resolve(__dirname, ".."));
+const webServerEnvironment: Record<string, string> = {
+  ...Object.fromEntries(
+    Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+  ),
+  NEXT_PUBLIC_API_BASE_URL: expected.NEXT_PUBLIC_API_BASE_URL,
+  FRONTEND_ORIGIN: expected.FRONTEND_ORIGIN,
+  PORT: expected.PORT,
+};
 
 export default defineConfig({
   testDir: "./e2e",
@@ -125,6 +136,7 @@ export default defineConfig({
       timeout: 60_000,
       stdout: "pipe",
       stderr: "pipe",
+      env: webServerEnvironment,
     },
     {
       command: "node node_modules/next/dist/bin/next dev frontend -H 127.0.0.1 -p 3000",
@@ -134,6 +146,7 @@ export default defineConfig({
       timeout: 60_000,
       stdout: "pipe",
       stderr: "pipe",
+      env: webServerEnvironment,
     },
   ],
 });
