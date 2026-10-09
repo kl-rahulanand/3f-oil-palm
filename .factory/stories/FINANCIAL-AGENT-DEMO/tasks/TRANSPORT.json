@@ -1,0 +1,10 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-TRANSPORT",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-09T14:45:04+00:00",
+      "step": "start"
+    }
+  ]
+}
