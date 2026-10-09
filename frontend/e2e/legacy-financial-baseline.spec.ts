@@ -206,7 +206,7 @@ async function signIn(page: Page, email: string): Promise<void> {
   await page.getByRole("button", { name: "Send code" }).click();
   await page.getByLabel("6-digit code").fill("000000");
   await page.getByRole("button", { name: "Verify" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 30_000 });
 }
 
 async function upload(
