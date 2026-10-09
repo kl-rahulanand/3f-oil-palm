@@ -70,6 +70,9 @@ const timeWindowSchema = z
     if (kind === "month" && (from.slice(0, 7) !== to.slice(0, 7) || !from.endsWith("-01") || to !== lastDay)) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "month must resolve to one complete month" });
     }
+    if (kind === "range" && (!from.endsWith("-01") || to !== lastDay)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "range must contain complete months" });
+    }
     if (kind === "financial_ytd") {
       const fiscalStartYear = toMonth < 4 ? toYear - 1 : toYear;
       if (from !== `${fiscalStartYear}-04-01` || to !== lastDay) {
@@ -90,6 +93,7 @@ const actualOnlyDimensions = new Set([
   "origin",
   "location",
 ]);
+const UNMAPPED_NURSERY_COMPONENT = "unmapped-GL";
 
 function hasUnsupportedMeasureDimensionCombination(measureIds: readonly string[], dimensionIds: readonly string[]) {
   return (
@@ -137,13 +141,15 @@ export const financialSelectionSchema = z
         path: ["filters"],
       });
     }
+    const percentageOnly = measureIds.length === 1 && measureIds[0] === "percentage";
     if (
       comparisons?.includes("actual_vs_budget") &&
+      !percentageOnly &&
       (!measureIds.includes("actual") || !measureIds.includes("budget"))
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "actual_vs_budget requires both Actual and Budget",
+        message: "actual_vs_budget requires both Actual and Budget unless only percentage is returned",
         path: ["comparisons"],
       });
     }
@@ -183,6 +189,16 @@ const catalogCombinationSchema = z
   })
   .strict()
   .superRefine(({ measureIds, dimensionIds }, context) => {
+    if (new Set(measureIds).size !== measureIds.length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "measureIds must be unique", path: ["measureIds"] });
+    }
+    if (new Set(dimensionIds).size !== dimensionIds.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "dimensionIds must be unique",
+        path: ["dimensionIds"],
+      });
+    }
     if (hasUnsupportedMeasureDimensionCombination(measureIds, dimensionIds)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -476,12 +492,16 @@ export const financialQueryResultSchema = z
       if (selection.comparisons?.includes("actual_vs_budget")) {
         requiredValueKeys.add("percentage");
       }
-      if (selection.measureIds.includes("actual") && relevantCoverage.some(({ actual }) => actual === "unconfirmed")) {
+      const completeActualCoverage =
+        relevantCoverage.length > 0 && relevantCoverage.every(({ actual }) => actual === "complete");
+      const hasSourceCoveredActual = relevantCoverage.some(({ actual }) => actual !== "not_loaded");
+      if (selection.measureIds.includes("actual") && !completeActualCoverage && hasSourceCoveredActual) {
         requiredValueKeys.add("availableActualSubtotal");
       }
       const hasLoadedBudget = relevantCoverage.some(({ budget }) => budget === "loaded");
       const hasMissingBudget = relevantCoverage.some(({ budget }) => budget === "not_loaded");
-      if (selection.measureIds.includes("budget") && hasLoadedBudget && hasMissingBudget) {
+      const isUnmappedRow = dimensions?.nursery_component === UNMAPPED_NURSERY_COMPONENT;
+      if (selection.measureIds.includes("budget") && hasLoadedBudget && hasMissingBudget && !isUnmappedRow) {
         requiredValueKeys.add("availableBudgetSubtotal");
       }
       const valueKeys = Object.keys(values);
@@ -520,8 +540,7 @@ export const financialQueryResultSchema = z
         });
       }
       if (
-        values.budget &&
-        ["no_gl_line", "unmapped"].includes(values.budget.state) &&
+        values.budget?.state === "no_gl_line" &&
         (relevantCoverage.length === 0 || relevantCoverage.some(({ budget }) => budget !== "loaded"))
       ) {
         context.addIssue({
@@ -533,8 +552,8 @@ export const financialQueryResultSchema = z
       if (
         (values.budget?.state === "no_gl_line" &&
           (!dimensions || !selection.dimensionIds.includes("gl") || !dimensions.gl)) ||
-        (values.budget?.state === "unmapped" &&
-          (!dimensions || !selection.dimensionIds.includes("nursery_component") || !dimensions.nursery_component))
+        (values.budget?.state === "unmapped" && !isUnmappedRow) ||
+        (isUnmappedRow && selection.measureIds.includes("budget") && values.budget?.state !== "unmapped")
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -542,10 +561,10 @@ export const financialQueryResultSchema = z
           path: [...path, "budget"],
         });
       }
-      if (values.availableActualSubtotal && !relevantCoverage.some(({ actual }) => actual === "unconfirmed")) {
+      if (values.availableActualSubtotal && (completeActualCoverage || !hasSourceCoveredActual)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "available-data subtotal requires a source-covered unconfirmed month",
+          message: "available-data subtotal requires incomplete coverage with source-covered Actual",
           path: [...path, "availableActualSubtotal"],
         });
       }
@@ -564,10 +583,14 @@ export const financialQueryResultSchema = z
           });
         }
       }
+      const percentageCoverageAvailable =
+        relevantCoverage.length > 0 &&
+        relevantCoverage.every(({ actual, budget }) => actual === "complete" && budget === "loaded");
+      const explicitActualAvailable = values.actual?.state === "available";
+      const explicitBudgetNonzero = values.budget?.state === "available" && !/^-?0\.00$/.test(values.budget.value);
       if (values.percentage?.state === "available") {
-        const invalidActual = values.actual && values.actual.state !== "available";
-        const invalidBudget =
-          values.budget && (values.budget.state !== "available" || /^-?0\.00$/.test(values.budget.value));
+        const invalidActual = values.actual !== undefined && !explicitActualAvailable;
+        const invalidBudget = values.budget !== undefined && !explicitBudgetNonzero;
         if (invalidActual || invalidBudget) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
@@ -575,13 +598,27 @@ export const financialQueryResultSchema = z
             path: [...path, "percentage"],
           });
         }
-        if (relevantCoverage.some(({ actual, budget }) => actual !== "complete" || budget !== "loaded")) {
+        if (!percentageCoverageAvailable) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             message: "available percentage contradicts incomplete coverage",
             path: [...path, "percentage"],
           });
         }
+      }
+      if (
+        values.percentage?.state === "not_applicable" &&
+        values.actual !== undefined &&
+        values.budget !== undefined &&
+        explicitActualAvailable &&
+        explicitBudgetNonzero &&
+        percentageCoverageAvailable
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Not applicable requires an unavailable, special, or zero comparison input",
+          path: [...path, "percentage"],
+        });
       }
     });
   })

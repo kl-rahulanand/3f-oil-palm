@@ -140,6 +140,21 @@ test("exact money preserves large signed paise strings without numeric coercion"
 
 test("selection accepts only governed vocabulary and rejects SQL or unknown fields", () => {
   assert.deepEqual(financialSelectionSchema.parse(selection), selection);
+  const percentageOnlySelection = {
+    ...selection,
+    measureIds: ["percentage"],
+    timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+  };
+  const partialMonthRange = {
+    ...selection,
+    timeWindow: { kind: "range", from: "2026-04-15", to: "2026-05-06" },
+  };
+  assert.deepEqual(
+    [percentageOnlySelection, partialMonthRange].map(
+      (candidate) => financialSelectionSchema.safeParse(candidate).success,
+    ),
+    [true, false],
+  );
   assert.throws(() => financialSelectionSchema.parse({ ...selection, plantIds: ["DUB", "DUB"] }));
   assert.throws(() =>
     financialSelectionSchema.parse({ ...selection, measureIds: ["percentage"], comparisons: undefined }),
@@ -196,6 +211,20 @@ test("catalog validates governed combinations, fiscal rules, and hard limits", (
       measures: [catalog.measures[0]],
       combinations: [{ measureIds: ["actual"], dimensionIds: ["plant"] }],
     }),
+  );
+  const repeatedCombinationMeasure = {
+    ...catalog,
+    combinations: [{ measureIds: ["actual", "actual"], dimensionIds: ["plant"] }],
+  };
+  const repeatedCombinationDimension = {
+    ...catalog,
+    combinations: [{ measureIds: ["actual"], dimensionIds: ["plant", "plant"] }],
+  };
+  assert.deepEqual(
+    [repeatedCombinationMeasure, repeatedCombinationDimension].map(
+      (candidate) => financialCatalogSchema.safeParse(candidate).success,
+    ),
+    [false, false],
   );
 });
 
@@ -576,6 +605,222 @@ test("query results reject every unrequested financial value", () => {
       selection: { ...result.selection, comparisons: undefined },
     }),
   );
+});
+
+test("financial boundary matrix keeps only source-covered partials and provable ratios", () => {
+  const actualMonthResult = (resultId: string, actual: string, totals: object) => ({
+    resultId,
+    selection: {
+      measureIds: ["actual"],
+      dimensionIds: [],
+      plantIds: ["DUB"],
+      timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+      filters: [],
+    },
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-04-30" },
+    rows: [],
+    totals,
+    coverage: [{ plantId: "DUB", month: "2026-04-01", actual, budget: "not_loaded" }],
+  });
+  const completeActual = actualMonthResult("actual-complete", "complete", {
+    actual: { state: "available", value: "10.00", label: "Actual", drilldownId: "drill-complete" },
+  });
+  const unconfirmedActual = actualMonthResult("actual-unconfirmed", "unconfirmed", {
+    actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+    availableActualSubtotal: {
+      value: "10.00",
+      label: "Available-data Actual subtotal — completeness unconfirmed",
+      drilldownId: "drill-unconfirmed",
+    },
+  });
+  const missingActual = actualMonthResult("actual-missing", "not_loaded", {
+    actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+  });
+  const missingActualWithSubtotal = actualMonthResult("actual-missing-with-subtotal", "not_loaded", {
+    actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+    availableActualSubtotal: {
+      value: "0.00",
+      label: "Available-data Actual subtotal — completeness unconfirmed",
+      drilldownId: "drill-missing",
+    },
+  });
+  const partialRangeActual = {
+    ...completeActual,
+    resultId: "actual-partial-range",
+    selection: {
+      ...completeActual.selection,
+      timeWindow: { kind: "range", from: "2026-04-01", to: "2026-05-31" },
+    },
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-05-31" },
+    totals: {
+      actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+      availableActualSubtotal: {
+        value: "10.00",
+        label: "Available-data Actual subtotal — completeness unconfirmed",
+        drilldownId: "drill-partial-range",
+      },
+    },
+    coverage: [
+      { plantId: "DUB", month: "2026-04-01", actual: "complete", budget: "not_loaded" },
+      { plantId: "DUB", month: "2026-05-01", actual: "not_loaded", budget: "not_loaded" },
+    ],
+  };
+  const partialRangeWithoutSubtotal = {
+    ...partialRangeActual,
+    totals: {
+      actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+    },
+  };
+
+  const fullComparisonNotApplicable = {
+    ...result,
+    totals: {
+      ...result.totals,
+      percentage: { state: "not_applicable", value: null, label: "Not applicable" },
+    },
+  };
+  const zeroBudgetComparison = {
+    ...result,
+    rows: result.rows.map((row) => ({
+      ...row,
+      values: {
+        ...row.values,
+        budget: { state: "available", value: "0.00", label: "Budget" },
+        percentage: { state: "not_applicable", value: null, label: "Not applicable" },
+      },
+    })),
+    totals: {
+      ...result.totals,
+      budget: { state: "available", value: "0.00", label: "Budget" },
+      percentage: { state: "not_applicable", value: null, label: "Not applicable" },
+    },
+  };
+  const negativeBudgetComparison = {
+    ...result,
+    rows: result.rows.map((row) => ({
+      ...row,
+      values: {
+        ...row.values,
+        budget: { state: "available", value: "-100.00", label: "Budget" },
+        percentage: { state: "available", value: "-900719925474099312345.6789", label: "Percentage" },
+      },
+    })),
+    totals: {
+      ...result.totals,
+      budget: { state: "available", value: "-100.00", label: "Budget" },
+      percentage: { state: "available", value: "-900719925474099312345.6789", label: "Percentage" },
+    },
+  };
+  const percentageOnly = {
+    ...result,
+    selection: { ...result.selection, measureIds: ["percentage"] },
+    rows: result.rows.map((row) => ({ ...row, values: { percentage: row.values.percentage } })),
+    totals: { percentage: result.totals.percentage },
+  };
+  const percentageOnlyNotApplicable = {
+    ...percentageOnly,
+    rows: percentageOnly.rows.map((row) => ({
+      ...row,
+      values: { percentage: { state: "not_applicable", value: null, label: "Not applicable" } },
+    })),
+    totals: { percentage: { state: "not_applicable", value: null, label: "Not applicable" } },
+  };
+
+  const unmappedMixedBudget = {
+    resultId: "unmapped-mixed-budget",
+    selection: {
+      measureIds: ["actual", "budget"],
+      dimensionIds: ["nursery_component"],
+      plantIds: ["DUB", "CHIR"],
+      timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+      filters: [],
+      comparisons: ["actual_vs_budget"],
+    },
+    scope: { plantIds: ["DUB", "CHIR"], from: "2026-04-01", to: "2026-04-30" },
+    rows: [
+      {
+        key: "nursery_component:unmapped-GL",
+        dimensions: { nursery_component: "unmapped-GL" },
+        values: {
+          actual: { state: "available", value: "15.00", label: "Actual", drilldownId: "drill-unmapped" },
+          budget: { state: "unmapped", value: null, label: "No Budget assigned to Unmapped" },
+          percentage: { state: "not_applicable", value: null, label: "Not applicable" },
+        },
+      },
+    ],
+    totals: {
+      actual: { state: "available", value: "15.00", label: "Actual", drilldownId: "drill-total" },
+      budget: { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" },
+      availableBudgetSubtotal: {
+        value: "10.00",
+        label: "Available-only Budget subtotal — coverage incomplete",
+      },
+      percentage: { state: "not_applicable", value: null, label: "Not applicable" },
+    },
+    coverage: [
+      { plantId: "DUB", month: "2026-04-01", actual: "complete", budget: "loaded" },
+      { plantId: "CHIR", month: "2026-04-01", actual: "complete", budget: "not_loaded" },
+    ],
+  };
+  const mappedClaimingUnmapped = {
+    ...unmappedMixedBudget,
+    rows: unmappedMixedBudget.rows.map((row) => ({
+      ...row,
+      dimensions: { nursery_component: "Mapped nursery" },
+    })),
+  };
+  const unmappedMissingBudget = {
+    ...unmappedMixedBudget,
+    totals: {
+      actual: unmappedMixedBudget.totals.actual,
+      budget: { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" },
+      percentage: { state: "not_applicable", value: null, label: "Not applicable" },
+    },
+    coverage: unmappedMixedBudget.coverage.map((entry) => ({ ...entry, budget: "not_loaded" })),
+  };
+  const glWithoutBudget = {
+    ...result,
+    rows: result.rows.map((row) => ({
+      ...row,
+      values: {
+        ...row.values,
+        budget: { state: "no_gl_line", value: null, label: "No Budget line for this GL" },
+        percentage: { state: "not_applicable", value: null, label: "Not applicable" },
+      },
+    })),
+  };
+
+  const cases = [
+    ["complete Actual", completeActual, true],
+    ["unconfirmed Actual", unconfirmedActual, true],
+    ["missing Actual", missingActual, true],
+    ["missing Actual cannot invent a subtotal", missingActualWithSubtotal, false],
+    ["partial range Actual", partialRangeActual, true],
+    ["partial range Actual requires its subtotal", partialRangeWithoutSubtotal, false],
+    ["complete nonzero comparison cannot be unavailable", fullComparisonNotApplicable, false],
+    ["zero Budget comparison", zeroBudgetComparison, true],
+    ["negative nonzero Budget comparison", negativeBudgetComparison, true],
+    ["percentage-only comparison", percentageOnly, true],
+    ["percentage-only unavailable comparison", percentageOnlyNotApplicable, true],
+    ["Unmapped under mixed Budget coverage", unmappedMixedBudget, true],
+    ["Unmapped under missing Budget coverage", unmappedMissingBudget, true],
+    ["mapped component cannot claim Unmapped", mappedClaimingUnmapped, false],
+    ["GL without a Budget line", glWithoutBudget, true],
+  ] as const;
+
+  assert.deepEqual(
+    cases.map(([name, candidate]) => ({ name, valid: financialQueryResultSchema.safeParse(candidate).success })),
+    cases.map(([name, , valid]) => ({ name, valid })),
+  );
+
+  for (const timeWindow of [
+    { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+    { kind: "range", from: "2026-04-01", to: "2026-05-31" },
+    { kind: "financial_ytd", from: "2026-04-01", to: "2026-08-31" },
+  ]) {
+    assert.doesNotThrow(() => financialSelectionSchema.parse({ ...selection, timeWindow }));
+  }
+  assert.deepEqual(actualTransactionPageSchema.parse(page), page);
 });
 
 test("transaction results keep full-total identity and strict exact-money rows", () => {
