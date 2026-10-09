@@ -2,12 +2,37 @@
   "base": "110ca15d6366703b0241aa53c52835430e125bf3",
   "branch": "fix/upgrade-forge-to-v1-2-7",
   "done_when": "Forge runs v1.2.7 with existing financial-chat work preserved",
+  "flagged": [
+    ".codex/config.toml"
+  ],
   "kind": "fix",
-  "status": "started",
+  "review": {
+    "blocking_level": "P1",
+    "branch_diff": "b796a48c22a912d0d5653c4095c6bc25476aa9ea956f7bbb8efbf9d50a5ae633",
+    "changed": "1d9cacac1751749979a612e0f0c966e262d1f98e90ea907126d4bf60d827ed84",
+    "commit": "d2a0edb925abd60ee688074341fbbb25d8e7ec0a",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The rule says, \u201cSecurity and accessibility never simplified away.\u201d This changes Codex from workspace isolation to unrestricted host access and pairs it with `approval_policy = \"never\"`; `.claude/settings.json:46-52` likewise blanket-allows Bash, file writes, and web access. A compromised dependency, repository instruction, or mistaken agent command can therefore read or alter files outside this checkout and make network requests without confirmation. Preserve `workspace-write` and approval boundaries, and grant only narrowly required host operations.",
+        "file": ".codex/config.toml",
+        "line": 16,
+        "priority": "P1",
+        "title": "Standard: Security and accessibility never simplified away"
+      }
+    ],
+    "id": "03212125-db8b-48e6-b712-d51a13233e73",
+    "status": "blocked"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T07:06:27+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-09T07:19:05+00:00",
+      "step": "review"
     }
   ],
   "why": "Upgrade Forge to v1.2.7"
