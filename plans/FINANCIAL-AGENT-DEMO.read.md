@@ -1,12 +1,12 @@
 ---
-reader: claude (opus)
-read_at: 2026-10-08T18:43:44+00:00
-read_hash: 94ced9052ed342f7954740d6c4e7faf8bba3d78a
-round: 5
+reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
+read_at: 2026-10-09T13:48:41+00:00
+read_hash: ff66d0bfeaaa233c6ca2854b00504991e1f3e61e
+round: 7
 passed: yes
-doc_seen: 94ced9052ed342f7954740d6c4e7faf8bba3d78a
+doc_seen: ff66d0bfeaaa233c6ca2854b00504991e1f3e61e
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: ecd891e29b3d0f9066307b14968316f52f227a77
+notes_seen: f3e6d0b6cb721de5632924d55922a44e05bad2f5
 ---
 
 # Cold read notes
@@ -209,5 +209,16 @@ Only a genuine trade-off goes to the human, as a question with options.
     - Move the target check into a shared TypeScript guard that each dual-DB leaf calls before writing, as FIXTURES already does for its own refusal. Name a test of it in BASELINE's Tests cell, or move the wrapper under `tools/` so lint and format cover it, and test it there.
 
 ## Round 5
+
+No findings.
+
+## Round 6
+
+27. Disputed keep 19: BASELINE remains too large after moving Playwright work to LEGACY-UI.
+    Disposition: keep: BASELINE is already merged and its implementation boundaries are now historical; this amendment only adds the exact quality-gate owner required by LEGACY-UI's portable build-script change. Re-splitting landed baseline code would be unrelated rework and would not reduce the remaining task's scope.
+   - It still combines the independent source oracle, legacy snapshot/report/export/drill/old-Ask parity, disposable-DB guard, and proof runner.
+   - Split SOURCE-ORACLE from guarded legacy baseline capture; make SCHEMA wait for the latter.
+
+## Round 7
 
 No findings.
