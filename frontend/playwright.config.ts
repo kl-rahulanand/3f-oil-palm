@@ -100,8 +100,14 @@ function samePath(left: string, right: string): boolean {
 }
 
 assertLegacyProofRuntime(process.env);
-// Failure traces can contain financial rows; canonicalize before Playwright can write them.
-const outputDir = trustedTaskDirectory(join(tmpdir(), "3f-financial-legacy-ui-playwright"), resolve(__dirname, ".."));
+// Failure traces and downloads can contain financial rows; keep both under one canonical task directory.
+const checkout = resolve(__dirname, "..");
+const proofDirectory = trustedTaskDirectory(
+  process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR ?? join(tmpdir(), "3f-financial-legacy-ui-evidence"),
+  checkout,
+);
+const outputDir = trustedTaskDirectory(join(proofDirectory, "playwright"), checkout);
+const downloadsPath = trustedTaskDirectory(join(proofDirectory, "downloads"), checkout);
 const webServerEnvironment: Record<string, string> = {
   ...Object.fromEntries(
     Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
@@ -122,6 +128,7 @@ export default defineConfig({
   outputDir,
   use: {
     baseURL: "http://127.0.0.1:3000",
+    launchOptions: { downloadsPath },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "off",

@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import type {
   MisDrillFooter,
@@ -13,7 +13,15 @@ import type {
   MisStatementResolvedResponse,
   ProvenanceBatch,
 } from "@3f/contract";
-import { expect, type APIRequestContext, type BrowserContext, type Locator, type Page, test } from "@playwright/test";
+import {
+  expect,
+  type APIRequestContext,
+  type BrowserContext,
+  type Download,
+  type Locator,
+  type Page,
+  test,
+} from "@playwright/test";
 import { Workbook, type CellValue } from "exceljs";
 import { trustedTaskDirectory } from "../playwright.config";
 
@@ -112,7 +120,7 @@ const GENERATED_EXPORT: FinancialWorkbookSnapshot = [
 ];
 
 test.describe("legacy financial BASELINE", () => {
-  test("proof controls reject unsafe runtime settings, linked evidence paths, and invalid exports", async () => {
+  test("proof controls reject unsafe settings and keep artifact failures inside the trusted directory", async () => {
     const inheritedDatabase = process.env.PGDATABASE;
     delete process.env.PGDATABASE;
     try {
@@ -165,6 +173,18 @@ test.describe("legacy financial BASELINE", () => {
     await expect(
       validateFinancialExport(Buffer.from(await wrong.xlsx.writeBuffer()), GENERATED_EXPORT),
     ).rejects.toThrow(/does not match the recorded baseline/);
+
+    const fakeCustomerMarker = "FAKE-CUSTOMER-ROW-CONTROL";
+    const mismatchPath = join(evidenceDirectory(), "real-source-control-mismatch.json");
+    const error = await baselineMismatch(
+      "control",
+      { row: fakeCustomerMarker },
+      { row: "expected fake row" },
+      "real-source",
+    ).catch((reason: unknown) => reason);
+    expect(String(error)).not.toContain(fakeCustomerMarker);
+    expect(await readFile(mismatchPath, "utf8")).toContain(fakeCustomerMarker);
+    await rm(mismatchPath, { force: true });
   });
 
   test("generated BASELINE preserves report, export, drill-down, and mock-provider Ask clarification", async ({
@@ -300,11 +320,7 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
 
   const statement = page.getByRole("treegrid", { name: "Financial MIS statement" });
   await expect(statement).toBeVisible();
-  await expectRenderedReport(statement, proof.expectedReport);
-  const grandTotal = statement.getByRole("row", { name: "Grand total" });
-  await expect(grandTotal.getByRole("button", { name: /Drill down Actual/ }).first()).toContainText(
-    formatMoney(proof.expectedActual),
-  );
+  await expectRenderedReport(statement, proof.expectedReport, proof.evidence.classification);
   await capture(page, proof.evidence.classification, "report");
 
   const downloadPromise = page.waitForEvent("download");
@@ -313,11 +329,12 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
   expect(download.suggestedFilename()).toBe(
     `financial-mis-agriculture-nursery-dub-${proof.scope.period}-to-${proof.scope.period}.xlsx`,
   );
+  await assertTrustedDownload(download, proof.evidence.classification);
   const stream = await download.createReadStream();
   expect(stream).not.toBeNull();
   const chunks: Buffer[] = [];
   for await (const chunk of stream!) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  await validateFinancialExport(Buffer.concat(chunks), proof.expectedExport);
+  await validateFinancialExport(Buffer.concat(chunks), proof.expectedExport, proof.evidence.classification);
 
   const targetRowIndex = flattenReportRows(proof.expectedReport.tree).findIndex(
     ({ nodeKey }) => nodeKey === proof.expectedDrill.nodeKey,
@@ -330,7 +347,6 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
     .nth(targetRowIndex)
     .getByRole("button", { name: /Drill down Actual/ })
     .first();
-  const clickedActual = (await selectedDrillButton.textContent())!.trim();
   const drillResponsePromise = page.waitForResponse(
     (response) => response.url() === `${API_BASE}/api/mis/statement/drill` && response.request().method() === "POST",
   );
@@ -346,18 +362,22 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
     page: number;
     pageSize: 100;
   };
-  expect({
-    nodeKey: observedDrill.nodeKey,
-    lines: observedDrill.lines,
-    totalCount: observedDrill.totalCount,
-    footer: observedDrill.footer,
-    page: observedDrill.page,
-    pageSize: observedDrill.pageSize,
-  }).toEqual(proof.expectedDrill);
+  await baselineMismatch(
+    "drill-response",
+    {
+      nodeKey: observedDrill.nodeKey,
+      lines: observedDrill.lines,
+      totalCount: observedDrill.totalCount,
+      footer: observedDrill.footer,
+      page: observedDrill.page,
+      pageSize: observedDrill.pageSize,
+    },
+    proof.expectedDrill,
+    proof.evidence.classification,
+  );
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText(clickedActual);
-  await expectRenderedDrill(dialog, proof.expectedDrill);
+  await expectRenderedDrill(dialog, proof.expectedDrill, proof.evidence.classification);
   await capture(page, proof.evidence.classification, "drill");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
@@ -376,18 +396,25 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
   await recordEvidence(proof, observedReport.provenance.activeBatchIds, page.url());
 }
 
-async function expectRenderedReport(statement: Locator, baseline: ReportBaseline): Promise<void> {
+async function expectRenderedReport(
+  statement: Locator,
+  baseline: ReportBaseline,
+  classification: LegacyProof["evidence"]["classification"],
+): Promise<void> {
   const observedRows = await statement.locator("tbody > tr").evaluateAll((rows) =>
     rows.map((row) => ({
       level: Number(row.getAttribute("aria-level")),
       cells: Array.from(row.querySelectorAll(":scope > th, :scope > td"), (cell) => cell.textContent?.trim() ?? ""),
     })),
   );
-  expect(observedRows).toEqual(
+  await baselineMismatch(
+    "report-rows",
+    observedRows,
     flattenReportRows(baseline.tree).map((node) => ({
       level: node.level,
       cells: reportRowCells(node),
     })),
+    classification,
   );
 
   const grandTotalCells = await statement
@@ -395,10 +422,19 @@ async function expectRenderedReport(statement: Locator, baseline: ReportBaseline
     .evaluate((row) =>
       Array.from(row.querySelectorAll(":scope > th, :scope > td"), (cell) => cell.textContent?.trim() ?? ""),
     );
-  expect(grandTotalCells).toEqual(["Grand total", ...measureCells(baseline.grandTotal.measures)]);
+  await baselineMismatch(
+    "report-grand-total",
+    grandTotalCells,
+    ["Grand total", ...measureCells(baseline.grandTotal.measures)],
+    classification,
+  );
 }
 
-async function expectRenderedDrill(dialog: Locator, baseline: DrillBaseline): Promise<void> {
+async function expectRenderedDrill(
+  dialog: Locator,
+  baseline: DrillBaseline,
+  classification: LegacyProof["evidence"]["classification"],
+): Promise<void> {
   const table = dialog.locator("table.mis-drill-transactions");
   await expect(table).toBeVisible();
   const observedRows = await table
@@ -408,7 +444,9 @@ async function expectRenderedDrill(dialog: Locator, baseline: DrillBaseline): Pr
         Array.from(row.querySelectorAll(":scope > th, :scope > td"), (cell) => cell.textContent?.trim() ?? ""),
       ),
     );
-  expect(observedRows).toEqual(
+  await baselineMismatch(
+    "drill-rows",
+    observedRows,
     baseline.lines.map((line) => [
       formatMonth(line.month),
       formatDate(line.postingDate),
@@ -421,6 +459,7 @@ async function expectRenderedDrill(dialog: Locator, baseline: DrillBaseline): Pr
       line.reference ?? "—",
       line.memo ?? "—",
     ]),
+    classification,
   );
 
   const footerCells = await table
@@ -430,13 +469,18 @@ async function expectRenderedDrill(dialog: Locator, baseline: DrillBaseline): Pr
         (cell as HTMLElement).innerText.replace(/\s+/g, " ").trim(),
       ),
     );
-  expect(footerCells).toEqual([
-    "Total",
-    `${formatMoney(baseline.footer.debit)} ${formatExactMoney(baseline.footer.debit)} exact`,
-    `${formatMoney(baseline.footer.credit)} ${formatExactMoney(baseline.footer.credit)} exact`,
-    `${formatMoney(baseline.footer.value)} ${formatExactMoney(baseline.footer.value)} exact`,
-    "Matches the Actual in the report",
-  ]);
+  await baselineMismatch(
+    "drill-footer",
+    footerCells,
+    [
+      "Total",
+      `${formatMoney(baseline.footer.debit)} ${formatExactMoney(baseline.footer.debit)} exact`,
+      `${formatMoney(baseline.footer.credit)} ${formatExactMoney(baseline.footer.credit)} exact`,
+      `${formatMoney(baseline.footer.value)} ${formatExactMoney(baseline.footer.value)} exact`,
+      "Matches the Actual in the report",
+    ],
+    classification,
+  );
   await expect(
     dialog.getByText(`${baseline.totalCount} matching · rows 1–${baseline.lines.length} on screen`),
   ).toBeVisible();
@@ -594,7 +638,12 @@ async function realBaseline(): Promise<{
     ({ children, measures }) => children.length === 0 && measures[0]?.actual !== "0.00",
   );
   if (!target) throw new Error("real-source baseline has no nonzero leaf drill target");
-  expect(artifact.drill.footer.value).toBe(target.measures[0]!.actual);
+  await baselineMismatch(
+    "baseline-drill-total",
+    artifact.drill.footer.value,
+    target.measures[0]!.actual,
+    "real-source",
+  );
   return {
     ...artifact,
     actual: artifact.report.grandTotal.measures[0]!.actual,
@@ -605,6 +654,37 @@ async function realBaseline(): Promise<{
 async function capture(page: Page, classification: string, name: string): Promise<void> {
   const directory = evidenceDirectory();
   await page.screenshot({ path: join(directory, `${classification}-${name}.png`), fullPage: true });
+}
+
+async function assertTrustedDownload(
+  download: Download,
+  classification: LegacyProof["evidence"]["classification"],
+): Promise<void> {
+  const downloadPath = await download.path();
+  if (!downloadPath) throw new Error("Downloaded Financial MIS workbook has no local path");
+  const canonicalDownload = await realpath(downloadPath);
+  const fromEvidence = relative(evidenceDirectory(), canonicalDownload);
+  if (isAbsolute(fromEvidence) || /^\.\.(?:[\\/]|$)/.test(fromEvidence)) {
+    await baselineMismatch("download-location", canonicalDownload, evidenceDirectory(), classification);
+  }
+}
+
+async function baselineMismatch(
+  label: string,
+  actual: unknown,
+  expected: unknown,
+  classification: LegacyProof["evidence"]["classification"],
+): Promise<void> {
+  if (isDeepStrictEqual(actual, expected)) return;
+  if (classification === "generated") {
+    expect(actual).toEqual(expected);
+    return;
+  }
+  const detailPath = join(evidenceDirectory(), `real-source-${label}-mismatch.json`);
+  await writeFile(detailPath, `${JSON.stringify({ actual, expected }, null, 2)}\n`);
+  throw new Error(
+    `Real-source ${label} does not match the recorded baseline; details are in the trusted evidence directory`,
+  );
 }
 
 async function recordEvidence(
@@ -726,9 +806,22 @@ function configExit(changes: Record<string, string | undefined>): number | null 
   ).status;
 }
 
-async function validateFinancialExport(buffer: Buffer, expected: FinancialWorkbookSnapshot): Promise<void> {
+async function validateFinancialExport(
+  buffer: Buffer,
+  expected: FinancialWorkbookSnapshot,
+  classification: LegacyProof["evidence"]["classification"] = "generated",
+): Promise<void> {
   const workbook = new Workbook();
-  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  try {
+    await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  } catch (error) {
+    if (classification === "generated") throw error;
+    await writeFile(
+      join(evidenceDirectory(), "real-source-export-parse-mismatch.json"),
+      `${JSON.stringify({ error: error instanceof Error ? error.message : String(error) }, null, 2)}\n`,
+    );
+    throw new Error("Real-source export could not be parsed; details are in the trusted evidence directory");
+  }
   const actual = workbook.worksheets.map((worksheet) => {
     const rows: FinancialWorkbookSnapshot[number]["rows"] = [];
     worksheet.eachRow({ includeEmpty: true }, (row) => {
@@ -740,9 +833,10 @@ async function validateFinancialExport(buffer: Buffer, expected: FinancialWorkbo
     });
     return { name: worksheet.name, rows };
   });
-  if (!isDeepStrictEqual(actual, expected)) {
+  if (classification === "generated" && !isDeepStrictEqual(actual, expected)) {
     throw new Error("Downloaded Financial MIS workbook does not match the recorded baseline");
   }
+  await baselineMismatch("export", actual, expected, classification);
 }
 
 function snapshotCell(value: CellValue): string | number | boolean | null {
