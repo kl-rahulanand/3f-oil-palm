@@ -1,0 +1,55 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-TRANSPORT",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "f91421223fa85f34b92d8eda69f603381ba6a65c8b9cec8f0f9353c250d24a07",
+    "commit": "eefef5292f2cf21ddbc023d851818359e6f34f94",
+    "dismissals": [
+      {
+        "because": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/TRANSPORT.json:1 is mandatory Forge-generated task lifecycle state used by forge close, merge, and board tracking; removing it would break the repository-mandated Forge workflow, and AGENTS.md prohibits treating generated workflow state as product Scope.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
+    "findings": [
+      {
+        "body": "`.factory/stories/FINANCIAL-AGENT-DEMO/tasks/TRANSPORT.json` is outside the explicit path allowlist and contains only Forge task-run state, including transient review status and timestamps. It is unnecessary for the SDK/stream compatibility implementation and must be removed from this change.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/TRANSPORT.json",
+        "line": 1,
+        "priority": "P1",
+        "title": "Out-of-scope task-state file is committed"
+      },
+      {
+        "body": "This branch establishes only the command/NDJSON transport seam. It does not implement or prove pending-reply scope retention, explicit-month overrides, clarification, capacity limits, idle expiry, restart loss, replay limits, or authorization/grant rechecks required by Done-when item 3. Those behaviors depend on the named later tasks, so they remain P2 follow-up work rather than a TRANSPORT blocker.",
+        "file": "backend/src/financial-chat/stream-adapter.ts",
+        "line": 29,
+        "priority": "P2",
+        "title": "Later: conversation scope, expiry and revocation guarantees \u2192 MEMORY/GRAPH/API/STREAM/CLIENT/REGRESSION"
+      },
+      {
+        "body": "The SDK mapping and fake-fetch crossing test prove package compatibility, but this branch does not provide the production four-tool model, fixed instruction-module ordering, financial-data isolation, deterministic answer flow, bounded retries, aggregate cache telemetry, or owner-gated D1\u2013D12 live runs required by Done-when item 6. Those checks are assigned to MODEL, GRAPH, ANSWER and LIVE and remain later work.",
+        "file": "backend/src/financial-chat/stream-adapter.ts",
+        "line": 7,
+        "priority": "P2",
+        "title": "Later: complete trusted Claude integration and live proof \u2192 MODEL/GRAPH/ANSWER/LIVE"
+      }
+    ],
+    "status": "clean",
+    "tree": "c707d0b2c8fee9a0625b836ab2e3a01dcea1796d8a1746ce048fdad5e1f1ce2d"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-09T14:45:04+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-09T15:23:25+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T15:33:13+00:00",
+      "step": "review"
+    }
+  ]
+}

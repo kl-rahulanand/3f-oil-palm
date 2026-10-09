@@ -44,6 +44,7 @@ const hermeticTests = [
   "backend/src/db/seed-users.test.ts",
   "backend/src/financial-chat/financial-disposable-db.guard.test.ts",
   "backend/src/financial-chat/financial-report-baseline.test.ts",
+  "backend/src/financial-chat/stream-adapter.test.ts",
   "backend/src/health/health.controller.test.ts",
   "backend/src/help/ask-help-suggestions-still-carry-mbs-q.test.ts",
   "backend/src/help/help.service.test.ts",
@@ -163,7 +164,7 @@ const expectedWorkspaceScripts = {
     test: "cd .. && TS_NODE_PROJECT=contract/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test contract/test/auth-contract.test.ts contract/test/financial-tools.test.ts contract/test/financial-chat.test.ts contract/test/row-key.test.ts",
   },
   frontend: {
-    build: "NEXT_TELEMETRY_DISABLED=1 next build",
+    build: "next telemetry disable && next build",
     dev: "next dev -H 127.0.0.1 -p 3000",
     typecheck: "tsc --noEmit",
     test: "cd .. && npm exec --no -- vitest run --config frontend/vitest.config.ts",
