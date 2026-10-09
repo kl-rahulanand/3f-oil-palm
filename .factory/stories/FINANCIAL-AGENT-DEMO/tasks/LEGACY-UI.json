@@ -2,20 +2,41 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-LEGACY-UI",
   "review": {
     "blocking_level": "P1",
-    "changed": "4fc1c13d84972bf86e25beea2db7b6c99765e4c064a0c2d34e0f44fe89e16bff",
-    "commit": "0151d9a35091beda4f486c5a7164ec2450eebc9f",
+    "changed": "b93d54ef53dd9bce6fa81e0f49b63f394f71f140cd0dc41b78ddd77fdcce705c",
+    "commit": "a120e2c464bdaf96804b3628032dd91139b0a4c6",
     "dismissals": [],
     "findings": [
       {
-        "body": "The Next server inherits the caller's environment, and unchanged `frontend/src/lib/api.ts:29` uses `NEXT_PUBLIC_API_BASE_URL` when present. Because the harness neither rejects nor overrides that variable, exported deployment settings can make sign-in, report, export, and drill requests use another backend while the disposable `:4000` health check still passes; real-source evidence could then be mislabeled as a local disposable run. Override the web server environment with `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:4000` and pin the paired `FRONTEND_ORIGIN`/backend port, or reject deviations before launch.",
-        "file": "frontend/playwright.config.ts",
-        "line": 130,
+        "body": "The browser assertion checks only the grand-total Actual. The exact workbook comparison exercises the separate export path, while the screenshot is merely written and never compared. A frontend regression that omits hierarchy rows or renders incorrect Budget, Roll-over, percentage, or leaf values can therefore pass this test as long as the grand-total Actual and export remain correct. Compare the rendered treegrid with the recorded report snapshot so the owned report-screen baseline fails on such regressions.",
+        "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
+        "line": 143,
         "priority": "P1",
-        "title": "Pin the browser client to the disposable proof API"
+        "title": "Not done: the report screen is checked against the fixed BASELINE"
+      },
+      {
+        "body": "After opening a drill, the test verifies only that the dialog repeats the clicked amount and displays the generic footing message. It never consumes the recorded `drill` snapshot or asserts transaction identifiers, dates, values, ordering, or paging. Consequently, transaction rows may be missing or wrong while a matching footer still lets the claimed drill-down baseline pass. Assert the rendered transaction evidence against the real artifact and independent generated rows.",
+        "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
+        "line": 184,
+        "priority": "P1",
+        "title": "Not done: the drill screen is checked against the fixed BASELINE"
+      },
+      {
+        "body": "The real-source run copies `actualBatchIds` and `budgetBatchIds` from the old artifact into its new evidence without checking that the report being displayed uses those active batches. A fresh re-import of the same workbook commonly produces identical report/export values with new batch IDs, so this test would pass and then record stale IDs as proof that the fixed snapshot was restored. Inspect the report response provenance and require it to match the artifact before recording these IDs.",
+        "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
+        "line": 107,
+        "priority": "P1",
+        "title": "Not done: real-source evidence proves the restored batch generation"
+      },
+      {
+        "body": "The evidence JSON records only the period, even though the run selects department `Agriculture`, function `Nursery`, and plant `DUB`. The pinned execution seam explicitly requires scopes to be recorded as nonfinancial metadata; generated evidence has no other scope source, and the real artifact's plant is discarded by this serializer. Record the complete selected scope so the screenshots and load IDs can be unambiguously audited.",
+        "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
+        "line": 341,
+        "priority": "P1",
+        "title": "Not done: recorded evidence includes the exercised report scope"
       }
     ],
     "status": "blocked",
-    "tree": "a46b84090d4a1cbf2b6c059ae410d2037344c538dfc3706952140914f2c1813e"
+    "tree": "44e8ef8d3e8eed1451b416df2ec43802cc84086556fdf5f62cc8890474b6b236"
   },
   "status": "fixing",
   "steps": [
@@ -29,6 +50,10 @@
     },
     {
       "at": "2026-10-09T03:48:27+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T05:48:30+00:00",
       "step": "review"
     }
   ]
