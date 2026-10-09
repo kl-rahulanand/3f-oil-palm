@@ -10,25 +10,26 @@
   "branch": "fix/upgrade-forge-to-v1-2-7",
   "done_when": "Forge runs v1.2.7 with its owner-approved full-access agent settings, existing merge and review gates, and financial-chat work preserved",
   "flagged": [
-    ".codex/config.toml"
+    ".codex/config.toml",
+    ".factory/fixes/upgrade-forge-to-v1-2-7.json"
   ],
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "branch_diff": "b796a48c22a912d0d5653c4095c6bc25476aa9ea956f7bbb8efbf9d50a5ae633",
-    "changed": "1d9cacac1751749979a612e0f0c966e262d1f98e90ea907126d4bf60d827ed84",
-    "commit": "d2a0edb925abd60ee688074341fbbb25d8e7ec0a",
+    "branch_diff": "813cac6878b16ad0b1535ea303eacef93b797da0ba9c4b00bbd0d98ce52e6168",
+    "changed": "6cb4caa5933925000654e1caabf0eeb2907eb3976acdf3424b67055f44c0cfc7",
+    "commit": "e444356cbd9aa5ebed4bbc12ee0079f2cc74cdaf",
     "dismissals": [],
     "findings": [
       {
-        "body": "The rule says, \u201cSecurity and accessibility never simplified away.\u201d This changes Codex from workspace isolation to unrestricted host access and pairs it with `approval_policy = \"never\"`; `.claude/settings.json:46-52` likewise blanket-allows Bash, file writes, and web access. A compromised dependency, repository instruction, or mistaken agent command can therefore read or alter files outside this checkout and make network requests without confirmation. Preserve `workspace-write` and approval boundaries, and grant only narrowly required host operations.",
-        "file": ".codex/config.toml",
-        "line": 16,
+        "body": "The amended Done-when adds owner-approved full-access settings and preservation of the review gates, but the supplied proof list was not updated to cover either detail: it mentions only the release, generated files, financial-chat branches, merge policy, and model settings. It also gives no named check for the assertion that the financial-chat branches stayed clean and unchanged or that the relevant gates/settings were preserved. The review contract requires every Done-when detail to appear beside its test or check, so the configuration visible in the diff does not cure this missing proof-list coverage.",
+        "file": ".factory/fixes/upgrade-forge-to-v1-2-7.json",
+        "line": 11,
         "priority": "P1",
-        "title": "Standard: Security and accessibility never simplified away"
+        "title": "Not done: proof list"
       }
     ],
-    "id": "03212125-db8b-48e6-b712-d51a13233e73",
+    "id": "e785954e-03bd-41a0-bc3d-471107707313",
     "status": "blocked"
   },
   "status": "fixing",
@@ -39,6 +40,10 @@
     },
     {
       "at": "2026-10-09T07:19:05+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T07:35:44+00:00",
       "step": "review"
     }
   ],

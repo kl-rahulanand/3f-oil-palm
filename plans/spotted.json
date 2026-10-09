@@ -10,6 +10,17 @@
       "item": "upgrade-forge-to-v1-2-7",
       "status": "open",
       "closed_by": null
+    },
+    {
+      "key": "bug\t.factory/fixes/upgrade-forge-to-v1-2-7.json\tNot done: proof list\tupgrade-forge-to-v1-2-7",
+      "kind": "bug",
+      "path": ".factory/fixes/upgrade-forge-to-v1-2-7.json",
+      "line": 11,
+      "text": "Not done: proof list",
+      "from": "blocking",
+      "item": "upgrade-forge-to-v1-2-7",
+      "status": "open",
+      "closed_by": null
     }
   ]
 }
