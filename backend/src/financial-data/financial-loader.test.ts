@@ -40,11 +40,11 @@ test("the workbook load reconciles source sums and activates with exact source-m
   const directory = await mkdtemp(join(tmpdir(), "financial load (spaced) "));
   const filePath = join(directory, "5 Months Financial Data (1).xlsx");
   try {
-    await createWorkbook(filePath);
+    await createWorkbook(filePath, { budgetMonth: new Date(Date.UTC(2026, 4, 1)) });
     let activatedInput: FinancialGenerationInput | undefined;
     let referencesPrepared = false;
     const report = await loadFinancialWorkbook(
-      { filePath, budgetOwner: "DUB", importingActor: "finance.operator" },
+      { filePath, budgetOwner: "DUB", importingActor: "finance.operator", isSynthetic: true },
       {
         prepareReferences: async (source: FinancialReferenceSource) => {
           referencesPrepared = true;
@@ -63,13 +63,13 @@ test("the workbook load reconciles source sums and activates with exact source-m
     assert.ok(activatedInput, "the reconciled generation must reach atomic activation");
     const sourceChecksumSha256 = sha256(await readFile(filePath));
     assert.deepEqual(report, expectedReport(sourceChecksumSha256));
-    assert.deepEqual(activatedInput.metadata.sourceReportingMonths, ["2026-04-01", "2026-06-01"]);
+    assert.deepEqual(activatedInput.metadata.sourceReportingMonths, ["2026-04-01", "2026-05-01", "2026-06-01"]);
     assert.deepEqual(activatedInput.metadata.actualCoverage, [
       { plantId: "plant-dub", month: "2026-04-01", completeness: "unconfirmed" },
       { plantId: "plant-dub", month: "2026-06-01", completeness: "unconfirmed" },
     ]);
     assert.deepEqual(activatedInput.metadata.budgetCoverage, [
-      { plantId: "plant-dub", month: "2026-04-01", completeness: "confirmed" },
+      { plantId: "plant-dub", month: "2026-05-01", completeness: "confirmed" },
     ]);
     assert.deepEqual(activatedInput.metadata.reconciliationResult, {
       reconciled: true,
@@ -92,14 +92,14 @@ test("the workbook load reconciles source sums and activates with exact source-m
         },
       },
       budgetByMonth: {
-        "2026-04-01": { rowCount: 20, budget: "20.20", rollover: "-0.20" },
+        "2026-05-01": { rowCount: 20, budget: "20.20", rollover: "-0.20" },
       },
     });
     assert.equal(activatedInput.actuals.length, 3);
     assert.equal(activatedInput.budgets.length, 20);
     assert.ok(activatedInput.budgets.some(({ glAccountId }) => glAccountId === "gl-unmapped"));
     assert.equal(activatedInput.mappings.length, 19);
-    assert.equal(activatedInput.metadata.isSynthetic, false);
+    assert.equal(activatedInput.metadata.isSynthetic, true);
     assert.equal(activatedInput.metadata.sourceChecksumSha256, sourceChecksumSha256);
     assert.equal(report.sourceChecksumSha256, sourceChecksumSha256);
   } finally {
@@ -148,7 +148,7 @@ test(
     try {
       await createWorkbook(firstPath);
       const first = await loadFinancialWorkbookIntoPool(
-        { filePath: firstPath, budgetOwner: "DUB", importingActor: "database-proof" },
+        { filePath: firstPath, budgetOwner: "DUB", importingActor: "database-proof", isSynthetic: true },
         pool,
       );
       const beforeFailure = await persistedGeneration(pool, first.batchId);
@@ -161,6 +161,7 @@ test(
         { plantId: beforeFailure.budgetOwnerPlantId, month: "2026-04-01", completeness: "confirmed" },
       ]);
       assert.equal(beforeFailure.state, "active");
+      assert.equal(beforeFailure.isSynthetic, true);
       assert.equal(beforeFailure.actualCount, 3);
       assert.equal(beforeFailure.budgetCount, 20);
       assert.deepEqual(beforeFailure.actualSums, { debit: "13.01", credit: "3.02", actual: "9.99" });
@@ -192,12 +193,12 @@ function expectedReport(sourceChecksumSha256: string): FinancialLoadReport {
     sourceChecksumSha256,
     sourceFileName: "5 Months Financial Data (1).xlsx",
     counts: { actual: 3, budget: 20, components: 20, mappings: 19 },
-    sourceReportingMonths: ["2026-04-01", "2026-06-01"],
+    sourceReportingMonths: ["2026-04-01", "2026-05-01", "2026-06-01"],
     actualCoverage: [
       { plantCode: "DUB", month: "2026-04-01", completeness: "unconfirmed" },
       { plantCode: "DUB", month: "2026-06-01", completeness: "unconfirmed" },
     ],
-    budgetCoverage: [{ plantCode: "DUB", month: "2026-04-01", completeness: "confirmed" }],
+    budgetCoverage: [{ plantCode: "DUB", month: "2026-05-01", completeness: "confirmed" }],
     sourceSums: {
       actualByMonth: {
         "2026-04-01": {
@@ -218,7 +219,7 @@ function expectedReport(sourceChecksumSha256: string): FinancialLoadReport {
         },
       },
       budgetByMonth: {
-        "2026-04-01": { rowCount: 20, budget: "20.20", rollover: "-0.20" },
+        "2026-05-01": { rowCount: 20, budget: "20.20", rollover: "-0.20" },
       },
     },
     unknownActuals: { plant: 0, costCenter: 0, glAccount: 0 },
@@ -258,7 +259,13 @@ function referenceData(): FinancialLoadReferences {
 
 async function createWorkbook(
   path: string,
-  options: { firstNet?: string; thirdNet?: string; sourceGlCode?: string; sourceGlName?: string } = {},
+  options: {
+    firstNet?: string;
+    thirdNet?: string;
+    sourceGlCode?: string;
+    sourceGlName?: string;
+    budgetMonth?: Date;
+  } = {},
 ): Promise<void> {
   const workbook = new Workbook();
   const actual = workbook.addWorksheet("5 Months Financial Data");
@@ -280,7 +287,7 @@ async function createWorkbook(
   );
 
   const budget = workbook.addWorksheet("Nursery Fincail MIS ");
-  budget.addRow([...BUDGET_HEADERS, new Date(Date.UTC(2026, 3, 1)), "", "", ""]);
+  budget.addRow([...BUDGET_HEADERS, options.budgetMonth ?? new Date(Date.UTC(2026, 3, 1)), "", "", ""]);
   budget.addRow(["", "", "", "", "", "Budget", "Roll Over Budget", "Actual", "%"]);
   for (const [index, entry] of FINANCIAL_MAPPING_SEED.entries()) {
     const [sNo, glCode, componentName] = entry.targetComponentKey.split("|");
@@ -394,6 +401,7 @@ async function removeActivationFailure(pool: Pool): Promise<void> {
 async function persistedGeneration(pool: Pool, batchId: string) {
   const result = await pool.query<{
     state: string;
+    is_synthetic: boolean;
     budget_owner_plant_id: string;
     source_reporting_months: string[];
     actual_coverage: Array<{ plantId: string; month: string; completeness: string }>;
@@ -406,7 +414,7 @@ async function persistedGeneration(pool: Pool, batchId: string) {
     budget_amount: string;
     rollover_amount: string;
   }>(
-    `SELECT state, budget_owner_plant_id, source_reporting_months::text[] AS source_reporting_months,
+    `SELECT state, is_synthetic, budget_owner_plant_id, source_reporting_months::text[] AS source_reporting_months,
             actual_coverage, budget_coverage,
             (SELECT count(*)::int FROM agent_financial.financial_actual WHERE batch_id = $1) AS actual_count,
             (SELECT count(*)::int FROM agent_financial.nursery_budget WHERE batch_id = $1) AS budget_count,
@@ -422,6 +430,7 @@ async function persistedGeneration(pool: Pool, batchId: string) {
   assert.ok(row);
   return {
     state: row.state,
+    isSynthetic: row.is_synthetic,
     budgetOwnerPlantId: row.budget_owner_plant_id,
     sourceReportingMonths: row.source_reporting_months,
     actualCoverage: row.actual_coverage,

@@ -26,6 +26,7 @@ export interface FinancialLoadOptions {
   filePath: string;
   budgetOwner: string;
   importingActor: string;
+  isSynthetic?: true;
 }
 
 export interface FinancialLoadReferences {
@@ -192,6 +193,9 @@ export async function loadFinancialWorkbook(
     month,
     completeness: "confirmed" as const,
   }));
+  const sourceReportingMonths = [
+    ...new Set([...actual.validation.sourceReportingMonths, ...budget.validation.sourceReportingMonths]),
+  ].sort();
   const counts = {
     actual: actuals.length,
     budget: budgets.length,
@@ -208,8 +212,8 @@ export async function loadFinancialWorkbook(
       parserVersion: PARSER_VERSION,
       mappingVersion: `mapping-master-v${MAPPING_MASTER.version}`,
       budgetOwnerPlantId,
-      isSynthetic: false,
-      sourceReportingMonths: actual.validation.sourceReportingMonths,
+      isSynthetic: options.isSynthetic === true,
+      sourceReportingMonths,
       actualCoverage,
       budgetCoverage,
       sourceCounts: counts,
@@ -229,7 +233,7 @@ export async function loadFinancialWorkbook(
     sourceChecksumSha256,
     sourceFileName: basename(options.filePath),
     counts,
-    sourceReportingMonths: actual.validation.sourceReportingMonths,
+    sourceReportingMonths,
     actualCoverage: actualCoverage.map(({ plantId, ...coverage }) => ({
       plantCode: requiredPlantCode(referenceData, plantId),
       ...coverage,
