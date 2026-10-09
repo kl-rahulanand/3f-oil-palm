@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  type ErrorPayload,
   financialChatCapabilitiesSchema,
   financialChatErrorDetailsSchema,
   financialChatErrorReasonSchema,
@@ -155,6 +156,11 @@ function assertResponseRejected(candidate: unknown, expectedMessage: string) {
     parsed.error.issues.some(({ message }) => message === expectedMessage),
     expectedMessage,
   );
+}
+
+function assertResponseAccepted(candidate: unknown) {
+  const parsed = financialChatResponseSchema.safeParse(candidate);
+  assert.equal(parsed.success, true, parsed.success ? undefined : JSON.stringify(parsed.error.issues));
 }
 
 test("final financial answers are strict, self-contained, and preserve tool money exactly", () => {
@@ -604,6 +610,165 @@ test("reused handles cannot advertise conflicting exact values", () => {
   );
 });
 
+test("reused handles reject the same value at different cross-result coordinates", () => {
+  const secondResult = {
+    ...result,
+    resultId: "result-2",
+    rows: [
+      {
+        ...result.rows[1],
+        values: {
+          actual: {
+            ...result.rows[1].values.actual,
+            value: result.rows[0].values.actual.value,
+            drilldownId: result.rows[0].values.actual.drilldownId,
+          },
+        },
+      },
+    ],
+  };
+  assertResponseRejected(
+    { ...answer, results: { ...answer.results, "result-2": secondResult } },
+    "reused Actual handles must identify one exact selection, coordinate, kind, and value",
+  );
+});
+
+test("reused handles reject complete and available-subtotal kind aliases", () => {
+  const partialResult = {
+    ...result,
+    resultId: "result-2",
+    rows: [
+      {
+        ...result.rows[0],
+        values: {
+          actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+          availableActualSubtotal: {
+            value: result.rows[0].values.actual.value,
+            label: "Available-data Actual subtotal — completeness unconfirmed",
+            drilldownId: result.rows[0].values.actual.drilldownId,
+          },
+        },
+      },
+    ],
+    totals: {
+      actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+      availableActualSubtotal: {
+        value: "1.00",
+        label: "Available-data Actual subtotal — completeness unconfirmed",
+        drilldownId: "drill-partial-total-2",
+      },
+    },
+    coverage: result.coverage.map((entry, index) => (index === 0 ? { ...entry, actual: "unconfirmed" } : entry)),
+  };
+  assertResponseRejected(
+    {
+      ...answer,
+      results: { ...answer.results, "result-2": partialResult },
+      details: {
+        ...answer.details,
+        "drill-partial-total-2": { status: "failed", reason: "data_unavailable", message: "Rerun this answer." },
+      },
+    },
+    "reused Actual handles must identify one exact selection, coordinate, kind, and value",
+  );
+});
+
+test("reused handles allow identical null coordinates and provably identical total-row scopes", () => {
+  const nullGlSelection = { ...selection, dimensionIds: ["month", "gl"] };
+  const nullGlResult = {
+    ...result,
+    selection: nullGlSelection,
+    rows: [{ ...result.rows[0], dimensions: { month: "2026-03-01", gl: null } }],
+  };
+  assertResponseAccepted({
+    ...answer,
+    scope: nullGlSelection,
+    results: {
+      "result-1": nullGlResult,
+      "result-2": { ...nullGlResult, resultId: "result-2" },
+    },
+    monthlyDeltas: [],
+    details: {
+      "drill-march": answer.details["drill-march"],
+      "drill-total": answer.details["drill-total"],
+    },
+  });
+
+  const singleMonthSelection = {
+    ...selection,
+    timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+  };
+  const sharedValue = { ...result.rows[1].values.actual, drilldownId: "shared-total-row" };
+  const totalResult = {
+    ...result,
+    selection: singleMonthSelection,
+    scope: { ...result.scope, from: "2026-04-01" },
+    rows: [],
+    totals: { actual: sharedValue },
+    coverage: [result.coverage[1]],
+  };
+  const rowResult = {
+    ...totalResult,
+    resultId: "result-2",
+    rows: [{ ...result.rows[1], values: { actual: sharedValue } }],
+    totals: { actual: { ...sharedValue, drilldownId: "single-month-total" } },
+  };
+  assertResponseAccepted({
+    ...answer,
+    scope: singleMonthSelection,
+    results: { "result-1": totalResult, "result-2": rowResult },
+    monthlyDeltas: [],
+    details: {
+      "shared-total-row": { status: "failed", reason: "preparation_timeout", message: "Try again." },
+      "single-month-total": { status: "failed", reason: "preparation_timeout", message: "Try again." },
+    },
+  });
+});
+
+test("aliased handles cannot bypass the 200 distinct Actual scope cap", () => {
+  const glSelection = { ...selection, dimensionIds: ["gl"] };
+  const aliasedResults = Object.fromEntries(
+    Array.from({ length: 200 }, (_, index) => {
+      const resultId = `alias-${index}`;
+      return [
+        resultId,
+        {
+          ...result,
+          resultId,
+          selection: glSelection,
+          rows: [
+            {
+              key: `gl:${index}`,
+              dimensions: { gl: String(index) },
+              values: { actual: { state: "available", value: "1.00", label: "Actual", drilldownId: "alias" } },
+            },
+          ],
+          totals: { actual: { state: "available", value: "200.00", label: "Actual", drilldownId: "alias-total" } },
+        },
+      ];
+    }),
+  );
+  assertResponseRejected(
+    {
+      ...answer,
+      scope: glSelection,
+      results: aliasedResults,
+      monthlyDeltas: [],
+      ui: [
+        {
+          component: "FinancialTotal",
+          props: { resultId: "alias-0", title: "Actual", rowKey: null, valueKey: "actual" },
+        },
+      ],
+      details: {
+        alias: { status: "failed", reason: "preparation_timeout", message: "Narrow the scope." },
+        "alias-total": { status: "failed", reason: "preparation_timeout", message: "Narrow the scope." },
+      },
+    },
+    "an answer cannot advertise more than 200 Actual scopes",
+  );
+});
+
 test("an answer refuses more than 200 distinct Actual scopes", () => {
   const glSelection = { ...selection, dimensionIds: ["gl"] };
   const rows = Array.from({ length: 199 }, (_, index) => ({
@@ -712,10 +877,48 @@ test("paging and lifecycle failures have stable typed reasons", () => {
     }).pinnedContinuationLimit,
     20,
   );
+  assert.throws(() => financialChatErrorDetailsSchema.parse({ reason: "invalid_pagination" }));
+  assert.throws(() => financialChatErrorDetailsSchema.parse({ reason: "invalid_pagination", fieldErrors: [] }));
+  assert.throws(() => financialChatErrorDetailsSchema.parse({ reason: "page_size_changed" }));
+  assert.throws(() =>
+    financialChatErrorDetailsSchema.parse({ reason: "page_size_changed", pinnedContinuationLimit: 101 }),
+  );
+  assert.throws(() =>
+    financialChatErrorDetailsSchema.parse({
+      reason: "invalid_pagination",
+      fieldErrors: [{ field: "page", reason: "is invalid" }],
+      pinnedContinuationLimit: 20,
+    }),
+  );
   assert.throws(() => financialChatErrorReasonSchema.parse("unknown_failure"));
+  assert.throws(() => financialChatErrorDetailsSchema.parse({ reason: "unknown_failure" }));
+  assert.deepEqual(financialChatErrorDetailsSchema.parse({ reason: "context_expired" }), {
+    reason: "context_expired",
+  });
+  assert.throws(() =>
+    financialChatErrorDetailsSchema.parse({
+      reason: "context_expired",
+      fieldErrors: [{ field: "page", reason: "is invalid" }],
+    }),
+  );
   assert.throws(() =>
     financialChatErrorDetailsSchema.parse({ reason: "page_size_changed", pinnedContinuationLimit: 20, extra: true }),
   );
+
+  const pageSizeError: ErrorPayload = {
+    errorId: "error-1",
+    code: "BAD_REQUEST",
+    type: "BadRequest",
+    message: "Page size changed.",
+    userMessage: "Use the original page size.",
+    details: { reason: "page_size_changed", pinnedContinuationLimit: 20 },
+    statusCode: 400,
+    correlationId: "correlation-1",
+    requestId: null,
+    environment: "Local",
+    timestampUtc: "2026-10-09T00:00:00.000Z",
+  };
+  assert.deepEqual(financialChatErrorDetailsSchema.parse(pageSizeError.details), pageSizeError.details);
 });
 
 test("the terminal stream frame repeats the complete answer", () => {

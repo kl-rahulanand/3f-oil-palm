@@ -22,6 +22,7 @@ const deltaMeasureIdSchema = z.enum(["actual", "budget", "rollover"]);
 
 type QueryResult = z.infer<typeof financialQueryResultSchema>;
 type QueryValues = QueryResult["totals"];
+type QueryDimensions = QueryResult["rows"][number]["dimensions"];
 type ResultValueKey = z.infer<typeof resultValueKeySchema>;
 type DeltaMeasureId = z.infer<typeof deltaMeasureIdSchema>;
 
@@ -56,13 +57,25 @@ export const financialChatErrorReasonSchema = z.enum(FINANCIAL_CHAT_ERROR_REASON
 
 const fieldErrorSchema = z.object({ field: z.string().min(1), reason: z.string().min(1) }).strict();
 
-export const financialChatErrorDetailsSchema = z
-  .object({
-    reason: financialChatErrorReasonSchema,
-    fieldErrors: z.array(fieldErrorSchema).optional(),
-    pinnedContinuationLimit: z.number().int().min(1).max(100).optional(),
-  })
-  .strict();
+export const financialChatErrorDetailsSchema = z.discriminatedUnion("reason", [
+  z
+    .object({
+      reason: z.literal("invalid_pagination"),
+      fieldErrors: z.array(fieldErrorSchema).min(1),
+    })
+    .strict(),
+  z
+    .object({
+      reason: z.literal("page_size_changed"),
+      pinnedContinuationLimit: z.number().int().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      reason: financialChatErrorReasonSchema.exclude(["invalid_pagination", "page_size_changed"]),
+    })
+    .strict(),
+]);
 
 const dataSourceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("customer"), label: z.literal("Customer source data") }).strict(),
@@ -255,6 +268,38 @@ function isZeroMoney(value: string) {
 
 function isNegativeMoney(value: string) {
   return value.startsWith("-") && !isZeroMoney(value);
+}
+
+function normalizedResultCoordinate(result: QueryResult, dimensions: QueryDimensions | null) {
+  const dimensionIds = [...result.selection.dimensionIds].sort();
+  if (dimensions) return JSON.stringify(dimensionIds.map((dimensionId) => [dimensionId, dimensions[dimensionId]]));
+
+  const totalCoordinate = dimensionIds.map((dimensionId) => {
+    if (dimensionId === "plant" && result.selection.plantIds.length === 1) {
+      return [dimensionId, result.selection.plantIds[0]];
+    }
+    if (
+      dimensionId === "month" &&
+      result.selection.timeWindow.from.slice(0, 7) === result.selection.timeWindow.to.slice(0, 7)
+    ) {
+      return [dimensionId, `${result.selection.timeWindow.from.slice(0, 7)}-01`];
+    }
+    const filter = result.selection.filters.find(
+      (candidate) =>
+        candidate.dimensionId === dimensionId &&
+        (candidate.operator === "eq" || (candidate.operator === "in" && candidate.values.length === 1)),
+    );
+    const value =
+      filter?.operator === "eq"
+        ? filter.value
+        : filter?.operator === "in" && filter.values.length === 1
+          ? filter.values[0]
+          : undefined;
+    return [dimensionId, value];
+  });
+  return totalCoordinate.some(([, value]) => value === undefined)
+    ? JSON.stringify(["total"])
+    : JSON.stringify(totalCoordinate);
 }
 
 const answerResponseSchema = z
@@ -473,29 +518,51 @@ const answerResponseSchema = z
       }
     });
 
-    const promisedHandles = new Map<string, string>();
+    const promisedHandles = new Map<string, { scopeIdentity: string; value: string }>();
+    const advertisedScopes = new Set<string>();
     for (const result of Object.values(results)) {
-      const values = [result.totals, ...result.rows.map(({ values }) => values)];
-      for (const valueSet of values) {
+      const valueSets = [
+        { values: result.totals, dimensions: null },
+        ...result.rows.map(({ values, dimensions }) => ({ values, dimensions })),
+      ];
+      for (const { values, dimensions } of valueSets) {
         const advertised =
-          valueSet.actual?.state === "available"
-            ? { handle: valueSet.actual.drilldownId, value: valueSet.actual.value }
-            : valueSet.availableActualSubtotal
-              ? { handle: valueSet.availableActualSubtotal.drilldownId, value: valueSet.availableActualSubtotal.value }
+          values.actual?.state === "available"
+            ? { handle: values.actual.drilldownId, kind: "actual", value: values.actual.value }
+            : values.availableActualSubtotal
+              ? {
+                  handle: values.availableActualSubtotal.drilldownId,
+                  kind: "availableActualSubtotal",
+                  value: values.availableActualSubtotal.value,
+                }
               : null;
         if (!advertised) continue;
-        const priorValue = promisedHandles.get(advertised.handle);
-        if (priorValue !== undefined && priorValue !== advertised.value) {
+        const scopeIdentity = JSON.stringify([
+          result.selection,
+          normalizedResultCoordinate(result, dimensions),
+          advertised.kind,
+          advertised.value,
+        ]);
+        advertisedScopes.add(scopeIdentity);
+        const prior = promisedHandles.get(advertised.handle);
+        if (prior && prior.value !== advertised.value) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             message: "reused Actual handles must advertise one exact value",
             path: ["details", advertised.handle],
           });
         }
-        promisedHandles.set(advertised.handle, advertised.value);
+        if (prior && prior.scopeIdentity !== scopeIdentity) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "reused Actual handles must identify one exact selection, coordinate, kind, and value",
+            path: ["details", advertised.handle],
+          });
+        }
+        if (!prior) promisedHandles.set(advertised.handle, { scopeIdentity, value: advertised.value });
       }
     }
-    if (promisedHandles.size > 200) {
+    if (advertisedScopes.size > 200) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "an answer cannot advertise more than 200 Actual scopes",
@@ -512,8 +579,8 @@ const answerResponseSchema = z
       }
     }
     for (const [handle, detail] of Object.entries(details)) {
-      const advertisedValue = promisedHandles.get(handle);
-      if (advertisedValue === undefined) {
+      const advertised = promisedHandles.get(handle);
+      if (!advertised) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: "detail entries must belong to an advertised Actual",
@@ -529,7 +596,7 @@ const answerResponseSchema = z
       }
       if (
         detail.status === "ready" &&
-        (detail.page.page !== 1 || detail.page.limit !== 10 || detail.page.matchingActualTotal !== advertisedValue)
+        (detail.page.page !== 1 || detail.page.limit !== 10 || detail.page.matchingActualTotal !== advertised?.value)
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,

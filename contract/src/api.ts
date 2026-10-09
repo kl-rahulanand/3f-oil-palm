@@ -41,7 +41,7 @@ export interface ErrorPayload {
   type: string;
   message: string;
   userMessage: string;
-  details: { fieldErrors?: ErrorFieldDetail[]; reason?: ErrorDetailsReason };
+  details: { fieldErrors?: ErrorFieldDetail[]; reason?: ErrorDetailsReason; pinnedContinuationLimit?: number };
   statusCode: number;
   correlationId: string;
   requestId: string | null;
