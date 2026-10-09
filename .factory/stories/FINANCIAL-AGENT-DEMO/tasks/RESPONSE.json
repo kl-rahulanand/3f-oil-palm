@@ -1,10 +1,38 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-RESPONSE",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "2a6eb834a89e462290b73a962bfdebc4159ed2fe743fe55078b4bbc919576a10",
+    "commit": "65d43793a2c64d465983a213bcf63cd7f0a2da1a",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "Cross-result handle validation compares only the advertised monetary value. Two results can therefore reuse one handle for different rows/scopes when their values happen to match; one prepared detail page then incorrectly serves both clickable Actuals. This also lets more than 200 distinct Actual scopes evade the cap by sharing handles. Track and compare each handle's full selection/row coordinate and Actual kind, as the per-result validator already does, and add a same-value/different-coordinate rejection test.",
+        "file": "contract/src/financial-chat.ts",
+        "line": 488,
+        "priority": "P1",
+        "title": "Reject drill-handle reuse across different result coordinates"
+      },
+      {
+        "body": "The schema accepts `{ reason: \"invalid_pagination\" }` without field errors and `{ reason: \"page_size_changed\" }` without the authorized pinned size, contrary to the required 400 error shapes. Additionally, the standard `ErrorPayload.details` type at `contract/src/api.ts:44` cannot represent `pinnedContinuationLimit`, so the later ordinary transaction-page endpoint cannot return that metadata through its typed standard envelope. Make these reason-specific discriminated shapes, extend the API details type, and add rejection tests for missing metadata.",
+        "file": "contract/src/financial-chat.ts",
+        "line": 63,
+        "priority": "P1",
+        "title": "Not done: paging reasons require their mandated metadata"
+      }
+    ],
+    "status": "blocked",
+    "tree": "435418113238bf0a42aa875c5bb0e278b756002a93ae048072df3ba2e48395d8"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T02:48:18+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-09T04:03:29+00:00",
+      "step": "review"
     }
   ]
 }
