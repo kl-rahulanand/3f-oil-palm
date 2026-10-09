@@ -9,6 +9,7 @@ import {
   findFinancialTable,
   formatDecimal,
   formatPaise,
+  hasUncachedFormula,
   parseFinancialDate,
   parseFinancialMoney,
   rawColumn,
@@ -131,8 +132,19 @@ export async function parseFinancialActualsWorkbook(buffer: Buffer): Promise<Par
     const lineId = value("Line_Id") ?? sourceOrdinal ?? "";
     if (!lineId) rowIssues.push(financialIssue(["rows", row.number, "lineId"], "Line_Id or # is required"));
 
-    const postingDate = parseFinancialDate(row.getCell(column(table, "Posting Date")));
-    if (!postingDate) rowIssues.push(financialIssue(["rows", row.number, "postingDate"], "Posting Date is invalid"));
+    const postingDateCell = row.getCell(column(table, "Posting Date"));
+    const postingDateHasNoCache = hasUncachedFormula(postingDateCell);
+    const postingDate = postingDateHasNoCache ? undefined : parseFinancialDate(postingDateCell);
+    if (postingDateHasNoCache) {
+      rowIssues.push(
+        financialIssue(
+          ["rows", row.number, "postingDate"],
+          "Formula has no cached result; recalculate and save the workbook",
+        ),
+      );
+    } else if (!postingDate) {
+      rowIssues.push(financialIssue(["rows", row.number, "postingDate"], "Posting Date is invalid"));
+    }
     const reportingMonth = postingDate ? `${postingDate.slice(0, 7)}-01` : undefined;
     const debit = parseFinancialMoney(row.getCell(column(table, "Debit")), ["rows", row.number, "debit"], rowIssues);
     const credit = parseFinancialMoney(row.getCell(column(table, "Credit")), ["rows", row.number, "credit"], rowIssues);

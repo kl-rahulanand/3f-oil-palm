@@ -119,6 +119,48 @@ test("the independent Actual parser preserves every source column, both comments
   });
 });
 
+test("the independent Actual parser preserves source whitespace while normalizing governed fields", async () => {
+  const parsed = await parseFinancialActualsWorkbook(
+    await workbookBuffer([
+      actualRow({
+        transactionNumber: "  TX-SPACE  ",
+        lineId: "  LINE-SPACE  ",
+        plant: "  DUB-NUR  ",
+        comment1: "  first comment  ",
+      }),
+    ]),
+  );
+
+  assert.deepEqual(
+    {
+      transactionNumber: parsed.lines[0]?.transactionNumber,
+      lineId: parsed.lines[0]?.lineId,
+      sourcePlantCode: parsed.lines[0]?.sourcePlantCode,
+      comment1: parsed.lines[0]?.comment1,
+    },
+    {
+      transactionNumber: "TX-SPACE",
+      lineId: "LINE-SPACE",
+      sourcePlantCode: "DUB-NUR",
+      comment1: "first comment",
+    },
+  );
+  assert.deepEqual(
+    {
+      transactionNumber: parsed.lines[0]?.sourceRow["Transaction Number"],
+      lineId: parsed.lines[0]?.sourceRow.Line_Id,
+      plant: parsed.lines[0]?.sourceRow.Plant,
+      comment1: parsed.lines[0]?.sourceRow.Comments,
+    },
+    {
+      transactionNumber: "  TX-SPACE  ",
+      lineId: "  LINE-SPACE  ",
+      plant: "  DUB-NUR  ",
+      comment1: "  first comment  ",
+    },
+  );
+});
+
 test("the independent Actual parser rounds positive and negative half-paise away from zero before netting", async () => {
   const parsed = await parseFinancialActualsWorkbook(
     await workbookBuffer([
@@ -175,6 +217,62 @@ test("the independent Actual parser rejects invalid dates and money without retu
         [
           ["rows", 4, "postingDate"],
           ["rows", 5, "debit"],
+        ],
+      );
+      return true;
+    },
+  );
+});
+
+test("the independent Actual parser uses cached date and money formula results", async () => {
+  const parsed = await parseFinancialActualsWorkbook(
+    await workbookBuffer([
+      actualRow({
+        date: { formula: "DATE(2026,4,30)", result: new Date("2026-04-30T00:00:00.000Z") },
+        debit: { formula: "2.005", result: 2.005 },
+        credit: { formula: "1", result: 1 },
+        net: { formula: "1.005", result: 1.005 },
+      }),
+    ]),
+  );
+
+  assert.deepEqual(
+    {
+      postingDate: parsed.lines[0]?.postingDate,
+      debit: parsed.lines[0]?.debit,
+      credit: parsed.lines[0]?.credit,
+      actualAmount: parsed.lines[0]?.actualAmount,
+    },
+    { postingDate: "2026-04-30", debit: "2.01", credit: "1.00", actualAmount: "1.01" },
+  );
+});
+
+test("the independent Actual parser rejects date and money formulas without cached results", async () => {
+  await assert.rejects(
+    parseFinancialActualsWorkbook(
+      await workbookBuffer([
+        actualRow({ date: { formula: "DATE(2026,4,30)" } }),
+        actualRow({
+          transactionNumber: "TX-2",
+          lineId: "2",
+          debit: { formula: "1.005" },
+          net: null,
+        }),
+      ]),
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof z.ZodError);
+      assert.deepEqual(
+        error.issues.map(({ path, message }) => ({ path, message })),
+        [
+          {
+            path: ["rows", 4, "postingDate"],
+            message: "Formula has no cached result; recalculate and save the workbook",
+          },
+          {
+            path: ["rows", 5, "debit"],
+            message: "Formula has no cached result; recalculate and save the workbook",
+          },
         ],
       );
       return true;
@@ -241,7 +339,7 @@ function actualRow({
 }: {
   transactionNumber?: string;
   lineId?: string;
-  date?: string | Date;
+  date?: CellValue;
   month?: string | null;
   section?: string | null;
   plant?: string | null;
@@ -249,9 +347,9 @@ function actualRow({
   consideration?: string | null;
   glCode?: string | null;
   glName?: string | null;
-  debit?: string | number;
-  credit?: string | number;
-  net?: string | number | null;
+  debit?: CellValue;
+  credit?: CellValue;
+  net?: CellValue;
   comment1?: string;
   comment2?: string;
 }): CellValue[] {

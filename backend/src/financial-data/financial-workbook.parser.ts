@@ -85,19 +85,24 @@ export function cellSourceValue(cell: Cell): string | null {
   const value = formulaResult(cell.value);
   if (value instanceof Date) return validDate(value) ? formatDate(value) : String(value);
   if (typeof value === "object" && value !== null && "richText" in value) {
-    return (
-      value.richText
-        .map(({ text }) => text)
-        .join("")
-        .trim() || null
-    );
+    return value.richText.map(({ text }) => text).join("");
   }
   if (value === null || value === undefined || value === "") return null;
-  return String(value).trim();
+  return String(value);
 }
 
 export function cellText(cell: Cell): string {
-  return cellSourceValue(cell) ?? "";
+  return cellSourceValue(cell)?.trim() ?? "";
+}
+
+export function hasUncachedFormula(cell: Cell): boolean {
+  const value = cell.value;
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "formula" in value &&
+    (value.result === null || value.result === undefined)
+  );
 }
 
 export function parseFinancialDate(cell: Cell): string | undefined {
@@ -121,7 +126,12 @@ export function parseFinancialMoney(
   issues: z.ZodIssue[],
   blankAsZero = true,
 ): ParsedMoney | undefined {
-  const source = cellSourceValue(cell);
+  if (hasUncachedFormula(cell)) {
+    issues.push(financialIssue(path, "Formula has no cached result; recalculate and save the workbook"));
+    return undefined;
+  }
+  const text = cellText(cell);
+  const source = text || null;
   if (source === null && !blankAsZero) return undefined;
   const decimal = parseDecimal(source ?? "0", typeof formulaResult(cell.value) === "number");
   if (!decimal) {
