@@ -1,10 +1,45 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-LOAD-REPO",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "336b25d21d9428f1279982a55709a3ef69bf1ac722d809d881271858d4e01fa9",
+    "commit": "4155350b424a53a6b3e55f91347709b3fe64d0cd",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The concurrent case invokes `activateGeneration(concurrent)` twice with the same generation identity. That tests concurrent duplicate idempotency, but not two different replacement generations racing for the same dataset. A regression that serializes by checksum/identity instead of dataset, or mishandles supersession between distinct candidates, would still pass. The owned database proof needs to race distinct generations and assert one complete active generation, one superseded generation, and no mixed rows.",
+        "file": "backend/src/financial-data/financial-load.db.test.ts",
+        "line": 38,
+        "priority": "P1",
+        "title": "Not done: concurrent replacement loads"
+      },
+      {
+        "body": "The retained-generation assertion verifies actuals, budgets, and components, but never reads `financial_actual_budget_mapping` or reconciles stored row counts against `sourceCounts`. Consequently, removing the mapping insertion entirely would still leave this test green, as would defects affecting completeness beyond its single-row fixtures. The required synthetic proof must cover every generation-owned table and independently verify expected counts and generation membership.",
+        "file": "backend/src/financial-data/financial-load.db.test.ts",
+        "line": 82,
+        "priority": "P1",
+        "title": "Not done: synthetic batch completeness and no generation mixing"
+      },
+      {
+        "body": "This branch is restricted to the four listed backend/quality-gate paths, but it also adds a Forge task-state JSON file. The file is bookkeeping rather than implementation or required test evidence and is not among the allowed paths, so it should be omitted from this change.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/LOAD-REPO.json",
+        "line": 1,
+        "priority": "P2",
+        "title": "Remove the out-of-scope task-state artifact"
+      }
+    ],
+    "status": "blocked",
+    "tree": "2445e3f3db8b2c332a25b8ba6e05a17a54b785e655adf3ff05b5ae568d71a417"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T21:04:22+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-09T21:31:10+00:00",
+      "step": "review"
     }
   ]
 }
