@@ -1,10 +1,52 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-SCHEMA",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "9e4a77886c802c11071b4c6756d29e2d5d479b0680deb39430783fae42b7a112",
+    "commit": "e248501ed978540cb576adfd19dc5b1621303566",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The source-row immutability triggers reject only UPDATE and DELETE. They do not reject INSERTs after the referenced batch becomes validated or active, so additional Actuals, budgets, components, or mappings can be appended after checksum validation and activation. This changes the effective generation without changing its recorded identity or reconciliation evidence. Require the referenced batch to be staged on every source-row insert and add a database test that an active generation cannot be extended.",
+        "file": "backend/drizzle-warehouse/0005_agent_financial_source_facts.sql",
+        "line": 211,
+        "priority": "P1",
+        "title": "Not done: immutable ingestion lifecycle"
+      },
+      {
+        "body": "`nursery_budget.plant_id` references any plant independently of `ingestion_batch.budget_owner_plant_id`; the mapping table has the same gap. Consequently, a DUB-owned generation can accept budget facts or mappings for another plant and later expose them under the wrong ownership scope. The test even creates a second plant but never verifies this refusal. Couple `(batch_id, plant_id)` to the batch owner with a composite constraint (and do likewise for mappings), then test the mismatch.",
+        "file": "backend/drizzle-warehouse/0005_agent_financial_source_facts.sql",
+        "line": 124,
+        "priority": "P1",
+        "title": "Not done: explicit DUB budget ownership"
+      },
+      {
+        "body": "The schema proof creates generated UUID-based data dated 2099, but `insertBatch` omits `is_synthetic`. Because the schema defaults this field to false, every batch written by this synthetic test is recorded as real-source data. Explicitly insert `is_synthetic = true` and assert the stored value so later proofs cannot mistake these generations for real coverage.",
+        "file": "backend/src/financial-data/financial-schema.db.test.ts",
+        "line": 247,
+        "priority": "P1",
+        "title": "Not done: every synthetic generation is labelled"
+      },
+      {
+        "body": "This SCHEMA branch also changes the acceptance tests assigned to the later MODEL and MEMORY tasks, with corresponding story/read metadata changes. Those edits are unrelated to adding the eight tables and are outside the branch's permitted paths. Move them to their owning task or a separately approved planning change so this branch remains reviewable against its declared scope.",
+        "file": "plans/FINANCIAL-AGENT-DEMO.md",
+        "line": 158,
+        "priority": "P1",
+        "title": "Remove out-of-scope changes to future MODEL and MEMORY tasks"
+      }
+    ],
+    "status": "blocked",
+    "tree": "f27726274d17c8107380b424b03d4acf289514cc19a5184db334fe8d14e04922"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T15:39:01+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-09T16:24:18+00:00",
+      "step": "review"
     }
   ]
 }
