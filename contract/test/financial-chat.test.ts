@@ -405,9 +405,116 @@ test("included results must use the answer's confirmed scope", () => {
     },
     "included results must use the confirmed answer scope",
   );
+
+  const confirmedSelection = {
+    measureIds: ["actual", "budget"],
+    dimensionIds: ["month", "gl"],
+    plantIds: ["DUB", "CHIR"],
+    timeWindow: { kind: "range", from: "2026-04-01", to: "2026-04-30" },
+    filters: [
+      { dimensionId: "gl", operator: "in", values: ["55010305", "55010306"] },
+      { dimensionId: "nursery_component", operator: "neq", value: "Labour" },
+    ],
+    comparisons: ["actual_vs_budget"],
+  };
+  const reorderedSelection = {
+    ...confirmedSelection,
+    measureIds: ["budget", "actual"],
+    dimensionIds: ["gl", "month"],
+    plantIds: ["CHIR", "DUB"],
+    filters: [confirmedSelection.filters[1], { ...confirmedSelection.filters[0], values: ["55010306", "55010305"] }],
+  };
+  const multiPlantResult = {
+    resultId: "set-result",
+    selection: reorderedSelection,
+    scope: { plantIds: ["CHIR", "DUB"], from: "2026-04-01", to: "2026-04-30" },
+    rows: [],
+    totals: {
+      actual: { state: "available", value: "100.00", label: "Actual", drilldownId: "set-total" },
+      budget: { state: "available", value: "80.00", label: "Budget" },
+      percentage: { state: "available", value: "125", label: "Percentage" },
+    },
+    coverage: [
+      { plantId: "DUB", month: "2026-04-01", actual: "complete", budget: "loaded" },
+      { plantId: "CHIR", month: "2026-04-01", actual: "complete", budget: "loaded" },
+    ],
+  };
+  const equivalentSetAnswer = {
+    ...answer,
+    scope: confirmedSelection,
+    results: { "set-result": multiPlantResult },
+    monthlyDeltas: [],
+    ui: [
+      {
+        component: "FinancialTotal",
+        props: { resultId: "set-result", title: "Actual", rowKey: null, valueKey: "actual" },
+      },
+    ],
+    details: {
+      "set-total": { status: "failed", reason: "preparation_timeout", message: "Try a narrower scope." },
+    },
+  };
+  assertResponseAccepted(equivalentSetAnswer);
+
+  for (const changedScope of [
+    { ...confirmedSelection, plantIds: ["DUB", "OTHER"] },
+    { ...confirmedSelection, timeWindow: { ...confirmedSelection.timeWindow, kind: "month" } },
+    { ...confirmedSelection, timeWindow: { ...confirmedSelection.timeWindow, from: "2026-03-01" } },
+    { ...confirmedSelection, timeWindow: { ...confirmedSelection.timeWindow, to: "2026-05-31" } },
+    {
+      ...confirmedSelection,
+      filters: [{ dimensionId: "gl", operator: "eq", value: "55010305" }, confirmedSelection.filters[1]],
+    },
+    {
+      ...confirmedSelection,
+      filters: [
+        { dimensionId: "nursery_component", operator: "in", values: ["55010305", "55010306"] },
+        confirmedSelection.filters[1],
+      ],
+    },
+    {
+      ...confirmedSelection,
+      filters: [
+        { dimensionId: "gl", operator: "in", values: ["55010305", "DIFFERENT"] },
+        confirmedSelection.filters[1],
+      ],
+    },
+  ]) {
+    assertResponseRejected(
+      { ...equivalentSetAnswer, scope: changedScope },
+      "included results must use the confirmed answer scope",
+    );
+  }
 });
 
 test("UI blocks reference unique rows and values present in a compatible result", () => {
+  const monthlyTrend = {
+    ...answer,
+    ui: [
+      {
+        component: "MonthlyTrend",
+        props: {
+          resultId: "result-1",
+          title: "Actual trend",
+          rowKeys: ["month:2026-03-01", "month:2026-04-01"],
+          series: [{ measureId: "actual", label: "Actual" }],
+        },
+      },
+    ],
+  };
+  assertResponseAccepted(monthlyTrend);
+  assert.throws(() =>
+    financialChatResponseSchema.parse({
+      ...monthlyTrend,
+      ui: [
+        {
+          ...monthlyTrend.ui[0],
+          props: { ...monthlyTrend.ui[0].props, unexpected: true },
+        },
+      ],
+    }),
+  );
+
   assertResponseRejected(
     {
       ...answer,
