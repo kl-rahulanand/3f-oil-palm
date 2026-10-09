@@ -1,17 +1,56 @@
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { expect, type APIRequestContext, type BrowserContext, type Page, test } from "@playwright/test";
-import { Workbook } from "exceljs";
+import { Workbook, type CellValue } from "exceljs";
+import { trustedTaskDirectory } from "../playwright.config";
 
 const API_BASE = "http://127.0.0.1:4000";
 const SOURCE_MODE = process.env.FINANCIAL_CHAT_E2E_DATASET;
 const GENERATED_PERIOD = "2026-04-01";
 const GENERATED_ACTUAL = "175.00";
+const GENERATED_EXPORT: FinancialWorkbookSnapshot = [
+  {
+    name: "Financial MIS",
+    rows: [
+      ["Financial MIS", "Financial MIS", "Financial MIS", "April 2026", "April 2026", "April 2026", "April 2026"],
+      ["S. No.", "Budget Component", "GL Code", "Budget", "Roll-over", "Actual", "%"],
+      ["4.5", "Fertilizers & Manures", "50001605", 200, null, 175, 0.875],
+      ["Grand Total", "Grand Total", "Grand Total", 200, null, 175, 0.875],
+    ],
+  },
+];
 
 test.describe("legacy financial BASELINE", () => {
+  test("proof controls reject unsafe runtime settings, linked evidence paths, and invalid exports", async () => {
+    expect(configExit({ BIND_HOST: "0.0.0.0" })).not.toBe(0);
+    expect(configExit({ WAREHOUSE_DRIVER: "http" })).not.toBe(0);
+
+    const junctionRoot = await mkdtemp(join(tmpdir(), "3f-financial-evidence-control-"));
+    const junction = join(junctionRoot, "3f-financial-linked-evidence");
+    await symlink(resolve(__dirname, "../.."), junction, "junction");
+    const previousEvidenceDirectory = process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR;
+    process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR = junction;
+    try {
+      expect(() => evidenceDirectory()).toThrow(/trusted task temporary directory/);
+    } finally {
+      if (previousEvidenceDirectory === undefined) delete process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR;
+      else process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR = previousEvidenceDirectory;
+      await rm(junctionRoot, { recursive: true, force: true });
+    }
+
+    await expect(validateFinancialExport(Buffer.from("not an xlsx"), GENERATED_EXPORT)).rejects.toThrow();
+    const wrong = new Workbook();
+    wrong.addWorksheet("Financial MIS").addRow(["Grand Total", 999]);
+    await expect(
+      validateFinancialExport(Buffer.from(await wrong.xlsx.writeBuffer()), GENERATED_EXPORT),
+    ).rejects.toThrow(/does not match the recorded baseline/);
+  });
+
   test("generated BASELINE preserves report, export, drill-down, and mock-provider Ask clarification", async ({
     context,
     page,
@@ -38,6 +77,7 @@ test.describe("legacy financial BASELINE", () => {
     await exerciseLegacyScreens(page, {
       period: GENERATED_PERIOD,
       expectedActual: GENERATED_ACTUAL,
+      expectedExport: GENERATED_EXPORT,
       evidence: {
         classification: "generated",
         sourceSha256: generated.sha256,
@@ -57,6 +97,7 @@ test.describe("legacy financial BASELINE", () => {
     await exerciseLegacyScreens(page, {
       period: baseline.scope.period,
       expectedActual: baseline.actual,
+      expectedExport: baseline.exportSnapshot,
       evidence: {
         classification: "real-source",
         sourceSha256: baseline.sourceSha256,
@@ -70,6 +111,7 @@ test.describe("legacy financial BASELINE", () => {
 interface LegacyProof {
   period: string;
   expectedActual: string;
+  expectedExport: FinancialWorkbookSnapshot;
   evidence: {
     classification: "generated" | "real-source";
     sourceSha256: string;
@@ -77,6 +119,11 @@ interface LegacyProof {
     budgetBatchIds: string[];
   };
 }
+
+type FinancialWorkbookSnapshot = Array<{
+  name: string;
+  rows: Array<Array<string | number | boolean | null>>;
+}>;
 
 async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<void> {
   await page.goto("/mis-reports");
@@ -101,7 +148,11 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
   expect(download.suggestedFilename()).toBe(
     `financial-mis-agriculture-nursery-dub-${proof.period}-to-${proof.period}.xlsx`,
   );
-  expect(await download.createReadStream()).not.toBeNull();
+  const stream = await download.createReadStream();
+  expect(stream).not.toBeNull();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  await validateFinancialExport(Buffer.concat(chunks), proof.expectedExport);
 
   const nonzeroLeaf = statement
     .locator("tbody")
@@ -252,6 +303,7 @@ async function realBaseline(): Promise<{
   budgetBatchIds: string[];
   scope: { period: string };
   actual: string;
+  exportSnapshot: FinancialWorkbookSnapshot;
 }> {
   const sourcePath = process.env.FINANCIAL_CHAT_SOURCE_FILE;
   const baselineDirectory = process.env.FINANCIAL_CHAT_BASELINE_DIR;
@@ -264,6 +316,7 @@ async function realBaseline(): Promise<{
     budgetBatchIds: string[];
     scope: { period: string };
     report: { grandTotal: { measures: Array<{ actual: string }> } };
+    exportSnapshot: FinancialWorkbookSnapshot;
   };
   const sourceSha256 = createHash("sha256")
     .update(await readFile(sourcePath))
@@ -275,13 +328,11 @@ async function realBaseline(): Promise<{
 
 async function capture(page: Page, classification: string, name: string): Promise<void> {
   const directory = evidenceDirectory();
-  await mkdir(directory, { recursive: true });
   await page.screenshot({ path: join(directory, `${classification}-${name}.png`), fullPage: true });
 }
 
 async function recordEvidence(proof: LegacyProof, finalUrl: string): Promise<void> {
   const directory = evidenceDirectory();
-  await mkdir(directory, { recursive: true });
   await writeFile(
     join(directory, `${proof.evidence.classification}-legacy-ui-evidence.json`),
     `${JSON.stringify({ ...proof.evidence, period: proof.period, expectedActual: proof.expectedActual, finalUrl, capturedAtUtc: new Date().toISOString() }, null, 2)}\n`,
@@ -289,23 +340,10 @@ async function recordEvidence(proof: LegacyProof, finalUrl: string): Promise<voi
 }
 
 function evidenceDirectory(): string {
-  const directory = resolve(
+  return trustedTaskDirectory(
     process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR ?? join(tmpdir(), "3f-financial-legacy-ui-evidence"),
+    resolve(__dirname, "../.."),
   );
-  const checkout = resolve(__dirname, "../..");
-  const temporaryRoot = resolve(tmpdir());
-  const fromCheckout = relative(checkout, directory);
-  const fromTemporaryRoot = relative(temporaryRoot, directory);
-  if (
-    !fromCheckout.startsWith("..") ||
-    fromTemporaryRoot.startsWith("..") ||
-    !basename(directory).startsWith("3f-financial-")
-  ) {
-    throw new Error(
-      "legacy UI evidence requires a 3f-financial-* task directory outside Git under the system temp directory",
-    );
-  }
-  return directory;
 }
 
 function requiredString(value: unknown, key: string): string {
@@ -329,4 +367,54 @@ function formatMoney(value: string): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(Number(value));
+}
+
+function configExit(changes: Record<string, string>): number | null {
+  const checkout = resolve(__dirname, "../..");
+  return spawnSync(
+    process.execPath,
+    ["node_modules/@playwright/test/cli.js", "test", "--list", "--config", "frontend/playwright.config.ts"],
+    {
+      cwd: checkout,
+      env: {
+        ...process.env,
+        BIND_HOST: "127.0.0.1",
+        WAREHOUSE_DRIVER: "postgres",
+        ...changes,
+      },
+      stdio: "ignore",
+    },
+  ).status;
+}
+
+async function validateFinancialExport(buffer: Buffer, expected: FinancialWorkbookSnapshot): Promise<void> {
+  const workbook = new Workbook();
+  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  const actual = workbook.worksheets.map((worksheet) => {
+    const rows: FinancialWorkbookSnapshot[number]["rows"] = [];
+    worksheet.eachRow({ includeEmpty: true }, (row) => {
+      const values: FinancialWorkbookSnapshot[number]["rows"][number] = [];
+      for (let column = 1; column <= row.cellCount; column += 1) {
+        values.push(snapshotCell(row.getCell(column).value));
+      }
+      rows.push(values);
+    });
+    return { name: worksheet.name, rows };
+  });
+  if (!isDeepStrictEqual(actual, expected)) {
+    throw new Error("Downloaded Financial MIS workbook does not match the recorded baseline");
+  }
+}
+
+function snapshotCell(value: CellValue): string | number | boolean | null {
+  const resolved =
+    typeof value === "object" && value !== null && ("formula" in value || "sharedFormula" in value)
+      ? (value.result ?? null)
+      : value;
+  if (resolved === null || resolved === undefined) return null;
+  if (resolved instanceof Date) return resolved.toISOString();
+  if (typeof resolved === "string" || typeof resolved === "number" || typeof resolved === "boolean") return resolved;
+  if ("richText" in resolved) return resolved.richText.map(({ text }) => text).join("");
+  if ("error" in resolved) return resolved.error;
+  return String(resolved);
 }

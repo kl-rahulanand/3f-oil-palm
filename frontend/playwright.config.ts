@@ -1,22 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
-// Failure traces can contain financial rows; never save them in a checkout.
-const proofOutput = join(tmpdir(), "3f-financial-legacy-ui-playwright");
-mkdirSync(proofOutput, { recursive: true });
-const outputDir = realpathSync(proofOutput);
-const checkoutRelative = relative(resolve(__dirname, ".."), outputDir);
-if (!isAbsolute(checkoutRelative) && !checkoutRelative.startsWith("..")) {
-  throw new Error("Legacy financial browser proof artifacts must stay outside the repository");
-}
-if (process.env.LLM_PROVIDER !== "mock" || process.env.AUTH_OTP_MOCK !== "1") {
-  throw new Error("Legacy financial browser proof requires mock model and OTP providers");
-}
-
 const expected = {
   FINANCIAL_CHAT_DUAL_DB_TEST: "1",
+  BIND_HOST: "127.0.0.1",
+  WAREHOUSE_DRIVER: "postgres",
   WAREHOUSE_PG_HOST: "127.0.0.1",
   WAREHOUSE_PG_PORT: "5434",
   WAREHOUSE_PG_DATABASE: "financial_proof",
@@ -25,23 +16,89 @@ const expected = {
   PGDATABASE: "financial_proof",
 } as const;
 
-if (process.env.CI) throw new Error("Legacy financial browser proof is local-only and must not run in immutable CI");
-for (const [name, value] of Object.entries(expected)) {
-  if (process.env[name] !== value) {
-    throw new Error(`Legacy financial browser proof requires ${name}=${value} and refuses to start`);
+export function assertLegacyProofRuntime(environment: NodeJS.ProcessEnv): void {
+  if (environment.CI) throw new Error("Legacy financial browser proof is local-only and must not run in immutable CI");
+  if (environment.LLM_PROVIDER !== "mock" || environment.AUTH_OTP_MOCK !== "1") {
+    throw new Error("Legacy financial browser proof requires mock model and OTP providers");
+  }
+  for (const [name, value] of Object.entries(expected)) {
+    if (environment[name] !== value) {
+      throw new Error(`Legacy financial browser proof requires ${name}=${value} and refuses to start`);
+    }
+  }
+  if (
+    !environment.PGUSER ||
+    !environment.PGPASSWORD ||
+    !environment.WAREHOUSE_PG_USER ||
+    !environment.WAREHOUSE_PG_PASSWORD
+  ) {
+    throw new Error("Legacy financial browser proof requires explicit disposable database credentials");
+  }
+  if (environment.FINANCIAL_CHAT_E2E_DATASET !== "generated" && environment.FINANCIAL_CHAT_E2E_DATASET !== "real") {
+    throw new Error("Set FINANCIAL_CHAT_E2E_DATASET to generated or real");
   }
 }
-if (
-  !process.env.PGUSER ||
-  !process.env.PGPASSWORD ||
-  !process.env.WAREHOUSE_PG_USER ||
-  !process.env.WAREHOUSE_PG_PASSWORD
-) {
-  throw new Error("Legacy financial browser proof requires explicit disposable database credentials");
+
+export function trustedTaskDirectory(directory: string, checkout: string): string {
+  const temporaryRoot = realpathSync(tmpdir());
+  const checkoutRoots = gitWorktreeRoots(checkout);
+  const requested = resolve(directory);
+  const taskRoot = assertTrustedLocation(requested, temporaryRoot, checkoutRoots);
+  mkdirSync(requested, { recursive: true });
+  const canonicalTaskRoot = realpathSync(taskRoot);
+  if (!samePath(canonicalTaskRoot, taskRoot)) {
+    throw new Error("Financial proof artifacts require a trusted task temporary directory outside the checkout");
+  }
+  const canonical = realpathSync(requested);
+  assertDescendant(canonical, canonicalTaskRoot);
+  assertOutsideCheckouts(canonical, checkoutRoots);
+  return canonical;
 }
-if (process.env.FINANCIAL_CHAT_E2E_DATASET !== "generated" && process.env.FINANCIAL_CHAT_E2E_DATASET !== "real") {
-  throw new Error("Set FINANCIAL_CHAT_E2E_DATASET to generated or real");
+
+function assertTrustedLocation(target: string, temporaryRoot: string, checkoutRoots: string[]): string {
+  const fromTemporaryRoot = relative(temporaryRoot, target);
+  const taskDirectory = fromTemporaryRoot.split(/[\\/]/, 1)[0];
+  const insideTemporaryRoot =
+    Boolean(fromTemporaryRoot) && !isAbsolute(fromTemporaryRoot) && !/^\.\.(?:[\\/]|$)/.test(fromTemporaryRoot);
+  if (!insideTemporaryRoot || !taskDirectory?.startsWith("3f-financial-")) {
+    throw new Error("Financial proof artifacts require a trusted task temporary directory outside the checkout");
+  }
+  assertOutsideCheckouts(target, checkoutRoots);
+  return join(temporaryRoot, taskDirectory);
 }
+
+function gitWorktreeRoots(checkout: string): string[] {
+  return execFileSync("git", ["worktree", "list", "--porcelain"], { cwd: checkout, encoding: "utf8" })
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("worktree "))
+    .map((line) => realpathSync(line.slice("worktree ".length)));
+}
+
+function assertDescendant(target: string, root: string): void {
+  const fromRoot = relative(root, target);
+  if (isAbsolute(fromRoot) || /^\.\.(?:[\\/]|$)/.test(fromRoot)) {
+    throw new Error("Financial proof artifacts require a trusted task temporary directory outside the checkout");
+  }
+}
+
+function assertOutsideCheckouts(target: string, checkoutRoots: string[]): void {
+  if (checkoutRoots.some((root) => isInside(target, root))) {
+    throw new Error("Financial proof artifacts require a trusted task temporary directory outside the checkout");
+  }
+}
+
+function isInside(target: string, root: string): boolean {
+  const fromRoot = relative(root, target);
+  return !isAbsolute(fromRoot) && !/^\.\.(?:[\\/]|$)/.test(fromRoot);
+}
+
+function samePath(left: string, right: string): boolean {
+  return process.platform === "win32" ? left.toLowerCase() === right.toLowerCase() : left === right;
+}
+
+assertLegacyProofRuntime(process.env);
+// Failure traces can contain financial rows; canonicalize before Playwright can write them.
+const outputDir = trustedTaskDirectory(join(tmpdir(), "3f-financial-legacy-ui-playwright"), resolve(__dirname, ".."));
 
 export default defineConfig({
   testDir: "./e2e",
