@@ -2,29 +2,22 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-BUDGET-PARSER",
   "review": {
     "blocking_level": "P1",
-    "changed": "a7b92c3e1e2fcb3dd18a26c36f367bb912a65b133a870a22c4be2f1d66e970b0",
-    "commit": "ea2d9c98d092a6fb428afb5a9ef848dc7307b9df",
+    "changed": "dce2f67cdd24591e80418c3d6a492e71036d441e14e20aa02bac20bf6f11cba2",
+    "commit": "7eec8059adcb257dfd549be57bb5bf537c815a7b",
     "dismissals": [],
     "findings": [
       {
-        "body": "The mapping tests beginning here exercise only hand-constructed entries passed to `validateFinancialMappingSeed`; none asserts the exported `FINANCIAL_MAPPING_SEED`. Consequently, the production transformation from `MAPPING_MASTER` could emit no mappings, omit aliases, change target keys, or lose provisional status while every new test still passes. Add a test of the actual exported seed covering DUB ownership, governed aliases, target identities, and approval metadata.",
-        "file": "backend/src/financial-data/financial-budget.parser.test.ts",
-        "line": 205,
-        "priority": "P1",
-        "title": "Not done: generated financial mapping seed coverage"
-      },
-      {
-        "body": "This branch-state timestamp file is outside the explicitly permitted paths and is not needed by the Budget parser, mapping seed, package registration, or quality gate. Remove it from the selected change; no out-of-scope exception was handed off.",
+        "body": "This branch-state review/timestamp file is outside the explicitly permitted paths and is unnecessary for the Budget parser, mapping seed, package registration, or quality gate. No out-of-scope exception was handed off, so remove it from the selected change.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/BUDGET-PARSER.json",
         "line": 1,
         "priority": "P3",
         "title": "Remove the out-of-scope task-state artifact"
       }
     ],
-    "status": "blocked",
-    "tree": "b4a00e216839d08980b4a8e05d3f66fd1daa8d0b1f9203167aa578f34e0e846c"
+    "status": "clean",
+    "tree": "895bf33064e5c1d2bf6fac3112c7a3a33ae612e1dbda6c1a8885c954acb4ef2f"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-09T19:50:32+00:00",
@@ -32,6 +25,10 @@
     },
     {
       "at": "2026-10-09T20:39:16+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T20:57:29+00:00",
       "step": "review"
     }
   ]
