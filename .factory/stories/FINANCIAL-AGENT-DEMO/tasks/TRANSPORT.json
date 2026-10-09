@@ -1,10 +1,52 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-TRANSPORT",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "256eab68da1161dc5da0212d812d8165a19d51b06bded929aea36a5827f177b8",
+    "commit": "e8ad6355c45a4c5026e175f30678e76982008362",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The abort signal is checked only after `for await` has obtained the next event. If the upstream iterator is blocked waiting for model or graph output and does not independently observe this same signal, cancellation leaves the read and iterator alive until another event arrives. The test hides this defect by making its generator itself listen for the abort before yielding again. Race the pending `next()` against abort or connect the signal to stream destruction/iterator cleanup, and test with a non-cooperative pending source.",
+        "file": "backend/src/financial-chat/stream-adapter.ts",
+        "line": 45,
+        "priority": "P1",
+        "title": "Not done: backend cancellation promptly terminates a pending event source"
+      },
+      {
+        "body": "`.factory/stories/FINANCIAL-AGENT-DEMO/tasks/TRANSPORT.json` is outside the explicit path allowlist and contains only Forge task-run state (`status: working` and a start timestamp). It is not needed for the SDK/stream compatibility implementation or its tests and should be removed from this change.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/TRANSPORT.json",
+        "line": 1,
+        "priority": "P1",
+        "title": "Out-of-scope task-state file is committed"
+      },
+      {
+        "body": "This branch establishes only the command/NDJSON transport seam. It does not implement or prove pending-reply scope retention, month overrides, clarification, capacity limits, idle expiry, restart loss, replay limits, or authorization/grant rechecks required by Done-when item 3. Those behaviors depend on the named later tasks, so they remain P2 follow-up work rather than a TRANSPORT blocker.",
+        "file": "backend/src/financial-chat/stream-adapter.ts",
+        "line": 29,
+        "priority": "P2",
+        "title": "Later: conversation scope, expiry and revocation guarantees \u2192 MEMORY/GRAPH/API/STREAM/CLIENT/REGRESSION"
+      },
+      {
+        "body": "The SDK mapping and fake-fetch crossing test prove package compatibility, but this branch does not provide the production four-tool model, instruction-module ordering, financial-data isolation, deterministic answer flow, bounded retries, aggregate cache telemetry, or owner-gated D1\u2013D12 live runs required by Done-when item 6. Those checks are assigned to MODEL, GRAPH, ANSWER and LIVE and remain later work.",
+        "file": "backend/src/financial-chat/stream-adapter.ts",
+        "line": 7,
+        "priority": "P2",
+        "title": "Later: complete trusted Claude integration and live proof \u2192 MODEL/GRAPH/ANSWER/LIVE"
+      }
+    ],
+    "status": "blocked",
+    "tree": "4649be7ea6ab56e6b974fc58a18ddc47a8fa6d1b27b353e497bd0ec86ceef8bc"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T14:45:04+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-09T15:23:25+00:00",
+      "step": "review"
     }
   ]
 }
