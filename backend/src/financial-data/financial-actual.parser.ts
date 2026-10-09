@@ -117,6 +117,15 @@ export async function parseFinancialActualsWorkbook(buffer: Buffer): Promise<Par
   });
 
   for (const row of rows) {
+    const missingFormulaIssues = table.rawColumns.flatMap(([key, columnNumber]) =>
+      hasUncachedFormula(row.getCell(columnNumber))
+        ? [financialIssue(["rows", row.number, key], "Formula has no cached result; recalculate and save the workbook")]
+        : [],
+    );
+    if (missingFormulaIssues.length) {
+      issues.push(...missingFormulaIssues);
+      continue;
+    }
     const sourceRow = readSourceRow(row, table);
     if (Object.values(sourceRow).every((value) => value === null)) continue;
     const rowIssues: z.ZodIssue[] = [];
@@ -132,17 +141,8 @@ export async function parseFinancialActualsWorkbook(buffer: Buffer): Promise<Par
     const lineId = value("Line_Id") ?? sourceOrdinal ?? "";
     if (!lineId) rowIssues.push(financialIssue(["rows", row.number, "lineId"], "Line_Id or # is required"));
 
-    const postingDateCell = row.getCell(column(table, "Posting Date"));
-    const postingDateHasNoCache = hasUncachedFormula(postingDateCell);
-    const postingDate = postingDateHasNoCache ? undefined : parseFinancialDate(postingDateCell);
-    if (postingDateHasNoCache) {
-      rowIssues.push(
-        financialIssue(
-          ["rows", row.number, "postingDate"],
-          "Formula has no cached result; recalculate and save the workbook",
-        ),
-      );
-    } else if (!postingDate) {
+    const postingDate = parseFinancialDate(row.getCell(column(table, "Posting Date")));
+    if (!postingDate) {
       rowIssues.push(financialIssue(["rows", row.number, "postingDate"], "Posting Date is invalid"));
     }
     const reportingMonth = postingDate ? `${postingDate.slice(0, 7)}-01` : undefined;

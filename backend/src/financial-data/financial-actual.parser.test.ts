@@ -224,14 +224,16 @@ test("the independent Actual parser rejects invalid dates and money without retu
   );
 });
 
-test("the independent Actual parser uses cached date and money formula results", async () => {
+test("the independent Actual parser uses cached ordinary formula results for governed fields and raw evidence", async () => {
   const parsed = await parseFinancialActualsWorkbook(
     await workbookBuffer([
       actualRow({
         date: { formula: "DATE(2026,4,30)", result: new Date("2026-04-30T00:00:00.000Z") },
+        plant: { formula: '"  DUB-NUR  "', result: "  DUB-NUR  " },
         debit: { formula: "2.005", result: 2.005 },
         credit: { formula: "1", result: 1 },
         net: { formula: "1.005", result: 1.005 },
+        comment1: { formula: '"  cached comment  "', result: "  cached comment  " },
       }),
     ]),
   );
@@ -242,12 +244,79 @@ test("the independent Actual parser uses cached date and money formula results",
       debit: parsed.lines[0]?.debit,
       credit: parsed.lines[0]?.credit,
       actualAmount: parsed.lines[0]?.actualAmount,
+      sourcePlantCode: parsed.lines[0]?.sourcePlantCode,
+      comment1: parsed.lines[0]?.comment1,
+      sourceRow: {
+        date: parsed.lines[0]?.sourceRow["Posting Date"],
+        plant: parsed.lines[0]?.sourceRow.Plant,
+        debit: parsed.lines[0]?.sourceRow.Debit,
+        comment1: parsed.lines[0]?.sourceRow.Comments,
+      },
     },
-    { postingDate: "2026-04-30", debit: "2.01", credit: "1.00", actualAmount: "1.01" },
+    {
+      postingDate: "2026-04-30",
+      debit: "2.01",
+      credit: "1.00",
+      actualAmount: "1.01",
+      sourcePlantCode: "DUB-NUR",
+      comment1: "cached comment",
+      sourceRow: {
+        date: "2026-04-30",
+        plant: "  DUB-NUR  ",
+        debit: "2.005",
+        comment1: "  cached comment  ",
+      },
+    },
   );
 });
 
-test("the independent Actual parser rejects date and money formulas without cached results", async () => {
+test("the independent Actual parser uses cached shared formula results for governed fields and raw evidence", async () => {
+  const parsed = await parseFinancialActualsWorkbook(
+    await workbookBuffer([
+      actualRow({
+        date: { sharedFormula: "D2", result: new Date("2026-04-30T00:00:00.000Z") },
+        plant: { sharedFormula: "G2", result: "  DUB-NUR  " },
+        debit: { sharedFormula: "L2", result: 2.005 },
+        credit: { sharedFormula: "M2", result: 1 },
+        net: { sharedFormula: "N2", result: 1.005 },
+        comment1: { sharedFormula: "R2", result: "  shared comment  " },
+      }),
+    ]),
+  );
+
+  assert.deepEqual(
+    {
+      postingDate: parsed.lines[0]?.postingDate,
+      debit: parsed.lines[0]?.debit,
+      credit: parsed.lines[0]?.credit,
+      actualAmount: parsed.lines[0]?.actualAmount,
+      sourcePlantCode: parsed.lines[0]?.sourcePlantCode,
+      comment1: parsed.lines[0]?.comment1,
+      sourceRow: {
+        date: parsed.lines[0]?.sourceRow["Posting Date"],
+        plant: parsed.lines[0]?.sourceRow.Plant,
+        debit: parsed.lines[0]?.sourceRow.Debit,
+        comment1: parsed.lines[0]?.sourceRow.Comments,
+      },
+    },
+    {
+      postingDate: "2026-04-30",
+      debit: "2.01",
+      credit: "1.00",
+      actualAmount: "1.01",
+      sourcePlantCode: "DUB-NUR",
+      comment1: "shared comment",
+      sourceRow: {
+        date: "2026-04-30",
+        plant: "  DUB-NUR  ",
+        debit: "2.005",
+        comment1: "  shared comment  ",
+      },
+    },
+  );
+});
+
+test("the independent Actual parser rejects uncached ordinary formulas before parsing or skipping any source row", async () => {
   await assert.rejects(
     parseFinancialActualsWorkbook(
       await workbookBuffer([
@@ -255,9 +324,9 @@ test("the independent Actual parser rejects date and money formulas without cach
         actualRow({
           transactionNumber: "TX-2",
           lineId: "2",
-          debit: { formula: "1.005" },
-          net: null,
+          comment1: { formula: '"optional"' },
         }),
+        formulaOnlyRow(12, { formula: "1.005" }),
       ]),
     ),
     (error: unknown) => {
@@ -266,11 +335,52 @@ test("the independent Actual parser rejects date and money formulas without cach
         error.issues.map(({ path, message }) => ({ path, message })),
         [
           {
-            path: ["rows", 4, "postingDate"],
+            path: ["rows", 4, "Posting Date"],
             message: "Formula has no cached result; recalculate and save the workbook",
           },
           {
-            path: ["rows", 5, "debit"],
+            path: ["rows", 5, "Comments"],
+            message: "Formula has no cached result; recalculate and save the workbook",
+          },
+          {
+            path: ["rows", 6, "Debit"],
+            message: "Formula has no cached result; recalculate and save the workbook",
+          },
+        ],
+      );
+      return true;
+    },
+  );
+});
+
+test("the independent Actual parser rejects uncached shared formulas before parsing or skipping any source row", async () => {
+  await assert.rejects(
+    parseFinancialActualsWorkbook(
+      await workbookBuffer([
+        actualRow({ date: { sharedFormula: "D2" } }),
+        actualRow({
+          transactionNumber: "TX-2",
+          lineId: "2",
+          plant: { sharedFormula: "G2" },
+        }),
+        formulaOnlyRow(12, { sharedFormula: "L2" }),
+      ]),
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof z.ZodError);
+      assert.deepEqual(
+        error.issues.map(({ path, message }) => ({ path, message })),
+        [
+          {
+            path: ["rows", 4, "Posting Date"],
+            message: "Formula has no cached result; recalculate and save the workbook",
+          },
+          {
+            path: ["rows", 5, "Plant"],
+            message: "Formula has no cached result; recalculate and save the workbook",
+          },
+          {
+            path: ["rows", 6, "Debit"],
             message: "Formula has no cached result; recalculate and save the workbook",
           },
         ],
@@ -314,6 +424,11 @@ async function workbookBuffer(rows: CellValue[][], headers: readonly string[] = 
   workbook.addWorksheet("Not financial data");
   const worksheet = workbook.addWorksheet("5 Months Financial Data");
   worksheet.getRow(3).values = [...headers];
+  rows.flat().forEach((value) => {
+    if (typeof value === "object" && value !== null && "sharedFormula" in value) {
+      worksheet.getCell(value.sharedFormula).value = { formula: "0", result: value.result ?? 1 };
+    }
+  });
   rows.forEach((row, index) => {
     worksheet.getRow(index + 4).values = row;
   });
@@ -342,7 +457,7 @@ function actualRow({
   date?: CellValue;
   month?: string | null;
   section?: string | null;
-  plant?: string | null;
+  plant?: CellValue;
   costCenter?: string | null;
   consideration?: string | null;
   glCode?: string | null;
@@ -350,7 +465,7 @@ function actualRow({
   debit?: CellValue;
   credit?: CellValue;
   net?: CellValue;
-  comment1?: string;
+  comment1?: CellValue;
   comment2?: string;
 }): CellValue[] {
   return [
@@ -378,4 +493,10 @@ function actualRow({
     "Nursery",
     "kept verbatim",
   ];
+}
+
+function formulaOnlyRow(column: number, value: CellValue): CellValue[] {
+  const row = Array<CellValue>(HEADERS.length).fill(null);
+  row[column - 1] = value;
+  return row;
 }

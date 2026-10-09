@@ -100,7 +100,7 @@ export function hasUncachedFormula(cell: Cell): boolean {
   return (
     typeof value === "object" &&
     value !== null &&
-    "formula" in value &&
+    ("formula" in value || "sharedFormula" in value) &&
     (value.result === null || value.result === undefined)
   );
 }
@@ -189,7 +189,9 @@ export function financialValidationError(issues: z.ZodIssue[]): z.ZodError {
 }
 
 function formulaResult(value: CellValue): CellValue {
-  if (typeof value === "object" && value !== null && "formula" in value) return value.result ?? null;
+  if (typeof value === "object" && value !== null && ("formula" in value || "sharedFormula" in value)) {
+    return value.result ?? null;
+  }
   return value;
 }
 
