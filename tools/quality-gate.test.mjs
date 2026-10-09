@@ -163,7 +163,7 @@ const expectedWorkspaceScripts = {
     test: "cd .. && TS_NODE_PROJECT=contract/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test contract/test/auth-contract.test.ts contract/test/financial-tools.test.ts contract/test/row-key.test.ts",
   },
   frontend: {
-    build: "NEXT_TELEMETRY_DISABLED=1 next build",
+    build: "next telemetry disable && next build",
     dev: "next dev -H 127.0.0.1 -p 3000",
     typecheck: "tsc --noEmit",
     test: "cd .. && npm exec --no -- vitest run --config frontend/vitest.config.ts",
