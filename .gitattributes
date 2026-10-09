@@ -20,3 +20,4 @@ forge text eol=lf
 
 .factory/signals.jsonl merge=union
 plans/roadmap.json merge=forge-roadmap
+plans/spotted.json merge=forge-roadmap

@@ -48,14 +48,24 @@ and the Rules below, and leave the flow and the approval steps to the agent coor
    `forge work <KEY>/<TASK>`.
 4. `forge close <item>` closes it when the tests pass and the review finds no serious problem.
 5. The human merges unless the default branch's `forge.toml` has `merge = "agent"`.
-   Then, once close says Ready, the agent runs `forge merge <item>`. After the story's last merge,
-   `forge story done <KEY> "<outcome>"`.
+   Then, once close says Ready, the agent runs `forge merge <item>`. The story's last task merge
+   records it done, using `--outcome "<outcome>"` or its title. Use `forge story done` on an
+   existing work branch only to change that outcome later; it opens no separate pull request.
 
 ### The lanes
 
 - **Story:** anything that changes an interface or needs more than five code files.
 - **Fix:** a small change, started with `forge fix start "<why>" --done "<done when>"`.
   Specs, decisions, the roadmap and discovery notes ship as fixes.
+
+### Who builds
+
+`forge.toml`'s `workers` picks who builds; `forge work` and `forge next` name the worker for
+each item:
+
+- `codex`: every task and fix on Codex, user-facing ones with the design model's codex entry.
+- `claude`: every task and fix on Claude.
+- `split`: user-facing story tasks on Claude, everything else on Codex.
 
 ### Rules
 
@@ -75,6 +85,8 @@ and the Rules below, and leave the flow and the approval steps to the agent coor
   "Done when" sections exactly, so a summary or a rewrite records nothing, and an edit below
   `## For the builders` needs no new approval. There is no other approval step.
 - Run long `forge work` runs in the background and keep watching them.
+- Put the rules every review of this repo must follow under `## Review rules`, outside the
+  forge:begin and forge:end lines. Forge's review reads them from the default branch.
 <!-- forge:end -->
 
 ## Known traps
@@ -121,3 +133,7 @@ and the Rules below, and leave the flow and the approval steps to the agent coor
 - The global exception filter replaces every `HttpException` message with a generic `userMessage`.
   A refusal the client must explain needs a typed `details.reason` in the envelope; otherwise the
   client can only map wording by status.
+
+# Claude Code entrypoint — do not add content here
+
+The shared contract and the Claude adapter are imported; edit those instead.
