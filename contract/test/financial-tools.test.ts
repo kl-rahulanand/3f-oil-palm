@@ -823,6 +823,127 @@ test("financial boundary matrix keeps only source-covered partials and provable 
   assert.deepEqual(actualTransactionPageSchema.parse(page), page);
 });
 
+test("Roll-over exposes source absence without inventing Unmapped or GL balances", () => {
+  const componentResult = {
+    resultId: "rollover-components",
+    selection: {
+      measureIds: ["rollover"],
+      dimensionIds: ["nursery_component"],
+      plantIds: ["DUB"],
+      timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+      filters: [],
+    },
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-04-30" },
+    rows: [
+      {
+        key: "nursery_component:mapped",
+        dimensions: { nursery_component: "Mapped nursery" },
+        values: { rollover: { state: "available", value: "12.00", label: "Roll-over" } },
+      },
+      {
+        key: "nursery_component:unmapped-GL",
+        dimensions: { nursery_component: "unmapped-GL" },
+        values: {
+          rollover: { state: "unmapped", value: null, label: "No Roll-over assigned to Unmapped" },
+        },
+      },
+    ],
+    totals: { rollover: { state: "available", value: "12.00", label: "Roll-over" } },
+    coverage: [{ plantId: "DUB", month: "2026-04-01", actual: "complete", budget: "loaded" }],
+  };
+  const unmappedWithoutCoverage = {
+    ...componentResult,
+    resultId: "rollover-unmapped-without-coverage",
+    rows: [componentResult.rows[1]],
+    totals: {
+      rollover: { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" },
+    },
+    coverage: componentResult.coverage.map((entry) => ({ ...entry, budget: "not_loaded" })),
+  };
+  const numericUnmapped = {
+    ...componentResult,
+    rows: componentResult.rows.map((row) =>
+      row.dimensions.nursery_component === "unmapped-GL"
+        ? { ...row, values: { rollover: { state: "available", value: "1.00", label: "Roll-over" } } }
+        : row,
+    ),
+  };
+  const rolloverOnlyGl = {
+    ...componentResult,
+    resultId: "rollover-only-gl",
+    selection: { ...componentResult.selection, dimensionIds: ["gl"] },
+    rows: [
+      {
+        key: "gl:55010305",
+        dimensions: { gl: "55010305" },
+        values: { rollover: { state: "available", value: "12.00", label: "Roll-over" } },
+      },
+    ],
+  };
+  const knownGlWithoutBudget = {
+    ...rolloverOnlyGl,
+    resultId: "known-gl-without-budget",
+    selection: { ...rolloverOnlyGl.selection, measureIds: ["budget", "rollover"] },
+    rows: [
+      {
+        key: "gl:55019999",
+        dimensions: { gl: "55019999" },
+        values: {
+          budget: { state: "no_gl_line", value: null, label: "No Budget line for this GL" },
+          rollover: { state: "no_gl_line", value: null, label: "No Roll-over line for this GL" },
+        },
+      },
+    ],
+    totals: {
+      budget: { state: "available", value: "100.00", label: "Budget" },
+      rollover: { state: "available", value: "12.00", label: "Roll-over" },
+    },
+  };
+  const numericKnownGlWithoutBudget = {
+    ...knownGlWithoutBudget,
+    rows: knownGlWithoutBudget.rows.map((row) => ({
+      ...row,
+      values: {
+        ...row.values,
+        rollover: { state: "available", value: "1.00", label: "Roll-over" },
+      },
+    })),
+  };
+  const unprovedGlWithoutBudget = {
+    ...knownGlWithoutBudget,
+    resultId: "unproved-gl-without-budget",
+    selection: { ...knownGlWithoutBudget.selection, measureIds: ["rollover"] },
+    rows: knownGlWithoutBudget.rows.map((row) => ({ ...row, values: { rollover: row.values.rollover } })),
+    totals: { rollover: knownGlWithoutBudget.totals.rollover },
+  };
+
+  const cases = [
+    ["mapped and Unmapped component balances", componentResult, true],
+    ["Unmapped without closing coverage", unmappedWithoutCoverage, true],
+    ["numeric Unmapped balance", numericUnmapped, false],
+    ["ordinary GL in a Roll-over-only result", rolloverOnlyGl, true],
+    ["known GL without a Budget leaf", knownGlWithoutBudget, true],
+    ["numeric balance for a known Budgetless GL", numericKnownGlWithoutBudget, false],
+    ["unproved Budgetless GL in a Roll-over-only result", unprovedGlWithoutBudget, false],
+  ] as const;
+
+  assert.deepEqual(
+    cases.map(([name, candidate]) => ({ name, valid: financialQueryResultSchema.safeParse(candidate).success })),
+    cases.map(([name, , valid]) => ({ name, valid })),
+  );
+  for (const [candidate, path] of [
+    [numericUnmapped, "rows.1.values.rollover"],
+    [numericKnownGlWithoutBudget, "rows.0.values.rollover"],
+    [unprovedGlWithoutBudget, "rows.0.values.rollover"],
+  ] as const) {
+    assertOnlyZodIssue(
+      () => financialQueryResultSchema.parse(candidate),
+      path,
+      "special Roll-over state does not match a known source absence",
+    );
+  }
+});
+
 test("transaction results keep full-total identity and strict exact-money rows", () => {
   const transaction = (number: number) => ({
     ...page.transactions[0],

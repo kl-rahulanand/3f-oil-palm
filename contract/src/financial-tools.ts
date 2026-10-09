@@ -342,6 +342,20 @@ const rolloverValueSchema = z.discriminatedUnion("state", [
       label: z.literal("Budget not loaded for this Plant or month"),
     })
     .strict(),
+  z
+    .object({
+      state: z.literal("no_gl_line"),
+      value: z.null(),
+      label: z.literal("No Roll-over line for this GL"),
+    })
+    .strict(),
+  z
+    .object({
+      state: z.literal("unmapped"),
+      value: z.null(),
+      label: z.literal("No Roll-over assigned to Unmapped"),
+    })
+    .strict(),
 ]);
 
 const percentageValueSchema = z.discriminatedUnion("state", [
@@ -569,18 +583,35 @@ export const financialQueryResultSchema = z
         });
       }
       if (values.rollover) {
-        const closingMonth = relevantCoverage.reduce(
-          (latest, entry) => (entry.month > latest ? entry.month : latest),
-          "",
-        );
-        const closingCoverage = relevantCoverage.filter(({ month }) => month === closingMonth);
-        const closingLoaded = closingCoverage.length > 0 && closingCoverage.every(({ budget }) => budget === "loaded");
-        if ((values.rollover.state === "available") !== closingLoaded) {
+        const expectedSpecialState = isUnmappedRow
+          ? "unmapped"
+          : values.budget?.state === "no_gl_line"
+            ? "no_gl_line"
+            : undefined;
+        if (
+          (expectedSpecialState && values.rollover.state !== expectedSpecialState) ||
+          (!expectedSpecialState && ["no_gl_line", "unmapped"].includes(values.rollover.state))
+        ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Roll-over state must match closing-month Budget coverage",
+            message: "special Roll-over state does not match a known source absence",
             path: [...path, "rollover"],
           });
+        } else if (!expectedSpecialState) {
+          const closingMonth = relevantCoverage.reduce(
+            (latest, entry) => (entry.month > latest ? entry.month : latest),
+            "",
+          );
+          const closingCoverage = relevantCoverage.filter(({ month }) => month === closingMonth);
+          const closingLoaded =
+            closingCoverage.length > 0 && closingCoverage.every(({ budget }) => budget === "loaded");
+          if ((values.rollover.state === "available") !== closingLoaded) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Roll-over state must match closing-month Budget coverage",
+              path: [...path, "rollover"],
+            });
+          }
         }
       }
       const percentageCoverageAvailable =
