@@ -111,6 +111,7 @@ export const financialIngestionBatch = agentFinancial.table(
       table.parserVersion,
       table.mappingVersion,
     ),
+    unique("ingestion_batch_id_budget_owner_unique").on(table.id, table.budgetOwnerPlantId),
     uniqueIndex("ingestion_batch_active_dataset_unique")
       .on(table.datasetKey)
       .where(sql`${table.state} = 'active'`),
@@ -250,6 +251,11 @@ export const financialBudget = agentFinancial.table(
       columns: [table.batchId, table.budgetComponentId],
       foreignColumns: [financialBudgetComponent.batchId, financialBudgetComponent.id],
     }),
+    foreignKey({
+      name: "nursery_budget_batch_owner_fk",
+      columns: [table.batchId, table.plantId],
+      foreignColumns: [financialIngestionBatch.id, financialIngestionBatch.budgetOwnerPlantId],
+    }),
     index("idx_nursery_budget_batch_id").on(table.batchId),
     index("idx_nursery_budget_plant_month").on(table.plantId, table.reportingMonth),
     index("idx_nursery_budget_gl_account_id").on(table.glAccountId),
@@ -295,6 +301,11 @@ export const financialActualBudgetMapping = agentFinancial.table(
       name: "actual_budget_mapping_component_fk",
       columns: [table.mappingVersionId, table.budgetComponentKey],
       foreignColumns: [financialBudgetComponent.batchId, financialBudgetComponent.componentKey],
+    }),
+    foreignKey({
+      name: "actual_budget_mapping_batch_owner_fk",
+      columns: [table.mappingVersionId, table.plantId],
+      foreignColumns: [financialIngestionBatch.id, financialIngestionBatch.budgetOwnerPlantId],
     }),
     index("idx_actual_budget_mapping_component_key").on(table.mappingVersionId, table.budgetComponentKey),
     index("idx_actual_budget_mapping_gl_account_id").on(table.glAccountId),

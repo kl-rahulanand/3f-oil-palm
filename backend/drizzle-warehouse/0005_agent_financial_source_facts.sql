@@ -60,7 +60,8 @@ CREATE TABLE "agent_financial"."ingestion_batch" (
 	CONSTRAINT "ingestion_batch_state_check" CHECK ("state" IN ('staged', 'validated', 'active', 'superseded', 'failed')),
 	CONSTRAINT "ingestion_batch_checksum_check" CHECK ("source_checksum_sha256" ~ '^[0-9a-f]{64}$'),
 	CONSTRAINT "ingestion_batch_coverage_shape_check" CHECK (jsonb_typeof("actual_coverage") = 'array' AND jsonb_typeof("budget_coverage") = 'array'),
-	CONSTRAINT "ingestion_batch_source_identity_unique" UNIQUE("dataset_key", "source_checksum_sha256", "parser_version", "mapping_version")
+	CONSTRAINT "ingestion_batch_source_identity_unique" UNIQUE("dataset_key", "source_checksum_sha256", "parser_version", "mapping_version"),
+	CONSTRAINT "ingestion_batch_id_budget_owner_unique" UNIQUE("id", "budget_owner_plant_id")
 );
 --> statement-breakpoint
 CREATE TABLE "agent_financial"."nursery_budget_component" (
@@ -176,6 +177,8 @@ ALTER TABLE "agent_financial"."nursery_budget" ADD CONSTRAINT "nursery_budget_gl
 --> statement-breakpoint
 ALTER TABLE "agent_financial"."nursery_budget" ADD CONSTRAINT "nursery_budget_component_fk" FOREIGN KEY ("batch_id", "budget_component_id") REFERENCES "agent_financial"."nursery_budget_component"("batch_id", "id");
 --> statement-breakpoint
+ALTER TABLE "agent_financial"."nursery_budget" ADD CONSTRAINT "nursery_budget_batch_owner_fk" FOREIGN KEY ("batch_id", "plant_id") REFERENCES "agent_financial"."ingestion_batch"("id", "budget_owner_plant_id");
+--> statement-breakpoint
 ALTER TABLE "agent_financial"."actual_budget_mapping" ADD CONSTRAINT "actual_budget_mapping_version_id_ingestion_batch_id_fk" FOREIGN KEY ("mapping_version_id") REFERENCES "agent_financial"."ingestion_batch"("id");
 --> statement-breakpoint
 ALTER TABLE "agent_financial"."actual_budget_mapping" ADD CONSTRAINT "actual_budget_mapping_plant_id_plant_id_fk" FOREIGN KEY ("plant_id") REFERENCES "agent_financial"."plant"("id");
@@ -185,6 +188,8 @@ ALTER TABLE "agent_financial"."actual_budget_mapping" ADD CONSTRAINT "actual_bud
 ALTER TABLE "agent_financial"."actual_budget_mapping" ADD CONSTRAINT "actual_budget_mapping_cost_center_plant_fk" FOREIGN KEY ("cost_center_id", "plant_id") REFERENCES "agent_financial"."cost_center"("id", "plant_id");
 --> statement-breakpoint
 ALTER TABLE "agent_financial"."actual_budget_mapping" ADD CONSTRAINT "actual_budget_mapping_component_fk" FOREIGN KEY ("mapping_version_id", "budget_component_key") REFERENCES "agent_financial"."nursery_budget_component"("batch_id", "component_key");
+--> statement-breakpoint
+ALTER TABLE "agent_financial"."actual_budget_mapping" ADD CONSTRAINT "actual_budget_mapping_batch_owner_fk" FOREIGN KEY ("mapping_version_id", "plant_id") REFERENCES "agent_financial"."ingestion_batch"("id", "budget_owner_plant_id");
 --> statement-breakpoint
 CREATE INDEX "idx_cost_center_plant_id" ON "agent_financial"."cost_center" ("plant_id");
 CREATE INDEX "idx_ingestion_batch_budget_owner_plant_id" ON "agent_financial"."ingestion_batch" ("budget_owner_plant_id");
@@ -215,6 +220,28 @@ CREATE TRIGGER actual_budget_mapping_immutable BEFORE UPDATE OR DELETE ON "agent
 CREATE TRIGGER plant_immutable BEFORE UPDATE OR DELETE ON "agent_financial"."plant" FOR EACH ROW EXECUTE FUNCTION "agent_financial"."protect_source_row"();
 CREATE TRIGGER cost_center_immutable BEFORE UPDATE OR DELETE ON "agent_financial"."cost_center" FOR EACH ROW EXECUTE FUNCTION "agent_financial"."protect_source_row"();
 CREATE TRIGGER gl_account_immutable BEFORE UPDATE OR DELETE ON "agent_financial"."gl_account" FOR EACH ROW EXECUTE FUNCTION "agent_financial"."protect_source_row"();
+--> statement-breakpoint
+CREATE FUNCTION "agent_financial"."require_staged_batch"() RETURNS trigger AS $$
+DECLARE
+	target_batch_id uuid;
+	target_batch_state text;
+BEGIN
+	target_batch_id := (to_jsonb(NEW) ->> TG_ARGV[0])::uuid;
+	SELECT b."state" INTO target_batch_state
+	FROM "agent_financial"."ingestion_batch" b
+	WHERE b."id" = target_batch_id
+	FOR UPDATE;
+	IF target_batch_state IS DISTINCT FROM 'staged' THEN
+		RAISE EXCEPTION 'ingestion batch must remain staged while source rows are inserted';
+	END IF;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+--> statement-breakpoint
+CREATE TRIGGER nursery_budget_component_batch_staged BEFORE INSERT ON "agent_financial"."nursery_budget_component" FOR EACH ROW EXECUTE FUNCTION "agent_financial"."require_staged_batch"('batch_id');
+CREATE TRIGGER financial_actual_batch_staged BEFORE INSERT ON "agent_financial"."financial_actual" FOR EACH ROW EXECUTE FUNCTION "agent_financial"."require_staged_batch"('batch_id');
+CREATE TRIGGER nursery_budget_batch_staged BEFORE INSERT ON "agent_financial"."nursery_budget" FOR EACH ROW EXECUTE FUNCTION "agent_financial"."require_staged_batch"('batch_id');
+CREATE TRIGGER actual_budget_mapping_batch_staged BEFORE INSERT ON "agent_financial"."actual_budget_mapping" FOR EACH ROW EXECUTE FUNCTION "agent_financial"."require_staged_batch"('mapping_version_id');
 --> statement-breakpoint
 CREATE FUNCTION "agent_financial"."require_budget_leaf"() RETURNS trigger AS $$
 BEGIN

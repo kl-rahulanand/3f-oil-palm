@@ -16,7 +16,7 @@ test("the destructive financial schema proof refuses any target except the dispo
 });
 
 test(
-  "WAREHOUSE_DB_TEST stores exact source facts while rejecting duplicates, orphans, and cross-load references, and migrates twice without changing legacy objects",
+  "WAREHOUSE_DB_TEST stores labelled exact source facts while rejecting duplicates, orphans, cross-load references, owner mismatches, and active-generation extension, and migrates twice without changing legacy objects",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async () => {
     assertDisposableWarehouse(process.env.WAREHOUSE_PG_HOST, process.env.WAREHOUSE_PG_PORT);
@@ -41,7 +41,9 @@ test(
       const plantId = randomUUID();
       const otherPlantId = randomUUID();
       const costCenterId = randomUUID();
+      const otherCostCenterId = randomUUID();
       const glAccountId = randomUUID();
+      const lateGlAccountId = randomUUID();
       await pool.query(
         `INSERT INTO agent_financial.plant
            (id, code, name, source_aliases, created_by_actor)
@@ -61,8 +63,17 @@ test(
       await pool.query(
         `INSERT INTO agent_financial.cost_center
            (id, plant_id, source_system, code, name, source_aliases, created_by_actor)
-         VALUES ($1, $2, 'SAP', $3, 'Primary', ARRAY[$4], 'schema-proof')`,
-        [costCenterId, plantId, `PRIMARY-${key}`, `PRIMARY-ALIAS-${key}`],
+         VALUES ($1, $2, 'SAP', $3, 'Primary', ARRAY[$4], 'schema-proof'),
+                ($5, $6, 'SAP', $7, 'Other', ARRAY[]::text[], 'schema-proof')`,
+        [
+          costCenterId,
+          plantId,
+          `PRIMARY-${key}`,
+          `PRIMARY-ALIAS-${key}`,
+          otherCostCenterId,
+          otherPlantId,
+          `OTHER-${key}`,
+        ],
       );
       await assert.rejects(
         pool.query(
@@ -76,8 +87,9 @@ test(
       await pool.query(
         `INSERT INTO agent_financial.gl_account
            (id, source_system, code, name, source_aliases, created_by_actor)
-         VALUES ($1, 'SAP', $2, 'Sprout cost', ARRAY[$3], 'schema-proof')`,
-        [glAccountId, `GL-${key}`, `GL-ALIAS-${key}`],
+         VALUES ($1, 'SAP', $2, 'Sprout cost', ARRAY[$3], 'schema-proof'),
+                ($4, 'SAP', $5, 'Late mapping proof', ARRAY[]::text[], 'schema-proof')`,
+        [glAccountId, `GL-${key}`, `GL-ALIAS-${key}`, lateGlAccountId, `GL-LATE-${key}`],
       );
       await assert.rejects(
         pool.query(
@@ -202,6 +214,16 @@ test(
         ),
         /nursery_budget facts must reference a leaf component/,
       );
+      await assert.rejects(
+        pool.query(
+          `INSERT INTO agent_financial.nursery_budget
+             (batch_id, plant_id, budget_component_id, reporting_month, payment_office,
+              rollover_enabled, budget_amount, rollover_amount, source_row_number, source_row)
+           VALUES ($1, $2, $3, '2099-08-01', 'HO', false, 1, 0, 481, '{}')`,
+          [firstBatchId, otherPlantId, leafId],
+        ),
+        /nursery_budget_batch_owner_fk/,
+      );
 
       await pool.query(
         `INSERT INTO agent_financial.actual_budget_mapping
@@ -232,9 +254,80 @@ test(
         /actual_budget_mapping_component_fk/,
       );
       await assert.rejects(
+        pool.query(
+          `INSERT INTO agent_financial.actual_budget_mapping
+             (mapping_version_id, plant_id, cost_center_id, gl_account_id, budget_component_key,
+              approval_status, approved_by, provenance)
+           VALUES ($1, $2, $3, $4, $5, 'approved', 'schema-proof', '{}')`,
+          [firstBatchId, otherPlantId, otherCostCenterId, glAccountId, `leaf-${key}`],
+        ),
+        /actual_budget_mapping_batch_owner_fk/,
+      );
+      await assert.rejects(
         pool.query("UPDATE agent_financial.financial_actual SET debit = 0 WHERE batch_id = $1", [firstBatchId]),
         /agent_financial source rows are immutable/,
       );
+      await pool.query(
+        `UPDATE agent_financial.ingestion_batch
+            SET state = 'validated', validated_at_utc = now()
+          WHERE id = $1`,
+        [firstBatchId],
+      );
+      await pool.query(
+        `UPDATE agent_financial.ingestion_batch
+            SET state = 'active', activated_at_utc = now()
+          WHERE id = $1`,
+        [firstBatchId],
+      );
+      const lateInserts: Array<[string, () => Promise<unknown>]> = [
+        [
+          "component",
+          () =>
+            pool.query(
+              `INSERT INTO agent_financial.nursery_budget_component
+                 (batch_id, component_key, component_name, depth, sort_order, is_leaf,
+                  source_row_number, source_row)
+               VALUES ($1, $2, 'Late component', 0, 99, true, 999, '{}')`,
+              [firstBatchId, `late-${key}`],
+            ),
+        ],
+        [
+          "Actual",
+          () =>
+            pool.query(
+              `INSERT INTO agent_financial.financial_actual
+                 (batch_id, source_system, transaction_number, line_id, source_row_number,
+                  posting_date, debit, credit, source_row)
+               VALUES ($1, 'SAP', $2, '1', 999, '2099-09-01', 1, 0, '{}')`,
+              [firstBatchId, `LATE-${key}`],
+            ),
+        ],
+        [
+          "Budget",
+          () =>
+            pool.query(
+              `INSERT INTO agent_financial.nursery_budget
+                 (batch_id, plant_id, budget_component_id, reporting_month, rollover_enabled,
+                  budget_amount, rollover_amount, source_row_number, source_row)
+               VALUES ($1, $2, $3, '2099-09-01', false, 1, 0, 999, '{}')`,
+              [firstBatchId, plantId, leafId],
+            ),
+        ],
+        [
+          "mapping",
+          () =>
+            pool.query(
+              `INSERT INTO agent_financial.actual_budget_mapping
+                 (mapping_version_id, plant_id, cost_center_id, gl_account_id,
+                  budget_component_key, approval_status, approved_by, provenance)
+               VALUES ($1, $2, $3, $4, $5, 'approved', 'schema-proof', '{}')`,
+              [firstBatchId, plantId, costCenterId, lateGlAccountId, `leaf-${key}`],
+            ),
+        ],
+      ];
+      for (const [sourceKind, insert] of lateInserts) {
+        await assert.rejects(insert(), /ingestion batch must remain staged/, `${sourceKind} extended an active batch`);
+      }
     } finally {
       await pool.end();
     }
@@ -242,18 +335,19 @@ test(
 );
 
 async function insertBatch(pool: Pool, key: string, plantId: string, suffix: string): Promise<string> {
-  const result = await pool.query<{ id: string }>(
+  const result = await pool.query<{ id: string; is_synthetic: boolean }>(
     `INSERT INTO agent_financial.ingestion_batch
        (dataset_key, source_system, source_file_name, source_checksum_sha256, parser_version,
-        mapping_version, budget_owner_plant_id, state, source_reporting_months,
+        mapping_version, budget_owner_plant_id, state, is_synthetic, source_reporting_months,
         actual_coverage, budget_coverage, source_counts, validation_result,
         reconciliation_result, errors, imported_by_actor)
      VALUES ($1, 'SAP_WORKBOOK', 'schema proof.xlsx', $2, 'parser-v1', 'mapping-v1', $3,
-             'staged', ARRAY['2099-07-01'::date], '[]', '[]', '{}', '{}', '{}', '[]',
+             'staged', true, ARRAY['2099-07-01'::date], '[]', '[]', '{}', '{}', '{}', '[]',
              'schema-proof')
-     RETURNING id`,
+     RETURNING id, is_synthetic`,
     [`financial-chat-${key}`, key.replaceAll("-", "").padEnd(64, suffix === "first" ? "a" : "b"), plantId],
   );
+  assert.equal(result.rows[0].is_synthetic, true, "generated schema-test batches must be labelled synthetic");
   return result.rows[0].id;
 }
 
