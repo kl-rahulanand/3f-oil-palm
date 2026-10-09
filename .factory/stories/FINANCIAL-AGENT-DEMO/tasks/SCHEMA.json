@@ -2,41 +2,27 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-SCHEMA",
   "review": {
     "blocking_level": "P1",
-    "changed": "c44e90ee9bf17615beb117db42456bb4e101c4b2784cff93df8e5857dc2ec7b0",
-    "commit": "89f09f1bc7e0afd218b3ef416916b61ecfdeff6b",
+    "changed": "7951c1376573a75b970585cce881b6f807e5974ad1abb405c898cd4918064de1",
+    "commit": "3c5ff6abc4412def35d82e8b91ba2183a2bbd2b4",
     "dismissals": [],
     "findings": [
       {
-        "body": "The new staged-insert trigger closes the previously reported late-row hole, but the batch lifecycle itself remains bypassable. Because transition validation runs only for UPDATE, an ingestion batch can be inserted directly as `active` by supplying `activated_at_utc`, without ever being staged or validated. In addition, an active batch can still rewrite `source_reporting_months`, coverage, counts, validation, reconciliation, errors, and lifecycle timestamps because those fields are omitted from the immutable-field comparison. This permits an active generation's reported scope and evidence to change without changing its identity. Require new batches to start staged, freeze validation/reconciliation metadata after the appropriate transition, and test direct activation and post-activation metadata edits.",
+        "body": "The metadata freeze still applies only when `OLD.state` is already `active` or `superseded`. A single `validated` \u2192 `active` update can therefore also rewrite `source_reporting_months`, coverage, counts, validation/reconciliation results, errors, or `validated_at_utc`; failed batches likewise retain mutable evidence. This lets activation replace the evidence that was supposedly validated, while the added test checks only edits made after activation. Freeze validation evidence during the activation transition and after failure, enforce lifecycle timestamp consistency, and cover these cases.",
         "file": "backend/drizzle-warehouse/0005_agent_financial_source_facts.sql",
-        "line": 281,
+        "line": 298,
         "priority": "P1",
         "title": "Not done: immutable ingestion lifecycle"
       },
       {
-        "body": "The synthetic database proof verifies only `WAREHOUSE_PG_HOST` and `WAREHOUSE_PG_PORT`; it never checks the configured database identity. Consequently, `127.0.0.1:5434` combined with a non-disposable `WAREHOUSE_PG_DATABASE` passes this guard and `migrateWarehouse()` immediately writes DDL and fixture rows there. The pinned execution seam requires the disposable `warehouse` database and rejection of wrong destinations before any write. Include the database name in the guard and add a negative wrong-database test.",
-        "file": "backend/src/financial-data/financial-schema.db.test.ts",
-        "line": 379,
-        "priority": "P1",
-        "title": "Not done: rejects wrong destinations before writes"
-      },
-      {
-        "body": "The previous scope finding remains open: this SCHEMA branch still changes the named acceptance coverage for the later MODEL and MEMORY tasks, along with corresponding plan/read metadata, even though the permitted paths are limited to the schema, warehouse migration/tests, package manifest, and quality gate. These edits are unrelated to delivering the eight tables and generation constraints and should be moved to their owning tasks or a separately approved planning change.",
+        "body": "The previous scope finding remains open. This SCHEMA branch still changes the named acceptance coverage for the later MODEL and MEMORY tasks, with corresponding plan/read metadata updates, although the permitted paths are limited to schema, warehouse migration/tests, the backend manifest, and quality gate. These edits are unnecessary for delivering the eight additive tables and should remain with their owning tasks or a separately approved planning change.",
         "file": "plans/FINANCIAL-AGENT-DEMO.md",
         "line": 158,
         "priority": "P1",
         "title": "Remove out-of-scope changes to future MODEL and MEMORY tasks"
-      },
-      {
-        "body": "Each alias trigger enforces uniqueness with an unlocked `EXISTS` query. Two concurrent transactions can therefore insert different canonical rows carrying the same alias, neither transaction sees the other's uncommitted row, and both commits succeed because no unique index covers array elements. The alias then resolves to multiple canonical targets despite the trigger's guarantee. Use a concurrency-safe unique representation or serialize checks with an alias-key/table lock, and cover the race with two database connections.",
-        "file": "backend/drizzle-warehouse/0005_agent_financial_source_facts.sql",
-        "line": 303,
-        "priority": "P2",
-        "title": "Make alias uniqueness checks concurrency-safe"
       }
     ],
     "status": "blocked",
-    "tree": "78abaebb99f8292f76d8f86e4ad930812ba5a641af0bb76371df6352cd7ce815"
+    "tree": "cb8dc741528061400a857dfb6cdbbc26ac3ee3151dde352b3029d5a40b650c71"
   },
   "status": "fixing",
   "steps": [
@@ -50,6 +36,10 @@
     },
     {
       "at": "2026-10-09T16:45:30+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T17:07:11+00:00",
       "step": "review"
     }
   ]
