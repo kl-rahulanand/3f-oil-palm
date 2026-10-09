@@ -2,48 +2,34 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-CONTRACT",
   "review": {
     "blocking_level": "P1",
-    "changed": "c5d44d121f9318eb6556d7900689f02b825a8a3ab7acb196f2ba3a273f9b9df5",
-    "commit": "fe3aea42aa99bd381810d52be6a509f5938163a3",
+    "changed": "14c845f70e3b36fc2879603234a18570198a020809c0c574f3c10faf43da0b06",
+    "commit": "063071949f04179fa384039ad7a84f57b77e2492",
     "dismissals": [],
     "findings": [
       {
-        "body": "The companion is required only when some relevant coverage is `unconfirmed`. For a range containing a confirmed-complete source month plus a `not_loaded` month, the schema therefore requires only `actual: not_loaded` and rejects an `availableActualSubtotal` as an extra key. This discards the exact source-covered amount and its drill handle, although the confirmed spec says a source-covered range sums available rows while excluding\u2014not zero-filling\u2014missing source months. Require the companion whenever incomplete aggregate coverage still contains source-covered Actual data, and add this mixed complete/not-loaded result case.",
+        "body": "The special Roll-over state is recognized only when the same result also contains `budget.state === \"no_gl_line\"`. A valid selection such as Actual plus Roll-over grouped by GL need not request Budget, yet an Actual-only GL still has no Roll-over leaf. Under loaded coverage this schema rejects the truthful `No Roll-over line for this GL` state and instead requires a numeric Roll-over, so the supported selection cannot preserve that Actual row without inventing a balance. Infer the special state from the GL grouping/state itself rather than requiring an unrequested Budget value, and change the Roll-over-only regression case to succeed.",
         "file": "contract/src/financial-tools.ts",
-        "line": 479,
+        "line": 588,
         "priority": "P1",
-        "title": "Not done: partial Actual ranges retain their available subtotal"
+        "title": "Not done: Roll-over-only GL results can represent missing source lines"
       },
       {
-        "body": "The refinement validates prerequisites only when `percentage.state` is `available`. A result with complete Actual coverage, loaded nonzero Budget, and `percentage: { state: \"not_applicable\" }` therefore passes unchanged. That permits a requested comparison to suppress its exact ratio despite all inputs being available. Add the inverse requirement and a negative result-validation test: `not_applicable` is valid only when Actual is incomplete, Budget is missing/special, or the loaded denominator is zero.",
+        "body": "The catalog combination refinement checks duplicates and dimension compatibility but not the selection schema's measure rules. It therefore accepts combinations such as `measureIds: [\"actual\", \"percentage\"]`, although no corresponding selection can pass: percentage requires `actual_vs_budget`, and that comparison requires both Actual and Budget unless percentage is the only returned measure. The catalog can consequently advertise an unusable \u201cvalid combination.\u201d Apply the same comparison dependency to catalog combinations and add malformed catalog cases for Actual+percentage and Budget+percentage.",
         "file": "contract/src/financial-tools.ts",
-        "line": 567,
+        "line": 191,
         "priority": "P1",
-        "title": "Not done: complete nonzero comparisons cannot claim Not applicable"
+        "title": "Not done: catalog combinations match accepted selections"
       },
       {
-        "body": "The new mixed-coverage rule forces `availableBudgetSubtotal` onto every row whenever any relevant coordinate is loaded and another is missing. For an Unmapped component row, however, the value contract allows that companion only beside `budget.state === \"not_loaded\"`, and the later special-state check rejects `budget.state === \"unmapped\"` whenever any coordinate is not loaded. Consequently an all-my-Plants component result cannot preserve the required exact `No Budget assigned to Unmapped` state under partial Budget coverage; it must either use the generic missing-coverage label or fail validation. Exempt intrinsically budgetless Unmapped rows from the partial companion rule and cover this combination.",
+        "body": "Rows are checked individually, but no invariant makes their selected dimension coordinates unique. For a GL-grouped result, two rows with different opaque `key` values and the same `dimensions.gl` both validate, allowing the strict result boundary to accept repeated GL aggregates\u2014the exact fan-out shape this story must prevent. Reject duplicate coordinate tuples (and duplicate row keys) and add a negative result-validation case.",
         "file": "contract/src/financial-tools.ts",
-        "line": 483,
+        "line": 467,
         "priority": "P1",
-        "title": "Not done: mixed Budget coverage retains the Unmapped state"
-      },
-      {
-        "body": "`timeWindow.kind === \"range\"` receives no boundary validation, so inputs such as 2026-04-15 through 2026-05-06 pass the strict query tool schema. The supported periods are complete months, and Budget/Roll-over facts are monthly, so this selection has no defined exact cross-source interpretation and can produce values for a broader scope than its dates claim. Require range `from` to be the first day and `to` the last day of a month, with a negative selection test.",
-        "file": "contract/src/financial-tools.ts",
-        "line": 70,
-        "priority": "P1",
-        "title": "Not done: selection validation rejects partial-month ranges"
-      },
-      {
-        "body": "Unlike selections and catalog dimension support lists, each catalog combination accepts repeated measure and dimension IDs. A catalog can therefore validate and advertise `measureIds: [\"actual\", \"actual\"]` or duplicate grouping dimensions even though the corresponding selection is rejected as invalid. Enforce set semantics within every combination and cover the malformed catalog case.",
-        "file": "contract/src/financial-tools.ts",
-        "line": 181,
-        "priority": "P2",
-        "title": "Reject duplicate identifiers inside catalog combinations"
+        "title": "Not done: result validation rejects duplicate aggregate coordinates"
       }
     ],
     "status": "blocked",
-    "tree": "8324caf8029b1be1cc639a513b65340ad7540f8dda4a14d56cdb02e280fb9aa3"
+    "tree": "46028e6175ac932cf06daf720ef764e6621b81420aefa45993108ff41f250a82"
   },
   "status": "fixing",
   "steps": [
@@ -57,6 +43,10 @@
     },
     {
       "at": "2026-10-09T00:19:04+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T00:51:42+00:00",
       "step": "review"
     }
   ]
