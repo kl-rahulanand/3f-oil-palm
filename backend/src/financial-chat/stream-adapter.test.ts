@@ -190,24 +190,50 @@ test("direct Anthropic, LangGraph and strict Zod tools cross the CommonJS SDK bo
   assert.deepEqual(await graph.invoke({ selected: "" }), { selected: "DUB" });
 });
 
-test("aborting the stream stops the backend iterator before another frame is emitted", async () => {
+test("abort promptly cleans up a non-cooperative pending source and suppresses its late frame", async () => {
   const controller = new AbortController();
-  let resumed = false;
-  const stream = createFinancialChatEventStream(
-    (async function* () {
-      yield startedEvent;
-      await new Promise<void>((resolve) =>
-        controller.signal.addEventListener("abort", () => resolve(), { once: true }),
-      );
-      resumed = true;
-      yield finalEvent;
-    })(),
-    controller.signal,
-  );
+  let nextCalls = 0;
+  let returnCalls = 0;
+  let markPendingStarted!: () => void;
+  let releasePending!: (result: IteratorResult<unknown>) => void;
+  const pendingStarted = new Promise<void>((resolve) => {
+    markPendingStarted = resolve;
+  });
+  const source: AsyncIterable<unknown> = {
+    [Symbol.asyncIterator]() {
+      return {
+        next() {
+          nextCalls += 1;
+          if (nextCalls === 1) return Promise.resolve({ done: false as const, value: startedEvent });
+          markPendingStarted();
+          return new Promise<IteratorResult<unknown>>((resolve) => {
+            releasePending = resolve;
+          });
+        },
+        return() {
+          returnCalls += 1;
+          return Promise.resolve({ done: true as const, value: undefined });
+        },
+      };
+    },
+  };
+  const stream = createFinancialChatEventStream(source, controller.signal);
   const iterator = stream[Symbol.asyncIterator]();
 
   assert.equal((await iterator.next()).done, false);
+  const pendingFrame = iterator.next();
+  await pendingStarted;
   controller.abort();
+  const cancellation = await Promise.race([
+    pendingFrame.then((result) => ({ settled: true as const, result })),
+    new Promise<{ settled: false }>((resolve) => setImmediate(() => resolve({ settled: false }))),
+  ]);
+  const returnCallsBeforeRelease = returnCalls;
+  releasePending({ done: false, value: finalEvent });
+  await pendingFrame;
+
+  assert.equal(cancellation.settled, true);
+  if (cancellation.settled) assert.equal(cancellation.result.done, true);
+  assert.equal(returnCallsBeforeRelease, 1);
   assert.equal((await iterator.next()).done, true);
-  assert.equal(resumed, true);
 });

@@ -42,10 +42,48 @@ export function staticCachedInstruction(text: string) {
 
 export function createFinancialChatEventStream(events: AsyncIterable<unknown>, signal?: AbortSignal): Readable {
   async function* serialize() {
-    for await (const candidate of events) {
-      if (signal?.aborted) return;
-      const event = financialChatEventSchema.parse(candidate);
-      yield `${JSON.stringify(event)}\n`;
+    const iterator = events[Symbol.asyncIterator]();
+    const aborted = Symbol("aborted");
+    let resolveAbort!: () => void;
+    let cleanupStarted = false;
+    let sourceDone = false;
+    const abort = new Promise<typeof aborted>((resolve) => {
+      resolveAbort = () => resolve(aborted);
+    });
+    const cleanup = () => {
+      if (cleanupStarted || sourceDone) return;
+      cleanupStarted = true;
+      try {
+        const result = iterator.return?.();
+        if (result) void Promise.resolve(result).catch(() => undefined);
+      } catch {
+        // Cancellation must not be delayed or replaced by an iterator cleanup failure.
+      }
+    };
+    const onAbort = () => {
+      resolveAbort();
+      cleanup();
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+    try {
+      if (signal?.aborted) {
+        onAbort();
+        return;
+      }
+      while (true) {
+        const candidate = signal ? await Promise.race([iterator.next(), abort]) : await iterator.next();
+        if (candidate === aborted || signal?.aborted) return;
+        if (candidate.done) {
+          sourceDone = true;
+          return;
+        }
+        const event = financialChatEventSchema.parse(candidate.value);
+        yield `${JSON.stringify(event)}\n`;
+      }
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+      cleanup();
     }
   }
 
