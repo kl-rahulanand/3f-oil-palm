@@ -2,7 +2,25 @@ import { existsSync } from "fs";
 import { promises as dns } from "node:dns";
 import { resolve } from "path";
 import { config as loadDotenv } from "dotenv";
-import type { Environment } from "@3f/contract";
+import type { Environment, FinancialChatErrorDetails } from "@3f/contract";
+
+type FinancialChatRequestRefusal = {
+  reason: Extract<FinancialChatErrorDetails["reason"], "feature_disabled" | "model_unavailable">;
+};
+
+export interface FinancialChatModelSettings {
+  provider: "anthropic";
+  modelId: "claude-sonnet-5-5";
+  apiKey: string;
+  maxRetries: number;
+  timeoutMs: number;
+}
+
+export interface FinancialChatConfig {
+  enabled: boolean;
+  model: FinancialChatModelSettings | null;
+  requestRefusal: FinancialChatRequestRefusal | null;
+}
 
 // Central config, read once from env. No secrets hardcoded.
 for (const path of [
@@ -69,11 +87,45 @@ export interface Config {
   suppressionK: number;
   llmProvider: "mock" | "bedrock";
   bedrock: { region: string; modelId: string };
+  financialChat: FinancialChatConfig;
   swaggerEnabled: boolean;
 }
 
 const num = (v: string | undefined, d: number) => (v ? Number(v) : d);
 const bool = (v: string | undefined) => v === "true" || v === "1";
+
+function boundedInteger(value: string | undefined, minimum: number, maximum: number): number | null {
+  if (!value?.trim()) return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= minimum && parsed <= maximum ? parsed : null;
+}
+
+function loadFinancialChatConfig(): FinancialChatConfig {
+  const enabled = bool(process.env.FINANCIAL_CHAT_ENABLED);
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  const maxRetries = boundedInteger(process.env.FINANCIAL_CHAT_MODEL_MAX_RETRIES, 0, 3);
+  const timeoutMs = boundedInteger(process.env.FINANCIAL_CHAT_MODEL_TIMEOUT_MS, 1_000, 120_000);
+  const validModel =
+    process.env.FINANCIAL_CHAT_MODEL_PROVIDER === "anthropic" &&
+    process.env.FINANCIAL_CHAT_MODEL_ID === "claude-sonnet-5-5" &&
+    apiKey &&
+    maxRetries !== null &&
+    timeoutMs !== null;
+
+  return {
+    enabled,
+    model: validModel
+      ? {
+          provider: "anthropic",
+          modelId: "claude-sonnet-5-5",
+          apiKey,
+          maxRetries,
+          timeoutMs,
+        }
+      : null,
+    requestRefusal: !enabled ? { reason: "feature_disabled" } : validModel ? null : { reason: "model_unavailable" },
+  };
+}
 
 const ENVIRONMENTS: Record<string, Environment> = {
   local: "Local",
@@ -192,6 +244,7 @@ export function loadConfig(): Config {
       region: process.env.AWS_REGION ?? "ap-south-1",
       modelId: process.env.BEDROCK_MODEL_ID ?? "",
     },
+    financialChat: loadFinancialChatConfig(),
     swaggerEnabled: nodeEnv !== "production",
   };
 }

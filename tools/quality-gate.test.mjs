@@ -43,6 +43,7 @@ const hermeticTests = [
   "backend/src/db/migrate.trim.test.ts",
   "backend/src/db/seed-users.test.ts",
   "backend/src/financial-chat/financial-disposable-db.guard.test.ts",
+  "backend/src/financial-chat/financial-model-config.test.ts",
   "backend/src/financial-chat/financial-report-baseline.test.ts",
   "backend/src/financial-chat/stream-adapter.test.ts",
   "backend/src/financial-data/financial-actual.parser.test.ts",
