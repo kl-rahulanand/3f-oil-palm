@@ -1,10 +1,52 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-LEGACY-UI",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "769ea7f4ca5d821724f1fe8f95d5061e723ade1d64260fb053e81b93f0f5ae67",
+    "commit": "226292bd66a2c035ac4740714cd7eb832984f4b9",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The harness requires mock OTP but does not constrain `BIND_HOST`. The unchanged startup path at `backend/src/main.ts:56` gives an inherited `BIND_HOST` precedence over the mock provider's loopback default, so `BIND_HOST=0.0.0.0` exposes this server while any seeded administrator can authenticate with the fixed mock code. Because the browser flow may contain real-source financial data, the Playwright configuration must override or reject every bind address except `127.0.0.1`.",
+        "file": "frontend/playwright.config.ts",
+        "line": 18,
+        "priority": "P1",
+        "title": "Do not let the mock-OTP proof server bind beyond loopback"
+      },
+      {
+        "body": "The environment checks pin the Postgres write connection but omit `WAREHOUSE_DRIVER`. In unchanged `backend/src/core/core.module.ts:31-33`, inherited values `mysql` or `http` select a StarRocks adapter, while the ingestion endpoints still write the generated workbook to local Postgres. A developer environment configured for StarRocks can therefore make report/export/drill requests read a non-disposable, potentially live warehouse during this supposedly isolated proof. Require `WAREHOUSE_DRIVER=postgres` before starting either server.",
+        "file": "frontend/playwright.config.ts",
+        "line": 18,
+        "priority": "P1",
+        "title": "Pin report reads to the disposable Postgres warehouse"
+      },
+      {
+        "body": "`resolve()` only normalizes the path text; it does not resolve a pre-existing symlink or junction. The predictable default `3f-financial-legacy-ui-evidence` can therefore be linked from the temporary directory to the checkout or another untrusted location, pass all following `relative()`/basename checks, and receive real-source screenshots and evidence JSON. Canonicalize the created directory with `realpath` and verify the canonical target remains under the temporary task root and outside the checkout before any write.",
+        "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
+        "line": 292,
+        "priority": "P1",
+        "title": "Resolve the evidence directory before writing financial screenshots"
+      },
+      {
+        "body": "The browser export proof checks only the suggested filename and that Playwright can create a stream. Any completed download\u2014including an empty, corrupt, or wrong workbook\u2014returns a non-null stream, so a regression in the HTTP/export/UI path would still pass. The required user-facing export baseline needs to consume the download, load it as a workbook, and compare its relevant sheets and financial values with the independently recorded baseline; the backend service-level snapshot does not exercise this browser path.",
+        "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
+        "line": 104,
+        "priority": "P1",
+        "title": "Not done: downloaded legacy workbook contents match the baseline"
+      }
+    ],
+    "status": "blocked",
+    "tree": "8b1f5c8607204254208fa347d31709ca7ce51b23b74d86c68ed158371ee84044"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T01:16:29+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-09T03:02:24+00:00",
+      "step": "review"
     }
   ]
 }
