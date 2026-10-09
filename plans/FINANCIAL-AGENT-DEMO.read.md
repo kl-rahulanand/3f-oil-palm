@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-09T16:03:24+00:00
+read_at: 2026-10-09T16:07:13+00:00
 read_hash: 6d23fe6aaeccd03bbf844711b79b2727729f40d4
-round: 8
+round: 9
 passed: no
 doc_seen: 6d23fe6aaeccd03bbf844711b79b2727729f40d4
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: 59a260e080373a73d85064098076f41466d936a2
+notes_seen: f71ddf50d1f47f8f7fb52062c0470dc784549e29
 ---
 
 # Cold read notes
@@ -232,3 +232,13 @@ No findings.
 29. Shared Scope: TRANSPORT, STREAM and CLIENT all own the same concrete transport modules without a single owner.  
    Disposition: keep: TRANSPORT is now merged and pins the backend serializer/cache boundary plus the credentialed native-fetch NDJSON client functions with focused crossing tests. STREAM and CLIENT are explicitly later expansions of those same stable adapters, as stage 1 says, and their dependency edges serialize consumption after API/STREAM. Splitting the already-landed seam would create a duplicate transport, which the approved plan expressly forbids.
    TRANSPORT claims `stream-adapter*` and `financial-chat.transport*`; STREAM edits `stream-adapter.ts`; CLIENT edits `financial-chat.transport*`. Pin the adapter/frame ownership in TRANSPORT, with later tasks consuming it through stable interfaces, or split endpoint streaming and client state into separate files so each task has one owner.
+
+## Round 9
+
+30. Unproven: item 3: an overlapping distinct command for the same conversation has no named proof of its typed concurrent-run refusal while the original run remains intact.  
+   Disposition: fix: MEMORY's named test now covers the typed concurrent-run refusal and proves the original run remains intact.
+   MEMORY names capacity and cancellation; STREAM names duplicate commands, not a second active run. Add this state and its client-visible reason to MEMORY or STREAM.
+
+31. Unproven: item 6: no named test proves financial data is absent from model retry traces and logs, not merely the outbound request.  
+   Disposition: fix: MODEL's named test now captures retry, trace and log payloads and proves that money, rows, handles, batches, raw state and rendered answers are absent.
+   MODEL names payload exclusions and vendor errors, while the spec also excludes money, rows, handles, batches, raw state and rendered answers from retries, traces and logs. Add captured retry/trace/log assertions to MODEL.
