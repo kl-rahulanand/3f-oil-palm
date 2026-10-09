@@ -7,9 +7,9 @@ import {
   financialIssue,
   financialValidationError,
   findFinancialTable,
+  formulaCacheIssue,
   formatDecimal,
   formatPaise,
-  hasUncachedFormula,
   parseFinancialDate,
   parseFinancialMoney,
   rawColumn,
@@ -117,13 +117,12 @@ export async function parseFinancialActualsWorkbook(buffer: Buffer): Promise<Par
   });
 
   for (const row of rows) {
-    const missingFormulaIssues = table.rawColumns.flatMap(([key, columnNumber]) =>
-      hasUncachedFormula(row.getCell(columnNumber))
-        ? [financialIssue(["rows", row.number, key], "Formula has no cached result; recalculate and save the workbook")]
-        : [],
-    );
-    if (missingFormulaIssues.length) {
-      issues.push(...missingFormulaIssues);
+    const formulaIssues = table.rawColumns.flatMap(([key, columnNumber]) => {
+      const message = formulaCacheIssue(row.getCell(columnNumber));
+      return message ? [financialIssue(["rows", row.number, key], message)] : [];
+    });
+    if (formulaIssues.length) {
+      issues.push(...formulaIssues);
       continue;
     }
     const sourceRow = readSourceRow(row, table);

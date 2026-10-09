@@ -422,6 +422,43 @@ test("the independent Actual parser rejects uncached shared formulas before pars
   );
 });
 
+test("the independent Actual parser rejects cached Excel errors before parsing or skipping any source row", async () => {
+  await assert.rejects(
+    parseFinancialActualsWorkbook(
+      await workbookBuffer([
+        actualRow({ plant: { formula: "NA()", result: { error: "#N/A" } } }),
+        actualRow({
+          transactionNumber: "TX-2",
+          lineId: "2",
+          comment1: { sharedFormula: "R2", result: { error: "#REF!" } },
+        }),
+        formulaOnlyRow(12, { formula: "1/0", result: { error: "#DIV/0!" } }),
+      ]),
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof z.ZodError);
+      assert.deepEqual(
+        error.issues.map(({ path, message }) => ({ path, message })),
+        [
+          {
+            path: ["rows", 4, "Plant"],
+            message: "Formula cached result is an Excel error; recalculate and save the workbook",
+          },
+          {
+            path: ["rows", 5, "Comments"],
+            message: "Formula cached result is an Excel error; recalculate and save the workbook",
+          },
+          {
+            path: ["rows", 6, "Debit"],
+            message: "Formula cached result is an Excel error; recalculate and save the workbook",
+          },
+        ],
+      );
+      return true;
+    },
+  );
+});
+
 test("the independent Actual parser rejects duplicate transaction and line identities", async () => {
   await assert.rejects(
     parseFinancialActualsWorkbook(await workbookBuffer([actualRow({}), actualRow({})])),
