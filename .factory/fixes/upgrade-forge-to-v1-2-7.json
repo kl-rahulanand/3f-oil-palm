@@ -1,7 +1,14 @@
 {
+  "amendments": [
+    {
+      "at": "2026-10-09T07:24:12+00:00",
+      "because": "On 2026-10-09 the owner explicitly chose the newer release for faster workflow after being told that it grants agents access outside the project without approval prompts. This accepts that host-access risk; it does not authorize bypassing tests, reviews, merge gates, or unrelated changes.",
+      "done_when": "Forge runs v1.2.7 with existing financial-chat work preserved"
+    }
+  ],
   "base": "110ca15d6366703b0241aa53c52835430e125bf3",
   "branch": "fix/upgrade-forge-to-v1-2-7",
-  "done_when": "Forge runs v1.2.7 with existing financial-chat work preserved",
+  "done_when": "Forge runs v1.2.7 with its owner-approved full-access agent settings, existing merge and review gates, and financial-chat work preserved",
   "flagged": [
     ".codex/config.toml"
   ],
