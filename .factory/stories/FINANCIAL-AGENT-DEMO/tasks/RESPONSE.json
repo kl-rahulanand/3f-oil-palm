@@ -2,50 +2,43 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-RESPONSE",
   "review": {
     "blocking_level": "P1",
-    "changed": "45ace2480eb2bb5a638b31e1293fd29b79953499f4baf38c837a32d76d955745",
-    "commit": "c3939de2ebecb9173698ce159c8d2b99d9447f13",
+    "changed": "a5c114781b118804549a9548e11e059613e3f20bab7ec75bd7031391eb00f5e3",
+    "commit": "d519d90448e0f49d7873076c66447fe337a2e3d4",
     "dismissals": [],
     "findings": [
       {
-        "body": "The added checks now cover unknown props for FinancialTotal, FinancialComparison, and ClarificationCard, but every MonthlyTrend fixture is valid and no case adds an unknown prop. The suite would still pass if MonthlyTrend.props stopped being strict, leaving one advertised UI contract unprotected. Add an unknown-prop rejection case for MonthlyTrend.",
-        "file": "contract/test/financial-chat.test.ts",
-        "line": 542,
-        "priority": "P1",
-        "title": "Not done: strict output/UI props"
-      },
-      {
-        "body": "sameSelection compares serialized arrays, although plantIds are semantically a set elsewhere in financialQueryResultSchema. A required multi-Plant answer whose confirmed scope contains [\"DUB\", \"CHIR\"] rejects an otherwise valid included result containing [\"CHIR\", \"DUB\"]. Measure/filter set order has the same problem. Compare normalized selections or require canonical ordering in the selection schema.",
+        "body": "New evidence beyond the repaired `sameSelection` path: detail deduplication still serializes `result.selection` directly. Two results with semantically identical but differently ordered Plant/measure/filter sets therefore get different scope identities. A correctly shared drill handle is rejected as spanning different scopes, while using separate handles evades the required chart/table deduplication and can inflate the 200-scope count. Canonicalize the selection here with the same set semantics used by `sameSelection`.",
         "file": "contract/src/financial-chat.ts",
-        "line": 236,
+        "line": 561,
         "priority": "P2",
-        "title": "Treat reordered Plant sets as the same confirmed scope"
+        "title": "Treat reordered selections as one prepared Actual scope"
       },
       {
-        "body": "This branch defines only the clarification presentation shape; it does not implement pending-request continuation, scope retention, capacity/expiry, revocation checks, cancellation, or restart outcomes required by done-when item 3. The approved task table assigns those behaviors and their end-to-end proofs to MEMORY, GRAPH, API, STREAM, CLIENT, and REGRESSION.",
+        "body": "This branch defines only the clarification presentation shape; it does not implement pending-request continuation, scope retention, capacity/expiry, authorization rechecks, cancellation, or restart outcomes required by done-when item 3. The approved task table assigns those behaviors and their end-to-end proofs to MEMORY, GRAPH, API, STREAM, CLIENT, and REGRESSION.",
         "file": "contract/src/financial-chat.ts",
-        "line": 610,
+        "line": 630,
         "priority": "P2",
         "title": "Later: MEMORY/GRAPH/API/STREAM/CLIENT/REGRESSION must prove clarification lifecycle"
       },
       {
-        "body": "The ready/failed detail union is only the presentation contract. Scope deduplication, preparation deadlines, source/mapping pins, stable full traversal, authorization rechecks, and browser identity/total comparisons required by done-when item 4 depend on the assigned DRILL, PAGES, ANSWER, DETAIL, and BROWSER tasks.",
+        "body": "The ready/failed detail union is only the presentation contract. Scope preparation, deadlines, immutable source/mapping pins, stable full traversal, authorization rechecks, and browser identity/total comparisons required by done-when item 4 remain assigned to DRILL, PAGES, ANSWER, DETAIL, and BROWSER.",
         "file": "contract/src/financial-chat.ts",
         "line": 209,
         "priority": "P2",
         "title": "Later: DRILL/PAGES/ANSWER/DETAIL/BROWSER must implement prepared Actual paging"
       },
       {
-        "body": "Pinning the provider and model ID in capabilities does not establish direct ChatAnthropic execution, trusted instruction ordering, static-prefix caching, payload exclusions, vendor errors, or gated live runs required by done-when item 6. Those implementations and proofs are assigned to MODEL, GRAPH, ANSWER, and LIVE.",
+        "body": "Pinning Anthropic and the model ID in capabilities does not establish direct ChatAnthropic execution, trusted instruction ordering, static-prefix caching, payload exclusions, typed vendor behavior, or gated live runs required by done-when item 6. Those implementations and proofs are assigned to MODEL, GRAPH, ANSWER, and LIVE.",
         "file": "contract/src/financial-chat.ts",
-        "line": 648,
+        "line": 662,
         "priority": "P2",
         "title": "Later: MODEL/GRAPH/ANSWER/LIVE must prove Claude and static-cache boundaries"
       }
     ],
-    "status": "blocked",
-    "tree": "d31e49af4d862ecdd14c7f6ade893843a6f1033428ee42223394c9a4e6bb1447"
+    "status": "clean",
+    "tree": "1916170e76c95846f54d43717a416584afeb4a8b088ee4ba2c3fcad2b4759d91"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-09T02:48:18+00:00",
@@ -61,6 +54,10 @@
     },
     {
       "at": "2026-10-09T05:41:03+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T06:14:25+00:00",
       "step": "review"
     }
   ]
