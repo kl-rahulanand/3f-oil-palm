@@ -158,12 +158,19 @@ test.describe("legacy financial BASELINE", () => {
     const junction = join(junctionRoot, "3f-financial-linked-evidence");
     await symlink(resolve(__dirname, "../.."), junction, "junction");
     const previousEvidenceDirectory = process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR;
+    const previousBaselineDirectory = process.env.FINANCIAL_CHAT_BASELINE_DIR;
     process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR = junction;
     try {
       expect(() => evidenceDirectory()).toThrow(/trusted task temporary directory/);
+      process.env.FINANCIAL_CHAT_BASELINE_DIR = resolve(__dirname, "../..");
+      expect(() => realBaselineDirectory()).toThrow(/trusted task temporary directory/);
+      process.env.FINANCIAL_CHAT_BASELINE_DIR = junction;
+      expect(() => realBaselineDirectory()).toThrow(/trusted task temporary directory/);
     } finally {
       if (previousEvidenceDirectory === undefined) delete process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR;
       else process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR = previousEvidenceDirectory;
+      if (previousBaselineDirectory === undefined) delete process.env.FINANCIAL_CHAT_BASELINE_DIR;
+      else process.env.FINANCIAL_CHAT_BASELINE_DIR = previousBaselineDirectory;
       await rm(junctionRoot, { recursive: true, force: true });
     }
 
@@ -616,10 +623,10 @@ async function realBaseline(): Promise<{
   exportSnapshot: FinancialWorkbookSnapshot;
 }> {
   const sourcePath = process.env.FINANCIAL_CHAT_SOURCE_FILE;
-  const baselineDirectory = process.env.FINANCIAL_CHAT_BASELINE_DIR;
-  if (!sourcePath || !baselineDirectory || !existsSync(sourcePath)) {
+  if (!sourcePath || !existsSync(sourcePath)) {
     throw new Error("real-source proof requires FINANCIAL_CHAT_SOURCE_FILE and FINANCIAL_CHAT_BASELINE_DIR");
   }
+  const baselineDirectory = realBaselineDirectory();
   const artifact = JSON.parse(await readFile(join(baselineDirectory, "legacy-backend-baseline.json"), "utf8")) as {
     sourceSha256: string;
     actualBatchIds: string[];
@@ -693,10 +700,26 @@ async function recordEvidence(
   finalUrl: string,
 ): Promise<void> {
   const directory = evidenceDirectory();
+  const evidence = {
+    ...proof.evidence,
+    reportActiveBatchIds,
+    scope: proof.scope,
+    expectedActual: proof.expectedActual,
+    finalUrl,
+    capturedAtUtc: new Date().toISOString(),
+  };
   await writeFile(
     join(directory, `${proof.evidence.classification}-legacy-ui-evidence.json`),
-    `${JSON.stringify({ ...proof.evidence, reportActiveBatchIds, scope: proof.scope, expectedActual: proof.expectedActual, finalUrl, capturedAtUtc: new Date().toISOString() }, null, 2)}\n`,
+    `${JSON.stringify(evidence, null, 2)}\n`,
   );
+}
+
+function realBaselineDirectory(): string {
+  const directory = process.env.FINANCIAL_CHAT_BASELINE_DIR;
+  if (!directory) {
+    throw new Error("real-source proof requires FINANCIAL_CHAT_SOURCE_FILE and FINANCIAL_CHAT_BASELINE_DIR");
+  }
+  return trustedTaskDirectory(directory, resolve(__dirname, "../.."));
 }
 
 function evidenceDirectory(): string {
