@@ -160,7 +160,7 @@ const expectedWorkspaceScripts = {
     lint: 'cd .. && eslint --config eslint.config.mjs "contract/src/**/*.ts" "contract/test/**/*.ts" --no-error-on-unmatched-pattern',
     "format:check":
       'cd .. && prettier --config .prettierrc.json --ignore-path .prettierignore --check "contract/src/**/*.ts" "contract/test/**/*.ts" --no-error-on-unmatched-pattern',
-    test: "cd .. && TS_NODE_PROJECT=contract/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test contract/test/auth-contract.test.ts contract/test/financial-tools.test.ts contract/test/row-key.test.ts",
+    test: "cd .. && TS_NODE_PROJECT=contract/tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --require ts-node/register --test contract/test/auth-contract.test.ts contract/test/financial-tools.test.ts contract/test/financial-chat.test.ts contract/test/row-key.test.ts",
   },
   frontend: {
     build: "NEXT_TELEMETRY_DISABLED=1 next build",
