@@ -294,6 +294,23 @@ test(
           WHERE id = $1`,
         [firstBatchId],
       );
+      const validatedEvidenceEdits = [
+        "source_reporting_months = ARRAY['2099-08-01'::date]",
+        `actual_coverage = '[{"plantId":"changed"}]'::jsonb`,
+        `budget_coverage = '[{"plantId":"changed"}]'::jsonb`,
+        `source_counts = '{"rows":999}'::jsonb`,
+        `validation_result = '{"changed":true}'::jsonb`,
+        `reconciliation_result = '{"changed":true}'::jsonb`,
+        `errors = '[{"changed":true}]'::jsonb`,
+        "validated_at_utc = validated_at_utc + interval '1 second'",
+      ];
+      for (const edit of validatedEvidenceEdits) {
+        await assert.rejects(
+          pool.query(`UPDATE agent_financial.ingestion_batch SET ${edit} WHERE id = $1`, [firstBatchId]),
+          /ingestion_batch validation evidence is immutable/,
+          `validated batch accepted evidence edit: ${edit}`,
+        );
+      }
       await assert.rejects(
         pool.query(
           `UPDATE agent_financial.ingestion_batch

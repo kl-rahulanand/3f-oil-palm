@@ -306,7 +306,7 @@ BEGIN
 	) THEN
 		RAISE EXCEPTION 'active ingestion_batch metadata is immutable';
 	END IF;
-	IF TG_OP = 'UPDATE' AND OLD."state" = 'validated' AND NEW."state" = 'active' AND ROW(
+	IF TG_OP = 'UPDATE' AND OLD."state" = 'validated' AND ROW(
 		NEW."source_reporting_months", NEW."actual_coverage", NEW."budget_coverage",
 		NEW."source_counts", NEW."validation_result", NEW."reconciliation_result",
 		NEW."errors", NEW."validated_at_utc"
