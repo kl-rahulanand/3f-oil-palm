@@ -220,11 +220,42 @@ test("catalog validates governed combinations, fiscal rules, and hard limits", (
     ...catalog,
     combinations: [{ measureIds: ["actual"], dimensionIds: ["plant", "plant"] }],
   };
+  const percentageCatalog = {
+    ...catalog,
+    measures: [
+      ...catalog.measures,
+      {
+        id: "percentage",
+        label: "Percentage",
+        description: "Exact Actual divided by matching Budget when both values are available.",
+      },
+    ],
+    dimensions: catalog.dimensions.map((dimension) => ({
+      ...dimension,
+      supportedMeasureIds: [...dimension.supportedMeasureIds, "percentage"],
+    })),
+  };
+  const percentageCombinationCases = [
+    [["percentage"], true],
+    [["actual", "budget", "percentage"], true],
+    [["actual", "percentage"], false],
+    [["budget", "percentage"], false],
+  ] as const;
   assert.deepEqual(
     [repeatedCombinationMeasure, repeatedCombinationDimension].map(
       (candidate) => financialCatalogSchema.safeParse(candidate).success,
     ),
     [false, false],
+  );
+  assert.deepEqual(
+    percentageCombinationCases.map(
+      ([measureIds]) =>
+        financialCatalogSchema.safeParse({
+          ...percentageCatalog,
+          combinations: [{ measureIds: [...measureIds], dimensionIds: ["plant"] }],
+        }).success,
+    ),
+    percentageCombinationCases.map(([, valid]) => valid),
   );
 });
 
@@ -823,6 +854,60 @@ test("financial boundary matrix keeps only source-covered partials and provable 
   assert.deepEqual(actualTransactionPageSchema.parse(page), page);
 });
 
+test("query results require unique row keys and aggregate coordinates", () => {
+  const row = (key: string, dimensions: { gl: string | null; month: string }) => ({
+    ...result.rows[0],
+    key,
+    dimensions,
+  });
+  const twoDimensionResult = {
+    ...result,
+    resultId: "two-dimension-result",
+    selection: { ...result.selection, dimensionIds: ["gl", "month"] },
+    rows: [
+      row("gl-month:one", { gl: "55010305", month: "2026-04-01" }),
+      row("gl-month:two", { gl: "55010306", month: "2026-05-01" }),
+    ],
+  };
+  const duplicateCoordinates = {
+    ...twoDimensionResult,
+    rows: [twoDimensionResult.rows[0], row("gl-month:duplicate", { month: "2026-04-01", gl: "55010305" })],
+  };
+  const duplicateKeys = {
+    ...twoDimensionResult,
+    rows: [twoDimensionResult.rows[0], row("gl-month:one", { month: "2026-05-01", gl: "55010306" })],
+  };
+  const distinctNullGl = {
+    ...twoDimensionResult,
+    rows: [
+      row("gl-month:null", { gl: null, month: "2026-04-01" }),
+      row("gl-month:value", { month: "2026-04-01", gl: "55010305" }),
+    ],
+  };
+  const duplicateNullGl = {
+    ...distinctNullGl,
+    rows: [distinctNullGl.rows[0], row("gl-month:null-duplicate", { month: "2026-04-01", gl: null })],
+  };
+
+  const cases = [
+    ["distinct coordinates and keys", twoDimensionResult, true],
+    ["duplicate coordinates with reversed object keys", duplicateCoordinates, false],
+    ["duplicate opaque row keys", duplicateKeys, false],
+    ["null and assigned GL coordinates", distinctNullGl, true],
+    ["duplicate null GL coordinates", duplicateNullGl, false],
+  ] as const;
+  assert.deepEqual(
+    cases.map(([name, candidate]) => ({ name, valid: financialQueryResultSchema.safeParse(candidate).success })),
+    cases.map(([name, , valid]) => ({ name, valid })),
+  );
+  assertOnlyZodIssue(
+    () => financialQueryResultSchema.parse(duplicateCoordinates),
+    "rows.1.dimensions",
+    "aggregate coordinates must be unique",
+  );
+  assertOnlyZodIssue(() => financialQueryResultSchema.parse(duplicateKeys), "rows.1.key", "row keys must be unique");
+});
+
 test("Roll-over exposes source absence without inventing Unmapped or GL balances", () => {
   const componentResult = {
     resultId: "rollover-components",
@@ -909,12 +994,56 @@ test("Roll-over exposes source absence without inventing Unmapped or GL balances
       },
     })),
   };
-  const unprovedGlWithoutBudget = {
+  const rolloverOnlyGlWithoutBudget = {
     ...knownGlWithoutBudget,
-    resultId: "unproved-gl-without-budget",
+    resultId: "rollover-only-gl-without-budget",
     selection: { ...knownGlWithoutBudget.selection, measureIds: ["rollover"] },
     rows: knownGlWithoutBudget.rows.map((row) => ({ ...row, values: { rollover: row.values.rollover } })),
     totals: { rollover: knownGlWithoutBudget.totals.rollover },
+  };
+  const actualAndRolloverGlWithoutBudget = {
+    ...rolloverOnlyGlWithoutBudget,
+    resultId: "actual-and-rollover-gl-without-budget",
+    selection: { ...rolloverOnlyGlWithoutBudget.selection, measureIds: ["actual", "rollover"] },
+    rows: rolloverOnlyGlWithoutBudget.rows.map((row) => ({
+      ...row,
+      values: {
+        actual: { state: "available", value: "5.00", label: "Actual", drilldownId: "drill-no-budget-gl" },
+        rollover: row.values.rollover,
+      },
+    })),
+    totals: {
+      actual: { state: "available", value: "5.00", label: "Actual", drilldownId: "drill-no-budget-total" },
+      rollover: knownGlWithoutBudget.totals.rollover,
+    },
+  };
+  const invalidNoGlGrouping = {
+    ...rolloverOnlyGlWithoutBudget,
+    resultId: "invalid-no-gl-grouping",
+    selection: { ...rolloverOnlyGlWithoutBudget.selection, dimensionIds: ["nursery_component"] },
+    rows: rolloverOnlyGlWithoutBudget.rows.map((row) => ({
+      ...row,
+      dimensions: { nursery_component: "Mapped nursery" },
+    })),
+  };
+  const noGlWithoutClosingCoverage = {
+    ...rolloverOnlyGlWithoutBudget,
+    resultId: "no-gl-without-closing-coverage",
+    totals: {
+      rollover: { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" },
+    },
+    coverage: rolloverOnlyGlWithoutBudget.coverage.map((entry) => ({ ...entry, budget: "not_loaded" })),
+  };
+  const explicitlyContradictedNoGl = {
+    ...knownGlWithoutBudget,
+    resultId: "explicitly-contradicted-no-gl",
+    rows: knownGlWithoutBudget.rows.map((row) => ({
+      ...row,
+      values: {
+        budget: { state: "available", value: "100.00", label: "Budget" },
+        rollover: row.values.rollover,
+      },
+    })),
   };
 
   const cases = [
@@ -924,7 +1053,11 @@ test("Roll-over exposes source absence without inventing Unmapped or GL balances
     ["ordinary GL in a Roll-over-only result", rolloverOnlyGl, true],
     ["known GL without a Budget leaf", knownGlWithoutBudget, true],
     ["numeric balance for a known Budgetless GL", numericKnownGlWithoutBudget, false],
-    ["unproved Budgetless GL in a Roll-over-only result", unprovedGlWithoutBudget, false],
+    ["Budgetless GL in a Roll-over-only result", rolloverOnlyGlWithoutBudget, true],
+    ["Budgetless GL preserves Actual drill", actualAndRolloverGlWithoutBudget, true],
+    ["Budgetless state outside a GL grouping", invalidNoGlGrouping, false],
+    ["Budgetless state without closing coverage", noGlWithoutClosingCoverage, false],
+    ["Budgetless state contradicts an explicit Budget", explicitlyContradictedNoGl, false],
   ] as const;
 
   assert.deepEqual(
@@ -934,7 +1067,9 @@ test("Roll-over exposes source absence without inventing Unmapped or GL balances
   for (const [candidate, path] of [
     [numericUnmapped, "rows.1.values.rollover"],
     [numericKnownGlWithoutBudget, "rows.0.values.rollover"],
-    [unprovedGlWithoutBudget, "rows.0.values.rollover"],
+    [invalidNoGlGrouping, "rows.0.values.rollover"],
+    [noGlWithoutClosingCoverage, "rows.0.values.rollover"],
+    [explicitlyContradictedNoGl, "rows.0.values.rollover"],
   ] as const) {
     assertOnlyZodIssue(
       () => financialQueryResultSchema.parse(candidate),

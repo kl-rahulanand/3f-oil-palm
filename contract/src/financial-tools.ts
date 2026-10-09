@@ -102,6 +102,13 @@ function hasUnsupportedMeasureDimensionCombination(measureIds: readonly string[]
   );
 }
 
+function hasActualBudgetComparisonMeasures(measureIds: readonly string[]) {
+  return (
+    (measureIds.length === 1 && measureIds[0] === "percentage") ||
+    (measureIds.includes("actual") && measureIds.includes("budget"))
+  );
+}
+
 export const financialSelectionSchema = z
   .object({
     measureIds: z.array(financialMeasureIdSchema).min(1).max(FINANCIAL_MEASURE_IDS.length),
@@ -141,12 +148,7 @@ export const financialSelectionSchema = z
         path: ["filters"],
       });
     }
-    const percentageOnly = measureIds.length === 1 && measureIds[0] === "percentage";
-    if (
-      comparisons?.includes("actual_vs_budget") &&
-      !percentageOnly &&
-      (!measureIds.includes("actual") || !measureIds.includes("budget"))
-    ) {
+    if (comparisons?.includes("actual_vs_budget") && !hasActualBudgetComparisonMeasures(measureIds)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "actual_vs_budget requires both Actual and Budget unless only percentage is returned",
@@ -203,6 +205,13 @@ const catalogCombinationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "The combination requests a non-Actual measure at an Actual-only grain",
+      });
+    }
+    if (measureIds.includes("percentage") && !hasActualBudgetComparisonMeasures(measureIds)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "percentage combinations require percentage alone or both Actual and Budget",
+        path: ["measureIds"],
       });
     }
   });
@@ -464,7 +473,28 @@ export const financialQueryResultSchema = z
     }
 
     const expectedDimensionIds = [...selection.dimensionIds].sort();
-    rows.forEach(({ dimensions }, index) => {
+    const rowKeys = new Set<string>();
+    const aggregateCoordinates = new Set<string>();
+    rows.forEach(({ key, dimensions }, index) => {
+      if (rowKeys.has(key)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "row keys must be unique",
+          path: ["rows", index, "key"],
+        });
+      }
+      rowKeys.add(key);
+      const coordinate = JSON.stringify(
+        expectedDimensionIds.map((dimensionId) => [dimensionId, dimensions[dimensionId]]),
+      );
+      if (aggregateCoordinates.has(coordinate)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "aggregate coordinates must be unique",
+          path: ["rows", index, "dimensions"],
+        });
+      }
+      aggregateCoordinates.add(coordinate);
       const rowDimensionIds = Object.keys(dimensions).sort();
       if (
         rowDimensionIds.length !== expectedDimensionIds.length ||
@@ -583,28 +613,28 @@ export const financialQueryResultSchema = z
         });
       }
       if (values.rollover) {
-        const expectedSpecialState = isUnmappedRow
-          ? "unmapped"
-          : values.budget?.state === "no_gl_line"
-            ? "no_gl_line"
-            : undefined;
-        if (
-          (expectedSpecialState && values.rollover.state !== expectedSpecialState) ||
-          (!expectedSpecialState && ["no_gl_line", "unmapped"].includes(values.rollover.state))
-        ) {
+        const closingMonth = relevantCoverage.reduce(
+          (latest, entry) => (entry.month > latest ? entry.month : latest),
+          "",
+        );
+        const closingCoverage = relevantCoverage.filter(({ month }) => month === closingMonth);
+        const closingLoaded = closingCoverage.length > 0 && closingCoverage.every(({ budget }) => budget === "loaded");
+        const hasGlCoordinate =
+          dimensions !== undefined && selection.dimensionIds.includes("gl") && dimensions.gl != null;
+        const explicitBudgetContradiction = values.budget !== undefined && values.budget.state !== "no_gl_line";
+        const specialStateMismatch =
+          (isUnmappedRow && values.rollover.state !== "unmapped") ||
+          (!isUnmappedRow && values.rollover.state === "unmapped") ||
+          (values.rollover.state === "no_gl_line" &&
+            (!hasGlCoordinate || !closingLoaded || explicitBudgetContradiction)) ||
+          (values.budget?.state === "no_gl_line" && values.rollover.state !== "no_gl_line");
+        if (specialStateMismatch) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             message: "special Roll-over state does not match a known source absence",
             path: [...path, "rollover"],
           });
-        } else if (!expectedSpecialState) {
-          const closingMonth = relevantCoverage.reduce(
-            (latest, entry) => (entry.month > latest ? entry.month : latest),
-            "",
-          );
-          const closingCoverage = relevantCoverage.filter(({ month }) => month === closingMonth);
-          const closingLoaded =
-            closingCoverage.length > 0 && closingCoverage.every(({ budget }) => budget === "loaded");
+        } else if (!["no_gl_line", "unmapped"].includes(values.rollover.state)) {
           if ((values.rollover.state === "available") !== closingLoaded) {
             context.addIssue({
               code: z.ZodIssueCode.custom,
