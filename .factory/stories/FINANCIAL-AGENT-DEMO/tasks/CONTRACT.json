@@ -2,27 +2,20 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-CONTRACT",
   "review": {
     "blocking_level": "P1",
-    "changed": "d7354900881b728b195355e1a1753e70cef7f4ebf3b9e8d4a811575c13974bf5",
-    "commit": "2ac7a0389c3e7f33f96ecc8329154bcd2b294226",
+    "changed": "fa15e100ca1bcaef3501737711e01c271a4a52de10b39ca5c4378dbe04732a8f",
+    "commit": "7523be7969aa25ba452991d7d94139c946b051e3",
     "dismissals": [],
     "findings": [
       {
-        "body": "The result refinement validates row keys, coordinates, values, and coverage, but never checks `actual.drilldownId` or `availableActualSubtotal.drilldownId` uniqueness across totals and rows. Two different GL/month/component cells can therefore validate with the same opaque handle, causing at least one clickable Actual to open transactions for the wrong scope. Track handles while iterating value sets, reject reuse across distinct scopes, and add a negative result-validation case.",
+        "body": "The reuse check proves only that a row and total have the same coordinate; it never compares their `actual.value` or `availableActualSubtotal.value`. A singleton filtered row can therefore share the total's `drilldownId` while displaying a different amount, even though the handle's `matchingActualTotal` can reconcile to only one of them. This violates the requirement that every clickable Actual open its matching transactions. Reject shared handles unless both scope and exact Actual value/state match, and add an unequal-value negative case; the existing positive fixture manually makes the values equal but does not enforce that invariant.",
         "file": "contract/src/financial-tools.ts",
-        "line": 525,
+        "line": 606,
         "priority": "P1",
-        "title": "Not done: distinct Actual scopes require distinct drill handles"
-      },
-      {
-        "body": "Every result dimension is nullable, while the special Unmapped rules activate only for the exact `unmapped-GL` coordinate. Consequently a component-grouped row with `nursery_component: null` validates as an ordinary mapped component and may carry numeric Budget and percentage values. Known-Plant Actuals without a component mapping must instead use the governed Unmapped coordinate, with no Budget allocation and a Not applicable percentage. Reject null component coordinates and add a regression covering this bypass.",
-        "file": "contract/src/financial-tools.ts",
-        "line": 413,
-        "priority": "P1",
-        "title": "Not done: nullable component rows cannot bypass the Unmapped contract"
+        "title": "Not done: shared drill handles must bind the same exact Actual"
       }
     ],
     "status": "blocked",
-    "tree": "8a363a14a230e6dbf90f325e4d94ba667b06cb69a46fe3551eb1e6ec8a6c1e92"
+    "tree": "064eb5b2ac2058be29782d4c4fd750bb4e224a74a572eb14a5d5d9b1073ff0e4"
   },
   "status": "fixing",
   "steps": [
@@ -44,6 +37,10 @@
     },
     {
       "at": "2026-10-09T01:21:08+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T01:42:47+00:00",
       "step": "review"
     }
   ]
