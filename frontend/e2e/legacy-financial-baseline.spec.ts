@@ -5,7 +5,15 @@ import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { expect, type APIRequestContext, type BrowserContext, type Page, test } from "@playwright/test";
+import type {
+  MisDrillFooter,
+  MisDrillLine,
+  MisStatementMeasureBlock,
+  MisStatementNode,
+  MisStatementResolvedResponse,
+  ProvenanceBatch,
+} from "@3f/contract";
+import { expect, type APIRequestContext, type BrowserContext, type Locator, type Page, test } from "@playwright/test";
 import { Workbook, type CellValue } from "exceljs";
 import { trustedTaskDirectory } from "../playwright.config";
 
@@ -13,6 +21,84 @@ const API_BASE = "http://127.0.0.1:4000";
 const SOURCE_MODE = process.env.FINANCIAL_CHAT_E2E_DATASET;
 const GENERATED_PERIOD = "2026-04-01";
 const GENERATED_ACTUAL = "175.00";
+const REPORT_SCOPE = { department: "Agriculture", function: "Nursery", plant: "DUB" } as const;
+const GENERATED_REPORT_TREE: MisStatementNode[] = [
+  {
+    nodeKey: "leaf:4.5|50001605|fertilizers-manures",
+    sNo: "4.5",
+    budgetComponent: "Fertilizers & Manures",
+    glCode: "50001605",
+    measures: [
+      {
+        key: "selected",
+        label: GENERATED_PERIOD,
+        from: GENERATED_PERIOD,
+        to: GENERATED_PERIOD,
+        rollover: null,
+        actual: GENERATED_ACTUAL,
+        sourcePresence: ["matched"],
+        budgetState: "loaded",
+        budget: "200.00",
+        percentage: "0.875",
+      },
+    ],
+    children: [],
+  },
+];
+const GENERATED_GRAND_TOTAL: MisStatementNode = {
+  nodeKey: "grand-total",
+  sNo: null,
+  budgetComponent: "Grand Total",
+  glCode: null,
+  measures: [
+    {
+      key: "selected",
+      label: GENERATED_PERIOD,
+      from: GENERATED_PERIOD,
+      to: GENERATED_PERIOD,
+      rollover: null,
+      actual: GENERATED_ACTUAL,
+      sourcePresence: ["matched"],
+      budgetState: "loaded",
+      budget: "200.00",
+      percentage: "0.875",
+    },
+  ],
+  children: [],
+};
+const GENERATED_DRILL: DrillBaseline = {
+  nodeKey: "leaf:4.5|50001605|fertilizers-manures",
+  lines: [
+    {
+      month: GENERATED_PERIOD,
+      postingDate: "2026-04-05",
+      txnNo: "GEN-1",
+      costCenter: "Primary",
+      accountName: "Fertilizers & Manures",
+      debit: "150.00",
+      credit: "25.00",
+      value: "125.00",
+      reference: "A",
+      memo: "Generated proof",
+    },
+    {
+      month: GENERATED_PERIOD,
+      postingDate: "2026-04-06",
+      txnNo: "GEN-2",
+      costCenter: "Primary",
+      accountName: "Fertilizers & Manures",
+      debit: "50.00",
+      credit: "0.00",
+      value: "50.00",
+      reference: "B",
+      memo: "Generated proof",
+    },
+  ],
+  totalCount: 2,
+  footer: { debit: "200.00", credit: "25.00", value: GENERATED_ACTUAL },
+  page: 1,
+  pageSize: 100,
+};
 const GENERATED_EXPORT: FinancialWorkbookSnapshot = [
   {
     name: "Financial MIS",
@@ -76,16 +162,27 @@ test.describe("legacy financial BASELINE", () => {
       "Generated Budget.xlsx",
       generated.budget,
     );
+    const actualBatchId = requiredString(actualLoad, "batchId");
+    const budgetBatchIds = requiredStringArray(budgetLoad, "periods", "batchId");
 
     await exerciseLegacyScreens(page, {
-      period: GENERATED_PERIOD,
+      scope: { ...REPORT_SCOPE, period: GENERATED_PERIOD },
       expectedActual: GENERATED_ACTUAL,
       expectedExport: GENERATED_EXPORT,
+      expectedReport: {
+        tree: GENERATED_REPORT_TREE,
+        grandTotal: GENERATED_GRAND_TOTAL,
+        activeBatchIds: [
+          { source: "actuals", period: GENERATED_PERIOD, batchId: actualBatchId },
+          { source: "budget", period: GENERATED_PERIOD, batchId: budgetBatchIds[0]! },
+        ],
+      },
+      expectedDrill: GENERATED_DRILL,
       evidence: {
         classification: "generated",
         sourceSha256: generated.sha256,
-        actualBatchIds: [requiredString(actualLoad, "batchId")],
-        budgetBatchIds: requiredStringArray(budgetLoad, "periods", "batchId"),
+        actualBatchIds: [actualBatchId],
+        budgetBatchIds,
       },
     });
   });
@@ -98,9 +195,15 @@ test.describe("legacy financial BASELINE", () => {
     const baseline = await realBaseline();
     await signIn(page, "financial-baseline@example.test");
     await exerciseLegacyScreens(page, {
-      period: baseline.scope.period,
+      scope: { ...REPORT_SCOPE, period: baseline.scope.period },
       expectedActual: baseline.actual,
       expectedExport: baseline.exportSnapshot,
+      expectedReport: {
+        tree: baseline.report.tree,
+        grandTotal: baseline.report.grandTotal,
+        activeBatchIds: baseline.report.provenance.activeBatchIds,
+      },
+      expectedDrill: baseline.drill,
       evidence: {
         classification: "real-source",
         sourceSha256: baseline.sourceSha256,
@@ -112,15 +215,32 @@ test.describe("legacy financial BASELINE", () => {
 });
 
 interface LegacyProof {
-  period: string;
+  scope: typeof REPORT_SCOPE & { period: string };
   expectedActual: string;
   expectedExport: FinancialWorkbookSnapshot;
+  expectedReport: ReportBaseline;
+  expectedDrill: DrillBaseline;
   evidence: {
     classification: "generated" | "real-source";
     sourceSha256: string;
     actualBatchIds: string[];
     budgetBatchIds: string[];
   };
+}
+
+interface ReportBaseline {
+  tree: MisStatementNode[];
+  grandTotal: MisStatementNode;
+  activeBatchIds: ProvenanceBatch[];
+}
+
+interface DrillBaseline {
+  nodeKey: string;
+  lines: MisDrillLine[];
+  totalCount: number;
+  footer: MisDrillFooter;
+  page: number;
+  pageSize: 100;
 }
 
 type FinancialWorkbookSnapshot = Array<{
@@ -131,14 +251,29 @@ type FinancialWorkbookSnapshot = Array<{
 async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<void> {
   await page.goto("/mis-reports");
   await expect(page.getByRole("heading", { name: "MIS Reports" })).toBeVisible();
-  await page.getByLabel("Department").selectOption("Agriculture");
-  await page.getByLabel("Function").selectOption("Nursery");
-  await page.getByLabel("Plant").selectOption("DUB");
-  await page.getByLabel("Period").selectOption(proof.period);
+  await page.getByLabel("Department").selectOption(proof.scope.department);
+  await page.getByLabel("Function").selectOption(proof.scope.function);
+  await page.getByLabel("Plant").selectOption(proof.scope.plant);
+  await page.getByLabel("Period").selectOption(proof.scope.period);
+  const reportResponsePromise = page.waitForResponse(
+    (response) => response.url() === `${API_BASE}/api/mis/statement` && response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Generate" }).click();
+  const reportResponse = await reportResponsePromise;
+  expect(reportResponse.ok()).toBe(true);
+  const observedReport = (await reportResponse.json()) as MisStatementResolvedResponse;
+  expect(observedReport.outcome).toBe("resolved");
+  expect({
+    department: observedReport.scope.department,
+    function: observedReport.scope.function,
+    plant: observedReport.scope.plant,
+    period: observedReport.scope.period,
+  }).toEqual(proof.scope);
+  expect(observedReport.provenance.activeBatchIds).toEqual(proof.expectedReport.activeBatchIds);
 
   const statement = page.getByRole("treegrid", { name: "Financial MIS statement" });
   await expect(statement).toBeVisible();
+  await expectRenderedReport(statement, proof.expectedReport);
   const grandTotal = statement.getByRole("row", { name: "Grand total" });
   await expect(grandTotal.getByRole("button", { name: /Drill down Actual/ }).first()).toContainText(
     formatMoney(proof.expectedActual),
@@ -149,7 +284,7 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
   await page.getByRole("button", { name: "Download Excel" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe(
-    `financial-mis-agriculture-nursery-dub-${proof.period}-to-${proof.period}.xlsx`,
+    `financial-mis-agriculture-nursery-dub-${proof.scope.period}-to-${proof.scope.period}.xlsx`,
   );
   const stream = await download.createReadStream();
   expect(stream).not.toBeNull();
@@ -157,31 +292,45 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
   for await (const chunk of stream!) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   await validateFinancialExport(Buffer.concat(chunks), proof.expectedExport);
 
-  const nonzeroLeaf = statement
-    .locator("tbody")
+  const targetRowIndex = flattenReportRows(proof.expectedReport.tree).findIndex(
+    ({ nodeKey }) => nodeKey === proof.expectedDrill.nodeKey,
+  );
+  expect(targetRowIndex).toBeGreaterThanOrEqual(0);
+  const targetNode = flattenReportRows(proof.expectedReport.tree)[targetRowIndex]!;
+  expect(targetNode.children).toHaveLength(0);
+  const selectedDrillButton = statement
+    .locator("tbody > tr")
+    .nth(targetRowIndex)
     .getByRole("button", { name: /Drill down Actual/ })
-    .filter({ hasNotText: /^₹0(?:\.00)?$/ })
     .first();
-  const selectedDrillButton = (await nonzeroLeaf.count())
-    ? nonzeroLeaf
-    : grandTotal.getByRole("button", { name: /Drill down Actual/ }).first();
   const clickedActual = (await selectedDrillButton.textContent())!.trim();
+  const drillResponsePromise = page.waitForResponse(
+    (response) => response.url() === `${API_BASE}/api/mis/statement/drill` && response.request().method() === "POST",
+  );
   await selectedDrillButton.focus();
   await page.keyboard.press("Enter");
+  const drillResponse = await drillResponsePromise;
+  expect(drillResponse.ok()).toBe(true);
+  const observedDrill = (await drillResponse.json()) as {
+    nodeKey: string;
+    lines: MisDrillLine[];
+    totalCount: number;
+    footer: MisDrillFooter;
+    page: number;
+    pageSize: 100;
+  };
+  expect({
+    nodeKey: observedDrill.nodeKey,
+    lines: observedDrill.lines,
+    totalCount: observedDrill.totalCount,
+    footer: observedDrill.footer,
+    page: observedDrill.page,
+    pageSize: observedDrill.pageSize,
+  }).toEqual(proof.expectedDrill);
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText(clickedActual);
-  const matchingTotal = dialog.getByText(/Matches the Actual in the report/);
-  const transactionButton = dialog
-    .getByRole("button")
-    .filter({ hasText: /₹/ })
-    .filter({ hasNotText: /^₹0(?:\.00)?$/ })
-    .first();
-  await expect.poll(async () => (await matchingTotal.isVisible()) || (await transactionButton.isVisible())).toBe(true);
-  if (!(await matchingTotal.isVisible())) {
-    await transactionButton.click();
-  }
-  await expect(matchingTotal).toBeVisible();
+  await expectRenderedDrill(dialog, proof.expectedDrill);
   await capture(page, proof.evidence.classification, "drill");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
@@ -197,7 +346,92 @@ async function exerciseLegacyScreens(page: Page, proof: LegacyProof): Promise<vo
   await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
   await capture(page, proof.evidence.classification, "ask-mobile-dark");
 
-  await recordEvidence(proof, page.url());
+  await recordEvidence(proof, observedReport.provenance.activeBatchIds, page.url());
+}
+
+async function expectRenderedReport(statement: Locator, baseline: ReportBaseline): Promise<void> {
+  const observedRows = await statement.locator("tbody > tr").evaluateAll((rows) =>
+    rows.map((row) => ({
+      level: Number(row.getAttribute("aria-level")),
+      cells: Array.from(row.querySelectorAll(":scope > th, :scope > td"), (cell) => cell.textContent?.trim() ?? ""),
+    })),
+  );
+  expect(observedRows).toEqual(
+    flattenReportRows(baseline.tree).map((node) => ({
+      level: node.level,
+      cells: reportRowCells(node),
+    })),
+  );
+
+  const grandTotalCells = await statement
+    .locator("tfoot > tr")
+    .evaluate((row) =>
+      Array.from(row.querySelectorAll(":scope > th, :scope > td"), (cell) => cell.textContent?.trim() ?? ""),
+    );
+  expect(grandTotalCells).toEqual(["Grand total", ...measureCells(baseline.grandTotal.measures)]);
+}
+
+async function expectRenderedDrill(dialog: Locator, baseline: DrillBaseline): Promise<void> {
+  const table = dialog.locator("table.mis-drill-transactions");
+  await expect(table).toBeVisible();
+  const observedRows = await table
+    .locator("tbody > tr")
+    .evaluateAll((rows) =>
+      rows.map((row) =>
+        Array.from(row.querySelectorAll(":scope > th, :scope > td"), (cell) => cell.textContent?.trim() ?? ""),
+      ),
+    );
+  expect(observedRows).toEqual(
+    baseline.lines.map((line) => [
+      formatMonth(line.month),
+      formatDate(line.postingDate),
+      line.txnNo,
+      line.costCenter,
+      line.accountName,
+      formatMoney(line.debit),
+      formatMoney(line.credit),
+      formatMoney(line.value),
+      line.reference ?? "—",
+      line.memo ?? "—",
+    ]),
+  );
+
+  const footerCells = await table
+    .locator("tfoot > tr")
+    .evaluate((row) =>
+      Array.from(row.querySelectorAll(":scope > th, :scope > td"), (cell) =>
+        (cell as HTMLElement).innerText.replace(/\s+/g, " ").trim(),
+      ),
+    );
+  expect(footerCells).toEqual([
+    "Total",
+    `${formatMoney(baseline.footer.debit)} ${formatExactMoney(baseline.footer.debit)} exact`,
+    `${formatMoney(baseline.footer.credit)} ${formatExactMoney(baseline.footer.credit)} exact`,
+    `${formatMoney(baseline.footer.value)} ${formatExactMoney(baseline.footer.value)} exact`,
+    "Matches the Actual in the report",
+  ]);
+  await expect(
+    dialog.getByText(`${baseline.totalCount} matching · rows 1–${baseline.lines.length} on screen`),
+  ).toBeVisible();
+  await expect(dialog.getByText(`Page ${baseline.page}`, { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Previous" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Next" })).toBeDisabled();
+}
+
+function flattenReportRows(nodes: MisStatementNode[], level = 1): Array<MisStatementNode & { level: number }> {
+  return nodes.flatMap((node) => [{ ...node, level }, ...flattenReportRows(node.children, level + 1)]);
+}
+
+function reportRowCells(node: MisStatementNode): string[] {
+  return [node.sNo ?? "", node.budgetComponent, node.glCode ?? "", ...measureCells(node.measures)];
+}
+
+function measureCells(measures: MisStatementMeasureBlock[]): string[] {
+  return measures.flatMap((measure) =>
+    measure.budgetState === "not-loaded"
+      ? ["–", "–", formatMoney(measure.actual), "–"]
+      : [formatMoney(measure.budget), "", formatMoney(measure.actual), formatPercentage(measure.percentage)],
+  );
 }
 
 async function signIn(page: Page, email: string): Promise<void> {
@@ -306,6 +540,8 @@ async function realBaseline(): Promise<{
   budgetBatchIds: string[];
   scope: { period: string };
   actual: string;
+  report: MisStatementResolvedResponse;
+  drill: DrillBaseline;
   exportSnapshot: FinancialWorkbookSnapshot;
 }> {
   const sourcePath = process.env.FINANCIAL_CHAT_SOURCE_FILE;
@@ -318,7 +554,8 @@ async function realBaseline(): Promise<{
     actualBatchIds: string[];
     budgetBatchIds: string[];
     scope: { period: string };
-    report: { grandTotal: { measures: Array<{ actual: string }> } };
+    report: MisStatementResolvedResponse;
+    drill: Pick<DrillBaseline, "lines" | "totalCount" | "footer">;
     exportSnapshot: FinancialWorkbookSnapshot;
   };
   const sourceSha256 = createHash("sha256")
@@ -326,7 +563,16 @@ async function realBaseline(): Promise<{
     .digest("hex");
   expect(sourceSha256).toBe("8af9040a4a1096fbd182709b826d77df536ea55928e1deffd86bd14293c76810");
   expect(artifact.sourceSha256).toBe(sourceSha256);
-  return { ...artifact, actual: artifact.report.grandTotal.measures[0]!.actual };
+  const target = flattenReportRows(artifact.report.tree).find(
+    ({ children, measures }) => children.length === 0 && measures[0]?.actual !== "0.00",
+  );
+  if (!target) throw new Error("real-source baseline has no nonzero leaf drill target");
+  expect(artifact.drill.footer.value).toBe(target.measures[0]!.actual);
+  return {
+    ...artifact,
+    actual: artifact.report.grandTotal.measures[0]!.actual,
+    drill: { ...artifact.drill, nodeKey: target.nodeKey, page: 1, pageSize: 100 },
+  };
 }
 
 async function capture(page: Page, classification: string, name: string): Promise<void> {
@@ -334,11 +580,15 @@ async function capture(page: Page, classification: string, name: string): Promis
   await page.screenshot({ path: join(directory, `${classification}-${name}.png`), fullPage: true });
 }
 
-async function recordEvidence(proof: LegacyProof, finalUrl: string): Promise<void> {
+async function recordEvidence(
+  proof: LegacyProof,
+  reportActiveBatchIds: ProvenanceBatch[],
+  finalUrl: string,
+): Promise<void> {
   const directory = evidenceDirectory();
   await writeFile(
     join(directory, `${proof.evidence.classification}-legacy-ui-evidence.json`),
-    `${JSON.stringify({ ...proof.evidence, period: proof.period, expectedActual: proof.expectedActual, finalUrl, capturedAtUtc: new Date().toISOString() }, null, 2)}\n`,
+    `${JSON.stringify({ ...proof.evidence, reportActiveBatchIds, scope: proof.scope, expectedActual: proof.expectedActual, finalUrl, capturedAtUtc: new Date().toISOString() }, null, 2)}\n`,
   );
 }
 
@@ -364,12 +614,49 @@ function requiredStringArray(value: unknown, key: string, childKey: string): str
 }
 
 function formatMoney(value: string): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(Number(value));
+  const negative = value.startsWith("-");
+  const [whole, paise] = value.replace("-", "").split(".");
+  const rounded = BigInt(whole!) + (paise! >= "50" ? BigInt(1) : BigInt(0));
+  return `${negative && rounded !== BigInt(0) ? "−" : ""}₹${formatRupeeDigits(rounded.toString())}`;
+}
+
+function formatExactMoney(value: string): string {
+  const negative = value.startsWith("-");
+  const [whole, paise] = value.replace("-", "").split(".");
+  return `${negative && value !== "-0.00" ? "−" : ""}₹${formatRupeeDigits(whole!)}.${paise}`;
+}
+
+function formatRupeeDigits(digits: string): string {
+  const lastThree = digits.slice(-3);
+  const leading = digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+  return `${leading ? `${leading},` : ""}${lastThree}`;
+}
+
+function formatPercentage(value: string | null): string {
+  if (value === null) return "NA";
+  const numeric = Number(value);
+  return Number.isFinite(numeric)
+    ? new Intl.NumberFormat("en-IN", { style: "percent", maximumFractionDigits: 1 }).format(numeric)
+    : value;
+}
+
+function formatMonth(value: string): string {
+  return new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric", timeZone: "UTC" }).format(
+    dateAtUtc(value),
+  );
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(dateAtUtc(value));
+}
+
+function dateAtUtc(value: string): Date {
+  return new Date(`${value.slice(0, 10)}T00:00:00Z`);
 }
 
 function configExit(changes: Record<string, string>): number | null {
