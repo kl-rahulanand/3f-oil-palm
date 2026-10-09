@@ -316,6 +316,38 @@ test("the independent Actual parser uses cached shared formula results for gover
   );
 });
 
+test("the independent Actual parser keeps cached blank ordinary and shared formula dimensions null", async () => {
+  const parsed = await parseFinancialActualsWorkbook(
+    await workbookBuffer([
+      actualRow({
+        transactionNumber: "TX-BLANK-ORDINARY",
+        lineId: "BLANK-ORDINARY",
+        plant: { formula: '"   "', result: "   " },
+        costCenter: { formula: '"\t"', result: "\t" },
+      }),
+      actualRow({
+        transactionNumber: "TX-BLANK-SHARED",
+        lineId: "BLANK-SHARED",
+        plant: { sharedFormula: "G2", result: "   " },
+        costCenter: { sharedFormula: "H2", result: "\t" },
+      }),
+    ]),
+  );
+
+  assert.deepEqual(
+    parsed.lines.map(({ sourcePlantCode, sourceCostCenterCode, sourceRow }) => ({
+      sourcePlantCode,
+      sourceCostCenterCode,
+      rawPlant: sourceRow.Plant,
+      rawCostCenter: sourceRow["Cost Center"],
+    })),
+    [
+      { sourcePlantCode: null, sourceCostCenterCode: null, rawPlant: "   ", rawCostCenter: "\t" },
+      { sourcePlantCode: null, sourceCostCenterCode: null, rawPlant: "   ", rawCostCenter: "\t" },
+    ],
+  );
+});
+
 test("the independent Actual parser rejects uncached ordinary formulas before parsing or skipping any source row", async () => {
   await assert.rejects(
     parseFinancialActualsWorkbook(
@@ -458,7 +490,7 @@ function actualRow({
   month?: string | null;
   section?: string | null;
   plant?: CellValue;
-  costCenter?: string | null;
+  costCenter?: CellValue;
   consideration?: string | null;
   glCode?: string | null;
   glName?: string | null;

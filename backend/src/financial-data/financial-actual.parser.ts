@@ -237,8 +237,7 @@ export async function parseFinancialActualsWorkbook(buffer: Buffer): Promise<Par
 }
 
 function sourceRowValue(row: Row, columnNumber: number): string | null {
-  const value = row.getCell(columnNumber);
-  return value.value === null || value.value === undefined || value.value === "" ? null : cellText(value);
+  return cellText(row.getCell(columnNumber)) || null;
 }
 
 function monthMatches(sourceMonth: string, postingDate: string): boolean {
