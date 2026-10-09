@@ -1,0 +1,14 @@
+{
+  "base": "110ca15d6366703b0241aa53c52835430e125bf3",
+  "branch": "fix/upgrade-forge-to-v1-2-7",
+  "done_when": "Forge runs v1.2.7 with existing financial-chat work preserved",
+  "kind": "fix",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-09T07:06:27+00:00",
+      "step": "start"
+    }
+  ],
+  "why": "Upgrade Forge to v1.2.7"
+}
