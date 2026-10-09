@@ -9,6 +9,22 @@ import {
   moneySchema,
 } from "./financial-tools";
 
+export const FINANCIAL_CHAT_LIMITS = {
+  maxQuestionCharacters: 2_000,
+  maxActiveRunsPerConversation: 1,
+  maxSelectionRounds: 5,
+  maxConversationsPerAccount: 20,
+  maxConversationsPerProcess: 200,
+  maxSanitizedTurns: 40,
+  maxRetainedResultBundles: 3,
+  maxReplayEventsPerRun: 256,
+  maxPreparedActualScopes: 200,
+  preparedTransactionRows: 10,
+  defaultContinuationRows: 20,
+  maxContinuationRows: 100,
+  conversationIdleMinutes: 60,
+} as const;
+
 const identifierSchema = z.string().min(1).max(200);
 const resultValueKeySchema = z.enum([
   "actual",
@@ -67,7 +83,7 @@ export const financialChatErrorDetailsSchema = z.discriminatedUnion("reason", [
   z
     .object({
       reason: z.literal("page_size_changed"),
-      pinnedContinuationLimit: z.number().int().min(1).max(100),
+      pinnedContinuationLimit: z.number().int().min(1).max(FINANCIAL_CHAT_LIMITS.maxContinuationRows),
     })
     .strict(),
   z
@@ -540,6 +556,7 @@ const answerResponseSchema = z
     });
 
     const promisedHandles = new Map<string, { scopeIdentity: string; value: string }>();
+    const promisedScopes = new Map<string, { handle: string; value: string }>();
     const advertisedScopes = new Set<string>();
     for (const result of Object.values(results)) {
       const valueSets = [
@@ -562,28 +579,36 @@ const answerResponseSchema = z
           selectionIdentity(result.selection),
           normalizedResultCoordinate(result, dimensions),
           advertised.kind,
-          advertised.value,
         ]);
         advertisedScopes.add(scopeIdentity);
-        const prior = promisedHandles.get(advertised.handle);
-        if (prior && prior.value !== advertised.value) {
+        const priorHandle = promisedHandles.get(advertised.handle);
+        const priorScope = promisedScopes.get(scopeIdentity);
+        if (priorHandle && priorHandle.value !== advertised.value) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             message: "reused Actual handles must advertise one exact value",
             path: ["details", advertised.handle],
           });
         }
-        if (prior && prior.scopeIdentity !== scopeIdentity) {
+        if (priorHandle && priorHandle.scopeIdentity !== scopeIdentity) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             message: "reused Actual handles must identify one exact selection, coordinate, kind, and value",
             path: ["details", advertised.handle],
           });
         }
-        if (!prior) promisedHandles.set(advertised.handle, { scopeIdentity, value: advertised.value });
+        if (priorScope && (priorScope.handle !== advertised.handle || priorScope.value !== advertised.value)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "one Actual scope must advertise one exact value and prepared handle",
+            path: ["details", advertised.handle],
+          });
+        }
+        if (!priorHandle) promisedHandles.set(advertised.handle, { scopeIdentity, value: advertised.value });
+        if (!priorScope) promisedScopes.set(scopeIdentity, { handle: advertised.handle, value: advertised.value });
       }
     }
-    if (advertisedScopes.size > 200) {
+    if (advertisedScopes.size > FINANCIAL_CHAT_LIMITS.maxPreparedActualScopes) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "an answer cannot advertise more than 200 Actual scopes",
@@ -617,7 +642,9 @@ const answerResponseSchema = z
       }
       if (
         detail.status === "ready" &&
-        (detail.page.page !== 1 || detail.page.limit !== 10 || detail.page.matchingActualTotal !== advertised?.value)
+        (detail.page.page !== 1 ||
+          detail.page.limit !== FINANCIAL_CHAT_LIMITS.preparedTransactionRows ||
+          detail.page.matchingActualTotal !== advertised?.value)
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -669,11 +696,19 @@ export const financialChatCapabilitiesSchema = z
     model: z.object({ provider: z.literal("anthropic"), modelId: z.literal("claude-sonnet-5-5") }).strict(),
     limits: z
       .object({
-        maxPreparedActualScopes: z.literal(200),
-        preparedTransactionRows: z.literal(10),
-        defaultContinuationRows: z.literal(20),
-        maxContinuationRows: z.literal(100),
-        conversationIdleMinutes: z.literal(60),
+        maxQuestionCharacters: z.literal(FINANCIAL_CHAT_LIMITS.maxQuestionCharacters),
+        maxActiveRunsPerConversation: z.literal(FINANCIAL_CHAT_LIMITS.maxActiveRunsPerConversation),
+        maxSelectionRounds: z.literal(FINANCIAL_CHAT_LIMITS.maxSelectionRounds),
+        maxConversationsPerAccount: z.literal(FINANCIAL_CHAT_LIMITS.maxConversationsPerAccount),
+        maxConversationsPerProcess: z.literal(FINANCIAL_CHAT_LIMITS.maxConversationsPerProcess),
+        maxSanitizedTurns: z.literal(FINANCIAL_CHAT_LIMITS.maxSanitizedTurns),
+        maxRetainedResultBundles: z.literal(FINANCIAL_CHAT_LIMITS.maxRetainedResultBundles),
+        maxReplayEventsPerRun: z.literal(FINANCIAL_CHAT_LIMITS.maxReplayEventsPerRun),
+        maxPreparedActualScopes: z.literal(FINANCIAL_CHAT_LIMITS.maxPreparedActualScopes),
+        preparedTransactionRows: z.literal(FINANCIAL_CHAT_LIMITS.preparedTransactionRows),
+        defaultContinuationRows: z.literal(FINANCIAL_CHAT_LIMITS.defaultContinuationRows),
+        maxContinuationRows: z.literal(FINANCIAL_CHAT_LIMITS.maxContinuationRows),
+        conversationIdleMinutes: z.literal(FINANCIAL_CHAT_LIMITS.conversationIdleMinutes),
       })
       .strict(),
   })
@@ -705,7 +740,7 @@ export const financialChatCapabilitiesSchema = z
 const eventIdentity = {
   version: z.literal(1),
   eventId: identifierSchema,
-  sequence: z.number().int().min(0).max(255),
+  sequence: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
   conversationId: identifierSchema,
   runId: identifierSchema,
 };

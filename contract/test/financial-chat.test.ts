@@ -897,6 +897,32 @@ test("reused handles cannot advertise conflicting exact values", () => {
   );
 });
 
+test("one semantic Actual scope requires one exact value and prepared handle", () => {
+  for (const [name, value] of [
+    ["different value", "1.00"],
+    ["same value", result.totals.actual.value],
+  ] as const) {
+    const drilldownId = `alternate-${name.replace(" ", "-")}`;
+    const secondResult = {
+      ...result,
+      resultId: "result-2",
+      rows: [],
+      totals: { actual: { state: "available", value, label: "Actual", drilldownId } },
+    };
+    assertResponseRejected(
+      {
+        ...answer,
+        results: { ...answer.results, "result-2": secondResult },
+        details: {
+          ...answer.details,
+          [drilldownId]: { status: "failed", reason: "preparation_timeout", message: "Try again." },
+        },
+      },
+      "one Actual scope must advertise one exact value and prepared handle",
+    );
+  }
+});
+
 test("reused handles reject the same value at different cross-result coordinates", () => {
   const secondResult = {
     ...result,
@@ -1002,7 +1028,7 @@ test("reused handles allow identical null coordinates and provably identical tot
     ...totalResult,
     resultId: "result-2",
     rows: [{ ...result.rows[1], values: { actual: sharedValue } }],
-    totals: { actual: { ...sharedValue, drilldownId: "single-month-total" } },
+    totals: { actual: sharedValue },
   };
   assertResponseAccepted({
     ...answer,
@@ -1011,7 +1037,6 @@ test("reused handles allow identical null coordinates and provably identical tot
     monthlyDeltas: [],
     details: {
       "shared-total-row": { status: "failed", reason: "preparation_timeout", message: "Try again." },
-      "single-month-total": { status: "failed", reason: "preparation_timeout", message: "Try again." },
     },
   });
 });
@@ -1079,11 +1104,17 @@ test("an answer refuses more than 200 distinct Actual scopes", () => {
     ...result,
     resultId: "result-2",
     selection: glSelection,
-    rows: [],
-    totals: { actual: { state: "available", value: "1.00", label: "Actual", drilldownId: "cap-201" } },
+    rows: [
+      {
+        key: "gl:199",
+        dimensions: { gl: "199" },
+        values: { actual: { state: "available", value: "1.00", label: "Actual", drilldownId: "cap-199" } },
+      },
+    ],
+    totals: { actual: { state: "available", value: "199.00", label: "Actual", drilldownId: "cap-total" } },
   };
   const details = Object.fromEntries(
-    [...rows.map(({ values }) => values.actual.drilldownId), "cap-total", "cap-201"].map((handle) => [
+    [...rows.map(({ values }) => values.actual.drilldownId), "cap-total", "cap-199"].map((handle) => [
       handle,
       { status: "failed", reason: "preparation_timeout", message: "Rerun with a narrower scope." },
     ]),
@@ -1114,6 +1145,14 @@ test("capabilities are strict and explain every unavailable state", () => {
     reason: null,
     model: { provider: "anthropic", modelId: "claude-sonnet-5-5" },
     limits: {
+      maxQuestionCharacters: 2_000,
+      maxActiveRunsPerConversation: 1,
+      maxSelectionRounds: 5,
+      maxConversationsPerAccount: 20,
+      maxConversationsPerProcess: 200,
+      maxSanitizedTurns: 40,
+      maxRetainedResultBundles: 3,
+      maxReplayEventsPerRun: 256,
       maxPreparedActualScopes: 200,
       preparedTransactionRows: 10,
       defaultContinuationRows: 20,
@@ -1128,6 +1167,24 @@ test("capabilities are strict and explain every unavailable state", () => {
   }
   const disabled = { ...capabilities, enabled: false, available: false, reason: "feature_disabled" as const };
   assert.deepEqual(financialChatCapabilitiesSchema.parse(disabled), disabled);
+
+  for (const [name, value] of Object.entries(capabilities.limits)) {
+    const missingLimits = Object.fromEntries(
+      Object.entries(capabilities.limits).filter(([candidate]) => candidate !== name),
+    );
+    assert.throws(
+      () => financialChatCapabilitiesSchema.parse({ ...capabilities, limits: missingLimits }),
+      `missing ${name}`,
+    );
+    assert.throws(
+      () =>
+        financialChatCapabilitiesSchema.parse({
+          ...capabilities,
+          limits: { ...capabilities.limits, [name]: value + 1 },
+        }),
+      `wrong ${name}`,
+    );
+  }
 
   assert.throws(() => financialChatCapabilitiesSchema.parse({ ...capabilities, enabled: false }));
   assert.throws(() =>
@@ -1279,6 +1336,10 @@ test("the terminal stream frame repeats the complete answer", () => {
     response: answer,
   };
   assert.deepEqual(financialChatEventSchema.parse(event), event);
+  assert.equal(financialChatEventSchema.parse({ ...event, sequence: 256 }).sequence, 256);
+  for (const sequence of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => financialChatEventSchema.parse({ ...event, sequence }), `sequence ${sequence}`);
+  }
   assert.throws(() => financialChatEventSchema.parse({ ...event, response: undefined }));
   assert.throws(() => financialChatEventSchema.parse({ ...event, unknown: true }));
   assert.throws(() => financialChatEventSchema.parse({ ...event, conversationId: "OTHER" }));
