@@ -2,26 +2,19 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-ACTUAL-PARSER",
   "review": {
     "blocking_level": "P1",
-    "changed": "1d5f57a65a58758db2585116a6e1dab121968c09a236785597293b6bddb38652",
-    "commit": "4498d99b4385ad7395617c314c9d30bd7838e820",
+    "changed": "506af6d94b4f28c8e3f4c220e8a1a6670033c028a72413398659a277a4c4c084",
+    "commit": "ffb7bd188b87c549d0fb7ffc7aac76290cb23763",
     "dismissals": [],
     "findings": [
       {
-        "body": "Only Posting Date and money cells are checked with `hasUncachedFormula`. `readSourceRow` converts an uncached formula in any other column to `null`, after which this guard can skip a fully formula-driven row; an uncached formula in an optional column such as Comments or Plant is silently imported as null. This violates the requirement that any missing formula cache block use and request a recalculated, saved workbook. The tests cover only date and Debit formulas.",
+        "body": "`sourceRowValue` checks the formula object itself for `\"\"` before resolving its cached result. A dimension cell containing `{ formula/sharedFormula, result: \"\" }` therefore bypasses the null branch and returns an empty string; whitespace-only cells behave similarly after trimming. This converts missing dimensions into `\"\"` rather than `null`, potentially creating false dimension identifiers downstream. The tests cover direct null cells and non-empty cached formulas but not cached blank dimensions.",
         "file": "backend/src/financial-data/financial-actual.parser.ts",
-        "line": 113,
+        "line": 229,
         "priority": "P1",
-        "title": "Not done: Missing formula caches must block the entire Actual import"
+        "title": "Not done: Cached blank formulas must preserve null dimensions"
       },
       {
-        "body": "This resolver recognizes only objects containing `formula`, but ExcelJS also represents copied-down formulas as `{ sharedFormula, result }`, as confirmed by [ExcelJS's CellValue contract](https://github.com/exceljs/exceljs/blob/master/index.d.ts). Consequently, valid cached shared formulas in date or money columns become `[object Object]`/invalid values instead of using their saved result, while shared formulas in retained text columns are corrupted. The new formula test exercises only the non-shared representation.",
-        "file": "backend/src/financial-data/financial-workbook.parser.ts",
-        "line": 219,
-        "priority": "P1",
-        "title": "Not done: Cached shared formulas must import from their saved results"
-      },
-      {
-        "body": "The permitted path list does not include `.factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json`, yet the branch still adds this task-state record. It is not needed by the parser or its tests and records stale review workflow state, so it must be removed from this scoped change.",
+        "body": "The permitted path list does not include `.factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json`, but the branch still adds this workflow-state file. It is unnecessary for the parser implementation or tests and contains stale findings that the current code has already addressed, so it must be removed from this scoped change.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json",
         "line": 1,
         "priority": "P1",
@@ -29,7 +22,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "6504f1734b4d0f9b500fb75b9a672668d36ed813b8fedd6103167e8d7343a7ef"
+    "tree": "3b3c6ef998faef1bb00637f1e365ca521ac0feba35b11afbdb32939e69654a3a"
   },
   "status": "fixing",
   "steps": [
@@ -43,6 +36,10 @@
     },
     {
       "at": "2026-10-09T18:51:42+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T19:12:24+00:00",
       "step": "review"
     }
   ]
