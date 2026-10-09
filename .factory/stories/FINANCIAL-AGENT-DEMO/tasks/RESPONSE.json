@@ -2,21 +2,35 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-RESPONSE",
   "review": {
     "blocking_level": "P1",
-    "changed": "a5c114781b118804549a9548e11e059613e3f20bab7ec75bd7031391eb00f5e3",
-    "commit": "d519d90448e0f49d7873076c66447fe337a2e3d4",
+    "changed": "b5cd54542bb65a120f5e520152b447b79846c2afdbdf3c1f6e2f3dc1c70a30a8",
+    "commit": "63ddfbb842c6d1e4ba78b41556211671b9511d41",
     "dismissals": [],
     "findings": [
       {
-        "body": "New evidence beyond the repaired `sameSelection` path: detail deduplication still serializes `result.selection` directly. Two results with semantically identical but differently ordered Plant/measure/filter sets therefore get different scope identities. A correctly shared drill handle is rejected as spanning different scopes, while using separate handles evades the required chart/table deduplication and can inflate the 200-scope count. Canonicalize the selection here with the same set semantics used by `sameSelection`.",
+        "body": "The mandatory master requires stage 1 to pin a 2,000-character question limit, one active run, five selection rounds, 20 conversations/account, 200/process, 40 sanitized turns, three retained result bundles, and 256 replay events. This shared limits contract exposes only drill/paging limits and the 60-minute idle limit, and its test blesses that incomplete shape. Later GRAPH/MEMORY/STREAM consumers would therefore have to invent unshared constants. Add the omitted literal limits to this contract (or another exported stage-1 contract) and test them here.",
         "file": "contract/src/financial-chat.ts",
-        "line": 561,
+        "line": 670,
+        "priority": "P1",
+        "title": "Not done: Pin all stage-1 execution and memory-retention limits"
+      },
+      {
+        "body": "The 256-event requirement is a bounded retention window, not a maximum lifetime cursor value: the master explicitly says a cursor outside retained events requests an authorized refresh. Capping `sequence` at 255 makes the 257th event in a longer run invalid and prevents a rolling replay buffer from retaining later events with monotonic sequence numbers. Remove this upper bound, pin 256 as the retention capacity, and add a frame test using a sequence above 255.",
+        "file": "contract/src/financial-chat.ts",
+        "line": 708,
+        "priority": "P1",
+        "title": "Not done: Keep event sequence valid beyond the 256-event replay window"
+      },
+      {
+        "body": "New evidence beyond the repaired reordered-selection path: `advertised.value` remains part of `scopeIdentity`, while `promisedHandles` is keyed only by handle. Thus two chart/table results with the same canonical selection, coordinate, and Actual kind but different values and different handles are accepted as separate scopes; even equal values with different handles prepare duplicate details. This permits contradictory displays for one Actual scope and does not enforce the required chart/table deduplication. Key the semantic scope without its value, then require its value and handle to agree.",
+        "file": "contract/src/financial-chat.ts",
+        "line": 565,
         "priority": "P2",
-        "title": "Treat reordered selections as one prepared Actual scope"
+        "title": "Treat one semantic Actual coordinate as one value and prepared handle"
       },
       {
         "body": "This branch defines only the clarification presentation shape; it does not implement pending-request continuation, scope retention, capacity/expiry, authorization rechecks, cancellation, or restart outcomes required by done-when item 3. The approved task table assigns those behaviors and their end-to-end proofs to MEMORY, GRAPH, API, STREAM, CLIENT, and REGRESSION.",
         "file": "contract/src/financial-chat.ts",
-        "line": 630,
+        "line": 631,
         "priority": "P2",
         "title": "Later: MEMORY/GRAPH/API/STREAM/CLIENT/REGRESSION must prove clarification lifecycle"
       },
@@ -30,15 +44,15 @@
       {
         "body": "Pinning Anthropic and the model ID in capabilities does not establish direct ChatAnthropic execution, trusted instruction ordering, static-prefix caching, payload exclusions, typed vendor behavior, or gated live runs required by done-when item 6. Those implementations and proofs are assigned to MODEL, GRAPH, ANSWER, and LIVE.",
         "file": "contract/src/financial-chat.ts",
-        "line": 662,
+        "line": 669,
         "priority": "P2",
         "title": "Later: MODEL/GRAPH/ANSWER/LIVE must prove Claude and static-cache boundaries"
       }
     ],
-    "status": "clean",
-    "tree": "1916170e76c95846f54d43717a416584afeb4a8b088ee4ba2c3fcad2b4759d91"
+    "status": "blocked",
+    "tree": "b5b859869e961d358116ceda5fb2f54c78d9bf9122bba2f7c711280d59e9ebc9"
   },
-  "status": "working",
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T02:48:18+00:00",
@@ -58,6 +72,10 @@
     },
     {
       "at": "2026-10-09T06:14:25+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T06:45:53+00:00",
       "step": "review"
     }
   ]
