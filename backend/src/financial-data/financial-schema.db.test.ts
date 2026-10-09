@@ -1,17 +1,18 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { createWarehouseWritePool } from "../warehouse/ingestion.repository";
 import { migrateWarehouse } from "../warehouse/warehouse-migrate";
 
 test("the destructive financial schema proof refuses any target except the disposable warehouse", () => {
-  for (const [host, port] of [
-    ["warehouse.shared.example", "5434"],
-    ["127.0.0.1", "5433"],
-    ["localhost", "5434"],
+  for (const [host, port, database] of [
+    ["warehouse.shared.example", "5434", "warehouse"],
+    ["127.0.0.1", "5433", "warehouse"],
+    ["localhost", "5434", "warehouse"],
+    ["127.0.0.1", "5434", "not-the-disposable-database"],
   ]) {
-    assert.throws(() => assertDisposableWarehouse(host, port), /127\.0\.0\.1:5434/);
+    assert.throws(() => assertDisposableWarehouse(host, port, database), /financial schema proof requires/);
   }
 });
 
@@ -19,7 +20,11 @@ test(
   "WAREHOUSE_DB_TEST stores labelled exact source facts while rejecting duplicates, orphans, cross-load references, owner mismatches, and active-generation extension, and migrates twice without changing legacy objects",
   { skip: process.env.WAREHOUSE_DB_TEST !== "1" },
   async () => {
-    assertDisposableWarehouse(process.env.WAREHOUSE_PG_HOST, process.env.WAREHOUSE_PG_PORT);
+    assertDisposableWarehouse(
+      process.env.WAREHOUSE_PG_HOST,
+      process.env.WAREHOUSE_PG_PORT,
+      process.env.WAREHOUSE_PG_DATABASE,
+    );
     await migrateWarehouse();
     const pool = await createWarehouseWritePool();
     try {
@@ -100,10 +105,26 @@ test(
         ),
         /GL aliases must resolve to one canonical target/,
       );
+      await proveConcurrentPlantAliasRefusal(pool, key);
 
       const firstBatchId = await insertBatch(pool, key, plantId, "first");
       const secondBatchId = await insertBatch(pool, key, plantId, "second");
       await assert.rejects(insertBatch(pool, key, plantId, "first"), /ingestion_batch_source_identity_unique/);
+      await assert.rejects(
+        pool.query(
+          `INSERT INTO agent_financial.ingestion_batch
+             (dataset_key, source_system, source_file_name, source_checksum_sha256,
+              parser_version, mapping_version, budget_owner_plant_id, state, is_synthetic,
+              source_reporting_months, actual_coverage, budget_coverage, source_counts,
+              validation_result, reconciliation_result, errors, imported_by_actor,
+              activated_at_utc)
+           VALUES ($1, 'SAP_WORKBOOK', 'direct active.xlsx', $2, 'parser-v1', 'mapping-v1',
+                   $3, 'active', true, ARRAY['2099-07-01'::date], '[]', '[]', '{}', '{}',
+                   '{}', '[]', 'schema-proof', now())`,
+          [`direct-active-${key}`, "c".repeat(64), plantId],
+        ),
+        /ingestion_batch must start staged/,
+      );
       await assert.rejects(
         pool.query("UPDATE agent_financial.ingestion_batch SET source_file_name = 'changed.xlsx' WHERE id = $1", [
           firstBatchId,
@@ -328,6 +349,41 @@ test(
       for (const [sourceKind, insert] of lateInserts) {
         await assert.rejects(insert(), /ingestion batch must remain staged/, `${sourceKind} extended an active batch`);
       }
+      const activeMetadataEdits = [
+        "source_reporting_months = ARRAY['2099-08-01'::date]",
+        `actual_coverage = '[{"plantId":"changed"}]'::jsonb`,
+        `budget_coverage = '[{"plantId":"changed"}]'::jsonb`,
+        `source_counts = '{"rows":999}'::jsonb`,
+        `validation_result = '{"changed":true}'::jsonb`,
+        `reconciliation_result = '{"changed":true}'::jsonb`,
+        `errors = '[{"changed":true}]'::jsonb`,
+        "validated_at_utc = validated_at_utc + interval '1 second'",
+        "activated_at_utc = activated_at_utc + interval '1 second'",
+      ];
+      for (const edit of activeMetadataEdits) {
+        await assert.rejects(
+          pool.query(`UPDATE agent_financial.ingestion_batch SET ${edit} WHERE id = $1`, [firstBatchId]),
+          /active ingestion_batch metadata is immutable/,
+          `active batch accepted metadata edit: ${edit}`,
+        );
+      }
+      const superseded = await pool.query<{ state: string }>(
+        `UPDATE agent_financial.ingestion_batch
+            SET state = 'superseded'
+          WHERE id = $1
+        RETURNING state`,
+        [firstBatchId],
+      );
+      assert.equal(superseded.rows[0].state, "superseded");
+      await assert.rejects(
+        pool.query(
+          `UPDATE agent_financial.ingestion_batch
+              SET source_counts = '{"rows":1000}'::jsonb
+            WHERE id = $1`,
+          [firstBatchId],
+        ),
+        /active ingestion_batch metadata is immutable/,
+      );
     } finally {
       await pool.end();
     }
@@ -349,6 +405,56 @@ async function insertBatch(pool: Pool, key: string, plantId: string, suffix: str
   );
   assert.equal(result.rows[0].is_synthetic, true, "generated schema-test batches must be labelled synthetic");
   return result.rows[0].id;
+}
+
+async function proveConcurrentPlantAliasRefusal(pool: Pool, key: string): Promise<void> {
+  const first = await pool.connect();
+  const second = await pool.connect();
+  let firstCommitted = false;
+  try {
+    await first.query("BEGIN");
+    await second.query("BEGIN");
+    const secondPid = (await second.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0].pid;
+    const sharedAlias = `RACE-${key}`;
+    await insertPlantAlias(first, `RACE-FIRST-${key}`, sharedAlias);
+    const secondOutcome = insertPlantAlias(second, `RACE-SECOND-${key}`, sharedAlias).then(
+      () => ({ accepted: true as const, error: null }),
+      (error: unknown) => ({ accepted: false as const, error }),
+    );
+
+    let waitingOnSerialization = false;
+    for (let attempt = 0; attempt < 100 && !waitingOnSerialization; attempt += 1) {
+      const result = await pool.query<{ waiting: boolean }>(
+        "SELECT EXISTS (SELECT 1 FROM pg_locks WHERE pid = $1 AND NOT granted) AS waiting",
+        [secondPid],
+      );
+      waitingOnSerialization = result.rows[0].waiting;
+    }
+    assert.equal(waitingOnSerialization, true, "concurrent alias insert was not serialized");
+
+    await first.query("COMMIT");
+    firstCommitted = true;
+    const outcome = await secondOutcome;
+    assert.equal(outcome.accepted, false, "concurrent duplicate alias was accepted");
+    assert.match(String(outcome.error), /plant aliases must resolve to one canonical target/);
+  } finally {
+    if (!firstCommitted) await rollback(first);
+    await rollback(second);
+    first.release();
+    second.release();
+  }
+}
+
+async function insertPlantAlias(client: PoolClient, code: string, alias: string): Promise<void> {
+  await client.query(
+    `INSERT INTO agent_financial.plant (code, name, source_aliases, created_by_actor)
+     VALUES ($1, 'Concurrent alias proof', ARRAY[$2], 'schema-proof')`,
+    [code, alias],
+  );
+}
+
+async function rollback(client: PoolClient): Promise<void> {
+  await client.query("ROLLBACK").catch(() => undefined);
 }
 
 async function financialTables(pool: Pool): Promise<string[]> {
@@ -375,6 +481,14 @@ async function legacyCatalog(pool: Pool): Promise<unknown[]> {
   ).rows;
 }
 
-function assertDisposableWarehouse(host: string | undefined, port: string | undefined): void {
-  assert.equal(`${host}:${port}`, "127.0.0.1:5434", "financial schema proof requires 127.0.0.1:5434");
+function assertDisposableWarehouse(
+  host: string | undefined,
+  port: string | undefined,
+  database: string | undefined,
+): void {
+  assert.equal(
+    `${host}:${port}/${database}`,
+    "127.0.0.1:5434/warehouse",
+    "financial schema proof requires 127.0.0.1:5434/warehouse",
+  );
 }

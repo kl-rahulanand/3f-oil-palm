@@ -264,6 +264,9 @@ BEGIN
 	IF TG_OP = 'DELETE' THEN
 		RAISE EXCEPTION 'ingestion_batch rows are immutable';
 	END IF;
+	IF TG_OP = 'INSERT' AND NEW."state" <> 'staged' THEN
+		RAISE EXCEPTION 'ingestion_batch must start staged';
+	END IF;
 	SELECT COALESCE(array_agg(DISTINCT month ORDER BY month), '{}'::date[])
 	INTO canonical_months FROM unnest(NEW."source_reporting_months") month;
 	IF NEW."source_reporting_months" <> canonical_months OR EXISTS (
@@ -292,6 +295,20 @@ BEGIN
 	) THEN
 		RAISE EXCEPTION 'ingestion_batch source identity is immutable';
 	END IF;
+	IF TG_OP = 'UPDATE' AND OLD."state" IN ('active', 'superseded') AND ROW(
+		NEW."source_reporting_months", NEW."actual_coverage", NEW."budget_coverage",
+		NEW."source_counts", NEW."validation_result", NEW."reconciliation_result",
+		NEW."errors", NEW."validated_at_utc", NEW."activated_at_utc"
+	) IS DISTINCT FROM ROW(
+		OLD."source_reporting_months", OLD."actual_coverage", OLD."budget_coverage",
+		OLD."source_counts", OLD."validation_result", OLD."reconciliation_result",
+		OLD."errors", OLD."validated_at_utc", OLD."activated_at_utc"
+	) THEN
+		RAISE EXCEPTION 'active ingestion_batch metadata is immutable';
+	END IF;
+	IF NEW."state" IN ('validated', 'active', 'superseded') AND NEW."validated_at_utc" IS NULL THEN
+		RAISE EXCEPTION 'validated ingestion_batch requires validated_at_utc';
+	END IF;
 	IF NEW."state" = 'active' AND NEW."activated_at_utc" IS NULL THEN
 		RAISE EXCEPTION 'active ingestion_batch requires activated_at_utc';
 	END IF;
@@ -303,6 +320,7 @@ CREATE TRIGGER ingestion_batch_metadata BEFORE INSERT OR UPDATE OR DELETE ON "ag
 --> statement-breakpoint
 CREATE FUNCTION "agent_financial"."protect_plant_alias"() RETURNS trigger AS $$
 BEGIN
+	PERFORM pg_advisory_xact_lock(hashtext('agent_financial'), hashtext('plant_alias'));
 	IF EXISTS (
 		SELECT 1 FROM "agent_financial"."plant" p WHERE p."id" <> NEW."id" AND
 		(p."source_aliases" && NEW."source_aliases" OR p."code" = ANY(NEW."source_aliases") OR NEW."code" = ANY(p."source_aliases"))
@@ -315,6 +333,7 @@ CREATE TRIGGER plant_alias_unique BEFORE INSERT OR UPDATE ON "agent_financial"."
 --> statement-breakpoint
 CREATE FUNCTION "agent_financial"."protect_cost_center_alias"() RETURNS trigger AS $$
 BEGIN
+	PERFORM pg_advisory_xact_lock(hashtext('agent_financial'), hashtext('cost_center_alias'));
 	IF EXISTS (
 		SELECT 1 FROM "agent_financial"."cost_center" c WHERE c."id" <> NEW."id"
 		AND c."source_system" = NEW."source_system" AND c."plant_id" = NEW."plant_id" AND
@@ -328,6 +347,7 @@ CREATE TRIGGER cost_center_alias_unique BEFORE INSERT OR UPDATE ON "agent_financ
 --> statement-breakpoint
 CREATE FUNCTION "agent_financial"."protect_gl_alias"() RETURNS trigger AS $$
 BEGIN
+	PERFORM pg_advisory_xact_lock(hashtext('agent_financial'), hashtext('gl_alias'));
 	IF EXISTS (
 		SELECT 1 FROM "agent_financial"."gl_account" g WHERE g."id" <> NEW."id"
 		AND g."source_system" = NEW."source_system" AND
