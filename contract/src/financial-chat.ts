@@ -229,31 +229,32 @@ const responseIdentity = {
   turnId: identifierSchema,
 };
 
+function selectionIdentity(selection: z.infer<typeof financialSelectionSchema>) {
+  const set = (values: readonly string[] = []) => [...new Set(values)].sort();
+  const filters = set(
+    selection.filters.map((filter) =>
+      JSON.stringify(
+        filter.operator === "in"
+          ? [filter.dimensionId, filter.operator, set(filter.values)]
+          : [filter.dimensionId, filter.operator, filter.value],
+      ),
+    ),
+  );
+  return JSON.stringify([
+    set(selection.measureIds),
+    set(selection.dimensionIds),
+    set(selection.plantIds),
+    [selection.timeWindow.kind, selection.timeWindow.from, selection.timeWindow.to],
+    filters,
+    set(selection.comparisons),
+  ]);
+}
+
 function sameSelection(
   left: z.infer<typeof financialSelectionSchema>,
   right: z.infer<typeof financialSelectionSchema>,
 ) {
-  const normalize = (selection: typeof left) => {
-    const set = (values: readonly string[] = []) => [...new Set(values)].sort();
-    const filters = set(
-      selection.filters.map((filter) =>
-        JSON.stringify(
-          filter.operator === "in"
-            ? [filter.dimensionId, filter.operator, set(filter.values)]
-            : [filter.dimensionId, filter.operator, filter.value],
-        ),
-      ),
-    );
-    return JSON.stringify([
-      set(selection.measureIds),
-      set(selection.dimensionIds),
-      set(selection.plantIds),
-      [selection.timeWindow.kind, selection.timeWindow.from, selection.timeWindow.to],
-      filters,
-      set(selection.comparisons),
-    ]);
-  };
-  return normalize(left) === normalize(right);
+  return selectionIdentity(left) === selectionIdentity(right);
 }
 
 function valuesAt(result: QueryResult, rowKey: string | null): QueryValues | undefined {
@@ -558,7 +559,7 @@ const answerResponseSchema = z
               : null;
         if (!advertised) continue;
         const scopeIdentity = JSON.stringify([
-          result.selection,
+          selectionIdentity(result.selection),
           normalizedResultCoordinate(result, dimensions),
           advertised.kind,
           advertised.value,

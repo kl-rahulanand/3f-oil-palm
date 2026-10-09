@@ -972,7 +972,11 @@ test("reused handles allow identical null coordinates and provably identical tot
     scope: nullGlSelection,
     results: {
       "result-1": nullGlResult,
-      "result-2": { ...nullGlResult, resultId: "result-2" },
+      "result-2": {
+        ...nullGlResult,
+        resultId: "result-2",
+        selection: { ...nullGlSelection, dimensionIds: ["gl", "month"] },
+      },
     },
     monthlyDeltas: [],
     details: {
