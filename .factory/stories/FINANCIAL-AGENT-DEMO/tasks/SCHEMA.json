@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "828fdf7402a77513c778acbd09ab0c7c3a8e7607292853ea8485f808df72cf25",
     "commit": "3c139af66ab48df039b31f15e907fb6fb22d265c",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "AGENTS.md:55 and AGENTS.md:74 require the amended story plan, clean read record, and story.json to be synchronized onto the task branch after a below-For-the-builders scope amendment; plans/FINANCIAL-AGENT-DEMO.md:158-159 are mandatory synchronized accepted story state from clean Round 10 and assign future proofs to their owning MODEL and MEMORY tasks without implementing them in SCHEMA.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The prior scope defect remains open: lines 158\u2013159 rewrite acceptance coverage assigned to the later MODEL and MEMORY tasks, with accompanying plan-read metadata changes. These edits are outside the explicitly permitted SCHEMA paths and are unnecessary for delivering the eight additive tables and generation constraints. Revert them and leave those changes to their owning tasks or a separately approved planning change.",
@@ -14,10 +20,10 @@
         "title": "Remove out-of-scope changes to future MODEL and MEMORY tasks"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "1811ff8859fe998542da5a6d51dae3d2dcaeec5bb28ab8e542c7fd3d9aae8a69"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-09T15:39:01+00:00",
