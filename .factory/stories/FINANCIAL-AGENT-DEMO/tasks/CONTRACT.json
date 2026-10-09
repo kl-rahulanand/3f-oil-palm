@@ -2,41 +2,48 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-CONTRACT",
   "review": {
     "blocking_level": "P1",
-    "changed": "4eb849f626b5f7387be29a4667cd55f140cf6efe21bf66c13744dffd39d25075",
-    "commit": "74cfd74112b212041cbc2415891c8a00754dc4c2",
+    "changed": "c5d44d121f9318eb6556d7900689f02b825a8a3ab7acb196f2ba3a273f9b9df5",
+    "commit": "fe3aea42aa99bd381810d52be6a509f5938163a3",
     "dismissals": [],
     "findings": [
       {
-        "body": "The result value union has no field capable of carrying the available-only Budget subtotal required when some selected Plant/months have Budget and others do not. With mixed coverage, the schema permits only a null `budget: not_loaded` and therefore discards the exact Budget from covered coordinates. This prevents D8 and range/YTD answers from satisfying the confirmed requirement in `docs/specs/langgraph-financial-chat.md:134-137`. Add a distinct partial-Budget value and positive/negative mixed-coverage tests, while keeping complete Budget and percentage unavailable.",
+        "body": "The companion is required only when some relevant coverage is `unconfirmed`. For a range containing a confirmed-complete source month plus a `not_loaded` month, the schema therefore requires only `actual: not_loaded` and rejects an `availableActualSubtotal` as an extra key. This discards the exact source-covered amount and its drill handle, although the confirmed spec says a source-covered range sums available rows while excluding\u2014not zero-filling\u2014missing source months. Require the companion whenever incomplete aggregate coverage still contains source-covered Actual data, and add this mixed complete/not-loaded result case.",
         "file": "contract/src/financial-tools.ts",
-        "line": 338,
+        "line": 479,
         "priority": "P1",
-        "title": "Not done: partial Budget answers retain an exact labelled available subtotal"
+        "title": "Not done: partial Actual ranges retain their available subtotal"
       },
       {
-        "body": "The continuation negative control is hollow: it changes the fixture to page 2 with 21 total items but retains only the original single transaction. Parsing therefore throws from the transaction-count check even if the pinned-limit guard is removed. Likewise, the preceding totalPages case still has the wrong page-1 row count, so it would throw if the totalPages formula broke. Add valid multi-page fixtures that isolate the 10-row prepared page, page-2 offset, pinned limit, size-change rejection, and totalPages formula.",
-        "file": "contract/test/financial-tools.test.ts",
-        "line": 350,
+        "body": "The refinement validates prerequisites only when `percentage.state` is `available`. A result with complete Actual coverage, loaded nonzero Budget, and `percentage: { state: \"not_applicable\" }` therefore passes unchanged. That permits a requested comparison to suppress its exact ratio despite all inputs being available. Add the inverse requirement and a negative result-validation test: `not_applicable` is valid only when Actual is incomplete, Budget is missing/special, or the loaded denominator is zero.",
+        "file": "contract/src/financial-tools.ts",
+        "line": 567,
         "priority": "P1",
-        "title": "Not done: transaction pagination validation"
+        "title": "Not done: complete nonzero comparisons cannot claim Not applicable"
       },
       {
-        "body": "`financialSelectionSchema` accepts duplicate `plantIds`, although `financialQueryResultSchema` later rejects any result whose embedded selection contains duplicates. Thus an input such as `[\"DUB\", \"DUB\"]` passes the strict `query_financials` input schema but no corresponding output can pass validation. Enforce uniqueness in the selection schema and cover it in the selection-validation test.",
+        "body": "The new mixed-coverage rule forces `availableBudgetSubtotal` onto every row whenever any relevant coordinate is loaded and another is missing. For an Unmapped component row, however, the value contract allows that companion only beside `budget.state === \"not_loaded\"`, and the later special-state check rejects `budget.state === \"unmapped\"` whenever any coordinate is not loaded. Consequently an all-my-Plants component result cannot preserve the required exact `No Budget assigned to Unmapped` state under partial Budget coverage; it must either use the generic missing-coverage label or fail validation. Exempt intrinsically budgetless Unmapped rows from the partial companion rule and cover this combination.",
         "file": "contract/src/financial-tools.ts",
-        "line": 105,
-        "priority": "P2",
-        "title": "Reject duplicate Plants at the selection boundary"
+        "line": 483,
+        "priority": "P1",
+        "title": "Not done: mixed Budget coverage retains the Unmapped state"
       },
       {
-        "body": "The result refinement checks only that requested value keys are present; it never rejects additional known measure keys. For example, an Actual-only selection can validate rows and totals containing Budget, Roll-over, or percentage values as long as their coverage states are internally consistent. This defeats the claimed strict selection/result boundary and allows server mistakes to return financial data outside the confirmed selection. Require each value set to equal the selected measures plus explicitly requested derived comparison fields.",
+        "body": "`timeWindow.kind === \"range\"` receives no boundary validation, so inputs such as 2026-04-15 through 2026-05-06 pass the strict query tool schema. The supported periods are complete months, and Budget/Roll-over facts are monthly, so this selection has no defined exact cross-source interpretation and can produce values for a broader scope than its dates claim. Require range `from` to be the first day and `to` the last day of a month, with a negative selection test.",
         "file": "contract/src/financial-tools.ts",
-        "line": 457,
+        "line": 70,
+        "priority": "P1",
+        "title": "Not done: selection validation rejects partial-month ranges"
+      },
+      {
+        "body": "Unlike selections and catalog dimension support lists, each catalog combination accepts repeated measure and dimension IDs. A catalog can therefore validate and advertise `measureIds: [\"actual\", \"actual\"]` or duplicate grouping dimensions even though the corresponding selection is rejected as invalid. Enforce set semantics within every combination and cover the malformed catalog case.",
+        "file": "contract/src/financial-tools.ts",
+        "line": 181,
         "priority": "P2",
-        "title": "Reject unrequested financial values in validated results"
+        "title": "Reject duplicate identifiers inside catalog combinations"
       }
     ],
     "status": "blocked",
-    "tree": "dcefd9191101a342637f860c65ac823d1744dfd5fc06769685dcf87a1e411aa1"
+    "tree": "8324caf8029b1be1cc639a513b65340ad7540f8dda4a14d56cdb02e280fb9aa3"
   },
   "status": "fixing",
   "steps": [
@@ -46,6 +53,10 @@
     },
     {
       "at": "2026-10-08T23:56:49+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T00:19:04+00:00",
       "step": "review"
     }
   ]
