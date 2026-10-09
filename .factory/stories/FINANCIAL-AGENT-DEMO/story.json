@@ -38,6 +38,14 @@
     {
       "at": "2026-10-08T19:00:03+00:00",
       "step": "approved"
+    },
+    {
+      "at": "2026-10-09T13:47:11+00:00",
+      "step": "read"
+    },
+    {
+      "at": "2026-10-09T13:48:44+00:00",
+      "step": "read"
     }
   ],
   "title": "New financial chat with monthly trends and traceable Actuals",
