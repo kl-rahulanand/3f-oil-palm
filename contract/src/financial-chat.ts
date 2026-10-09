@@ -10,6 +10,20 @@ import {
 } from "./financial-tools";
 
 const identifierSchema = z.string().min(1).max(200);
+const resultValueKeySchema = z.enum([
+  "actual",
+  "availableActualSubtotal",
+  "budget",
+  "availableBudgetSubtotal",
+  "rollover",
+  "percentage",
+]);
+const deltaMeasureIdSchema = z.enum(["actual", "budget", "rollover"]);
+
+type QueryResult = z.infer<typeof financialQueryResultSchema>;
+type QueryValues = QueryResult["totals"];
+type ResultValueKey = z.infer<typeof resultValueKeySchema>;
+type DeltaMeasureId = z.infer<typeof deltaMeasureIdSchema>;
 
 export const FINANCIAL_CHAT_ERROR_REASONS = [
   "unsupported_selection",
@@ -64,14 +78,7 @@ const financialTotalBlockSchema = z
       .extend({
         title: z.string().min(1).max(200),
         rowKey: identifierSchema.nullable(),
-        valueKey: z.enum([
-          "actual",
-          "availableActualSubtotal",
-          "budget",
-          "availableBudgetSubtotal",
-          "rollover",
-          "percentage",
-        ]),
+        valueKey: resultValueKeySchema,
       })
       .strict(),
   })
@@ -84,19 +91,7 @@ const financialComparisonBlockSchema = z
       .extend({
         title: z.string().min(1).max(200),
         rowKeys: z.array(identifierSchema).min(1).max(199),
-        valueKeys: z
-          .array(
-            z.enum([
-              "actual",
-              "availableActualSubtotal",
-              "budget",
-              "availableBudgetSubtotal",
-              "rollover",
-              "percentage",
-            ]),
-          )
-          .min(2)
-          .max(6),
+        valueKeys: z.array(resultValueKeySchema).min(2).max(6),
       })
       .strict(),
   })
@@ -159,7 +154,7 @@ export const financialChatUiBlockSchema = z.discriminatedUnion("component", [
 const availableMonthlyDeltaSchema = z
   .object({
     resultId: identifierSchema,
-    measureId: financialMeasureIdSchema,
+    measureId: deltaMeasureIdSchema,
     previousRowKey: identifierSchema,
     currentRowKey: identifierSchema,
     amountChange: moneySchema,
@@ -171,7 +166,7 @@ const availableMonthlyDeltaSchema = z
 const nonpositiveMonthlyDeltaSchema = z
   .object({
     resultId: identifierSchema,
-    measureId: financialMeasureIdSchema,
+    measureId: deltaMeasureIdSchema,
     previousRowKey: identifierSchema,
     currentRowKey: identifierSchema,
     amountChange: moneySchema,
@@ -183,7 +178,7 @@ const nonpositiveMonthlyDeltaSchema = z
 const missingMonthlyDeltaSchema = z
   .object({
     resultId: identifierSchema,
-    measureId: financialMeasureIdSchema,
+    measureId: deltaMeasureIdSchema,
     previousRowKey: identifierSchema,
     currentRowKey: identifierSchema,
     amountChange: z.null(),
@@ -221,6 +216,47 @@ const responseIdentity = {
   turnId: identifierSchema,
 };
 
+function sameSelection(
+  left: z.infer<typeof financialSelectionSchema>,
+  right: z.infer<typeof financialSelectionSchema>,
+) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function valuesAt(result: QueryResult, rowKey: string | null): QueryValues | undefined {
+  return rowKey === null ? result.totals : result.rows.find(({ key }) => key === rowKey)?.values;
+}
+
+function requestedValue(result: QueryResult, valueKey: ResultValueKey) {
+  if (valueKey === "availableActualSubtotal") return result.selection.measureIds.includes("actual");
+  if (valueKey === "availableBudgetSubtotal") return result.selection.measureIds.includes("budget");
+  if (valueKey === "percentage") {
+    return (
+      result.selection.measureIds.includes("percentage") ||
+      result.selection.comparisons?.includes("actual_vs_budget") === true
+    );
+  }
+  return result.selection.measureIds.includes(valueKey);
+}
+
+function hasRequestedValue(result: QueryResult, rowKey: string | null, valueKey: ResultValueKey) {
+  const values = valuesAt(result, rowKey);
+  return requestedValue(result, valueKey) && values !== undefined && valueKey in values;
+}
+
+function availableMeasureValue(values: QueryValues, measureId: DeltaMeasureId) {
+  const value = values[measureId];
+  return value?.state === "available" ? value.value : null;
+}
+
+function isZeroMoney(value: string) {
+  return /^-?0\.00$/.test(value);
+}
+
+function isNegativeMoney(value: string) {
+  return value.startsWith("-") && !isZeroMoney(value);
+}
+
 const answerResponseSchema = z
   .object({
     ...responseIdentity,
@@ -234,7 +270,7 @@ const answerResponseSchema = z
     details: z.record(identifierSchema, preparedDetailSchema),
   })
   .strict()
-  .superRefine(({ results, monthlyDeltas, ui, details }, context) => {
+  .superRefine(({ scope, results, monthlyDeltas, ui, details }, context) => {
     const resultEntries = Object.entries(results);
     for (const [key, result] of resultEntries) {
       if (key !== result.resultId) {
@@ -242,6 +278,13 @@ const answerResponseSchema = z
           code: z.ZodIssueCode.custom,
           message: "result dictionary keys must equal resultId",
           path: ["results", key],
+        });
+      }
+      if (!sameSelection(scope, result.selection)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "included results must use the confirmed answer scope",
+          path: ["results", key, "selection"],
         });
       }
     }
@@ -274,27 +317,171 @@ const answerResponseSchema = z
           path: ["ui", index, "props"],
         });
       }
+      if (new Set(referencedRows).size !== referencedRows.length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "UI row references must be unique",
+          path: ["ui", index, "props"],
+        });
+      }
+      if (block.component === "FinancialTotal") {
+        if (!hasRequestedValue(result, block.props.rowKey, block.props.valueKey)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "UI values must be present and requested in the referenced result",
+            path: ["ui", index, "props", "valueKey"],
+          });
+        }
+      } else if (block.component === "FinancialComparison") {
+        if (new Set(block.props.valueKeys).size !== block.props.valueKeys.length) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "comparison values must be unique",
+            path: ["ui", index, "props", "valueKeys"],
+          });
+        }
+        if (
+          block.props.rowKeys.some((rowKey) =>
+            block.props.valueKeys.some((valueKey) => !hasRequestedValue(result, rowKey, valueKey)),
+          )
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "UI values must be present and requested in the referenced result",
+            path: ["ui", index, "props"],
+          });
+        }
+      } else {
+        if (!result.selection.dimensionIds.includes("month")) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "MonthlyTrend requires month-grouped results",
+            path: ["ui", index, "props", "resultId"],
+          });
+        }
+        if (new Set(block.props.series.map(({ measureId }) => measureId)).size !== block.props.series.length) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "trend series must be unique",
+            path: ["ui", index, "props", "series"],
+          });
+        }
+        if (
+          block.props.rowKeys.some((rowKey) => {
+            const row = result.rows.find(({ key }) => key === rowKey);
+            return (
+              !row?.dimensions.month ||
+              block.props.series.some(({ measureId }) => !hasRequestedValue(result, rowKey, measureId))
+            );
+          })
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "trend rows must contain requested monthly series values",
+            path: ["ui", index, "props"],
+          });
+        }
+      }
     }
 
-    monthlyDeltas.forEach(({ resultId }, index) => {
-      if (!results[resultId]) {
+    const deltaCoordinates = new Set<string>();
+    monthlyDeltas.forEach((delta, index) => {
+      const result = results[delta.resultId];
+      if (!result) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: "monthly deltas must reference an included result",
           path: ["monthlyDeltas", index, "resultId"],
         });
+        return;
+      }
+      const previous = result.rows.find(({ key }) => key === delta.previousRowKey);
+      const current = result.rows.find(({ key }) => key === delta.currentRowKey);
+      const coordinate = `${delta.resultId}\u0000${delta.measureId}\u0000${delta.previousRowKey}\u0000${delta.currentRowKey}`;
+      if (deltaCoordinates.has(coordinate)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "monthly delta coordinates must be unique",
+          path: ["monthlyDeltas", index],
+        });
+      }
+      deltaCoordinates.add(coordinate);
+      if (
+        !result.selection.dimensionIds.includes("month") ||
+        !result.selection.measureIds.includes(delta.measureId) ||
+        !previous?.dimensions.month ||
+        !current?.dimensions.month ||
+        previous.dimensions.month >= current.dimensions.month
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "monthly deltas must reference ordered monthly rows for a requested measure",
+          path: ["monthlyDeltas", index],
+        });
+        return;
+      }
+      const previousValue = availableMeasureValue(previous.values, delta.measureId);
+      const currentValue = availableMeasureValue(current.values, delta.measureId);
+      if (["available", "previous_zero", "previous_negative"].includes(delta.reason)) {
+        if (previousValue === null || currentValue === null) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "numeric monthly deltas require complete source values",
+            path: ["monthlyDeltas", index],
+          });
+        } else if (
+          (delta.reason === "available" && (isZeroMoney(previousValue) || isNegativeMoney(previousValue))) ||
+          (delta.reason === "previous_zero" && !isZeroMoney(previousValue)) ||
+          (delta.reason === "previous_negative" && !isNegativeMoney(previousValue))
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "monthly delta reason must match the previous value state",
+            path: ["monthlyDeltas", index, "reason"],
+          });
+        }
+      } else if (
+        (delta.reason === "missing_previous" && previousValue !== null) ||
+        (delta.reason === "missing_current" && currentValue !== null)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "missing monthly delta reasons require an unavailable named value",
+          path: ["monthlyDeltas", index, "reason"],
+        });
       }
     });
 
-    const promisedHandles = new Set<string>();
+    const promisedHandles = new Map<string, string>();
     for (const result of Object.values(results)) {
       const values = [result.totals, ...result.rows.map(({ values }) => values)];
       for (const valueSet of values) {
-        if (valueSet.actual?.state === "available") promisedHandles.add(valueSet.actual.drilldownId);
-        if (valueSet.availableActualSubtotal) promisedHandles.add(valueSet.availableActualSubtotal.drilldownId);
+        const advertised =
+          valueSet.actual?.state === "available"
+            ? { handle: valueSet.actual.drilldownId, value: valueSet.actual.value }
+            : valueSet.availableActualSubtotal
+              ? { handle: valueSet.availableActualSubtotal.drilldownId, value: valueSet.availableActualSubtotal.value }
+              : null;
+        if (!advertised) continue;
+        const priorValue = promisedHandles.get(advertised.handle);
+        if (priorValue !== undefined && priorValue !== advertised.value) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "reused Actual handles must advertise one exact value",
+            path: ["details", advertised.handle],
+          });
+        }
+        promisedHandles.set(advertised.handle, advertised.value);
       }
     }
-    for (const handle of promisedHandles) {
+    if (promisedHandles.size > 200) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "an answer cannot advertise more than 200 Actual scopes",
+        path: ["details"],
+      });
+    }
+    for (const handle of promisedHandles.keys()) {
       if (!details[handle]) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -304,7 +491,8 @@ const answerResponseSchema = z
       }
     }
     for (const [handle, detail] of Object.entries(details)) {
-      if (!promisedHandles.has(handle)) {
+      const advertisedValue = promisedHandles.get(handle);
+      if (advertisedValue === undefined) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: "detail entries must belong to an advertised Actual",
@@ -316,6 +504,16 @@ const answerResponseSchema = z
           code: z.ZodIssueCode.custom,
           message: "prepared page handle must match its dictionary key",
           path: ["details", handle, "page", "drilldownId"],
+        });
+      }
+      if (
+        detail.status === "ready" &&
+        (detail.page.page !== 1 || detail.page.limit !== 10 || detail.page.matchingActualTotal !== advertisedValue)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "ready details must be the prepared first page with the advertised exact total",
+          path: ["details", handle, "page"],
         });
       }
     }
@@ -403,26 +601,36 @@ const eventIdentity = {
   runId: identifierSchema,
 };
 
-export const financialChatEventSchema = z.discriminatedUnion("type", [
-  z.object({ ...eventIdentity, type: z.literal("run_started") }).strict(),
-  z.object({ ...eventIdentity, type: z.literal("text_delta"), text: z.string().min(1).max(4_000) }).strict(),
-  z.object({ ...eventIdentity, type: z.literal("ui_block"), block: financialChatUiBlockSchema }).strict(),
-  z.object({ ...eventIdentity, type: z.literal("final"), response: financialChatResponseSchema }).strict(),
-  z
-    .object({
-      ...eventIdentity,
-      type: z.literal("error"),
-      error: z
-        .object({
-          message: z.string().min(1).max(500),
-          details: financialChatErrorDetailsSchema,
-          errorId: identifierSchema,
-          correlationId: identifierSchema,
-        })
-        .strict(),
-    })
-    .strict(),
-]);
+export const financialChatEventSchema = z
+  .discriminatedUnion("type", [
+    z.object({ ...eventIdentity, type: z.literal("run_started") }).strict(),
+    z.object({ ...eventIdentity, type: z.literal("text_delta"), text: z.string().min(1).max(4_000) }).strict(),
+    z.object({ ...eventIdentity, type: z.literal("ui_block"), block: financialChatUiBlockSchema }).strict(),
+    z.object({ ...eventIdentity, type: z.literal("final"), response: financialChatResponseSchema }).strict(),
+    z
+      .object({
+        ...eventIdentity,
+        type: z.literal("error"),
+        error: z
+          .object({
+            message: z.string().min(1).max(500),
+            details: financialChatErrorDetailsSchema,
+            errorId: identifierSchema,
+            correlationId: identifierSchema,
+          })
+          .strict(),
+      })
+      .strict(),
+  ])
+  .superRefine((event, context) => {
+    if (event.type === "final" && event.conversationId !== event.response.conversationId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "final frame and response conversation identities must match",
+        path: ["response", "conversationId"],
+      });
+    }
+  });
 
 export type FinancialChatErrorReason = z.infer<typeof financialChatErrorReasonSchema>;
 export type FinancialChatErrorDetails = z.infer<typeof financialChatErrorDetailsSchema>;
