@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-09T13:48:41+00:00
-read_hash: ff66d0bfeaaa233c6ca2854b00504991e1f3e61e
-round: 7
-passed: yes
-doc_seen: ff66d0bfeaaa233c6ca2854b00504991e1f3e61e
+read_at: 2026-10-09T16:03:24+00:00
+read_hash: 6d23fe6aaeccd03bbf844711b79b2727729f40d4
+round: 8
+passed: no
+doc_seen: 6d23fe6aaeccd03bbf844711b79b2727729f40d4
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: f3e6d0b6cb721de5632924d55922a44e05bad2f5
+notes_seen: 59a260e080373a73d85064098076f41466d936a2
 ---
 
 # Cold read notes
@@ -222,3 +222,13 @@ No findings.
 ## Round 7
 
 No findings.
+
+## Round 8
+
+28. Shared seam: CATALOG, QUERY, DRILL and PAGES all edit `financial-data.service.ts`, while QUERY, TRENDS and DRILL edit `financial-query.repository.ts`, but no earlier task pins those internal port signatures or a crossing proof.  
+   Disposition: keep: the master contract already pins the four `FinancialDataService` signatures and their shared contract types, CATALOG creates the facade, QUERY creates the repository and query method, and the dependency graph serializes later additions. DRILL/PAGES extend the same owned implementation for the already-pinned `transactions(userId, drilldownId, page, limit)` contract; TRENDS adds deterministic calculation over QUERY results rather than an independent repository API. Forge also blocks concurrent shared-file work, so this is deliberate staged composition rather than parallel ad-hoc growth.
+   Serialization avoids merge conflicts but not ad-hoc API growth. Have CATALOG/QUERY define the facade and repository method contracts with stubs and one consumer proof, then keep later task implementations in dedicated providers—or give shared facade composition to one wiring task.
+
+29. Shared Scope: TRANSPORT, STREAM and CLIENT all own the same concrete transport modules without a single owner.  
+   Disposition: keep: TRANSPORT is now merged and pins the backend serializer/cache boundary plus the credentialed native-fetch NDJSON client functions with focused crossing tests. STREAM and CLIENT are explicitly later expansions of those same stable adapters, as stage 1 says, and their dependency edges serialize consumption after API/STREAM. Splitting the already-landed seam would create a duplicate transport, which the approved plan expressly forbids.
+   TRANSPORT claims `stream-adapter*` and `financial-chat.transport*`; STREAM edits `stream-adapter.ts`; CLIENT edits `financial-chat.transport*`. Pin the adapter/frame ownership in TRANSPORT, with later tasks consuming it through stable interfaces, or split endpoint streaming and client state into separate files so each task has one owner.
