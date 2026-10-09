@@ -529,7 +529,10 @@ export const financialQueryResultSchema = z
       }
     });
 
-    const actualHandleUses = new Map<string, { rowIndex: number | null }>();
+    const actualHandleUses = new Map<
+      string,
+      { rowIndex: number | null; kind: "actual" | "availableActualSubtotal"; value: string }
+    >();
     const rowMatchesTotalScope = (
       dimensions: Partial<Record<(typeof FINANCIAL_DIMENSION_IDS)[number], string | null>>,
     ) =>
@@ -591,10 +594,17 @@ export const financialQueryResultSchema = z
       }
       const actualHandle =
         values.actual?.state === "available"
-          ? { id: values.actual.drilldownId, path: [...path, "actual", "drilldownId"] }
+          ? {
+              id: values.actual.drilldownId,
+              kind: "actual" as const,
+              value: values.actual.value,
+              path: [...path, "actual", "drilldownId"],
+            }
           : values.availableActualSubtotal
             ? {
                 id: values.availableActualSubtotal.drilldownId,
+                kind: "availableActualSubtotal" as const,
+                value: values.availableActualSubtotal.value,
                 path: [...path, "availableActualSubtotal", "drilldownId"],
               }
             : undefined;
@@ -602,15 +612,23 @@ export const financialQueryResultSchema = z
         const priorUse = actualHandleUses.get(actualHandle.id);
         const rowIndex = index === 0 ? null : index - 1;
         const identicalTotalAndRowScope =
-          priorUse?.rowIndex === null && dimensions !== undefined && rowMatchesTotalScope(dimensions);
+          priorUse?.rowIndex === null &&
+          dimensions !== undefined &&
+          rowMatchesTotalScope(dimensions) &&
+          priorUse.kind === actualHandle.kind &&
+          priorUse.value === actualHandle.value;
         if (priorUse && !identicalTotalAndRowScope) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Actual drill handles may be reused only for identical aggregate scopes",
+            message: "Actual drill handles may be reused only for identical scope, kind, and exact value",
             path: actualHandle.path,
           });
         } else {
-          actualHandleUses.set(actualHandle.id, { rowIndex });
+          actualHandleUses.set(actualHandle.id, {
+            rowIndex,
+            kind: actualHandle.kind,
+            value: actualHandle.value,
+          });
         }
       }
       if (

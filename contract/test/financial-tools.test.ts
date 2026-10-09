@@ -946,6 +946,14 @@ test("Actual drill handles are shared only by identical aggregate scopes", () =>
     })),
   });
   const singletonIn = withSharedFullHandle(["gl"], { gl: "55010305" });
+  const unequalFullActual = {
+    ...singletonIn,
+    resultId: "unequal-full-actual",
+    rows: singletonIn.rows.map((row) => ({
+      ...row,
+      values: { ...row.values, actual: { ...row.values.actual, value: "1.00" } },
+    })),
+  };
   const singletonEq = withSharedFullHandle(
     ["gl"],
     { gl: "55010305" },
@@ -1068,9 +1076,21 @@ test("Actual drill handles are shared only by identical aggregate scopes", () =>
     },
     coverage: [partial.coverage[0]],
   };
+  const unequalPartialSubtotal = {
+    ...identicalSubtotalScope,
+    resultId: "unequal-partial-subtotal",
+    rows: identicalSubtotalScope.rows.map((row) => ({
+      ...row,
+      values: {
+        ...row.values,
+        availableActualSubtotal: { ...row.values.availableActualSubtotal, value: "24.00" },
+      },
+    })),
+  };
 
   const cases = [
     ["singleton in filter fixes the GL scope", singletonIn, true],
+    ["same-scope full Actual with unequal money", unequalFullActual, false],
     ["singleton eq filter fixes the GL scope", singletonEq, true],
     ["one selected Plant fixes the Plant scope", singlePlant, true],
     ["one selected month fixes the month scope", singleMonth, true],
@@ -1080,6 +1100,7 @@ test("Actual drill handles are shared only by identical aggregate scopes", () =>
     ["distinct partial scopes cannot alias", aliasedSubtotalScopes, false],
     ["full and partial scopes cannot alias", aliasedFullAndSubtotalScopes, false],
     ["identical partial row and total scope", identicalSubtotalScope, true],
+    ["same-scope partial subtotal with unequal money", unequalPartialSubtotal, false],
   ] as const;
 
   assert.deepEqual(
@@ -1091,11 +1112,13 @@ test("Actual drill handles are shared only by identical aggregate scopes", () =>
     [aliasedRows, "rows.1.values.actual.drilldownId"],
     [aliasedSubtotalScopes, "rows.0.values.availableActualSubtotal.drilldownId"],
     [aliasedFullAndSubtotalScopes, "rows.1.values.actual.drilldownId"],
+    [unequalFullActual, "rows.0.values.actual.drilldownId"],
+    [unequalPartialSubtotal, "rows.0.values.availableActualSubtotal.drilldownId"],
   ] as const) {
     assertOnlyZodIssue(
       () => financialQueryResultSchema.parse(candidate),
       path,
-      "Actual drill handles may be reused only for identical aggregate scopes",
+      "Actual drill handles may be reused only for identical scope, kind, and exact value",
     );
   }
 });
