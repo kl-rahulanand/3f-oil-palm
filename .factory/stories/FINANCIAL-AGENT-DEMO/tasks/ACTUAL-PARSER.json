@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "506af6d94b4f28c8e3f4c220e8a1a6670033c028a72413398659a277a4c4c084",
     "commit": "ffb7bd188b87c549d0fb7ffc7aac76290cb23763",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json:1 is mandatory Forge-generated task lifecycle state required by close, merge, and board tracking; removing it would break the repository-mandated Forge workflow, and Forge bookkeeping is exempt from the task's implementation-path scope.",
+        "finding": 2,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "`sourceRowValue` checks the formula object itself for `\"\"` before resolving its cached result. A dimension cell containing `{ formula/sharedFormula, result: \"\" }` therefore bypasses the null branch and returns an empty string; whitespace-only cells behave similarly after trimming. This converts missing dimensions into `\"\"` rather than `null`, potentially creating false dimension identifiers downstream. The tests cover direct null cells and non-empty cached formulas but not cached blank dimensions.",
