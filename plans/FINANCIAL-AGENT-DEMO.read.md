@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-09T16:07:13+00:00
-read_hash: 6d23fe6aaeccd03bbf844711b79b2727729f40d4
-round: 9
-passed: no
-doc_seen: 6d23fe6aaeccd03bbf844711b79b2727729f40d4
+read_at: 2026-10-09T16:09:57+00:00
+read_hash: 46a60e68f24588cc2484a1d67152e699037c2856
+round: 10
+passed: yes
+doc_seen: 46a60e68f24588cc2484a1d67152e699037c2856
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: f71ddf50d1f47f8f7fb52062c0470dc784549e29
+notes_seen: 7662676ac965c7c00211f19ccc43d2973d930262
 ---
 
 # Cold read notes
@@ -242,3 +242,7 @@ No findings.
 31. Unproven: item 6: no named test proves financial data is absent from model retry traces and logs, not merely the outbound request.  
    Disposition: keep: MODEL's named test now captures retry, trace and log payloads and proves that money, rows, handles, batches, raw state and rendered answers are absent.
    MODEL names payload exclusions and vendor errors, while the spec also excludes money, rows, handles, batches, raw state and rendered answers from retries, traces and logs. Add captured retry/trace/log assertions to MODEL.
+
+## Round 10
+
+No findings.
