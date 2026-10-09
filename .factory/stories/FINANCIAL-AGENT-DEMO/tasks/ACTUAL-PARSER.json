@@ -1,0 +1,39 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-ACTUAL-PARSER",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "a234d87153ea81bfaf907b6be08ed71cace146eb158466871b7ec4a47797a37f",
+    "commit": "9cd554de2e0ec0682b4ea84212ff25e74ea77c0c",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "57c94b1a3da574c4207c64aa8b77dfe191afa6b2858b04d59eb73a37fe698dd5"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-09T17:45:26+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-09T18:35:58+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T18:51:42+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T19:12:24+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T19:27:57+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T19:45:13+00:00",
+      "step": "review"
+    }
+  ]
+}
