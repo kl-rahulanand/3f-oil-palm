@@ -2,35 +2,22 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-ACTUAL-PARSER",
   "review": {
     "blocking_level": "P1",
-    "changed": "506af6d94b4f28c8e3f4c220e8a1a6670033c028a72413398659a277a4c4c084",
-    "commit": "ffb7bd188b87c549d0fb7ffc7aac76290cb23763",
-    "dismissals": [
-      {
-        "because": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json:1 is mandatory Forge-generated task lifecycle state required by close, merge, and board tracking; removing it would break the repository-mandated Forge workflow, and Forge bookkeeping is exempt from the task's implementation-path scope.",
-        "finding": 2,
-        "from_base": false
-      }
-    ],
+    "changed": "a66a6438802820bdab89d1fbe37b809bcbfeade6cb1c21a786fe58af4c5e2896",
+    "commit": "a463083fae475a06e22971e5f1eaf5d3aebfe08b",
+    "dismissals": [],
     "findings": [
       {
-        "body": "`sourceRowValue` checks the formula object itself for `\"\"` before resolving its cached result. A dimension cell containing `{ formula/sharedFormula, result: \"\" }` therefore bypasses the null branch and returns an empty string; whitespace-only cells behave similarly after trimming. This converts missing dimensions into `\"\"` rather than `null`, potentially creating false dimension identifiers downstream. The tests cover direct null cells and non-empty cached formulas but not cached blank dimensions.",
-        "file": "backend/src/financial-data/financial-actual.parser.ts",
-        "line": 229,
-        "priority": "P1",
-        "title": "Not done: Cached blank formulas must preserve null dimensions"
-      },
-      {
-        "body": "The permitted path list does not include `.factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json`, but the branch still adds this workflow-state file. It is unnecessary for the parser implementation or tests and contains stale findings that the current code has already addressed, so it must be removed from this scoped change.",
-        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json",
-        "line": 1,
-        "priority": "P1",
-        "title": "Remove the out-of-scope task-state artifact"
+        "body": "When a formula has a cached Excel error result such as `{ error: \"#N/A\" }`, `hasUncachedFormula` permits it and `formulaResult` returns the error object. This fallback then converts it to `\"[object Object]\"`. Text fields such as Plant, Cost Center, GL code, or transaction identity can consequently be accepted with a fabricated value, and `sourceRow` loses the original error evidence. Error-valued formula results should be rejected or represented faithfully before string coercion.",
+        "file": "backend/src/financial-data/financial-workbook.parser.ts",
+        "line": 91,
+        "priority": "P2",
+        "title": "Reject cached formula errors before coercing them to text"
       }
     ],
-    "status": "blocked",
-    "tree": "3b3c6ef998faef1bb00637f1e365ca521ac0feba35b11afbdb32939e69654a3a"
+    "status": "clean",
+    "tree": "ad033b64967109374253e564bc02bae9669a21501875f3316b2a5116d8cdc080"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-09T17:45:26+00:00",
@@ -46,6 +33,10 @@
     },
     {
       "at": "2026-10-09T19:12:24+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T19:27:57+00:00",
       "step": "review"
     }
   ]
