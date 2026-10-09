@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { MeasureFilter, MeasureFormat, Selection, SelectionFilter, TimeGrain } from "./measure";
 import { authUserSchema } from "./rbac";
 import type { ScopeAttr } from "./rbac";
+import type { FinancialChatErrorReason } from "./financial-chat";
 
 /** Every backend answer maps to exactly one of these (POC taxonomy). */
 export enum ResponseClass {
@@ -32,7 +33,7 @@ export enum MeasureFilterInvalidReason {
 }
 
 export type PlantFilterInvalidReason = "plant-filter-invalid" | "plant-not-granted";
-export type ErrorDetailsReason = MeasureFilterInvalidReason | PlantFilterInvalidReason;
+export type ErrorDetailsReason = MeasureFilterInvalidReason | PlantFilterInvalidReason | FinancialChatErrorReason;
 
 export interface ErrorPayload {
   errorId: string;
