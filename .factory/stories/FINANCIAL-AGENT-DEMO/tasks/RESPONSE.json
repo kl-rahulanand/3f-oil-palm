@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "9db9a2a099db6fd8e225ef404cab36ed4dd036b6194fe357524e4dae5938a3fe",
     "commit": "59116302a0fec7166192da626499b66983d58e99",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/RESPONSE.json:1 is Forge-generated task state required by forge close, merge, and the board; AGENTS.md forbids hand-editing .factory and the story Scope governs product files, not Forge's mandatory workflow record.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "This newly committed file is outside the six paths permitted for this part and contains only Forge workflow state, including a stale `blocked` review and `fixing` task status. It is not needed to define or test the presentation contracts and violates the branch's explicit path scope; remove it from the selected change.",
@@ -35,10 +41,10 @@
         "title": "Later: MODEL/GRAPH/ANSWER/LIVE must prove Claude and static-cache boundaries"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "bff6ad700cfe5aab5b98c58f88dc3fb086c6618f4e8b16f8a87dd3b0c68da3b1"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-09T02:48:18+00:00",
