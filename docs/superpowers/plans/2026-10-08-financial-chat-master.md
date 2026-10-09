@@ -8,7 +8,7 @@
 
 **Architecture:** Original Excel -> independent validated import -> additive agent_financial warehouse schema -> one FinancialDataService -> four governed tools -> TypeScript LangGraph in NestJS -> fixed local React components. Existing report ingestion and reads remain independent and unchanged.
 
-**Tech Stack:** Existing Node >=20, CommonJS NestJS 10, Next.js 15, React 19, TypeScript, pg/Drizzle, ExcelJS, Zod and Recharts. Pin compatible LangGraph/React transport packages in stage 1; use ChatAnthropic with Claude Sonnet 5.5 (claude-sonnet-5-5) through Anthropic directly inside NestJS. OpenAI evaluation is later; no Bedrock or dual-provider fallback. No new database server, vector store, queue or component hosting.
+**Tech Stack:** Existing Node >=20, CommonJS NestJS 10, Next.js 15, React 19, TypeScript, pg/Drizzle, ExcelJS, Zod and Recharts. Pin backend LangGraph/ChatAnthropic packages in stage 1; React uses native credentialed fetch/ReadableStream for typed local frames. Claude Sonnet 5.5 (claude-sonnet-5-5) runs through Anthropic directly inside NestJS. OpenAI evaluation is later; no Bedrock or dual-provider fallback. No new database server, vector store, queue or component hosting.
 
 **Spec:** [Financial chat](../../specs/langgraph-financial-chat.md).
 **Predecessor:** [Original nine-stage draft](2026-10-08-langgraph-financial-chat.md).
@@ -251,6 +251,7 @@ One process means restart/scale-out loses memory; production persistence require
 [Generative UI](https://docs.langchain.com/langsmith/generative-ui-react) illustrates component
 IDs/props and supports local component maps; its hosted tutorial is not our deployment contract.
 [Custom React transport](https://github.com/langchain-ai/langgraphjs/blob/main/libs/sdk-react/docs/custom-transport.md)
-is a compatibility input; verify pinned installed types rather than mixing SDK generations.
+is reference material only; this story selects native fetch/ReadableStream instead of a
+frontend LangGraph SDK. Backend package compatibility is verified against pinned types.
 [shadcn template](https://github.com/shadcn-ui/chatbot-template) supplies presentation, not our
 agent/backend. Retain license attribution and exclude its gateway/backend plumbing.

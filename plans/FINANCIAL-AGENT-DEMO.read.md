@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-09T13:48:41+00:00
-read_hash: ff66d0bfeaaa233c6ca2854b00504991e1f3e61e
-round: 7
+read_at: 2026-10-09T16:09:57+00:00
+read_hash: 46a60e68f24588cc2484a1d67152e699037c2856
+round: 10
 passed: yes
-doc_seen: ff66d0bfeaaa233c6ca2854b00504991e1f3e61e
+doc_seen: 46a60e68f24588cc2484a1d67152e699037c2856
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: f3e6d0b6cb721de5632924d55922a44e05bad2f5
+notes_seen: 7662676ac965c7c00211f19ccc43d2973d930262
 ---
 
 # Cold read notes
@@ -220,5 +220,29 @@ No findings.
    - Split SOURCE-ORACLE from guarded legacy baseline capture; make SCHEMA wait for the latter.
 
 ## Round 7
+
+No findings.
+
+## Round 8
+
+28. Shared seam: CATALOG, QUERY, DRILL and PAGES all edit `financial-data.service.ts`, while QUERY, TRENDS and DRILL edit `financial-query.repository.ts`, but no earlier task pins those internal port signatures or a crossing proof.  
+   Disposition: keep: the master contract already pins the four `FinancialDataService` signatures and their shared contract types, CATALOG creates the facade, QUERY creates the repository and query method, and the dependency graph serializes later additions. DRILL/PAGES extend the same owned implementation for the already-pinned `transactions(userId, drilldownId, page, limit)` contract; TRENDS adds deterministic calculation over QUERY results rather than an independent repository API. Forge also blocks concurrent shared-file work, so this is deliberate staged composition rather than parallel ad-hoc growth.
+   Serialization avoids merge conflicts but not ad-hoc API growth. Have CATALOG/QUERY define the facade and repository method contracts with stubs and one consumer proof, then keep later task implementations in dedicated providers—or give shared facade composition to one wiring task.
+
+29. Shared Scope: TRANSPORT, STREAM and CLIENT all own the same concrete transport modules without a single owner.  
+   Disposition: keep: TRANSPORT is now merged and pins the backend serializer/cache boundary plus the credentialed native-fetch NDJSON client functions with focused crossing tests. STREAM and CLIENT are explicitly later expansions of those same stable adapters, as stage 1 says, and their dependency edges serialize consumption after API/STREAM. Splitting the already-landed seam would create a duplicate transport, which the approved plan expressly forbids.
+   TRANSPORT claims `stream-adapter*` and `financial-chat.transport*`; STREAM edits `stream-adapter.ts`; CLIENT edits `financial-chat.transport*`. Pin the adapter/frame ownership in TRANSPORT, with later tasks consuming it through stable interfaces, or split endpoint streaming and client state into separate files so each task has one owner.
+
+## Round 9
+
+30. Unproven: item 3: an overlapping distinct command for the same conversation has no named proof of its typed concurrent-run refusal while the original run remains intact.  
+   Disposition: keep: MEMORY's named test now covers the typed concurrent-run refusal and proves the original run remains intact.
+   MEMORY names capacity and cancellation; STREAM names duplicate commands, not a second active run. Add this state and its client-visible reason to MEMORY or STREAM.
+
+31. Unproven: item 6: no named test proves financial data is absent from model retry traces and logs, not merely the outbound request.  
+   Disposition: keep: MODEL's named test now captures retry, trace and log payloads and proves that money, rows, handles, batches, raw state and rendered answers are absent.
+   MODEL names payload exclusions and vendor errors, while the spec also excludes money, rows, handles, batches, raw state and rendered answers from retries, traces and logs. Add captured retry/trace/log assertions to MODEL.
+
+## Round 10
 
 No findings.
