@@ -420,6 +420,27 @@ const answerResponseSchema = z
         });
         return;
       }
+      if (
+        result.selection.dimensionIds.some(
+          (dimensionId) =>
+            dimensionId !== "month" && previous.dimensions[dimensionId] !== current.dimensions[dimensionId],
+        )
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "monthly delta rows must share every non-month dimension coordinate",
+          path: ["monthlyDeltas", index],
+        });
+      }
+      const nextMonth = new Date(`${previous.dimensions.month}T00:00:00.000Z`);
+      nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+      if (nextMonth.toISOString().slice(0, 10) !== current.dimensions.month) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "monthly delta rows must be consecutive calendar months",
+          path: ["monthlyDeltas", index],
+        });
+      }
       const previousValue = availableMeasureValue(previous.values, delta.measureId);
       const currentValue = availableMeasureValue(current.values, delta.measureId);
       if (["available", "previous_zero", "previous_negative"].includes(delta.reason)) {

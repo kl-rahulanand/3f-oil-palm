@@ -448,6 +448,105 @@ test("monthly deltas bind existing monthly rows and complete compatible measure 
   );
 });
 
+test("monthly deltas keep every non-month dimension coordinate unchanged", () => {
+  const groupedSelection = { ...selection, dimensionIds: ["month", "gl"] };
+  const groupedRows = result.rows.map((row, index) => ({
+    ...row,
+    key: `${row.key}:gl:${index}`,
+    dimensions: { ...row.dimensions, gl: index === 0 ? "55010305" : "55010306" },
+  }));
+  assertResponseRejected(
+    {
+      ...answer,
+      scope: groupedSelection,
+      results: { "result-1": { ...result, selection: groupedSelection, rows: groupedRows } },
+      monthlyDeltas: [
+        {
+          ...answer.monthlyDeltas[0],
+          previousRowKey: groupedRows[0].key,
+          currentRowKey: groupedRows[1].key,
+        },
+      ],
+    },
+    "monthly delta rows must share every non-month dimension coordinate",
+  );
+});
+
+test("monthly deltas compare consecutive calendar months without gaps", () => {
+  const gapSelection = {
+    ...selection,
+    timeWindow: { kind: "range", from: "2026-03-01", to: "2026-05-31" },
+  };
+  const gapRows = [
+    result.rows[0],
+    {
+      ...result.rows[1],
+      key: "month:2026-05-01",
+      dimensions: { month: "2026-05-01" },
+    },
+  ];
+  assertResponseRejected(
+    {
+      ...answer,
+      scope: gapSelection,
+      results: {
+        "result-1": {
+          ...result,
+          selection: gapSelection,
+          scope: { ...result.scope, to: "2026-05-31" },
+          rows: gapRows,
+          coverage: [...result.coverage, { plantId: "DUB", month: "2026-05-01", actual: "complete", budget: "loaded" }],
+        },
+      },
+      monthlyDeltas: [
+        {
+          ...answer.monthlyDeltas[0],
+          previousRowKey: gapRows[0].key,
+          currentRowKey: gapRows[1].key,
+        },
+      ],
+    },
+    "monthly delta rows must be consecutive calendar months",
+  );
+});
+
+test("monthly deltas accept the same coordinate from December to January", () => {
+  const yearSelection = {
+    ...selection,
+    dimensionIds: ["month", "gl"],
+    timeWindow: { kind: "range", from: "2025-12-01", to: "2026-01-31" },
+  };
+  const yearRows = result.rows.map((row, index) => ({
+    ...row,
+    key: index === 0 ? "month:2025-12-01:gl:55010305" : "month:2026-01-01:gl:55010305",
+    dimensions: { month: index === 0 ? "2025-12-01" : "2026-01-01", gl: "55010305" },
+  }));
+  const yearAnswer = {
+    ...answer,
+    scope: yearSelection,
+    results: {
+      "result-1": {
+        ...result,
+        selection: yearSelection,
+        scope: { ...result.scope, from: "2025-12-01", to: "2026-01-31" },
+        rows: yearRows,
+        coverage: [
+          { plantId: "DUB", month: "2025-12-01", actual: "complete", budget: "loaded" },
+          { plantId: "DUB", month: "2026-01-01", actual: "complete", budget: "loaded" },
+        ],
+      },
+    },
+    monthlyDeltas: [
+      {
+        ...answer.monthlyDeltas[0],
+        previousRowKey: yearRows[0].key,
+        currentRowKey: yearRows[1].key,
+      },
+    ],
+  };
+  assert.deepEqual(financialChatResponseSchema.parse(yearAnswer), yearAnswer);
+});
+
 test("ready details match advertised exact totals and remain prepared first pages", () => {
   assertResponseRejected(
     {
