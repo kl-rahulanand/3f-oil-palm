@@ -5,6 +5,8 @@
   "scripts": {
     "build": "NEXT_TELEMETRY_DISABLED=1 next build",
     "dev": "next dev -H 127.0.0.1 -p 3000",
+    "playwright:install": "playwright install chromium",
+    "test:e2e": "cd .. && node node_modules/prettier/bin/prettier.cjs --config .prettierrc.json --check \"frontend/e2e/**/*.ts\" frontend/playwright.config.ts && node node_modules/eslint/bin/eslint.js --config eslint.config.mjs \"frontend/e2e/**/*.ts\" frontend/playwright.config.ts --no-error-on-unmatched-pattern && node node_modules/typescript/bin/tsc -p contract/tsconfig.json && node node_modules/@playwright/test/cli.js test --config frontend/playwright.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "cd .. && npm exec --no -- vitest run --config frontend/vitest.config.ts"
   },
@@ -26,6 +28,7 @@
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
+    "@playwright/test": "1.64.0",
     "@types/node": "22.10.7",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
