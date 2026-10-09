@@ -236,9 +236,9 @@ No findings.
 ## Round 9
 
 30. Unproven: item 3: an overlapping distinct command for the same conversation has no named proof of its typed concurrent-run refusal while the original run remains intact.  
-   Disposition: fix: MEMORY's named test now covers the typed concurrent-run refusal and proves the original run remains intact.
+   Disposition: keep: MEMORY's named test now covers the typed concurrent-run refusal and proves the original run remains intact.
    MEMORY names capacity and cancellation; STREAM names duplicate commands, not a second active run. Add this state and its client-visible reason to MEMORY or STREAM.
 
 31. Unproven: item 6: no named test proves financial data is absent from model retry traces and logs, not merely the outbound request.  
-   Disposition: fix: MODEL's named test now captures retry, trace and log payloads and proves that money, rows, handles, batches, raw state and rendered answers are absent.
+   Disposition: keep: MODEL's named test now captures retry, trace and log payloads and proves that money, rows, handles, batches, raw state and rendered answers are absent.
    MODEL names payload exclusions and vendor errors, while the spec also excludes money, rows, handles, batches, raw state and rendered answers from retries, traces and logs. Add captured retry/trace/log assertions to MODEL.
