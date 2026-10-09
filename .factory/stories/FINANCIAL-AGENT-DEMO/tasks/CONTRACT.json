@@ -2,34 +2,27 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-CONTRACT",
   "review": {
     "blocking_level": "P1",
-    "changed": "14c845f70e3b36fc2879603234a18570198a020809c0c574f3c10faf43da0b06",
-    "commit": "063071949f04179fa384039ad7a84f57b77e2492",
+    "changed": "d7354900881b728b195355e1a1753e70cef7f4ebf3b9e8d4a811575c13974bf5",
+    "commit": "2ac7a0389c3e7f33f96ecc8329154bcd2b294226",
     "dismissals": [],
     "findings": [
       {
-        "body": "The special Roll-over state is recognized only when the same result also contains `budget.state === \"no_gl_line\"`. A valid selection such as Actual plus Roll-over grouped by GL need not request Budget, yet an Actual-only GL still has no Roll-over leaf. Under loaded coverage this schema rejects the truthful `No Roll-over line for this GL` state and instead requires a numeric Roll-over, so the supported selection cannot preserve that Actual row without inventing a balance. Infer the special state from the GL grouping/state itself rather than requiring an unrequested Budget value, and change the Roll-over-only regression case to succeed.",
+        "body": "The result refinement validates row keys, coordinates, values, and coverage, but never checks `actual.drilldownId` or `availableActualSubtotal.drilldownId` uniqueness across totals and rows. Two different GL/month/component cells can therefore validate with the same opaque handle, causing at least one clickable Actual to open transactions for the wrong scope. Track handles while iterating value sets, reject reuse across distinct scopes, and add a negative result-validation case.",
         "file": "contract/src/financial-tools.ts",
-        "line": 588,
+        "line": 525,
         "priority": "P1",
-        "title": "Not done: Roll-over-only GL results can represent missing source lines"
+        "title": "Not done: distinct Actual scopes require distinct drill handles"
       },
       {
-        "body": "The catalog combination refinement checks duplicates and dimension compatibility but not the selection schema's measure rules. It therefore accepts combinations such as `measureIds: [\"actual\", \"percentage\"]`, although no corresponding selection can pass: percentage requires `actual_vs_budget`, and that comparison requires both Actual and Budget unless percentage is the only returned measure. The catalog can consequently advertise an unusable \u201cvalid combination.\u201d Apply the same comparison dependency to catalog combinations and add malformed catalog cases for Actual+percentage and Budget+percentage.",
+        "body": "Every result dimension is nullable, while the special Unmapped rules activate only for the exact `unmapped-GL` coordinate. Consequently a component-grouped row with `nursery_component: null` validates as an ordinary mapped component and may carry numeric Budget and percentage values. Known-Plant Actuals without a component mapping must instead use the governed Unmapped coordinate, with no Budget allocation and a Not applicable percentage. Reject null component coordinates and add a regression covering this bypass.",
         "file": "contract/src/financial-tools.ts",
-        "line": 191,
+        "line": 413,
         "priority": "P1",
-        "title": "Not done: catalog combinations match accepted selections"
-      },
-      {
-        "body": "Rows are checked individually, but no invariant makes their selected dimension coordinates unique. For a GL-grouped result, two rows with different opaque `key` values and the same `dimensions.gl` both validate, allowing the strict result boundary to accept repeated GL aggregates\u2014the exact fan-out shape this story must prevent. Reject duplicate coordinate tuples (and duplicate row keys) and add a negative result-validation case.",
-        "file": "contract/src/financial-tools.ts",
-        "line": 467,
-        "priority": "P1",
-        "title": "Not done: result validation rejects duplicate aggregate coordinates"
+        "title": "Not done: nullable component rows cannot bypass the Unmapped contract"
       }
     ],
     "status": "blocked",
-    "tree": "46028e6175ac932cf06daf720ef764e6621b81420aefa45993108ff41f250a82"
+    "tree": "8a363a14a230e6dbf90f325e4d94ba667b06cb69a46fe3551eb1e6ec8a6c1e92"
   },
   "status": "fixing",
   "steps": [
@@ -47,6 +40,10 @@
     },
     {
       "at": "2026-10-09T00:51:42+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T01:21:08+00:00",
       "step": "review"
     }
   ]
