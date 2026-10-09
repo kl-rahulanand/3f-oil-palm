@@ -3,7 +3,11 @@ import test from "node:test";
 import { Workbook, type CellValue, type Worksheet } from "exceljs";
 import { z } from "zod";
 import { parseFinancialBudgetWorkbook, type FinancialBudgetComponent } from "./financial-budget.parser";
-import { validateFinancialMappingSeed, type FinancialMappingSeedEntry } from "./financial-mapping.seed";
+import {
+  FINANCIAL_MAPPING_SEED,
+  validateFinancialMappingSeed,
+  type FinancialMappingSeedEntry,
+} from "./financial-mapping.seed";
 
 test("done-when 5: the independent Budget parser preserves repeated and missing GL leaves without parent fan-out", async () => {
   const parsed = await parseFinancialBudgetWorkbook(await budgetWorkbook(), "DUB");
@@ -241,6 +245,50 @@ test("done-when 5: duplicate component identities refuse the Budget source", asy
         ({ path, message }) =>
           path.join(".") === "rows.9.componentKey" && message === "Component identity is duplicated",
       ),
+  );
+});
+
+test("done-when 1: the generated mapping seed preserves every governed DUB leaf and its approval evidence", () => {
+  assert.equal(FINANCIAL_MAPPING_SEED.length, 19);
+  assert.ok(FINANCIAL_MAPPING_SEED.every(({ plantCode }) => plantCode === "DUB"));
+  for (const { sourcePlantAliases } of FINANCIAL_MAPPING_SEED) {
+    assert.deepEqual(sourcePlantAliases, ["DUB-NUR", "Agri - Nursery - DUB"]);
+  }
+  assert.deepEqual(
+    FINANCIAL_MAPPING_SEED.map(({ costCenterCode, glCode, targetComponentKey }) =>
+      [costCenterCode, glCode, targetComponentKey].join("|"),
+    ).sort(),
+    [
+      "Admin|54023002|9.07|54023002|computer-maintenance",
+      "Admin|55010302|9.14|55010302|repair-and-maintenance",
+      "Admin|55010305|9.14|55010305|miscellaneous-expenses",
+      "Admin|55010401|9.11|55010401|printing-stationery",
+      "Admin|55010603|9.09|55010603|land-lease-rent",
+      "Admin|55010701|9.13|55010701|security-charges",
+      "Admin|55010901|9.01|55010901|petrol-and-diesel-charges",
+      "Admin|55010902|9.01|55010902|repairs-maintenance-vehicles",
+      "Admin|55011101|9.1|55011101|office-electricity-expenses",
+      "Imported Sprouts|50001201|1.1|50001201|sprout-cost",
+      "Imported Sprouts|50001202|1.2|50001202|clearing-forwarding",
+      "Manpower|55021000|8.1|55021000|salaries",
+      "Manpower|55023001|8.3|55023001|staff-welfare",
+      "Primary|50001603|4.3|50001603|protrays",
+      "Primary|50001605|4.5|50001605|fertilizers-manures",
+      "Primary|50001606|4.5|50001606|pesticides-fungicides",
+      "Primary|50001901|7.1|50001901|nursery-labour-primary",
+      "Transportation Charges|50001981|14|50001981|transportation-charges",
+      "secondary|50001502|3.2|50001502|land-levelling",
+    ],
+  );
+  assert.ok(
+    FINANCIAL_MAPPING_SEED.every(
+      ({ approvalStatus, approvalReason, approvedBy, provenance }) =>
+        approvalStatus === "provisional" &&
+        approvalReason === "Seeded from Sheet1 pending reconciliation with the authoritative Mapping Master" &&
+        approvedBy === "provisional-seed" &&
+        provenance ===
+          "docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx#Sheet1 + docs/context/2026-08-20-srihari-phase1-data/SAP Entries Mapping.xlsx#SAP Report + plant-classification.ts",
+    ),
   );
 });
 
