@@ -2,20 +2,41 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-LEGACY-UI",
   "review": {
     "blocking_level": "P1",
-    "changed": "6a9513d54597b6c49b1ccba2840fe4ce90de073a73283f856c64f79a3698b79f",
-    "commit": "e0867570f2f7e3e386a854ccbe998291d9e95a88",
+    "changed": "91a57619492d54d4e78f4d7daddcc8b3b327cbbf22cbd55bafcca8495824aee5",
+    "commit": "23e086c962725f4ee7bb7e4fa2e23817a85d3fd7",
     "dismissals": [],
     "findings": [
       {
-        "body": "This negative-control test changes only `WAREHOUSE_DRIVER` among the database/provider safety settings. It never checks altered `WAREHOUSE_PG_HOST`, `WAREHOUSE_PG_PORT`, `WAREHOUSE_PG_DATABASE`, `PGHOST`, `PGPORT`, `PGDATABASE`, `LLM_PROVIDER`, or `AUTH_OTP_MOCK`. Consequently, removing or relaxing any corresponding guard in `playwright.config.ts` would leave the named safety test green, even though the generated browser path performs ingestion writes without invoking the backend disposable-database guard and an incorrect provider could make external calls. Exercise each safety-critical setting through `configExit` so regressions are refused before servers or writes start.",
+        "body": "chunk 1/3:\n\nThe required close run failed on Windows because `cmd.exe` interprets `NEXT_TELEMETRY_DISABLED=1` as a command rather than an environment assignment. This prevents the repository's build, typecheck, and hermetic close sequence from completing on the supplied review platform. Set the variable through a cross-platform mechanism or invoke Next without POSIX-only assignment syntax.",
+        "file": "frontend/package.json",
+        "line": 6,
+        "priority": "P1",
+        "title": "Make the frontend build command portable to Windows"
+      },
+      {
+        "body": "chunk 1/3:\n\nThis file is outside the five paths permitted for LEGACY-UI and is not needed to provide the Playwright setup or baseline test. It also commits stale workflow state declaring the task blocked/fixing. Exclude this generated review metadata from the branch.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/LEGACY-UI.json",
+        "line": 1,
+        "priority": "P2",
+        "title": "Remove the out-of-scope task-state artifact"
+      },
+      {
+        "body": "chunk 3/3:\n\nThe negative-control test changes only `WAREHOUSE_DRIVER`; it does not exercise altered `WAREHOUSE_PG_HOST`, `WAREHOUSE_PG_PORT`, `WAREHOUSE_PG_DATABASE`, `PGHOST`, `PGPORT`, `PGDATABASE`, `LLM_PROVIDER`, or `AUTH_OTP_MOCK`. Relaxing any corresponding guard in `playwright.config.ts` would therefore leave this safety test green even though the generated browser path can perform ingestion writes or contact an external provider. Exercise every safety-critical setting through `configExit` and verify refusal before servers or writes start.",
         "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
         "line": 117,
         "priority": "P1",
         "title": "Not done: unsafe browser-proof destinations and providers are rejected"
+      },
+      {
+        "body": "chunk 3/3:\n\nThe required close run fails during `npm run structural` because Windows `cmd.exe` interprets `NEXT_TELEMETRY_DISABLED=1` as an executable name rather than an environment assignment. Consequently this branch cannot pass its repository build gate on the supplied Windows runner. Set the variable through a cross-platform mechanism or remove the inline POSIX assignment.",
+        "file": "frontend/package.json",
+        "line": 7,
+        "priority": "P1",
+        "title": "Make the frontend build command portable to Windows"
       }
     ],
     "status": "blocked",
-    "tree": "7d14a63c6494f386d4cafba2d5f814bd5098c177770b039d58b891e3cc8b5daa"
+    "tree": "36e32b3c04bd7d530e65df11f812de5e4b911bbde7e8c4c2b3bcf49ea823fc8d"
   },
   "status": "fixing",
   "steps": [
@@ -37,6 +58,10 @@
     },
     {
       "at": "2026-10-09T06:39:11+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T13:15:55+00:00",
       "step": "review"
     }
   ]
