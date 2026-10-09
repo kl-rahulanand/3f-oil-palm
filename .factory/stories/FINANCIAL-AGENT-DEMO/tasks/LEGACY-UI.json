@@ -2,26 +2,19 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-LEGACY-UI",
   "review": {
     "blocking_level": "P1",
-    "changed": "53eb6e51616f17c185114c86337daa4ae40d407e29d58aeb50511f9ddf6f0bd3",
-    "commit": "e549ed390c4f7fb40c220599ab542f77e42fb6ae",
+    "changed": "5f037cdfc7d2da6423c5cd338157fb66a3b5123020e618244f2abad22f86d1c9",
+    "commit": "84b4497b8a6ba1b75982eb67da7e8690e6693cff",
     "dismissals": [],
     "findings": [
       {
-        "body": "chunk 1/3:\n\n`FINANCIAL_CHAT_BASELINE_DIR` is accepted verbatim and used to read `legacy-backend-baseline.json`, which contains complete customer report and drill rows. Unlike the evidence/download directories, this path is never canonicalized or checked against the temporary task root and registered worktrees, so real-source proof can place customer data inside the checkout or another untrusted location. Validate this directory with the same trusted-location controls before reading it, and cover rejection of unsafe and junction-backed baseline paths.",
-        "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
-        "line": 619,
+        "body": "`mkdirSync(requested, { recursive: true })` runs before either the task root or requested path is canonicalized. For a path such as `<trusted-temp>/3f-financial-X/link/new`, where `link` is a junction into a registered worktree, the lexical check passes and this line creates `new` inside the worktree before the later canonical checks throw. The new evidence beyond the prior junction ruling is the nonexistent child below an existing junction; the added test exercises only the junction itself, where `mkdirSync` performs no write. Canonicalize and validate the nearest existing ancestor before creating anything, and test that a child under a junction is rejected without creating the child.",
+        "file": "frontend/playwright.config.ts",
+        "line": 48,
         "priority": "P1",
-        "title": "Keep real-source baseline data in the trusted artifact directory"
+        "title": "Validate nested junction paths before creating artifact directories"
       },
       {
-        "body": "chunk 1/3:\n\nThe previous formatting gap remains open: `recordEvidence` still contains a long single-line `JSON.stringify` object literal that Prettier 3.9.6 rewrites. Because the registered `test:e2e` command runs `prettier --check` before invoking Playwright, the owned browser suite exits at that prerequisite instead of executing. Format the spec so the command reaches Playwright.",
-        "file": "frontend/e2e/legacy-financial-baseline.spec.ts",
-        "line": 698,
-        "priority": "P1",
-        "title": "Not done: legacy financial baseline Playwright suite runs"
-      },
-      {
-        "body": "chunk 1/3:\n\nThis newly committed factory review-state file remains outside LEGACY-UI's permitted paths and is unnecessary for Playwright setup or baseline proof. It also embeds stale findings and a `fixing` status even though the corresponding download and failure-output controls were subsequently changed. Exclude this workflow artifact from the branch.",
+        "body": "This committed Forge task-state file remains outside LEGACY-UI's permitted paths and is not needed for the Playwright setup or baseline proof. It also records obsolete blocking findings and leaves the task in `fixing` state after the corresponding implementation changed, so it is stale workflow state rather than a deliverable. Remove it from the branch.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/LEGACY-UI.json",
         "line": 1,
         "priority": "P2",
@@ -29,7 +22,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "1efe0d6d099798bd9bae2efacd47cdf468e7a0190167de7d13ecd43e77ed41f6"
+    "tree": "331c39afda19ab613f3652fc43241af186bf367698b591429f3d7dbe1deedd0d"
   },
   "status": "fixing",
   "steps": [
@@ -63,6 +56,10 @@
     },
     {
       "at": "2026-10-09T14:21:42+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T14:32:27+00:00",
       "step": "review"
     }
   ]
