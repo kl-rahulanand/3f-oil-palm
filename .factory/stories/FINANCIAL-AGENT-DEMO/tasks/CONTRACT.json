@@ -2,22 +2,14 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-CONTRACT",
   "review": {
     "blocking_level": "P1",
-    "changed": "fa15e100ca1bcaef3501737711e01c271a4a52de10b39ca5c4378dbe04732a8f",
-    "commit": "7523be7969aa25ba452991d7d94139c946b051e3",
+    "changed": "bc823b38f7d18e299702cad5ec02df44fb7d641ab45aa010a14d63695224b6c4",
+    "commit": "4d1d44d4d024e2cdfbbc52dd5aa20c100f21b9e0",
     "dismissals": [],
-    "findings": [
-      {
-        "body": "The reuse check proves only that a row and total have the same coordinate; it never compares their `actual.value` or `availableActualSubtotal.value`. A singleton filtered row can therefore share the total's `drilldownId` while displaying a different amount, even though the handle's `matchingActualTotal` can reconcile to only one of them. This violates the requirement that every clickable Actual open its matching transactions. Reject shared handles unless both scope and exact Actual value/state match, and add an unequal-value negative case; the existing positive fixture manually makes the values equal but does not enforce that invariant.",
-        "file": "contract/src/financial-tools.ts",
-        "line": 606,
-        "priority": "P1",
-        "title": "Not done: shared drill handles must bind the same exact Actual"
-      }
-    ],
-    "status": "blocked",
-    "tree": "064eb5b2ac2058be29782d4c4fd750bb4e224a74a572eb14a5d5d9b1073ff0e4"
+    "findings": [],
+    "status": "clean",
+    "tree": "bdefba3cafd7aff293cfcc733c239f310d09a91a95ffb52e8496ef25354e7093"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-08T23:08:40+00:00",
@@ -41,6 +33,10 @@
     },
     {
       "at": "2026-10-09T01:42:47+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T02:00:41+00:00",
       "step": "review"
     }
   ]
