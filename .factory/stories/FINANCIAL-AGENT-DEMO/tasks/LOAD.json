@@ -2,33 +2,26 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-LOAD",
   "review": {
     "blocking_level": "P1",
-    "changed": "e1ba056439fc9c634ead3313453c08aab7c0673eb328098932ed43d68f59db95",
-    "commit": "6ca1d5ec190a4bdd803aeb3723b4addedec69f7b",
+    "changed": "3b9ccbd4726f9184b552c4acb3d58ad5a073415ed9007331ba17f8b1d714d1b6",
+    "commit": "0bf00babfe363077f222b90761c490805fedc19e",
     "dismissals": [],
     "findings": [
       {
-        "body": "Reference mutations are committed before `loadFinancialWorkbook` resolves all mappings and calls `activateGeneration`. If reference indexing, mapping resolution, or activation then fails, these inserts and `ON CONFLICT ... DO UPDATE` changes remain; updates to shared plant/GL names and aliases can alter the still-active generation. Reference preparation and generation activation need one transaction (or otherwise must not mutate active shared references before successful activation).",
-        "file": "backend/src/financial-data/financial-load.cli.ts",
-        "line": 121,
-        "priority": "P1",
-        "title": "Not done: failed replacement retains the prior generation"
-      },
-      {
-        "body": "The loader unconditionally records `reconciled: true` without comparing the source net totals with debit-minus-credit totals or verifying persisted destination sums. A workbook with inconsistent source net cells can therefore be sent for activation and reported as reconciled. The required independent reconciliation must perform the comparison and reject activation on mismatch; the current positive-only test does not exercise this failure.",
+        "body": "The loader hard-codes every generation as non-synthetic. Consequently, the generated workbook used by the disposable-database harness is persisted with `isSynthetic: false`, and the unit test explicitly expects that incorrect provenance. This violates the requirement that every synthetic result be labelled; the test harness needs a guarded test-only way to mark its generated batch without exposing a production completeness override.",
         "file": "backend/src/financial-data/financial-loader.ts",
         "line": 212,
         "priority": "P1",
-        "title": "Not done: independent source reconciliation"
+        "title": "Not done: every synthetic result is labelled"
       },
       {
-        "body": "The purported activation test replaces the production repository with a callback that always returns `activated: true`. It therefore cannot detect broken CLI-to-repository wiring, a non-atomic activation, failed-replacement damage, or incorrect persisted coverage/month metadata. The required activation evidence needs to exercise the real loader entry point and repository against the guarded disposable database, while faking only external services.",
-        "file": "backend/src/financial-data/financial-loader.test.ts",
-        "line": 57,
+        "body": "Batch-level `sourceReportingMonths` is populated only from the Actual parser. A valid Budget month absent from the Actual sheet will therefore be omitted from the ingestion batch and CLI report even though budget rows and `budgetCoverage` for that month are persisted. The required source-month metadata should use the union of the Actual and Budget parser month sets, with a test where those sets differ.",
+        "file": "backend/src/financial-data/financial-loader.ts",
+        "line": 213,
         "priority": "P1",
-        "title": "Not done: coverage/activation and month-set evidence"
+        "title": "Not done: source-month metadata includes all workbook months"
       },
       {
-        "body": "This new file is outside every permitted path and contains only branch workflow state (`working`/`start`), so it is not needed to implement or test the operator loader. Its presence contradicts the handoff claim that there are no unnecessary out-of-scope changes and should be removed from this branch.",
+        "body": "This file remains outside every permitted path and contains only branch workflow/review state, not implementation or test evidence needed by the operator loader. Its presence contradicts the declared absence of unnecessary out-of-scope changes and should be removed from the branch.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/LOAD.json",
         "line": 1,
         "priority": "P1",
@@ -36,7 +29,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "344bb0bddc19f5cad19d137f94c7bd8ba39f55a0d0cf2ee4c40869cfb889a899"
+    "tree": "b4269e604dd619b0a56d3a041f65c8a169f179f2d19198bff9209499e4b95ad5"
   },
   "status": "fixing",
   "steps": [
@@ -46,6 +39,10 @@
     },
     {
       "at": "2026-10-09T22:44:05+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T23:20:30+00:00",
       "step": "review"
     }
   ]
