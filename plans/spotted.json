@@ -1,6 +1,17 @@
 {
   "items": [
     {
+      "key": "bug\t.claude/settings.json\tNot done: Forge runs v1.2.7 with its owner-approved full-access agent settings, existing merge and review gates, and financial-chat work p\tupgrade-forge-to-v1-2-7",
+      "kind": "bug",
+      "path": ".claude/settings.json",
+      "line": 29,
+      "text": "Not done: Forge runs v1.2.7 with its owner-approved full-access agent settings, existing merge and review gates, and financial-chat work p",
+      "from": "blocking",
+      "item": "upgrade-forge-to-v1-2-7",
+      "status": "open",
+      "closed_by": null
+    },
+    {
       "key": "bug\t.codex/config.toml\tStandard: Security and accessibility never simplified away\tupgrade-forge-to-v1-2-7",
       "kind": "bug",
       "path": ".codex/config.toml",

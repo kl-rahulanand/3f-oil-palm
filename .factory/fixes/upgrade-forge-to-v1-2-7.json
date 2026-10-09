@@ -10,26 +10,27 @@
   "branch": "fix/upgrade-forge-to-v1-2-7",
   "done_when": "Forge runs v1.2.7 with its owner-approved full-access agent settings, existing merge and review gates, and financial-chat work preserved",
   "flagged": [
+    ".claude/settings.json",
     ".codex/config.toml",
     ".factory/fixes/upgrade-forge-to-v1-2-7.json"
   ],
   "kind": "fix",
   "review": {
     "blocking_level": "P1",
-    "branch_diff": "813cac6878b16ad0b1535ea303eacef93b797da0ba9c4b00bbd0d98ce52e6168",
-    "changed": "6cb4caa5933925000654e1caabf0eeb2907eb3976acdf3424b67055f44c0cfc7",
-    "commit": "e444356cbd9aa5ebed4bbc12ee0079f2cc74cdaf",
+    "branch_diff": "c1367b5e9cb69c785f96bfe813cbeab1b90795c3f03bed86ccea9ccdac3aba91",
+    "changed": "8c1ad240f967310f56e9e74de3facb0cd90fca5d40a20a12c5fd1e5d51036888",
+    "commit": "fd42d101bac6a9580be3903821e42a7e7909663f",
     "dismissals": [],
     "findings": [
       {
-        "body": "The amended Done-when adds owner-approved full-access settings and preservation of the review gates, but the supplied proof list was not updated to cover either detail: it mentions only the release, generated files, financial-chat branches, merge policy, and model settings. It also gives no named check for the assertion that the financial-chat branches stayed clean and unchanged or that the relevant gates/settings were preserved. The review contract requires every Done-when detail to appear beside its test or check, so the configuration visible in the diff does not cure this missing proof-list coverage.",
-        "file": ".factory/fixes/upgrade-forge-to-v1-2-7.json",
-        "line": 11,
+        "body": "The hooks now source `.forge/hooks.sh` from the current checkout before invoking Forge. That tracked file is writable through the newly allowed Edit/Write tools, which are not covered by the Bash-only PreToolUse hook. An agent or branch can therefore replace it with arbitrary shell or a no-op `forge` function; the next hook then returns success without running the installed `forge hook deny`/approval checks, and SessionStart executes the branch-controlled shell with host access. `.codex/hooks.json` has the identical issue. The baseline called the installed Forge executable directly. This is new evidence not weighed by the prior proof-list review, and it conflicts with the ruling that full access does not authorize bypassing merge or review gates. The helper must be loaded from a trusted immutable location or verified before it is sourced.",
+        "file": ".claude/settings.json",
+        "line": 29,
         "priority": "P1",
-        "title": "Not done: proof list"
+        "title": "Not done: Forge runs v1.2.7 with its owner-approved full-access agent settings, existing merge and review gates, and financial-chat work p"
       }
     ],
-    "id": "e785954e-03bd-41a0-bc3d-471107707313",
+    "id": "84eada44-8f59-459f-9c07-91aa76cc0da5",
     "status": "blocked"
   },
   "status": "fixing",
@@ -44,6 +45,10 @@
     },
     {
       "at": "2026-10-09T07:35:44+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T07:47:52+00:00",
       "step": "review"
     }
   ],
