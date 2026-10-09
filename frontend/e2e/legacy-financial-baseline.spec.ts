@@ -162,6 +162,12 @@ test.describe("legacy financial BASELINE", () => {
     process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR = junction;
     try {
       expect(() => evidenceDirectory()).toThrow(/trusted task temporary directory/);
+      const rejectedChildName = `legacy-proof-rejected-${process.pid}`;
+      const escapedChild = join(resolve(__dirname, "../.."), rejectedChildName);
+      expect(existsSync(escapedChild)).toBe(false);
+      process.env.FINANCIAL_CHAT_E2E_EVIDENCE_DIR = join(junction, rejectedChildName);
+      expect(() => evidenceDirectory()).toThrow(/trusted task temporary directory/);
+      expect(existsSync(escapedChild)).toBe(false);
       process.env.FINANCIAL_CHAT_BASELINE_DIR = resolve(__dirname, "../..");
       expect(() => realBaselineDirectory()).toThrow(/trusted task temporary directory/);
       process.env.FINANCIAL_CHAT_BASELINE_DIR = junction;

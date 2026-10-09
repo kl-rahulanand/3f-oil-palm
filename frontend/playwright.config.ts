@@ -1,8 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 const expected = {
   FINANCIAL_CHAT_DUAL_DB_TEST: "1",
@@ -47,6 +47,13 @@ export function trustedTaskDirectory(directory: string, checkout: string): strin
   const checkoutRoots = gitWorktreeRoots(checkout);
   const requested = resolve(directory);
   const taskRoot = assertTrustedLocation(requested, temporaryRoot, checkoutRoots);
+  const existingAncestor = nearestExistingAncestor(requested);
+  const canonicalAncestor = realpathSync(existingAncestor);
+  if (!samePath(canonicalAncestor, existingAncestor)) {
+    throw new Error("Financial proof artifacts require a trusted task temporary directory outside the checkout");
+  }
+  assertDescendant(canonicalAncestor, temporaryRoot);
+  assertOutsideCheckouts(canonicalAncestor, checkoutRoots);
   mkdirSync(requested, { recursive: true });
   const canonicalTaskRoot = realpathSync(taskRoot);
   if (!samePath(canonicalTaskRoot, taskRoot)) {
@@ -56,6 +63,16 @@ export function trustedTaskDirectory(directory: string, checkout: string): strin
   assertDescendant(canonical, canonicalTaskRoot);
   assertOutsideCheckouts(canonical, checkoutRoots);
   return canonical;
+}
+
+function nearestExistingAncestor(target: string): string {
+  let candidate = target;
+  while (!existsSync(candidate)) {
+    const parent = dirname(candidate);
+    if (parent === candidate) break;
+    candidate = parent;
+  }
+  return candidate;
 }
 
 function assertTrustedLocation(target: string, temporaryRoot: string, checkoutRoots: string[]): string {
