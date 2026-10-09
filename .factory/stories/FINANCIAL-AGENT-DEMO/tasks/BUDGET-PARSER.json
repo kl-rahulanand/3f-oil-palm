@@ -1,0 +1,10 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-BUDGET-PARSER",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-09T19:50:32+00:00",
+      "step": "start"
+    }
+  ]
+}
