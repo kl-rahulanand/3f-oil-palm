@@ -1,0 +1,43 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-CONTRACT",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "bc823b38f7d18e299702cad5ec02df44fb7d641ab45aa010a14d63695224b6c4",
+    "commit": "4d1d44d4d024e2cdfbbc52dd5aa20c100f21b9e0",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "bdefba3cafd7aff293cfcc733c239f310d09a91a95ffb52e8496ef25354e7093"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-08T23:08:40+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-08T23:56:49+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T00:19:04+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T00:51:42+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T01:21:08+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T01:42:47+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T02:00:41+00:00",
+      "step": "review"
+    }
+  ]
+}
