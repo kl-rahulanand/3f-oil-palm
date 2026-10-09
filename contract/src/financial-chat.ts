@@ -343,8 +343,7 @@ const answerResponseSchema = z
         });
         continue;
       }
-      const result = results[block.props.resultId];
-      if (!result) {
+      if (!Object.hasOwn(results, block.props.resultId)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: "UI blocks must reference an included result",
@@ -352,6 +351,7 @@ const answerResponseSchema = z
         });
         continue;
       }
+      const result = results[block.props.resultId];
       const rowKeys = new Set(result.rows.map(({ key }) => key));
       const referencedRows =
         block.component === "FinancialTotal" ? (block.props.rowKey ? [block.props.rowKey] : []) : block.props.rowKeys;
@@ -431,8 +431,7 @@ const answerResponseSchema = z
 
     const deltaCoordinates = new Set<string>();
     monthlyDeltas.forEach((delta, index) => {
-      const result = results[delta.resultId];
-      if (!result) {
+      if (!Object.hasOwn(results, delta.resultId)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: "monthly deltas must reference an included result",
@@ -440,6 +439,7 @@ const answerResponseSchema = z
         });
         return;
       }
+      const result = results[delta.resultId];
       const previous = result.rows.find(({ key }) => key === delta.previousRowKey);
       const current = result.rows.find(({ key }) => key === delta.currentRowKey);
       const coordinate = `${delta.resultId}\u0000${delta.measureId}\u0000${delta.previousRowKey}\u0000${delta.currentRowKey}`;
@@ -570,7 +570,7 @@ const answerResponseSchema = z
       });
     }
     for (const handle of promisedHandles.keys()) {
-      if (!details[handle]) {
+      if (!Object.hasOwn(details, handle)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: "every advertised Actual needs a prepared detail outcome",

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import { test } from "node:test";
+import ts from "typescript";
 
 import {
   type ErrorPayload,
@@ -163,6 +165,51 @@ function assertResponseAccepted(candidate: unknown) {
   assert.equal(parsed.success, true, parsed.success ? undefined : JSON.stringify(parsed.error.issues));
 }
 
+function assertResponseSafelyRejected(candidate: unknown) {
+  let parsed: ReturnType<typeof financialChatResponseSchema.safeParse> | undefined;
+  assert.doesNotThrow(() => {
+    parsed = financialChatResponseSchema.safeParse(candidate);
+  });
+  assert.equal(parsed?.success, false);
+}
+
+function compileErrorPayloadControls(sources: Record<string, string>) {
+  const compilerOptions: ts.CompilerOptions = {
+    esModuleInterop: true,
+    module: ts.ModuleKind.CommonJS,
+    moduleResolution: ts.ModuleResolutionKind.Node10,
+    noEmit: true,
+    skipLibCheck: true,
+    strict: true,
+    target: ts.ScriptTarget.ES2022,
+  };
+  const rootNames = Object.keys(sources).map((name) => path.resolve("contract/test", name));
+  const virtualSources = new Map(rootNames.map((name) => [name, sources[path.basename(name)]]));
+  const host = ts.createCompilerHost(compilerOptions);
+  const originalGetSourceFile = host.getSourceFile.bind(host);
+  host.fileExists = (fileName) => virtualSources.has(path.resolve(fileName)) || ts.sys.fileExists(fileName);
+  host.readFile = (fileName) => virtualSources.get(path.resolve(fileName)) ?? ts.sys.readFile(fileName);
+  host.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) => {
+    const source = virtualSources.get(path.resolve(fileName));
+    return source === undefined
+      ? originalGetSourceFile(fileName, languageVersion, onError, shouldCreateNewSourceFile)
+      : ts.createSourceFile(fileName, source, languageVersion, true);
+  };
+  const program = ts.createProgram(rootNames, compilerOptions, host);
+  return new Map(
+    rootNames.map((fileName) => {
+      const sourceFile = program.getSourceFile(fileName);
+      assert.ok(sourceFile, `compiler loaded ${fileName}`);
+      return [
+        path.basename(fileName),
+        [...program.getSyntacticDiagnostics(sourceFile), ...program.getSemanticDiagnostics(sourceFile)].map(
+          (diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+        ),
+      ];
+    }),
+  );
+}
+
 test("final financial answers are strict, self-contained, and preserve tool money exactly", () => {
   assert.deepEqual(financialChatResponseSchema.parse(answer), answer);
   const parsed = financialChatResponseSchema.parse(answer);
@@ -203,6 +250,84 @@ test("final financial answers are strict, self-contained, and preserve tool mone
   );
 });
 
+test("comparison and clarification components accept valid strict props", () => {
+  const comparisonSelection = { ...selection, measureIds: ["actual", "budget"] };
+  const comparisonResult = {
+    ...result,
+    selection: comparisonSelection,
+    rows: result.rows.map((row, index) => ({
+      ...row,
+      values: {
+        ...row.values,
+        budget: { state: "available", value: index === 0 ? "100.00" : "200.00", label: "Budget" },
+      },
+    })),
+    totals: {
+      ...result.totals,
+      budget: { state: "available", value: "300.00", label: "Budget" },
+    },
+  };
+  const comparison = {
+    ...answer,
+    scope: comparisonSelection,
+    results: { "result-1": comparisonResult },
+    ui: [
+      {
+        component: "FinancialComparison",
+        props: {
+          resultId: "result-1",
+          title: "Actual and Budget",
+          rowKeys: ["month:2026-03-01", "month:2026-04-01"],
+          valueKeys: ["actual", "budget"],
+        },
+      },
+    ],
+  };
+  assertResponseAccepted(comparison);
+  assert.throws(() =>
+    financialChatResponseSchema.parse({
+      ...comparison,
+      ui: [
+        {
+          ...comparison.ui[0],
+          props: { ...comparison.ui[0].props, unexpected: true },
+        },
+      ],
+    }),
+  );
+
+  const clarification = {
+    version: 1,
+    kind: "clarification",
+    conversationId: "conversation-1",
+    turnId: "turn-2",
+    answer: "Which Plant should I use?",
+    confirmedScope: null,
+    ui: [
+      {
+        component: "ClarificationCard",
+        props: {
+          prompt: "Choose a permitted Plant.",
+          missingFields: ["plant"],
+          choices: [{ id: "DUB", label: "DUB", description: null }],
+        },
+      },
+    ],
+  };
+  assertResponseAccepted(clarification);
+  assert.throws(() =>
+    financialChatResponseSchema.parse({
+      ...clarification,
+      ui: [
+        {
+          ...clarification.ui[0],
+          props: { ...clarification.ui[0].props, unexpected: true },
+        },
+      ],
+    }),
+  );
+});
+
 test("presentation references must cross an included tool result and prepared page", () => {
   assert.throws(() => financialChatResponseSchema.parse({ ...answer, results: {} }));
   assert.throws(() => financialChatResponseSchema.parse({ ...answer, details: {} }));
@@ -215,6 +340,61 @@ test("presentation references must cross an included tool result and prepared pa
       },
     }),
   );
+});
+
+test("result and detail references require owned dictionary entries", () => {
+  const reservedHandleResult = {
+    ...result,
+    rows: [],
+    totals: {
+      actual: {
+        state: "available",
+        value: result.totals.actual.value,
+        label: "Actual",
+        drilldownId: "toString",
+      },
+    },
+  };
+  const reservedHandleAnswer = {
+    ...answer,
+    results: { "result-1": reservedHandleResult },
+    monthlyDeltas: [],
+    details: {},
+  };
+  assertResponseRejected(reservedHandleAnswer, "every advertised Actual needs a prepared detail outcome");
+  assertResponseAccepted({
+    ...reservedHandleAnswer,
+    details: Object.fromEntries([
+      ["toString", { status: "failed", reason: "preparation_timeout", message: "Try a narrower scope." }],
+    ]),
+  });
+
+  assertResponseSafelyRejected({
+    ...answer,
+    ui: [
+      {
+        component: "FinancialTotal",
+        props: { resultId: "constructor", title: "Actual", rowKey: null, valueKey: "actual" },
+      },
+    ],
+  });
+  assertResponseSafelyRejected({
+    ...answer,
+    monthlyDeltas: [{ ...answer.monthlyDeltas[0], resultId: "toString" }],
+  });
+
+  const reservedResult = { ...result, resultId: "toString" };
+  assertResponseAccepted({
+    ...answer,
+    results: Object.fromEntries([["toString", reservedResult]]),
+    monthlyDeltas: [{ ...answer.monthlyDeltas[0], resultId: "toString" }],
+    ui: [
+      {
+        component: "FinancialTotal",
+        props: { resultId: "toString", title: "Actual", rowKey: null, valueKey: "actual" },
+      },
+    ],
+  });
 });
 
 test("included results must use the answer's confirmed scope", () => {
@@ -831,6 +1011,13 @@ test("capabilities are strict and explain every unavailable state", () => {
     },
   };
   assert.deepEqual(financialChatCapabilitiesSchema.parse(capabilities), capabilities);
+  for (const reason of ["access_denied", "no_plant_access", "model_unavailable"] as const) {
+    const unavailable = { ...capabilities, available: false, reason };
+    assert.deepEqual(financialChatCapabilitiesSchema.parse(unavailable), unavailable);
+  }
+  const disabled = { ...capabilities, enabled: false, available: false, reason: "feature_disabled" as const };
+  assert.deepEqual(financialChatCapabilitiesSchema.parse(disabled), disabled);
+
   assert.throws(() => financialChatCapabilitiesSchema.parse({ ...capabilities, enabled: false }));
   assert.throws(() =>
     financialChatCapabilitiesSchema.parse({
@@ -840,13 +1027,13 @@ test("capabilities are strict and explain every unavailable state", () => {
     }),
   );
   assert.throws(() => financialChatCapabilitiesSchema.parse({ ...capabilities, extra: true }));
-  assert.deepEqual(
+  assert.throws(() =>
     financialChatCapabilitiesSchema.parse({
       ...capabilities,
+      enabled: false,
       available: false,
       reason: "access_denied",
-    }).reason,
-    "access_denied",
+    }),
   );
 });
 
@@ -919,6 +1106,55 @@ test("paging and lifecycle failures have stable typed reasons", () => {
     timestampUtc: "2026-10-09T00:00:00.000Z",
   };
   assert.deepEqual(financialChatErrorDetailsSchema.parse(pageSizeError.details), pageSizeError.details);
+});
+
+test("standard error envelope types require paging metadata", () => {
+  const source = (details: string) => `
+    import type { ErrorPayload } from "../src/api";
+    import { MeasureFilterInvalidReason } from "../src/api";
+    const payload: ErrorPayload = {
+      errorId: "error-1",
+      code: "BAD_REQUEST",
+      type: "BadRequest",
+      message: "Request failed.",
+      userMessage: "Check the request and try again.",
+      details: ${details},
+      statusCode: 400,
+      correlationId: "correlation-1",
+      requestId: null,
+      environment: "Local",
+      timestampUtc: "2026-10-09T00:00:00.000Z",
+    };
+    void payload;
+    void MeasureFilterInvalidReason;
+  `;
+  const diagnostics = compileErrorPayloadControls({
+    "invalid-pagination-missing.ts": source('{ reason: "invalid_pagination" }'),
+    "page-size-missing.ts": source('{ reason: "page_size_changed" }'),
+    "valid-invalid-pagination.ts": source(
+      '{ reason: "invalid_pagination", fieldErrors: [{ field: "page", reason: "must be positive" }] }',
+    ),
+    "valid-page-size.ts": source('{ reason: "page_size_changed", pinnedContinuationLimit: 20 }'),
+    "valid-financial-reason.ts": source('{ reason: "context_expired" }'),
+    "valid-legacy-reason.ts": source("{ reason: MeasureFilterInvalidReason.NotComparable }"),
+  });
+
+  assert.ok(
+    diagnostics.get("invalid-pagination-missing.ts")?.some((message) => message.includes("fieldErrors")),
+    "invalid_pagination must require fieldErrors at compile time",
+  );
+  assert.ok(
+    diagnostics.get("page-size-missing.ts")?.some((message) => message.includes("pinnedContinuationLimit")),
+    "page_size_changed must require the pinned limit at compile time",
+  );
+  for (const name of [
+    "valid-invalid-pagination.ts",
+    "valid-page-size.ts",
+    "valid-financial-reason.ts",
+    "valid-legacy-reason.ts",
+  ]) {
+    assert.deepEqual(diagnostics.get(name), [], `${name} should compile`);
+  }
 });
 
 test("the terminal stream frame repeats the complete answer", () => {
