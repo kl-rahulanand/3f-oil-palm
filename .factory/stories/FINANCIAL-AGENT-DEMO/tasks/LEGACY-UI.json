@@ -2,29 +2,22 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-LEGACY-UI",
   "review": {
     "blocking_level": "P1",
-    "changed": "5f037cdfc7d2da6423c5cd338157fb66a3b5123020e618244f2abad22f86d1c9",
-    "commit": "84b4497b8a6ba1b75982eb67da7e8690e6693cff",
+    "changed": "9e64b0c0faa525eb39b1b76c2421aa754a1ae7ddeebadbb0998ffa6628dc24c4",
+    "commit": "cbbd03ed783ff14647df701f1a30920c3bae7af3",
     "dismissals": [],
     "findings": [
       {
-        "body": "`mkdirSync(requested, { recursive: true })` runs before either the task root or requested path is canonicalized. For a path such as `<trusted-temp>/3f-financial-X/link/new`, where `link` is a junction into a registered worktree, the lexical check passes and this line creates `new` inside the worktree before the later canonical checks throw. The new evidence beyond the prior junction ruling is the nonexistent child below an existing junction; the added test exercises only the junction itself, where `mkdirSync` performs no write. Canonicalize and validate the nearest existing ancestor before creating anything, and test that a child under a junction is rejected without creating the child.",
-        "file": "frontend/playwright.config.ts",
-        "line": 48,
-        "priority": "P1",
-        "title": "Validate nested junction paths before creating artifact directories"
-      },
-      {
-        "body": "This committed Forge task-state file remains outside LEGACY-UI's permitted paths and is not needed for the Playwright setup or baseline proof. It also records obsolete blocking findings and leaves the task in `fixing` state after the corresponding implementation changed, so it is stale workflow state rather than a deliverable. Remove it from the branch.",
+        "body": "This committed Forge task-state file remains outside LEGACY-UI's permitted paths and is unnecessary for the Playwright setup or baseline proof. It also embeds obsolete review findings and leaves the task marked `fixing`, making it stale workflow state rather than a deliverable. Remove it from the branch.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/LEGACY-UI.json",
         "line": 1,
         "priority": "P2",
         "title": "Remove the out-of-scope task-state artifact"
       }
     ],
-    "status": "blocked",
-    "tree": "331c39afda19ab613f3652fc43241af186bf367698b591429f3d7dbe1deedd0d"
+    "status": "clean",
+    "tree": "8ec008f41b225bf36ee2e0e017c2b15885f93e65cd6e417fddc51afb46ca779e"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-09T01:16:29+00:00",
@@ -60,6 +53,10 @@
     },
     {
       "at": "2026-10-09T14:32:27+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T14:40:28+00:00",
       "step": "review"
     }
   ]
