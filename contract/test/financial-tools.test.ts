@@ -800,6 +800,12 @@ test("financial boundary matrix keeps only source-covered partials and provable 
       dimensions: { nursery_component: "Mapped nursery" },
     })),
   };
+  const nullComponent = {
+    ...result,
+    resultId: "null-component",
+    selection: { ...result.selection, dimensionIds: ["nursery_component"] },
+    rows: result.rows.map((row) => ({ ...row, dimensions: { nursery_component: null } })),
+  };
   const unmappedMissingBudget = {
     ...unmappedMixedBudget,
     totals: {
@@ -836,12 +842,18 @@ test("financial boundary matrix keeps only source-covered partials and provable 
     ["Unmapped under mixed Budget coverage", unmappedMixedBudget, true],
     ["Unmapped under missing Budget coverage", unmappedMissingBudget, true],
     ["mapped component cannot claim Unmapped", mappedClaimingUnmapped, false],
+    ["null component cannot bypass Unmapped", nullComponent, false],
     ["GL without a Budget line", glWithoutBudget, true],
   ] as const;
 
   assert.deepEqual(
     cases.map(([name, candidate]) => ({ name, valid: financialQueryResultSchema.safeParse(candidate).success })),
     cases.map(([name, , valid]) => ({ name, valid })),
+  );
+  assertOnlyZodIssue(
+    () => financialQueryResultSchema.parse(nullComponent),
+    "rows.0.dimensions.nursery_component",
+    "nursery_component must use the canonical unmapped-GL coordinate when mapping is absent",
   );
 
   for (const timeWindow of [
@@ -855,10 +867,14 @@ test("financial boundary matrix keeps only source-covered partials and provable 
 });
 
 test("query results require unique row keys and aggregate coordinates", () => {
-  const row = (key: string, dimensions: { gl: string | null; month: string }) => ({
+  const row = (key: string, dimensions: { gl: string | null; month: string }, drilldownId = `drill-${key}`) => ({
     ...result.rows[0],
     key,
     dimensions,
+    values: {
+      ...result.rows[0].values,
+      actual: { ...result.rows[0].values.actual, drilldownId },
+    },
   });
   const twoDimensionResult = {
     ...result,
@@ -875,7 +891,10 @@ test("query results require unique row keys and aggregate coordinates", () => {
   };
   const duplicateKeys = {
     ...twoDimensionResult,
-    rows: [twoDimensionResult.rows[0], row("gl-month:one", { month: "2026-05-01", gl: "55010306" })],
+    rows: [
+      twoDimensionResult.rows[0],
+      row("gl-month:one", { month: "2026-05-01", gl: "55010306" }, "drill-duplicate-key"),
+    ],
   };
   const distinctNullGl = {
     ...twoDimensionResult,
@@ -906,6 +925,179 @@ test("query results require unique row keys and aggregate coordinates", () => {
     "aggregate coordinates must be unique",
   );
   assertOnlyZodIssue(() => financialQueryResultSchema.parse(duplicateKeys), "rows.1.key", "row keys must be unique");
+});
+
+test("Actual drill handles are shared only by identical aggregate scopes", () => {
+  const withSharedFullHandle = (
+    dimensionIds: Array<"plant" | "month" | "gl">,
+    dimensions: Record<string, string>,
+    selectionChanges: Record<string, unknown> = {},
+  ) => ({
+    ...result,
+    resultId: `shared-${dimensionIds.join("-") || "dimensionless"}`,
+    selection: { ...result.selection, dimensionIds, ...selectionChanges },
+    rows: result.rows.map((row) => ({
+      ...row,
+      dimensions,
+      values: {
+        ...row.values,
+        actual: { ...row.values.actual, drilldownId: result.totals.actual.drilldownId },
+      },
+    })),
+  });
+  const singletonIn = withSharedFullHandle(["gl"], { gl: "55010305" });
+  const singletonEq = withSharedFullHandle(
+    ["gl"],
+    { gl: "55010305" },
+    {
+      filters: [{ dimensionId: "gl", operator: "eq", value: "55010305" }],
+    },
+  );
+  const singlePlant = withSharedFullHandle(["plant"], { plant: "DUB" }, { filters: [] });
+  const singleMonth = {
+    ...withSharedFullHandle(
+      ["month"],
+      { month: "2026-04-01" },
+      {
+        filters: [],
+        timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+      },
+    ),
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-04-30" },
+    coverage: [result.coverage[0]],
+  };
+  const dimensionless = withSharedFullHandle([], {}, { filters: [] });
+  const unfixedGl = withSharedFullHandle(["gl"], { gl: "55010305" }, { filters: [] });
+  const aliasedRows = {
+    ...unfixedGl,
+    resultId: "aliased-gl-rows",
+    totals: {
+      ...unfixedGl.totals,
+      actual: { ...unfixedGl.totals.actual, drilldownId: "drill-distinct-total" },
+    },
+    rows: [
+      unfixedGl.rows[0],
+      {
+        ...unfixedGl.rows[0],
+        key: "gl:55010306",
+        dimensions: { gl: "55010306" },
+      },
+    ],
+  };
+
+  const partial = {
+    resultId: "partial-handle-scopes",
+    selection: {
+      measureIds: ["actual"],
+      dimensionIds: ["month"],
+      plantIds: ["DUB"],
+      timeWindow: { kind: "range", from: "2026-04-01", to: "2026-05-31" },
+      filters: [],
+    },
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-05-31" },
+    rows: [
+      {
+        key: "month:2026-04-01",
+        dimensions: { month: "2026-04-01" },
+        values: {
+          actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+          availableActualSubtotal: {
+            value: "25.00",
+            label: "Available-data Actual subtotal — completeness unconfirmed",
+            drilldownId: "drill-partial-april",
+          },
+        },
+      },
+      {
+        key: "month:2026-05-01",
+        dimensions: { month: "2026-05-01" },
+        values: {
+          actual: { state: "available", value: "50.00", label: "Actual", drilldownId: "drill-full-may" },
+        },
+      },
+    ],
+    totals: {
+      actual: { state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null },
+      availableActualSubtotal: {
+        value: "75.00",
+        label: "Available-data Actual subtotal — completeness unconfirmed",
+        drilldownId: "drill-partial-total",
+      },
+    },
+    coverage: [
+      { plantId: "DUB", month: "2026-04-01", actual: "unconfirmed", budget: "loaded" },
+      { plantId: "DUB", month: "2026-05-01", actual: "complete", budget: "loaded" },
+    ],
+  };
+  const aliasedSubtotalScopes = {
+    ...partial,
+    totals: {
+      ...partial.totals,
+      availableActualSubtotal: {
+        ...partial.totals.availableActualSubtotal,
+        drilldownId: partial.rows[0].values.availableActualSubtotal.drilldownId,
+      },
+    },
+  };
+  const aliasedFullAndSubtotalScopes = {
+    ...partial,
+    totals: {
+      ...partial.totals,
+      availableActualSubtotal: {
+        ...partial.totals.availableActualSubtotal,
+        drilldownId: partial.rows[1].values.actual.drilldownId,
+      },
+    },
+  };
+  const identicalSubtotalScope = {
+    ...partial,
+    resultId: "identical-partial-handle-scope",
+    selection: {
+      ...partial.selection,
+      timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+    },
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-04-30" },
+    rows: [partial.rows[0]],
+    totals: {
+      ...partial.totals,
+      availableActualSubtotal: {
+        ...partial.totals.availableActualSubtotal,
+        value: "25.00",
+        drilldownId: partial.rows[0].values.availableActualSubtotal.drilldownId,
+      },
+    },
+    coverage: [partial.coverage[0]],
+  };
+
+  const cases = [
+    ["singleton in filter fixes the GL scope", singletonIn, true],
+    ["singleton eq filter fixes the GL scope", singletonEq, true],
+    ["one selected Plant fixes the Plant scope", singlePlant, true],
+    ["one selected month fixes the month scope", singleMonth, true],
+    ["dimensionless row equals the total scope", dimensionless, true],
+    ["one unfixed GL row differs from the total", unfixedGl, false],
+    ["two distinct GL rows cannot alias", aliasedRows, false],
+    ["distinct partial scopes cannot alias", aliasedSubtotalScopes, false],
+    ["full and partial scopes cannot alias", aliasedFullAndSubtotalScopes, false],
+    ["identical partial row and total scope", identicalSubtotalScope, true],
+  ] as const;
+
+  assert.deepEqual(
+    cases.map(([name, candidate]) => ({ name, valid: financialQueryResultSchema.safeParse(candidate).success })),
+    cases.map(([name, , valid]) => ({ name, valid })),
+  );
+  for (const [candidate, path] of [
+    [unfixedGl, "rows.0.values.actual.drilldownId"],
+    [aliasedRows, "rows.1.values.actual.drilldownId"],
+    [aliasedSubtotalScopes, "rows.0.values.availableActualSubtotal.drilldownId"],
+    [aliasedFullAndSubtotalScopes, "rows.1.values.actual.drilldownId"],
+  ] as const) {
+    assertOnlyZodIssue(
+      () => financialQueryResultSchema.parse(candidate),
+      path,
+      "Actual drill handles may be reused only for identical aggregate scopes",
+    );
+  }
 });
 
 test("Roll-over exposes source absence without inventing Unmapped or GL balances", () => {

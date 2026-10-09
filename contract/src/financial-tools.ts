@@ -506,6 +506,13 @@ export const financialQueryResultSchema = z
           path: ["rows", index, "dimensions"],
         });
       }
+      if (selection.dimensionIds.includes("nursery_component") && dimensions.nursery_component === null) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "nursery_component must use the canonical unmapped-GL coordinate when mapping is absent",
+          path: ["rows", index, "dimensions", "nursery_component"],
+        });
+      }
       const plant = dimensions.plant;
       const month = dimensions.month;
       if (
@@ -521,6 +528,28 @@ export const financialQueryResultSchema = z
         });
       }
     });
+
+    const actualHandleUses = new Map<string, { rowIndex: number | null }>();
+    const rowMatchesTotalScope = (
+      dimensions: Partial<Record<(typeof FINANCIAL_DIMENSION_IDS)[number], string | null>>,
+    ) =>
+      expectedDimensionIds.every((dimensionId) => {
+        const value = dimensions[dimensionId];
+        if (value == null) return false;
+        if (dimensionId === "plant" && selection.plantIds.length === 1 && selection.plantIds[0] === value) return true;
+        if (
+          dimensionId === "month" &&
+          selection.timeWindow.from.slice(0, 7) === selection.timeWindow.to.slice(0, 7) &&
+          `${selection.timeWindow.from.slice(0, 7)}-01` === value
+        ) {
+          return true;
+        }
+        return selection.filters.some((filter) => {
+          if (filter.dimensionId !== dimensionId) return false;
+          if (filter.operator === "eq") return filter.value === value;
+          return filter.operator === "in" && filter.values.length === 1 && filter.values[0] === value;
+        });
+      });
 
     const valueSets = [{ values: totals, dimensions: undefined }, ...rows];
     valueSets.forEach(({ values, dimensions }, index) => {
@@ -559,6 +588,30 @@ export const financialQueryResultSchema = z
           message: "result values must equal the requested measures and required partial companions",
           path,
         });
+      }
+      const actualHandle =
+        values.actual?.state === "available"
+          ? { id: values.actual.drilldownId, path: [...path, "actual", "drilldownId"] }
+          : values.availableActualSubtotal
+            ? {
+                id: values.availableActualSubtotal.drilldownId,
+                path: [...path, "availableActualSubtotal", "drilldownId"],
+              }
+            : undefined;
+      if (actualHandle) {
+        const priorUse = actualHandleUses.get(actualHandle.id);
+        const rowIndex = index === 0 ? null : index - 1;
+        const identicalTotalAndRowScope =
+          priorUse?.rowIndex === null && dimensions !== undefined && rowMatchesTotalScope(dimensions);
+        if (priorUse && !identicalTotalAndRowScope) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Actual drill handles may be reused only for identical aggregate scopes",
+            path: actualHandle.path,
+          });
+        } else {
+          actualHandleUses.set(actualHandle.id, { rowIndex });
+        }
       }
       if (
         values.actual &&
