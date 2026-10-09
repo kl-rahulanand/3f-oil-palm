@@ -2,37 +2,23 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-RESPONSE",
   "review": {
     "blocking_level": "P1",
-    "changed": "c05771f9721129bcb7dd25852ec91128a525379d81511a09ad24659a8ea5d54a",
-    "commit": "c78b1a2dfe596dfeb298c8967b9d4e5ec79e0d05",
+    "changed": "45ace2480eb2bb5a638b31e1293fd29b79953499f4baf38c837a32d76d955745",
+    "commit": "c3939de2ebecb9173698ce159c8d2b99d9447f13",
     "dismissals": [],
     "findings": [
       {
-        "body": "Although the new runtime schema correctly discriminates paging failures, the standard HTTP `ErrorPayload` still uses one object whose `reason`, `fieldErrors`, and `pinnedContinuationLimit` are all optional. Consequently `{ reason: \"invalid_pagination\" }` and `{ reason: \"page_size_changed\" }` still type-check through the envelope that the transaction-page endpoint will use. Define the financial-chat branch of this shared type as the discriminated details union so the mandated metadata cannot be omitted.",
-        "file": "contract/src/api.ts",
-        "line": 44,
-        "priority": "P1",
-        "title": "Not done: paging reasons remain optional in the standard error type"
-      },
-      {
-        "body": "The required test exercises a valid `FinancialTotal`, but `FinancialComparison` and `ClarificationCard` never appear anywhere in the test file. The suite would therefore still pass if either component rejected every valid payload or stopped enforcing strict props. Add accepted and unknown-prop rejection cases for those component/response branches so all advertised UI contracts are protected.",
+        "body": "The added checks now cover unknown props for FinancialTotal, FinancialComparison, and ClarificationCard, but every MonthlyTrend fixture is valid and no case adds an unknown prop. The suite would still pass if MonthlyTrend.props stopped being strict, leaving one advertised UI contract unprotected. Add an unknown-prop rejection case for MonthlyTrend.",
         "file": "contract/test/financial-chat.test.ts",
-        "line": 166,
+        "line": 542,
         "priority": "P1",
         "title": "Not done: strict output/UI props"
       },
       {
-        "body": "The test claims to explain every unavailable state, but only `access_denied` is parsed as a valid unavailable capability. `feature_disabled` is tested only in an intentionally inconsistent enabled fixture, while `no_plant_access` and capability-level `model_unavailable` are never exercised. Removing or breaking any of those required states would leave the suite green; add valid fixtures for every unavailable reason.",
-        "file": "contract/test/financial-chat.test.ts",
-        "line": 818,
-        "priority": "P1",
-        "title": "Not done: capabilities"
-      },
-      {
-        "body": "The missing-detail check reads `details[handle]` instead of checking an own property. Because the identifier schema permits names such as `toString`, an advertised Actual with that handle and an empty details record is treated as prepared via `Object.prototype.toString`, so the response can pass without any detail outcome. The analogous result lookup can dereference an inherited function and throw during validation. Use `Object.hasOwn` or null-prototype maps and add reserved-property regression cases.",
+        "body": "sameSelection compares serialized arrays, although plantIds are semantically a set elsewhere in financialQueryResultSchema. A required multi-Plant answer whose confirmed scope contains [\"DUB\", \"CHIR\"] rejects an otherwise valid included result containing [\"CHIR\", \"DUB\"]. Measure/filter set order has the same problem. Compare normalized selections or require canonical ordering in the selection schema.",
         "file": "contract/src/financial-chat.ts",
-        "line": 573,
+        "line": 236,
         "priority": "P2",
-        "title": "Use own-property checks for result and detail dictionaries"
+        "title": "Treat reordered Plant sets as the same confirmed scope"
       },
       {
         "body": "This branch defines only the clarification presentation shape; it does not implement pending-request continuation, scope retention, capacity/expiry, revocation checks, cancellation, or restart outcomes required by done-when item 3. The approved task table assigns those behaviors and their end-to-end proofs to MEMORY, GRAPH, API, STREAM, CLIENT, and REGRESSION.",
@@ -42,7 +28,7 @@
         "title": "Later: MEMORY/GRAPH/API/STREAM/CLIENT/REGRESSION must prove clarification lifecycle"
       },
       {
-        "body": "The ready/failed detail union is only the presentation contract. Preparation deadlines, source/mapping pins, stable full traversal, authorization rechecks, and browser identity/total comparisons required by done-when item 4 depend on the assigned DRILL, PAGES, ANSWER, DETAIL, and BROWSER tasks.",
+        "body": "The ready/failed detail union is only the presentation contract. Scope deduplication, preparation deadlines, source/mapping pins, stable full traversal, authorization rechecks, and browser identity/total comparisons required by done-when item 4 depend on the assigned DRILL, PAGES, ANSWER, DETAIL, and BROWSER tasks.",
         "file": "contract/src/financial-chat.ts",
         "line": 209,
         "priority": "P2",
@@ -57,7 +43,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "60eebe26dc1e0cf9fbe3c6578173770dc12d96cc69838aa7c2917cb12a57d055"
+    "tree": "d31e49af4d862ecdd14c7f6ade893843a6f1033428ee42223394c9a4e6bb1447"
   },
   "status": "fixing",
   "steps": [
@@ -71,6 +57,10 @@
     },
     {
       "at": "2026-10-09T04:34:52+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T05:41:03+00:00",
       "step": "review"
     }
   ]
