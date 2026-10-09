@@ -113,11 +113,38 @@ const GENERATED_EXPORT: FinancialWorkbookSnapshot = [
 
 test.describe("legacy financial BASELINE", () => {
   test("proof controls reject unsafe runtime settings, linked evidence paths, and invalid exports", async () => {
-    expect(configExit({ BIND_HOST: "0.0.0.0" })).not.toBe(0);
-    expect(configExit({ WAREHOUSE_DRIVER: "http" })).not.toBe(0);
-    expect(configExit({ NEXT_PUBLIC_API_BASE_URL: "https://example.invalid" })).not.toBe(0);
-    expect(configExit({ FRONTEND_ORIGIN: "https://example.invalid" })).not.toBe(0);
-    expect(configExit({ PORT: "4100" })).not.toBe(0);
+    const inheritedDatabase = process.env.PGDATABASE;
+    delete process.env.PGDATABASE;
+    try {
+      expect(configExit({})).toBe(0);
+    } finally {
+      if (inheritedDatabase === undefined) delete process.env.PGDATABASE;
+      else process.env.PGDATABASE = inheritedDatabase;
+    }
+    for (const unsafe of [
+      { WAREHOUSE_PG_HOST: "warehouse.example.invalid" },
+      { WAREHOUSE_PG_PORT: "5433" },
+      { WAREHOUSE_PG_DATABASE: "postgres" },
+      { PGHOST: "app.example.invalid" },
+      { PGPORT: "5432" },
+      { PGDATABASE: "postgres" },
+      { LLM_PROVIDER: "anthropic" },
+      { AUTH_OTP_MOCK: "0" },
+      { BIND_HOST: "0.0.0.0" },
+      { WAREHOUSE_DRIVER: "http" },
+      { NEXT_PUBLIC_API_BASE_URL: "https://example.invalid" },
+      { FRONTEND_ORIGIN: "https://example.invalid" },
+      { PORT: "4100" },
+      { FINANCIAL_CHAT_DUAL_DB_TEST: "0" },
+      { PGUSER: undefined },
+      { PGPASSWORD: undefined },
+      { WAREHOUSE_PG_USER: undefined },
+      { WAREHOUSE_PG_PASSWORD: undefined },
+      { FINANCIAL_CHAT_E2E_DATASET: "unexpected" },
+      { CI: "1" },
+    ]) {
+      expect(configExit(unsafe)).toBe(1);
+    }
 
     const junctionRoot = await mkdtemp(join(tmpdir(), "3f-financial-evidence-control-"));
     const junction = join(junctionRoot, "3f-financial-linked-evidence");
@@ -659,19 +686,41 @@ function dateAtUtc(value: string): Date {
   return new Date(`${value.slice(0, 10)}T00:00:00Z`);
 }
 
-function configExit(changes: Record<string, string>): number | null {
+function configExit(changes: Record<string, string | undefined>): number | null {
   const checkout = resolve(__dirname, "../..");
+  const environment: NodeJS.ProcessEnv = {
+    ...process.env,
+    FINANCIAL_CHAT_DUAL_DB_TEST: "1",
+    BIND_HOST: "127.0.0.1",
+    WAREHOUSE_DRIVER: "postgres",
+    WAREHOUSE_PG_HOST: "127.0.0.1",
+    WAREHOUSE_PG_PORT: "5434",
+    WAREHOUSE_PG_DATABASE: "financial_proof",
+    WAREHOUSE_PG_USER: "proof",
+    WAREHOUSE_PG_PASSWORD: "proof",
+    PGHOST: "127.0.0.1",
+    PGPORT: "5435",
+    PGDATABASE: "financial_proof",
+    PGUSER: "proof",
+    PGPASSWORD: "proof",
+    LLM_PROVIDER: "mock",
+    AUTH_OTP_MOCK: "1",
+    FINANCIAL_CHAT_E2E_DATASET: "generated",
+    NEXT_PUBLIC_API_BASE_URL: "http://127.0.0.1:4000",
+    FRONTEND_ORIGIN: "http://127.0.0.1:3000",
+    PORT: "4000",
+  };
+  delete environment.CI;
+  for (const [name, value] of Object.entries(changes)) {
+    if (value === undefined) delete environment[name];
+    else environment[name] = value;
+  }
   return spawnSync(
     process.execPath,
     ["node_modules/@playwright/test/cli.js", "test", "--list", "--config", "frontend/playwright.config.ts"],
     {
       cwd: checkout,
-      env: {
-        ...process.env,
-        BIND_HOST: "127.0.0.1",
-        WAREHOUSE_DRIVER: "postgres",
-        ...changes,
-      },
+      env: environment,
       stdio: "ignore",
     },
   ).status;
