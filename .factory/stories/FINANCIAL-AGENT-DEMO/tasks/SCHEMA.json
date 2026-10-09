@@ -2,19 +2,19 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-SCHEMA",
   "review": {
     "blocking_level": "P1",
-    "changed": "7951c1376573a75b970585cce881b6f807e5974ad1abb405c898cd4918064de1",
-    "commit": "3c5ff6abc4412def35d82e8b91ba2183a2bbd2b4",
+    "changed": "ecad09e61eb0d1c47e5ebbe417af2e2b7156af2bad64f07518c9c023e07092e2",
+    "commit": "630ecab96c7ad7e0044d5bbe87539bf1e3e8aa50",
     "dismissals": [],
     "findings": [
       {
-        "body": "The metadata freeze still applies only when `OLD.state` is already `active` or `superseded`. A single `validated` \u2192 `active` update can therefore also rewrite `source_reporting_months`, coverage, counts, validation/reconciliation results, errors, or `validated_at_utc`; failed batches likewise retain mutable evidence. This lets activation replace the evidence that was supposedly validated, while the added test checks only edits made after activation. Freeze validation evidence during the activation transition and after failure, enforce lifecycle timestamp consistency, and cover these cases.",
+        "body": "The activation-transition rewrite was blocked, but validated evidence remains mutable through an update that leaves `state = 'validated'`. This condition protects only `validated` \u2192 `active`; a caller can first rewrite counts, coverage, validation/reconciliation results, errors, or `validated_at_utc` while keeping the row validated, then activate it unchanged. The new test exercises only rewriting during activation, so the supposedly validated evidence can still be replaced before activation. Freeze validation evidence whenever `OLD.state = 'validated'`, with only the permitted lifecycle fields changing.",
         "file": "backend/drizzle-warehouse/0005_agent_financial_source_facts.sql",
-        "line": 298,
+        "line": 309,
         "priority": "P1",
         "title": "Not done: immutable ingestion lifecycle"
       },
       {
-        "body": "The previous scope finding remains open. This SCHEMA branch still changes the named acceptance coverage for the later MODEL and MEMORY tasks, with corresponding plan/read metadata updates, although the permitted paths are limited to schema, warehouse migration/tests, the backend manifest, and quality gate. These edits are unnecessary for delivering the eight additive tables and should remain with their owning tasks or a separately approved planning change.",
+        "body": "The prior scope finding remains open: this SCHEMA branch still rewrites the named acceptance coverage for the later MODEL and MEMORY tasks, along with their plan/read metadata. These changes are outside the explicitly permitted SCHEMA paths and are unnecessary for delivering the eight additive tables and generation constraints. They should remain with their owning tasks or a separately approved planning change.",
         "file": "plans/FINANCIAL-AGENT-DEMO.md",
         "line": 158,
         "priority": "P1",
@@ -22,7 +22,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "cb8dc741528061400a857dfb6cdbbc26ac3ee3151dde352b3029d5a40b650c71"
+    "tree": "8f5f4754829fbd8ccc71cd503a2771f00ba0e5ded8f7cac5c615efd37063a97c"
   },
   "status": "fixing",
   "steps": [
@@ -40,6 +40,10 @@
     },
     {
       "at": "2026-10-09T17:07:11+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T17:23:22+00:00",
       "step": "review"
     }
   ]
