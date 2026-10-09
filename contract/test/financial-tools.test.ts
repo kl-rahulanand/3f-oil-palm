@@ -1045,6 +1045,65 @@ test("Roll-over exposes source absence without inventing Unmapped or GL balances
       },
     })),
   };
+  const partialRangeClosingNoGl = {
+    ...knownGlWithoutBudget,
+    resultId: "partial-range-closing-no-gl",
+    selection: {
+      ...knownGlWithoutBudget.selection,
+      timeWindow: { kind: "range", from: "2026-04-01", to: "2026-05-31" },
+    },
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-05-31" },
+    rows: knownGlWithoutBudget.rows.map((row) => ({
+      ...row,
+      values: {
+        budget: { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" },
+        availableBudgetSubtotal: {
+          value: "0.00",
+          label: "Available-only Budget subtotal — coverage incomplete",
+        },
+        rollover: row.values.rollover,
+      },
+    })),
+    totals: {
+      budget: { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" },
+      availableBudgetSubtotal: {
+        value: "0.00",
+        label: "Available-only Budget subtotal — coverage incomplete",
+      },
+      rollover: { state: "available", value: "0.00", label: "Roll-over" },
+    },
+    coverage: [
+      { plantId: "DUB", month: "2026-04-01", actual: "complete", budget: "not_loaded" },
+      { plantId: "DUB", month: "2026-05-01", actual: "complete", budget: "loaded" },
+    ],
+  };
+  const loadedRangeClosingNoGl = {
+    ...partialRangeClosingNoGl,
+    resultId: "loaded-range-closing-no-gl",
+    rows: partialRangeClosingNoGl.rows.map((row) => ({
+      ...row,
+      values: {
+        budget: { state: "available", value: "25.00", label: "Budget" },
+        rollover: row.values.rollover,
+      },
+    })),
+    totals: {
+      budget: { state: "available", value: "25.00", label: "Budget" },
+      rollover: partialRangeClosingNoGl.totals.rollover,
+    },
+    coverage: partialRangeClosingNoGl.coverage.map((entry) => ({ ...entry, budget: "loaded" })),
+  };
+  const rangeWithoutClosingCoverage = {
+    ...partialRangeClosingNoGl,
+    resultId: "range-without-closing-coverage",
+    totals: {
+      ...partialRangeClosingNoGl.totals,
+      rollover: { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" },
+    },
+    coverage: partialRangeClosingNoGl.coverage.map((entry) =>
+      entry.month === "2026-04-01" ? { ...entry, budget: "loaded" } : { ...entry, budget: "not_loaded" },
+    ),
+  };
 
   const cases = [
     ["mapped and Unmapped component balances", componentResult, true],
@@ -1058,6 +1117,9 @@ test("Roll-over exposes source absence without inventing Unmapped or GL balances
     ["Budgetless state outside a GL grouping", invalidNoGlGrouping, false],
     ["Budgetless state without closing coverage", noGlWithoutClosingCoverage, false],
     ["Budgetless state contradicts an explicit Budget", explicitlyContradictedNoGl, false],
+    ["partial range with a Budgetless closing GL", partialRangeClosingNoGl, true],
+    ["loaded range with an earlier Budget leaf and Budgetless closing GL", loadedRangeClosingNoGl, true],
+    ["range without loaded closing coverage", rangeWithoutClosingCoverage, false],
   ] as const;
 
   assert.deepEqual(
@@ -1070,6 +1132,7 @@ test("Roll-over exposes source absence without inventing Unmapped or GL balances
     [invalidNoGlGrouping, "rows.0.values.rollover"],
     [noGlWithoutClosingCoverage, "rows.0.values.rollover"],
     [explicitlyContradictedNoGl, "rows.0.values.rollover"],
+    [rangeWithoutClosingCoverage, "rows.0.values.rollover"],
   ] as const) {
     assertOnlyZodIssue(
       () => financialQueryResultSchema.parse(candidate),

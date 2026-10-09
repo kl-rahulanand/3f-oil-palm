@@ -621,7 +621,9 @@ export const financialQueryResultSchema = z
         const closingLoaded = closingCoverage.length > 0 && closingCoverage.every(({ budget }) => budget === "loaded");
         const hasGlCoordinate =
           dimensions !== undefined && selection.dimensionIds.includes("gl") && dimensions.gl != null;
-        const explicitBudgetContradiction = values.budget !== undefined && values.budget.state !== "no_gl_line";
+        const budgetCoversOnlyClosingMonth =
+          relevantCoverage.length > 0 && relevantCoverage.every(({ month }) => month === closingMonth);
+        const explicitBudgetContradiction = budgetCoversOnlyClosingMonth && values.budget?.state === "available";
         const specialStateMismatch =
           (isUnmappedRow && values.rollover.state !== "unmapped") ||
           (!isUnmappedRow && values.rollover.state === "unmapped") ||
