@@ -108,12 +108,15 @@ export const financialSelectionSchema = z
     comparisons: z.array(z.literal("actual_vs_budget")).max(1).optional(),
   })
   .strict()
-  .superRefine(({ measureIds, dimensionIds, filters, comparisons }, context) => {
+  .superRefine(({ measureIds, dimensionIds, plantIds, filters, comparisons }, context) => {
     if (new Set(measureIds).size !== measureIds.length) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "measureIds must be unique", path: ["measureIds"] });
     }
     if (new Set(dimensionIds).size !== dimensionIds.length) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "dimensionIds must be unique", path: ["dimensionIds"] });
+    }
+    if (new Set(plantIds).size !== plantIds.length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "plantIds must be unique", path: ["plantIds"] });
     }
     if (hasUnsupportedMeasureDimensionCombination(measureIds, dimensionIds)) {
       context.addIssue({
@@ -142,6 +145,13 @@ export const financialSelectionSchema = z
         code: z.ZodIssueCode.custom,
         message: "actual_vs_budget requires both Actual and Budget",
         path: ["comparisons"],
+      });
+    }
+    if (measureIds.includes("percentage") && !comparisons?.includes("actual_vs_budget")) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "percentage requires an explicit Actual versus Budget comparison",
+        path: ["measureIds"],
       });
     }
   })
@@ -331,11 +341,19 @@ const availableActualSubtotalSchema = z
   })
   .strict();
 
+const availableBudgetSubtotalSchema = z
+  .object({
+    value: moneySchema,
+    label: z.literal("Available-only Budget subtotal — coverage incomplete"),
+  })
+  .strict();
+
 const financialResultValuesSchema = z
   .object({
     actual: actualValueSchema.optional(),
     availableActualSubtotal: availableActualSubtotalSchema.optional(),
     budget: budgetValueSchema.optional(),
+    availableBudgetSubtotal: availableBudgetSubtotalSchema.optional(),
     rollover: rolloverValueSchema.optional(),
     percentage: percentageValueSchema.optional(),
   })
@@ -344,6 +362,10 @@ const financialResultValuesSchema = z
   .refine(
     ({ actual, availableActualSubtotal }) => !availableActualSubtotal || actual?.state === "not_loaded",
     "An available-data subtotal is distinct from an unavailable complete Actual",
+  )
+  .refine(
+    ({ budget, availableBudgetSubtotal }) => !availableBudgetSubtotal || budget?.state === "not_loaded",
+    "An available-only Budget subtotal is distinct from unavailable complete Budget",
   );
 
 const financialResultRowSchema = z
@@ -440,10 +462,6 @@ export const financialQueryResultSchema = z
       }
     });
 
-    const requiredValueKeys = [
-      ...selection.measureIds.map((measureId) => (measureId === "rollover" ? "rollover" : measureId)),
-      ...(selection.comparisons?.includes("actual_vs_budget") ? ["percentage"] : []),
-    ];
     const valueSets = [{ values: totals, dimensions: undefined }, ...rows];
     valueSets.forEach(({ values, dimensions }, index) => {
       const relevantCoverage = coverage.filter(
@@ -454,14 +472,29 @@ export const financialQueryResultSchema = z
         index === 0 ? "totals" : "rows",
         ...(index === 0 ? [] : [index - 1, "values"]),
       ];
-      for (const key of requiredValueKeys) {
-        if (!(key in values)) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `result is missing requested ${key}`,
-            path,
-          });
-        }
+      const requiredValueKeys = new Set<string>(selection.measureIds);
+      if (selection.comparisons?.includes("actual_vs_budget")) {
+        requiredValueKeys.add("percentage");
+      }
+      if (selection.measureIds.includes("actual") && relevantCoverage.some(({ actual }) => actual === "unconfirmed")) {
+        requiredValueKeys.add("availableActualSubtotal");
+      }
+      const hasLoadedBudget = relevantCoverage.some(({ budget }) => budget === "loaded");
+      const hasMissingBudget = relevantCoverage.some(({ budget }) => budget === "not_loaded");
+      if (selection.measureIds.includes("budget") && hasLoadedBudget && hasMissingBudget) {
+        requiredValueKeys.add("availableBudgetSubtotal");
+      }
+      const valueKeys = Object.keys(values);
+      if (
+        valueKeys.length !== requiredValueKeys.size ||
+        valueKeys.some((key) => !requiredValueKeys.has(key)) ||
+        [...requiredValueKeys].some((key) => !(key in values))
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "result values must equal the requested measures and required partial companions",
+          path,
+        });
       }
       if (
         values.actual &&
