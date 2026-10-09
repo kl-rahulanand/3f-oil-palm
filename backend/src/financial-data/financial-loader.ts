@@ -12,7 +12,14 @@ const PARSER_VERSION = "financial-workbook-v1";
 const SOURCE_SYSTEM = "SAP_NURSERY_WORKBOOK";
 
 type Coverage = { plantCode: string; month: string; completeness: "confirmed" | "unconfirmed" };
-type ActualMonthSum = { rowCount: number; debit: string; credit: string; actual: string };
+type ActualMonthSum = {
+  rowCount: number;
+  debit: string;
+  credit: string;
+  actual: string;
+  sourceNetRowCount: number;
+  sourceNet: string;
+};
 type BudgetMonthSum = { rowCount: number; budget: string; rollover: string };
 
 export interface FinancialLoadOptions {
@@ -72,6 +79,11 @@ export async function loadFinancialWorkbook(
     parseFinancialActualsWorkbook(buffer),
     parseFinancialBudgetWorkbook(buffer, options.budgetOwner),
   ]);
+  const sourceSums = {
+    actualByMonth: actualMonthSums(actual.lines),
+    budgetByMonth: budgetMonthSums(budget.budgetRows),
+  };
+  assertSourceNetReconciles(sourceSums.actualByMonth, actual.validation.netMismatchCount);
   const mappings = validateFinancialMappingSeed(FINANCIAL_MAPPING_SEED, budget.components, options.budgetOwner);
   const referenceData = await dependencies.prepareReferences({
     costCenters: actual.lines.flatMap(({ sourcePlantCode, sourceCostCenterCode }) =>
@@ -174,10 +186,6 @@ export async function loadFinancialWorkbook(
         !mappedCoordinates.has(referenceCoordinate(plantId, costCenterId, glAccountId))),
   ).length;
 
-  const sourceSums = {
-    actualByMonth: actualMonthSums(actual.lines),
-    budgetByMonth: budgetMonthSums(budget.budgetRows),
-  };
   const actualCoverage = observedActualCoverage(actual.lines, referenceData);
   const budgetCoverage = budget.validation.sourceReportingMonths.map((month) => ({
     plantId: budgetOwnerPlantId,
@@ -299,25 +307,58 @@ function observedActualCoverage(
 }
 
 function actualMonthSums(
-  lines: Array<{ reportingMonth: string; debit: string; credit: string; actualAmount: string }>,
+  lines: Array<{
+    reportingMonth: string;
+    debit: string;
+    credit: string;
+    actualAmount: string;
+    moneyEvidence: { sourceNet: { rounded: string } | null };
+  }>,
 ): Record<string, ActualMonthSum> {
-  const sums = new Map<string, { rowCount: number; debit: bigint; credit: bigint; actual: bigint }>();
+  const sums = new Map<
+    string,
+    { rowCount: number; debit: bigint; credit: bigint; actual: bigint; sourceNetRowCount: number; sourceNet: bigint }
+  >();
   for (const line of lines) {
-    const sum = sums.get(line.reportingMonth) ?? { rowCount: 0, debit: 0n, credit: 0n, actual: 0n };
+    const sum = sums.get(line.reportingMonth) ?? {
+      rowCount: 0,
+      debit: 0n,
+      credit: 0n,
+      actual: 0n,
+      sourceNetRowCount: 0,
+      sourceNet: 0n,
+    };
     sum.rowCount += 1;
     sum.debit += paise(line.debit);
     sum.credit += paise(line.credit);
     sum.actual += paise(line.actualAmount);
+    if (line.moneyEvidence.sourceNet) {
+      sum.sourceNetRowCount += 1;
+      sum.sourceNet += paise(line.moneyEvidence.sourceNet.rounded);
+    }
     sums.set(line.reportingMonth, sum);
   }
   return Object.fromEntries(
-    [...sums.entries()]
-      .sort()
-      .map(([month, sum]) => [
-        month,
-        { ...sum, debit: money(sum.debit), credit: money(sum.credit), actual: money(sum.actual) },
-      ]),
+    [...sums.entries()].sort().map(([month, sum]) => [
+      month,
+      {
+        ...sum,
+        debit: money(sum.debit),
+        credit: money(sum.credit),
+        actual: money(sum.actual),
+        sourceNet: money(sum.sourceNet),
+      },
+    ]),
   );
+}
+
+function assertSourceNetReconciles(actualByMonth: Record<string, ActualMonthSum>, netMismatchCount: number): void {
+  if (netMismatchCount > 0) throw new Error("Workbook source net does not reconcile to Debit minus Credit");
+  for (const sum of Object.values(actualByMonth)) {
+    if (sum.sourceNetRowCount !== sum.rowCount || sum.sourceNet !== sum.actual) {
+      throw new Error("Workbook source net does not reconcile to Debit minus Credit");
+    }
+  }
 }
 
 function budgetMonthSums(
