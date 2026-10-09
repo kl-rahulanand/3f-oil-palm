@@ -1,10 +1,31 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-CONFIG",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "14b87c9d61582ce82b8ff0c11aed9e43a7d5bdbdcd3426e974deadfcc9f0b2d2",
+    "commit": "b9a8c23b0e274433546d34d695c147541fc60685",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This committed task bookkeeping file is outside the five paths explicitly permitted for CONFIG, and the central configuration change does not require it. Remove `.factory/stories/FINANCIAL-AGENT-DEMO/tasks/CONFIG.json` from the change before merge.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/CONFIG.json",
+        "line": 2,
+        "priority": "P1",
+        "title": "Remove the out-of-scope task-state artifact"
+      }
+    ],
+    "status": "blocked",
+    "tree": "78be0bcfb481ea463464a17a4c52fc54e824261b3002d32d67c05d38b003607a"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T17:45:26+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-09T18:22:52+00:00",
+      "step": "review"
     }
   ]
 }
