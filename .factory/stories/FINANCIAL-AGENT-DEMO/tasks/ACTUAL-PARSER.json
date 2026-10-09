@@ -1,10 +1,45 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-ACTUAL-PARSER",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "ab8cdfa1a0baa32e635e495fdcc98e4eb1ce4f1e58b63782f90b0b5f4f06b121",
+    "commit": "38f1b377fa24b62d6dd881cade71922bce23d099",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "An Excel formula without a cached result is reduced to `null` by `formulaResult`, and this line then converts that missing value to zero for Debit and Credit. Such a workbook can therefore import with fabricated zero amounts instead of being blocked with a request for a recalculated, saved source, directly violating the required cached-formula behavior. The added tests contain no formula cells, so this path is also untested.",
+        "file": "backend/src/financial-data/financial-workbook.parser.ts",
+        "line": 131,
+        "priority": "P1",
+        "title": "Not done: The new workbook import preserves and reconciles the source while existing chat and reporting features keep their previous be"
+      },
+      {
+        "body": "`cellSourceValue` trims every string before both parsing and construction of `sourceRow`. Consequently, identifiers, comments, and arbitrary retained columns containing leading or trailing whitespace are not preserved as supplied; even the purported original-row evidence contains the modified value. Keep a raw source representation for evidence and normalize only the separately parsed fields. The preservation test uses strings without surrounding whitespace and does not detect this loss.",
+        "file": "backend/src/financial-data/financial-workbook.parser.ts",
+        "line": 93,
+        "priority": "P1",
+        "title": "Source-row evidence strips significant source text"
+      },
+      {
+        "body": "The permitted path list does not include `.factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json`, yet the branch adds this task-state record. It is not used by the parser or its tests and even records the branch as still `working`; remove it from this scoped change.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/ACTUAL-PARSER.json",
+        "line": 1,
+        "priority": "P1",
+        "title": "Remove the out-of-scope task-state artifact"
+      }
+    ],
+    "status": "blocked",
+    "tree": "ea25a7ac72e836df5b9f11abb31748ec509da879c2f00cd6828058aa35344f17"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T17:45:26+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-09T18:35:58+00:00",
+      "step": "review"
     }
   ]
 }
