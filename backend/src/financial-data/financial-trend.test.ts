@@ -42,6 +42,49 @@ test("done-when 2: April financial years and cross-year ranges retain every chro
     selectedGls.map(({ gl, month }) => `${gl}:${month}`),
     ["5001:2026-04-01", "5001:2026-05-01", "5002:2026-04-01", "5002:2026-05-01"],
   );
+
+  const plantCostCenters = completeMonthlyCoordinates(
+    {
+      ...selection("2026-04-01", "2026-05-31"),
+      dimensionIds: ["plant", "cost_center", "month"],
+      plantIds: ["DUB", "CHIR"],
+      filters: [{ dimensionId: "cost_center", operator: "in", values: ["DUB-CC", "CHIR-CC"] }],
+    },
+    [
+      { plant: "DUB", cost_center: "DUB-CC", month: "2026-04-01" },
+      { plant: "CHIR", cost_center: "CHIR-CC", month: "2026-04-01" },
+    ],
+  );
+  assert.deepEqual(
+    plantCostCenters.map(({ plant, cost_center, month }) => `${plant}:${cost_center}:${month}`),
+    ["CHIR:CHIR-CC:2026-04-01", "CHIR:CHIR-CC:2026-05-01", "DUB:DUB-CC:2026-04-01", "DUB:DUB-CC:2026-05-01"],
+  );
+});
+
+test("done-when 1 and 2: repository keeps every explicitly selected GL gap without inventing values", async () => {
+  const result = await new FinancialQueryRepository(selectedGlGapDatabase()).query({
+    ...selection("2026-04-01", "2026-05-31"),
+    dimensionIds: ["gl", "month"],
+    filters: [{ dimensionId: "gl", operator: "in", values: ["5001", "5002"] }],
+  });
+
+  assert.deepEqual(
+    result.rows.map(({ dimensions, values }) => ({
+      dimensions,
+      actual: values.actual && {
+        state: values.actual.state,
+        value: values.actual.value,
+        label: values.actual.label,
+        hasDrilldown: values.actual.drilldownId !== null,
+      },
+    })),
+    [
+      { dimensions: { gl: "5001", month: "2026-04-01" }, actual: exactActual("12.00") },
+      { dimensions: { gl: "5001", month: "2026-05-01" }, actual: exactActual("0.00") },
+      { dimensions: { gl: "5002", month: "2026-04-01" }, actual: exactActual("0.00") },
+      { dimensions: { gl: "5002", month: "2026-05-01" }, actual: exactActual("0.00") },
+    ],
+  );
 });
 
 test("done-when 2: monthly changes keep exact money and reject zero, negative, or missing percentage baselines", () => {
@@ -156,6 +199,65 @@ function missingClosingMonthDatabase(): Pick<Pool, "query"> {
       throw new Error(`Unexpected financial repository query: ${sql}`);
     },
   } as unknown as Pick<Pool, "query">;
+}
+
+function selectedGlGapDatabase(): Pick<Pool, "query"> {
+  return financialRepositoryDatabase({
+    sourceMonths: ["2026-04-01", "2026-05-01"],
+    actualCoverage: [
+      { plantId: "plant-id", month: "2026-04-01", completeness: "confirmed" },
+      { plantId: "plant-id", month: "2026-05-01", completeness: "confirmed" },
+    ],
+    actualRows: [
+      {
+        id: "actual-id",
+        plant: "DUB",
+        month: "2026-04-01",
+        gl: "5001",
+        cost_center: null,
+        nursery_component: null,
+        section: null,
+        consideration: null,
+        short_name: null,
+        contra_account: null,
+        origin: null,
+        location: null,
+        actual_amount: "12.00",
+      },
+    ],
+  });
+}
+
+function financialRepositoryDatabase(input: {
+  sourceMonths: string[];
+  actualCoverage: Array<{ plantId: string; month: string; completeness: "confirmed" }>;
+  actualRows: Array<Record<string, unknown> & { id: string }>;
+}): Pick<Pool, "query"> {
+  return {
+    query: async (query: string | QueryConfig) => {
+      const sql = typeof query === "string" ? query : query.text;
+      if (sql.includes("dataset_key = $1 AND state = 'active'")) return rows([{ id: "batch-id" }]);
+      if (sql.includes("FROM agent_financial.plant")) return rows([{ id: "plant-id", code: "DUB" }]);
+      if (sql.includes("source_reporting_months::text[]")) {
+        return rows([
+          {
+            id: "batch-id",
+            source_reporting_months: input.sourceMonths,
+            actual_coverage: input.actualCoverage,
+            budget_coverage: [],
+          },
+        ]);
+      }
+      if (sql.includes("FROM contributing_actuals")) return rows(input.actualRows.map(({ id }) => ({ id })));
+      if (sql.includes("WHERE a.id = ANY")) return rows(input.actualRows);
+      if (sql.includes("WITH RECURSIVE ancestry")) return rows([]);
+      throw new Error(`Unexpected financial repository query: ${sql}`);
+    },
+  } as unknown as Pick<Pool, "query">;
+}
+
+function exactActual(value: string) {
+  return { state: "available", value, label: "Actual", hasDrilldown: true };
 }
 
 function rows<T>(items: T[]) {

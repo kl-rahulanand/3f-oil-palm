@@ -25,9 +25,9 @@ export function completeMonthlyCoordinates(
   coordinates.forEach((coordinate) => addBase(coordinate));
   if (!otherDimensions.length) addBase({});
 
-  const seedValues = otherDimensions.map((dimensionId) => selectionValues(selection, dimensionId));
-  if (seedValues.every((values) => values.length > 0)) {
-    for (const base of coordinateProduct(otherDimensions, seedValues)) addBase(base);
+  if (otherDimensions.length === 1) {
+    const dimensionId = otherDimensions[0]!;
+    for (const value of selectionValues(selection, dimensionId)) addBase({ [dimensionId]: value });
   }
 
   const result = [...bases.values()].flatMap((base) =>
@@ -134,17 +134,6 @@ function selectionValues(selection: FinancialSelection, dimensionId: FinancialDi
     candidates = candidates ? new Set([...candidates].filter((value) => values.has(value))) : values;
   }
   return candidates ? [...candidates] : [];
-}
-
-function coordinateProduct(
-  dimensions: FinancialDimensionId[],
-  values: Array<Array<string | null>>,
-): FinancialCoordinates[] {
-  return dimensions.reduce<FinancialCoordinates[]>(
-    (coordinates, dimensionId, index) =>
-      coordinates.flatMap((coordinate) => values[index]!.map((value) => ({ ...coordinate, [dimensionId]: value }))),
-    [{}],
-  );
 }
 
 function coordinateKey(dimensions: readonly FinancialDimensionId[], coordinates: FinancialCoordinates): string {
