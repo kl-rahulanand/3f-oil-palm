@@ -2,43 +2,14 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-CATALOG",
   "review": {
     "blocking_level": "P1",
-    "changed": "e16be763e2a800a3323f9ae7bf9b93efa1437fbc513bfb41407a5af6e9bab8a5",
-    "commit": "7f3620b4aac67a0b81e15f377b39560010d85d53",
+    "changed": "c5c7d7d36955f9f9b6d050459a00ce5c3933a0915431721f24c87eb824038fe9",
+    "commit": "ce474ca90a8fac86ec64218b92ab0c2a6148ebcb",
     "dismissals": [],
-    "findings": [
-      {
-        "body": "The new Postgres-backed case is added only to `test:hermetic`, but that case explicitly skips unless `WAREHOUSE_DB_TEST=1`. The `test:warehouse-proof` script\u2014the suite that sets this variable\u2014does not include `financial-data.service.test.ts`. Consequently the required functional lookup proof is always skipped in the registered suite, so SQL/schema regressions still pass. Add this test file to `test:warehouse-proof`.",
-        "file": "backend/package.json",
-        "line": 21,
-        "priority": "P1",
-        "title": "Not done: run the scoped warehouse lookup proof in the repository suite"
-      },
-      {
-        "body": "The revocation test removes the `report` action and calls `getCatalog`; it never changes the user's Plant grants or replays a previously valid `FinancialSelection`. Therefore removal of the `plantIds` subset check in `assertSelectionSupported` would leave this required test green, even though a selection pinned to a revoked Plant would then be accepted. Exercise a valid selection, change the resolved Plant scope, and assert that replay is denied.",
-        "file": "backend/src/financial-data/financial-data.service.test.ts",
-        "line": 51,
-        "priority": "P1",
-        "title": "Not done: prove Plant-scope revocation denies the pinned selection"
-      },
-      {
-        "body": "The database-backed lookup case exercises only `gl`, `month`, and `cost_center`. It never executes the SQL for `plant`, `nursery_component`, `section`, `consideration`, `short_name`, `contra_account`, `origin`, or `location`. Those paths can contain invalid columns, joins, or active-batch predicates while all current tests pass, contrary to the requirement to cover every supported source dimension through the real warehouse seam.",
-        "file": "backend/src/financial-data/financial-data.service.test.ts",
-        "line": 61,
-        "priority": "P1",
-        "title": "Not done: prove every advertised vocabulary dimension against Postgres"
-      },
-      {
-        "body": "The catalog publishes totals, every single-dimension grouping, and three multi-dimension groupings, but no test asserts that exact positive capability set. The two unsupported-grouping tests only detect adding those particular invalid combinations; deleting a required valid combination or changing a dimension's supported measures would still pass. Add an exact catalog assertion matching the coordinator-approved combinations and supported measure sets.",
-        "file": "backend/src/financial-data/financial-catalog.ts",
-        "line": 38,
-        "priority": "P1",
-        "title": "Not done: prove the exact catalog combinations"
-      }
-    ],
-    "status": "blocked",
-    "tree": "843892a7b582335fc30b3173d7290625d7e2f7e861ef4c887fc9d4588fa1ed30"
+    "findings": [],
+    "status": "clean",
+    "tree": "492bc7e8c36ff3e34ca740e37b1ac33176582dacbc620ed35cb0442475386408"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-09T23:47:27+00:00",
@@ -54,6 +25,10 @@
     },
     {
       "at": "2026-10-10T01:01:24+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T01:24:04+00:00",
       "step": "review"
     }
   ]
