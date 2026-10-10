@@ -15,8 +15,29 @@ import { createWarehouseWritePool } from "../warehouse/ingestion.repository";
 import { migrateWarehouse } from "../warehouse/warehouse-migrate";
 import type { QueryResult, Warehouse } from "../warehouse/warehouse.interface";
 import { FinancialAccessService } from "./financial-access.service";
+import { FINANCIAL_CATALOG } from "./financial-catalog";
 import { FinancialDataService } from "./financial-data.service";
 import { FinancialQueryRepository } from "./financial-query.repository";
+
+const REQUIRED_FINANCIAL_GRANTS = [
+  { grantType: "action", grantId: "report" },
+  { grantType: "domain", grantId: "mis-statement" },
+  { grantType: "measure", grantId: "mis-statement.actual_net" },
+  { grantType: "measure", grantId: "mis-statement.budget_net" },
+  { grantType: "measure", grantId: "mis-statement.rollover_net" },
+  { grantType: "measure", grantId: "mis-statement.percentage" },
+  { grantType: "dimension", grantId: "leaf_key" },
+] as const;
+
+const ACTUAL_ONLY_DIMENSIONS = [
+  "cost_center",
+  "section",
+  "consideration",
+  "short_name",
+  "contra_account",
+  "origin",
+  "location",
+] as const;
 
 test("the destructive financial query proof refuses targets outside the disposable databases", () => {
   for (const [host, port, database] of [
@@ -83,6 +104,72 @@ test(
         from: "2099-04-01",
         to: "2099-04-30",
       });
+
+      const executedCatalogCombinations = new Set<string>();
+      for (const combination of FINANCIAL_CATALOG.combinations) {
+        const result = await service.query(
+          identities.readerId,
+          selection(fixture, {
+            measureIds: [...combination.measureIds],
+            dimensionIds: [...combination.dimensionIds],
+            comparisons: combination.measureIds.includes("percentage") ? ["actual_vs_budget"] : undefined,
+          }),
+        );
+        const signature = JSON.stringify([combination.measureIds, combination.dimensionIds]);
+        executedCatalogCombinations.add(signature);
+        assert.deepEqual(result.selection.measureIds, combination.measureIds, `${signature} must preserve measures`);
+        assert.deepEqual(
+          result.selection.dimensionIds,
+          combination.dimensionIds,
+          `${signature} must preserve dimensions`,
+        );
+        assert.equal(result.totals.actual?.value, "145.00", `${signature} must independently total Actual`);
+        if (combination.measureIds.includes("budget")) {
+          assert.equal(result.totals.budget?.value, "125.00", `${signature} must independently total Budget`);
+          assert.equal(result.totals.rollover?.value, "12.00", `${signature} must use the closing Roll-over`);
+          assert.equal(result.totals.percentage?.value, "116", `${signature} must calculate the exact percentage`);
+        }
+        assert.equal(result.rows.length === 0, combination.dimensionIds.length === 0);
+        for (const resultRow of result.rows) {
+          assert.deepEqual(
+            Object.keys(resultRow.dimensions).sort(),
+            [...combination.dimensionIds].sort(),
+            `${signature} must return only the selected coordinates`,
+          );
+          assert.deepEqual(
+            Object.keys(resultRow.values).sort(),
+            [...combination.measureIds].sort(),
+            `${signature} must return only the selected measures`,
+          );
+          if (combination.dimensionIds.includes("plant")) {
+            assert.equal(resultRow.dimensions.plant, fixture.dubCode, `${signature} must group by permitted Plant`);
+          }
+          if (combination.dimensionIds.includes("month")) {
+            assert.equal(resultRow.dimensions.month, "2099-04-01", `${signature} must group by source month`);
+          }
+        }
+      }
+      assert.equal(executedCatalogCombinations.size, FINANCIAL_CATALOG.combinations.length);
+      assert.ok(
+        [...executedCatalogCombinations].some((signature) => signature.includes('"plant","month"')),
+        "Plant and month combinations must execute through the query service",
+      );
+
+      assert.deepEqual(
+        FINANCIAL_CATALOG.dimensions
+          .filter(({ supportedMeasureIds }) => supportedMeasureIds.length === 1)
+          .map(({ id }) => id),
+        ACTUAL_ONLY_DIMENSIONS,
+      );
+      for (const dimensionId of ACTUAL_ONLY_DIMENSIONS) {
+        await rejectsWithReason(
+          service.query(
+            identities.readerId,
+            selection(fixture, { measureIds: ["actual", "budget"], dimensionIds: [dimensionId] }),
+          ),
+          "unsupported_selection",
+        );
+      }
 
       const filteredGl = await service.query(
         identities.readerId,
@@ -302,7 +389,19 @@ test(
         percentage: notApplicable(),
       });
 
-      await rejectsWithReason(service.query(identities.deniedId, selection(fixture)), "access_denied");
+      for (const grant of REQUIRED_FINANCIAL_GRANTS) {
+        await appDb
+          .delete(rolePerms)
+          .where(
+            and(
+              eq(rolePerms.role, identities.readerRole),
+              eq(rolePerms.grantType, grant.grantType),
+              eq(rolePerms.grantId, grant.grantId),
+            ),
+          );
+        await rejectsWithReason(service.query(identities.readerId, selection(fixture)), "access_denied");
+        await appDb.insert(rolePerms).values({ role: identities.readerRole, ...grant });
+      }
 
       const chirSelection = selection(fixture, { plantIds: [fixture.chirCode] });
       const beforeRevocation = await service.query(identities.readerId, chirSelection);
@@ -537,47 +636,21 @@ function sumMoney(values: string[]): string {
   return `${total / 100n}.${String(total % 100n).padStart(2, "0")}`;
 }
 
-async function seedRbac(appDb: AppDb, fixture: Fixture): Promise<{ readerId: string; deniedId: string }> {
+async function seedRbac(appDb: AppDb, fixture: Fixture): Promise<{ readerId: string; readerRole: string }> {
   const suffix = randomUUID();
   const readerRole = `financial-reader-${suffix}`;
-  const deniedRole = `financial-denied-${suffix}`;
-  await appDb.insert(roles).values([
-    { name: readerRole, label: "Financial query reader" },
-    { name: deniedRole, label: "Financial query denied reader" },
-  ]);
-  const financialGrants = [
-    { grantType: "domain", grantId: "mis-statement" },
-    { grantType: "measure", grantId: "mis-statement.actual_net" },
-    { grantType: "measure", grantId: "mis-statement.budget_net" },
-    { grantType: "measure", grantId: "mis-statement.rollover_net" },
-    { grantType: "measure", grantId: "mis-statement.percentage" },
-    { grantType: "dimension", grantId: "leaf_key" },
-  ];
-  await appDb
-    .insert(rolePerms)
-    .values([
-      { role: readerRole, grantType: "action", grantId: "report" },
-      ...financialGrants.map((grant) => ({ role: readerRole, ...grant })),
-      ...financialGrants.map((grant) => ({ role: deniedRole, ...grant })),
-    ]);
-  const identities = await appDb
+  await appDb.insert(roles).values({ name: readerRole, label: "Financial query reader" });
+  await appDb.insert(rolePerms).values(REQUIRED_FINANCIAL_GRANTS.map((grant) => ({ role: readerRole, ...grant })));
+  const [{ id: readerId }] = await appDb
     .insert(users)
-    .values([
-      { email: `query-reader-${suffix}@example.invalid`, displayName: "Financial query reader" },
-      { email: `query-denied-${suffix}@example.invalid`, displayName: "Financial query denied reader" },
-    ])
+    .values({ email: `query-reader-${suffix}@example.invalid`, displayName: "Financial query reader" })
     .returning({ id: users.id });
-  const [readerId, deniedId] = identities.map(({ id }) => id);
-  await appDb.insert(userRoles).values([
-    { userId: readerId!, role: readerRole },
-    { userId: deniedId!, role: deniedRole },
-  ]);
+  await appDb.insert(userRoles).values({ userId: readerId!, role: readerRole });
   await appDb.insert(userScope).values([
     { userId: readerId!, attribute: "plant", value: fixture.dubCode },
     { userId: readerId!, attribute: "plant", value: fixture.chirCode },
-    { userId: deniedId!, attribute: "plant", value: fixture.dubCode },
   ]);
-  return { readerId: readerId!, deniedId: deniedId! };
+  return { readerId: readerId!, readerRole };
 }
 
 async function rejectsWithReason(promise: Promise<unknown>, reason: string): Promise<void> {
