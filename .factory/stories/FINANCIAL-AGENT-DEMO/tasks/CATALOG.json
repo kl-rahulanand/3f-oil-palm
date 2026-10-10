@@ -2,27 +2,41 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-CATALOG",
   "review": {
     "blocking_level": "P1",
-    "changed": "d7e54f7297054108820332770f805adaf0a6099a4a0451553f87268c1504c9d2",
-    "commit": "450da7db662c15b292930cf81e65dd1e260338ff",
+    "changed": "bdd8b70e69d39a93588177d17d24765f72bc4efecfbe94122085e4db06f75369",
+    "commit": "6a48ed7bd510cfdc4b4337fd2a0495de8f086a96",
     "dismissals": [],
     "findings": [
       {
-        "body": "Selection validation checks each grouping dimension independently but never verifies the complete `measureIds`/`dimensionIds` tuple against `FINANCIAL_CATALOG.combinations`, and it does not validate filter dimensions. Consequently, an Actual selection grouped by `gl` and `cost_center` passes even though that cross-product is absent from the governed catalog; a Budget selection can also use a Cost Center filter despite the explicit prohibition on Cost Center Budget allocation. The mandatory unsupported-grouping test covers only Budget grouped directly by Cost Center, so these paths remain accepted.",
+        "body": "The catalog advertises `gl` for Actual, Budget, Roll-over, and Percentage, but this lookup selects GLs only from active `financial_actual` rows. A permitted Plant can therefore have a Budget component mapped to a GL that has no current Actual transaction and that GL will be absent from `findValues`, preventing a valid governed Budget selection. Although the month lookup now unions both sources, the equivalent GL coverage gap remains. This is independent of the coordinator's combination ruling: the declared GL capability is valid, but its vocabulary source is incomplete.",
         "file": "backend/src/financial-data/financial-data.service.ts",
-        "line": 91,
+        "line": 26,
         "priority": "P1",
-        "title": "Not done: reject unsupported catalog combinations"
+        "title": "Not done: expose GL vocabulary from every supported financial source"
       },
       {
-        "body": "The catalog declares `month` compatible with Actual, Budget, Roll-over, and Percentage, but its lookup SQL derives month values exclusively from active Actual rows. A valid Budget or Roll-over month with no Actual row is therefore absent from the permitted vocabulary, even though the sources and aggregates must remain independent. This prevents users from selecting valid source months and is not covered by the scoped-lookup test, which exercises only GL values from fake rows.",
-        "file": "backend/src/financial-data/financial-data.service.ts",
-        "line": 17,
+        "body": "The required scoped-lookup test injects already-formed rows through `FakeWarehouse`; it never executes the new SQL against the warehouse schema. Consequently, invalid columns or joins, missing active-batch predicates, and incomplete source unions all pass this test. `SourceMonthWarehouse` similarly returns canned rows merely when SQL text contains table names. Because the changed behavior is database-backed rather than pure logic, this leaves the functional lookup unproved under the supplied test-audit rules.",
+        "file": "backend/src/financial-data/financial-data.service.test.ts",
+        "line": 73,
         "priority": "P1",
-        "title": "Not done: expose months from every supported financial source"
+        "title": "Not done: prove scoped vocabulary lookup through the real warehouse seam"
+      },
+      {
+        "body": "This branch changes `.factory/stories/FINANCIAL-AGENT-DEMO/tasks/CATALOG.json`, although the declared path scope permits only the listed backend financial-data files, `backend/package.json`, and `tools/quality-gate.test.mjs`. The file is not needed to deliver the catalog/service seam and embeds transient, already-stale review state and findings. Remove it from the selected change.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/CATALOG.json",
+        "line": 1,
+        "priority": "P1",
+        "title": "Remove the out-of-scope CATALOG workflow artifact"
+      },
+      {
+        "body": "Unlike the other Actual-backed lookups, the Cost Center query reads the persistent master table directly without joining active `financial_actual` and `ingestion_batch` rows. Cost Centers retained from inactive or historical imports can therefore be offered as current selectable vocabulary even when they have no current Actual transaction. Join through active Actual rows, as the other current-source dimensions do.",
+        "file": "backend/src/financial-data/financial-data.service.ts",
+        "line": 31,
+        "priority": "P2",
+        "title": "Restrict Cost Center vocabulary to active Actual data"
       }
     ],
     "status": "blocked",
-    "tree": "7aaac2c61e1d2f41dab6617b0559e7025a101c1ba361404abd05d61d12b448b7"
+    "tree": "a49d049a5befbb40d06cd360ed9ad685c64b1a1080cfa76d450d3b84f71e8f55"
   },
   "status": "fixing",
   "steps": [
@@ -32,6 +46,10 @@
     },
     {
       "at": "2026-10-10T00:17:05+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T00:42:14+00:00",
       "step": "review"
     }
   ]
