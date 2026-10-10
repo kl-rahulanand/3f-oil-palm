@@ -1,10 +1,38 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-CATALOG",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "d7e54f7297054108820332770f805adaf0a6099a4a0451553f87268c1504c9d2",
+    "commit": "450da7db662c15b292930cf81e65dd1e260338ff",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "Selection validation checks each grouping dimension independently but never verifies the complete `measureIds`/`dimensionIds` tuple against `FINANCIAL_CATALOG.combinations`, and it does not validate filter dimensions. Consequently, an Actual selection grouped by `gl` and `cost_center` passes even though that cross-product is absent from the governed catalog; a Budget selection can also use a Cost Center filter despite the explicit prohibition on Cost Center Budget allocation. The mandatory unsupported-grouping test covers only Budget grouped directly by Cost Center, so these paths remain accepted.",
+        "file": "backend/src/financial-data/financial-data.service.ts",
+        "line": 91,
+        "priority": "P1",
+        "title": "Not done: reject unsupported catalog combinations"
+      },
+      {
+        "body": "The catalog declares `month` compatible with Actual, Budget, Roll-over, and Percentage, but its lookup SQL derives month values exclusively from active Actual rows. A valid Budget or Roll-over month with no Actual row is therefore absent from the permitted vocabulary, even though the sources and aggregates must remain independent. This prevents users from selecting valid source months and is not covered by the scoped-lookup test, which exercises only GL values from fake rows.",
+        "file": "backend/src/financial-data/financial-data.service.ts",
+        "line": 17,
+        "priority": "P1",
+        "title": "Not done: expose months from every supported financial source"
+      }
+    ],
+    "status": "blocked",
+    "tree": "7aaac2c61e1d2f41dab6617b0559e7025a101c1ba361404abd05d61d12b448b7"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-09T23:47:27+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-10T00:17:05+00:00",
+      "step": "review"
     }
   ]
 }
