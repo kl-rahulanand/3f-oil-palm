@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-10T18:03:00+00:00
-read_hash: dd2ecb1d3b6b49afeb1b68b27a4b2ee4fd47784f
-round: 12
+read_at: 2026-10-10T18:06:25+00:00
+read_hash: 32afece61546da27a60fd632ad8a5ccc4f65f8ed
+round: 13
 passed: no
-doc_seen: dd2ecb1d3b6b49afeb1b68b27a4b2ee4fd47784f
+doc_seen: 32afece61546da27a60fd632ad8a5ccc4f65f8ed
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: fe54717a129b769461982897f56c4377ea8418f1
+notes_seen: 43acdedd7c2f7e71e5e53d446c9c8140e9c9581f
 ---
 
 # Cold read notes
@@ -286,3 +286,9 @@ No findings.
 40. Gap: real Anthropic calls lack the confirmed data-handling precondition.
    Disposition: keep: real Anthropic calls remain disabled for this PoC; the fake provider drives the demo, and later enablement requires recorded account/model, billing, processing, retention and residency approval.
    The plan requires model access and billing but omits recorded processing, retention and residency approval before enabling real calls. The brief has no Answers section and says those expectations remain to confirm; pin the approval gate or keep real calls disabled.
+
+## Round 13
+
+41. Unproven: item 3: eviction of the fourth retained result bundle.
+   Disposition: keep: MEMORY now deterministically removes the oldest bundle when the fourth is added, revokes all prepared drill scopes for that bundle and proves later reuse returns the existing result_expired rerun response rather than context_expired.
+   MEMORY promises the latest three bundles but names no fourth-result behavior; it also conflates eviction with `context_expired`. Pin deterministic result eviction and the existing `result_expired` rerun response, with the API retaining no stale drill access.
