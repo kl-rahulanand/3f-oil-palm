@@ -1,15 +1,17 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import {
   financialSelectionSchema,
   type DimensionMatch,
   type FinancialCatalog,
   type FinancialDimensionId,
+  type FinancialQueryResult,
   type FinancialSelection,
 } from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
 import type { Warehouse } from "../warehouse/warehouse.interface";
 import { FinancialAccessService, financialException } from "./financial-access.service";
 import { FINANCIAL_CATALOG, catalogDimension } from "./financial-catalog";
+import { FINANCIAL_QUERY_REPOSITORY, FinancialQueryRepository } from "./financial-query.repository";
 
 type VocabularyRow = Record<string, string | number | null>;
 
@@ -61,6 +63,9 @@ export class FinancialDataService {
   constructor(
     private readonly access: FinancialAccessService,
     @Inject(WAREHOUSE) private readonly warehouse: Warehouse,
+    @Optional()
+    @Inject(FINANCIAL_QUERY_REPOSITORY)
+    private readonly queryRepository: Pick<FinancialQueryRepository, "query"> = new FinancialQueryRepository(),
   ) {}
 
   async getCatalog(userId: string): Promise<FinancialCatalog> {
@@ -114,6 +119,11 @@ export class FinancialDataService {
       }
     }
     return parsed.data;
+  }
+
+  async query(userId: string, input: FinancialSelection): Promise<FinancialQueryResult> {
+    const selection = await this.assertSelectionSupported(userId, input);
+    return this.queryRepository.query(selection);
   }
 }
 
