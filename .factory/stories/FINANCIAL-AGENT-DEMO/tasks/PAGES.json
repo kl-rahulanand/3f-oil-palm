@@ -9,6 +9,11 @@
         "because": "plans/FINANCIAL-AGENT-DEMO.md:161 ANSWER owns bounded preparation, ready-before-final behavior, timeout failures, and depends on PAGES; PAGES at line 157 owns fixed continuation and exact full set/total only.",
         "finding": 1,
         "from_base": false
+      },
+      {
+        "because": "plans/FINANCIAL-AGENT-DEMO.md:156 DRILL owns the 200/201 cap and dedup proof; line 161 assigns bounded preparation and timeout failures to ANSWER after PAGES, so neither belongs in the PAGES database traversal test at line 157.",
+        "finding": 2,
+        "from_base": false
       }
     ],
     "findings": [
