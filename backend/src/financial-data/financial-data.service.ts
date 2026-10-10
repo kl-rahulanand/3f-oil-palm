@@ -1,7 +1,16 @@
-import { Inject, Injectable, Optional } from "@nestjs/common";
 import {
+  BadRequestException,
+  GoneException,
+  Inject,
+  Injectable,
+  Optional,
+  ServiceUnavailableException,
+} from "@nestjs/common";
+import {
+  actualTransactionPageSchema,
   financialQueryResultSchema,
   financialSelectionSchema,
+  type ActualTransactionPage,
   type DimensionMatch,
   type FinancialCatalog,
   type FinancialDimensionId,
@@ -16,6 +25,7 @@ import {
   type ActualDrillContext,
 } from "./actual-drill-context.service";
 import { FinancialAccessService, financialException } from "./financial-access.service";
+import { ActualTransactionsRepository } from "./actual-transactions.repository";
 import { FINANCIAL_CATALOG, catalogDimension } from "./financial-catalog";
 import { FINANCIAL_QUERY_REPOSITORY, FinancialQueryRepository } from "./financial-query.repository";
 
@@ -65,6 +75,9 @@ const VOCABULARY_SQL: Record<FinancialDimensionId, string> = {
 @Injectable()
 export class FinancialDataService {
   private readonly vocabularyLimit = loadConfig().dimensionEnumMax;
+  // The scope has the same lifetime as its bounded drill context, so an evicted handle cannot retain its pin.
+  private readonly continuationLimits = new WeakMap<ActualDrillContext["scope"], number>();
+  private readonly transactionLocks = new Map<string, Promise<void>>();
 
   constructor(
     private readonly access: FinancialAccessService,
@@ -78,6 +91,8 @@ export class FinancialDataService {
     @Optional()
     @Inject(ACTUAL_DRILL_CONTEXTS)
     private readonly drillContexts: ActualDrillContextService = new ActualDrillContextService(),
+    @Optional()
+    private readonly actualTransactions: ActualTransactionsRepository = new ActualTransactionsRepository(),
   ) {}
 
   async getCatalog(userId: string): Promise<FinancialCatalog> {
@@ -144,6 +159,116 @@ export class FinancialDataService {
     const authorized = await this.access.authorize(userId, { kind: "selection" });
     return this.drillContexts.resolve(userId, drilldownId, authorized.plantIds);
   }
+
+  async transactions(
+    userId: string,
+    drilldownId: string,
+    page: number,
+    limit?: number,
+  ): Promise<ActualTransactionPage> {
+    const context = await this.resolveActualDrillScope(userId, drilldownId);
+    return this.withTransactionLock(drilldownId, () => this.readTransactionPage(context, drilldownId, page, limit));
+  }
+
+  private async readTransactionPage(
+    context: ActualDrillContext,
+    drilldownId: string,
+    page: number,
+    limit: number | undefined,
+  ): Promise<ActualTransactionPage> {
+    const pinnedLimit = this.continuationLimits.get(context.scope);
+    const pageLimit = validatedPageLimit(page, limit, pinnedLimit);
+    const summary = await this.actualTransactions.summarize(context.scope);
+    if (!summary) throw sourceUnavailable();
+    if (summary.matchingActualTotal !== context.expectedMatchingActualTotal) throw detailMismatch();
+
+    const continuationLimit = page === 1 ? (pinnedLimit ?? 20) : pageLimit;
+    const totalPages = 1 + Math.ceil(Math.max(summary.totalItems - 10, 0) / continuationLimit);
+    if (page > totalPages) throw pageOutOfRange();
+    const offset = page === 1 ? 0 : 10 + (page - 2) * pageLimit;
+    const transactions = await this.actualTransactions.page(context.scope, offset, pageLimit);
+    if (page >= 2 || pinnedLimit !== undefined) {
+      this.continuationLimits.set(context.scope, pinnedLimit ?? pageLimit);
+    }
+
+    return actualTransactionPageSchema.parse({
+      drilldownId,
+      transactions,
+      page,
+      limit: pageLimit,
+      totalItems: summary.totalItems,
+      totalPages,
+      matchingActualTotal: summary.matchingActualTotal,
+      preparedSize: 10,
+      defaultContinuationLimit: 20,
+      pinnedContinuationLimit: this.continuationLimits.get(context.scope) ?? null,
+    });
+  }
+
+  private async withTransactionLock<T>(drilldownId: string, read: () => Promise<T>): Promise<T> {
+    const preceding = this.transactionLocks.get(drilldownId) ?? Promise.resolve();
+    let release = (): void => undefined;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tail = preceding.then(() => current);
+    this.transactionLocks.set(drilldownId, tail);
+    await preceding;
+    try {
+      return await read();
+    } finally {
+      release();
+      if (this.transactionLocks.get(drilldownId) === tail) this.transactionLocks.delete(drilldownId);
+    }
+  }
+}
+
+function validatedPageLimit(page: number, limit: number | undefined, pinnedLimit: number | undefined): number {
+  const fieldErrors: Array<{ field: string; reason: string }> = [];
+  if (!Number.isInteger(page) || page < 1) fieldErrors.push({ field: "page", reason: "must be an integer from 1" });
+  if (limit !== undefined && (!Number.isInteger(limit) || limit < 1 || limit > 100)) {
+    fieldErrors.push({ field: "limit", reason: "must be an integer from 1 to 100" });
+  }
+  if (page === 1 && limit !== 10) fieldErrors.push({ field: "limit", reason: "page 1 uses 10 rows" });
+  if (fieldErrors.length) throw invalidPagination(fieldErrors);
+  const requested = limit ?? pinnedLimit ?? 20;
+  if (page >= 2 && pinnedLimit !== undefined && requested !== pinnedLimit) throw pageSizeChanged(pinnedLimit);
+  return requested;
+}
+
+function invalidPagination(fieldErrors: Array<{ field: string; reason: string }>): BadRequestException {
+  return new BadRequestException({
+    message: "Use valid transaction page and limit values.",
+    details: { reason: "invalid_pagination", fieldErrors },
+  });
+}
+
+function pageSizeChanged(pinnedContinuationLimit: number): BadRequestException {
+  return new BadRequestException({
+    message: "Continue with the transaction page size already in use.",
+    details: { reason: "page_size_changed", pinnedContinuationLimit },
+  });
+}
+
+function pageOutOfRange(): BadRequestException {
+  return new BadRequestException({
+    message: "That transaction page does not exist. Return to the available pages.",
+    details: { reason: "page_out_of_range" },
+  });
+}
+
+function detailMismatch(): ServiceUnavailableException {
+  return new ServiceUnavailableException({
+    message: "Transaction details no longer match the financial result. Run the question again.",
+    details: { reason: "detail_mismatch" },
+  });
+}
+
+function sourceUnavailable(): GoneException {
+  return new GoneException({
+    message: "The transaction source is no longer available. Run the financial question again.",
+    details: { reason: "source_unavailable" },
+  });
 }
 
 function replaceDrillHandles(result: FinancialQueryResult, handles: ReadonlyMap<string, string>): FinancialQueryResult {
