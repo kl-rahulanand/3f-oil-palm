@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AuthUser, FinancialQueryResult, FinancialSelection } from "@3f/contract";
 import type { Pool, QueryConfig } from "pg";
+import { ZodError } from "zod";
 import type { QueryResult, Warehouse } from "../warehouse/warehouse.interface";
 import { ActualDrillContextService, type ActualDrillCandidate } from "./actual-drill-context.service";
 import { FinancialAccessService } from "./financial-access.service";
@@ -9,27 +10,6 @@ import { FinancialDataService } from "./financial-data.service";
 import { FinancialQueryRepository } from "./financial-query.repository";
 
 const HOUR_MS = 60 * 60 * 1_000;
-
-test("done-when 4: 200 distinct Actual scopes fit, 201 narrows, and identical scopes share one handle", () => {
-  const contexts = new ActualDrillContextService(() => 0);
-  const accepted = Array.from({ length: 200 }, (_, index) => candidate(`cell-${index}`, `GL-${index}`));
-
-  const handles = contexts.issue("reader", "result-200", accepted);
-  assert.equal(new Set(handles.values()).size, 200);
-
-  assert.throws(
-    () => contexts.issue("reader", "result-201", [...accepted, candidate("cell-200", "GL-200")]),
-    hasReason("query_too_broad"),
-  );
-
-  const tableCell = candidate("table-cell", "GL-SHARED");
-  const filteredTotal = {
-    ...candidate("chart-point", "GL-SHARED"),
-    scope: { ...candidate("chart-point", "GL-SHARED").scope, cellIdentity: {} },
-  };
-  const duplicateHandles = contexts.issue("reader", "result-deduplicated", [tableCell, filteredTotal]);
-  assert.equal(duplicateHandles.get("table-cell"), duplicateHandles.get("chart-point"));
-});
 
 test("done-when 3: drill reads recheck owner and expire after one idle hour", async () => {
   let now = 1_000;
@@ -101,6 +81,68 @@ test("done-when 4: a filtered parent total and its matching grouped row share on
   assert.ok(parent);
   assert.equal(parent.values.actual?.state, "available");
   assert.equal(parent.values.actual.drilldownId, actualHandle(result));
+});
+
+test("done-when 4: production queries count only distinct clickable Actual scopes toward 200", async () => {
+  const rbac = new FakeRbac(user("reader", ["DUB"]));
+  const missingActuals = new FinancialDataService(
+    new FinancialAccessService(rbac, new FakeAudit()),
+    new FakeWarehouse(),
+    new FinancialQueryRepository(aggregateLimitDatabase(0, 199)),
+    new ActualDrillContextService(() => 0),
+  );
+  const budgetOnly = await missingActuals.query("reader", {
+    ...selection(["DUB"]),
+    measureIds: ["actual", "budget"],
+    dimensionIds: ["gl"],
+  });
+
+  assert.equal(budgetOnly.rows.length, 199);
+  assert.ok(budgetOnly.rows.every(({ values }) => values.actual?.drilldownId === null));
+
+  const visibleRowLimit = new FinancialDataService(
+    new FinancialAccessService(rbac, new FakeAudit()),
+    new FakeWarehouse(),
+    new FinancialQueryRepository(aggregateLimitDatabase(0, 200)),
+    new ActualDrillContextService(() => 0),
+  );
+  await assert.rejects(
+    visibleRowLimit.query("reader", {
+      ...selection(["DUB"]),
+      measureIds: ["actual", "budget"],
+      dimensionIds: ["gl"],
+    }),
+    ZodError,
+  );
+
+  const maximumActuals = new FinancialDataService(
+    new FinancialAccessService(rbac, new FakeAudit()),
+    new FakeWarehouse(),
+    new FinancialQueryRepository(aggregateLimitDatabase(199, 0)),
+    new ActualDrillContextService(() => 0),
+  );
+  const accepted = await maximumActuals.query("reader", { ...selection(["DUB"]), dimensionIds: ["gl"] });
+  assert.equal(
+    new Set([
+      actualHandle(accepted),
+      ...accepted.rows.map(({ values }) => {
+        assert.equal(values.actual?.state, "available");
+        return values.actual.drilldownId;
+      }),
+    ]).size,
+    200,
+  );
+
+  const tooManyActuals = new FinancialDataService(
+    new FinancialAccessService(rbac, new FakeAudit()),
+    new FakeWarehouse(),
+    new FinancialQueryRepository(aggregateLimitDatabase(200, 0)),
+    new ActualDrillContextService(() => 0),
+  );
+  await assert.rejects(
+    tooManyActuals.query("reader", { ...selection(["DUB"]), dimensionIds: ["gl"] }),
+    hasReason("query_too_broad"),
+  );
 });
 
 function serviceWith(contexts: ActualDrillContextService, rbac: FakeRbac, drillCandidate: ActualDrillCandidate) {
@@ -293,6 +335,60 @@ function parentComponentDatabase(): Pick<Pool, "query"> {
           ],
         };
       }
+      throw new Error(`Unexpected financial repository query: ${sql}`);
+    },
+  } as unknown as Pick<Pool, "query">;
+}
+
+function aggregateLimitDatabase(actualCount: number, budgetCount: number): Pick<Pool, "query"> {
+  const actualRows = Array.from({ length: actualCount }, (_, index) => ({
+    id: `actual-${index}`,
+    plant: "DUB",
+    month: "2026-04-01",
+    gl: `A-${index.toString().padStart(3, "0")}`,
+    cost_center: null,
+    nursery_component: null,
+    section: null,
+    consideration: null,
+    short_name: null,
+    contra_account: null,
+    origin: null,
+    location: null,
+    actual_amount: "1.00",
+  }));
+  const budgetRows = Array.from({ length: budgetCount }, (_, index) => ({
+    plant: "DUB",
+    month: "2026-04-01",
+    gl: `B-${index.toString().padStart(3, "0")}`,
+    nursery_component: "leaf",
+    budget_amount: "1.00",
+    rollover_amount: "0.00",
+  }));
+  return {
+    query: async (input: string | QueryConfig) => {
+      const sql = typeof input === "string" ? input : input.text;
+      if (sql.includes("dataset_key = $1 AND state = 'active'")) return { rows: [{ id: "batch-id" }] };
+      if (sql.includes("FROM agent_financial.plant")) return { rows: [{ id: "plant-id", code: "DUB" }] };
+      if (sql.includes("source_reporting_months::text[]")) {
+        return {
+          rows: [
+            {
+              id: "batch-id",
+              source_reporting_months: actualCount ? ["2026-04-01"] : [],
+              actual_coverage: actualCount
+                ? [{ plantId: "plant-id", month: "2026-04-01", completeness: "confirmed" }]
+                : [],
+              budget_coverage: budgetCount
+                ? [{ plantId: "plant-id", month: "2026-04-01", completeness: "confirmed" }]
+                : [],
+            },
+          ],
+        };
+      }
+      if (sql.includes("FROM contributing_actuals")) return { rows: actualRows.map(({ id }) => ({ id })) };
+      if (sql.includes("WHERE a.id = ANY")) return { rows: actualRows };
+      if (sql.includes("FROM agent_financial.nursery_budget n")) return { rows: budgetRows };
+      if (sql.includes("WITH RECURSIVE ancestry")) return { rows: [] };
       throw new Error(`Unexpected financial repository query: ${sql}`);
     },
   } as unknown as Pick<Pool, "query">;

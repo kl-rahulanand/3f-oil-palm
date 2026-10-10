@@ -47,7 +47,7 @@ export class ActualDrillContextService {
       fingerprints.set(candidate.provisionalId, fingerprint);
       if (!distinctScopes.has(fingerprint)) distinctScopes.set(fingerprint, candidate);
     }
-    if (distinctScopes.size > MAX_PREPARED_ACTUAL_SCOPES) throw queryTooBroad();
+    assertActualDrillScopeLimit(candidates);
 
     const issuedAtMs = this.now();
     const handleByFingerprint = new Map<string, string>();
@@ -101,6 +101,10 @@ export class ActualDrillContextService {
       if (now - context.lastUsedAtMs >= DRILL_IDLE_EXPIRY_MS) this.contexts.delete(id);
     }
   }
+}
+
+export function assertActualDrillScopeLimit(candidates: readonly ActualDrillCandidate[]): void {
+  if (new Set(candidates.map(scopeFingerprint)).size > MAX_PREPARED_ACTUAL_SCOPES) throw queryTooBroad();
 }
 
 function scopeFingerprint(candidate: ActualDrillCandidate): string {

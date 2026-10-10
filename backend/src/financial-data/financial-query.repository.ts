@@ -7,7 +7,7 @@ import {
 } from "@3f/contract";
 import { Pool, type PoolClient } from "pg";
 import { loadConfig } from "../config";
-import { queryTooBroad, type ActualDrillCandidate } from "./actual-drill-context.service";
+import { assertActualDrillScopeLimit, type ActualDrillCandidate } from "./actual-drill-context.service";
 import { buildFinancialActualQuery, resolveFinancialScope, type ResolvedFinancialScope } from "./financial-predicate";
 import { completeMonthlyCoordinates, sumClosingMonthRollover } from "./financial-trend";
 
@@ -89,7 +89,6 @@ export class FinancialQueryRepository {
     const coverage = buildCoverage(selection, scope, generation);
     const totals: Aggregate = { dimensions: {}, actualFacts, budgetFacts };
     const groups = aggregateGroups(selection, actualFacts, budgetFacts, ancestorKeys, catalogCoordinates);
-    if (groups.length > 199) throw queryTooBroad();
     const resultId = randomUUID();
     const drillCandidates: ActualDrillCandidate[] = [];
     const rows = groups.map((group, index) => {
@@ -103,6 +102,7 @@ export class FinancialQueryRepository {
     const totalValues = resultValues(selection, totals, coverage, totalProvisionalId);
     const totalCandidate = drillCandidate(totalProvisionalId, totalValues, totals, scope, ancestorKeys);
     if (totalCandidate) drillCandidates.push(totalCandidate);
+    assertActualDrillScopeLimit(drillCandidates);
     const result = financialQueryResultSchema.parse({
       resultId,
       selection,
