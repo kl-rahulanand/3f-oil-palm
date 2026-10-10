@@ -8,6 +8,7 @@ import {
 import { Pool, type PoolClient } from "pg";
 import { loadConfig } from "../config";
 import { buildFinancialActualQuery, resolveFinancialScope, type ResolvedFinancialScope } from "./financial-predicate";
+import { completeMonthlyCoordinates, sumClosingMonthRollover } from "./financial-trend";
 
 export const FINANCIAL_QUERY_REPOSITORY = "FINANCIAL_QUERY_REPOSITORY";
 const UNMAPPED_COMPONENT = "unmapped-GL";
@@ -76,7 +77,7 @@ export class FinancialQueryRepository {
     const ancestorKeys = await this.componentAncestors(database, scope.mappingVersionId);
     const coverage = buildCoverage(selection, scope, generation);
     const totals: Aggregate = { dimensions: {}, actualFacts, budgetFacts };
-    const groups = aggregateGroups(selection.dimensionIds, actualFacts, budgetFacts, ancestorKeys);
+    const groups = aggregateGroups(selection, actualFacts, budgetFacts, ancestorKeys);
     if (groups.length > 199) throw new Error("Financial query has more than 199 aggregate rows");
     const resultId = randomUUID();
     const rows = groups.map((group, index) => ({
@@ -244,11 +245,12 @@ function buildCoverage(
 }
 
 function aggregateGroups(
-  grouping: FinancialDimensionId[],
+  selection: FinancialSelection,
   actualFacts: ActualFact[],
   budgetFacts: BudgetFact[],
   ancestorKeys: Map<string, string[]>,
 ): Aggregate[] {
+  const grouping = selection.dimensionIds;
   if (!grouping.length) return [];
   const groups = new Map<string, Aggregate>();
   const add = (dimensions: Dimensions, fact: ActualFact | BudgetFact, kind: "actual" | "budget") => {
@@ -266,7 +268,14 @@ function aggregateGroups(
       for (const dimensions of factCoordinates(grouping, fact, ancestorKeys)) add(dimensions, fact, "budget");
     }
   }
-  return [...groups.values()].sort((left, right) =>
+  const completed = completeMonthlyCoordinates(
+    selection,
+    [...groups.values()].map(({ dimensions }) => dimensions),
+  ).map((dimensions) => {
+    const key = JSON.stringify(grouping.map((dimension) => dimensions[dimension] ?? null));
+    return groups.get(key) ?? { dimensions, actualFacts: [], budgetFacts: [] };
+  });
+  return completed.sort((left, right) =>
     JSON.stringify(grouping.map((dimension) => left.dimensions[dimension] ?? "\uffff")).localeCompare(
       JSON.stringify(grouping.map((dimension) => right.dimensions[dimension] ?? "\uffff")),
     ),
@@ -366,7 +375,7 @@ function resultValues(
         : closingLoaded
           ? {
               state: "available",
-              value: paiseToMoney(sum(closingFacts.map(({ rollover }) => rollover))),
+              value: paiseToMoney(sumClosingMonthRollover(closingFacts, closingMonth)),
               label: "Roll-over",
             }
           : { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" };
