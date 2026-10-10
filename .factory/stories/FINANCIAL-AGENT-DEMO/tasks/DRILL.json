@@ -2,20 +2,20 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-DRILL",
   "review": {
     "blocking_level": "P1",
-    "changed": "ba11e199e598d58313e926c311f848548624cdf75e9ee17c1f8b4dd8417d8053",
-    "commit": "98794fba1fc3c941d0c4bec0c725df893b3ab17f",
+    "changed": "0fc66aff15ee844f1351a87e40d3b2f2e0e7f13865f5bed349fa260eb62e7ded",
+    "commit": "45edb80e299540e8184aecdda80f4e2474cc18e8",
     "dismissals": [],
     "findings": [
       {
-        "body": "This rejects based on aggregate row count before Actual candidates are constructed or deduplicated. A query with 200 grouped coordinates but only a few clickable Actual values\u2014for example, many budget-only or missing-Actual groups\u2014is rejected even though it is below the required cap of 200 distinct Actual scopes. The added 200/201 test calls `ActualDrillContextService.issue` directly, so it does not exercise or detect this behavior through the real query entry point. Build the candidates, include the total, deduplicate by scope, and apply the cap to that set.",
+        "body": "When the original selection permits multiple nursery components and the result is grouped by `nursery_component`, the clicked cell adds a narrower component filter, but `componentKeys` is rebuilt by unioning values from both the original and cell filters. For example, selecting components A and B and clicking the A row leaves both A and B in the flattened component pin, so the shared Actual predicate can return B transactions and a total that does not match the clicked cell. Intersect the existing resolved component constraint with the clicked cell's descendant keys, preserving exclusions, and cover this through the production query entry point.",
         "file": "backend/src/financial-data/financial-query.repository.ts",
-        "line": 92,
+        "line": 512,
         "priority": "P1",
-        "title": "Not done: 200/201 Actual-scope cap is enforced on distinct scopes"
+        "title": "Not done: Clicked component cells retain a matching pinned scope"
       }
     ],
     "status": "blocked",
-    "tree": "deab4692d2501f62987eefd3414985f44923183c36e9ad1c5426bbf09e364f7e"
+    "tree": "75c49cc2d6f351deaecb80faaf50593775e36493e7c2b70cf1dc2bc5c09ad35d"
   },
   "status": "fixing",
   "steps": [
@@ -25,6 +25,10 @@
     },
     {
       "at": "2026-10-10T13:37:50+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T14:08:56+00:00",
       "step": "review"
     }
   ]
