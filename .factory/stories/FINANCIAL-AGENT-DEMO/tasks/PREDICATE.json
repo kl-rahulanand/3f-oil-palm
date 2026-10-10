@@ -1,0 +1,27 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-PREDICATE",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "ca62d5072e8542b9b82bfafe0c219ab140f50c3299e599bd680010a2300d7d7b",
+    "commit": "c48d3836011e4a3c9f3f86e5681f7b915455b739",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "88e9f397dd54647422cbf0cfc75ff470744bbca3aa1d932d7d1b6c5990e3c112"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-10T01:29:39+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-10T02:09:32+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T02:27:56+00:00",
+      "step": "review"
+    }
+  ]
+}
