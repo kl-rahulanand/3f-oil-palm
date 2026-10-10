@@ -1,10 +1,66 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-PAGES",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "2728a5519f9b5113ee49fe4e956b55cc594af42534f45d820111f2f31eff7b67",
+    "commit": "1932506bd822aa756ebf251a5487f699a78f891c",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "`query()` returns immediately after issuing drill handles and never asks `ActualTransactionsRepository` to prepare the first 10 rows. `transactions()` subsequently performs fresh summary and detail queries on every click. Consequently this implementation has no shared 30-second preparation deadline, cancellation of outstanding preparation, ready/failed scope states, preservation of completed scopes, or protection against late ready writes. This directly misses required acceptance behavior rather than merely lacking coverage.",
+        "file": "backend/src/financial-data/financial-data.service.ts",
+        "line": 154,
+        "priority": "P1",
+        "title": "Not done: Clickable Actuals do not open prepared transactions with preserved total, source and scope"
+      },
+      {
+        "body": "Two concurrent first continuation requests can both observe `pinnedLimit === undefined`, validate different limits, await `summarize()`, and then each execute this `set`. Both requests can succeed with incompatible offsets and `totalPages`, while whichever resumes last becomes the reported pin. That can create gaps or overlaps when further pages are combined, violating the immutable continuation size and second-tab behavior required by the acceptance criteria.",
+        "file": "backend/src/financial-data/financial-data.service.ts",
+        "line": 178,
+        "priority": "P1",
+        "title": "Serialize the first continuation-size pin across concurrent tabs"
+      },
+      {
+        "body": "The added database test creates only one drill scope and explicitly fetches page 1 after `query()` completes. It never creates 200/201 distinct scopes, duplicates across chart/table, or a stalled preparation. It therefore cannot fail if scope narrowing, deduplication, the shared 30-second deadline, cancellation, ready-scope preservation, explicit unfinished failures, or late-write prevention are absent\u2014all mandatory parts of this branch's Done-when item.",
+        "file": "backend/src/financial-data/actual-drill.db.test.ts",
+        "line": 68,
+        "priority": "P1",
+        "title": "Not done: 200-scope preparation deadline and cancellation database proof"
+      },
+      {
+        "body": "The traversal assertion compares only transaction numbers. Every fixture row has the same posting date and line ID, and the test checks generated internal IDs only for uniqueness rather than against an expected identity set. It would still pass if posting-date, line-ID, or internal-ID ordering were removed, or if incorrect rows with the same transaction numbers were returned. This does not prove the required full transaction identity set or stable posting-date/transaction-number/line-ID/internal-ID order.",
+        "file": "backend/src/financial-data/actual-drill.db.test.ts",
+        "line": 70,
+        "priority": "P1",
+        "title": "Not done: Full identity-set and four-key stable-order database proof"
+      },
+      {
+        "body": "This branch adds `.factory/stories/FINANCIAL-AGENT-DEMO/tasks/PAGES.json`, although the declared scope permits changes only to the five backend/tool paths and explicitly claims there are no outside-scope changes. The working-status artifact is not needed to implement or test transaction paging and must be excluded from this part.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/PAGES.json",
+        "line": 2,
+        "priority": "P1",
+        "title": "Remove the out-of-scope task-state artifact"
+      },
+      {
+        "body": "`continuationLimits` is an unbounded map keyed by newly issued drill handles. This class never deletes entries when handles expire or when `ActualDrillContextService` evicts scopes, so repeated query-and-continuation activity grows process memory for the lifetime of the backend even though drill state is intended to be bounded. Store the pin with the bounded drill context or remove it during the same eviction lifecycle.",
+        "file": "backend/src/financial-data/financial-data.service.ts",
+        "line": 79,
+        "priority": "P2",
+        "title": "Bound continuation-size state with drill-handle eviction"
+      }
+    ],
+    "status": "blocked",
+    "tree": "7bb38ae67dbe88277dff528cbe9cc0a98ebdf1572ad1d4572bab1afbacce2c1b"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-10T15:17:20+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-10T15:56:26+00:00",
+      "step": "review"
     }
   ]
 }
