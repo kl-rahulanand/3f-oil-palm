@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "76db92f52d1ffb09ec50a6c8a31f1e7d4c9cbaab57f50fb670a0be123662d15f",
     "commit": "b15658c1ae45d430db094f21feaa670497ea7e20",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": ".codex/skills/forge/standards.md:13 states that current state lives in .factory. MODEL.json is Forge-created task lifecycle state, not implementation scope, and removing it would break board/close/merge tracking.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "This newly committed `.factory` review-state file is outside the explicitly permitted paths and is unnecessary for the provider, tools, or tests. It also ships transient workflow metadata with the task still marked `fixing`. Remove it from the branch.",
@@ -14,10 +20,10 @@
         "title": "Remove the out-of-scope workflow-state artifact"
       }
     ],
-    "status": "blocked",
+    "status": "clean",
     "tree": "d57cbd0fa2e39c9224038e07907ff44ebc8bb209d9e85f07908a7db6b8700617"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-10T09:56:23+00:00",
