@@ -128,14 +128,18 @@ function availableValue(
 }
 
 function selectionValues(selection: FinancialSelection, dimensionId: FinancialDimensionId): Array<string | null> {
-  if (dimensionId === "plant") return [...selection.plantIds];
-  let candidates: Set<string> | undefined;
+  let candidates: Set<string | null> | undefined = dimensionId === "plant" ? new Set(selection.plantIds) : undefined;
+  const excluded = new Set<string | null>();
   for (const filter of selection.filters.filter((candidate) => candidate.dimensionId === dimensionId)) {
-    if (filter.operator === "neq") continue;
-    const values = filter.operator === "in" ? new Set(filter.values) : new Set([filter.value]);
+    if (filter.operator === "neq") {
+      excluded.add(filter.value);
+      continue;
+    }
+    const values =
+      filter.operator === "in" ? new Set<string | null>(filter.values) : new Set<string | null>([filter.value]);
     candidates = candidates ? new Set([...candidates].filter((value) => values.has(value))) : values;
   }
-  return candidates ? [...candidates] : [];
+  return candidates ? [...candidates].filter((value) => !excluded.has(value)) : [];
 }
 
 function coordinateKey(dimensions: readonly FinancialDimensionId[], coordinates: FinancialCoordinates): string {

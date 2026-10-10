@@ -62,11 +62,12 @@ test("done-when 2: April financial years and cross-year ranges retain every chro
 });
 
 test("done-when 1 and 2: repository keeps every explicitly selected GL gap without inventing values", async () => {
-  const result = await new FinancialQueryRepository(selectedGlGapDatabase()).query({
+  const selected = {
     ...selection("2026-04-01", "2026-05-31"),
     dimensionIds: ["gl", "month"],
     filters: [{ dimensionId: "gl", operator: "in", values: ["5001", "5002"] }],
-  });
+  } satisfies FinancialSelection;
+  const result = await new FinancialQueryRepository(selectedGlGapDatabase()).query(selected);
 
   assert.deepEqual(
     result.rows.map(({ dimensions, values }) => ({
@@ -83,6 +84,18 @@ test("done-when 1 and 2: repository keeps every explicitly selected GL gap witho
       { dimensions: { gl: "5001", month: "2026-05-01" }, actual: exactActual("0.00") },
       { dimensions: { gl: "5002", month: "2026-04-01" }, actual: exactActual("0.00") },
       { dimensions: { gl: "5002", month: "2026-05-01" }, actual: exactActual("0.00") },
+    ],
+  );
+
+  const excluded = await new FinancialQueryRepository(selectedGlGapDatabase()).query({
+    ...selected,
+    filters: [...selected.filters, { dimensionId: "gl", operator: "neq", value: "5002" }],
+  });
+  assert.deepEqual(
+    excluded.rows.map(({ dimensions }) => dimensions),
+    [
+      { gl: "5001", month: "2026-04-01" },
+      { gl: "5001", month: "2026-05-01" },
     ],
   );
 });
