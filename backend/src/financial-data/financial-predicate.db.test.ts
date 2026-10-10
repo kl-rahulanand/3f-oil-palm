@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import type { FinancialSelection } from "@3f/contract";
+import type { FinancialDimensionId, FinancialSelection } from "@3f/contract";
 import type { Pool, PoolClient } from "pg";
 import { createWarehouseWritePool } from "../warehouse/ingestion.repository";
 import { migrateWarehouse } from "../warehouse/warehouse-migrate";
@@ -35,7 +35,10 @@ test(
       const fixture = await seedFixture(client);
       const scope = await resolveFinancialScope(
         client,
-        selection(fixture.plantCode, fixture.parentKey, [{ dimensionId: "gl", operator: "eq", value: "GL-CHILD" }]),
+        selection(fixture.plantCode, [
+          { dimensionId: "nursery_component", operator: "eq", value: fixture.parentKey },
+          { dimensionId: "gl", operator: "eq", value: "GL-CHILD" },
+        ]),
         { section: "Included" },
       );
 
@@ -43,7 +46,6 @@ test(
       assert.equal(scope.mappingVersionId, fixture.firstBatchId);
       assert.deepEqual(scope.componentKeys, [fixture.childKey, fixture.parentKey, fixture.siblingKey]);
 
-      await replaceGeneration(client, fixture);
       const summaryQuery = buildFinancialActualQuery(scope, "summary");
       const detailQuery = buildFinancialActualQuery(scope, "detail");
       assert.equal(summaryQuery.text.includes(fixture.plantCode), false, "Plant values must not be SQL text");
@@ -58,11 +60,102 @@ test(
         [{ id: fixture.includedActualId, transaction_number: "TX-INCLUDED", actual_amount: "70.00" }],
       );
 
+      const all = ["TX-INCLUDED", "TX-WRONG-SECTION", "TX-UNMAPPED", "TX-OTHER-COMPONENT", "TX-MISSING"];
+      const filterCases: Array<{
+        dimensionId: FinancialDimensionId;
+        eq: string;
+        in: string[];
+        expectedEq: string[];
+        expectedIn: string[];
+        expectedNeq: string[];
+      }> = [
+        {
+          dimensionId: "plant",
+          eq: fixture.plantCode,
+          in: [fixture.plantCode, "UNKNOWN-PLANT"],
+          expectedEq: all,
+          expectedIn: all,
+          expectedNeq: [],
+        },
+        {
+          dimensionId: "month",
+          eq: "2099-07-01",
+          in: ["2099-07-01", "2099-08-01"],
+          expectedEq: all,
+          expectedIn: all,
+          expectedNeq: [],
+        },
+        {
+          dimensionId: "gl",
+          eq: "GL-CHILD",
+          in: ["GL-CHILD", "GL-OTHER"],
+          expectedEq: all.slice(0, 4),
+          expectedIn: all.slice(0, 4),
+          expectedNeq: ["TX-MISSING"],
+        },
+        {
+          dimensionId: "cost_center",
+          eq: fixture.costCenterCode,
+          in: [fixture.costCenterCode, fixture.unrelatedCostCenterCode],
+          expectedEq: all.slice(0, 2),
+          expectedIn: ["TX-INCLUDED", "TX-WRONG-SECTION", "TX-OTHER-COMPONENT"],
+          expectedNeq: ["TX-UNMAPPED", "TX-OTHER-COMPONENT", "TX-MISSING"],
+        },
+        {
+          dimensionId: "nursery_component",
+          eq: fixture.parentKey,
+          in: [fixture.parentKey, fixture.unrelatedKey],
+          expectedEq: all.slice(0, 2),
+          expectedIn: ["TX-INCLUDED", "TX-WRONG-SECTION", "TX-OTHER-COMPONENT"],
+          expectedNeq: ["TX-UNMAPPED", "TX-OTHER-COMPONENT", "TX-MISSING"],
+        },
+        {
+          dimensionId: "section",
+          eq: "Included",
+          in: ["Included", "Excluded"],
+          expectedEq: ["TX-INCLUDED", "TX-UNMAPPED", "TX-OTHER-COMPONENT"],
+          expectedIn: all.slice(0, 4),
+          expectedNeq: ["TX-WRONG-SECTION", "TX-MISSING"],
+        },
+        ...(["consideration", "short_name", "contra_account", "origin", "location"] as const).map((dimensionId) => ({
+          dimensionId,
+          eq: `${dimensionId}-A`,
+          in: [`${dimensionId}-A`, `${dimensionId}-C`],
+          expectedEq: ["TX-INCLUDED"],
+          expectedIn: ["TX-INCLUDED", "TX-OTHER-COMPONENT"],
+          expectedNeq: ["TX-WRONG-SECTION", "TX-UNMAPPED", "TX-OTHER-COMPONENT", "TX-MISSING"],
+        })),
+      ];
+      for (const { dimensionId, eq, in: inValues, expectedEq, expectedIn, expectedNeq } of filterCases) {
+        assert.deepEqual(
+          await transactionNumbers(client, fixture.plantCode, { dimensionId, operator: "eq", value: eq }),
+          expectedEq,
+          `${dimensionId} eq`,
+        );
+        assert.deepEqual(
+          await transactionNumbers(client, fixture.plantCode, { dimensionId, operator: "in", values: inValues }),
+          expectedIn,
+          `${dimensionId} in`,
+        );
+        assert.deepEqual(
+          await transactionNumbers(client, fixture.plantCode, { dimensionId, operator: "neq", value: eq }),
+          expectedNeq,
+          `${dimensionId} neq retains missing values`,
+        );
+      }
+
+      await replaceGeneration(client, fixture);
+      assert.deepEqual((await client.query(summaryQuery)).rows, [{ row_count: "1", actual_total: "70.00" }]);
+      assert.deepEqual(
+        (await client.query<{ transaction_number: string }>(detailQuery)).rows.map(
+          ({ transaction_number }) => transaction_number,
+        ),
+        ["TX-INCLUDED"],
+      );
+
       const injected = await resolveFinancialScope(
         client,
-        selection(fixture.plantCode, fixture.parentKey, [
-          { dimensionId: "gl", operator: "eq", value: "GL-CHILD' OR TRUE --" },
-        ]),
+        selection(fixture.plantCode, [{ dimensionId: "gl", operator: "eq", value: "GL-CHILD' OR TRUE --" }]),
       );
       const injectedQuery = buildFinancialActualQuery(injected, "detail");
       assert.equal(injectedQuery.text.includes("GL-CHILD' OR TRUE --"), false);
@@ -79,10 +172,13 @@ interface Fixture {
   plantId: string;
   plantCode: string;
   costCenterId: string;
+  costCenterCode: string;
+  unrelatedCostCenterCode: string;
   glId: string;
   parentKey: string;
   childKey: string;
   siblingKey: string;
+  unrelatedKey: string;
   firstBatchId: string;
   includedActualId: string;
 }
@@ -104,6 +200,8 @@ async function seedFixture(client: PoolClient): Promise<Fixture> {
   const childKey = `child-${suffix}`;
   const siblingKey = `sibling-${suffix}`;
   const unrelatedKey = `unrelated-${suffix}`;
+  const costCenterCode = `CC-${suffix}`;
+  const unrelatedCostCenterCode = `UNRELATED-CC-${suffix}`;
   await client.query(
     `INSERT INTO agent_financial.plant (id, code, name, source_aliases, created_by_actor)
      VALUES ($1, $2, 'Predicate DUB', '{}', 'predicate-proof'),
@@ -119,9 +217,9 @@ async function seedFixture(client: PoolClient): Promise<Fixture> {
     [
       costCenterId,
       plantId,
-      `CC-${suffix}`,
+      costCenterCode,
       unrelatedCostCenterId,
-      `UNRELATED-CC-${suffix}`,
+      unrelatedCostCenterCode,
       otherCostCenterId,
       otherPlantId,
       `OTHER-CC-${suffix}`,
@@ -171,12 +269,14 @@ async function seedFixture(client: PoolClient): Promise<Fixture> {
   await client.query(
     `INSERT INTO agent_financial.financial_actual
        (id, batch_id, source_system, transaction_number, line_id, source_row_number,
-        posting_date, section, plant_id, cost_center_id, gl_account_id, debit, credit, source_row)
-     VALUES ($1, $2, 'SAP', 'TX-INCLUDED', '1', 1, '2099-07-15', 'Included', $3, $4, $5, 100, 30, '{}'),
-            ($6, $2, 'SAP', 'TX-WRONG-SECTION', '1', 2, '2099-07-16', 'Excluded', $3, $4, $5, 900, 0, '{}'),
-            ($7, $2, 'SAP', 'TX-UNMAPPED', '1', 3, '2099-07-17', 'Included', $3, NULL, $5, 800, 0, '{}'),
-            ($8, $2, 'SAP', 'TX-OTHER-COMPONENT', '1', 4, '2099-07-18', 'Included', $3, $9, $5, 600, 0, '{}'),
-            ($10, $2, 'SAP', 'TX-OTHER-PLANT', '1', 5, '2099-07-19', 'Included', $11, $12, $13, 700, 0, '{}')`,
+        posting_date, section, consideration, short_name, contra_account, origin, location,
+        plant_id, cost_center_id, gl_account_id, debit, credit, source_row)
+     VALUES ($1, $2, 'SAP', 'TX-INCLUDED', '1', 1, '2099-07-15', 'Included', 'consideration-A', 'short_name-A', 'contra_account-A', 'origin-A', 'location-A', $3, $4, $5, 100, 30, '{}'),
+            ($6, $2, 'SAP', 'TX-WRONG-SECTION', '1', 2, '2099-07-16', 'Excluded', 'consideration-B', 'short_name-B', 'contra_account-B', 'origin-B', 'location-B', $3, $4, $5, 900, 0, '{}'),
+            ($7, $2, 'SAP', 'TX-UNMAPPED', '1', 3, '2099-07-17', 'Included', NULL, NULL, NULL, NULL, NULL, $3, NULL, $5, 800, 0, '{}'),
+            ($8, $2, 'SAP', 'TX-OTHER-COMPONENT', '1', 4, '2099-07-18', 'Included', 'consideration-C', 'short_name-C', 'contra_account-C', 'origin-C', 'location-C', $3, $9, $5, 600, 0, '{}'),
+            ($10, $2, 'SAP', 'TX-OTHER-PLANT', '1', 5, '2099-07-19', 'Included', NULL, NULL, NULL, NULL, NULL, $11, $12, $13, 700, 0, '{}'),
+            ($14, $2, 'SAP', 'TX-MISSING', '1', 6, '2099-07-20', NULL, NULL, NULL, NULL, NULL, NULL, $3, NULL, NULL, 500, 0, '{}')`,
     [
       includedActualId,
       firstBatchId,
@@ -191,6 +291,7 @@ async function seedFixture(client: PoolClient): Promise<Fixture> {
       otherPlantId,
       otherCostCenterId,
       otherGlId,
+      randomUUID(),
     ],
   );
   await activateBatch(client, firstBatchId);
@@ -198,10 +299,13 @@ async function seedFixture(client: PoolClient): Promise<Fixture> {
     plantId,
     plantCode,
     costCenterId,
+    costCenterCode,
+    unrelatedCostCenterCode,
     glId,
     parentKey,
     childKey,
     siblingKey,
+    unrelatedKey,
     firstBatchId,
     includedActualId,
   };
@@ -249,18 +353,24 @@ async function activateBatch(client: PoolClient, batchId: string): Promise<void>
   );
 }
 
-function selection(
-  plantId: string,
-  componentKey: string,
-  filters: FinancialSelection["filters"] = [],
-): FinancialSelection {
+function selection(plantId: string, filters: FinancialSelection["filters"] = []): FinancialSelection {
   return {
     measureIds: ["actual"],
     dimensionIds: ["nursery_component", "section"],
     plantIds: [plantId],
     timeWindow: { kind: "month", from: "2099-07-01", to: "2099-07-31" },
-    filters: [{ dimensionId: "nursery_component", operator: "eq", value: componentKey }, ...filters],
+    filters,
   };
+}
+
+async function transactionNumbers(
+  client: PoolClient,
+  plantCode: string,
+  filter: FinancialSelection["filters"][number],
+): Promise<string[]> {
+  const scope = await resolveFinancialScope(client, selection(plantCode, [filter]));
+  const result = await client.query<{ transaction_number: string }>(buildFinancialActualQuery(scope, "detail"));
+  return result.rows.map(({ transaction_number }) => transaction_number);
 }
 
 function assertDisposableWarehouse(

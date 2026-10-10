@@ -177,7 +177,11 @@ function filterCondition(filter: ResolvedFilter, parameter: (value: unknown, cas
   if (concreteValues.length) matches.push(`${expression} = ANY(${parameter(concreteValues, "::text[]")})`);
   if (includesNull) matches.push(`${expression} IS NULL`);
   const positive = matches.length ? `(${matches.join(" OR ")})` : "FALSE";
-  return filter.operator === "neq" ? `NOT ${positive}` : positive;
+  return filter.operator === "neq"
+    ? includesNull
+      ? `NOT ${positive}`
+      : `(${expression} IS NULL OR NOT ${positive})`
+    : positive;
 }
 
 const FILTER_EXPRESSIONS: Record<FinancialDimensionId, string> = {
