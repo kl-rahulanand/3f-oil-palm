@@ -7,6 +7,7 @@ import type { QueryResult, Warehouse } from "../warehouse/warehouse.interface";
 import { ActualDrillContextService, type ActualDrillCandidate } from "./actual-drill-context.service";
 import { FinancialAccessService } from "./financial-access.service";
 import { FinancialDataService } from "./financial-data.service";
+import { buildFinancialActualQuery } from "./financial-predicate";
 import { FinancialQueryRepository } from "./financial-query.repository";
 
 const HOUR_MS = 60 * 60 * 1_000;
@@ -62,13 +63,14 @@ test("done-when 4: a handle keeps its immutable source and mapping identity", ()
   assert.equal(resolved.expectedMatchingActualTotal, "1.00");
 });
 
-test("done-when 4: a filtered parent total and its matching grouped row share one prepared scope", async () => {
+test("done-when 4: parent and descendant drills retain their exact contributing Actuals", async () => {
   const contexts = new ActualDrillContextService(() => 0);
   const rbac = new FakeRbac(user("reader", ["DUB"]));
+  const database = parentComponentDatabase();
   const service = new FinancialDataService(
     new FinancialAccessService(rbac, new FakeAudit()),
     new FakeWarehouse(),
-    new FinancialQueryRepository(parentComponentDatabase()),
+    new FinancialQueryRepository(database),
     contexts,
   );
   const result = await service.query("reader", {
@@ -77,10 +79,37 @@ test("done-when 4: a filtered parent total and its matching grouped row share on
     filters: [{ dimensionId: "nursery_component", operator: "eq", value: "parent" }],
   });
   const parent = result.rows.find(({ dimensions }) => dimensions.nursery_component === "parent");
+  const leaf = result.rows.find(({ dimensions }) => dimensions.nursery_component === "leaf");
 
+  assert.deepEqual(
+    result.rows.map(({ dimensions }) => dimensions.nursery_component),
+    ["leaf", "parent"],
+  );
   assert.ok(parent);
+  assert.ok(leaf);
   assert.equal(parent.values.actual?.state, "available");
+  assert.equal(parent.values.actual.value, "3.00");
   assert.equal(parent.values.actual.drilldownId, actualHandle(result));
+  assert.equal(leaf.values.actual?.state, "available");
+  assert.equal(leaf.values.actual.value, "2.00");
+
+  const parentPin = await service.resolveActualDrillScope("reader", parent.values.actual.drilldownId);
+  const leafPin = await service.resolveActualDrillScope("reader", leaf.values.actual.drilldownId);
+  const parentTransactions = await database.query<{ id: string }>(buildFinancialActualQuery(parentPin.scope, "detail"));
+  const leafTransactions = await database.query<{ id: string }>(buildFinancialActualQuery(leafPin.scope, "detail"));
+
+  assert.equal(parentPin.expectedMatchingActualTotal, "3.00");
+  assert.deepEqual(parentPin.scope.componentKeys, ["leaf", "parent"]);
+  assert.deepEqual(
+    parentTransactions.rows.map(({ id }) => id),
+    ["actual-leaf", "actual-parent"],
+  );
+  assert.equal(leafPin.expectedMatchingActualTotal, "2.00");
+  assert.deepEqual(leafPin.scope.componentKeys, ["leaf"]);
+  assert.deepEqual(
+    leafTransactions.rows.map(({ id }) => id),
+    ["actual-leaf"],
+  );
 });
 
 test("done-when 4: a grouped component drill intersects the selected components", async () => {
@@ -310,8 +339,40 @@ class FakeWarehouse implements Warehouse {
 }
 
 function parentComponentDatabase(): Pick<Pool, "query"> {
+  const actualRows = [
+    {
+      id: "actual-leaf",
+      plant: "DUB",
+      month: "2026-04-01",
+      gl: "5001",
+      cost_center: "DUB-LEAF",
+      nursery_component: "leaf",
+      section: null,
+      consideration: null,
+      short_name: null,
+      contra_account: null,
+      origin: null,
+      location: null,
+      actual_amount: "2.00",
+    },
+    {
+      id: "actual-parent",
+      plant: "DUB",
+      month: "2026-04-01",
+      gl: "5002",
+      cost_center: "DUB-PARENT",
+      nursery_component: "parent",
+      section: null,
+      consideration: null,
+      short_name: null,
+      contra_account: null,
+      origin: null,
+      location: null,
+      actual_amount: "1.00",
+    },
+  ];
   return {
-    query: async (input: string | QueryConfig) => {
+    query: async (input: string | QueryConfig, parameters?: readonly unknown[]) => {
       const sql = typeof input === "string" ? input : input.text;
       if (sql.includes("dataset_key = $1 AND state = 'active'")) return { rows: [{ id: "batch-id" }] };
       if (sql.includes("FROM agent_financial.plant")) return { rows: [{ id: "plant-id", code: "DUB" }] };
@@ -335,27 +396,23 @@ function parentComponentDatabase(): Pick<Pool, "query"> {
           ],
         };
       }
-      if (sql.includes("FROM contributing_actuals")) return { rows: [{ id: "actual-id" }] };
-      if (sql.includes("WHERE a.id = ANY")) {
+      if (sql.includes("FROM contributing_actuals")) {
+        const componentValues =
+          typeof input === "string"
+            ? undefined
+            : input.values?.find(
+                (value): value is string[] =>
+                  Array.isArray(value) && value.some((component) => component === "leaf" || component === "parent"),
+              );
         return {
-          rows: [
-            {
-              id: "actual-id",
-              plant: "DUB",
-              month: "2026-04-01",
-              gl: "5001",
-              cost_center: "DUB-CC",
-              nursery_component: "leaf",
-              section: null,
-              consideration: null,
-              short_name: null,
-              contra_account: null,
-              origin: null,
-              location: null,
-              actual_amount: "1.00",
-            },
-          ],
+          rows: actualRows
+            .filter(({ nursery_component }) => !componentValues || componentValues.includes(nursery_component))
+            .map(({ id }) => ({ id })),
         };
+      }
+      if (sql.includes("WHERE a.id = ANY")) {
+        const ids = (typeof input === "string" ? parameters?.[0] : input.values?.[0]) as string[];
+        return { rows: actualRows.filter(({ id }) => ids.includes(id)) };
       }
       if (sql.includes("WITH RECURSIVE ancestry")) {
         return {

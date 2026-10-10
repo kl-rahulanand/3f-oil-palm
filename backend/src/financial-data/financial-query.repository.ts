@@ -505,8 +505,11 @@ function scopeForAggregate(
     if (scopeAlreadyPinsCoordinate(scope, dimension, value, values)) return [];
     return [{ dimensionId: dimension, operator: "eq" as const, values }];
   });
-  const filters = intersectComponentCell(scope.filters, cellFilters);
-  const componentKeys = componentKeysForFilters(filters);
+  const componentValues = intersectComponentValues(scope, cellFilters);
+  const filters = intersectComponentCell(scope.filters, cellFilters, componentValues);
+  const componentKeys = componentValues.filter(
+    (value): value is string => value !== null && value !== UNMAPPED_COMPONENT,
+  );
   return Object.freeze({
     ...scope,
     sourceBatchIds: Object.freeze([...scope.sourceBatchIds]),
@@ -524,18 +527,12 @@ function scopeForAggregate(
 function intersectComponentCell(
   scopeFilters: ResolvedFinancialScope["filters"],
   cellFilters: ResolvedFinancialScope["filters"],
+  componentValues: readonly (string | null)[],
 ): ResolvedFinancialScope["filters"] {
   const cellComponent = cellFilters.find(({ dimensionId }) => dimensionId === "nursery_component");
   if (!cellComponent) return [...scopeFilters, ...cellFilters];
 
-  const permitted = new Set(cellComponent.values);
-  for (const filter of scopeFilters) {
-    if (filter.dimensionId !== "nursery_component" || filter.operator === "neq") continue;
-    for (const value of permitted) {
-      if (!filter.values.includes(value)) permitted.delete(value);
-    }
-  }
-  const narrowed = { ...cellComponent, values: [...permitted].sort((a, b) => String(a).localeCompare(String(b))) };
+  const narrowed = { ...cellComponent, values: componentValues };
   let inserted = false;
   const filters = scopeFilters.flatMap((filter) => {
     if (filter.dimensionId !== "nursery_component" || filter.operator === "neq") return [filter];
@@ -548,25 +545,26 @@ function intersectComponentCell(
   return filters;
 }
 
-function componentKeysForFilters(filters: ResolvedFinancialScope["filters"]): string[] {
-  const positive = filters.filter(
+function intersectComponentValues(
+  scope: ResolvedFinancialScope,
+  cellFilters: ResolvedFinancialScope["filters"],
+): (string | null)[] {
+  const cellComponent = cellFilters.find(({ dimensionId }) => dimensionId === "nursery_component");
+  const hasPositiveComponentFilter = scope.filters.some(
     ({ dimensionId, operator }) => dimensionId === "nursery_component" && operator !== "neq",
   );
-  if (!positive.length) return [];
-  const keys = new Set(positive[0]!.values);
-  for (const filter of positive.slice(1)) {
-    for (const value of keys) {
-      if (!filter.values.includes(value)) keys.delete(value);
+  const values = new Set(cellComponent && !hasPositiveComponentFilter ? cellComponent.values : scope.componentKeys);
+  if (cellComponent) {
+    for (const value of values) {
+      if (!cellComponent.values.includes(value)) values.delete(value);
     }
   }
   const excluded = new Set(
-    filters
+    scope.filters
       .filter(({ dimensionId, operator }) => dimensionId === "nursery_component" && operator === "neq")
       .flatMap(({ values }) => values),
   );
-  return [...keys]
-    .filter((value): value is string => value !== null && value !== UNMAPPED_COMPONENT && !excluded.has(value))
-    .sort();
+  return [...values].filter((value) => !excluded.has(value)).sort((a, b) => String(a).localeCompare(String(b)));
 }
 
 function scopeAlreadyPinsCoordinate(
