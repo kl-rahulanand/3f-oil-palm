@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 import test from "node:test";
-import type { AuthUser, FinancialQueryResult, FinancialSelection } from "@3f/contract";
+import type { FinancialQueryResult, FinancialSelection } from "@3f/contract";
+import { and, eq } from "drizzle-orm";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 import type { PoolClient } from "pg";
+import { AuditService } from "../core/audit.service";
+import { RbacService } from "../core/rbac.service";
+import { createDb, createPool, type AppDb } from "../db/pool";
+import { rolePerms, roles, userRoles, users, userScope } from "../db/schema";
+import { SemanticLayer } from "../semantic/semanticLayer";
 import { createWarehouseWritePool } from "../warehouse/ingestion.repository";
 import { migrateWarehouse } from "../warehouse/warehouse-migrate";
 import type { QueryResult, Warehouse } from "../warehouse/warehouse.interface";
@@ -10,7 +18,7 @@ import { FinancialAccessService } from "./financial-access.service";
 import { FinancialDataService } from "./financial-data.service";
 import { FinancialQueryRepository } from "./financial-query.repository";
 
-test("the destructive financial query proof refuses any target except the disposable warehouse", () => {
+test("the destructive financial query proof refuses targets outside the disposable databases", () => {
   for (const [host, port, database] of [
     ["warehouse.shared.example", "5434", "warehouse"],
     ["127.0.0.1", "5433", "warehouse"],
@@ -18,6 +26,14 @@ test("the destructive financial query proof refuses any target except the dispos
     ["127.0.0.1", "5434", "not-the-disposable-database"],
   ]) {
     assert.throws(() => assertDisposableWarehouse(host, port, database), /financial query proof requires/);
+  }
+  for (const [host, port, database] of [
+    ["app.shared.example", "5435", "threef"],
+    ["127.0.0.1", "5432", "threef"],
+    ["localhost", "5435", "threef"],
+    ["127.0.0.1", "5435", "not-the-disposable-database"],
+  ]) {
+    assert.throws(() => assertDisposableAppDatabase(host, port, database), /financial query proof requires/);
   }
 });
 
@@ -30,22 +46,27 @@ test(
       process.env.WAREHOUSE_PG_PORT,
       process.env.WAREHOUSE_PG_DATABASE,
     );
+    assertDisposableAppDatabase(process.env.PGHOST, process.env.PGPORT, process.env.PGDATABASE);
     await migrateWarehouse();
     const pool = await createWarehouseWritePool();
+    const appPool = createPool();
+    const appDb = createDb(appPool);
     const client = await pool.connect();
     try {
+      await migrate(appDb, { migrationsFolder: join(__dirname, "../../drizzle") });
       await client.query("BEGIN");
       const fixture = await seedFixture(client);
-      const rbac = new FakeRbac(user(fixture));
+      const identities = await seedRbac(appDb, fixture);
+      const rbac = new RbacService(appDb, new FakeWarehouse(), new SemanticLayer());
       const repository = new FinancialQueryRepository(client);
       const service = new FinancialDataService(
-        new FinancialAccessService(rbac, new FakeAudit()),
+        new FinancialAccessService(rbac, new AuditService(appDb)),
         new FakeWarehouse(),
         repository,
       );
 
       const april = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           measureIds: ["actual", "budget", "rollover", "percentage"],
           comparisons: ["actual_vs_budget"],
@@ -64,7 +85,7 @@ test(
       });
 
       const filteredGl = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           measureIds: ["actual", "budget", "percentage"],
           filters: [{ dimensionId: "gl", operator: "eq", value: "GL-NO-BUDGET" }],
@@ -78,7 +99,7 @@ test(
       });
 
       const filteredUnmapped = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           measureIds: ["actual", "budget", "percentage"],
           filters: [{ dimensionId: "nursery_component", operator: "eq", value: "unmapped-GL" }],
@@ -92,7 +113,7 @@ test(
       });
 
       const gl = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           measureIds: ["actual", "budget", "percentage"],
           dimensionIds: ["gl"],
@@ -123,7 +144,7 @@ test(
       assert.equal(gl.totals.budget?.value, "125.00", "Budget must sum its leaves independently once");
 
       const components = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           measureIds: ["actual", "budget", "percentage"],
           dimensionIds: ["nursery_component"],
@@ -158,7 +179,7 @@ test(
       );
 
       const parent = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           measureIds: ["actual", "budget"],
           filters: [{ dimensionId: "nursery_component", operator: "eq", value: fixture.parentKey }],
@@ -168,16 +189,35 @@ test(
       assert.equal(parent.totals.budget?.value, "125.00", "parent Budget is the sum of leaf facts once");
 
       const costCenters = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           measureIds: ["actual"],
           dimensionIds: ["cost_center"],
         }),
       );
+      assert.equal(costCenters.rows.length, 3);
+      assert.equal(row(costCenters, { cost_center: "CC-A" }).values.actual?.value, "90.00");
+      assert.equal(row(costCenters, { cost_center: "CC-B" }).values.actual?.value, "30.00");
       assert.equal(row(costCenters, { cost_center: null }).values.actual?.value, "25.00");
 
+      for (const dimensionId of [
+        "section",
+        "consideration",
+        "short_name",
+        "contra_account",
+        "origin",
+        "location",
+      ] as const) {
+        const sourceDimension = await service.query(
+          identities.readerId,
+          selection(fixture, { dimensionIds: [dimensionId] }),
+        );
+        assert.equal(sourceDimension.rows.length, 1, `${dimensionId} must not gain a Budget-only row`);
+        assert.equal(row(sourceDimension, { [dimensionId]: "SOURCE-VALUE" }).values.actual?.value, "145.00");
+      }
+
       const allKnownPlants = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           plantIds: [fixture.dubCode, fixture.chirCode],
           measureIds: ["actual", "budget", "percentage"],
@@ -197,7 +237,7 @@ test(
       assert.deepEqual(allKnownPlants.totals.percentage, notApplicable());
 
       const partial = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           timeWindow: { kind: "month", from: "2099-05-01", to: "2099-05-31" },
           measureIds: ["actual", "budget", "percentage"],
@@ -215,7 +255,7 @@ test(
       assert.deepEqual(partial.totals.percentage, notApplicable());
 
       const emptyPartial = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           plantIds: [fixture.chirCode],
           timeWindow: { kind: "month", from: "2099-05-01", to: "2099-05-31" },
@@ -225,7 +265,7 @@ test(
       assert.equal(emptyPartial.totals.availableActualSubtotal?.value, "0.00");
 
       const outsideSource = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           timeWindow: { kind: "month", from: "2099-06-01", to: "2099-06-30" },
           measureIds: ["actual"],
@@ -235,7 +275,7 @@ test(
       assert.equal(outsideSource.totals.availableActualSubtotal, undefined);
 
       const confirmedEmpty = await service.query(
-        "reader",
+        identities.readerId,
         selection(fixture, {
           timeWindow: { kind: "month", from: "2099-07-01", to: "2099-07-31" },
           measureIds: ["actual", "budget", "percentage"],
@@ -246,32 +286,50 @@ test(
       assert.equal(confirmedEmpty.totals.budget?.value, "0.00");
       assert.deepEqual(confirmedEmpty.totals.percentage, notApplicable());
 
-      const deniedUser = user(fixture);
-      deniedUser.permissions = { ...deniedUser.permissions, actions: [] };
-      const deniedService = new FinancialDataService(
-        new FinancialAccessService(new FakeRbac(deniedUser), new FakeAudit()),
-        new FakeWarehouse(),
-        repository,
+      const emptyMissingGl = await service.query(
+        identities.readerId,
+        selection(fixture, {
+          timeWindow: { kind: "month", from: "2099-07-01", to: "2099-07-31" },
+          measureIds: ["actual", "budget", "rollover", "percentage"],
+          filters: [{ dimensionId: "gl", operator: "eq", value: "GL-NO-BUDGET" }],
+          comparisons: ["actual_vs_budget"],
+        }),
       );
-      await rejectsWithReason(deniedService.query("reader", selection(fixture)), "access_denied");
+      assert.deepEqual(emptyMissingGl.totals, {
+        actual: actual("0.00", drillId(emptyMissingGl.totals.actual)),
+        budget: { state: "no_gl_line", value: null, label: "No Budget line for this GL" },
+        rollover: { state: "no_gl_line", value: null, label: "No Roll-over line for this GL" },
+        percentage: notApplicable(),
+      });
+
+      await rejectsWithReason(service.query(identities.deniedId, selection(fixture)), "access_denied");
 
       const chirSelection = selection(fixture, { plantIds: [fixture.chirCode] });
-      const beforeRevocation = await service.query("reader", chirSelection);
+      const beforeRevocation = await service.query(identities.readerId, chirSelection);
       assert.deepEqual(beforeRevocation.scope, {
         plantIds: [fixture.chirCode],
         from: "2099-04-01",
         to: "2099-04-30",
       });
-      rbac.current = { ...user(fixture), scope: [{ attribute: "plant", value: fixture.dubCode }] };
-      await rejectsWithReason(service.query("reader", chirSelection), "access_denied");
+      await appDb
+        .delete(userScope)
+        .where(
+          and(
+            eq(userScope.userId, identities.readerId),
+            eq(userScope.attribute, "plant"),
+            eq(userScope.value, fixture.chirCode),
+          ),
+        );
+      await rejectsWithReason(service.query(identities.readerId, chirSelection), "access_denied");
       await rejectsWithReason(
-        service.query("reader", selection(fixture, { plantIds: [fixture.dubCode, "NOT-A-GRANTED-PLANT"] })),
+        service.query(identities.readerId, selection(fixture, { plantIds: [fixture.dubCode, "NOT-A-GRANTED-PLANT"] })),
         "access_denied",
       );
     } finally {
       await client.query("ROLLBACK");
       client.release();
       await pool.end();
+      await appPool.end();
     }
   },
 );
@@ -388,13 +446,20 @@ async function seedFixture(client: PoolClient): Promise<Fixture> {
   await client.query(
     `INSERT INTO agent_financial.financial_actual
        (batch_id, source_system, transaction_number, line_id, source_row_number, posting_date,
-        plant_id, cost_center_id, gl_account_id, source_plant_code, debit, credit, source_row)
-     VALUES ($1, 'SAP', 'MAPPED', '1', 1, '2099-04-10', $2, $3, $4, $5, 100, 10, '{}'),
-            ($1, 'SAP', 'SAME-GL-UNMAPPED', '1', 2, '2099-04-11', $2, $6, $4, $5, 30, 0, '{}'),
-            ($1, 'SAP', 'NO-BUDGET-GL', '1', 3, '2099-04-12', $2, NULL, $7, $5, 20, 0, '{}'),
-            ($1, 'SAP', 'MISSING-GL', '1', 4, '2099-04-13', $2, NULL, NULL, $5, 5, 0, '{}'),
-            ($1, 'SAP', 'PARTIAL-MAY', '1', 5, '2099-05-10', $2, $3, $4, $5, 50, 0, '{}'),
-            ($1, 'SAP', 'UNKNOWN-PLANT', '1', 6, '2099-04-14', NULL, NULL, $4, 'UNKNOWN', 999, 0, '{}')`,
+        plant_id, cost_center_id, gl_account_id, source_plant_code, debit, credit,
+        section, consideration, short_name, contra_account, origin, location, source_row)
+     VALUES ($1, 'SAP', 'MAPPED', '1', 1, '2099-04-10', $2, $3, $4, $5, 100, 10,
+             'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', '{}'),
+            ($1, 'SAP', 'SAME-GL-UNMAPPED', '1', 2, '2099-04-11', $2, $6, $4, $5, 30, 0,
+             'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', '{}'),
+            ($1, 'SAP', 'NO-BUDGET-GL', '1', 3, '2099-04-12', $2, NULL, $7, $5, 20, 0,
+             'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', '{}'),
+            ($1, 'SAP', 'MISSING-GL', '1', 4, '2099-04-13', $2, NULL, NULL, $5, 5, 0,
+             'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', '{}'),
+            ($1, 'SAP', 'PARTIAL-MAY', '1', 5, '2099-05-10', $2, $3, $4, $5, 50, 0,
+             'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', '{}'),
+            ($1, 'SAP', 'UNKNOWN-PLANT', '1', 6, '2099-04-14', NULL, NULL, $4, 'UNKNOWN', 999, 0,
+             'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', 'SOURCE-VALUE', '{}')`,
     [batchId, dubId, ccA, glA, dubCode, ccB, glNoBudget],
   );
   await client.query(
@@ -472,29 +537,47 @@ function sumMoney(values: string[]): string {
   return `${total / 100n}.${String(total % 100n).padStart(2, "0")}`;
 }
 
-function user(fixture: Fixture): AuthUser {
-  return {
-    id: "reader",
-    email: "reader@example.invalid",
-    display_name: "Reader",
-    is_active: true,
-    roles: ["reader"],
-    permissions: {
-      actions: ["report"],
-      domains: ["mis-statement"],
-      measureIds: [
-        "mis-statement.actual_net",
-        "mis-statement.budget_net",
-        "mis-statement.rollover_net",
-        "mis-statement.percentage",
-      ],
-      dimensionIds: ["leaf_key"],
-    },
-    scope: [
-      { attribute: "plant", value: fixture.dubCode },
-      { attribute: "plant", value: fixture.chirCode },
-    ],
-  };
+async function seedRbac(appDb: AppDb, fixture: Fixture): Promise<{ readerId: string; deniedId: string }> {
+  const suffix = randomUUID();
+  const readerRole = `financial-reader-${suffix}`;
+  const deniedRole = `financial-denied-${suffix}`;
+  await appDb.insert(roles).values([
+    { name: readerRole, label: "Financial query reader" },
+    { name: deniedRole, label: "Financial query denied reader" },
+  ]);
+  const financialGrants = [
+    { grantType: "domain", grantId: "mis-statement" },
+    { grantType: "measure", grantId: "mis-statement.actual_net" },
+    { grantType: "measure", grantId: "mis-statement.budget_net" },
+    { grantType: "measure", grantId: "mis-statement.rollover_net" },
+    { grantType: "measure", grantId: "mis-statement.percentage" },
+    { grantType: "dimension", grantId: "leaf_key" },
+  ];
+  await appDb
+    .insert(rolePerms)
+    .values([
+      { role: readerRole, grantType: "action", grantId: "report" },
+      ...financialGrants.map((grant) => ({ role: readerRole, ...grant })),
+      ...financialGrants.map((grant) => ({ role: deniedRole, ...grant })),
+    ]);
+  const identities = await appDb
+    .insert(users)
+    .values([
+      { email: `query-reader-${suffix}@example.invalid`, displayName: "Financial query reader" },
+      { email: `query-denied-${suffix}@example.invalid`, displayName: "Financial query denied reader" },
+    ])
+    .returning({ id: users.id });
+  const [readerId, deniedId] = identities.map(({ id }) => id);
+  await appDb.insert(userRoles).values([
+    { userId: readerId!, role: readerRole },
+    { userId: deniedId!, role: deniedRole },
+  ]);
+  await appDb.insert(userScope).values([
+    { userId: readerId!, attribute: "plant", value: fixture.dubCode },
+    { userId: readerId!, attribute: "plant", value: fixture.chirCode },
+    { userId: deniedId!, attribute: "plant", value: fixture.dubCode },
+  ]);
+  return { readerId: readerId!, deniedId: deniedId! };
 }
 
 async function rejectsWithReason(promise: Promise<unknown>, reason: string): Promise<void> {
@@ -505,19 +588,6 @@ async function rejectsWithReason(promise: Promise<unknown>, reason: string): Pro
     assert.deepEqual((response as { details: unknown }).details, { reason });
     return true;
   });
-}
-
-class FakeRbac {
-  constructor(public current: AuthUser) {}
-  async resolveUser(): Promise<AuthUser> {
-    return this.current;
-  }
-}
-
-class FakeAudit {
-  async writeRequestEvent(): Promise<number> {
-    return 1;
-  }
 }
 
 class FakeWarehouse implements Warehouse {
@@ -542,5 +612,17 @@ function assertDisposableWarehouse(
     `${host}:${port}/${database}`,
     "127.0.0.1:5434/warehouse",
     "financial query proof requires 127.0.0.1:5434/warehouse",
+  );
+}
+
+function assertDisposableAppDatabase(
+  host: string | undefined,
+  port: string | undefined,
+  database: string | undefined,
+): void {
+  assert.equal(
+    `${host}:${port}/${database}`,
+    "127.0.0.1:5435/threef",
+    "financial query proof requires 127.0.0.1:5435/threef",
   );
 }

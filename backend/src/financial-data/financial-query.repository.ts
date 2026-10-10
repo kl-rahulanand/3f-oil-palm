@@ -11,6 +11,7 @@ import { buildFinancialActualQuery, resolveFinancialScope, type ResolvedFinancia
 
 export const FINANCIAL_QUERY_REPOSITORY = "FINANCIAL_QUERY_REPOSITORY";
 const UNMAPPED_COMPONENT = "unmapped-GL";
+const BUDGET_DIMENSIONS = new Set<FinancialDimensionId>(["plant", "month", "gl", "nursery_component"]);
 const MONEY_SCALE = 100n;
 const PERCENTAGE_SCALE = 1_000_000n;
 
@@ -68,7 +69,10 @@ export class FinancialQueryRepository {
     const scope = await resolveFinancialScope(database, selection);
     const generation = await this.generation(database, scope.mappingVersionId);
     const actualFacts = await this.actualFacts(database, scope);
-    const budgetFacts = await this.budgetFacts(database, scope);
+    const needsBudgetFacts =
+      selection.measureIds.some((measureId) => measureId !== "actual") ||
+      selection.comparisons?.includes("actual_vs_budget");
+    const budgetFacts = needsBudgetFacts ? await this.budgetFacts(database, scope) : [];
     const ancestorKeys = await this.componentAncestors(database, scope.mappingVersionId);
     const coverage = buildCoverage(selection, scope, generation);
     const totals: Aggregate = { dimensions: {}, actualFacts, budgetFacts };
@@ -257,8 +261,10 @@ function aggregateGroups(
   for (const fact of actualFacts) {
     for (const dimensions of factCoordinates(grouping, fact, ancestorKeys)) add(dimensions, fact, "actual");
   }
-  for (const fact of budgetFacts) {
-    for (const dimensions of factCoordinates(grouping, fact, ancestorKeys)) add(dimensions, fact, "budget");
+  if (grouping.every((dimension) => BUDGET_DIMENSIONS.has(dimension))) {
+    for (const fact of budgetFacts) {
+      for (const dimensions of factCoordinates(grouping, fact, ancestorKeys)) add(dimensions, fact, "budget");
+    }
   }
   return [...groups.values()].sort((left, right) =>
     JSON.stringify(grouping.map((dimension) => left.dimensions[dimension] ?? "\uffff")).localeCompare(
@@ -305,8 +311,7 @@ function resultValues(
   const component = aggregateCoordinate(selection, aggregate.dimensions, "nursery_component");
   const gl = aggregateCoordinate(selection, aggregate.dimensions, "gl");
   const unmapped = component === UNMAPPED_COMPONENT;
-  const missingGlLine =
-    gl != null && allBudgetLoaded && aggregate.actualFacts.length > 0 && aggregate.budgetFacts.length === 0;
+  const missingGlLine = gl != null && allBudgetLoaded && aggregate.budgetFacts.length === 0;
   const actualValue = completeActual
     ? ({ state: "available", value: paiseToMoney(actualTotal), label: "Actual", drilldownId } as const)
     : ({ state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null } as const);
@@ -356,7 +361,7 @@ function resultValues(
     const closingFacts = aggregate.budgetFacts.filter(({ month }) => month === closingMonth);
     values.rollover = unmapped
       ? { state: "unmapped", value: null, label: "No Roll-over assigned to Unmapped" }
-      : gl != null && aggregate.actualFacts.length > 0 && closingLoaded && closingFacts.length === 0
+      : gl != null && closingLoaded && closingFacts.length === 0
         ? { state: "no_gl_line", value: null, label: "No Roll-over line for this GL" }
         : closingLoaded
           ? {
