@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-10T18:08:53+00:00
-read_hash: b333469b5da64f8044e6ef8cd0a309baef88ac7f
-round: 14
-passed: no
-doc_seen: b333469b5da64f8044e6ef8cd0a309baef88ac7f
+read_at: 2026-10-10T18:12:19+00:00
+read_hash: eb1b30b017349733f7229d6c956a13bd991703ae
+round: 15
+passed: yes
+doc_seen: eb1b30b017349733f7229d6c956a13bd991703ae
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: d0ffb982f3bc30c735508b69001835f641f1320b
+notes_seen: 392c032ba1532fc057797dc5902e9132634ff75d
 ---
 
 # Cold read notes
@@ -298,3 +298,7 @@ No findings.
 42. Unproven: item 3: an evicted result’s handle is denied at the public drill API.
    Disposition: keep: API now rechecks owner conversation result membership before resolving any transaction handle and proves an evicted bundle returns result_expired with no rows even while the underlying handle remains valid.
    MEMORY can remove membership, but `FinancialDataService.transactions` resolves a still-valid drill handle independently. API must recheck result membership before that call, and its tests must prove an evicted handle returns `result_expired` with no transactions.
+
+## Round 15
+
+No findings.
