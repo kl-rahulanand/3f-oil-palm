@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { FinancialQueryResult, FinancialSelection } from "@3f/contract";
+import type { Pool, QueryConfig } from "pg";
+import { FinancialQueryRepository } from "./financial-query.repository";
 import { buildFinancialMonthlyDeltas, completeMonthlyCoordinates, sumClosingMonthRollover } from "./financial-trend";
 
 test("done-when 2: April financial years and cross-year ranges retain every chronological month", () => {
@@ -26,6 +28,19 @@ test("done-when 2: April financial years and cross-year ranges retain every chro
   assert.deepEqual(
     emptyPlants.map(({ plant, month }) => `${plant}:${month}`),
     ["CHIR:2026-04-01", "CHIR:2026-05-01", "DUB:2026-04-01", "DUB:2026-05-01"],
+  );
+
+  const selectedGls = completeMonthlyCoordinates(
+    {
+      ...selection("2026-04-01", "2026-05-31"),
+      dimensionIds: ["gl", "month"],
+      filters: [{ dimensionId: "gl", operator: "in", values: ["5001", "5002"] }],
+    },
+    [{ gl: "5001", month: "2026-04-01" }],
+  );
+  assert.deepEqual(
+    selectedGls.map(({ gl, month }) => `${gl}:${month}`),
+    ["5001:2026-04-01", "5001:2026-05-01", "5002:2026-04-01", "5002:2026-05-01"],
   );
 });
 
@@ -83,7 +98,7 @@ test("done-when 1 and 2: partial Actual subtotals stay table-only and never beco
   );
 });
 
-test("done-when 2: a period Roll-over uses only the stored closing-month balances", () => {
+test("done-when 2: a period Roll-over uses only the stored closing-month balances", async () => {
   assert.equal(
     sumClosingMonthRollover(
       [
@@ -96,7 +111,56 @@ test("done-when 2: a period Roll-over uses only the stored closing-month balance
     1_500n,
   );
   assert.equal(sumClosingMonthRollover([{ month: "2026-04-01", rollover: 10_000n }], "2026-05-01"), 0n);
+
+  const result = await new FinancialQueryRepository(missingClosingMonthDatabase()).query({
+    ...selection("2026-04-01", "2026-05-31"),
+    measureIds: ["rollover"],
+  });
+  assert.deepEqual(result.totals.rollover, {
+    state: "not_loaded",
+    value: null,
+    label: "Budget not loaded for this Plant or month",
+  });
 });
+
+function missingClosingMonthDatabase(): Pick<Pool, "query"> {
+  return {
+    query: async (input: string | QueryConfig) => {
+      const sql = typeof input === "string" ? input : input.text;
+      if (sql.includes("dataset_key = $1 AND state = 'active'")) return rows([{ id: "batch-id" }]);
+      if (sql.includes("FROM agent_financial.plant")) return rows([{ id: "plant-id", code: "DUB" }]);
+      if (sql.includes("source_reporting_months::text[]")) {
+        return rows([
+          {
+            id: "batch-id",
+            source_reporting_months: ["2026-04-01"],
+            actual_coverage: [],
+            budget_coverage: [{ plantId: "plant-id", month: "2026-04-01", completeness: "confirmed" }],
+          },
+        ]);
+      }
+      if (sql.includes("FROM contributing_actuals")) return rows([]);
+      if (sql.includes("FROM agent_financial.nursery_budget n")) {
+        return rows([
+          {
+            plant: "DUB",
+            month: "2026-04-01",
+            gl: null,
+            nursery_component: "seedlings",
+            budget_amount: "10.00",
+            rollover_amount: "10.00",
+          },
+        ]);
+      }
+      if (sql.includes("WITH RECURSIVE ancestry")) return rows([]);
+      throw new Error(`Unexpected financial repository query: ${sql}`);
+    },
+  } as unknown as Pick<Pool, "query">;
+}
+
+function rows<T>(items: T[]) {
+  return { rows: items };
+}
 
 function selection(from: string, to: string, kind: "range" | "financial_ytd" = "range"): FinancialSelection {
   return {

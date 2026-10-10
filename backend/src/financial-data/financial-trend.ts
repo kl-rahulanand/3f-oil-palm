@@ -133,7 +133,7 @@ function selectionValues(selection: FinancialSelection, dimensionId: FinancialDi
     const values = filter.operator === "in" ? new Set(filter.values) : new Set([filter.value]);
     candidates = candidates ? new Set([...candidates].filter((value) => values.has(value))) : values;
   }
-  return candidates?.size === 1 ? [...candidates] : [];
+  return candidates ? [...candidates] : [];
 }
 
 function coordinateProduct(
