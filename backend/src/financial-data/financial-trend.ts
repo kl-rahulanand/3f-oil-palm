@@ -14,6 +14,7 @@ export type FinancialCoordinates = Partial<Record<FinancialDimensionId, string |
 export function completeMonthlyCoordinates(
   selection: FinancialSelection,
   coordinates: readonly FinancialCoordinates[],
+  catalogCoordinates: readonly FinancialCoordinates[] = [],
 ): FinancialCoordinates[] {
   if (!selection.dimensionIds.includes("month")) return [...coordinates];
 
@@ -23,6 +24,7 @@ export function completeMonthlyCoordinates(
     bases.set(coordinateKey(otherDimensions, base), Object.fromEntries(otherDimensions.map((id) => [id, base[id]])));
 
   coordinates.forEach((coordinate) => addBase(coordinate));
+  catalogCoordinates.forEach((coordinate) => addBase(coordinate));
   if (!otherDimensions.length) addBase({});
 
   if (otherDimensions.length === 1) {

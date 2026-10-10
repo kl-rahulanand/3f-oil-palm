@@ -87,6 +87,43 @@ test("done-when 1 and 2: repository keeps every explicitly selected GL gap witho
   );
 });
 
+test("done-when 1 and 2: repository retains a catalog-valid empty coordinate across noncontinuous source months", async () => {
+  const result = await new FinancialQueryRepository(catalogGapDatabase()).query({
+    ...selection("2026-04-01", "2026-06-30"),
+    dimensionIds: ["plant", "cost_center", "month"],
+    filters: [{ dimensionId: "cost_center", operator: "eq", value: "DUB-EMPTY" }],
+  });
+
+  assert.deepEqual(
+    result.rows.map(({ dimensions, values }) => ({
+      dimensions,
+      actual: values.actual?.state,
+      value: values.actual?.value,
+      availableSubtotal: values.availableActualSubtotal?.value,
+    })),
+    [
+      {
+        dimensions: { plant: "DUB", cost_center: "DUB-EMPTY", month: "2026-04-01" },
+        actual: "available",
+        value: "0.00",
+        availableSubtotal: undefined,
+      },
+      {
+        dimensions: { plant: "DUB", cost_center: "DUB-EMPTY", month: "2026-05-01" },
+        actual: "not_loaded",
+        value: null,
+        availableSubtotal: undefined,
+      },
+      {
+        dimensions: { plant: "DUB", cost_center: "DUB-EMPTY", month: "2026-06-01" },
+        actual: "not_loaded",
+        value: null,
+        availableSubtotal: "0.00",
+      },
+    ],
+  );
+});
+
 test("done-when 2: monthly changes keep exact money and reject zero, negative, or missing percentage baselines", () => {
   const result = trendResult([
     ["2025-04-01", available("100.00")],
@@ -164,6 +201,16 @@ test("done-when 2: a period Roll-over uses only the stored closing-month balance
     value: null,
     label: "Budget not loaded for this Plant or month",
   });
+
+  const storedClosing = await new FinancialQueryRepository(storedClosingRolloverDatabase()).query({
+    ...selection("2026-04-01", "2026-05-31"),
+    measureIds: ["rollover"],
+  });
+  assert.deepEqual(storedClosing.totals.rollover, {
+    state: "available",
+    value: "15.00",
+    label: "Roll-over",
+  });
 });
 
 function missingClosingMonthDatabase(): Pick<Pool, "query"> {
@@ -228,10 +275,52 @@ function selectedGlGapDatabase(): Pick<Pool, "query"> {
   });
 }
 
+function catalogGapDatabase(): Pick<Pool, "query"> {
+  return financialRepositoryDatabase({
+    sourceMonths: ["2026-04-01", "2026-06-01"],
+    actualCoverage: [{ plantId: "plant-id", month: "2026-04-01", completeness: "confirmed" }],
+    actualRows: [],
+    catalogRows: [
+      {
+        plant: "DUB",
+        gl: null,
+        cost_center: "DUB-EMPTY",
+        nursery_component: null,
+        section: null,
+        consideration: null,
+        short_name: null,
+        contra_account: null,
+        origin: null,
+        location: null,
+      },
+    ],
+  });
+}
+
+function storedClosingRolloverDatabase(): Pick<Pool, "query"> {
+  return financialRepositoryDatabase({
+    sourceMonths: [],
+    actualCoverage: [],
+    actualRows: [],
+    budgetCoverage: [
+      { plantId: "plant-id", month: "2026-04-01", completeness: "confirmed" },
+      { plantId: "plant-id", month: "2026-05-01", completeness: "confirmed" },
+    ],
+    budgetRows: [
+      budgetRow("2026-04-01", "100.00"),
+      budgetRow("2026-05-01", "-25.00"),
+      budgetRow("2026-05-01", "40.00"),
+    ],
+  });
+}
+
 function financialRepositoryDatabase(input: {
   sourceMonths: string[];
   actualCoverage: Array<{ plantId: string; month: string; completeness: "confirmed" }>;
   actualRows: Array<Record<string, unknown> & { id: string }>;
+  catalogRows?: Array<Record<string, string | null>>;
+  budgetCoverage?: Array<{ plantId: string; month: string; completeness: "confirmed" }>;
+  budgetRows?: Array<Record<string, unknown>>;
 }): Pick<Pool, "query"> {
   return {
     query: async (query: string | QueryConfig) => {
@@ -244,16 +333,29 @@ function financialRepositoryDatabase(input: {
             id: "batch-id",
             source_reporting_months: input.sourceMonths,
             actual_coverage: input.actualCoverage,
-            budget_coverage: [],
+            budget_coverage: input.budgetCoverage ?? [],
           },
         ]);
       }
       if (sql.includes("FROM contributing_actuals")) return rows(input.actualRows.map(({ id }) => ({ id })));
       if (sql.includes("WHERE a.id = ANY")) return rows(input.actualRows);
+      if (sql.includes("financial coordinate catalog")) return rows(input.catalogRows ?? []);
+      if (sql.includes("FROM agent_financial.nursery_budget n")) return rows(input.budgetRows ?? []);
       if (sql.includes("WITH RECURSIVE ancestry")) return rows([]);
       throw new Error(`Unexpected financial repository query: ${sql}`);
     },
   } as unknown as Pick<Pool, "query">;
+}
+
+function budgetRow(month: string, rolloverAmount: string) {
+  return {
+    plant: "DUB",
+    month,
+    gl: null,
+    nursery_component: "seedlings",
+    budget_amount: "0.00",
+    rollover_amount: rolloverAmount,
+  };
 }
 
 function exactActual(value: string) {
