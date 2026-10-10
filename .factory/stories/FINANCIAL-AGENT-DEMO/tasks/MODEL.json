@@ -1,0 +1,10 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-MODEL",
+  "status": "started",
+  "steps": [
+    {
+      "at": "2026-10-10T09:56:23+00:00",
+      "step": "start"
+    }
+  ]
+}
