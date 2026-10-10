@@ -1,6 +1,6 @@
 import { ChatAnthropic } from "@langchain/anthropic";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import type { FinancialSelection } from "@3f/contract";
+import { financialDimensionIdSchema, financialSelectionSchema, type FinancialSelection } from "@3f/contract";
 
 import type { FinancialChatModelSettings } from "../config";
 import { FINANCIAL_CHAT_TOOLS } from "./financial-chat.tools";
@@ -19,6 +19,8 @@ const INSTRUCTION_MODULES = [
 
 const CORE_INSTRUCTION =
   "You select questions for the governed financial chat. Return tool calls only. Authorization, calculations, results, and transaction data remain server-side.";
+
+const pendingSelectionSchema = financialSelectionSchema.innerType().partial().strict();
 
 type StaticInstructionBlock = {
   type: "text";
@@ -177,52 +179,52 @@ function boundedText(value: string, field: string, maximum = MAX_METADATA_LENGTH
   return normalized;
 }
 
+function permittedKey(dimensionId: string, value: string): string {
+  return `${dimensionId}\u0000${value}`;
+}
+
+function assertCurrentlyPermitted(
+  selection: Pick<FinancialSelection, "plantIds" | "filters"> | Partial<FinancialSelection>,
+  permittedValues: ReadonlySet<string>,
+): void {
+  for (const plantId of selection.plantIds ?? []) {
+    if (!permittedValues.has(permittedKey("plant", plantId))) throw invalidResponse("retained Plant is not permitted");
+  }
+  for (const filter of selection.filters ?? []) {
+    const values = filter.operator === "in" ? filter.values : [filter.value];
+    if (values.some((value) => !permittedValues.has(permittedKey(filter.dimensionId, value)))) {
+      throw invalidResponse("retained filter value is not permitted");
+    }
+  }
+}
+
 function dynamicContext(request: FinancialSelectorRequest): string {
   const userText = boundedText(request.userText, "userText", MAX_QUESTION_LENGTH);
   if (request.permittedVocabulary.length > MAX_VOCABULARY_ITEMS) {
     throw invalidResponse("permittedVocabulary is too large");
   }
-  const permittedVocabulary = request.permittedVocabulary.map(({ dimensionId, value, label }) => ({
-    dimensionId: boundedText(dimensionId, "dimensionId"),
-    value: boundedText(value, "value"),
-    label: boundedText(label, "label"),
-  }));
-  const confirmedSelection = request.confirmedSelection
-    ? FINANCIAL_CHAT_TOOLS.find(({ name }) => name === "query_financials")?.inputSchema.parse(
-        request.confirmedSelection,
-      )
+  const permittedVocabulary = request.permittedVocabulary.map(({ dimensionId, value, label }) => {
+    const parsedDimension = financialDimensionIdSchema.safeParse(dimensionId);
+    if (!parsedDimension.success) throw invalidResponse("dimensionId is invalid");
+    return {
+      dimensionId: parsedDimension.data,
+      value: boundedText(value, "value"),
+      label: boundedText(label, "label"),
+    };
+  });
+  const permittedValues = new Set(
+    permittedVocabulary.map(({ dimensionId, value }) => permittedKey(dimensionId, value)),
+  );
+  const confirmedParse = request.confirmedSelection
+    ? financialSelectionSchema.safeParse(request.confirmedSelection)
     : null;
-  const pending = request.pendingSelection;
-  const pendingSelection = pending
-    ? {
-        ...(pending.measureIds ? { measureIds: [...pending.measureIds] } : {}),
-        ...(pending.dimensionIds ? { dimensionIds: [...pending.dimensionIds] } : {}),
-        ...(pending.plantIds ? { plantIds: [...pending.plantIds] } : {}),
-        ...(pending.timeWindow
-          ? {
-              timeWindow: {
-                kind: pending.timeWindow.kind,
-                from: pending.timeWindow.from,
-                to: pending.timeWindow.to,
-              },
-            }
-          : {}),
-        ...(pending.filters
-          ? {
-              filters: pending.filters.map((filter) =>
-                "values" in filter
-                  ? { dimensionId: filter.dimensionId, operator: filter.operator, values: [...filter.values] }
-                  : {
-                      dimensionId: filter.dimensionId,
-                      operator: filter.operator,
-                      value: filter.value,
-                    },
-              ),
-            }
-          : {}),
-        ...(pending.comparisons ? { comparisons: [...pending.comparisons] } : {}),
-      }
-    : null;
+  if (confirmedParse && !confirmedParse.success) throw invalidResponse("confirmed selection is invalid");
+  const confirmedSelection = confirmedParse?.data ?? null;
+  const pendingParse = request.pendingSelection ? pendingSelectionSchema.safeParse(request.pendingSelection) : null;
+  if (pendingParse && !pendingParse.success) throw invalidResponse("pending selection is invalid");
+  const pendingSelection = pendingParse?.data ?? null;
+  if (confirmedSelection) assertCurrentlyPermitted(confirmedSelection, permittedValues);
+  if (pendingSelection) assertCurrentlyPermitted(pendingSelection, permittedValues);
   return JSON.stringify({
     userText,
     confirmedSelection,
@@ -348,10 +350,12 @@ export class FinancialSelectorProvider {
     };
     let attempts = 0;
     let response: FinancialSelectorVendorResponse;
+    let toolCalls: FinancialSelectorToolCall[] = [];
     while (true) {
       attempts += 1;
       try {
         response = await this.client.invoke(invocation);
+        toolCalls = validateToolCalls(response);
         this.recordAttempt({ event: "financial_selector_attempt", attempt: attempts, outcome: "success" });
         break;
       } catch (error) {
@@ -378,7 +382,6 @@ export class FinancialSelectorProvider {
       }
     }
 
-    const toolCalls = validateToolCalls(response);
     const usage = response.usage;
     const status = cacheStatus(usage);
     this.options.recordTelemetry?.({

@@ -28,6 +28,53 @@ const selection: FinancialSelection = {
   filters: [],
 };
 
+const validToolOutputs = [
+  {
+    measures: [{ id: "actual", label: "Actual", description: "Debit minus Credit from source transactions." }],
+    dimensions: [
+      {
+        id: "plant",
+        label: "Plant",
+        description: "An authorized operating Plant.",
+        supportedMeasureIds: ["actual"],
+      },
+    ],
+    combinations: [{ measureIds: ["actual"], dimensionIds: ["plant"] }],
+    timeWindows: ["month", "range", "financial_ytd"],
+    fiscalYearStartMonth: 4,
+    limits: {
+      maxAggregateRows: 199,
+      maxPreparedActualScopes: 200,
+      preparedTransactionRows: 10,
+      defaultContinuationRows: 20,
+      maxContinuationRows: 100,
+    },
+  },
+  { matches: [{ dimensionId: "plant", value: "DUB", label: "DUB", aliases: [] }] },
+  {
+    resultId: "result-1",
+    selection,
+    scope: { plantIds: ["DUB"], from: "2026-08-01", to: "2026-08-31" },
+    rows: [],
+    totals: {
+      actual: { state: "available", value: "10.00", label: "Actual", drilldownId: "drill-1" },
+    },
+    coverage: [{ plantId: "DUB", month: "2026-08-01", actual: "complete", budget: "loaded" }],
+  },
+  {
+    drilldownId: "drill-1",
+    transactions: [],
+    page: 1,
+    limit: 10,
+    totalItems: 0,
+    totalPages: 1,
+    matchingActualTotal: "0.00",
+    preparedSize: 10,
+    defaultContinuationLimit: 20,
+    pinnedContinuationLimit: null,
+  },
+] as const;
+
 function toolResponse(overrides: Partial<FinancialSelectorVendorResponse> = {}): FinancialSelectorVendorResponse {
   return {
     toolCalls: [{ name: "query_financials", input: selection }],
@@ -52,11 +99,73 @@ test("the four selector tools keep strict meaningful input and output contracts"
     assert.ok(definition.description.length >= 60, `${definition.name} needs a meaningful description`);
     assert.equal(definition.inputSchema.safeParse(validInputs[index]).success, true);
     assert.equal(definition.inputSchema.safeParse({ ...validInputs[index], unexpected: true }).success, false);
+    assert.equal(definition.outputSchema.safeParse(validToolOutputs[index]).success, true);
     assert.equal(definition.outputSchema.safeParse({ unexpected: true }).success, false);
     assert.equal(definition.inputSchema, FINANCIAL_TOOL_DEFINITIONS[index]?.inputSchema);
     assert.equal(definition.outputSchema, FINANCIAL_TOOL_DEFINITIONS[index]?.outputSchema);
     assert.doesNotMatch(JSON.stringify(definition.modelSchema), /DUB|AP-AGRI|permittedValues/);
   }
+});
+
+test("retained selections are runtime-validated and limited to current permitted vocabulary", async () => {
+  const invocations: FinancialSelectorInvocation[] = [];
+  const provider = new FinancialSelectorProvider(settings, {
+    client: {
+      invoke: async (invocation) => {
+        invocations.push(invocation);
+        return toolResponse();
+      },
+    },
+  });
+  const request = {
+    userText: "question",
+    confirmedSelection: null,
+    pendingSelection: null,
+    permittedVocabulary: [{ dimensionId: "plant", value: "AP-AGRI", label: "AP-AGRI" }],
+  };
+
+  await assert.rejects(
+    provider.select({ ...request, confirmedSelection: selection }),
+    (error: unknown) =>
+      error instanceof FinancialSelectorVendorError && error.code === "FINANCIAL_MODEL_INVALID_RESPONSE",
+  );
+  await assert.rejects(
+    provider.select({
+      ...request,
+      pendingSelection: { plantIds: ["DUB"] },
+    }),
+    (error: unknown) =>
+      error instanceof FinancialSelectorVendorError && error.code === "FINANCIAL_MODEL_INVALID_RESPONSE",
+  );
+  await assert.rejects(
+    provider.select({
+      ...request,
+      pendingSelection: {
+        filters: [
+          {
+            dimensionId: "plant",
+            operator: "in",
+            values: Array.from({ length: 201 }, () => "AP-AGRI"),
+          },
+        ],
+      } as Partial<FinancialSelection>,
+    }),
+    (error: unknown) =>
+      error instanceof FinancialSelectorVendorError && error.code === "FINANCIAL_MODEL_INVALID_RESPONSE",
+  );
+  await provider.select({
+    ...request,
+    pendingSelection: {
+      plantIds: ["AP-AGRI"],
+      filters: [{ dimensionId: "plant", operator: "eq", value: "AP-AGRI" }],
+    },
+  });
+  assert.deepEqual(JSON.parse(invocations.at(-1)?.dynamicContext ?? "").pendingSelection, {
+    plantIds: ["AP-AGRI"],
+    filters: [{ dimensionId: "plant", operator: "eq", value: "AP-AGRI" }],
+  });
+
+  assert.equal(invocations.length, 1);
 });
 
 test("the cached static prefix is byte-identical across grants and precedes dynamic context", async () => {
@@ -298,8 +407,19 @@ test("timeouts and unavailable or malformed vendor replies become typed safe err
   });
 
   await t.test("malformed", async () => {
+    const traces: unknown[] = [];
+    const logs: unknown[] = [];
+    const telemetry: unknown[] = [];
     const provider = new FinancialSelectorProvider(settings, {
-      client: { invoke: async () => ({ toolCalls: [null] }) as unknown as FinancialSelectorVendorResponse },
+      client: {
+        invoke: async () =>
+          ({
+            toolCalls: [{ name: "query_financials", input: { payload: "secret-vendor-payload" } }],
+          }) as unknown as FinancialSelectorVendorResponse,
+      },
+      trace: (event) => traces.push(event),
+      log: (event) => logs.push(event),
+      recordTelemetry: (event) => telemetry.push(event),
     });
     await assert.rejects(
       provider.select({
@@ -311,5 +431,16 @@ test("timeouts and unavailable or malformed vendor replies become typed safe err
       (error: unknown) =>
         error instanceof FinancialSelectorVendorError && error.code === "FINANCIAL_MODEL_INVALID_RESPONSE",
     );
+    assert.deepEqual(traces, [
+      {
+        event: "financial_selector_attempt",
+        attempt: 1,
+        outcome: "failure",
+        errorCode: "FINANCIAL_MODEL_INVALID_RESPONSE",
+      },
+    ]);
+    assert.deepEqual(logs, traces);
+    assert.equal((telemetry[0] as { attempts?: number } | undefined)?.attempts, 1);
+    assert.doesNotMatch(JSON.stringify({ traces, logs, telemetry }), /secret-vendor-payload/);
   });
 });
