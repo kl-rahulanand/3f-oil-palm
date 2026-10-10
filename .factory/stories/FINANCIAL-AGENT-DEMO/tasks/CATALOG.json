@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "bdd8b70e69d39a93588177d17d24765f72bc4efecfbe94122085e4db06f75369",
     "commit": "6a48ed7bd510cfdc4b4337fd2a0495de8f086a96",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/CATALOG.json:1 this is mandatory Forge lifecycle state required by forge close, forge merge, and board tracking; removing it made Forge report that the task was never started, while review fingerprints exclude .factory bookkeeping from product scope",
+        "finding": 3,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The catalog advertises `gl` for Actual, Budget, Roll-over, and Percentage, but this lookup selects GLs only from active `financial_actual` rows. A permitted Plant can therefore have a Budget component mapped to a GL that has no current Actual transaction and that GL will be absent from `findValues`, preventing a valid governed Budget selection. Although the month lookup now unions both sources, the equivalent GL coverage gap remains. This is independent of the coordinator's combination ruling: the declared GL capability is valid, but its vocabulary source is incomplete.",
