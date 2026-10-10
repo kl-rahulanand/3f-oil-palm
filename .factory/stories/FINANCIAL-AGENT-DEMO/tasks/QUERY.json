@@ -2,28 +2,21 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-QUERY",
   "review": {
     "blocking_level": "P1",
-    "changed": "bc2cb039c03843d59f2519802cd49b1ac1c6668856c278812a5a52aa3d7a9f6f",
-    "commit": "cbd9739b2d0b0c27d93504f9412ea5f5d111575c",
+    "changed": "35550573c8565967d04134fab74745f4319a4cde5874ebbfcf87ee7ea4228836",
+    "commit": "5aadd331008671e3ca2c3481f9b87756c008a26e",
     "dismissals": [],
     "findings": [
       {
-        "body": "The database proof exercises scalar queries and several single-dimension groupings, but it never groups by `plant` or `month`, does not enumerate every `FINANCIAL_CATALOG.combinations` entry, and never asserts that Budget is refused for Actual-only dimensions such as `cost_center`. Consequently regressions in supported combinations or reintroduction of Cost Center Budget allocation could leave this required user-facing proof green.",
-        "file": "backend/src/financial-data/financial-query.db.test.ts",
-        "line": 191,
+        "body": "`resultValues` derives relevant coverage only from row dimensions and ignores Plant/month filters. For a scalar query covering April\u2013May but filtered to April, May's unconfirmed or missing coverage still makes the complete April Actual appear `not_loaded` with only an available subtotal; Budget and percentage states can likewise be degraded. Plant filters have the same problem. The database test exercises GL/component filters but has no Plant/month-filter case that would catch this, violating the required exact coverage labels for supported dimensions.",
+        "file": "backend/src/financial-data/financial-query.repository.ts",
+        "line": 310,
         "priority": "P1",
-        "title": "Not done: all catalog combinations and prohibited Budget allocations have end-to-end query coverage"
-      },
-      {
-        "body": "The real-RBAC proof gives the successful role every required domain, measure, and dimension grant, while its denied role differs only by lacking the `report` action; the only other negative case revokes Plant scope. It never removes `mis-statement`, any of the four required measure grants, or `leaf_key` individually. Dropping enforcement of any of those required grants would therefore leave the end-to-end authorization test green.",
-        "file": "backend/src/financial-data/financial-query.db.test.ts",
-        "line": 530,
-        "priority": "P1",
-        "title": "Not done: each required RBAC grant is independently denied through RbacService"
+        "title": "Not done: filtered Plant/month queries use the filtered scope for coverage labels"
       },
       {
         "body": "Actual values still receive identifiers derived only from a random result UUID; no matching transactions, full count/total, immutable source and mapping pins, permitted scope, or pagination state are prepared or retained. Thus clickable Actuals and available Actual subtotals cannot yet open the required transaction sets. Per the stage assignment, the later DRILL/PAGES task must implement these handles and paging semantics.",
         "file": "backend/src/financial-data/financial-query.repository.ts",
-        "line": 77,
+        "line": 81,
         "priority": "P2",
         "title": "Later: DRILL/PAGES must replace synthetic drilldown IDs with prepared handles"
       },
@@ -36,7 +29,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "8a274fa0e52dc3b85b533f19d86d8a26100da0ba3d4fa712bf614a1e3cd0db61"
+    "tree": "2a77d1d79943bd8f60035882c80c5cfc4bbe9f0bff46b060bd4ce1b94724d4d4"
   },
   "status": "fixing",
   "steps": [
@@ -54,6 +47,10 @@
     },
     {
       "at": "2026-10-10T08:17:13+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T08:39:22+00:00",
       "step": "review"
     }
   ]
