@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-10T17:51:12+00:00
-read_hash: b8edf1cc9b64efb6581b8a6a61aca524d3e46ef9
-round: 11
+read_at: 2026-10-10T18:03:00+00:00
+read_hash: dd2ecb1d3b6b49afeb1b68b27a4b2ee4fd47784f
+round: 12
 passed: no
-doc_seen: b8edf1cc9b64efb6581b8a6a61aca524d3e46ef9
+doc_seen: dd2ecb1d3b6b49afeb1b68b27a4b2ee4fd47784f
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: f6564b4cbe7b711a9d50c92d9d519230fe69e627
+notes_seen: fe54717a129b769461982897f56c4377ea8418f1
 ---
 
 # Cold read notes
@@ -272,3 +272,17 @@ No findings.
 37. Trap: frontend test builds overwrite `.next`: items 1–4.
    Disposition: keep: task rules now stop the dev server and move frontend/.next aside before frontend test builds in CHAT, VALUES, DETAIL and DEMO; WIRING is backend-only.
    CHAT, VALUES, DETAIL, INTEGRATE and DEMO need the existing dev server stopped and `.next` moved aside before worker builds; the task rules omit this safeguard.
+
+## Round 12
+
+38. Gap: MEMORY’s new limits and `CONTEXT_LOST` response conflict with merged response contracts.
+   Disposition: keep: MEMORY now reuses the merged 60-minute, 20/200-conversation, 40-turn and three-result-bundle limits plus the existing capacity and context_expired reasons without changing RESPONSE.
+   `FINANCIAL_CHAT_LIMITS` pins 60 minutes, 20/200 conversations, 40 turns and three result bundles; its strict error schema permits `context_expired`, not `CONTEXT_LOST`. MEMORY cannot implement this scoped change without either retaining those contracts or explicitly amending RESPONSE and its tests.
+
+39. Unproven: item 1: a named Cost Center filter returns only its exact Actual rows and matching drill.
+   Disposition: keep: ANSWER now names the owner-bound exact filter, exclusion and prepared-drill proof, and DEMO exercises the same named Cost Center against guarded warehouse fixtures.
+   GRAPH proves selection and refusal, while ANSWER names the unassigned bucket. Add an owner-bound query/answer proof for a named Cost Center filter, including exclusion of other Cost Centers and its prepared drill.
+
+40. Gap: real Anthropic calls lack the confirmed data-handling precondition.
+   Disposition: keep: real Anthropic calls remain disabled for this PoC; the fake provider drives the demo, and later enablement requires recorded account/model, billing, processing, retention and residency approval.
+   The plan requires model access and billing but omits recorded processing, retention and residency approval before enabling real calls. The brief has no Answers section and says those expectations remain to confirm; pin the approval gate or keep real calls disabled.
