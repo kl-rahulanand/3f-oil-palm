@@ -2,34 +2,27 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-TRENDS",
   "review": {
     "blocking_level": "P1",
-    "changed": "b93316d5e4791514a1a5baae01c4f199ef73ef4cca93f20e3fc207e7cff5db01",
-    "commit": "6e954638691402cde810af44b5ac91473c970416",
+    "changed": "0afb95b714d9a7a5146e03a0b73871310a41eb2356dd6dcb7f26acf23543a4b8",
+    "commit": "b9d9ecba444d76d73fe71a047751f33dcb98fd98",
     "dismissals": [],
     "findings": [
       {
-        "body": "The new evidence not covered by the earlier coordinate-materialization ruling is the `otherDimensions.length === 1` guard: explicitly selected values are added only when month is grouped with exactly one other dimension. With `plant + cost_center + month`, bases come exclusively from facts already returned by the repository. Consequently, a catalog-valid selected Plant/Cost-Center pair with no facts anywhere in the period produces no monthly rows at all, even when coverage confirms zero or should expose a missing-data gap. This avoids the former Cartesian fan-out but still fails the requirement to retain all valid catalog combinations; the repository must supply valid catalog coordinates rather than relying solely on observed facts.",
+        "body": "New evidence not covered by the coordinate-materialization ruling is the explicit `neq` skip here. For a monthly single-dimension selection such as `gl in [5001, 5002]` combined with `gl neq 5002`, the repository facts correctly exclude 5002, but `selectionValues` still returns both positive values and `completeMonthlyCoordinates` recreates 5002 for every month. With confirmed coverage those excluded rows can be reported as exact zeroes, violating the requested scope and inventing factual output. Excluded values must be removed from the materialized candidate set.",
         "file": "backend/src/financial-data/financial-trend.ts",
-        "line": 25,
+        "line": 134,
         "priority": "P1",
-        "title": "Not done: exact factual answers without guessed dimension combinations"
+        "title": "Not done: exact factual answers without guessed scope"
       },
       {
-        "body": "The only multi-dimensional completion case supplies both valid Plant/Cost-Center bases as already-observed coordinates. The repository regression test covers only one non-month dimension (`gl`). Therefore the suite remains green while `FinancialQueryRepository` drops a catalog-valid multi-dimensional selection that has no facts in any requested month. A repository-level test must select such a valid combination and verify its rows and states across covered and outside/noncontinuous source months.",
+        "body": "The selected-GL repository test covers only a positive `in` filter. It remains green when coordinate completion reintroduces a value excluded by a simultaneous `neq` filter. Add a repository-level case combining inclusion and exclusion and assert that the excluded coordinate produces no rows in any requested month.",
         "file": "backend/src/financial-data/financial-trend.test.ts",
-        "line": 44,
+        "line": 68,
         "priority": "P1",
-        "title": "Not done: catalog-valid empty-coordinate repository trend test"
-      },
-      {
-        "body": "The positive closing-balance assertion calls `sumClosingMonthRollover` directly. The only subsequent repository assertion uses a database where the closing month is not loaded, so execution returns `not_loaded` without exercising the new available Roll-over summation branch. This test would still pass if the repository reverted to summing every period month's stored Roll-over. The required proof must query `FinancialQueryRepository` with both earlier and closing-month budget facts and assert that only the closing month's stored balances are returned.",
-        "file": "backend/src/financial-data/financial-trend.test.ts",
-        "line": 142,
-        "priority": "P1",
-        "title": "Not done: stored closing Roll-over repository test"
+        "title": "Not done: combined include/exclude monthly-coordinate test"
       }
     ],
     "status": "blocked",
-    "tree": "53e98ea4837329706bbb7b67d6972a00ee592b8baa4c6b4b968f59bf420d15ea"
+    "tree": "52fdb1f92c21a432aaf8c4081f2d79f34f373d1e5b3aba9e664ca1d631df5082"
   },
   "status": "fixing",
   "steps": [
@@ -47,6 +40,10 @@
     },
     {
       "at": "2026-10-10T11:17:01+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T11:35:22+00:00",
       "step": "review"
     }
   ]
