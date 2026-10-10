@@ -2,27 +2,27 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-TRENDS",
   "review": {
     "blocking_level": "P1",
-    "changed": "7737c85f1743cbcb83315704afa6d29080ef5bf889737d25de0456e3be100b13",
-    "commit": "baf8a474d368453ecf2feadd1f2861870dcc1699",
+    "changed": "0e6284fd5e27ad120d33b2ed9919e64986cf78aa2cf9cf47ffdacb354c7732d0",
+    "commit": "5b3d1f94c6522dc01900caf20e743b522f8adb74",
     "dismissals": [],
     "findings": [
       {
-        "body": "`selectionValues` returns explicitly filtered dimension values only when the resulting set has exactly one member. Consequently, an `in` filter selecting multiple cost centers, GLs, or other grouped dimensions produces no seed coordinates. If one selected coordinate has no facts, `completeMonthlyCoordinates` never creates its monthly gap rows, so the response silently omits part of the requested scope. Return every explicitly selected value here; the existing Cartesian-product logic can then materialize the required gaps. This is new evidence against the coordinator ruling that every explicitly selected coordinate is materialized.",
+        "body": "`coordinateProduct` creates an unrestricted Cartesian product of every selected value for every grouped dimension. For example, grouping by Plant, Cost Center, and month across two Plants and two Plant-specific Cost Centers creates four Plant/Cost-Center combinations even when only two exist in the catalog. The empty invented combinations can then be reported as complete Actual `0.00`, because completeness is evaluated only by Plant/month. This violates the requirement not to guess scope or values. New evidence not covered by the earlier coordinate-materialization ruling is that the repository SQL itself associates Cost Centers with a specific Plant, while this completion path discards that relationship; completion must use valid catalog/observed combinations rather than a raw Cartesian product.",
         "file": "backend/src/financial-data/financial-trend.ts",
-        "line": 143,
+        "line": 24,
         "priority": "P1",
-        "title": "Not done: Monthly trends show correct exact values, gaps, changes and closing Roll-over balances for the selected period"
+        "title": "Not done: exact factual answers without guessed dimension combinations"
       },
       {
-        "body": "The missing-closing-month assertion calls only `sumClosingMonthRollover` and accepts its raw zero result. It never exercises `FinancialQueryRepository`/`resultValues`, where the `closingLoaded` guard must convert an absent closing month into the required not-loaded state instead of exposing a zero balance. Removing or breaking that guard would leave this test passing, so the required missing-closing-month behavior lacks a test through the real entry point.",
+        "body": "The regression assertion for multiple selected GLs calls `completeMonthlyCoordinates` directly. It would continue passing if `FinancialQueryRepository` stopped invoking the helper, associated generated coordinates incorrectly, or exposed incorrect values for the empty coordinate. The prior defect was in repository output, so the test audit requires a test through `FinancialQueryRepository` that selects multiple grouped values and verifies the missing coordinate's monthly rows and states.",
         "file": "backend/src/financial-data/financial-trend.test.ts",
-        "line": 102,
+        "line": 39,
         "priority": "P1",
-        "title": "Not done: missing closing-month Roll-over repository test"
+        "title": "Not done: multiple selected-coordinate repository gap test"
       }
     ],
     "status": "blocked",
-    "tree": "52d96a494271228170ff0c9504d9de2dedc83d07efb4701b540594e88b52babf"
+    "tree": "b3fd38537ac51702e482bcdbd56a3f1b2851fd446257ebfef524f457c8a5b58e"
   },
   "status": "fixing",
   "steps": [
@@ -32,6 +32,10 @@
     },
     {
       "at": "2026-10-10T10:46:50+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T11:01:14+00:00",
       "step": "review"
     }
   ]
