@@ -1,0 +1,39 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-TRENDS",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "9e7ff1482631c212db0f54fa64858a7ba4741dca46f372e42c43742862c0db59",
+    "commit": "868527e4628870461a19aa1b2a72e7d5cf96e1a5",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "305824aa2570b27643913414eb7ca0657562b58e6aa65caefcdf6b83d7ef3168"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-10T09:56:21+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-10T10:46:50+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T11:01:14+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T11:17:01+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T11:35:22+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T11:49:38+00:00",
+      "step": "review"
+    }
+  ]
+}

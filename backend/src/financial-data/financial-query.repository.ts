@@ -8,6 +8,7 @@ import {
 import { Pool, type PoolClient } from "pg";
 import { loadConfig } from "../config";
 import { buildFinancialActualQuery, resolveFinancialScope, type ResolvedFinancialScope } from "./financial-predicate";
+import { completeMonthlyCoordinates, sumClosingMonthRollover } from "./financial-trend";
 
 export const FINANCIAL_QUERY_REPOSITORY = "FINANCIAL_QUERY_REPOSITORY";
 const UNMAPPED_COMPONENT = "unmapped-GL";
@@ -74,9 +75,10 @@ export class FinancialQueryRepository {
       selection.comparisons?.includes("actual_vs_budget");
     const budgetFacts = needsBudgetFacts ? await this.budgetFacts(database, scope) : [];
     const ancestorKeys = await this.componentAncestors(database, scope.mappingVersionId);
+    const catalogCoordinates = await this.catalogCoordinates(database, scope, selection, ancestorKeys);
     const coverage = buildCoverage(selection, scope, generation);
     const totals: Aggregate = { dimensions: {}, actualFacts, budgetFacts };
-    const groups = aggregateGroups(selection.dimensionIds, actualFacts, budgetFacts, ancestorKeys);
+    const groups = aggregateGroups(selection, actualFacts, budgetFacts, ancestorKeys, catalogCoordinates);
     if (groups.length > 199) throw new Error("Financial query has more than 199 aggregate rows");
     const resultId = randomUUID();
     const rows = groups.map((group, index) => ({
@@ -197,6 +199,62 @@ export class FinancialQueryRepository {
     return ancestors;
   }
 
+  private async catalogCoordinates(
+    database: QueryHost,
+    scope: ResolvedFinancialScope,
+    selection: FinancialSelection,
+    ancestorKeys: Map<string, string[]>,
+  ): Promise<Dimensions[]> {
+    const grouping = selection.dimensionIds.filter((dimensionId) => dimensionId !== "month");
+    if (!selection.dimensionIds.includes("month") || grouping.length < 2) return [];
+    const result = await database.query<Omit<ActualFact, "id" | "month" | "amount">>(
+      `SELECT DISTINCT p.code AS plant, g.code AS gl, c.code AS cost_center,
+              m.budget_component_key AS nursery_component,
+              a.section, a.consideration, a.short_name, a.contra_account, a.origin, a.location
+         FROM agent_financial.financial_actual a
+         JOIN agent_financial.plant p ON p.id = a.plant_id
+         LEFT JOIN agent_financial.cost_center c ON c.id = a.cost_center_id AND c.plant_id = a.plant_id
+         LEFT JOIN agent_financial.gl_account g ON g.id = a.gl_account_id
+         LEFT JOIN agent_financial.actual_budget_mapping m
+           ON m.mapping_version_id = $3 AND m.plant_id = a.plant_id
+          AND m.cost_center_id = a.cost_center_id AND m.gl_account_id = a.gl_account_id
+        WHERE a.batch_id = ANY($1::uuid[])
+          AND a.plant_id = ANY($2::uuid[])
+        /* financial coordinate catalog */
+        ORDER BY plant, gl, cost_center`,
+      [[...scope.sourceBatchIds], [...scope.plantRecordIds], scope.mappingVersionId],
+    );
+    const coordinates = new Map<string, Dimensions>();
+    for (const row of result.rows.filter((candidate) => catalogMatchesFilters(candidate, scope.filters))) {
+      const fact: ActualFact = { id: "catalog", month: "", amount: 0n, ...row };
+      for (const coordinate of factCoordinates(grouping, fact, ancestorKeys)) {
+        coordinates.set(JSON.stringify(grouping.map((dimension) => coordinate[dimension] ?? null)), coordinate);
+      }
+    }
+    if (grouping.every((dimension) => BUDGET_DIMENSIONS.has(dimension))) {
+      const budget = await database.query<Pick<BudgetFact, "plant" | "gl" | "nursery_component">>(
+        `SELECT DISTINCT p.code AS plant, g.code AS gl, c.component_key AS nursery_component
+           FROM agent_financial.nursery_budget n
+           JOIN agent_financial.plant p ON p.id = n.plant_id
+           JOIN agent_financial.nursery_budget_component c
+             ON c.batch_id = n.batch_id AND c.id = n.budget_component_id AND c.is_leaf
+           LEFT JOIN agent_financial.gl_account g ON g.id = n.gl_account_id
+          WHERE n.batch_id = ANY($1::uuid[])
+            AND n.plant_id = ANY($2::uuid[])
+          /* financial budget coordinate catalog */
+          ORDER BY plant, gl, nursery_component`,
+        [[...scope.sourceBatchIds], [...scope.plantRecordIds]],
+      );
+      for (const row of budget.rows.filter((candidate) => catalogMatchesFilters(candidate, scope.filters))) {
+        const fact: BudgetFact = { month: "", budget: 0n, rollover: 0n, ...row };
+        for (const coordinate of factCoordinates(grouping, fact, ancestorKeys)) {
+          coordinates.set(JSON.stringify(grouping.map((dimension) => coordinate[dimension] ?? null)), coordinate);
+        }
+      }
+    }
+    return [...coordinates.values()];
+  }
+
   private getPool(): Pool {
     if (this.pool) return this.pool;
     const config = loadConfig();
@@ -244,11 +302,13 @@ function buildCoverage(
 }
 
 function aggregateGroups(
-  grouping: FinancialDimensionId[],
+  selection: FinancialSelection,
   actualFacts: ActualFact[],
   budgetFacts: BudgetFact[],
   ancestorKeys: Map<string, string[]>,
+  catalogCoordinates: Dimensions[],
 ): Aggregate[] {
+  const grouping = selection.dimensionIds;
   if (!grouping.length) return [];
   const groups = new Map<string, Aggregate>();
   const add = (dimensions: Dimensions, fact: ActualFact | BudgetFact, kind: "actual" | "budget") => {
@@ -266,7 +326,15 @@ function aggregateGroups(
       for (const dimensions of factCoordinates(grouping, fact, ancestorKeys)) add(dimensions, fact, "budget");
     }
   }
-  return [...groups.values()].sort((left, right) =>
+  const completed = completeMonthlyCoordinates(
+    selection,
+    [...groups.values()].map(({ dimensions }) => dimensions),
+    catalogCoordinates,
+  ).map((dimensions) => {
+    const key = JSON.stringify(grouping.map((dimension) => dimensions[dimension] ?? null));
+    return groups.get(key) ?? { dimensions, actualFacts: [], budgetFacts: [] };
+  });
+  return completed.sort((left, right) =>
     JSON.stringify(grouping.map((dimension) => left.dimensions[dimension] ?? "\uffff")).localeCompare(
       JSON.stringify(grouping.map((dimension) => right.dimensions[dimension] ?? "\uffff")),
     ),
@@ -366,7 +434,7 @@ function resultValues(
         : closingLoaded
           ? {
               state: "available",
-              value: paiseToMoney(sum(closingFacts.map(({ rollover }) => rollover))),
+              value: paiseToMoney(sumClosingMonthRollover(closingFacts, closingMonth)),
               label: "Roll-over",
             }
           : { state: "not_loaded", value: null, label: "Budget not loaded for this Plant or month" };
@@ -424,6 +492,16 @@ function budgetMatchesFilter(fact: BudgetFact, filter: ResolvedFinancialScope["f
   const value = fact[filter.dimensionId as keyof BudgetFact] as string | null | undefined;
   const matches = filter.values.some((candidate) => candidate === value);
   return filter.operator === "neq" ? !matches : matches;
+}
+
+function catalogMatchesFilters(fact: Dimensions, filters: ResolvedFinancialScope["filters"]): boolean {
+  return filters.every((filter) => {
+    if (filter.dimensionId === "month") return true;
+    const rawValue = fact[filter.dimensionId as keyof typeof fact] as string | null | undefined;
+    const value = filter.dimensionId === "nursery_component" && rawValue == null ? UNMAPPED_COMPONENT : rawValue;
+    const matches = filter.values.some((candidate) => candidate === value);
+    return filter.operator === "neq" ? !matches : matches;
+  });
 }
 
 function months(from: string, to: string): string[] {
