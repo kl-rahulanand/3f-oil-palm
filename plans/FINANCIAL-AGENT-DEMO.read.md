@@ -1,12 +1,12 @@
 ---
 reader: codex (gpt-5.6-terra)
-read_at: 2026-10-10T18:06:25+00:00
-read_hash: 32afece61546da27a60fd632ad8a5ccc4f65f8ed
-round: 13
+read_at: 2026-10-10T18:08:53+00:00
+read_hash: b333469b5da64f8044e6ef8cd0a309baef88ac7f
+round: 14
 passed: no
-doc_seen: 32afece61546da27a60fd632ad8a5ccc4f65f8ed
+doc_seen: b333469b5da64f8044e6ef8cd0a309baef88ac7f
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: 43acdedd7c2f7e71e5e53d446c9c8140e9c9581f
+notes_seen: d0ffb982f3bc30c735508b69001835f641f1320b
 ---
 
 # Cold read notes
@@ -292,3 +292,9 @@ No findings.
 41. Unproven: item 3: eviction of the fourth retained result bundle.
    Disposition: keep: MEMORY now deterministically removes the oldest bundle when the fourth is added, revokes all prepared drill scopes for that bundle and proves later reuse returns the existing result_expired rerun response rather than context_expired.
    MEMORY promises the latest three bundles but names no fourth-result behavior; it also conflates eviction with `context_expired`. Pin deterministic result eviction and the existing `result_expired` rerun response, with the API retaining no stale drill access.
+
+## Round 14
+
+42. Unproven: item 3: an evicted result’s handle is denied at the public drill API.
+   Disposition: keep: API now rechecks owner conversation result membership before resolving any transaction handle and proves an evicted bundle returns result_expired with no rows even while the underlying handle remains valid.
+   MEMORY can remove membership, but `FinancialDataService.transactions` resolves a still-valid drill handle independently. API must recheck result membership before that call, and its tests must prove an evicted handle returns `result_expired` with no transactions.
