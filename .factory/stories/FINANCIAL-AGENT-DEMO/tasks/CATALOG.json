@@ -2,47 +2,41 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-CATALOG",
   "review": {
     "blocking_level": "P1",
-    "changed": "bdd8b70e69d39a93588177d17d24765f72bc4efecfbe94122085e4db06f75369",
-    "commit": "6a48ed7bd510cfdc4b4337fd2a0495de8f086a96",
-    "dismissals": [
-      {
-        "because": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/CATALOG.json:1 this is mandatory Forge lifecycle state required by forge close, forge merge, and board tracking; removing it made Forge report that the task was never started, while review fingerprints exclude .factory bookkeeping from product scope",
-        "finding": 3,
-        "from_base": false
-      }
-    ],
+    "changed": "e16be763e2a800a3323f9ae7bf9b93efa1437fbc513bfb41407a5af6e9bab8a5",
+    "commit": "7f3620b4aac67a0b81e15f377b39560010d85d53",
+    "dismissals": [],
     "findings": [
       {
-        "body": "The catalog advertises `gl` for Actual, Budget, Roll-over, and Percentage, but this lookup selects GLs only from active `financial_actual` rows. A permitted Plant can therefore have a Budget component mapped to a GL that has no current Actual transaction and that GL will be absent from `findValues`, preventing a valid governed Budget selection. Although the month lookup now unions both sources, the equivalent GL coverage gap remains. This is independent of the coordinator's combination ruling: the declared GL capability is valid, but its vocabulary source is incomplete.",
-        "file": "backend/src/financial-data/financial-data.service.ts",
-        "line": 26,
+        "body": "The new Postgres-backed case is added only to `test:hermetic`, but that case explicitly skips unless `WAREHOUSE_DB_TEST=1`. The `test:warehouse-proof` script\u2014the suite that sets this variable\u2014does not include `financial-data.service.test.ts`. Consequently the required functional lookup proof is always skipped in the registered suite, so SQL/schema regressions still pass. Add this test file to `test:warehouse-proof`.",
+        "file": "backend/package.json",
+        "line": 21,
         "priority": "P1",
-        "title": "Not done: expose GL vocabulary from every supported financial source"
+        "title": "Not done: run the scoped warehouse lookup proof in the repository suite"
       },
       {
-        "body": "The required scoped-lookup test injects already-formed rows through `FakeWarehouse`; it never executes the new SQL against the warehouse schema. Consequently, invalid columns or joins, missing active-batch predicates, and incomplete source unions all pass this test. `SourceMonthWarehouse` similarly returns canned rows merely when SQL text contains table names. Because the changed behavior is database-backed rather than pure logic, this leaves the functional lookup unproved under the supplied test-audit rules.",
+        "body": "The revocation test removes the `report` action and calls `getCatalog`; it never changes the user's Plant grants or replays a previously valid `FinancialSelection`. Therefore removal of the `plantIds` subset check in `assertSelectionSupported` would leave this required test green, even though a selection pinned to a revoked Plant would then be accepted. Exercise a valid selection, change the resolved Plant scope, and assert that replay is denied.",
         "file": "backend/src/financial-data/financial-data.service.test.ts",
-        "line": 73,
+        "line": 51,
         "priority": "P1",
-        "title": "Not done: prove scoped vocabulary lookup through the real warehouse seam"
+        "title": "Not done: prove Plant-scope revocation denies the pinned selection"
       },
       {
-        "body": "This branch changes `.factory/stories/FINANCIAL-AGENT-DEMO/tasks/CATALOG.json`, although the declared path scope permits only the listed backend financial-data files, `backend/package.json`, and `tools/quality-gate.test.mjs`. The file is not needed to deliver the catalog/service seam and embeds transient, already-stale review state and findings. Remove it from the selected change.",
-        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/CATALOG.json",
-        "line": 1,
+        "body": "The database-backed lookup case exercises only `gl`, `month`, and `cost_center`. It never executes the SQL for `plant`, `nursery_component`, `section`, `consideration`, `short_name`, `contra_account`, `origin`, or `location`. Those paths can contain invalid columns, joins, or active-batch predicates while all current tests pass, contrary to the requirement to cover every supported source dimension through the real warehouse seam.",
+        "file": "backend/src/financial-data/financial-data.service.test.ts",
+        "line": 61,
         "priority": "P1",
-        "title": "Remove the out-of-scope CATALOG workflow artifact"
+        "title": "Not done: prove every advertised vocabulary dimension against Postgres"
       },
       {
-        "body": "Unlike the other Actual-backed lookups, the Cost Center query reads the persistent master table directly without joining active `financial_actual` and `ingestion_batch` rows. Cost Centers retained from inactive or historical imports can therefore be offered as current selectable vocabulary even when they have no current Actual transaction. Join through active Actual rows, as the other current-source dimensions do.",
-        "file": "backend/src/financial-data/financial-data.service.ts",
-        "line": 31,
-        "priority": "P2",
-        "title": "Restrict Cost Center vocabulary to active Actual data"
+        "body": "The catalog publishes totals, every single-dimension grouping, and three multi-dimension groupings, but no test asserts that exact positive capability set. The two unsupported-grouping tests only detect adding those particular invalid combinations; deleting a required valid combination or changing a dimension's supported measures would still pass. Add an exact catalog assertion matching the coordinator-approved combinations and supported measure sets.",
+        "file": "backend/src/financial-data/financial-catalog.ts",
+        "line": 38,
+        "priority": "P1",
+        "title": "Not done: prove the exact catalog combinations"
       }
     ],
     "status": "blocked",
-    "tree": "a49d049a5befbb40d06cd360ed9ad685c64b1a1080cfa76d450d3b84f71e8f55"
+    "tree": "843892a7b582335fc30b3173d7290625d7e2f7e861ef4c887fc9d4588fa1ed30"
   },
   "status": "fixing",
   "steps": [
@@ -56,6 +50,10 @@
     },
     {
       "at": "2026-10-10T00:42:14+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T01:01:24+00:00",
       "step": "review"
     }
   ]
