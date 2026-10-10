@@ -495,7 +495,6 @@ function scopeForAggregate(
 ): ResolvedFinancialScope {
   const cellFilters = Object.entries(dimensions).flatMap(([dimensionId, value]) => {
     const dimension = dimensionId as FinancialDimensionId;
-    if (scopeAlreadyPinsCoordinate(scope, dimension, value)) return [];
     const values =
       dimension === "nursery_component" && value !== null && value !== UNMAPPED_COMPONENT
         ? [...ancestorKeys.entries()]
@@ -503,6 +502,7 @@ function scopeForAggregate(
             .map(([componentKey]) => componentKey)
             .sort()
         : [value];
+    if (scopeAlreadyPinsCoordinate(scope, dimension, value, values)) return [];
     return [{ dimensionId: dimension, operator: "eq" as const, values }];
   });
   const componentKeys = [
@@ -533,6 +533,7 @@ function scopeAlreadyPinsCoordinate(
   scope: ResolvedFinancialScope,
   dimensionId: FinancialDimensionId,
   value: string | null,
+  cellValues: readonly (string | null)[],
 ): boolean {
   if (dimensionId === "plant" && scope.plantIds.length === 1 && scope.plantIds[0] === value) return true;
   if (
@@ -545,10 +546,17 @@ function scopeAlreadyPinsCoordinate(
   }
   return scope.filters.some(
     (filter) =>
-      filter.dimensionId === dimensionId &&
-      filter.operator !== "neq" &&
-      filter.values.length === 1 &&
-      filter.values[0] === value,
+      filter.dimensionId === dimensionId && filter.operator !== "neq" && sameFilterValues(filter.values, cellValues),
+  );
+}
+
+function sameFilterValues(left: readonly (string | null)[], right: readonly (string | null)[]): boolean {
+  const canonical = (values: readonly (string | null)[]) =>
+    [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b)));
+  const leftValues = canonical(left);
+  const rightValues = canonical(right);
+  return (
+    leftValues.length === rightValues.length && leftValues.every((candidate, index) => candidate === rightValues[index])
   );
 }
 

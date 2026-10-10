@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AuthUser, FinancialQueryResult, FinancialSelection } from "@3f/contract";
+import type { Pool, QueryConfig } from "pg";
 import type { QueryResult, Warehouse } from "../warehouse/warehouse.interface";
 import { ActualDrillContextService, type ActualDrillCandidate } from "./actual-drill-context.service";
 import { FinancialAccessService } from "./financial-access.service";
 import { FinancialDataService } from "./financial-data.service";
+import { FinancialQueryRepository } from "./financial-query.repository";
 
 const HOUR_MS = 60 * 60 * 1_000;
 
@@ -78,6 +80,27 @@ test("done-when 4: a handle keeps its immutable source and mapping identity", ()
   assert.equal(resolved.scope.cellIdentity.gl, "GL-1");
   assert.equal(resolved.kind, "availableActualSubtotal");
   assert.equal(resolved.expectedMatchingActualTotal, "1.00");
+});
+
+test("done-when 4: a filtered parent total and its matching grouped row share one prepared scope", async () => {
+  const contexts = new ActualDrillContextService(() => 0);
+  const rbac = new FakeRbac(user("reader", ["DUB"]));
+  const service = new FinancialDataService(
+    new FinancialAccessService(rbac, new FakeAudit()),
+    new FakeWarehouse(),
+    new FinancialQueryRepository(parentComponentDatabase()),
+    contexts,
+  );
+  const result = await service.query("reader", {
+    ...selection(["DUB"]),
+    dimensionIds: ["nursery_component"],
+    filters: [{ dimensionId: "nursery_component", operator: "eq", value: "parent" }],
+  });
+  const parent = result.rows.find(({ dimensions }) => dimensions.nursery_component === "parent");
+
+  assert.ok(parent);
+  assert.equal(parent.values.actual?.state, "available");
+  assert.equal(parent.values.actual.drilldownId, actualHandle(result));
 });
 
 function serviceWith(contexts: ActualDrillContextService, rbac: FakeRbac, drillCandidate: ActualDrillCandidate) {
@@ -211,4 +234,66 @@ class FakeWarehouse implements Warehouse {
   async distinctValues(): Promise<string[]> {
     return [];
   }
+}
+
+function parentComponentDatabase(): Pick<Pool, "query"> {
+  return {
+    query: async (input: string | QueryConfig) => {
+      const sql = typeof input === "string" ? input : input.text;
+      if (sql.includes("dataset_key = $1 AND state = 'active'")) return { rows: [{ id: "batch-id" }] };
+      if (sql.includes("FROM agent_financial.plant")) return { rows: [{ id: "plant-id", code: "DUB" }] };
+      if (sql.includes("WITH RECURSIVE descendants")) {
+        return {
+          rows: [
+            { root_key: "parent", component_key: "leaf" },
+            { root_key: "parent", component_key: "parent" },
+          ],
+        };
+      }
+      if (sql.includes("source_reporting_months::text[]")) {
+        return {
+          rows: [
+            {
+              id: "batch-id",
+              source_reporting_months: ["2026-04-01"],
+              actual_coverage: [{ plantId: "plant-id", month: "2026-04-01", completeness: "confirmed" }],
+              budget_coverage: [],
+            },
+          ],
+        };
+      }
+      if (sql.includes("FROM contributing_actuals")) return { rows: [{ id: "actual-id" }] };
+      if (sql.includes("WHERE a.id = ANY")) {
+        return {
+          rows: [
+            {
+              id: "actual-id",
+              plant: "DUB",
+              month: "2026-04-01",
+              gl: "5001",
+              cost_center: "DUB-CC",
+              nursery_component: "leaf",
+              section: null,
+              consideration: null,
+              short_name: null,
+              contra_account: null,
+              origin: null,
+              location: null,
+              actual_amount: "1.00",
+            },
+          ],
+        };
+      }
+      if (sql.includes("WITH RECURSIVE ancestry")) {
+        return {
+          rows: [
+            { component_key: "leaf", ancestor_key: "leaf" },
+            { component_key: "leaf", ancestor_key: "parent" },
+            { component_key: "parent", ancestor_key: "parent" },
+          ],
+        };
+      }
+      throw new Error(`Unexpected financial repository query: ${sql}`);
+    },
+  } as unknown as Pick<Pool, "query">;
 }
