@@ -2,40 +2,33 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-QUERY",
   "review": {
     "blocking_level": "P1",
-    "changed": "d5d8e15d119dc83b648f97a9a7f9a385fcdb7925eb69b53d91de881f11f0fee9",
-    "commit": "9d4a6860e5eb00d7f66ae5da8b5bda5e5d3cf409",
+    "changed": "bc2cb039c03843d59f2519802cd49b1ac1c6668856c278812a5a52aa3d7a9f6f",
+    "commit": "cbd9739b2d0b0c27d93504f9412ea5f5d111575c",
     "dismissals": [],
     "findings": [
       {
-        "body": "`factCoordinates()` indexes every requested dimension on both fact types, although `BudgetFact` has no `cost_center`, `section`, `consideration`, `short_name`, `contra_account`, `origin`, or `location`. Consequently Budget facts are grouped under an undefined/missing coordinate and can place the entire Budget in that bucket; because Budget facts are loaded even for Actual-only selections, they can also create a spurious zero-Actual row. This violates the required prohibition on Cost Center Budget allocation and the requirement to support every source-dimension combination exactly. The database test only inspects one cost-center row, so it does not catch the extra/allocation behavior.",
-        "file": "backend/src/financial-data/financial-query.repository.ts",
-        "line": 278,
-        "priority": "P1",
-        "title": "Not done: Exact answers still allocate Budget to Actual-only dimensions"
-      },
-      {
-        "body": "The `no_gl_line` classification unnecessarily requires at least one matching Actual fact. For a scalar selection filtered to a known GL that has no Budget line, querying a completely covered month with no Actual activity makes both fact arrays empty and returns an available Budget of `0.00`, rather than \u201cNo Budget line for this GL.\u201d A genuine zero Budget remains distinguishable because its zero-valued line is still present in `budgetFacts`. The analogous Actual-presence guard also causes the Roll-over state to be mislabeled.",
-        "file": "backend/src/financial-data/financial-query.repository.ts",
-        "line": 309,
-        "priority": "P1",
-        "title": "Not done: Empty-period GL queries lose the required missing-Budget label"
-      },
-      {
-        "body": "The new denial, scope, and revocation cases mutate `FakeRbac`, whose `resolveUser()` simply returns an in-memory `AuthUser`. They never exercise the required exported `RbacService.resolveUser` path, so incompatible action/domain/measure/dimension/scope resolution in the real first-party RBAC service would leave this proof green. The test contract permits fakes only at third-party boundaries; QUERY still needs a real-service authorization proof for its refusals and exact resolved scopes.",
+        "body": "The database proof exercises scalar queries and several single-dimension groupings, but it never groups by `plant` or `month`, does not enumerate every `FINANCIAL_CATALOG.combinations` entry, and never asserts that Budget is refused for Actual-only dimensions such as `cost_center`. Consequently regressions in supported combinations or reintroduction of Cost Center Budget allocation could leave this required user-facing proof green.",
         "file": "backend/src/financial-data/financial-query.db.test.ts",
-        "line": 31,
+        "line": 191,
         "priority": "P1",
-        "title": "Not done: QUERY proves refusals and scopes only against a fake RBAC resolver"
+        "title": "Not done: all catalog combinations and prohibited Budget allocations have end-to-end query coverage"
       },
       {
-        "body": "Actual values still receive identifiers derived only from a random result UUID; no matching transactions, full count/total, source pin, or permitted scope are prepared or retained. Thus the clickable Actuals cannot yet be opened or paged. Per the stage assignment, the later DRILL/PAGES task must create prepared handles before these identifiers are exposed to consumers.",
+        "body": "The real-RBAC proof gives the successful role every required domain, measure, and dimension grant, while its denied role differs only by lacking the `report` action; the only other negative case revokes Plant scope. It never removes `mis-statement`, any of the four required measure grants, or `leaf_key` individually. Dropping enforcement of any of those required grants would therefore leave the end-to-end authorization test green.",
+        "file": "backend/src/financial-data/financial-query.db.test.ts",
+        "line": 530,
+        "priority": "P1",
+        "title": "Not done: each required RBAC grant is independently denied through RbacService"
+      },
+      {
+        "body": "Actual values still receive identifiers derived only from a random result UUID; no matching transactions, full count/total, immutable source and mapping pins, permitted scope, or pagination state are prepared or retained. Thus clickable Actuals and available Actual subtotals cannot yet open the required transaction sets. Per the stage assignment, the later DRILL/PAGES task must implement these handles and paging semantics.",
         "file": "backend/src/financial-data/financial-query.repository.ts",
         "line": 77,
         "priority": "P2",
         "title": "Later: DRILL/PAGES must replace synthetic drilldown IDs with prepared handles"
       },
       {
-        "body": "The newly committed `QUERY.json` records transient branch/review status and is outside the permitted path set. It is not needed by the query implementation or its tests and should be removed from the change.",
+        "body": "The committed `QUERY.json` contains transient branch and review bookkeeping, is outside the permitted path set, and is not needed by the query implementation or its tests. It should be removed from the product change.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/QUERY.json",
         "line": 3,
         "priority": "P2",
@@ -43,7 +36,7 @@
       }
     ],
     "status": "blocked",
-    "tree": "4b3c8e60e7d630245608e109df0949bf835752d9393a26cf061bfe23d840c0f3"
+    "tree": "8a274fa0e52dc3b85b533f19d86d8a26100da0ba3d4fa712bf614a1e3cd0db61"
   },
   "status": "fixing",
   "steps": [
@@ -57,6 +50,10 @@
     },
     {
       "at": "2026-10-10T06:10:36+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T08:17:13+00:00",
       "step": "review"
     }
   ]
