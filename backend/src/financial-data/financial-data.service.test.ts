@@ -17,6 +17,7 @@ const REQUIRED_MEASURES = [
   "mis-statement.rollover_net",
   "mis-statement.percentage",
 ];
+const ALL_CATALOG_MEASURES = ["actual", "budget", "rollover", "percentage"];
 
 test("catalog denies a user without current report permission", async () => {
   const rbac = new FakeRbac(user({ actions: [] }));
@@ -42,6 +43,48 @@ test("catalog guides a user who has report permission but no Plant grants", asyn
   assert.equal(audit.events[0]?.question, "Financial catalog access refused: no_plant_access");
 });
 
+test("catalog exposes the exact approved dimension measures and grouping combinations", async () => {
+  const service = new FinancialDataService(
+    new FinancialAccessService(new FakeRbac(user()), new FakeAudit()),
+    new FakeWarehouse([]),
+  );
+
+  const catalog = await service.getCatalog("reader");
+  assert.deepEqual(
+    catalog.dimensions.map(({ id, supportedMeasureIds }) => ({ id, supportedMeasureIds })),
+    [
+      { id: "plant", supportedMeasureIds: ALL_CATALOG_MEASURES },
+      { id: "month", supportedMeasureIds: ALL_CATALOG_MEASURES },
+      { id: "gl", supportedMeasureIds: ALL_CATALOG_MEASURES },
+      { id: "nursery_component", supportedMeasureIds: ALL_CATALOG_MEASURES },
+      { id: "cost_center", supportedMeasureIds: ["actual"] },
+      { id: "section", supportedMeasureIds: ["actual"] },
+      { id: "consideration", supportedMeasureIds: ["actual"] },
+      { id: "short_name", supportedMeasureIds: ["actual"] },
+      { id: "contra_account", supportedMeasureIds: ["actual"] },
+      { id: "origin", supportedMeasureIds: ["actual"] },
+      { id: "location", supportedMeasureIds: ["actual"] },
+    ],
+  );
+  assert.deepEqual(catalog.combinations, [
+    { measureIds: ALL_CATALOG_MEASURES, dimensionIds: [] },
+    { measureIds: ALL_CATALOG_MEASURES, dimensionIds: ["plant"] },
+    { measureIds: ALL_CATALOG_MEASURES, dimensionIds: ["month"] },
+    { measureIds: ALL_CATALOG_MEASURES, dimensionIds: ["gl"] },
+    { measureIds: ALL_CATALOG_MEASURES, dimensionIds: ["nursery_component"] },
+    { measureIds: ["actual"], dimensionIds: ["cost_center"] },
+    { measureIds: ["actual"], dimensionIds: ["section"] },
+    { measureIds: ["actual"], dimensionIds: ["consideration"] },
+    { measureIds: ["actual"], dimensionIds: ["short_name"] },
+    { measureIds: ["actual"], dimensionIds: ["contra_account"] },
+    { measureIds: ["actual"], dimensionIds: ["origin"] },
+    { measureIds: ["actual"], dimensionIds: ["location"] },
+    { measureIds: ALL_CATALOG_MEASURES, dimensionIds: ["plant", "month"] },
+    { measureIds: ALL_CATALOG_MEASURES, dimensionIds: ["plant", "month", "gl"] },
+    { measureIds: ALL_CATALOG_MEASURES, dimensionIds: ["plant", "month", "nursery_component"] },
+  ]);
+});
+
 test("catalog rechecks permissions and denies a grant revoked after an earlier read", async () => {
   const rbac = new FakeRbac(user());
   const audit = new FakeAudit();
@@ -54,6 +97,16 @@ test("catalog rechecks permissions and denies a grant revoked after an earlier r
     audit.events.map(({ question }) => question),
     ["Financial catalog access authorized", "Financial catalog access refused: access_denied"],
   );
+});
+
+test("selection replay denies a Plant removed after the scope was pinned", async () => {
+  const rbac = new FakeRbac(user());
+  const service = new FinancialDataService(new FinancialAccessService(rbac, new FakeAudit()), new FakeWarehouse([]));
+  const pinned = selection({ plantIds: ["DUB"] });
+
+  assert.deepEqual(await service.assertSelectionSupported("reader", pinned), pinned);
+  rbac.current = user({ scope: [{ attribute: "plant", value: "CHIR" }] });
+  await rejectsWithReason(service.assertSelectionSupported("reader", pinned), "access_denied");
 });
 
 test(
@@ -71,6 +124,9 @@ test(
         new PostgresAdapter(),
       );
 
+      assert.deepEqual(await service.findValues("reader", "plant", ""), [
+        { dimensionId: "plant", value: "DUB", label: "DUB Nursery", aliases: [] },
+      ]);
       assert.deepEqual(await service.findValues("reader", "gl", ""), [
         { dimensionId: "gl", value: "5001", label: "Actual supplies", aliases: ["Actual alias"] },
         { dimensionId: "gl", value: "5002", label: "Budget seedlings", aliases: ["Budget alias"] },
@@ -82,6 +138,21 @@ test(
       assert.deepEqual(await service.findValues("reader", "cost_center", ""), [
         { dimensionId: "cost_center", value: "DUB-ACTIVE", label: "DUB active", aliases: [] },
       ]);
+      assert.deepEqual(await service.findValues("reader", "nursery_component", ""), [
+        { dimensionId: "nursery_component", value: "seedlings", label: "Seedlings", aliases: [] },
+      ]);
+      for (const [dimensionId, value] of [
+        ["section", "Nursery section"],
+        ["consideration", "Operations"],
+        ["short_name", "DUB short"],
+        ["contra_account", "2100"],
+        ["origin", "SAP workbook"],
+        ["location", "DUB field"],
+      ] as const) {
+        assert.deepEqual(await service.findValues("reader", dimensionId, ""), [
+          { dimensionId, value, label: value, aliases: [] },
+        ]);
+      }
 
       rbac.current = user({ scope: [{ attribute: "plant", value: "CHIR" }] });
       assert.deepEqual(await service.findValues("reader", "gl", ""), [
@@ -191,6 +262,7 @@ async function seedVocabulary(pool: Pool): Promise<void> {
     chirBatch: randomUUID(),
     historicalBatch: randomUUID(),
     budgetComponent: randomUUID(),
+    historicalComponent: randomUUID(),
   };
   await pool.query(
     `TRUNCATE agent_financial.actual_budget_mapping, agent_financial.nursery_budget,
@@ -251,16 +323,22 @@ async function seedVocabulary(pool: Pool): Promise<void> {
     `INSERT INTO agent_financial.nursery_budget_component
        (id, batch_id, component_key, component_name, depth, sort_order, is_leaf,
         source_row_number, source_row)
-     VALUES ($1, $2, 'seedlings', 'Seedlings', 0, 1, true, 1, '{}')`,
-    [ids.budgetComponent, ids.dubBatch],
+     VALUES ($1, $2, 'seedlings', 'Seedlings', 0, 1, true, 1, '{}'),
+            ($3, $4, 'historical', 'Historical component', 0, 1, true, 1, '{}')`,
+    [ids.budgetComponent, ids.dubBatch, ids.historicalComponent, ids.historicalBatch],
   );
   await pool.query(
     `INSERT INTO agent_financial.financial_actual
        (batch_id, source_system, transaction_number, line_id, source_row_number,
-        posting_date, plant_id, cost_center_id, gl_account_id, debit, credit, source_row)
-     VALUES ($1, 'SAP', 'DUB-1', '1', 1, '2026-04-15', $2, $3, $4, 10, 0, '{}'),
-            ($5, 'SAP', 'CHIR-1', '1', 1, '2026-04-16', $6, $7, $8, 20, 0, '{}'),
-            ($9, 'SAP', 'DUB-OLD', '1', 1, '2026-03-15', $2, $10, $11, 30, 0, '{}')`,
+        posting_date, section, plant_id, cost_center_id, gl_account_id, consideration,
+        short_name, contra_account, origin, location, debit, credit, source_row)
+     VALUES ($1, 'SAP', 'DUB-1', '1', 1, '2026-04-15', 'Nursery section', $2, $3, $4,
+             'Operations', 'DUB short', '2100', 'SAP workbook', 'DUB field', 10, 0, '{}'),
+            ($5, 'SAP', 'CHIR-1', '1', 1, '2026-04-16', 'CHIR section', $6, $7, $8,
+             'CHIR operations', 'CHIR short', '2200', 'SAP workbook', 'CHIR field', 20, 0, '{}'),
+            ($9, 'SAP', 'DUB-OLD', '1', 1, '2026-03-15', 'Historical section', $2, $10, $11,
+             'Historical consideration', 'Historical short', '2300', 'Historical origin',
+             'Historical field', 30, 0, '{}')`,
     [
       ids.dubBatch,
       ids.dub,
