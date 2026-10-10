@@ -71,6 +71,18 @@ test("dimension lookup returns only current Plant-scoped matches", async () => {
   ]);
 });
 
+test("month lookup includes a permitted Budget-only month", async () => {
+  const service = new FinancialDataService(
+    new FinancialAccessService(new FakeRbac(user()), new FakeAudit()),
+    new SourceMonthWarehouse(),
+  );
+
+  assert.deepEqual(await service.findValues("reader", "month", ""), [
+    { dimensionId: "month", value: "2026-04-01", label: "2026-04-01", aliases: [] },
+    { dimensionId: "month", value: "2026-05-01", label: "2026-05-01", aliases: [] },
+  ]);
+});
+
 test("selection validation rejects Budget grouped by Cost Center", async () => {
   const service = new FinancialDataService(
     new FinancialAccessService(new FakeRbac(user()), new FakeAudit()),
@@ -79,6 +91,39 @@ test("selection validation rejects Budget grouped by Cost Center", async () => {
 
   await rejectsWithReason(
     service.assertSelectionSupported("reader", selection({ measureIds: ["budget"], dimensionIds: ["cost_center"] })),
+    "unsupported_selection",
+  );
+});
+
+test("selection validation rejects an Actual GL and Cost Center grouping absent from the catalog", async () => {
+  const service = new FinancialDataService(
+    new FinancialAccessService(new FakeRbac(user()), new FakeAudit()),
+    new FakeWarehouse([]),
+  );
+
+  await rejectsWithReason(
+    service.assertSelectionSupported(
+      "reader",
+      selection({ measureIds: ["actual"], dimensionIds: ["gl", "cost_center"] }),
+    ),
+    "unsupported_selection",
+  );
+});
+
+test("selection validation rejects a Budget Cost Center filter", async () => {
+  const service = new FinancialDataService(
+    new FinancialAccessService(new FakeRbac(user()), new FakeAudit()),
+    new FakeWarehouse([]),
+  );
+
+  await rejectsWithReason(
+    service.assertSelectionSupported(
+      "reader",
+      selection({
+        measureIds: ["budget"],
+        filters: [{ dimensionId: "cost_center", operator: "eq", value: "CC-01" }],
+      }),
+    ),
     "unsupported_selection",
   );
 });
@@ -197,6 +242,27 @@ class FakeWarehouse implements Warehouse {
   async execute(): Promise<QueryResult> {
     this.reads += 1;
     return { columns: [], rows: this.values };
+  }
+
+  async explain(): Promise<void> {}
+  async freshness(): Promise<string | null> {
+    return null;
+  }
+  async distinctValues(): Promise<string[]> {
+    return [];
+  }
+}
+
+class SourceMonthWarehouse implements Warehouse {
+  async execute(sql: string): Promise<QueryResult> {
+    const rows: Array<Record<string, string>> = [];
+    if (sql.includes("financial_actual")) {
+      rows.push({ plant_code: "DUB", value: "2026-04-01", label: "2026-04-01", aliases: "[]" });
+    }
+    if (sql.includes("nursery_budget")) {
+      rows.push({ plant_code: "DUB", value: "2026-05-01", label: "2026-05-01", aliases: "[]" });
+    }
+    return { columns: [], rows };
   }
 
   async explain(): Promise<void> {}

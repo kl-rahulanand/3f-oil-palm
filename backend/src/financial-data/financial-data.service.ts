@@ -16,10 +16,16 @@ type VocabularyRow = Record<string, string | number | null>;
 const VOCABULARY_SQL: Record<FinancialDimensionId, string> = {
   plant: `SELECT p.code AS value, p.name AS label, to_json(p.source_aliases)::text AS aliases,
     p.code AS plant_code FROM agent_financial.plant p`,
-  month: `SELECT DISTINCT a.reporting_month::text AS value, a.reporting_month::text AS label, '[]' AS aliases,
-    p.code AS plant_code FROM agent_financial.financial_actual a
-    JOIN agent_financial.plant p ON p.id = a.plant_id
-    JOIN agent_financial.ingestion_batch b ON b.id = a.batch_id AND b.state = 'active'`,
+  month: `SELECT DISTINCT source.reporting_month::text AS value, source.reporting_month::text AS label,
+    '[]' AS aliases, source.plant_code FROM (
+      SELECT a.reporting_month, p.code AS plant_code FROM agent_financial.financial_actual a
+      JOIN agent_financial.plant p ON p.id = a.plant_id
+      JOIN agent_financial.ingestion_batch b ON b.id = a.batch_id AND b.state = 'active'
+      UNION
+      SELECT n.reporting_month, p.code AS plant_code FROM agent_financial.nursery_budget n
+      JOIN agent_financial.plant p ON p.id = n.plant_id
+      JOIN agent_financial.ingestion_batch b ON b.id = n.batch_id AND b.state = 'active'
+    ) source`,
   gl: `SELECT DISTINCT g.code AS value, g.name AS label, to_json(g.source_aliases)::text AS aliases,
     p.code AS plant_code FROM agent_financial.financial_actual a
     JOIN agent_financial.plant p ON p.id = a.plant_id
@@ -83,7 +89,16 @@ export class FinancialDataService {
     if (parsed.data.plantIds.some((plantId) => !authorized.plantIds.includes(plantId))) {
       throw financialException("access_denied");
     }
-    for (const dimensionId of parsed.data.dimensionIds) {
+    const isCatalogCombination = FINANCIAL_CATALOG.combinations.some(
+      (combination) =>
+        sameIds(combination.dimensionIds, parsed.data.dimensionIds) &&
+        parsed.data.measureIds.every((measureId) => combination.measureIds.includes(measureId)),
+    );
+    if (!isCatalogCombination) throw financialException("unsupported_selection");
+    for (const dimensionId of [
+      ...parsed.data.dimensionIds,
+      ...parsed.data.filters.map((filter) => filter.dimensionId),
+    ]) {
       const supported = catalogDimension(dimensionId)?.supportedMeasureIds ?? [];
       if (parsed.data.measureIds.some((measureId) => !supported.includes(measureId))) {
         throw financialException("unsupported_selection");
@@ -91,6 +106,10 @@ export class FinancialDataService {
     }
     return parsed.data;
   }
+}
+
+function sameIds(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((id) => right.includes(id));
 }
 
 function actualTextDimension(column: string): string {
