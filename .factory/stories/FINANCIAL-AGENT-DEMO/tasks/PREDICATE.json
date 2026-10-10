@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "b3a3df4afc8c6f3f1fefb9ebfe6ba4c1f034200608c04cc610e7ef67f7ded2d1",
     "commit": "cc3a63ea1722c6901e1fadbf3233598c03a56e75",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/PREDICATE.json:1 this is mandatory Forge lifecycle state required by forge close, forge merge, and board tracking; review fingerprints exclude .factory bookkeeping from product scope",
+        "finding": 3,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "For every concrete `neq` filter, this emits `NOT (expression = ANY(...))`. When the selected dimension is missing, `expression` is SQL NULL, so the predicate evaluates to NULL rather than TRUE and the row is discarded. For example, `nursery_component != <component>` drops a known-Plant Unmapped actual, and `gl != <code>` drops an actual with a missing GL. This violates the required retention of known-Plant Unmapped/missing dimensions and makes summary/detail totals incomplete.",
