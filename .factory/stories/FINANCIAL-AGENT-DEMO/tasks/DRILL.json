@@ -1,0 +1,43 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-DRILL",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "b0f566b2a8dbeb166f3f5e21ac3dc191e92cf8f5d2d50d715f2d5111d964c8bb",
+    "commit": "8135a6429978b164bca500e63b150bf9d9f14bff",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This previously reported gap remains open: the branch adds a generated `.factory` review/task-state record even though the declared scope permits only the listed backend financial-data files, `backend/package.json`, and the quality-gate test. The file is not needed for drill issuance or its tests and contains transient review and commit metadata, so it should be removed from this change.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/DRILL.json",
+        "line": 1,
+        "priority": "P2",
+        "title": "Remove the out-of-scope Forge task-state file"
+      }
+    ],
+    "status": "clean",
+    "tree": "a6e1642c2f3600b8734f41c6606e6aca760dcca271850eedef22bab0aec9bac9"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-10T12:45:12+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-10T13:37:50+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T14:08:56+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T14:40:15+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T15:09:28+00:00",
+      "step": "review"
+    }
+  ]
+}

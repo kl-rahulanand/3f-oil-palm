@@ -7,6 +7,7 @@ import {
 } from "@3f/contract";
 import { Pool, type PoolClient } from "pg";
 import { loadConfig } from "../config";
+import { assertActualDrillScopeLimit, type ActualDrillCandidate } from "./actual-drill-context.service";
 import { buildFinancialActualQuery, resolveFinancialScope, type ResolvedFinancialScope } from "./financial-predicate";
 import { completeMonthlyCoordinates, sumClosingMonthRollover } from "./financial-trend";
 
@@ -60,12 +61,21 @@ interface Aggregate {
   budgetFacts: BudgetFact[];
 }
 
+export interface FinancialQueryExecution {
+  readonly result: FinancialQueryResult;
+  readonly drillCandidates: readonly ActualDrillCandidate[];
+}
+
 export class FinancialQueryRepository {
   private pool?: Pool;
 
   constructor(private readonly database?: QueryHost) {}
 
   async query(selection: FinancialSelection): Promise<FinancialQueryResult> {
+    return (await this.queryWithDrillScopes(selection)).result;
+  }
+
+  async queryWithDrillScopes(selection: FinancialSelection): Promise<FinancialQueryExecution> {
     const database = this.database ?? this.getPool();
     const scope = await resolveFinancialScope(database, selection);
     const generation = await this.generation(database, scope.mappingVersionId);
@@ -79,21 +89,29 @@ export class FinancialQueryRepository {
     const coverage = buildCoverage(selection, scope, generation);
     const totals: Aggregate = { dimensions: {}, actualFacts, budgetFacts };
     const groups = aggregateGroups(selection, actualFacts, budgetFacts, ancestorKeys, catalogCoordinates);
-    if (groups.length > 199) throw new Error("Financial query has more than 199 aggregate rows");
     const resultId = randomUUID();
-    const rows = groups.map((group, index) => ({
-      key: `row-${index + 1}`,
-      dimensions: group.dimensions,
-      values: resultValues(selection, group, coverage, `${resultId}-row-${index + 1}`),
-    }));
-    return financialQueryResultSchema.parse({
+    const drillCandidates: ActualDrillCandidate[] = [];
+    const rows = groups.map((group, index) => {
+      const provisionalId = `${resultId}-row-${index + 1}`;
+      const values = resultValues(selection, group, coverage, provisionalId);
+      const candidate = drillCandidate(provisionalId, values, group, scope, ancestorKeys);
+      if (candidate) drillCandidates.push(candidate);
+      return { key: `row-${index + 1}`, dimensions: group.dimensions, values };
+    });
+    const totalProvisionalId = `${resultId}-total`;
+    const totalValues = resultValues(selection, totals, coverage, totalProvisionalId);
+    const totalCandidate = drillCandidate(totalProvisionalId, totalValues, totals, scope, ancestorKeys);
+    if (totalCandidate) drillCandidates.push(totalCandidate);
+    assertActualDrillScopeLimit(drillCandidates);
+    const result = financialQueryResultSchema.parse({
       resultId,
       selection,
       scope: { plantIds: [...scope.plantIds], from: scope.from, to: scope.to },
       rows,
-      totals: resultValues(selection, totals, coverage, `${resultId}-total`),
+      totals: totalValues,
       coverage,
     });
+    return { result, drillCandidates };
   }
 
   private async generation(database: QueryHost, batchId: string): Promise<GenerationRow> {
@@ -446,6 +464,138 @@ function resultValues(
         : { state: "not_applicable", value: null, label: "Not applicable" };
   }
   return values;
+}
+
+function drillCandidate(
+  provisionalId: string,
+  values: Values,
+  aggregate: Aggregate,
+  scope: ResolvedFinancialScope,
+  ancestorKeys: Map<string, string[]>,
+): ActualDrillCandidate | undefined {
+  const drillValue =
+    values.actual?.state === "available"
+      ? { kind: "actual" as const, value: values.actual.value }
+      : values.availableActualSubtotal
+        ? { kind: "availableActualSubtotal" as const, value: values.availableActualSubtotal.value }
+        : undefined;
+  if (!drillValue) return undefined;
+  return {
+    provisionalId,
+    kind: drillValue.kind,
+    expectedMatchingActualTotal: drillValue.value,
+    scope: scopeForAggregate(scope, aggregate.dimensions, ancestorKeys),
+  };
+}
+
+function scopeForAggregate(
+  scope: ResolvedFinancialScope,
+  dimensions: Dimensions,
+  ancestorKeys: Map<string, string[]>,
+): ResolvedFinancialScope {
+  const cellFilters = Object.entries(dimensions).flatMap(([dimensionId, value]) => {
+    const dimension = dimensionId as FinancialDimensionId;
+    const values =
+      dimension === "nursery_component" && value !== null && value !== UNMAPPED_COMPONENT
+        ? [...ancestorKeys.entries()]
+            .filter(([, ancestors]) => ancestors.includes(value))
+            .map(([componentKey]) => componentKey)
+            .sort()
+        : [value];
+    if (scopeAlreadyPinsCoordinate(scope, dimension, value, values)) return [];
+    return [{ dimensionId: dimension, operator: "eq" as const, values }];
+  });
+  const componentValues = intersectComponentValues(scope, cellFilters);
+  const filters = intersectComponentCell(scope.filters, cellFilters, componentValues);
+  const componentKeys = componentValues.filter(
+    (value): value is string => value !== null && value !== UNMAPPED_COMPONENT,
+  );
+  return Object.freeze({
+    ...scope,
+    sourceBatchIds: Object.freeze([...scope.sourceBatchIds]),
+    plantIds: Object.freeze([...scope.plantIds]),
+    plantRecordIds: Object.freeze([...scope.plantRecordIds]),
+    grouping: Object.freeze([...scope.grouping]),
+    cellIdentity: Object.freeze({ ...dimensions }),
+    filters: Object.freeze(
+      filters.map((filter) => Object.freeze({ ...filter, values: Object.freeze([...filter.values]) })),
+    ),
+    componentKeys: Object.freeze(componentKeys),
+  });
+}
+
+function intersectComponentCell(
+  scopeFilters: ResolvedFinancialScope["filters"],
+  cellFilters: ResolvedFinancialScope["filters"],
+  componentValues: readonly (string | null)[],
+): ResolvedFinancialScope["filters"] {
+  const cellComponent = cellFilters.find(({ dimensionId }) => dimensionId === "nursery_component");
+  if (!cellComponent) return [...scopeFilters, ...cellFilters];
+
+  const narrowed = { ...cellComponent, values: componentValues };
+  let inserted = false;
+  const filters = scopeFilters.flatMap((filter) => {
+    if (filter.dimensionId !== "nursery_component" || filter.operator === "neq") return [filter];
+    if (inserted) return [];
+    inserted = true;
+    return [narrowed];
+  });
+  if (!inserted) filters.push(narrowed);
+  filters.push(...cellFilters.filter(({ dimensionId }) => dimensionId !== "nursery_component"));
+  return filters;
+}
+
+function intersectComponentValues(
+  scope: ResolvedFinancialScope,
+  cellFilters: ResolvedFinancialScope["filters"],
+): (string | null)[] {
+  const cellComponent = cellFilters.find(({ dimensionId }) => dimensionId === "nursery_component");
+  const hasPositiveComponentFilter = scope.filters.some(
+    ({ dimensionId, operator }) => dimensionId === "nursery_component" && operator !== "neq",
+  );
+  const values = new Set(cellComponent && !hasPositiveComponentFilter ? cellComponent.values : scope.componentKeys);
+  if (cellComponent) {
+    for (const value of values) {
+      if (!cellComponent.values.includes(value)) values.delete(value);
+    }
+  }
+  const excluded = new Set(
+    scope.filters
+      .filter(({ dimensionId, operator }) => dimensionId === "nursery_component" && operator === "neq")
+      .flatMap(({ values }) => values),
+  );
+  return [...values].filter((value) => !excluded.has(value)).sort((a, b) => String(a).localeCompare(String(b)));
+}
+
+function scopeAlreadyPinsCoordinate(
+  scope: ResolvedFinancialScope,
+  dimensionId: FinancialDimensionId,
+  value: string | null,
+  cellValues: readonly (string | null)[],
+): boolean {
+  if (dimensionId === "plant" && scope.plantIds.length === 1 && scope.plantIds[0] === value) return true;
+  if (
+    dimensionId === "month" &&
+    value !== null &&
+    scope.from.slice(0, 7) === scope.to.slice(0, 7) &&
+    `${scope.from.slice(0, 7)}-01` === value
+  ) {
+    return true;
+  }
+  return scope.filters.some(
+    (filter) =>
+      filter.dimensionId === dimensionId && filter.operator !== "neq" && sameFilterValues(filter.values, cellValues),
+  );
+}
+
+function sameFilterValues(left: readonly (string | null)[], right: readonly (string | null)[]): boolean {
+  const canonical = (values: readonly (string | null)[]) =>
+    [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b)));
+  const leftValues = canonical(left);
+  const rightValues = canonical(right);
+  return (
+    leftValues.length === rightValues.length && leftValues.every((candidate, index) => candidate === rightValues[index])
+  );
 }
 
 function aggregateCoordinate(

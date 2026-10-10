@@ -48,6 +48,7 @@ const hermeticTests = [
   "backend/src/financial-chat/financial-selector.provider.test.ts",
   "backend/src/financial-chat/stream-adapter.test.ts",
   "backend/src/financial-data/financial-actual.parser.test.ts",
+  "backend/src/financial-data/actual-drill-context.test.ts",
   "backend/src/financial-data/financial-budget.parser.test.ts",
   "backend/src/financial-data/financial-data.service.test.ts",
   "backend/src/financial-data/financial-loader.test.ts",
