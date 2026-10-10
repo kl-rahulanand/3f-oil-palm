@@ -1,0 +1,31 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-PAGES",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "3db006d9f0afc870730ea37188f62b1e5a07c3a66ff342ab95dc58f08a45767e",
+    "commit": "f00c6e1281e698ba667392e2cca5c0945f510470",
+    "dismissals": [],
+    "findings": [],
+    "status": "clean",
+    "tree": "209fcb2bedb7fea40785eed71abc01158bf9f571c45b23c37c3d3ba3676c3c53"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-10T15:17:20+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-10T15:56:26+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T16:33:30+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T17:19:34+00:00",
+      "step": "review"
+    }
+  ]
+}

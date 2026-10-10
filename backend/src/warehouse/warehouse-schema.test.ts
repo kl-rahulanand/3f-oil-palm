@@ -276,7 +276,10 @@ test("the actual_by_gl_month view keeps every plant while reducing cost centres 
   const journal = JSON.parse(
     readFileSync(resolve(__dirname, "../../drizzle-warehouse/meta/_journal.json"), "utf8"),
   ) as { entries: Array<{ tag: string }> };
-  assert.equal(journal.entries.at(-1)?.tag, "0004_gl_month_all_plants");
+  assert.ok(
+    journal.entries.some(({ tag }) => tag === "0004_gl_month_all_plants"),
+    "the all-plants migration remains registered when later additive migrations follow it",
+  );
 });
 
 test("budget_by_gl_month preserves the deterministic set of cost_center Budget Components labels per gl_code and month key via array_agg distinct cost_center order by cost_center as an informational aggregate never a grouping or join key and carries raw rollover_amount summed but exposed by no measure, asserted by SQL shape including the order by inside the aggregate", () => {

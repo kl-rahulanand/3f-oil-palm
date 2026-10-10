@@ -1,0 +1,35 @@
+{
+  "branch": "task/FINANCIAL-AGENT-DEMO-BUDGET-PARSER",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "dce2f67cdd24591e80418c3d6a492e71036d441e14e20aa02bac20bf6f11cba2",
+    "commit": "7eec8059adcb257dfd549be57bb5bf537c815a7b",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "This branch-state review/timestamp file is outside the explicitly permitted paths and is unnecessary for the Budget parser, mapping seed, package registration, or quality gate. No out-of-scope exception was handed off, so remove it from the selected change.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/BUDGET-PARSER.json",
+        "line": 1,
+        "priority": "P3",
+        "title": "Remove the out-of-scope task-state artifact"
+      }
+    ],
+    "status": "clean",
+    "tree": "895bf33064e5c1d2bf6fac3112c7a3a33ae612e1dbda6c1a8885c954acb4ef2f"
+  },
+  "status": "waiting for checks",
+  "steps": [
+    {
+      "at": "2026-10-09T19:50:32+00:00",
+      "step": "start"
+    },
+    {
+      "at": "2026-10-09T20:39:16+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-09T20:57:29+00:00",
+      "step": "review"
+    }
+  ]
+}
