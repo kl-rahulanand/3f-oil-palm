@@ -1,5 +1,6 @@
 import { Inject, Injectable, Optional } from "@nestjs/common";
 import {
+  financialQueryResultSchema,
   financialSelectionSchema,
   type DimensionMatch,
   type FinancialCatalog,
@@ -9,6 +10,11 @@ import {
 } from "@3f/contract";
 import { WAREHOUSE, loadConfig } from "../config";
 import type { Warehouse } from "../warehouse/warehouse.interface";
+import {
+  ACTUAL_DRILL_CONTEXTS,
+  ActualDrillContextService,
+  type ActualDrillContext,
+} from "./actual-drill-context.service";
 import { FinancialAccessService, financialException } from "./financial-access.service";
 import { FINANCIAL_CATALOG, catalogDimension } from "./financial-catalog";
 import { FINANCIAL_QUERY_REPOSITORY, FinancialQueryRepository } from "./financial-query.repository";
@@ -65,7 +71,13 @@ export class FinancialDataService {
     @Inject(WAREHOUSE) private readonly warehouse: Warehouse,
     @Optional()
     @Inject(FINANCIAL_QUERY_REPOSITORY)
-    private readonly queryRepository: Pick<FinancialQueryRepository, "query"> = new FinancialQueryRepository(),
+    private readonly queryRepository: Pick<
+      FinancialQueryRepository,
+      "queryWithDrillScopes"
+    > = new FinancialQueryRepository(),
+    @Optional()
+    @Inject(ACTUAL_DRILL_CONTEXTS)
+    private readonly drillContexts: ActualDrillContextService = new ActualDrillContextService(),
   ) {}
 
   async getCatalog(userId: string): Promise<FinancialCatalog> {
@@ -123,8 +135,34 @@ export class FinancialDataService {
 
   async query(userId: string, input: FinancialSelection): Promise<FinancialQueryResult> {
     const selection = await this.assertSelectionSupported(userId, input);
-    return this.queryRepository.query(selection);
+    const execution = await this.queryRepository.queryWithDrillScopes(selection);
+    const handles = this.drillContexts.issue(userId, execution.result.resultId, execution.drillCandidates);
+    return replaceDrillHandles(execution.result, handles);
   }
+
+  async resolveActualDrillScope(userId: string, drilldownId: string): Promise<ActualDrillContext> {
+    const authorized = await this.access.authorize(userId, { kind: "selection" });
+    return this.drillContexts.resolve(userId, drilldownId, authorized.plantIds);
+  }
+}
+
+function replaceDrillHandles(result: FinancialQueryResult, handles: ReadonlyMap<string, string>): FinancialQueryResult {
+  const replaced = structuredClone(result);
+  for (const values of [replaced.totals, ...replaced.rows.map(({ values }) => values)]) {
+    if (values.actual?.state === "available") {
+      values.actual.drilldownId = requiredHandle(handles, values.actual.drilldownId);
+    }
+    if (values.availableActualSubtotal) {
+      values.availableActualSubtotal.drilldownId = requiredHandle(handles, values.availableActualSubtotal.drilldownId);
+    }
+  }
+  return financialQueryResultSchema.parse(replaced);
+}
+
+function requiredHandle(handles: ReadonlyMap<string, string>, provisionalId: string): string {
+  const handle = handles.get(provisionalId);
+  if (!handle) throw new Error("Financial query returned an unregistered Actual drill scope");
+  return handle;
 }
 
 function sameIds(left: readonly string[], right: readonly string[]): boolean {
