@@ -4,7 +4,13 @@
     "blocking_level": "P1",
     "changed": "33938bce597005d217eb51fa1dbaef010802639b056ef81ab9a3cbf96ac54261",
     "commit": "95031291143789eb97194a121acdde0414977f0d",
-    "dismissals": [],
+    "dismissals": [
+      {
+        "because": "plans/FINANCIAL-AGENT-DEMO.md:161 ANSWER owns bounded preparation, ready-before-final behavior, timeout failures, and depends on PAGES; PAGES at line 157 owns fixed continuation and exact full set/total only.",
+        "finding": 1,
+        "from_base": false
+      }
+    ],
     "findings": [
       {
         "body": "The only preparation-like work is performed here inside `transactions()`, after the user opens the drill: it reruns `summarize()` and then queries the requested page. `query()` still does not prepare or retain the first 10 rows before completion. There is consequently no 200-scope preparation orchestration, shared 30-second deadline, cancellation of unfinished work, ready/failed scope state, preservation of completed scopes, or guard against late ready writes. This leaves the central Done-when behavior unimplemented.",
