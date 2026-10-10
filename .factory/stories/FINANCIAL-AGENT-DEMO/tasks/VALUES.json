@@ -1,10 +1,94 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-VALUES",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "0628ad525bf5b791b3f6f913aa52b9eb809af0c27ef12e09d217d19673331007",
+    "commit": "c851e15528878c2219d709b7a99d81429b29fbb1",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "The branch contains no changes under `frontend/src/features/financial-chat/financial-result*`, `monthly-trend.tsx`, or `frontend/src/components/ui/`; it only records the VALUES task as working. Consequently this part does not render exact Actual/Budget strings, Actual-only Cost Center results, or the required Unmapped, missing-Budget, missing-Actual, and partial-data states.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: exact warehouse-backed Actual versus Budget answers and honest labels"
+      },
+      {
+        "body": "No monthly-trend implementation was added or changed. The branch therefore does not deliver the assigned frontend behavior for backend-provided values, missing-month gaps, partial-value exclusion, changes, or closing Roll-over balances.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: monthly trends preserve exact values, gaps, changes, and closing balances"
+      },
+      {
+        "body": "No result test was added or changed to prove that large and negative paise-precise decimal strings are displayed exactly. This is an explicitly required VALUES-owned test.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: large/negative exact strings"
+      },
+      {
+        "body": "No result test was added or changed for the required Unmapped and missing-Budget presentation states, including distinguishing an unloaded Plant/month from a loaded month with no GL Budget line.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: Unmapped and missing-Budget labels"
+      },
+      {
+        "body": "No result test proves that incomplete Actual appears only as an available subtotal and is excluded from complete Actual comparisons, deltas, percentages, and chart points.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: partial exclusion"
+      },
+      {
+        "body": "No result test was added or changed to prove that missing months remain gaps instead of being displayed as zero or complete data.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: gap handling"
+      },
+      {
+        "body": "No result test demonstrates that charts use the same backend-provided values as tables or prevents React from calculating money, deltas, or percentages.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: chart/table agreement and no frontend arithmetic"
+      },
+      {
+        "body": "The supplied commit evidence states that the last commit message has no `Functional check:` paragraph. This user-facing task required a client walkthrough covering both exact financial rendering and gapped monthly trends.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 3,
+        "priority": "P1",
+        "title": "Not done: functional check"
+      },
+      {
+        "body": "VALUES is a user-facing UI task, but the branch records only its start and provides no implementation or evidence of the mandatory impeccable audit/polish pass with the emil-design-eng interaction checklist.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/VALUES.json",
+        "line": 5,
+        "priority": "P1",
+        "title": "Not done: impeccable and emil-design-eng UI pass"
+      },
+      {
+        "body": "All four changed files are outside the permitted frontend paths, and none implements financial result rendering: the branch rewrites the story and planning records and adds task metadata instead. No outside-scope exception was declared for this work.",
+        "file": "plans/FINANCIAL-AGENT-DEMO.md",
+        "line": 1,
+        "priority": "P1",
+        "title": "Remove changes outside the VALUES task scope"
+      }
+    ],
+    "status": "blocked",
+    "tree": "f03058d83eb9b7857cb0629eddba6ada878b93a5cf33dab20666ff598d2a1ac8"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-10T18:28:21+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-10T18:49:57+00:00",
+      "step": "review"
     }
   ]
 }
