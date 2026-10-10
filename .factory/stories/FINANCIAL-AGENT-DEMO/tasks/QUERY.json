@@ -1,10 +1,52 @@
 {
   "branch": "task/FINANCIAL-AGENT-DEMO-QUERY",
-  "status": "working",
+  "review": {
+    "blocking_level": "P1",
+    "changed": "3c874a0e502fb514799f73a7645bbdcefc62a64dcbc33017dad24749644d3317",
+    "commit": "6e14a5a4612aa278d5e5780cba799b72a18397f4",
+    "dismissals": [],
+    "findings": [
+      {
+        "body": "`resultValues()` derives the `unmapped` and `no_gl_line` states only from grouping dimensions. A scalar query filtered to `gl = GL-NO-BUDGET` or `nursery_component = unmapped-GL` has `aggregate.dimensions = {}`, so it falls through to `available` Budget `0.00` instead of the required \u201cNo Budget line for this GL\u201d or \u201cNo Budget assigned to Unmapped\u201d state. The selected filter context must participate in state classification, with coverage for filtered totals.",
+        "file": "backend/src/financial-data/financial-query.repository.ts",
+        "line": 306,
+        "priority": "P1",
+        "title": "Not done: Permitted users receive exact factual answers with clear missing-data and partial-data labels"
+      },
+      {
+        "body": "The sole QUERY database proof constructs one fully authorized user and checks value totals, but never exercises a denied report permission, unauthorized/revoked Plant, or asserts the returned resolved scope. Consequently, regressions that accept an unauthorized selection or return an overbroad scope can pass this required QUERY proof. Add real-service cases for refusal and exact returned scope.",
+        "file": "backend/src/financial-data/financial-query.db.test.ts",
+        "line": 25,
+        "priority": "P1",
+        "title": "Not done: QUERY compares independent expected totals, refusals and scopes"
+      },
+      {
+        "body": "The QUERY task creates random drilldown identifiers and returns them without preparing or retaining matching transactions. Therefore none of these clickable Actuals can yet satisfy Done-when 4, including paging, immutable source/scope pins, or full totals. Per the stage assignment, the later DRILL/PAGES task must turn these identifiers into prepared handles before exposing them to consumers.",
+        "file": "backend/src/financial-data/financial-query.repository.ts",
+        "line": 77,
+        "priority": "P2",
+        "title": "Later: DRILL/PAGES must replace synthetic drilldown IDs with prepared handles"
+      },
+      {
+        "body": "This newly committed `QUERY.json` only records transient branch status and is outside the explicitly permitted path set. It is not required by the query implementation or its tests and should be removed from the change.",
+        "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/QUERY.json",
+        "line": 3,
+        "priority": "P2",
+        "title": "Simpler: remove branch-local task state \u2192 keep only the five allowed paths"
+      }
+    ],
+    "status": "blocked",
+    "tree": "75a03ba94e2fd1615124d71972eb7f96e033f3a8a87a09fa3d803ecde196ac38"
+  },
+  "status": "fixing",
   "steps": [
     {
       "at": "2026-10-10T02:35:32+00:00",
       "step": "start"
+    },
+    {
+      "at": "2026-10-10T05:21:35+00:00",
+      "step": "review"
     }
   ]
 }
