@@ -5,10 +5,10 @@
 ## What changes for you
 
 You get a separate Financial Chat alongside existing Ask. It answers warehouse-backed Actual
-versus Budget questions by Plant, month, GL and nursery component, shows monthly trends, remembers
-follow-up scope while the backend is running, and opens the matching transactions when any Actual
-value is clicked. It asks for clarification whenever the required scope is missing or ambiguous,
-and users see only their permitted Plants.
+versus Budget questions by Plant, month, GL and nursery component, answers Actual-only questions
+by Cost Center, shows monthly trends, remembers follow-up scope while the backend is running, and
+opens the matching transactions when any Actual value is clicked. It asks for clarification
+whenever the required scope is missing or ambiguous, and users see only their permitted Plants.
 
 The demo never invents completeness. Unmapped transactions stay visible as Unmapped, missing
 Budget is labelled rather than treated as zero, and the supplied workbook's incomplete Actual is
@@ -28,7 +28,7 @@ follow after the PoC validates the workflow.
 
 ## Done when
 
-1. **Permitted users receive exact warehouse-backed Actual versus Budget answers by Plant, month, GL and nursery component, with clarification instead of guessed scope and honest Unmapped, missing-Budget and partial-data labels.**
+1. **Permitted users receive exact warehouse-backed Actual versus Budget answers by Plant, month, GL and nursery component plus Actual-only Cost Center answers, with clarification instead of guessed scope and honest Unmapped, missing-Budget and partial-data labels.**
 2. **Monthly trends and in-memory follow-ups preserve confirmed scope and show exact values, gaps, changes and closing Roll-over balances without turning missing or partial data into complete results.**
 3. **Every displayed Actual value opens its matching warehouse transactions with the exact full total, source and permitted scope, while non-Actual values remain non-clickable.**
 4. **The separate Claude Sonnet Financial Chat completes one end-to-end browser journey with backend calculations while existing Ask, reports, imports, exports and report drill-down keep their previous behavior.**
@@ -56,9 +56,12 @@ follow after the PoC validates the workflow.
 ### Done-when details
 
 1. Exact money remains a paise-precise decimal string from governed warehouse rows. Supported
-   question dimensions are Plant, month, GL and nursery component using the catalog combinations
-   already implemented. The model chooses only governed selections and never authors SQL, joins,
-   values or Budget allocations. Missing Plant, period or another required scope produces a
+   comparison dimensions are Plant, month, GL and nursery component using the catalog combinations
+   already implemented; Cost Center is supported for Actual-only grouping and filtering because
+   Budget is not allocated across Cost Centers. The model chooses only governed selections and
+   never authors SQL, joins, values or Budget allocations. Budget by Cost Center returns the fixed
+   unsupported-combination explanation; a missing Cost Center appears as `Cost Center not assigned`
+   with its Actual and drill. Missing Plant, period or another required scope produces a
    clarification before any financial query. Current Plant grants are checked before selection,
    query, response and drill reads. Revocation denies the retained scope rather than shrinking it.
    Known-Plant transactions with no component mapping remain in an `Unmapped` row and drill.
@@ -73,10 +76,13 @@ follow after the PoC validates the workflow.
    value is zero, negative, missing or partial. Missing months remain gaps. Roll-over uses the
    stored balance for the selected closing month rather than summing monthly balances. A pending
    clarification reply and later follow-up reuse the confirmed conversation scope; an explicit new
-   month replaces the earlier month. Memory is owner-local and process-local, bounded for the PoC,
-   and a refresh can continue while a backend restart returns a clear lost-context response. This
-   story does not require connection replay, advanced cancellation, simultaneous runs or multi-tab
-   coordination.
+   month replaces the earlier month. Memory is owner-local and process-local: a conversation expires
+   after 30 idle minutes; each owner retains at most 5 conversations; the process retains at most
+   100 conversations; and each conversation retains its latest 20 turns and 20 result memberships.
+   Least-recently-used entries are evicted, and expired, evicted or restarted context returns a typed
+   `CONTEXT_LOST` response that asks the user to restate the scope. A refresh can continue while the
+   entry exists. This story does not require connection replay, advanced cancellation, simultaneous
+   runs or multi-tab coordination.
 3. Every Actual rendered in the answer table, total or trend exposes an owner-bound handle for its
    exact aggregate scope, including Unmapped and available-data subtotal values. Budget,
    Roll-over and percentage are inert. Drill reads reuse the shared governed predicate and the
@@ -117,8 +123,10 @@ rows would mix ownership boundaries or is expected to exceed Forge's roughly 400
 Every backend test is registered in the correct package runner and quality gate. Database writes
 and truncation use only disposable PostgreSQL on 127.0.0.1:5434 (warehouse) and :5435 (app), never
 the live :5433/:5432 databases. Browser work uses 127.0.0.1:3000 and a fresh CSRF token for each
-scripted POST. Each task begins with a failing owner-boundary test, runs its focused tests, then
-quality, typecheck, structural and hermetic checks before close.
+scripted POST. Before CHAT, VALUES, DETAIL or DEMO runs a frontend test build, stop the development
+server and move any existing `frontend/.next` aside; restart only after the worker build is done.
+Each task begins with a failing owner-boundary test, runs its focused tests, then quality, typecheck,
+structural and hermetic checks before close.
 
 ## Tasks
 
@@ -142,16 +150,16 @@ quality, typecheck, structural and hermetic checks before close.
 | DRILL | Issue drill scopes | Owner-bound exact Actual scopes with expiry and access recheck | 3 | `backend/src/financial-data/actual-drill-context*`, `backend/src/financial-data/financial-query.repository.ts`, `backend/src/financial-data/financial-data.service.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged owner, expiry, revocation, deduplication and source-identity tests remain green | TRENDS | no |
 | PAGES | Read transactions | Stable prepared and continuation pages with exact full totals | 3 | `backend/src/financial-data/actual-transactions.repository.ts`, `backend/src/financial-data/financial-data.service.ts`, `backend/src/financial-data/actual-drill.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged full traversal, stable order, paging error, partial and zero-net DB proof remains green | DRILL | no |
 | MODEL | Select questions | Direct Claude Sonnet provider, trusted instructions and safe cache boundary | 1, 4 | `backend/src/financial-chat/financial-selector.provider*`, `backend/src/financial-chat/financial-chat.tools.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged strict tools, fixed prefix, payload exclusion and typed vendor-error tests remain green | CONFIG, TRANSPORT, CATALOG | no |
-| MEMORY | Remember PoC conversations | Owner-local bounded in-memory turns, confirmed scope and result membership | 2, 3 | `backend/src/financial-chat/financial-chat.state.ts`, `backend/src/financial-chat/financial-chat.memory*`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.memory.test.ts`: owner isolation, bounded conversations/turns/results, refresh continuation, restart loss, expiry and revocation; no concurrent-run or multi-tab matrix | MODEL | no |
-| GRAPH | Clarify and follow up | LangGraph transitions from question to clarification or governed selection | 1, 2, 4 | `backend/src/financial-chat/financial-chat.graph*`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.graph.test.ts`: no query before required clarification, pending reply, explicit month override, follow-up scope, bounded rounds and malformed/unknown tool refusal | MEMORY, TRENDS | no |
-| ANSWER | Form exact responses | Deterministic text/UI, trends and ready Actual handles without model arithmetic | 1, 2, 3 | `backend/src/financial-chat/financial-chat.service*`, `backend/src/financial-chat/financial-answer.helper.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.service.test.ts`: exact complete/partial/missing labels, trend gaps, backend-only calculations, prepared handles and no rows/results sent to Claude | GRAPH, PAGES | no |
+| MEMORY | Remember PoC conversations | Owner-local in-memory turns, confirmed scope and result membership with fixed PoC limits | 2, 3 | `backend/src/financial-chat/financial-chat.state.ts`, `backend/src/financial-chat/financial-chat.memory*`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.memory.test.ts`: owner isolation; 30-minute idle expiry; 5 conversations per owner; 100 per process; latest 20 turns and 20 result memberships; least-recently-used eviction; typed `CONTEXT_LOST`; refresh continuation, restart loss and revocation; no concurrent-run or multi-tab matrix | MODEL | no |
+| GRAPH | Clarify and follow up | LangGraph transitions from question to clarification or governed selection | 1, 2, 4 | `backend/src/financial-chat/financial-chat.graph*`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.graph.test.ts`: no query before required clarification, pending reply, explicit month override, follow-up scope, Actual-only Cost Center selection, fixed Budget-by-Cost-Center refusal, bounded rounds and malformed/unknown tool refusal | MEMORY, TRENDS | no |
+| ANSWER | Form exact responses | Deterministic text/UI, trends and ready Actual handles without model arithmetic | 1, 2, 3 | `backend/src/financial-chat/financial-chat.service*`, `backend/src/financial-chat/financial-answer.helper.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.service.test.ts`: exact complete/partial/missing labels, Cost Center-not-assigned Actual and drill, trend gaps, backend-only calculations, prepared handles and no rows/results sent to Claude | GRAPH, PAGES | no |
 | API | Expose the PoC | Authenticated commands, simple streamed frames, conversation state and drill pages | 2, 3, 4 | `backend/src/financial-chat/financial-chat.controller*`, `backend/src/financial-chat/financial-chat.dto.ts`, `backend/src/financial-chat/financial-chat.stream.test.ts`, `backend/src/financial-chat/stream-adapter.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Controller/stream tests: auth, CSRF, owner isolation, exact final frame, typed errors and drill paging; no connection replay, advanced deduplication or cancellation matrix | ANSWER | no |
 | CLIENT | Connect React | Credentialed native transport and one in-memory chat hook | 2, 3 | `frontend/src/features/financial-chat/financial-chat.transport*`, `frontend/src/features/financial-chat/use-financial-chat*` | Transport/hook tests: frames, clarification reply, follow-up, one auth refresh, fresh CSRF and denied-state clearing; no concurrent-run or multi-tab matrix | RESPONSE, TRANSPORT | no |
-| CHAT | Build the screen | Separate accessible Financial Chat page and clarification controls | 1, 2, 4 | `frontend/app/(app)/financial-chat/page.tsx`, `frontend/src/features/financial-chat/financial-chat.tsx`, `frontend/src/features/financial-chat/clarification-card.tsx`, `frontend/src/features/financial-chat/financial-chat.test.tsx` | Chat tests: clarification, follow-up, new chat, denied/no-Plants/restart copy and keyboard behavior | CLIENT | yes |
+| CHAT | Build the screen | Separate accessible Financial Chat page, clarification controls and feature-gated navigation | 1, 2, 4 | `frontend/app/(app)/financial-chat/page.tsx`, `frontend/src/features/financial-chat/financial-chat.tsx`, `frontend/src/features/financial-chat/clarification-card.tsx`, `frontend/src/features/financial-chat/financial-chat.test.tsx`, `frontend/src/components/shell/app-shell.tsx`, `frontend/src/components/shell/app-shell.test.tsx` | Chat and shell tests: clarification, follow-up, new chat, denied/no-Plants/restart copy, keyboard behavior, navigation visible only when enabled and unchanged Ask navigation | CLIENT | yes |
 | VALUES | Render finances | Exact answer tables, honest labels and gapped monthly trends | 1, 2 | `frontend/src/features/financial-chat/financial-result*`, `frontend/src/features/financial-chat/monthly-trend.tsx`, `frontend/src/components/ui/` | Result tests: large/negative exact strings, Unmapped and missing-Budget labels, partial exclusion, gap handling, chart/table agreement and no frontend arithmetic | RESPONSE | yes |
 | DETAIL | Open Actuals | Accessible Actual transaction panel using prepared and continued pages | 3 | `frontend/src/features/financial-chat/actual-transactions-panel*` | Panel tests: no LLM call, matching partial/full totals, paging, typed failure/denial and focus return; Budget/Roll-over/percentage remain inert | CLIENT, VALUES | yes |
-| INTEGRATE | Enable independently | Backend module/routes/Swagger plus feature-gated navigation without Ask changes | 4 | `backend/src/financial-chat/financial-chat.module*`, `backend/src/financial-chat/financial-chat.capabilities.controller.ts`, `backend/src/app.module.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`, `frontend/src/components/shell/app-shell.tsx`, `frontend/src/components/shell/app-shell.test.tsx`, `backend/package.json`, `tools/quality-gate.test.mjs` | Module, route, Swagger and shell tests: flag on/off, safe missing-model refusal, permitted/no-Plant states, independent navigation and unchanged Ask route/provider | API, CHAT, DETAIL | yes |
-| DEMO | Prove the PoC journey | One disposable-data Playwright flow plus focused legacy preservation smoke | 1, 2, 4 | `backend/src/financial-chat/financial-chat-fixtures*`, `frontend/e2e/financial-chat-demo.spec.ts`, `frontend/e2e/financial-chat-fixtures.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | One deterministic browser journey: clarify Plant/month, exact Actual versus Budget, honest missing/partial/Unmapped state, monthly trend, follow-up, click Actual and match transaction total/source/scope; then smoke existing Ask/report/export/drill and rely on merged import regression | INTEGRATE, LOAD, LEGACY-UI | yes |
+| WIRING | Enable the backend independently | Backend module, routes and Swagger without Ask changes | 4 | `backend/src/financial-chat/financial-chat.module*`, `backend/src/financial-chat/financial-chat.capabilities.controller.ts`, `backend/src/app.module.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Scanner/loader module-resolution, route and Swagger tests without booting `AppModule`: flag on/off, safe missing-model refusal, permitted/no-Plant states and unchanged Ask route/provider; run hermetic proof with `PGPORT=1 WAREHOUSE_PG_PORT=1` | API | no |
+| DEMO | Prove the PoC journey | One guarded disposable-data Playwright flow plus focused legacy preservation smoke | 1, 2, 4 | `backend/src/financial-chat/financial-chat-fixtures*`, `backend/src/financial-chat/financial-chat-fixtures.test.ts`, `frontend/e2e/financial-chat-demo.spec.ts`, `frontend/e2e/financial-chat-fixtures.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Named backend fixture test reuses BASELINE's disposable-target guard, rejects non-synthetic source identities and non-disposable targets before writes, and labels fixture results; then one deterministic browser journey clarifies Plant/month, answers exact Actual versus Budget and Actual-only Cost Center, shows honest missing/partial/Unmapped state and monthly trend, retains a follow-up, clicks Actual and matches transaction total/source/scope, smokes existing Ask/report/export/drill and relies on merged import regression | WIRING, CHAT, DETAIL, LOAD, LEGACY-UI | yes |
 
 New moving parts: TypeScript LangGraph in the NestJS backend; direct Claude Sonnet selection;
 strict shared financial response contracts; an independent React page using native fetch and
@@ -169,8 +177,9 @@ Agents framework, OpenAI/Bedrock fallback or production deployment system is add
   matrix.
 - Remaining dependency graph is acyclic. MEMORY starts from merged MODEL; CLIENT and VALUES can
   start immediately after approval. GRAPH follows MEMORY; ANSWER follows GRAPH; API follows
-  ANSWER. CHAT follows CLIENT; DETAIL follows CLIENT and VALUES; INTEGRATE joins API, CHAT and
-  DETAIL; DEMO is the final PoC proof.
+  ANSWER. CHAT follows CLIENT and owns frontend navigation; DETAIL follows CLIENT and VALUES;
+  WIRING follows API and owns backend registration only; DEMO joins WIRING, CHAT and DETAIL as the
+  final PoC proof.
 - Start every ready PoC task immediately after exact-plan approval. Ignore unrelated Ask and Forge
   work. Serialize only tasks that actually edit the same manifest, lockfile or quality-gate line;
   independent scopes run in parallel.

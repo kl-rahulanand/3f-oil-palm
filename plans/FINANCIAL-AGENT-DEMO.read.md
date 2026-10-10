@@ -1,12 +1,12 @@
 ---
-reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-09T16:09:57+00:00
-read_hash: 46a60e68f24588cc2484a1d67152e699037c2856
-round: 10
-passed: yes
-doc_seen: 46a60e68f24588cc2484a1d67152e699037c2856
+reader: codex (gpt-5.6-terra)
+read_at: 2026-10-10T17:51:12+00:00
+read_hash: b8edf1cc9b64efb6581b8a6a61aca524d3e46ef9
+round: 11
+passed: no
+doc_seen: b8edf1cc9b64efb6581b8a6a61aca524d3e46ef9
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: 7662676ac965c7c00211f19ccc43d2973d930262
+notes_seen: f6564b4cbe7b711a9d50c92d9d519230fe69e627
 ---
 
 # Cold read notes
@@ -246,3 +246,29 @@ No findings.
 ## Round 10
 
 No findings.
+
+## Round 11
+
+32. Disputed keep 12: INTEGRATE recombines backend wiring and navigation.
+   Disposition: keep: CHAT now owns the page and feature-gated frontend navigation; WIRING owns only backend module, route and Swagger registration, so the boundary is split without adding another task.
+   The prior resolution separated these ownership boundaries; this row again spans backend modules/routes/Swagger and the frontend shell. Split backend integration from runtime-gated navigation.
+
+33. Gap: the PoC drops confirmed Actual-only Cost Center support without deferring it.
+   Disposition: keep: Actual-only Cost Center grouping and filtering is restored throughout acceptance and the demo, while Budget remains explicitly unallocated across Cost Centers.
+   The plan limits supported dimensions to Plant, month, GL and component, while the confirmed spec requires D7 and Cost Center grouping. Retain D7 or explicitly defer that capability.
+
+34. Gap: MEMORY’s required bounds are unspecified.
+   Disposition: keep: MEMORY now pins 30 idle minutes, 5 conversations per owner, 100 per process, 20 turns and 20 result memberships, least-recently-used eviction and a typed CONTEXT_LOST outcome.
+   “Bounded” does not pin idle expiry, per-owner/process limits, retained turns/results, eviction, or their typed outcomes. MEMORY must adopt explicit values and prove them.
+
+35. Unproven: item 4: DEMO fixture safety.
+   Disposition: keep: DEMO now owns a named backend fixture test for the shared BASELINE guard, pre-write target and source refusal, and visible fixture labelling.
+   `financial-chat-fixtures*` has no named backend test proving it rejects non-synthetic source identities and non-disposable targets before writes, labels fixture results, and reuses BASELINE’s target guard.
+
+36. Trap: hermetic AppModule startup without databases: item 4.
+   Disposition: keep: WIRING now requires scanner/loader resolution without booting AppModule and pins the hermetic run with both database ports set to 1.
+   INTEGRATE edits `app.routes.test.ts` and `swagger.test.ts`, which currently boot `AppModule`. Pin scanner/loader-based module resolution and the `PGPORT=1 WAREHOUSE_PG_PORT=1` hermetic check.
+
+37. Trap: frontend test builds overwrite `.next`: items 1–4.
+   Disposition: keep: task rules now stop the dev server and move frontend/.next aside before frontend test builds in CHAT, VALUES, DETAIL and DEMO; WIRING is backend-only.
+   CHAT, VALUES, DETAIL, INTEGRATE and DEMO need the existing dev server stopped and `.next` moved aside before worker builds; the task rules omit this safeguard.
