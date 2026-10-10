@@ -2,27 +2,34 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-TRENDS",
   "review": {
     "blocking_level": "P1",
-    "changed": "0e6284fd5e27ad120d33b2ed9919e64986cf78aa2cf9cf47ffdacb354c7732d0",
-    "commit": "5b3d1f94c6522dc01900caf20e743b522f8adb74",
+    "changed": "b93316d5e4791514a1a5baae01c4f199ef73ef4cca93f20e3fc207e7cff5db01",
+    "commit": "6e954638691402cde810af44b5ac91473c970416",
     "dismissals": [],
     "findings": [
       {
-        "body": "`coordinateProduct` creates an unrestricted Cartesian product of every selected value for every grouped dimension. For example, grouping by Plant, Cost Center, and month across two Plants and two Plant-specific Cost Centers creates four Plant/Cost-Center combinations even when only two exist in the catalog. The empty invented combinations can then be reported as complete Actual `0.00`, because completeness is evaluated only by Plant/month. This violates the requirement not to guess scope or values. New evidence not covered by the earlier coordinate-materialization ruling is that the repository SQL itself associates Cost Centers with a specific Plant, while this completion path discards that relationship; completion must use valid catalog/observed combinations rather than a raw Cartesian product.",
+        "body": "The new evidence not covered by the earlier coordinate-materialization ruling is the `otherDimensions.length === 1` guard: explicitly selected values are added only when month is grouped with exactly one other dimension. With `plant + cost_center + month`, bases come exclusively from facts already returned by the repository. Consequently, a catalog-valid selected Plant/Cost-Center pair with no facts anywhere in the period produces no monthly rows at all, even when coverage confirms zero or should expose a missing-data gap. This avoids the former Cartesian fan-out but still fails the requirement to retain all valid catalog combinations; the repository must supply valid catalog coordinates rather than relying solely on observed facts.",
         "file": "backend/src/financial-data/financial-trend.ts",
-        "line": 24,
+        "line": 25,
         "priority": "P1",
         "title": "Not done: exact factual answers without guessed dimension combinations"
       },
       {
-        "body": "The regression assertion for multiple selected GLs calls `completeMonthlyCoordinates` directly. It would continue passing if `FinancialQueryRepository` stopped invoking the helper, associated generated coordinates incorrectly, or exposed incorrect values for the empty coordinate. The prior defect was in repository output, so the test audit requires a test through `FinancialQueryRepository` that selects multiple grouped values and verifies the missing coordinate's monthly rows and states.",
+        "body": "The only multi-dimensional completion case supplies both valid Plant/Cost-Center bases as already-observed coordinates. The repository regression test covers only one non-month dimension (`gl`). Therefore the suite remains green while `FinancialQueryRepository` drops a catalog-valid multi-dimensional selection that has no facts in any requested month. A repository-level test must select such a valid combination and verify its rows and states across covered and outside/noncontinuous source months.",
         "file": "backend/src/financial-data/financial-trend.test.ts",
-        "line": 39,
+        "line": 44,
         "priority": "P1",
-        "title": "Not done: multiple selected-coordinate repository gap test"
+        "title": "Not done: catalog-valid empty-coordinate repository trend test"
+      },
+      {
+        "body": "The positive closing-balance assertion calls `sumClosingMonthRollover` directly. The only subsequent repository assertion uses a database where the closing month is not loaded, so execution returns `not_loaded` without exercising the new available Roll-over summation branch. This test would still pass if the repository reverted to summing every period month's stored Roll-over. The required proof must query `FinancialQueryRepository` with both earlier and closing-month budget facts and assert that only the closing month's stored balances are returned.",
+        "file": "backend/src/financial-data/financial-trend.test.ts",
+        "line": 142,
+        "priority": "P1",
+        "title": "Not done: stored closing Roll-over repository test"
       }
     ],
     "status": "blocked",
-    "tree": "b3fd38537ac51702e482bcdbd56a3f1b2851fd446257ebfef524f457c8a5b58e"
+    "tree": "53e98ea4837329706bbb7b67d6972a00ee592b8baa4c6b4b968f59bf420d15ea"
   },
   "status": "fixing",
   "steps": [
@@ -36,6 +43,10 @@
     },
     {
       "at": "2026-10-10T11:01:14+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T11:17:01+00:00",
       "step": "review"
     }
   ]
