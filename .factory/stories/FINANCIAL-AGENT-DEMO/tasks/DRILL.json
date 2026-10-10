@@ -2,29 +2,22 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-DRILL",
   "review": {
     "blocking_level": "P1",
-    "changed": "e093089647de2e8eb74cabe2b5260c8a5cdf38bf9bb64a51362b34ebcce5b9ce",
-    "commit": "9546c6e053fe92d75e053db4aa0ec0fe9b7a97ba",
+    "changed": "b0f566b2a8dbeb166f3f5e21ac3dc191e92cf8f5d2d50d715f2d5111d964c8bb",
+    "commit": "8135a6429978b164bca500e63b150bf9d9f14bff",
     "dismissals": [],
     "findings": [
       {
-        "body": "The new intersection still discards the already-resolved `scope.componentKeys` and reconstructs component keys from the raw filters. For a selection filtered to parent component `parent`, the raw filter contains only `parent`, while the clicked parent cell expands to `parent` and descendant `leaf`; intersecting those values keeps only `parent`. The displayed parent total can therefore include `leaf`, but its drill scope excludes that transaction. A clicked leaf row under the same parent filter can even receive an empty component scope. This is new evidence beyond the prior review: the replacement algorithm intersects against raw filter values rather than the resolved component constraint, and the added parent test checks only handle equality without resolving the pinned component keys. Intersect the cell descendants with `scope.componentKeys` while preserving exclusions, and verify the resulting transaction identity set through the production query entry point.",
-        "file": "backend/src/financial-data/financial-query.repository.ts",
-        "line": 512,
-        "priority": "P1",
-        "title": "Not done: Clicked component cells retain a matching pinned scope"
-      },
-      {
-        "body": "This branch adds a generated review/task-state record under `.factory`, although the declared change scope permits only the listed backend financial-data files, `backend/package.json`, and the quality-gate test. The file is not an implementation or required test for drill issuance and records transient review status and commit metadata. Remove it from this change unless the scope is explicitly amended.",
+        "body": "This previously reported gap remains open: the branch adds a generated `.factory` review/task-state record even though the declared scope permits only the listed backend financial-data files, `backend/package.json`, and the quality-gate test. The file is not needed for drill issuance or its tests and contains transient review and commit metadata, so it should be removed from this change.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/DRILL.json",
         "line": 1,
         "priority": "P2",
         "title": "Remove the out-of-scope Forge task-state file"
       }
     ],
-    "status": "blocked",
-    "tree": "558e3f124c71ff36a3c2805c7346bfcdfdb82fdfdc2c4845870434c6a2aba627"
+    "status": "clean",
+    "tree": "a6e1642c2f3600b8734f41c6606e6aca760dcca271850eedef22bab0aec9bac9"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-10T12:45:12+00:00",
@@ -40,6 +33,10 @@
     },
     {
       "at": "2026-10-10T14:40:15+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T15:09:28+00:00",
       "step": "review"
     }
   ]
