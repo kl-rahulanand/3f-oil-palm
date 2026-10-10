@@ -1,12 +1,12 @@
 ---
-reader: codex (gpt-5.6-terra), a separate Codex conversation because Claude Code isn't installed
-read_at: 2026-10-09T16:09:57+00:00
-read_hash: 46a60e68f24588cc2484a1d67152e699037c2856
-round: 10
+reader: codex (gpt-5.6-terra)
+read_at: 2026-10-10T18:12:19+00:00
+read_hash: eb1b30b017349733f7229d6c956a13bd991703ae
+round: 15
 passed: yes
-doc_seen: 46a60e68f24588cc2484a1d67152e699037c2856
+doc_seen: eb1b30b017349733f7229d6c956a13bd991703ae
 spec_seen: 09e8a5e072cf993145e9e4b867bc66fb77b4dbfd
-notes_seen: 7662676ac965c7c00211f19ccc43d2973d930262
+notes_seen: 392c032ba1532fc057797dc5902e9132634ff75d
 ---
 
 # Cold read notes
@@ -244,5 +244,61 @@ No findings.
    MODEL names payload exclusions and vendor errors, while the spec also excludes money, rows, handles, batches, raw state and rendered answers from retries, traces and logs. Add captured retry/trace/log assertions to MODEL.
 
 ## Round 10
+
+No findings.
+
+## Round 11
+
+32. Disputed keep 12: INTEGRATE recombines backend wiring and navigation.
+   Disposition: keep: CHAT now owns the page and feature-gated frontend navigation; WIRING owns only backend module, route and Swagger registration, so the boundary is split without adding another task.
+   The prior resolution separated these ownership boundaries; this row again spans backend modules/routes/Swagger and the frontend shell. Split backend integration from runtime-gated navigation.
+
+33. Gap: the PoC drops confirmed Actual-only Cost Center support without deferring it.
+   Disposition: keep: Actual-only Cost Center grouping and filtering is restored throughout acceptance and the demo, while Budget remains explicitly unallocated across Cost Centers.
+   The plan limits supported dimensions to Plant, month, GL and component, while the confirmed spec requires D7 and Cost Center grouping. Retain D7 or explicitly defer that capability.
+
+34. Gap: MEMORY’s required bounds are unspecified.
+   Disposition: keep: MEMORY now pins 30 idle minutes, 5 conversations per owner, 100 per process, 20 turns and 20 result memberships, least-recently-used eviction and a typed CONTEXT_LOST outcome.
+   “Bounded” does not pin idle expiry, per-owner/process limits, retained turns/results, eviction, or their typed outcomes. MEMORY must adopt explicit values and prove them.
+
+35. Unproven: item 4: DEMO fixture safety.
+   Disposition: keep: DEMO now owns a named backend fixture test for the shared BASELINE guard, pre-write target and source refusal, and visible fixture labelling.
+   `financial-chat-fixtures*` has no named backend test proving it rejects non-synthetic source identities and non-disposable targets before writes, labels fixture results, and reuses BASELINE’s target guard.
+
+36. Trap: hermetic AppModule startup without databases: item 4.
+   Disposition: keep: WIRING now requires scanner/loader resolution without booting AppModule and pins the hermetic run with both database ports set to 1.
+   INTEGRATE edits `app.routes.test.ts` and `swagger.test.ts`, which currently boot `AppModule`. Pin scanner/loader-based module resolution and the `PGPORT=1 WAREHOUSE_PG_PORT=1` hermetic check.
+
+37. Trap: frontend test builds overwrite `.next`: items 1–4.
+   Disposition: keep: task rules now stop the dev server and move frontend/.next aside before frontend test builds in CHAT, VALUES, DETAIL and DEMO; WIRING is backend-only.
+   CHAT, VALUES, DETAIL, INTEGRATE and DEMO need the existing dev server stopped and `.next` moved aside before worker builds; the task rules omit this safeguard.
+
+## Round 12
+
+38. Gap: MEMORY’s new limits and `CONTEXT_LOST` response conflict with merged response contracts.
+   Disposition: keep: MEMORY now reuses the merged 60-minute, 20/200-conversation, 40-turn and three-result-bundle limits plus the existing capacity and context_expired reasons without changing RESPONSE.
+   `FINANCIAL_CHAT_LIMITS` pins 60 minutes, 20/200 conversations, 40 turns and three result bundles; its strict error schema permits `context_expired`, not `CONTEXT_LOST`. MEMORY cannot implement this scoped change without either retaining those contracts or explicitly amending RESPONSE and its tests.
+
+39. Unproven: item 1: a named Cost Center filter returns only its exact Actual rows and matching drill.
+   Disposition: keep: ANSWER now names the owner-bound exact filter, exclusion and prepared-drill proof, and DEMO exercises the same named Cost Center against guarded warehouse fixtures.
+   GRAPH proves selection and refusal, while ANSWER names the unassigned bucket. Add an owner-bound query/answer proof for a named Cost Center filter, including exclusion of other Cost Centers and its prepared drill.
+
+40. Gap: real Anthropic calls lack the confirmed data-handling precondition.
+   Disposition: keep: real Anthropic calls remain disabled for this PoC; the fake provider drives the demo, and later enablement requires recorded account/model, billing, processing, retention and residency approval.
+   The plan requires model access and billing but omits recorded processing, retention and residency approval before enabling real calls. The brief has no Answers section and says those expectations remain to confirm; pin the approval gate or keep real calls disabled.
+
+## Round 13
+
+41. Unproven: item 3: eviction of the fourth retained result bundle.
+   Disposition: keep: MEMORY now deterministically removes the oldest bundle when the fourth is added, revokes all prepared drill scopes for that bundle and proves later reuse returns the existing result_expired rerun response rather than context_expired.
+   MEMORY promises the latest three bundles but names no fourth-result behavior; it also conflates eviction with `context_expired`. Pin deterministic result eviction and the existing `result_expired` rerun response, with the API retaining no stale drill access.
+
+## Round 14
+
+42. Unproven: item 3: an evicted result’s handle is denied at the public drill API.
+   Disposition: keep: API now rechecks owner conversation result membership before resolving any transaction handle and proves an evicted bundle returns result_expired with no rows even while the underlying handle remains valid.
+   MEMORY can remove membership, but `FinancialDataService.transactions` resolves a still-valid drill handle independently. API must recheck result membership before that call, and its tests must prove an evicted handle returns `result_expired` with no transactions.
+
+## Round 15
 
 No findings.

@@ -1,273 +1,213 @@
-# New financial chat with monthly trends and traceable Actuals
+# Demo-first Financial Chat with monthly trends and traceable Actuals
 
-35 parts · Risks: external model processing, incomplete coverage and integration compatibility · New moving parts: independent chat, additive warehouse tables and direct Claude integration
+28 parts (18 complete, 10 remaining) · Risks: external model processing, incomplete source coverage and PoC-only runtime reliability · New moving parts: independent chat, additive warehouse tables, process memory and direct Claude integration
 
 ## What changes for you
 
-You get a separate Financial Chat alongside existing Ask. It answers factual Actual versus
-Budget questions by Plant, month, GL and nursery component, supports monthly trends and
-follow-ups, and prepares transactions behind every clickable Actual. Missing or ambiguous
-scope asks for clarification. Users see only their permitted Plants.
+You get a separate Financial Chat alongside existing Ask. It answers warehouse-backed Actual
+versus Budget questions by Plant, month, GL and nursery component, answers Actual-only questions
+by Cost Center, shows monthly trends, remembers follow-up scope while the backend is running, and
+opens the matching transactions when any Actual value is clicked. It asks for clarification
+whenever the required scope is missing or ambiguous, and users see only their permitted Plants.
 
-Completeness confirmation remains deferred for this PoC. The supplied workbook's complete
-Actual is unavailable, with a clearly labelled available-data subtotal and its transactions;
-partial amounts never become complete percentages or changes. Synthetic test data proves
-complete-data behavior separately and is visibly labelled. Conversation memory disappears
-when the backend restarts.
+The demo never invents completeness. Unmapped transactions stay visible as Unmapped, missing
+Budget is labelled rather than treated as zero, and the supplied workbook's incomplete Actual is
+shown only as a clearly labelled available-data subtotal. Conversation memory is in process and
+is lost when the backend restarts.
 
-Claude Sonnet is the first model. Financial instruction modules and caching of repeated
-static instructions are included; calculations stay in the backend. Existing chat, report
-generation, imports, exports and report drill-down remain unchanged.
+Claude Sonnet selects governed financial questions; all financial queries, calculations, labels
+and drill-down matching remain deterministic in the backend. Existing Ask, reports, imports,
+exports and report drill-down continue unchanged. One browser journey proves the complete PoC
+flow from clarification through answer, trend, follow-up and Actual transaction drill-down.
 
 ## Why
 
-Finance needs accurate, traceable warehouse answers without manually summing monthly
-sheets or risking changes to the existing reporting application.
+Finance needs a usable, accurate and traceable demonstration quickly, without manually summing
+monthly sheets or risking changes to the existing reporting application. Production hardening can
+follow after the PoC validates the workflow.
 
 ## Done when
 
-1. **Permitted users receive exact factual answers with clear missing-data and partial-data labels, without guessed scope, values or Budget allocations.**
-2. **Monthly trends show correct exact values, gaps, changes and closing Roll-over balances for the selected period.**
-3. **Clarification and follow-ups retain confirmed scope, respect current access and explain expired or lost conversation context.**
-4. **Every clickable Actual opens its prepared matching transactions, and further pages preserve the full total, source and permitted scope.**
-5. **The new workbook import preserves and reconciles the source while existing chat and reporting features keep their previous behavior.**
-6. **The separate chat works with Claude Sonnet, trusted financial instructions and static prompt caching without sending server financial results to the model.**
+1. **Permitted users receive exact warehouse-backed Actual versus Budget answers by Plant, month, GL and nursery component plus Actual-only Cost Center answers, with clarification instead of guessed scope and honest Unmapped, missing-Budget and partial-data labels.**
+2. **Monthly trends and in-memory follow-ups preserve confirmed scope and show exact values, gaps, changes and closing Roll-over balances without turning missing or partial data into complete results.**
+3. **Every displayed Actual value opens its matching warehouse transactions with the exact full total, source and permitted scope, while non-Actual values remain non-clickable.**
+4. **The separate Claude Sonnet Financial Chat completes one end-to-end browser journey with backend calculations while existing Ask, reports, imports, exports and report drill-down keep their previous behavior.**
 
 ## Risks
 
-- Real Claude calls send permitted user text and sanitized selection metadata to a new
-  vendor. Owner confirmation of application account/model access, billing and client
-  retention/residency requirements is mandatory first; developer login is not approval.
-- Completeness confirmation stays deferred. Real-source Actual remains partial; a complete
-  customer-Actual demonstration requires a later agreed confirmation process.
-- Changes are additive and imports independent. No source overwrite, destructive migration,
-  old-chat cutover or report migration. Rollback disables the new feature.
-- Package/stream compatibility must be proved before dependent work. One backend process
-  holds temporary memory; restart loses conversation and transaction handles.
+- Real Claude calls send permitted user text and sanitized selection metadata to an external
+  vendor. The deterministic browser journey uses a fake provider and real calls remain disabled
+  for this PoC. Enabling them later requires recorded application account/model access, billing
+  and client processing, retention and residency approval, and must never send financial results,
+  rows, transaction handles, batch identities or raw conversation state to the model.
+- Completeness confirmation remains deferred. Real-source Actual is partial and must remain an
+  available-data subtotal; the PoC cannot claim a complete customer-Actual comparison.
+- Process-local memory is intentionally demo-grade. A backend restart loses conversations and
+  drill handles; connection-loss replay, advanced deduplication, cancellation, concurrent-run and
+  multi-tab guarantees are deferred.
+- Changes remain additive and feature-gated. No source overwrite, destructive migration, old-chat
+  cutover or report migration is allowed; rollback disables the new Financial Chat.
+- One focused browser journey proves the demo flow, not every real-source, synthetic, device,
+  cache or vendor combination. Those matrices move to the later hardening story.
+- Approximately 8–12 hours is a target for the remaining PoC work, not a guaranteed deadline;
+  review findings, CI failures or environmental blockers can extend it.
 
 ## For the builders
 
 ### Done-when details
 
-1. Spec acceptance 1 and D1-D3/D7-D10: exact paise/decimal strings, all supported source
-   dimensions and catalog combinations, independent Actual/Budget aggregates, no repeated-GL
-   or parent fan-out. Composite mapping only; provisional remains provisional. Known-Plant
-   Unmapped/missing dimensions retained; unknown Plants operator-only. All missing/zero/GL
-   Budget states use the exact spec labels. No Cost Center Budget allocation, SQL/code tools,
-   forecast or causal advice. Require current action `report`, domain `mis-statement`, four
-   `mis-statement.actual_net/budget_net/rollover_net/percentage` measure grants, `leaf_key`
-   dimension grant and `scope.attribute === "plant"` values through exported
-   RbacService.resolveUser. These identifiers are auth compatibility, not old-chat code reuse.
-   No report permission denies, no Plants guides, revocation denies pinned scope. Exact
-   `availableActualSubtotal` is distinct, labelled completeness-unconfirmed, prepared and
-   counted; never complete Actual/ratio/delta/chart point. Outside source months no fake
-   subtotal. QUERY/CATALOG/BROWSER compare independent expected totals, refusals and scopes.
-2. Spec acceptance 2, D4-D6/D8/D12: April FY with explicit ending period, cross-year ranges,
-   flow sums versus closing-month stored Roll-over, complete-Actual gaps, table-only partial
-   subtotals. Prior zero/negative/missing gives Not applicable percentage change; exact monetary
-   delta requires both complete values. Distinct batch sourceReportingMonths includes valid
-   unknown-Plant rows, never implied continuous span/completeness. TRENDS/VALUES/BROWSER
-   prove missing closing month, noncontinuous months, empty covered Plant versus outside
-   month, and chart/table agreement only between matching complete/Budget columns.
-3. Spec acceptance 3 and all named follow-ups: pending replies complete the same request;
-   explicit month overrides relative context; ambiguities clarify before query. One run,
-   one-hour idle expiry; 20 conversations/account, 200/process, 40 sanitized turns, three result
-   bundles, 256 replay events. Recheck owner/session/grants before read/replay/emission; never
-   shrink pinned scope. MEMORY/GRAPH/API/STREAM/CLIENT/REGRESSION prove capacity/cancel/expiry,
-   no-report/no-Plants, revocation and actual process restart with typed outcomes.
-4. Spec acceptance 4: prepare 10 rows before completion; cap200 distinct Actual scopes including
-   totals/parents/Unmapped/missing/empty/partial; deduplicate chart/table; 201 narrows first.
-   Shared predicate and immutable source/mapping pins. Ascending stable posting date/transaction
-   number/line ID/internal ID; full count/total not page sum. Continuation default20/max100
-   pinned first time, offset10+(page-2)*limit; spec totalPages and 400 invalid_pagination,
-   page_size_changed, page_out_of_range apply. Authorized metadata supplies prepared/default/
-   pinned sizes after refresh/second tab. Shared30-second preparation deadline cancels outstanding
-   work, preserves ready scopes, explicitly fails unfinished scopes and prevents late ready writes.
-   Retained source pin or rerun, never fallback. DRILL/PAGES/ANSWER/DETAIL/BROWSER compare
-   full transaction identity sets and totals, including partial and zero-net offsets.
-5. Spec acceptance 5: BASELINE before migration/load. Eight additive agent_financial tables;
-   independent original Excel parser retains all columns/both Comments/null identifiers/signs/
-   evidence. Cell half-away-from-zero paise rounding with raw precision/delta evidence. Budget
-   monthly leaves, separate hierarchy, repeated/missing GL, cached formulas only; missing cache
-   blocks use and requests recalculated saved new source, no automatic overwrite/zero.
-   Explicit DUB ownership/approved aliases, provisional mapping preserved. Immutable lifecycle,
-   checksum/parser idempotency, atomic activation, failed replacement retains prior generation.
-   Independent counts/Decimal/source sums, unconfirmed real coverage still permits faithful
-   activation. Test-owned real-loader harness only on :5434 and synthetic: batch completeness,
-   rejects real identities/wrong destinations before writes; no production completeness override.
-   Every synthetic result labelled. SCHEMA/PARSERS/LOAD/FIXTURES/REGRESSION prove these and
-   quoted real filename in PowerShell/cmd/Git Bash. Same legacy snapshot flag off/on for old
-   Ask/import/statement/export/drill; unexplained same-scope differences block acceptance.
-6. Spec acceptance 6: fresh TypeScript LangGraph/NestJS, direct ChatAnthropic Sonnet5.5
-   (`claude-sonnet-5-5`), no Bedrock/OpenAI path/fallback. Four tools have meaningful descriptions,
-   strict input and output Zod schemas. Catalog/lookup selection metadata only; financial results
-   stay server-side. Trusted static instructions plus user text/sanitized selection/current capped
-   permitted vocabulary; no server money/rows/handles/batches/raw state/rendered answers in
-   calls/retries/traces/logs. Deterministic answer/UI, five rounds, bounded timeouts/retries,
-   typed vendor errors. Always bundle four instruction modules in fixed order; static schemas
-   have no per-user enums. Explicit5-minute cache prefix before dynamic context; no padding or
-   automatic whole-history caching. Different grants share static prefix bytes. Hits/misses/
-   expiry/short prefixes never bypass access/queries; record aggregate cache counters/timing only.
-   MODEL/GRAPH/ANSWER prove boundaries. LIVE requires owner-confirmed vendor prerequisites,
-   then D1-D12 x3 fresh real runs and follow-ups on final prompt/tool/cache revision; later
-   changes rerun the set. Mocks are not live proof or confirmed-customer-data demonstration.
+1. Exact money remains a paise-precise decimal string from governed warehouse rows. Supported
+   comparison dimensions are Plant, month, GL and nursery component using the catalog combinations
+   already implemented; Cost Center is supported for Actual-only grouping and filtering because
+   Budget is not allocated across Cost Centers. The model chooses only governed selections and
+   never authors SQL, joins, values or Budget allocations. Budget by Cost Center returns the fixed
+   unsupported-combination explanation; a missing Cost Center appears as `Cost Center not assigned`
+   with its Actual and drill. Missing Plant, period or another required scope produces a
+   clarification before any financial query. Current Plant grants are checked before selection,
+   query, response and drill reads. Revocation denies the retained scope rather than shrinking it.
+   Known-Plant transactions with no component mapping remain in an `Unmapped` row and drill.
+   Missing Budget uses `Budget not loaded for this Plant or month`; a loaded Plant/month with no GL
+   line uses `No Budget line for this GL` and a not-applicable percentage. Missing Actual is zero
+   only for a source month explicitly represented as loaded; otherwise it is `Actual data not
+   loaded`. The real workbook's incomplete Actual appears only as an `availableActualSubtotal`,
+   never as complete Actual, percentage, delta or chart point. Input schemas remain strict and
+   reject unsupported dimensions, measures, filters, dates, page sizes and unknown fields.
+2. Month, explicit range and April-based financial-year trends use backend values only. Monetary
+   change requires two complete Actual values; percentage change is not applicable when the prior
+   value is zero, negative, missing or partial. Missing months remain gaps. Roll-over uses the
+   stored balance for the selected closing month rather than summing monthly balances. A pending
+   clarification reply and later follow-up reuse the confirmed conversation scope; an explicit new
+   month replaces the earlier month. Memory is owner-local and process-local and uses the merged
+   response-contract limits: 60 idle minutes, 20 conversations per account, 200 per process, the
+   latest 40 sanitized turns and 3 retained result bundles. Capacity returns the existing typed
+   account/process capacity reason. Adding a fourth result bundle deterministically removes the
+   oldest bundle and revokes every prepared drill scope that belonged to it; a later reference uses
+   the existing typed `result_expired` response and asks the user to rerun. Expired or restarted
+   conversation context uses `context_expired` and asks the user to restate the scope. A refresh can
+   continue while the entry exists. This story does not require connection replay, advanced
+   cancellation, simultaneous runs or multi-tab coordination.
+3. Every Actual rendered in the answer table, total or trend exposes an owner-bound handle for its
+   exact aggregate scope, including Unmapped and available-data subtotal values. Budget,
+   Roll-over and percentage are inert. Drill reads reuse the shared governed predicate and the
+   immutable source and mapping pins; no LLM call occurs on click. Before resolving a handle, the
+   public API verifies that its owning result bundle is still retained in the owner's conversation.
+   An evicted result returns `result_expired` with rerun guidance and no transactions even if the
+   underlying drill handle has not reached its own expiry. The prepared first ten rows, stable
+   continuation order, exact full count and exact full total already implemented by DRILL and PAGES
+   remain authoritative. Invalid, expired, revoked, replaced or out-of-range requests return typed
+   safe errors and never fall back to a newer source.
+4. The independent route and navigation entry remain behind the Financial Chat feature flag and
+   reuse only shared authentication, RBAC, CSRF, audit, configuration, logging and error handling.
+   Claude Sonnet receives trusted financial instructions, strict tool schemas, user text and
+   sanitized permitted vocabulary; backend results never return to the model. Repeated static
+   instructions keep the existing cache boundary, but detailed cache-token measurement is not PoC
+   acceptance. The final deterministic Playwright journey uses disposable databases and a fake
+   Claude response to: clarify missing Plant/period, answer an exact Actual-versus-Budget question,
+   show a monthly trend with an honest gap/partial state, retain a follow-up, and click an Actual
+   through to matching transactions. Existing hermetic, baseline and focused browser checks prove
+   Ask, report generation, import, export and report drill-down stay unchanged. No production
+   deployment or live-Claude repetition is required for this story.
 
-Mandatory inputs: confirmed `docs/specs/langgraph-financial-chat.md`, accepted decisions
-0041-0054 and `docs/superpowers/plans/2026-10-08-financial-chat-master.md` plus all nine
-stage files. Confirmed spec and accepted records win over stale plan wording.
+### Deferred hardening
+
+Create a later hardening story, after the PoC workflow is accepted, for:
+
+- connection-loss replay and advanced event deduplication;
+- advanced cancellation, concurrent-run and multi-tab behavior;
+- exhaustive real-source and synthetic browser-test matrices;
+- repeated live-Claude probes and detailed cache-token measurements; and
+- production rollout evidence and the final deployment runbook.
+
+The deferral does not relax financial accuracy, authorization, strict input validation,
+transaction traceability or preservation of existing features.
+
+### Task rules
+
+The first 18 rows are already merged and are retained as the factual foundation; do not reopen or
+rewrite them. The ten remaining rows are the smallest reviewable PoC units: combining any adjacent
+rows would mix ownership boundaries or is expected to exceed Forge's roughly 400-line task size.
+Every backend test is registered in the correct package runner and quality gate. Database writes
+and truncation use only disposable PostgreSQL on 127.0.0.1:5434 (warehouse) and :5435 (app), never
+the live :5433/:5432 databases. Browser work uses 127.0.0.1:3000 and a fresh CSRF token for each
+scripted POST. Before CHAT, VALUES, DETAIL or DEMO runs a frontend test build, stop the development
+server and move any existing `frontend/.next` aside; restart only after the worker build is done.
+Each task begins with a failing owner-boundary test, runs its focused tests, then quality, typecheck,
+structural and hermetic checks before close.
 
 ## Tasks
 
-Paths are exact or scoped globs. Each backend leaf's registry/gate paths are explicitly
-listed in its row. Every backend test joins the gate's hermeticTests or dbTests partition.
-Warehouse leaves join both test:hermetic/hermeticTests and test:warehouse-proof, skipping
-explicitly without WAREHOUSE_DB_TEST=1; a skip is not executed DB proof. API controller
-proof is hermetic with in-memory collaborators, not an AppModule boot. Truly app-DB-backed
-leaves join test:db/dbTests and require separate disposable-DB execution before acceptance.
-BASELINE and REGRESSION dual-DB leaves join hermeticTests/test:hermetic and the explicit
-backend test:financial-chat-db-proof runner, owned by BASELINE. They skip without
-FINANCIAL_CHAT_DUAL_DB_TEST=1. Every dual-DB leaf must then call BASELINE's shared typed
-assertDisposableFinancialDatabases guard before any write, even when the flag is manually
-set. It validates both resolved connections as 127.0.0.1:5434 warehouse and :5435 app;
-flags never substitute for target validation. BASELINE owns the hermetic refusal test and
-cross-platform tools/financial-chat-db-proof.mjs wrapper (covered by tools lint/format) to
-set TS_NODE_PROJECT/transpile mode and launch the registered test runner. REGRESSION
-appends its leaf/gate pin and calls the same guard; no copied safety check. Pure/provider/graph leaves join test:hermetic. All files are under backend/src so existing
-strict typecheck and backendTests discovery apply. Real HTTP/database/browser acceptance
-remains separate from fake-backed controller proof.
+| ID | Name | What it delivers | Covers | Scope | Tests | After | User-facing |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| BASELINE | Preserve existing outputs | Independent source oracle and backend legacy baseline | 4 | `backend/src/financial-chat/financial-source-oracle.ts`, `backend/src/financial-chat/financial-report-baseline*`, `tools/financial-chat-db-proof.mjs`, `backend/src/financial-chat/financial-disposable-db.guard*`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged baseline and disposable-target proofs remain green | none | no |
+| LEGACY-UI | Preserve legacy screens | Fixed existing Ask/report/export/drill browser baseline | 4 | `frontend/e2e/legacy-financial-baseline.spec.ts`, `frontend/playwright.config.ts`, `frontend/package.json`, `package.json`, `package-lock.json`, `tools/quality-gate.test.mjs` | Existing merged legacy browser proof remains green | BASELINE | no |
+| CONTRACT | Define financial contracts | Strict governed tool, selection and result schemas | 1, 3, 4 | `contract/src/financial-tools.ts`, `contract/src/index.ts`, `contract/test/financial-tools.test.ts`, `contract/package.json`, `tools/quality-gate.test.mjs` | Existing merged exact-money, tool-schema and result validation tests remain green | none | no |
+| RESPONSE | Define presentation contracts | Strict answer, UI, drill and typed-error frames | 2, 3, 4 | `contract/src/financial-chat.ts`, `contract/src/index.ts`, `contract/src/api.ts`, `contract/test/financial-chat.test.ts`, `contract/package.json`, `tools/quality-gate.test.mjs` | Existing merged response-contract tests remain green | CONTRACT | no |
+| TRANSPORT | Prove compatibility | Native fetch/ReadableStream and backend frame adapter compatibility | 4 | `backend/src/financial-chat/stream-adapter*`, `frontend/src/features/financial-chat/financial-chat.transport*`, `package-lock.json`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged frame and runtime compatibility tests remain green | RESPONSE | no |
+| CONFIG | Configure model safely | Feature flag and Claude settings without changing old Ask | 4 | `backend/src/config.ts`, `.env.example`, `backend/src/financial-chat/financial-model-config.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged safe-startup and unchanged-provider tests remain green | RESPONSE | no |
+| SCHEMA | Store source facts | Additive exact source tables and generation constraints | 1, 4 | `backend/src/financial-data/financial-schema*`, `backend/drizzle-warehouse/*`, `backend/src/warehouse/warehouse-migrate.ts`, `backend/src/warehouse/warehouse-schema.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged migration and source-constraint DB proofs remain green | RESPONSE, BASELINE, LEGACY-UI | no |
+| ACTUAL-PARSER | Preserve Actual lines | Exact Actual source parsing, null dimensions and rounding | 1 | `backend/src/financial-data/financial-workbook.parser.ts`, `backend/src/financial-data/financial-actual.parser*`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged Actual parser tests remain green | SCHEMA | no |
+| BUDGET-PARSER | Preserve Budget leaves | Monthly hierarchy/formula parsing and governed mapping seed | 1 | `backend/src/financial-data/financial-workbook.parser.ts`, `backend/src/financial-data/financial-budget.parser*`, `backend/src/financial-data/financial-mapping.seed.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged Budget parser and mapping tests remain green | ACTUAL-PARSER | no |
+| LOAD-REPO | Activate generations | Atomic, idempotent source generation activation | 1, 4 | `backend/src/financial-data/financial-load.repository.ts`, `backend/src/financial-data/financial-load.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged generation and rollback DB proofs remain green | BUDGET-PARSER | no |
+| LOAD | Import workbook | Independent workbook CLI with reconciliation and source months | 1, 4 | `backend/src/financial-data/financial-loader*`, `backend/src/financial-data/financial-load.cli.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged loader, reconciliation and spaced-path tests remain green | LOAD-REPO | no |
+| CATALOG | Authorize vocabulary | Governed dimensions plus report and Plant authorization | 1, 4 | `backend/src/financial-data/financial-data.module.ts`, `backend/src/financial-data/financial-data.service*`, `backend/src/financial-data/financial-access.service.ts`, `backend/src/financial-data/financial-catalog.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged catalog, authorization, revocation and audit tests remain green | RESPONSE, LOAD | no |
+| PREDICATE | Pin contributing scope | One parameterized summary/detail predicate | 1, 3 | `backend/src/financial-data/financial-predicate*`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged filter, descendant, pin and injection DB proofs remain green | CATALOG | no |
+| QUERY | Return exact comparisons | Independent complete, partial and missing Actual/Budget facts | 1 | `backend/src/financial-data/financial-query.repository.ts`, `backend/src/financial-data/financial-data.service.ts`, `backend/src/financial-data/financial-query.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged fan-out, Unmapped, missing-Budget and coverage tests remain green | PREDICATE | no |
+| TRENDS | Return monthly changes | Exact ranges, deltas, gaps and closing balance | 2 | `backend/src/financial-data/financial-trend*`, `backend/src/financial-data/financial-query.repository.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged zero/negative/missing-prior, cross-year, partial and Roll-over tests remain green | QUERY | no |
+| DRILL | Issue drill scopes | Owner-bound exact Actual scopes with expiry and access recheck | 3 | `backend/src/financial-data/actual-drill-context*`, `backend/src/financial-data/financial-query.repository.ts`, `backend/src/financial-data/financial-data.service.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged owner, expiry, revocation, deduplication and source-identity tests remain green | TRENDS | no |
+| PAGES | Read transactions | Stable prepared and continuation pages with exact full totals | 3 | `backend/src/financial-data/actual-transactions.repository.ts`, `backend/src/financial-data/financial-data.service.ts`, `backend/src/financial-data/actual-drill.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged full traversal, stable order, paging error, partial and zero-net DB proof remains green | DRILL | no |
+| MODEL | Select questions | Direct Claude Sonnet provider, trusted instructions and safe cache boundary | 1, 4 | `backend/src/financial-chat/financial-selector.provider*`, `backend/src/financial-chat/financial-chat.tools.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Existing merged strict tools, fixed prefix, payload exclusion and typed vendor-error tests remain green | CONFIG, TRANSPORT, CATALOG | no |
+| MEMORY | Remember PoC conversations | Owner-local in-memory turns, confirmed scope and result membership using merged contract limits | 2, 3 | `backend/src/financial-chat/financial-chat.state.ts`, `backend/src/financial-chat/financial-chat.memory*`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.memory.test.ts`: owner isolation; 60-minute idle expiry; 20 conversations per account; 200 per process; latest 40 sanitized turns and 3 result bundles; fourth bundle removes the oldest, revokes all of its drill scopes and returns typed `result_expired` on reuse; typed capacity and `context_expired` reasons; refresh continuation, restart loss and revocation; no concurrent-run or multi-tab matrix | MODEL | no |
+| GRAPH | Clarify and follow up | LangGraph transitions from question to clarification or governed selection | 1, 2, 4 | `backend/src/financial-chat/financial-chat.graph*`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.graph.test.ts`: no query before required clarification, pending reply, explicit month override, follow-up scope, Actual-only Cost Center selection, fixed Budget-by-Cost-Center refusal, bounded rounds and malformed/unknown tool refusal | MEMORY, TRENDS | no |
+| ANSWER | Form exact responses | Deterministic text/UI, trends and ready Actual handles without model arithmetic | 1, 2, 3 | `backend/src/financial-chat/financial-chat.service*`, `backend/src/financial-chat/financial-answer.helper.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | `financial-chat.service.test.ts`: exact complete/partial/missing labels; a named Cost Center returns only its Actual rows, excludes other Cost Centers and prepares the matching drill; Cost Center-not-assigned Actual and drill; trend gaps, backend-only calculations, prepared handles and no rows/results sent to Claude | GRAPH, PAGES | no |
+| API | Expose the PoC | Authenticated commands, simple streamed frames, conversation state and drill pages | 2, 3, 4 | `backend/src/financial-chat/financial-chat.controller*`, `backend/src/financial-chat/financial-chat.dto.ts`, `backend/src/financial-chat/financial-chat.stream.test.ts`, `backend/src/financial-chat/stream-adapter.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Controller/stream tests: auth, CSRF, owner isolation, exact final frame, typed errors and drill paging; recheck retained result membership before every transaction read and return `result_expired` with no rows for an evicted bundle even when its underlying handle remains valid; no connection replay, advanced deduplication or cancellation matrix | ANSWER | no |
+| CLIENT | Connect React | Credentialed native transport and one in-memory chat hook | 2, 3 | `frontend/src/features/financial-chat/financial-chat.transport*`, `frontend/src/features/financial-chat/use-financial-chat*` | Transport/hook tests: frames, clarification reply, follow-up, one auth refresh, fresh CSRF and denied-state clearing; no concurrent-run or multi-tab matrix | RESPONSE, TRANSPORT | no |
+| CHAT | Build the screen | Separate accessible Financial Chat page, clarification controls and feature-gated navigation | 1, 2, 4 | `frontend/app/(app)/financial-chat/page.tsx`, `frontend/src/features/financial-chat/financial-chat.tsx`, `frontend/src/features/financial-chat/clarification-card.tsx`, `frontend/src/features/financial-chat/financial-chat.test.tsx`, `frontend/src/components/shell/app-shell.tsx`, `frontend/src/components/shell/app-shell.test.tsx` | Chat and shell tests: clarification, follow-up, new chat, denied/no-Plants/restart copy, keyboard behavior, navigation visible only when enabled and unchanged Ask navigation | CLIENT | yes |
+| VALUES | Render finances | Exact answer tables, honest labels and gapped monthly trends | 1, 2 | `frontend/src/features/financial-chat/financial-result*`, `frontend/src/features/financial-chat/monthly-trend.tsx`, `frontend/src/components/ui/` | Result tests: large/negative exact strings, Unmapped and missing-Budget labels, partial exclusion, gap handling, chart/table agreement and no frontend arithmetic | RESPONSE | yes |
+| DETAIL | Open Actuals | Accessible Actual transaction panel using prepared and continued pages | 3 | `frontend/src/features/financial-chat/actual-transactions-panel*` | Panel tests: no LLM call, matching partial/full totals, paging, typed failure/denial and focus return; Budget/Roll-over/percentage remain inert | CLIENT, VALUES | yes |
+| WIRING | Enable the backend independently | Backend module, routes and Swagger without Ask changes | 4 | `backend/src/financial-chat/financial-chat.module*`, `backend/src/financial-chat/financial-chat.capabilities.controller.ts`, `backend/src/app.module.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Scanner/loader module-resolution, route and Swagger tests without booting `AppModule`: flag on/off, safe missing-model refusal, permitted/no-Plant states and unchanged Ask route/provider; run hermetic proof with `PGPORT=1 WAREHOUSE_PG_PORT=1` | API | no |
+| DEMO | Prove the PoC journey | One guarded disposable-data Playwright flow plus focused legacy preservation smoke | 1, 2, 4 | `backend/src/financial-chat/financial-chat-fixtures*`, `backend/src/financial-chat/financial-chat-fixtures.test.ts`, `frontend/e2e/financial-chat-demo.spec.ts`, `frontend/e2e/financial-chat-fixtures.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | Named backend fixture test reuses BASELINE's disposable-target guard, rejects non-synthetic source identities and non-disposable targets before writes, and labels fixture results; then one deterministic fake-provider browser journey clarifies Plant/month, answers exact Actual versus Budget, filters Actual to one named Cost Center while excluding the other and drills only its matching transactions, shows honest missing/partial/Unmapped state and monthly trend, retains a follow-up, smokes existing Ask/report/export/drill and relies on merged import regression | WIRING, CHAT, DETAIL, LOAD, LEGACY-UI | yes |
 
-| ID            | Name                          | What it delivers                                                          | Covers  | Scope                                                                                                                                                                                                                                                                            | Tests                                                                                                                                                                                                                                                                                                                                                                                              | After                         | User-facing |
-| ------------- | ----------------------------- | ------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
-| BASELINE      | Preserve existing outputs     | Independent source oracle and backend legacy baseline before changes      | 5       | `backend/src/financial-chat/financial-source-oracle.ts`, `backend/src/financial-chat/financial-report-baseline*`, `tools/financial-chat-db-proof.mjs`, `backend/src/financial-chat/financial-disposable-db.guard*`, `backend/package.json`, `tools/quality-gate.test.mjs`        | `backend/src/financial-chat/financial-report-baseline.test.ts`: unconditional generated-source oracle; gated real-source report/export/drill and in-process old-Ask HTTP parity with recorded provider override on disposable DBs; `backend/src/financial-chat/financial-disposable-db.guard.test.ts`: hermetic refusal of wrong hosts/ports, missing targets and manual-flag bypass before writes | none                          | no          |
-| LEGACY-UI     | Preserve legacy screens       | Playwright setup and fixed legacy UI capture                              | 5       | `frontend/e2e/legacy-financial-baseline.spec.ts`, `frontend/playwright.config.ts`, `frontend/package.json`, `package.json`, `package-lock.json`, `tools/quality-gate.test.mjs`                                                                                                  | `frontend/e2e/legacy-financial-baseline.spec.ts`: existing report/export/drill screens and unchanged mock-provider Ask clarification on BASELINE snapshot; local generated and explicitly gated real-source runs on disposable DBs with recorded evidence, not CI                                                                                                                                  | BASELINE                      | no          |
-| CONTRACT      | Define financial contracts    | Tool vocabulary, selection and input/output schemas with descriptions     | 1, 4, 6 | `contract/src/financial-tools.ts`, `contract/src/index.ts`, `contract/test/financial-tools.test.ts`, `contract/package.json`, `tools/quality-gate.test.mjs`                                                                                                                      | `contract/test/financial-tools.test.ts`: exact money, four strict tool schemas/descriptions, selection/catalog/result validation                                                                                                                                                                                                                                                                   | none                          | no          |
-| RESPONSE      | Define presentation contracts | UI frames, capabilities, partial/synthetic, paging and typed error shapes | 3, 4, 6 | `contract/src/financial-chat.ts`, `contract/src/index.ts`, `contract/src/api.ts`, `contract/test/financial-chat.test.ts`, `contract/package.json`, `tools/quality-gate.test.mjs`                                                                                                 | `contract/test/financial-chat.test.ts`: strict output/UI props, money preservation, paging reasons, capabilities and frame schema crossing tool types                                                                                                                                                                                                                                              | CONTRACT                      | no          |
-| TRANSPORT     | Prove compatibility           | Backend SDK/cache API and native fetch/ReadableStream crossing            | 3, 6    | `backend/src/financial-chat/stream-adapter*`, `frontend/src/features/financial-chat/financial-chat.transport*`, `package-lock.json`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                       | `backend/src/financial-chat/stream-adapter.test.ts`, `frontend/src/features/financial-chat/financial-chat.transport.test.ts`: real frame/render, CJS/Node20/React19/Zod and cancel                                                                                                                                                                                                                 | RESPONSE                      | no          |
-| CONFIG        | Configure new model safely    | Central flag/model/key/retry/timeout config without changing old provider | 3, 5, 6 | `backend/src/config.ts`, `.env.example`, `backend/src/financial-chat/financial-model-config.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                                      | `backend/src/financial-chat/financial-model-config.test.ts`: hermetic safe startup with absent/invalid new settings, typed request refusal and unchanged old settings                                                                                                                                                                                                                              | RESPONSE                      | no          |
-| SCHEMA        | Store source facts            | Eight additive tables and generation constraints                          | 5       | `backend/src/financial-data/financial-schema*`, `backend/drizzle-warehouse/*`, `backend/src/warehouse/warehouse-migrate.ts`, `backend/src/warehouse/warehouse-schema.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                    | `backend/src/financial-data/financial-schema.db.test.ts`: duplicates/orphans/cross-load refusal, exact generated values and migration twice                                                                                                                                                                                                                                                        | RESPONSE, BASELINE, LEGACY-UI | no          |
-| ACTUAL-PARSER | Preserve Actual lines         | All columns, null dimensions and exact rounding                           | 5       | `backend/src/financial-data/financial-workbook.parser.ts`, `backend/src/financial-data/financial-actual.parser*`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                          | `backend/src/financial-data/financial-actual.parser.test.ts`: comments, missing dimensions, invalid date/money/duplicates and half-paise                                                                                                                                                                                                                                                           | SCHEMA                        | no          |
-| BUDGET-PARSER | Preserve Budget leaves        | Monthly hierarchy/formula parsing and mapping seed                        | 1, 5    | `backend/src/financial-data/financial-workbook.parser.ts`, `backend/src/financial-data/financial-budget.parser*`, `backend/src/financial-data/financial-mapping.seed.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                  | `backend/src/financial-data/financial-budget.parser.test.ts`: repeated/missing GL, parent exclusion, cached formula failure and mapping collisions                                                                                                                                                                                                                                                 | ACTUAL-PARSER                 | no          |
-| LOAD-REPO     | Activate generations          | Transactional writes, rollback, idempotency and retention                 | 5       | `backend/src/financial-data/financial-load.repository.ts`, `backend/src/financial-data/financial-load.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                         | `backend/src/financial-data/financial-load.db.test.ts`: duplicate/concurrent/failed/replacement loads and no generation mixing                                                                                                                                                                                                                                                                     | BUDGET-PARSER                 | no          |
-| LOAD          | Import workbook               | Operator CLI, reconciliation and source-month metadata                    | 5       | `backend/src/financial-data/financial-loader*`, `backend/src/financial-data/financial-load.cli.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                                        | `backend/src/financial-data/financial-loader.test.ts`: Linux-safe argument handling of spaced paths (three Windows shells are manual ROLLOUT evidence), source sums, coverage/activation and month-set evidence                                                                                                                                                                                    | LOAD-REPO                     | no          |
-| CATALOG       | Authorize vocabulary          | New catalog, current report/Plant checks and service seams                | 1, 3, 6 | `backend/src/financial-data/financial-data.module.ts`, `backend/src/financial-data/financial-data.service*`, `backend/src/financial-data/financial-access.service.ts`, `backend/src/financial-data/financial-catalog.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`  | `backend/src/financial-data/financial-data.service.test.ts`: no-report/no-Plants/revocation, scoped lookup and unsupported grouping, audit actor/nonfinancial scope/references/failure and no prompt/amount/row payload                                                                                                                                                                            | RESPONSE, LOAD                | no          |
-| PREDICATE     | Pin contributing scope        | Shared parameterized summary/detail builder                               | 1, 4    | `backend/src/financial-data/financial-predicate*`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                                                                                         | `backend/src/financial-data/financial-predicate.db.test.ts`: filters/descendants/pins and no injection or mirrored semantics                                                                                                                                                                                                                                                                       | CATALOG                       | no          |
-| QUERY         | Return exact comparisons      | Independent facts and complete/partial/missing groups                     | 1, 4    | `backend/src/financial-data/financial-query.repository.ts`, `backend/src/financial-data/financial-data.service.ts`, `backend/src/financial-data/financial-query.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                               | `backend/src/financial-data/financial-query.db.test.ts`: fan-out, Unmapped/missing GL, independent sums and all coverage states, all-known-Plants still excludes unknown-Plant rows                                                                                                                                                                                                                | PREDICATE                     | no          |
-| TRENDS        | Return monthly changes        | FY/ranges, exact deltas, gaps and closing balance                         | 1, 2    | `backend/src/financial-data/financial-trend*`, `backend/src/financial-data/financial-query.repository.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                                 | `backend/src/financial-data/financial-trend.test.ts`: zero/negative/missing prior, April/cross-year, partial never delta and stored closing Roll-over                                                                                                                                                                                                                                              | QUERY                         | no          |
-| DRILL         | Issue drill scopes            | Owner/cell/partial/total pins, cap and expiry                             | 3, 4    | `backend/src/financial-data/actual-drill-context*`, `backend/src/financial-data/financial-query.repository.ts`, `backend/src/financial-data/financial-data.service.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                    | `backend/src/financial-data/actual-drill-context.test.ts`: 200/201, dedup, owner/expiry/revocation and source identity                                                                                                                                                                                                                                                                             | TRENDS                        | no          |
-| PAGES         | Read transactions             | Fixed continuation and exact full set/total                               | 4       | `backend/src/financial-data/actual-transactions.repository.ts`, `backend/src/financial-data/financial-data.service.ts`, `backend/src/financial-data/actual-drill.db.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                              | `backend/src/financial-data/actual-drill.db.test.ts`: 10-to-20 entire traversal, partial/zero-net, paging errors/reload/revocation                                                                                                                                                                                                                                                                 | DRILL                         | no          |
-| MODEL         | Select questions              | Claude provider, trusted modules, static prefix and vendor errors         | 1, 6    | `backend/src/financial-chat/financial-selector.provider*`, `backend/src/financial-chat/financial-chat.tools.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                           | `backend/src/financial-chat/financial-selector.provider.test.ts`: schemas, prefix equality across grants, payload exclusions/cache misses and vendor errors, including captured retry/trace/log assertions that exclude money, rows, handles, batches, raw state and rendered answers                                                                                                                | CONFIG, TRANSPORT, CATALOG    | no          |
-| MEMORY        | Bound state                   | Owner-local memory, limits and result membership                          | 3, 4    | `backend/src/financial-chat/financial-chat.state.ts`, `backend/src/financial-chat/financial-chat.memory*`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                                 | `backend/src/financial-chat/financial-chat.memory.test.ts`: isolation/capacity, refresh/restart, expiry/revocation, cancellation, and typed concurrent-run refusal that leaves the original run intact                                                                                                                                                                                              | MODEL                         | no          |
-| GRAPH         | Clarify scope                 | LangGraph transitions and confirmed follow-ups                            | 1, 3, 6 | `backend/src/financial-chat/financial-chat.graph*`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                                                                                        | `backend/src/financial-chat/financial-chat.graph.test.ts`: no query before clarification, pending replies, month override, bounded rounds and causal refusal, prose-only/malformed/unknown-tool replies never become financial answers                                                                                                                                                             | MEMORY, TRENDS                | no          |
-| ANSWER        | Prepare responses             | Deterministic answer/UI and bounded preparation                           | 1, 4, 6 | `backend/src/financial-chat/financial-chat.service*`, `backend/src/financial-chat/financial-answer.helper.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                             | `backend/src/financial-chat/financial-chat.service.test.ts`: exact partial/synthetic labels, ready before final, timeout failures and no rows back to model                                                                                                                                                                                                                                        | GRAPH, PAGES                  | no          |
-| API           | Expose resources              | Owner-bound commands/state/pages, DTO/Swagger and reasons                 | 1, 3, 4 | `backend/src/financial-chat/financial-chat.controller*`, `backend/src/financial-chat/financial-chat.dto.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                               | `backend/src/financial-chat/financial-chat.controller.test.ts`: hermetic HTTP/controller auth/CSRF with in-memory collaborators, cross-conversation denial, paging metadata and errors                                                                                                                                                                                                             | ANSWER                        | no          |
-| STREAM        | Deliver events                | Bounded authorized replay/cancel and deduplication                        | 3, 4, 6 | `backend/src/financial-chat/stream-adapter.ts`, `backend/src/financial-chat/financial-chat.stream.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                                | `backend/src/financial-chat/financial-chat.stream.test.ts`: lost ack/duplicate command, post-header error, expired/revoked replay and no late answer                                                                                                                                                                                                                                               | API                           | no          |
-| CLIENT        | Connect React                 | Fresh scoped transport/state and safe retries                             | 3, 4    | `frontend/src/features/financial-chat/financial-chat.transport*`, `frontend/src/features/financial-chat/use-financial-chat*`                                                                                                                                                     | `frontend/src/features/financial-chat/financial-chat.transport.test.ts`, `frontend/src/features/financial-chat/use-financial-chat.test.tsx`: frames, one auth refresh/fresh CSRF and denied cache clearing                                                                                                                                                                                         | STREAM                        | no          |
-| CHAT          | Build question UI             | Separate screen, pending choices and lifecycle states                     | 1, 3, 6 | `frontend/app/(app)/financial-chat/page.tsx`, `frontend/src/features/financial-chat/financial-chat.tsx`, `frontend/src/features/financial-chat/clarification-card.tsx`, `frontend/src/features/financial-chat/financial-chat.test.tsx`                                           | `frontend/src/features/financial-chat/financial-chat.test.tsx`: clarification/follow-up, stop/new chat, denied/no-Plants/restart and keyboard                                                                                                                                                                                                                                                      | CLIENT                        | yes         |
-| VALUES        | Render finances               | Exact strings, partial/synthetic labels and gapped trends                 | 1, 2, 6 | `frontend/src/features/financial-chat/financial-result*`, `frontend/src/features/financial-chat/monthly-trend.tsx`, `frontend/src/components/ui/`                                                                                                                                | `frontend/src/features/financial-chat/financial-result.test.tsx`: large/negative money, missing/Unmapped labels, synthetic label, chart/table agreement and no arithmetic, Budget/Roll-over/percentage never clickable                                                                                                                                                                             | CHAT                          | yes         |
-| DETAIL        | Open Actuals                  | Immediate accessible prepared panel and paging                            | 1, 3, 4 | `frontend/src/features/financial-chat/actual-transactions-panel*`                                                                                                                                                                                                                | `frontend/src/features/financial-chat/actual-transactions-panel.test.tsx`: no LLM click, partial/full total, refresh pinned size, failure/denial/focus                                                                                                                                                                                                                                             | VALUES                        | yes         |
-| WIRING        | Enable feature safely         | Backend modules, runtime capabilities, routes and Swagger                 | 3, 5, 6 | `backend/src/financial-chat/financial-chat.module*`, `backend/src/financial-chat/financial-chat.capabilities.controller.ts`, `backend/src/app.module.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs` | `backend/src/financial-chat/financial-chat.module.test.ts`, `backend/src/app.routes.test.ts`, `backend/src/swagger.test.ts`: dead-port scanner, per-request model failures, runtime capabilities and unchanged old routes                                                                                                                                                                          | DETAIL                        | no          |
-| NAVIGATION    | Add independent entry         | Runtime-gated Financial Chat navigation without changing AskProvider      | 3, 5, 6 | `frontend/src/components/shell/app-shell.tsx`, `frontend/src/components/shell/app-shell.test.tsx`                                                                                                                                                                                | `frontend/src/components/shell/app-shell.test.tsx`: same-build flag toggle, no-report denial/no-Plants guidance and old Ask unchanged                                                                                                                                                                                                                                                              | WIRING                        | yes         |
-| FIXTURES      | Isolate numeric proof         | Disposable real-loader synthetic and browser harness                      | 1, 4, 5 | `backend/src/financial-chat/financial-chat-fixtures*`, `frontend/e2e/financial-chat-fixtures.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                                          | `backend/src/financial-chat/financial-chat-fixtures.test.ts`: source/host/port refusal before writes and synthetic classification, no real certification                                                                                                                                                                                                                                           | NAVIGATION, LOAD, LEGACY-UI   | no          |
-| BROWSER       | Prove chat journey            | Real-source coverage-dependent financial questions and partial drills     | 1, 2, 4 | `frontend/e2e/financial-chat-real-source.spec.ts`                                                                                                                                                                                                                                | `frontend/e2e/financial-chat-real-source.spec.ts`: D1-D12 on original real source with null complete Actual and labelled prepared partial values, Budget states and no inferred completeness                                                                                                                                                                                                       | FIXTURES                      | no          |
-| SYNTHETIC     | Prove complete-data UI        | Labelled numeric/negative/zero/trend/drill and accessibility journeys     | 1, 2, 4 | `frontend/e2e/financial-chat-synthetic.spec.ts`                                                                                                                                                                                                                                  | `frontend/e2e/financial-chat-synthetic.spec.ts`: independent synthetic golden money, every partial/zero/detail/paging edge, 200/201, light/dark/mobile/keyboard and nonclickable Budget/%                                                                                                                                                                                                          | FIXTURES                      | no          |
-| REGRESSION    | Prove preservation            | Old baseline parity and new restart/revocation/reload                     | 3, 5    | `frontend/e2e/financial-reports-regression.spec.ts`, `backend/src/financial-chat/financial-chat.acceptance.test.ts`, `backend/package.json`, `tools/quality-gate.test.mjs`                                                                                                       | `frontend/e2e/financial-reports-regression.spec.ts`, `backend/src/financial-chat/financial-chat.acceptance.test.ts`: old Ask/import/export/drill flag on/off, restart, grants and pins                                                                                                                                                                                                             | BROWSER, SYNTHETIC, BASELINE  | no          |
-| LIVE          | Validate final Claude         | Gated real probes and sanitized cache/payload proof                       | 1, 3, 6 | `backend/src/financial-chat/financial-chat.live-probe*`, `backend/package.json`, `tools/quality-gate.test.mjs`, `docs/context/financial-chat-vendor-prerequisites.md`                                                                                                            | `backend/src/financial-chat/financial-chat.live-probe.test.ts`: vendor/revision gate; manual real D1-D12 x3/follow-ups and measured cache tokens; blocked until owner records application model/account, billing and client retention/residency confirmation in that document                                                                                                                      | REGRESSION                    | no          |
-| ROLLOUT       | Deliver runbook               | Verified evidence, enablement/rollback and limitations                    | 4, 5, 6 | `docs/superpowers/plans/financial-chat-acceptance-evidence.md`, `deployment/ec2/README.md`, `deployment/ec2/.env.example`, `docs/superpowers/plans/2026-10-08-financial-chat-*.md`                                                                                               | All named registered quality/typecheck/structural/hermetic/DB/browser/live gates and real CLI/runbook walk; manual Windows PowerShell/cmd/Git Bash real supplied-filename walks, not Linux CI                                                                                                                                                                                                      | LIVE                          | no          |
-
-New moving parts: backend LangGraph and native React fetch transport and direct Anthropic packages (3/6); eight additive tables and independent import/read module in existing warehouse (1/5); bounded process-local conversation/drill state (3/4); local financial component map/shadcn presentation and Playwright only if absent (1/2/4/6). No DB server, vector store, queue, Agent Server, Deep Agents framework, external component hosting, OpenAI or Bedrock integration.
+New moving parts: TypeScript LangGraph in the NestJS backend; direct Claude Sonnet selection;
+strict shared financial response contracts; an independent React page using native fetch and
+ReadableStream; additive warehouse source tables and loaders; and process-local conversation
+state. No database server, vector store, queue, durable checkpointer, hosted Agent Server, Deep
+Agents framework, OpenAI/Bedrock fallback or production deployment system is added.
 
 ## Notes
 
-- Stage map: 1 CONTRACT/RESPONSE/TRANSPORT; 2 SCHEMA; 3 ACTUAL-PARSER/BUDGET-PARSER/LOAD-REPO/LOAD;
-  4 CATALOG/PREDICATE/QUERY/TRENDS; 5 DRILL/PAGES; 6 CONFIG/MODEL/MEMORY/GRAPH/ANSWER;
-  7 API/STREAM/WIRING/NAVIGATION; 8 CLIENT/CHAT/VALUES/DETAIL; 9 BASELINE/LEGACY-UI/FIXTURES/BROWSER/
-  SYNTHETIC/REGRESSION/LIVE/ROLLOUT. All master coverage rows remain mandatory.
-- Aim around400 implementation lines/task. Split larger responsibilities before dispatch,
-  amend builder section and cold-read again; no silent narrowing. Shared seams first, one
-  crossing proof before consumers. CONTRACT and RESPONSE pin all master names/signatures; CATALOG
-  exports FinancialDataService; PREDICATE exports ResolvedFinancialScope reused by detail.
-- Tasks own only their appended leaf registrations and scoped manifest changes. Serialize all
-  tasks touching shared manifests, package-lock.json or the quality gate, across frontend,
-  backend and contract chains: merge one at a time and rebase onto earlier merged edits
-  before close/merge. Regenerate the npm lockfile after rebasing dependency changes with
-  npm install; never resolve it by textual merging. No concurrent shared-line edits/merges.
-  UI uses existing Vitest discovery; LEGACY-UI owns Playwright/root wiring if absent;
-  FIXTURES consumes that established harness. Native transport adds no frontend dependency.
-- Start with intended failing boundary tests, then implement, run named owner/sibling checks,
-  quality/typecheck/structural/hermetic. No duplicate private-helper proofs or test-only
-  production exports. Fake vendors only. Named leaf must be observed executing.
-- All truncating tests and synthetic writes use disposable Postgres16 at 127.0.0.1:5434
-  warehouse/:5435 app, never live :5433/:5432. Confirm targets before writes. Test-owned
-  harness calls real loader and guarded synthetic-only coverage setup; no production override.
-- SCHEMA picks next migration/journal number after rebase, directory scope intentional.
-  Never edit merged migrations/legacy schema. Constitution naming/API/Swagger/logging/errors
-  apply, with accepted snake-case financial schema and exported-service wiring exceptions.
-- TRANSPORT records exact command/frame/SDK mapping in stream-adapter.ts and crossing tests;
-  compatibility failure stops dependent work, never authorizes Agent Server or wholesale upgrades.
-  APIs use /api/v1/financial-conversations, with authenticated runtime GET
-  /api/v1/financial-chat-capabilities. Controller verifies result membership in conversation;
-  no hidden conversation argument is added to FinancialDataService.transactions.
-- Reuse only shared auth/RBAC/CSRF/audit/config/logging/errors. No old prompts/selector/tools/
-  executor/state/parser/UI copied/imported. AppShell's existing AskProvider stays untouched;
-  independent chat owns new hook/context. Navigation edit is not old-chat cutover.
-- Rebase on merged report/workbook work before tasks, inventory overlapping Ask stories,
-  preserve dirty main edits and stable legacy snapshot. No default-branch commits/no-verify/
-  gh pr merge/merge-policy changes. Shared manifests updated only for proven dependencies.
-- Fake selector first; real vendor calls wait for owner preconditions. LIVE checks final
-  prompt/tool/cache bytes; any later change invalidates and reruns all fresh probes.
-- UI uses app-baseline and existing theme/shadcn/Recharts/accessibility. Template presentation
-  only with MIT attribution, no gateway/AI SDK backend. Missing optional design skills are
-  recorded with explicit bounded interaction/accessibility walk. No financial arithmetic in UI.
-- Each ignored-file edit includes .prettierignore in scope, formats/removes its entry and
-  records the removal in its header in the same change; no unrelated cleanup.
-- Stop dev servers before builds/protect .next. Browser uses 127.0.0.1:3000 and fresh CSRF
-  each POST. Hermetic uses scanner/loader not AppModule boot; PowerShell PGPORT and
-  WAREHOUSE_PG_PORT=1 during proof, restore afterward.
-- ROLLOUT claims only actual proof, no working-day estimate/new cloud infrastructure/
-  production-readiness claim. Human story approval precedes coding; normal review/merge gates remain.
+- This amendment replaces the original production-shaped acceptance for this story. The broader
+  confirmed spec and accepted decisions remain the source for a later hardening story, but the
+  five items under Deferred hardening are not prerequisites for this PoC.
+- Completed work stays unchanged. Do not revert already merged compatibility, cache, paging,
+  authorization or test protections merely because the reduced PoC no longer requires their full
+  matrix.
+- Remaining dependency graph is acyclic. MEMORY starts from merged MODEL; CLIENT and VALUES can
+  start immediately after approval. GRAPH follows MEMORY; ANSWER follows GRAPH; API follows
+  ANSWER. CHAT follows CLIENT and owns frontend navigation; DETAIL follows CLIENT and VALUES;
+  WIRING follows API and owns backend registration only; DEMO joins WIRING, CHAT and DETAIL as the
+  final PoC proof.
+- Start every ready PoC task immediately after exact-plan approval. Ignore unrelated Ask and Forge
+  work. Serialize only tasks that actually edit the same manifest, lockfile or quality-gate line;
+  independent scopes run in parallel.
+- Reuse only shared authentication, RBAC, CSRF, audit, config, logging and error handling. Do not
+  reuse old Ask prompts, selector, tools, executor, state, parser or UI. The existing AskProvider
+  stays untouched.
+- The deterministic browser journey may fake Claude selection but not financial results. Every
+  displayed value and transaction must still come through the real warehouse query and backend
+  calculation paths using guarded disposable data.
+- Keep real Anthropic calls disabled in this PoC. A later enablement change must record approval
+  for application model access, billing and client processing, retention and residency terms.
+- Fake or real model output can select only the governed vocabulary. No financial amount,
+  percentage, transaction row, drill handle, batch identity, raw state or rendered answer is sent
+  to Claude, logs or traces.
+- Do not add automatic defaults for missing Plant or period. Do not convert missing Budget or
+  incomplete Actual into zero. Do not allocate Budget across Cost Centers. Do not compute money or
+  percentages in React.
+- Approximately 8–12 hours is a planning target only. Forge review, tests and CI remain mandatory;
+  speed does not authorize bypassing task scopes, reviews, financial proofs or merge gates.
 
-Decided: completeness process deferred, explicit real-source partial Actual not invented
-certification (owner, 2026-10-08, 0054). Decided: trusted instructions/static-prefix caching
-without another framework (owner, 2026-10-08, 0053).
-
-### Review-pinned execution seams
-
-- BASELINE captures the original supplied workbook checksum and restores a fixed legacy dataset
-  through the unchanged existing ingestion API into disposable :5434/:5435. Save any pg_dump
-  snapshot and customer data only in a validated task temporary directory outside Git; record
-  checksum, load IDs and scopes as nonfinancial metadata. Restore the same snapshot for before/
-  after comparisons, never substitute a new source. The pure generated-source oracle executes in CI with independent expected rows.
-  Generated legacy database/UI baselines run locally on disposable DBs with recorded evidence,
-  explicitly distinct from real-source proof; immutable CI has no browser/database execution.
-  Backend old-Ask parity runs in-process in a disposable-DB integration test overriding only
-  the LLM_PROVIDER token with recorded governed selections. No production provider switch,
-  CoreModule edit or old-prompt copy is allowed. LEGACY-UI captures the existing mock-provider
-  clarification path plus report/export/drill screens in Playwright; it does not claim recorded
-  selection UI proof. REGRESSION replays each respective baseline unchanged after the feature.
-  BASELINE pins FINANCIAL_CHAT_SOURCE_FILE as the test/operator input path (not required app
-  config), records its SHA-256 and validates the same source for BROWSER, REGRESSION and
-  ROLLOUT. The supplied source is external, never copied into Git. Without it, registered
-  generated/synthetic cases still run; real-source cases explicitly skip with a reason and
-  real-source acceptance stays pending. Never label synthetic runs as real-source proof.
-  Repeated real runs validate the recorded hash; a changed file requires a new source identity.
-- CONFIG first adds all FINANCIAL_CHAT_ENABLED/provider/model/key/retry/timeout keys in central
-  config.ts and .env.example. Missing/invalid new-model config never prevents startup; it causes
-  per-request typed refusal. No provider reads process.env directly. API/STREAM consume these
-  keys; WIRING only registers backend modules/capabilities, NAVIGATION only the shell link.
-- The React client uses native credentialed fetch/ReadableStream and shared typed frames,
-  not a LangGraph React SDK. Backend LangGraph and direct Claude remain selected. TRANSPORT
-  proves incremental frames, cancel/replay/CSRF/auth semantics; fixed local components remain
-  the generative-UI presentation. No hosted Agent Server or extra frontend agent framework.
-- LOAD's registered argument tests run on Linux with generated filenames containing spaces/
-  parentheses. ROLLOUT manually records correctly quoted PowerShell/cmd/Git Bash commands
-  with the real supplied workbook; it never expects these Windows shells in Linux CI.
-- The project owner records vendor prerequisites in docs/context/financial-chat-vendor-prerequisites.md:
-  application account/model access, billing approval and client processing/retention/residency
-  confirmation, with date and evidence reference but no credentials. Until the owner records
-  that confirmation, done-when 6, LIVE, ROLLOUT and final completion are blocked; decision 0051
-  alone does not establish those prerequisites. Earlier hermetic/fixture implementation can proceed after story approval.
-  LIVE refuses missing confirmation; no task can bypass the gate or mark mocks as live success.
-- CATALOG audit proof asserts actor, nonfinancial resolved scope, opaque internal references
-  and failure category without prompts, money, rows or raw handles. GRAPH rejects prose-only,
-  malformed and unknown-tool replies before financial execution; QUERY excludes unknown-Plant
-  rows even for all-known-Plants grants; VALUES/SYNTHETIC prove only Actual cells are clickable.
+Decided: demo-first scope and listed hardening deferrals (owner, 2026-10-10).
+Decided: completeness confirmation remains deferred; supplied-source Actual stays explicitly
+partial (owner, 2026-10-08, decision 0054).
+Decided: Claude Sonnet with trusted static-prefix instructions and backend calculations remains
+selected (owner, 2026-10-08, decision 0053).
