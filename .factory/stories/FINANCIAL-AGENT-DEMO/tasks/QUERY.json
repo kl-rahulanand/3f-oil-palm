@@ -2,17 +2,10 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-QUERY",
   "review": {
     "blocking_level": "P1",
-    "changed": "35550573c8565967d04134fab74745f4319a4cde5874ebbfcf87ee7ea4228836",
-    "commit": "5aadd331008671e3ca2c3481f9b87756c008a26e",
+    "changed": "841076166766390d211dc50370758e4f21d74412c8c0587711c09c932e3524fb",
+    "commit": "dd6ac72b1084f6bb5aa980c7cafbe1baad9ad676",
     "dismissals": [],
     "findings": [
-      {
-        "body": "`resultValues` derives relevant coverage only from row dimensions and ignores Plant/month filters. For a scalar query covering April\u2013May but filtered to April, May's unconfirmed or missing coverage still makes the complete April Actual appear `not_loaded` with only an available subtotal; Budget and percentage states can likewise be degraded. Plant filters have the same problem. The database test exercises GL/component filters but has no Plant/month-filter case that would catch this, violating the required exact coverage labels for supported dimensions.",
-        "file": "backend/src/financial-data/financial-query.repository.ts",
-        "line": 310,
-        "priority": "P1",
-        "title": "Not done: filtered Plant/month queries use the filtered scope for coverage labels"
-      },
       {
         "body": "Actual values still receive identifiers derived only from a random result UUID; no matching transactions, full count/total, immutable source and mapping pins, permitted scope, or pagination state are prepared or retained. Thus clickable Actuals and available Actual subtotals cannot yet open the required transaction sets. Per the stage assignment, the later DRILL/PAGES task must implement these handles and paging semantics.",
         "file": "backend/src/financial-data/financial-query.repository.ts",
@@ -28,10 +21,10 @@
         "title": "Simpler: remove branch-local task state \u2192 keep only the permitted implementation paths"
       }
     ],
-    "status": "blocked",
-    "tree": "2a77d1d79943bd8f60035882c80c5cfc4bbe9f0bff46b060bd4ce1b94724d4d4"
+    "status": "clean",
+    "tree": "f35865dbc97113fcab7dd428f70cf72cb7b7e38e990ce67f324554d5b4d95bc0"
   },
-  "status": "fixing",
+  "status": "waiting for checks",
   "steps": [
     {
       "at": "2026-10-10T02:35:32+00:00",
@@ -51,6 +44,10 @@
     },
     {
       "at": "2026-10-10T08:39:22+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T09:50:59+00:00",
       "step": "review"
     }
   ]
