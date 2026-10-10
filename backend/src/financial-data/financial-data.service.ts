@@ -30,9 +30,6 @@ import { FINANCIAL_CATALOG, catalogDimension } from "./financial-catalog";
 import { FINANCIAL_QUERY_REPOSITORY, FinancialQueryRepository } from "./financial-query.repository";
 
 type VocabularyRow = Record<string, string | number | null>;
-type ContinuationState = { readonly limit: number; readonly lastUsedAtMs: number };
-
-const CONTINUATION_IDLE_EXPIRY_MS = 60 * 60 * 1_000;
 
 const VOCABULARY_SQL: Record<FinancialDimensionId, string> = {
   plant: `SELECT p.code AS value, p.name AS label, to_json(p.source_aliases)::text AS aliases,
@@ -78,7 +75,8 @@ const VOCABULARY_SQL: Record<FinancialDimensionId, string> = {
 @Injectable()
 export class FinancialDataService {
   private readonly vocabularyLimit = loadConfig().dimensionEnumMax;
-  private readonly continuationStates = new Map<string, ContinuationState>();
+  // The scope has the same lifetime as its bounded drill context, so an evicted handle cannot retain its pin.
+  private readonly continuationLimits = new WeakMap<ActualDrillContext["scope"], number>();
   private readonly transactionLocks = new Map<string, Promise<void>>();
 
   constructor(
@@ -169,11 +167,7 @@ export class FinancialDataService {
     limit?: number,
   ): Promise<ActualTransactionPage> {
     const context = await this.resolveActualDrillScope(userId, drilldownId);
-    const lastUsedAtMs = Date.parse(context.lastUsedAtUtc);
-    this.pruneContinuationStates(lastUsedAtMs);
-    return this.withTransactionLock(drilldownId, () =>
-      this.readTransactionPage(context, drilldownId, page, limit, lastUsedAtMs),
-    );
+    return this.withTransactionLock(drilldownId, () => this.readTransactionPage(context, drilldownId, page, limit));
   }
 
   private async readTransactionPage(
@@ -181,9 +175,8 @@ export class FinancialDataService {
     drilldownId: string,
     page: number,
     limit: number | undefined,
-    lastUsedAtMs: number,
   ): Promise<ActualTransactionPage> {
-    const pinnedLimit = this.continuationStates.get(drilldownId)?.limit;
+    const pinnedLimit = this.continuationLimits.get(context.scope);
     const pageLimit = validatedPageLimit(page, limit, pinnedLimit);
     const summary = await this.actualTransactions.summarize(context.scope);
     if (!summary) throw sourceUnavailable();
@@ -195,7 +188,7 @@ export class FinancialDataService {
     const offset = page === 1 ? 0 : 10 + (page - 2) * pageLimit;
     const transactions = await this.actualTransactions.page(context.scope, offset, pageLimit);
     if (page >= 2 || pinnedLimit !== undefined) {
-      this.continuationStates.set(drilldownId, { limit: pinnedLimit ?? pageLimit, lastUsedAtMs });
+      this.continuationLimits.set(context.scope, pinnedLimit ?? pageLimit);
     }
 
     return actualTransactionPageSchema.parse({
@@ -208,7 +201,7 @@ export class FinancialDataService {
       matchingActualTotal: summary.matchingActualTotal,
       preparedSize: 10,
       defaultContinuationLimit: 20,
-      pinnedContinuationLimit: this.continuationStates.get(drilldownId)?.limit ?? null,
+      pinnedContinuationLimit: this.continuationLimits.get(context.scope) ?? null,
     });
   }
 
@@ -226,14 +219,6 @@ export class FinancialDataService {
     } finally {
       release();
       if (this.transactionLocks.get(drilldownId) === tail) this.transactionLocks.delete(drilldownId);
-    }
-  }
-
-  private pruneContinuationStates(now: number): void {
-    for (const [drilldownId, state] of this.continuationStates) {
-      if (!this.transactionLocks.has(drilldownId) && now - state.lastUsedAtMs >= CONTINUATION_IDLE_EXPIRY_MS) {
-        this.continuationStates.delete(drilldownId);
-      }
     }
   }
 }
