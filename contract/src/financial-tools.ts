@@ -577,7 +577,14 @@ export const financialQueryResultSchema = z
     valueSets.forEach(({ values, dimensions }, index) => {
       const relevantCoverage = coverage.filter(
         ({ plantId, month }) =>
-          (!dimensions?.plant || dimensions.plant === plantId) && (!dimensions?.month || dimensions.month === month),
+          selection.filters.every((filter) => {
+            if (filter.dimensionId !== "plant" && filter.dimensionId !== "month") return true;
+            const value = filter.dimensionId === "plant" ? plantId : month;
+            const matches = filter.operator === "in" ? filter.values.includes(value) : filter.value === value;
+            return filter.operator === "neq" ? !matches : matches;
+          }) &&
+          (!dimensions?.plant || dimensions.plant === plantId) &&
+          (!dimensions?.month || dimensions.month === month),
       );
       const path: Array<string | number> = [
         index === 0 ? "totals" : "rows",

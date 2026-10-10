@@ -300,7 +300,7 @@ function resultValues(
   allCoverage: Coverage[],
   drilldownId: string,
 ): Values {
-  const coverage = relevantCoverage(allCoverage, aggregate.dimensions);
+  const coverage = relevantCoverage(allCoverage, aggregate.dimensions, selection);
   const values: Values = {};
   const actualTotal = sum(aggregate.actualFacts.map(({ amount }) => amount));
   const budgetTotal = sum(aggregate.budgetFacts.map(({ budget }) => budget));
@@ -402,11 +402,17 @@ function aggregateCoordinate(
   return candidates?.size === 1 ? [...candidates][0] : undefined;
 }
 
-function relevantCoverage(coverage: Coverage[], dimensions: Dimensions): Coverage[] {
+function relevantCoverage(coverage: Coverage[], dimensions: Dimensions, selection: FinancialSelection): Coverage[] {
   return coverage.filter(
-    ({ plantId, month }) =>
-      (dimensions.plant == null || dimensions.plant === plantId) &&
-      (dimensions.month == null || dimensions.month === month),
+    (entry) =>
+      selection.filters.every((filter) => {
+        if (filter.dimensionId !== "plant" && filter.dimensionId !== "month") return true;
+        const value = filter.dimensionId === "plant" ? entry.plantId : entry.month;
+        const matches = filter.operator === "in" ? filter.values.includes(value) : filter.value === value;
+        return filter.operator === "neq" ? !matches : matches;
+      }) &&
+      (dimensions.plant == null || dimensions.plant === entry.plantId) &&
+      (dimensions.month == null || dimensions.month === entry.month),
   );
 }
 

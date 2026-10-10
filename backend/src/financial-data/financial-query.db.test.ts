@@ -105,6 +105,37 @@ test(
         to: "2099-04-30",
       });
 
+      const filteredMonth = await service.query(
+        identities.readerId,
+        selection(fixture, {
+          measureIds: ["actual", "budget", "rollover", "percentage"],
+          timeWindow: { kind: "range", from: "2099-04-01", to: "2099-05-31" },
+          filters: [{ dimensionId: "month", operator: "eq", value: "2099-04-01" }],
+          comparisons: ["actual_vs_budget"],
+        }),
+      );
+      assert.deepEqual(filteredMonth.totals, {
+        actual: actual("145.00", drillId(filteredMonth.totals.actual)),
+        budget: availableBudget("125.00"),
+        rollover: availableRollover("12.00"),
+        percentage: availablePercentage("116"),
+      });
+
+      const filteredPlant = await service.query(
+        identities.readerId,
+        selection(fixture, {
+          plantIds: [fixture.dubCode, fixture.chirCode],
+          measureIds: ["actual", "budget", "percentage"],
+          filters: [{ dimensionId: "plant", operator: "eq", value: fixture.dubCode }],
+          comparisons: ["actual_vs_budget"],
+        }),
+      );
+      assert.deepEqual(filteredPlant.totals, {
+        actual: actual("145.00", drillId(filteredPlant.totals.actual)),
+        budget: availableBudget("125.00"),
+        percentage: availablePercentage("116"),
+      });
+
       const executedCatalogCombinations = new Set<string>();
       for (const combination of FINANCIAL_CATALOG.combinations) {
         const result = await service.query(

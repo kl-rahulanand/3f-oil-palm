@@ -515,6 +515,65 @@ test("filtered scalar totals preserve governed missing Budget states", () => {
   );
 });
 
+test("Plant and month filtered totals validate against only their filtered coverage", () => {
+  const monthFiltered = {
+    resultId: "month-filtered-total",
+    selection: {
+      measureIds: ["actual", "budget", "percentage"],
+      dimensionIds: [],
+      plantIds: ["DUB"],
+      timeWindow: { kind: "range", from: "2026-04-01", to: "2026-05-31" },
+      filters: [{ dimensionId: "month", operator: "eq", value: "2026-04-01" }],
+      comparisons: ["actual_vs_budget"],
+    },
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-05-31" },
+    rows: [],
+    totals: {
+      actual: { state: "available", value: "145.00", label: "Actual", drilldownId: "month-filtered-actual" },
+      budget: { state: "available", value: "125.00", label: "Budget" },
+      percentage: { state: "available", value: "116", label: "Percentage" },
+    },
+    coverage: [
+      { plantId: "DUB", month: "2026-04-01", actual: "complete", budget: "loaded" },
+      { plantId: "DUB", month: "2026-05-01", actual: "unconfirmed", budget: "loaded" },
+    ],
+  };
+  const plantFiltered = {
+    ...monthFiltered,
+    resultId: "plant-filtered-total",
+    selection: {
+      ...monthFiltered.selection,
+      plantIds: ["DUB", "CHIR"],
+      timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+      filters: [{ dimensionId: "plant", operator: "eq", value: "DUB" }],
+    },
+    scope: { plantIds: ["DUB", "CHIR"], from: "2026-04-01", to: "2026-04-30" },
+    totals: {
+      ...monthFiltered.totals,
+      actual: { ...monthFiltered.totals.actual, drilldownId: "plant-filtered-actual" },
+    },
+    coverage: [
+      { plantId: "DUB", month: "2026-04-01", actual: "complete", budget: "loaded" },
+      { plantId: "CHIR", month: "2026-04-01", actual: "complete", budget: "not_loaded" },
+    ],
+  };
+
+  assert.deepEqual(financialQueryResultSchema.parse(monthFiltered), monthFiltered);
+  assert.deepEqual(financialQueryResultSchema.parse(plantFiltered), plantFiltered);
+  assert.throws(() =>
+    financialQueryResultSchema.parse({
+      ...monthFiltered,
+      selection: { ...monthFiltered.selection, filters: [] },
+    }),
+  );
+  assert.throws(() =>
+    financialQueryResultSchema.parse({
+      ...plantFiltered,
+      selection: { ...plantFiltered.selection, filters: [] },
+    }),
+  );
+});
+
 test("mixed Budget coverage keeps only its exact available subtotal and unavailable percentage", () => {
   const mixedBudgetResult = {
     resultId: "result-mixed-budget",
