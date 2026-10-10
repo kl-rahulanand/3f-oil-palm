@@ -302,8 +302,11 @@ function resultValues(
   const sourceCovered = coverage.some(({ actual }) => actual !== "not_loaded");
   const allBudgetLoaded = coverage.length > 0 && coverage.every(({ budget }) => budget === "loaded");
   const anyBudgetLoaded = coverage.some(({ budget }) => budget === "loaded");
-  const unmapped = aggregate.dimensions.nursery_component === UNMAPPED_COMPONENT;
-  const missingGlLine = aggregate.dimensions.gl != null && allBudgetLoaded && aggregate.budgetFacts.length === 0;
+  const component = aggregateCoordinate(selection, aggregate.dimensions, "nursery_component");
+  const gl = aggregateCoordinate(selection, aggregate.dimensions, "gl");
+  const unmapped = component === UNMAPPED_COMPONENT;
+  const missingGlLine =
+    gl != null && allBudgetLoaded && aggregate.actualFacts.length > 0 && aggregate.budgetFacts.length === 0;
   const actualValue = completeActual
     ? ({ state: "available", value: paiseToMoney(actualTotal), label: "Actual", drilldownId } as const)
     : ({ state: "not_loaded", value: null, label: "Actual data not loaded", drilldownId: null } as const);
@@ -353,7 +356,7 @@ function resultValues(
     const closingFacts = aggregate.budgetFacts.filter(({ month }) => month === closingMonth);
     values.rollover = unmapped
       ? { state: "unmapped", value: null, label: "No Roll-over assigned to Unmapped" }
-      : aggregate.dimensions.gl != null && closingLoaded && closingFacts.length === 0
+      : gl != null && aggregate.actualFacts.length > 0 && closingLoaded && closingFacts.length === 0
         ? { state: "no_gl_line", value: null, label: "No Roll-over line for this GL" }
         : closingLoaded
           ? {
@@ -370,6 +373,28 @@ function resultValues(
         : { state: "not_applicable", value: null, label: "Not applicable" };
   }
   return values;
+}
+
+function aggregateCoordinate(
+  selection: FinancialSelection,
+  dimensions: Dimensions,
+  dimensionId: FinancialDimensionId,
+): string | null | undefined {
+  if (Object.prototype.hasOwnProperty.call(dimensions, dimensionId)) return dimensions[dimensionId];
+  let candidates: Set<string> | undefined;
+  const excluded = new Set<string>();
+  for (const filter of selection.filters.filter((candidate) => candidate.dimensionId === dimensionId)) {
+    if (filter.operator === "neq") {
+      excluded.add(filter.value);
+      continue;
+    }
+    const filterValues = filter.operator === "in" ? new Set(filter.values) : new Set([filter.value]);
+    candidates = candidates
+      ? new Set([...candidates].filter((candidate) => filterValues.has(candidate)))
+      : filterValues;
+  }
+  excluded.forEach((value) => candidates?.delete(value));
+  return candidates?.size === 1 ? [...candidates][0] : undefined;
 }
 
 function relevantCoverage(coverage: Coverage[], dimensions: Dimensions): Coverage[] {

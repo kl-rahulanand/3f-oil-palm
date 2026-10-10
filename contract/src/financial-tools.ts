@@ -554,6 +554,25 @@ export const financialQueryResultSchema = z
         });
       });
 
+    const filteredCoordinate = (dimensionId: (typeof FINANCIAL_DIMENSION_IDS)[number]) => {
+      let candidates: Set<string> | undefined;
+      const excluded = new Set<string>();
+      selection.filters
+        .filter((filter) => filter.dimensionId === dimensionId)
+        .forEach((filter) => {
+          if (filter.operator === "neq") {
+            excluded.add(filter.value);
+            return;
+          }
+          const filterValues = filter.operator === "in" ? new Set(filter.values) : new Set([filter.value]);
+          candidates = candidates
+            ? new Set([...candidates].filter((candidate) => filterValues.has(candidate)))
+            : filterValues;
+        });
+      excluded.forEach((value) => candidates?.delete(value));
+      return candidates?.size === 1 ? [...candidates][0] : undefined;
+    };
+
     const valueSets = [{ values: totals, dimensions: undefined }, ...rows];
     valueSets.forEach(({ values, dimensions }, index) => {
       const relevantCoverage = coverage.filter(
@@ -576,8 +595,13 @@ export const financialQueryResultSchema = z
       }
       const hasLoadedBudget = relevantCoverage.some(({ budget }) => budget === "loaded");
       const hasMissingBudget = relevantCoverage.some(({ budget }) => budget === "not_loaded");
-      const isUnmappedRow = dimensions?.nursery_component === UNMAPPED_NURSERY_COMPONENT;
-      if (selection.measureIds.includes("budget") && hasLoadedBudget && hasMissingBudget && !isUnmappedRow) {
+      const componentCoordinate =
+        dimensions && Object.hasOwn(dimensions, "nursery_component")
+          ? dimensions.nursery_component
+          : filteredCoordinate("nursery_component");
+      const glCoordinate = dimensions && Object.hasOwn(dimensions, "gl") ? dimensions.gl : filteredCoordinate("gl");
+      const isUnmappedScope = componentCoordinate === UNMAPPED_NURSERY_COMPONENT;
+      if (selection.measureIds.includes("budget") && hasLoadedBudget && hasMissingBudget && !isUnmappedScope) {
         requiredValueKeys.add("availableBudgetSubtotal");
       }
       const valueKeys = Object.keys(values);
@@ -665,14 +689,13 @@ export const financialQueryResultSchema = z
         });
       }
       if (
-        (values.budget?.state === "no_gl_line" &&
-          (!dimensions || !selection.dimensionIds.includes("gl") || !dimensions.gl)) ||
-        (values.budget?.state === "unmapped" && !isUnmappedRow) ||
-        (isUnmappedRow && selection.measureIds.includes("budget") && values.budget?.state !== "unmapped")
+        (values.budget?.state === "no_gl_line" && !glCoordinate) ||
+        (values.budget?.state === "unmapped" && !isUnmappedScope) ||
+        (isUnmappedScope && selection.measureIds.includes("budget") && values.budget?.state !== "unmapped")
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "special Budget state does not match the row grouping",
+          message: "special Budget state does not match the aggregate scope",
           path: [...path, "budget"],
         });
       }
@@ -690,14 +713,13 @@ export const financialQueryResultSchema = z
         );
         const closingCoverage = relevantCoverage.filter(({ month }) => month === closingMonth);
         const closingLoaded = closingCoverage.length > 0 && closingCoverage.every(({ budget }) => budget === "loaded");
-        const hasGlCoordinate =
-          dimensions !== undefined && selection.dimensionIds.includes("gl") && dimensions.gl != null;
+        const hasGlCoordinate = glCoordinate != null;
         const budgetCoversOnlyClosingMonth =
           relevantCoverage.length > 0 && relevantCoverage.every(({ month }) => month === closingMonth);
         const explicitBudgetContradiction = budgetCoversOnlyClosingMonth && values.budget?.state === "available";
         const specialStateMismatch =
-          (isUnmappedRow && values.rollover.state !== "unmapped") ||
-          (!isUnmappedRow && values.rollover.state === "unmapped") ||
+          (isUnmappedScope && values.rollover.state !== "unmapped") ||
+          (!isUnmappedScope && values.rollover.state === "unmapped") ||
           (values.rollover.state === "no_gl_line" &&
             (!hasGlCoordinate || !closingLoaded || explicitBudgetContradiction)) ||
           (values.budget?.state === "no_gl_line" && values.rollover.state !== "no_gl_line");

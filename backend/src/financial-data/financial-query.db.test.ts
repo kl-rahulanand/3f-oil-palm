@@ -36,10 +36,12 @@ test(
     try {
       await client.query("BEGIN");
       const fixture = await seedFixture(client);
+      const rbac = new FakeRbac(user(fixture));
+      const repository = new FinancialQueryRepository(client);
       const service = new FinancialDataService(
-        new FinancialAccessService(new FakeRbac(user(fixture)), new FakeAudit()),
+        new FinancialAccessService(rbac, new FakeAudit()),
         new FakeWarehouse(),
-        new FinancialQueryRepository(client),
+        repository,
       );
 
       const april = await service.query(
@@ -54,6 +56,39 @@ test(
         budget: availableBudget("125.00"),
         rollover: availableRollover("12.00"),
         percentage: availablePercentage("116"),
+      });
+      assert.deepEqual(april.scope, {
+        plantIds: [fixture.dubCode],
+        from: "2099-04-01",
+        to: "2099-04-30",
+      });
+
+      const filteredGl = await service.query(
+        "reader",
+        selection(fixture, {
+          measureIds: ["actual", "budget", "percentage"],
+          filters: [{ dimensionId: "gl", operator: "eq", value: "GL-NO-BUDGET" }],
+          comparisons: ["actual_vs_budget"],
+        }),
+      );
+      assert.deepEqual(filteredGl.totals, {
+        actual: actual("20.00", drillId(filteredGl.totals.actual)),
+        budget: { state: "no_gl_line", value: null, label: "No Budget line for this GL" },
+        percentage: notApplicable(),
+      });
+
+      const filteredUnmapped = await service.query(
+        "reader",
+        selection(fixture, {
+          measureIds: ["actual", "budget", "percentage"],
+          filters: [{ dimensionId: "nursery_component", operator: "eq", value: "unmapped-GL" }],
+          comparisons: ["actual_vs_budget"],
+        }),
+      );
+      assert.deepEqual(filteredUnmapped.totals, {
+        actual: actual("55.00", drillId(filteredUnmapped.totals.actual)),
+        budget: { state: "unmapped", value: null, label: "No Budget assigned to Unmapped" },
+        percentage: notApplicable(),
       });
 
       const gl = await service.query(
@@ -210,6 +245,29 @@ test(
       assert.equal(confirmedEmpty.totals.actual?.value, "0.00");
       assert.equal(confirmedEmpty.totals.budget?.value, "0.00");
       assert.deepEqual(confirmedEmpty.totals.percentage, notApplicable());
+
+      const deniedUser = user(fixture);
+      deniedUser.permissions = { ...deniedUser.permissions, actions: [] };
+      const deniedService = new FinancialDataService(
+        new FinancialAccessService(new FakeRbac(deniedUser), new FakeAudit()),
+        new FakeWarehouse(),
+        repository,
+      );
+      await rejectsWithReason(deniedService.query("reader", selection(fixture)), "access_denied");
+
+      const chirSelection = selection(fixture, { plantIds: [fixture.chirCode] });
+      const beforeRevocation = await service.query("reader", chirSelection);
+      assert.deepEqual(beforeRevocation.scope, {
+        plantIds: [fixture.chirCode],
+        from: "2099-04-01",
+        to: "2099-04-30",
+      });
+      rbac.current = { ...user(fixture), scope: [{ attribute: "plant", value: fixture.dubCode }] };
+      await rejectsWithReason(service.query("reader", chirSelection), "access_denied");
+      await rejectsWithReason(
+        service.query("reader", selection(fixture, { plantIds: [fixture.dubCode, "NOT-A-GRANTED-PLANT"] })),
+        "access_denied",
+      );
     } finally {
       await client.query("ROLLBACK");
       client.release();
@@ -439,8 +497,18 @@ function user(fixture: Fixture): AuthUser {
   };
 }
 
+async function rejectsWithReason(promise: Promise<unknown>, reason: string): Promise<void> {
+  await assert.rejects(promise, (error: unknown) => {
+    assert.ok(error && typeof error === "object" && "getResponse" in error);
+    const response = (error as { getResponse(): unknown }).getResponse();
+    assert.ok(response && typeof response === "object" && "details" in response);
+    assert.deepEqual((response as { details: unknown }).details, { reason });
+    return true;
+  });
+}
+
 class FakeRbac {
-  constructor(private readonly current: AuthUser) {}
+  constructor(public current: AuthUser) {}
   async resolveUser(): Promise<AuthUser> {
     return this.current;
   }

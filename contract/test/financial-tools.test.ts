@@ -465,6 +465,56 @@ test("query results preserve exact values and reject incomplete or ungoverned sh
   assert.deepEqual(financialQueryResultSchema.parse(missingGlActual), missingGlActual);
 });
 
+test("filtered scalar totals preserve governed missing Budget states", () => {
+  const filteredTotal = {
+    resultId: "filtered-total",
+    selection: {
+      measureIds: ["actual", "budget"],
+      dimensionIds: [],
+      plantIds: ["DUB"],
+      timeWindow: { kind: "month", from: "2026-04-01", to: "2026-04-30" },
+      filters: [{ dimensionId: "gl", operator: "eq", value: "GL-NO-BUDGET" }],
+      comparisons: ["actual_vs_budget"],
+    },
+    scope: { plantIds: ["DUB"], from: "2026-04-01", to: "2026-04-30" },
+    rows: [],
+    totals: {
+      actual: { state: "available", value: "20.00", label: "Actual", drilldownId: "filtered-gl-actual" },
+      budget: { state: "no_gl_line", value: null, label: "No Budget line for this GL" },
+      percentage: { state: "not_applicable", value: null, label: "Not applicable" },
+    },
+    coverage: [{ plantId: "DUB", month: "2026-04-01", actual: "complete", budget: "loaded" }],
+  };
+  const unmappedTotal = {
+    ...filteredTotal,
+    resultId: "filtered-unmapped-total",
+    selection: {
+      ...filteredTotal.selection,
+      filters: [{ dimensionId: "nursery_component", operator: "eq", value: "unmapped-GL" }],
+    },
+    totals: {
+      ...filteredTotal.totals,
+      actual: { ...filteredTotal.totals.actual, value: "55.00", drilldownId: "filtered-unmapped-actual" },
+      budget: { state: "unmapped", value: null, label: "No Budget assigned to Unmapped" },
+    },
+  };
+
+  assert.deepEqual(financialQueryResultSchema.parse(filteredTotal), filteredTotal);
+  assert.deepEqual(financialQueryResultSchema.parse(unmappedTotal), unmappedTotal);
+  assert.throws(() =>
+    financialQueryResultSchema.parse({
+      ...filteredTotal,
+      selection: { ...filteredTotal.selection, filters: [] },
+    }),
+  );
+  assert.throws(() =>
+    financialQueryResultSchema.parse({
+      ...unmappedTotal,
+      totals: { ...unmappedTotal.totals, budget: { state: "available", value: "0.00", label: "Budget" } },
+    }),
+  );
+});
+
 test("mixed Budget coverage keeps only its exact available subtotal and unavailable percentage", () => {
   const mixedBudgetResult = {
     resultId: "result-mixed-budget",
