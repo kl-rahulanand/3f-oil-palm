@@ -30,6 +30,9 @@ import { FINANCIAL_CATALOG, catalogDimension } from "./financial-catalog";
 import { FINANCIAL_QUERY_REPOSITORY, FinancialQueryRepository } from "./financial-query.repository";
 
 type VocabularyRow = Record<string, string | number | null>;
+type ContinuationState = { readonly limit: number; readonly lastUsedAtMs: number };
+
+const CONTINUATION_IDLE_EXPIRY_MS = 60 * 60 * 1_000;
 
 const VOCABULARY_SQL: Record<FinancialDimensionId, string> = {
   plant: `SELECT p.code AS value, p.name AS label, to_json(p.source_aliases)::text AS aliases,
@@ -75,7 +78,8 @@ const VOCABULARY_SQL: Record<FinancialDimensionId, string> = {
 @Injectable()
 export class FinancialDataService {
   private readonly vocabularyLimit = loadConfig().dimensionEnumMax;
-  private readonly continuationLimits = new Map<string, number>();
+  private readonly continuationStates = new Map<string, ContinuationState>();
+  private readonly transactionLocks = new Map<string, Promise<void>>();
 
   constructor(
     private readonly access: FinancialAccessService,
@@ -165,7 +169,21 @@ export class FinancialDataService {
     limit?: number,
   ): Promise<ActualTransactionPage> {
     const context = await this.resolveActualDrillScope(userId, drilldownId);
-    const pinnedLimit = this.continuationLimits.get(drilldownId);
+    const lastUsedAtMs = Date.parse(context.lastUsedAtUtc);
+    this.pruneContinuationStates(lastUsedAtMs);
+    return this.withTransactionLock(drilldownId, () =>
+      this.readTransactionPage(context, drilldownId, page, limit, lastUsedAtMs),
+    );
+  }
+
+  private async readTransactionPage(
+    context: ActualDrillContext,
+    drilldownId: string,
+    page: number,
+    limit: number | undefined,
+    lastUsedAtMs: number,
+  ): Promise<ActualTransactionPage> {
+    const pinnedLimit = this.continuationStates.get(drilldownId)?.limit;
     const pageLimit = validatedPageLimit(page, limit, pinnedLimit);
     const summary = await this.actualTransactions.summarize(context.scope);
     if (!summary) throw sourceUnavailable();
@@ -174,9 +192,11 @@ export class FinancialDataService {
     const continuationLimit = page === 1 ? (pinnedLimit ?? 20) : pageLimit;
     const totalPages = 1 + Math.ceil(Math.max(summary.totalItems - 10, 0) / continuationLimit);
     if (page > totalPages) throw pageOutOfRange();
-    if (page >= 2 && pinnedLimit === undefined) this.continuationLimits.set(drilldownId, pageLimit);
     const offset = page === 1 ? 0 : 10 + (page - 2) * pageLimit;
     const transactions = await this.actualTransactions.page(context.scope, offset, pageLimit);
+    if (page >= 2 || pinnedLimit !== undefined) {
+      this.continuationStates.set(drilldownId, { limit: pinnedLimit ?? pageLimit, lastUsedAtMs });
+    }
 
     return actualTransactionPageSchema.parse({
       drilldownId,
@@ -188,8 +208,33 @@ export class FinancialDataService {
       matchingActualTotal: summary.matchingActualTotal,
       preparedSize: 10,
       defaultContinuationLimit: 20,
-      pinnedContinuationLimit: this.continuationLimits.get(drilldownId) ?? null,
+      pinnedContinuationLimit: this.continuationStates.get(drilldownId)?.limit ?? null,
     });
+  }
+
+  private async withTransactionLock<T>(drilldownId: string, read: () => Promise<T>): Promise<T> {
+    const preceding = this.transactionLocks.get(drilldownId) ?? Promise.resolve();
+    let release = (): void => undefined;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tail = preceding.then(() => current);
+    this.transactionLocks.set(drilldownId, tail);
+    await preceding;
+    try {
+      return await read();
+    } finally {
+      release();
+      if (this.transactionLocks.get(drilldownId) === tail) this.transactionLocks.delete(drilldownId);
+    }
+  }
+
+  private pruneContinuationStates(now: number): void {
+    for (const [drilldownId, state] of this.continuationStates) {
+      if (!this.transactionLocks.has(drilldownId) && now - state.lastUsedAtMs >= CONTINUATION_IDLE_EXPIRY_MS) {
+        this.continuationStates.delete(drilldownId);
+      }
+    }
   }
 }
 
