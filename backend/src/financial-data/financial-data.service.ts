@@ -30,9 +30,18 @@ const VOCABULARY_SQL: Record<FinancialDimensionId, string> = {
     p.code AS plant_code FROM agent_financial.financial_actual a
     JOIN agent_financial.plant p ON p.id = a.plant_id
     JOIN agent_financial.gl_account g ON g.id = a.gl_account_id
-    JOIN agent_financial.ingestion_batch b ON b.id = a.batch_id AND b.state = 'active'`,
+    JOIN agent_financial.ingestion_batch b ON b.id = a.batch_id AND b.state = 'active'
+    UNION
+    SELECT DISTINCT g.code AS value, g.name AS label, to_json(g.source_aliases)::text AS aliases,
+    p.code AS plant_code FROM agent_financial.nursery_budget n
+    JOIN agent_financial.plant p ON p.id = n.plant_id
+    JOIN agent_financial.gl_account g ON g.id = n.gl_account_id
+    JOIN agent_financial.ingestion_batch b ON b.id = n.batch_id AND b.state = 'active'`,
   cost_center: `SELECT DISTINCT c.code AS value, c.name AS label, to_json(c.source_aliases)::text AS aliases,
-    p.code AS plant_code FROM agent_financial.cost_center c JOIN agent_financial.plant p ON p.id = c.plant_id`,
+    p.code AS plant_code FROM agent_financial.financial_actual a
+    JOIN agent_financial.cost_center c ON c.id = a.cost_center_id
+    JOIN agent_financial.plant p ON p.id = a.plant_id
+    JOIN agent_financial.ingestion_batch b ON b.id = a.batch_id AND b.state = 'active'`,
   nursery_component: `SELECT DISTINCT c.component_key AS value, c.component_name AS label, '[]' AS aliases,
     p.code AS plant_code FROM agent_financial.nursery_budget_component c
     JOIN agent_financial.ingestion_batch b ON b.id = c.batch_id AND b.state = 'active'
