@@ -2,41 +2,20 @@
   "branch": "task/FINANCIAL-AGENT-DEMO-MODEL",
   "review": {
     "blocking_level": "P1",
-    "changed": "89282b2fa5651c6a7ac406a337a2513f82006e627a6a5a55fc2da40ddb7123f4",
-    "commit": "1e69023e12fac03151c341d75a87a47ebdf6ee45",
+    "changed": "76db92f52d1ffb09ec50a6c8a31f1e7d4c9cbaab57f50fb670a0be123662d15f",
+    "commit": "b15658c1ae45d430db094f21feaa670497ea7e20",
     "dismissals": [],
     "findings": [
       {
-        "body": "`pendingSelection` is copied directly into the vendor context without runtime schema validation, length limits, or reconciliation with the current permitted vocabulary. TypeScript's `Partial<FinancialSelection>` provides no runtime protection, so stale revoked Plant values or malformed/unbounded filter and comparison values can be sent to Anthropic. This violates the requirement that only sanitized selection metadata and current capped permitted vocabulary leave the server. Validate and cap the pending selection\u2014and ensure confirmed scope remains currently permitted\u2014before serialization.",
-        "file": "backend/src/financial-chat/financial-selector.provider.ts",
-        "line": 184,
-        "priority": "P1",
-        "title": "Not done: sanitize retained selection before sending it to Claude"
-      },
-      {
-        "body": "The schema test only proves each output schema rejects one unexpected object. A broken schema that rejects every possible output, including `z.never()`, would still pass, so the required meaningful strict output contracts are not actually tested. Add a representative valid output for each of the four tools and assert it parses successfully, alongside the existing strictness assertion.",
-        "file": "backend/src/financial-chat/financial-selector.provider.test.ts",
-        "line": 54,
-        "priority": "P1",
-        "title": "Not done: output-schema acceptance test"
-      },
-      {
-        "body": "This new `.factory` task-state file is outside the explicitly permitted paths and is not needed by the provider implementation or its tests. It also records the task as `working` in the delivered branch. Remove it from this change so the branch remains within its declared scope.",
+        "body": "This newly committed `.factory` review-state file is outside the explicitly permitted paths and is unnecessary for the provider, tools, or tests. It also ships transient workflow metadata with the task still marked `fixing`. Remove it from the branch.",
         "file": ".factory/stories/FINANCIAL-AGENT-DEMO/tasks/MODEL.json",
         "line": 1,
         "priority": "P1",
         "title": "Remove the out-of-scope workflow-state artifact"
-      },
-      {
-        "body": "The provider records `outcome: \"success\"` immediately after `invoke`, but validates the returned tool calls only after leaving the retry loop. Therefore an empty, malformed, unknown-tool, or schema-invalid reply throws a typed error while traces/logs claim success, and the aggregate telemetry call below is skipped entirely. Validate inside the attempt before recording success, and record invalid-response failure telemetry without including payload data.",
-        "file": "backend/src/financial-chat/financial-selector.provider.ts",
-        "line": 349,
-        "priority": "P2",
-        "title": "Malformed vendor responses are logged as successful calls"
       }
     ],
     "status": "blocked",
-    "tree": "d1951ed8cb98f4e8cb45cf230cfc746d428395632a81ddaa3a2aa08db681aea1"
+    "tree": "d57cbd0fa2e39c9224038e07907ff44ebc8bb209d9e85f07908a7db6b8700617"
   },
   "status": "fixing",
   "steps": [
@@ -46,6 +25,10 @@
     },
     {
       "at": "2026-10-10T12:03:01+00:00",
+      "step": "review"
+    },
+    {
+      "at": "2026-10-10T12:39:32+00:00",
       "step": "review"
     }
   ]
