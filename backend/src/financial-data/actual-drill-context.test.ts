@@ -83,6 +83,37 @@ test("done-when 4: a filtered parent total and its matching grouped row share on
   assert.equal(parent.values.actual.drilldownId, actualHandle(result));
 });
 
+test("done-when 4: a grouped component drill intersects the selected components", async () => {
+  const contexts = new ActualDrillContextService(() => 0);
+  const rbac = new FakeRbac(user("reader", ["DUB"]));
+  const service = new FinancialDataService(
+    new FinancialAccessService(rbac, new FakeAudit()),
+    new FakeWarehouse(),
+    new FinancialQueryRepository(multipleComponentDatabase()),
+    contexts,
+  );
+  const result = await service.query("reader", {
+    ...selection(["DUB"]),
+    dimensionIds: ["nursery_component"],
+    filters: [
+      { dimensionId: "nursery_component", operator: "in", values: ["component-a", "component-b"] },
+      { dimensionId: "nursery_component", operator: "neq", value: "component-excluded" },
+      { dimensionId: "gl", operator: "eq", value: "5001" },
+    ],
+  });
+  const componentA = result.rows.find(({ dimensions }) => dimensions.nursery_component === "component-a");
+
+  assert.equal(componentA?.values.actual?.state, "available");
+  const pinned = await service.resolveActualDrillScope("reader", componentA.values.actual.drilldownId);
+  assert.equal(pinned.expectedMatchingActualTotal, "1.00");
+  assert.deepEqual(pinned.scope.componentKeys, ["component-a"]);
+  assert.deepEqual(pinned.scope.filters, [
+    { dimensionId: "nursery_component", operator: "eq", values: ["component-a"] },
+    { dimensionId: "nursery_component", operator: "neq", values: ["component-excluded"] },
+    { dimensionId: "gl", operator: "eq", values: ["5001"] },
+  ]);
+});
+
 test("done-when 4: production queries count only distinct clickable Actual scopes toward 200", async () => {
   const rbac = new FakeRbac(user("reader", ["DUB"]));
   const missingActuals = new FinancialDataService(
@@ -333,6 +364,79 @@ function parentComponentDatabase(): Pick<Pool, "query"> {
             { component_key: "leaf", ancestor_key: "parent" },
             { component_key: "parent", ancestor_key: "parent" },
           ],
+        };
+      }
+      throw new Error(`Unexpected financial repository query: ${sql}`);
+    },
+  } as unknown as Pick<Pool, "query">;
+}
+
+function multipleComponentDatabase(): Pick<Pool, "query"> {
+  const actualRows = [
+    {
+      id: "actual-a",
+      plant: "DUB",
+      month: "2026-04-01",
+      gl: "5001",
+      cost_center: "DUB-A",
+      nursery_component: "component-a",
+      section: null,
+      consideration: null,
+      short_name: null,
+      contra_account: null,
+      origin: null,
+      location: null,
+      actual_amount: "1.00",
+    },
+    {
+      id: "actual-b",
+      plant: "DUB",
+      month: "2026-04-01",
+      gl: "5001",
+      cost_center: "DUB-B",
+      nursery_component: "component-b",
+      section: null,
+      consideration: null,
+      short_name: null,
+      contra_account: null,
+      origin: null,
+      location: null,
+      actual_amount: "2.00",
+    },
+  ];
+  return {
+    query: async (input: string | QueryConfig) => {
+      const sql = typeof input === "string" ? input : input.text;
+      if (sql.includes("dataset_key = $1 AND state = 'active'")) return { rows: [{ id: "batch-id" }] };
+      if (sql.includes("FROM agent_financial.plant")) return { rows: [{ id: "plant-id", code: "DUB" }] };
+      if (sql.includes("WITH RECURSIVE descendants")) {
+        return {
+          rows: ["component-a", "component-b", "component-excluded"].map((component) => ({
+            root_key: component,
+            component_key: component,
+          })),
+        };
+      }
+      if (sql.includes("source_reporting_months::text[]")) {
+        return {
+          rows: [
+            {
+              id: "batch-id",
+              source_reporting_months: ["2026-04-01"],
+              actual_coverage: [{ plantId: "plant-id", month: "2026-04-01", completeness: "confirmed" }],
+              budget_coverage: [],
+            },
+          ],
+        };
+      }
+      if (sql.includes("FROM contributing_actuals")) return { rows: actualRows.map(({ id }) => ({ id })) };
+      if (sql.includes("WHERE a.id = ANY")) return { rows: actualRows };
+      if (sql.includes("WITH RECURSIVE ancestry")) {
+        return {
+          rows: actualRows.map(({ nursery_component }) => ({
+            component_key: nursery_component,
+            ancestor_key: nursery_component,
+          })),
         };
       }
       throw new Error(`Unexpected financial repository query: ${sql}`);
